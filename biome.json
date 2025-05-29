@@ -15,11 +15,13 @@
       "correctness": {
         "noUnusedVariables": "error",
         "useExhaustiveDependencies": "warn",
-        "noUnusedImports": "warn",
-        "noChildrenProp": "off"
+        "noUnusedImports": "error",
+        "noChildrenProp": "off",
+        "useJsxKeyInIterable": "error",
+        "noUnsafeOptionalChaining": "error"
       },
       "security": {
-        "noDangerouslySetInnerHtml": "off"
+        "noDangerouslySetInnerHtml": "error"
       },
       "style": {
         "useBlockStatements": "error",
@@ -29,11 +31,20 @@
         "noDelete": "off"
       },
       "suspicious": {
+        "noDoubleEquals": "error",
+        "useIsArray": "error",
+        "noFallthroughSwitchClause": "error",
         "noExplicitAny": "off",
         "noConsoleLog": "warn"
       },
       "complexity": {
-        "noForEach": "off"
+        "noForEach": "off",
+        "noExtraBooleanCast": "error",
+        "noUselessTernary": "error",
+        "noUselessTypeConstraint": "error",
+        "noUselessStringConcat": "error",
+        "useOptionalChain": "error",
+        "useDateNow": "error"
       }
     },
     "ignore": [

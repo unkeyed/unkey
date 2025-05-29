@@ -1,3 +1,4 @@
+import { deepMerge } from "@/lib/utils";
 import {
   type CreateKeyInput,
   type FormValueTypes,
@@ -85,8 +86,10 @@ export const getFieldsFromSchema = (schema: any, prefix = ""): string[] => {
   });
 };
 
-export const getDefaultValues = (): Partial<FormValueTypes> => {
-  return {
+export const getDefaultValues = (
+  overrides?: Partial<FormValueTypes> | null,
+): Partial<FormValueTypes> => {
+  const defaults = {
     bytes: 16,
     prefix: "",
     metadata: {
@@ -97,7 +100,7 @@ export const getDefaultValues = (): Partial<FormValueTypes> => {
       data: {
         remaining: 100,
         refill: {
-          interval: "none",
+          interval: "none" as const,
           amount: undefined,
           refillDay: undefined,
         },
@@ -117,4 +120,6 @@ export const getDefaultValues = (): Partial<FormValueTypes> => {
       enabled: false,
     },
   };
+
+  return overrides ? deepMerge(defaults, overrides) : defaults;
 };

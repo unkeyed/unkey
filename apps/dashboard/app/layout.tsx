@@ -1,6 +1,5 @@
 import { CommandMenu } from "@/components/dashboard/command-menu";
 import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { PHProvider, PostHogPageview } from "@/providers/PostHogProvider";
 import "@/styles/tailwind/tailwind.css";
 import "@unkey/ui/css";
@@ -60,13 +59,11 @@ export default function RootLayout({
           <Toaster />
           <ReactQueryProvider>
             <ThemeProvider attribute="class">
-              <TooltipProvider>
-                {children}
-                <CommandMenu />
-                <Suspense>
-                  <Feedback />
-                </Suspense>
-              </TooltipProvider>
+              {children}
+              <CommandMenu />
+              <Suspense>
+                <Feedback />
+              </Suspense>
             </ThemeProvider>
           </ReactQueryProvider>
         </body>
