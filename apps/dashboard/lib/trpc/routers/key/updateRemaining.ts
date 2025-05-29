@@ -33,24 +33,7 @@ export const updateKeyRemaining = t.procedure
         }
 
         // If limits are disabled, set all values to null
-        if (!input.limit.enabled) {
-          await tx
-            .update(schema.keys)
-            .set({
-              remaining: null,
-              refillDay: null,
-              refillAmount: null,
-              lastRefillAt: null,
-            })
-            .where(eq(schema.keys.id, key.id))
-            .catch((_err) => {
-              throw new TRPCError({
-                code: "INTERNAL_SERVER_ERROR",
-                message:
-                  "We were unable to update remaining on this key. Please try again or contact support@unkey.dev",
-              });
-            });
-        } else {
+        if (input.limit.enabled) {
           // Get appropriate refill values based on the interval
           const { refill } = input.limit.data;
           const refillDay = refill.interval === "monthly" ? refill.refillDay : null;
@@ -63,6 +46,23 @@ export const updateKeyRemaining = t.procedure
               refillDay,
               refillAmount,
               lastRefillAt: refillAmount ? new Date() : null,
+            })
+            .where(eq(schema.keys.id, key.id))
+            .catch((_err) => {
+              throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message:
+                  "We were unable to update remaining on this key. Please try again or contact support@unkey.dev",
+              });
+            });
+        } else {
+          await tx
+            .update(schema.keys)
+            .set({
+              remaining: null,
+              refillDay: null,
+              refillAmount: null,
+              lastRefillAt: null,
             })
             .where(eq(schema.keys.id, key.id))
             .catch((_err) => {

@@ -214,12 +214,12 @@ const updateRatelimitV2 = async (
             });
           }
         }
-      } else if (!input.ratelimit.enabled) {
-        // If rate limiting is disabled, remove all rate limit rules for this key
-        await tx.delete(schema.ratelimits).where(eq(schema.ratelimits.keyId, input.keyId));
-      } else {
+      } else if (input.ratelimit.enabled) {
         // Rate limiting is enabled but no rules provided (edge case). Should not happen in v2.
         throw new Error("Rate limiting is enabled but no rules were provided");
+      } else {
+        // If rate limiting is disabled, remove all rate limit rules for this key
+        await tx.delete(schema.ratelimits).where(eq(schema.ratelimits.keyId, input.keyId));
       }
       const description = input.ratelimit.enabled
         ? `Updated rate limits for key ${key.id} (${input.ratelimit.data.length} rules)`

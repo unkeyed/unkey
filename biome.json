@@ -25,7 +25,18 @@
       },
       "style": {
         "useBlockStatements": "error",
-        "noNonNullAssertion": "off"
+        "noNonNullAssertion": "off",
+        "useConst": "error",
+        "noUselessElse": "error",
+        "useImportType": "error",
+        "useFragmentSyntax": "error",
+        "useAsConstAssertion": "error",
+        "useTemplate": "error",
+        "noYodaExpression": "error",
+        "noUnusedTemplateLiteral": "error",
+        "noNegationElse": "error",
+        "useSelfClosingElements": "error",
+        "useShorthandAssign": "error"
       },
       "performance": {
         "noDelete": "off"
