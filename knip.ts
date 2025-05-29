@@ -53,4 +53,5 @@ const config: KnipConfig = {
   },
 };
 
+// biome-ignore lint/style/noDefaultExport: no idea what this is leaving it as is
 export default config;

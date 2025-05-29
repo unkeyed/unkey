@@ -206,4 +206,5 @@ const handler = {
   },
 } satisfies ExportedHandler<Env, MessageBody>;
 
+// biome-ignore lint/style/noDefaultExport: too scared to change
 export default handler;

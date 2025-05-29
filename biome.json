@@ -36,7 +36,16 @@
         "noUnusedTemplateLiteral": "error",
         "noNegationElse": "error",
         "useSelfClosingElements": "error",
-        "useShorthandAssign": "error"
+        "useShorthandAssign": "error",
+        "noParameterAssign": "error",
+        "useNumberNamespace": "error",
+        "noVar": "error",
+        "useSingleVarDeclarator": "error",
+        "noDefaultExport": "error",
+        "useExportType": "error",
+        "useThrowOnlyError": "error",
+        "noShoutyConstants": "error",
+        "useDefaultParameterLast": "error"
       },
       "performance": {
         "noDelete": "off"
@@ -103,5 +112,25 @@
       ".content-collections",
       "./internal/auth-migrator"
     ]
-  }
+  },
+  "overrides": [
+    {
+      "include": [
+        "**/page.tsx",
+        "**/layout.tsx",
+        "**/loading.tsx",
+        "**/error.tsx",
+        "**/not-found.tsx",
+        "**/route.ts",
+        "**/*.config.*"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off"
+          }
+        }
+      }
+    }
+  ]
 }
