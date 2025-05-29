@@ -209,7 +209,7 @@ export const expirationValidationSchema = z.object({
       })
       .refine(
         (date) => {
-          const minDate = new Date(new Date().getTime() + 2 * 60000);
+          const minDate = new Date(Date.now() + 2 * 60000);
           return date >= minDate;
         },
         {

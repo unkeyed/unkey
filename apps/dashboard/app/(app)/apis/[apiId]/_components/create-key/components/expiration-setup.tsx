@@ -123,8 +123,7 @@ export const ExpirationSetup = () => {
 
   // Calculate date for showing warning about close expiry (less than 1 hour)
   const isExpiringVerySoon =
-    currentExpiryDate &&
-    new Date(currentExpiryDate).getTime() - new Date().getTime() < 60 * 60 * 1000;
+    currentExpiryDate && new Date(currentExpiryDate).getTime() - Date.now() < 60 * 60 * 1000;
 
   const getExpiryDescription = () => {
     if (isExpiringVerySoon) {

@@ -11,6 +11,10 @@ export type ApiLayoutData = {
     name: string;
     workspaceId: string;
     keyAuthId: string | null;
+    keyspaceDefaults: {
+      prefix?: string;
+      bytes?: number;
+    } | null;
   };
   workspaceApis: {
     id: string;
@@ -32,6 +36,12 @@ export const fetchApiAndWorkspaceDataFromDb = async (apiId: string): Promise<Api
         columns: {
           id: true,
           orgId: true,
+        },
+      },
+      keyAuth: {
+        columns: {
+          defaultPrefix: true,
+          defaultBytes: true,
         },
       },
     },
@@ -62,6 +72,10 @@ export const fetchApiAndWorkspaceDataFromDb = async (apiId: string): Promise<Api
       name: currentApi.name,
       workspaceId: currentApi.workspaceId,
       keyAuthId: currentApi.keyAuthId,
+      keyspaceDefaults: {
+        prefix: currentApi.keyAuth?.defaultPrefix || undefined,
+        bytes: currentApi.keyAuth?.defaultBytes || undefined,
+      },
     },
     workspaceApis,
   };

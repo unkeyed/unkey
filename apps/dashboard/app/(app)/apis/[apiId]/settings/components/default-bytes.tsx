@@ -1,4 +1,5 @@
 "use client";
+import { revalidate } from "@/app/actions";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,9 +22,10 @@ type Props = {
     id: string;
     defaultBytes: number | undefined | null;
   };
+  apiId: string;
 };
 
-export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
+export const DefaultBytes: React.FC<Props> = ({ keyAuth, apiId }) => {
   const router = useRouter();
 
   const {
@@ -59,6 +61,7 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
       );
     }
     await setDefaultBytes.mutateAsync(values);
+    revalidate(`/apis/${apiId}/settings`);
   }
 
   return (
