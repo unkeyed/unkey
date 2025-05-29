@@ -22,13 +22,26 @@ export default async function RolesPage() {
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     with: {
-      permissions: true,
+      permissions: {
+        columns: {
+          id: true,
+        }
+      },
       roles: {
+        columns: {
+          id: true,
+          name: true,
+          description: true,
+        },
         with: {
           // Include all permissions for each role
           permissions: {
             with: {
-              permission: true,
+              permission: {
+                columns: {
+                  id: true
+                }
+              },
             },
           },
           // Only include non-deleted keys
@@ -41,7 +54,11 @@ export default async function RolesPage() {
                   .where(and(eq(keys.id, keysRolesTable.keyId), isNull(keys.deletedAtM))),
               ),
             with: {
-              key: true,
+              key: {
+                columns: {
+                  id: true
+                }
+              },
             },
           },
         },
@@ -77,7 +94,7 @@ export default async function RolesPage() {
 
   return (
     <div>
-      <Navigation workspace={workspaceWithRoles} />
+      <Navigation roles={workspace.roles.length} />
       <PageContent>
         <SubMenu navigation={navigation} segment="roles" />
         <div className="mt-8 mb-20 overflow-x-auto">
