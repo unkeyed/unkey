@@ -1,7 +1,6 @@
-import { KeyboardButton } from "@/components/keyboard-button";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { CircleCaretRight } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, KeyboardButton } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 
 type LiveSwitchProps = {

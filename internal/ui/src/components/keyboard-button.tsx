@@ -1,5 +1,8 @@
-import { cn } from "@/lib/utils";
+"use client";
+// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
+import * as React from "react";
 import type { ComponentProps } from "react";
+import { cn } from "../lib/utils";
 
 type ModifierKey = "⌘" | "⇧" | "CTRL" | "⌥";
 
@@ -8,7 +11,7 @@ interface KeyboardButtonProps extends ComponentProps<"div"> {
   modifierKey?: ModifierKey | null;
 }
 
-export const KeyboardButton = ({
+const KeyboardButton = ({
   shortcut,
   modifierKey,
   className = "",
@@ -31,8 +34,13 @@ export const KeyboardButton = ({
       title={`Press '${modifierKey ?? ""}${shortcut?.toUpperCase()}' to toggle`}
       {...props}
     >
-      {modifierKey && <kbd>{modifierKey}+</kbd>}
-      <kbd>{shortcut?.toUpperCase()}</kbd>
+      {/* className="not-prose" added to prevent markdown rendering issues */}
+      {modifierKey && <kbd className="not-prose">{modifierKey}+</kbd>}
+      <kbd className="not-prose">{shortcut?.toUpperCase()}</kbd>
     </span>
   );
 };
+
+KeyboardButton.displayName = "KeyboardButton";
+
+export { KeyboardButton };
