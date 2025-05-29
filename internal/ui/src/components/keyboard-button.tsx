@@ -34,8 +34,9 @@ const KeyboardButton = ({
       title={`Press '${modifierKey ?? ""}${shortcut?.toUpperCase()}' to toggle`}
       {...props}
     >
-      {modifierKey && <kbd>{modifierKey}+</kbd>}
-      <kbd>{shortcut?.toUpperCase()}</kbd>
+      {/* className="not-prose" added to prevent markdown rendering issues */}
+      {modifierKey && <kbd className="not-prose">{modifierKey}+</kbd>}
+      <kbd className="not-prose">{shortcut?.toUpperCase()}</kbd>
     </span>
   );
 };
