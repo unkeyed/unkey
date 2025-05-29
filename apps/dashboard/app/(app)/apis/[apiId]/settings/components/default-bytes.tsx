@@ -1,4 +1,5 @@
 "use client";
+import { revalidate } from "@/app/actions";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
@@ -21,9 +22,10 @@ type Props = {
     id: string;
     defaultBytes: number | undefined | null;
   };
+  apiId: string;
 };
 
-export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
+export const DefaultBytes: React.FC<Props> = ({ keyAuth, apiId }) => {
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: async (data, context, options) => {
@@ -56,6 +58,7 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
       );
     }
     await setDefaultBytes.mutateAsync(values);
+    revalidate(`/apis/${apiId}/settings`);
   }
 
   return (

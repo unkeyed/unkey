@@ -39,10 +39,21 @@ export default async function SettingsPage(props: Props) {
     return notFound();
   }
 
+  const currentApi = {
+    id: api.id,
+    name: api.name,
+    workspaceId: api.workspaceId,
+    keyAuthId: api.keyAuthId,
+    keyspaceDefaults: {
+      prefix: keyAuth.defaultPrefix || undefined,
+      bytes: keyAuth.defaultBytes || undefined,
+    },
+  };
+
   return (
     <div>
       <ApisNavbar
-        api={api}
+        api={currentApi}
         activePage={{
           href: `/apis/${api.id}/settings`,
           text: "Settings",
