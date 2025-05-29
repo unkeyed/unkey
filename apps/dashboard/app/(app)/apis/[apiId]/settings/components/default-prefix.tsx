@@ -1,4 +1,5 @@
 "use client";
+import { revalidate } from "@/app/actions";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
@@ -23,9 +24,10 @@ type Props = {
     id: string;
     defaultPrefix: string | undefined | null;
   };
+  apiId: string;
 };
 
-export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
+export const DefaultPrefix: React.FC<Props> = ({ keyAuth, apiId }) => {
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: async (data, context, options) => {
@@ -56,6 +58,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
       return toast.error("Please provide a different prefix than already existing one as default");
     }
     await setDefaultPrefix.mutateAsync(values);
+    revalidate(`/apis/${apiId}/settings`);
   }
 
   return (
