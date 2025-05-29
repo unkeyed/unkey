@@ -2,9 +2,8 @@ import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { getAuth } from "@/lib/auth";
-import { and, db, eq, isNull } from "@/lib/db";
+import { db } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
-import { keys } from "@unkey/db/src/schema";
 import { Button } from "@unkey/ui";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -38,24 +37,6 @@ export default async function RolesPage() {
           permissions: {
             with: {
               permission: {
-                columns: {
-                  id: true,
-                },
-              },
-            },
-          },
-          // Only include non-deleted keys
-          keys: {
-            where: (keysRolesTable, { exists }) =>
-              exists(
-                db
-                  .select()
-                  .from(keys)
-                  .where(and(eq(keys.id, keysRolesTable.keyId), isNull(keys.deletedAtM))),
-              ),
-            limit: 1001,
-            with: {
-              key: {
                 columns: {
                   id: true,
                 },
@@ -119,10 +100,6 @@ export default async function RolesPage() {
                     <div className="flex items-center col-span-3 gap-2">
                       <Badge variant="secondary">
                         {formatNumber(r.permissionCount)} Permissions
-                      </Badge>
-                      <Badge variant="secondary">
-                        {r.keys.length === 1001 ? "Over 1000" : formatNumber(r.keys.length)} Key
-                        {r.keys.length !== 1 ? "s" : ""}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-end col-span-3">
