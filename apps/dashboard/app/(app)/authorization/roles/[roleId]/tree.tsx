@@ -103,11 +103,13 @@ export const RecursivePermission: React.FC<
           align: "start",
         }}
       >
-        <div className="flex items-center gap-2 w-full">
-          <PermissionToggle permissionId={id} roleId={roleId} checked={checked} />
-          <pre className="text-sm text-accent-12 font-medium">{k}</pre>
+        <div className="w-full">
+          <div className="flex items-center gap-2 w-full">
+            <PermissionToggle permissionId={id} roleId={roleId} checked={checked} />
+            <pre className="text-sm text-accent-12 font-medium">{k}</pre>
+          </div>
+          {description && <p className="text-xs text-accent-11 mt-0.5">{description}</p>}
         </div>
-        {description && <p className="text-xs text-accent-11 mt-0.5">{description}</p>}
       </RatelimitOverviewTooltip>
     );
   }
