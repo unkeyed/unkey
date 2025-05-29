@@ -1,5 +1,4 @@
 "use client";
-import { RatelimitOverviewTooltip } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/table/components/ratelimit-overview-tooltip";
 import { Loading } from "@/components/dashboard/loading";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
