@@ -25,7 +25,7 @@ export default async function RolesPage() {
       permissions: {
         columns: {
           id: true,
-        }
+        },
       },
       roles: {
         columns: {
@@ -39,8 +39,8 @@ export default async function RolesPage() {
             with: {
               permission: {
                 columns: {
-                  id: true
-                }
+                  id: true,
+                },
               },
             },
           },
@@ -53,11 +53,12 @@ export default async function RolesPage() {
                   .from(keys)
                   .where(and(eq(keys.id, keysRolesTable.keyId), isNull(keys.deletedAtM))),
               ),
+            limit: 1001,
             with: {
               key: {
                 columns: {
-                  id: true
-                }
+                  id: true,
+                },
               },
             },
           },
@@ -120,7 +121,7 @@ export default async function RolesPage() {
                         {formatNumber(r.permissionCount)} Permissions
                       </Badge>
                       <Badge variant="secondary">
-                        {formatNumber(r.keys.length)} Key
+                        {r.keys.length === 1001 ? "Over 1000" : formatNumber(r.keys.length)} Key
                         {r.keys.length !== 1 ? "s" : ""}
                       </Badge>
                     </div>

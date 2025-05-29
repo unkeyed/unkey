@@ -8,7 +8,7 @@ import { useState } from "react";
 import { RBACForm } from "../_components/rbac-form";
 
 interface NavigationProps {
-  roles: number
+  roles: number;
 }
 
 export function Navigation({ roles }: NavigationProps) {
