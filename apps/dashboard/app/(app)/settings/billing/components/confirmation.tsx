@@ -36,9 +36,8 @@ export const Confirm: React.FC<Props> = (props) => {
               className="w-full rounded-lg"
               onClick={async () => {
                 setLoading(true);
-                await props.onConfirm();
-
                 setOpen(false);
+                await props.onConfirm();
                 setLoading(false);
               }}
             >
