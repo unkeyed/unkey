@@ -83,6 +83,8 @@ export const EditRatelimits = ({ keyDetails, isOpen, onClose }: EditRatelimitsPr
             onClose();
           }}
           title="Edit ratelimits"
+          className="flex flex-col"
+          contentClassName="flex flex-col flex-1 min-h-0"
           footer={
             <div className="w-full flex flex-col gap-2 items-center justify-center">
               <Button
@@ -100,12 +102,15 @@ export const EditRatelimits = ({ keyDetails, isOpen, onClose }: EditRatelimitsPr
             </div>
           }
         >
-          <KeyInfo keyDetails={keyDetails} />
-          <div className="py-1 my-2">
-            <div className="h-[1px] bg-grayA-3 w-full" />
-          </div>
-          <div className="[&>*:first-child]:p-0">
-            <RatelimitSetup />
+          {/* Scrollable body container */}
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <KeyInfo keyDetails={keyDetails} />
+            <div className="py-1 my-2">
+              <div className="h-[1px] bg-grayA-3 w-full" />
+            </div>
+            <div className="[&>*:first-child]:p-0">
+              <RatelimitSetup />
+            </div>
           </div>
         </DialogContainer>
       </form>
