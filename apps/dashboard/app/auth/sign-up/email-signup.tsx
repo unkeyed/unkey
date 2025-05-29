@@ -2,11 +2,11 @@
 
 import * as React from "react";
 
-import { Loading } from "@/components/dashboard/loading";
 import { FadeInStagger } from "@/components/landing/fade-in";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
+import { Loading } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { useSignUp } from "../hooks/useSignUp";
 

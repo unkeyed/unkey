@@ -40,10 +40,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { Button } from "@unkey/ui";
+import { Button, Loading } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Loading } from "../loading";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];

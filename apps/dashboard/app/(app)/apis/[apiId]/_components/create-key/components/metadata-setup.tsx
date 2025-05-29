@@ -1,8 +1,7 @@
 "use client";
 import { toast } from "@/components/ui/toaster";
 import { Code } from "@unkey/icons";
-import { FormTextarea } from "@unkey/ui";
-import { Button } from "@unkey/ui";
+import { Button, FormTextarea } from "@unkey/ui";
 import { useFormContext, useWatch } from "react-hook-form";
 import type { MetadataFormValues } from "../create-key.schema";
 import { ProtectionSwitch } from "./protection-switch";
