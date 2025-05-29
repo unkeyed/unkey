@@ -72,13 +72,29 @@ export async function fetchApiOverview({
   };
 }
 
-export async function apiItemsWithApproxKeyCounts(apiItems: Array<any>) {
-  return apiItems.map((api) => {
-    return {
-      id: api.id,
-      name: api.name,
-      keyspaceId: api.keyAuthId,
-      keys: [{ count: api.keyAuth?.sizeApprox || 0 }],
-    };
-  });
+type ApiItem = {
+  id: string;
+  name: string;
+  keyAuthId: string;
+  keyAuth?: {
+    sizeApprox?: number;
+  };
+};
+
+type ApiWithKeyCount = {
+  id: string;
+  name: string;
+  keyspaceId: string;
+  keys: Array<{ count: number }>;
+};
+
+export async function apiItemsWithApproxKeyCounts(
+  apiItems: Array<ApiItem>,
+): Promise<Array<ApiWithKeyCount>> {
+  return apiItems.map((api) => ({
+    id: api.id,
+    name: api.name,
+    keyspaceId: api.keyAuthId,
+    keys: [{ count: api.keyAuth?.sizeApprox || 0 }],
+  }));
 }

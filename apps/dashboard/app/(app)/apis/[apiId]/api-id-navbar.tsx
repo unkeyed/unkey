@@ -309,11 +309,13 @@ function calculatePermissionData(permissionsData?: PermissionsResponse) {
   }
 
   // Build roles list matching the original format
-  const roles = permissionsData.workspace.roles.map((role: any) => {
+  const roles = permissionsData.workspace.roles.map((role: { id: string; name: string }) => {
     return {
       id: role.id,
       name: role.name,
-      isActive: permissionsData.roles.some((keyRole: any) => keyRole.roleId === role.id),
+      isActive: permissionsData.roles.some(
+        (keyRole: { roleId: string }) => keyRole.roleId === role.id,
+      ),
     };
   });
 

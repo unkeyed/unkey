@@ -71,16 +71,24 @@ export const sectionSchemaMap = {
   metadata: metadataSchema,
 };
 
-export const getFieldsFromSchema = (schema: any, prefix = ""): string[] => {
-  if (!schema?.shape) {
+export const getFieldsFromSchema = (schema: unknown, prefix = ""): string[] => {
+  if (!schema || typeof schema !== "object" || !("shape" in schema)) {
     return [];
   }
 
-  return Object.keys(schema.shape).flatMap((key) => {
+  const schemaObj = schema as { shape: Record<string, unknown>; _def?: { typeName: string } };
+
+  return Object.keys(schemaObj.shape).flatMap((key) => {
     const fullPath = prefix ? `${prefix}.${key}` : key;
-    // Handle nested objects recursively
-    if (schema.shape[key]?._def?.typeName === "ZodObject") {
-      return getFieldsFromSchema(schema.shape[key], fullPath);
+    const fieldSchema = schemaObj.shape[key];
+
+    if (
+      fieldSchema &&
+      typeof fieldSchema === "object" &&
+      "_def" in fieldSchema &&
+      (fieldSchema as { _def: { typeName: string } })._def?.typeName === "ZodObject"
+    ) {
+      return getFieldsFromSchema(fieldSchema, fullPath);
     }
     return [fullPath];
   });

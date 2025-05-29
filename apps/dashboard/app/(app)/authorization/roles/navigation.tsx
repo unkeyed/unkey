@@ -19,10 +19,10 @@ interface NavigationProps {
         };
       }>;
       permissions: Array<{
-        permission: any; // We could type this further if needed
+        permission: unknown; // We could type this further if needed
       }>;
     }>;
-    permissions: Array<any>; // Kept for reference
+    permissions: Array<unknown>; // Kept for reference
   };
 }
 

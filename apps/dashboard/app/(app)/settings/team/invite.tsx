@@ -46,7 +46,7 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
       );
       setDialogOpen(false);
     },
-    onError: (error: { message: any }) => {
+    onError: (error: { message: string }) => {
       toast.error(`Failed to send invitation: ${error.message}`);
     },
   });

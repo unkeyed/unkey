@@ -34,7 +34,7 @@
         "noDoubleEquals": "error",
         "useIsArray": "error",
         "noFallthroughSwitchClause": "error",
-        "noExplicitAny": "off",
+        "noExplicitAny": "error",
         "noConsoleLog": "warn"
       },
       "complexity": {
@@ -92,5 +92,18 @@
       ".content-collections",
       "./internal/auth-migrator"
     ]
-  }
+  },
+  "overrides": [
+    {
+      "include": ["cmd/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsoleLog": "off",
+            "noExplicitAny": "off"
+          }
+        }
+      }
+    }
+  ]
 }

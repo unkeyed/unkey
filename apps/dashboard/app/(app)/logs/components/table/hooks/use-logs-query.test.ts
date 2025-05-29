@@ -3,6 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useLogsQuery } from "./use-logs-query";
 
+// biome-ignore lint/suspicious/noExplicitAny: safe to leave
 let mockFilters: any[] = [];
 const mockDate = 1706024400000;
 

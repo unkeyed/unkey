@@ -46,8 +46,8 @@ export const EmailSignUp: React.FC<Props> = ({ setVerification }) => {
       }).then(() => {
         setVerification(true);
       });
-    } catch (err: any) {
-      const errorCode = err.message as AuthErrorCode;
+    } catch (err: unknown) {
+      const errorCode = (err as { message: string }).message as AuthErrorCode;
       toast.error(errorMessages[errorCode] || errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
       console.error(err);
     } finally {
