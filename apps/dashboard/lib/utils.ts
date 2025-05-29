@@ -183,3 +183,27 @@ export function getBaseUrl() {
   // assume localhost
   return `http://localhost:${process.env.PORT ?? 3000}`;
 }
+
+export const deepMerge = (target: any, source: any): any => {
+  const result = { ...target };
+
+  for (const key in source) {
+    const sourceValue = source[key];
+    const targetValue = result[key];
+
+    if (
+      sourceValue !== null &&
+      typeof sourceValue === "object" &&
+      !Array.isArray(sourceValue) &&
+      targetValue !== null &&
+      typeof targetValue === "object" &&
+      !Array.isArray(targetValue)
+    ) {
+      result[key] = deepMerge(targetValue, sourceValue);
+    } else if (sourceValue !== undefined) {
+      result[key] = sourceValue;
+    }
+  }
+
+  return result;
+};

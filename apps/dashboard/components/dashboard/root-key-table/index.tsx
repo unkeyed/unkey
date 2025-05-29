@@ -1,8 +1,8 @@
 "use client";
 
+import { RatelimitOverviewTooltip } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/table/components/ratelimit-overview-tooltip";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +21,7 @@ import {
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Button, InfoTooltip } from "@unkey/ui";
+import { Button, Checkbox, InfoTooltip } from "@unkey/ui";
 import { ArrowUpDown, Minus, MoreHorizontal, MoreVertical, Trash } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";

@@ -1,6 +1,5 @@
 "use client";
 
-import { DialogContainer } from "@/components/dialog-container";
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
@@ -10,14 +9,52 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { ChevronExpandY, Gauge, Gear, ShieldKey } from "@unkey/icons";
+import { ChevronExpandY, Gauge, Gear, Plus, ShieldKey } from "@unkey/icons";
 import { AnimatedLoadingSpinner, Button } from "@unkey/ui";
+import dynamic from "next/dynamic";
 import { useState } from "react";
-import { CreateKeyDialog } from "./_components/create-key";
 import { PermissionList } from "./keys/[keyAuthId]/[keyId]/components/rbac/permissions";
 import { RBACButtons } from "./keys/[keyAuthId]/[keyId]/components/rbac/rbac-buttons";
-import { KeysTableActionPopover } from "./keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover";
 import { getKeysTableActionItems } from "./keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover.constants";
+
+const CreateKeyDialog = dynamic(
+  () =>
+    import("./_components/create-key").then((mod) => ({
+      default: mod.CreateKeyDialog,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <NavbarActionButton disabled>
+        <Plus />
+        Create new key
+      </NavbarActionButton>
+    ),
+  },
+);
+
+const DialogContainer = dynamic(
+  () => import("@/components/dialog-container").then((mod) => mod.DialogContainer),
+  {
+    ssr: false,
+  },
+);
+
+const KeysTableActionPopover = dynamic(
+  () =>
+    import(
+      "./keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover"
+    ).then((mod) => ({ default: mod.KeysTableActionPopover })),
+  {
+    ssr: false,
+    loading: () => (
+      <NavbarActionButton disabled>
+        <Gear size="sm-regular" />
+        Settings
+      </NavbarActionButton>
+    ),
+  },
+);
 
 export const ApisNavbar = ({
   api,
@@ -29,6 +66,10 @@ export const ApisNavbar = ({
     id: string;
     name: string;
     keyAuthId: string | null;
+    keyspaceDefaults: {
+      prefix?: string;
+      bytes?: number;
+    } | null;
   };
   apis: {
     id: string;
@@ -157,7 +198,13 @@ export const ApisNavbar = ({
               </Navbar.Actions>
             </div>
           ) : (
-            api.keyAuthId && <CreateKeyDialog keyspaceId={api.keyAuthId} apiId={api.id} />
+            api.keyAuthId && (
+              <CreateKeyDialog
+                keyspaceId={api.keyAuthId}
+                apiId={api.id}
+                keyspaceDefaults={api.keyspaceDefaults}
+              />
+            )
           )}
         </Navbar>
       </div>

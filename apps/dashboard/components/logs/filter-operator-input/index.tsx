@@ -1,6 +1,5 @@
-import { Textarea } from "@/components/ui/textarea";
 import { Check } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, Textarea } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useEffect, useRef, useState } from "react";
 
@@ -139,7 +138,7 @@ export const FilterOperatorInput = <T extends string>({
             onChange={(e) => setText(e.target.value)}
             placeholder="Enter text"
             onKeyDown={handleTextareaKeyDown}
-            className="w-full px-3 py-2 text-sm bg-accent-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-accent-5 border-accent-12 drop-shadow-sm placeholder:text-gray-8"
+            className="h-20"
           />
         </div>
         <Button variant="primary" className="py-[14px] w-full h-9 rounded-md" onClick={handleApply}>

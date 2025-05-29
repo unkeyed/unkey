@@ -60,13 +60,11 @@ export default function RootLayout({
           <Toaster />
           <ReactQueryProvider>
             <ThemeProvider attribute="class">
-              <TooltipProvider>
-                {children}
-                <CommandMenu />
-                <Suspense>
-                  <Feedback />
-                </Suspense>
-              </TooltipProvider>
+              {children}
+              <CommandMenu />
+              <Suspense>
+                <Feedback />
+              </Suspense>
             </ThemeProvider>
           </ReactQueryProvider>
         </body>
