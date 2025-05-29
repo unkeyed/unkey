@@ -65,6 +65,7 @@ export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierCol
   return (
     <div className="flex gap-6 items-center pl-2">
       <InfoTooltip
+        variant="inverted"
         content={<p className="text-xs">{getWarningMessage(severity, errorPercentage)}</p>}
         position={{ side: "right", align: "center" }}
       >

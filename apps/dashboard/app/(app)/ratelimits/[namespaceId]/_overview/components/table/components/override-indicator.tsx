@@ -25,8 +25,9 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
   return (
     <div className="flex gap-6 items-center pl-2">
       <InfoTooltip
+        variant="inverted"
         content={
-          <div className="text-sm">
+          <div className="text-xs">
             {isFullyBlocked ? (
               "All requests have been blocked in this timeframe"
             ) : (
@@ -78,6 +79,7 @@ type OverrideIndicatorProps = {
 
 const OverrideIndicator = ({ log, style }: OverrideIndicatorProps) => (
   <InfoTooltip
+    variant="muted"
     content={
       <div className="flex flex-row pr-4 gap-3 items-center justify-center">
         <div

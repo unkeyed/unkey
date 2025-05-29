@@ -271,9 +271,10 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
           const outcomeInfo = LOG_OUTCOME_DEFINITIONS[outcomeType];
           return (
             <InfoTooltip
+              variant="inverted"
               className="cursor-default"
               content={<p>{outcomeInfo.tooltip}</p>}
-              position={{ side: "right" }}
+              position={{ side: "top", align: "center", sideOffset: 5 }}
             >
               <div className="flex gap-3 items-center">
                 <StatusBadge
@@ -312,6 +313,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
               {log.tags && log.tags.length > 0 ? (
                 log.tags.slice(0, 3).map((tag) => (
                   <InfoTooltip
+                    variant="inverted"
                     key={tag}
                     content={
                       <div className="max-w-xs">
@@ -364,6 +366,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
               )}
               {log.tags && log.tags.length > 3 && (
                 <InfoTooltip
+                  variant="inverted"
                   content={
                     <div className="flex flex-col gap-2 py-1 max-w-xs max-h-[300px] overflow-y-auto">
                       <div className="text-xs opacity-75 font-medium">

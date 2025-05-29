@@ -40,7 +40,7 @@ export const StatsCard = ({
               </div>
               {secondaryId && (
                 <InfoTooltip variant="inverted" position={{ side: "top" }} content={secondaryId}>
-                  <div className="text-accent-12 font-semibold truncate w-[220px] md:w-[280px] text-left">
+                  <div className="text-left text-accent-11 text-xxs overflow-hidden text-ellipsis w-[240px] md:w-[300px]">
                     {secondaryId}
                   </div>
                 </InfoTooltip>

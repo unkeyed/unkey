@@ -84,8 +84,9 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
 
     return (
       <InfoTooltip
+        variant="secondary"
         delayDuration={150}
-        position={{ side: "top", align: "center" }}
+        position={{ side: "bottom", align: "center" }}
         key={`${field.label}-${index}`}
         content={field.tooltipContent}
         triggerClassName="w-full flex flex-row"

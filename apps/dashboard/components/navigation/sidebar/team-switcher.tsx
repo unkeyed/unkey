@@ -114,11 +114,9 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
               variant="primary"
               position={{ side: "bottom" }}
               content={<span className="text-sm font-medium">{props.workspace.name}</span>}
-              className="border-[1px] border-gray-12 "
+              className="max-w-[260px] overflow-hidden text-sm font-medium text-ellipsis"
             >
-              <span className="overflow-hidden text-sm font-medium text-ellipsis">
-                {props.workspace.name}
-              </span>
+              {props.workspace.name}
             </InfoTooltip>
           ) : null}
         </div>

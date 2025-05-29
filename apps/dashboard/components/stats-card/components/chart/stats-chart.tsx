@@ -96,7 +96,7 @@ export function StatsTimeseriesBarChart<T extends BaseTimeseriesData>({
                       {tooltipExtraContent?.(payload)}
                     </div>
                   }
-                  className="rounded-lg shadow-lg border border-grayA-4 bg-white dark:bg-black"
+                  className="rounded-lg shadow-lg border border-grayA-4"
                   labelFormatter={(_, payload) => createTimeIntervalFormatter(data)(payload)}
                 />
               );
