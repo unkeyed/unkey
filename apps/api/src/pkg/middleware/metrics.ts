@@ -9,10 +9,7 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
   return async (c, next) => {
     const { metrics, analytics } = c.get("services");
 
-    let requestBody = await c.req.raw.clone().text();
-    // [^"]* matches any character except quotes
-    requestBody = requestBody.replaceAll(/"key":\s*"[^"]*"/g, '"key": "<REDACTED>"');
-    requestBody = requestBody.replaceAll(/"plaintext":\s*"[^"]*"/g, '"plaintext": "<REDACTED>"');
+    const requestBody = redactSensitiveFields(await c.req.raw.clone().text());
     const start = performance.now();
     const m = {
       isolateId: c.get("isolateId"),
@@ -95,13 +92,7 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
         responseHeaders.push(`${k}: ${v}`);
       });
 
-      let responseBody = await c.res.clone().text();
-      // [^"]* matches any character except quotes
-      responseBody = responseBody.replaceAll(/"key":\s*"[^"]*"/g, '"key": "<REDACTED>"');
-      responseBody = responseBody.replaceAll(
-        /"plaintext":\s*"[^"]*"/g,
-        '"plaintext": "<REDACTED>"',
-      );
+      const responseBody = redactSensitiveFields(await c.res.clone().text());
 
       const url = new URL(c.req.url);
       c.executionCtx.waitUntil(
@@ -170,4 +161,34 @@ async function getWorkspaceId(c: Context<HonoEnv>): Promise<string> {
     return "";
   }
   return val ?? "";
+}
+
+/**
+ * Redacts sensitive fields in JSON strings.
+ *
+ * Handles all valid JSON string values including:
+ * - Simple strings: "simpleKey123"
+ * - Special characters: "my-key-with-dashes", "key.with.dots"
+ * - Escaped quotes: "my\"secret\"key"
+ * - Escaped backslashes: "path\\to\\key"
+ * - Special escapes: "key\nwith\nnewlines"
+ * - Empty strings: ""
+ *
+ * @param text - The text containing JSON to redact
+ * @param fields - Array of field names to redact (defaults to ["key", "plaintext"])
+ * @returns The text with specified fields redacted
+ */
+export function redactSensitiveFields(
+  text: string,
+  fields: string[] = ["key", "plaintext"],
+): string {
+  let redacted = text;
+
+  for (const field of fields) {
+    // The regex ((?:\\.|[^"\\])*) matches any valid JSON string value
+    const pattern = new RegExp(`"${field}":\\s*"((?:\\\\.|[^"\\\\])*)"`, "g");
+    redacted = redacted.replaceAll(pattern, `"${field}": "<REDACTED>"`);
+  }
+
+  return redacted;
 }
