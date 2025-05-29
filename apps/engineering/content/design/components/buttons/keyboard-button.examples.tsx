@@ -1,23 +1,15 @@
 "use client";
 import { RenderComponentWithSnippet } from "@/app/components/render";
-import { Button, KeyboardButton } from "@unkey/ui";
-import { useState } from "react";
+import { KeyboardButton } from "@unkey/ui";
 
 export const Default = () => {
-  const [activated, setActivated] = useState(false);
-  const message = activated ? "Key has been activated" : "Press k";
 
-  const handleClick = () => {
-    setActivated(!activated);
-  };
 
   return (
     <RenderComponentWithSnippet>
-      <div className="flex items-center gap-2 bg-white">
-        <Button variant="ghost" size="md" title="Press k" onClick={handleClick}>
-          <KeyboardButton shortcut="f" />
-        </Button>
-        <span className="text-sm">{message}</span>
+      <div className="flex w-300[px] h-32 border border-gray-6 rounded-md justify-end items-start p-3 gap-2">
+        <span className="text-gray-9 text-[13px]">Default</span>
+        <KeyboardButton shortcut="D" />
       </div>
     </RenderComponentWithSnippet>
   );
@@ -26,69 +18,14 @@ export const Default = () => {
 export const WithModifierKey = () => {
   return (
     <RenderComponentWithSnippet>
-      <KeyboardButton modifierKey="⌘" shortcut="K" />
-    </RenderComponentWithSnippet>
-  );
-};
-
-export const WithShiftModifier = () => {
-  return (
-    <RenderComponentWithSnippet>
-      <KeyboardButton modifierKey="⇧" shortcut="/" />
-    </RenderComponentWithSnippet>
-  );
-};
-
-export const WithControlModifier = () => {
-  return (
-    <RenderComponentWithSnippet>
-      <KeyboardButton modifierKey="CTRL" shortcut="S" />
-    </RenderComponentWithSnippet>
-  );
-};
-
-export const WithOptionModifier = () => {
-  return (
-    <RenderComponentWithSnippet>
-      <KeyboardButton modifierKey="⌥" shortcut="B" />
-    </RenderComponentWithSnippet>
-  );
-};
-
-export const CustomStyle = () => {
-  return (
-    <RenderComponentWithSnippet>
-      <KeyboardButton
-        shortcut="P"
-        className="bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100"
-      />
-    </RenderComponentWithSnippet>
-  );
-};
-
-export const KeyboardShortcutGroup = () => {
-  return (
-    <RenderComponentWithSnippet>
-      <div className="flex items-center gap-2">
-        <KeyboardButton modifierKey="⌘" shortcut="K" />
-        <span className="text-sm">or</span>
-        <KeyboardButton modifierKey="CTRL" shortcut="K" />
+      <div className="flex w-300[px] h-32 border border-gray-6 rounded-md justify-end items-start p-3 gap-2">
+        <span className="text-gray-9 text-[13px]">Modifier Key</span>
+        <KeyboardButton modifierKey="⌘" shortcut="K"  className="w-full m-0 p-0 gap-2"/>
       </div>
     </RenderComponentWithSnippet>
   );
 };
 
-// Example showing how to use the component in a search interface
-export const SearchInterface = () => {
-  return (
-    <RenderComponentWithSnippet>
-      <div className="flex items-center justify-between w-full max-w-md px-4 py-2 border rounded-lg">
-        <span className="text-sm text-gray-600">Quick search...</span>
-        <KeyboardButton modifierKey="⌘" shortcut="K" />
-      </div>
-    </RenderComponentWithSnippet>
-  );
-};
 
 // Example showing multiple shortcuts in a menu-like interface
 export const ShortcutMenu = () => {
