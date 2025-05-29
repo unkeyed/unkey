@@ -4,17 +4,11 @@ import { QuickNavPopover } from "@/components/navbar-popover";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
-import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { formatNumber } from "@/lib/fmt";
-import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { ChevronExpandY, Gauge, Gear, Plus, ShieldKey } from "@unkey/icons";
-import { AnimatedLoadingSpinner, Button } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import { PermissionList } from "./keys/[keyAuthId]/[keyId]/components/rbac/permissions";
-import { RBACButtons } from "./keys/[keyAuthId]/[keyId]/components/rbac/rbac-buttons";
 import { getKeysTableActionItems } from "./keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover.constants";
 
 const CreateKeyDialog = dynamic(
@@ -56,6 +50,16 @@ const KeysTableActionPopover = dynamic(
   },
 );
 
+const RBACDialogContent = dynamic(() => import("./_components/rbac-dialog-content"), {
+  ssr: false,
+  loading: () => (
+    <NavbarActionButton disabled>
+      <ShieldKey size="sm-regular" />
+      Permissions
+    </NavbarActionButton>
+  ),
+});
+
 export const ApisNavbar = ({
   api,
   apis,
@@ -82,29 +86,10 @@ export const ApisNavbar = ({
   keyData?: KeyDetails | null;
 }) => {
   const isMobile = useIsMobile();
-  const trpcUtils = trpc.useUtils();
   const [showRBAC, setShowRBAC] = useState(false);
 
   const keyId = keyData?.id || "";
   const keyspaceId = api.keyAuthId || "";
-  const shouldFetchPermissions = Boolean(keyId) && Boolean(keyspaceId);
-
-  const {
-    data: permissionsData,
-    isLoading,
-    isRefetching,
-    error,
-  } = trpc.key.fetchPermissions.useQuery(
-    {
-      keyId,
-      keyspaceId,
-    },
-    {
-      enabled: shouldFetchPermissions,
-    },
-  );
-
-  const { transientPermissionIds, rolesList } = calculatePermissionData(permissionsData);
 
   return (
     <>
@@ -181,7 +166,7 @@ export const ApisNavbar = ({
               <Navbar.Actions>
                 <NavbarActionButton
                   onClick={() => setShowRBAC(true)}
-                  disabled={!shouldFetchPermissions}
+                  disabled={!(keyId && keyspaceId)}
                 >
                   <ShieldKey size="sm-regular" />
                   Permissions
@@ -208,117 +193,17 @@ export const ApisNavbar = ({
           )}
         </Navbar>
       </div>
-      <DialogContainer
-        isOpen={showRBAC}
-        onOpenChange={() => setShowRBAC(false)}
-        title="Key Permissions & Roles"
-        subTitle="Manage access control for this API key with role-based permissions"
-        className="max-w-[800px] max-h-[90vh] overflow-y-auto"
-      >
-        {isLoading ? (
-          <div className="flex justify-center items-center p-4 min-h-[250px] [&_svg]:size-10">
-            <AnimatedLoadingSpinner />
-          </div>
-        ) : error || !permissionsData ? (
-          <div className="flex flex-col items-center justify-center p-8 gap-4 min-h-[250px]">
-            <div className="text-accent-10 text-sm">Could not retrieve permission data</div>
-            <div className="text-accent-10 text-xs max-w-[400px] text-center">
-              There was an error loading the permissions for this key. Please try again or contact
-              support if the issue persists.
-            </div>
-            <Button
-              variant="primary"
-              size="xlg"
-              className="mt-2 w-[200px] h-9 rounded-md focus:ring-4 focus:ring-accent-9 focus:ring-offset-2"
-              loading={isRefetching}
-              onClick={() => {
-                // Refetch permissions data
-                if (keyId && keyspaceId) {
-                  trpcUtils.key.fetchPermissions.invalidate({
-                    keyId,
-                    keyspaceId,
-                  });
-                }
-              }}
-            >
-              Try again
-            </Button>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-4 ">
-            <div className="flex w-full flex-1 items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="h-8">
-                  {formatNumber(permissionsData.roles.length)} Roles{" "}
-                </Badge>
-                <Badge variant="secondary" className="h-8">
-                  {formatNumber(transientPermissionIds.size)} Permissions
-                </Badge>
-              </div>
-              <RBACButtons permissions={permissionsData.workspace.permissions.roles} />
-            </div>
-            <div className="min-h-[250px]">
-              {/* Only render PermissionList if we have a valid keyId */}
-              {keyId ? (
-                <PermissionList roles={rolesList} keyId={keyId} />
-              ) : (
-                <div className="flex justify-center items-center p-4">
-                  <div className="text-accent-10 text-sm">No key selected</div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </DialogContainer>
+      {showRBAC && (
+        <DialogContainer
+          isOpen={showRBAC}
+          onOpenChange={() => setShowRBAC(false)}
+          title="Key Permissions & Roles"
+          subTitle="Manage access control for this API key with role-based permissions"
+          className="max-w-[800px] max-h-[90vh] overflow-y-auto"
+        >
+          <RBACDialogContent keyId={keyId} keyspaceId={keyspaceId} />
+        </DialogContainer>
+      )}
     </>
   );
 };
-
-type WorkspaceRole = {
-  id: string;
-  name: string;
-  permissions: { permissionId: string }[];
-};
-
-type PermissionsResponse = {
-  roles: { roleId: string }[];
-  workspace: { roles: WorkspaceRole[]; permissions: { roles: unknown } };
-};
-
-function calculatePermissionData(permissionsData?: PermissionsResponse) {
-  const transientPermissionIds = new Set<string>();
-  const rolesList: { id: string; name: string; isActive: boolean }[] = [];
-
-  if (!permissionsData) {
-    return { transientPermissionIds, rolesList };
-  }
-
-  // Mimic the original implementation logic
-  const connectedRoleIds = new Set<string>();
-
-  for (const role of permissionsData.roles) {
-    connectedRoleIds.add(role.roleId);
-  }
-
-  for (const role of permissionsData.workspace.roles) {
-    if (connectedRoleIds.has(role.id)) {
-      for (const p of role.permissions) {
-        transientPermissionIds.add(p.permissionId);
-      }
-    }
-  }
-
-  // Build roles list matching the original format
-  const roles = permissionsData.workspace.roles.map((role: any) => {
-    return {
-      id: role.id,
-      name: role.name,
-      isActive: permissionsData.roles.some((keyRole: any) => keyRole.roleId === role.id),
-    };
-  });
-
-  return {
-    transientPermissionIds,
-    rolesList: roles,
-  };
-}
