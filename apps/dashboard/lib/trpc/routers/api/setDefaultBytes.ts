@@ -15,14 +15,22 @@ export const setDefaultApiBytes = t.procedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const keyAuth = await db.query.keyAuth.findFirst({
-      where: (table, { eq, and, isNull }) =>
-        and(
-          eq(table.workspaceId, ctx.workspace.id),
-          eq(table.id, input.keyAuthId),
-          isNull(table.deletedAtM),
-        ),
-    });
+    const keyAuth = await db.query.keyAuth
+      .findFirst({
+        where: (table, { eq, and, isNull }) =>
+          and(
+            eq(table.workspaceId, ctx.workspace.id),
+            eq(table.id, input.keyAuthId),
+            isNull(table.deletedAtM),
+          ),
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We were unable to update the key auth. Please try again or contact support@unkey.dev",
+        });
+      });
 
     if (!keyAuth) {
       throw new TRPCError({
