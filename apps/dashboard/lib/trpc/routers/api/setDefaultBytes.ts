@@ -1,8 +1,8 @@
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
-
+import { keyBytesSchema } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.schema";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { requireUser, requireWorkspace, t } from "../../trpc";
 
 export const setDefaultApiBytes = t.procedure
@@ -10,31 +10,20 @@ export const setDefaultApiBytes = t.procedure
   .use(requireWorkspace)
   .input(
     z.object({
-      defaultBytes: z
-        .number()
-        .min(16, "Byte size needs to be at least 16")
-        .max(255, "Byte size cannot exceed 255")
-        .optional(),
+      defaultBytes: keyBytesSchema,
       keyAuthId: z.string(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const keyAuth = await db.query.keyAuth
-      .findFirst({
-        where: (table, { eq, and, isNull }) =>
-          and(
-            eq(table.workspaceId, ctx.workspace.id),
-            eq(table.id, input.keyAuthId),
-            isNull(table.deletedAtM),
-          ),
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We were unable to update the key auth. Please try again or contact support@unkey.dev",
-        });
-      });
+    const keyAuth = await db.query.keyAuth.findFirst({
+      where: (table, { eq, and, isNull }) =>
+        and(
+          eq(table.workspaceId, ctx.workspace.id),
+          eq(table.id, input.keyAuthId),
+          isNull(table.deletedAtM),
+        ),
+    });
+
     if (!keyAuth) {
       throw new TRPCError({
         code: "NOT_FOUND",
@@ -42,21 +31,16 @@ export const setDefaultApiBytes = t.procedure
           "We are unable to find the correct key auth. Please try again or contact support@unkey.dev.",
       });
     }
-    await db
-      .transaction(async (tx) => {
+
+    try {
+      await db.transaction(async (tx) => {
         await tx
           .update(schema.keyAuth)
           .set({
             defaultBytes: input.defaultBytes,
           })
-          .where(eq(schema.keyAuth.id, keyAuth.id))
-          .catch((_err) => {
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message:
-                "We were unable to update the API default bytes. Please try again or contact support@unkey.dev.",
-            });
-          });
+          .where(eq(schema.keyAuth.id, keyAuth.id));
+
         await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
           actor: {
@@ -76,12 +60,13 @@ export const setDefaultApiBytes = t.procedure
             userAgent: ctx.audit.userAgent,
           },
         });
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We were unable to update the default bytes. Please try again or contact support@unkey.dev.",
-        });
       });
+    } catch (err) {
+      console.error(err);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message:
+          "We were unable to update the default bytes. Please try again or contact support@unkey.dev.",
+      });
+    }
   });
