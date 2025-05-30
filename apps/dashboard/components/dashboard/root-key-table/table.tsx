@@ -13,7 +13,6 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -40,7 +39,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { Button } from "@unkey/ui";
+import { Button, Input } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Loading } from "../loading";

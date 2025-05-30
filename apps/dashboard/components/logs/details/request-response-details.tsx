@@ -1,5 +1,5 @@
+import { RatelimitOverviewTooltip } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/table/components/ratelimit-overview-tooltip";
 import { toast } from "@/components/ui/toaster";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
@@ -69,7 +69,7 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
           "border-b",
           field.className,
         )}
-        onClick={!field.skipTooltip ? () => handleClick(field) : undefined}
+        onClick={field.skipTooltip ? undefined : () => handleClick(field)}
       >
         <span className="text-accent-9 text-[13px]">{field.label}</span>
         <span className="text-accent-12 text-right w-3/4">
@@ -83,12 +83,17 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
     }
 
     return (
-      <TooltipProvider key={`${field.label}-${index}`}>
-        <Tooltip>
-          <TooltipTrigger asChild>{baseContent}</TooltipTrigger>
-          <TooltipContent side="bottom">{field.tooltipContent}</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <RatelimitOverviewTooltip
+        key={`${field.label}-${index}`}
+        content={field.tooltipContent}
+        position={{
+          side: "bottom",
+          align: "end",
+        }}
+        asChild
+      >
+        {baseContent}
+      </RatelimitOverviewTooltip>
     );
   };
 

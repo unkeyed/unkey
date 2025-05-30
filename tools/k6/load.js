@@ -20,6 +20,7 @@ export const options = {
   },
 };
 
+// biome-ignore lint/style/noDefaultExport: leaving this for now
 export default function () {
   const res = http.post(
     "https://api.unkey.dev/v1/keys.verifyKey",

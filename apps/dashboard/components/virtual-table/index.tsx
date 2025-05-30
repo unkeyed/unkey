@@ -417,7 +417,7 @@ function HeaderCell<T>({ column }: { column: Column<T> }) {
       return;
     }
 
-    const nextDirection = !direction ? "asc" : direction === "asc" ? "desc" : null;
+    const nextDirection = direction ? (direction === "asc" ? "desc" : null) : "asc";
 
     onSort(nextDirection);
   };

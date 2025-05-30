@@ -24,9 +24,10 @@ interface NavigationProps {
     }>;
     permissions: Array<unknown>; // Kept for reference
   };
+  roles: number;
 }
 
-export function Navigation({ workspace }: NavigationProps) {
+export function Navigation({ roles }: NavigationProps) {
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
 
   return (
@@ -48,7 +49,7 @@ export function Navigation({ workspace }: NavigationProps) {
             className="text-xs font-medium ph-no-capture h-8 bg-grayA-3 hover:bg-grayA-3 !text-grayA-8"
           >
             <div className="flex gap-1 items-center justify-center text-sm">
-              {formatNumber(workspace.roles.length)} Roles
+              {formatNumber(roles)} Roles
             </div>
           </Button>
           <NavbarActionButton

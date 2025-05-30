@@ -52,4 +52,5 @@ PaymentIssue.PreviewProps = {
   date: "Tue Oct 01 2024", // Date().toDateString
 } satisfies Props;
 
+// biome-ignore lint/style/noDefaultExport: Too scared to modify that one
 export default PaymentIssue;

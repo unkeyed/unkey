@@ -1,7 +1,7 @@
 "use client";
 
+import { RatelimitOverviewTooltip } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/table/components/ratelimit-overview-tooltip";
 import { Switch } from "@/components/ui/switch";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChevronRight } from "@unkey/icons";
 import { CopyButton } from "@unkey/ui";
 import type React from "react";
@@ -88,34 +88,29 @@ export const RecursivePermission: React.FC<
 
   if (!hasChildren) {
     return (
-      <Tooltip delayDuration={50}>
-        <TooltipTrigger
-          className={`flex flex-col items-start px-2 first:pt-0  py-1.5 mx-1 rounded transition-colors ${getBgColor(
-            hover,
-          )}`}
-          onMouseEnter={() => setHover(true)}
-          onMouseLeave={() => setHover(false)}
-        >
-          <div className="flex items-center gap-2 w-full">
-            <PermissionToggle permissionId={id} roleId={roleId} checked={checked} />
-            <pre className="text-sm text-accent-12 font-medium">{k}</pre>
-          </div>
-          {description && <p className="text-xs text-accent-11 mt-0.5">{description}</p>}
-        </TooltipTrigger>
-        <TooltipContent
-          side="top"
-          align="start"
-          avoidCollisions={true}
-          className="bg-gray-12 text-gray-1 px-3 py-2 border border-accent-6 shadow-md font-medium text-xs"
-        >
+      <RatelimitOverviewTooltip
+        content={
           <div className="flex items-center justify-start max-w-sm gap-2">
             <pre className="text-ellipsis overflow-hidden hover:overflow-visible">{name}</pre>
             <div>
               <CopyButton value={name} />
             </div>
           </div>
-        </TooltipContent>
-      </Tooltip>
+        }
+        asChild
+        position={{
+          side: "top",
+          align: "start",
+        }}
+      >
+        <div className="w-full">
+          <div className="flex items-center gap-2 w-full">
+            <PermissionToggle permissionId={id} roleId={roleId} checked={checked} />
+            <pre className="text-sm text-accent-12 font-medium">{k}</pre>
+          </div>
+          {description && <p className="text-xs text-accent-11 mt-0.5">{description}</p>}
+        </div>
+      </RatelimitOverviewTooltip>
     );
   }
 

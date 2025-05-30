@@ -183,5 +183,3 @@ export const DisplayPopover = ({ children }: PropsWithChildren) => {
     </Popover>
   );
 };
-
-export default DisplayPopover;
