@@ -55,7 +55,7 @@ type WorkOSAuthError = {
     code: WorkOSErrorCode;
     message: string;
     user: ProviderUser;
-    organizations: WorkOSOrganization[]; // Keep as any[] if you don't have the org type defined
+    organizations: WorkOSOrganization[];
     pending_authentication_token: string;
     email?: string;
   };
