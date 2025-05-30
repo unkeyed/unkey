@@ -1,5 +1,5 @@
 import { CaretRightOutline, CircleInfoSparkle } from "@unkey/icons";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 
 type SearchExampleTooltipProps = {
   onSelectExample: (query: string) => void;

@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { keyPrefixSchema } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.schema";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { requireUser, requireWorkspace, t } from "../../trpc";
@@ -10,12 +11,7 @@ export const setDefaultApiPrefix = t.procedure
   .use(requireWorkspace)
   .input(
     z.object({
-      defaultPrefix: z
-        .string()
-        .max(8, { message: "Prefixes cannot be longer than 8 characters" })
-        .refine((prefix) => !prefix.includes(" "), {
-          message: "Prefixes cannot contain spaces.",
-        }),
+      defaultPrefix: keyPrefixSchema.pipe(z.string()),
       keyAuthId: z.string(),
     }),
   )
