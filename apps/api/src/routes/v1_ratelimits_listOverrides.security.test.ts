@@ -118,7 +118,6 @@ describe("incorrect roles", () => {
       });
 
       // Create root key with specified roles and token conditions
-      // biome-ignore lint/suspicious/noExplicitAny: safe to leave
       const rootOptions: any = { roles };
       if (tokenExpired) {
         rootOptions.expiresAt = new Date(Date.now() - 60 * 60 * 1000); // Set expiration in the past

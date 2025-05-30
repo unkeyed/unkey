@@ -11,7 +11,7 @@ import { useVirtualData } from "./hooks/useVirtualData";
 import type { Column, SeparatorItem, SortDirection, VirtualTableProps } from "./types";
 
 const MOBILE_TABLE_HEIGHT = 400;
-const calculateTableLayout = (columns: Column<any>[]) => {
+const calculateTableLayout = <TTableData,>(columns: Column<TTableData>[]) => {
   return columns.map((column) => {
     let width = "auto";
     if (typeof column.width === "number") {
@@ -34,7 +34,7 @@ export type VirtualTableRef = {
   containerRef: HTMLDivElement | null;
 };
 
-export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
+export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<unknown>>(
   function VirtualTable<TTableData>(
     props: VirtualTableProps<TTableData>,
     ref: Ref<unknown> | undefined,

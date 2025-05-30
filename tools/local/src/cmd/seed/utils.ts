@@ -393,7 +393,6 @@ export function generateRandomApiRequest(workspaceId: string) {
 
   // Generate appropriate request and response bodies based on the path and status
   let requestBody: Record<string, unknown> = {};
-  // biome-ignore lint/suspicious/noExplicitAny: This one is safe to leave.
   let responseBody: Record<string, any> = {};
   let error = "";
 

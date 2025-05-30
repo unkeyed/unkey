@@ -104,6 +104,17 @@
           }
         }
       }
+    },
+    {
+      "include": ["**/*.test.*", "**/*.spec.*", "**/__tests__/**", "**/test/**", "**/tests/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsoleLog": "off",
+            "noExplicitAny": "off"
+          }
+        }
+      }
     }
   ]
 }

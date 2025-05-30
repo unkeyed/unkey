@@ -337,7 +337,7 @@ function createVerificationTimeseriesQuery(interval: TimeInterval, whereClause: 
 function getVerificationTimeseriesWhereClause(
   params: VerificationTimeseriesParams,
   additionalConditions: string[] = [],
-): { whereClause: string; paramSchema: z.ZodType<any> } {
+): { whereClause: string; paramSchema: z.ZodType<unknown> } {
   const conditions = [
     "workspace_id = {workspaceId: String}",
     "key_space_id = {keyspaceId: String}",
@@ -446,7 +446,7 @@ async function batchVerificationTimeseries(
     return (await createVerificationTimeseriesQuerier(interval)(ch)(args)).val;
   }
 
-  const keyIdBatches: any[] = [];
+  const keyIdBatches: { value: string; operator: "is" | "contains" }[][] = [];
   for (let i = 0; i < args.keyIds.length; i += maxBatchSize) {
     keyIdBatches.push(args.keyIds.slice(i, i + maxBatchSize));
   }

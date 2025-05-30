@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 export const isBrowser = typeof window !== "undefined";
 
-export function debounce<T extends (...args: any[]) => any>(func: T, delay: number) {
+export function debounce<T extends (...args: unknown[]) => unknown>(func: T, delay: number) {
   let timeoutId: ReturnType<typeof setTimeout>;
 
   function debounced(...args: Parameters<T>) {
@@ -31,7 +31,7 @@ type ThrottleOptions = {
 
 type Timer = ReturnType<typeof setTimeout>;
 
-export function throttle<T extends (...args: any[]) => any>(
+export function throttle<T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number,
   options: ThrottleOptions = {},
@@ -51,6 +51,7 @@ export function throttle<T extends (...args: any[]) => any>(
   function invokeFunc(time: number, args: Parameters<T>): ReturnType<T> {
     previous = leading ? time : 0;
     timeout = undefined;
+    //@ts-expect-error It's okay
     result = func.apply(null, args);
     pending = false;
     return result as ReturnType<T>;
@@ -184,8 +185,10 @@ export function getBaseUrl() {
   return `http://localhost:${process.env.PORT ?? 3000}`;
 }
 
-export const deepMerge = (target: any, source: any): any => {
-  const result = { ...target };
+type DeepMergeInput = Record<string, unknown>;
+
+export const deepMerge = <T extends DeepMergeInput>(target: T, source: T): T => {
+  const result = { ...target } as T;
 
   for (const key in source) {
     const sourceValue = source[key];
@@ -199,7 +202,10 @@ export const deepMerge = (target: any, source: any): any => {
       typeof targetValue === "object" &&
       !Array.isArray(targetValue)
     ) {
-      result[key] = deepMerge(targetValue, sourceValue);
+      result[key] = deepMerge(
+        targetValue as DeepMergeInput,
+        sourceValue as DeepMergeInput,
+      ) as T[Extract<keyof T, string>];
     } else if (sourceValue !== undefined) {
       result[key] = sourceValue;
     }
