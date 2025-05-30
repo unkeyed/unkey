@@ -4,6 +4,7 @@ export { CountKeys } from "./workflows/count_keys_per_keyspace";
 export { RefillRemaining } from "./workflows/refill_keys";
 export { Invoicing } from "./workflows/invoicing";
 
+// biome-ignore lint/style/noDefaultExport: Required by cloudflare
 export default {
   async scheduled(event: ScheduledEvent, env: Env, _ctx: ExecutionContext) {
     console.info(event);
