@@ -109,7 +109,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
           </Avatar>
           {isUserMembershipsLoading ? (
             <Loading />
-          ) : !isCollapsed ? (
+          ) : isCollapsed ? null : (
             <InfoTooltip
               variant="inverted"
               position={{ side: "right", sideOffset: 10 }}
@@ -119,7 +119,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
             >
               {props.workspace.name}
             </InfoTooltip>
-          ) : null}
+          )}
         </div>
         {!isCollapsed && (
           <ChevronExpandY className="w-5 h-5 shrink-0 md:block [stroke-width:1px] text-gray-9" />

@@ -57,10 +57,10 @@ export const Id: React.FC<IdProps> = ({ className, value, truncate, ...props }) 
       {truncateValue}
       <InfoTooltip position={{ side: "bottom" }} content={value}>
         <div className=" flex justify-end border w-full border-none h-full bg-accent-1">
-          {!isCopied ? (
-            <TaskUnchecked className="item-end my-auto mr-2 bg-gray-1" />
-          ) : (
+          {isCopied ? (
             <TaskChecked className="item-end my-auto mr-2 bg-gray-1" />
+          ) : (
+            <TaskUnchecked className="item-end my-auto mr-2 bg-gray-1" />
           )}
         </div>
       </InfoTooltip>

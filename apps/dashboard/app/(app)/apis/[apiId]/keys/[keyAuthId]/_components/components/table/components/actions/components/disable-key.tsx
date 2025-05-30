@@ -66,10 +66,10 @@ export const UpdateKeyStatus = ({ keyDetails, isOpen, onClose }: UpdateKeyStatus
 
   const handleActionButtonClick = () => {
     // Only show confirmation popover for disabling
-    if (!isEnabling) {
-      setIsConfirmPopoverOpen(true);
-    } else {
+    if (isEnabling) {
       performStatusUpdate();
+    } else {
+      setIsConfirmPopoverOpen(true);
     }
   };
 

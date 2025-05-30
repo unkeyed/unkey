@@ -88,8 +88,8 @@ export const RecursivePermission: React.FC<
   if (!hasChildren) {
     return (
       <InfoTooltip
+        variant="inverted"
         asChild
-        delayDuration={50}
         content={
           <div className="flex items-center justify-start max-w-sm gap-2">
             <pre className="text-ellipsis overflow-hidden hover:overflow-visible">{name}</pre>
@@ -100,13 +100,7 @@ export const RecursivePermission: React.FC<
         }
         position={{ side: "top", align: "start" }}
       >
-        <div
-          className={`flex flex-col items-start px-2 first:pt-0 py-1.5 mx-1 rounded transition-colors ${getBgColor(
-            hover,
-          )}`}
-          onMouseEnter={() => setHover(true)}
-          onMouseLeave={() => setHover(false)}
-        >
+        <div className="w-full">
           <div className="flex items-center gap-2 w-full">
             <PermissionToggle permissionId={id} roleId={roleId} checked={checked} />
             <pre className="text-sm text-accent-12 font-medium">{k}</pre>

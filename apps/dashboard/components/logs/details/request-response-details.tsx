@@ -69,7 +69,7 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
           "border-b",
           field.className,
         )}
-        onClick={!field.skipTooltip ? () => handleClick(field) : undefined}
+        onClick={field.skipTooltip ? undefined : () => handleClick(field)}
       >
         <span className="text-accent-9 text-[13px] lg:no-wrap text-left">{field.label}</span>
         <span className="text-accent-12 text-right w-3/4">

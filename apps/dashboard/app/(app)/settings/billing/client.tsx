@@ -40,7 +40,7 @@ type Props = {
   }>;
 };
 
-export const Client: React.FC<Props> = (props) => {
+const Mutations = () => {
   const router = useRouter();
 
   const createSubscription = trpc.stripe.createSubscription.useMutation({
@@ -70,6 +70,21 @@ export const Client: React.FC<Props> = (props) => {
       toast.error(err.message);
     },
   });
+  const uncancelSubscription = trpc.stripe.uncancelSubscription.useMutation({
+    onSuccess: () => {
+      router.refresh();
+      toast.info("Subscription resumed");
+    },
+    onError: (err) => {
+      toast.error(err.message);
+    },
+  });
+
+  return { createSubscription, updateSubscription, cancelSubscription, uncancelSubscription };
+};
+
+export const Client: React.FC<Props> = (props) => {
+  const mutations = Mutations();
 
   const allowUpdate =
     props.subscription && ["active", "trialing"].includes(props.subscription.status);
@@ -142,7 +157,7 @@ export const Client: React.FC<Props> = (props) => {
                           p.quotas.requestsPerMonth,
                         )} per month immediately.`}
                         onConfirm={async () =>
-                          updateSubscription.mutateAsync({
+                          mutations.updateSubscription.mutateAsync({
                             oldProductId: props.currentProductId!,
                             newProductId: p.id,
                           })
@@ -161,7 +176,9 @@ export const Client: React.FC<Props> = (props) => {
                         } updates your request quota to ${formatNumber(
                           p.quotas.requestsPerMonth,
                         )} per month immediately.`}
-                        onConfirm={() => createSubscription.mutateAsync({ productId: p.id })}
+                        onConfirm={() =>
+                          mutations.createSubscription.mutateAsync({ productId: p.id })
+                        }
                         fineprint={
                           props.hasPreviousSubscriptions
                             ? "Do you need another trial? Contact support.unkey.dev"
@@ -220,7 +237,7 @@ export const Client: React.FC<Props> = (props) => {
                 <Confirm
                   title="Cancel plan"
                   description="Canceling your plan will downgrade your workspace to the free tier at the end of the current period. You can resume your subscription until then."
-                  onConfirm={() => cancelSubscription.mutateAsync()}
+                  onConfirm={() => mutations.cancelSubscription.mutateAsync()}
                   trigger={(onClick) => (
                     <Button variant="outline" color="danger" size="lg" onClick={onClick}>
                       Cancel Plan
@@ -253,20 +270,12 @@ const FreeTierAlert: React.FC = () => {
 };
 
 const CancelAlert: React.FC<{ cancelAt?: number }> = (props) => {
-  const router = useRouter();
-  const uncancelSubscription = trpc.stripe.uncancelSubscription.useMutation({
-    onSuccess: () => {
-      router.refresh();
-      toast.info("Subscription resumed");
-    },
-    onError: (err) => {
-      toast.error(err.message);
-    },
-  });
+  const mutations = Mutations();
 
   if (!props.cancelAt) {
     return null;
   }
+
   return (
     <SettingCard
       title="Cancellation scheduled"
@@ -284,9 +293,9 @@ const CancelAlert: React.FC<{ cancelAt?: number }> = (props) => {
       <div className="flex justify-end w-full">
         <Button
           variant="primary"
-          loading={uncancelSubscription.isLoading}
-          disabled={uncancelSubscription.isLoading}
-          onClick={() => uncancelSubscription.mutate()}
+          loading={mutations.uncancelSubscription.isLoading}
+          disabled={mutations.uncancelSubscription.isLoading}
+          onClick={() => mutations.uncancelSubscription.mutate()}
         >
           Resubscribe
         </Button>
