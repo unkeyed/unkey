@@ -49,6 +49,7 @@ const verifyGitSignature = async (
   return !verify.verify(publicKey.key, Buffer.from(signature.toString(), "base64"));
 };
 
+// biome-ignore lint/style/noDefaultExport: Required by next.js
 export default async function handler(request: NextApiRequest, response: NextApiResponse) {
   const { RESEND_API_KEY, GITHUB_KEYS_URI } = env();
 

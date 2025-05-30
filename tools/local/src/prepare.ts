@@ -14,7 +14,9 @@ async function ensureBuild(
 
   clack.log.info(`Checking for artifact: ${artifactFullPath}`);
 
-  if (!fs.existsSync(artifactFullPath)) {
+  if (fs.existsSync(artifactFullPath)) {
+    clack.log.success(`Build artifacts for ${packageNameForFilter} found.`);
+  } else {
     clack.log.warn(
       `Build artifacts for ${packageNameForFilter} not found at ${artifactFullPath}. Triggering build...`,
     );
@@ -28,8 +30,6 @@ async function ensureBuild(
       clack.log.error(`Failed to build ${packageNameForFilter}. Please check build logs.`);
       process.exit(1);
     }
-  } else {
-    clack.log.success(`Build artifacts for ${packageNameForFilter} found.`);
   }
 }
 

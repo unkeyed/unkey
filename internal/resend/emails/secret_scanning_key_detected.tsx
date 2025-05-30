@@ -65,4 +65,5 @@ SecretScanningKeyDetected.PreviewProps = {
   url: "http://unkey.com",
 } satisfies Props;
 
+// biome-ignore lint/style/noDefaultExport: Too scared to modify that one
 export default SecretScanningKeyDetected;

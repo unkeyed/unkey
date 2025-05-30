@@ -50,12 +50,12 @@ export async function seed(options: { ws?: string } = {}) {
   // If workspace ID is provided, verify it exists
   if (workspaceId) {
     const workspace = await verifyWorkspace(workspaceId);
-    if (!workspace) {
-      clack.log.warn(`Workspace with ID ${workspaceId} not found`);
-      workspaceId = undefined;
-    } else {
+    if (workspace) {
       workspaceName = workspace.name;
       clack.log.success(`Using workspace: ${workspaceName} (${workspaceId})`);
+    } else {
+      clack.log.warn(`Workspace with ID ${workspaceId} not found`);
+      workspaceId = undefined;
     }
   }
 

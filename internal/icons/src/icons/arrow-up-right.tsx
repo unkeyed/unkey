@@ -38,5 +38,3 @@ export const ArrowUpRight: React.FC<IconProps> = ({ size = "xl-thin", ...props }
     </svg>
   );
 };
-
-export default ArrowUpRight;

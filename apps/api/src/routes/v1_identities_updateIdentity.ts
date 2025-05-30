@@ -234,14 +234,14 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
         const updateRatelimits: Ratelimit[] = [];
         for (const rl of identity.ratelimits) {
           const newRl = req.ratelimits.find((r) => r.name === rl.name);
-          if (!newRl) {
-            deleteRatelimits.push(rl);
-          } else {
+          if (newRl) {
             updateRatelimits.push({
               ...rl,
               limit: newRl.limit,
               duration: newRl.duration,
             });
+          } else {
+            deleteRatelimits.push(rl);
           }
         }
         for (const newRl of req.ratelimits) {
