@@ -27,7 +27,7 @@ type Props = {
   keyspaceId: string;
 };
 
-export default function RBACDialogContent({ keyId, keyspaceId }: Props) {
+export function RBACDialogContent({ keyId, keyspaceId }: Props) {
   const trpcUtils = trpc.useUtils();
 
   const {

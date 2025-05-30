@@ -1,6 +1,7 @@
 export * from "./components/button";
 export * from "./components/copy-button";
 export * from "./components/date-time/date-time";
+export * from "./components/dialog/dialog-container";
 export * from "./components/empty";
 export * from "./components/form";
 export * from "./components/id";
