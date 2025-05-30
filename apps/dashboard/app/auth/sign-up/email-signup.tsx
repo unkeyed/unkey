@@ -111,12 +111,8 @@ export const EmailSignUp: React.FC<Props> = ({ setVerification }) => {
           className="flex items-center justify-center h-10 gap-2 px-4 mt-8 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
           disabled={isLoading}
         >
-          {clientLoaded ? (
-            isLoading ? (
-              <Loading className="w-4 h-4 animate-spin" />
-            ) : (
-              "Sign Up with Email"
-            )
+          {clientLoaded && isLoading ? (
+            <Loading className="w-4 h-4 animate-spin" />
           ) : (
             "Sign Up with Email"
           )}

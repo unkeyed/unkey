@@ -206,5 +206,5 @@ const handler = {
   },
 } satisfies ExportedHandler<Env, MessageBody>;
 
-// biome-ignore lint/style/noDefaultExport: too scared to change
+// biome-ignore lint/style/noDefaultExport: Wrangler needs that
 export default handler;
