@@ -31,7 +31,8 @@ type ThrottleOptions = {
 
 type Timer = ReturnType<typeof setTimeout>;
 
-export function throttle<T extends (...args: unknown[]) => unknown>(
+// biome-ignore lint/suspicious/noExplicitAny: Safe to leave
+export function throttle<T extends (...args: any[]) => any>(
   func: T,
   wait: number,
   options: ThrottleOptions = {},
@@ -51,7 +52,6 @@ export function throttle<T extends (...args: unknown[]) => unknown>(
   function invokeFunc(time: number, args: Parameters<T>): ReturnType<T> {
     previous = leading ? time : 0;
     timeout = undefined;
-    //@ts-expect-error It's okay
     result = func.apply(null, args);
     pending = false;
     return result as ReturnType<T>;

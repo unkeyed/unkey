@@ -187,6 +187,7 @@ export function LogsTimeseriesBarChart({
                     }
                     className="rounded-lg shadow-lg border border-gray-4"
                     labelFormatter={(_, payload) =>
+                      //@ts-expect-error This is okay to ignore
                       createTimeIntervalFormatter(data, "HH:mm")(payload)
                     }
                   />

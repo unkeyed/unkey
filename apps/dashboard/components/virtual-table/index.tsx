@@ -34,7 +34,8 @@ export type VirtualTableRef = {
   containerRef: HTMLDivElement | null;
 };
 
-export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<unknown>>(
+// biome-ignore lint/suspicious/noExplicitAny: Safe to leave
+export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
   function VirtualTable<TTableData>(
     props: VirtualTableProps<TTableData>,
     ref: Ref<unknown> | undefined,

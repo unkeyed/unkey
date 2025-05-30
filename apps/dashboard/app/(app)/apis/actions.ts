@@ -75,16 +75,16 @@ export async function fetchApiOverview({
 type ApiItem = {
   id: string;
   name: string;
-  keyAuthId: string;
+  keyAuthId: string | null;
   keyAuth?: {
     sizeApprox?: number;
-  };
+  } | null;
 };
 
 type ApiWithKeyCount = {
   id: string;
   name: string;
-  keyspaceId: string;
+  keyspaceId: string | null;
   keys: Array<{ count: number }>;
 };
 
