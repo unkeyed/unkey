@@ -8,25 +8,10 @@ import { useState } from "react";
 import { RBACForm } from "../_components/rbac-form";
 
 interface NavigationProps {
-  workspace: {
-    roles: Array<{
-      id: string;
-      name: string;
-      description: string | null;
-      keys: Array<{
-        key: {
-          deletedAtM: number | null;
-        };
-      }>;
-      permissions: Array<{
-        permission: any; // We could type this further if needed
-      }>;
-    }>;
-    permissions: Array<any>; // Kept for reference
-  };
+  roles: number;
 }
 
-export function Navigation({ workspace }: NavigationProps) {
+export function Navigation({ roles }: NavigationProps) {
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
 
   return (
@@ -48,7 +33,7 @@ export function Navigation({ workspace }: NavigationProps) {
             className="text-xs font-medium ph-no-capture h-8 bg-grayA-3 hover:bg-grayA-3 !text-grayA-8"
           >
             <div className="flex gap-1 items-center justify-center text-sm">
-              {formatNumber(workspace.roles.length)} Roles
+              {formatNumber(roles)} Roles
             </div>
           </Button>
           <NavbarActionButton
