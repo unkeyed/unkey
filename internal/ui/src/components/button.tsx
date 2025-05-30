@@ -380,7 +380,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       asChild = false,
       loading,
       disabled,
-      loadingLabel,
+      loadingLabel = "Loading, please wait",
       ...props
     },
     ref,
@@ -398,10 +398,21 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     } else {
       mappedVariant = variant as ButtonVariant;
     }
-
     // Only disable the click behavior, not the visual appearance
     const isClickDisabled = disabled || loading;
-
+    // Keep separate flag for actual visual disabled state
+    const isVisuallyDisabled = disabled;
+    // Width reference for consistent sizing during loading state
+    const buttonRef = React.useRef<HTMLButtonElement>(null);
+    const [buttonWidth, setButtonWidth] = React.useState<number | undefined>(undefined);
+    // Capture initial width when entering loading state
+    React.useEffect(() => {
+      if (loading && buttonRef.current && !buttonWidth) {
+        setButtonWidth(buttonRef.current.offsetWidth);
+      } else if (!loading) {
+        setButtonWidth(undefined);
+      }
+    }, [loading, buttonWidth]);
     // Keyboard handler
     React.useEffect(() => {
       if (!props.keyboard || isClickDisabled) {
@@ -417,7 +428,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       document.addEventListener("keydown", down);
       return () => document.removeEventListener("keydown", down);
     }, [props.keyboard, isClickDisabled]);
-
     const Comp = asChild ? Slot : "button";
 
     return (
@@ -429,59 +439,45 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             size,
             className,
           }),
-          "inline-flex transition-all duration-200",
-          loading ? "min-w-max" : "",
         )}
         onClick={loading ? undefined : props.onClick}
-        disabled={isClickDisabled}
-        aria-disabled={isClickDisabled}
+        disabled={isVisuallyDisabled} // Only apply disabled attribute when explicitly disabled
+        aria-disabled={isClickDisabled} // For accessibility, still indicate it can't be clicked
         aria-busy={loading}
         ref={ref}
         {...props}
       >
-        <div className="relative flex items-center justify-center py-2 px-3 w-full">
+        {loading && (
           <div
-            className={cn(
-              "flex items-center justify-center gap-2 w-full transition-all duration-300 ease-in-out",
-              loading
-                ? "opacity-100 transform scale-100"
-                : "opacity-0 transform scale-95 pointer-events-none absolute inset-0",
-            )}
-            aria-hidden={!loading}
+            className="absolute inset-0 flex items-center justify-center w-full h-full transition-opacity duration-200"
+            aria-hidden="true"
           >
             <AnimatedLoadingSpinner />
-            {loadingLabel && <span className="text-sm font-medium ml-1">{loadingLabel}</span>}
-            <span className="sr-only">Loading</span>
+            <span className="sr-only">{loadingLabel}</span>
           </div>
-
-          {/* Normal content */}
-          <div
-            className={cn(
-              "flex items-center justify-center gap-2 w-full transition-all duration-300 ease-in-out",
-              loading
-                ? "opacity-0 transform scale-95 pointer-events-none absolute inset-0"
-                : "opacity-100 transform scale-100",
-            )}
-            aria-hidden={loading}
-          >
-            {props.children}
-            {props.keyboard ? (
-              <kbd
-                className={cn(
-                  keyboardIconVariants({
-                    variant:
-                      variant === "primary"
-                        ? "primary"
-                        : variant === "outline"
-                          ? "default"
-                          : "ghost",
-                  }),
-                )}
-              >
-                {props.keyboard.display}
-              </kbd>
-            ) : null}
-          </div>
+        )}
+        <div
+          className={cn(
+            "w-full h-full flex items-center justify-center gap-2 transition-opacity duration-200",
+            {
+              "opacity-0": loading,
+              "opacity-100": !loading,
+            },
+          )}
+        >
+          {props.children}
+          {props.keyboard ? (
+            <kbd
+              className={cn(
+                keyboardIconVariants({
+                  variant:
+                    variant === "primary" ? "primary" : variant === "outline" ? "default" : "ghost",
+                }),
+              )}
+            >
+              {props.keyboard.display}
+            </kbd>
+          ) : null}{" "}
         </div>
       </Comp>
     );
