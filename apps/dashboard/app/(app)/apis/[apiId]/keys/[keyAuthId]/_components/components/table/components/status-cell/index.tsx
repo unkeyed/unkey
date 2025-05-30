@@ -2,8 +2,7 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
-import { useState } from "react";
+import { InfoTooltip } from "@unkey/ui";
 import { StatusBadge } from "./components/status-badge";
 import { useKeyStatus } from "./use-key-status";
 
@@ -16,7 +15,6 @@ type StatusDisplayProps = {
 export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayProps) => {
   const { primary, count, isLoading, statuses, isError } = useKeyStatus(keyAuthId, keyData);
   const utils = trpc.useUtils();
-  const [isOpen, setIsOpen] = useState(false);
 
   const enableKeyMutation = trpc.api.keys.enableKey.useMutation({
     onSuccess: async () => {
@@ -59,22 +57,19 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
   }
 
   return (
-    <TooltipProvider>
-      <Tooltip open={isOpen} onOpenChange={setIsOpen}>
-        <TooltipTrigger onClick={() => setIsOpen(!isOpen)} className="cursor-pointer">
-          <StatusBadge primary={primary} count={count} isSelected={isSelected} />
-        </TooltipTrigger>
-        <TooltipContent className="p-0 bg-white dark:bg-black border rounded-lg border-grayA-3 w-72 flex flex-col drop-shadow-xl">
+    <InfoTooltip
+      position={{ side: "top", align: "center" }}
+      disabled={false}
+      content={
+        <div>
           {statuses && statuses.length > 1 && (
-            <div className="border-b border-grayA-3 ">
-              <div className="px-4 py-3">
-                <div className="flex flex-col px-[1px] py-[1px] gap-1">
-                  <div className="text-accent-12 font-medium text-[13px]">Key status overview</div>
-                  <div className="text-accent-10 text-xs ">
-                    This key has{" "}
-                    <span className="font-semibold text-accent-12">{statuses.length}</span> active
-                    flags{" "}
-                  </div>
+            <div className="border-b border-grayA-3">
+              <div className="flex flex-col px-[1px] py-[1px] gap-1 w-[260px] p-1">
+                <div className="text-accent-12 font-medium text-[13px]">Key status overview</div>
+                <div className="text-accent-10 text-xs ">
+                  This key has{" "}
+                  <span className="font-semibold text-accent-12">{statuses.length}</span> active
+                  flags{" "}
                 </div>
               </div>
             </div>
@@ -85,7 +80,7 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
               className={cn("border-grayA-3", i !== statuses.length - 1 && "border-b")}
               key={status.type || i}
             >
-              <div className="px-4 py-3 flex items-start gap-1.5 flex-col">
+              <div className="flex items-start gap-1.5 flex-col w-[260px] p-1">
                 <div className="flex-shrink-0 mt-0.5">
                   <StatusBadge
                     primary={{
@@ -137,8 +132,10 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
               </div>
             </div>
           ))}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+        </div>
+      }
+    >
+      <StatusBadge primary={primary} count={count} isSelected={isSelected} />
+    </InfoTooltip>
   );
 };

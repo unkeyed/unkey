@@ -1,6 +1,6 @@
-import { RatelimitOverviewTooltip } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/table/components/ratelimit-overview-tooltip";
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
+import { InfoTooltip } from "@unkey/ui";
 import type { ReactNode } from "react";
 
 type Field<T> = {
@@ -71,7 +71,7 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
         )}
         onClick={field.skipTooltip ? undefined : () => handleClick(field)}
       >
-        <span className="text-accent-9 text-[13px]">{field.label}</span>
+        <span className="text-accent-9 text-[13px] lg:no-wrap text-left">{field.label}</span>
         <span className="text-accent-12 text-right w-3/4">
           {field.description(field.content as NonNullable<T[number]>)}
         </span>
@@ -83,17 +83,16 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
     }
 
     return (
-      <RatelimitOverviewTooltip
+      <InfoTooltip
+        variant="inverted"
+        delayDuration={150}
+        position={{ side: "bottom", align: "center" }}
         key={`${field.label}-${index}`}
         content={field.tooltipContent}
-        position={{
-          side: "bottom",
-          align: "end",
-        }}
-        asChild
+        triggerClassName="w-full flex flex-row"
       >
         {baseContent}
-      </RatelimitOverviewTooltip>
+      </InfoTooltip>
     );
   };
 
