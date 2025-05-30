@@ -66,7 +66,12 @@ export const CreateNamespaceButton = ({
 
   return (
     <>
-      <NavbarActionButton {...rest} color="default" onClick={() => setIsOpen(true)}>
+      <NavbarActionButton
+        title="Create new namespace"
+        {...rest}
+        color="default"
+        onClick={() => setIsOpen(true)}
+      >
         <Plus size={18} className="w-4 h-4" />
         Create new namespace
       </NavbarActionButton>

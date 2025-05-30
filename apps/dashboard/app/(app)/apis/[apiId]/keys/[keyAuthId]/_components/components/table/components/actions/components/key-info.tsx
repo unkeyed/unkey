@@ -1,6 +1,6 @@
-import { RatelimitOverviewTooltip } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/table/components/ratelimit-overview-tooltip";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { Key2 } from "@unkey/icons";
+import { InfoTooltip } from "@unkey/ui";
 
 export const KeyInfo = ({ keyDetails }: { keyDetails: KeyDetails }) => {
   return (
@@ -10,7 +10,8 @@ export const KeyInfo = ({ keyDetails }: { keyDetails: KeyDetails }) => {
       </div>
       <div className="flex flex-col gap-1">
         <div className="text-accent-12 text-xs font-mono">{keyDetails.id}</div>
-        <RatelimitOverviewTooltip
+        <InfoTooltip
+          variant="inverted"
           content={keyDetails.name}
           position={{ side: "bottom", align: "center" }}
           asChild
@@ -19,7 +20,7 @@ export const KeyInfo = ({ keyDetails }: { keyDetails: KeyDetails }) => {
           <div className="text-accent-9 text-xs max-w-[160px] truncate">
             {keyDetails.name ?? "Unnamed Key"}
           </div>
-        </RatelimitOverviewTooltip>
+        </InfoTooltip>
       </div>
     </div>
   );
