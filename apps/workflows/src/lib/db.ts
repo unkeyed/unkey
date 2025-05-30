@@ -7,8 +7,6 @@ type ConnectionOptions = {
   password: string;
 };
 
-// RequestInit already includes cache?: RequestCache, so we can use it directly
-
 export function createConnection(opts: ConnectionOptions): Database {
   return drizzle(
     new Client({
