@@ -8,7 +8,7 @@ export type UpstashRedisStoreConfig = {
   redis: Redis;
 };
 
-export class UpstashRedisStore<TNamespace extends string, TValue = any>
+export class UpstashRedisStore<TNamespace extends string, TValue = unknown>
   implements Store<TNamespace, TValue>
 {
   private readonly redis: Redis;

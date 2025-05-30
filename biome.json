@@ -54,8 +54,9 @@
         "noDoubleEquals": "error",
         "useIsArray": "error",
         "noFallthroughSwitchClause": "error",
-        "noExplicitAny": "off",
-        "noConsoleLog": "warn"
+        "noExplicitAny": "error",
+        "noConsoleLog": "warn",
+        "recommended": true
       },
       "complexity": {
         "noForEach": "off",
@@ -114,6 +115,28 @@
     ]
   },
   "overrides": [
+    {
+      "include": ["cmd/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsoleLog": "off",
+            "noExplicitAny": "off"
+          }
+        }
+      }
+    },
+    {
+      "include": ["**/*.test.*", "**/*.spec.*", "**/__tests__/**", "**/test/**", "**/tests/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsoleLog": "off",
+            "noExplicitAny": "off"
+          }
+        }
+      }
+    },
     {
       "include": [
         "**/page.tsx",

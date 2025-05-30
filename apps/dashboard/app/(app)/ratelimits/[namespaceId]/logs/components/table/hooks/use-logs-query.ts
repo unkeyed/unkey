@@ -60,19 +60,6 @@ export function useRatelimitLogsQuery({
           });
           break;
         }
-
-        case "requestIds": {
-          if (typeof filter.value !== "string") {
-            console.error("Request ID filter value type has to be 'string'");
-            return;
-          }
-          params.requestIds?.filters.push({
-            operator: "is",
-            value: filter.value,
-          });
-          break;
-        }
-
         case "status": {
           if (typeof filter.value !== "string") {
             console.error("Status filter value type has to be 'string'");

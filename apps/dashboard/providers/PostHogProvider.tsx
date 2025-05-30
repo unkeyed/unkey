@@ -52,7 +52,7 @@ export const PostHogIdentify = ({ user }: { user: User }) => {
 export const PostHogEvent = ({
   name,
   properties,
-}: { name: string; properties?: Record<string, any> }) => {
+}: { name: string; properties?: Record<string, unknown> }) => {
   posthog.capture(name, properties);
 };
 

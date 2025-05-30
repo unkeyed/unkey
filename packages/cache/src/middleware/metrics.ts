@@ -29,7 +29,8 @@ type Metric =
       namespace: string;
     };
 
-export function withMetrics(metrics: Metrics<Metric>): StoreMiddleware<any, any> {
+// biome-ignore lint/suspicious/noExplicitAny: Leaving this as is
+export function withMetrics(metrics: Metrics<Metric>): StoreMiddleware<any, unknown> {
   function wrap<TNamespace extends string, TValue>(
     store: Store<TNamespace, TValue>,
   ): Store<TNamespace, TValue> {

@@ -122,6 +122,7 @@ export const KeysOverviewLogDetails = ({
   );
 };
 
+// biome-ignore lint/suspicious/noExplicitAny: JSON metadata has unknown structure, runtime validation handles safety
 const formatMeta = (meta: string | null): Record<string, any> | null => {
   if (!meta) {
     return null;

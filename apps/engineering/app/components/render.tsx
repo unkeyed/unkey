@@ -66,6 +66,7 @@ export const RenderComponentWithSnippet: React.FC<PropsWithChildren<Props>> = (p
   );
 };
 
+// biome-ignore lint/suspicious/noExplicitAny: Safe to leave
 const getComponentDisplayName = (element: any): string => {
   // biome-ignore lint/style/useBlockStatements: <explanation>
   if (!element) return "Unknown";

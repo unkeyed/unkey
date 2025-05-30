@@ -133,7 +133,7 @@ function createTimeseriesQuery(interval: TimeInterval, whereClause: string) {
 function getRatelimitLogsTimeseriesWhereClause(
   params: RatelimitLogsTimeseriesParams,
   additionalConditions: string[] = [],
-): { whereClause: string; paramSchema: z.ZodType<any> } {
+): { whereClause: string; paramSchema: z.ZodType<unknown> } {
   const conditions = [
     "workspace_id = {workspaceId: String}",
     "namespace_id = {namespaceId: String}",
@@ -785,7 +785,7 @@ function createLatencyTimeseriesQuery(interval: TimeInterval, whereClause: strin
 
 function getRatelimitLatencyTimeseriesWhereClause(params: RatelimitLatencyTimeseriesParams): {
   whereClause: string;
-  paramSchema: z.ZodType<any>;
+  paramSchema: z.ZodType<unknown>;
 } {
   const conditions: string[] = [];
   const paramSchemaExtension: Record<string, z.ZodString> = {};

@@ -309,7 +309,7 @@ export const registerV1ApisListKeys = (app: App) =>
           k.ratelimitAsync !== null && k.ratelimitLimit !== null && k.ratelimitDuration !== null
             ? {
                 async: k.ratelimitAsync,
-                type: k.ratelimitAsync ? "fast" : ("consistent" as any),
+                type: k.ratelimitAsync ? "fast" : ("consistent" as unknown),
                 limit: k.ratelimitLimit,
                 duration: k.ratelimitDuration,
                 refillRate: k.ratelimitLimit,

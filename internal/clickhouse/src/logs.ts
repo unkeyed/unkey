@@ -43,6 +43,7 @@ export type GetLogsClickhousePayload = z.infer<typeof getLogsClickhousePayload>;
 export function getLogs(ch: Querier) {
   return async (args: GetLogsClickhousePayload) => {
     const paramSchemaExtension: Record<string, z.ZodString> = {};
+    // biome-ignore lint/suspicious/noExplicitAny: Safe to use any here
     const parameters: Record<string, any> = { ...args };
 
     // Generate dynamic path conditions with parameterization
@@ -300,7 +301,7 @@ function createTimeseriesQuery(interval: TimeInterval, whereClause: string) {
 function getLogsTimeseriesWhereClause(
   params: LogsTimeseriesParams,
   additionalConditions: string[] = [],
-): { whereClause: string; paramSchema: z.ZodType<any> } {
+): { whereClause: string; paramSchema: z.ZodType<unknown> } {
   const conditions = [
     "workspace_id = {workspaceId: String}",
     // Host filter

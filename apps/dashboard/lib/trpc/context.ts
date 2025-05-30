@@ -5,6 +5,7 @@ import { getAuth } from "../auth/get-auth";
 import { db } from "../db";
 
 export async function createContext({ req }: FetchCreateContextFnOptions) {
+  // biome-ignore lint/suspicious/noExplicitAny:This has to be generic so any is okay
   const { userId, orgId, role } = await getAuth(req as any);
 
   const ws = orgId

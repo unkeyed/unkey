@@ -21,7 +21,8 @@ export class Client implements Querier, Inserter {
     });
   }
 
-  public query<TIn extends z.ZodSchema<any>, TOut extends z.ZodSchema<any>>(req: {
+  // biome-ignore lint/suspicious/noExplicitAny: Safe to leave
+  public query<TIn extends z.ZodSchema<any>, TOut extends z.ZodSchema<unknown>>(req: {
     // The SQL query to run.
     // Use {paramName: Type} to define parameters
     // Example: `SELECT * FROM table WHERE id = {id: String}`
@@ -42,7 +43,7 @@ export class Client implements Querier, Inserter {
       try {
         const res = await this.client.query({
           query: req.query,
-          query_params: validParams?.data,
+          query_params: validParams?.data, // Default to empty object
           format: "JSONEachRow",
         });
         unparsedRows = await res.json();
@@ -60,7 +61,7 @@ export class Client implements Querier, Inserter {
     };
   }
 
-  public insert<TSchema extends z.ZodSchema<any>>(req: {
+  public insert<TSchema extends z.ZodSchema<unknown>>(req: {
     table: string;
     schema: TSchema;
   }): (

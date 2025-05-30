@@ -25,7 +25,7 @@ export const OverviewAreaChartLoader = ({ labels }: TimeseriesChartLoadingProps)
 
   function generateInitialData() {
     return Array.from({ length: 100 }).map((_, index) => {
-      const dataPoint: Record<string, any> = {
+      const dataPoint: Record<string, unknown> = {
         index,
         originalTimestamp: Date.now() - (100 - index) * 60000,
       };

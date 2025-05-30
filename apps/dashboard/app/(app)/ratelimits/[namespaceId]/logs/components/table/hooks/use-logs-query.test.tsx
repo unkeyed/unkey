@@ -7,7 +7,7 @@ import * as React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useRatelimitLogsQuery } from "./use-logs-query";
 
-let mockFilters: any[] = [];
+let mockFilters: unknown[] = [];
 const mockDate = 1706024400000;
 
 vi.mock("@/providers/query-time-provider", () => ({

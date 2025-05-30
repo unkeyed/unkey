@@ -9,7 +9,7 @@ export type LibsqlStoreConfig = {
   tableName?: string;
 };
 
-export class LibSQLStore<TNamespace extends string, TValue = any>
+export class LibSQLStore<TNamespace extends string, TValue = unknown>
   implements Store<TNamespace, TValue>
 {
   private readonly tableName: string;

@@ -50,11 +50,11 @@ export async function fetchRoute<TRequestBody = unknown, TResponseBody = unknown
   req: StepRequest<TRequestBody>,
 ): Promise<StepResponse<TResponseBody>> {
   const eCtx: ExecutionContext = {
-    waitUntil: (promise: Promise<any>) => {
+    waitUntil: (promise: Promise<unknown>) => {
       promise.catch(() => {});
     },
     passThroughOnException: () => {},
-    abort: (_reason?: any) => {},
+    abort: (_reason?: unknown) => {},
   };
 
   const res = await app.request(

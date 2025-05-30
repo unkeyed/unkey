@@ -99,11 +99,13 @@ export async function insertVerificationEvents(
     );
 
     return { keyUsageStats: Object.fromEntries(keyUsageCounter) };
-  } catch (error: any) {
+  } catch (error: unknown) {
     // End progress with a newline
     process.stdout.write("\n");
 
-    console.error(`❌ Error inserting data during batch ${progress.batchNumber}: ${error.message}`);
+    console.error(
+      `❌ Error inserting data during batch ${progress.batchNumber}: ${(error as { message: string }).message}`,
+    );
     console.error("ClickHouse Insert Error Details:", error);
     throw error;
   }
@@ -182,11 +184,13 @@ export async function insertRatelimitEvents(
     );
 
     return { totalTimeElapsed, avgRecordsPerSecond };
-  } catch (error: any) {
+  } catch (error: unknown) {
     // End progress with a newline
     process.stdout.write("\n");
 
-    console.error(`❌ Error inserting data during batch ${progress.batchNumber}: ${error.message}`);
+    console.error(
+      `❌ Error inserting data during batch ${progress.batchNumber}: ${(error as { message: string }).message}`,
+    );
     console.error("ClickHouse Insert Error Details:", error);
     throw error;
   }

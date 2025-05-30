@@ -64,6 +64,7 @@ export function OverviewBarChart({
     }
   }, [onMount, isLoading, isError]);
 
+  // biome-ignore lint/suspicious/noExplicitAny: safe to leave
   const handleMouseDown = (e: any) => {
     if (!enableSelection) {
       return;
@@ -77,6 +78,7 @@ export function OverviewBarChart({
     });
   };
 
+  // biome-ignore lint/suspicious/noExplicitAny: safe to leave
   const handleMouseMove = (e: any) => {
     if (!enableSelection) {
       return;
@@ -120,11 +122,17 @@ export function OverviewBarChart({
 
   // Calculate totals based on the provided keys
   const totalCount = (data ?? []).reduce(
-    (acc, crr) => acc + crr[labels.primaryKey] + crr[labels.secondaryKey],
+    (acc, crr) => acc + (crr[labels.primaryKey] as number) + (crr[labels.secondaryKey] as number),
     0,
   );
-  const primaryCount = (data ?? []).reduce((acc, crr) => acc + crr[labels.primaryKey], 0);
-  const secondaryCount = (data ?? []).reduce((acc, crr) => acc + crr[labels.secondaryKey], 0);
+  const primaryCount = (data ?? []).reduce(
+    (acc, crr) => acc + (crr[labels.primaryKey] as number),
+    0,
+  );
+  const secondaryCount = (data ?? []).reduce(
+    (acc, crr) => acc + (crr[labels.secondaryKey] as number),
+    0,
+  );
 
   return (
     <div className="flex flex-col h-full" ref={chartRef}>
@@ -243,6 +251,7 @@ export function OverviewBarChart({
                       }
                       className="rounded-lg shadow-lg border border-gray-4"
                       labelFormatter={(_, tooltipPayload) =>
+                        //@ts-expect-error safe to ignore for now
                         createTimeIntervalFormatter(data, "HH:mm")(tooltipPayload)
                       }
                     />
