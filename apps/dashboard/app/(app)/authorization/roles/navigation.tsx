@@ -8,22 +8,6 @@ import { useState } from "react";
 import { RBACForm } from "../_components/rbac-form";
 
 interface NavigationProps {
-  workspace: {
-    roles: Array<{
-      id: string;
-      name: string;
-      description: string | null;
-      keys: Array<{
-        key: {
-          deletedAtM: number | null;
-        };
-      }>;
-      permissions: Array<{
-        permission: unknown; // We could type this further if needed
-      }>;
-    }>;
-    permissions: Array<unknown>; // Kept for reference
-  };
   roles: number;
 }
 

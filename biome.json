@@ -137,7 +137,7 @@
       }
     },
     {
-  "include": [
+      "include": [
         "**/page.tsx",
         "**/layout.tsx",
         "**/loading.tsx",
