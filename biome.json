@@ -55,7 +55,8 @@
         "useIsArray": "error",
         "noFallthroughSwitchClause": "error",
         "noExplicitAny": "error",
-        "noConsoleLog": "warn"
+        "noConsoleLog": "warn",
+        "recommended": true
       },
       "complexity": {
         "noForEach": "off",
