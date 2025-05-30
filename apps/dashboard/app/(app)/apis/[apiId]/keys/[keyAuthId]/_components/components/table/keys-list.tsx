@@ -118,9 +118,12 @@ export const KeysList = ({
               <div className="flex gap-4 items-center">
                 {identity ? (
                   <InfoTooltip
+                    delayDuration={100}
+                    variant="muted"
                     position={{ side: "right" }}
+                    className="bg-gray-1 px-4 py-2 border border-gray-4 shadow-md font-medium text-xs text-accent-12"
                     content={
-                      <div>
+                      <>
                         This key is associated with the identity:{" "}
                         {key.identity_id ? (
                           <Link
@@ -131,12 +134,12 @@ export const KeysList = ({
                             rel="noopener noreferrer"
                             aria-disabled={isNavigating}
                           >
-                            <span className="font-mono bg-gray-1 p-1 rounded">{identity}</span>
+                            <span className="font-mono bg-gray-4 p-1 rounded">{identity}</span>
                           </Link>
                         ) : (
                           <span className="font-mono bg-gray-4 p-1 rounded">{identity}</span>
                         )}
-                      </div>
+                      </>
                     }
                     asChild
                   >

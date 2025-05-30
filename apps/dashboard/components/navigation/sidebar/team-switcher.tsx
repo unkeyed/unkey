@@ -111,10 +111,11 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
             <Loading />
           ) : !isCollapsed ? (
             <InfoTooltip
-              variant="primary"
-              position={{ side: "bottom" }}
-              content={<span className="text-sm font-medium">{props.workspace.name}</span>}
-              className="max-w-[260px] overflow-hidden text-sm font-medium text-ellipsis"
+              variant="inverted"
+              position={{ side: "right", sideOffset: 10 }}
+              content={<span>{props.workspace.name}</span>}
+              className="text-xs font-medium py-2"
+              triggerClassName="overflow-hidden text-sm font-medium text-ellipsis"
             >
               {props.workspace.name}
             </InfoTooltip>

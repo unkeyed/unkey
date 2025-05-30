@@ -81,7 +81,7 @@ const OverrideIndicator = ({ log, style }: OverrideIndicatorProps) => (
   <InfoTooltip
     variant="muted"
     content={
-      <div className="flex flex-row pr-4 gap-3 items-center justify-center">
+      <div className="flex flex-row pl-1 pr-5 gap-3 py-0 items-center justify-center leading-none">
         <div
           className={cn(
             style.badge.default,
@@ -97,7 +97,7 @@ const OverrideIndicator = ({ log, style }: OverrideIndicatorProps) => (
             <div className="size-[6px] rounded-full bg-warning-10" />
           </div>
           {log.override && (
-            <div className="text-accent-9">
+            <div className="text-accent-9 text-xs">
               Limit set to <span className="text-gray-12">{formatNumber(log.override.limit)} </span>
               requests per <span className="text-gray-12">{ms(log.override.duration)}</span>
             </div>

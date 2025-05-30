@@ -25,7 +25,10 @@ export const InlineFilter = ({
   );
 
   return (
-    <InfoTooltip content={<span className="text-xs font-medium">{content}</span>}>
+    <InfoTooltip
+      variant="inverted"
+      content={<span className="text-xs font-medium">{content}</span>}
+    >
       <button
         onClick={() => {
           updateFilters([
