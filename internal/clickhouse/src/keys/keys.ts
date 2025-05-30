@@ -130,9 +130,8 @@ export function getKeysOverviewLogs(ch: Querier) {
     const hasOutcomeFilters = args.outcomes && args.outcomes.length > 0;
     const hasSortingRules = args.sorts && args.sorts.length > 0;
 
-    const outcomeCondition = !hasOutcomeFilters
-      ? "TRUE"
-      : args.outcomes
+    const outcomeCondition = hasOutcomeFilters
+      ? args.outcomes
           ?.map((filter, index) => {
             if (filter.operator === "is") {
               const paramName = `outcomeValue_${index}`;
@@ -143,11 +142,11 @@ export function getKeysOverviewLogs(ch: Querier) {
             return null;
           })
           .filter(Boolean)
-          .join(" OR ") || "TRUE";
+          .join(" OR ") || "TRUE"
+      : "TRUE";
 
-    const keyIdConditions = !hasKeyIdFilters
-      ? "TRUE"
-      : args.keyIds
+    const keyIdConditions = hasKeyIdFilters
+      ? args.keyIds
           ?.map((p, index) => {
             const paramName = `keyIdValue_${index}`;
             paramSchemaExtension[paramName] = z.string();
@@ -162,7 +161,8 @@ export function getKeysOverviewLogs(ch: Querier) {
             }
           })
           .filter(Boolean)
-          .join(" OR ") || "TRUE";
+          .join(" OR ") || "TRUE"
+      : "TRUE";
 
     const allowedColumns = new Map([
       ["time", "time"],
@@ -214,11 +214,7 @@ export function getKeysOverviewLogs(ch: Querier) {
     let cursorCondition: string;
 
     // For first page or no cursor provided
-    if (!args.cursorTime) {
-      cursorCondition = `
-      AND ({cursorTime: Nullable(UInt64)} IS NULL)
-      `;
-    } else {
+    if (args.cursorTime) {
       // For subsequent pages, use cursor based on time direction
       if (timeDirection === "ASC") {
         cursorCondition = `
@@ -229,6 +225,10 @@ export function getKeysOverviewLogs(ch: Querier) {
         AND (time < {cursorTime: Nullable(UInt64)})
         `;
       }
+    } else {
+      cursorCondition = `
+      AND ({cursorTime: Nullable(UInt64)} IS NULL)
+      `;
     }
 
     const extendedParamsSchema = keysOverviewLogsParams.extend(paramSchemaExtension);

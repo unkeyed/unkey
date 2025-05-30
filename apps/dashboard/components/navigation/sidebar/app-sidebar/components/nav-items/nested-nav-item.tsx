@@ -76,14 +76,14 @@ export const NestedNavItem = ({
 
     // If the item has a href, navigate to it
     if (item.href) {
-      if (!item.external) {
+      if (item.external) {
+        // For external links, open in new tab
+        window.open(item.href, "_blank");
+      } else {
         // Show loading state ONLY for parent
         startParentTransition(() => {
           router.push(item.href);
         });
-      } else {
-        // For external links, open in new tab
-        window.open(item.href, "_blank");
       }
     }
   };
