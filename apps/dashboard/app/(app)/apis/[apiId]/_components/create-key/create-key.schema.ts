@@ -29,11 +29,14 @@ export const keyPrefixSchema = z
   .max(8, { message: "Prefixes cannot be longer than 8 characters" })
   .trim()
   .refine((prefix) => !prefix.includes(" "), {
-    message: "Prefixes cannot contain spaces.",
+    message: "Prefixes cannot contain spaces",
   })
-  .refine((prefix) => !prefix.endsWith("_"), {
-    message: "Prefixes cannot end with an underscore. We'll add that automatically.",
-  })
+  .refine(
+    (val) => {
+      return !val || /^[a-zA-Z0-9]/.test(val);
+    },
+    { message: "Prefix must start with a letter or number" },
+  )
   .optional();
 
 export const keyBytesSchema = z.coerce
