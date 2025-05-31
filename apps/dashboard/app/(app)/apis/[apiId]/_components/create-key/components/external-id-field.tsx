@@ -107,7 +107,7 @@ export const ExternalIdField = ({
       searchPlaceholder="Search External ID..."
       emptyMessage={
         searchValue.trim() && !exactMatch ? (
-          <div className="p-0 max-w-[460px]">
+          <div className="p-0 max-w-[600px]">
             <div className="px-3 py-3 w-full">
               <div className="flex gap-2 items-center justify-start">
                 <div

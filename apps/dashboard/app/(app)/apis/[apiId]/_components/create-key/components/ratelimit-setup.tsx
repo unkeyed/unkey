@@ -53,18 +53,16 @@ export const RatelimitSetup = () => {
   };
 
   return (
-    <div className="space-y-5 px-1 py-1">
-      <div className="px-1">
-        <ProtectionSwitch
-          description="Turn on to restrict how frequently this key can be used. Requests
+    <div className="space-y-5 px-2 py-1">
+      <ProtectionSwitch
+        description="Turn on to restrict how frequently this key can be used. Requests
             beyond the limit will be blocked."
-          title="Ratelimit"
-          icon={<Gauge className="text-gray-12" size="sm-regular" />}
-          checked={ratelimitEnabled}
-          onCheckedChange={handleSwitchChange}
-          {...register("ratelimit.enabled")}
-        />
-      </div>
+        title="Ratelimit"
+        icon={<Gauge className="text-gray-12" size="sm-regular" />}
+        checked={ratelimitEnabled}
+        onCheckedChange={handleSwitchChange}
+        {...register("ratelimit.enabled")}
+      />
 
       <div className="flex w-full justify-between items-center px-1">
         <div className="flex gap-2 items-center">
