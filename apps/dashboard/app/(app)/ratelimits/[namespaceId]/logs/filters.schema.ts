@@ -24,10 +24,6 @@ export const ratelimitFilterFieldConfig: FilterFieldConfigs = {
     type: "string",
     operators: ["is", "contains"],
   },
-  requestIds: {
-    type: "string",
-    operators: ["is"],
-  },
   status: {
     type: "string",
     operators: ["is"],
@@ -43,7 +39,6 @@ export const ratelimitFilterFieldEnum = z.enum([
   "endTime",
   "since",
   "identifiers",
-  "requestIds",
   "status",
 ]);
 export const filterOutputSchema = createFilterOutputSchema(
@@ -61,7 +56,6 @@ export type FilterFieldConfigs = {
   endTime: NumberConfig<RatelimitFilterOperator>;
   since: StringConfig<RatelimitFilterOperator>;
   identifiers: StringConfig<RatelimitFilterOperator>;
-  requestIds: StringConfig<RatelimitFilterOperator>;
   status: StringConfig<RatelimitFilterOperator>;
 };
 
@@ -76,6 +70,5 @@ export type RatelimitQuerySearchParams = {
   endTime?: number | null;
   since?: string | null;
   identifiers: RatelimitFilterUrlValue[] | null;
-  requestIds: RatelimitFilterUrlValue[] | null;
   status: RatelimitFilterUrlValue[] | null;
 };

@@ -2,25 +2,24 @@ import { z } from "zod";
 
 // Helper function for creating conditional schemas based on the "enabled" flag
 export const createConditionalSchema = <
-  T extends z.ZodObject<any, any, any>,
+  T extends z.ZodRawShape,
+  U extends z.UnknownKeysParam = z.UnknownKeysParam,
+  V extends z.ZodTypeAny = z.ZodTypeAny,
   EnabledPath extends string = "enabled",
 >(
   enabledPath: EnabledPath,
-  schema: T,
+  schema: z.ZodObject<T, U, V>,
 ) => {
   return z.union([
-    //  when enabled is false, don't validate other fields
+    // When enabled is false, don't validate other fields
     z
       .object({
         [enabledPath]: z.literal(false),
-      })
+      } as { [K in EnabledPath]: z.ZodLiteral<false> })
       .passthrough(),
-
-    //  when enabled is true, apply all validations
+    // When enabled is true, apply all validations
     schema,
-  ]) as z.ZodUnion<
-    [z.ZodObject<{ [K in EnabledPath]: z.ZodLiteral<false> }, "passthrough", z.ZodTypeAny>, T]
-  >;
+  ]);
 };
 
 // Basic schemas
@@ -183,21 +182,23 @@ export const ratelimitValidationSchema = z.object({
 export const expirationValidationSchema = z.object({
   enabled: z.literal(true),
   data: z.preprocess(
-    (val) => {
+    (val): Date | null => {
       if (val === null || val === undefined || val === "") {
         return null;
       }
-
       if (val instanceof Date) {
         return val;
       }
-
-      try {
-        const date = new Date(val as any);
-        return date;
-      } catch {
-        return null;
+      // Only try to parse strings and numbers
+      if (typeof val === "string" || typeof val === "number") {
+        try {
+          const date = new Date(val);
+          return Number.isNaN(date.getTime()) ? null : date;
+        } catch {
+          return null;
+        }
       }
+      return null;
     },
     z
       .date({

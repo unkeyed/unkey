@@ -23,7 +23,7 @@ export type CloudflareStoreConfig = {
   cacheBuster?: string;
 };
 
-export class CloudflareStore<TNamespace extends string, TValue = any>
+export class CloudflareStore<TNamespace extends string, TValue = unknown>
   implements Store<TNamespace, TValue>
 {
   private readonly config: CloudflareStoreConfig;
