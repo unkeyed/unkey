@@ -14,3 +14,4 @@ export * from "./components/textarea";
 export * from "./components/checkbox";
 export * from "./components/timestamp-info";
 export * from "./components/tooltip";
+export * from "./components/keyboard-button";
