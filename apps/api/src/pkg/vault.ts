@@ -58,18 +58,16 @@ export class Vault {
     if (!res.ok) {
       throw new Error(`unable to encrypt, fetch error: ${await res.text()}`);
     }
-    const body = await res.text();
-    console.warn("encrypt", req, res.status, `>>${body}<<`);
+    const body = await res.json<EncryptResponse>();
 
-    const json = JSON.parse(body) as EncryptResponse;
     this.metrics.emit({
       metric: "metric.agent.latency",
       op: "encrypt",
       latency: performance.now() - start,
     });
     return {
-      encrypted: json.encrypted,
-      keyId: json.keyId,
+      encrypted: body.encrypted,
+      keyId: body.keyId,
     };
   }
   public async encryptBulk(c: Context, req: EncryptBulkRequest): Promise<EncryptBulkResponse> {
@@ -88,8 +86,7 @@ export class Vault {
     if (!res.ok) {
       throw new Error(`unable to encryptBulk, fetch error: ${await res.text()}`);
     }
-    const body = await res.text();
-    const json = JSON.parse(body) as EncryptBulkResponse;
+    const body = await res.json<EncryptBulkResponse>();
 
     this.metrics.emit({
       metric: "metric.agent.latency",
@@ -97,7 +94,7 @@ export class Vault {
       latency: performance.now() - start,
     });
     return {
-      encrypted: json.encrypted,
+      encrypted: body.encrypted,
     };
   }
 
