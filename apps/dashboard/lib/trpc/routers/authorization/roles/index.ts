@@ -4,7 +4,7 @@ import { z } from "zod";
 
 const MAX_ITEMS_TO_SHOW = 3;
 const ITEM_SEPARATOR = "|||";
-const DEFAULT_LIMIT = 50;
+export const DEFAULT_LIMIT = 50;
 const MIN_LIMIT = 1;
 
 const rolesQueryInput = z.object({
@@ -13,6 +13,7 @@ const rolesQueryInput = z.object({
 });
 
 export const roles = z.object({
+  roleId: z.string(),
   slug: z.string(),
   name: z.string(),
   description: z.string(),
@@ -147,6 +148,7 @@ export const queryRoles = t.procedure
         : [];
 
       return {
+        roleId: row.id,
         slug: row.name,
         name: row.human_readable || "",
         description: row.description || "",
