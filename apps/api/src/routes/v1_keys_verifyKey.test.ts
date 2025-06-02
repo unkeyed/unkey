@@ -79,7 +79,7 @@ describe("bad request", () => {
       createdAtM: Date.now(),
     });
 
-    const res = await h.post<any, ErrorResponse>({
+    const res = await h.post<unknown, ErrorResponse>({
       url: "/v1/keys.verifyKey",
       headers: {
         "Content-Type": "application/json",
@@ -168,6 +168,7 @@ describe("with temporary key", () => {
         id: newId("test"),
         workspaceId: h.resources.userWorkspace.id,
         name: "permission",
+        slug: "permission",
       };
       await h.db.primary.insert(schema.permissions).values(permission);
       await h.db.primary.insert(schema.keysPermissions).values({

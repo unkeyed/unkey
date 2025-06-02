@@ -29,7 +29,7 @@ export type MemoryStoreConfig<TValue> = {
   persistentMap: Map<string, TValue>;
 };
 
-export class MemoryStore<TNamespace extends string, TValue = any>
+export class MemoryStore<TNamespace extends string, TValue = unknown>
   implements Store<TNamespace, TValue>
 {
   private readonly state: Map<string, { expires: number; entry: Entry<TValue> }>;

@@ -196,6 +196,7 @@ test("returns roles and permissions", async (t) => {
   await h.db.primary.insert(schema.permissions).values({
     id: permissionId,
     name: permissionName,
+    slug: permissionName,
     workspaceId: h.resources.userWorkspace.id,
   });
   await h.db.primary.insert(schema.rolesPermissions).values({

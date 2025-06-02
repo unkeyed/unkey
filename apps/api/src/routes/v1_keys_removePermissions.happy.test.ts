@@ -19,6 +19,7 @@ test("removes permission by name", async (t) => {
   const permission = {
     id: newId("test"),
     name: randomUUID(),
+    slug: randomUUID(),
     workspaceId: h.resources.userWorkspace.id,
   };
 
@@ -67,6 +68,7 @@ test("removes permission by id", async (t) => {
   const permission = {
     id: newId("test"),
     name: randomUUID(),
+    slug: randomUUID(),
     workspaceId: h.resources.userWorkspace.id,
   };
 
