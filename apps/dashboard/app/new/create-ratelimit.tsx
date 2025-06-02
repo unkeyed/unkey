@@ -20,6 +20,7 @@ export const CreateRatelimit: React.FC<Props> = async (props) => {
   }
 
   const trpc = createCallerFactory()(router)({
+    // biome-ignore lint/suspicious/noExplicitAny: tRPC context req object is not used in server-side calls, empty object is acceptable
     req: {} as any,
     user: {
       id: user.id,

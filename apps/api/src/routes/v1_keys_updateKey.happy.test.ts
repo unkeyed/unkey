@@ -396,6 +396,7 @@ describe("update permissions", () => {
     const permissions = new Array(3).fill(null).map((_) => ({
       id: newId("test"),
       name: randomUUID(),
+      slug: randomUUID(),
       workspaceId: h.resources.userWorkspace.id,
     }));
 
@@ -446,6 +447,7 @@ describe("update permissions", () => {
     const permissions = new Array(3).fill(null).map((_) => ({
       id: newId("test"),
       name: randomUUID(),
+      slug: randomUUID(),
       workspaceId: h.resources.userWorkspace.id,
     }));
 
@@ -500,6 +502,7 @@ describe("update permissions", () => {
     const permissions = new Array(3).fill(null).map((_) => ({
       id: newId("test"),
       name: randomUUID(),
+      slug: randomUUID(),
       workspaceId: h.resources.userWorkspace.id,
     }));
 

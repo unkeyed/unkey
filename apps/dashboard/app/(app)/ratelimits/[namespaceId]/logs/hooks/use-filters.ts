@@ -30,15 +30,6 @@ export const useFilters = () => {
   const filters = useMemo(() => {
     const activeFilters: RatelimitFilterValue[] = [];
 
-    searchParams.requestIds?.forEach((requestIdFilter) => {
-      activeFilters.push({
-        id: crypto.randomUUID(),
-        field: "requestIds",
-        operator: requestIdFilter.operator,
-        value: requestIdFilter.value,
-      });
-    });
-
     searchParams.identifiers?.forEach((pathFilter) => {
       activeFilters.push({
         id: crypto.randomUUID(),
@@ -80,7 +71,6 @@ export const useFilters = () => {
   const updateFilters = useCallback(
     (newFilters: RatelimitFilterValue[]) => {
       const newParams: Partial<RatelimitQuerySearchParams> = {
-        requestIds: null,
         startTime: null,
         endTime: null,
         since: null,
@@ -89,18 +79,11 @@ export const useFilters = () => {
       };
 
       // Group filters by field
-      const requestIdFilters: RatelimitFilterUrlValue[] = [];
       const statusFilters: RatelimitFilterUrlValue[] = [];
       const identifierFilters: RatelimitFilterUrlValue[] = [];
 
       newFilters.forEach((filter) => {
         switch (filter.field) {
-          case "requestIds":
-            requestIdFilters.push({
-              value: filter.value as string,
-              operator: filter.operator,
-            });
-            break;
           case "identifiers":
             identifierFilters.push({
               value: filter.value,
@@ -126,7 +109,6 @@ export const useFilters = () => {
 
       // Set arrays to null when empty, otherwise use the filtered values
       newParams.identifiers = identifierFilters.length > 0 ? identifierFilters : null;
-      newParams.requestIds = requestIdFilters.length > 0 ? requestIdFilters : null;
       newParams.status = statusFilters.length > 0 ? statusFilters : null;
       setSearchParams(newParams);
     },
