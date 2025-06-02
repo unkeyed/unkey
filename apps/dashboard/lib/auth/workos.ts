@@ -257,7 +257,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       });
 
       if (!refreshResult.authenticated || !refreshResult.session) {
-        const errMsg = !refreshResult.authenticated ? refreshResult.reason : "";
+        const errMsg = refreshResult.authenticated ? "" : refreshResult.reason;
         throw new Error(`Organization switch failed ${errMsg}`);
       }
 

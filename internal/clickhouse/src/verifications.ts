@@ -69,9 +69,8 @@ export function getKeyDetailsLogs(ch: Querier) {
 
     const hasOutcomeFilters = args.outcomes && args.outcomes.length > 0;
 
-    const outcomeCondition = !hasOutcomeFilters
-      ? "TRUE"
-      : args.outcomes
+    const outcomeCondition = hasOutcomeFilters
+      ? args.outcomes
           ?.map((filter, index) => {
             if (filter.operator === "is") {
               const paramName = `outcomeValue_${index}`;
@@ -82,19 +81,20 @@ export function getKeyDetailsLogs(ch: Querier) {
             return null;
           })
           .filter(Boolean)
-          .join(" OR ") || "TRUE";
+          .join(" OR ") || "TRUE"
+      : "TRUE";
 
     let cursorCondition: string;
 
     // For first page or no cursor provided
-    if (!args.cursorTime) {
-      cursorCondition = `
-      AND ({cursorTime: Nullable(UInt64)} IS NULL)
-      `;
-    } else {
+    if (args.cursorTime) {
       cursorCondition = `
         AND (time < {cursorTime: Nullable(UInt64)})
         `;
+    } else {
+      cursorCondition = `
+      AND ({cursorTime: Nullable(UInt64)} IS NULL)
+      `;
     }
 
     const extendedParamsSchema = keyDetailsLogsParams.extend(paramSchemaExtension);
@@ -490,9 +490,7 @@ function mergeVerificationTimeseriesResults(
       }
       const existingPoint = mergedMap.get(dataPoint.x);
 
-      if (!existingPoint) {
-        mergedMap.set(dataPoint.x, dataPoint);
-      } else {
+      if (existingPoint) {
         mergedMap.set(dataPoint.x, {
           x: dataPoint.x,
           y: {
@@ -513,6 +511,8 @@ function mergeVerificationTimeseriesResults(
               (existingPoint.y.usage_exceeded_count ?? 0) + (dataPoint.y.usage_exceeded_count ?? 0),
           },
         });
+      } else {
+        mergedMap.set(dataPoint.x, dataPoint);
       }
     });
   });

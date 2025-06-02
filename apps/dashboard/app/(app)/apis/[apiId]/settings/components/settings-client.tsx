@@ -28,8 +28,8 @@ export const SettingsClient = ({ api, workspace, keyAuth }: Props) => {
               <CopyApiId apiId={api.id} />
             </div>
             <div>
-              <DefaultBytes keyAuth={keyAuth} />
-              <DefaultPrefix keyAuth={keyAuth} />
+              <DefaultBytes keyAuth={keyAuth} apiId={api.id} />
+              <DefaultPrefix keyAuth={keyAuth} apiId={api.id} />
             </div>
             <div>
               <UpdateIpWhitelist api={api} workspace={workspace} />

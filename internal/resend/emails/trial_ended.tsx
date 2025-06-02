@@ -90,4 +90,5 @@ TrialEnded.PreviewProps = {
   workspaceName: "Krusty crab",
 } satisfies Props;
 
+// biome-ignore lint/style/noDefaultExport: Too scared to modify that one
 export default TrialEnded;

@@ -19,7 +19,7 @@ import { Invitations } from "./invitations";
 import { InviteButton } from "./invite";
 import { Members } from "./members";
 
-export default function TeamPageClient({ team }: { team: boolean }) {
+export function TeamPageClient({ team }: { team: boolean }) {
   const { data: user } = trpc.user.getCurrentUser.useQuery();
 
   const { data: memberships, isLoading: isUserMembershipsLoading } =

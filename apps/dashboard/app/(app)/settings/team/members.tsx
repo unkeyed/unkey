@@ -1,6 +1,6 @@
 "use client";
 
-import Confirm from "@/components/dashboard/confirm";
+import { Confirm } from "@/components/dashboard/confirm";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Table,

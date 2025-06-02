@@ -1,34 +1,30 @@
 "use client";
 
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { setCookie } from "@/lib/auth/cookies";
 import { UNKEY_SESSION_COOKIE } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Loading } from "@unkey/ui";
+import { Button, Loading, FormInput } from "@unkey/ui";
 import { Box } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
+
 const formSchema = z.object({
   name: z.string().trim().min(3, "Name is required and should be at least 3 characters").max(50),
 });
 
 export const CreateWorkspace: React.FC = () => {
-  const form = useForm<z.infer<typeof formSchema>>({
+  const {
+    handleSubmit,
+    control,
+    formState: { errors, isValid },
+  } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
+
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const workspaceIdRef = useRef<string | null>(null);
@@ -109,41 +105,41 @@ export const CreateWorkspace: React.FC = () => {
       </div>
     );
   }
+
   return (
     <div className="flex flex-col md:flex-row items-start justify-between gap-8 md:gap-16">
       <main className="w-full md:w-3/4">
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit((values) => createWorkspace.mutate({ ...values }))}
-            className="flex flex-col space-y-4"
-          >
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormMessage className="text-xs" />
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormDescription>What should your workspace be called?</FormDescription>
-                </FormItem>
-              )}
-            />
+        <form
+          onSubmit={handleSubmit((values) => createWorkspace.mutate({ ...values }))}
+          className="flex flex-col space-y-4"
+        >
+          <Controller
+            control={control}
+            name="name"
+            render={({ field }) => (
+              <div className="space-y-1.5">
+                <div className="text-gray-11 text-[13px] flex items-center">Name</div>
+                <FormInput
+                  {...field}
+                  error={errors.name?.message}
+                  description="What should your workspace be called?"
+                />
+              </div>
+            )}
+          />
 
-            <div className="mt-8">
-              <Button
-                variant="primary"
-                disabled={createWorkspace.isLoading || isPending || !form.formState.isValid}
-                type="submit"
-                className="w-full"
-              >
-                {createWorkspace.isLoading || isPending ? <Loading /> : "Create Workspace"}
-              </Button>
-            </div>
-          </form>
-        </Form>
+          <div className="mt-8">
+            <Button
+              variant="primary"
+              disabled={createWorkspace.isLoading || isPending || !isValid}
+              type="submit"
+              loading={createWorkspace.isLoading || isPending}
+              className="w-full h-9"
+            >
+              {createWorkspace.isLoading || isPending ? <Loading /> : "Create Workspace"}
+            </Button>
+          </div>
+        </form>
       </main>
       <aside className="w-1/4 flex-col items-start justify-center space-y-16 max-md:hidden md:flex ">
         <AsideContent />
