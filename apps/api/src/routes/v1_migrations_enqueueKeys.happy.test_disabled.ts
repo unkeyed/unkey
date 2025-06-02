@@ -305,6 +305,7 @@ describe("permissions", () => {
       permissions.map((name) => ({
         id: newId("test"),
         name,
+        slug: name,
         workspaceId: h.resources.userWorkspace.id,
       })),
     );
