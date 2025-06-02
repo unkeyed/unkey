@@ -7,15 +7,11 @@ import { Button, FormInput, SettingCard } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
+import { keyPrefixSchema } from "../../_components/create-key/create-key.schema";
 
 const formSchema = z.object({
   keyAuthId: z.string(),
-  defaultPrefix: z
-    .string()
-    .max(8, { message: "Prefixes cannot be longer than 8 characters" })
-    .refine((prefix) => !prefix.includes(" "), {
-      message: "Prefixes cannot contain spaces.",
-    }),
+  defaultPrefix: keyPrefixSchema.pipe(z.string()),
 });
 
 type Props = {
@@ -46,12 +42,33 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth, apiId }) => {
 
   const setDefaultPrefix = trpc.api.setDefaultPrefix.useMutation({
     onSuccess() {
-      toast.success("Default prefix for this API is updated!");
+      toast.success("Default Prefix Updated", {
+        description: "Default prefix for this API has been successfully updated.",
+      });
       router.refresh();
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+
+      if (err.data?.code === "NOT_FOUND") {
+        toast.error("API Configuration Not Found", {
+          description:
+            "Unable to find the correct API configuration. Please refresh and try again.",
+        });
+      } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
+        toast.error("Server Error", {
+          description:
+            "We encountered an issue while updating the default prefix. Please try again later or contact support at support@unkey.dev",
+        });
+      } else {
+        toast.error("Failed to Update Default Prefix", {
+          description: err.message || "An unexpected error occurred. Please try again later.",
+          action: {
+            label: "Contact Support",
+            onClick: () => window.open("https://support.unkey.dev", "_blank"),
+          },
+        });
+      }
     },
   });
 

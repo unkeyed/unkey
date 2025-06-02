@@ -1,5 +1,4 @@
 "use client";
-import { RatelimitOverviewTooltip } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/table/components/ratelimit-overview-tooltip";
 import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
@@ -19,7 +18,7 @@ import {
 } from "@unkey/icons";
 import { CopyButton } from "@unkey/ui";
 import { TimestampInfo } from "@unkey/ui";
-import { Button, Empty, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+import { Button, Empty, InfoTooltip } from "@unkey/ui";
 import { useCallback, useState } from "react";
 import { useKeyDetailsLogsContext } from "../../context/logs";
 import { StatusBadge } from "./components/status-badge";
@@ -271,26 +270,24 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
               : "";
           const outcomeInfo = LOG_OUTCOME_DEFINITIONS[outcomeType];
           return (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger className="cursor-default">
-                  <div className="flex gap-3 items-center">
-                    <StatusBadge
-                      primary={{
-                        label: outcomeInfo.label,
-                        color: isSelected
-                          ? STATUS_STYLES[getStatusType(outcomeInfo.type)].badge.selected
-                          : STATUS_STYLES[getStatusType(outcomeInfo.type)].badge.default,
-                        icon: outcomeInfo.icon,
-                      }}
-                    />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{outcomeInfo.tooltip}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <InfoTooltip
+              variant="inverted"
+              className="cursor-default"
+              content={<p>{outcomeInfo.tooltip}</p>}
+              position={{ side: "top", align: "center", sideOffset: 5 }}
+            >
+              <div className="flex gap-3 items-center">
+                <StatusBadge
+                  primary={{
+                    label: outcomeInfo.label,
+                    color: isSelected
+                      ? STATUS_STYLES[getStatusType(outcomeInfo.type)].badge.selected
+                      : STATUS_STYLES[getStatusType(outcomeInfo.type)].badge.default,
+                    icon: outcomeInfo.icon,
+                  }}
+                />
+              </div>
+            </InfoTooltip>
           );
         },
       },
@@ -315,7 +312,8 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
             <div className="flex flex-wrap gap-1 items-center">
               {log.tags && log.tags.length > 0 ? (
                 log.tags.slice(0, 3).map((tag) => (
-                  <RatelimitOverviewTooltip
+                  <InfoTooltip
+                    variant="inverted"
                     key={tag}
                     content={
                       <div className="max-w-xs">
@@ -361,13 +359,14 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
                     >
                       {tag.length > 15 ? `${tag.substring(0, 12)}...` : tag}
                     </Badge>
-                  </RatelimitOverviewTooltip>
+                  </InfoTooltip>
                 ))
               ) : (
                 <span className="text-gray-8">—</span>
               )}
               {log.tags && log.tags.length > 3 && (
-                <RatelimitOverviewTooltip
+                <InfoTooltip
+                  variant="inverted"
                   content={
                     <div className="flex flex-col gap-2 py-1 max-w-xs max-h-[300px] overflow-y-auto">
                       <div className="text-xs opacity-75 font-medium">
@@ -419,7 +418,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
                   >
                     +{log.tags.length - 3}
                   </Badge>
-                </RatelimitOverviewTooltip>
+                </InfoTooltip>
               )}
             </div>
           );

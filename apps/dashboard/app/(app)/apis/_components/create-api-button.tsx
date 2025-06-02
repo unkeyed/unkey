@@ -67,7 +67,12 @@ export const CreateApiButton = ({
 
   return (
     <>
-      <NavbarActionButton {...rest} color="default" onClick={() => setIsOpen(true)}>
+      <NavbarActionButton
+        title="Create new API"
+        {...rest}
+        color="default"
+        onClick={() => setIsOpen(true)}
+      >
         <Plus />
         Create new API
       </NavbarActionButton>

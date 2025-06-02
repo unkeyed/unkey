@@ -1,7 +1,6 @@
-import { RatelimitOverviewTooltip } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/table/components/ratelimit-overview-tooltip";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { Refresh3 } from "@unkey/icons";
-import { Button, KeyboardButton } from "@unkey/ui";
+import { Button, KeyboardButton, InfoTooltip } from "@unkey/ui";
 import { useState } from "react";
 
 type RefreshButtonProps = {
@@ -46,8 +45,9 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
   });
 
   return (
-    <RatelimitOverviewTooltip
+    <InfoTooltip
       content="Refresh unavailable - please select a relative time filter in the 'Since' dropdown"
+      variant="inverted"
       position={{ side: "bottom", align: "center" }}
       disabled={isEnabled && !isLoading}
       asChild
@@ -67,6 +67,6 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
           <KeyboardButton shortcut="⌥+⇧+R" />
         </Button>
       </div>
-    </RatelimitOverviewTooltip>
+    </InfoTooltip>
   );
 };

@@ -2,9 +2,8 @@ import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { getAuth } from "@/lib/auth";
-import { and, db, eq, isNull } from "@/lib/db";
+import { db } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
-import { keys } from "@unkey/db/src/schema";
 import { Button } from "@unkey/ui";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -22,26 +21,26 @@ export default async function RolesPage() {
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     with: {
-      permissions: true,
+      permissions: {
+        columns: {
+          id: true,
+        },
+      },
       roles: {
+        columns: {
+          id: true,
+          name: true,
+          description: true,
+        },
         with: {
           // Include all permissions for each role
           permissions: {
             with: {
-              permission: true,
-            },
-          },
-          // Only include non-deleted keys
-          keys: {
-            where: (keysRolesTable, { exists }) =>
-              exists(
-                db
-                  .select()
-                  .from(keys)
-                  .where(and(eq(keys.id, keysRolesTable.keyId), isNull(keys.deletedAtM))),
-              ),
-            with: {
-              key: true,
+              permission: {
+                columns: {
+                  id: true,
+                },
+              },
             },
           },
         },
@@ -77,7 +76,7 @@ export default async function RolesPage() {
 
   return (
     <div>
-      <Navigation workspace={workspaceWithRoles} />
+      <Navigation roles={workspace.roles.length} />
       <PageContent>
         <SubMenu navigation={navigation} segment="roles" />
         <div className="mt-8 mb-20 overflow-x-auto">
@@ -101,10 +100,6 @@ export default async function RolesPage() {
                     <div className="flex items-center col-span-3 gap-2">
                       <Badge variant="secondary">
                         {formatNumber(r.permissionCount)} Permissions
-                      </Badge>
-                      <Badge variant="secondary">
-                        {formatNumber(r.keys.length)} Key
-                        {r.keys.length !== 1 ? "s" : ""}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-end col-span-3">

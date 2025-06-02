@@ -1,9 +1,8 @@
 "use client";
 
-import { RatelimitOverviewTooltip } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/table/components/ratelimit-overview-tooltip";
 import { Switch } from "@/components/ui/switch";
 import { ChevronRight } from "@unkey/icons";
-import { CopyButton } from "@unkey/ui";
+import { CopyButton, InfoTooltip } from "@unkey/ui";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { PermissionToggle } from "./permission-toggle";
@@ -88,7 +87,9 @@ export const RecursivePermission: React.FC<
 
   if (!hasChildren) {
     return (
-      <RatelimitOverviewTooltip
+      <InfoTooltip
+        variant="inverted"
+        asChild
         content={
           <div className="flex items-center justify-start max-w-sm gap-2">
             <pre className="text-ellipsis overflow-hidden hover:overflow-visible">{name}</pre>
@@ -97,18 +98,16 @@ export const RecursivePermission: React.FC<
             </div>
           </div>
         }
-        asChild
-        position={{
-          side: "top",
-          align: "start",
-        }}
+        position={{ side: "top", align: "start" }}
       >
-        <div className="flex items-center gap-2 w-full">
-          <PermissionToggle permissionId={id} roleId={roleId} checked={checked} />
-          <pre className="text-sm text-accent-12 font-medium">{k}</pre>
+        <div className="w-full">
+          <div className="flex items-center gap-2 w-full">
+            <PermissionToggle permissionId={id} roleId={roleId} checked={checked} />
+            <pre className="text-sm text-accent-12 font-medium">{k}</pre>
+          </div>
+          {description && <p className="text-xs text-accent-11 mt-0.5">{description}</p>}
         </div>
-        {description && <p className="text-xs text-accent-11 mt-0.5">{description}</p>}
-      </RatelimitOverviewTooltip>
+      </InfoTooltip>
     );
   }
 
