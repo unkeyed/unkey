@@ -1,11 +1,10 @@
 "use client";
 
-import { RatelimitOverviewTooltip } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/table/components/ratelimit-overview-tooltip";
 import { ConfirmPopover } from "@/components/confirmation-popover";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toaster";
 import { ArrowRight, Check, CircleInfo, Eye, EyeSlash, Key2, Plus } from "@unkey/icons";
-import { Button, CopyButton } from "@unkey/ui";
+import { Button, CopyButton, InfoTooltip } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { UNNAMED_KEY } from "../create-key.constants";
@@ -179,16 +178,17 @@ export const KeyCreatedSuccessDialog = ({
                   </div>
                   <div className="flex flex-col gap-1 py-6">
                     <div className="text-accent-12 text-xs font-mono">{keyData.id}</div>
-                    <RatelimitOverviewTooltip
+                    <InfoTooltip
                       content={keyData.name}
                       position={{ side: "bottom", align: "center" }}
                       asChild
                       disabled={!keyData.name}
+                      variant="inverted"
                     >
                       <div className="text-accent-9 text-xs max-w-[160px] truncate">
                         {keyData.name ?? UNNAMED_KEY}
                       </div>
-                    </RatelimitOverviewTooltip>
+                    </InfoTooltip>
                   </div>
                   <Button
                     variant="outline"

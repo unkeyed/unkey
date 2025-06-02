@@ -33,7 +33,12 @@ export function Navigation({
         <DeletePermission
           key="delete-permission"
           trigger={
-            <NavbarActionButton variant="destructive" color="danger" className="">
+            <NavbarActionButton
+              title="Delete permission"
+              variant="destructive"
+              color="danger"
+              className=""
+            >
               Delete Permission
             </NavbarActionButton>
           }
