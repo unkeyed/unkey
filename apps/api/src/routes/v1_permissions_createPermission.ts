@@ -25,6 +25,10 @@ const route = createRoute({
           schema: z.object({
             name: validation.identifier.openapi({
               description: "The unique name of your permission.",
+              example: "Can write records",
+            }),
+            slug: validation.identifier.optional().openapi({
+              description: "The unique slug of your permission. If not provided, the name is used.",
               example: "record.write",
             }),
             description: validation.description.optional().openapi({
@@ -77,6 +81,7 @@ export const registerV1PermissionsCreatePermission = (app: App) =>
       id: newId("permission"),
       workspaceId: auth.authorizedWorkspaceId,
       name: req.name,
+      slug: req.slug ?? req.name,
       description: req.description,
     };
 

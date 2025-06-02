@@ -36,6 +36,7 @@ export async function upsertPermission(
       id: newId("permission"),
       workspaceId,
       name,
+      slug: name,
       description: null,
       createdAtM: Date.now(),
       updatedAtM: null,
