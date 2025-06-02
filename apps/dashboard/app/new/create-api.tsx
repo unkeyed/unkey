@@ -4,7 +4,7 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { PostHogIdentify } from "@/providers/PostHogProvider";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Loading, FormInput } from "@unkey/ui";
+import { Button, FormInput } from "@unkey/ui";
 import { Code2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
@@ -109,7 +109,7 @@ export const CreateApi: React.FC<Props> = ({ workspace }) => {
                 loading={createApi.isLoading}
                 className="w-full h-9"
               >
-                {createApi.isLoading ? <Loading /> : "Create API"}
+                Create API
               </Button>
             </div>
           </form>

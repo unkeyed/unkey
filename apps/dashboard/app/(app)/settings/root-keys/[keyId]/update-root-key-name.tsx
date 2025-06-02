@@ -4,7 +4,7 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Loading, FormInput } from "@unkey/ui";
+import { Button, FormInput } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -90,7 +90,7 @@ export const UpdateRootKeyName: React.FC<Props> = ({ apiKey }) => {
             type="submit"
             loading={updateName.isLoading}
           >
-            {updateName.isLoading ? <Loading /> : "Save"}
+            Save
           </Button>
         </CardFooter>
       </Card>

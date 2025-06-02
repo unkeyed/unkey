@@ -22,7 +22,6 @@ import type { Api, Key, VercelBinding } from "@unkey/db";
 import {
   Button,
   Empty,
-  Loading,
   Input,
   Select,
   SelectContent,
@@ -288,8 +287,8 @@ const ConnectedResource: React.FC<{
 
       <DropdownMenu>
         <DropdownMenuTrigger>
-          <Button variant="ghost" shape="square">
-            {isLoading ? <Loading className="w-4 h-4" /> : <MoreHorizontal className="w-4 h-4" />}
+          <Button variant="ghost" shape="square" loading={isLoading}>
+            <MoreHorizontal className="w-4 h-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>

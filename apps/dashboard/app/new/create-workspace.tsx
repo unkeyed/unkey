@@ -5,7 +5,7 @@ import { setCookie } from "@/lib/auth/cookies";
 import { UNKEY_SESSION_COOKIE } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Loading, FormInput } from "@unkey/ui";
+import { Button, FormInput } from "@unkey/ui";
 import { Box } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useTransition } from "react";
@@ -136,7 +136,7 @@ export const CreateWorkspace: React.FC = () => {
               loading={createWorkspace.isLoading || isPending}
               className="w-full h-9"
             >
-              {createWorkspace.isLoading || isPending ? <Loading /> : "Create Workspace"}
+              Create Workspace
             </Button>
           </div>
         </form>

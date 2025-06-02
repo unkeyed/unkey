@@ -13,7 +13,7 @@ import {
 import { Code } from "@/components/ui/code";
 import { Separator } from "@/components/ui/separator";
 import { trpc } from "@/lib/trpc/client";
-import { Button, CopyButton, Empty, Loading } from "@unkey/ui";
+import { Button, CopyButton, Empty } from "@unkey/ui";
 import { AlertCircle, KeyRound, Lock } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -125,8 +125,9 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
             <Button
               disabled={rootKey.isLoading}
               onClick={() => rootKey.mutate({ permissions: ["*"] })}
+              loading={rootKey.isLoading}
             >
-              {rootKey.isLoading ? <Loading /> : "Create Root Key"}
+              Create Root Key
             </Button>
           </Empty>
         ) : step.step === "CREATE_KEY" ? (
@@ -175,8 +176,9 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
                 variant="ghost"
                 disabled={key.isLoading}
                 onClick={() => key.mutate({ keyAuthId })}
+                loading={key.isLoading}
               >
-                {key.isLoading ? <Loading /> : "Or click here to create a key"}
+                Or click here to create a key
               </Button>
               <Button
                 className="whitespace-nowrap max-sm:text-xs"

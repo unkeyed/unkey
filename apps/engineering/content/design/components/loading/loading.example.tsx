@@ -1,28 +1,39 @@
 "use client";
 
 import { RenderComponentWithSnippet } from "@/app/components/render";
-import { Loading } from "@unkey/ui";
+import { Button, Loading } from "@unkey/ui";
+import { useState } from "react";
 
 export const LoadingExample = () => {
-  return (
-    <RenderComponentWithSnippet>
-      <Loading />
-    </RenderComponentWithSnippet>
-  );
-};
+  const [loading, setLoading] = useState(false);
 
-export const LoadingWithDurationExample = () => {
-  return (
-    <RenderComponentWithSnippet>
-      <Loading dur="1s" />
-    </RenderComponentWithSnippet>
-  );
-};
+  const handleClick = () => {
+    setLoading(true);
+    setTimeout(() => setLoading(false), 3000);
+  };
 
-export const LoadingCustomExample = () => {
   return (
     <RenderComponentWithSnippet>
-      <Loading width={100} height={100} />
+      <div className="flex flex-row items-start justify-between gap-2">
+        <div className="flex flex-col items-center justify-start gap-2">
+          <p>Default</p>
+          <Button onClick={handleClick} size="lg">
+            {loading ? <Loading /> : "Click me"}
+          </Button>
+        </div>
+        <div className="flex flex-col items-center justify-start gap-2">
+          <p>Duration</p>
+          <Button onClick={handleClick} size="lg">
+            {loading ? <Loading dur="1s" /> : "Click me"}
+          </Button>
+        </div>
+        <div className="flex flex-col items-center justify-start gap-2">
+          <p>Custom Size</p>
+          <Button onClick={handleClick} size="2xlg" className="shrink-0 w-32">
+            {loading ? <Loading width={24} height={24} /> : "Click me"}
+          </Button>
+        </div>
+      </div>
     </RenderComponentWithSnippet>
   );
 };

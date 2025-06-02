@@ -1,25 +1,17 @@
 "use client";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogContainer } from "@/components/dialog-container";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleInfo } from "@unkey/icons";
-import { DialogContainer } from "@/components/dialog-container";
 import {
+  Button,
   FormTextarea,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Button
 } from "@unkey/ui";
 import { parseAsBoolean, useQueryState } from "nuqs";
 import { Controller, useForm } from "react-hook-form";

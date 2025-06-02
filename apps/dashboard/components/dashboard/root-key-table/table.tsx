@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { Button, Loading, Input } from "@unkey/ui";
+import { Button, Input } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 interface DataTableProps<TData, TValue> {
@@ -117,8 +117,9 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
                         .rows.map((row) => row.original.id as string);
                       deleteKey.mutate({ keyIds });
                     }}
+                    loading={deleteKey.isLoading}
                   >
-                    {deleteKey.isLoading ? <Loading /> : "Delete permanently"}
+                    Delete permanently
                   </Button>
                 </DialogFooter>
               </DialogContent>

@@ -2,7 +2,7 @@
 
 import { VisibleButton } from "@/components/dashboard/visible-button";
 import { Code } from "@/components/ui/code";
-import { Button, CopyButton, Loading, Input, Checkbox } from "@unkey/ui";
+import { Button, Checkbox, CopyButton, Input } from "@unkey/ui";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -260,7 +260,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
           });
         }}
       >
-        {key.isLoading ? <Loading className="w-4 h-4" /> : "Create New Key"}
+        Create New Key
       </Button>
 
       <Dialog

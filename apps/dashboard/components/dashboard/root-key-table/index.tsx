@@ -20,7 +20,7 @@ import {
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Button, Checkbox, InfoTooltip, Loading } from "@unkey/ui";
+import { Button, Checkbox, InfoTooltip } from "@unkey/ui";
 import { ArrowUpDown, Minus, MoreHorizontal, MoreVertical, Trash } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
@@ -197,8 +197,9 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
                       variant="destructive"
                       disabled={deleteKey.isLoading}
                       onClick={() => deleteKey.mutate({ keyIds: [row.original.id] })}
+                      loading={deleteKey.isLoading}
                     >
-                      {deleteKey.isLoading ? <Loading /> : "Delete permanently"}
+                      Delete permanently
                     </Button>
                   </DialogFooter>
                 </DialogContent>

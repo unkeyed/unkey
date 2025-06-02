@@ -4,7 +4,7 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { PostHogEvent } from "@/providers/PostHogProvider";
 import type { Workspace } from "@unkey/db";
-import { Button, Empty, Loading } from "@unkey/ui";
+import { Button, Empty } from "@unkey/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type React from "react";
@@ -47,8 +47,12 @@ export const OptIn: React.FC<Props> = ({ title, description, feature }) => {
           <Button>Get in touch</Button>
         </Link>
 
-        <Button variant="primary" onClick={() => optIn.mutate({ feature })}>
-          {optIn.isLoading ? <Loading /> : "Opt In"}
+        <Button
+          variant="primary"
+          onClick={() => optIn.mutate({ feature })}
+          loading={optIn.isLoading}
+        >
+          Opt In
         </Button>
       </div>
     </Empty>
