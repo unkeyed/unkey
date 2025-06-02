@@ -1,6 +1,6 @@
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { Refresh3 } from "@unkey/icons";
-import { Button, KeyboardButton, InfoTooltip } from "@unkey/ui";
+import { Button, InfoTooltip, KeyboardButton } from "@unkey/ui";
 import { useState } from "react";
 
 type RefreshButtonProps = {
