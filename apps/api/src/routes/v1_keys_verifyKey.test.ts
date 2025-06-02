@@ -168,6 +168,7 @@ describe("with temporary key", () => {
         id: newId("test"),
         workspaceId: h.resources.userWorkspace.id,
         name: "permission",
+        slug: "permission",
       };
       await h.db.primary.insert(schema.permissions).values(permission);
       await h.db.primary.insert(schema.keysPermissions).values({
