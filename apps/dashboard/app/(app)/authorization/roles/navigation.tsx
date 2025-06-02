@@ -1,19 +1,8 @@
 "use client";
-import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
-import { formatNumber } from "@/lib/fmt";
 import { ShieldKey } from "@unkey/icons";
-import { Button } from "@unkey/ui";
-import { useState } from "react";
-import { RBACForm } from "../_components/rbac-form";
 
-interface NavigationProps {
-  roles: number;
-}
-
-export function Navigation({ roles }: NavigationProps) {
-  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
-
+export function Navigation() {
   return (
     <>
       <Navbar>
@@ -25,37 +14,7 @@ export function Navigation({ roles }: NavigationProps) {
             Roles
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
-        <Navbar.Actions>
-          <Button
-            disabled
-            variant="outline"
-            size="md"
-            className="text-xs font-medium ph-no-capture h-8 bg-grayA-3 hover:bg-grayA-3 !text-grayA-8"
-          >
-            <div className="flex gap-1 items-center justify-center text-sm">
-              {formatNumber(roles)} Roles
-            </div>
-          </Button>
-          <NavbarActionButton
-            title="Click to create a new role"
-            onClick={() => setIsRoleModalOpen(true)}
-          >
-            Create New Role
-          </NavbarActionButton>
-        </Navbar.Actions>
       </Navbar>
-
-      <RBACForm
-        isModalOpen={isRoleModalOpen}
-        onOpenChange={setIsRoleModalOpen}
-        title="Create a new role"
-        buttonText="Create New Role"
-        footerText="Roles group permissions together"
-        formId="role-form"
-        type="create"
-        itemType="role"
-        additionalParams={{ permissionIds: [] }}
-      />
     </>
   );
 }
