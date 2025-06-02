@@ -1,5 +1,5 @@
 "use client";
-import { RolesList } from "./components/table/keys-list";
+import { RolesList } from "./components/table/roles-list";
 import { Navigation } from "./navigation";
 
 export default function RolesPage() {

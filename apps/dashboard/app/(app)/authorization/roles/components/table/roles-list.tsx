@@ -1,12 +1,10 @@
 "use client";
-import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import type { Roles } from "@/lib/trpc/routers/authorization/roles";
-import { BookBookmark, CircleInfoSparkle, Shield } from "@unkey/icons";
-import { AnimatedLoadingSpinner, Button, Checkbox, Empty } from "@unkey/ui";
+import { Asterisk, BookBookmark, Key2, Tag } from "@unkey/icons";
+import { Button, Checkbox, Empty } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 import { useRolesListQuery } from "./hooks/use-roles-list-query";
 import { getRowClassName } from "./utils/get-row-class";
@@ -14,14 +12,8 @@ import { getRowClassName } from "./utils/get-row-class";
 export const RolesList = () => {
   const { roles, isLoading, isLoadingMore, loadMore, totalCount, hasMore } = useRolesListQuery();
   const [selectedRole, setSelectedRole] = useState<Roles | null>(null);
-  const [navigatingRoleSlug, setNavigatingRoleSlug] = useState<string | null>(null);
   const [selectedRoles, setSelectedRoles] = useState<Set<string>>(new Set());
   const [hoveredRoleSlug, setHoveredRoleSlug] = useState<string | null>(null);
-
-  const handleLinkClick = useCallback((roleSlug: string) => {
-    setNavigatingRoleSlug(roleSlug);
-    setSelectedRole(null);
-  }, []);
 
   const toggleSelection = useCallback((roleSlug: string) => {
     setSelectedRoles((prevSelected) => {
@@ -43,38 +35,26 @@ export const RolesList = () => {
         width: "25%",
         headerClassName: "pl-[18px]",
         render: (role) => {
-          const isNavigating = role.slug === navigatingRoleSlug;
           const isSelected = selectedRoles.has(role.slug);
           const isHovered = hoveredRoleSlug === role.slug;
 
           const iconContainer = (
             <div
               className={cn(
-                "size-5 rounded flex items-center justify-center cursor-pointer",
-                "bg-brand-3",
+                "size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3",
+                "bg-grayA-3",
                 isSelected && "bg-brand-5",
               )}
               onMouseEnter={() => setHoveredRoleSlug(role.slug)}
               onMouseLeave={() => setHoveredRoleSlug(null)}
             >
-              {isNavigating ? (
-                <div className="text-brand-11">
-                  <AnimatedLoadingSpinner />
-                </div>
-              ) : (
-                <>
-                  {!isSelected && !isHovered && (
-                    <Shield size="md-regular" className="text-brand-11" />
-                  )}
-
-                  {(isSelected || isHovered) && (
-                    <Checkbox
-                      checked={isSelected}
-                      className="size-4 [&_svg]:size-3"
-                      onCheckedChange={() => toggleSelection(role.slug)}
-                    />
-                  )}
-                </>
+              {!isSelected && !isHovered && <Tag size="sm-regular" className="text-gray-12" />}
+              {(isSelected || isHovered) && (
+                <Checkbox
+                  checked={isSelected}
+                  className="size-4 [&_svg]:size-3"
+                  onCheckedChange={() => toggleSelection(role.slug)}
+                />
               )}
             </div>
           );
@@ -84,23 +64,19 @@ export const RolesList = () => {
               <div className="flex gap-4 items-center">
                 {iconContainer}
                 <div className="flex flex-col gap-1 text-xs">
-                  <Link
-                    title={`View details for ${role.slug}`}
-                    className="font-mono group-hover:underline decoration-dotted"
-                    href={`/roles/${role.slug}`}
-                    aria-disabled={isNavigating}
-                    onClick={() => {
-                      handleLinkClick(role.slug);
-                    }}
-                  >
-                    <div className="font-mono font-medium truncate text-brand-12">{role.slug}</div>
-                  </Link>
-                  {role.name && (
+                  <div className="font-medium truncate text-accent-12 leading-4 text-[13px] max-w-[120px]">
+                    {role.name}
+                  </div>
+                  {role.description ? (
                     <span
-                      className="font-sans text-accent-9 truncate max-w-[180px]"
-                      title={role.name}
+                      className="font-sans text-accent-9 truncate max-w-[180px] text-xs"
+                      title={role.description}
                     >
-                      {role.name}
+                      {role.description}
+                    </span>
+                  ) : (
+                    <span className="font-sans text-accent-9 truncate max-w-[180px] text-xs italic">
+                      No description
                     </span>
                   )}
                 </div>
@@ -110,12 +86,15 @@ export const RolesList = () => {
         },
       },
       {
-        key: "description",
-        header: "Description",
+        key: "slug",
+        header: "Slug",
         width: "25%",
         render: (role) => (
-          <div className="text-xs text-accent-11 max-w-[200px] truncate" title={role.description}>
-            {role.description || <span className="text-accent-9 italic">No description</span>}
+          <div
+            className="text-xs text-accent-11 max-w-[200px] truncate font-mono"
+            title={role.slug}
+          >
+            {role.slug}
           </div>
         ),
       },
@@ -144,7 +123,7 @@ export const RolesList = () => {
         ),
       },
     ],
-    [navigatingRoleSlug, handleLinkClick, selectedRoles, toggleSelection, hoveredRoleSlug],
+    [selectedRoles, toggleSelection, hoveredRoleSlug],
   );
 
   return (
@@ -240,42 +219,41 @@ const AssignedItemsCell = ({
 }) => {
   const hasMore = totalCount && totalCount > items.length;
   const icon =
-    type === "keys" ? <Shield className="size-3" /> : <CircleInfoSparkle className="size-3" />;
+    type === "keys" ? (
+      <Key2 size="md-regular" />
+    ) : (
+      <Asterisk className="size-3" size="md-regular" />
+    );
 
   if (items.length === 0) {
     return (
-      <div className="flex items-center gap-2 text-xs text-accent-9">
-        {icon}
-        <span>None assigned</span>
+      <div className="flex flex-col gap-1 py-1 max-w-[200px]">
+        <div className="bg-grayA-2 border border-dashed border-grayA-6 flex gap-2 rounded-md py-[2px] px-1.5 items-center w-fit text-grayA-8">
+          {icon}
+          <span className="text-grayA-9 text-xs">None assigned</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-center gap-2 text-xs">
-        {icon}
-        <span className="text-accent-12 font-medium">
-          {totalCount ? totalCount : items.length} {type}
-        </span>
-      </div>
-      <div className="flex flex-wrap gap-1">
-        {items.map((item, idx) => (
-          <Badge
-            // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-            key={idx}
-            variant="secondary"
-            className="text-xs py-0.5 px-1.5"
-          >
-            {item}
-          </Badge>
-        ))}
-        {hasMore && (
-          <Badge variant="secondary" className="text-xs py-0.5 px-1.5">
-            +{(totalCount || 0) - items.length} more
-          </Badge>
-        )}
-      </div>
+    <div className="flex flex-col gap-1 py-1 max-w-[200px]">
+      {items.map((item) => (
+        <div
+          className="bg-grayA-3 border border-dashed border-grayA-6 flex gap-2 font-mono rounded-md py-[2px] px-1.5 items-center w-fit text-grayA-12 "
+          key={item}
+        >
+          {icon}
+          <span className="text-grayA-11 text-xs max-w-[150px] truncate">{item}</span>
+        </div>
+      ))}
+      {hasMore && (
+        <div className="bg-grayA-3 border border-dashed border-grayA-6 flex gap-2 rounded-md py-[2px] px-1.5 items-center w-fit">
+          <span className="text-grayA-9 text-xs max-w-[150px] truncate">
+            more {totalCount - 3} keys...
+          </span>
+        </div>
+      )}
     </div>
   );
 };

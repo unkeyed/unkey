@@ -48,69 +48,80 @@ export const queryRoles = t.procedure
     const { limit, cursor } = input;
 
     const result = await db.execute(sql`
-      SELECT 
-        r.id,
-        r.name,
-        r.human_readable,
-        r.description,
-        r.updated_at_m,
-        
-        -- Keys data (only first ${MAX_ITEMS_TO_SHOW} names)
-        GROUP_CONCAT(
-          CASE 
-            WHEN key_data.key_row_num <= ${MAX_ITEMS_TO_SHOW}
-            THEN key_data.key_name 
-          END 
-          ORDER BY key_data.key_name 
-          SEPARATOR ${ITEM_SEPARATOR}
-        ) as key_items,
-        COALESCE(MAX(key_data.total_keys), 0) as total_keys,
-        
-        -- Permissions data (only first ${MAX_ITEMS_TO_SHOW} names)
-        GROUP_CONCAT(
-          CASE 
-            WHEN perm_data.perm_row_num <= ${MAX_ITEMS_TO_SHOW}
-            THEN perm_data.permission_name 
-          END 
-          ORDER BY perm_data.permission_name 
-          SEPARATOR ${ITEM_SEPARATOR}
-        ) as permission_items,
-        COALESCE(MAX(perm_data.total_permissions), 0) as total_permissions,
-        
-        -- Total count
-        (SELECT COUNT(*) FROM roles WHERE workspace_id = ${workspaceId}) as grand_total
-        
-      FROM (
-        SELECT *
-        FROM roles 
-        WHERE workspace_id = ${workspaceId}
-          ${cursor ? sql`AND updated_at_m < ${cursor}` : sql``}
-        ORDER BY updated_at_m DESC
-        LIMIT ${limit + 1}
-      ) r
-      LEFT JOIN (
-        SELECT 
-          kr.role_id,
-          k.name as key_name,
-          ROW_NUMBER() OVER (PARTITION BY kr.role_id ORDER BY k.name) as key_row_num,
-          COUNT(*) OVER (PARTITION BY kr.role_id) as total_keys
-        FROM keys_roles kr
-        JOIN \`keys\` k ON kr.key_id = k.id
-        WHERE kr.workspace_id = ${workspaceId}
-      ) key_data ON r.id = key_data.role_id AND key_data.key_row_num <= ${MAX_ITEMS_TO_SHOW}
-      LEFT JOIN (
-        SELECT 
-          rp.role_id,
-          p.name as permission_name,
-          ROW_NUMBER() OVER (PARTITION BY rp.role_id ORDER BY p.name) as perm_row_num,
-          COUNT(*) OVER (PARTITION BY rp.role_id) as total_permissions
-        FROM roles_permissions rp
-        JOIN permissions p ON rp.permission_id = p.id
-        WHERE rp.workspace_id = ${workspaceId}
-      ) perm_data ON r.id = perm_data.role_id AND perm_data.perm_row_num <= ${MAX_ITEMS_TO_SHOW}
-      GROUP BY r.id, r.name, r.human_readable, r.description, r.updated_at_m
-      ORDER BY r.updated_at_m DESC
-    `);
+ SELECT 
+   r.id,
+   r.name,
+   r.human_readable,
+   r.description,
+   r.updated_at_m,
+   
+   -- Keys: get first 3 unique names
+   (
+     SELECT GROUP_CONCAT(sub.display_name ORDER BY sub.sort_key SEPARATOR ${ITEM_SEPARATOR})
+     FROM (
+       SELECT DISTINCT 
+         CASE 
+           WHEN k.name IS NULL OR k.name = '' THEN 
+             CONCAT(SUBSTRING(k.id, 1, 8), '...', RIGHT(k.id, 4))
+           ELSE k.name 
+         END as display_name,
+         COALESCE(k.name, k.id) as sort_key
+       FROM keys_roles kr
+       JOIN \`keys\` k ON kr.key_id = k.id
+       WHERE kr.role_id = r.id 
+         AND kr.workspace_id = ${workspaceId}
+       ORDER BY sort_key
+       LIMIT ${MAX_ITEMS_TO_SHOW}
+     ) sub
+   ) as key_items,
+   
+   -- Keys: total count
+   (
+     SELECT COUNT(DISTINCT kr.key_id)
+     FROM keys_roles kr
+     JOIN \`keys\` k ON kr.key_id = k.id
+     WHERE kr.role_id = r.id 
+       AND kr.workspace_id = ${workspaceId}
+   ) as total_keys,
+   
+   -- Permissions: get first 3 unique names
+   (
+     SELECT GROUP_CONCAT(sub.name ORDER BY sub.name SEPARATOR ${ITEM_SEPARATOR})
+     FROM (
+       SELECT DISTINCT p.name
+       FROM roles_permissions rp
+       JOIN permissions p ON rp.permission_id = p.id
+       WHERE rp.role_id = r.id 
+         AND rp.workspace_id = ${workspaceId}
+         AND p.name IS NOT NULL
+       ORDER BY p.name
+       LIMIT ${MAX_ITEMS_TO_SHOW}
+     ) sub
+   ) as permission_items,
+   
+   -- Permissions: total count
+   (
+     SELECT COUNT(DISTINCT rp.permission_id)
+     FROM roles_permissions rp
+     JOIN permissions p ON rp.permission_id = p.id
+     WHERE rp.role_id = r.id 
+       AND rp.workspace_id = ${workspaceId}
+       AND p.name IS NOT NULL
+   ) as total_permissions,
+   
+   -- Total count of roles
+   (SELECT COUNT(*) FROM roles WHERE workspace_id = ${workspaceId}) as grand_total
+   
+ FROM (
+   SELECT *
+   FROM roles 
+   WHERE workspace_id = ${workspaceId}
+     ${cursor ? sql`AND updated_at_m < ${cursor}` : sql``}
+   ORDER BY updated_at_m DESC
+   LIMIT ${limit + 1}
+ ) r
+ ORDER BY r.updated_at_m DESC
+`);
 
     const rows = result.rows as {
       id: string;
