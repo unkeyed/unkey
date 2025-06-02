@@ -51,6 +51,7 @@ test("connects all permissions", async (t) => {
   const permissions = new Array(3).fill(null).map((_) => ({
     id: newId("test"),
     name: randomUUID(),
+    slug: randomUUID(),
     workspaceId: h.resources.userWorkspace.id,
   }));
 

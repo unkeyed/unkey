@@ -68,7 +68,7 @@ export async function getStructuredAuditSearchFromLLM(
       throw error;
     }
 
-    if ((error as any).response?.status === 429) {
+    if ((error as { response: { status: number } }).response?.status === 429) {
       throw new TRPCError({
         code: "TOO_MANY_REQUESTS",
         message: "Search rate limit exceeded. Please try again in a few minutes.",

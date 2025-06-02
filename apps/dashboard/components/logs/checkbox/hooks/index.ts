@@ -9,7 +9,10 @@ type UseCheckboxStateProps<TItem, TFilter extends FilterValue> = {
   shouldSyncWithOptions?: boolean;
 };
 
-export const useCheckboxState = <TItem extends Record<string, any>, TFilter extends FilterValue>({
+export const useCheckboxState = <
+  TItem extends Record<string, unknown>,
+  TFilter extends FilterValue,
+>({
   options,
   filters,
   filterField,

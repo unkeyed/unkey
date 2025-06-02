@@ -175,7 +175,7 @@ function createActiveKeysTimeseriesQuery(interval: TimeInterval, whereClause: st
 function getActiveKeysTimeseriesWhereClause(
   params: ActiveKeysTimeseriesParams,
   additionalConditions: string[] = [],
-): { whereClause: string; paramSchema: z.ZodType<any> } {
+): { whereClause: string; paramSchema: z.ZodType<unknown> } {
   const conditions = [
     "workspace_id = {workspaceId: String}",
     "key_space_id = {keyspaceId: String}",

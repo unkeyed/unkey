@@ -237,6 +237,7 @@ export async function setPermissions(
     id: newId("permission"),
     workspaceId: auth.authorizedWorkspaceId,
     name,
+    slug: name,
   }));
   if (createPermissions.length > 0) {
     const rbacResp = rbac.evaluatePermissions(
