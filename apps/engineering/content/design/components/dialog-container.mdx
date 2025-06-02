@@ -1,0 +1,84 @@
+---
+title: DialogContainer
+description: "The DialogContainer is a reusable dialog component that provides a consistent modal interface across the application. It combines styling, accessibility, and common dialog patterns into a single component."
+---
+import { Default } from "./dialog/dialog-container.examples"
+
+## Usage
+
+```tsx
+import { DialogContainer } from "@internal/ui";
+
+export const MyComponent = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  return (
+    <DialogContainer
+      isOpen={isOpen}
+      onOpenChange={setIsOpen}
+      title="My Dialog"
+      subTitle="Optional subtitle"
+    >
+      <div>Dialog content goes here</div>
+    </DialogContainer>
+  );
+};
+```
+## Example
+
+<Default />
+
+## Props
+
+| Prop | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `isOpen` | `boolean` | Yes | - | Controls the visibility of the dialog |
+| `onOpenChange` | `(value: boolean) => void` | Yes | - | Callback function triggered when the dialog's open state changes |
+| `title` | `string` | Yes | - | The main heading of the dialog |
+| `subTitle` | `string` | No | - | Optional secondary text displayed below the title |
+| `className` | `string` | No | - | Additional CSS classes to apply to the dialog container |
+| `contentClassName` | `string` | No | - | Additional CSS classes to apply to the dialog content area |
+| `preventAutoFocus` | `boolean` | No | `true` | When true, prevents the dialog from auto-focusing on any element when opened |
+| `footer` | `ReactNode` | No | - | Optional footer content rendered at the bottom of the dialog |
+| `children` | `ReactNode` | No | - | The main content of the dialog |
+
+## Structure
+
+The component is composed of three main parts:
+
+1. **Header** (`DefaultDialogHeader`)
+   - Displays the title and optional subtitle
+   - Consistent styling and spacing
+
+2. **Content Area** (`DefaultDialogContentArea`)
+   - Contains the main dialog content
+   - Scrollable if content exceeds the dialog height
+   - Can be customized with `contentClassName`
+
+3. **Footer** (`DefaultDialogFooter`)
+   - Optional section for actions or additional information
+   - Only rendered when the `footer` prop is provided
+
+## Styling
+
+The dialog uses Tailwind CSS for styling with the following default characteristics:
+- Drop shadow effect (`drop-shadow-2xl`)
+- Gray border (`border-gray-4`)
+- Hidden overflow (`overflow-hidden`)
+- Rounded corners (`!rounded-2xl`)
+- No padding (`p-0`) and no gap (`gap-0`)
+
+Additional styling can be applied through the `className` and `contentClassName` props.
+
+## Accessibility
+
+- The dialog handles focus management (can be disabled with `preventAutoFocus`)
+- Uses the underlying `Dialog` component which provides ARIA attributes and keyboard navigation
+- Follows WAI-ARIA dialog patterns for accessibility
+
+## Exported Components
+
+The following sub-components are also exported for custom implementations:
+- `DefaultDialogHeader`
+- `DefaultDialogContentArea`
+- `DefaultDialogFooter`
