@@ -29,7 +29,10 @@ type Metric =
       namespace: string;
     };
 
-export function withMetrics(metrics: Metrics<Metric>): StoreMiddleware<any, any> {
+export function withMetrics(
+  metrics: Metrics<Metric>,
+  // biome-ignore lint/suspicious/noExplicitAny: Safe to leave
+): StoreMiddleware<any, any> {
   function wrap<TNamespace extends string, TValue>(
     store: Store<TNamespace, TValue>,
   ): Store<TNamespace, TValue> {
@@ -44,10 +47,7 @@ class StoreWithMetrics<TNamespace extends string, TValue> implements Store<TName
 
   private readonly metrics: Metrics;
 
-  constructor(opts: {
-    store: Store<TNamespace, TValue>;
-    metrics: Metrics;
-  }) {
+  constructor(opts: { store: Store<TNamespace, TValue>; metrics: Metrics }) {
     this.name = opts.store.name;
     this.store = opts.store;
     this.metrics = opts.metrics;

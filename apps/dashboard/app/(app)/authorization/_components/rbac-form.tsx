@@ -36,7 +36,7 @@ type BaseProps = {
 type CreateProps = BaseProps & {
   type: "create";
   itemType: "permission" | "role";
-  additionalParams?: Record<string, any>;
+  additionalParams?: Record<string, unknown>;
 };
 
 type UpdateProps = BaseProps & {
@@ -144,7 +144,7 @@ export const RBACForm = (props: Props) => {
     router.refresh();
   }
 
-  function handleError(err: any) {
+  function handleError(err: { message: string }) {
     toast.error(`Failed to ${type} ${itemType}`, {
       description: err.message,
     });
@@ -171,7 +171,7 @@ export const RBACForm = (props: Props) => {
         await createRole.mutateAsync({
           name: values.name,
           description: values.description || undefined,
-          permissionIds: (props as CreateProps).additionalParams?.permissionIds || [],
+          permissionIds: ((props as CreateProps).additionalParams?.permissionIds || []) as string[],
         });
       } else if (type === "update" && itemType === "permission") {
         await updatePermission.mutateAsync({
