@@ -7,12 +7,19 @@ interface LoadingProps extends SVGProps<SVGSVGElement> {
   dur?: string;
 }
 
-export function Loading({ width = 24, height = 24, dur = "0.75" }: LoadingProps): JSX.Element {
+export function Loading({
+  width = 24,
+  height = 24,
+  dur = "0.75",
+  className,
+  ...props
+}: LoadingProps): JSX.Element {
   return (
     <svg
-      className="fill-current"
+      className={`fill-current ${className ?? ""}`}
       width={width}
       height={height}
+      {...props}
       viewBox="0 0 24 24"
       xmlns="http://www.w3.org/2000/svg"
     >
