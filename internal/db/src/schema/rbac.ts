@@ -92,8 +92,8 @@ export const roles = mysqlTable(
     id: varchar("id", { length: 256 }).primaryKey(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     name: varchar("name", { length: 512 }).notNull(),
+    human_readable: varchar("human_readable", { length: 512 }),
     description: varchar("description", { length: 512 }),
-
     createdAtM: bigint("created_at_m", { mode: "number" })
       .notNull()
       .default(0)

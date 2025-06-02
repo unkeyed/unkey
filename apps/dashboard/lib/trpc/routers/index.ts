@@ -20,6 +20,7 @@ import { updateApiIpWhitelist } from "./api/updateIpWhitelist";
 import { updateApiName } from "./api/updateName";
 import { fetchAuditLog } from "./audit/fetch";
 import { auditLogsSearch } from "./audit/llm-search";
+import { queryRoles } from "./authorization/roles";
 import { queryUsage } from "./billing/query-usage";
 import { createIdentity } from "./identity/create";
 import { queryIdentities } from "./identity/query";
@@ -151,6 +152,9 @@ export const router = t.router({
   vercel: vercelRouter,
   plain: t.router({
     createIssue: createPlainIssue,
+  }),
+  authorization: t.router({
+    roles: queryRoles,
   }),
   rbac: t.router({
     addPermissionToRootKey: addPermissionToRootKey,
