@@ -4,10 +4,7 @@ import { z } from "zod";
 export class Analytics {
   private readonly clickhouse: ClickHouse;
 
-  constructor(opts: {
-    clickhouseUrl: string;
-    clickhouseInsertUrl?: string;
-  }) {
+  constructor(opts: { clickhouseUrl: string; clickhouseInsertUrl?: string }) {
     if (opts.clickhouseInsertUrl) {
       this.clickhouse = new ClickHouse({
         insertUrl: opts.clickhouseInsertUrl,
@@ -44,7 +41,7 @@ export class Analytics {
   }
 
   public get getVerificationsDaily() {
-    return this.clickhouse.verifications.perDay;
+    return this.clickhouse.verifications.timeseries.perDay;
   }
 
   /**

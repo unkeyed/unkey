@@ -23,6 +23,8 @@ clarity, and efficiency.
 ## Features
 - Built directly on the Go standard library (net/http).
 - Thin abstractions for routing, middleware, and error handling.
+- Support for HTTPS connections with TLS certificates.
+- Context-based graceful shutdown handling.
 - No bloat—just the essentials.
 - Fast and easy to integrate with existing Go projects.
 
@@ -144,6 +146,57 @@ func main() {
 }
 ```
 
+## Using TLS for HTTPS
+
+To start the server with HTTPS, simply provide TLS certificate and key data:
+
+```go
+package main
+
+import (
+	"context"
+	"log"
+
+	"github.com/unkeyed/unkey/go/pkg/tls"
+	"github.com/unkeyed/unkey/go/pkg/zen"
+)
+
+func main() {
+	// Load TLS configuration from certificate and key files
+	tlsConfig, err := tls.NewFromFiles("server.crt", "server.key")
+	if err != nil {
+		log.Fatalf("failed to load TLS configuration: %v", err)
+	}
+	
+	// Create a server with TLS configuration
+	server, err := zen.New(zen.Config{
+		TLS: tlsConfig,
+	})
+	if err != nil {
+		log.Fatalf("failed to create server: %v", err)
+	}
+	
+	// Register routes...
+	
+	// Start the HTTPS server with context for graceful shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Start in a goroutine so you can handle shutdown signals
+	go func() {
+		if err := server.Listen(ctx, ":443"); err != nil {
+			log.Fatalf("server error: %v", err)
+		}
+	}()
+
+	// Set up signal handling for graceful shutdown
+	// ...
+
+	// To shut down gracefully:
+	cancel() // This will initiate graceful shutdown
+}
+```
+
 ## Working with OpenAPI Validation
 
 Zen works well with a schema-first approach to API design. Define your OpenAPI specification first, then use it for validation:
@@ -160,3 +213,32 @@ This approach ensures your API implementation strictly follows your API contract
 Zen is for developers who embrace Go's simplicity and power. By focusing only
 on essential abstractions, it keeps your code clean, maintainable, and in
 harmony with Go's design principles.
+
+## Security
+
+Zen supports HTTPS connections with TLS configuration. We recommend using TLS in production environments to encrypt all client-server communication. The TLS implementation uses Go's standard library crypto/tls package with secure defaults (TLS 1.2+). For TLS configuration management, Zen uses the unkey/go/pkg/tls package which provides utilities for creating TLS configurations from certificates and keys.
+
+## Graceful Shutdown
+
+Zen provides built-in support for graceful shutdown through context cancellation:
+
+```go
+// Create a context that can be cancelled
+ctx, cancel := context.WithCancel(context.Background())
+
+// Start the server with this context
+go server.Listen(ctx, ":8080")
+
+// When you need to shut down (e.g., on SIGTERM):
+cancel()
+
+// For more control over the shutdown timeout:
+shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+defer shutdownCancel()
+err := server.Shutdown(shutdownCtx)
+```
+
+When a server's context is canceled, it will:
+1. Stop accepting new connections
+2. Complete any in-flight requests
+3. Release resources and exit gracefully

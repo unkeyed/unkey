@@ -2,7 +2,6 @@
 
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -19,10 +18,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/toaster";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Button } from "@unkey/ui";
+import { Button, Checkbox, InfoTooltip } from "@unkey/ui";
 import { ArrowUpDown, Minus, MoreHorizontal, MoreVertical, Trash } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
@@ -89,17 +87,19 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
       accessorKey: "start",
       header: "Key",
       cell: ({ row }) => (
-        <Tooltip>
-          <TooltipTrigger>
-            <Link href={`/settings/root-keys/${row.original.id}`}>
-              <Badge variant="secondary">{row.getValue("start")}...</Badge>
-            </Link>
-          </TooltipTrigger>
-          <TooltipContent>
-            This is the first part of the key to visually match it. We don't store the full key for
-            security reasons.
-          </TooltipContent>
-        </Tooltip>
+        <InfoTooltip
+          asChild
+          content={
+            <p>
+              This is the first part of the key to visually match it. We don't store the full key
+              for security reasons.
+            </p>
+          }
+        >
+          <Link href={`/settings/root-keys/${row.original.id}`}>
+            <Badge variant="secondary">{row.getValue("start")}...</Badge>
+          </Link>
+        </InfoTooltip>
       ),
     },
     {

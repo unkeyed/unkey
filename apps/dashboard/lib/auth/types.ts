@@ -191,6 +191,7 @@ export enum AuthErrorCode {
   INVALID_EMAIL = "INVALID_EMAIL",
   NETWORK_ERROR = "NETWORK_ERROR",
   UNKNOWN_ERROR = "UNKNOWN_ERROR",
+  RATE_ERROR = "RATE_ERROR",
   ACCOUNT_NOT_FOUND = "ACCOUNT_NOT_FOUND",
   ORGANIZATION_SELECTION_REQUIRED = "ORGANIZATION_SELECTION_REQUIRED",
   EMAIL_VERIFICATION_REQUIRED = "EMAIL_VERIFICATION_REQUIRED",
@@ -213,6 +214,7 @@ export const errorMessages: Record<AuthErrorCode, string> = {
     "Email address not verified. Please check your email for a verification code.",
   [AuthErrorCode.PENDING_SESSION_EXPIRED]:
     "Pending Authentication has expired. Please sign-in again.",
+  [AuthErrorCode.RATE_ERROR]: "Limited OTP attempts",
 };
 
 export interface MiddlewareConfig {

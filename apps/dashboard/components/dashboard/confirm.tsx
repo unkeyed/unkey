@@ -53,5 +53,3 @@ export const Confirm: React.FC<ConfirmProps> = (props): JSX.Element => {
     </>
   );
 };
-
-export default Confirm;

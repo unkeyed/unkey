@@ -1,13 +1,12 @@
 "use client";
 
-import { RatelimitOverviewTooltip } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/table/components/ratelimit-overview-tooltip";
 import { ConfirmPopover } from "@/components/confirmation-popover";
-import { CopyButton } from "@/components/dashboard/copy-button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toaster";
 import { ArrowRight, Check, CircleInfo, Eye, EyeSlash, Key2, Plus } from "@unkey/icons";
-import { Button } from "@unkey/ui";
-import { useRef, useState } from "react";
+import { Button, CopyButton, InfoTooltip } from "@unkey/ui";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { UNNAMED_KEY } from "../create-key.constants";
 import { SecretKey } from "./secret-key";
 
@@ -28,8 +27,28 @@ export const KeyCreatedSuccessDialog = ({
 }) => {
   const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [isCreateAnother, setIsCreateAnother] = useState(false);
-  const xButtonRef = useRef<HTMLButtonElement>(null);
+  const [pendingAction, setPendingAction] = useState<
+    "close" | "create-another" | "go-to-details" | null
+  >(null);
+  const dividerRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  // Prevent accidental tab/window close when dialog is open
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isOpen]);
 
   if (!keyData) {
     return null;
@@ -50,33 +69,73 @@ export const KeyCreatedSuccessDialog = ({
     "apiId": "${apiId}"
   }'`;
 
-  const handleAttemptClose = (shouldCreateAnother = false) => {
-    setIsCreateAnother(shouldCreateAnother);
+  const handleCloseAttempt = (action: "close" | "create-another" | "go-to-details" = "close") => {
+    setPendingAction(action);
     setIsConfirmOpen(true);
   };
 
-  const handleConfirmAndClose = () => {
+  const handleConfirmClose = () => {
+    if (!pendingAction) {
+      console.error("No pending action when confirming close");
+      return;
+    }
+
     setIsConfirmOpen(false);
-    onClose();
-    if (isCreateAnother) {
-      onCreateAnother?.();
+
+    try {
+      // Always close the dialog first
+      onClose();
+
+      // Then execute the specific action
+      switch (pendingAction) {
+        case "create-another":
+          if (onCreateAnother) {
+            onCreateAnother();
+          } else {
+            console.warn("onCreateAnother callback not provided");
+          }
+          break;
+
+        case "go-to-details":
+          if (!keyspaceId) {
+            toast.error("Failed to Navigate", {
+              description: "Keyspace ID is required to view key details.",
+              action: {
+                label: "Contact Support",
+                onClick: () => window.open("https://support.unkey.dev", "_blank"),
+              },
+            });
+            return;
+          }
+          router.push(`/apis/${apiId}/keys/${keyspaceId}/${keyData.id}`);
+          break;
+
+        default:
+          // Dialog already closed, nothing more to do
+          break;
+      }
+    } catch (error) {
+      console.error("Error executing pending action:", error);
+      toast.error("Action Failed", {
+        description: "An unexpected error occurred. Please try again.",
+      });
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      handleCloseAttempt("close");
     }
   };
 
   return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={(open) => {
-        if (!open) {
-          onClose();
-        }
-      }}
-    >
+    <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
       <DialogContent
         className="drop-shadow-2xl border-gray-4 overflow-hidden !rounded-2xl p-0 gap-0 min-w-[760px] max-h-[90vh] overflow-y-auto"
         showCloseWarning
-        onAttemptClose={handleAttemptClose}
-        xButtonRef={xButtonRef}
+        onAttemptClose={() => handleCloseAttempt("close")}
       >
         <>
           <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full px-[120px]">
@@ -102,7 +161,7 @@ export const KeyCreatedSuccessDialog = ({
               <div className="font-semibold text-gray-12 text-[16px] leading-[24px]">
                 Key Created
               </div>
-              <div className="text-gray-10 text-[13px] leading-[24px] text-center">
+              <div className="text-gray-10 text-[13px] leading-[24px] text-center" ref={dividerRef}>
                 You've successfully generated a new API key.
                 <br /> Use this key to authenticate requests from your application.
               </div>
@@ -119,33 +178,22 @@ export const KeyCreatedSuccessDialog = ({
                   </div>
                   <div className="flex flex-col gap-1 py-6">
                     <div className="text-accent-12 text-xs font-mono">{keyData.id}</div>
-                    <RatelimitOverviewTooltip
+                    <InfoTooltip
                       content={keyData.name}
                       position={{ side: "bottom", align: "center" }}
                       asChild
                       disabled={!keyData.name}
+                      variant="inverted"
                     >
                       <div className="text-accent-9 text-xs max-w-[160px] truncate">
                         {keyData.name ?? UNNAMED_KEY}
                       </div>
-                    </RatelimitOverviewTooltip>
+                    </InfoTooltip>
                   </div>
                   <Button
                     variant="outline"
                     className="ml-auto font-medium text-[13px] text-gray-12"
-                    onClick={() => {
-                      if (!keyspaceId) {
-                        toast.error("Failed to Create Key", {
-                          description: "An unexpected error occurred. Please try again later.",
-                          action: {
-                            label: "Contact Support",
-                            onClick: () => window.open("https://support.unkey.dev", "_blank"),
-                          },
-                        });
-                        return;
-                      }
-                      window.location.href = `/apis/${apiId}/keys/${keyspaceId}/${keyData.id}`;
-                    }}
+                    onClick={() => handleCloseAttempt("go-to-details")}
                   >
                     See key details <ArrowRight size="sm-regular" />
                   </Button>
@@ -205,38 +253,29 @@ export const KeyCreatedSuccessDialog = ({
                 <Button
                   variant="outline"
                   className="font-medium text-[13px] text-gray-12"
-                  onClick={() => {
-                    handleAttemptClose(true);
-                  }}
+                  onClick={() => handleCloseAttempt("create-another")}
                 >
                   <Plus size="sm-regular" />
                   Create another key
                 </Button>
-                {/* INFO: We'll add this back soon */}
-                {/* <Button */}
-                {/*   variant="outline" */}
-                {/*   className="font-medium text-[13px] text-gray-12" */}
-                {/*   disabled */}
-                {/*   title="Coming soon!" */}
-                {/* > */}
-                {/*   <Bookmark size="sm-regular" /> */}
-                {/*   Learn best practices */}
-                {/* </Button> */}
               </div>
             </div>
           </div>
           <ConfirmPopover
             isOpen={isConfirmOpen}
             onOpenChange={setIsConfirmOpen}
-            onConfirm={handleConfirmAndClose}
-            triggerRef={xButtonRef}
+            onConfirm={handleConfirmClose}
+            triggerRef={dividerRef}
             title="You won't see this secret key again!"
             description="Make sure to copy your secret key before closing. It cannot be retrieved later."
             confirmButtonText="Close anyway"
             cancelButtonText="Dismiss"
             variant="warning"
             popoverProps={{
+              side: "right",
+              align: "end",
               sideOffset: 5,
+              alignOffset: 30,
               onOpenAutoFocus: (e) => e.preventDefault(),
             }}
           />

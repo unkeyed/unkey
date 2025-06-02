@@ -11,6 +11,7 @@ type LoadMoreFooterProps = {
   hasMore?: boolean;
   hide?: boolean;
   countInfoText?: React.ReactNode;
+  headerContent?: React.ReactNode;
 };
 
 export const LoadMoreFooter = ({
@@ -23,6 +24,7 @@ export const LoadMoreFooter = ({
   hasMore = true,
   countInfoText,
   hide,
+  headerContent,
 }: LoadMoreFooterProps) => {
   const shouldShow = !!onLoadMore;
 
@@ -38,27 +40,30 @@ export const LoadMoreFooter = ({
         pointerEvents: shouldShow ? "auto" : "none",
       }}
     >
-      <div className="w-[740px] border bg-gray-1 dark:bg-black border-gray-6 h-[60px] flex items-center justify-center p-[18px] rounded-[10px] drop-shadow-lg shadow-sm mb-5">
-        <div className="flex w-full justify-between items-center text-[13px] text-accent-9">
-          {countInfoText && <div>{countInfoText}</div>}
-          {!countInfoText && (
-            <div className="flex gap-2">
-              <span>Viewing</span> <span className="text-accent-12">{totalVisible}</span>
-              <span>of</span>
-              <span className="text-grayA-12">{totalCount}</span>
-              <span>{itemLabel}</span>
-            </div>
-          )}
+      <div className="w-[740px] border bg-gray-1 dark:bg-black border-gray-6 min-h-[60px] flex items-center justify-center rounded-[10px] drop-shadow-lg shadow-sm mb-5">
+        <div className="flex flex-col w-full">
+          {headerContent}
+          <div className="flex w-full justify-between items-center text-[13px] text-accent-9 p-[18px]">
+            {countInfoText && <div>{countInfoText}</div>}
+            {!countInfoText && (
+              <div className="flex gap-2">
+                <span>Viewing</span> <span className="text-accent-12">{totalVisible}</span>
+                <span>of</span>
+                <span className="text-grayA-12">{totalCount}</span>
+                <span>{itemLabel}</span>
+              </div>
+            )}
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onLoadMore}
-            loading={isFetchingNextPage}
-            disabled={isFetchingNextPage || !hasMore}
-          >
-            {buttonText}
-          </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onLoadMore}
+              loading={isFetchingNextPage}
+              disabled={isFetchingNextPage || !hasMore}
+            >
+              {buttonText}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

@@ -1,9 +1,10 @@
 import { Resend as Client } from "resend";
 
 import { render } from "@react-email/render";
+// biome-ignore lint/correctness/noUnusedImports: React UMD bypass
+import React from "react";
 import { PaymentIssue } from "../emails/payment_issue";
 import { SecretScanningKeyDetected } from "../emails/secret_scanning_key_detected";
-import { SubscriptionEnded } from "../emails/subscription_ended";
 import { TrialEnded } from "../emails/trial_ended";
 import { WelcomeEmail } from "../emails/welcome_email";
 export class Resend {
@@ -29,29 +30,6 @@ export class Resend {
         html,
       });
 
-      if (!result.error) {
-        return;
-      }
-      throw result.error;
-    } catch (error) {
-      console.error("Error occurred sending subscription email ", JSON.stringify(error));
-    }
-  }
-
-  // TODO: deprecate? unused
-  public async sendSubscriptionEnded(req: {
-    email: string;
-    name: string;
-  }): Promise<void> {
-    const html = render(<SubscriptionEnded username={req.name} />);
-    try {
-      const result = await this.client.emails.send({
-        to: req.email,
-        from: "James from Unkey <james@updates.unkey.com>",
-        replyTo: this.replyTo,
-        subject: "Your Unkey trial has ended",
-        html,
-      });
       if (!result.error) {
         return;
       }

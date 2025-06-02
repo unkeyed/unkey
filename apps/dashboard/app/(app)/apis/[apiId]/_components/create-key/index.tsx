@@ -15,7 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "@unkey/icons";
 import type { IconProps } from "@unkey/icons/src/props";
 import { Button } from "@unkey/ui";
-import { type FC, useState } from "react";
+import { type FC, useEffect, useState } from "react";
 import { FormProvider } from "react-hook-form";
 import { toast } from "sonner";
 import { KeyCreatedSuccessDialog } from "./components/key-created-success-dialog";
@@ -33,10 +33,15 @@ export const CreateKeyDialog = ({
   keyspaceId,
   apiId,
   copyIdValue,
+  keyspaceDefaults,
 }: {
   keyspaceId: string | null;
   apiId: string;
   copyIdValue?: string;
+  keyspaceDefaults: {
+    prefix?: string;
+    bytes?: number;
+  } | null;
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
@@ -51,10 +56,9 @@ export const CreateKeyDialog = ({
     {
       resolver: zodResolver(formSchema),
       mode: "onChange",
-
       shouldFocusError: true,
       shouldUnregister: true,
-      defaultValues: getDefaultValues(),
+      defaultValues: getDefaultValues(keyspaceDefaults),
     },
     "memory",
   );
@@ -69,6 +73,13 @@ export const CreateKeyDialog = ({
     loadSavedValues,
     saveCurrentValues,
   } = methods;
+
+  // Update form defaults when keyspace defaults change after revalidation
+  useEffect(() => {
+    const newDefaults = getDefaultValues(keyspaceDefaults);
+    clearPersistedData();
+    reset(newDefaults);
+  }, [keyspaceDefaults, reset, clearPersistedData]);
 
   const { validSteps, validateSection, resetValidSteps } = useValidateSteps(
     isSettingsOpen,
@@ -139,7 +150,7 @@ export const CreateKeyDialog = ({
   return (
     <>
       <Navbar.Actions>
-        <NavbarActionButton onClick={() => setIsSettingsOpen(true)}>
+        <NavbarActionButton title="Create new key" onClick={() => setIsSettingsOpen(true)}>
           <Plus />
           Create new key
         </NavbarActionButton>
@@ -151,7 +162,7 @@ export const CreateKeyDialog = ({
           <NavigableDialogRoot
             isOpen={isSettingsOpen}
             onOpenChange={handleOpenChange}
-            dialogClassName="!min-w-[760px]"
+            dialogClassName="w-[90%] md:w-[70%] lg:w-[70%] xl:w-[50%] 2xl:w-[45%] max-w-[940px] max-h-[90vh] sm:max-h-[90vh] md:max-h-[70vh] lg:max-h-[90vh] xl:max-h-[80vh]"
           >
             <NavigableDialogHeader
               title="New Key"
@@ -171,7 +182,6 @@ export const CreateKeyDialog = ({
                   id: section.id,
                   content: section.content(),
                 }))}
-                className="min-h-[600px]"
               />
             </NavigableDialogBody>
             <NavigableDialogFooter>

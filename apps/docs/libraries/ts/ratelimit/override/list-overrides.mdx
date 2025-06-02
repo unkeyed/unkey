@@ -41,9 +41,6 @@ How many requests may pass in a given window.
 The window duration in milliseconds.
 </ParamField>
 
-<ParamField body="async" type="boolean" optional>
-Async will return a response immediately, lowering latency at the cost of accuracy.
-</ParamField>
 
  </Expandable>
 </ResponseField>
@@ -61,16 +58,16 @@ The cursor to use for pagination
 
 <RequestExample>
 ```ts
-const overrides = await unkey.listOverrides({ 
+const overrides = await unkey.listOverrides({
     namespaceName: "email.outbound"
 });
 ```
 
 ```ts
-const overrides = await unkey.listOverrides({  
-    nameSpaceId:"rlns_12345",  
+const overrides = await unkey.listOverrides({
+    nameSpaceId:"rlns_12345",
 });
-``` 
+```
 </RequestExample>
 
 

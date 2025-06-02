@@ -64,7 +64,7 @@ export const formSchema = z.object({
   expireEnabled: z.boolean(),
   expires: z.coerce
     .date()
-    .min(new Date(new Date().getTime() + 2 * 60000))
+    .min(new Date(Date.now() + 2 * 60000))
     .optional(),
   ratelimitEnabled: z.boolean(),
   ratelimit: z

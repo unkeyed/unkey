@@ -1,6 +1,8 @@
 import { type QuerySearchParams, logsFilterFieldConfig } from "@/app/(app)/logs/filters.schema";
-import { useCallback, useEffect } from "react";
+import { isBrowser } from "@/lib/utils";
+import { useCallback, useEffect, useState } from "react";
 import type { FilterValue } from "../validation/filter.types";
+
 export type SavedFiltersGroup<T> = {
   id: string;
   createdAt: number;
@@ -19,8 +21,17 @@ export function useBookmarkedFilters<T extends FilterValue>({
   filters,
   updateFilters,
 }: BookmarkFilterType<T>) {
+  const [savedFilters, setSavedFilters] = useState<SavedFiltersGroup<QuerySearchParams>[]>([]);
+
   useEffect(() => {
-    if (!filters.length) {
+    const loadedFilters = JSON.parse(
+      getLocalStorage(localStorageName),
+    ) as SavedFiltersGroup<QuerySearchParams>[];
+    setSavedFilters(loadedFilters);
+  }, [localStorageName]);
+
+  useEffect(() => {
+    if (!filters.length || !isBrowser) {
       return;
     }
 
@@ -49,7 +60,7 @@ export function useBookmarkedFilters<T extends FilterValue>({
 
     // Get existing saved filters
     const savedFilters = JSON.parse(
-      localStorage.getItem(localStorageName) || "[]",
+      getLocalStorage(localStorageName),
     ) as SavedFiltersGroup<QuerySearchParams>[];
 
     // Check if this combination already exists
@@ -72,7 +83,8 @@ export function useBookmarkedFilters<T extends FilterValue>({
         },
       ].sort((a, b) => b.createdAt - a.createdAt);
 
-      localStorage.setItem(localStorageName, JSON.stringify(newSavedFilters));
+      setLocalStorage(localStorageName, JSON.stringify(newSavedFilters));
+      setSavedFilters(newSavedFilters);
     }
   }, [filters, localStorageName]);
 
@@ -124,42 +136,60 @@ export function useBookmarkedFilters<T extends FilterValue>({
     [updateFilters],
   );
 
-  function toggleBookmark(groupId: string) {
-    const savedFilters = JSON.parse(
-      localStorage.getItem(localStorageName) || "[]",
-    ) as SavedFiltersGroup<QuerySearchParams>[];
-
-    const updatedFilters = savedFilters.map((filter) => {
-      if (filter.id === groupId) {
-        return {
-          ...filter,
-          bookmarked: !filter.bookmarked,
-        };
+  const toggleBookmark = useCallback(
+    (groupId: string) => {
+      if (!isBrowser) {
+        return;
       }
-      return filter;
-    });
 
-    localStorage.setItem(localStorageName, JSON.stringify(updatedFilters) || "[]");
-  }
+      const currentSavedFilters = JSON.parse(
+        getLocalStorage(localStorageName),
+      ) as SavedFiltersGroup<QuerySearchParams>[];
+
+      const updatedFilters = currentSavedFilters.map((filter) => {
+        if (filter.id === groupId) {
+          return {
+            ...filter,
+            bookmarked: !filter.bookmarked,
+          };
+        }
+        return filter;
+      });
+
+      setLocalStorage(localStorageName, JSON.stringify(updatedFilters));
+      setSavedFilters(updatedFilters);
+    },
+    [localStorageName],
+  );
+
+  const processedFilters = savedFilters.map((filter) => ({
+    ...filter,
+    filters: {
+      ...filter.filters,
+      startTime: Number.isNaN(Number(filter.filters.startTime))
+        ? null
+        : Number(filter.filters.startTime),
+      endTime: Number.isNaN(Number(filter.filters.endTime)) ? null : Number(filter.filters.endTime),
+    },
+  }));
 
   return {
-    savedFilters: (
-      JSON.parse(
-        localStorage.getItem(localStorageName) || "[]",
-      ) as SavedFiltersGroup<QuerySearchParams>[]
-    ).map((filter) => ({
-      ...filter,
-      filters: {
-        ...filter.filters,
-        startTime: Number.isNaN(Number(filter.filters.startTime))
-          ? null
-          : Number(filter.filters.startTime),
-        endTime: Number.isNaN(Number(filter.filters.endTime))
-          ? null
-          : Number(filter.filters.endTime),
-      },
-    })),
+    savedFilters: processedFilters,
     applyFilterGroup,
     toggleBookmark,
   };
 }
+
+const getLocalStorage = (key: string) => {
+  if (!isBrowser) {
+    return "[]";
+  }
+  return localStorage.getItem(key) || "[]";
+};
+
+const setLocalStorage = (key: string, value: string) => {
+  if (!isBrowser) {
+    return;
+  }
+  localStorage.setItem(key, value);
+};

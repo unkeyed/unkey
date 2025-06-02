@@ -15,25 +15,56 @@
       "correctness": {
         "noUnusedVariables": "error",
         "useExhaustiveDependencies": "warn",
-        "noUnusedImports": "warn",
-        "noChildrenProp": "off"
+        "noUnusedImports": "error",
+        "noChildrenProp": "off",
+        "useJsxKeyInIterable": "error",
+        "noUnsafeOptionalChaining": "error"
       },
       "security": {
-        "noDangerouslySetInnerHtml": "off"
+        "noDangerouslySetInnerHtml": "error"
       },
       "style": {
         "useBlockStatements": "error",
-        "noNonNullAssertion": "off"
+        "noNonNullAssertion": "off",
+        "useConst": "error",
+        "noUselessElse": "error",
+        "useImportType": "error",
+        "useFragmentSyntax": "error",
+        "useAsConstAssertion": "error",
+        "useTemplate": "error",
+        "noYodaExpression": "error",
+        "noUnusedTemplateLiteral": "error",
+        "noNegationElse": "error",
+        "useSelfClosingElements": "error",
+        "useShorthandAssign": "error",
+        "noParameterAssign": "error",
+        "useNumberNamespace": "error",
+        "noVar": "error",
+        "useSingleVarDeclarator": "error",
+        "noDefaultExport": "error",
+        "useExportType": "error",
+        "useThrowOnlyError": "error",
+        "noShoutyConstants": "error",
+        "useDefaultParameterLast": "error"
       },
       "performance": {
         "noDelete": "off"
       },
       "suspicious": {
+        "noDoubleEquals": "error",
+        "useIsArray": "error",
+        "noFallthroughSwitchClause": "error",
         "noExplicitAny": "off",
         "noConsoleLog": "warn"
       },
       "complexity": {
-        "noForEach": "off"
+        "noForEach": "off",
+        "noExtraBooleanCast": "error",
+        "noUselessTernary": "error",
+        "noUselessTypeConstraint": "error",
+        "noUselessStringConcat": "error",
+        "useOptionalChain": "error",
+        "useDateNow": "error"
       }
     },
     "ignore": [
@@ -81,5 +112,25 @@
       ".content-collections",
       "./internal/auth-migrator"
     ]
-  }
+  },
+  "overrides": [
+    {
+      "include": [
+        "**/page.tsx",
+        "**/layout.tsx",
+        "**/loading.tsx",
+        "**/error.tsx",
+        "**/not-found.tsx",
+        "**/route.ts",
+        "**/*.config.*"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off"
+          }
+        }
+      }
+    }
+  ]
 }

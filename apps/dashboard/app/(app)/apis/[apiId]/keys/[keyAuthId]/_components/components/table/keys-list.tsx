@@ -2,24 +2,17 @@
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { BookBookmark, Focus, Key } from "@unkey/icons";
-import {
-  AnimatedLoadingSpinner,
-  Button,
-  Empty,
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@unkey/ui";
+import { BookBookmark, Dots, Focus, Key } from "@unkey/icons";
+import { AnimatedLoadingSpinner, Button, Checkbox, Empty, InfoTooltip } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import React, { useCallback, useMemo, useState } from "react";
-import { KeysTableActionPopover } from "./components/actions/keys-table-action.popover";
 import { getKeysTableActionItems } from "./components/actions/keys-table-action.popover.constants";
 import { VerificationBarChart } from "./components/bar-chart";
 import { HiddenValueCell } from "./components/hidden-value";
 import { LastUsedCell } from "./components/last-used";
+import { SelectionControls } from "./components/selection-controls";
 import {
   ActionColumnSkeleton,
   KeyColumnSkeleton,
@@ -31,6 +24,27 @@ import {
 import { StatusDisplay } from "./components/status-cell";
 import { useKeysListQuery } from "./hooks/use-keys-list-query";
 import { getRowClassName } from "./utils/get-row-class";
+
+const KeysTableActionPopover = dynamic(
+  () =>
+    import("./components/actions/keys-table-action.popover").then((mod) => ({
+      default: mod.KeysTableActionPopover,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <button
+        type="button"
+        className={cn(
+          "group-data-[state=open]:bg-gray-6 group-hover:bg-gray-6 group size-5 p-0 rounded m-0 items-center flex justify-center",
+          "border border-gray-6 group-hover:border-gray-8 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-7",
+        )}
+      >
+        <Dots className="group-hover:text-gray-12 text-gray-11" size="sm-regular" />
+      </button>
+    ),
+  },
+);
 
 export const KeysList = ({
   keyspaceId,
@@ -44,10 +58,26 @@ export const KeysList = ({
   });
   const [selectedKey, setSelectedKey] = useState<KeyDetails | null>(null);
   const [navigatingKeyId, setNavigatingKeyId] = useState<string | null>(null);
+  // Add state for selected keys
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  // Track which row is being hovered
+  const [hoveredKeyId, setHoveredKeyId] = useState<string | null>(null);
 
   const handleLinkClick = useCallback((keyId: string) => {
     setNavigatingKeyId(keyId);
     setSelectedKey(null);
+  }, []);
+
+  const toggleSelection = useCallback((keyId: string) => {
+    setSelectedKeys((prevSelected) => {
+      const newSelected = new Set(prevSelected);
+      if (newSelected.has(keyId)) {
+        newSelected.delete(keyId);
+      } else {
+        newSelected.add(keyId);
+      }
+      return newSelected;
+    });
   }, []);
 
   const columns: Column<KeyDetails>[] = useMemo(
@@ -60,22 +90,46 @@ export const KeysList = ({
         render: (key) => {
           const identity = key.identity?.external_id ?? key.owner_id;
           const isNavigating = key.id === navigatingKeyId;
+          const isSelected = selectedKeys.has(key.id);
+          const isHovered = hoveredKeyId === key.id;
 
-          const iconContainer = isNavigating ? (
-            <div className="size-5 rounded flex items-center justify-center">
-              <AnimatedLoadingSpinner />
-            </div>
-          ) : (
+          const iconContainer = (
             <div
               className={cn(
-                "size-5 rounded flex items-center justify-center",
+                "size-5 rounded flex items-center justify-center cursor-pointer",
                 identity ? "bg-successA-3" : "bg-grayA-3",
+                isSelected && "bg-brand-5",
               )}
+              onMouseEnter={() => setHoveredKeyId(key.id)}
+              onMouseLeave={() => setHoveredKeyId(null)}
             >
-              {identity ? (
-                <Focus size="md-regular" className="text-successA-11" />
+              {isNavigating ? (
+                <div className={cn(identity ? "text-successA-11" : "text-grayA-11")}>
+                  <AnimatedLoadingSpinner />
+                </div>
               ) : (
-                <Key size="md-regular" />
+                <>
+                  {/* Show icon when not selected and not hovered */}
+                  {!isSelected && !isHovered && (
+                    // biome-ignore lint/complexity/noUselessFragments: <explanation>
+                    <>
+                      {identity ? (
+                        <Focus size="md-regular" className="text-successA-11" />
+                      ) : (
+                        <Key size="md-regular" />
+                      )}
+                    </>
+                  )}
+
+                  {/* Show checkbox when selected or hovered */}
+                  {(isSelected || isHovered) && (
+                    <Checkbox
+                      checked={isSelected}
+                      className="size-4 [&_svg]:size-3"
+                      onCheckedChange={() => toggleSelection(key.id)}
+                    />
+                  )}
+                </>
               )}
             </div>
           );
@@ -84,17 +138,13 @@ export const KeysList = ({
             <div className="flex flex-col items-start px-[18px] py-[6px]">
               <div className="flex gap-4 items-center">
                 {identity ? (
-                  <TooltipProvider delayDuration={100}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        {React.cloneElement(iconContainer, {
-                          className: cn(iconContainer.props.className, "cursor-pointer"),
-                        })}
-                      </TooltipTrigger>
-                      <TooltipContent
-                        className="bg-gray-1 px-4 py-2 border border-gray-4 shadow-md font-medium text-xs text-accent-12"
-                        side="right"
-                      >
+                  <InfoTooltip
+                    delayDuration={100}
+                    variant="muted"
+                    position={{ side: "right" }}
+                    className="bg-gray-1 px-4 py-2 border border-gray-4 shadow-md font-medium text-xs text-accent-12"
+                    content={
+                      <>
                         This key is associated with the identity:{" "}
                         {key.identity_id ? (
                           <Link
@@ -110,9 +160,14 @@ export const KeysList = ({
                         ) : (
                           <span className="font-mono bg-gray-4 p-1 rounded">{identity}</span>
                         )}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                      </>
+                    }
+                    asChild
+                  >
+                    {React.cloneElement(iconContainer, {
+                      className: cn(iconContainer.props.className, "cursor-pointer"),
+                    })}
+                  </InfoTooltip>
                 ) : (
                   iconContainer
                 )}
@@ -204,86 +259,140 @@ export const KeysList = ({
         },
       },
     ],
-    [keyspaceId, selectedKey?.id, apiId, navigatingKeyId, handleLinkClick],
+    [
+      keyspaceId,
+      selectedKey?.id,
+      apiId,
+      navigatingKeyId,
+      handleLinkClick,
+      selectedKeys,
+      toggleSelection,
+      hoveredKeyId,
+    ],
   );
 
+  const getSelectedKeysState = useCallback(() => {
+    if (selectedKeys.size === 0) {
+      return null;
+    }
+
+    let allEnabled = true;
+    let allDisabled = true;
+
+    for (const keyId of selectedKeys) {
+      const key = keys.find((k) => k.id === keyId);
+      if (!key) {
+        continue;
+      }
+
+      if (key.enabled) {
+        allDisabled = false;
+      } else {
+        allEnabled = false;
+      }
+
+      // Early exit if we already found a mix
+      if (!allEnabled && !allDisabled) {
+        break;
+      }
+    }
+
+    if (allEnabled) {
+      return "all-enabled";
+    }
+    if (allDisabled) {
+      return "all-disabled";
+    }
+    return "mixed";
+  }, [selectedKeys, keys]);
+
   return (
-    <VirtualTable
-      data={keys}
-      isLoading={isLoading}
-      isFetchingNextPage={isLoadingMore}
-      onLoadMore={loadMore}
-      columns={columns}
-      onRowClick={setSelectedKey}
-      selectedItem={selectedKey}
-      keyExtractor={(log) => log.id}
-      rowClassName={(log) => getRowClassName(log, selectedKey as KeyDetails)}
-      loadMoreFooterProps={{
-        hide: isLoading,
-        buttonText: "Load more keys",
-        hasMore,
-        countInfoText: (
-          <div className="flex gap-2">
-            <span>Showing</span> <span className="text-accent-12">{keys.length}</span>
-            <span>of</span>
-            {totalCount}
-            <span>keys</span>
+    <>
+      <VirtualTable
+        data={keys}
+        isLoading={isLoading}
+        isFetchingNextPage={isLoadingMore}
+        onLoadMore={loadMore}
+        columns={columns}
+        onRowClick={setSelectedKey}
+        selectedItem={selectedKey}
+        keyExtractor={(log) => log.id}
+        rowClassName={(log) => getRowClassName(log, selectedKey as KeyDetails)}
+        loadMoreFooterProps={{
+          hide: isLoading,
+          buttonText: "Load more keys",
+          hasMore,
+          headerContent: (
+            <SelectionControls
+              selectedKeys={selectedKeys}
+              setSelectedKeys={setSelectedKeys}
+              keys={keys}
+              getSelectedKeysState={getSelectedKeysState}
+            />
+          ),
+          countInfoText: (
+            <div className="flex gap-2">
+              <span>Showing</span> <span className="text-accent-12">{keys.length}</span>
+              <span>of</span>
+              {totalCount}
+              <span>keys</span>
+            </div>
+          ),
+        }}
+        emptyState={
+          <div className="w-full flex justify-center items-center h-full">
+            <Empty className="w-[400px] flex items-start">
+              <Empty.Icon className="w-auto" />
+              <Empty.Title>No API Keys Found</Empty.Title>
+              <Empty.Description className="text-left">
+                There are no API keys associated with this service yet. Create your first API key to
+                get started.
+              </Empty.Description>
+              <Empty.Actions className="mt-4 justify-start">
+                <a
+                  href="https://www.unkey.com/docs/introduction"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button size="md">
+                    <BookBookmark />
+                    Learn about Keys
+                  </Button>
+                </a>
+              </Empty.Actions>
+            </Empty>
           </div>
-        ),
-      }}
-      emptyState={
-        <div className="w-full flex justify-center items-center h-full">
-          <Empty className="w-[400px] flex items-start">
-            <Empty.Icon className="w-auto" />
-            <Empty.Title>No API Keys Found</Empty.Title>
-            <Empty.Description className="text-left">
-              There are no API keys associated with this service yet. Create your first API key to
-              get started.
-            </Empty.Description>
-            <Empty.Actions className="mt-4 justify-start">
-              <a
-                href="https://www.unkey.com/docs/introduction"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button size="md">
-                  <BookBookmark />
-                  Learn about Keys
-                </Button>
-              </a>
-            </Empty.Actions>
-          </Empty>
-        </div>
-      }
-      config={{
-        rowHeight: 52,
-        layoutMode: "grid",
-        rowBorders: true,
-        containerPadding: "px-0",
-      }}
-      renderSkeletonRow={({ columns, rowHeight }) =>
-        columns.map((column, idx) => (
-          <td
-            key={column.key}
-            className={cn(
-              "text-xs align-middle whitespace-nowrap pr-4",
-              idx === 0 ? "pl-[18px]" : "",
-              column.key === "key" ? "py-[6px]" : "py-1",
-            )}
-            style={{ height: `${rowHeight}px` }}
-          >
-            {column.key === "key" && <KeyColumnSkeleton />}
-            {column.key === "value" && <ValueColumnSkeleton />}
-            {column.key === "usage" && <UsageColumnSkeleton />}
-            {column.key === "last_used" && <LastUsedColumnSkeleton />}
-            {column.key === "status" && <StatusColumnSkeleton />}
-            {column.key === "action" && <ActionColumnSkeleton />}
-            {!["key", "value", "usage", "last_used", "status", "action"].includes(column.key) && (
-              <div className="h-4 w-full bg-grayA-3 rounded animate-pulse" />
-            )}
-          </td>
-        ))
-      }
-    />
+        }
+        config={{
+          rowHeight: 52,
+          layoutMode: "grid",
+          rowBorders: true,
+          containerPadding: "px-0",
+        }}
+        renderSkeletonRow={({ columns, rowHeight }) =>
+          columns.map((column, idx) => (
+            <td
+              key={column.key}
+              className={cn(
+                "text-xs align-middle whitespace-nowrap pr-4",
+                idx === 0 ? "pl-[18px]" : "",
+                column.key === "key" ? "py-[6px]" : "py-1",
+              )}
+              style={{ height: `${rowHeight}px` }}
+            >
+              {column.key === "key" && <KeyColumnSkeleton />}
+              {column.key === "value" && <ValueColumnSkeleton />}
+              {column.key === "usage" && <UsageColumnSkeleton />}
+              {column.key === "last_used" && <LastUsedColumnSkeleton />}
+              {column.key === "status" && <StatusColumnSkeleton />}
+              {column.key === "action" && <ActionColumnSkeleton />}
+              {!["select", "key", "value", "usage", "last_used", "status", "action"].includes(
+                column.key,
+              ) && <div className="h-4 w-full bg-grayA-3 rounded animate-pulse" />}
+            </td>
+          ))
+        }
+      />
+    </>
   );
 };

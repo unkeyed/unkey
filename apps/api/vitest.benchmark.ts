@@ -1,5 +1,6 @@
 import { defineConfig } from "vitest/config";
 
+// biome-ignore lint/style/noDefaultExport: required by vitests
 export default defineConfig({
   test: {
     dir: "./src/benchmarks",

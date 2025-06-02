@@ -1,24 +1,8 @@
 import { z } from "zod";
 import type { Inserter, Querier } from "./client";
 import { KEY_VERIFICATION_OUTCOMES } from "./keys/keys";
-import { dateTimeToUnix } from "./util";
 
-const outcome = z.enum(KEY_VERIFICATION_OUTCOMES);
-
-const params = z.object({
-  workspaceId: z.string(),
-  keySpaceId: z.string(),
-  keyId: z.string().optional(),
-  start: z.number().int(),
-  end: z.number().int(),
-});
-const schema = z.object({
-  time: dateTimeToUnix,
-  outcome,
-  count: z.number().int(),
-  tags: z.array(z.string()),
-});
-
+// INSERTION
 export function insertVerification(ch: Inserter) {
   return ch.insert({
     table: "verifications.raw_key_verifications_v1",
@@ -44,91 +28,130 @@ export function insertVerification(ch: Inserter) {
   });
 }
 
-export function getVerificationsPerHour(ch: Querier) {
-  return async (args: z.input<typeof params>) => {
-    const query = `
-    SELECT
-      time,
-      outcome,
-      sum(count) as count,
-      tags
-    FROM verifications.key_verifications_per_hour_v3
-    WHERE
-      workspace_id = {workspaceId: String}
-    AND key_space_id = {keySpaceId: String}
-    AND time >= fromUnixTimestamp64Milli({start: Int64})
-    AND time <= fromUnixTimestamp64Milli({end: Int64})
-    ${args.keyId ? "AND key_id = {keyId: String}" : ""}
-    GROUP BY time, outcome, tags
-    ORDER BY time ASC
-    WITH FILL
-      FROM toStartOfHour(fromUnixTimestamp64Milli({start: Int64}))
-      TO toStartOfHour(fromUnixTimestamp64Milli({end: Int64}))
-      STEP INTERVAL 1 HOUR
-    ;`;
+// LOGS
+export const keyDetailsLogsParams = z.object({
+  workspaceId: z.string(),
+  keyspaceId: z.string(),
+  keyId: z.string(),
+  limit: z.number().int(),
+  startTime: z.number().int(),
+  endTime: z.number().int(),
+  outcomes: z
+    .array(
+      z.object({
+        value: z.enum(KEY_VERIFICATION_OUTCOMES),
+        operator: z.literal("is"),
+      }),
+    )
+    .nullable(),
+  cursorTime: z.number().int().nullable(),
+});
 
-    return ch.query({
-      query,
-      params,
-      schema,
-    })(args);
+export const keyDetailsLog = z.object({
+  request_id: z.string(),
+  time: z.number().int(),
+  region: z.string(),
+  outcome: z.enum(KEY_VERIFICATION_OUTCOMES),
+  tags: z.array(z.string()),
+});
+
+export type KeyDetailsLog = z.infer<typeof keyDetailsLog>;
+export type KeyDetailsLogsParams = z.infer<typeof keyDetailsLogsParams>;
+
+interface ExtendedParamsKeyDetails extends KeyDetailsLogsParams {
+  [key: string]: unknown;
+}
+
+export function getKeyDetailsLogs(ch: Querier) {
+  return async (args: KeyDetailsLogsParams) => {
+    const paramSchemaExtension: Record<string, z.ZodType> = {};
+    const parameters: ExtendedParamsKeyDetails = { ...args };
+
+    const hasOutcomeFilters = args.outcomes && args.outcomes.length > 0;
+
+    const outcomeCondition = hasOutcomeFilters
+      ? args.outcomes
+          ?.map((filter, index) => {
+            if (filter.operator === "is") {
+              const paramName = `outcomeValue_${index}`;
+              paramSchemaExtension[paramName] = z.string();
+              parameters[paramName] = filter.value;
+              return `outcome = {${paramName}: String}`;
+            }
+            return null;
+          })
+          .filter(Boolean)
+          .join(" OR ") || "TRUE"
+      : "TRUE";
+
+    let cursorCondition: string;
+
+    // For first page or no cursor provided
+    if (args.cursorTime) {
+      cursorCondition = `
+        AND (time < {cursorTime: Nullable(UInt64)})
+        `;
+    } else {
+      cursorCondition = `
+      AND ({cursorTime: Nullable(UInt64)} IS NULL)
+      `;
+    }
+
+    const extendedParamsSchema = keyDetailsLogsParams.extend(paramSchemaExtension);
+
+    const baseConditions = `
+      workspace_id = {workspaceId: String}
+      AND key_space_id = {keyspaceId: String}
+      AND key_id = {keyId: String}
+      AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+      AND (${outcomeCondition})
+    `;
+
+    // Total count query - counts all matching records without pagination
+    const totalQuery = ch.query({
+      query: `
+        SELECT
+          count(request_id) as total_count
+        FROM verifications.raw_key_verifications_v1
+        WHERE ${baseConditions}`,
+      params: extendedParamsSchema,
+      schema: z.object({
+        total_count: z.number().int(),
+      }),
+    });
+
+    const query = ch.query({
+      query: `
+      SELECT
+          request_id,
+          time,
+          region,
+          outcome,
+          tags
+      FROM verifications.raw_key_verifications_v1
+      WHERE ${baseConditions}
+          -- Handle pagination using time as cursor
+          ${cursorCondition}
+      ORDER BY time DESC
+      LIMIT {limit: Int}
+      `,
+      params: extendedParamsSchema,
+      schema: keyDetailsLog,
+    });
+
+    const [clickhouseResults, totalResults] = await Promise.all([
+      query(parameters),
+      totalQuery(parameters),
+    ]);
+
+    return {
+      logs: clickhouseResults,
+      totalCount: totalResults.val ? totalResults.val[0].total_count : 0,
+    };
   };
 }
 
-export function getVerificationsPerDay(ch: Querier) {
-  return async (args: z.input<typeof params>) => {
-    const query = `
-    SELECT
-      time,
-      outcome,
-      sum(count) as count,
-      tags
-    FROM verifications.key_verifications_per_day_v3
-    WHERE
-      workspace_id = {workspaceId: String}
-    AND key_space_id = {keySpaceId: String}
-    AND time >= fromUnixTimestamp64Milli({start: Int64})
-    AND time <= fromUnixTimestamp64Milli({end: Int64})
-    ${args.keyId ? "AND key_id = {keyId: String}" : ""}
-    GROUP BY time, outcome, tags
-    ORDER BY time ASC
-    WITH FILL
-      FROM toStartOfDay(fromUnixTimestamp64Milli({start: Int64}))
-      TO toStartOfDay(fromUnixTimestamp64Milli({end: Int64}))
-      STEP INTERVAL 1 DAY
-    ;`;
-
-    return ch.query({ query, params, schema })(args);
-  };
-}
-
-export function getVerificationsPerMonth(ch: Querier) {
-  return async (args: z.input<typeof params>) => {
-    const query = `
-    SELECT
-      time,
-      outcome,
-      sum(count) as count,
-      tags
-    FROM verifications.key_verifications_per_month_v3
-    WHERE
-      workspace_id = {workspaceId: String}
-    AND key_space_id = {keySpaceId: String}
-    AND time >= fromUnixTimestamp64Milli({start: Int64})
-    AND time <= fromUnixTimestamp64Milli({end: Int64})
-    ${args.keyId ? "AND key_id = {keyId: String}" : ""}
-    GROUP BY time, outcome, tags
-    ORDER BY time ASC
-    WITH FILL
-      FROM toStartOfDay(fromUnixTimestamp64Milli({start: Int64}))
-      TO toStartOfDay(fromUnixTimestamp64Milli({end: Int64}))
-      STEP INTERVAL 1 MONTH
-    ;`;
-
-    return ch.query({ query, params, schema })(args);
-  };
-}
-
+// TIMESERIES
 export const verificationTimeseriesParams = z.object({
   workspaceId: z.string(),
   keyspaceId: z.string(),
@@ -194,6 +217,23 @@ type TimeInterval = {
 };
 
 const INTERVALS: Record<string, TimeInterval> = {
+  // Minute-based intervals
+  minute: {
+    table: "verifications.key_verifications_per_minute_v1",
+    step: "MINUTE",
+    stepSize: 1,
+  },
+  fiveMinutes: {
+    table: "verifications.key_verifications_per_minute_v1",
+    step: "MINUTE",
+    stepSize: 5,
+  },
+  thirtyMinutes: {
+    table: "verifications.key_verifications_per_minute_v1",
+    step: "MINUTE",
+    stepSize: 30,
+  },
+  // Hour-based intervals
   hour: {
     table: "verifications.key_verifications_per_hour_v3",
     step: "HOUR",
@@ -201,24 +241,25 @@ const INTERVALS: Record<string, TimeInterval> = {
   },
   twoHours: {
     table: "verifications.key_verifications_per_hour_v3",
-    step: "HOURS",
+    step: "HOUR",
     stepSize: 2,
   },
   fourHours: {
     table: "verifications.key_verifications_per_hour_v3",
-    step: "HOURS",
+    step: "HOUR",
     stepSize: 4,
   },
   sixHours: {
     table: "verifications.key_verifications_per_hour_v3",
-    step: "HOURS",
+    step: "HOUR",
     stepSize: 6,
   },
   twelveHours: {
     table: "verifications.key_verifications_per_hour_v3",
-    step: "HOURS",
+    step: "HOUR",
     stepSize: 12,
   },
+  // Day-based intervals
   day: {
     table: "verifications.key_verifications_per_day_v3",
     step: "DAY",
@@ -226,17 +267,17 @@ const INTERVALS: Record<string, TimeInterval> = {
   },
   threeDays: {
     table: "verifications.key_verifications_per_day_v3",
-    step: "DAYS",
+    step: "DAY",
     stepSize: 3,
   },
   week: {
     table: "verifications.key_verifications_per_day_v3",
-    step: "DAYS",
+    step: "DAY",
     stepSize: 7,
   },
   twoWeeks: {
     table: "verifications.key_verifications_per_day_v3",
-    step: "DAYS",
+    step: "DAY",
     stepSize: 14,
   },
   // Monthly-based intervals
@@ -247,29 +288,25 @@ const INTERVALS: Record<string, TimeInterval> = {
   },
   quarter: {
     table: "verifications.key_verifications_per_month_v3",
-    step: "MONTHS",
+    step: "MONTH",
     stepSize: 3,
   },
 } as const;
 
 function createVerificationTimeseriesQuery(interval: TimeInterval, whereClause: string) {
   const intervalUnit = {
+    MINUTE: "minute",
     HOUR: "hour",
-    HOURS: "hour",
     DAY: "day",
-    DAYS: "day",
     MONTH: "month",
-    MONTHS: "month",
   }[interval.step];
 
   // For millisecond step calculation
   const msPerUnit = {
+    MINUTE: 60_000,
     HOUR: 3600_000,
-    HOURS: 3600_000,
     DAY: 86400_000,
-    DAYS: 86400_000,
     MONTH: 2592000_000,
-    MONTHS: 2592000_000,
   }[interval.step];
 
   const stepMs = msPerUnit! * interval.stepSize;
@@ -453,9 +490,7 @@ function mergeVerificationTimeseriesResults(
       }
       const existingPoint = mergedMap.get(dataPoint.x);
 
-      if (!existingPoint) {
-        mergedMap.set(dataPoint.x, dataPoint);
-      } else {
+      if (existingPoint) {
         mergedMap.set(dataPoint.x, {
           x: dataPoint.x,
           y: {
@@ -476,6 +511,8 @@ function mergeVerificationTimeseriesResults(
               (existingPoint.y.usage_exceeded_count ?? 0) + (dataPoint.y.usage_exceeded_count ?? 0),
           },
         });
+      } else {
+        mergedMap.set(dataPoint.x, dataPoint);
       }
     });
   });
@@ -484,38 +521,46 @@ function mergeVerificationTimeseriesResults(
   return Array.from(mergedMap.values()).sort((a, b) => a.x - b.x);
 }
 
+// Minute-based timeseries
+export const getMinutelyVerificationTimeseries =
+  (ch: Querier) => (args: VerificationTimeseriesParams) =>
+    batchVerificationTimeseries(ch, INTERVALS.minute, args);
+export const getFiveMinutelyVerificationTimeseries =
+  (ch: Querier) => (args: VerificationTimeseriesParams) =>
+    batchVerificationTimeseries(ch, INTERVALS.fiveMinutes, args);
+export const getThirtyMinutelyVerificationTimeseries =
+  (ch: Querier) => (args: VerificationTimeseriesParams) =>
+    batchVerificationTimeseries(ch, INTERVALS.thirtyMinutes, args);
+
+// Hour-based timeseries
 export const getHourlyVerificationTimeseries =
   (ch: Querier) => (args: VerificationTimeseriesParams) =>
     batchVerificationTimeseries(ch, INTERVALS.hour, args);
-
 export const getTwoHourlyVerificationTimeseries =
   (ch: Querier) => (args: VerificationTimeseriesParams) =>
     batchVerificationTimeseries(ch, INTERVALS.twoHours, args);
-
 export const getFourHourlyVerificationTimeseries =
   (ch: Querier) => (args: VerificationTimeseriesParams) =>
     batchVerificationTimeseries(ch, INTERVALS.fourHours, args);
-
 export const getSixHourlyVerificationTimeseries =
   (ch: Querier) => (args: VerificationTimeseriesParams) =>
     batchVerificationTimeseries(ch, INTERVALS.sixHours, args);
-
 export const getTwelveHourlyVerificationTimeseries =
   (ch: Querier) => (args: VerificationTimeseriesParams) =>
     batchVerificationTimeseries(ch, INTERVALS.twelveHours, args);
 
+// Day-based timeseries
 export const getDailyVerificationTimeseries =
   (ch: Querier) => (args: VerificationTimeseriesParams) =>
     batchVerificationTimeseries(ch, INTERVALS.day, args);
-
 export const getThreeDayVerificationTimeseries =
   (ch: Querier) => (args: VerificationTimeseriesParams) =>
     batchVerificationTimeseries(ch, INTERVALS.threeDays, args);
-
 export const getWeeklyVerificationTimeseries =
   (ch: Querier) => (args: VerificationTimeseriesParams) =>
     batchVerificationTimeseries(ch, INTERVALS.week, args);
 
+// Month-based timeseries
 export const getMonthlyVerificationTimeseries =
   (ch: Querier) => (args: VerificationTimeseriesParams) =>
     batchVerificationTimeseries(ch, INTERVALS.month, args);

@@ -1,7 +1,13 @@
-import { CopyButton } from "@/components/dashboard/copy-button";
 import type { Identity } from "@/lib/db";
 import { User } from "@unkey/icons";
-import { Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+import {
+  Button,
+  CopyButton,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@unkey/ui";
 
 type IdentitySelectorProps = {
   identities: Omit<Identity, "deleted">[];
@@ -36,12 +42,14 @@ export function createIdentityOptions({
                 <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
                   <User size="sm-regular" className="text-grayA-11" />
                 </div>
-                <span className="text-accent-12 font-medium text-xs w-[120px] truncate text-left">
-                  {identity.id}
+                <span className="max-w-[200px] truncate font-medium text-accent-12 text-left">
+                  {identity.externalId.length > 15
+                    ? `${identity.externalId.slice(0, 4)}...${identity.externalId.slice(-4)}`
+                    : identity.externalId}
                 </span>
               </div>
-              <span className="w-[200px] truncate text-accent-8 group-hover:text-accent-9 text-left">
-                {identity.externalId}
+              <span className="text-accent-9 text-xs max-w-[120px] truncate text-left">
+                {identity.id}
               </span>
             </div>
           </TooltipTrigger>
@@ -49,7 +57,7 @@ export function createIdentityOptions({
             side="right"
             align="start"
             sideOffset={30}
-            className="drop-shadow-2xl border border-gray-4 overflow-hidden rounded-[10px] p-0 bg-white dark:bg-black w-[320px] z-[100]"
+            className="drop-shadow-2xl border border-grayA-4 overflow-hidden rounded-[10px] p-0 bg-white dark:bg-black w-[320px] z-[100]"
           >
             <div className="flex flex-col h-full">
               {/* Header - Always shown */}
@@ -57,7 +65,19 @@ export function createIdentityOptions({
                 Metadata
               </div>
               {/* Content - Different based on metadata presence */}
-              {!isMetaEmpty(identity.meta) ? (
+              {isMetaEmpty(identity.meta) ? (
+                <div className="px-2 py-2 flex-1">
+                  <div className="w-full bg-grayA-1 dark:bg-grayA-2 border rounded-lg border-grayA-5 overflow-hidden">
+                    <div className="flex items-start justify-between w-full gap-2">
+                      <div className="overflow-x-auto w-full min-w-0 p-3">
+                        <pre className="whitespace-pre-wrap break-all text-[11px] leading-5 text-gray-8 font-mono">
+                          No metadata available
+                        </pre>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
                 <div className="px-2 py-2 flex-1 overflow-y-auto h-[270px]">
                   <div className="w-full bg-grayA-1 dark:bg-grayA-2 border rounded-lg border-grayA-5 overflow-hidden h-full">
                     <div className="flex items-start justify-between w-full gap-2 h-full">
@@ -78,18 +98,6 @@ export function createIdentityOptions({
                             <CopyButton value={JSON.stringify(identity.meta, null, 4)} />
                           </div>
                         </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="px-2 py-2 flex-1">
-                  <div className="w-full bg-grayA-1 dark:bg-grayA-2 border rounded-lg border-grayA-5 overflow-hidden">
-                    <div className="flex items-start justify-between w-full gap-2">
-                      <div className="overflow-x-auto w-full min-w-0 p-3">
-                        <pre className="whitespace-pre-wrap break-all text-[11px] leading-5 text-gray-8 font-mono">
-                          No metadata available
-                        </pre>
                       </div>
                     </div>
                   </div>

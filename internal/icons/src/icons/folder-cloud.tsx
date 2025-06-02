@@ -45,5 +45,3 @@ export const FolderCloud: React.FC<IconProps> = ({ size, filled, ...props }) => 
     </svg>
   );
 };
-
-export default FolderCloud;
