@@ -17,9 +17,9 @@ export function createConnection(opts: ConnectionOptions): Database {
       host: opts.host,
       username: opts.username,
       password: opts.password,
+      fetch: async (url: string, init?: RequestInit): Promise<Response> => {
+        const { cache, ...initWithoutCache } = init || {};
 
-      fetch: (url: string, init: any) => {
-        (init as any).cache = undefined; // Remove cache header
         const u = new URL(url);
         /**
          * Running workerd in docker caused an issue where it was trying to use https but
@@ -32,34 +32,35 @@ export function createConnection(opts: ConnectionOptions): Database {
         }
 
         if (!opts.retry) {
-          return instrumentedFetch()(u, init).catch((err) => {
+          return instrumentedFetch()(u, initWithoutCache).catch((err) => {
             opts.logger.error("fetching from planetscale failed", {
-              message: (err as Error).message,
+              message: err instanceof Error ? err.message : String(err),
               retries: "disabled",
             });
             throw err;
           });
         }
 
-        let err: Error | undefined = undefined;
+        let lastError: Error | undefined = undefined;
         for (let i = 0; i <= opts.retry; i++) {
           try {
-            return instrumentedFetch()(u, init);
+            return instrumentedFetch()(u, initWithoutCache);
           } catch (e) {
-            err = e as Error;
+            lastError = e instanceof Error ? e : new Error(String(e));
             opts.logger.warn("fetching from planetscale failed", {
               url: u.toString(),
               attempt: i + 1,
-              query: init.body,
-              message: err.message,
+              query: initWithoutCache.body,
+              message: lastError.message,
             });
           }
         }
+
         opts.logger.error("fetching from planetscale failed", {
-          message: err!.message,
+          message: lastError!.message,
           retries: "exhausted",
         });
-        throw err;
+        throw lastError;
       },
     }),
     {
@@ -67,4 +68,5 @@ export function createConnection(opts: ConnectionOptions): Database {
     },
   );
 }
+
 export * from "@unkey/db";

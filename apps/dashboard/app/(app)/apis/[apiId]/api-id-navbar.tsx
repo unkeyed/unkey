@@ -50,15 +50,18 @@ const KeysTableActionPopover = dynamic(
   },
 );
 
-const RBACDialogContent = dynamic(() => import("./_components/rbac-dialog-content"), {
-  ssr: false,
-  loading: () => (
-    <NavbarActionButton disabled>
-      <ShieldKey size="sm-regular" />
-      Permissions
-    </NavbarActionButton>
-  ),
-});
+const RBACDialogContent = dynamic(
+  () => import("./_components/rbac-dialog-content").then((mod) => mod.RBACDialogContent),
+  {
+    ssr: false,
+    loading: () => (
+      <NavbarActionButton disabled>
+        <ShieldKey size="sm-regular" />
+        Permissions
+      </NavbarActionButton>
+    ),
+  },
+);
 
 export const ApisNavbar = ({
   api,

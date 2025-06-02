@@ -79,7 +79,7 @@ describe("bad request", () => {
       createdAtM: Date.now(),
     });
 
-    const res = await h.post<any, ErrorResponse>({
+    const res = await h.post<unknown, ErrorResponse>({
       url: "/v1/keys.verifyKey",
       headers: {
         "Content-Type": "application/json",
