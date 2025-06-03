@@ -67,5 +67,3 @@ export function WelcomeEmail() {
     </Layout>
   );
 }
-
-export default WelcomeEmail;

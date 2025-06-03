@@ -17,8 +17,8 @@ export const permissions = mysqlTable(
     id: varchar("id", { length: 256 }).primaryKey(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     name: varchar("name", { length: 512 }).notNull(),
+    slug: varchar("slug", { length: 128 }).notNull(),
     description: varchar("description", { length: 512 }),
-
     createdAtM: bigint("created_at_m", { mode: "number" })
       .notNull()
       .default(0)
@@ -30,6 +30,10 @@ export const permissions = mysqlTable(
       workspaceIdIdx: index("workspace_id_idx").on(table.workspaceId),
       uniqueNamePerWorkspaceIdx: unique("unique_name_per_workspace_idx").on(
         table.name,
+        table.workspaceId,
+      ),
+      uniqueSlugPerWorkspaceIdx: unique("unique_slug_per_workspace_idx").on(
+        table.slug,
         table.workspaceId,
       ),
     };

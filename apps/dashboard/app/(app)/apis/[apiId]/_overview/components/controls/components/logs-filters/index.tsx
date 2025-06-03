@@ -20,7 +20,7 @@ export const LogsFilters = () => {
   const activeNameFilter = filters.find((f) => f.field === "names");
   const activeIdentityFilter = filters.find((f) => f.field === "identities");
   const activeKeyIdsFilter = filters.find((f) => f.field === "keyIds");
-  const keyIdOptions = keysOverviewFilterFieldConfig.names.operators.map((op) => ({
+  const keyIdOptions = keysOverviewFilterFieldConfig.keyIds.operators.map((op) => ({
     id: op,
     label: op,
   }));

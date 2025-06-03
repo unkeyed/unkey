@@ -3,7 +3,7 @@ import type { z } from "zod";
 import { InsertError, type QueryError } from "./error";
 import type { Inserter, Querier } from "./interface";
 export class Noop implements Querier, Inserter {
-  public query<TIn extends z.ZodSchema<any>, TOut extends z.ZodSchema<any>>(req: {
+  public query<TIn extends z.ZodSchema<unknown>, TOut extends z.ZodSchema<unknown>>(req: {
     // The SQL query to run.
     // Use {paramName: Type} to define parameters
     // Example: `SELECT * FROM table WHERE id = {id: String}`
@@ -21,7 +21,7 @@ export class Noop implements Querier, Inserter {
     };
   }
 
-  public insert<TSchema extends z.ZodSchema<any>>(req: {
+  public insert<TSchema extends z.ZodSchema<unknown>>(req: {
     table: string;
     schema: TSchema;
   }): (

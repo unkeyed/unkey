@@ -1,7 +1,70 @@
 import type { KeysOverviewFilterUrlValue } from "@/app/(app)/apis/[apiId]/_overview/filters.schema";
-import { type SQL, db } from "@/lib/db";
+import { type InferSelectModel, type SQL, db } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { identities } from "@unkey/db/src/schema";
+
+import type { keys } from "@unkey/db/src/schema/keys";
+import type { permissions, roles } from "@unkey/db/src/schema/rbac";
+
+type BaseKey = InferSelectModel<typeof keys>;
+type BaseRole = InferSelectModel<typeof roles>;
+type BasePermission = InferSelectModel<typeof permissions>;
+
+type DatabaseKey = Pick<
+  BaseKey,
+  | "id"
+  | "keyAuthId"
+  | "name"
+  | "ownerId"
+  | "identityId"
+  | "meta"
+  | "enabled"
+  | "remaining"
+  | "ratelimitAsync"
+  | "ratelimitLimit"
+  | "ratelimitDuration"
+  | "environment"
+  | "workspaceId"
+> & {
+  permissions: {
+    permission: Pick<BasePermission, "name" | "description" | "createdAtM" | "updatedAtM">;
+  }[];
+  roles: {
+    role: Pick<BaseRole, "name" | "description" | "createdAtM" | "updatedAtM">;
+  }[];
+  identity: {
+    externalId: string;
+  } | null;
+};
+
+type KeyDetails = {
+  id: DatabaseKey["id"];
+  key_auth_id: DatabaseKey["keyAuthId"];
+  name: DatabaseKey["name"];
+  owner_id: DatabaseKey["ownerId"];
+  identity_id: DatabaseKey["identityId"];
+  meta: DatabaseKey["meta"];
+  enabled: DatabaseKey["enabled"];
+  remaining_requests: DatabaseKey["remaining"];
+  ratelimit_async: DatabaseKey["ratelimitAsync"];
+  ratelimit_limit: DatabaseKey["ratelimitLimit"];
+  ratelimit_duration: DatabaseKey["ratelimitDuration"];
+  environment: DatabaseKey["environment"];
+  workspace_id: DatabaseKey["workspaceId"];
+  identity: { external_id: string } | null;
+  roles: {
+    name: BaseRole["name"];
+    description: BaseRole["description"];
+    createdAt?: BaseRole["createdAtM"];
+    updatedAt?: BaseRole["updatedAtM"];
+  }[];
+  permissions: {
+    name: BasePermission["name"];
+    description: BasePermission["description"];
+    createdAt?: BasePermission["createdAtM"];
+    updatedAt?: BasePermission["updatedAtM"];
+  }[];
+};
 
 // Input interface for the query abstraction
 export interface QueryApiKeysInput {
@@ -15,7 +78,7 @@ export interface QueryApiKeysInput {
 // Response interface with the query results
 export interface QueryApiKeysResult {
   keyspaceId: string;
-  keys: any[];
+  keys: DatabaseKey[];
   keyIds: KeysOverviewFilterUrlValue[] | null;
 }
 
@@ -48,6 +111,8 @@ export async function queryApiKeys({
                       columns: {
                         name: true,
                         description: true,
+                        createdAtM: true,
+                        updatedAtM: true,
                       },
                     },
                   },
@@ -58,6 +123,8 @@ export async function queryApiKeys({
                       columns: {
                         name: true,
                         description: true,
+                        createdAtM: true,
+                        updatedAtM: true,
                       },
                     },
                   },
@@ -141,7 +208,7 @@ export async function queryApiKeys({
 
                     const operator = filter.operator;
 
-                    let condition: SQL<any>;
+                    let condition: SQL<unknown>;
 
                     switch (operator) {
                       case "is":
@@ -166,7 +233,7 @@ export async function queryApiKeys({
           WHERE ${identities.id} = ${key.identityId}
           AND ${condition}
         )`);
-                    let ownerCondition: SQL<any>;
+                    let ownerCondition: SQL<unknown>;
 
                     switch (operator) {
                       case "is":
@@ -253,35 +320,38 @@ export async function queryApiKeys({
   };
 }
 
-export function createKeyDetailsMap(keys: any[]): Map<string, any> {
-  const keyDetailsMap = new Map();
+export function createKeyDetailsMap(keys: DatabaseKey[]): Map<string, KeyDetails> {
+  const keyDetailsMap = new Map<string, KeyDetails>();
   for (const key of keys) {
     const rolesData = key.roles
       ? key.roles
-          .filter((roleRelation: any) => roleRelation.role != null)
-          .map((roleRelation: any) => ({
+          .filter((roleRelation) => roleRelation.role != null)
+          .map((roleRelation) => ({
             name: roleRelation.role.name,
             description: roleRelation.role.description,
             createdAt: roleRelation.role.createdAtM,
             updatedAt: roleRelation.role.updatedAtM,
           }))
       : [];
+
     const permissionsData = key.permissions
       ? key.permissions
-          .filter((permRelation: any) => permRelation.permission != null)
-          .map((permRelation: any) => ({
+          .filter((permRelation) => permRelation.permission != null)
+          .map((permRelation) => ({
             name: permRelation.permission.name,
             description: permRelation.permission.description,
             createdAt: permRelation.permission.createdAtM,
             updatedAt: permRelation.permission.updatedAtM,
           }))
       : [];
+
     const identityData = key.identity
       ? {
           external_id: key.identity.externalId,
         }
       : null;
-    const keyDetails = {
+
+    const keyDetails: KeyDetails = {
       id: key.id,
       key_auth_id: key.keyAuthId,
       name: key.name,
@@ -304,19 +374,19 @@ export function createKeyDetailsMap(keys: any[]): Map<string, any> {
   return keyDetailsMap;
 }
 
-export function extractRolesAndPermissions(key: any) {
+export function extractRolesAndPermissions(key: DatabaseKey) {
   const roles = key.roles
     ? key.roles
-        .filter((roleRelation: any) => roleRelation.role != null)
-        .map((roleRelation: any) => ({
+        .filter((roleRelation) => roleRelation.role != null)
+        .map((roleRelation) => ({
           name: roleRelation.role.name,
           description: roleRelation.role.description,
         }))
     : [];
   const permissions = key.permissions
     ? key.permissions
-        .filter((permRelation: any) => permRelation.permission != null)
-        .map((permRelation: any) => ({
+        .filter((permRelation) => permRelation.permission != null)
+        .map((permRelation) => ({
           name: permRelation.permission.name,
           description: permRelation.permission.description,
         }))

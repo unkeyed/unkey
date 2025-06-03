@@ -47,31 +47,30 @@ Async will return a response immediately, lowering latency at the cost of accura
 <RequestExample>
 
 ```ts
-const override = await unkey.ratelimits.setOverride({
+const { result, error } = await unkey.ratelimits.setOverride({
     identifier: "user_123",
     limit: 10,
     duration: 60000,
     namespaceId: "rlns_1234",
     async: true
 })
-```
-```ts
-const override = await unkey.ratelimits.setOverride({
-    identifier: "user_123",
-    limit: 10,
-    duration: 60000,
-    namespaceName: "email.outbound",
-    async: true
-})
-```
 
+if (error) {
+  // handle potential network or bad request error
+  // a link to our docs will be in the `error.docs` field
+  console.error(error.message);
+  return;
+}
+
+console.log(result);
+```
 </RequestExample>
 
 <ResponseExample>
-```ts
+```json
 {
-  result: {
-     overrideId: 'rlor_12345'
+  "result": {
+     "overrideId": "rlor_12345"
   }
 }
 ```

@@ -133,7 +133,7 @@ function createTimeseriesQuery(interval: TimeInterval, whereClause: string) {
 function getRatelimitLogsTimeseriesWhereClause(
   params: RatelimitLogsTimeseriesParams,
   additionalConditions: string[] = [],
-): { whereClause: string; paramSchema: z.ZodType<any> } {
+): { whereClause: string; paramSchema: z.ZodType<unknown> } {
   const conditions = [
     "workspace_id = {workspaceId: String}",
     "namespace_id = {namespaceId: String}",
@@ -301,9 +301,8 @@ export function getRatelimitLogs(ch: Querier) {
     const hasStatusFilters = args.status && args.status.length > 0;
     const hasIdentifierFilters = args.identifiers && args.identifiers.length > 0;
 
-    const statusCondition = !hasStatusFilters
-      ? "TRUE"
-      : args.status
+    const statusCondition = hasStatusFilters
+      ? args.status
           ?.map((filter, index) => {
             if (filter.operator === "is") {
               const paramName = `statusValue_${index}`;
@@ -314,11 +313,11 @@ export function getRatelimitLogs(ch: Querier) {
             return null;
           })
           .filter(Boolean)
-          .join(" OR ") || "TRUE";
+          .join(" OR ") || "TRUE"
+      : "TRUE";
 
-    const identifierConditions = !hasIdentifierFilters
-      ? "TRUE"
-      : args.identifiers
+    const identifierConditions = hasIdentifierFilters
+      ? args.identifiers
           ?.map((p, index) => {
             const paramName = `identifierValue_${index}`;
             paramSchemaExtension[paramName] = z.string();
@@ -333,7 +332,8 @@ export function getRatelimitLogs(ch: Querier) {
             }
           })
           .filter(Boolean)
-          .join(" OR ") || "TRUE";
+          .join(" OR ") || "TRUE"
+      : "TRUE";
 
     const extendedParamsSchema = ratelimitLogsParams.extend(paramSchemaExtension);
 
@@ -494,9 +494,8 @@ export function getRatelimitOverviewLogs(ch: Querier) {
     const hasStatusFilters = args.status && args.status.length > 0;
     const hasSortingRules = args.sorts && args.sorts.length > 0;
 
-    const statusCondition = !hasStatusFilters
-      ? "TRUE"
-      : args.status
+    const statusCondition = hasStatusFilters
+      ? args.status
           ?.map((filter, index) => {
             if (filter.operator === "is") {
               const paramName = `statusValue_${index}`;
@@ -507,11 +506,11 @@ export function getRatelimitOverviewLogs(ch: Querier) {
             return null;
           })
           .filter(Boolean)
-          .join(" OR ") || "TRUE";
+          .join(" OR ") || "TRUE"
+      : "TRUE";
 
-    const identifierConditions = !hasIdentifierFilters
-      ? "TRUE"
-      : args.identifiers
+    const identifierConditions = hasIdentifierFilters
+      ? args.identifiers
           ?.map((p, index) => {
             const paramName = `identifierValue_${index}`;
             paramSchemaExtension[paramName] = z.string();
@@ -526,7 +525,8 @@ export function getRatelimitOverviewLogs(ch: Querier) {
             }
           })
           .filter(Boolean)
-          .join(" OR ") || "TRUE";
+          .join(" OR ") || "TRUE"
+      : "TRUE";
 
     const allowedColumns = new Map([
       ["time", "last_request_time"],
@@ -585,11 +585,7 @@ export function getRatelimitOverviewLogs(ch: Querier) {
     let cursorCondition: string;
 
     // For first page or no cursor provided
-    if (!args.cursorTime) {
-      cursorCondition = `
-  AND ({cursorTime: Nullable(UInt64)} IS NULL)
-  `;
-    } else {
+    if (args.cursorTime) {
       // For subsequent pages, use cursor based on time direction
       if (timeDirection === "ASC") {
         cursorCondition = `
@@ -600,6 +596,10 @@ export function getRatelimitOverviewLogs(ch: Querier) {
     AND (time < {cursorTime: Nullable(UInt64)})
     `;
       }
+    } else {
+      cursorCondition = `
+  AND ({cursorTime: Nullable(UInt64)} IS NULL)
+  `;
     }
 
     const extendedParamsSchema = ratelimitOverviewLogsParams.extend(paramSchemaExtension);
@@ -785,7 +785,7 @@ function createLatencyTimeseriesQuery(interval: TimeInterval, whereClause: strin
 
 function getRatelimitLatencyTimeseriesWhereClause(params: RatelimitLatencyTimeseriesParams): {
   whereClause: string;
-  paramSchema: z.ZodType<any>;
+  paramSchema: z.ZodType<unknown>;
 } {
   const conditions: string[] = [];
   const paramSchemaExtension: Record<string, z.ZodString> = {};

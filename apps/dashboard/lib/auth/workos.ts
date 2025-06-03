@@ -30,6 +30,45 @@ import {
   type VerificationResult,
 } from "./types";
 
+type WorkOSErrorCode =
+  | "organization_selection_required"
+  | "email_verification_required"
+  | "email_not_available"
+  | "user_creation_error"
+  | "invalid_code"
+  | "expired_code"
+  | "invalid_invitation"
+  | "missing_required_fields";
+
+type WorkOSError = {
+  errors?: {
+    code: string;
+    message?: string;
+  }[];
+  message: string;
+  code?: string;
+};
+
+type WorkOSAuthError = {
+  message: string;
+  rawData?: {
+    code: WorkOSErrorCode;
+    message: string;
+    user: ProviderUser;
+    organizations: WorkOSOrganization[];
+    pending_authentication_token: string;
+    email?: string;
+  };
+};
+
+type ProviderUser = {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  profilePictureUrl: string | null;
+};
+
 export class WorkOSAuthProvider extends BaseAuthProvider {
   private static instance: WorkOSAuthProvider | null = null;
   private readonly provider: WorkOS;
@@ -257,7 +296,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       });
 
       if (!refreshResult.authenticated || !refreshResult.session) {
-        const errMsg = !refreshResult.authenticated ? refreshResult.reason : "";
+        const errMsg = refreshResult.authenticated ? "" : refreshResult.reason;
         throw new Error(`Organization switch failed ${errMsg}`);
       }
 
@@ -523,17 +562,19 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       await this.provider.userManagement.createMagicAuth({ email });
 
       return { success: true };
-    } catch (error: any) {
-      if (error.errors?.some((detail: any) => detail.code === "email_not_available")) {
+    } catch (error: unknown) {
+      const workosError = error as WorkOSError;
+
+      if (workosError.errors?.some((detail) => detail.code === "email_not_available")) {
         return this.handleError(new Error(AuthErrorCode.EMAIL_ALREADY_EXISTS));
       }
-      if (error.message.includes("email_required")) {
+      if (workosError.message?.includes("email_required")) {
         return this.handleError(new Error(AuthErrorCode.INVALID_EMAIL));
       }
-      if (error.code === "user_creation_error") {
+      if (workosError.code === "user_creation_error") {
         return this.handleError(new Error(AuthErrorCode.USER_CREATION_FAILED));
       }
-      return this.handleError(error);
+      return this.handleError(error as Error);
     }
   }
 
@@ -599,19 +640,21 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           },
         ],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const authError = error as WorkOSAuthError;
+
       // Handle organization selection required case
-      if (error.rawData.code === "organization_selection_required") {
+      if (authError.rawData?.code === "organization_selection_required") {
         return {
           success: false,
           code: AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED,
-          message: error.rawData.message,
-          user: this.transformUserData(error.rawData.user),
-          organizations: error.rawData.organizations.map(this.transformOrganizationData),
+          message: authError.rawData.message,
+          user: this.transformUserData(authError.rawData.user),
+          organizations: authError.rawData.organizations.map(this.transformOrganizationData),
           cookies: [
             {
               name: PENDING_SESSION_COOKIE,
-              value: error.rawData.pending_authentication_token,
+              value: authError.rawData.pending_authentication_token,
               options: {
                 secure: true,
                 httpOnly: true,
@@ -621,7 +664,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           ],
         };
       }
-      return this.handleError(error);
+      return this.handleError(error as Error);
     }
   }
 
@@ -662,20 +705,23 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           },
         ],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Handle organization selection required case
       console.error("verify email: ", error);
-      if (error.rawData.code === "organization_selection_required") {
+
+      const authError = error as WorkOSAuthError;
+
+      if (authError.rawData?.code === "organization_selection_required") {
         return {
           success: false,
           code: AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED,
-          message: error.rawData.message,
-          user: this.transformUserData(error.rawData.user),
-          organizations: error.rawData.organizations.map(this.transformOrganizationData),
+          message: authError.rawData.message,
+          user: this.transformUserData(authError.rawData.user),
+          organizations: authError.rawData.organizations.map(this.transformOrganizationData),
           cookies: [
             {
               name: PENDING_SESSION_COOKIE,
-              value: error.rawData.pending_authentication_token,
+              value: authError.rawData.pending_authentication_token,
               options: {
                 secure: true,
                 httpOnly: true,
@@ -685,7 +731,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           ],
         };
       }
-      return this.handleError(error);
+      return this.handleError(error as Error);
     }
   }
 
@@ -806,18 +852,20 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           },
         ],
       };
-    } catch (error: any) {
-      if (error.rawData.code === "organization_selection_required") {
+    } catch (error: unknown) {
+      const authError = error as WorkOSAuthError;
+
+      if (authError.rawData?.code === "organization_selection_required") {
         return {
           success: false,
           code: AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED,
-          message: error.rawData.message,
-          user: this.transformUserData(error.rawData.user),
-          organizations: error.rawData.organizations.map(this.transformOrganizationData),
+          message: authError.rawData.message,
+          user: this.transformUserData(authError.rawData.user),
+          organizations: authError.rawData.organizations?.map(this.transformOrganizationData) || [],
           cookies: [
             {
               name: PENDING_SESSION_COOKIE,
-              value: error.rawData.pending_authentication_token,
+              value: authError.rawData.pending_authentication_token,
               options: {
                 secure: true,
                 httpOnly: true,
@@ -829,19 +877,22 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         };
       }
 
-      if (error.rawData.code === "email_verification_required") {
+      if (authError.rawData?.code === "email_verification_required") {
         return {
           success: false,
           code: AuthErrorCode.EMAIL_VERIFICATION_REQUIRED,
-          message: error.message,
+          message: authError.message,
           user: this.transformUserData({
             id: "UNKNOWN", // WorkOS doesn't return a user id in this scenario, and its the ONLY scenario where there isn't one available. Easier to just pass a string than to make the unkey User id nullable
-            email: error.rawData.email,
+            email: authError.rawData.email || "",
+            firstName: null,
+            lastName: null,
+            profilePictureUrl: null,
           }),
           cookies: [
             {
               name: PENDING_SESSION_COOKIE,
-              value: error.rawData.pending_authentication_token,
+              value: authError.rawData.pending_authentication_token,
               options: {
                 secure: true,
                 httpOnly: true,
@@ -852,12 +903,13 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           ],
         };
       }
-      return this.handleError(error);
+
+      return this.handleError(error as Error);
     }
   }
 
   // Helper methods for transforming WorkOS types to Unkey types
-  private transformUserData(providerUser: any): User {
+  private transformUserData(providerUser: ProviderUser): User {
     return {
       id: providerUser.id,
       email: providerUser.email,

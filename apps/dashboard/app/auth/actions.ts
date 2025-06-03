@@ -15,9 +15,10 @@ import {
   errorMessages,
 } from "@/lib/auth/types";
 import { requireEmailMatch } from "@/lib/auth/utils";
+import { env } from "@/lib/env";
+import { Ratelimit } from "@unkey/ratelimit";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-
 // Authentication Actions
 export async function signUpViaEmail(params: UserData): Promise<EmailAuthResult> {
   return await auth.signUpViaEmail(params);
@@ -88,6 +89,23 @@ export async function verifyEmail(code: string): Promise<VerificationResult> {
 }
 
 export async function resendAuthCode(email: string): Promise<EmailAuthResult> {
+  const rl = new Ratelimit({
+    namespace: "resend_code",
+    duration: "5m",
+    limit: 5,
+    rootKey: env().UNKEY_ROOT_KEY!,
+  });
+
+  const { success } = await rl.limit(email);
+
+  if (!success) {
+    return {
+      success: false,
+      code: AuthErrorCode.RATE_ERROR,
+      message: "Sorry we can't send another code. Please contact support",
+    };
+  }
+
   if (!email.trim()) {
     return {
       success: false,
@@ -169,7 +187,10 @@ export async function completeOrgSelection(
   }
 
   // Call auth provider with token and orgId
-  const result = await auth.completeOrgSelection({ pendingAuthToken: tempSession.value, orgId });
+  const result = await auth.completeOrgSelection({
+    pendingAuthToken: tempSession.value,
+    orgId,
+  });
 
   if (result.success) {
     cookies().delete(PENDING_SESSION_COOKIE);

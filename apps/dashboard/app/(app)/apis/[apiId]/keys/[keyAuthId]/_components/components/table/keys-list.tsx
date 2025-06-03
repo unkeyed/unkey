@@ -2,21 +2,12 @@
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { BookBookmark, Focus, Key } from "@unkey/icons";
-import {
-  AnimatedLoadingSpinner,
-  Button,
-  Checkbox,
-  Empty,
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@unkey/ui";
+import { BookBookmark, Dots, Focus, Key } from "@unkey/icons";
+import { AnimatedLoadingSpinner, Button, Checkbox, Empty, InfoTooltip } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import React, { useCallback, useMemo, useState } from "react";
-import { KeysTableActionPopover } from "./components/actions/keys-table-action.popover";
 import { getKeysTableActionItems } from "./components/actions/keys-table-action.popover.constants";
 import { VerificationBarChart } from "./components/bar-chart";
 import { HiddenValueCell } from "./components/hidden-value";
@@ -33,6 +24,27 @@ import {
 import { StatusDisplay } from "./components/status-cell";
 import { useKeysListQuery } from "./hooks/use-keys-list-query";
 import { getRowClassName } from "./utils/get-row-class";
+
+const KeysTableActionPopover = dynamic(
+  () =>
+    import("./components/actions/keys-table-action.popover").then((mod) => ({
+      default: mod.KeysTableActionPopover,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <button
+        type="button"
+        className={cn(
+          "group-data-[state=open]:bg-gray-6 group-hover:bg-gray-6 group size-5 p-0 rounded m-0 items-center flex justify-center",
+          "border border-gray-6 group-hover:border-gray-8 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-7",
+        )}
+      >
+        <Dots className="group-hover:text-gray-12 text-gray-11" size="sm-regular" />
+      </button>
+    ),
+  },
+);
 
 export const KeysList = ({
   keyspaceId,
@@ -92,7 +104,9 @@ export const KeysList = ({
               onMouseLeave={() => setHoveredKeyId(null)}
             >
               {isNavigating ? (
-                <AnimatedLoadingSpinner />
+                <div className={cn(identity ? "text-successA-11" : "text-grayA-11")}>
+                  <AnimatedLoadingSpinner />
+                </div>
               ) : (
                 <>
                   {/* Show icon when not selected and not hovered */}
@@ -124,17 +138,13 @@ export const KeysList = ({
             <div className="flex flex-col items-start px-[18px] py-[6px]">
               <div className="flex gap-4 items-center">
                 {identity ? (
-                  <TooltipProvider delayDuration={100}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        {React.cloneElement(iconContainer, {
-                          className: cn(iconContainer.props.className, "cursor-pointer"),
-                        })}
-                      </TooltipTrigger>
-                      <TooltipContent
-                        className="bg-gray-1 px-4 py-2 border border-gray-4 shadow-md font-medium text-xs text-accent-12"
-                        side="right"
-                      >
+                  <InfoTooltip
+                    delayDuration={100}
+                    variant="muted"
+                    position={{ side: "right" }}
+                    className="bg-gray-1 px-4 py-2 border border-gray-4 shadow-md font-medium text-xs text-accent-12"
+                    content={
+                      <>
                         This key is associated with the identity:{" "}
                         {key.identity_id ? (
                           <Link
@@ -150,9 +160,14 @@ export const KeysList = ({
                         ) : (
                           <span className="font-mono bg-gray-4 p-1 rounded">{identity}</span>
                         )}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                      </>
+                    }
+                    asChild
+                  >
+                    {React.cloneElement(iconContainer, {
+                      className: cn(iconContainer.props.className, "cursor-pointer"),
+                    })}
+                  </InfoTooltip>
                 ) : (
                   iconContainer
                 )}

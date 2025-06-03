@@ -219,8 +219,8 @@ export const registerV1ApisListKeys = (app: App) =>
       return {
         keys: keySpace.keys.map((k) => {
           const permissions = new Set<string>([
-            ...k.permissions.map((p) => p.permission.name),
-            ...k.roles.flatMap((r) => r.role.permissions.map((p) => p.permission.name)),
+            ...k.permissions.map((p) => p.permission.slug),
+            ...k.roles.flatMap((r) => r.role.permissions.map((p) => p.permission.slug)),
           ]);
           return {
             ...k,
@@ -309,7 +309,7 @@ export const registerV1ApisListKeys = (app: App) =>
           k.ratelimitAsync !== null && k.ratelimitLimit !== null && k.ratelimitDuration !== null
             ? {
                 async: k.ratelimitAsync,
-                type: k.ratelimitAsync ? "fast" : ("consistent" as any),
+                type: k.ratelimitAsync ? "fast" : ("consistent" as unknown),
                 limit: k.ratelimitLimit,
                 duration: k.ratelimitDuration,
                 refillRate: k.ratelimitLimit,

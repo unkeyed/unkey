@@ -11,12 +11,11 @@ import { Collapsible, CollapsibleContent } from "@radix-ui/react-collapsible";
 import { CaretRight } from "@unkey/icons";
 import { usePathname, useRouter } from "next/navigation";
 import { useLayoutEffect, useState, useTransition } from "react";
+import slugify from "slugify";
 import type { NavItem } from "../../../workspace-navigations";
 import { NavLink } from "../nav-link";
 import { AnimatedLoadingSpinner } from "./animated-loading-spinner";
 import { getButtonStyles } from "./utils";
-
-const paths = ["/apis", "/ratelimits"];
 
 export const NestedNavItem = ({
   item,
@@ -55,10 +54,15 @@ export const NestedNavItem = ({
 
     setIsChildrenOpen(!!hasMatchingChild);
 
-    if (paths.includes(pathname) && pathname.startsWith(item.href)) {
+    const itemPath = `/${slugify(item.label, {
+      lower: true,
+      replacement: "-",
+    })}`;
+
+    if (pathname.startsWith(itemPath)) {
       setIsOpen(true);
     }
-  }, [pathname, item.items, item.href, hasChildren]);
+  }, [pathname, item.items, item.label, hasChildren]);
 
   const handleMenuItemClick = (e: React.MouseEvent) => {
     // If the item has children, toggle the open state
@@ -72,14 +76,14 @@ export const NestedNavItem = ({
 
     // If the item has a href, navigate to it
     if (item.href) {
-      if (!item.external) {
+      if (item.external) {
+        // For external links, open in new tab
+        window.open(item.href, "_blank");
+      } else {
         // Show loading state ONLY for parent
         startParentTransition(() => {
           router.push(item.href);
         });
-      } else {
-        // For external links, open in new tab
-        window.open(item.href, "_blank");
       }
     }
   };

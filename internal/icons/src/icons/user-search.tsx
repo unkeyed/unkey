@@ -61,5 +61,3 @@ export const UserSearch: React.FC<IconProps> = ({ size, filled, ...props }) => {
     </svg>
   );
 };
-
-export default UserSearch;

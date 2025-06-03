@@ -1,10 +1,9 @@
-import { CopyButton } from "@/components/dashboard/copy-button";
 import { Code } from "@/components/ui/code";
 import { getCurrentUser } from "@/lib/auth";
 import { router } from "@/lib/trpc/routers";
 import { createCallerFactory } from "@trpc/server";
 import type { Workspace } from "@unkey/db";
-import { Button } from "@unkey/ui";
+import { Button, CopyButton } from "@unkey/ui";
 import { GlobeLock } from "lucide-react";
 import Link from "next/link";
 
@@ -21,6 +20,7 @@ export const CreateRatelimit: React.FC<Props> = async (props) => {
   }
 
   const trpc = createCallerFactory()(router)({
+    // biome-ignore lint/suspicious/noExplicitAny: tRPC context req object is not used in server-side calls, empty object is acceptable
     req: {} as any,
     user: {
       id: user.id,

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { UseFormTrigger } from "react-hook-form";
+import type { FieldPath, UseFormTrigger } from "react-hook-form";
 import { DEFAULT_STEP_STATES, type DialogSectionName, SECTIONS } from "../create-key.constants";
 import type { FormValues } from "../create-key.schema";
 import { getFieldsFromSchema, isFeatureEnabled, sectionSchemaMap } from "../create-key.utils";
@@ -39,7 +39,7 @@ export const useValidateSteps = (
             const schema = sectionSchemaMap[section.id as SectionName];
             const fieldsToValidate = getFieldsFromSchema(schema);
             if (fieldsToValidate.length > 0) {
-              const result = await trigger(fieldsToValidate as any);
+              const result = await trigger(fieldsToValidate as FieldPath<FormValues>[]);
               newValidSteps[section.id] = result ? "valid" : "invalid";
             }
           }
@@ -74,9 +74,8 @@ export const useValidateSteps = (
     if (fieldsToValidate.length === 0) {
       return true;
     }
-
     // Trigger validation for the fields
-    const result = await trigger(fieldsToValidate as any);
+    const result = await trigger(fieldsToValidate as FieldPath<FormValues>[]);
     setValidSteps((prevState) => ({
       ...prevState,
       [sectionId]: result ? "valid" : "invalid",

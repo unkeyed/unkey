@@ -51,6 +51,7 @@ test("connects all permissions", async (t) => {
   const permissions = new Array(3).fill(null).map((_) => ({
     id: newId("test"),
     name: randomUUID(),
+    slug: randomUUID(),
     workspaceId: h.resources.userWorkspace.id,
   }));
 
@@ -100,6 +101,7 @@ test("not desired permissions are removed", async (t) => {
   const permissions = new Array(3).fill(null).map((_) => ({
     id: newId("test"),
     name: randomUUID(),
+    slug: randomUUID(),
     workspaceId: h.resources.userWorkspace.id,
   }));
 
@@ -150,6 +152,7 @@ test("additional permissions does not remove existing permissions", async (t) =>
   const permissions = new Array(3).fill(null).map((_) => ({
     id: newId("test"),
     name: randomUUID(),
+    slug: randomUUID(),
     workspaceId: h.resources.userWorkspace.id,
   }));
 

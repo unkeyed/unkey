@@ -8,7 +8,7 @@ import { STATUS_DEFINITIONS, type StatusInfo } from "./constants";
 
 const RATE_LIMIT_THRESHOLD_PERCENT = 0.1; // 10%
 const VALIDATION_ISSUE_THRESHOLD_PERCENT = 0.1; // 10%
-const LOW_CREDITS_THRESHOLD_ABSOLUTE = 100;
+const LOW_CREDITS_THRESHOLD_ABSOLUTE = 0;
 const LOW_CREDITS_THRESHOLD_REFILL_PERCENT = 0.1; // 10%
 const EXPIRY_THRESHOLD_HOURS = 24;
 
@@ -118,7 +118,7 @@ export const useKeyStatus = (keyAuthId: string, keyData: KeyDetails): UseKeyStat
     const remaining = keyData.key.credits.remaining;
     const refillAmount = keyData.key.credits.refillAmount;
     const isLowOnCredits =
-      (remaining != null && remaining < LOW_CREDITS_THRESHOLD_ABSOLUTE) ||
+      (remaining != null && remaining === LOW_CREDITS_THRESHOLD_ABSOLUTE) ||
       (refillAmount &&
         remaining != null &&
         refillAmount > 0 &&

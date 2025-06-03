@@ -20,6 +20,7 @@ const createNavigableDialogContext = <TStepName extends string>() => {
 // The actual type safety is enforced later by the typed hooks
 // (useNavigableDialog<T>) that properly cast this context to the correct generic type.
 // @ts-expect-error Type 'Context<NavigableDialogContextType<string> | undefined>' is not assignable to 'Context<NavigableDialogContextType<any>>'
+// biome-ignore lint/suspicious/noExplicitAny: safe to leave
 const NavigableDialogContext: React.Context<NavigableDialogContextType<any>> =
   createNavigableDialogContext();
 
@@ -62,7 +63,7 @@ export function NavigableDialogRoot<TStepName extends string>({
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent
           className={cn(
-            "drop-shadow-2xl border-grayA-4 overflow-hidden !rounded-2xl p-0 gap-0",
+            "drop-shadow-2xl border-grayA-4 overflow-hidden !rounded-2xl p-0 gap-0 flex flex-col max-h-[90vh]",
             dialogClassName,
           )}
           onOpenAutoFocus={(e) => {
@@ -199,7 +200,6 @@ export function NavigableDialogNav<TStepName extends string>({
   );
 }
 
-// Content area component
 export function NavigableDialogContent<TStepName extends string>({
   items,
   className,
@@ -211,21 +211,41 @@ export function NavigableDialogContent<TStepName extends string>({
   className?: string;
 }) {
   const { activeId } = useNavigableDialog<TStepName>();
-
   return (
     <div className="flex-1 min-w-0 overflow-y-auto">
-      <DefaultDialogContentArea className={cn(className)}>
-        {items.map((item) => (
-          <div key={item.id} className={cn("w-full", item.id !== activeId && "hidden")}>
-            {item.content}
-          </div>
-        ))}
+      <DefaultDialogContentArea className={cn("min-h-[70vh] xl:min-h-[50vh] h-full", className)}>
+        <div className="h-full relative">
+          {items.map((item) => {
+            const isActive = item.id === activeId;
+            return (
+              <div
+                key={item.id}
+                className={cn(
+                  "w-full absolute inset-0 overflow-y-auto scrollbar-hide",
+                  "transition-all duration-300 ease-out",
+                  isActive
+                    ? "opacity-100 translate-x-0 z-10"
+                    : "opacity-0 translate-x-5 z-0 pointer-events-none",
+                )}
+                aria-hidden={!isActive}
+              >
+                <div className="h-full">{item.content}</div>
+              </div>
+            );
+          })}
+        </div>
       </DefaultDialogContentArea>
     </div>
   );
 }
 
 // Main container for the nav and content
-export function NavigableDialogBody({ children }: { children: ReactNode }) {
-  return <div className="flex overflow-hidden">{children}</div>;
+export function NavigableDialogBody({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return <div className={cn("flex flex-grow overflow-hidden", className)}>{children}</div>;
 }

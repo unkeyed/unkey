@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 export const isBrowser = typeof window !== "undefined";
 
-export function debounce<T extends (...args: any[]) => any>(func: T, delay: number) {
+export function debounce<T extends (...args: unknown[]) => unknown>(func: T, delay: number) {
   let timeoutId: ReturnType<typeof setTimeout>;
 
   function debounced(...args: Parameters<T>) {
@@ -31,6 +31,7 @@ type ThrottleOptions = {
 
 type Timer = ReturnType<typeof setTimeout>;
 
+// biome-ignore lint/suspicious/noExplicitAny: Safe to leave
 export function throttle<T extends (...args: any[]) => any>(
   func: T,
   wait: number,
@@ -183,3 +184,32 @@ export function getBaseUrl() {
   // assume localhost
   return `http://localhost:${process.env.PORT ?? 3000}`;
 }
+
+type DeepMergeInput = Record<string, unknown>;
+
+export const deepMerge = <T extends DeepMergeInput>(target: T, source: T): T => {
+  const result = { ...target } as T;
+
+  for (const key in source) {
+    const sourceValue = source[key];
+    const targetValue = result[key];
+
+    if (
+      sourceValue !== null &&
+      typeof sourceValue === "object" &&
+      !Array.isArray(sourceValue) &&
+      targetValue !== null &&
+      typeof targetValue === "object" &&
+      !Array.isArray(targetValue)
+    ) {
+      result[key] = deepMerge(
+        targetValue as DeepMergeInput,
+        sourceValue as DeepMergeInput,
+      ) as T[Extract<keyof T, string>];
+    } else if (sourceValue !== undefined) {
+      result[key] = sourceValue;
+    }
+  }
+
+  return result;
+};

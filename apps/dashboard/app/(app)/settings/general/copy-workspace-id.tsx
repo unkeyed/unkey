@@ -10,11 +10,11 @@ export const CopyWorkspaceId = ({ workspaceId }: { workspaceId: string }) => {
       title={"Workspace ID"}
       description={"An identifier for the workspace."}
       border="bottom"
-      contentWidth="w-full lg:w-[320px] justify-end items-end"
+      contentWidth="w-full lg:w-[420px] justify-end items-end"
     >
-      <div className="flex flex-row justify-end items-end mt-1">
+      <div className="flex flex-row justify-end items-center">
         <Input
-          className="min-w-[315px] focus:ring-0 focus:ring-offset-0"
+          className="min-w-[25.1rem] self-end"
           readOnly
           defaultValue={workspaceId}
           placeholder="Workspace ID"

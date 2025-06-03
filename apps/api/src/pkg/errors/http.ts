@@ -23,6 +23,7 @@ const ErrorCode = z.enum([
   "DELETE_PROTECTED",
 ]);
 
+// biome-ignore lint/suspicious/noExplicitAny: Safe to leave
 export function errorSchemaFactory(code: z.ZodEnum<any>) {
   return z.object({
     error: z.object({
@@ -126,7 +127,7 @@ export function handleZodError(
   result:
     | {
         success: true;
-        data: any;
+        data: unknown;
       }
     | {
         success: false;

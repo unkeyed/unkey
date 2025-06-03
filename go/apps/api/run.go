@@ -75,6 +75,10 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Warn("TESTMODE IS ENABLED. This is not secure in production!")
 	}
 
+	if cfg.TLSConfig != nil {
+		logger.Info("TLS is enabled, server will use HTTPS")
+	}
+
 	// Catch any panics now after we have a logger but before we start the server
 	defer func() {
 		if r := recover(); r != nil {
@@ -135,12 +139,13 @@ func Run(ctx context.Context, cfg Config) error {
 		Flags: &zen.Flags{
 			TestMode: cfg.TestMode,
 		},
+		TLS: cfg.TLSConfig,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)
 
 	}
-	shutdowns.Register(srv.Shutdown)
+	shutdowns.RegisterCtx(srv.Shutdown)
 
 	validator, err := validation.New()
 	if err != nil {

@@ -22,7 +22,7 @@ import type { StoreMiddleware } from "./interface";
  * ```
  */
 
-export class EncryptedStore<TNamespace extends string, TValue = any>
+export class EncryptedStore<TNamespace extends string, TValue = unknown>
   implements Store<TNamespace, TValue>
 {
   public name: string;
@@ -257,7 +257,7 @@ function decode(b64: string): Uint8Array {
   return bytes;
 }
 
-export async function withEncryption<TNamespace extends string, TValue = any>(
+export async function withEncryption<TNamespace extends string, TValue = unknown>(
   base64Key: string,
 ): Promise<StoreMiddleware<TNamespace, TValue>> {
   return await EncryptedStore.fromBase64Key(base64Key);

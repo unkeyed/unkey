@@ -1,13 +1,12 @@
 "use client";
-import { FormField } from "@/components/ui/form";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Workspace } from "@unkey/db";
 import { ArrowUpRight, Lock, Shield } from "@unkey/icons";
-import { Button, InlineLink, SettingCard, Textarea } from "@unkey/ui";
+import { Button, FormTextarea, InlineLink, SettingCard } from "@unkey/ui";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { StatusBadge } from "./status-badge";
 
@@ -33,7 +32,11 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
   const router = useRouter();
   const isEnabled = workspace.features.ipWhitelist;
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const {
+    control,
+    handleSubmit,
+    formState: { isValid, isSubmitting, errors, isDirty },
+  } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       ipWhitelist: api.ipWhitelist ?? "",
@@ -53,8 +56,6 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
     },
   });
 
-  const isValid = api.ipWhitelist?.toString() !== form.watch("ipWhitelist").toString();
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
     await updateIps.mutateAsync(values);
   }
@@ -67,23 +68,23 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
     );
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)}>
+    <form onSubmit={handleSubmit(onSubmit)}>
       <SettingCard
         title={
-          <div className=" flex items-center justify-start gap-2.5">
+          <div className="flex items-center justify-start gap-2.5">
             <span className="text-sm font-medium text-accent-12">IP Whitelist</span>
             <Badge />
           </div>
         }
         description={
-          <div className="font-normal text-[13px] max-w-[380px]">
-            Want to protect your API from unauthorized access? <br />
-            Upgrade to our <span className="font-bold">Enterprise plan</span> to enable IP
-            whitelisting and restrict access to trusted sources.{" "}
+          <div className="font-normal text-[13px]">
+            Want to protect your API from unauthorized access? Upgrade to our{" "}
+            <span className="font-bold">Enterprise plan</span> to enable IP whitelisting and
+            restrict access to trusted sources.{" "}
             <InlineLink
               label="Learn more"
               href="https://www.unkey.com/docs/apis/features/whitelist#ip-whitelisting"
-              target={true}
+              target
               icon={<ArrowUpRight size="sm-thin" />}
             />
           </div>
@@ -92,37 +93,36 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
         contentWidth="w-full"
       >
         {isEnabled ? (
-          <div className="flex flex-row justify-items-start items-center w-full gap-x-2">
+          <div className="flex flex-row justify-end items-start w-full gap-x-2">
             <input type="hidden" name="workspaceId" value={api.workspaceId} />
             <input type="hidden" name="apiId" value={api.id} />
-            <label htmlFor="ipWhitelist" className="hidden sr-only">
-              IP Whitelist
-            </label>
-            <FormField
-              control={form.control}
+
+            <Controller
+              control={control}
               name="ipWhitelist"
               render={({ field }) => (
-                <Textarea
+                <FormTextarea
                   {...field}
                   className="lg:w-[16rem]"
                   autoComplete="off"
-                  placeholder={`127.0.0.1
-1.1.1.1`}
+                  placeholder={"127.0.0.1\n1.1.1.1"}
+                  error={errors.ipWhitelist?.message}
                 />
               )}
             />
+
             <Button
               size="lg"
               variant="primary"
-              disabled={!form.formState.isValid || form.formState.isSubmitting || !isValid}
+              disabled={!isValid || isSubmitting || !isDirty}
               type="submit"
-              loading={form.formState.isSubmitting}
+              loading={isSubmitting}
             >
               Save
             </Button>
           </div>
         ) : (
-          <div className="flex flex-col justify-center items-end w-full h-full lg:mt-6">
+          <div className="flex flex-col justify-center items-end w-full h-full">
             <a target="_blank" rel="noreferrer" href="https://cal.com/james-r-perkins/sales">
               <Button type="button" size="lg" variant="primary" color="info">
                 Upgrade to Enterprise

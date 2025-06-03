@@ -57,6 +57,7 @@ export async function getAllKeys({
     }
 
     // Helper function to build the filter conditions (without cursor)
+    // biome-ignore lint/suspicious/noExplicitAny: Leave it as is for now
     const buildFilterConditions = (key: any, { and, isNull, eq, sql }: any) => {
       const conditions = [eq(key.keyAuthId, keyspaceId), isNull(key.deletedAtM)];
 
@@ -124,7 +125,7 @@ export async function getAllKeys({
             continue;
           }
 
-          let ownerIdCondition: SQL<any>;
+          let ownerIdCondition: SQL<unknown>;
           switch (filter.operator) {
             case "is":
               ownerIdCondition = eq(key.ownerId, value);
@@ -245,7 +246,7 @@ export async function getAllKeys({
         metadata: key.meta,
         key: {
           credits: {
-            enabled: Boolean(key.remaining), // If remaining is bigger than 0 it means user has enabled credits option
+            enabled: key.remaining !== null,
             remaining: key.remaining,
             refillAmount: key.refillAmount,
             refillDay: key.refillDay,

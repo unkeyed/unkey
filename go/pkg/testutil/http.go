@@ -79,6 +79,7 @@ func NewHarness(t *testing.T) *Harness {
 		Flags: &zen.Flags{
 			TestMode: true,
 		},
+		TLS: nil,
 	})
 	require.NoError(t, err)
 

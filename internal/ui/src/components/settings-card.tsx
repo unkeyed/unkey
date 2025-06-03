@@ -17,7 +17,7 @@ export function SettingCard({
   children,
   className,
   border = "default",
-  contentWidth = "w-[320px]",
+  contentWidth = "w-[420px]",
 }: SettingCardProps) {
   const borderRadiusClass = {
     "rounded-t-xl": border === "top",
@@ -27,7 +27,7 @@ export function SettingCard({
   };
 
   const borderClass = {
-    "border border-gray-4": border !== "none",
+    "border border-grayA-4": border !== "none",
     "border-t-0": border === "bottom",
     "border-b-0": border === "top",
   };
@@ -35,19 +35,19 @@ export function SettingCard({
   return (
     <div
       className={cn(
-        "px-6 py-3 lg:w-full flex gap-6 lg:justify-between lg:items-start flex-col lg:flex-row",
+        "px-6 py-6 lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row ",
         borderRadiusClass,
         borderClass,
         className,
       )}
     >
-      <div className="flex flex-col gap-1 text-sm w-full">
+      <div className="flex flex-col gap-1 text-sm w-fit">
         <div className="font-medium text-accent-12 leading-5 tracking-normal">{title}</div>
         <div className="font-normal text-accent-11 text-[13px] leading-5 tracking-normal">
           {description}
         </div>
       </div>
-      <div className={cn("flex items-center", contentWidth)}>{children}</div>
+      <div className={cn("flex w-full", contentWidth)}>{children}</div>
     </div>
   );
 }
