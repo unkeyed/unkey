@@ -1,14 +1,13 @@
 "use client";
-
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import * as React from "react";
-import type { PropsWithChildren } from "react";
-import { cn } from "../../../lib/utils";
 import {
   DialogFooter as ShadcnDialogFooter,
   DialogHeader as ShadcnDialogHeader,
   DialogTitle as ShadcnDialogTitle,
 } from "./dialog";
+import { cn } from "../../../lib/utils";
+import type { PropsWithChildren } from "react";
 
 type DefaultDialogHeaderProps = {
   title: string;

@@ -6,7 +6,7 @@ import {
   NavigableDialogHeader,
   NavigableDialogNav,
   NavigableDialogRoot,
-} from "@/components/dialog-container/navigable-dialog";
+} from "@unkey/ui";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";

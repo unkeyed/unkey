@@ -1,14 +1,10 @@
 "use client";
-import type { PropsWithChildren, ReactNode } from "react";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
-import React from "react";
+import * as React from "react";
+import { Dialog, DialogContent } from "./parts/dialog";
 import { cn } from "../../lib/utils";
-import { Dialog, DialogContent } from "./components/dialog";
-import {
-  DefaultDialogContentArea,
-  DefaultDialogFooter,
-  DefaultDialogHeader,
-} from "./components/dialog-parts";
+import type { PropsWithChildren, ReactNode } from "react";
+import { DefaultDialogContentArea, DefaultDialogFooter, DefaultDialogHeader } from "./parts/dialog-parts";
 
 type DialogContainerProps = PropsWithChildren<{
   className?: string;
@@ -21,7 +17,7 @@ type DialogContainerProps = PropsWithChildren<{
   subTitle?: string;
 }>;
 
-const DialogContainer = ({
+export const DialogContainer = ({
   className,
   isOpen,
   subTitle,
@@ -36,10 +32,11 @@ const DialogContainer = ({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "drop-shadow-2xl border-gray-4 overflow-hidden !rounded-2xl p-0 gap-0",
+          "drop-shadow-2xl border-gray-4 max-h-[90vh] overflow-y-auto !rounded-2xl p-0 gap-0",
+          "w-[90%] md:w-[70%] lg:w-[70%] xl:w-[50%] 2xl:w-[45%] max-w-[600px] max-h-[90vh] sm:max-h-[90vh] md:max-h-[70vh] lg:max-h-[90vh] xl:max-h-[80vh]",
           className,
         )}
-        onOpenAutoFocus={(e: Event) => {
+        onOpenAutoFocus={(e) => {
           if (preventAutoFocus) {
             e.preventDefault();
           }
@@ -53,4 +50,4 @@ const DialogContainer = ({
   );
 };
 
-export { DialogContainer, DefaultDialogHeader, DefaultDialogContentArea, DefaultDialogFooter };
+export { DefaultDialogHeader, DefaultDialogContentArea, DefaultDialogFooter };
