@@ -4,18 +4,18 @@ import { useFilters } from "../../hooks/use-filters";
 
 const formatFieldName = (field: string): string => {
   switch (field) {
-    case "names":
+    case "name":
       return "Name";
-    case "identities":
-      return "Identity";
-    case "keyIds":
-      return "Key ID";
+    case "slug":
+      return "Slug";
+    case "description":
+      return "Description";
     default:
       return field.charAt(0).toUpperCase() + field.slice(1);
   }
 };
 
-export const KeysListControlCloud = () => {
+export const RolesListControlCloud = () => {
   const { filters, updateFilters, removeFilter } = useFilters();
   return (
     <ControlCloud

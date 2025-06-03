@@ -4,23 +4,20 @@ import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
 import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { keysListFilterFieldConfig } from "../../../../filters.schema";
+import { rolesFilterFieldConfig } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 
 export const LogsFilters = () => {
   const { filters, updateFilters } = useFilters();
 
-  const options = keysListFilterFieldConfig.names.operators.map((op) => ({
+  const options = rolesFilterFieldConfig.name.operators.map((op) => ({
     id: op,
     label: op,
   }));
-  const activeNameFilter = filters.find((f) => f.field === "names");
-  const activeIdentityFilter = filters.find((f) => f.field === "identities");
-  const activeKeyIdsFilter = filters.find((f) => f.field === "keyIds");
-  const keyIdOptions = keysListFilterFieldConfig.names.operators.map((op) => ({
-    id: op,
-    label: op,
-  }));
+  const activeNameFilter = filters.find((f) => f.field === "name");
+  const activeSlugFilter = filters.find((f) => f.field === "slug");
+  const activeDescriptionFilter = filters.find((f) => f.field === "description");
+
   return (
     <FiltersPopover
       items={[
@@ -35,11 +32,11 @@ export const LogsFilters = () => {
               defaultOption={activeNameFilter?.operator}
               defaultText={activeNameFilter?.value as string}
               onApply={(id, text) => {
-                const activeFiltersWithoutNames = filters.filter((f) => f.field !== "names");
+                const activeFiltersWithoutNames = filters.filter((f) => f.field !== "name");
                 updateFilters([
                   ...activeFiltersWithoutNames,
                   {
-                    field: "names",
+                    field: "name",
                     id: crypto.randomUUID(),
                     operator: id,
                     value: text,
@@ -50,21 +47,21 @@ export const LogsFilters = () => {
           ),
         },
         {
-          id: "identities",
-          label: "Identity",
-          shortcut: "i",
+          id: "slug",
+          label: "Slug",
+          shortcut: "s",
           component: (
             <FilterOperatorInput
-              label="Identity"
+              label="Slug"
               options={options}
-              defaultOption={activeIdentityFilter?.operator}
-              defaultText={activeIdentityFilter?.value as string}
+              defaultOption={activeSlugFilter?.operator}
+              defaultText={activeSlugFilter?.value as string}
               onApply={(id, text) => {
-                const activeFiltersWithoutNames = filters.filter((f) => f.field !== "identities");
+                const activeFiltersWithoutNames = filters.filter((f) => f.field !== "slug");
                 updateFilters([
                   ...activeFiltersWithoutNames,
                   {
-                    field: "identities",
+                    field: "slug",
                     id: crypto.randomUUID(),
                     operator: id,
                     value: text,
@@ -75,21 +72,23 @@ export const LogsFilters = () => {
           ),
         },
         {
-          id: "keyids",
-          label: "Key ID",
-          shortcut: "k",
+          id: "description",
+          label: "Description",
+          shortcut: "d",
           component: (
             <FilterOperatorInput
-              label="Key ID"
-              options={keyIdOptions}
-              defaultOption={activeKeyIdsFilter?.operator}
-              defaultText={activeKeyIdsFilter?.value as string}
+              label="Description"
+              options={options}
+              defaultOption={activeDescriptionFilter?.operator}
+              defaultText={activeDescriptionFilter?.value as string}
               onApply={(id, text) => {
-                const activeFiltersWithoutKeyIds = filters.filter((f) => f.field !== "keyIds");
+                const activeFiltersWithoutDescriptions = filters.filter(
+                  (f) => f.field !== "description",
+                );
                 updateFilters([
-                  ...activeFiltersWithoutKeyIds,
+                  ...activeFiltersWithoutDescriptions,
                   {
-                    field: "keyIds",
+                    field: "description",
                     id: crypto.randomUUID(),
                     operator: id,
                     value: text,
