@@ -1,7 +1,7 @@
 "use client";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
-import type { Roles } from "@/lib/trpc/routers/authorization/roles";
+import type { Roles } from "@/lib/trpc/routers/authorization/roles/query";
 import { Asterisk, BookBookmark, Key2, Tag } from "@unkey/icons";
 import { Button, Checkbox, Empty } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";

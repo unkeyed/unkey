@@ -1,4 +1,4 @@
-import type { Roles } from "@/lib/trpc/routers/authorization/roles";
+import type { Roles } from "@/lib/trpc/routers/authorization/roles/query";
 import { cn } from "@/lib/utils";
 
 export type StatusStyle = {

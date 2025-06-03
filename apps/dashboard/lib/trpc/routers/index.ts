@@ -20,7 +20,8 @@ import { updateApiIpWhitelist } from "./api/updateIpWhitelist";
 import { updateApiName } from "./api/updateName";
 import { fetchAuditLog } from "./audit/fetch";
 import { auditLogsSearch } from "./audit/llm-search";
-import { queryRoles } from "./authorization/roles";
+import { queryRoles } from "./authorization/roles/query";
+import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
 import { createIdentity } from "./identity/create";
 import { queryIdentities } from "./identity/query";
@@ -155,6 +156,7 @@ export const router = t.router({
   }),
   authorization: t.router({
     roles: queryRoles,
+    upsert: upsertRole,
   }),
   rbac: t.router({
     addPermissionToRootKey: addPermissionToRootKey,

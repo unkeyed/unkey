@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc/client";
-import type { Roles } from "@/lib/trpc/routers/authorization/roles";
+import type { Roles } from "@/lib/trpc/routers/authorization/roles/query";
 import { useEffect, useMemo, useState } from "react";
 import { rolesFilterFieldConfig, rolesListFilterFieldNames } from "../../../filters.schema";
 import { useFilters } from "../../../hooks/use-filters";
