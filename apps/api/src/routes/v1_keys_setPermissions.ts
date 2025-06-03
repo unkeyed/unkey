@@ -31,8 +31,13 @@ const route = createRoute({
                       "The id of the permission. Provide either `id` or `name`. If both are provided `id` is used.",
                   }),
                   name: z.string().min(1).optional().openapi({
+                    deprecated: true,
                     description:
-                      "Identify the permission via its name. Provide either `id` or `name`. If both are provided `id` is used.",
+                      "This field is deprecated and will be removed in a future release. please use `slug` instead.",
+                  }),
+                  slug: z.string().min(1).optional().openapi({
+                    description:
+                      "Identify the permission via its slug. Provide either `id` or `slug`. If both are provided `id` is used.",
                   }),
                   create: z
                     .boolean()
@@ -118,15 +123,16 @@ export async function setPermissions(
   requested: Array<{
     id?: string;
     name?: string;
+    slug?: string;
     create?: boolean;
   }>,
 ): Promise<Array<{ id: string; name: string }>> {
   const { db, cache, rbac } = c.get("services");
 
   const requestedIds = requested.filter(({ id }) => !!id).map(({ id }) => id!);
-  const requestedNames = requested
-    .filter(({ name }) => !!name)
-    .map(({ name, create }) => ({ name: name!, create: create! }));
+  const requestedSlugs = requested
+    .filter(({ name, slug }) => !!name || !!slug)
+    .map(({ name, slug, create }) => ({ slug: slug ?? name!, create: create! }));
 
   const [key, existingPermissions, connectedPermissions] = await Promise.all([
     db.primary.query.keys.findFirst({
@@ -143,10 +149,10 @@ export async function setPermissions(
           eq(table.workspaceId, auth.authorizedWorkspaceId),
           or(
             requestedIds.length > 0 ? inArray(table.id, requestedIds) : undefined,
-            requestedNames.length > 0
+            requestedSlugs.length > 0
               ? inArray(
-                  table.name,
-                  requestedNames.map((n) => n.name),
+                  table.slug,
+                  requestedSlugs.map((r) => r.slug),
                 )
               : undefined,
           ),
@@ -159,6 +165,7 @@ export async function setPermissions(
         permission: {
           columns: {
             name: true,
+            slug: true,
           },
         },
       },
@@ -176,7 +183,10 @@ export async function setPermissions(
     if (requestedIds.includes(r.permissionId)) {
       return false;
     }
-    if (requestedNames.some(({ name }) => name === r.permission.name)) {
+    if (requestedSlugs.some(({ slug }) => slug === r.permission.slug)) {
+      return false;
+    }
+    if (!r.permission.slug && !r.permission.name) {
       return false;
     }
     return true;
@@ -212,7 +222,7 @@ export async function setPermissions(
     );
   }
 
-  const missingPermissionNames: string[] = [];
+  const missingPermissionSlugs: string[] = [];
   for (const id of requestedIds) {
     if (!existingPermissions.some((r) => r.id === id)) {
       throw new UnkeyApiError({
@@ -221,23 +231,23 @@ export async function setPermissions(
       });
     }
   }
-  for (const { create, name } of requestedNames) {
-    if (!existingPermissions.some((r) => r.name === name)) {
+  for (const { create, slug } of requestedSlugs) {
+    if (!existingPermissions.some((r) => r.slug === slug)) {
       if (!create) {
         throw new UnkeyApiError({
           code: "NOT_FOUND",
-          message: `permission ${name} not found and not allowed to create`,
+          message: `permission ${slug} not found and not allowed to create`,
         });
       }
-      missingPermissionNames.push(name);
+      missingPermissionSlugs.push(slug);
     }
   }
 
-  const createPermissions = missingPermissionNames.map((name) => ({
+  const createPermissions = missingPermissionSlugs.map((slug) => ({
     id: newId("permission"),
     workspaceId: auth.authorizedWorkspaceId,
-    name,
-    slug: name,
+    name: slug,
+    slug: slug,
   }));
   if (createPermissions.length > 0) {
     const rbacResp = rbac.evaluatePermissions(
