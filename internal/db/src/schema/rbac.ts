@@ -17,9 +17,8 @@ export const permissions = mysqlTable(
     id: varchar("id", { length: 256 }).primaryKey(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     name: varchar("name", { length: 512 }).notNull(),
-    slug: varchar("slug", { length: 128 }),
+    slug: varchar("slug", { length: 128 }).notNull(),
     description: varchar("description", { length: 512 }),
-
     createdAtM: bigint("created_at_m", { mode: "number" })
       .notNull()
       .default(0)
