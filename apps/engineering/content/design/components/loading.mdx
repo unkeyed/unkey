@@ -6,7 +6,8 @@ import { LoadingExample, CustomSizeAndDuration } from "./loading/loading.example
 
 # Loading Component
 
-The Loading component provides a sleek, animated loading indicator featuring three pulsating circles. It's designed to provide visual feedback during asynchronous operations or loading states in your application.
+-The Loading component provides a sleek, animated loading indicator featuring three pulsating circles. It's designed to provide visual feedback during asynchronous operations or loading states in your application.
++The Loading component provides a sleek, animated loading indicator featuring an 8-segment circular spinner. It's designed to provide visual feedback during asynchronous operations or loading states in your application.
 
 ## Usage
 
@@ -42,7 +43,7 @@ The Loading component is highly customizable:
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `size` | `number` | `24` | Sets both width and height of the loading indicator |
-| `dur` | `number` | `75` | Animation duration in centiseconds (100cs = 1s) |
+| `dur` | `number` | `125` | Animation duration in milliseconds per segment |
 | `className` | `string` | `undefined` | Additional CSS classes to apply |
 
 The component also accepts all standard HTML attributes supported by the underlying SVG element.
