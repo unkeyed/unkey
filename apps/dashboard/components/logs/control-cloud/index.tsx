@@ -1,5 +1,5 @@
-import { KeyboardButton } from "@/components/keyboard-button";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
+import { KeyboardButton } from "@unkey/ui";
 import { type KeyboardEvent, useCallback, useState } from "react";
 import type { FilterValue } from "../validation/filter.types";
 import { ControlPill } from "./control-pill";
