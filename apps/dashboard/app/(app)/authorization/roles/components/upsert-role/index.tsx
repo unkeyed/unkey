@@ -7,7 +7,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { PenWriting3, Plus } from "@unkey/icons";
 import { Button, FormInput, FormTextarea } from "@unkey/ui";
 import { useEffect, useState } from "react";
-import { FormProvider } from "react-hook-form";
+import { Controller, FormProvider } from "react-hook-form";
+import { KeyField } from "./components/assign-key/key-field";
 import { type FormValues, rbacRoleSchema } from "./upsert-role.schema";
 
 const FORM_STORAGE_KEY = "unkey_upsert_role_form_state";
@@ -26,7 +27,7 @@ interface UpsertRoleDialogProps {
     name: string;
     slug: string;
     description?: string;
-    keyIds?: string[];
+    keyIds: string[];
     permissionIds?: string[];
   };
   triggerButton?: React.ReactNode;
@@ -62,6 +63,7 @@ export const UpsertRoleDialog = ({
     reset,
     clearPersistedData,
     saveCurrentValues,
+    control,
   } = methods;
 
   // Load existing role data when in edit mode
@@ -71,7 +73,7 @@ export const UpsertRoleDialog = ({
         roleName: existingRole.name,
         roleSlug: existingRole.slug,
         roleDescription: existingRole.description || "",
-        keyIds: existingRole.keyIds || [],
+        keyIds: existingRole.keyIds || null, // Changed to single key
         permissionIds: existingRole.permissionIds || [],
       };
       reset(editValues);
@@ -171,7 +173,7 @@ export const UpsertRoleDialog = ({
               <FormInput
                 className="[&_input:first-of-type]:h-[36px]"
                 placeholder="Domain manager"
-                label="Role Name"
+                label="Name"
                 maxLength={64}
                 description="A descriptive name for this role (2-64 characters, must start with a letter)"
                 error={errors.roleName?.message}
@@ -183,7 +185,7 @@ export const UpsertRoleDialog = ({
               {/* Role Slug - Auto-generated but editable */}
               <FormInput
                 className="[&_input:first-of-type]:h-[36px]"
-                label="Role Slug"
+                label="Slug"
                 placeholder="domain.manager"
                 maxLength={30}
                 description="A unique name for your role. You will use this when managing roles through the API. These are not customer facing."
@@ -202,6 +204,19 @@ export const UpsertRoleDialog = ({
                 error={errors.roleDescription?.message}
                 optional
                 {...register("roleDescription")}
+              />
+
+              {/* Key Selection */}
+              <Controller
+                name="keyIds"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <KeyField
+                    value={field.value || null}
+                    onChange={field.onChange}
+                    error={fieldState.error?.message}
+                  />
+                )}
               />
             </div>
           </DialogContainer>
