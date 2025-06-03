@@ -19,7 +19,8 @@ export const roleNameSchema = z
 export const roleDescriptionSchema = z
   .string()
   .trim()
-  .max(30, { message: "Role description cannot exceed 30 characters" });
+  .max(30, { message: "Role description cannot exceed 30 characters" })
+  .optional();
 
 export const roleSlugSchema = z
   .string()

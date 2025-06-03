@@ -4,120 +4,207 @@ import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus } from "@unkey/icons";
-import { Button } from "@unkey/ui";
-import { useState } from "react";
+import { PenWriting3, Plus } from "@unkey/icons";
+import { Button, FormInput, FormTextarea } from "@unkey/ui";
+import { useEffect, useState } from "react";
 import { FormProvider } from "react-hook-form";
 import { type FormValues, rbacRoleSchema } from "./upsert-role.schema";
 
-// Storage key for saving form state
 const FORM_STORAGE_KEY = "unkey_upsert_role_form_state";
 
-export const UpsertRoleDialog = () => {
+const getDefaultValues = (): Partial<FormValues> => ({
+  roleName: "",
+  roleDescription: "",
+  roleSlug: "",
+  keyIds: [],
+  permissionIds: [],
+});
+
+interface UpsertRoleDialogProps {
+  roleId?: string;
+  existingRole?: {
+    name: string;
+    slug: string;
+    description?: string;
+    keyIds?: string[];
+    permissionIds?: string[];
+  };
+  triggerButton?: React.ReactNode;
+}
+
+export const UpsertRoleDialog = ({
+  roleId,
+  existingRole,
+  triggerButton,
+}: UpsertRoleDialogProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const isEditMode = Boolean(roleId);
+
+  // Use different storage keys for create vs edit to avoid conflicts
+  const storageKey = isEditMode ? `${FORM_STORAGE_KEY}_edit_${roleId}` : FORM_STORAGE_KEY;
 
   const methods = usePersistedForm<FormValues>(
-    FORM_STORAGE_KEY,
+    storageKey,
     {
       resolver: zodResolver(rbacRoleSchema),
       mode: "onChange",
       shouldFocusError: true,
       shouldUnregister: true,
+      defaultValues: getDefaultValues(),
     },
     "memory",
   );
 
-  // const {
-  //   handleSubmit,
-  //   formState,
-  //   getValues,
-  //   reset,
-  //   trigger,
-  //   clearPersistedData,
-  //   loadSavedValues,
-  //   saveCurrentValues,
-  // } = methods;
-  //
-  // // Update form defaults when keyspace defaults change after revalidation
-  // useEffect(() => {
-  //   const newDefaults = getDefaultValues(keyspaceDefaults);
-  //   clearPersistedData();
-  //   reset(newDefaults);
-  // }, [keyspaceDefaults, reset, clearPersistedData]);
-  //
-  // const key = useCreateKey((data) => {
-  //   if (data?.key && data?.keyId) {
-  //     setCreatedKeyData({
-  //       key: data.key,
-  //       id: data.keyId,
-  //       name: data.name,
-  //     });
-  //     setSuccessDialogOpen(true);
-  //   }
-  //
-  //   // Clean up form state
-  //   clearPersistedData();
-  //   reset(getDefaultValues());
-  //   setIsSettingsOpen(false);
-  //   resetValidSteps();
-  // });
+  const {
+    register,
+    formState: { errors, isValid },
+    handleSubmit,
+    reset,
+    clearPersistedData,
+    saveCurrentValues,
+  } = methods;
 
-  //
-  // const onSubmit = async (data: FormValues) => {
-  //   if (!keyspaceId) {
-  //     toast.error("Failed to Create Key", {
-  //       description: "An unexpected error occurred. Please try again later.",
-  //       action: {
-  //         label: "Contact Support",
-  //         onClick: () => window.open("https://support.unkey.dev", "_blank"),
-  //       },
-  //     });
-  //     return;
-  //   }
-  //   const finalData = formValuesToApiInput(data, keyspaceId);
-  //
-  //   try {
-  //     await key.mutateAsync(finalData);
-  //   } catch {
-  //     // `useCreateKey` already shows a toast, but we still need to
-  //     // prevent unhandled‐rejection noise in the console.
-  //   }
-  // };
-  //
+  // Load existing role data when in edit mode
+  useEffect(() => {
+    if (isEditMode && existingRole) {
+      const editValues: Partial<FormValues> = {
+        roleName: existingRole.name,
+        roleSlug: existingRole.slug,
+        roleDescription: existingRole.description || "",
+        keyIds: existingRole.keyIds || [],
+        permissionIds: existingRole.permissionIds || [],
+      };
+      reset(editValues);
+    }
+  }, [isEditMode, existingRole, reset]);
+
+  // Add invisible roleId field for updates
+  const hiddenRoleIdRegister = isEditMode ? register("roleId") : null;
+
+  const onSubmit = async (data: FormValues) => {
+    try {
+      if (isEditMode) {
+        console.log("Updating role:", { ...data, roleId });
+        // TODO: await updateRole(roleId, data);
+      } else {
+        console.log("Creating role:", data);
+        // TODO: await createRole(data);
+      }
+
+      clearPersistedData();
+      reset(getDefaultValues());
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error(`Failed to ${isEditMode ? "update" : "create"} role:`, error);
+      // TODO: Show error toast
+    }
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    if (!open) {
+      saveCurrentValues();
+      if (!isEditMode) {
+        reset(getDefaultValues());
+      }
+    }
+    setIsDialogOpen(open);
+  };
+
+  const dialogConfig = {
+    title: isEditMode ? "Edit role" : "Create new role",
+    subtitle: isEditMode
+      ? "Update role settings and permissions"
+      : "Define a role and assign permissions",
+    buttonText: isEditMode ? "Update role" : "Create new role",
+    footerText: isEditMode
+      ? "Changes will be applied immediately"
+      : "This role will be created immediately",
+    triggerTitle: isEditMode ? "Edit role" : "Create new role",
+  };
+
+  const defaultTrigger = (
+    <NavbarActionButton title={dialogConfig.triggerTitle} onClick={() => setIsDialogOpen(true)}>
+      {isEditMode ? <PenWriting3 /> : <Plus />}
+      {dialogConfig.triggerTitle}
+    </NavbarActionButton>
+  );
 
   return (
     <>
-      <Navbar.Actions>
-        <NavbarActionButton title="Create new role" onClick={() => setIsDialogOpen(true)}>
-          <Plus />
-          Create new key
-        </NavbarActionButton>
-      </Navbar.Actions>
+      {!triggerButton && <Navbar.Actions>{defaultTrigger}</Navbar.Actions>}
+
+      {triggerButton && (
+        // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
+        <div onClick={() => setIsDialogOpen(true)}>{triggerButton}</div>
+      )}
+
       <FormProvider {...methods}>
-        <form id="new-role-form">
+        <form id="upsert-role-form" onSubmit={handleSubmit(onSubmit)}>
+          {/* Hidden field for role ID in edit mode */}
+          {isEditMode && hiddenRoleIdRegister && (
+            <input type="hidden" value={roleId} {...hiddenRoleIdRegister} />
+          )}
+
           <DialogContainer
-            title="Create new role"
-            subTitle="Define a role and assign permissions"
+            title={dialogConfig.title}
+            subTitle={dialogConfig.subtitle}
             isOpen={isDialogOpen}
-            onOpenChange={setIsDialogOpen}
-            contentClassName="w-[90%] md:w-[70%] lg:w-[70%] xl:w-[50%] 2xl:w-[45%] max-w-[940px] max-h-[90vh] sm:max-h-[90vh] md:max-h-[70vh] lg:max-h-[90vh] xl:max-h-[80vh]"
+            onOpenChange={handleDialogClose}
             footer={
               <div className="w-full flex flex-col gap-2 items-center justify-center">
                 <Button
                   type="submit"
-                  form="create-namespace-form"
+                  form="upsert-role-form"
                   variant="primary"
                   size="xlg"
                   className="w-full rounded-lg"
+                  disabled={!isValid}
                 >
-                  Create new role
+                  {dialogConfig.buttonText}
                 </Button>
-                <div className="text-gray-9 text-xs">
-                  Namespaces can be used to separate different rate limiting concerns
-                </div>
+                <div className="text-gray-9 text-xs">{dialogConfig.footerText}</div>
               </div>
             }
-          />
+          >
+            <div className="space-y-5 px-2 py-1">
+              {/* Role Name - Required */}
+              <FormInput
+                className="[&_input:first-of-type]:h-[36px]"
+                placeholder="Domain manager"
+                label="Role Name"
+                maxLength={64}
+                description="A descriptive name for this role (2-64 characters, must start with a letter)"
+                error={errors.roleName?.message}
+                variant="default"
+                required
+                {...register("roleName")}
+              />
+
+              {/* Role Slug - Auto-generated but editable */}
+              <FormInput
+                className="[&_input:first-of-type]:h-[36px]"
+                label="Role Slug"
+                placeholder="domain.manager"
+                maxLength={30}
+                description="A unique name for your role. You will use this when managing roles through the API. These are not customer facing."
+                error={errors.roleSlug?.message}
+                required
+                {...register("roleSlug")}
+              />
+
+              {/* Role Description - Optional */}
+              <FormTextarea
+                className="[&_input:first-of-type]:h-[36px]"
+                label="Description"
+                placeholder="Manage domains and DNS records"
+                maxLength={30}
+                description="Add a description to help others understand what this role represents."
+                error={errors.roleDescription?.message}
+                optional
+                {...register("roleDescription")}
+              />
+            </div>
+          </DialogContainer>
         </form>
       </FormProvider>
     </>
