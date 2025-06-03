@@ -1,19 +1,19 @@
 "use client";
 
 import { RenderComponentWithSnippet } from "@/app/components/render";
+import { Book2, Key } from "@unkey/icons";
+import type { IconProps } from "@unkey/icons/src/props";
 import {
-  NavigableDialogRoot,
-  NavigableDialogHeader,
+  Button,
   NavigableDialogBody,
-  NavigableDialogNav,
   NavigableDialogContent,
   NavigableDialogFooter,
-  Button,
+  NavigableDialogHeader,
+  NavigableDialogNav,
+  NavigableDialogRoot,
 } from "@unkey/ui";
-import { useState, memo } from "react";
-import { Book2, Key } from "@unkey/icons";
+import { memo, useState } from "react";
 import type { FC } from "react";
-import type { IconProps } from "@unkey/icons/src/props";
 
 // Memoize static content to prevent unnecessary re-renders
 const TabContent = memo(({ title, description }: { title: string; description: string }) => (
@@ -32,12 +32,12 @@ const NAV_ITEMS: Array<{
   label: string;
   icon: FC<IconProps>;
 }> = [
-  { 
+  {
     id: "docs",
     label: "Documentation",
     icon: Book2,
   },
-  { 
+  {
     id: "security",
     label: "Security",
     icon: Key,
@@ -52,7 +52,7 @@ const CONTENT_ITEMS: Array<{
   {
     id: "docs",
     content: (
-      <TabContent 
+      <TabContent
         title="Documentation"
         description="Access comprehensive guides and documentation for the NavigableDialog component."
       />
@@ -61,7 +61,7 @@ const CONTENT_ITEMS: Array<{
   {
     id: "security",
     content: (
-      <TabContent 
+      <TabContent
         title="Security"
         description="Review security settings and configurations for your application."
       />
@@ -76,29 +76,21 @@ export const NavigableDialogExample = memo(() => {
   return (
     <RenderComponentWithSnippet>
       <div className="flex justify-center">
-        <Button onClick={() => setIsOpen(true)}>
-          Open Example Dialog
-        </Button>
+        <Button onClick={() => setIsOpen(true)}>Open Example Dialog</Button>
 
-        <NavigableDialogRoot 
-          isOpen={isOpen} 
-          onOpenChange={setIsOpen}
-          preventAutoFocus
-        >
+        <NavigableDialogRoot isOpen={isOpen} onOpenChange={setIsOpen} preventAutoFocus>
           <NavigableDialogHeader
             title="NavigableDialog Example"
             subTitle="A simple demonstration"
           />
-          
+
           <NavigableDialogBody>
             <NavigableDialogNav items={NAV_ITEMS} />
             <NavigableDialogContent items={CONTENT_ITEMS} />
           </NavigableDialogBody>
 
           <NavigableDialogFooter>
-            <Button onClick={() => setIsOpen(false)}>
-              Close
-            </Button>
+            <Button onClick={() => setIsOpen(false)}>Close</Button>
           </NavigableDialogFooter>
         </NavigableDialogRoot>
       </div>
@@ -106,4 +98,4 @@ export const NavigableDialogExample = memo(() => {
   );
 });
 
-NavigableDialogExample.displayName = "NavigableDialogExample"; 
+NavigableDialogExample.displayName = "NavigableDialogExample";

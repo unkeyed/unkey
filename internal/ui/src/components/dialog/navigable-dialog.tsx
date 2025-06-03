@@ -1,13 +1,17 @@
 "use client";
+import type { IconProps } from "@unkey/icons/src/props";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import * as React from "react";
-import { Dialog, DialogContent } from "./parts/dialog";
-import type { IconProps } from "@unkey/icons/src/props";
-import { Button } from "../button";
-import { cn } from "../../lib/utils";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { FC, ReactNode } from "react";
-import { DefaultDialogContentArea, DefaultDialogFooter, DefaultDialogHeader } from "./parts/dialog-parts";
+import { cn } from "../../lib/utils";
+import { Button } from "../button";
+import { Dialog, DialogContent } from "./parts/dialog";
+import {
+  DefaultDialogContentArea,
+  DefaultDialogFooter,
+  DefaultDialogHeader,
+} from "./parts/dialog-parts";
 
 type NavigableDialogContextType<TStepName extends string> = {
   activeId: TStepName | undefined;
@@ -120,15 +124,14 @@ export const NavigableDialogNav = <TStepName extends string>({
   const { activeId, setActiveId } = useNavigableDialog<TStepName>();
 
   // Initialize activeId if it's not set and we have items
-useEffect(() => {
-  const allIds = items.map((i) => i.id);
-  if (!activeId || !allIds.includes(activeId)) {
-    setActiveId(initialSelectedId && allIds.includes(initialSelectedId)
-      ? initialSelectedId
-      : allIds[0],
-    );
-  }
-}, [activeId, items, initialSelectedId, setActiveId]);
+  useEffect(() => {
+    const allIds = items.map((i) => i.id);
+    if (!activeId || !allIds.includes(activeId)) {
+      setActiveId(
+        initialSelectedId && allIds.includes(initialSelectedId) ? initialSelectedId : allIds[0],
+      );
+    }
+  }, [activeId, items, initialSelectedId, setActiveId]);
 
   const handleItemNavigation = useCallback(
     async (newId: TStepName) => {
