@@ -796,7 +796,7 @@ export const rbacRouter = t.router({
 export async function upsertPermissions(
   ctx: Context,
   workspaceId: string,
-  names: string[],
+  slugs: string[],
 ): Promise<{
   permissions: Permission[];
   auditLogs: UnkeyAuditLog[];
@@ -804,14 +804,14 @@ export async function upsertPermissions(
   return await db.transaction(async (tx) => {
     const existingPermissions = await tx.query.permissions.findMany({
       where: (table, { inArray, and, eq }) =>
-        and(eq(table.workspaceId, workspaceId), inArray(table.name, names)),
+        and(eq(table.workspaceId, workspaceId), inArray(table.slug, slugs)),
     });
 
     const newPermissions: InsertPermission[] = [];
     const auditLogs: UnkeyAuditLog[] = [];
 
-    const permissions = names.map((name) => {
-      const existingPermission = existingPermissions.find((p) => p.name === name);
+    const permissions = slugs.map((slug) => {
+      const existingPermission = existingPermissions.find((p) => p.slug === slug);
 
       if (existingPermission) {
         return existingPermission;
@@ -820,8 +820,8 @@ export async function upsertPermissions(
       const permission: Permission = {
         id: newId("permission"),
         workspaceId,
-        name,
-        slug: name,
+        name: slug,
+        slug: slug,
         description: null,
         updatedAtM: null,
         createdAtM: Date.now(),
@@ -837,7 +837,7 @@ export async function upsertPermissions(
           {
             type: "permission",
             id: permission.id,
-            name: permission.name,
+            name: permission.slug,
           },
         ],
         context: {
