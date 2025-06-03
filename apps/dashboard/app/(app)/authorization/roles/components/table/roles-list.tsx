@@ -7,6 +7,13 @@ import { Button, Checkbox, Empty } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useCallback, useMemo, useState } from "react";
 import { LastUpdated } from "./components/last-updated";
+import {
+  AssignedKeysColumnSkeleton,
+  LastUpdatedColumnSkeleton,
+  PermissionsColumnSkeleton,
+  RoleColumnSkeleton,
+  SlugColumnSkeleton,
+} from "./components/skeletons";
 import { useRolesListQuery } from "./hooks/use-roles-list-query";
 import { getRowClassName } from "./utils/get-row-class";
 
@@ -149,84 +156,78 @@ export const RolesList = () => {
   );
 
   return (
-    <>
-      <VirtualTable
-        data={roles}
-        isLoading={isLoading}
-        isFetchingNextPage={isLoadingMore}
-        onLoadMore={loadMore}
-        columns={columns}
-        onRowClick={setSelectedRole}
-        selectedItem={selectedRole}
-        keyExtractor={(role) => role.slug}
-        rowClassName={(role) => getRowClassName(role, selectedRole)}
-        loadMoreFooterProps={{
-          hide: isLoading,
-          buttonText: "Load more roles",
-          hasMore,
-          countInfoText: (
-            <div className="flex gap-2">
-              <span>Showing</span> <span className="text-accent-12">{roles.length}</span>
-              <span>of</span>
-              {totalCount}
-              <span>roles</span>
-            </div>
-          ),
-        }}
-        emptyState={
-          <div className="w-full flex justify-center items-center h-full">
-            <Empty className="w-[400px] flex items-start">
-              <Empty.Icon className="w-auto" />
-              <Empty.Title>No Roles Found</Empty.Title>
-              <Empty.Description className="text-left">
-                There are no roles configured yet. Create your first role to start managing
-                permissions and access control.
-              </Empty.Description>
-              <Empty.Actions className="mt-4 justify-start">
-                <a
-                  href="https://www.unkey.com/docs/security/roles"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button size="md">
-                    <BookBookmark />
-                    Learn about Roles
-                  </Button>
-                </a>
-              </Empty.Actions>
-            </Empty>
+    <VirtualTable
+      data={roles}
+      isLoading={isLoading}
+      isFetchingNextPage={isLoadingMore}
+      onLoadMore={loadMore}
+      columns={columns}
+      onRowClick={setSelectedRole}
+      selectedItem={selectedRole}
+      keyExtractor={(role) => role.slug}
+      rowClassName={(role) => getRowClassName(role, selectedRole)}
+      loadMoreFooterProps={{
+        hide: isLoading,
+        buttonText: "Load more roles",
+        hasMore,
+        countInfoText: (
+          <div className="flex gap-2">
+            <span>Showing</span> <span className="text-accent-12">{roles.length}</span>
+            <span>of</span>
+            {totalCount}
+            <span>roles</span>
           </div>
-        }
-        config={{
-          rowHeight: 52,
-          layoutMode: "grid",
-          rowBorders: true,
-          containerPadding: "px-0",
-        }}
-        renderSkeletonRow={({ columns, rowHeight }) =>
-          columns.map((column, idx) => (
-            <td
-              key={column.key}
-              className={cn(
-                "text-xs align-middle whitespace-nowrap pr-4",
-                idx === 0 ? "pl-[18px]" : "",
-                column.key === "role" ? "py-[6px]" : "py-1",
-              )}
-              style={{ height: `${rowHeight}px` }}
-            >
-              {column.key === "role" && <RoleColumnSkeleton />}
-              {column.key === "description" && <DescriptionColumnSkeleton />}
-              {(column.key === "assignedKeys" || column.key === "permissions") && (
-                <AssignedItemsColumnSkeleton />
-              )}
-              {!["role", "description", "assignedKeys", "permissions"].includes(column.key) && (
-                <div className="h-4 w-full bg-grayA-3 rounded animate-pulse" />
-              )}
-            </td>
-          ))
-        }
-      />
-    </>
+        ),
+      }}
+      emptyState={
+        <div className="w-full flex justify-center items-center h-full">
+          <Empty className="w-[400px] flex items-start">
+            <Empty.Icon className="w-auto" />
+            <Empty.Title>No Roles Found</Empty.Title>
+            <Empty.Description className="text-left">
+              There are no roles configured yet. Create your first role to start managing
+              permissions and access control.
+            </Empty.Description>
+            <Empty.Actions className="mt-4 justify-start">
+              <a
+                href="https://www.unkey.com/docs/security/roles"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button size="md">
+                  <BookBookmark />
+                  Learn about Roles
+                </Button>
+              </a>
+            </Empty.Actions>
+          </Empty>
+        </div>
+      }
+      config={{
+        rowHeight: 52,
+        layoutMode: "grid",
+        rowBorders: true,
+        containerPadding: "px-0",
+      }}
+      renderSkeletonRow={({ columns, rowHeight }) =>
+        columns.map((column) => (
+          <td
+            key={column.key}
+            className={cn(
+              "text-xs align-middle whitespace-nowrap",
+              column.key === "role" ? "py-[6px]" : "py-1",
+            )}
+            style={{ height: `${rowHeight}px` }}
+          >
+            {column.key === "role" && <RoleColumnSkeleton />}
+            {column.key === "slug" && <SlugColumnSkeleton />}
+            {column.key === "assignedKeys" && <AssignedKeysColumnSkeleton />}
+            {column.key === "permissions" && <PermissionsColumnSkeleton />}
+            {column.key === "last_updated" && <LastUpdatedColumnSkeleton />}
+          </td>
+        ))
+      }
+    />
   );
 };
 
@@ -288,30 +289,3 @@ const AssignedItemsCell = ({
     </div>
   );
 };
-
-const RoleColumnSkeleton = () => (
-  <div className="flex items-center gap-4">
-    <div className="size-5 bg-grayA-3 rounded animate-pulse" />
-    <div className="flex flex-col gap-2">
-      <div className="h-3 w-20 bg-grayA-3 rounded animate-pulse" />
-      <div className="h-2 w-16 bg-grayA-3 rounded animate-pulse" />
-    </div>
-  </div>
-);
-
-const DescriptionColumnSkeleton = () => (
-  <div className="h-3 w-32 bg-grayA-3 rounded animate-pulse" />
-);
-
-const AssignedItemsColumnSkeleton = () => (
-  <div className="flex flex-col gap-2">
-    <div className="flex items-center gap-2">
-      <div className="size-3 bg-grayA-3 rounded animate-pulse" />
-      <div className="h-3 w-12 bg-grayA-3 rounded animate-pulse" />
-    </div>
-    <div className="flex gap-1">
-      <div className="h-5 w-16 bg-grayA-3 rounded animate-pulse" />
-      <div className="h-5 w-12 bg-grayA-3 rounded animate-pulse" />
-    </div>
-  </div>
-);
