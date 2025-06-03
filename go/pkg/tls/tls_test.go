@@ -100,8 +100,8 @@ func TestNewWithValidCertificateAndKey(t *testing.T) {
 	require.NoError(t, err)
 	// A valid TLS config should have certificates
 	require.NotEmpty(t, tlsConfig.Certificates)
-	// Check TLS version is at least 1.2
-	require.Equal(t, uint16(0x0303), tlsConfig.MinVersion) // TLS 1.2
+	// Check TLS version is at least 1.3
+	require.Equal(t, uint16(0x0304), tlsConfig.MinVersion) // TLS 1.3
 }
 
 // TestNewWithEmptyCertificate verifies that the New function returns an appropriate
@@ -177,8 +177,8 @@ func TestNewFromFilesWithValidFiles(t *testing.T) {
 	require.NoError(t, err)
 	// A valid TLS config should have certificates
 	require.NotEmpty(t, tlsConfig.Certificates)
-	// Check TLS version is at least 1.2
-	require.Equal(t, uint16(0x0303), tlsConfig.MinVersion) // TLS 1.2
+	// Check TLS version is at least 1.3
+	require.Equal(t, uint16(0x0304), tlsConfig.MinVersion) // TLS 1.3
 }
 
 // TestNewFromFilesWithNonExistentCertificate verifies that the NewFromFiles function
