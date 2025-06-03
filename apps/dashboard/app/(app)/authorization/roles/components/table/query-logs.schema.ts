@@ -1,37 +1,21 @@
 import { z } from "zod";
 import { rolesFilterOperatorEnum } from "../../filters.schema";
 
-export const queryRolesPayload = z.object({
-  limit: z.number().int(),
-  slug: z
-    .object({
-      filters: z.array(
-        z.object({
-          operator: rolesFilterOperatorEnum,
-          value: z.string(),
-        }),
-      ),
-    })
-    .nullable(),
-  description: z
-    .object({
-      filters: z.array(
-        z.object({
-          operator: rolesFilterOperatorEnum,
-          value: z.string(),
-        }),
-      ),
-    })
-    .nullable(),
-  name: z
-    .object({
-      filters: z.array(
-        z.object({
-          operator: rolesFilterOperatorEnum,
-          value: z.string(),
-        }),
-      ),
-    })
-    .nullable(),
-  cursor: z.number().nullable().optional().nullable(),
+const filterItemSchema = z.object({
+  operator: rolesFilterOperatorEnum,
+  value: z.string(),
 });
+
+const baseFilterArraySchema = z.array(filterItemSchema).nullish();
+
+const baseRolesSchema = z.object({
+  slug: baseFilterArraySchema,
+  description: baseFilterArraySchema,
+  name: baseFilterArraySchema,
+});
+
+export const rolesQueryPayload = baseRolesSchema.extend({
+  cursor: z.number().nullish(),
+});
+
+export type RolesQueryPayload = z.infer<typeof rolesQueryPayload>;

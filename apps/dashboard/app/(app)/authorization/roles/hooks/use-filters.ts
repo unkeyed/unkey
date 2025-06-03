@@ -5,13 +5,13 @@ import {
   type RolesFilterField,
   type RolesFilterValue,
   type RolesQuerySearchParams,
-  keysListFilterFieldNames,
   parseAsAllOperatorsFilterArray,
   rolesFilterFieldConfig,
+  rolesListFilterFieldNames,
 } from "../filters.schema";
 
 export const queryParamsPayload = Object.fromEntries(
-  keysListFilterFieldNames.map((field) => [field, parseAsAllOperatorsFilterArray]),
+  rolesListFilterFieldNames.map((field) => [field, parseAsAllOperatorsFilterArray]),
 ) as { [K in RolesFilterField]: typeof parseAsAllOperatorsFilterArray };
 
 export const useFilters = () => {
@@ -22,7 +22,7 @@ export const useFilters = () => {
   const filters = useMemo(() => {
     const activeFilters: RolesFilterValue[] = [];
 
-    for (const field of keysListFilterFieldNames) {
+    for (const field of rolesListFilterFieldNames) {
       const value = searchParams[field];
       if (!Array.isArray(value)) {
         continue;
@@ -47,14 +47,14 @@ export const useFilters = () => {
   const updateFilters = useCallback(
     (newFilters: RolesFilterValue[]) => {
       const newParams: Partial<RolesQuerySearchParams> = Object.fromEntries(
-        keysListFilterFieldNames.map((field) => [field, null]),
+        rolesListFilterFieldNames.map((field) => [field, null]),
       );
 
       const filtersByField = new Map<RolesFilterField, AllOperatorsUrlValue[]>();
-      keysListFilterFieldNames.forEach((field) => filtersByField.set(field, []));
+      rolesListFilterFieldNames.forEach((field) => filtersByField.set(field, []));
 
       newFilters.forEach((filter) => {
-        if (!keysListFilterFieldNames.includes(filter.field)) {
+        if (!rolesListFilterFieldNames.includes(filter.field)) {
           throw new Error(`Invalid filter field: ${filter.field}`);
         }
 

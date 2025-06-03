@@ -1,3 +1,4 @@
+import { rolesQueryPayload } from "@/app/(app)/authorization/roles/components/table/query-logs.schema";
 import { db, sql } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { z } from "zod";
@@ -5,12 +6,6 @@ import { z } from "zod";
 const MAX_ITEMS_TO_SHOW = 3;
 const ITEM_SEPARATOR = "|||";
 export const DEFAULT_LIMIT = 50;
-const MIN_LIMIT = 1;
-
-const rolesQueryInput = z.object({
-  limit: z.number().int().min(MIN_LIMIT).max(DEFAULT_LIMIT).default(DEFAULT_LIMIT),
-  cursor: z.number().int().optional(),
-});
 
 export const roles = z.object({
   roleId: z.string(),
@@ -41,11 +36,11 @@ export const queryRoles = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
   .use(withRatelimit(ratelimit.read))
-  .input(rolesQueryInput)
+  .input(rolesQueryPayload)
   .output(rolesResponse)
   .query(async ({ ctx, input }) => {
     const workspaceId = ctx.workspace.id;
-    const { limit, cursor } = input;
+    const { cursor } = input;
 
     const result = await db.execute(sql`
  SELECT 
@@ -118,7 +113,7 @@ export const queryRoles = t.procedure
    WHERE workspace_id = ${workspaceId}
      ${cursor ? sql`AND updated_at_m < ${cursor}` : sql``}
    ORDER BY updated_at_m DESC
-   LIMIT ${limit + 1}
+   LIMIT ${DEFAULT_LIMIT + 1}
  ) r
  ORDER BY r.updated_at_m DESC
 `);
@@ -146,7 +141,7 @@ export const queryRoles = t.procedure
     }
 
     const total = rows[0].grand_total;
-    const hasMore = rows.length > limit;
+    const hasMore = rows.length > DEFAULT_LIMIT;
     const items = hasMore ? rows.slice(0, -1) : rows;
 
     const rolesResponseData: Roles[] = items.map((row) => {

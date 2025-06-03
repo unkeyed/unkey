@@ -39,7 +39,7 @@ const [firstFieldName, ...restFieldNames] = allFilterFieldNames;
 
 export const rolesFilterFieldEnum = z.enum([firstFieldName, ...restFieldNames]);
 
-export const keysListFilterFieldNames = allFilterFieldNames;
+export const rolesListFilterFieldNames = allFilterFieldNames;
 
 export type RolesFilterField = z.infer<typeof rolesFilterFieldEnum>;
 
