@@ -1,4 +1,5 @@
 import { rolesQueryPayload } from "@/app/(app)/authorization/roles/components/table/query-logs.schema";
+import type { RolesFilterOperator } from "@/app/(app)/authorization/roles/filters.schema";
 import { db, sql } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { z } from "zod";
@@ -32,6 +33,40 @@ const rolesResponse = z.object({
   nextCursor: z.number().int().nullish(),
 });
 
+function buildFilterConditions(
+  filters:
+    | {
+        value: string;
+        operator: RolesFilterOperator;
+      }[]
+    | null
+    | undefined,
+  columnName: string,
+) {
+  if (!filters || filters.length === 0) {
+    return sql``;
+  }
+
+  const conditions = filters.map((filter) => {
+    const value = filter.value;
+    switch (filter.operator) {
+      case "is":
+        return sql`${sql.identifier(columnName)} = ${value}`;
+      case "contains":
+        return sql`${sql.identifier(columnName)} LIKE ${`%${value}%`}`;
+      case "startsWith":
+        return sql`${sql.identifier(columnName)} LIKE ${`${value}%`}`;
+      case "endsWith":
+        return sql`${sql.identifier(columnName)} LIKE ${`%${value}`}`;
+      default:
+        throw new Error(`Invalid operator: ${filter.operator}`);
+    }
+  });
+
+  // Combine conditions with OR
+  return sql`AND (${sql.join(conditions, sql` OR `)})`;
+}
+
 export const queryRoles = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
@@ -40,7 +75,12 @@ export const queryRoles = t.procedure
   .output(rolesResponse)
   .query(async ({ ctx, input }) => {
     const workspaceId = ctx.workspace.id;
-    const { cursor } = input;
+    const { cursor, slug, name, description } = input;
+
+    // Build filter conditions
+    const slugFilter = buildFilterConditions(slug, "name");
+    const nameFilter = buildFilterConditions(name, "human_readable");
+    const descriptionFilter = buildFilterConditions(description, "description");
 
     const result = await db.execute(sql`
  SELECT 
@@ -104,14 +144,24 @@ export const queryRoles = t.procedure
        AND p.name IS NOT NULL
    ) as total_permissions,
    
-   -- Total count of roles
-   (SELECT COUNT(*) FROM roles WHERE workspace_id = ${workspaceId}) as grand_total
+   -- Total count of roles (with filters applied)
+   (
+     SELECT COUNT(*) 
+     FROM roles 
+     WHERE workspace_id = ${workspaceId}
+       ${slugFilter}
+       ${nameFilter}
+       ${descriptionFilter}
+   ) as grand_total
    
  FROM (
    SELECT *
    FROM roles 
    WHERE workspace_id = ${workspaceId}
      ${cursor ? sql`AND updated_at_m < ${cursor}` : sql``}
+     ${slugFilter}
+     ${nameFilter}
+     ${descriptionFilter}
    ORDER BY updated_at_m DESC
    LIMIT ${DEFAULT_LIMIT + 1}
  ) r

@@ -6,6 +6,7 @@ import { Asterisk, BookBookmark, Key2, Tag } from "@unkey/icons";
 import { Button, Checkbox, Empty } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useCallback, useMemo, useState } from "react";
+import { LastUpdated } from "./components/last-updated";
 import { useRolesListQuery } from "./hooks/use-roles-list-query";
 import { getRowClassName } from "./utils/get-row-class";
 
@@ -32,7 +33,7 @@ export const RolesList = () => {
       {
         key: "role",
         header: "Role",
-        width: "25%",
+        width: "20%",
         headerClassName: "pl-[18px]",
         render: (role) => {
           const isSelected = selectedRoles.has(role.slug);
@@ -41,9 +42,9 @@ export const RolesList = () => {
           const iconContainer = (
             <div
               className={cn(
-                "size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3",
+                "size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100",
                 "bg-grayA-3",
-                isSelected && "bg-brand-5",
+                isSelected && "bg-grayA-5",
               )}
               onMouseEnter={() => setHoveredRoleSlug(role.slug)}
               onMouseLeave={() => setHoveredRoleSlug(null)}
@@ -88,24 +89,31 @@ export const RolesList = () => {
       {
         key: "slug",
         header: "Slug",
-        width: "25%",
-        render: (role) => (
-          <div
-            className="text-xs text-accent-11 max-w-[200px] truncate font-mono"
-            title={role.slug}
-          >
-            {role.slug}
-          </div>
-        ),
+        width: "20%",
+        render: (role) => {
+          const isRowSelected = role.roleId === selectedRole?.roleId;
+          return (
+            <div
+              className={cn(
+                "text-xs max-w-[200px] truncate font-mono transition-all duration-100",
+                isRowSelected ? "text-accent-12" : "text-accent-11",
+              )}
+              title={role.slug}
+            >
+              {role.slug}
+            </div>
+          );
+        },
       },
       {
         key: "assignedKeys",
         header: "Assigned Keys",
-        width: "25%",
+        width: "20%",
         render: (role) => (
           <AssignedItemsCell
             items={role.assignedKeys.items}
             totalCount={role.assignedKeys.totalCount}
+            isSelected={role.roleId === selectedRole?.roleId}
             type="keys"
           />
         ),
@@ -113,17 +121,31 @@ export const RolesList = () => {
       {
         key: "permissions",
         header: "Permissions",
-        width: "25%",
+        width: "20%",
         render: (role) => (
           <AssignedItemsCell
             items={role.permissions.items}
             totalCount={role.permissions.totalCount}
+            isSelected={role.roleId === selectedRole?.roleId}
             type="permissions"
           />
         ),
       },
+      {
+        key: "last_updated",
+        header: "Last Updated",
+        width: "20%",
+        render: (role) => {
+          return (
+            <LastUpdated
+              lastUpdated={role.lastUpdated}
+              isSelected={role.roleId === selectedRole?.roleId}
+            />
+          );
+        },
+      },
     ],
-    [selectedRoles, toggleSelection, hoveredRoleSlug],
+    [selectedRoles, toggleSelection, hoveredRoleSlug, selectedRole?.roleId],
   );
 
   return (
@@ -212,10 +234,12 @@ const AssignedItemsCell = ({
   items,
   totalCount,
   type,
+  isSelected = false,
 }: {
   items: string[];
   totalCount?: number;
   type: "keys" | "permissions";
+  isSelected?: boolean;
 }) => {
   const hasMore = totalCount && totalCount > items.length;
   const icon =
@@ -225,10 +249,20 @@ const AssignedItemsCell = ({
       <Asterisk className="size-3" size="md-regular" />
     );
 
+  const itemClassName = cn(
+    "font-mono rounded-md py-[2px] px-1.5 items-center w-fit flex gap-2 transition-all duration-100 border border-dashed text-grayA-12",
+    isSelected ? "bg-grayA-4 border-grayA-7" : "bg-grayA-3 border-grayA-6 group-hover:bg-grayA-4",
+  );
+
+  const emptyClassName = cn(
+    "rounded-md py-[2px] px-1.5 items-center w-fit flex gap-2 transition-all duration-100 border border-dashed bg-grayA-2 ",
+    isSelected ? "border-grayA-7 text-grayA-9" : "border-grayA-6 text-grayA-8",
+  );
+
   if (items.length === 0) {
     return (
       <div className="flex flex-col gap-1 py-1 max-w-[200px]">
-        <div className="bg-grayA-2 border border-dashed border-grayA-6 flex gap-2 rounded-md py-[2px] px-1.5 items-center w-fit text-grayA-8">
+        <div className={emptyClassName}>
           {icon}
           <span className="text-grayA-9 text-xs">None assigned</span>
         </div>
@@ -237,20 +271,17 @@ const AssignedItemsCell = ({
   }
 
   return (
-    <div className="flex flex-col gap-1 py-1 max-w-[200px]">
+    <div className="flex flex-col gap-1 py-2 max-w-[200px]">
       {items.map((item) => (
-        <div
-          className="bg-grayA-3 border border-dashed border-grayA-6 flex gap-2 font-mono rounded-md py-[2px] px-1.5 items-center w-fit text-grayA-12 "
-          key={item}
-        >
+        <div className={itemClassName} key={item}>
           {icon}
           <span className="text-grayA-11 text-xs max-w-[150px] truncate">{item}</span>
         </div>
       ))}
       {hasMore && (
-        <div className="bg-grayA-3 border border-dashed border-grayA-6 flex gap-2 rounded-md py-[2px] px-1.5 items-center w-fit">
+        <div className={itemClassName}>
           <span className="text-grayA-9 text-xs max-w-[150px] truncate">
-            more {totalCount - 3} keys...
+            more {totalCount - items.length} {type}...
           </span>
         </div>
       )}
