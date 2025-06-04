@@ -23,3 +23,15 @@ export function CustomSizeAndDuration() {
     </RenderComponentWithSnippet>
   );
 }
+
+export function DotsLineExample() {
+  return (
+    <RenderComponentWithSnippet>
+      <div className="flex flex-col gap-4 justify-center items-center">
+        <div className="flex items-center gap-4 text-[#00FFFF]">
+          <Loading type="dots" />
+        </div>
+      </div>
+    </RenderComponentWithSnippet>
+  );
+}

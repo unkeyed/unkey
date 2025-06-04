@@ -2,7 +2,7 @@
 title: Loading
 description: A customizable animated loading indicator component
 ---
-import { LoadingExample, CustomSizeAndDuration } from "./loading/loading.example";
+import { LoadingExample, CustomSizeAndDuration, DotsLineExample } from "./loading/loading.example";
 
 # Loading Component
 
@@ -29,6 +29,10 @@ function MyComponent() {
 
 <CustomSizeAndDuration />
 
+### Dots Loading
+
+<DotsLineExample />
+
 ### Customization
 
 The Loading component is highly customizable:
@@ -42,11 +46,13 @@ The Loading component is highly customizable:
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `size` | `number` | `24` | Sets both width and height of the loading indicator |
-| `dur` | `number` | `125` | Animation duration in milliseconds per segment |
+| `size` | `number` | `18` | Sets both width and height of the loading indicator (default 24 for dots) |
+| `spinDur` | `number` | `125` | Animation duration in milliseconds per segment (for spinner type) |
+| `dotsDur` | `string` | `"0.75s"` | Animation duration for dots type |
+| `type` | `"spinner" \| "dots"` | `"spinner"` | Type of loading animation to display |
 | `className` | `string` | `undefined` | Additional CSS classes to apply |
 
-The component also accepts all standard HTML attributes supported by the underlying SVG element.
+The component also accepts all standard SVG element props.
 
 ## Accessibility
 

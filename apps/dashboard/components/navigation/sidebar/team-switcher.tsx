@@ -107,7 +107,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
             </AvatarFallback>
           </Avatar>
           {isUserMembershipsLoading ? (
-            <Loading />
+            <Loading type="dots" size={24} />
           ) : isCollapsed ? null : (
             <InfoTooltip
               variant="inverted"
