@@ -203,5 +203,7 @@ export default async function StripeRedirect(props: Props) {
       </Empty>
     );
   }
+  console.log("Workspace updated with payment information");
+  console.log("Redirecting to billing settings");
   return redirect(`${baseUrl}/settings/billing`);
 }
