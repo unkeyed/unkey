@@ -69,7 +69,7 @@ export const DeleteRole = ({ roleDetails, isOpen, onClose }: DeleteRoleProps) =>
     try {
       setIsLoading(true);
       await deleteRole.mutateAsync({
-        roleId: roleDetails.roleId,
+        roleIds: roleDetails.roleId,
       });
     } catch {
       // `useDeleteRole` already shows a toast, but we still need to

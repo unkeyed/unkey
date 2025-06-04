@@ -1,4 +1,5 @@
-import { Asterisk, ChartActivity2, Key2, Tag } from "@unkey/icons";
+import { cn } from "@/lib/utils";
+import { Asterisk, ChartActivity2, Dots, Key2, Tag } from "@unkey/icons";
 
 export const RoleColumnSkeleton = () => (
   <div className="flex flex-col items-start px-[18px] py-[6px]">
@@ -49,4 +50,16 @@ export const LastUpdatedColumnSkeleton = () => (
     <ChartActivity2 size="sm-regular" className="opacity-50" />
     <div className="h-2 w-16 bg-grayA-3 rounded animate-pulse" />
   </div>
+);
+
+export const ActionColumnSkeleton = () => (
+  <button
+    type="button"
+    className={cn(
+      "group size-5 p-0 rounded m-0 items-center flex justify-center animate-pulse",
+      "border border-gray-6",
+    )}
+  >
+    <Dots className="text-gray-11" size="sm-regular" />
+  </button>
 );

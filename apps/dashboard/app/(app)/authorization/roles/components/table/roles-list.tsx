@@ -9,7 +9,9 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import { useCallback, useMemo, useState } from "react";
 import { getRolesTableActionItems } from "./components/actions/keys-table-action.popover.constants";
 import { LastUpdated } from "./components/last-updated";
+import { SelectionControls } from "./components/selection-controls";
 import {
+  ActionColumnSkeleton,
   AssignedKeysColumnSkeleton,
   LastUpdatedColumnSkeleton,
   PermissionsColumnSkeleton,
@@ -161,6 +163,9 @@ export const RolesList = () => {
         hide: isLoading,
         buttonText: "Load more roles",
         hasMore,
+        headerContent: (
+          <SelectionControls selectedRoles={selectedRoles} setSelectedRoles={setSelectedRoles} />
+        ),
         countInfoText: (
           <div className="flex gap-2">
             <span>Showing</span> <span className="text-accent-12">{roles.length}</span>
@@ -215,6 +220,7 @@ export const RolesList = () => {
             {column.key === "assignedKeys" && <AssignedKeysColumnSkeleton />}
             {column.key === "permissions" && <PermissionsColumnSkeleton />}
             {column.key === "last_updated" && <LastUpdatedColumnSkeleton />}
+            {column.key === "action" && <ActionColumnSkeleton />}
           </td>
         ))
       }
