@@ -10,7 +10,6 @@ export const DEFAULT_LIMIT = 50;
 
 export const roles = z.object({
   roleId: z.string(),
-  slug: z.string(),
   name: z.string(),
   description: z.string(),
   lastUpdated: z.number(),
@@ -75,18 +74,16 @@ export const queryRoles = t.procedure
   .output(rolesResponse)
   .query(async ({ ctx, input }) => {
     const workspaceId = ctx.workspace.id;
-    const { cursor, slug, name, description } = input;
+    const { cursor, name, description } = input;
 
     // Build filter conditions
-    const slugFilter = buildFilterConditions(slug, "name");
-    const nameFilter = buildFilterConditions(name, "human_readable");
+    const nameFilter = buildFilterConditions(name, "name");
     const descriptionFilter = buildFilterConditions(description, "description");
 
     const result = await db.execute(sql`
  SELECT 
    r.id,
    r.name,
-   r.human_readable,
    r.description,
    r.updated_at_m,
    
@@ -149,7 +146,6 @@ export const queryRoles = t.procedure
      SELECT COUNT(*) 
      FROM roles 
      WHERE workspace_id = ${workspaceId}
-       ${slugFilter}
        ${nameFilter}
        ${descriptionFilter}
    ) as grand_total
@@ -159,7 +155,6 @@ export const queryRoles = t.procedure
    FROM roles 
    WHERE workspace_id = ${workspaceId}
      ${cursor ? sql`AND updated_at_m < ${cursor}` : sql``}
-     ${slugFilter}
      ${nameFilter}
      ${descriptionFilter}
    ORDER BY updated_at_m DESC
@@ -171,7 +166,6 @@ export const queryRoles = t.procedure
     const rows = result.rows as {
       id: string;
       name: string;
-      human_readable: string | null;
       description: string | null;
       updated_at_m: number;
       key_items: string | null;
@@ -205,8 +199,7 @@ export const queryRoles = t.procedure
 
       return {
         roleId: row.id,
-        slug: row.name,
-        name: row.human_readable || "",
+        name: row.name || "",
         description: row.description || "",
         lastUpdated: Number(row.updated_at_m) || 0,
         assignedKeys:

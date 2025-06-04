@@ -18,6 +18,7 @@ const PermissionSearchResponseSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string().nullable(),
+  slug: z.string(),
   roles: z.array(RoleSchema),
 });
 
@@ -76,6 +77,7 @@ export const searchRolesPermissions = t.procedure
           id: true,
           name: true,
           description: true,
+          slug: true,
         },
       });
 
@@ -83,6 +85,7 @@ export const searchRolesPermissions = t.procedure
         id: permission.id,
         name: permission.name,
         description: permission.description,
+        slug: permission.slug,
         roles: permission.roles
           .filter((rolePermission) => rolePermission.role !== null)
           .map((rolePermission) => ({

@@ -21,15 +21,15 @@ export const RolesList = () => {
   const { roles, isLoading, isLoadingMore, loadMore, totalCount, hasMore } = useRolesListQuery();
   const [selectedRole, setSelectedRole] = useState<Roles | null>(null);
   const [selectedRoles, setSelectedRoles] = useState<Set<string>>(new Set());
-  const [hoveredRoleSlug, setHoveredRoleSlug] = useState<string | null>(null);
+  const [hoveredRoleName, setHoveredRoleName] = useState<string | null>(null);
 
-  const toggleSelection = useCallback((roleSlug: string) => {
+  const toggleSelection = useCallback((roleName: string) => {
     setSelectedRoles((prevSelected) => {
       const newSelected = new Set(prevSelected);
-      if (newSelected.has(roleSlug)) {
-        newSelected.delete(roleSlug);
+      if (newSelected.has(roleName)) {
+        newSelected.delete(roleName);
       } else {
-        newSelected.add(roleSlug);
+        newSelected.add(roleName);
       }
       return newSelected;
     });
@@ -43,8 +43,8 @@ export const RolesList = () => {
         width: "20%",
         headerClassName: "pl-[18px]",
         render: (role) => {
-          const isSelected = selectedRoles.has(role.slug);
-          const isHovered = hoveredRoleSlug === role.slug;
+          const isSelected = selectedRoles.has(role.name);
+          const isHovered = hoveredRoleName === role.name;
 
           const iconContainer = (
             <div
@@ -53,15 +53,15 @@ export const RolesList = () => {
                 "bg-grayA-3",
                 isSelected && "bg-grayA-5",
               )}
-              onMouseEnter={() => setHoveredRoleSlug(role.slug)}
-              onMouseLeave={() => setHoveredRoleSlug(null)}
+              onMouseEnter={() => setHoveredRoleName(role.name)}
+              onMouseLeave={() => setHoveredRoleName(null)}
             >
               {!isSelected && !isHovered && <Tag size="sm-regular" className="text-gray-12" />}
               {(isSelected || isHovered) && (
                 <Checkbox
                   checked={isSelected}
                   className="size-4 [&_svg]:size-3"
-                  onCheckedChange={() => toggleSelection(role.slug)}
+                  onCheckedChange={() => toggleSelection(role.name)}
                 />
               )}
             </div>
@@ -89,25 +89,6 @@ export const RolesList = () => {
                   )}
                 </div>
               </div>
-            </div>
-          );
-        },
-      },
-      {
-        key: "slug",
-        header: "Slug",
-        width: "20%",
-        render: (role) => {
-          const isRowSelected = role.roleId === selectedRole?.roleId;
-          return (
-            <div
-              className={cn(
-                "text-xs max-w-[200px] truncate font-mono transition-all duration-100",
-                isRowSelected ? "text-accent-12" : "text-accent-11",
-              )}
-              title={role.slug}
-            >
-              {role.slug}
             </div>
           );
         },
@@ -152,7 +133,7 @@ export const RolesList = () => {
         },
       },
     ],
-    [selectedRoles, toggleSelection, hoveredRoleSlug, selectedRole?.roleId],
+    [selectedRoles, toggleSelection, hoveredRoleName, selectedRole?.roleId],
   );
 
   return (

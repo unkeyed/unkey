@@ -9,7 +9,6 @@ const filterItemSchema = z.object({
 const baseFilterArraySchema = z.array(filterItemSchema).nullish();
 
 const baseRolesSchema = z.object({
-  slug: baseFilterArraySchema,
   description: baseFilterArraySchema,
   name: baseFilterArraySchema,
 });

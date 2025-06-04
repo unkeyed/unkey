@@ -37,6 +37,7 @@ export const PermissionField = ({
         (permission) =>
           permission.id.toLowerCase().includes(searchTerm) ||
           permission.name.toLowerCase().includes(searchTerm) ||
+          permission.slug.toLowerCase().includes(searchTerm) ||
           permission.description?.toLowerCase().includes(searchTerm),
       );
     }
@@ -120,7 +121,7 @@ export const PermissionField = ({
             Select permissions
           </div>
         }
-        searchPlaceholder="Search permissions by name, ID, or description..."
+        searchPlaceholder="Search permissions by name, ID, slug, or description..."
         emptyMessage={
           isSearching ? (
             <div className="px-3 py-3 text-gray-10 text-[13px]">Searching...</div>
@@ -147,12 +148,10 @@ export const PermissionField = ({
                 </div>
                 <div className="flex flex-col gap-0.5 min-w-0">
                   <span className="font-medium text-accent-12 truncate text-xs">
-                    {permission.id.length > 15
-                      ? `${permission.id.slice(0, 8)}...${permission.id.slice(-4)}`
-                      : permission.id}
+                    {permission.name}
                   </span>
                   <span className="text-accent-9 text-[11px] font-mono truncate">
-                    {permission.name}
+                    {permission.slug}
                   </span>
                 </div>
                 {!disabled && (
@@ -160,7 +159,7 @@ export const PermissionField = ({
                     type="button"
                     onClick={() => handleRemovePermission(permission.id)}
                     className="ml-1 p-0.5 hover:bg-grayA-4 rounded text-grayA-11 hover:text-accent-12 transition-colors flex-shrink-0"
-                    aria-label={`Remove ${permission.name || permission.id}`}
+                    aria-label={`Remove ${permission.name}`}
                   >
                     <XMark size="sm-regular" />
                   </button>

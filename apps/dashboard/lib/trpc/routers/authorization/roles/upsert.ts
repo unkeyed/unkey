@@ -30,7 +30,7 @@ export const upsertRole = t.procedure
         where: (table, { and, eq, ne }) => {
           const conditions = [
             eq(table.workspaceId, ctx.workspace.id),
-            eq(table.name, input.roleSlug), // slug maps to db.name
+            eq(table.name, input.roleName), // slug maps to db.name
           ];
 
           if (isUpdate && input.roleId) {
@@ -44,7 +44,7 @@ export const upsertRole = t.procedure
       if (nameConflict) {
         throw new TRPCError({
           code: "CONFLICT",
-          message: `Role with slug '${input.roleSlug}' already exists`,
+          message: `Role with name '${input.roleName}' already exists`,
         });
       }
 
@@ -66,8 +66,7 @@ export const upsertRole = t.procedure
         await tx
           .update(schema.roles)
           .set({
-            name: input.roleSlug, // slug maps to db.name
-            human_readable: input.roleName, // name maps to db.human_readable
+            name: input.roleName,
             description: input.roleDescription,
           })
           .where(and(eq(schema.roles.id, roleId), eq(schema.roles.workspaceId, ctx.workspace.id)))
@@ -124,8 +123,7 @@ export const upsertRole = t.procedure
           .insert(schema.roles)
           .values({
             id: roleId,
-            name: input.roleSlug, // slug maps to db.name
-            human_readable: input.roleName, // name maps to db.human_readable
+            name: input.roleName, // name maps to db.human_readable
             description: input.roleDescription,
             workspaceId: ctx.workspace.id,
           })

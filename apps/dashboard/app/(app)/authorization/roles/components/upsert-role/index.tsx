@@ -17,7 +17,6 @@ const FORM_STORAGE_KEY = "unkey_upsert_role_form_state";
 const getDefaultValues = (): Partial<FormValues> => ({
   roleName: "",
   roleDescription: "",
-  roleSlug: "",
   keyIds: [],
   permissionIds: [],
 });
@@ -72,7 +71,6 @@ export const UpsertRoleDialog = ({
     if (isEditMode && existingRole) {
       const editValues: Partial<FormValues> = {
         roleName: existingRole.name,
-        roleSlug: existingRole.slug,
         roleDescription: existingRole.description || "",
         keyIds: existingRole.keyIds || null, // Changed to single key
         permissionIds: existingRole.permissionIds || [],
@@ -181,18 +179,6 @@ export const UpsertRoleDialog = ({
                 variant="default"
                 required
                 {...register("roleName")}
-              />
-
-              {/* Role Slug - Auto-generated but editable */}
-              <FormInput
-                className="[&_input:first-of-type]:h-[36px]"
-                label="Slug"
-                placeholder="domain.manager"
-                maxLength={30}
-                description="A unique name for your role. You will use this when managing roles through the API. These are not customer facing."
-                error={errors.roleSlug?.message}
-                required
-                {...register("roleSlug")}
               />
 
               {/* Role Description - Optional */}

@@ -7,6 +7,7 @@ type Permission = {
   id: string;
   name: string;
   description: string | null;
+  slug: string;
   roles: {
     id: string;
     name: string;
@@ -77,6 +78,10 @@ export function createPermissionOptions({
                   <div className="text-xs font-medium text-gray-11 mb-1">Name</div>
                   <div className="text-xs text-gray-12">{permission.name}</div>
                 </div>
+                <div>
+                  <div className="text-xs font-medium text-gray-11 mb-1">Slug</div>
+                  <div className="text-xs text-gray-12 font-mono">{permission.slug}</div>
+                </div>
                 {permission.description && (
                   <div>
                     <div className="text-xs font-medium text-gray-11 mb-1">Description</div>
@@ -117,7 +122,9 @@ export function createPermissionOptions({
       </div>
     ),
     value: permission.id,
-    searchValue: `${permission.id} ${permission.name} ${permission.description || ""}`.trim(),
+    searchValue: `${permission.id} ${permission.name} ${permission.slug} ${
+      permission.description || ""
+    }`.trim(),
   }));
 
   if (hasNextPage) {

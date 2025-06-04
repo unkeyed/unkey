@@ -11,15 +11,10 @@ export type RolesFilterOperator = z.infer<typeof rolesFilterOperatorEnum>;
 export type FilterFieldConfigs = {
   description: StringConfig<RolesFilterOperator>;
   name: StringConfig<RolesFilterOperator>;
-  slug: StringConfig<RolesFilterOperator>;
 };
 
 export const rolesFilterFieldConfig: FilterFieldConfigs = {
   name: {
-    type: "string",
-    operators: [...commonStringOperators],
-  },
-  slug: {
     type: "string",
     operators: [...commonStringOperators],
   },

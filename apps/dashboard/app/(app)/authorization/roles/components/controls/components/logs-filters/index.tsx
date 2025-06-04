@@ -15,7 +15,6 @@ export const LogsFilters = () => {
     label: op,
   }));
   const activeNameFilter = filters.find((f) => f.field === "name");
-  const activeSlugFilter = filters.find((f) => f.field === "slug");
   const activeDescriptionFilter = filters.find((f) => f.field === "description");
 
   return (
@@ -37,31 +36,6 @@ export const LogsFilters = () => {
                   ...activeFiltersWithoutNames,
                   {
                     field: "name",
-                    id: crypto.randomUUID(),
-                    operator: id,
-                    value: text,
-                  },
-                ]);
-              }}
-            />
-          ),
-        },
-        {
-          id: "slug",
-          label: "Slug",
-          shortcut: "s",
-          component: (
-            <FilterOperatorInput
-              label="Slug"
-              options={options}
-              defaultOption={activeSlugFilter?.operator}
-              defaultText={activeSlugFilter?.value as string}
-              onApply={(id, text) => {
-                const activeFiltersWithoutNames = filters.filter((f) => f.field !== "slug");
-                updateFilters([
-                  ...activeFiltersWithoutNames,
-                  {
-                    field: "slug",
                     id: crypto.randomUUID(),
                     operator: id,
                     value: text,

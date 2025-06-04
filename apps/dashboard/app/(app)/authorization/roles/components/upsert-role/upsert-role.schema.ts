@@ -22,12 +22,6 @@ export const roleDescriptionSchema = z
   .max(30, { message: "Role description cannot exceed 30 characters" })
   .optional();
 
-export const roleSlugSchema = z
-  .string()
-  .trim()
-  .min(2, { message: "Role slug must be at least 2 characters long" })
-  .max(30, { message: "Role slug cannot exceed 32 characters" });
-
 export const keyIdsSchema = z
   .array(
     z.string().refine((id) => id.startsWith("key_"), {
@@ -54,7 +48,6 @@ export const rbacRoleSchema = z
     roleId: z.string().startsWith("role_").optional(), // If provided, it's an update
     roleName: roleNameSchema,
     roleDescription: roleDescriptionSchema,
-    roleSlug: roleSlugSchema,
     keyIds: keyIdsSchema,
     permissionIds: permissionIdsSchema,
   })

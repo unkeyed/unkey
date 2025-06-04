@@ -59,7 +59,7 @@ export function useRolesListQuery() {
       rolesData.pages.forEach((page) => {
         page.roles.forEach((role) => {
           // Use slug as the unique identifier
-          newMap.set(role.slug, role);
+          newMap.set(role.roleId, role);
         });
       });
 
