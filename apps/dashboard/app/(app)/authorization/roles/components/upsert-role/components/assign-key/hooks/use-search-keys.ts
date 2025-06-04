@@ -1,12 +1,22 @@
 import { trpc } from "@/lib/trpc/client";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-export const useSearchKeys = (query: string) => {
+export const useSearchKeys = (query: string, debounceMs = 300) => {
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query.trim());
+    }, debounceMs);
+
+    return () => clearTimeout(timer);
+  }, [query, debounceMs]);
+
   const { data, isLoading, error } = trpc.authorization.roles.keys.search.useQuery(
-    { query },
+    { query: debouncedQuery },
     {
-      enabled: query.trim().length > 0, // Only search when there's a query
-      staleTime: 10_000,
+      enabled: debouncedQuery.length > 0, // Only search when there's a debounced query
+      staleTime: 30_000,
     },
   );
 
@@ -14,9 +24,11 @@ export const useSearchKeys = (query: string) => {
     return data?.keys || [];
   }, [data?.keys]);
 
+  const isSearching = query.trim() !== debouncedQuery || (debouncedQuery.length > 0 && isLoading);
+
   return {
     searchResults,
-    isSearching: isLoading,
+    isSearching,
     searchError: error,
   };
 };
