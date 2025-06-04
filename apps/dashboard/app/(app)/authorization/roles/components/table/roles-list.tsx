@@ -157,7 +157,7 @@ export const RolesList = () => {
       columns={columns}
       onRowClick={setSelectedRole}
       selectedItem={selectedRole}
-      keyExtractor={(role) => role.slug}
+      keyExtractor={(role) => role.roleId}
       rowClassName={(role) => getRowClassName(role, selectedRole)}
       loadMoreFooterProps={{
         hide: isLoading,

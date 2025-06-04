@@ -4,7 +4,7 @@ export const roleNameSchema = z
   .string()
   .trim()
   .min(2, { message: "Role name must be at least 2 characters long" })
-  .max(60, { message: "Role name cannot exceed 64 characters" })
+  .max(60, { message: "Role name cannot exceed 60 characters" })
   .refine((name) => !name.match(/^\s|\s$/), {
     message: "Role name cannot start or end with whitespace",
   })

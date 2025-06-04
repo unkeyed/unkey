@@ -17,13 +17,6 @@ export const upsertRole = t.procedure
       roleId = newId("role");
     }
 
-    if (!roleId) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to generate role ID",
-      });
-    }
-
     await db.transaction(async (tx) => {
       if (isUpdate && input.roleId) {
         const updateRoleId: string = input.roleId;
