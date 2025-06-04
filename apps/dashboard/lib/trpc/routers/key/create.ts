@@ -71,7 +71,7 @@ export const createKey = t.procedure
 
         if (keyAuth.storeEncryptedKeys) {
           const { encrypted, keyId: encryptionKeyId } = await vault.encrypt({
-            keyring: keyAuth.id,
+            keyring: ctx.workspace.id,
             data: keyId,
           });
 
