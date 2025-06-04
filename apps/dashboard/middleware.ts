@@ -66,6 +66,7 @@ export default async function middleware(
       !req.nextUrl.searchParams.get("session_id") === null &&
       url.pathname === "/settings/billing/stripe/checkout"
     ) {
+      console.log("returning from Stripe");
       return NextResponse.next();
     }
     if (!session) {
