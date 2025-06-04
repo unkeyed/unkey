@@ -130,7 +130,10 @@ export default async function AuthenticatedLayout({
             </p>
           </div>
         </div>
-        <Separator orientation="vertical" className="hidden -mt-16 bg-white/20 lg:block" />
+        <Separator
+          orientation="vertical"
+          className="hidden -mt-16 bg-white/20 lg:block"
+        />
         <div className="items-center justify-center hidden w-3/5 h-[calc(100vh-4rem)] lg:flex">
           <FadeIn>
             <div className="relative max-w-lg pl-12">
@@ -153,7 +156,9 @@ export default async function AuthenticatedLayout({
                 >
                   {quote.author.name}
                 </Link>{" "}
-                <span className="ml-2 text-sm text-white/50">{quote.author.title}</span>
+                <span className="ml-2 text-sm text-white/50">
+                  {quote.author.title}
+                </span>
               </div>
             </div>
           </FadeIn>
@@ -179,7 +184,7 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         rx="22.3794"
         ry="381.284"
         fill="url(#paint2_linear_8026_110)"
-        fill-opacity="0.5"
+        fillOpacity="0.5"
       />
     </g>
     <g style={{ mixBlendMode: "lighten" }} filter="url(#filter3_f_8026_110)">
@@ -189,7 +194,7 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         rx="22.3794"
         ry="180.667"
         fill="url(#paint3_linear_8026_110)"
-        fill-opacity="0.5"
+        fillOpacity="0.5"
       />
     </g>
     <g style={{ mixBlendMode: "lighten" }} filter="url(#filter4_f_8026_110)">
@@ -200,7 +205,7 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         ry="381.5"
         transform="rotate(15 409.694 40.8839)"
         fill="url(#paint4_linear_8026_110)"
-        fill-opacity="0.5"
+        fillOpacity="0.5"
       />
     </g>
     <g style={{ mixBlendMode: "lighten" }} filter="url(#filter5_f_8026_110)">
@@ -211,7 +216,7 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         ry="187.5"
         transform="rotate(15 467.558 -176.031)"
         fill="url(#paint5_linear_8026_110)"
-        fill-opacity="0.5"
+        fillOpacity="0.5"
       />
     </g>
     <g style={{ mixBlendMode: "lighten" }}>
@@ -222,7 +227,7 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         ry="95.5"
         transform="rotate(15 491.369 -264.896)"
         fill="url(#paint6_linear_8026_110)"
-        fill-opacity="0.5"
+        fillOpacity="0.5"
       />
     </g>
     <g style={{ mixBlendMode: "lighten" }}>
@@ -233,7 +238,7 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         ry="80.25"
         transform="rotate(15 489.493 -257.893)"
         fill="url(#paint7_linear_8026_110)"
-        fill-opacity="0.5"
+        fillOpacity="0.5"
       />
     </g>
     <defs>
@@ -244,11 +249,19 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         width="477.307"
         height="686.892"
         filterUnits="userSpaceOnUse"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
-        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-        <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_8026_110" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
+        <feBlend
+          mode="normal"
+          in="SourceGraphic"
+          in2="BackgroundImageFix"
+          result="shape"
+        />
+        <feGaussianBlur
+          stdDeviation="44.5"
+          result="effect1_foregroundBlur_8026_110"
+        />
       </filter>
       <filter
         id="filter1_f_8026_110"
@@ -257,11 +270,19 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         width="338.241"
         height="744.685"
         filterUnits="userSpaceOnUse"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
-        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-        <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_8026_110" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
+        <feBlend
+          mode="normal"
+          in="SourceGraphic"
+          in2="BackgroundImageFix"
+          result="shape"
+        />
+        <feGaussianBlur
+          stdDeviation="44.5"
+          result="effect1_foregroundBlur_8026_110"
+        />
       </filter>
       <filter
         id="filter2_f_8026_110"
@@ -270,11 +291,19 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         width="222.759"
         height="940.567"
         filterUnits="userSpaceOnUse"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
-        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-        <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_8026_110" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
+        <feBlend
+          mode="normal"
+          in="SourceGraphic"
+          in2="BackgroundImageFix"
+          result="shape"
+        />
+        <feGaussianBlur
+          stdDeviation="44.5"
+          result="effect1_foregroundBlur_8026_110"
+        />
       </filter>
       <filter
         id="filter3_f_8026_110"
@@ -283,11 +312,19 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         width="222.759"
         height="539.335"
         filterUnits="userSpaceOnUse"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
-        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-        <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_8026_110" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
+        <feBlend
+          mode="normal"
+          in="SourceGraphic"
+          in2="BackgroundImageFix"
+          result="shape"
+        />
+        <feGaussianBlur
+          stdDeviation="44.5"
+          result="effect1_foregroundBlur_8026_110"
+        />
       </filter>
       <filter
         id="filter4_f_8026_110"
@@ -296,11 +333,19 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         width="380.145"
         height="915.093"
         filterUnits="userSpaceOnUse"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
-        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-        <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_8026_110" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
+        <feBlend
+          mode="normal"
+          in="SourceGraphic"
+          in2="BackgroundImageFix"
+          result="shape"
+        />
+        <feGaussianBlur
+          stdDeviation="44.5"
+          result="effect1_foregroundBlur_8026_110"
+        />
       </filter>
       <filter
         id="filter5_f_8026_110"
@@ -309,11 +354,19 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         width="928.719"
         height="698.72"
         filterUnits="userSpaceOnUse"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
-        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-        <feGaussianBlur stdDeviation="75" result="effect1_foregroundBlur_8026_110" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
+        <feBlend
+          mode="normal"
+          in="SourceGraphic"
+          in2="BackgroundImageFix"
+          result="shape"
+        />
+        <feGaussianBlur
+          stdDeviation="75"
+          result="effect1_foregroundBlur_8026_110"
+        />
       </filter>
       <linearGradient
         id="paint0_linear_8026_110"
@@ -323,8 +376,8 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         y2="213.307"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint1_linear_8026_110"
@@ -334,8 +387,8 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         y2="220.271"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint2_linear_8026_110"
@@ -345,8 +398,8 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         y2="403.954"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint3_linear_8026_110"
@@ -356,8 +409,8 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         y2="2.72144"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint4_linear_8026_110"
@@ -367,8 +420,8 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         y2="422.384"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint5_linear_8026_110"
@@ -378,8 +431,8 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         y2="11.4689"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint6_linear_8026_110"
@@ -389,8 +442,8 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         y2="-169.396"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint7_linear_8026_110"
@@ -400,8 +453,8 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         y2="-177.643"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
     </defs>
   </svg>
@@ -424,7 +477,7 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         ry="293.25"
         transform="rotate(5 262.378 -50.076)"
         fill="url(#paint1_linear_8026_43)"
-        fill-opacity="0.5"
+        fillOpacity="0.5"
       />
     </g>
     <g style={{ mixBlendMode: "lighten" }} filter="url(#filter2_f_8026_43)">
@@ -435,7 +488,7 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         ry="381.284"
         transform="rotate(-10 359.106 29.9931)"
         fill="url(#paint2_linear_8026_43)"
-        fill-opacity="0.5"
+        fillOpacity="0.5"
       />
     </g>
     <g style={{ mixBlendMode: "lighten" }} filter="url(#filter3_f_8026_43)">
@@ -446,7 +499,7 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         ry="180.667"
         transform="rotate(-10 324.269 -167.576)"
         fill="url(#paint3_linear_8026_43)"
-        fill-opacity="0.5"
+        fillOpacity="0.5"
       />
     </g>
     <g style={{ mixBlendMode: "lighten" }} filter="url(#filter4_f_8026_43)">
@@ -457,7 +510,7 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         ry="381.5"
         transform="rotate(5 168.788 67.9388)"
         fill="url(#paint4_linear_8026_43)"
-        fill-opacity="0.5"
+        fillOpacity="0.5"
       />
     </g>
     <g style={{ mixBlendMode: "lighten" }} filter="url(#filter5_f_8026_43)">
@@ -468,7 +521,7 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         ry="187.5"
         transform="rotate(5 188.107 -155.729)"
         fill="url(#paint5_linear_8026_43)"
-        fill-opacity="0.5"
+        fillOpacity="0.5"
       />
     </g>
     <g style={{ mixBlendMode: "lighten" }}>
@@ -479,7 +532,7 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         ry="95.5"
         transform="rotate(5 196.124 -247.379)"
         fill="url(#paint6_linear_8026_43)"
-        fill-opacity="0.5"
+        fillOpacity="0.5"
       />
     </g>
     <g style={{ mixBlendMode: "lighten" }}>
@@ -490,7 +543,7 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         ry="80.25"
         transform="rotate(5 195.494 -240.156)"
         fill="url(#paint7_linear_8026_43)"
-        fill-opacity="0.5"
+        fillOpacity="0.5"
       />
     </g>
     <defs>
@@ -501,11 +554,19 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         width="388.448"
         height="729.588"
         filterUnits="userSpaceOnUse"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
-        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-        <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_8026_43" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
+        <feBlend
+          mode="normal"
+          in="SourceGraphic"
+          in2="BackgroundImageFix"
+          result="shape"
+        />
+        <feGaussianBlur
+          stdDeviation="44.5"
+          result="effect1_foregroundBlur_8026_43"
+        />
       </filter>
       <filter
         id="filter1_f_8026_43"
@@ -514,11 +575,19 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         width="251.489"
         height="762.287"
         filterUnits="userSpaceOnUse"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
-        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-        <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_8026_43" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
+        <feBlend
+          mode="normal"
+          in="SourceGraphic"
+          in2="BackgroundImageFix"
+          result="shape"
+        />
+        <feGaussianBlur
+          stdDeviation="44.5"
+          result="effect1_foregroundBlur_8026_43"
+        />
       </filter>
       <filter
         id="filter2_f_8026_43"
@@ -527,11 +596,19 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         width="317.6"
         height="929.023"
         filterUnits="userSpaceOnUse"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
-        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-        <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_8026_43" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
+        <feBlend
+          mode="normal"
+          in="SourceGraphic"
+          in2="BackgroundImageFix"
+          result="shape"
+        />
+        <feGaussianBlur
+          stdDeviation="44.5"
+          result="effect1_foregroundBlur_8026_43"
+        />
       </filter>
       <filter
         id="filter3_f_8026_43"
@@ -540,11 +617,19 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         width="254.687"
         height="533.932"
         filterUnits="userSpaceOnUse"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
-        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-        <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_8026_43" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
+        <feBlend
+          mode="normal"
+          in="SourceGraphic"
+          in2="BackgroundImageFix"
+          result="shape"
+        />
+        <feGaussianBlur
+          stdDeviation="44.5"
+          result="effect1_foregroundBlur_8026_43"
+        />
       </filter>
       <filter
         id="filter4_f_8026_43"
@@ -553,11 +638,19 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         width="257.93"
         height="938.107"
         filterUnits="userSpaceOnUse"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
-        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-        <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_8026_43" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
+        <feBlend
+          mode="normal"
+          in="SourceGraphic"
+          in2="BackgroundImageFix"
+          result="shape"
+        />
+        <feGaussianBlur
+          stdDeviation="44.5"
+          result="effect1_foregroundBlur_8026_43"
+        />
       </filter>
       <filter
         id="filter5_f_8026_43"
@@ -566,11 +659,19 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         width="941.402"
         height="677.805"
         filterUnits="userSpaceOnUse"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
-        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-        <feGaussianBlur stdDeviation="75" result="effect1_foregroundBlur_8026_43" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
+        <feBlend
+          mode="normal"
+          in="SourceGraphic"
+          in2="BackgroundImageFix"
+          result="shape"
+        />
+        <feGaussianBlur
+          stdDeviation="75"
+          result="effect1_foregroundBlur_8026_43"
+        />
       </filter>
       <linearGradient
         id="paint0_linear_8026_43"
@@ -580,8 +681,8 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         y2="255.01"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint1_linear_8026_43"
@@ -591,8 +692,8 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         y2="243.174"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint2_linear_8026_43"
@@ -602,8 +703,8 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         y2="411.277"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint3_linear_8026_43"
@@ -613,8 +714,8 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         y2="13.0914"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint4_linear_8026_43"
@@ -624,8 +725,8 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         y2="449.439"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint5_linear_8026_43"
@@ -635,8 +736,8 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         y2="31.7714"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint6_linear_8026_43"
@@ -646,8 +747,8 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         y2="-151.879"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint7_linear_8026_43"
@@ -657,8 +758,8 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         y2="-159.906"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
     </defs>
   </svg>
@@ -686,7 +787,7 @@ const Logo: React.FC<{ className?: string }> = ({ className }) => (
         gradientTransform="rotate(23.2729) scale(101.237 101.088)"
       >
         <stop offset="0.26875" stopColor="white" />
-        <stop offset="0.904454" stopColor="white" stop-opacity="0.5" />
+        <stop offset="0.904454" stopColor="white" stopOpacity="0.5" />
       </radialGradient>
     </defs>
   </svg>
