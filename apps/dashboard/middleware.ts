@@ -31,7 +31,7 @@ export default async function middleware(
     "/api/v1/workos/webhooks",
     "/api/v1/github/verify",
     "/api/auth/refresh",
-    "/settings/billing/",
+    "/settings/billing",
     "/settings/billing/stripe/checkout",
     "/_next",
   ];
