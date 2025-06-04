@@ -49,7 +49,7 @@ export default async function middleware(
       return false;
     });
   };
-
+  console.log("middleware,", url.pathname);
   if (
     !req.nextUrl.searchParams.get("session_id") === null &&
     url.pathname.includes("/settings/billing/stripe/checkout")
