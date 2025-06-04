@@ -17,7 +17,9 @@ services:
       - mysql:/var/lib/mysql
   planetscale:
     container_name: planetscale
-    image: ghcr.io/mattrobenolt/ps-http-sim:latest
+    build:
+      context: https://github.com/mattrobenolt/ps-http-sim.git
+      target: local
     command:
       [
         "-listen-port=3900",
@@ -129,7 +131,7 @@ services:
 
   s3:
     container_name: s3
-    image: bitnami/minio:latest
+    image: bitnami/minio:2025.4.3
     ports:
       - 3902:3902
       - 2903:2903

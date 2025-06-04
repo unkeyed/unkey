@@ -7,17 +7,23 @@ import { useCheckboxState } from "./hooks";
 export type BaseCheckboxOption = {
   id: number;
   checked: boolean;
+  // biome-ignore lint/suspicious/noExplicitAny: Generic object structure for flexible filter options
   [key: string]: any;
 };
 
+// biome-ignore lint/suspicious/noExplicitAny: Type extraction utilities need any for proper generic inference
 type ExtractField<T> = T extends FilterValue<infer F, any, any> ? F : string;
 
+// biome-ignore lint/suspicious/noExplicitAny: Type extraction utilities need any for proper generic inference
 type ExtractOperator<T> = T extends FilterValue<any, infer O, any> ? O : FilterOperator;
 
+// biome-ignore lint/suspicious/noExplicitAny: Type extraction utilities need any for proper generic inference
 type ExtractValue<T> = T extends FilterValue<any, any, infer V> ? V : string | number;
 
 interface BaseCheckboxFilterProps<
+  // biome-ignore lint/suspicious/noExplicitAny: Generic item constraint requires any for flexible object access
   TItem extends Record<string, any>,
+  // biome-ignore lint/suspicious/noExplicitAny: Generic filter constraint requires any for proper type inference
   TFilterValue extends FilterValue<any, any, any>,
 > {
   options: Array<{ id: number } & TItem>;
@@ -47,7 +53,9 @@ interface BaseCheckboxFilterProps<
 }
 
 export const FilterCheckbox = <
+  // biome-ignore lint/suspicious/noExplicitAny: Generic item constraint requires any for flexible object access
   TItem extends Record<string, any>,
+  // biome-ignore lint/suspicious/noExplicitAny: Generic filter constraint requires any for proper type inference
   TFilterValue extends FilterValue<any, any, any>,
 >({
   options,
