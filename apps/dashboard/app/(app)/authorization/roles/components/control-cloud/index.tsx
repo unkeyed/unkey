@@ -10,6 +10,14 @@ const formatFieldName = (field: string): string => {
       return "Slug";
     case "description":
       return "Description";
+    case "keyName":
+      return "Key name";
+    case "keyId":
+      return "Key ID";
+    case "permissionSlug":
+      return "Permission slug";
+    case "permissionName":
+      return "Permission name";
     default:
       return field.charAt(0).toUpperCase() + field.slice(1);
   }

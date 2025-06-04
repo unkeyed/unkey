@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { rolesFilterOperatorEnum } from "../../filters.schema";
+import { rolesFilterOperatorEnum, rolesListFilterFieldNames } from "../../filters.schema";
 
 const filterItemSchema = z.object({
   operator: rolesFilterOperatorEnum,
@@ -8,10 +8,15 @@ const filterItemSchema = z.object({
 
 const baseFilterArraySchema = z.array(filterItemSchema).nullish();
 
-const baseRolesSchema = z.object({
-  description: baseFilterArraySchema,
-  name: baseFilterArraySchema,
-});
+const filterFieldsSchema = rolesListFilterFieldNames.reduce(
+  (acc, fieldName) => {
+    acc[fieldName] = baseFilterArraySchema;
+    return acc;
+  },
+  {} as Record<string, typeof baseFilterArraySchema>,
+);
+
+const baseRolesSchema = z.object(filterFieldsSchema);
 
 export const rolesQueryPayload = baseRolesSchema.extend({
   cursor: z.number().nullish(),

@@ -11,6 +11,10 @@ export type RolesFilterOperator = z.infer<typeof rolesFilterOperatorEnum>;
 export type FilterFieldConfigs = {
   description: StringConfig<RolesFilterOperator>;
   name: StringConfig<RolesFilterOperator>;
+  permissionSlug: StringConfig<RolesFilterOperator>;
+  permissionName: StringConfig<RolesFilterOperator>;
+  keyId: StringConfig<RolesFilterOperator>;
+  keyName: StringConfig<RolesFilterOperator>;
 };
 
 export const rolesFilterFieldConfig: FilterFieldConfigs = {
@@ -19,6 +23,22 @@ export const rolesFilterFieldConfig: FilterFieldConfigs = {
     operators: [...commonStringOperators],
   },
   description: {
+    type: "string",
+    operators: [...commonStringOperators],
+  },
+  permissionSlug: {
+    type: "string",
+    operators: [...commonStringOperators],
+  },
+  permissionName: {
+    type: "string",
+    operators: [...commonStringOperators],
+  },
+  keyId: {
+    type: "string",
+    operators: [...commonStringOperators],
+  },
+  keyName: {
     type: "string",
     operators: [...commonStringOperators],
   },

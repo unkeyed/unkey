@@ -1,80 +1,75 @@
 import { FiltersPopover } from "@/components/logs/checkbox/filters-popover";
-
 import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
 import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { rolesFilterFieldConfig } from "../../../../filters.schema";
+import {
+  type RolesFilterField,
+  rolesFilterFieldConfig,
+  rolesListFilterFieldNames,
+} from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
+
+const FIELD_DISPLAY_CONFIG: Record<RolesFilterField, { label: string; shortcut: string }> = {
+  name: { label: "Name", shortcut: "n" },
+  description: { label: "Description", shortcut: "d" },
+  permissionSlug: { label: "Permission slug", shortcut: "p" },
+  permissionName: { label: "Permission name", shortcut: "m" },
+  keyId: { label: "Key ID", shortcut: "k" },
+  keyName: { label: "Key name", shortcut: "y" },
+} as const;
 
 export const LogsFilters = () => {
   const { filters, updateFilters } = useFilters();
 
-  const options = rolesFilterFieldConfig.name.operators.map((op) => ({
-    id: op,
-    label: op,
-  }));
-  const activeNameFilter = filters.find((f) => f.field === "name");
-  const activeDescriptionFilter = filters.find((f) => f.field === "description");
+  // Generate filter items dynamically from schema
+  const filterItems = rolesListFilterFieldNames.map((fieldName) => {
+    const fieldConfig = rolesFilterFieldConfig[fieldName];
+    const displayConfig = FIELD_DISPLAY_CONFIG[fieldName];
+
+    if (!displayConfig) {
+      throw new Error(`Missing display configuration for field: ${fieldName}`);
+    }
+
+    const options = fieldConfig.operators.map((op) => ({
+      id: op,
+      label: op,
+    }));
+
+    const activeFilter = filters.find((f) => f.field === fieldName);
+
+    return {
+      id: fieldName,
+      label: displayConfig.label,
+      shortcut: displayConfig.shortcut,
+      component: (
+        <FilterOperatorInput
+          label={displayConfig.label}
+          options={options}
+          defaultOption={activeFilter?.operator}
+          defaultText={activeFilter?.value as string}
+          onApply={(operator, text) => {
+            // Remove existing filters for this field
+            const filtersWithoutCurrent = filters.filter((f) => f.field !== fieldName);
+
+            // Add new filter
+            updateFilters([
+              ...filtersWithoutCurrent,
+              {
+                field: fieldName,
+                id: crypto.randomUUID(),
+                operator,
+                value: text,
+              },
+            ]);
+          }}
+        />
+      ),
+    };
+  });
 
   return (
-    <FiltersPopover
-      items={[
-        {
-          id: "names",
-          label: "Name",
-          shortcut: "n",
-          component: (
-            <FilterOperatorInput
-              label="Name"
-              options={options}
-              defaultOption={activeNameFilter?.operator}
-              defaultText={activeNameFilter?.value as string}
-              onApply={(id, text) => {
-                const activeFiltersWithoutNames = filters.filter((f) => f.field !== "name");
-                updateFilters([
-                  ...activeFiltersWithoutNames,
-                  {
-                    field: "name",
-                    id: crypto.randomUUID(),
-                    operator: id,
-                    value: text,
-                  },
-                ]);
-              }}
-            />
-          ),
-        },
-        {
-          id: "description",
-          label: "Description",
-          shortcut: "d",
-          component: (
-            <FilterOperatorInput
-              label="Description"
-              options={options}
-              defaultOption={activeDescriptionFilter?.operator}
-              defaultText={activeDescriptionFilter?.value as string}
-              onApply={(id, text) => {
-                const activeFiltersWithoutDescriptions = filters.filter(
-                  (f) => f.field !== "description",
-                );
-                updateFilters([
-                  ...activeFiltersWithoutDescriptions,
-                  {
-                    field: "description",
-                    id: crypto.randomUUID(),
-                    operator: id,
-                    value: text,
-                  },
-                ]);
-              }}
-            />
-          ),
-        },
-      ]}
-      activeFilters={filters}
-    >
+    <FiltersPopover items={filterItems} activeFilters={filters}>
       <div className="group">
         <Button
           variant="ghost"

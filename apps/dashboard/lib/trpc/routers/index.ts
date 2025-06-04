@@ -24,6 +24,7 @@ import { getConnectedKeysAndPerms } from "./authorization/roles/connected-keys-a
 import { deleteRoleWithRelations } from "./authorization/roles/delete";
 import { queryKeys } from "./authorization/roles/keys/query-keys";
 import { searchKeys } from "./authorization/roles/keys/search-key";
+import { rolesLlmSearch } from "./authorization/roles/llm-search";
 import { queryRolesPermissions } from "./authorization/roles/permissions/query-permissions";
 import { searchRolesPermissions } from "./authorization/roles/permissions/search-permissions";
 import { queryRoles } from "./authorization/roles/query";
@@ -173,6 +174,7 @@ export const router = t.router({
       }),
       upsert: upsertRole,
       delete: deleteRoleWithRelations,
+      llmSearch: rolesLlmSearch,
       connectedKeysAndPerms: getConnectedKeysAndPerms,
     }),
   }),

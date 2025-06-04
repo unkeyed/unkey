@@ -4,9 +4,10 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { useFilters } from "../../../../hooks/use-filters";
 
-export const LogsSearch = ({ keyspaceId }: { keyspaceId: string }) => {
+export const RolesSearch = () => {
   const { filters, updateFilters } = useFilters();
-  const queryLLMForStructuredOutput = trpc.api.keys.listLlmSearch.useMutation({
+
+  const queryLLMForStructuredOutput = trpc.authorization.roles.llmSearch.useMutation({
     onSuccess(data) {
       if (data?.filters.length === 0 || !data) {
         toast.error(
@@ -29,7 +30,6 @@ export const LogsSearch = ({ keyspaceId }: { keyspaceId: string }) => {
       const errorMessage = `Unable to process your search request${
         error.message ? `: ${error.message}` : "."
       } Please try again or refine your search criteria.`;
-
       toast.error(errorMessage, {
         duration: 8000,
         important: true,
@@ -45,16 +45,17 @@ export const LogsSearch = ({ keyspaceId }: { keyspaceId: string }) => {
   return (
     <LogsLLMSearch
       exampleQueries={[
-        "Find key exactly key_abc123xyz",
-        "Show keys with ID containing 'test'",
-        "Show keys with name 'Temp Key' and ID starting with 'temp_'",
-        "Find keys where identity is 'dev_user' or name contains 'debug'",
+        "Find admin and moderator roles",
+        "Show roles with api.read permissions",
+        "Find roles assigned to user keys",
+        "Show roles containing database permissions",
+        "Find roles named exactly 'super_admin'",
+        "Show roles with write permissions and user keys",
       ]}
       isLoading={queryLLMForStructuredOutput.isLoading}
       searchMode="manual"
       onSearch={(query) =>
         queryLLMForStructuredOutput.mutateAsync({
-          keyspaceId,
           query,
         })
       }
