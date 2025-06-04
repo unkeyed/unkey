@@ -2,31 +2,33 @@
 import React from "react";
 import type { SVGProps } from "react";
 import { AnimatedLoadingSpinner } from "./animated-loading-spinner";
+import { cn } from "../lib/utils";
 
 interface LoadingProps extends SVGProps<SVGSVGElement> {
-  /** Animation duration, e.g. "124ms" per segment */
-  spinDur?: number;
-  dotsDur?: string;
+  /** Animation duration, e.g. "124ms" per segment  for spinner type */
+  spinDurMS?: number;
+  /** Animation duration, e.g. "0.75s" for dots type */
+  dotsDurSeconds?: number;
   size?: number;
   type?: "spinner" | "dots";
 }
 
 export function Loading({
   size,
-  spinDur = 125,
-  dotsDur = "0.75s",
+  spinDurMS,
+  dotsDurSeconds,
   className,
   type = "spinner",
   ...props
 }: LoadingProps): JSX.Element {
   if (type === "dots") {
-    return <DotsLoading size={size ?? 24} className={className} {...props} />;
+    return <DotsLoading size={size ?? 24} className={className} dur={dotsDurSeconds} {...props} />;
   }
   return (
     <AnimatedLoadingSpinner
       size={size ?? 18}
-      segmentTimeInMS={spinDur}
-      className={className}
+      segmentTimeInMS={spinDurMS}
+      className={cn("fill-current", className)}
       {...props}
     />
   );
@@ -34,14 +36,20 @@ export function Loading({
 
 type DotsLoadingProps = SVGProps<SVGSVGElement> & {
   size?: number;
+  timeInSeconds?: number;
 };
 
-const DotsLoading = ({ size, className, ...props }: DotsLoadingProps): JSX.Element => {
-  const dur = "0.75s";
+const DotsLoading = ({
+  size,
+  className,
+  timeInSeconds,
+  ...props
+}: DotsLoadingProps): JSX.Element => {
+  const dur = timeInSeconds ? `${timeInSeconds}s` : "0.75s";
   return (
     <svg
       {...props}
-      className="fill-current"
+      className={cn("fill-current", className)}
       width={size}
       height={size}
       viewBox="0 0 24 24"
