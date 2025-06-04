@@ -21,8 +21,7 @@ export default async function StripeRedirect(props: Props) {
   }
 
   const ws = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
   });
   if (!ws) {
     return redirect("/new");
@@ -33,8 +32,7 @@ export default async function StripeRedirect(props: Props) {
       <Empty>
         <Empty.Title>Stripe is not configured</Empty.Title>
         <Empty.Description>
-          If you are selfhosting Unkey, you need to configure Stripe in your
-          environment variables.
+          If you are selfhosting Unkey, you need to configure Stripe in your environment variables.
         </Empty.Description>
       </Empty>
     );
@@ -68,8 +66,7 @@ export default async function StripeRedirect(props: Props) {
           <Empty.Description>The Stripe session</Empty.Description>
           <Code>{session.id}</Code>
           <Empty.Description>
-            you are trying to access does not exist. Please contact
-            support@unkey.dev.
+            you are trying to access does not exist. Please contact support@unkey.dev.
           </Empty.Description>
         </Empty>
       );
@@ -78,16 +75,14 @@ export default async function StripeRedirect(props: Props) {
     return redirect(session.url);
   }
 
-  const session = await stripe.checkout.sessions.retrieve(
-    props.searchParams.session_id
-  );
+  const session = await stripe.checkout.sessions.retrieve(props.searchParams.session_id);
   if (!session) {
     return (
       <Empty>
         <Empty.Title>Stripe session not found</Empty.Title>
         <Empty.Description>
-          The Stripe session you are trying to access does not exist. Please
-          contact support@unkey.dev.
+          The Stripe session you are trying to access does not exist. Please contact
+          support@unkey.dev.
         </Empty.Description>
       </Empty>
     );
@@ -100,8 +95,7 @@ export default async function StripeRedirect(props: Props) {
         <Empty.Description>The Stripe customer</Empty.Description>
         <Code>{session.customer as string}</Code>
         <Empty.Description>
-          you are trying to access does not exist. Please contact
-          support@unkey.dev.
+          you are trying to access does not exist. Please contact support@unkey.dev.
         </Empty.Description>
       </Empty>
     );
@@ -113,22 +107,17 @@ export default async function StripeRedirect(props: Props) {
         <Empty.Title>Stripe setup intent not found</Empty.Title>
         <Empty.Description>Stripe did not return a</Empty.Description>
         <Code>setup_intent</Code>
-        <Empty.Description>
-          id. Please contact support@unkey.dev.
-        </Empty.Description>
+        <Empty.Description>id. Please contact support@unkey.dev.</Empty.Description>
       </Empty>
     );
   }
-  const setupIntent = await stripe.setupIntents.retrieve(
-    session.setup_intent.toString()
-  );
+  const setupIntent = await stripe.setupIntents.retrieve(session.setup_intent.toString());
   if (!setupIntent.payment_method) {
     return (
       <Empty>
         <Empty.Title>Payment method not found</Empty.Title>
         <Empty.Description>
-          Stripe did not return a valid payment method. Please contact
-          support@unkey.dev.
+          Stripe did not return a valid payment method. Please contact support@unkey.dev.
         </Empty.Description>
       </Empty>
     );
@@ -151,8 +140,8 @@ export default async function StripeRedirect(props: Props) {
       <Empty>
         <Empty.Title>Failed to update workspace</Empty.Title>
         <Empty.Description>
-          There was an error updating your workspace with payment information.
-          Please contact support@unkey.dev.
+          There was an error updating your workspace with payment information. Please contact
+          support@unkey.dev.
         </Empty.Description>
       </Empty>
     );
