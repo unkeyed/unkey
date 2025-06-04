@@ -1,38 +1,18 @@
 import { db } from "@/lib/db";
 import { ratelimit, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import { z } from "zod";
-
-const LIMIT = 50;
-
-const permissionsQueryPayload = z.object({
-  cursor: z.string().optional(),
-});
-
-const RoleSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-});
-
-const PermissionResponseSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string().nullable(),
-  slug: z.string(),
-  roles: z.array(RoleSchema),
-});
-
-const PermissionsResponse = z.object({
-  permissions: z.array(PermissionResponseSchema),
-  hasMore: z.boolean(),
-  nextCursor: z.string().nullish(),
-});
+import {
+  LIMIT,
+  PermissionsQueryResponse,
+  permissionsQueryPayload,
+  transformPermission,
+} from "./schema-with-helpers";
 
 export const queryRolesPermissions = t.procedure
   .use(requireWorkspace)
   .use(withRatelimit(ratelimit.read))
   .input(permissionsQueryPayload)
-  .output(PermissionsResponse)
+  .output(PermissionsQueryResponse)
   .query(async ({ ctx, input }) => {
     const { cursor } = input;
     const workspaceId = ctx.workspace.id;
@@ -46,7 +26,7 @@ export const queryRolesPermissions = t.procedure
           }
           return and(...conditions);
         },
-        limit: LIMIT + 1, // Fetch one extra to determine if there are more results
+        limit: LIMIT + 1,
         orderBy: (permissions, { desc }) => desc(permissions.id),
         with: {
           roles: {
@@ -68,29 +48,13 @@ export const queryRolesPermissions = t.procedure
         },
       });
 
-      // Determine if there are more results
       const hasMore = permissionsQuery.length > LIMIT;
-      // Remove the extra item if it exists
       const permissions = hasMore ? permissionsQuery.slice(0, LIMIT) : permissionsQuery;
-
-      const transformedPermissions = permissions.map((permission) => ({
-        id: permission.id,
-        name: permission.name,
-        description: permission.description,
-        slug: permission.slug,
-        roles: permission.roles
-          .filter((rolePermission) => rolePermission.role !== null)
-          .map((rolePermission) => ({
-            id: rolePermission.role.id,
-            name: rolePermission.role.name,
-          })),
-      }));
-
       const nextCursor =
         hasMore && permissions.length > 0 ? permissions[permissions.length - 1].id : undefined;
 
       return {
-        permissions: transformedPermissions,
+        permissions: permissions.map(transformPermission),
         hasMore,
         nextCursor,
       };

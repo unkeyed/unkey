@@ -1,30 +1,12 @@
 import { db } from "@/lib/db";
 import { ratelimit, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import { z } from "zod";
-
-const LIMIT = 50;
-
-const permissionsSearchPayload = z.object({
-  query: z.string().min(1, "Search query cannot be empty"),
-});
-
-const RoleSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-});
-
-const PermissionSearchResponseSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string().nullable(),
-  slug: z.string(),
-  roles: z.array(RoleSchema),
-});
-
-const PermissionsSearchResponse = z.object({
-  permissions: z.array(PermissionSearchResponseSchema),
-});
+import {
+  LIMIT,
+  PermissionsSearchResponse,
+  permissionsSearchPayload,
+  transformPermission,
+} from "./schema-with-helpers";
 
 export const searchRolesPermissions = t.procedure
   .use(requireWorkspace)
@@ -44,13 +26,13 @@ export const searchRolesPermissions = t.procedure
 
     try {
       const searchTerm = `%${query.trim()}%`;
-
       const permissionsQuery = await db.query.permissions.findMany({
         where: (permission, { and, eq, or, like }) => {
           return and(
             eq(permission.workspaceId, workspaceId),
             or(
               like(permission.id, searchTerm),
+              like(permission.slug, searchTerm),
               like(permission.name, searchTerm),
               like(permission.description, searchTerm),
             ),
@@ -58,8 +40,9 @@ export const searchRolesPermissions = t.procedure
         },
         limit: LIMIT,
         orderBy: (permissions, { asc }) => [
-          asc(permissions.name), // Name matches first
-          asc(permissions.id), // Then by ID for consistency
+          asc(permissions.name),
+          asc(permissions.slug),
+          asc(permissions.id),
         ],
         with: {
           roles: {
@@ -81,21 +64,8 @@ export const searchRolesPermissions = t.procedure
         },
       });
 
-      const transformedPermissions = permissionsQuery.map((permission) => ({
-        id: permission.id,
-        name: permission.name,
-        description: permission.description,
-        slug: permission.slug,
-        roles: permission.roles
-          .filter((rolePermission) => rolePermission.role !== null)
-          .map((rolePermission) => ({
-            id: rolePermission.role.id,
-            name: rolePermission.role.name,
-          })),
-      }));
-
       return {
-        permissions: transformedPermissions,
+        permissions: permissionsQuery.map(transformPermission),
       };
     } catch (error) {
       console.error("Error searching permissions:", error);
