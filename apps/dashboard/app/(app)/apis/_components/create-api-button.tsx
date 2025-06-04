@@ -16,7 +16,7 @@ import { z } from "zod";
 
 const DynamicDialogContainer = dynamic(
   () =>
-    import("@/components/dialog-container").then((mod) => ({
+    import("@unkey/ui").then((mod) => ({
       default: mod.DialogContainer,
     })),
   { ssr: false },

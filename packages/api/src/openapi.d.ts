@@ -3659,9 +3659,14 @@ export interface operations {
         "application/json": {
           /**
            * @description The unique name of your permission.
-           * @example record.write
+           * @example Can write records
            */
           name: string;
+          /**
+           * @description The unique slug of your permission. If not provided, the name is used.
+           * @example record.write
+           */
+          slug?: string;
           /**
            * @description Explain what this permission does. This is just for your team, your users will not see this.
            * @example record.write can create new dns records for our domains.
