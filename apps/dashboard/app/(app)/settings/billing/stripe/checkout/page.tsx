@@ -111,6 +111,7 @@ export default async function StripeRedirect(props: Props) {
     props.searchParams.session_id
   );
   if (!session) {
+    console.warn("Stripe session not found");
     return (
       <Empty>
         <Empty.Title>Stripe session not found</Empty.Title>
@@ -121,7 +122,7 @@ export default async function StripeRedirect(props: Props) {
       </Empty>
     );
   }
-
+  console.table(session);
   const ws = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(
@@ -129,12 +130,17 @@ export default async function StripeRedirect(props: Props) {
         isNull(table.deletedAtM)
       ),
   });
+
+  console.info(ws);
+
   if (!ws) {
+    console.warn("Workspace not found");
     return redirect("/auth/sign-in");
   }
 
   const customer = await stripe.customers.retrieve(session.customer as string);
   if (!customer) {
+    console.warn("Stripe customer not found");
     return (
       <Empty>
         <Empty.Title>Stripe customer not found</Empty.Title>
@@ -149,6 +155,7 @@ export default async function StripeRedirect(props: Props) {
   }
 
   if (!session.setup_intent) {
+    console.warn("Stripe setup intent not found");
     return (
       <Empty>
         <Empty.Title>Stripe setup intent not found</Empty.Title>
@@ -164,6 +171,7 @@ export default async function StripeRedirect(props: Props) {
     session.setup_intent.toString()
   );
   if (!setupIntent.payment_method) {
+    console.warn("Stripe payment method not found");
     return (
       <Empty>
         <Empty.Title>Payment method not found</Empty.Title>
