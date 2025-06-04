@@ -1,11 +1,11 @@
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { Key2, XMark } from "@unkey/icons";
 import { useMemo, useState } from "react";
-import { createKeyOptions } from "./create-key-options";
-import { useFetchKeys } from "./hooks/use-fetch-keys";
-import { useSearchKeys } from "./hooks/use-search-keys";
+import { createPermissionOptions } from "./create-permission-options";
+import { useFetchPermissions } from "./hooks/use-fetch-permissions";
+import { useSearchPermissions } from "./hooks/use-search-permissions";
 
-type KeyFieldProps = {
+type PermissionFieldProps = {
   value: string[];
   onChange: (ids: string[]) => void;
   error?: string;
@@ -13,34 +13,42 @@ type KeyFieldProps = {
   roleId?: string;
 };
 
-export const KeyField = ({ value, onChange, error, disabled = false, roleId }: KeyFieldProps) => {
+export const PermissionField = ({
+  value,
+  onChange,
+  error,
+  disabled = false,
+  roleId,
+}: PermissionFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
-  const { keys, isFetchingNextPage, hasNextPage, loadMore } = useFetchKeys();
-  const { searchResults, isSearching } = useSearchKeys(searchValue);
+  const { permissions, isFetchingNextPage, hasNextPage, loadMore } = useFetchPermissions();
+  const { searchResults, isSearching } = useSearchPermissions(searchValue);
 
-  // Combine loaded keys with search results, prioritizing search when available
-  const allKeys = useMemo(() => {
+  // Combine loaded permissions with search results, prioritizing search when available
+  const allPermissions = useMemo(() => {
     if (searchValue.trim() && searchResults.length > 0) {
       // When searching, use search results
       return searchResults;
     }
     if (searchValue.trim() && searchResults.length === 0 && !isSearching) {
-      // No search results found, filter from loaded keys as fallback
+      // No search results found, filter from loaded permissions as fallback
       const searchTerm = searchValue.toLowerCase().trim();
-      return keys.filter(
-        (key) =>
-          key.id.toLowerCase().includes(searchTerm) || key.name?.toLowerCase().includes(searchTerm),
+      return permissions.filter(
+        (permission) =>
+          permission.id.toLowerCase().includes(searchTerm) ||
+          permission.name.toLowerCase().includes(searchTerm) ||
+          permission.description?.toLowerCase().includes(searchTerm),
       );
     }
-    // No search query, use all loaded keys
-    return keys;
-  }, [keys, searchResults, searchValue, isSearching]);
+    // No search query, use all loaded permissions
+    return permissions;
+  }, [permissions, searchResults, searchValue, isSearching]);
 
   // Don't show load more when actively searching
   const showLoadMore = !searchValue.trim() && hasNextPage;
 
-  const baseOptions = createKeyOptions({
-    keys: allKeys,
+  const baseOptions = createPermissionOptions({
+    permissions: allPermissions,
     hasNextPage: showLoadMore,
     isFetchingNextPage,
     roleId,
@@ -54,43 +62,45 @@ export const KeyField = ({ value, onChange, error, disabled = false, roleId }: K
         return true;
       }
 
-      // Don't show already selected keys
+      // Don't show already selected permissions
       if (value.includes(option.value)) {
         return false;
       }
 
-      // Find the key and check if it's already assigned to this role
-      const key = allKeys.find((k) => k.id === option.value);
-      if (!key) {
+      // Find the permission and check if it's already assigned to this role
+      const permission = allPermissions.find((p) => p.id === option.value);
+      if (!permission) {
         return true;
       }
 
-      // Filter out keys that already have this role assigned (if roleId provided)
+      // Filter out permissions that already have this role assigned (if roleId provided)
       if (roleId) {
-        return !key.roles.some((role) => role.id === roleId);
+        return !permission.roles.some((role) => role.id === roleId);
       }
 
       return true;
     });
-  }, [baseOptions, allKeys, roleId, value]);
+  }, [baseOptions, allPermissions, roleId, value]);
 
-  // Get selected key details for display
-  const selectedKeys = useMemo(() => {
+  // Get selected permission details for display
+  const selectedPermissions = useMemo(() => {
     return value
-      .map((keyId) => allKeys.find((k) => k.id === keyId))
-      .filter((key): key is NonNullable<typeof key> => key !== undefined);
-  }, [value, allKeys]);
+      .map((permissionId) => allPermissions.find((p) => p.id === permissionId))
+      .filter(
+        (permission): permission is NonNullable<typeof permission> => permission !== undefined,
+      );
+  }, [value, allPermissions]);
 
-  const handleRemoveKey = (keyId: string) => {
-    onChange(value.filter((id) => id !== keyId));
+  const handleRemovePermission = (permissionId: string) => {
+    onChange(value.filter((id) => id !== permissionId));
   };
 
   return (
     <div className="space-y-3">
       <FormCombobox
         optional
-        label="Assign keys"
-        description="Select keys from your workspace."
+        label="Assign permissions"
+        description="Select permissions from your workspace."
         options={selectableOptions}
         value=""
         onChange={(e) => setSearchValue(e.currentTarget.value)}
@@ -98,7 +108,7 @@ export const KeyField = ({ value, onChange, error, disabled = false, roleId }: K
           if (val === "__load_more__") {
             return;
           }
-          // Add the selected key to the array
+          // Add the selected permission to the array
           if (!value.includes(val)) {
             onChange([...value, val]);
           }
@@ -107,15 +117,15 @@ export const KeyField = ({ value, onChange, error, disabled = false, roleId }: K
         }}
         placeholder={
           <div className="flex w-full text-grayA-8 text-[13px] gap-1.5 items-center py-2">
-            Select keys
+            Select permissions
           </div>
         }
-        searchPlaceholder="Search keys by name or ID..."
+        searchPlaceholder="Search permissions by name, ID, or description..."
         emptyMessage={
           isSearching ? (
             <div className="px-3 py-3 text-gray-10 text-[13px]">Searching...</div>
           ) : (
-            <div className="px-3 py-3 text-gray-10 text-[13px]">No keys found</div>
+            <div className="px-3 py-3 text-gray-10 text-[13px]">No permissions found</div>
           )
         }
         variant="default"
@@ -123,13 +133,13 @@ export const KeyField = ({ value, onChange, error, disabled = false, roleId }: K
         disabled={disabled}
       />
 
-      {/* Selected Keys Display */}
-      {selectedKeys.length > 0 && (
+      {/* Selected Permissions Display */}
+      {selectedPermissions.length > 0 && (
         <div className="space-y-2">
           <div className="grid grid-cols-2 gap-2 max-w-[400px]">
-            {selectedKeys.map((key) => (
+            {selectedPermissions.map((permission) => (
               <div
-                key={key.id}
+                key={permission.id}
                 className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-black border border-gray-5 rounded-md text-xs h-12 w-full"
               >
                 <div className="border rounded-full flex items-center justify-center border-grayA-6 size-4 flex-shrink-0">
@@ -137,18 +147,20 @@ export const KeyField = ({ value, onChange, error, disabled = false, roleId }: K
                 </div>
                 <div className="flex flex-col gap-0.5 min-w-0">
                   <span className="font-medium text-accent-12 truncate text-xs">
-                    {key.id.length > 15 ? `${key.id.slice(0, 8)}...${key.id.slice(-4)}` : key.id}
+                    {permission.id.length > 15
+                      ? `${permission.id.slice(0, 8)}...${permission.id.slice(-4)}`
+                      : permission.id}
                   </span>
                   <span className="text-accent-9 text-[11px] font-mono truncate">
-                    {key.name || "Unnamed Key"}
+                    {permission.name}
                   </span>
                 </div>
                 {!disabled && (
                   <button
                     type="button"
-                    onClick={() => handleRemoveKey(key.id)}
+                    onClick={() => handleRemovePermission(permission.id)}
                     className="ml-1 p-0.5 hover:bg-grayA-4 rounded text-grayA-11 hover:text-accent-12 transition-colors flex-shrink-0"
-                    aria-label={`Remove ${key.name || key.id}`}
+                    aria-label={`Remove ${permission.name || permission.id}`}
                   >
                     <XMark size="sm-regular" />
                   </button>

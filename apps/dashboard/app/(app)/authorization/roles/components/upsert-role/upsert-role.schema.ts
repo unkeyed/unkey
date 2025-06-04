@@ -4,7 +4,7 @@ export const roleNameSchema = z
   .string()
   .trim()
   .min(2, { message: "Role name must be at least 2 characters long" })
-  .max(64, { message: "Role name cannot exceed 64 characters" })
+  .max(60, { message: "Role name cannot exceed 64 characters" })
   .regex(/^[a-zA-Z][a-zA-Z0-9\s\-_]*$/, {
     message:
       "Role name must start with a letter and contain only letters, numbers, spaces, hyphens, and underscores",

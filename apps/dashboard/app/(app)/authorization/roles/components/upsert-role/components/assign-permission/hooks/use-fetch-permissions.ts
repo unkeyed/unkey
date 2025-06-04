@@ -3,9 +3,9 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { useMemo } from "react";
 
-export const useFetchKeys = (limit = 50) => {
+export const useFetchPermissions = (limit = 50) => {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    trpc.authorization.keys.query.useInfiniteQuery(
+    trpc.authorization.permissions.query.useInfiniteQuery(
       {
         limit,
       },
@@ -13,17 +13,17 @@ export const useFetchKeys = (limit = 50) => {
         getNextPageParam: (lastPage) => lastPage.nextCursor,
         onError(err) {
           if (err.data?.code === "NOT_FOUND") {
-            toast.error("Failed to Load Keys", {
+            toast.error("Failed to Load Permissions", {
               description:
-                "We couldn't find any keys for this workspace. Please try again or contact support@unkey.dev.",
+                "We couldn't find any permissions for this workspace. Please try again or contact support@unkey.dev.",
             });
           } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
             toast.error("Server Error", {
               description:
-                "We were unable to load keys. Please try again or contact support@unkey.dev",
+                "We were unable to load permissions. Please try again or contact support@unkey.dev",
             });
           } else {
-            toast.error("Failed to Load Keys", {
+            toast.error("Failed to Load Permissions", {
               description:
                 err.message ||
                 "An unexpected error occurred. Please try again or contact support@unkey.dev",
@@ -37,11 +37,11 @@ export const useFetchKeys = (limit = 50) => {
       },
     );
 
-  const keys = useMemo(() => {
+  const permissions = useMemo(() => {
     if (!data?.pages) {
       return [];
     }
-    return data.pages.flatMap((page) => page.keys);
+    return data.pages.flatMap((page) => page.permissions);
   }, [data?.pages]);
 
   const loadMore = () => {
@@ -51,7 +51,7 @@ export const useFetchKeys = (limit = 50) => {
   };
 
   return {
-    keys,
+    permissions,
     isLoading,
     isFetchingNextPage,
     hasNextPage,

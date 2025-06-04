@@ -9,6 +9,7 @@ import { Button, FormInput, FormTextarea } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { Controller, FormProvider } from "react-hook-form";
 import { KeyField } from "./components/assign-key/key-field";
+import { PermissionField } from "./components/assign-permission/permissions-field";
 import { type FormValues, rbacRoleSchema } from "./upsert-role.schema";
 
 const FORM_STORAGE_KEY = "unkey_upsert_role_form_state";
@@ -174,7 +175,7 @@ export const UpsertRoleDialog = ({
                 className="[&_input:first-of-type]:h-[36px]"
                 placeholder="Domain manager"
                 label="Name"
-                maxLength={64}
+                maxLength={60}
                 description="A descriptive name for this role (2-64 characters, must start with a letter)"
                 error={errors.roleName?.message}
                 variant="default"
@@ -212,6 +213,19 @@ export const UpsertRoleDialog = ({
                 control={control}
                 render={({ field, fieldState }) => (
                   <KeyField
+                    value={field.value || null}
+                    onChange={field.onChange}
+                    error={fieldState.error?.message}
+                  />
+                )}
+              />
+
+              {/* Permission Selection */}
+              <Controller
+                name="permissionIds"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <PermissionField
                     value={field.value || null}
                     onChange={field.onChange}
                     error={fieldState.error?.message}

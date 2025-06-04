@@ -22,7 +22,9 @@ import { fetchAuditLog } from "./audit/fetch";
 import { auditLogsSearch } from "./audit/llm-search";
 import { queryRoles } from "./authorization/roles/query";
 import { queryKeys } from "./authorization/roles/query-keys";
+import { queryRolesPermissions } from "./authorization/roles/query-permissions";
 import { searchKeys } from "./authorization/roles/search-key";
+import { searchRolesPermissions } from "./authorization/roles/search-permissions";
 import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
 import { createIdentity } from "./identity/create";
@@ -159,8 +161,14 @@ export const router = t.router({
   authorization: t.router({
     roles: queryRoles,
     upsert: upsertRole,
-    searchKey: searchKeys,
-    queryKeys: queryKeys,
+    keys: t.router({
+      search: searchKeys,
+      query: queryKeys,
+    }),
+    permissions: t.router({
+      search: searchRolesPermissions,
+      query: queryRolesPermissions,
+    }),
   }),
   rbac: t.router({
     addPermissionToRootKey: addPermissionToRootKey,

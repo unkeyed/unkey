@@ -3,31 +3,32 @@ import { Badge } from "@/components/ui/badge";
 import { Key2, Lock } from "@unkey/icons";
 import { Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 
-type Key = {
+type Permission = {
   id: string;
-  name: string | null;
+  name: string;
+  description: string | null;
   roles: {
     id: string;
     name: string;
   }[];
 };
 
-type KeySelectorProps = {
-  keys: Key[];
+type PermissionSelectorProps = {
+  permissions: Permission[];
   hasNextPage?: boolean;
   isFetchingNextPage: boolean;
   roleId?: string;
   loadMore: () => void;
 };
 
-export function createKeyOptions({
-  keys,
+export function createPermissionOptions({
+  permissions,
   hasNextPage,
   isFetchingNextPage,
   roleId,
   loadMore,
-}: KeySelectorProps) {
-  const options = keys.map((key) => ({
+}: PermissionSelectorProps) {
+  const options = permissions.map((permission) => ({
     label: (
       <TooltipProvider>
         <Tooltip>
@@ -38,21 +39,21 @@ export function createKeyOptions({
               </div>
               <div className="flex gap-1 flex-col truncate">
                 <div className="flex gap-2 items-center">
-                  <span className="font-medium text-accent-12 text-left">
-                    {key.name || "Unnamed Key"}
-                  </span>
+                  <span className="font-medium text-accent-12 text-left">{permission.name}</span>
+                  {permission.roles.find((item) => item.id === roleId) && (
+                    <StatusBadge
+                      variant="locked"
+                      text="Already assigned"
+                      icon={<Lock size="sm-thin" />}
+                    />
+                  )}
                 </div>
                 <span className="text-accent-9 text-xs">
-                  {key.id.length > 15 ? `${key.id.slice(0, 8)}...${key.id.slice(-4)}` : key.id}
+                  {permission.id.length > 15
+                    ? `${permission.id.slice(0, 8)}...${permission.id.slice(-4)}`
+                    : permission.id}
                 </span>
               </div>
-              {key.roles.find((item) => item.id === roleId) && (
-                <StatusBadge
-                  variant="locked"
-                  text="Already assigned"
-                  icon={<Lock size="sm-thin" />}
-                />
-              )}
             </div>
           </TooltipTrigger>
           <TooltipContent
@@ -64,23 +65,29 @@ export function createKeyOptions({
             <div className="flex flex-col h-full">
               {/* Header */}
               <div className="px-4 py-2 border-b border-grayA-4 text-gray-10 text-xs font-medium bg-grayA-2">
-                Key Details
+                Permission Details
               </div>
               {/* Content */}
               <div className="px-4 py-3 space-y-3">
                 <div>
-                  <div className="text-xs font-medium text-gray-11 mb-1">Key ID</div>
-                  <div className="text-xs text-gray-12 font-mono break-all">{key.id}</div>
+                  <div className="text-xs font-medium text-gray-11 mb-1">Permission ID</div>
+                  <div className="text-xs text-gray-12 font-mono break-all">{permission.id}</div>
                 </div>
                 <div>
                   <div className="text-xs font-medium text-gray-11 mb-1">Name</div>
-                  <div className="text-xs text-gray-12">{key.name || "No name set"}</div>
+                  <div className="text-xs text-gray-12">{permission.name}</div>
                 </div>
-                {key.roles.length > 0 && (
+                {permission.description && (
+                  <div>
+                    <div className="text-xs font-medium text-gray-11 mb-1">Description</div>
+                    <div className="text-xs text-gray-12">{permission.description}</div>
+                  </div>
+                )}
+                {permission.roles.length > 0 && (
                   <div>
                     <div className="text-xs font-medium text-gray-11 mb-2">Roles</div>
                     <div className="flex flex-wrap gap-1">
-                      {key.roles.map((role) => (
+                      {permission.roles.map((role) => (
                         <Badge key={role.id} variant="secondary" className="text-xs">
                           {role.name}
                         </Badge>
@@ -101,16 +108,16 @@ export function createKeyOptions({
             <Key2 size="sm-regular" className="text-grayA-11" />
           </div>
           <span className="text-accent-12 font-medium text-xs w-[120px] truncate text-left">
-            {key.id.length > 15 ? `${key.id.slice(0, 8)}...${key.id.slice(-4)}` : key.id}
+            {permission.id.length > 15
+              ? `${permission.id.slice(0, 8)}...${permission.id.slice(-4)}`
+              : permission.id}
           </span>
         </div>
-        <span className="w-[200px] truncate text-accent-8 text-left">
-          {key.name || "Unnamed Key"}
-        </span>
+        <span className="w-[200px] truncate text-accent-8 text-left">{permission.name}</span>
       </div>
     ),
-    value: key.id,
-    searchValue: `${key.id} ${key.name || ""}`.trim(),
+    value: permission.id,
+    searchValue: `${permission.id} ${permission.name} ${permission.description || ""}`.trim(),
   }));
 
   if (hasNextPage) {
