@@ -38,22 +38,31 @@ export function createPermissionOptions({
               <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
                 <Key2 size="sm-regular" className="text-grayA-11" />
               </div>
-              <div className="flex gap-1 flex-col truncate">
-                <div className="flex gap-2 items-center">
-                  <span className="font-medium text-accent-12 text-left">{permission.name}</span>
-                  {permission.roles.find((item) => item.id === roleId) && (
-                    <StatusBadge
-                      variant="locked"
-                      text="Already assigned"
-                      icon={<Lock size="sm-thin" />}
-                    />
-                  )}
+              <div className="flex gap-1 flex-col truncate min-w-0 flex-1">
+                <div className="flex gap-2 items-center min-w-0">
+                  <div className="flex flex-col gap-0.5 truncate min-w-0">
+                    <div className="flex items-center  gap-2">
+                      <span className="font-medium text-accent-12 text-left truncate">
+                        {permission.name}
+                      </span>
+                      {permission.roles.find((item) => item.id === roleId) && (
+                        <StatusBadge
+                          variant="locked"
+                          text="Already assigned"
+                          icon={<Lock size="sm-thin" />}
+                        />
+                      )}
+                    </div>
+                    <span className="text-accent-10 text-xs font-mono truncate">
+                      {permission.slug}
+                    </span>
+                  </div>
                 </div>
-                <span className="text-accent-9 text-xs">
-                  {permission.id.length > 15
-                    ? `${permission.id.slice(0, 8)}...${permission.id.slice(-4)}`
-                    : permission.id}
-                </span>
+                {permission.description && (
+                  <span className="text-accent-9 text-xs leading-tight">
+                    {permission.description}
+                  </span>
+                )}
               </div>
             </div>
           </TooltipTrigger>

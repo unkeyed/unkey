@@ -5,10 +5,6 @@ export const roleNameSchema = z
   .trim()
   .min(2, { message: "Role name must be at least 2 characters long" })
   .max(60, { message: "Role name cannot exceed 64 characters" })
-  .regex(/^[a-zA-Z][a-zA-Z0-9\s\-_]*$/, {
-    message:
-      "Role name must start with a letter and contain only letters, numbers, spaces, hyphens, and underscores",
-  })
   .refine((name) => !name.match(/^\s|\s$/), {
     message: "Role name cannot start or end with whitespace",
   })
@@ -29,7 +25,8 @@ export const keyIdsSchema = z
     }),
   )
   .default([])
-  .transform((ids) => [...new Set(ids)]); // Remove duplicates
+  .transform((ids) => [...new Set(ids)]) // Remove duplicates
+  .optional();
 
 export const permissionIdsSchema = z
   .array(
@@ -39,9 +36,7 @@ export const permissionIdsSchema = z
   )
   .min(1, { message: "Role must have at least one permission assigned" })
   .transform((ids) => [...new Set(ids)]) // Remove duplicates
-  .refine((ids) => ids.length >= 1, {
-    message: "After removing duplicates, role must still have at least one permission",
-  });
+  .optional();
 
 export const rbacRoleSchema = z
   .object({

@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { Controller, FormProvider } from "react-hook-form";
 import { KeyField } from "./components/assign-key/key-field";
 import { PermissionField } from "./components/assign-permission/permissions-field";
+import { useUpsertRole } from "./hooks/use-upsert-role";
 import { type FormValues, rbacRoleSchema } from "./upsert-role.schema";
 
 const FORM_STORAGE_KEY = "unkey_upsert_role_form_state";
@@ -66,13 +67,19 @@ export const UpsertRoleDialog = ({
     control,
   } = methods;
 
+  const upsertRoleMutation = useUpsertRole(() => {
+    clearPersistedData();
+    reset(getDefaultValues());
+    setIsDialogOpen(false);
+  });
+
   // Load existing role data when in edit mode
   useEffect(() => {
     if (isEditMode && existingRole) {
       const editValues: Partial<FormValues> = {
         roleName: existingRole.name,
         roleDescription: existingRole.description || "",
-        keyIds: existingRole.keyIds || null, // Changed to single key
+        keyIds: existingRole.keyIds || null,
         permissionIds: existingRole.permissionIds || [],
       };
       reset(editValues);
@@ -83,22 +90,12 @@ export const UpsertRoleDialog = ({
   const hiddenRoleIdRegister = isEditMode ? register("roleId") : null;
 
   const onSubmit = async (data: FormValues) => {
-    try {
-      if (isEditMode) {
-        console.log("Updating role:", { ...data, roleId });
-        // TODO: await updateRole(roleId, data);
-      } else {
-        console.log("Creating role:", data);
-        // TODO: await createRole(data);
-      }
+    const mutationData = {
+      ...data,
+      ...(isEditMode && { roleId }), // Include roleId only for updates
+    };
 
-      clearPersistedData();
-      reset(getDefaultValues());
-      setIsDialogOpen(false);
-    } catch (error) {
-      console.error(`Failed to ${isEditMode ? "update" : "create"} role:`, error);
-      // TODO: Show error toast
-    }
+    upsertRoleMutation.mutate(mutationData);
   };
 
   const handleDialogClose = (open: boolean) => {
@@ -159,7 +156,8 @@ export const UpsertRoleDialog = ({
                   variant="primary"
                   size="xlg"
                   className="w-full rounded-lg"
-                  disabled={!isValid}
+                  disabled={!isValid || upsertRoleMutation.isLoading}
+                  loading={upsertRoleMutation.isLoading}
                 >
                   {dialogConfig.buttonText}
                 </Button>
@@ -171,10 +169,10 @@ export const UpsertRoleDialog = ({
               {/* Role Name - Required */}
               <FormInput
                 className="[&_input:first-of-type]:h-[36px]"
-                placeholder="Domain manager"
+                placeholder="domain.manager"
                 label="Name"
                 maxLength={60}
-                description="A descriptive name for this role (2-64 characters, must start with a letter)"
+                description="A unique name for your role. You will use this when managing roles through the API. These are not customer facing."
                 error={errors.roleName?.message}
                 variant="default"
                 required
@@ -199,7 +197,7 @@ export const UpsertRoleDialog = ({
                 control={control}
                 render={({ field, fieldState }) => (
                   <KeyField
-                    value={field.value || null}
+                    value={field.value || []}
                     onChange={field.onChange}
                     error={fieldState.error?.message}
                   />
@@ -212,7 +210,7 @@ export const UpsertRoleDialog = ({
                 control={control}
                 render={({ field, fieldState }) => (
                   <PermissionField
-                    value={field.value || null}
+                    value={field.value || []}
                     onChange={field.onChange}
                     error={fieldState.error?.message}
                   />
