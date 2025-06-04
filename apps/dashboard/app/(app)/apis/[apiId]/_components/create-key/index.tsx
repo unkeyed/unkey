@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "@unkey/icons";
 import type { IconProps } from "@unkey/icons/src/props";
 import {
+  Button,
   NavigableDialogBody,
   NavigableDialogContent,
   NavigableDialogFooter,
@@ -14,7 +15,6 @@ import {
   NavigableDialogNav,
   NavigableDialogRoot,
 } from "@unkey/ui";
-import { Button } from "@unkey/ui";
 import { type FC, useEffect, useState } from "react";
 import { FormProvider } from "react-hook-form";
 import { toast } from "sonner";

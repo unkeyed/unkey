@@ -31,7 +31,7 @@ const NavigableDialogContext: React.Context<NavigableDialogContextType<any>> =
   createNavigableDialogContext();
 
 // Hook to use the NavigableDialog context
-export const useNavigableDialog = <TStepName extends string>() => {
+const useNavigableDialog = <TStepName extends string>() => {
   const context = useContext(NavigableDialogContext) as NavigableDialogContextType<TStepName>;
   if (context === undefined) {
     throw new Error("useNavigableDialog must be used within a NavigableDialogProvider");
@@ -43,7 +43,7 @@ export const useNavigableDialog = <TStepName extends string>() => {
 export type StepNamesFrom<T extends readonly { id: string }[]> = T[number]["id"];
 
 // Root component that provides context and structure
-export const NavigableDialogRoot = <TStepName extends string>({
+const NavigableDialogRoot = <TStepName extends string>({
   children,
   isOpen,
   onOpenChange,
@@ -86,7 +86,7 @@ export const NavigableDialogRoot = <TStepName extends string>({
 };
 
 // Header component
-export const NavigableDialogHeader = ({
+const NavigableDialogHeader = ({
   title,
   subTitle,
 }: {
@@ -97,12 +97,12 @@ export const NavigableDialogHeader = ({
 };
 
 // Footer component
-export const NavigableDialogFooter = ({ children }: { children: ReactNode }) => {
+const NavigableDialogFooter = ({ children }: { children: ReactNode }) => {
   return <DefaultDialogFooter>{children}</DefaultDialogFooter>;
 };
 
 // Navigation sidebar component
-export const NavigableDialogNav = <TStepName extends string>({
+const NavigableDialogNav = <TStepName extends string>({
   items,
   className,
   onNavigate,
@@ -209,7 +209,7 @@ export const NavigableDialogNav = <TStepName extends string>({
   );
 };
 
-export const NavigableDialogContent = <TStepName extends string>({
+const NavigableDialogContent = <TStepName extends string>({
   items,
   className,
 }: {
@@ -249,7 +249,7 @@ export const NavigableDialogContent = <TStepName extends string>({
 };
 
 // Main container for the nav and content
-export const NavigableDialogBody = ({
+const NavigableDialogBody = ({
   children,
   className,
 }: {
@@ -257,4 +257,14 @@ export const NavigableDialogBody = ({
   className?: string;
 }) => {
   return <div className={cn("flex flex-grow overflow-hidden", className)}>{children}</div>;
+};
+
+export {
+  NavigableDialogRoot,
+  NavigableDialogHeader,
+  NavigableDialogFooter,
+  NavigableDialogNav,
+  NavigableDialogContent,
+  NavigableDialogBody,
+  useNavigableDialog,
 };
