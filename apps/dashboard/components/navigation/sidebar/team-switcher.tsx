@@ -1,5 +1,4 @@
 "use client";
-import { RatelimitOverviewTooltip } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/table/components/ratelimit-overview-tooltip";
 import { Loading } from "@/components/dashboard/loading";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -18,6 +17,7 @@ import { setSessionCookie } from "@/lib/auth/cookies";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { ChevronExpandY } from "@unkey/icons";
+import { InfoTooltip } from "@unkey/ui";
 import { Check, Plus, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -109,15 +109,17 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
           </Avatar>
           {isUserMembershipsLoading ? (
             <Loading />
-          ) : !isCollapsed ? (
-            <RatelimitOverviewTooltip
-              content={<span className="text-[13px] font-medium">{props.workspace.name}</span>}
+          ) : isCollapsed ? null : (
+            <InfoTooltip
+              variant="inverted"
+              position={{ side: "right", sideOffset: 10 }}
+              content={<span>{props.workspace.name}</span>}
+              className="text-xs font-medium py-2"
+              triggerClassName="overflow-hidden text-sm font-medium text-ellipsis"
             >
-              <span className="overflow-hidden text-[13px] font-medium text-ellipsis">
-                {props.workspace.name}
-              </span>
-            </RatelimitOverviewTooltip>
-          ) : null}
+              {props.workspace.name}
+            </InfoTooltip>
+          )}
         </div>
         {!isCollapsed && (
           <ChevronExpandY className="w-5 h-5 shrink-0 md:block [stroke-width:1px] text-gray-9" />

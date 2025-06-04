@@ -13,6 +13,6 @@
   },
   "dependencies": {
     "@unkey/hash": "workspace:^",
-    "base-x": "^4.0.0"
+    "base-x": "^4.0.1"
   }
 }

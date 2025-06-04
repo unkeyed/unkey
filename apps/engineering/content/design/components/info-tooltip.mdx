@@ -1,0 +1,39 @@
+---
+title: InfoTooltip
+description: The Info Tooltip is a specialized tooltip component that provides contextual information about elements in a consistent and accessible way. It's built on top of the base Tooltip component with additional styling and positioning options.
+---
+import { InfoTooltipExample } from "./info-tooltip.example"
+
+## Features
+
+- Customizable positioning (top, right, bottom, left)
+- Alignment control (start, center, end)
+- Side offset adjustment
+- Disabled state support
+- Child element support via `asChild` prop
+
+## Usage
+
+<InfoTooltipExample />
+
+## Props
+
+| Prop      | Type                    | Default   | Description                                      |
+|-----------|-------------------------|-----------|--------------------------------------------------|
+| content   | React.ReactNode         | -         | The content to display in the tooltip            |
+| position  | TooltipPosition         | -         | Configuration for tooltip positioning            |
+| disabled  | boolean                 | false     | Whether the tooltip is disabled                  |
+| asChild   | boolean                 | false     | Whether to render the trigger as a child element |
+| delayDuration | number             | -         | Delay before showing the tooltip in milliseconds |
+| variant   | string                  | -         | Styling variant for the tooltip                  |
+| className | string                  | -         | Additional CSS classes for the tooltip           |
+
+## Position Configuration
+
+The `position` prop accepts an object with the following properties:
+
+| Property    | Type                    | Default   | Description                                      |
+|-------------|-------------------------|-----------|--------------------------------------------------|
+| side        | "top" \| "right" \| "bottom" \| "left" | "right" | The side where the tooltip appears |
+| align       | "start" \| "center" \| "end" | "center" | The alignment of the tooltip |
+| sideOffset  | number                  | -         | The offset from the side in pixels               | 

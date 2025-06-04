@@ -7,14 +7,11 @@ import { Button, FormInput, SettingCard } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
+import { keyBytesSchema } from "../../_components/create-key/create-key.schema";
 
 const formSchema = z.object({
   keyAuthId: z.string(),
-  defaultBytes: z
-    .number()
-    .min(8, "Key must be between 8 and 255 bytes long")
-    .max(255, "Key must be between 8 and 255 bytes long")
-    .optional(),
+  defaultBytes: keyBytesSchema,
 });
 
 type Props = {
@@ -45,12 +42,37 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth, apiId }) => {
 
   const setDefaultBytes = trpc.api.setDefaultBytes.useMutation({
     onSuccess() {
-      toast.success("Default Byte length for this API is updated!");
+      toast.success("Default Byte Length Updated", {
+        description: "Default byte length for this API has been successfully updated.",
+      });
       router.refresh();
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+
+      if (err.data?.code === "NOT_FOUND") {
+        toast.error("API Configuration Not Found", {
+          description:
+            "Unable to find the correct API configuration. Please refresh and try again.",
+        });
+      } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
+        toast.error("Server Error", {
+          description:
+            "We encountered an issue while updating the default bytes. Please try again later or contact support at support@unkey.dev",
+        });
+      } else if (err.data?.code === "BAD_REQUEST") {
+        toast.error("Invalid Configuration", {
+          description: `Please check your byte length settings. ${err.message || ""}`,
+        });
+      } else {
+        toast.error("Failed to Update Default Bytes", {
+          description: err.message || "An unexpected error occurred. Please try again later.",
+          action: {
+            label: "Contact Support",
+            onClick: () => window.open("https://support.unkey.dev", "_blank"),
+          },
+        });
+      }
     },
   });
 

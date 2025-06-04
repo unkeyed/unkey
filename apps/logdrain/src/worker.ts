@@ -183,4 +183,5 @@ app.all("*", async (c) => {
   }
 });
 
+// biome-ignore lint/style/noDefaultExport: We can leave this as is for now
 export default app;

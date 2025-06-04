@@ -25,7 +25,27 @@
       },
       "style": {
         "useBlockStatements": "error",
-        "noNonNullAssertion": "off"
+        "noNonNullAssertion": "off",
+        "useConst": "error",
+        "noUselessElse": "error",
+        "useImportType": "error",
+        "useFragmentSyntax": "error",
+        "useAsConstAssertion": "error",
+        "useTemplate": "error",
+        "noYodaExpression": "error",
+        "noUnusedTemplateLiteral": "error",
+        "noNegationElse": "error",
+        "useSelfClosingElements": "error",
+        "useShorthandAssign": "error",
+        "noParameterAssign": "error",
+        "useNumberNamespace": "error",
+        "noVar": "error",
+        "useSingleVarDeclarator": "error",
+        "noDefaultExport": "error",
+        "useExportType": "error",
+        "useThrowOnlyError": "error",
+        "noShoutyConstants": "error",
+        "useDefaultParameterLast": "error"
       },
       "performance": {
         "noDelete": "off"
@@ -34,8 +54,9 @@
         "noDoubleEquals": "error",
         "useIsArray": "error",
         "noFallthroughSwitchClause": "error",
-        "noExplicitAny": "off",
-        "noConsoleLog": "warn"
+        "noExplicitAny": "error",
+        "noConsoleLog": "warn",
+        "recommended": true
       },
       "complexity": {
         "noForEach": "off",
@@ -92,5 +113,47 @@
       ".content-collections",
       "./internal/auth-migrator"
     ]
-  }
+  },
+  "overrides": [
+    {
+      "include": ["cmd/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsoleLog": "off",
+            "noExplicitAny": "off"
+          }
+        }
+      }
+    },
+    {
+      "include": ["**/*.test.*", "**/*.spec.*", "**/__tests__/**", "**/test/**", "**/tests/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsoleLog": "off",
+            "noExplicitAny": "off"
+          }
+        }
+      }
+    },
+    {
+      "include": [
+        "**/page.tsx",
+        "**/layout.tsx",
+        "**/loading.tsx",
+        "**/error.tsx",
+        "**/not-found.tsx",
+        "**/route.ts",
+        "**/*.config.*"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off"
+          }
+        }
+      }
+    }
+  ]
 }

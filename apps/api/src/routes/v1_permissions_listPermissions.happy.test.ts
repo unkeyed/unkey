@@ -14,6 +14,7 @@ test("return all permissions", async (t) => {
   const permission = {
     id: newId("test"),
     name: randomUUID(),
+    slug: randomUUID(),
     workspaceId: h.resources.userWorkspace.id,
   };
   await h.db.primary.insert(schema.permissions).values(permission);

@@ -20,6 +20,7 @@ const createNavigableDialogContext = <TStepName extends string>() => {
 // The actual type safety is enforced later by the typed hooks
 // (useNavigableDialog<T>) that properly cast this context to the correct generic type.
 // @ts-expect-error Type 'Context<NavigableDialogContextType<string> | undefined>' is not assignable to 'Context<NavigableDialogContextType<any>>'
+// biome-ignore lint/suspicious/noExplicitAny: safe to leave
 const NavigableDialogContext: React.Context<NavigableDialogContextType<any>> =
   createNavigableDialogContext();
 

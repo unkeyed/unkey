@@ -4,6 +4,7 @@ import { WorkOS } from "@workos-inc/node";
 import freeDomains from "free-email-domains";
 import type { NextApiRequest, NextApiResponse } from "next";
 
+// biome-ignore lint/style/noDefaultExport: required by next.js
 export default async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === "POST") {
     const payload = req.body;

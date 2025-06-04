@@ -1,7 +1,7 @@
 import { isDisplayProperty, useLogsContext } from "@/app/(app)/logs/context/logs";
-import { KeyboardButton } from "@/components/keyboard-button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
+import { KeyboardButton } from "@unkey/ui";
 import {
   type KeyboardEvent,
   type PropsWithChildren,
@@ -10,7 +10,24 @@ import {
   useState,
 } from "react";
 
-const DISPLAY_PROPERTIES = [
+type DisplayPropertyId =
+  | "time"
+  | "response_status"
+  | "method"
+  | "path"
+  | "response_body"
+  | "request_id"
+  | "host"
+  | "request_headers"
+  | "request_body"
+  | "response_headers";
+
+type DisplayProperty = {
+  id: DisplayPropertyId;
+  label: string;
+};
+
+const DISPLAY_PROPERTIES: DisplayProperty[] = [
   { id: "time", label: "Time" },
   { id: "response_status", label: "Status" },
   { id: "method", label: "Method" },
@@ -150,7 +167,7 @@ export const DisplayPopover = ({ children }: PropsWithChildren) => {
               <DisplayPropertyItem
                 key={prop.id}
                 label={prop.label}
-                selected={displayProperties.has(prop.id as any)}
+                selected={displayProperties.has(prop.id)}
                 onClick={() => {
                   if (isDisplayProperty(prop.id)) {
                     toggleDisplayProperty(prop.id);
@@ -166,5 +183,3 @@ export const DisplayPopover = ({ children }: PropsWithChildren) => {
     </Popover>
   );
 };
-
-export default DisplayPopover;
