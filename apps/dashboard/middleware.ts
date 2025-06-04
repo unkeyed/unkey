@@ -5,7 +5,10 @@ import type { NextFetchEvent } from "next/server";
 import { SIGN_IN_URL } from "./lib/auth/types";
 
 // biome-ignore lint/style/noDefaultExport: required by next.js
-export default async function middleware(req: NextRequest, _evt: NextFetchEvent) {
+export default async function middleware(
+  req: NextRequest,
+  _evt: NextFetchEvent
+) {
   const url = new URL(req.url);
 
   // Special redirect for gateway.new
@@ -47,6 +50,14 @@ export default async function middleware(req: NextRequest, _evt: NextFetchEvent)
     });
   };
 
+  if (
+    !req.nextUrl.searchParams.get("session_id") === null &&
+    url.pathname === "/settings/billing/stripe/checkout"
+  ) {
+    console.log("returning from Stripe");
+    return NextResponse.next();
+  }
+
   // Skip authentication for public paths
   if (isPublicPath(url.pathname)) {
     return NextResponse.next();
@@ -59,13 +70,7 @@ export default async function middleware(req: NextRequest, _evt: NextFetchEvent)
 
   try {
     const { session, headers } = await authMiddleware(req);
-    if (
-      !req.nextUrl.searchParams.get("session_id") === null &&
-      url.pathname === "/settings/billing/stripe/checkout"
-    ) {
-      console.log("returning from Stripe");
-      return NextResponse.next();
-    }
+
     if (!session) {
       return NextResponse.redirect(new URL(SIGN_IN_URL, url));
     }
