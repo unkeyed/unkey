@@ -1,5 +1,4 @@
 "use client";
-import { Loading } from "@/components/dashboard/loading";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
@@ -91,7 +90,7 @@ export const UpdateRootKeyName: React.FC<Props> = ({ apiKey }) => {
             type="submit"
             loading={updateName.isLoading}
           >
-            {updateName.isLoading ? <Loading /> : "Save"}
+            Save
           </Button>
         </CardFooter>
       </Card>

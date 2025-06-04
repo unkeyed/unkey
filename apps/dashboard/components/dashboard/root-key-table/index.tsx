@@ -25,7 +25,6 @@ import { ArrowUpDown, Minus, MoreHorizontal, MoreVertical, Trash } from "lucide-
 import ms from "ms";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loading } from "../loading";
 import { DataTable } from "./table";
 type Column = {
   id: string;
@@ -198,8 +197,9 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
                       variant="destructive"
                       disabled={deleteKey.isLoading}
                       onClick={() => deleteKey.mutate({ keyIds: [row.original.id] })}
+                      loading={deleteKey.isLoading}
                     >
-                      {deleteKey.isLoading ? <Loading /> : "Delete permanently"}
+                      Delete permanently
                     </Button>
                   </DialogFooter>
                 </DialogContent>

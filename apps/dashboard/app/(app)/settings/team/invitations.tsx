@@ -1,6 +1,5 @@
 "use client";
 
-import { Loading } from "@/components/dashboard/loading";
 import {
   Table,
   TableBody,
@@ -12,8 +11,7 @@ import {
 import { toast } from "@/components/ui/toaster";
 import type { AuthenticatedUser, Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
-import { Empty } from "@unkey/ui";
-import { Button } from "@unkey/ui";
+import { Button, Empty, Loading } from "@unkey/ui";
 import { memo } from "react";
 import { InviteButton } from "./invite";
 import { StatusBadge } from "./status-badge";

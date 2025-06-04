@@ -1,6 +1,5 @@
 "use client";
 
-import { Loading } from "@/components/dashboard/loading";
 import { toast } from "@/components/ui/toaster";
 import { setCookie } from "@/lib/auth/cookies";
 import { UNKEY_SESSION_COOKIE } from "@/lib/auth/types";
@@ -137,7 +136,7 @@ export const CreateWorkspace: React.FC = () => {
               loading={createWorkspace.isLoading || isPending}
               className="w-full h-9"
             >
-              {createWorkspace.isLoading || isPending ? <Loading /> : "Create Workspace"}
+              Create Workspace
             </Button>
           </div>
         </form>

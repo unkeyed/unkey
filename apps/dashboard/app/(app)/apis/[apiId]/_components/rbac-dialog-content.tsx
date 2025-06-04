@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
-import { AnimatedLoadingSpinner, Button } from "@unkey/ui";
+import { Button, Loading } from "@unkey/ui";
 import dynamic from "next/dynamic";
 
 const PermissionList = dynamic(
@@ -45,7 +45,7 @@ export function RBACDialogContent({ keyId, keyspaceId }: Props) {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center p-4 min-h-[250px] [&_svg]:size-10">
-        <AnimatedLoadingSpinner />
+        <Loading size={18} />
       </div>
     );
   }

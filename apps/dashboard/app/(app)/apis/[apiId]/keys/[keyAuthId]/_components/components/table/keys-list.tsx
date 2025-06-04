@@ -3,7 +3,7 @@ import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { BookBookmark, Dots, Focus, Key } from "@unkey/icons";
-import { AnimatedLoadingSpinner, Button, Checkbox, Empty, InfoTooltip } from "@unkey/ui";
+import { Button, Checkbox, Empty, InfoTooltip, Loading } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -105,7 +105,7 @@ export const KeysList = ({
             >
               {isNavigating ? (
                 <div className={cn(identity ? "text-successA-11" : "text-grayA-11")}>
-                  <AnimatedLoadingSpinner />
+                  <Loading size={18} />
                 </div>
               ) : (
                 <>

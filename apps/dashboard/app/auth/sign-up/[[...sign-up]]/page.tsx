@@ -1,6 +1,6 @@
 "use client";
-import { Loading } from "@/components/dashboard/loading";
 import { FadeIn } from "@/components/landing/fade-in";
+import { Loading } from "@unkey/ui";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";

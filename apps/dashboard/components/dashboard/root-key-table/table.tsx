@@ -42,7 +42,6 @@ import { trpc } from "@/lib/trpc/client";
 import { Button, Input } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Loading } from "../loading";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -118,8 +117,9 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
                         .rows.map((row) => row.original.id as string);
                       deleteKey.mutate({ keyIds });
                     }}
+                    loading={deleteKey.isLoading}
                   >
-                    {deleteKey.isLoading ? <Loading /> : "Delete permanently"}
+                    Delete permanently
                   </Button>
                 </DialogFooter>
               </DialogContent>
