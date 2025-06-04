@@ -1,27 +1,7 @@
 import { db } from "@/lib/db";
 import { ratelimit, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import { z } from "zod";
-
-const LIMIT = 50;
-const keysSearchPayload = z.object({
-  query: z.string().min(1, "Search query cannot be empty"),
-});
-
-const RoleSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-});
-
-const KeySearchResponseSchema = z.object({
-  id: z.string(),
-  name: z.string().nullable(),
-  roles: z.array(RoleSchema),
-});
-
-const KeysSearchResponse = z.object({
-  keys: z.array(KeySearchResponseSchema),
-});
+import { KeysSearchResponse, LIMIT, keysSearchPayload, transformKey } from "./schema-with-helpers";
 
 export const searchKeys = t.procedure
   .use(requireWorkspace)
@@ -73,17 +53,8 @@ export const searchKeys = t.procedure
         },
       });
 
-      const transformedKeys = keysQuery.map((key) => ({
-        id: key.id,
-        name: key.name,
-        roles: key.roles.map((keyRole) => ({
-          id: keyRole.role.id,
-          name: keyRole.role.name,
-        })),
-      }));
-
       return {
-        keys: transformedKeys,
+        keys: keysQuery.map(transformKey),
       };
     } catch (error) {
       console.error("Error searching keys:", error);

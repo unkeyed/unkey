@@ -1,29 +1,7 @@
 import { db } from "@/lib/db";
 import { ratelimit, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import { z } from "zod";
-
-const LIMIT = 50;
-const keysQueryPayload = z.object({
-  cursor: z.string().optional(),
-});
-
-const RoleSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-});
-
-const KeyResponseSchema = z.object({
-  id: z.string(),
-  name: z.string().nullable(),
-  roles: z.array(RoleSchema),
-});
-
-const KeysResponse = z.object({
-  keys: z.array(KeyResponseSchema),
-  hasMore: z.boolean(),
-  nextCursor: z.string().nullish(),
-});
+import { KeysResponse, LIMIT, keysQueryPayload, transformKey } from "./schema-with-helpers";
 
 export const queryKeys = t.procedure
   .use(requireWorkspace)
@@ -73,21 +51,10 @@ export const queryKeys = t.procedure
 
       // Remove the extra item if it exists
       const keys = hasMore ? keysQuery.slice(0, LIMIT) : keysQuery;
-
-      const transformedKeys = keys.map((key) => ({
-        id: key.id,
-        name: key.name,
-        roles: key.roles
-          .filter((keyRole) => keyRole.role !== null)
-          .map((keyRole) => ({
-            id: keyRole.role.id,
-            name: keyRole.role.name,
-          })),
-      }));
       const nextCursor = hasMore && keys.length > 0 ? keys[keys.length - 1].id : undefined;
 
       return {
-        keys: transformedKeys,
+        keys: keys.map(transformKey),
         hasMore,
         nextCursor,
       };
