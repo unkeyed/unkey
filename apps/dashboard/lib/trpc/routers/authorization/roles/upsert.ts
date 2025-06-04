@@ -157,7 +157,7 @@ export const upsertRole = t.procedure
       }
 
       // Add role-permission relationships
-      if (input.permissionIds.length > 0) {
+      if (input.permissionIds && input.permissionIds.length > 0) {
         await tx
           .insert(schema.rolesPermissions)
           .values(
@@ -197,7 +197,7 @@ export const upsertRole = t.procedure
       }
 
       // Add key-role relationships
-      if (input.keyIds.length > 0) {
+      if (input.keyIds && input.keyIds.length > 0) {
         await tx
           .insert(schema.keysRoles)
           .values(

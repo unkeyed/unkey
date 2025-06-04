@@ -10,7 +10,7 @@ export const useUpsertRole = (
 ) => {
   const trpcUtils = trpc.useUtils();
 
-  const role = trpc.authorization.upsert.useMutation({
+  const role = trpc.authorization.roles.upsert.useMutation({
     onSuccess(data) {
       trpcUtils.authorization.roles.invalidate();
 

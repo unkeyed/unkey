@@ -159,15 +159,17 @@ export const router = t.router({
     createIssue: createPlainIssue,
   }),
   authorization: t.router({
-    roles: queryRoles,
-    upsert: upsertRole,
-    keys: t.router({
-      search: searchKeys,
-      query: queryKeys,
-    }),
-    permissions: t.router({
-      search: searchRolesPermissions,
-      query: queryRolesPermissions,
+    roles: t.router({
+      query: queryRoles,
+      keys: t.router({
+        search: searchKeys,
+        query: queryKeys,
+      }),
+      permissions: t.router({
+        search: searchRolesPermissions,
+        query: queryRolesPermissions,
+      }),
+      upsert: upsertRole,
     }),
   }),
   rbac: t.router({

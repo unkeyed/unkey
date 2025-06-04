@@ -5,7 +5,7 @@ import { useMemo } from "react";
 
 export const useFetchPermissions = (limit = 50) => {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    trpc.authorization.permissions.query.useInfiniteQuery(
+    trpc.authorization.roles.permissions.query.useInfiniteQuery(
       {
         limit,
       },

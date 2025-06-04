@@ -45,7 +45,7 @@ export function useRolesListQuery() {
     fetchNextPage,
     isFetchingNextPage,
     isLoading: isLoadingInitial,
-  } = trpc.authorization.roles.useInfiniteQuery(queryParams, {
+  } = trpc.authorization.roles.query.useInfiniteQuery(queryParams, {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,

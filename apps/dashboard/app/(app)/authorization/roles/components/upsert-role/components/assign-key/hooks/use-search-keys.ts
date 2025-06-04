@@ -2,7 +2,7 @@ import { trpc } from "@/lib/trpc/client";
 import { useMemo } from "react";
 
 export const useSearchKeys = (query: string) => {
-  const { data, isLoading, error } = trpc.authorization.keys.search.useQuery(
+  const { data, isLoading, error } = trpc.authorization.roles.keys.search.useQuery(
     { query },
     {
       enabled: query.trim().length > 0, // Only search when there's a query
