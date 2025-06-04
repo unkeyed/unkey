@@ -1,13 +1,12 @@
 "use client";
-import { KeysTableActionPopover } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import type { Roles } from "@/lib/trpc/routers/authorization/roles/query";
-import { Asterisk, BookBookmark, Key2, Tag } from "@unkey/icons";
+import { BookBookmark, HandHoldingKey, Key2, Tag } from "@unkey/icons";
 import { Button, Checkbox, Empty } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useCallback, useMemo, useState } from "react";
-import { getRolesTableActionItems } from "./components/actions/keys-table-action.popover.constants";
+import { RolesTableActions } from "./components/actions/keys-table-action.popover.constants";
 import { LastUpdated } from "./components/last-updated";
 import { SelectionControls } from "./components/selection-controls";
 import {
@@ -140,8 +139,8 @@ export const RolesList = () => {
         key: "action",
         header: "",
         width: "15%",
-        render: (key) => {
-          return <KeysTableActionPopover items={getRolesTableActionItems(key)} />;
+        render: (role) => {
+          return <RolesTableActions role={role} />;
         },
       },
     ],
@@ -244,7 +243,7 @@ const AssignedItemsCell = ({
     type === "keys" ? (
       <Key2 size="md-regular" />
     ) : (
-      <Asterisk className="size-3" size="md-regular" />
+      <HandHoldingKey className="size-3" size="md-regular" />
     );
 
   const itemClassName = cn(
@@ -279,7 +278,7 @@ const AssignedItemsCell = ({
       {hasMore && (
         <div className={itemClassName}>
           <span className="text-grayA-9 text-xs max-w-[150px] truncate">
-            more {totalCount - items.length} {type}...
+            {totalCount - items.length} more {type}...
           </span>
         </div>
       )}

@@ -1,6 +1,6 @@
 import { FormCombobox } from "@/components/ui/form-combobox";
 import type { RolePermission } from "@/lib/trpc/routers/authorization/roles/connected-keys-and-perms";
-import { Key2, XMark } from "@unkey/icons";
+import { HandHoldingKey, XMark } from "@unkey/icons";
 import { useMemo, useState } from "react";
 import { createPermissionOptions } from "./create-permission-options";
 import { useFetchPermissions } from "./hooks/use-fetch-permissions";
@@ -164,7 +164,7 @@ export const PermissionField = ({
                 className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-black border border-gray-5 rounded-md text-xs h-12 w-full"
               >
                 <div className="border rounded-full flex items-center justify-center border-grayA-6 size-4 flex-shrink-0">
-                  <Key2 size="sm-regular" className="text-grayA-11" />
+                  <HandHoldingKey size="sm-regular" className="text-grayA-11" />
                 </div>
                 <div className="flex flex-col gap-0.5 min-w-0">
                   <span className="font-medium text-accent-12 truncate text-xs">

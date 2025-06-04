@@ -17,6 +17,8 @@ export type MenuItem = {
   disabled?: boolean;
   divider?: boolean;
   ActionComponent?: FC<ActionComponentProps>;
+  prefetch?: () => Promise<void>;
+  shouldPrefetch?: boolean;
 };
 
 type BaseTableActionPopoverProps = PropsWithChildren<{
@@ -32,20 +34,44 @@ export const KeysTableActionPopover = ({
   const [enabledItem, setEnabledItem] = useState<string>();
   const [open, setOpen] = useState(false);
   const [focusIndex, setFocusIndex] = useState(0);
+  const [prefetchedItems, setPrefetchedItems] = useState<Set<string>>(new Set());
   const menuItems = useRef<HTMLDivElement[]>([]);
 
   useEffect(() => {
     if (open) {
+      // Prefetch all items that need prefetching when popover opens
+      items
+        .filter((item) => item.shouldPrefetch && item.prefetch && !prefetchedItems.has(item.id))
+        .forEach(async (item) => {
+          try {
+            await item.prefetch!();
+            setPrefetchedItems((prev) => new Set(prev).add(item.id));
+          } catch (error) {
+            console.error(`Failed to prefetch data for ${item.id}:`, error);
+          }
+        });
+
       const firstEnabledIndex = items.findIndex((item) => !item.disabled);
       setFocusIndex(firstEnabledIndex >= 0 ? firstEnabledIndex : 0);
       if (firstEnabledIndex >= 0) {
         menuItems.current[firstEnabledIndex]?.focus();
       }
     }
-  }, [open, items]);
+  }, [open, items, prefetchedItems]);
 
   const handleActionSelection = (value: string) => {
     setEnabledItem(value);
+  };
+
+  const handleItemHover = async (item: MenuItem) => {
+    if (item.shouldPrefetch && item.prefetch && !prefetchedItems.has(item.id)) {
+      try {
+        await item.prefetch();
+        setPrefetchedItems((prev) => new Set(prev).add(item.id));
+      } catch (error) {
+        console.error(`Failed to prefetch data for ${item.id}:`, error);
+      }
+    }
   };
 
   return (
@@ -107,6 +133,7 @@ export const KeysTableActionPopover = ({
                     item.disabled && "cursor-not-allowed opacity-50",
                     item.className,
                   )}
+                  onMouseEnter={() => handleItemHover(item)}
                   onClick={(e) => {
                     if (!item.disabled) {
                       item.onClick?.(e);
