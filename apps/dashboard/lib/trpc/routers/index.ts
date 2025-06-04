@@ -20,6 +20,7 @@ import { updateApiIpWhitelist } from "./api/updateIpWhitelist";
 import { updateApiName } from "./api/updateName";
 import { fetchAuditLog } from "./audit/fetch";
 import { auditLogsSearch } from "./audit/llm-search";
+import { getConnectedKeysAndPerms } from "./authorization/roles/connected-keys-and-perms";
 import { queryKeys } from "./authorization/roles/keys/query-keys";
 import { searchKeys } from "./authorization/roles/keys/search-key";
 import { queryRolesPermissions } from "./authorization/roles/permissions/query-permissions";
@@ -170,6 +171,7 @@ export const router = t.router({
         query: queryRolesPermissions,
       }),
       upsert: upsertRole,
+      connectedKeysAndPerms: getConnectedKeysAndPerms,
     }),
   }),
   rbac: t.router({

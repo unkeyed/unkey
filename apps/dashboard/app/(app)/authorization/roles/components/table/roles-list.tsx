@@ -1,4 +1,5 @@
 "use client";
+import { KeysTableActionPopover } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import type { Roles } from "@/lib/trpc/routers/authorization/roles/query";
@@ -6,6 +7,7 @@ import { Asterisk, BookBookmark, Key2, Tag } from "@unkey/icons";
 import { Button, Checkbox, Empty } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useCallback, useMemo, useState } from "react";
+import { getRolesTableActionItems } from "./components/actions/keys-table-action.popover.constants";
 import { LastUpdated } from "./components/last-updated";
 import {
   AssignedKeysColumnSkeleton,
@@ -130,6 +132,14 @@ export const RolesList = () => {
               isSelected={role.roleId === selectedRole?.roleId}
             />
           );
+        },
+      },
+      {
+        key: "action",
+        header: "",
+        width: "15%",
+        render: (key) => {
+          return <KeysTableActionPopover items={getRolesTableActionItems(key)} />;
         },
       },
     ],

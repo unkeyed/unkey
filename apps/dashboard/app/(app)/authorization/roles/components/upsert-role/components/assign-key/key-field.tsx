@@ -11,9 +11,17 @@ type KeyFieldProps = {
   error?: string;
   disabled?: boolean;
   roleId?: string;
+  selectedKeysData?: { keyId: string; keyName: string | null }[];
 };
 
-export const KeyField = ({ value, onChange, error, disabled = false, roleId }: KeyFieldProps) => {
+export const KeyField = ({
+  value,
+  onChange,
+  error,
+  disabled = false,
+  roleId,
+  selectedKeysData = [],
+}: KeyFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
   const { keys, isFetchingNextPage, hasNextPage, loadMore } = useFetchKeys();
   const { searchResults, isSearching } = useSearchKeys(searchValue);
@@ -74,12 +82,35 @@ export const KeyField = ({ value, onChange, error, disabled = false, roleId }: K
     });
   }, [baseOptions, allKeys, roleId, value]);
 
-  // Get selected key details for display
   const selectedKeys = useMemo(() => {
     return value
-      .map((keyId) => allKeys.find((k) => k.id === keyId))
+      .map((keyId) => {
+        // First: check selectedKeysData (for pre-loaded edit data)
+        const preLoadedKey = selectedKeysData.find((k) => k.keyId === keyId);
+        if (preLoadedKey) {
+          return {
+            id: preLoadedKey.keyId,
+            name: preLoadedKey.keyName,
+          };
+        }
+
+        // Second: check loaded keys (for newly added keys)
+        const loadedKey = allKeys.find((k) => k.id === keyId);
+        if (loadedKey) {
+          return {
+            id: loadedKey.id,
+            name: loadedKey.name,
+          };
+        }
+
+        // Third: fallback to ID-only display (ensures key is always removable)
+        return {
+          id: keyId,
+          name: null,
+        };
+      })
       .filter((key): key is NonNullable<typeof key> => key !== undefined);
-  }, [value, allKeys]);
+  }, [value, allKeys, selectedKeysData]);
 
   const handleRemoveKey = (keyId: string) => {
     onChange(value.filter((id) => id !== keyId));
@@ -147,7 +178,7 @@ export const KeyField = ({ value, onChange, error, disabled = false, roleId }: K
                   <button
                     type="button"
                     onClick={() => handleRemoveKey(key.id)}
-                    className="ml-1 p-0.5 hover:bg-grayA-4 rounded text-grayA-11 hover:text-accent-12 transition-colors flex-shrink-0"
+                    className="p-0.5 hover:bg-grayA-4 rounded text-grayA-11 hover:text-accent-12 transition-colors flex-shrink-0 ml-auto"
                     aria-label={`Remove ${key.name || key.id}`}
                   >
                     <XMark size="sm-regular" />

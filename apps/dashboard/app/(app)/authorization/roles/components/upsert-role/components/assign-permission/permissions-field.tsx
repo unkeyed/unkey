@@ -11,6 +11,12 @@ type PermissionFieldProps = {
   error?: string;
   disabled?: boolean;
   roleId?: string;
+  selectedPermissionsData?: {
+    id: string;
+    name: string;
+    slug: string;
+    description: string | null;
+  }[];
 };
 
 export const PermissionField = ({
@@ -19,6 +25,7 @@ export const PermissionField = ({
   error,
   disabled = false,
   roleId,
+  selectedPermissionsData = [],
 }: PermissionFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
   const { permissions, isFetchingNextPage, hasNextPage, loadMore } = useFetchPermissions();
@@ -83,14 +90,31 @@ export const PermissionField = ({
     });
   }, [baseOptions, allPermissions, roleId, value]);
 
-  // Get selected permission details for display
   const selectedPermissions = useMemo(() => {
     return value
-      .map((permissionId) => allPermissions.find((p) => p.id === permissionId))
-      .filter(
-        (permission): permission is NonNullable<typeof permission> => permission !== undefined,
-      );
-  }, [value, allPermissions]);
+      .map((id) => {
+        // First: check selectedPermissionsData (for pre-loaded edit data)
+        const preLoadedPerm = selectedPermissionsData.find((p) => p.slug === id);
+        if (preLoadedPerm) {
+          return preLoadedPerm;
+        }
+
+        // Second: check loaded permissions (for newly added permissions)
+        const loadedPerm = allPermissions.find((p) => p.slug === id);
+        if (loadedPerm) {
+          return loadedPerm;
+        }
+
+        // Third: fallback
+        return {
+          id: id,
+          name: id,
+          slug: id,
+          description: null,
+        };
+      })
+      .filter((perm): perm is NonNullable<typeof perm> => perm !== undefined);
+  }, [value, allPermissions, selectedPermissionsData]);
 
   const handleRemovePermission = (permissionId: string) => {
     onChange(value.filter((id) => id !== permissionId));
@@ -158,7 +182,7 @@ export const PermissionField = ({
                   <button
                     type="button"
                     onClick={() => handleRemovePermission(permission.id)}
-                    className="ml-1 p-0.5 hover:bg-grayA-4 rounded text-grayA-11 hover:text-accent-12 transition-colors flex-shrink-0"
+                    className="ml-1 p-0.5 hover:bg-grayA-4 rounded text-grayA-11 hover:text-accent-12 transition-colors flex-shrink-0 ml-auto"
                     aria-label={`Remove ${permission.name}`}
                   >
                     <XMark size="sm-regular" />

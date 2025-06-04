@@ -1,3 +1,5 @@
+import { KeyInfo } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/actions/components/key-info";
+import type { ActionComponentProps } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover";
 import { ConfirmPopover } from "@/components/confirmation-popover";
 import { DialogContainer } from "@/components/dialog-container";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
@@ -7,9 +9,7 @@ import { Button, FormCheckbox } from "@unkey/ui";
 import { useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
-import type { ActionComponentProps } from "../keys-table-action.popover";
 import { useDeleteKey } from "./hooks/use-delete-key";
-import { KeyInfo } from "./key-info";
 
 const deleteKeyFormSchema = z.object({
   confirmDeletion: z.boolean().refine((val) => val === true, {

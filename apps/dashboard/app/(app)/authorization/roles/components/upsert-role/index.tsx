@@ -22,25 +22,44 @@ const getDefaultValues = (): Partial<FormValues> => ({
   permissionIds: [],
 });
 
-interface UpsertRoleDialogProps {
+type UpsertRoleDialogProps = {
   roleId?: string;
   existingRole?: {
     name: string;
-    slug: string;
     description?: string;
     keyIds: string[];
     permissionIds?: string[];
   };
   triggerButton?: React.ReactNode;
-}
+  isOpen?: boolean;
+  onClose?: () => void;
+  selectedKeysData?: { keyId: string; keyName: string | null }[];
+  selectedPermissionsData?: {
+    id: string;
+    name: string;
+    slug: string;
+    description: string | null;
+  }[];
+};
 
 export const UpsertRoleDialog = ({
   roleId,
   existingRole,
   triggerButton,
+  isOpen: externalIsOpen,
+  onClose: externalOnClose,
+  selectedKeysData,
+  selectedPermissionsData,
 }: UpsertRoleDialogProps) => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isEditMode = Boolean(roleId);
+
+  // Use external state if provided, otherwise use internal state
+  const isDialogOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
+  const setIsDialogOpen =
+    externalOnClose !== undefined
+      ? (open: boolean) => !open && externalOnClose()
+      : setInternalIsOpen;
 
   // Use different storage keys for create vs edit to avoid conflicts
   const storageKey = isEditMode ? `${FORM_STORAGE_KEY}_edit_${roleId}` : FORM_STORAGE_KEY;
@@ -200,6 +219,7 @@ export const UpsertRoleDialog = ({
                     value={field.value || []}
                     onChange={field.onChange}
                     error={fieldState.error?.message}
+                    selectedKeysData={selectedKeysData}
                   />
                 )}
               />
@@ -213,6 +233,7 @@ export const UpsertRoleDialog = ({
                     value={field.value || []}
                     onChange={field.onChange}
                     error={fieldState.error?.message}
+                    selectedPermissionsData={selectedPermissionsData}
                   />
                 )}
               />

@@ -34,7 +34,7 @@ export const permissionIdsSchema = z
       message: "Each permission ID must start with 'perm_'",
     }),
   )
-  .min(1, { message: "Role must have at least one permission assigned" })
+  .default([])
   .transform((ids) => [...new Set(ids)]) // Remove duplicates
   .optional();
 

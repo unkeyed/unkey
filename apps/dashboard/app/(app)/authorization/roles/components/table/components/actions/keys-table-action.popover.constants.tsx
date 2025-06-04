@@ -1,43 +1,28 @@
+import type { MenuItem } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover";
 import { toast } from "@/components/ui/toaster";
-import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import {
-  ArrowOppositeDirectionY,
-  Ban,
-  CalendarClock,
-  ChartPie,
-  Check,
-  Clone,
-  Code,
-  Gauge,
-  PenWriting3,
-  Trash,
-} from "@unkey/icons";
+import type { Roles } from "@/lib/trpc/routers/authorization/roles/query";
+import { Clone, PenWriting3, Trash } from "@unkey/icons";
+import { useEffect } from "react";
+import { UpsertRoleDialog } from "../../../upsert-role";
 import { DeleteKey } from "./components/delete-key";
-import { UpdateKeyStatus } from "./components/disable-key";
-import { EditCredits } from "./components/edit-credits";
-import { EditExpiration } from "./components/edit-expiration";
-import { EditExternalId } from "./components/edit-external-id";
-import { EditKeyName } from "./components/edit-key-name";
-import { EditMetadata } from "./components/edit-metadata";
-import { EditRatelimits } from "./components/edit-ratelimits";
-import type { MenuItem } from "./keys-table-action.popover";
+import { useFetchConnectedKeysAndPerms } from "./components/hooks/use-fetch-connected-keys-and-perms";
 
-export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
+export const getRolesTableActionItems = (role: Roles): MenuItem[] => {
   return [
     {
-      id: "override",
-      label: "Edit key name...",
+      id: "edit-role",
+      label: "Edit role...",
       icon: <PenWriting3 size="md-regular" />,
-      ActionComponent: (props) => <EditKeyName {...props} keyDetails={key} />,
+      ActionComponent: (props) => <EditRole role={role} {...props} />,
     },
     {
       id: "copy",
-      label: "Copy key ID",
+      label: "Copy role",
       className: "mt-1",
       icon: <Clone size="md-regular" />,
       onClick: () => {
         navigator.clipboard
-          .writeText(key.id)
+          .writeText(JSON.stringify(role))
           .then(() => {
             toast.success("Key ID copied to clipboard");
           })
@@ -49,49 +34,66 @@ export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
       divider: true,
     },
     {
-      id: "edit-external-id",
-      label: "Edit External ID...",
-      icon: <ArrowOppositeDirectionY size="md-regular" />,
-      ActionComponent: (props) => <EditExternalId {...props} keyDetails={key} />,
-      divider: true,
-    },
-    {
-      id: key.enabled ? "disable-key" : "enable-key",
-      label: key.enabled ? "Disable Key..." : "Enable Key...",
-      icon: key.enabled ? <Ban size="md-regular" /> : <Check size="md-regular" />,
-      ActionComponent: (props) => <UpdateKeyStatus {...props} keyDetails={key} />,
-      divider: true,
-    },
-    {
-      id: "edit-credits",
-      label: "Edit credits...",
-      icon: <ChartPie size="md-regular" />,
-      ActionComponent: (props) => <EditCredits {...props} keyDetails={key} />,
-    },
-    {
-      id: "edit-ratelimit",
-      label: "Edit ratelimit...",
-      icon: <Gauge size="md-regular" />,
-      ActionComponent: (props) => <EditRatelimits {...props} keyDetails={key} />,
-    },
-    {
-      id: "edit-expiration",
-      label: "Edit expiration...",
-      icon: <CalendarClock size="md-regular" />,
-      ActionComponent: (props) => <EditExpiration {...props} keyDetails={key} />,
-    },
-    {
-      id: "edit-metadata",
-      label: "Edit metadata...",
-      icon: <Code size="md-regular" />,
-      ActionComponent: (props) => <EditMetadata {...props} keyDetails={key} />,
-      divider: true,
-    },
-    {
-      id: "delete-key",
-      label: "Delete key",
+      id: "delete-role",
+      label: "Delete role",
       icon: <Trash size="md-regular" />,
-      ActionComponent: (props) => <DeleteKey {...props} keyDetails={key} />,
+      ActionComponent: (props) => <DeleteKey {...props} keyDetails={role} />,
     },
   ];
+};
+
+const EditRole = ({
+  role,
+  isOpen,
+  onClose,
+}: {
+  role: Roles;
+  isOpen: boolean;
+  onClose: () => void;
+}) => {
+  const { permissions, keys, error } = useFetchConnectedKeysAndPerms(role.roleId);
+
+  useEffect(() => {
+    if (error) {
+      if (error.data?.code === "NOT_FOUND") {
+        toast.error("Role Not Found", {
+          description: "The requested role doesn't exist or you don't have access to it.",
+        });
+      } else if (error.data?.code === "FORBIDDEN") {
+        toast.error("Access Denied", {
+          description:
+            "You don't have permission to view this role. Please contact your administrator.",
+        });
+      } else if (error.data?.code === "INTERNAL_SERVER_ERROR") {
+        toast.error("Server Error", {
+          description:
+            "We were unable to load role details. Please try again or contact support@unkey.dev",
+        });
+      } else {
+        toast.error("Failed to Load Role Details", {
+          description: error.message || "An unexpected error occurred. Please try again.",
+          action: {
+            label: "Contact Support",
+            onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
+          },
+        });
+      }
+    }
+  }, [error]);
+
+  return (
+    <UpsertRoleDialog
+      roleId={role.roleId}
+      selectedKeysData={keys}
+      selectedPermissionsData={permissions}
+      existingRole={{
+        keyIds: keys.map((key) => key.keyId),
+        permissionIds: permissions.map((permission) => permission.id),
+        name: role.name,
+        description: role.description,
+      }}
+      isOpen={isOpen}
+      onClose={onClose}
+    />
+  );
 };
