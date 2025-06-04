@@ -84,7 +84,7 @@ func New(certPEMBlock, keyPEMBlock []byte) (*tls.Config, error) {
 // The keyFile parameter should be the path to a PEM-encoded private key file.
 //
 // The function reads both files, verifies their content, and creates a properly
-// configured TLS configuration with secure defaults (TLS 1.2+).
+// configured TLS configuration with secure defaults (TLS 1.3+).
 //
 // If the files cannot be read or contain invalid certificate/key data, the function
 // returns a descriptive error. Common error cases include non-existent files, permission

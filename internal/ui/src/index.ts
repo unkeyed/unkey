@@ -1,6 +1,8 @@
 export * from "./components/button";
 export * from "./components/copy-button";
 export * from "./components/date-time/date-time";
+export * from "./components/dialog/dialog-container";
+export * from "./components/dialog/navigable-dialog";
 export * from "./components/empty";
 export * from "./components/form";
 export * from "./components/id";
@@ -13,3 +15,4 @@ export * from "./components/textarea";
 export * from "./components/checkbox";
 export * from "./components/timestamp-info";
 export * from "./components/tooltip";
+export * from "./components/keyboard-button";

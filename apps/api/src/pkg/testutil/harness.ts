@@ -108,7 +108,7 @@ export abstract class Harness {
       const create: InsertPermission[] = permissions.map((name) => ({
         id: newId("test"),
         name,
-        key: name,
+        slug: name,
         description: null,
         workspaceId: this.resources.unkeyWorkspace.id,
         updatedAtM: null,
@@ -204,6 +204,7 @@ export abstract class Harness {
     const permission: Permission = {
       id: newId("test"),
       name,
+      slug: name,
       workspaceId,
       createdAtM: Date.now(),
       updatedAtM: null,

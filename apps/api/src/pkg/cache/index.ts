@@ -17,7 +17,7 @@ export function initCache(c: Context<HonoEnv>, metrics: Metrics): C<CacheNamespa
     size: persistentMap.size,
     name: "cache",
   });
-  const stores: Array<Store<CacheNamespace, any>> = [];
+  const stores: Array<Store<CacheNamespace, unknown>> = [];
 
   const memory = new MemoryStore<CacheNamespace, CacheNamespaces[CacheNamespace]>({
     persistentMap,

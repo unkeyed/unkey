@@ -17,6 +17,7 @@ test("deletes permission", async (t) => {
   await h.db.primary.insert(schema.permissions).values({
     id: permissionId,
     name: randomUUID(),
+    slug: randomUUID(),
     workspaceId: h.resources.userWorkspace.id,
   });
 

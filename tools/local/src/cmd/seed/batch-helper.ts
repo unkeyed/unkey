@@ -141,12 +141,12 @@ export async function promptForApiRequestGeneration(): Promise<boolean> {
 export async function withDatabase<
   TSchema extends Record<string, unknown> = Record<string, unknown>,
 >(
-  operation: (db: DrizzleReturnType<TSchema>, conn: mysql.Connection) => Promise<any>,
+  operation: (db: DrizzleReturnType<TSchema>, conn: mysql.Connection) => Promise<unknown>,
   getConnection: () => Promise<{
     db: DrizzleReturnType<TSchema>;
     conn: mysql.Connection;
   }>,
-): Promise<any> {
+): Promise<unknown> {
   const { db, conn } = await getConnection();
   try {
     return await operation(db, conn);

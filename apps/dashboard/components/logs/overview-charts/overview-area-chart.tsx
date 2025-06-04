@@ -65,6 +65,7 @@ export const OverviewAreaChart = ({
     reverse: labels.reverse !== undefined ? labels.reverse : false,
   };
 
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   const handleMouseDown = (e: any) => {
     if (!enableSelection) {
       return;
@@ -78,6 +79,7 @@ export const OverviewAreaChart = ({
     });
   };
 
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   const handleMouseMove = (e: any) => {
     if (!enableSelection || !selection.start) {
       return;
@@ -120,7 +122,7 @@ export const OverviewAreaChart = ({
   const ranges: Record<string, { min: number; max: number; avg: number }> = {};
 
   labelsWithDefaults.metrics.forEach((metric) => {
-    const values = data.map((d) => d[metric.key]);
+    const values = data.map((d) => d[metric.key] as number);
     const min = data.length > 0 ? Math.min(...values) : 0;
     const max = data.length > 0 ? Math.max(...values) : 0;
     const avg = data.length > 0 ? values.reduce((sum, val) => sum + val, 0) / data.length : 0;
@@ -240,6 +242,7 @@ export const OverviewAreaChart = ({
                       active={active}
                       className="rounded-lg shadow-lg border border-gray-4"
                       labelFormatter={(_, tooltipPayload) =>
+                        //@ts-expect-error safe to leave as is for now
                         createTimeIntervalFormatter(data, "HH:mm")(tooltipPayload)
                       }
                     />
