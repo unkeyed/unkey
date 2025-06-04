@@ -14,93 +14,6 @@ type Props = {
   };
 };
 
-/**
- * Enhanced auth check for payment flows that handles temporary session issues
- * and validates against Stripe session data as a fallback
- */
-async function getAuthForPaymentFlow(stripeSessionId?: string) {
-  // First attempt: try normal auth
-  try {
-    const authResult = await getBaseAuth();
-    if (authResult.userId && authResult.orgId) {
-      return authResult;
-    }
-  } catch (error) {
-    console.warn("Primary auth check failed during payment flow:", error);
-  }
-
-  // If we have a Stripe session, we can validate against that
-  if (stripeSessionId) {
-    try {
-      const e = stripeEnv();
-      if (e) {
-        const stripe = new Stripe(e.STRIPE_SECRET_KEY, {
-          apiVersion: "2023-10-16",
-          typescript: true,
-        });
-
-        const session = await stripe.checkout.sessions.retrieve(
-          stripeSessionId
-        );
-        if (session?.client_reference_id) {
-          const stripeSessionReference = session.client_reference_id;
-          // Find workspace by ID from Stripe session
-          const workspace = await db.query.workspaces.findFirst({
-            where: (table, { and, eq, isNull }) =>
-              and(
-                eq(table.id, stripeSessionReference),
-                isNull(table.deletedAtM)
-              ),
-          });
-
-          if (workspace) {
-            // Second attempt: retry auth after a brief delay
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            try {
-              const retryAuthResult = await getBaseAuth();
-              if (
-                retryAuthResult.userId &&
-                retryAuthResult.orgId === workspace.orgId
-              ) {
-                return retryAuthResult;
-              }
-            } catch (retryError) {
-              console.warn("Retry auth check failed:", retryError);
-            }
-
-            // Third attempt: validate that the user has access to this workspace
-            // by checking if they're a member of the organization
-            try {
-              const finalAuthResult = await getBaseAuth();
-              if (finalAuthResult.userId) {
-                // If we have a userId but no orgId, but the workspace exists and belongs to them,
-                // this might be a temporary session issue
-                const userHasAccessToWorkspace =
-                  finalAuthResult.orgId === workspace.orgId;
-                if (userHasAccessToWorkspace) {
-                  return {
-                    userId: finalAuthResult.userId,
-                    orgId: workspace.orgId,
-                    role: finalAuthResult.role,
-                    impersonator: finalAuthResult.impersonator,
-                  };
-                }
-              }
-            } catch (finalError) {
-              console.error("Final auth validation failed:", finalError);
-            }
-          }
-        }
-      }
-    } catch (stripeError) {
-      console.error("Stripe session validation failed:", stripeError);
-    }
-  }
-
-  // If all attempts fail, return null to trigger auth redirect
-  return null;
-}
-
 export default async function StripeRedirect(props: Props) {
   // For initial checkout creation (no session_id), use regular auth
   if (!props.searchParams.session_id) {
@@ -167,22 +80,8 @@ export default async function StripeRedirect(props: Props) {
     return redirect(session.url);
   }
 
-  // For return from Stripe (has session_id), use enhanced auth check
-  const authResult = await getAuthForPaymentFlow(props.searchParams.session_id);
-  if (!authResult) {
-    console.error("Auth failed for payment flow, redirecting to sign-in");
-    redirect("/auth/sign-in");
-  }
-
-  const { orgId } = authResult;
-
-  const ws = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.orgId, orgId!!), isNull(table.deletedAtM)),
-  });
-  if (!ws) {
-    return redirect("/new");
-  }
+  // For return from Stripe (has session_id), use the stripe session to find the workspace
+  //
 
   const e = stripeEnv();
   if (!e) {
@@ -223,12 +122,15 @@ export default async function StripeRedirect(props: Props) {
     );
   }
 
-  // Validate that the workspace from auth matches the one from Stripe session
-  if (session.client_reference_id !== ws.id) {
-    console.error(
-      `Workspace mismatch: auth workspace ${ws.id} vs Stripe session workspace ${session.client_reference_id}`
-    );
-    redirect("/auth/sign-in");
+  const ws = await db.query.workspaces.findFirst({
+    where: (table, { and, eq, isNull }) =>
+      and(
+        eq(table.id, session.client_reference_id!!),
+        isNull(table.deletedAtM)
+      ),
+  });
+  if (!ws) {
+    return redirect("/auth/sign-in");
   }
 
   const customer = await stripe.customers.retrieve(session.customer as string);
