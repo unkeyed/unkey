@@ -104,7 +104,7 @@ export default async function StripeRedirect(props: Props) {
   const baseUrl = process.env.VERCEL
     ? process.env.VERCEL_TARGET_ENV === "production"
       ? "https://app.unkey.com"
-      : `https://${process.env.VERCEL_BRANCH_URL}`
+      : `https://${process.env.VERCEL_URL}`
     : "http://localhost:3000";
 
   const session = await stripe.checkout.sessions.retrieve(
@@ -122,7 +122,6 @@ export default async function StripeRedirect(props: Props) {
       </Empty>
     );
   }
-  console.table(session);
   const ws = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(
@@ -130,8 +129,6 @@ export default async function StripeRedirect(props: Props) {
         isNull(table.deletedAtM)
       ),
   });
-
-  console.info(ws);
 
   if (!ws) {
     console.warn("Workspace not found");
