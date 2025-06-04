@@ -1,33 +1,33 @@
-import { KeyInfo } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/actions/components/key-info";
 import type { ActionComponentProps } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover";
 import { ConfirmPopover } from "@/components/confirmation-popover";
 import { DialogContainer } from "@/components/dialog-container";
-import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
+import type { Roles } from "@/lib/trpc/routers/authorization/roles/query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TriangleWarning2 } from "@unkey/icons";
 import { Button, FormCheckbox } from "@unkey/ui";
 import { useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
-import { useDeleteKey } from "./hooks/use-delete-key";
+import { useDeleteRole } from "./hooks/use-delete-role";
+import { RoleInfo } from "./role-info";
 
-const deleteKeyFormSchema = z.object({
+const deleteRoleFormSchema = z.object({
   confirmDeletion: z.boolean().refine((val) => val === true, {
-    message: "Please confirm that you want to permanently delete this key",
+    message: "Please confirm that you want to permanently delete this role",
   }),
 });
 
-type DeleteKeyFormValues = z.infer<typeof deleteKeyFormSchema>;
+type DeleteRoleFormValues = z.infer<typeof deleteRoleFormSchema>;
 
-type DeleteKeyProps = { keyDetails: KeyDetails } & ActionComponentProps;
+type DeleteRoleProps = { roleDetails: Roles } & ActionComponentProps;
 
-export const DeleteKey = ({ keyDetails, isOpen, onClose }: DeleteKeyProps) => {
+export const DeleteRole = ({ roleDetails, isOpen, onClose }: DeleteRoleProps) => {
   const [isConfirmPopoverOpen, setIsConfirmPopoverOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
-  const methods = useForm<DeleteKeyFormValues>({
-    resolver: zodResolver(deleteKeyFormSchema),
+  const methods = useForm<DeleteRoleFormValues>({
+    resolver: zodResolver(deleteRoleFormSchema),
     mode: "onChange",
     shouldFocusError: true,
     shouldUnregister: true,
@@ -44,7 +44,7 @@ export const DeleteKey = ({ keyDetails, isOpen, onClose }: DeleteKeyProps) => {
 
   const confirmDeletion = watch("confirmDeletion");
 
-  const deleteKey = useDeleteKey(() => {
+  const deleteRole = useDeleteRole(() => {
     onClose();
   });
 
@@ -65,14 +65,14 @@ export const DeleteKey = ({ keyDetails, isOpen, onClose }: DeleteKeyProps) => {
     setIsConfirmPopoverOpen(true);
   };
 
-  const performKeyDeletion = async () => {
+  const performRoleDeletion = async () => {
     try {
       setIsLoading(true);
-      await deleteKey.mutateAsync({
-        keyIds: [keyDetails.id],
+      await deleteRole.mutateAsync({
+        roleId: roleDetails.roleId,
       });
     } catch {
-      // `useDeleteKey` already shows a toast, but we still need to
+      // `useDeleteRole` already shows a toast, but we still need to
       // prevent unhandled‐rejection noise in the console.
     } finally {
       setIsLoading(false);
@@ -82,17 +82,17 @@ export const DeleteKey = ({ keyDetails, isOpen, onClose }: DeleteKeyProps) => {
   return (
     <>
       <FormProvider {...methods}>
-        <form id="delete-key-form">
+        <form id="delete-role-form">
           <DialogContainer
             isOpen={isOpen}
-            subTitle="Permanently remove this key and its data"
+            subTitle="Permanently remove this role and its assignments"
             onOpenChange={handleDialogOpenChange}
-            title="Delete key"
+            title="Delete role"
             footer={
               <div className="w-full flex flex-col gap-2 items-center justify-center">
                 <Button
                   type="button"
-                  form="delete-key-form"
+                  form="delete-role-form"
                   variant="primary"
                   color="danger"
                   size="xlg"
@@ -102,15 +102,15 @@ export const DeleteKey = ({ keyDetails, isOpen, onClose }: DeleteKeyProps) => {
                   onClick={handleDeleteButtonClick}
                   ref={deleteButtonRef}
                 >
-                  Delete key
+                  Delete role
                 </Button>
                 <div className="text-gray-9 text-xs">
-                  This key will be permanently deleted immediately
+                  Changes may take up to 60s to propagate globally
                 </div>
               </div>
             }
           >
-            <KeyInfo keyDetails={keyDetails} />
+            <RoleInfo roleDetails={roleDetails} />
             <div className="py-1 my-2">
               <div className="h-[1px] bg-grayA-3 w-full" />
             </div>
@@ -119,9 +119,10 @@ export const DeleteKey = ({ keyDetails, isOpen, onClose }: DeleteKeyProps) => {
                 <TriangleWarning2 size="sm-regular" className="text-white" />
               </div>
               <div className="text-error-12 text-[13px] leading-6">
-                <span className="font-medium">Warning:</span> deleting this key will remove all
-                associated data and metadata. This action cannot be undone. Any verification,
-                tracking, and historical usage tied to this key will be permanently lost.
+                <span className="font-medium">Warning:</span> deleting this role will detach it from
+                all assigned keys and permissions and remove its configuration. This action cannot
+                be undone. The permissions and keys themselves will remain available, but any usage
+                history or references to this role will be permanently lost.
               </div>
             </div>
             <Controller
@@ -135,7 +136,7 @@ export const DeleteKey = ({ keyDetails, isOpen, onClose }: DeleteKeyProps) => {
                   size="md"
                   checked={field.value}
                   onCheckedChange={field.onChange}
-                  label="I understand this will permanently delete the key and all its associated data"
+                  label="I understand this will permanently delete the role and detach it from all assigned keys and permissions"
                   error={errors.confirmDeletion?.message}
                 />
               )}
@@ -146,11 +147,11 @@ export const DeleteKey = ({ keyDetails, isOpen, onClose }: DeleteKeyProps) => {
       <ConfirmPopover
         isOpen={isConfirmPopoverOpen}
         onOpenChange={setIsConfirmPopoverOpen}
-        onConfirm={performKeyDeletion}
+        onConfirm={performRoleDeletion}
         triggerRef={deleteButtonRef}
-        title="Confirm key deletion"
-        description="This action is irreversible. All data associated with this key will be permanently deleted."
-        confirmButtonText="Delete key"
+        title="Confirm role deletion"
+        description="This action is irreversible. All permissions and keys for this role will be permanently removed."
+        confirmButtonText="Delete role"
         cancelButtonText="Cancel"
         variant="danger"
       />

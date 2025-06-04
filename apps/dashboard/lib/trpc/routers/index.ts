@@ -171,6 +171,7 @@ export const router = t.router({
         query: queryRolesPermissions,
       }),
       upsert: upsertRole,
+      delete: deleteRole,
       connectedKeysAndPerms: getConnectedKeysAndPerms,
     }),
   }),
