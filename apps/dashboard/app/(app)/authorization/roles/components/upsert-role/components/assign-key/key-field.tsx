@@ -1,4 +1,5 @@
 import { FormCombobox } from "@/components/ui/form-combobox";
+import type { RoleKey } from "@/lib/trpc/routers/authorization/roles/connected-keys-and-perms";
 import { Key2, XMark } from "@unkey/icons";
 import { useMemo, useState } from "react";
 import { createKeyOptions } from "./create-key-options";
@@ -11,7 +12,7 @@ type KeyFieldProps = {
   error?: string;
   disabled?: boolean;
   roleId?: string;
-  selectedKeysData?: { keyId: string; keyName: string | null }[];
+  assignedKeyDetails: RoleKey[];
 };
 
 export const KeyField = ({
@@ -20,7 +21,7 @@ export const KeyField = ({
   error,
   disabled = false,
   roleId,
-  selectedKeysData = [],
+  assignedKeyDetails,
 }: KeyFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
   const { keys, isFetchingNextPage, hasNextPage, loadMore } = useFetchKeys();
@@ -86,11 +87,11 @@ export const KeyField = ({
     return value
       .map((keyId) => {
         // First: check selectedKeysData (for pre-loaded edit data)
-        const preLoadedKey = selectedKeysData.find((k) => k.keyId === keyId);
+        const preLoadedKey = assignedKeyDetails.find((k) => k.id === keyId);
         if (preLoadedKey) {
           return {
-            id: preLoadedKey.keyId,
-            name: preLoadedKey.keyName,
+            id: preLoadedKey.id,
+            name: preLoadedKey.name,
           };
         }
 
@@ -110,7 +111,7 @@ export const KeyField = ({
         };
       })
       .filter((key): key is NonNullable<typeof key> => key !== undefined);
-  }, [value, allKeys, selectedKeysData]);
+  }, [value, allKeys, assignedKeyDetails]);
 
   const handleRemoveKey = (keyId: string) => {
     onChange(value.filter((id) => id !== keyId));

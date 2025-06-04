@@ -8,9 +8,10 @@ const roleDetailsInput = z.object({
 });
 
 const roleKey = z.object({
-  keyId: z.string(),
-  keyName: z.string().nullable(),
+  id: z.string(),
+  name: z.string().nullable(),
 });
+export type RoleKey = z.infer<typeof roleKey>;
 
 const rolePermission = z.object({
   id: z.string(),
@@ -18,6 +19,7 @@ const rolePermission = z.object({
   slug: z.string(),
   description: z.string().nullable(),
 });
+export type RolePermission = z.infer<typeof rolePermission>;
 
 const roleDetailsResponse = z.object({
   roleId: z.string(),
@@ -119,8 +121,8 @@ export const getConnectedKeysAndPerms = t.procedure
             });
           }
           return {
-            keyId: row.id,
-            keyName: row.name,
+            id: row.id,
+            name: row.name,
           };
         }),
         permissions: permissionRows.map((row) => {

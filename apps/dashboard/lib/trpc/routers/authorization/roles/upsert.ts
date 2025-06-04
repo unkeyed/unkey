@@ -25,34 +25,12 @@ export const upsertRole = t.procedure
     }
 
     await db.transaction(async (tx) => {
-      // Check for name conflicts (excluding current role if updating)
-      const nameConflict = await tx.query.roles.findFirst({
-        where: (table, { and, eq, ne }) => {
-          const conditions = [
-            eq(table.workspaceId, ctx.workspace.id),
-            eq(table.name, input.roleName), // slug maps to db.name
-          ];
-
-          if (isUpdate && input.roleId) {
-            conditions.push(ne(table.id, input.roleId));
-          }
-
-          return and(...conditions);
-        },
-      });
-
-      if (nameConflict) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: `Role with name '${input.roleName}' already exists`,
-        });
-      }
-
-      if (isUpdate) {
-        // Verify role exists and belongs to workspace
+      if (isUpdate && input.roleId) {
+        const updateRoleId: string = input.roleId;
+        // Get the existing role to compare names and verify existence
         const existingRole = await tx.query.roles.findFirst({
           where: (table, { and, eq }) =>
-            and(eq(table.id, roleId!), eq(table.workspaceId, ctx.workspace.id)),
+            and(eq(table.id, updateRoleId), eq(table.workspaceId, ctx.workspace.id)),
         });
 
         if (!existingRole) {
@@ -60,6 +38,25 @@ export const upsertRole = t.procedure
             code: "NOT_FOUND",
             message: "Role not found or access denied",
           });
+        }
+
+        // Only check for name conflicts if the name is actually changing
+        if (existingRole.name !== input.roleName) {
+          const nameConflict = await tx.query.roles.findFirst({
+            where: (table, { and, eq, ne }) =>
+              and(
+                eq(table.workspaceId, ctx.workspace.id),
+                eq(table.name, input.roleName),
+                ne(table.id, updateRoleId),
+              ),
+          });
+
+          if (nameConflict) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: `Role with name '${input.roleName}' already exists`,
+            });
+          }
         }
 
         // Update role
@@ -118,6 +115,19 @@ export const upsertRole = t.procedure
           },
         });
       } else {
+        // Create mode - always check for name conflicts
+        const nameConflict = await tx.query.roles.findFirst({
+          where: (table, { and, eq }) =>
+            and(eq(table.workspaceId, ctx.workspace.id), eq(table.name, input.roleName)),
+        });
+
+        if (nameConflict) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: `Role with name '${input.roleName}' already exists`,
+          });
+        }
+
         // Create new role
         await tx
           .insert(schema.roles)

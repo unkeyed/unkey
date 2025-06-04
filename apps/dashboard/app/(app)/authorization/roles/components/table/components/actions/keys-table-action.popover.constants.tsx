@@ -83,14 +83,14 @@ const EditRole = ({
 
   return (
     <UpsertRoleDialog
-      roleId={role.roleId}
-      selectedKeysData={keys}
-      selectedPermissionsData={permissions}
       existingRole={{
-        keyIds: keys.map((key) => key.keyId),
+        id: role.roleId,
+        keyIds: keys.map((key) => key.id),
         permissionIds: permissions.map((permission) => permission.id),
         name: role.name,
         description: role.description,
+        assignedKeysDetails: keys ?? [],
+        assignedPermsDetails: permissions ?? [],
       }}
       isOpen={isOpen}
       onClose={onClose}

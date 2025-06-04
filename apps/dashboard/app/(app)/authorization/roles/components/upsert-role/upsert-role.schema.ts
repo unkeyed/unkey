@@ -19,28 +19,20 @@ export const roleDescriptionSchema = z
   .optional();
 
 export const keyIdsSchema = z
-  .array(
-    z.string().refine((id) => id.startsWith("key_"), {
-      message: "Each key ID must start with 'key_'",
-    }),
-  )
+  .array(z.string())
   .default([])
-  .transform((ids) => [...new Set(ids)]) // Remove duplicates
+  .transform((ids) => [...new Set(ids)])
   .optional();
 
 export const permissionIdsSchema = z
-  .array(
-    z.string().refine((id) => id.startsWith("perm_"), {
-      message: "Each permission ID must start with 'perm_'",
-    }),
-  )
+  .array(z.string())
   .default([])
-  .transform((ids) => [...new Set(ids)]) // Remove duplicates
+  .transform((ids) => [...new Set(ids)])
   .optional();
 
 export const rbacRoleSchema = z
   .object({
-    roleId: z.string().startsWith("role_").optional(), // If provided, it's an update
+    roleId: z.string().startsWith("role_").optional(),
     roleName: roleNameSchema,
     roleDescription: roleDescriptionSchema,
     keyIds: keyIdsSchema,

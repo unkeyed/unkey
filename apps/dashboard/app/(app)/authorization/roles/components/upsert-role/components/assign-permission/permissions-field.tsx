@@ -1,4 +1,5 @@
 import { FormCombobox } from "@/components/ui/form-combobox";
+import type { RolePermission } from "@/lib/trpc/routers/authorization/roles/connected-keys-and-perms";
 import { Key2, XMark } from "@unkey/icons";
 import { useMemo, useState } from "react";
 import { createPermissionOptions } from "./create-permission-options";
@@ -11,12 +12,7 @@ type PermissionFieldProps = {
   error?: string;
   disabled?: boolean;
   roleId?: string;
-  selectedPermissionsData?: {
-    id: string;
-    name: string;
-    slug: string;
-    description: string | null;
-  }[];
+  assignedPermsDetails: RolePermission[];
 };
 
 export const PermissionField = ({
@@ -25,7 +21,7 @@ export const PermissionField = ({
   error,
   disabled = false,
   roleId,
-  selectedPermissionsData = [],
+  assignedPermsDetails = [],
 }: PermissionFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
   const { permissions, isFetchingNextPage, hasNextPage, loadMore } = useFetchPermissions();
@@ -94,13 +90,13 @@ export const PermissionField = ({
     return value
       .map((id) => {
         // First: check selectedPermissionsData (for pre-loaded edit data)
-        const preLoadedPerm = selectedPermissionsData.find((p) => p.slug === id);
+        const preLoadedPerm = assignedPermsDetails.find((p) => p.id === id);
         if (preLoadedPerm) {
           return preLoadedPerm;
         }
 
         // Second: check loaded permissions (for newly added permissions)
-        const loadedPerm = allPermissions.find((p) => p.slug === id);
+        const loadedPerm = allPermissions.find((p) => p.id === id);
         if (loadedPerm) {
           return loadedPerm;
         }
@@ -114,7 +110,7 @@ export const PermissionField = ({
         };
       })
       .filter((perm): perm is NonNullable<typeof perm> => perm !== undefined);
-  }, [value, allPermissions, selectedPermissionsData]);
+  }, [value, allPermissions, assignedPermsDetails]);
 
   const handleRemovePermission = (permissionId: string) => {
     onChange(value.filter((id) => id !== permissionId));
@@ -182,7 +178,7 @@ export const PermissionField = ({
                   <button
                     type="button"
                     onClick={() => handleRemovePermission(permission.id)}
-                    className="ml-1 p-0.5 hover:bg-grayA-4 rounded text-grayA-11 hover:text-accent-12 transition-colors flex-shrink-0 ml-auto"
+                    className="p-0.5 hover:bg-grayA-4 rounded text-grayA-11 hover:text-accent-12 transition-colors flex-shrink-0 ml-auto"
                     aria-label={`Remove ${permission.name}`}
                   >
                     <XMark size="sm-regular" />
