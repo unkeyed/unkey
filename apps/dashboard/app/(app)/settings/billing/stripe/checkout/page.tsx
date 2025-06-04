@@ -48,7 +48,7 @@ async function getAuthForPaymentFlow(stripeSessionId?: string) {
           const workspace = await db.query.workspaces.findFirst({
             where: (table, { and, eq, isNull }) =>
               and(
-                eq(table.orgId, stripeSessionReference),
+                eq(table.id, stripeSessionReference),
                 isNull(table.deletedAtM)
               ),
           });
