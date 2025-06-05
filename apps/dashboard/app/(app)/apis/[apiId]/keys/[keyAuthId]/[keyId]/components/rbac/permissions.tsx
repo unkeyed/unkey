@@ -55,7 +55,7 @@ export function PermissionList({ roles, keyId }: PermissionTreeProps) {
   });
 
   return (
-    <Card className="h-full">
+    <Card className="flex flex-col flex-grow h-full min-h-[250px]">
       <CardHeader className="pb-0">
         <div className="mb-2">
           <CardTitle>Roles</CardTitle>
