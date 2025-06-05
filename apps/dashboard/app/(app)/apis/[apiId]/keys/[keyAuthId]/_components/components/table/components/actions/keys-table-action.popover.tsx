@@ -41,10 +41,10 @@ export const KeysTableActionPopover = ({
     if (open) {
       // Prefetch all items that need prefetching when popover opens
       items
-        .filter((item) => item.shouldPrefetch && item.prefetch && !prefetchedItems.has(item.id))
+        .filter((item) => item.shouldPrefetch && item.prefetch && prefetchedItems.has(item.id))
         .forEach(async (item) => {
           try {
-            await item.prefetch!();
+            await item.prefetch?.();
             setPrefetchedItems((prev) => new Set(prev).add(item.id));
           } catch (error) {
             console.error(`Failed to prefetch data for ${item.id}:`, error);
