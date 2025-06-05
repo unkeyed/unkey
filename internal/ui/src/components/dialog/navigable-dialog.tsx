@@ -1,11 +1,17 @@
 "use client";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import type { IconProps } from "@unkey/icons/src/props";
-import { Button } from "@unkey/ui";
-import { cn } from "@unkey/ui/src/lib/utils";
+// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
+import * as React from "react";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { FC, ReactNode } from "react";
-import { DefaultDialogContentArea, DefaultDialogFooter, DefaultDialogHeader } from "./dialog-parts";
+import { cn } from "../../lib/utils";
+import { Button } from "../button";
+import { Dialog, DialogContent } from "./parts/dialog";
+import {
+  DefaultDialogContentArea,
+  DefaultDialogFooter,
+  DefaultDialogHeader,
+} from "./parts/dialog-parts";
 
 type NavigableDialogContextType<TStepName extends string> = {
   activeId: TStepName | undefined;
@@ -25,19 +31,19 @@ const NavigableDialogContext: React.Context<NavigableDialogContextType<any>> =
   createNavigableDialogContext();
 
 // Hook to use the NavigableDialog context
-export function useNavigableDialog<TStepName extends string>() {
+const useNavigableDialog = <TStepName extends string>() => {
   const context = useContext(NavigableDialogContext) as NavigableDialogContextType<TStepName>;
   if (context === undefined) {
     throw new Error("useNavigableDialog must be used within a NavigableDialogProvider");
   }
   return context;
-}
+};
 
 // Helper type to extract valid step names when using the component
 export type StepNamesFrom<T extends readonly { id: string }[]> = T[number]["id"];
 
 // Root component that provides context and structure
-export function NavigableDialogRoot<TStepName extends string>({
+const NavigableDialogRoot = <TStepName extends string>({
   children,
   isOpen,
   onOpenChange,
@@ -49,7 +55,7 @@ export function NavigableDialogRoot<TStepName extends string>({
   onOpenChange: (value: boolean) => void;
   dialogClassName?: string;
   preventAutoFocus?: boolean;
-}) {
+}) => {
   // Internal state - we'll initialize this when we get the first items from Nav
   const [activeId, setActiveId] = useState<TStepName | undefined>();
 
@@ -77,26 +83,26 @@ export function NavigableDialogRoot<TStepName extends string>({
       </Dialog>
     </NavigableDialogContext.Provider>
   );
-}
+};
 
 // Header component
-export function NavigableDialogHeader({
+const NavigableDialogHeader = ({
   title,
   subTitle,
 }: {
   title: string;
   subTitle?: string;
-}) {
+}) => {
   return <DefaultDialogHeader title={title} subTitle={subTitle} />;
-}
+};
 
 // Footer component
-export function NavigableDialogFooter({ children }: { children: ReactNode }) {
+const NavigableDialogFooter = ({ children }: { children: ReactNode }) => {
   return <DefaultDialogFooter>{children}</DefaultDialogFooter>;
-}
+};
 
 // Navigation sidebar component
-export function NavigableDialogNav<TStepName extends string>({
+const NavigableDialogNav = <TStepName extends string>({
   items,
   className,
   onNavigate,
@@ -114,13 +120,16 @@ export function NavigableDialogNav<TStepName extends string>({
   initialSelectedId?: TStepName;
   disabledIds?: TStepName[];
   navWidthClass?: string;
-}) {
+}) => {
   const { activeId, setActiveId } = useNavigableDialog<TStepName>();
 
   // Initialize activeId if it's not set and we have items
   useEffect(() => {
-    if (activeId === undefined && items.length > 0) {
-      setActiveId(initialSelectedId ?? items[0].id);
+    const allIds = items.map((i) => i.id);
+    if (!activeId || !allIds.includes(activeId)) {
+      setActiveId(
+        initialSelectedId && allIds.includes(initialSelectedId) ? initialSelectedId : allIds[0],
+      );
     }
   }, [activeId, items, initialSelectedId, setActiveId]);
 
@@ -198,9 +207,9 @@ export function NavigableDialogNav<TStepName extends string>({
       })}
     </div>
   );
-}
+};
 
-export function NavigableDialogContent<TStepName extends string>({
+const NavigableDialogContent = <TStepName extends string>({
   items,
   className,
 }: {
@@ -209,7 +218,7 @@ export function NavigableDialogContent<TStepName extends string>({
     content: ReactNode;
   }[];
   className?: string;
-}) {
+}) => {
   const { activeId } = useNavigableDialog<TStepName>();
   return (
     <div className="flex-1 min-w-0 overflow-y-auto">
@@ -237,15 +246,25 @@ export function NavigableDialogContent<TStepName extends string>({
       </DefaultDialogContentArea>
     </div>
   );
-}
+};
 
 // Main container for the nav and content
-export function NavigableDialogBody({
+const NavigableDialogBody = ({
   children,
   className,
 }: {
   children: ReactNode;
   className?: string;
-}) {
+}) => {
   return <div className={cn("flex flex-grow overflow-hidden", className)}>{children}</div>;
-}
+};
+
+export {
+  NavigableDialogRoot,
+  NavigableDialogHeader,
+  NavigableDialogFooter,
+  NavigableDialogNav,
+  NavigableDialogContent,
+  NavigableDialogBody,
+  useNavigableDialog,
+};
