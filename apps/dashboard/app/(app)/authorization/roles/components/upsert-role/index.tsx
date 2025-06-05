@@ -1,5 +1,4 @@
 "use client";
-import { DialogContainer } from "@/components/dialog-container";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
@@ -9,7 +8,7 @@ import type {
 } from "@/lib/trpc/routers/authorization/roles/connected-keys-and-perms";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenWriting3, Plus } from "@unkey/icons";
-import { Button, FormInput, FormTextarea } from "@unkey/ui";
+import { Button, DialogContainer, FormInput, FormTextarea } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { Controller, FormProvider } from "react-hook-form";
 import { KeyField } from "./components/assign-key/key-field";
@@ -94,19 +93,6 @@ export const UpsertRoleDialog = ({
     loadSavedValues,
     control,
   } = methods;
-
-  // useEffect(() => {
-  //   const preventHijacking = (e: KeyboardEvent) => {
-  //     if (!e.isTrusted || e.timeStamp === 0) {
-  //       e.preventDefault();
-  //       e.stopImmediatePropagation();
-  //     }
-  //   };
-  //
-  //   document.addEventListener("keydown", preventHijacking, true);
-  //   return () =>
-  //     document.removeEventListener("keydown", preventHijacking, true);
-  // }, []);
 
   useEffect(() => {
     if (!isDialogOpen) {
