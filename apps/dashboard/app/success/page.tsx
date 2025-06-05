@@ -1,8 +1,8 @@
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { Empty } from "@unkey/ui";
+import { SuccessClient } from "./client";
 import Stripe from "stripe";
-
 import { redirect } from "next/navigation";
 
 type Props = {
@@ -12,9 +12,11 @@ type Props = {
 };
 
 export default async function SuccessPage(props: Props) {
-  // If no session_id, just show the success page without processing
+  // If no session_id, just redirect back to billing
+  // This will make a user login if they are not logged in
+  // This will also redirect to the billing page if the user is logged in
   if (!props.searchParams.session_id) {
-    return redirect("/auth/sign-in");
+    return <SuccessClient />;
   }
 
   // Process the Stripe session and update workspace
@@ -62,14 +64,9 @@ export default async function SuccessPage(props: Props) {
     const customer = await stripe.customers.retrieve(
       session.customer as string
     );
-    if (!customer) {
+    if (!customer || !session.setup_intent) {
       console.warn("Stripe customer not found");
-      return redirect("settings/billing");
-    }
-
-    if (!session.setup_intent) {
-      console.warn("Stripe setup intent not found");
-      return redirect("settings/billing");
+      return <SuccessClient />;
     }
 
     const setupIntent = await stripe.setupIntents.retrieve(
@@ -78,7 +75,7 @@ export default async function SuccessPage(props: Props) {
 
     if (!setupIntent.payment_method) {
       console.warn("Stripe payment method not found");
-      return redirect("settings/billing");
+      return <SuccessClient />;
     }
 
     // Update customer with default payment method
@@ -112,8 +109,16 @@ export default async function SuccessPage(props: Props) {
     }
   } catch (error) {
     console.error("Error processing Stripe session:", error);
-    // Still show success page even if there's an error
+    return (
+      <Empty>
+        <Empty.Title>Failed to update workspace</Empty.Title>
+        <Empty.Description>
+          There was an error updating your workspace with payment information.
+          Please contact support@unkey.dev.
+        </Empty.Description>
+      </Empty>
+    );
   }
 
-  return redirect("/settings/billing");
+  return <SuccessClient />;
 }

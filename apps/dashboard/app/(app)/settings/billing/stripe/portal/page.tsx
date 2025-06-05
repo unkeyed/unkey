@@ -3,7 +3,6 @@ import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { Empty } from "@unkey/ui";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
 
@@ -37,7 +36,11 @@ export default async function StripeRedirect() {
     typescript: true,
   });
 
-  const returnUrl = headers().get("referer") ?? "https://app.unkey.com";
+  const baseUrl = process.env.VERCEL
+    ? process.env.VERCEL_TARGET_ENV === "production"
+      ? "https://app.unkey.com"
+      : `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000";
 
   if (!ws.stripeCustomerId) {
     return (
@@ -54,7 +57,7 @@ export default async function StripeRedirect() {
 
   const { url } = await stripe.billingPortal.sessions.create({
     customer: ws.stripeCustomerId,
-    return_url: returnUrl,
+    return_url: `${baseUrl}/success`,
   });
   return redirect(url);
 }
