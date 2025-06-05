@@ -37,7 +37,12 @@ export const DefaultDialogContentArea = ({
   className,
 }: DefaultDialogContentAreaProps) => {
   return (
-    <div className={cn("bg-grayA-2 flex flex-col gap-4 py-4 px-6 text-gray-11", className)}>
+    <div
+      className={cn(
+        "bg-grayA-2 flex flex-col gap-4 py-4 px-6 text-gray-11 overflow-y-auto scrollbar-hide flex-grow",
+        className,
+      )}
+    >
       {children}
     </div>
   );
