@@ -1,4 +1,3 @@
-import { getAuth } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
@@ -12,14 +11,16 @@ import Stripe from "stripe";
 import { WorkspaceNavbar } from "../workspace-navbar";
 import { Client } from "./client";
 import { Shell } from "./components/shell";
+import { getAuth } from "@/lib/auth";
+
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 export default async function BillingPage() {
   const { orgId } = await getAuth();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+    where: (table, { and, eq, isNull }) =>
+      and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     with: {
       quotas: true,
     },
@@ -28,17 +29,19 @@ export default async function BillingPage() {
   if (!workspace) {
     return redirect("/new");
   }
-
   const e = stripeEnv();
   if (!e) {
     return (
       <div>
-        <WorkspaceNavbar workspace={workspace} activePage={{ href: "billing", text: "Billing" }} />
+        <WorkspaceNavbar
+          workspace={workspace}
+          activePage={{ href: "billing", text: "Billing" }}
+        />
         <Empty>
           <Empty.Title>Stripe is not configured</Empty.Title>
           <Empty.Description>
-            If you are selfhosting Unkey, you need to configure Stripe in your environment
-            variables.
+            If you are selfhosting Unkey, you need to configure Stripe in your
+            environment variables.
           </Empty.Description>
         </Empty>
       </div>
@@ -70,12 +73,16 @@ export default async function BillingPage() {
     }),
   ]);
 
-  const isLegacy = workspace.subscriptions && Object.keys(workspace.subscriptions).length > 0;
+  const isLegacy =
+    workspace.subscriptions && Object.keys(workspace.subscriptions).length > 0;
 
   if (isLegacy) {
     return (
       <Shell workspace={workspace}>
-        <WorkspaceNavbar workspace={workspace} activePage={{ href: "billing", text: "Billing" }} />
+        <WorkspaceNavbar
+          workspace={workspace}
+          activePage={{ href: "billing", text: "Billing" }}
+        />
         <div className="w-full">
           <SettingCard
             title="Verifications"
@@ -105,9 +112,13 @@ export default async function BillingPage() {
           description={
             <>
               <p>
-                You are on the legacy usage-based plan. You can stay on this plan if you want but
-                it's likely more expensive than our new{" "}
-                <Link href="https://unkey.com/pricing" className="underline" target="_blank">
+                You are on the legacy usage-based plan. You can stay on this
+                plan if you want but it's likely more expensive than our new{" "}
+                <Link
+                  href="https://unkey.com/pricing"
+                  className="underline"
+                  target="_blank"
+                >
                   tiered pricing
                 </Link>
                 .
@@ -144,11 +155,13 @@ export default async function BillingPage() {
               priceId: price.id,
               dollar: price.unit_amount! / 100,
               quotas: {
-                requestsPerMonth: Number.parseInt(p.metadata.quota_requests_per_month),
+                requestsPerMonth: Number.parseInt(
+                  p.metadata.quota_requests_per_month
+                ),
               },
             };
           })
-          .sort((a, b) => a.dollar - b.dollar),
+          .sort((a, b) => a.dollar - b.dollar)
       ),
     workspace.stripeSubscriptionId
       ? await stripe.subscriptions.retrieve(workspace.stripeSubscriptionId)
@@ -191,12 +204,18 @@ export default async function BillingPage() {
             ? {
                 id: subscription.id,
                 status: subscription.status,
-                trialUntil: subscription.trial_end ? subscription.trial_end * 1000 : undefined,
-                cancelAt: subscription.cancel_at ? subscription.cancel_at * 1000 : undefined,
+                trialUntil: subscription.trial_end
+                  ? subscription.trial_end * 1000
+                  : undefined,
+                cancelAt: subscription.cancel_at
+                  ? subscription.cancel_at * 1000
+                  : undefined,
               }
             : undefined
         }
-        currentProductId={subscription?.items.data.at(0)?.plan.product?.toString() ?? undefined}
+        currentProductId={
+          subscription?.items.data.at(0)?.plan.product?.toString() ?? undefined
+        }
       />
     </Suspense>
   );

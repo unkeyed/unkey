@@ -31,8 +31,7 @@ export default async function middleware(
     "/api/v1/workos/webhooks",
     "/api/v1/github/verify",
     "/api/auth/refresh",
-    "/settings/billing",
-    "/settings/billing/stripe/checkout",
+    "/success",
     "/_next",
   ];
 
@@ -51,14 +50,6 @@ export default async function middleware(
       return false;
     });
   };
-  console.log("middleware,", url.pathname);
-  if (
-    !req.nextUrl.searchParams.get("session_id") === null &&
-    url.pathname.includes("/settings/billing/stripe/checkout")
-  ) {
-    console.log("returning from Stripe");
-    return NextResponse.next();
-  }
 
   // Skip authentication for public paths
   if (isPublicPath(url.pathname)) {
