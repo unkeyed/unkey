@@ -213,7 +213,7 @@ const AnimatedDigit = ({ digit, index }: { digit: string; index: number }) => {
   );
 };
 
-const AnimatedCounter = ({ value }: { value: number }) => {
+export const AnimatedCounter = ({ value }: { value: number }) => {
   const digits = value.toString().split("");
 
   return (

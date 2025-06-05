@@ -20,6 +20,15 @@ import { updateApiIpWhitelist } from "./api/updateIpWhitelist";
 import { updateApiName } from "./api/updateName";
 import { fetchAuditLog } from "./audit/fetch";
 import { auditLogsSearch } from "./audit/llm-search";
+import { getConnectedKeysAndPerms } from "./authorization/roles/connected-keys-and-perms";
+import { deleteRoleWithRelations } from "./authorization/roles/delete";
+import { queryKeys } from "./authorization/roles/keys/query-keys";
+import { searchKeys } from "./authorization/roles/keys/search-key";
+import { rolesLlmSearch } from "./authorization/roles/llm-search";
+import { queryRolesPermissions } from "./authorization/roles/permissions/query-permissions";
+import { searchRolesPermissions } from "./authorization/roles/permissions/search-permissions";
+import { queryRoles } from "./authorization/roles/query";
+import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
 import { createIdentity } from "./identity/create";
 import { queryIdentities } from "./identity/query";
@@ -151,6 +160,23 @@ export const router = t.router({
   vercel: vercelRouter,
   plain: t.router({
     createIssue: createPlainIssue,
+  }),
+  authorization: t.router({
+    roles: t.router({
+      query: queryRoles,
+      keys: t.router({
+        search: searchKeys,
+        query: queryKeys,
+      }),
+      permissions: t.router({
+        search: searchRolesPermissions,
+        query: queryRolesPermissions,
+      }),
+      upsert: upsertRole,
+      delete: deleteRoleWithRelations,
+      llmSearch: rolesLlmSearch,
+      connectedKeysAndPerms: getConnectedKeysAndPerms,
+    }),
   }),
   rbac: t.router({
     addPermissionToRootKey: addPermissionToRootKey,

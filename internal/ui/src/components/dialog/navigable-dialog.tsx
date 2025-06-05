@@ -68,6 +68,8 @@ const NavigableDialogRoot = <TStepName extends string>({
     <NavigableDialogContext.Provider value={contextValue}>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent
+          // Otherwise our shortcuts hijacks dialog inputs
+          onKeyDown={(e) => e.stopPropagation()}
           className={cn(
             "drop-shadow-2xl border-grayA-4 overflow-hidden !rounded-2xl p-0 gap-0 flex flex-col max-h-[90vh]",
             dialogClassName,
