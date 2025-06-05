@@ -12,8 +12,7 @@ export default async function StripeRedirect() {
   const { orgId } = await getAuth();
 
   const ws = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
   });
   if (!ws) {
     return redirect("/new");
@@ -24,8 +23,7 @@ export default async function StripeRedirect() {
       <Empty>
         <Empty.Title>Stripe is not configured</Empty.Title>
         <Empty.Description>
-          If you are selfhosting Unkey, you need to configure Stripe in your
-          environment variables.
+          If you are selfhosting Unkey, you need to configure Stripe in your environment variables.
         </Empty.Description>
       </Empty>
     );

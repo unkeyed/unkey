@@ -130,10 +130,7 @@ export default async function AuthenticatedLayout({
             </p>
           </div>
         </div>
-        <Separator
-          orientation="vertical"
-          className="hidden -mt-16 bg-white/20 lg:block"
-        />
+        <Separator orientation="vertical" className="hidden -mt-16 bg-white/20 lg:block" />
         <div className="items-center justify-center hidden w-3/5 h-[calc(100vh-4rem)] lg:flex">
           <FadeIn>
             <div className="relative max-w-lg pl-12">
@@ -156,9 +153,7 @@ export default async function AuthenticatedLayout({
                 >
                   {quote.author.name}
                 </Link>{" "}
-                <span className="ml-2 text-sm text-white/50">
-                  {quote.author.title}
-                </span>
+                <span className="ml-2 text-sm text-white/50">{quote.author.title}</span>
               </div>
             </div>
           </FadeIn>
@@ -252,16 +247,8 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         colorInterpolationFilters="sRGB"
       >
         <feFlood floodOpacity="0" result="BackgroundImageFix" />
-        <feBlend
-          mode="normal"
-          in="SourceGraphic"
-          in2="BackgroundImageFix"
-          result="shape"
-        />
-        <feGaussianBlur
-          stdDeviation="44.5"
-          result="effect1_foregroundBlur_8026_110"
-        />
+        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+        <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_8026_110" />
       </filter>
       <filter
         id="filter1_f_8026_110"
@@ -273,16 +260,8 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         colorInterpolationFilters="sRGB"
       >
         <feFlood floodOpacity="0" result="BackgroundImageFix" />
-        <feBlend
-          mode="normal"
-          in="SourceGraphic"
-          in2="BackgroundImageFix"
-          result="shape"
-        />
-        <feGaussianBlur
-          stdDeviation="44.5"
-          result="effect1_foregroundBlur_8026_110"
-        />
+        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+        <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_8026_110" />
       </filter>
       <filter
         id="filter2_f_8026_110"
@@ -294,16 +273,8 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         colorInterpolationFilters="sRGB"
       >
         <feFlood floodOpacity="0" result="BackgroundImageFix" />
-        <feBlend
-          mode="normal"
-          in="SourceGraphic"
-          in2="BackgroundImageFix"
-          result="shape"
-        />
-        <feGaussianBlur
-          stdDeviation="44.5"
-          result="effect1_foregroundBlur_8026_110"
-        />
+        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+        <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_8026_110" />
       </filter>
       <filter
         id="filter3_f_8026_110"
@@ -315,16 +286,8 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         colorInterpolationFilters="sRGB"
       >
         <feFlood floodOpacity="0" result="BackgroundImageFix" />
-        <feBlend
-          mode="normal"
-          in="SourceGraphic"
-          in2="BackgroundImageFix"
-          result="shape"
-        />
-        <feGaussianBlur
-          stdDeviation="44.5"
-          result="effect1_foregroundBlur_8026_110"
-        />
+        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+        <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_8026_110" />
       </filter>
       <filter
         id="filter4_f_8026_110"
@@ -336,16 +299,8 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         colorInterpolationFilters="sRGB"
       >
         <feFlood floodOpacity="0" result="BackgroundImageFix" />
-        <feBlend
-          mode="normal"
-          in="SourceGraphic"
-          in2="BackgroundImageFix"
-          result="shape"
-        />
-        <feGaussianBlur
-          stdDeviation="44.5"
-          result="effect1_foregroundBlur_8026_110"
-        />
+        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+        <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_8026_110" />
       </filter>
       <filter
         id="filter5_f_8026_110"
@@ -357,16 +312,8 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         colorInterpolationFilters="sRGB"
       >
         <feFlood floodOpacity="0" result="BackgroundImageFix" />
-        <feBlend
-          mode="normal"
-          in="SourceGraphic"
-          in2="BackgroundImageFix"
-          result="shape"
-        />
-        <feGaussianBlur
-          stdDeviation="75"
-          result="effect1_foregroundBlur_8026_110"
-        />
+        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+        <feGaussianBlur stdDeviation="75" result="effect1_foregroundBlur_8026_110" />
       </filter>
       <linearGradient
         id="paint0_linear_8026_110"
@@ -557,16 +504,8 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         colorInterpolationFilters="sRGB"
       >
         <feFlood floodOpacity="0" result="BackgroundImageFix" />
-        <feBlend
-          mode="normal"
-          in="SourceGraphic"
-          in2="BackgroundImageFix"
-          result="shape"
-        />
-        <feGaussianBlur
-          stdDeviation="44.5"
-          result="effect1_foregroundBlur_8026_43"
-        />
+        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+        <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_8026_43" />
       </filter>
       <filter
         id="filter1_f_8026_43"
@@ -578,16 +517,8 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         colorInterpolationFilters="sRGB"
       >
         <feFlood floodOpacity="0" result="BackgroundImageFix" />
-        <feBlend
-          mode="normal"
-          in="SourceGraphic"
-          in2="BackgroundImageFix"
-          result="shape"
-        />
-        <feGaussianBlur
-          stdDeviation="44.5"
-          result="effect1_foregroundBlur_8026_43"
-        />
+        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+        <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_8026_43" />
       </filter>
       <filter
         id="filter2_f_8026_43"
@@ -599,16 +530,8 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         colorInterpolationFilters="sRGB"
       >
         <feFlood floodOpacity="0" result="BackgroundImageFix" />
-        <feBlend
-          mode="normal"
-          in="SourceGraphic"
-          in2="BackgroundImageFix"
-          result="shape"
-        />
-        <feGaussianBlur
-          stdDeviation="44.5"
-          result="effect1_foregroundBlur_8026_43"
-        />
+        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+        <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_8026_43" />
       </filter>
       <filter
         id="filter3_f_8026_43"
@@ -620,16 +543,8 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         colorInterpolationFilters="sRGB"
       >
         <feFlood floodOpacity="0" result="BackgroundImageFix" />
-        <feBlend
-          mode="normal"
-          in="SourceGraphic"
-          in2="BackgroundImageFix"
-          result="shape"
-        />
-        <feGaussianBlur
-          stdDeviation="44.5"
-          result="effect1_foregroundBlur_8026_43"
-        />
+        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+        <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_8026_43" />
       </filter>
       <filter
         id="filter4_f_8026_43"
@@ -641,16 +556,8 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         colorInterpolationFilters="sRGB"
       >
         <feFlood floodOpacity="0" result="BackgroundImageFix" />
-        <feBlend
-          mode="normal"
-          in="SourceGraphic"
-          in2="BackgroundImageFix"
-          result="shape"
-        />
-        <feGaussianBlur
-          stdDeviation="44.5"
-          result="effect1_foregroundBlur_8026_43"
-        />
+        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+        <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_8026_43" />
       </filter>
       <filter
         id="filter5_f_8026_43"
@@ -662,16 +569,8 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         colorInterpolationFilters="sRGB"
       >
         <feFlood floodOpacity="0" result="BackgroundImageFix" />
-        <feBlend
-          mode="normal"
-          in="SourceGraphic"
-          in2="BackgroundImageFix"
-          result="shape"
-        />
-        <feGaussianBlur
-          stdDeviation="75"
-          result="effect1_foregroundBlur_8026_43"
-        />
+        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+        <feGaussianBlur stdDeviation="75" result="effect1_foregroundBlur_8026_43" />
       </filter>
       <linearGradient
         id="paint0_linear_8026_43"

@@ -74,9 +74,7 @@ export const Google: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
-export const StripeLinkLogo: React.FC<{ className?: string }> = ({
-  className,
-}) => (
+export const StripeLinkLogo: React.FC<{ className?: string }> = ({ className }) => (
   <svg
     className={cn("fill-current", className)}
     height="32"

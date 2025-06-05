@@ -1,9 +1,9 @@
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { Empty } from "@unkey/ui";
-import { SuccessClient } from "./client";
-import Stripe from "stripe";
 import { redirect } from "next/navigation";
+import Stripe from "stripe";
+import { SuccessClient } from "./client";
 
 type Props = {
   searchParams: {
@@ -26,8 +26,7 @@ export default async function SuccessPage(props: Props) {
       <Empty>
         <Empty.Title>Stripe is not configured</Empty.Title>
         <Empty.Description>
-          If you are selfhosting Unkey, you need to configure Stripe in your
-          environment variables.
+          If you are selfhosting Unkey, you need to configure Stripe in your environment variables.
         </Empty.Description>
       </Empty>
     );
@@ -39,9 +38,7 @@ export default async function SuccessPage(props: Props) {
   });
 
   try {
-    const session = await stripe.checkout.sessions.retrieve(
-      props.searchParams.session_id
-    );
+    const session = await stripe.checkout.sessions.retrieve(props.searchParams.session_id);
 
     if (!session) {
       console.warn("Stripe session not found");
@@ -50,10 +47,7 @@ export default async function SuccessPage(props: Props) {
 
     const ws = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
-        and(
-          eq(table.id, session.client_reference_id!!),
-          isNull(table.deletedAtM)
-        ),
+        and(eq(table.id, session.client_reference_id!), isNull(table.deletedAtM)),
     });
 
     if (!ws) {
@@ -61,17 +55,13 @@ export default async function SuccessPage(props: Props) {
       return redirect("/new");
     }
 
-    const customer = await stripe.customers.retrieve(
-      session.customer as string
-    );
+    const customer = await stripe.customers.retrieve(session.customer as string);
     if (!customer || !session.setup_intent) {
       console.warn("Stripe customer not found");
       return <SuccessClient />;
     }
 
-    const setupIntent = await stripe.setupIntents.retrieve(
-      session.setup_intent.toString()
-    );
+    const setupIntent = await stripe.setupIntents.retrieve(session.setup_intent.toString());
 
     if (!setupIntent.payment_method) {
       console.warn("Stripe payment method not found");
@@ -93,16 +83,14 @@ export default async function SuccessPage(props: Props) {
           stripeCustomerId: customer.id,
         })
         .where(eq(schema.workspaces.id, ws.id));
-
-      console.log("Workspace updated with payment information");
     } catch (error) {
       console.error("Failed to update workspace:", error);
       return (
         <Empty>
           <Empty.Title>Failed to update workspace</Empty.Title>
           <Empty.Description>
-            There was an error updating your workspace with payment information.
-            Please contact support@unkey.dev.
+            There was an error updating your workspace with payment information. Please contact
+            support@unkey.dev.
           </Empty.Description>
         </Empty>
       );
@@ -113,8 +101,8 @@ export default async function SuccessPage(props: Props) {
       <Empty>
         <Empty.Title>Failed to update workspace</Empty.Title>
         <Empty.Description>
-          There was an error updating your workspace with payment information.
-          Please contact support@unkey.dev.
+          There was an error updating your workspace with payment information. Please contact
+          support@unkey.dev.
         </Empty.Description>
       </Empty>
     );
