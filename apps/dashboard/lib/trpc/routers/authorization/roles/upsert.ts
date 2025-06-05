@@ -15,6 +15,19 @@ export const upsertRole = t.procedure
 
     if (!isUpdate) {
       roleId = newId("role");
+      if (!roleId) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to generate role ID",
+        });
+      }
+    }
+
+    if (!roleId) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Invalid role ID",
+      });
     }
 
     await db.transaction(async (tx) => {
@@ -166,7 +179,7 @@ export const upsertRole = t.procedure
           .values(
             input.permissionIds.map((permissionId) => ({
               permissionId,
-              roleId: roleId!,
+              roleId,
               workspaceId: ctx.workspace.id,
             })),
           )
@@ -188,7 +201,7 @@ export const upsertRole = t.procedure
             },
             description: `Connected role ${roleId} and permission ${permissionId}`,
             resources: [
-              { type: "role", id: roleId!, name: input.roleName },
+              { type: "role", id: roleId, name: input.roleName },
               { type: "permission", id: permissionId },
             ],
             context: {
@@ -206,7 +219,7 @@ export const upsertRole = t.procedure
           .values(
             input.keyIds.map((keyId) => ({
               keyId,
-              roleId: roleId!,
+              roleId,
               workspaceId: ctx.workspace.id,
             })),
           )
@@ -229,7 +242,7 @@ export const upsertRole = t.procedure
             description: `Connected key ${keyId} and role ${roleId}`,
             resources: [
               { type: "key", id: keyId },
-              { type: "role", id: roleId!, name: input.roleName },
+              { type: "role", id: roleId, name: input.roleName },
             ],
             context: {
               userAgent: ctx.audit.userAgent,

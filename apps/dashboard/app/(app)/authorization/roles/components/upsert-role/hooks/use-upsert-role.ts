@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc/client";
 
 export const useUpsertRole = (
   onSuccess: (data: {
-    roleId: string;
+    roleId?: string;
     isUpdate: boolean;
     message: string;
   }) => void,

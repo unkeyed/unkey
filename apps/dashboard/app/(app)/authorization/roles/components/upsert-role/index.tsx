@@ -95,6 +95,19 @@ export const UpsertRoleDialog = ({
     control,
   } = methods;
 
+  // useEffect(() => {
+  //   const preventHijacking = (e: KeyboardEvent) => {
+  //     if (!e.isTrusted || e.timeStamp === 0) {
+  //       e.preventDefault();
+  //       e.stopImmediatePropagation();
+  //     }
+  //   };
+  //
+  //   document.addEventListener("keydown", preventHijacking, true);
+  //   return () =>
+  //     document.removeEventListener("keydown", preventHijacking, true);
+  // }, []);
+
   useEffect(() => {
     if (!isDialogOpen) {
       return;
