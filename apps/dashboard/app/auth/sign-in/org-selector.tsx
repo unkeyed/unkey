@@ -1,9 +1,7 @@
 "use client";
 
-import { DialogContainer } from "@/components/dialog-container";
-
 import type { Organization } from "@/lib/auth/types";
-import { Button } from "@unkey/ui";
+import { Button, DialogContainer } from "@unkey/ui";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { completeOrgSelection } from "../actions";
