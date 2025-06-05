@@ -45,9 +45,15 @@ export default async function SuccessPage(props: Props) {
       return redirect("/auth/sign-in");
     }
 
+    const workspaceReference = session.client_reference_id;
+    if (!workspaceReference) {
+      console.warn("Stripe session client_reference_id not found");
+      return <SuccessClient />;
+    }
+
     const ws = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, session.client_reference_id!), isNull(table.deletedAtM)),
+        and(eq(table.id, workspaceReference), isNull(table.deletedAtM)),
     });
 
     if (!ws) {
