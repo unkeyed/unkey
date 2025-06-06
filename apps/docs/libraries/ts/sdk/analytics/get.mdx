@@ -98,12 +98,12 @@ The start of the period to fetch usage for as unix milliseconds timestamp.
     This may become useful for querying the top 10 identities based on usage.
 </ParamField>
 
-<ParamField body="groupBy" type="enum<string>">
+<ParamField body="orderBy" type="enum<string>">
     Sort the output by a specific value. You can use this in combination with the order param.
 
 </ParamField>
 
-<ParamField body="groupBy" type="enum<string>">
+<ParamField body="order" type="enum<string>">
     Define the order of sorting. Use this in combination with orderBy
 </ParamField>
 
@@ -122,7 +122,7 @@ The start of the period to fetch usage for as unix milliseconds timestamp.
 </ResponseField>
 
 <ResponseField name="notFound" type="int">
-  Total number of valid verifications in the current time slice
+  Total number of not found responses in the current time slice
 </ResponseField>
 <ResponseField name="forbidden" type="int">
   Total number of forbidden requests in the current time slice
@@ -146,7 +146,7 @@ The start of the period to fetch usage for as unix milliseconds timestamp.
   Total number of expired verifications in the current time slice
 </ResponseField>
 
-<ResponseField name="tag" type="int">
+<ResponseField name="tag" type="string">
     Only available when grouping by tag.
 </ResponseField>
 
