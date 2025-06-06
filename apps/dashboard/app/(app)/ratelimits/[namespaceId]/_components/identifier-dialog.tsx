@@ -1,13 +1,12 @@
 "use client";
 
-import { DialogContainer } from "@/components/dialog-container";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleInfo } from "@unkey/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
-import { Button, FormInput } from "@unkey/ui";
+import { Button, DialogContainer, FormInput } from "@unkey/ui";
 import type { PropsWithChildren } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
