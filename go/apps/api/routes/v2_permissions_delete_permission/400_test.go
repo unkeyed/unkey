@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -13,7 +12,6 @@ import (
 )
 
 func TestValidationErrors(t *testing.T) {
-	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
 	route := handler.New(handler.Services{
@@ -54,7 +52,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, res.Body.Error.Detail, "invalid")
+		require.Contains(t, res.Body.Error.Detail, "validate schema")
 	})
 
 	// Test case for empty permissionId
@@ -73,20 +71,26 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, res.Body.Error.Detail, "invalid")
+		require.Contains(t, res.Body.Error.Detail, "validate schema")
 	})
 
 	// Test case for malformed JSON body
 	t.Run("malformed JSON body", func(t *testing.T) {
-		res, err := h.Client.Post(
-			"/v2/permissions.deletePermission",
-			"application/json",
-			[]byte("{malformed json"),
+		req := map[string]interface{}{
+			"invalid": "json structure",
+		}
+
+		res := testutil.CallRoute[map[string]interface{}, openapi.BadRequestErrorResponse](
+			h,
+			route,
 			headers,
+			req,
 		)
 
-		require.NoError(t, err)
-		require.Equal(t, 400, res.StatusCode)
+		require.Equal(t, 400, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+		require.Contains(t, res.Body.Error.Detail, "validate schema")
 	})
 
 	// Test case for invalid permissionId format
@@ -95,14 +99,17 @@ func TestValidationErrors(t *testing.T) {
 			PermissionId: "not_a_valid_permission_id_format",
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
 			h,
 			route,
 			headers,
 			req,
 		)
 
-		require.Equal(t, 400, res.Status)
-		// Note: This might pass if there's no format validation for permissionId
+		require.Equal(t, 404, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+		require.Contains(t, res.Body.Error.Detail, "does not exist")
+		// Note: The handler does database lookup first, so invalid formats return 404, not 400
 	})
 }

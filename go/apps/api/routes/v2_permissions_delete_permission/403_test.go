@@ -2,9 +2,11 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -35,11 +37,13 @@ func TestAuthorizationErrors(t *testing.T) {
 	permissionID := uid.New(uid.PermissionPrefix)
 	permissionName := "test.permission.delete.auth"
 
-	_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-		ID:          permissionID,
-		WorkspaceID: workspace.ID,
-		Name:        permissionName,
-		Description: db.NewNullString("Test permission for authorization tests"),
+	err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+		PermissionID: permissionID,
+		WorkspaceID:  workspace.ID,
+		Name:         permissionName,
+		Slug:         "test-permission-delete-auth",
+		Description:  sql.NullString{Valid: true, String: "Test permission for authorization tests"},
+		CreatedAtM:   time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
 
@@ -67,7 +71,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.Equal(t, 403, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, res.Body.Error.Detail, "insufficient permissions")
+		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions")
 
 		// Verify the permission still exists (wasn't deleted)
 		perm, err := db.Query.FindPermissionById(ctx, h.DB.RO(), permissionID)
@@ -78,7 +82,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	// Test case for wrong workspace
 	t.Run("wrong workspace", func(t *testing.T) {
 		// Create a different workspace
-		otherWorkspace := h.CreateWorkspace("other-workspace")
+		otherWorkspace := h.CreateWorkspace()
 
 		// Create a root key for the other workspace with all permissions
 		rootKey := h.CreateRootKey(otherWorkspace.ID, "rbac.*.delete_permission")
@@ -92,17 +96,19 @@ func TestAuthorizationErrors(t *testing.T) {
 			PermissionId: permissionID, // Permission is in the original workspace
 		}
 
-		// When accessing from wrong workspace, the behavior could be a 404 Not Found
-		// rather than 403 Forbidden, as the handler masks workspace mismatches as "not found"
-		res, err := h.Client.Post(
-			"/v2/permissions.deletePermission",
-			"application/json",
-			testutil.MustMarshal(req),
+		// When accessing from wrong workspace, the behavior should be a 404 Not Found
+		// as the handler masks workspace mismatches as "not found"
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
+			h,
+			route,
 			headers,
+			req,
 		)
 
-		require.NoError(t, err)
-		require.Equal(t, 404, res.StatusCode, "Wrong workspace access should return 404")
+		require.Equal(t, 404, res.Status, "Wrong workspace access should return 404")
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+		require.Contains(t, res.Body.Error.Detail, "does not exist")
 
 		// Verify the permission still exists (wasn't deleted)
 		perm, err := db.Query.FindPermissionById(ctx, h.DB.RO(), permissionID)

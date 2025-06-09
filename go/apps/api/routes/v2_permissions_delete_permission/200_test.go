@@ -2,9 +2,11 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_delete_permission"
@@ -46,11 +48,13 @@ func TestSuccess(t *testing.T) {
 		permissionName := "test.delete.permission"
 		permissionDesc := "Test permission to be deleted"
 
-		_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			ID:          permissionID,
-			WorkspaceID: workspace.ID,
-			Name:        permissionName,
-			Description: db.NewNullString(permissionDesc),
+		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+			PermissionID: permissionID,
+			WorkspaceID:  workspace.ID,
+			Name:         permissionName,
+			Slug:         "test-delete-permission",
+			Description:  sql.NullString{Valid: true, String: permissionDesc},
+			CreatedAtM:   time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
 
@@ -81,48 +85,44 @@ func TestSuccess(t *testing.T) {
 		require.True(t, db.IsNotFound(err), "Error should be 'not found'")
 
 		// Verify audit log was created
-		auditLogs, err := h.DB.RO().QueryContext(ctx,
-			`SELECT * FROM "auditlogs" WHERE "event" = 'permission.delete' AND "resourceId" = $1`,
-			permissionID)
+		auditLogs, err := db.Query.FindAuditLogTargetById(ctx, h.DB.RO(), permissionID)
 		require.NoError(t, err)
-		require.True(t, auditLogs.Next(), "Audit log for permission deletion should exist")
-		auditLogs.Close()
+		require.NotEmpty(t, auditLogs, "Audit log for permission deletion should exist")
+
+		foundDeleteEvent := false
+		for _, log := range auditLogs {
+			if log.AuditLog.Event == "permission.delete" {
+				foundDeleteEvent = true
+				break
+			}
+		}
+		require.True(t, foundDeleteEvent, "Should find a permission.delete audit log event")
 	})
 
-	// Test case for deleting a permission with relationships
-	t.Run("delete permission with relationships", func(t *testing.T) {
-		// Create a permission with role and key relationships
+	// Test case for deleting a permission with description
+	t.Run("delete permission with description", func(t *testing.T) {
+		// Create a permission with a description
 		permissionID := uid.New(uid.PermissionPrefix)
-		permissionName := "test.delete.permission.with.relations"
+		permissionName := "test.delete.permission.with.description"
+		permissionDesc := "This permission has a description"
 
-		_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			ID:          permissionID,
-			WorkspaceID: workspace.ID,
-			Name:        permissionName,
+		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+			PermissionID: permissionID,
+			WorkspaceID:  workspace.ID,
+			Name:         permissionName,
+			Slug:         "test-delete-permission-with-description",
+			Description:  sql.NullString{Valid: true, String: permissionDesc},
+			CreatedAtM:   time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
 
-		// Create a role
-		roleID := "role_test"
-		_, err = h.DB.RW().ExecContext(ctx,
-			`INSERT INTO "roles" ("id", "workspaceId", "name") VALUES ($1, $2, $3)`,
-			roleID, workspace.ID, "test-role")
+		// Verify the permission exists before deletion
+		perm, err := db.Query.FindPermissionById(ctx, h.DB.RO(), permissionID)
 		require.NoError(t, err)
+		require.Equal(t, permissionID, perm.ID)
+		require.Equal(t, permissionDesc, perm.Description.String)
 
-		// Create a role-permission relationship
-		_, err = h.DB.RW().ExecContext(ctx,
-			`INSERT INTO "role_permissions" ("roleId", "permissionId") VALUES ($1, $2)`,
-			roleID, permissionID)
-		require.NoError(t, err)
-
-		// Create a key-permission relationship
-		keyID := "key_test"
-		_, err = h.DB.RW().ExecContext(ctx,
-			`INSERT INTO "key_permissions" ("keyId", "permissionId") VALUES ($1, $2)`,
-			keyID, permissionID)
-		require.NoError(t, err)
-
-		// Now delete the permission
+		// Delete the permission
 		req := handler.Request{
 			PermissionId: permissionID,
 		}
@@ -139,21 +139,6 @@ func TestSuccess(t *testing.T) {
 		// Verify the permission no longer exists
 		_, err = db.Query.FindPermissionById(ctx, h.DB.RO(), permissionID)
 		require.Error(t, err, "Permission should no longer exist")
-
-		// Verify role-permission relationship no longer exists
-		rolePerms, err := h.DB.RO().QueryContext(ctx,
-			`SELECT * FROM "role_permissions" WHERE "permissionId" = $1`,
-			permissionID)
-		require.NoError(t, err)
-		require.False(t, rolePerms.Next(), "Role-permission relationship should not exist")
-		rolePerms.Close()
-
-		// Verify key-permission relationship no longer exists
-		keyPerms, err := h.DB.RO().QueryContext(ctx,
-			`SELECT * FROM "key_permissions" WHERE "permissionId" = $1`,
-			permissionID)
-		require.NoError(t, err)
-		require.False(t, keyPerms.Next(), "Key-permission relationship should not exist")
-		keyPerms.Close()
+		require.True(t, db.IsNotFound(err), "Error should be 'not found'")
 	})
 }

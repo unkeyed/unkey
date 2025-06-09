@@ -2,12 +2,14 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
+	"github.com/unkeyed/unkey/go/pkg/auditlog"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -29,7 +31,6 @@ type Services struct {
 
 func New(svc Services) zen.Route {
 	return zen.NewRoute("POST", "/v2/permissions.deletePermission", func(ctx context.Context, s *zen.Session) error {
-		svc.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/permissions.deletePermission")
 
 		// 1. Authentication
 		auth, err := svc.Keys.VerifyRootKey(ctx, s)
@@ -38,12 +39,9 @@ func New(svc Services) zen.Route {
 		}
 
 		// 2. Request validation
-		var req Request
-		err = s.BindBody(&req)
+		req, err := zen.BindBody[Request](s)
 		if err != nil {
-			return fault.Wrap(err,
-				fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
-			)
+			return err
 		}
 
 		// 3. Permission check
@@ -52,7 +50,7 @@ func New(svc Services) zen.Route {
 			auth.KeyID,
 			rbac.Or(
 				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Permission,
+					ResourceType: rbac.Rbac,
 					ResourceID:   "*",
 					Action:       rbac.DeletePermission,
 				}),
@@ -86,67 +84,86 @@ func New(svc Services) zen.Route {
 		}
 
 		// 5. Delete the permission in a transaction
-		err = svc.DB.WithTransaction(ctx, func(ctx context.Context, tx db.Tx) error {
-			// Delete role-permission relationships
-			_, err := db.Query.DeleteRolePermissionsByPermissionId(ctx, tx, req.PermissionId)
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to delete role-permission relationships."),
-				)
-			}
+		tx, err := svc.DB.RW().Begin(ctx)
+		if err != nil {
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to create transaction"), fault.Public("Unable to start database transaction."),
+			)
+		}
 
-			// Delete key-permission relationships
-			_, err = db.Query.DeleteKeyPermissionsByPermissionId(ctx, tx, req.PermissionId)
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to delete key-permission relationships."),
-				)
+		defer func() {
+			if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+				svc.Logger.Error("failed to rollback transaction", "error", err)
 			}
+		}()
 
-			// Delete the permission itself
-			_, err = db.Query.DeletePermission(ctx, tx, req.PermissionId)
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to delete permission."),
-				)
-			}
+		// Delete role-permission relationships
+		err = db.Query.DeleteRolePermissionsByPermissionId(ctx, tx, req.PermissionId)
+		if err != nil {
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to delete role-permission relationships."),
+			)
+		}
 
-			// Create audit log for permission deletion
-			err = svc.Auditlogs.CreateAuditLog(ctx, tx, auditlogs.CreateAuditLogParams{
+		// Delete key-permission relationships
+		err = db.Query.DeleteKeyPermissionsByPermissionId(ctx, tx, req.PermissionId)
+		if err != nil {
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to delete key-permission relationships."),
+			)
+		}
+
+		// Delete the permission itself
+		err = db.Query.DeletePermission(ctx, tx, req.PermissionId)
+		if err != nil {
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to delete permission."),
+			)
+		}
+
+		// Create audit log for permission deletion
+		err = svc.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
+			{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       "permission.delete",
-				ActorType:   "key",
+				ActorType:   auditlog.RootKeyActor,
 				ActorID:     auth.KeyID,
-				Description: "Deleted " + req.PermissionId,
-				Resources: []auditlogs.Resource{
+				ActorName:   "root key",
+				Display:     "Deleted " + req.PermissionId,
+				RemoteIP:    s.Location(),
+				UserAgent:   s.UserAgent(),
+				Resources: []auditlog.AuditLogResource{
 					{
-						Type: "permission",
-						ID:   req.PermissionId,
+						Type:        "permission",
+						ID:          req.PermissionId,
+						Name:        permission.Name,
+						DisplayName: permission.Name,
 						Meta: map[string]interface{}{
 							"name":        permission.Name,
 							"description": permission.Description.String,
 						},
 					},
 				},
-				Context: auditlogs.Context{
-					Location:  s.Location(),
-					UserAgent: s.UserAgent(),
-				},
-			})
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("audit log error"), fault.Public("Failed to create audit log for permission deletion."),
-				)
-			}
-
-			return nil
+			},
 		})
 		if err != nil {
-			return err
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("audit log error"), fault.Public("Failed to create audit log for permission deletion."),
+			)
+		}
+
+		// Commit the transaction
+		err = tx.Commit()
+		if err != nil {
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to commit transaction"), fault.Public("Failed to commit changes."),
+			)
 		}
 
 		// 6. Return success response

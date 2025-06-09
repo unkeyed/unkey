@@ -7447,6 +7447,102 @@
         }
       }
     },
+    "/v2/permissions.deletePermission": {
+      "post": {
+        "tags": [
+          "permissions"
+        ],
+        "summary": "Delete a permission",
+        "description": "Permanently removes a permission from the workspace. This endpoint is used when a permission is no longer needed or when cleaning up unused permissions.\n\nWhen a permission is deleted:\n- All direct assignments to API keys are removed\n- The permission is removed from any roles it was assigned to\n- The permission's name becomes available for reuse\n\nImportant: This operation cannot be undone, and it immediately affects all API keys and roles that had this permission assigned. Consider carefully before deleting permissions that are actively in use.",
+        "operationId": "deletePermission",
+        "x-speakeasy-name-override": "DeletePermission",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2PermissionsDeletePermissionRequestBody"
+              },
+              "examples": {
+                "basic": {
+                  "summary": "Delete a permission",
+                  "value": {
+                    "permissionId": "perm_1234567890abcdef"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2PermissionsDeletePermissionResponseBody"
+                }
+              }
+            },
+            "description": "Successfully deleted permission"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found - The specified permission does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
     "/v2/permissions.deleteRole": {
       "post": {
         "tags": [

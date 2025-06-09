@@ -2,9 +2,11 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -56,7 +58,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, res.Body.Error.Detail, "not found")
+		require.Contains(t, res.Body.Error.Detail, "does not exist")
 	})
 
 	// Test case for valid-looking but non-existent permission ID
@@ -77,22 +79,25 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, res.Body.Error.Detail, "not found")
+		require.Contains(t, res.Body.Error.Detail, "does not exist")
 	})
 
 	// Test case for already deleted permission
 	t.Run("already deleted permission", func(t *testing.T) {
 		// First, create a permission
 		permissionID := uid.New(uid.PermissionPrefix)
-		_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			ID:          permissionID,
-			WorkspaceID: workspace.ID,
-			Name:        "test.permission.to.delete",
+		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+			PermissionID: permissionID,
+			WorkspaceID:  workspace.ID,
+			Name:         "test.permission.to.delete",
+			Slug:         "test-permission-to-delete",
+			Description:  sql.NullString{Valid: false},
+			CreatedAtM:   time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
 
 		// Delete the permission
-		_, err = db.Query.DeletePermission(ctx, h.DB.RW(), permissionID)
+		err = db.Query.DeletePermission(ctx, h.DB.RW(), permissionID)
 		require.NoError(t, err)
 
 		// Try to delete it again
@@ -110,6 +115,6 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, res.Body.Error.Detail, "not found")
+		require.Contains(t, res.Body.Error.Detail, "does not exist")
 	})
 }
