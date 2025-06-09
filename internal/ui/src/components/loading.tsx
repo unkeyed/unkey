@@ -66,27 +66,23 @@ const DotsLoading = ({
 };
 
 const convertDurationToMS = (duration: string): number => {
-  if (typeof duration === "string") {
-    const lowerDuration = duration.toLowerCase().trim();
+  const lowerDuration = duration.toLowerCase().trim();
 
-    if (lowerDuration.endsWith("ms")) {
-      const msValue = Number.parseFloat(lowerDuration.slice(0, -2));
-      if (Number.isNaN(msValue)) {
-        throw new Error(`Invalid milliseconds format: "${duration}"`);
-      }
-      return msValue;
+  if (lowerDuration.endsWith("ms")) {
+    const msValue = Number.parseFloat(lowerDuration.slice(0, -2));
+    if (Number.isNaN(msValue)) {
+      throw new Error(`Invalid milliseconds format: "${duration}"`);
     }
-
-    if (lowerDuration.endsWith("s")) {
-      const secondsValue = Number.parseFloat(lowerDuration.slice(0, -1));
-      if (Number.isNaN(secondsValue)) {
-        throw new Error(`Invalid seconds format: "${duration}"`);
-      }
-      return secondsValue * 1000;
-    }
-
-    throw new Error(`Invalid duration format: "${duration}". Expected 'ms' or 's' suffix.`);
+    return msValue;
   }
 
-  throw new Error(`Unsupported duration type: ${typeof duration}. Expected string or number.`);
+  if (lowerDuration.endsWith("s")) {
+    const secondsValue = Number.parseFloat(lowerDuration.slice(0, -1));
+    if (Number.isNaN(secondsValue)) {
+      throw new Error(`Invalid seconds format: "${duration}"`);
+    }
+    return secondsValue * 1000;
+  }
+
+  throw new Error(`Invalid duration format: "${duration}". Expected 'ms' or 's' suffix.`);
 };
