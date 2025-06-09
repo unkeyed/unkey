@@ -1,6 +1,9 @@
-import { cn } from "@/lib/utils";
+"use client";
+
 import { Eye, EyeOff } from "lucide-react";
-import { useEffect } from "react";
+// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
+import React, { useEffect } from "react";
+import { cn } from "../lib/utils";
 
 type VisibleButtonProps = React.HTMLAttributes<HTMLButtonElement> & {
   isVisible: boolean;

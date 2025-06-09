@@ -1,0 +1,75 @@
+---
+title: VisibleButton
+summary: A toggle button that switches between visible and hidden states, commonly used for showing/hiding sensitive information.
+---
+import { VisibleButtonDemo } from "./buttons/visual-button.examples"
+
+
+# VisibleButton
+
+The `VisibleButton` component is a toggle button that switches between visible and hidden states, commonly used for showing/hiding sensitive information. It automatically hides content after 10 seconds when visible.
+
+## Features
+
+- Toggle between visible/hidden states
+- Automatic hiding after 10 seconds
+- Accessible with screen readers
+- Dark mode support
+- Customizable styling through className prop
+
+## Props
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `isVisible` | `boolean` | Current visibility state |
+| `setIsVisible` | `(visible: boolean) => void` | Function to update visibility state |
+| `className` | `string` | Optional CSS classes to apply to the button |
+
+Additional props are forwarded to the underlying `button` element.
+
+## Usage
+
+```tsx
+import { useState } from 'react';
+import { VisibleButton } from '@/components/visible-button';
+
+function Example() {
+  const [isVisible, setIsVisible] = useState(false);
+  
+  return (
+    <div>
+      <VisibleButton 
+        isVisible={isVisible} 
+        setIsVisible={setIsVisible} 
+      />
+      {isVisible ? "Sensitive content" : "•••••••"}
+    </div>
+  );
+}
+```
+
+## Examples
+
+<VisibleButtonDemo />
+
+## Behavior
+
+1. Clicking the button toggles between visible (Eye icon) and hidden (EyeOff icon) states
+2. When content becomes visible, a 10-second timer starts
+3. After 10 seconds, content automatically becomes hidden
+4. The timer resets if the content is hidden manually before timeout
+
+## Accessibility
+
+- Includes `sr-only` text for screen readers
+- Uses semantic button element with proper ARIA attributes
+- Maintains focus states for keyboard navigation
+
+## Design
+
+The button features:
+- A minimal, circular design
+- Icon-based state indication (Eye/EyeOff)
+- Hover and focus states
+- Dark mode support
+- Responsive sizing (24x24 pixels)
