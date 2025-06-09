@@ -12,8 +12,7 @@ import (
 //
 //	// Validate age input
 //	if err := assert.InRange(age, 18, 120, "Age must be between 18 and 120"); err != nil {
-//	    return fault.Wrap(err, fault.WithDesc(
-//	        fmt.Sprintf("age %d outside valid range [18-120]", age),
+//	    return fault.Wrap(err, fault.Internal(//	        fmt.Sprintf("age %d outside valid range [18-120]"), fault.Public(age),
 //	        "Please enter a valid age between 18 and 120",
 //	    ))
 //	}
@@ -23,7 +22,7 @@ func InRange[T ~int | ~float64](value, minimum, maximum T, message ...string) er
 		if len(message) > 0 {
 			errorMsg = message[0]
 		}
-		return fault.New(errorMsg, fault.WithCode(codes.App.Validation.AssertionFailed.URN()))
+		return fault.New(errorMsg, fault.Code(codes.App.Validation.AssertionFailed.URN()))
 	}
 	return nil
 }

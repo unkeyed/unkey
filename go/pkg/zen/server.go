@@ -214,7 +214,7 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 	cancel()
 
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return fault.Wrap(err, fault.WithDesc("listening failed", ""))
+		return fault.Wrap(err, fault.Internal("listening failed"))
 	}
 	return nil
 }

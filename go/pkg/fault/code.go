@@ -33,5 +33,3 @@ func GetCode(err error) (codes.URN, bool) {
 
 	return "", false
 }
-
-

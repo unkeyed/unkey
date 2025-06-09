@@ -77,15 +77,15 @@ func New(svc Services) zen.Route {
 		err = s.BindBody(&req)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithDesc("invalid request body", "The request body is invalid."),
+				fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
 			)
 		}
 
 		// Validate that at least one of identityID or externalID is provided
 		if req.identityID == nil && req.externalID == nil {
 			return fault.New("missing required field",
-				fault.WithCode(codes.App.Validation.InvalidInput.URN()),
-				fault.WithDesc("missing required field", "Provide either identityId or externalId"),
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal("missing required field"), fault.Public("Provide either identityId or externalId"),
 			)
 		}
 
@@ -109,14 +109,14 @@ func New(svc Services) zen.Route {
 		)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithDesc("unable to check permissions", "We're unable to check the permissions of your key."),
+				fault.Internal("unable to check permissions"), fault.Public("We're unable to check the permissions of your key."),
 			)
 		}
 
 		if !permissions.Valid {
 			return fault.New("insufficient permissions",
-				fault.WithCode(codes.Auth.Authorization.InsufficientPermissions.URN()),
-				fault.WithDesc(permissions.Message, permissions.Message),
+				fault.Code(codes.Auth.Authorization.InsufficientPermissions.URN()),
+				fault.Internal(permissions.Message), fault.Public(permissions.Message),
 			)
 		}
 
@@ -126,8 +126,8 @@ func New(svc Services) zen.Route {
 			for _, ratelimit := range *req.ratelimits {
 				if _, exists := nameSet[ratelimit.Name]; exists {
 					return fault.New("duplicate ratelimit name",
-						fault.WithCode(codes.Data.Ratelimit.Duplicate.URN()),
-						fault.WithDesc("duplicate ratelimit name", fmt.Sprintf("Ratelimit with name \"%s\" is already defined in the request", ratelimit.Name)),
+						fault.Code(codes.Data.Ratelimit.Duplicate.URN()),
+						fault.Internal("duplicate ratelimit name"), fault.Public(fmt.Sprintf("Ratelimit with name \"%s\" is already defined in the request", ratelimit.Name)),
 					)
 				}
 				nameSet[ratelimit.Name] = true
@@ -141,16 +141,16 @@ func New(svc Services) zen.Route {
 			metaBytes, metaErr = json.Marshal(req.meta)
 			if metaErr != nil {
 				return fault.Wrap(metaErr,
-					fault.WithCode(codes.App.Validation.InvalidInput.URN()),
-					fault.WithDesc("unable to marshal metadata", "We're unable to marshal the meta object."),
+					fault.Code(codes.App.Validation.InvalidInput.URN()),
+					fault.Internal("unable to marshal metadata"), fault.Public("We're unable to marshal the meta object."),
 				)
 			}
 
 			sizeInMB := float64(len(metaBytes)) / 1024 / 1024
 			if sizeInMB > maxMetaLengthMB {
 				return fault.New("metadata is too large",
-					fault.WithCode(codes.App.Validation.InvalidInput.URN()),
-					fault.WithDesc("metadata is too large", fmt.Sprintf("Metadata is too large, it must be less than %dMB, got: %.2f", maxMetaLengthMB, sizeInMB)),
+					fault.Code(codes.App.Validation.InvalidInput.URN()),
+					fault.Internal("metadata is too large"), fault.Public(fmt.Sprintf("Metadata is too large, it must be less than %dMB, got: %.2f", maxMetaLengthMB, sizeInMB)),
 				)
 			}
 		}
@@ -158,8 +158,8 @@ func New(svc Services) zen.Route {
 		tx, err := svc.DB.RW().Begin(ctx)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to create transaction", "Unable to start database transaction."),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to create transaction"), fault.Public("Unable to start database transaction."),
 			)
 		}
 
@@ -193,12 +193,12 @@ func New(svc Services) zen.Route {
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return fault.New("identity not found",
-					fault.WithCode(codes.Data.Identity.NotFound.URN()),
-					fault.WithDesc("identity not found", fmt.Sprintf("Identity not found in this workspace")),
+					fault.Code(codes.Data.Identity.NotFound.URN()),
+					fault.Internal("identity not found"), fault.Public(fmt.Sprintf("Identity not found in this workspace")),
 				)
 			}
 			return fault.Wrap(err,
-				fault.WithDesc("unable to find identity", "We're unable to retrieve the identity."),
+				fault.Internal("unable to find identity"), fault.Public("We're unable to retrieve the identity."),
 			)
 		}
 
@@ -206,7 +206,7 @@ func New(svc Services) zen.Route {
 		existingRatelimits, err = db.Query.GetRatelimitsByIdentityID(ctx, tx, identity.ID)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return fault.Wrap(err,
-				fault.WithDesc("unable to fetch ratelimits", "We're unable to retrieve the identity's ratelimits."),
+				fault.Internal("unable to fetch ratelimits"), fault.Public("We're unable to retrieve the identity's ratelimits."),
 			)
 		}
 
@@ -214,7 +214,7 @@ func New(svc Services) zen.Route {
 		associatedKeyIDs, err = db.Query.GetActiveKeyIDsByIdentityID(ctx, tx, identity.ID)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return fault.Wrap(err,
-				fault.WithDesc("unable to fetch associated keys", "We're unable to retrieve the keys associated with this identity."),
+				fault.Internal("unable to fetch associated keys"), fault.Public("We're unable to retrieve the keys associated with this identity."),
 			)
 		}
 
@@ -249,7 +249,7 @@ func New(svc Services) zen.Route {
 			})
 			if err != nil {
 				return fault.Wrap(err,
-					fault.WithDesc("unable to update metadata", "We're unable to update the identity's metadata."),
+					fault.Internal("unable to update metadata"), fault.Public("We're unable to update the identity's metadata."),
 				)
 			}
 		}
@@ -281,7 +281,7 @@ func New(svc Services) zen.Route {
 					err = db.Query.DeleteRatelimit(ctx, tx, existingRL.ID)
 					if err != nil {
 						return fault.Wrap(err,
-							fault.WithDesc("unable to delete ratelimit", "We're unable to delete a ratelimit."),
+							fault.Internal("unable to delete ratelimit"), fault.Public("We're unable to delete a ratelimit."),
 						)
 					}
 
@@ -326,7 +326,7 @@ func New(svc Services) zen.Route {
 					})
 					if err != nil {
 						return fault.Wrap(err,
-							fault.WithDesc("unable to update ratelimit", "We're unable to update a ratelimit."),
+							fault.Internal("unable to update ratelimit"), fault.Public("We're unable to update a ratelimit."),
 						)
 					}
 
@@ -370,7 +370,7 @@ func New(svc Services) zen.Route {
 					})
 					if err != nil {
 						return fault.Wrap(err,
-							fault.WithDesc("unable to create ratelimit", "We're unable to create a new ratelimit."),
+							fault.Internal("unable to create ratelimit"), fault.Public("We're unable to create a new ratelimit."),
 						)
 					}
 
@@ -408,8 +408,8 @@ func New(svc Services) zen.Route {
 		err = svc.Auditlogs.Insert(ctx, tx, auditLogs)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to insert audit logs", "Failed to insert audit logs"),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to insert audit logs"), fault.Public("Failed to insert audit logs"),
 			)
 		}
 
@@ -417,8 +417,8 @@ func New(svc Services) zen.Route {
 		err = tx.Commit()
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to commit transaction", "Failed to commit changes."),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to commit transaction"), fault.Public("Failed to commit changes."),
 			)
 		}
 
@@ -429,14 +429,14 @@ func New(svc Services) zen.Route {
 		})
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithDesc("unable to get updated identity", "We were able to update the identity but unable to retrieve the updated data."),
+				fault.Internal("unable to get updated identity"), fault.Public("We were able to update the identity but unable to retrieve the updated data."),
 			)
 		}
 
 		updatedRatelimits, err := db.Query.GetRatelimitsByIdentityID(ctx, svc.DB.RO(), identity.ID)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return fault.Wrap(err,
-				fault.WithDesc("unable to fetch updated ratelimits", "We were able to update the identity but unable to retrieve the updated ratelimits."),
+				fault.Internal("unable to fetch updated ratelimits"), fault.Public("We were able to update the identity but unable to retrieve the updated ratelimits."),
 			)
 		}
 
@@ -456,7 +456,7 @@ func New(svc Services) zen.Route {
 			err = json.Unmarshal(updatedIdentity.Meta, &responseMeta)
 			if err != nil {
 				return fault.Wrap(err,
-					fault.WithDesc("unable to unmarshal metadata", "We're unable to parse the identity's metadata."),
+					fault.Internal("unable to unmarshal metadata"), fault.Public("We're unable to parse the identity's metadata."),
 				)
 			}
 		}

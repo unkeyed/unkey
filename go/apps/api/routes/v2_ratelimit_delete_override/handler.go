@@ -44,15 +44,17 @@ func New(svc Services) zen.Route {
 		err = s.BindBody(&req)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithDesc("invalid request body", "The request body is invalid."),
+				fault.Internal("invalid request body"),
+				fault.Public("The request body is invalid."),
 			)
 		}
 
 		namespace, err := getNamespace(ctx, svc, auth.AuthorizedWorkspaceID, req)
 		if db.IsNotFound(err) {
 			return fault.New("namespace not found",
-				fault.WithCode(codes.Data.RatelimitNamespace.NotFound.URN()),
-				fault.WithDesc("namespace not found", "This namespace does not exist."),
+				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+				fault.Internal("namespace not found"),
+				fault.Public("This namespace does not exist."),
 			)
 		}
 		if err != nil {
@@ -61,8 +63,9 @@ func New(svc Services) zen.Route {
 
 		if namespace.WorkspaceID != auth.AuthorizedWorkspaceID {
 			return fault.New("namespace not found",
-				fault.WithCode(codes.Data.RatelimitNamespace.NotFound.URN()),
-				fault.WithDesc("wrong workspace, masking as 404", "This namespace does not exist."),
+				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+				fault.Internal("wrong workspace, masking as 404"),
+				fault.Public("This namespace does not exist."),
 			)
 		}
 
@@ -85,22 +88,24 @@ func New(svc Services) zen.Route {
 
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithDesc("unable to check permissions", "We're unable to check the permissions of your key."),
+				fault.Internal("unable to check permissions"),
+				fault.Public("We're unable to check the permissions of your key."),
 			)
 		}
 
 		if !permissions.Valid {
 			return fault.New("insufficient permissions",
-				fault.WithCode(codes.Auth.Authorization.InsufficientPermissions.URN()),
-				fault.WithDesc(permissions.Message, permissions.Message),
+				fault.Code(codes.Auth.Authorization.InsufficientPermissions.URN()),
+				fault.Internal(permissions.Message), fault.Public(permissions.Message),
 			)
 		}
 
 		tx, err := svc.DB.RW().Begin(ctx)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to create transaction", "Unable to start database transaction."),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to create transaction"),
+				fault.Public("Unable to start database transaction."),
 			)
 		}
 		defer func() {
@@ -119,8 +124,9 @@ func New(svc Services) zen.Route {
 
 		if db.IsNotFound(err) {
 			return fault.New("override not found",
-				fault.WithCode(codes.Data.RatelimitOverride.NotFound.URN()),
-				fault.WithDesc("override not found", "This override does not exist."),
+				fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
+				fault.Internal("override not found"),
+				fault.Public("This override does not exist."),
 			)
 		}
 		if err != nil {
@@ -134,8 +140,9 @@ func New(svc Services) zen.Route {
 
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to soft delete ratelimit override", "The database is unavailable."),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to soft delete ratelimit override"),
+				fault.Public("The database is unavailable."),
 			)
 		}
 
@@ -171,16 +178,18 @@ func New(svc Services) zen.Route {
 		})
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to insert audit logs", "Failed to insert audit logs"),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to insert audit logs"),
+				fault.Public("Failed to insert audit logs"),
 			)
 		}
 
 		err = tx.Commit()
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to commit transaction", "Failed to commit changes."),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to commit transaction"),
+				fault.Public("Failed to commit changes."),
 			)
 		}
 
@@ -209,7 +218,8 @@ func getNamespace(ctx context.Context, svc Services, workspaceID string, req Req
 	}
 
 	return db.RatelimitNamespace{}, fault.New("missing namespace id or name",
-		fault.WithCode(codes.App.Validation.InvalidInput.URN()),
-		fault.WithDesc("missing namespace id or name", "You must provide either a namespace ID or name."),
+		fault.Code(codes.App.Validation.InvalidInput.URN()),
+		fault.Internal("missing namespace id or name"),
+		fault.Public("You must provide either a namespace ID or name."),
 	)
 }

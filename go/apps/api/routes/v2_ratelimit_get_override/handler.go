@@ -37,7 +37,7 @@ func New(svc Services) zen.Route {
 		err = s.BindBody(&req)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithDesc("invalid request body", "The request body is invalid."),
+				fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
 			)
 		}
 
@@ -50,8 +50,8 @@ func New(svc Services) zen.Route {
 
 		if namespace.WorkspaceID != auth.AuthorizedWorkspaceID {
 			return fault.New("namespace not found",
-				fault.WithCode(codes.Data.RatelimitNamespace.NotFound.URN()),
-				fault.WithDesc("namespace was deleted", "This namespace does not exist."),
+				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+				fault.Internal("namespace was deleted"), fault.Public("This namespace does not exist."),
 			)
 		}
 
@@ -73,14 +73,14 @@ func New(svc Services) zen.Route {
 		)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithDesc("unable to check permissions", "We're unable to check the permissions of your key."),
+				fault.Internal("unable to check permissions"), fault.Public("We're unable to check the permissions of your key."),
 			)
 		}
 
 		if !permissions.Valid {
 			return fault.New("insufficient permissions",
-				fault.WithCode(codes.Auth.Authorization.InsufficientPermissions.URN()),
-				fault.WithDesc(permissions.Message, permissions.Message),
+				fault.Code(codes.Auth.Authorization.InsufficientPermissions.URN()),
+				fault.Internal(permissions.Message), fault.Public(permissions.Message),
 			)
 		}
 
@@ -92,14 +92,14 @@ func New(svc Services) zen.Route {
 
 		if db.IsNotFound(err) {
 			return fault.New("override not found",
-				fault.WithCode(codes.Data.RatelimitOverride.NotFound.URN()),
-				fault.WithDesc("override not found", "This override does not exist."),
+				fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
+				fault.Internal("override not found"), fault.Public("This override does not exist."),
 			)
 		}
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to find the override", "Error finding the ratelimit override."),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to find the override"), fault.Public("Error finding the ratelimit override."),
 			)
 		}
 
@@ -137,8 +137,8 @@ func getNamespace(ctx context.Context, svc Services, workspaceID string, req Req
 		}
 	default:
 		return db.RatelimitNamespace{}, fault.New("namespace id or name required",
-			fault.WithCode(codes.App.Validation.InvalidInput.URN()),
-			fault.WithDesc("namespace id or name required", "You must provide either a namespace ID or name."),
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal("namespace id or name required"), fault.Public("You must provide either a namespace ID or name."),
 		)
 	}
 
@@ -146,14 +146,14 @@ func getNamespace(ctx context.Context, svc Services, workspaceID string, req Req
 
 		if db.IsNotFound(err) {
 			return db.RatelimitNamespace{}, fault.New("namespace not found",
-				fault.WithCode(codes.Data.RatelimitNamespace.NotFound.URN()),
-				fault.WithDesc("namespace not found", "The namespace was not found."),
+				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+				fault.Internal("namespace not found"), fault.Public("The namespace was not found."),
 			)
 		}
 
 		return db.RatelimitNamespace{}, fault.Wrap(err,
-			fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.WithDesc("database failed to find the namespace", "Error finding the ratelimit namespace."),
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database failed to find the namespace"), fault.Public("Error finding the ratelimit namespace."),
 		)
 	}
 	return namespace, nil

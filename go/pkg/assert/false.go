@@ -12,7 +12,7 @@ import (
 //
 //	// Safety check
 //	if err := assert.False(isShuttingDown, "Cannot perform operation during shutdown"); err != nil {
-//	    return fault.Wrap(err, fault.WithDesc("cannot perform operation during shutdown", ""))
+//	    return fault.Wrap(err, fault.Internal("cannot perform operation during shutdown"))
 //	}
 func False(value bool, message ...string) error {
 	if value {
@@ -20,7 +20,7 @@ func False(value bool, message ...string) error {
 		if len(message) > 0 {
 			errorMsg = message[0]
 		}
-		return fault.New(errorMsg, fault.WithCode(codes.App.Validation.AssertionFailed.URN()))
+		return fault.New(errorMsg, fault.Code(codes.App.Validation.AssertionFailed.URN()))
 	}
 	return nil
 }

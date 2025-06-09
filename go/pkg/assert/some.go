@@ -16,7 +16,7 @@ package assert
 //	    assert.Equal(user.Role, "manager"),
 //	)
 //	if err != nil {
-//	    return fault.Wrap(err, fault.WithDesc("insufficient permissions", "User lacks required role"))
+//	    return fault.Wrap(err, fault.Internal("insufficient permissions"), fault.Public("User lacks required role"))
 //	}
 func Some(errs ...error) error {
 	var firstErr error

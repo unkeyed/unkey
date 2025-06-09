@@ -50,8 +50,8 @@ func New(svc Services) zen.Route {
 		tx, err := svc.DB.RO().Begin(ctx)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to create transaction", "Unable to start database transaction."),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to create transaction"), fault.Public("Unable to start database transaction."),
 			)
 		}
 		defer func() {
@@ -76,20 +76,20 @@ func New(svc Services) zen.Route {
 			})
 		} else {
 			return fault.New("invalid request",
-				fault.WithCode(codes.App.Validation.InvalidInput.URN()),
-				fault.WithDesc("either identityId or externalId must be provided", "Either identityId or externalId must be provided."),
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal("either identityId or externalId must be provided"), fault.Public("Either identityId or externalId must be provided."),
 			)
 		}
 
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return fault.New("identity not found",
-					fault.WithCode(codes.Data.Identity.NotFound.URN()),
-					fault.WithDesc("identity not found", "This identity does not exist."),
+					fault.Code(codes.Data.Identity.NotFound.URN()),
+					fault.Internal("identity not found"), fault.Public("This identity does not exist."),
 				)
 			}
 			return fault.Wrap(err,
-				fault.WithDesc("unable to find identity", "We're unable to retrieve the identity."),
+				fault.Internal("unable to find identity"), fault.Public("We're unable to retrieve the identity."),
 			)
 		}
 
@@ -116,7 +116,7 @@ func New(svc Services) zen.Route {
 		ratelimits, err = db.Query.FindRatelimitsByIdentityID(ctx, tx, sql.NullString{Valid: true, String: identity.ID})
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return fault.Wrap(err,
-				fault.WithDesc("unable to fetch ratelimits", "We're unable to retrieve the identity's ratelimits."),
+				fault.Internal("unable to fetch ratelimits"), fault.Public("We're unable to retrieve the identity's ratelimits."),
 			)
 		}
 
@@ -126,7 +126,7 @@ func New(svc Services) zen.Route {
 			err = json.Unmarshal(identity.Meta, &metaMap)
 			if err != nil {
 				return fault.Wrap(err,
-					fault.WithDesc("unable to unmarshal metadata", "We're unable to parse the identity's metadata."),
+					fault.Internal("unable to unmarshal metadata"), fault.Public("We're unable to parse the identity's metadata."),
 				)
 			}
 		} else {

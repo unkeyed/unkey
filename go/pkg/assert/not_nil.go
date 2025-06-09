@@ -11,7 +11,7 @@ import (
 // Example:
 //
 //	if err := assert.NotNil(user, "User must be provided"); err != nil {
-//	    return fault.Wrap(err, fault.WithDesc("user object is required", ""))
+//	    return fault.Wrap(err, fault.Internal("user object is required"))
 //	}
 func NotNil(t any, message ...string) error {
 	if t == nil {
@@ -19,7 +19,7 @@ func NotNil(t any, message ...string) error {
 		if len(message) > 0 {
 			errorMsg = message[0]
 		}
-		return fault.New(errorMsg, fault.WithCode(codes.App.Validation.AssertionFailed.URN()))
+		return fault.New(errorMsg, fault.Code(codes.App.Validation.AssertionFailed.URN()))
 	}
 	return nil
 }

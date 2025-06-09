@@ -30,7 +30,7 @@
 //	// Only internal debugging information
 //	fault.Wrap(err, fault.Internal("detailed debug context"))
 //
-//	// Only user-facing message  
+//	// Only user-facing message
 //	fault.Wrap(err, fault.Public("Please try again later"))
 //
 //	// Combine as needed

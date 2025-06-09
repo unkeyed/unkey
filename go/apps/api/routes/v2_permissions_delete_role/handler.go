@@ -42,7 +42,7 @@ func New(svc Services) zen.Route {
 		err = s.BindBody(&req)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithDesc("invalid request body", "The request body is invalid."),
+				fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
 			)
 		}
 
@@ -60,14 +60,14 @@ func New(svc Services) zen.Route {
 		)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithDesc("unable to check permissions", "We're unable to check the permissions of your key."),
+				fault.Internal("unable to check permissions"), fault.Public("We're unable to check the permissions of your key."),
 			)
 		}
 
 		if !permissionCheck.Valid {
 			return fault.New("insufficient permissions",
-				fault.WithCode(codes.Auth.Authorization.InsufficientPermissions.URN()),
-				fault.WithDesc(permissionCheck.Message, permissionCheck.Message),
+				fault.Code(codes.Auth.Authorization.InsufficientPermissions.URN()),
+				fault.Internal(permissionCheck.Message), fault.Public(permissionCheck.Message),
 			)
 		}
 
@@ -76,21 +76,21 @@ func New(svc Services) zen.Route {
 		if err != nil {
 			if db.IsNotFound(err) {
 				return fault.New("role not found",
-					fault.WithCode(codes.Data.Role.NotFound.URN()),
-					fault.WithDesc("role not found", "The requested role does not exist."),
+					fault.Code(codes.Data.Role.NotFound.URN()),
+					fault.Internal("role not found"), fault.Public("The requested role does not exist."),
 				)
 			}
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database error", "Failed to retrieve role information."),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to retrieve role information."),
 			)
 		}
 
 		// 5. Check if role belongs to authorized workspace
 		if role.WorkspaceID != auth.AuthorizedWorkspaceID {
 			return fault.New("role not found",
-				fault.WithCode(codes.Data.Role.NotFound.URN()),
-				fault.WithDesc("role not found", "The requested role does not exist."),
+				fault.Code(codes.Data.Role.NotFound.URN()),
+				fault.Internal("role not found"), fault.Public("The requested role does not exist."),
 			)
 		}
 
@@ -100,8 +100,8 @@ func New(svc Services) zen.Route {
 			_, err := db.Query.DeleteRolePermissionsByRoleId(ctx, tx, req.RoleId)
 			if err != nil {
 				return fault.Wrap(err,
-					fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.WithDesc("database error", "Failed to delete role permissions."),
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to delete role permissions."),
 				)
 			}
 
@@ -109,8 +109,8 @@ func New(svc Services) zen.Route {
 			_, err = db.Query.DeleteKeyRolesByRoleId(ctx, tx, req.RoleId)
 			if err != nil {
 				return fault.Wrap(err,
-					fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.WithDesc("database error", "Failed to delete key roles."),
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to delete key roles."),
 				)
 			}
 
@@ -118,8 +118,8 @@ func New(svc Services) zen.Route {
 			_, err = db.Query.DeleteRoleById(ctx, tx, req.RoleId)
 			if err != nil {
 				return fault.Wrap(err,
-					fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.WithDesc("database error", "Failed to delete the role."),
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to delete the role."),
 				)
 			}
 

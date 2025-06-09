@@ -20,7 +20,7 @@ func True(value bool, message ...string) error {
 		if len(message) > 0 {
 			errorMsg = message[0]
 		}
-		return fault.New(errorMsg, fault.WithCode(codes.App.Validation.AssertionFailed.URN()))
+		return fault.New(errorMsg, fault.Code(codes.App.Validation.AssertionFailed.URN()))
 	}
 	return nil
 }

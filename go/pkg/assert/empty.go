@@ -12,7 +12,7 @@ import (
 //
 //	// Verify cleanup was successful
 //	if err := assert.Empty(getRemaining(), "No items should remain after cleanup"); err != nil {
-//	    return fault.Wrap(err, fault.WithDesc("cleanup incomplete", ""))
+//	    return fault.Wrap(err, fault.Internal("cleanup incomplete"))
 //	}
 func Empty[T ~string | ~[]any | ~map[any]any](value T, message ...string) error {
 	if len(value) != 0 {
@@ -20,7 +20,7 @@ func Empty[T ~string | ~[]any | ~map[any]any](value T, message ...string) error 
 		if len(message) > 0 {
 			errorMsg = message[0]
 		}
-		return fault.New(errorMsg, fault.WithCode(codes.App.Validation.AssertionFailed.URN()))
+		return fault.New(errorMsg, fault.Code(codes.App.Validation.AssertionFailed.URN()))
 	}
 	return nil
 }

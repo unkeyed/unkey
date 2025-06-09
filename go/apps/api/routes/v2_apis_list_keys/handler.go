@@ -45,7 +45,7 @@ func New(svc Services) zen.Route {
 		err = s.BindBody(&req)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithDesc("invalid request body", "The request body is invalid."),
+				fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
 			)
 		}
 
@@ -90,35 +90,35 @@ func New(svc Services) zen.Route {
 		if err != nil {
 			if db.IsNotFound(err) {
 				return fault.New("api not found",
-					fault.WithCode(codes.Data.Api.NotFound.URN()),
-					fault.WithDesc("api not found", "The requested API does not exist or has been deleted."),
+					fault.Code(codes.Data.Api.NotFound.URN()),
+					fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
 				)
 			}
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database error", "Failed to retrieve API information."),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
 			)
 		}
 		// Check if API belongs to the authorized workspace
 		if api.WorkspaceID != auth.AuthorizedWorkspaceID {
 			return fault.New("wrong workspace",
-				fault.WithCode(codes.Data.Api.NotFound.URN()),
-				fault.WithDesc("wrong workspace, masking as 404", "The requested API does not exist or has been deleted."),
+				fault.Code(codes.Data.Api.NotFound.URN()),
+				fault.Internal("wrong workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
 			)
 		}
 		// Check if API is deleted
 		if api.DeletedAtM.Valid {
 			return fault.New("api not found",
-				fault.WithCode(codes.Data.Api.NotFound.URN()),
-				fault.WithDesc("api not found", "The requested API does not exist or has been deleted."),
+				fault.Code(codes.Data.Api.NotFound.URN()),
+				fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
 			)
 		}
 
 		// Check if API is set up to handle keys
 		if !api.KeyAuthID.Valid {
 			return fault.New("api not set up for keys",
-				fault.WithCode(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.WithDesc("api not set up for keys", "The requested API is not set up to handle keys."),
+				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+				fault.Internal("api not set up for keys"), fault.Public("The requested API is not set up to handle keys."),
 			)
 		}
 
@@ -132,8 +132,8 @@ func New(svc Services) zen.Route {
 			if err != nil {
 				if !db.IsNotFound(err) {
 					return fault.Wrap(err,
-						fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.WithDesc("database error", "Failed to retrieve identity information."),
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("database error"), fault.Public("Failed to retrieve identity information."),
 					)
 				}
 				// If identity not found, return empty result
@@ -162,8 +162,8 @@ func New(svc Services) zen.Route {
 		)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database error", "Failed to retrieve keys."),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to retrieve keys."),
 			)
 		}
 
@@ -188,14 +188,14 @@ func New(svc Services) zen.Route {
 			)
 			if err != nil {
 				return fault.Wrap(err,
-					fault.WithDesc("unable to check decrypt permissions", "We're unable to check the decrypt permissions of your key."),
+					fault.Internal("unable to check decrypt permissions"), fault.Public("We're unable to check the decrypt permissions of your key."),
 				)
 			}
 
 			if !decryptPermission.Valid {
 				return fault.New("insufficient permissions to decrypt keys",
-					fault.WithCode(codes.Auth.Authorization.InsufficientPermissions.URN()),
-					fault.WithDesc("insufficient permissions to decrypt keys", decryptPermission.Message),
+					fault.Code(codes.Auth.Authorization.InsufficientPermissions.URN()),
+					fault.Internal("insufficient permissions to decrypt keys"), fault.Public(decryptPermission.Message),
 				)
 			}
 
@@ -280,8 +280,8 @@ func New(svc Services) zen.Route {
 				if key.IdentityMeta != nil && len(key.IdentityMeta) > 0 {
 					err = json.Unmarshal(key.IdentityMeta, &k.Identity.Meta)
 					if err != nil {
-						return fault.Wrap(err, fault.WithCode(codes.App.Internal.UnexpectedError.URN()),
-							fault.WithDesc("unable to unmarshal identity meta", "We encountered an error while trying to unmarshal the identity meta data."))
+						return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
+							fault.Internal("unable to unmarshal identity meta"), fault.Public("We encountered an error while trying to unmarshal the identity meta data."))
 					}
 				}
 			}

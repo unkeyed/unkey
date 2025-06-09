@@ -12,7 +12,7 @@ import (
 //
 //	err := potentiallyFailingOperation()
 //	if assertErr := assert.Nil(err, "Operation should complete without errors"); assertErr != nil {
-//	    return fault.Wrap(err, fault.WithDesc("operation should not fail", ""))
+//	    return fault.Wrap(err, fault.Internal("operation should not fail"))
 //	}
 func Nil(t any, message ...string) error {
 	if t != nil {
@@ -20,7 +20,7 @@ func Nil(t any, message ...string) error {
 		if len(message) > 0 {
 			errorMsg = message[0]
 		}
-		return fault.New(errorMsg, fault.WithCode(codes.App.Validation.AssertionFailed.URN()))
+		return fault.New(errorMsg, fault.Code(codes.App.Validation.AssertionFailed.URN()))
 	}
 	return nil
 }

@@ -12,8 +12,7 @@ import (
 //
 //	// Validate maximum limit
 //	if err := assert.LessOrEqual(requestCount, maxAllowed, "Request count must not exceed maximum"); err != nil {
-//	    return fault.Wrap(err, fault.WithDesc(
-//	        fmt.Sprintf("limit exceeded: %d > %d", requestCount, maxAllowed),
+//	    return fault.Wrap(err, fault.Internal(//	        fmt.Sprintf("limit exceeded: %d > %d"), fault.Public(requestCount, maxAllowed),
 //	        "Maximum request limit exceeded",
 //	    ))
 //	}
@@ -26,5 +25,5 @@ func LessOrEqual[T ~int | ~int32 | ~int64 | ~float32 | ~float64](a, b T, message
 	if len(message) > 0 {
 		errorMsg = message[0]
 	}
-	return fault.New(errorMsg, fault.WithCode(codes.App.Validation.AssertionFailed.URN()))
+	return fault.New(errorMsg, fault.Code(codes.App.Validation.AssertionFailed.URN()))
 }

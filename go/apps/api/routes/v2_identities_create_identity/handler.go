@@ -52,7 +52,7 @@ func New(svc Services) zen.Route {
 		err = s.BindBody(&req)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithDesc("invalid request body", "The request body is invalid."),
+				fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
 			)
 		}
 
@@ -76,16 +76,16 @@ func New(svc Services) zen.Route {
 			rawMeta, metaErr := json.Marshal(req.Meta)
 			if metaErr != nil {
 				return fault.Wrap(metaErr,
-					fault.WithCode(codes.App.Validation.InvalidInput.URN()),
-					fault.WithDesc("unable to marshal metadata", "We're unable to marshal the meta object."),
+					fault.Code(codes.App.Validation.InvalidInput.URN()),
+					fault.Internal("unable to marshal metadata"), fault.Public("We're unable to marshal the meta object."),
 				)
 			}
 
 			sizeInMB := float64(len(rawMeta)) / 1024 / 1024
 			if sizeInMB > MAX_META_LENGTH_MB {
 				return fault.New("metadata is too large",
-					fault.WithCode(codes.App.Validation.InvalidInput.URN()),
-					fault.WithDesc("metadata is too large", fmt.Sprintf("Metadata is too large, it must be less than %dMB, got: %.2f", MAX_META_LENGTH_MB, sizeInMB)),
+					fault.Code(codes.App.Validation.InvalidInput.URN()),
+					fault.Internal("metadata is too large"), fault.Public(fmt.Sprintf("Metadata is too large, it must be less than %dMB, got: %.2f", MAX_META_LENGTH_MB, sizeInMB)),
 				)
 			}
 
@@ -98,24 +98,24 @@ func New(svc Services) zen.Route {
 				// Validate rate limit name is provided
 				if ratelimit.Name == "" {
 					return fault.New("invalid rate limit",
-						fault.WithCode(codes.App.Validation.InvalidInput.URN()),
-						fault.WithDesc("missing rate limit name", "Rate limit name is required."),
+						fault.Code(codes.App.Validation.InvalidInput.URN()),
+						fault.Internal("missing rate limit name"), fault.Public("Rate limit name is required."),
 					)
 				}
 
 				// Validate rate limit value is positive
 				if ratelimit.Limit <= 0 {
 					return fault.New("invalid rate limit",
-						fault.WithCode(codes.App.Validation.InvalidInput.URN()),
-						fault.WithDesc("invalid rate limit value", "Rate limit value must be greater than zero."),
+						fault.Code(codes.App.Validation.InvalidInput.URN()),
+						fault.Internal("invalid rate limit value"), fault.Public("Rate limit value must be greater than zero."),
 					)
 				}
 
 				// Validate duration is at least 1000ms (1 second)
 				if ratelimit.Duration < 1000 {
 					return fault.New("invalid rate limit",
-						fault.WithCode(codes.App.Validation.InvalidInput.URN()),
-						fault.WithDesc("invalid rate limit duration", "Rate limit duration must be at least 1000ms (1 second)."),
+						fault.Code(codes.App.Validation.InvalidInput.URN()),
+						fault.Internal("invalid rate limit duration"), fault.Public("Rate limit duration must be at least 1000ms (1 second)."),
 					)
 				}
 			}
@@ -124,8 +124,8 @@ func New(svc Services) zen.Route {
 		tx, err := svc.DB.RW().Begin(ctx)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to create transaction", "Unable to start database transaction."),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to create transaction"), fault.Public("Unable to start database transaction."),
 			)
 		}
 
@@ -154,13 +154,13 @@ func New(svc Services) zen.Route {
 		if err != nil {
 			if db.IsDuplicateKeyError(err) {
 				return fault.Wrap(err,
-					fault.WithCode(codes.Data.Identity.Duplicate.URN()),
-					fault.WithDesc("identity already exists", fmt.Sprintf("Identity with externalId \"%s\" already exists in this workspace.", req.ExternalId)),
+					fault.Code(codes.Data.Identity.Duplicate.URN()),
+					fault.Internal("identity already exists"), fault.Public(fmt.Sprintf("Identity with externalId \"%s\" already exists in this workspace.", req.ExternalId)),
 				)
 			}
 
 			return fault.Wrap(err,
-				fault.WithDesc("unable to create identity", "We're unable to create the identity and its ratelimits."),
+				fault.Internal("unable to create identity"), fault.Public("We're unable to create the identity and its ratelimits."),
 			)
 		}
 
@@ -202,7 +202,7 @@ func New(svc Services) zen.Route {
 				})
 				if err != nil {
 					return fault.Wrap(err,
-						fault.WithDesc("unable to create ratelimit", "We're unable to create a ratelimit for the identity."),
+						fault.Internal("unable to create ratelimit"), fault.Public("We're unable to create a ratelimit for the identity."),
 					)
 				}
 
@@ -240,16 +240,16 @@ func New(svc Services) zen.Route {
 		err = svc.Auditlogs.Insert(ctx, tx, auditLogs)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to insert audit logs", "Failed to insert audit logs"),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to insert audit logs"), fault.Public("Failed to insert audit logs"),
 			)
 		}
 
 		err = tx.Commit()
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to commit transaction", "Failed to commit changes."),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to commit transaction"), fault.Public("Failed to commit changes."),
 			)
 		}
 

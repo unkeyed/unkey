@@ -53,7 +53,7 @@ func NewS3(config S3Config) (Storage, error) {
 	)
 
 	if err != nil {
-		return nil, fault.Wrap(err, fault.WithDesc("failed to load aws config", "failed to load aws config"))
+		return nil, fault.Wrap(err, fault.Internal("failed to load aws config"), fault.Public("failed to load aws config"))
 	}
 
 	client := awsS3.NewFromConfig(cfg)

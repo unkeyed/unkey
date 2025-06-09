@@ -125,14 +125,14 @@ func TestNewAPIChaining(t *testing.T) {
 
 	// Test error message includes internal descriptions
 	require.Equal(t, "internal 2: internal 1: base error", second.Error())
-	
+
 	// Test user facing message includes public descriptions
 	require.Equal(t, "public 2 public 1", UserFacingMessage(second))
 }
 
 func TestBasicWrapperFunctionality(t *testing.T) {
 	baseErr := errors.New("base error")
-	
+
 	tests := []struct {
 		name     string
 		wrapper  Wrapper
@@ -210,17 +210,17 @@ func TestSingleWrappedInstance(t *testing.T) {
 	// Verify we have only one wrapped instance
 	wrappedErr, ok := err.(*wrapped)
 	require.True(t, ok)
-	
+
 	// Check that all fields are set on the single instance
 	require.Equal(t, codes.URN("TEST_CODE"), wrappedErr.code)
 	require.Equal(t, "internal message", wrappedErr.internal)
 	require.Equal(t, "public message", wrappedErr.public)
 	require.Equal(t, baseErr, wrappedErr.err)
-	
+
 	// Verify there's no nested wrapped instances
 	// The underlying error should be the original base error, not another wrapped
 	require.Equal(t, baseErr, wrappedErr.err)
-	
+
 	// Test multiple messages accumulate properly in single instance
 	multiErr := Wrap(baseErr,
 		Internal("debug 1"),
@@ -229,16 +229,13 @@ func TestSingleWrappedInstance(t *testing.T) {
 		Public("user 2"),
 		Code(codes.URN("MULTI_CODE")),
 	)
-	
+
 	multiWrapped, ok := multiErr.(*wrapped)
 	require.True(t, ok)
-	
+
 	// Verify messages are accumulated (newer first)
 	require.Equal(t, "debug 2: debug 1", multiWrapped.internal)
 	require.Equal(t, "user 2 user 1", multiWrapped.public)
 	require.Equal(t, codes.URN("MULTI_CODE"), multiWrapped.code)
 	require.Equal(t, baseErr, multiWrapped.err)
 }
-
-
-

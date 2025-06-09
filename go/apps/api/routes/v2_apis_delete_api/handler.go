@@ -46,7 +46,7 @@ func New(svc Services) zen.Route {
 		err = s.BindBody(&req)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithDesc("invalid request body", "The request body is invalid."),
+				fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
 			)
 		}
 
@@ -74,37 +74,37 @@ func New(svc Services) zen.Route {
 		if err != nil {
 			if db.IsNotFound(err) {
 				return fault.New("api not found",
-					fault.WithCode(codes.Data.Api.NotFound.URN()),
-					fault.WithDesc("api not found", "The requested API does not exist or has been deleted."),
+					fault.Code(codes.Data.Api.NotFound.URN()),
+					fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
 				)
 			}
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database error", "Failed to retrieve API information."),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
 			)
 		}
 
 		// Check if API belongs to the authorized workspace
 		if api.WorkspaceID != auth.AuthorizedWorkspaceID {
 			return fault.New("wrong workspace",
-				fault.WithCode(codes.Data.Api.NotFound.URN()),
-				fault.WithDesc("wrong workspace, masking as 404", "The requested API does not exist or has been deleted."),
+				fault.Code(codes.Data.Api.NotFound.URN()),
+				fault.Internal("wrong workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
 			)
 		}
 
 		// Check if API is deleted
 		if api.DeletedAtM.Valid {
 			return fault.New("api not found",
-				fault.WithCode(codes.Data.Api.NotFound.URN()),
-				fault.WithDesc("api not found", "The requested API does not exist or has been deleted."),
+				fault.Code(codes.Data.Api.NotFound.URN()),
+				fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
 			)
 		}
 
 		// 5. Check delete protection
 		if api.DeleteProtection.Valid && api.DeleteProtection.Bool {
 			return fault.New("delete protected",
-				fault.WithCode(codes.App.Protection.ProtectedResource.URN()),
-				fault.WithDesc("api is protected from deletion", "This API has delete protection enabled. Disable it before attempting to delete."),
+				fault.Code(codes.App.Protection.ProtectedResource.URN()),
+				fault.Internal("api is protected from deletion"), fault.Public("This API has delete protection enabled. Disable it before attempting to delete."),
 			)
 		}
 
@@ -113,8 +113,8 @@ func New(svc Services) zen.Route {
 		tx, err := svc.DB.RW().Begin(ctx)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to create transaction", "Unable to start database transaction."),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to create transaction"), fault.Public("Unable to start database transaction."),
 			)
 		}
 
@@ -132,8 +132,8 @@ func New(svc Services) zen.Route {
 		})
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database error", "Failed to delete API."),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to delete API."),
 			)
 		}
 
@@ -155,16 +155,16 @@ func New(svc Services) zen.Route {
 		}})
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("audit log error", "Failed to create audit log for API deletion."),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("audit log error"), fault.Public("Failed to create audit log for API deletion."),
 			)
 		}
 
 		err = tx.Commit()
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to commit transaction", "Failed to commit changes."),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to commit transaction"), fault.Public("Failed to commit changes."),
 			)
 		}
 

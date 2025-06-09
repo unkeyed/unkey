@@ -14,7 +14,7 @@ import (
 //
 //	// Validate email format
 //	if err := assert.Contains(email, "@", "Email must contain @ symbol"); err != nil {
-//	    return fault.Wrap(err, fault.WithDesc("invalid email format", "Please enter a valid email"))
+//	    return fault.Wrap(err, fault.Internal("invalid email format"), fault.Public("Please enter a valid email"))
 //	}
 func Contains(s, substr string, message ...string) error {
 	if !strings.Contains(s, substr) {
@@ -22,7 +22,7 @@ func Contains(s, substr string, message ...string) error {
 		if len(message) > 0 {
 			errorMsg = message[0]
 		}
-		return fault.New(errorMsg, fault.WithCode(codes.App.Validation.AssertionFailed.URN()))
+		return fault.New(errorMsg, fault.Code(codes.App.Validation.AssertionFailed.URN()))
 	}
 	return nil
 }

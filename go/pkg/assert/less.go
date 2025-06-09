@@ -12,8 +12,7 @@ import (
 //
 //	// Validate rate limit
 //	if err := assert.Less(requestsPerMinute, maxAllowed, "Request rate exceeds limit"); err != nil {
-//	    return fault.Wrap(err, fault.WithDesc(
-//	        fmt.Sprintf("rate limit exceeded: %d > %d", requestsPerMinute, maxAllowed),
+//	    return fault.Wrap(err, fault.Internal(//	        fmt.Sprintf("rate limit exceeded: %d > %d"), fault.Public(requestsPerMinute, maxAllowed),
 //	        "Too many requests, please try again later",
 //	    ))
 //	}
@@ -25,5 +24,5 @@ func Less[T ~int | ~float64](a, b T, message ...string) error {
 	if len(message) > 0 {
 		errorMsg = message[0]
 	}
-	return fault.New(errorMsg, fault.WithCode(codes.App.Validation.AssertionFailed.URN()))
+	return fault.New(errorMsg, fault.Code(codes.App.Validation.AssertionFailed.URN()))
 }

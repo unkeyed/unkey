@@ -30,20 +30,22 @@ func (s *service) Check(ctx context.Context, keyID string, query rbac.Permission
 	})
 
 	if err != nil {
-		return fault.Wrap(err, fault.WithDesc("unable to load permissions from db", ""))
+		return fault.Wrap(err, fault.Internal("unable to load permissions from db"))
 	}
 
 	res, err := s.rbac.EvaluatePermissions(query, permissions)
 	if err != nil {
 		return fault.New("unable to evaluate permissions",
-			fault.WithCode(codes.App.Internal.UnexpectedError.URN()),
-			fault.WithDesc(err.Error(), "Unhandled exception during permission evaluation."),
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Internal(err.Error()),
+			fault.Public("Unhandled exception during permission evaluation."),
 		)
 	}
 	if !res.Valid {
 		return fault.New("insufficient permissions",
-			fault.WithCode(codes.Auth.Authorization.InsufficientPermissions.URN()),
-			fault.WithDesc(res.Message, res.Message),
+			fault.Code(codes.Auth.Authorization.InsufficientPermissions.URN()),
+			fault.Internal(res.Message),
+			fault.Public(res.Message),
 		)
 	}
 

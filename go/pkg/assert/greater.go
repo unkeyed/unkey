@@ -12,8 +12,7 @@ import (
 //
 //	// Validate minimum balance
 //	if err := assert.Greater(account.Balance, minimumRequired, "Account balance must exceed minimum"); err != nil {
-//	    return fault.Wrap(err, fault.WithDesc(
-//	        fmt.Sprintf("insufficient balance: %.2f < %.2f", account.Balance, minimumRequired),
+//	    return fault.Wrap(err, fault.Internal(//	        fmt.Sprintf("insufficient balance: %.2f < %.2f"), fault.Public(account.Balance, minimumRequired),
 //	        "Insufficient account balance",
 //	    ))
 //	}
@@ -25,5 +24,5 @@ func Greater[T ~int | ~int32 | ~int64 | ~float32 | ~float64](a, b T, message ...
 	if len(message) > 0 {
 		errorMsg = message[0]
 	}
-	return fault.New(errorMsg, fault.WithCode(codes.App.Validation.AssertionFailed.URN()))
+	return fault.New(errorMsg, fault.Code(codes.App.Validation.AssertionFailed.URN()))
 }

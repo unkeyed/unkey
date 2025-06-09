@@ -38,7 +38,7 @@ func New(svc Services) zen.Route {
 		err = s.BindBody(&req)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithDesc("invalid request body", "The request body is invalid."),
+				fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
 			)
 		}
 
@@ -67,28 +67,28 @@ func New(svc Services) zen.Route {
 		if err != nil {
 			if db.IsNotFound(err) {
 				return fault.New("api not found",
-					fault.WithCode(codes.Data.Api.NotFound.URN()),
-					fault.WithDesc("api not found", "The requested API does not exist or has been deleted."),
+					fault.Code(codes.Data.Api.NotFound.URN()),
+					fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
 				)
 			}
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database error", "Failed to retrieve API information."),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
 			)
 		}
 		// Check if API belongs to the authorized workspace
 		if api.WorkspaceID != auth.AuthorizedWorkspaceID {
 			return fault.New("wrong workspace",
-				fault.WithCode(codes.Data.Api.NotFound.URN()),
-				fault.WithDesc("wrong workspace, masking as 404", "The requested API does not exist or has been deleted."),
+				fault.Code(codes.Data.Api.NotFound.URN()),
+				fault.Internal("wrong workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
 			)
 		}
 
 		// Check if API is deleted
 		if api.DeletedAtM.Valid {
 			return fault.New("api not found",
-				fault.WithCode(codes.Data.Api.NotFound.URN()),
-				fault.WithDesc("api not found", "The requested API does not exist or has been deleted."),
+				fault.Code(codes.Data.Api.NotFound.URN()),
+				fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
 			)
 		}
 

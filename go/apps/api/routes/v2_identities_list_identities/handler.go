@@ -54,7 +54,7 @@ func New(svc Services) zen.Route {
 
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithDesc("unable to list identities", "We're unable to list the identities."),
+				fault.Internal("unable to list identities"), fault.Public("We're unable to list the identities."),
 			)
 		}
 
@@ -96,7 +96,7 @@ func New(svc Services) zen.Route {
 			ratelimits, err := db.Query.ListIdentityRatelimits(ctx, svc.DB.RO(), sql.NullString{Valid: true, String: identity.ID})
 			if err != nil && !errors.Is(err, sql.ErrNoRows) {
 				return fault.Wrap(err,
-					fault.WithDesc("unable to fetch ratelimits", "We're unable to retrieve ratelimits for the identities."),
+					fault.Internal("unable to fetch ratelimits"), fault.Public("We're unable to retrieve ratelimits for the identities."),
 				)
 			}
 
@@ -127,7 +127,7 @@ func New(svc Services) zen.Route {
 				err = json.Unmarshal(identity.Meta, &metaMap)
 				if err != nil {
 					return fault.Wrap(err,
-						fault.WithDesc("unable to unmarshal identity metadata", "We're unable to parse the metadata for the identity."),
+						fault.Internal("unable to unmarshal identity metadata"), fault.Public("We're unable to parse the metadata for the identity."),
 					)
 				}
 			}

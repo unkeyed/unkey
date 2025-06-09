@@ -67,8 +67,8 @@ func New(svc Services) zen.Route {
 		tx, err := svc.DB.RW().Begin(ctx)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to create transaction", "Unable to start database transaction."),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to create transaction"), fault.Public("Unable to start database transaction."),
 			)
 		}
 
@@ -90,14 +90,13 @@ func New(svc Services) zen.Route {
 			if db.IsDuplicateKeyError(err) {
 
 				return fault.New("permission already exists",
-					fault.WithCode(codes.UnkeyDataErrorsIdentityDuplicate), // Reuse the identity duplicate code for conflict status
-					fault.WithDesc("already exists",
-						"A permission with name \""+req.Name+"\" already exists in this workspace"),
+					fault.Code(codes.UnkeyDataErrorsIdentityDuplicate), // Reuse the identity duplicate code for conflict status
+					fault.Internal("already exists"), fault.Public("A permission with name \""+req.Name+"\" already exists in this workspace"),
 				)
 			}
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database error", "Failed to create permission."),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to create permission."),
 			)
 		}
 
@@ -128,8 +127,8 @@ func New(svc Services) zen.Route {
 		})
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("audit log error", "Failed to create audit log for permission creation."),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("audit log error"), fault.Public("Failed to create audit log for permission creation."),
 			)
 		}
 
@@ -137,8 +136,8 @@ func New(svc Services) zen.Route {
 		err = tx.Commit()
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to commit transaction", "Failed to commit changes."),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to commit transaction"), fault.Public("Failed to commit changes."),
 			)
 		}
 		if err != nil {
