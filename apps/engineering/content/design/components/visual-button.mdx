@@ -4,11 +4,6 @@ summary: A toggle button that switches between visible and hidden states, common
 ---
 import { VisibleButtonDemo } from "./buttons/visual-button.examples"
 
-
-# VisibleButton
-
-The `VisibleButton` component is a toggle button that switches between visible and hidden states, commonly used for showing/hiding sensitive information. It automatically hides content after 10 seconds when visible.
-
 ## Features
 
 - Toggle between visible/hidden states
@@ -17,21 +12,11 @@ The `VisibleButton` component is a toggle button that switches between visible a
 - Dark mode support
 - Customizable styling through className prop
 
-## Props
-
-| Prop | Type | Description |
-|------|------|-------------|
-| `isVisible` | `boolean` | Current visibility state |
-| `setIsVisible` | `(visible: boolean) => void` | Function to update visibility state |
-| `className` | `string` | Optional CSS classes to apply to the button |
-
-Additional props are forwarded to the underlying `button` element.
-
 ## Usage
 
+```tsx
 import { useState } from 'react';
--import { VisibleButton } from '@/components/visible-button';
-+import { VisibleButton } from '@unkey/ui';
+import { VisibleButton } from '@unkey/ui';
 
 function Example() {
   const [isVisible, setIsVisible] = useState(false);
@@ -46,10 +31,21 @@ function Example() {
     </div>
   );
 }
+```
 
 ## Examples
 
 <VisibleButtonDemo />
+
+## Props
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `isVisible` | `boolean` | Current visibility state |
+| `setIsVisible` | `(visible: boolean) => void` | Function to update visibility state |
+| `className` | `string` | Optional CSS classes to apply to the button |
+
+Additional props are forwarded to the underlying `button` element.
 
 ## Behavior
 
