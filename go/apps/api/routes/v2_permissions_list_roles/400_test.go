@@ -1,15 +1,17 @@
 package handler_test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_list_roles"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 )
 
-func TestBadRequest(t *testing.T) {
+func TestValidationErrors(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := handler.New(handler.Services{
@@ -30,50 +32,25 @@ func TestBadRequest(t *testing.T) {
 	// Set up request headers
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
-		"Authorization": {`Bearer ` + rootKey},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	// Test case for invalid limit (negative)
-	t.Run("invalid limit", func(t *testing.T) {
-		invalidLimit := int32(-10)
+	// Test case for malformed JSON body
+	t.Run("malformed JSON body", func(t *testing.T) {
+		req := map[string]interface{}{
+			"invalid": "json structure",
+		}
 
 		res := testutil.CallRoute[map[string]interface{}, openapi.BadRequestErrorResponse](
 			h,
 			route,
 			headers,
-			map[string]interface{}{
-				"limit": invalidLimit,
-			},
+			req,
 		)
 
-		testutil.RequireBadRequest(t, res)
-	})
-
-	// Test case for invalid cursor format
-	t.Run("invalid cursor format", func(t *testing.T) {
-		invalidCursor := "not-a-valid-cursor-format"
-
-		res := testutil.CallRoute[map[string]interface{}, openapi.BadRequestErrorResponse](
-			h,
-			route,
-			headers,
-			map[string]interface{}{
-				"cursor": invalidCursor,
-			},
-		)
-
-		testutil.RequireBadRequest(t, res)
-	})
-
-	// Test case for malformed JSON
-	t.Run("malformed json", func(t *testing.T) {
-		res := testutil.CallRouteWithRawBody(
-			h,
-			route,
-			headers,
-			[]byte(`{"limit": "not-a-number"}`),
-		)
-
-		testutil.RequireBadRequest(t, res)
+		require.Equal(t, 400, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+		require.Contains(t, res.Body.Error.Detail, "validate schema")
 	})
 }

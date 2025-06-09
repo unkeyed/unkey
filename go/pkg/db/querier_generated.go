@@ -690,6 +690,15 @@ type Querier interface {
 	//      workspace_id = ?
 	//      AND namespace_id = ?
 	ListRatelimitOverrides(ctx context.Context, db DBTX, arg ListRatelimitOverridesParams) ([]RatelimitOverride, error)
+	//ListRoles
+	//
+	//  SELECT r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m
+	//  FROM roles r
+	//  WHERE r.workspace_id = ?
+	//    AND r.id > ?
+	//  ORDER BY r.id
+	//  LIMIT 101
+	ListRoles(ctx context.Context, db DBTX, arg ListRolesParams) ([]Role, error)
 	//ListWorkspaces
 	//
 	//  SELECT

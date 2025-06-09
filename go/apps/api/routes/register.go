@@ -26,6 +26,7 @@ import (
 	v2PermissionsDeletePermission "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_delete_permission"
 	v2PermissionsDeleteRole "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_delete_role"
 	v2PermissionsGetPermission "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_get_permission"
+	v2PermissionsGetRole "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_get_role"
 	v2PermissionsListPermissions "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_list_permissions"
 	v2PermissionsListRoles "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_list_roles"
 
@@ -246,6 +247,17 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		v2PermissionsGetPermission.New(v2PermissionsGetPermission.Services{
+			Logger:      svc.Logger,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Permissions: svc.Permissions,
+		}),
+	)
+
+	// v2/permissions.getRole
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		v2PermissionsGetRole.New(v2PermissionsGetRole.Services{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,

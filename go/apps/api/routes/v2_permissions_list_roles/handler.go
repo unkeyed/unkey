@@ -3,7 +3,7 @@ package handler
 import (
 	"context"
 	"net/http"
-	"strconv"
+	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
@@ -12,17 +12,13 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
 type Request = openapi.V2PermissionsListRolesRequestBody
 type Response = openapi.V2PermissionsListRolesResponseBody
-
-const (
-	defaultLimit = 10
-	maxLimit     = 100
-)
 
 type Services struct {
 	Logger      logging.Logger
@@ -42,13 +38,13 @@ func New(svc Services) zen.Route {
 		}
 
 		// 2. Request validation
-		var req Request
-		err = s.BindBody(&req)
+		req, err := zen.BindBody[Request](s)
 		if err != nil {
-			return fault.Wrap(err,
-				fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
-			)
+			return err
 		}
+
+		// Handle null cursor - use empty string to start from beginning
+		cursor := ptr.SafeDeref(req.Cursor, "")
 
 		// 3. Permission check
 		err = svc.Permissions.Check(
@@ -56,9 +52,9 @@ func New(svc Services) zen.Route {
 			auth.KeyID,
 			rbac.Or(
 				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Role,
+					ResourceType: rbac.Rbac,
 					ResourceID:   "*",
-					Action:       rbac.ListRoles,
+					Action:       rbac.ReadRole,
 				}),
 			),
 		)
@@ -66,25 +62,15 @@ func New(svc Services) zen.Route {
 			return err
 		}
 
-		// 4. Determine pagination parameters
-		var limit int32 = defaultLimit
-		if req.Limit != nil {
-			limit = *req.Limit
-			if limit <= 0 {
-				limit = defaultLimit
-			}
-			if limit > maxLimit {
-				limit = maxLimit
-			}
-		}
-
-		var cursor string
-		if req.Cursor != nil {
-			cursor = *req.Cursor
-		}
-
-		// 5. Query roles with pagination
-		roles, nextCursor, total, err := listRolesWithPermissions(ctx, svc.DB, auth.AuthorizedWorkspaceID, cursor, limit)
+		// 4. Query roles with pagination
+		roles, err := db.Query.ListRoles(
+			ctx,
+			svc.DB.RO(),
+			db.ListRolesParams{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				IDCursor:    cursor,
+			},
+		)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -92,105 +78,75 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		// 6. Transform roles to response format
-		roleResponses := make([]openapi.RoleWithPermissions, 0, len(roles))
-		for _, role := range roles {
-			roleResponses = append(roleResponses, role)
+		// Check if we have more results by seeing if we got 101 roles
+		hasMore := len(roles) > 100
+		var nextCursor *string
+
+		// If we have more than 100, truncate to 100
+		if hasMore {
+			nextCursor = ptr.P(roles[100].ID)
+			roles = roles[:100]
 		}
 
-		// 7. Return paginated list of roles
+		// 5. Get permissions for each role
+		roleResponses := make([]openapi.RoleWithPermissions, 0, len(roles))
+		for _, role := range roles {
+			// Get permissions for this role
+			rolePermissions, err := db.Query.FindPermissionsByRoleId(ctx, svc.DB.RO(), role.ID)
+			if err != nil {
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to retrieve role permissions."),
+				)
+			}
+
+			// Transform permissions
+			permissions := make([]openapi.Permission, 0, len(rolePermissions))
+			for _, perm := range rolePermissions {
+				permCreatedAt := time.UnixMilli(perm.CreatedAtM).UTC()
+				permission := openapi.Permission{
+					Id:          perm.ID,
+					Name:        perm.Name,
+					WorkspaceId: perm.WorkspaceID,
+					CreatedAt:   &permCreatedAt,
+				}
+
+				// Add description only if it's valid
+				if perm.Description.Valid {
+					permission.Description = &perm.Description.String
+				}
+
+				permissions = append(permissions, permission)
+			}
+
+			// Transform role
+			roleCreatedAt := time.UnixMilli(role.CreatedAtM).UTC()
+			roleResponse := openapi.RoleWithPermissions{
+				Id:          role.ID,
+				Name:        role.Name,
+				WorkspaceId: role.WorkspaceID,
+				CreatedAt:   &roleCreatedAt,
+				Permissions: permissions,
+			}
+
+			// Add description only if it's valid
+			if role.Description.Valid {
+				roleResponse.Description = &role.Description.String
+			}
+
+			roleResponses = append(roleResponses, roleResponse)
+		}
+
+		// 6. Return success response
 		return s.JSON(http.StatusOK, Response{
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
 			},
-			Data: openapi.PermissionsListRolesResponseData{
-				Roles:  roleResponses,
-				Total:  int(total),
-				Cursor: nextCursor,
+			Data: roleResponses,
+			Pagination: &openapi.Pagination{
+				Cursor:  nextCursor,
+				HasMore: hasMore,
 			},
 		})
 	})
-}
-
-// listRolesWithPermissions queries roles with their associated permissions, applying pagination
-func listRolesWithPermissions(ctx context.Context, database db.Database, workspaceID, cursor string, limit int32) ([]openapi.RoleWithPermissions, *string, int64, error) {
-	// 1. Get total count of roles in the workspace
-	total, err := db.Query.CountRolesByWorkspaceId(ctx, database.RO(), workspaceID)
-	if err != nil {
-		return nil, nil, 0, err
-	}
-
-	// 2. Get roles with pagination
-	dbRoles, err := db.Query.FindRolesByWorkspaceIdWithPagination(ctx, database.RO(), db.FindRolesByWorkspaceIdWithPaginationParams{
-		WorkspaceID: workspaceID,
-		Cursor:      cursor,
-		Limit:       int32(limit + 1), // request one more to determine if there are more results
-	})
-	if err != nil {
-		return nil, nil, 0, err
-	}
-
-	// 3. Determine if there are more results and create next cursor
-	var nextCursor *string
-	hasMore := len(dbRoles) > int(limit)
-	if hasMore {
-		dbRoles = dbRoles[:limit] // Remove the extra item
-		lastRole := dbRoles[len(dbRoles)-1]
-		nextCursorVal := lastRole.ID
-		nextCursor = &nextCursorVal
-	}
-
-	// 4. Build map of role IDs to get permissions
-	roleIDs := make([]string, len(dbRoles))
-	for i, role := range dbRoles {
-		roleIDs = append(roleIDs, role.ID)
-	}
-
-	// 5. Get all permissions for the roles
-	var allRolePermissions []db.FindPermissionsByRoleIdsRow
-	if len(roleIDs) > 0 {
-		allRolePermissions, err = db.Query.FindPermissionsByRoleIds(ctx, database.RO(), roleIDs)
-		if err != nil {
-			return nil, nil, 0, err
-		}
-	}
-
-	// 6. Create a map of role ID to permissions
-	rolePermissionsMap := make(map[string][]openapi.Permission)
-	for _, rp := range allRolePermissions {
-		permission := openapi.Permission{
-			Id:          rp.PermissionID,
-			Name:        rp.PermissionName,
-			WorkspaceId: rp.PermissionWorkspaceID,
-			Description: &rp.PermissionDescription.String,
-		}
-
-		if rp.PermissionCreatedAt.Valid {
-			createdAt := rp.PermissionCreatedAt.Time.Format(http.TimeFormat)
-			permission.CreatedAt = &createdAt
-		}
-
-		rolePermissionsMap[rp.RoleID] = append(rolePermissionsMap[rp.RoleID], permission)
-	}
-
-	// 7. Build response with roles and their permissions
-	roles := make([]openapi.RoleWithPermissions, 0, len(dbRoles))
-	for _, dbRole := range dbRoles {
-		role := openapi.RoleWithPermissions{
-			Id:          dbRole.ID,
-			Name:        dbRole.Name,
-			WorkspaceId: dbRole.WorkspaceID,
-			Description: &dbRole.Description.String,
-			Permissions: rolePermissionsMap[dbRole.ID],
-		}
-
-		if dbRole.CreatedAtM.Valid {
-			createdAt := dbRole.CreatedAtM.Time.Format(http.TimeFormat)
-			role.CreatedAt = &createdAt
-		}
-
-		roles = append(roles, role)
-	}
-
-	return roles, nextCursor, total, nil
 }

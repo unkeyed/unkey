@@ -612,14 +612,7 @@ type PermissionsGetRoleResponseData struct {
 type PermissionsListPermissionsResponseData = []Permission
 
 // PermissionsListRolesResponseData defines model for PermissionsListRolesResponseData.
-type PermissionsListRolesResponseData struct {
-	// Cursor Cursor for pagination
-	Cursor *string               `json:"cursor,omitempty"`
-	Roles  []RoleWithPermissions `json:"roles"`
-
-	// Total Total number of roles
-	Total int `json:"total"`
-}
+type PermissionsListRolesResponseData = []RoleWithPermissions
 
 // PreconditionFailedErrorResponse Error response for when the service is available but in a degraded state. This occurs when preconditions for normal operation aren't fully met. This could happen when dependent services are experiencing issues, when the system is in maintenance mode, or when certain features are temporarily disabled. Clients should proceed with caution and may want to retry non-critical operations later.
 type PreconditionFailedErrorResponse struct {
@@ -1904,7 +1897,8 @@ type V2PermissionsListRolesResponseBody struct {
 	Data PermissionsListRolesResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The requestId is particularly important when troubleshooting issues with the Unkey support team.
-	Meta Meta `json:"meta"`
+	Meta       Meta        `json:"meta"`
+	Pagination *Pagination `json:"pagination,omitempty"`
 }
 
 // V2RatelimitDeleteOverrideRequestBody Deletes an existing rate limit override. This permanently removes a custom rate limit rule, reverting affected identifiers back to the default rate limits for the namespace.

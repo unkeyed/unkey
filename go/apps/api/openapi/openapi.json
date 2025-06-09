@@ -2415,27 +2415,10 @@
         "additionalProperties": false
       },
       "PermissionsListRolesResponseData": {
-        "type": "object",
-        "properties": {
-          "roles": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/RoleWithPermissions"
-            }
-          },
-          "cursor": {
-            "type": "string",
-            "description": "Cursor for pagination"
-          },
-          "total": {
-            "type": "integer",
-            "description": "Total number of roles"
-          }
-        },
-        "required": [
-          "roles",
-          "total"
-        ]
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/RoleWithPermissions"
+        }
       },
       "V2PermissionsDeleteRoleRequestBody": {
         "type": "object",
@@ -2475,6 +2458,9 @@
           },
           "data": {
             "$ref": "#/components/schemas/PermissionsListRolesResponseData"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
           }
         }
       },
