@@ -1,10 +1,9 @@
 "use client";
-import { DialogContainer } from "@/components/dialog-container";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowUpRight, TriangleWarning2 } from "@unkey/icons";
-import { Button, InlineLink, Input, SettingCard } from "@unkey/ui";
+import { Button, DialogContainer, InlineLink, Input, SettingCard } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";

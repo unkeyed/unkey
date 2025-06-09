@@ -1,12 +1,12 @@
 "use client";
 
-import { DialogContainer } from "@/components/dialog-container";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleInfo } from "@unkey/icons";
 import {
+  DialogContainer,
   Button,
   FormInput,
   Select,
