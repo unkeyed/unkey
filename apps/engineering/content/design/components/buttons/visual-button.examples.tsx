@@ -1,7 +1,7 @@
 "use client";
 
 import { RenderComponentWithSnippet } from "@/app/components/render";
-import { VisibleButton } from "@unkey/ui/src/components/visible-button";
+import { VisibleButton } from "@unkey/ui";
 import { useState } from "react";
 
 export function VisibleButtonDemo() {
