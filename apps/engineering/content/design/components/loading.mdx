@@ -1,13 +1,8 @@
 ---
 title: Loading
-description: A customizable animated loading indicator component
+description: The Loading component provides sleek, animated loading indicators featuring either an 8-segment circular spinner or animated dots. It's designed to provide visual feedback during asynchronous operations or loading states in your application.
 ---
 import { LoadingExample, CustomSizeAndDuration, DotsLineExample } from "./loading/loading.example";
-
-# Loading Component
-
--The Loading component provides a sleek, animated loading indicator featuring an 8-segment circular spinner. It's designed to provide visual feedback during asynchronous operations or loading states in your application.
-+The Loading component provides sleek, animated loading indicators featuring either an 8-segment circular spinner or animated dots. It's designed to provide visual feedback during asynchronous operations or loading states in your application.
 
 ## Usage
 
@@ -47,8 +42,7 @@ The Loading component is highly customizable:
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `size` | `number` | `18` (spinner), `24` (dots) | Sets both width and height of the loading indicator |
-| `spinDur` | `number` | `125` | Animation duration in milliseconds per segment (for spinner type) |
-| `dotsDur` | `string` | `"0.75s"` | Animation duration for dots type |
+| `duration` | `string` | `"125ms"` | Animation duration in milliseconds per segment (for spinner type) or "0.75s" for dots type |
 | `type` | `"spinner" \| "dots"` | `"spinner"` | Type of loading animation to display |
 | `className` | `string` | `undefined` | Additional CSS classes to apply |
 
