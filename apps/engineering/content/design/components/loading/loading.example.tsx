@@ -17,7 +17,7 @@ export function CustomSizeAndDuration() {
     <RenderComponentWithSnippet>
       <div className="flex flex-col gap-4 justify-center items-center">
         <div className="flex items-center gap-4 text-[#00FFFF]">
-          <Loading size={48} dur={250} />
+          <Loading size={48} duration={"250ms"} />
         </div>
       </div>
     </RenderComponentWithSnippet>
@@ -30,6 +30,9 @@ export function DotsLineExample() {
       <div className="flex flex-col gap-4 justify-center items-center">
         <div className="flex items-center gap-4 text-[#00FFFF]">
           <Loading type="dots" />
+        </div>
+        <div className="flex items-center gap-4 text-[#00FFFF]">
+          <Loading type="dots" duration={"400ms"} />
         </div>
       </div>
     </RenderComponentWithSnippet>
