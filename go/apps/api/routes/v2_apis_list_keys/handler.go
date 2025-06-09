@@ -115,7 +115,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// Check if API is set up to handle keys
-		if !api.KeyAuthID.Valid {
+		if !api.KeyAuthID.Valid || api.KeyAuthID.String == "" {
 			return fault.New("api not set up for keys",
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 				fault.Internal("api not set up for keys"), fault.Public("The requested API is not set up to handle keys."),
@@ -142,6 +142,10 @@ func New(svc Services) zen.Route {
 						RequestId: s.RequestID(),
 					},
 					Data: []openapi.KeyResponse{},
+					Pagination: &openapi.Pagination{
+						Cursor:  nil,
+						HasMore: false,
+					},
 				})
 			}
 			identityId = identity.ID
@@ -209,9 +213,30 @@ func New(svc Services) zen.Route {
 			}
 		}
 
+		// Filter out the cursor key if cursor was provided (to avoid duplicates)
+		filteredKeys := keys
+		if cursor != "" {
+			var filtered []db.FindKeysByKeyAuthIdRow
+			for _, key := range keys {
+				if key.Key.ID != cursor {
+					filtered = append(filtered, key)
+				}
+			}
+			filteredKeys = filtered
+		}
+
+		// Determine the actual number of keys to return (respect the limit)
+		numKeysToReturn := len(filteredKeys)
+		hasMore := false
+		if len(filteredKeys) > limit {
+			numKeysToReturn = limit
+			hasMore = true
+		}
+
 		// Transform keys into the response format
-		responseData := make([]openapi.KeyResponse, 0, len(keys))
-		for i, key := range keys {
+		responseData := make([]openapi.KeyResponse, numKeysToReturn)
+		for i := 0; i < numKeysToReturn; i++ {
+			key := filteredKeys[i]
 			k := openapi.KeyResponse{
 				KeyId:     key.Key.ID,
 				Start:     key.Key.Start,
@@ -307,8 +332,8 @@ func New(svc Services) zen.Route {
 
 		// Determine the cursor for the next page
 		var nextCursor *string
-		if len(keys) > 0 && len(keys) >= limit {
-			cursor := keys[len(keys)-1].Key.ID
+		if hasMore && numKeysToReturn > 0 {
+			cursor := responseData[numKeysToReturn-1].KeyId
 			nextCursor = &cursor
 		}
 
@@ -319,7 +344,7 @@ func New(svc Services) zen.Route {
 			Data: responseData,
 			Pagination: &openapi.Pagination{
 				Cursor:  nextCursor,
-				HasMore: len(keys) > limit,
+				HasMore: hasMore,
 			},
 		})
 	})

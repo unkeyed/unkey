@@ -149,6 +149,21 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 					},
 				})
 
+			// Precondition Failed
+			case codes.UnkeyAppErrorsPreconditionPreconditionFailed:
+				return s.JSON(http.StatusPreconditionFailed, openapi.PreconditionFailedErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+						Title:    "Precondition Failed",
+						Type:     code.DocsURL(),
+						Detail:   fault.UserFacingMessage(err),
+						Status:   http.StatusPreconditionFailed,
+						Instance: nil,
+					},
+				})
+
 			// Key disabled
 			case codes.UnkeyAuthErrorsAuthorizationKeyDisabled:
 				return s.JSON(http.StatusForbidden, openapi.ForbiddenErrorResponse{

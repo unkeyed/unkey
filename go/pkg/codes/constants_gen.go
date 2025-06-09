@@ -113,5 +113,5 @@ const (
 	// Precondition
 
 	// PreconditionFailed indicates a precondition check failed.
-	UnkeyAppErrorsPreconditionPreconditionFailed URN = "err:::"
+	UnkeyAppErrorsPreconditionPreconditionFailed URN = "err:unkey:application:precondition_failed"
 )

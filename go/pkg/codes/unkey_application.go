@@ -64,4 +64,8 @@ var App = UnkeyAppErrors{
 	Protection: appProtection{
 		ProtectedResource: Code{SystemUnkey, CategoryUnkeyApplication, "protected_resource"},
 	},
+
+	Precondition: appPrecondition{
+		PreconditionFailed: Code{SystemUnkey, CategoryUnkeyApplication, "precondition_failed"},
+	},
 }

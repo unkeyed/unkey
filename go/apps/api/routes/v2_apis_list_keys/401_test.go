@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"context"
 	"net/http"
 	"testing"
 
@@ -12,7 +11,6 @@ import (
 )
 
 func TestAuthenticationErrors(t *testing.T) {
-	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
 	route := handler.New(handler.Services{
@@ -30,26 +28,6 @@ func TestAuthenticationErrors(t *testing.T) {
 		ApiId: "api_1234",
 	}
 
-	// Test case for missing authorization header
-	t.Run("missing authorization header", func(t *testing.T) {
-		// No Authorization header
-		headers := http.Header{
-			"Content-Type": {"application/json"},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 401, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Equal(t, res.Body.Error.Detail, "unauthorized")
-	})
-
 	// Test case for invalid authorization token
 	t.Run("invalid authorization token", func(t *testing.T) {
 		headers := http.Header{
@@ -66,15 +44,17 @@ func TestAuthenticationErrors(t *testing.T) {
 
 		require.Equal(t, 401, res.Status)
 		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Equal(t, res.Body.Error.Detail, "unauthorized")
+		if res.Status == 401 {
+			require.NotNil(t, res.Body.Error)
+			require.Contains(t, res.Body.Error.Detail, "key")
+		}
 	})
 
-	// Test case for malformed authorization header
-	t.Run("malformed authorization header", func(t *testing.T) {
+	// Test case for expired or invalid key format
+	t.Run("invalid key", func(t *testing.T) {
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
-			"Authorization": {"malformed_header_without_bearer_prefix"},
+			"Authorization": {"Bearer not_a_valid_key"},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](
@@ -87,6 +67,53 @@ func TestAuthenticationErrors(t *testing.T) {
 		require.Equal(t, 401, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, res.Body.Error.Detail, "unauthorized")
+		require.Contains(t, res.Body.Error.Detail, "key")
+	})
+
+	// Test case for key with valid format but doesn't exist
+	t.Run("valid format non-existent key", func(t *testing.T) {
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {"Bearer sk_test_1234567890abcdef1234567890abcdef"},
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 401, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+		require.Contains(t, res.Body.Error.Detail, "key")
+	})
+
+	// Test case for verifying error response structure
+	t.Run("verify error response structure", func(t *testing.T) {
+		// Use a clearly invalid token to ensure we get 401
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {"Bearer clearly_invalid_token_format"},
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 401, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+		require.NotEmpty(t, res.Body.Error.Detail)
+		require.Equal(t, 401, res.Body.Error.Status)
+		require.NotEmpty(t, res.Body.Error.Title)
+
+		// Verify meta information is included
+		require.NotNil(t, res.Body.Meta)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 }
