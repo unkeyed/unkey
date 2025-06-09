@@ -2,10 +2,9 @@
 
 import * as React from "react";
 
-import { Loading } from "@/components/dashboard/loading";
 import { toast } from "@/components/ui/toaster";
 import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
-import { FormInput } from "@unkey/ui";
+import { FormInput, Loading } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { useSignUp } from "../hooks/useSignUp";
 

@@ -1,0 +1,63 @@
+---
+title: Loading
+description: The Loading component provides sleek, animated loading indicators featuring either an 8-segment circular spinner or animated dots. It's designed to provide visual feedback during asynchronous operations or loading states in your application.
+---
+import { LoadingExample, CustomSizeAndDuration, DotsLineExample } from "./loading/loading.example";
+
+## Usage
+
+```tsx
+import { Loading, Button } from "@unkey/ui";
+
+function MyComponent() {
+  return <Loading />;
+}
+```
+
+## Examples
+
+### Default
+
+<LoadingExample />
+
+### Size and Segment duration
+
+<CustomSizeAndDuration />
+
+### Dots Loading
+
+<DotsLineExample />
+
+### Customization
+
+The Loading component is highly customizable:
+
+- **Color**: Inherits the text color of its parent element through the `fill-current` class
+- **Size**: Adjustable through width and height props
+- **Animation Speed**: Configurable animation duration
+- **Responsive**: Adapts seamlessly to different container sizes
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `size` | `number` | `18` (spinner), `24` (dots) | Sets both width and height of the loading indicator |
+| `duration` | `string` | `"125ms"` | Animation duration in milliseconds per segment (for spinner type) or "0.75s" for dots type |
+| `type` | `"spinner" \| "dots"` | `"spinner"` | Type of loading animation to display |
+| `className` | `string` | `undefined` | Additional CSS classes to apply |
+
+The component also accepts all standard SVG element props.
+
+## Accessibility
+
+The Loading component is built with accessibility in mind:
+- Includes appropriate ARIA attributes
+- Provides visual feedback without relying on color alone
+- Maintains good contrast ratios
+
+## Best Practices
+
+- Use consistent sizes within the same context
+- Place the loader in a logical location relative to the content being loaded
+- Consider using a minimum display duration to prevent flickering
+- Ensure sufficient contrast between the loader and its background 
