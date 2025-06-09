@@ -12,9 +12,13 @@ import (
 const insertRolePermission = `-- name: InsertRolePermission :exec
 INSERT INTO roles_permissions (
   role_id,
-  permission_id
+  permission_id,
+  workspace_id,
+  created_at_m
 )
 VALUES (
+  ?,
+  ?,
   ?,
   ?
 )
@@ -23,19 +27,30 @@ VALUES (
 type InsertRolePermissionParams struct {
 	RoleID       string `db:"role_id"`
 	PermissionID string `db:"permission_id"`
+	WorkspaceID  string `db:"workspace_id"`
+	CreatedAtM   int64  `db:"created_at_m"`
 }
 
 // InsertRolePermission
 //
 //	INSERT INTO roles_permissions (
 //	  role_id,
-//	  permission_id
+//	  permission_id,
+//	  workspace_id,
+//	  created_at_m
 //	)
 //	VALUES (
+//	  ?,
+//	  ?,
 //	  ?,
 //	  ?
 //	)
 func (q *Queries) InsertRolePermission(ctx context.Context, db DBTX, arg InsertRolePermissionParams) error {
-	_, err := db.ExecContext(ctx, insertRolePermission, arg.RoleID, arg.PermissionID)
+	_, err := db.ExecContext(ctx, insertRolePermission,
+		arg.RoleID,
+		arg.PermissionID,
+		arg.WorkspaceID,
+		arg.CreatedAtM,
+	)
 	return err
 }

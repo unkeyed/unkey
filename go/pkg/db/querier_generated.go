@@ -19,6 +19,11 @@ type Querier interface {
 	//  DELETE FROM keys_permissions
 	//  WHERE permission_id = ?
 	DeleteKeyPermissionsByPermissionId(ctx context.Context, db DBTX, permissionID string) error
+	//DeleteKeyRolesByRoleId
+	//
+	//  DELETE FROM keys_roles
+	//  WHERE role_id = ?
+	DeleteKeyRolesByRoleId(ctx context.Context, db DBTX, roleID string) error
 	//DeleteKeysByKeyAuthId
 	//
 	//  UPDATE `keys`
@@ -49,11 +54,21 @@ type Querier interface {
 	//
 	//  DELETE FROM ratelimits WHERE identity_id = ?
 	DeleteRatelimitsByIdentityID(ctx context.Context, db DBTX, identityID sql.NullString) error
+	//DeleteRoleById
+	//
+	//  DELETE FROM roles
+	//  WHERE id = ?
+	DeleteRoleById(ctx context.Context, db DBTX, roleID string) error
 	//DeleteRolePermissionsByPermissionId
 	//
 	//  DELETE FROM roles_permissions
 	//  WHERE permission_id = ?
 	DeleteRolePermissionsByPermissionId(ctx context.Context, db DBTX, permissionID string) error
+	//DeleteRolePermissionsByRoleId
+	//
+	//  DELETE FROM roles_permissions
+	//  WHERE role_id = ?
+	DeleteRolePermissionsByRoleId(ctx context.Context, db DBTX, roleID string) error
 	//FindApiById
 	//
 	//  SELECT id, name, workspace_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
@@ -143,6 +158,13 @@ type Querier interface {
 	//  WHERE k.hash = ?
 	//  GROUP BY k.id
 	FindKeyForVerification(ctx context.Context, db DBTX, hash string) (FindKeyForVerificationRow, error)
+	//FindKeyRolesByKeyIdAndRoleId
+	//
+	//  SELECT key_id, role_id, workspace_id, created_at_m, updated_at_m
+	//  FROM keys_roles
+	//  WHERE key_id = ?
+	//    AND role_id = ?
+	FindKeyRolesByKeyIdAndRoleId(ctx context.Context, db DBTX, arg FindKeyRolesByKeyIdAndRoleIdParams) ([]KeysRole, error)
 	//FindKeyringByID
 	//
 	//  SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth`
@@ -278,6 +300,13 @@ type Querier interface {
 	//  AND workspace_id = ?
 	//  LIMIT 1
 	FindRoleByNameAndWorkspace(ctx context.Context, db DBTX, arg FindRoleByNameAndWorkspaceParams) (Role, error)
+	//FindRolePermissionsByRoleIdAndPermissionId
+	//
+	//  SELECT role_id, permission_id, workspace_id, created_at_m, updated_at_m
+	//  FROM roles_permissions
+	//  WHERE role_id = ?
+	//    AND permission_id = ?
+	FindRolePermissionsByRoleIdAndPermissionId(ctx context.Context, db DBTX, arg FindRolePermissionsByRoleIdAndPermissionIdParams) ([]RolesPermission, error)
 	//FindRolesForKey
 	//
 	//  SELECT r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m
@@ -471,6 +500,21 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertKeyPermission(ctx context.Context, db DBTX, arg InsertKeyPermissionParams) error
+	//InsertKeyRole
+	//
+	//  INSERT INTO keys_roles (
+	//    key_id,
+	//    role_id,
+	//    workspace_id,
+	//    created_at_m
+	//  )
+	//  VALUES (
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?
+	//  )
+	InsertKeyRole(ctx context.Context, db DBTX, arg InsertKeyRoleParams) error
 	//InsertKeyring
 	//
 	//  INSERT INTO `key_auth` (
@@ -577,9 +621,13 @@ type Querier interface {
 	//
 	//  INSERT INTO roles_permissions (
 	//    role_id,
-	//    permission_id
+	//    permission_id,
+	//    workspace_id,
+	//    created_at_m
 	//  )
 	//  VALUES (
+	//    ?,
+	//    ?,
 	//    ?,
 	//    ?
 	//  )

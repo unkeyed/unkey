@@ -2,11 +2,12 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
+	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_delete_role"
 	"github.com/unkeyed/unkey/go/pkg/db"
@@ -55,7 +56,10 @@ func TestNotFound(t *testing.T) {
 			req,
 		)
 
-		testutil.RequireNotFound(t, res)
+		require.Equal(t, 404, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+		require.Contains(t, res.Body.Error.Detail, "does not exist")
 	})
 
 	t.Run("role from different workspace", func(t *testing.T) {
@@ -66,18 +70,14 @@ func TestNotFound(t *testing.T) {
 		roleID := uid.New(uid.TestPrefix)
 		roleName := "test.role.other.workspace"
 		roleDesc := "Test role in another workspace"
-		createdAt := time.Now()
 
-		_, err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-			ID:          roleID,
+		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+			RoleID:      roleID,
 			WorkspaceID: anotherWorkspace.ID,
 			Name:        roleName,
-			Description: db.NewNullString(roleDesc),
-			CreatedAtM:  db.NewNullTime(createdAt),
+			Description: sql.NullString{Valid: true, String: roleDesc},
 		})
-		if err != nil {
-			t.Fatalf("Failed to create test role: %v", err)
-		}
+		require.NoError(t, err)
 
 		// Try to delete the role from the first workspace
 		req := handler.Request{
@@ -91,6 +91,9 @@ func TestNotFound(t *testing.T) {
 			req,
 		)
 
-		testutil.RequireNotFound(t, res)
+		require.Equal(t, 404, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+		require.Contains(t, res.Body.Error.Detail, "does not exist")
 	})
 }

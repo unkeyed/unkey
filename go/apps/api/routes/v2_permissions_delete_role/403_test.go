@@ -2,11 +2,12 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
+	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_delete_role"
 	"github.com/unkeyed/unkey/go/pkg/db"
@@ -14,7 +15,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestForbidden(t *testing.T) {
+func TestPermissionErrors(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
@@ -32,21 +33,18 @@ func TestForbidden(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	// Create a role for testing
+	// Create a role to attempt to delete (in the same workspace)
 	roleID := uid.New(uid.TestPrefix)
-	roleName := "test.role.forbidden"
-	roleDesc := "Test role for forbidden test"
-	createdAt := time.Now()
+	roleName := "test.forbidden.role"
+	roleDesc := "Test role for forbidden access"
 
-	_, err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-		ID:          roleID,
+	err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+		RoleID:      roleID,
 		WorkspaceID: workspace.ID,
 		Name:        roleName,
-		Description: db.NewNullString(roleDesc),
-		CreatedAtM:  db.NewNullTime(createdAt),
+		Description: sql.NullString{Valid: true, String: roleDesc},
 	})
-	if err != nil {
-		t.Fatalf("Failed to create test role: %v", err)
-	}
+	require.NoError(t, err)
 
 	t.Run("missing required permission", func(t *testing.T) {
 		// Create a root key with a different permission (not rbac.*.delete_role)
@@ -66,16 +64,19 @@ func TestForbidden(t *testing.T) {
 			},
 		)
 
-		testutil.RequireForbidden(t, res)
+		require.Equal(t, 403, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+		require.Contains(t, res.Body.Error.Detail, "permission")
 	})
 
 	t.Run("no permissions", func(t *testing.T) {
 		// Create a root key with no permissions
-		rootKey := h.CreateRootKey(workspace.ID)
+		rootKeyNoPerms := h.CreateRootKey(workspace.ID, "") // No permissions
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyNoPerms)},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
@@ -87,6 +88,9 @@ func TestForbidden(t *testing.T) {
 			},
 		)
 
-		testutil.RequireForbidden(t, res)
+		require.Equal(t, 403, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+		require.Contains(t, res.Body.Error.Detail, "permission")
 	})
 }

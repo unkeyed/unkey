@@ -2,13 +2,13 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_delete_role"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
@@ -47,53 +47,58 @@ func TestSuccess(t *testing.T) {
 		roleID := uid.New(uid.TestPrefix)
 		roleName := "test.delete.role"
 		roleDesc := "Test role for deletion"
-		createdAt := time.Now()
 
-		_, err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-			ID:          roleID,
+		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+			RoleID:      roleID,
 			WorkspaceID: workspace.ID,
 			Name:        roleName,
-			Description: db.NewNullString(roleDesc),
-			CreatedAtM:  db.NewNullTime(createdAt),
+			Description: sql.NullString{Valid: true, String: roleDesc},
 		})
 		require.NoError(t, err)
 
 		// Create some permissions to assign to the role
 		permIDs := []string{uid.New(uid.PermissionPrefix), uid.New(uid.PermissionPrefix)}
 		for i, permID := range permIDs {
-			_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-				ID:          permID,
-				WorkspaceID: workspace.ID,
-				Name:        fmt.Sprintf("test.perm.%d", i),
-				Description: db.NewNullString(fmt.Sprintf("Test permission %d", i)),
-				CreatedAtM:  db.NewNullTime(createdAt),
+			err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+				PermissionID: permID,
+				WorkspaceID:  workspace.ID,
+				Name:         fmt.Sprintf("test.perm.%d", i),
+				Slug:         fmt.Sprintf("test-perm-%d", i),
+				Description:  sql.NullString{Valid: true, String: fmt.Sprintf("Test permission %d", i)},
+				CreatedAtM:   time.Now().UnixMilli(),
 			})
 			require.NoError(t, err)
 
 			// Create role-permission relationship
-			_, err = db.Query.InsertRolePermission(ctx, h.DB.RW(), db.InsertRolePermissionParams{
+			err = db.Query.InsertRolePermission(ctx, h.DB.RW(), db.InsertRolePermissionParams{
 				RoleID:       roleID,
 				PermissionID: permID,
+				WorkspaceID:  workspace.ID,
+				CreatedAtM:   time.Now().UnixMilli(),
 			})
 			require.NoError(t, err)
 		}
 
 		// Create a key with this role assigned
-		keyID := id.NewKey()
-		_, err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
+		keyID := uid.New(uid.KeyPrefix)
+		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 			ID:          keyID,
+			KeyringID:   workspace.ID, // Using workspace ID as keyring ID for test
+			Hash:        "test_hash",
+			Start:       "test_",
 			WorkspaceID: workspace.ID,
-			ApiID:       nil,
-			Hash:        []byte("test_hash"),
-			Prefix:      "test_prefix",
-			Name:        db.NewNullString("test key"),
+			Name:        sql.NullString{Valid: true, String: "test key"},
+			CreatedAtM:  time.Now().UnixMilli(),
+			Enabled:     true,
 		})
 		require.NoError(t, err)
 
 		// Assign role to key
-		_, err = db.Query.InsertKeyRole(ctx, h.DB.RW(), db.InsertKeyRoleParams{
-			KeyID:  keyID,
-			RoleID: roleID,
+		err = db.Query.InsertKeyRole(ctx, h.DB.RW(), db.InsertKeyRoleParams{
+			KeyID:       keyID,
+			RoleID:      roleID,
+			WorkspaceID: workspace.ID,
+			CreatedAtM:  time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
 
@@ -148,11 +153,11 @@ func TestSuccess(t *testing.T) {
 		roleName := "test.delete.role.no.rels"
 		roleDesc := "Test role with no relationships for deletion"
 
-		_, err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-			ID:          roleID,
+		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+			RoleID:      roleID,
 			WorkspaceID: workspace.ID,
 			Name:        roleName,
-			Description: db.NewNullString(roleDesc),
+			Description: sql.NullString{Valid: true, String: roleDesc},
 		})
 		require.NoError(t, err)
 
