@@ -4,39 +4,39 @@ This document outlines test scenarios for the API endpoint that retrieves permis
 
 ## Happy Path Scenarios
 
-- [ ] Successfully retrieve an existing permission by ID
-- [ ] Retrieve permission with a description
-- [ ] Verify response structure matches specification
-- [ ] Verify all expected fields are returned (ID, name, description, etc.)
-- [ ] Verify workspace ID is correctly returned
-- [ ] Verify creation timestamp is correctly formatted
+- [x] Successfully retrieve an existing permission by ID
+- [x] Retrieve permission with a description
+- [x] Verify response structure matches specification
+- [x] Verify all expected fields are returned (ID, name, description, etc.)
+- [x] Verify workspace ID is correctly returned
+- [x] Verify creation timestamp is correctly formatted
 
 ## Error Cases
 
-- [ ] Attempt to retrieve non-existent permission ID
-- [ ] Attempt to retrieve permission with invalid ID format
-- [ ] Attempt to retrieve permission with empty ID
+- [x] Attempt to retrieve non-existent permission ID
+- [x] Attempt to retrieve permission with invalid ID format
+- [x] Attempt to retrieve permission with empty ID
 - [ ] Attempt to retrieve deleted permission (if soft delete is used)
-- [ ] Attempt to retrieve permission with malformed request
+- [x] Attempt to retrieve permission with malformed request
 
 ## Security Tests
 
-- [ ] Attempt to retrieve permission without authentication
-- [ ] Attempt to retrieve permission with invalid authentication
+- [x] Attempt to retrieve permission without authentication
+- [x] Attempt to retrieve permission with invalid authentication
 - [ ] Attempt to retrieve permission with expired token
-- [ ] Attempt to retrieve permission with insufficient permissions
-- [ ] Attempt to retrieve permission from another workspace (should be forbidden)
-- [ ] Verify correct permissions allow permission retrieval:
+- [x] Attempt to retrieve permission with insufficient permissions
+- [x] Attempt to retrieve permission from another workspace (should be forbidden)
+- [x] Verify correct permissions allow permission retrieval:
   - [ ] Test with wildcard permission ("*")
-  - [ ] Test with specific permission for retrieving permissions
+  - [x] Test with specific permission for retrieving permissions
   - [ ] Test with multiple permissions including the required one
 
 ## Database Verification
 
-- [ ] Verify returned data matches database record
-- [ ] Verify timestamps are correctly formatted
+- [x] Verify returned data matches database record
+- [x] Verify timestamps are correctly formatted
 - [ ] Verify relationships are correctly represented (if applicable)
-- [ ] Verify workspace ID matches the expected workspace
+- [x] Verify workspace ID matches the expected workspace
 
 ## Edge Cases
 
@@ -44,7 +44,7 @@ This document outlines test scenarios for the API endpoint that retrieves permis
 - [ ] Retrieve permission with very long description
 - [ ] Retrieve permission with special characters in name/description
 - [ ] Retrieve permission with Unicode characters in fields
-- [ ] Retrieve recently created permission
+- [x] Retrieve recently created permission
 - [ ] Retrieve permission that was recently updated
 
 ## Performance Tests

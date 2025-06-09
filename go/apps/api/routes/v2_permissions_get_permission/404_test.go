@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -14,7 +13,6 @@ import (
 )
 
 func TestNotFoundErrors(t *testing.T) {
-	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
 	route := handler.New(handler.Services{
@@ -54,7 +52,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, res.Body.Error.Detail, "not found")
+		require.Contains(t, res.Body.Error.Detail, "does not exist")
 	})
 
 	// Test case for valid-looking but non-existent permission ID
@@ -75,6 +73,6 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, res.Body.Error.Detail, "not found")
+		require.Contains(t, res.Body.Error.Detail, "does not exist")
 	})
 }

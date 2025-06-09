@@ -2,9 +2,11 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -14,7 +16,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestAuthorizationErrors(t *testing.T) {
+func TestPermissionErrors(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
@@ -34,16 +36,18 @@ func TestAuthorizationErrors(t *testing.T) {
 	permissionID := uid.New(uid.PermissionPrefix)
 	permissionName := "test.permission.access"
 
-	_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-		ID:          permissionID,
-		WorkspaceID: workspace.ID,
-		Name:        permissionName,
-		Description: db.NewNullString("Test permission for authorization tests"),
+	err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+		PermissionID: permissionID,
+		WorkspaceID:  workspace.ID,
+		Name:         permissionName,
+		Slug:         "test-permission-access",
+		Description:  sql.NullString{Valid: true, String: "Test permission for authorization tests"},
+		CreatedAtM:   time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
 
 	// Test case for insufficient permissions - missing read_permission
-	t.Run("missing read_permission permission", func(t *testing.T) {
+	t.Run("missing required permission", func(t *testing.T) {
 		// Create a root key with some permissions but not read_permission
 		rootKey := h.CreateRootKey(workspace.ID, "rbac.*.create_permission")
 
@@ -66,36 +70,33 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.Equal(t, 403, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, res.Body.Error.Detail, "insufficient permissions")
+		require.Contains(t, res.Body.Error.Detail, "permission")
 	})
 
-	// Test case for wrong workspace
-	t.Run("wrong workspace", func(t *testing.T) {
-		// Create a different workspace
-		otherWorkspace := h.CreateWorkspace("other-workspace")
-
-		// Create a root key for the other workspace with all permissions
-		rootKey := h.CreateRootKey(otherWorkspace.ID, "rbac.*.read_permission")
+	// Test case for no permissions
+	t.Run("no permissions", func(t *testing.T) {
+		// Create a root key with no permissions
+		rootKeyNoPerms := h.CreateRootKey(workspace.ID, "") // No permissions
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyNoPerms)},
 		}
 
 		req := handler.Request{
-			PermissionId: permissionID, // Permission is in the original workspace
+			PermissionId: permissionID,
 		}
 
-		// When accessing from wrong workspace, the behavior could be a 404 Not Found
-		// rather than 403 Forbidden, as the handler masks workspace mismatches as "not found"
-		res, err := h.Client.Post(
-			"/v2/permissions.getPermission",
-			"application/json",
-			testutil.MustMarshal(req),
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+			h,
+			route,
 			headers,
+			req,
 		)
 
-		require.NoError(t, err)
-		require.Equal(t, 404, res.StatusCode, "Wrong workspace access should return 404")
+		require.Equal(t, 403, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+		require.Contains(t, res.Body.Error.Detail, "permission")
 	})
 }

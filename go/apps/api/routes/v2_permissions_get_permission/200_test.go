@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -11,6 +12,7 @@ import (
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_get_permission"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestSuccess(t *testing.T) {
@@ -44,14 +46,14 @@ func TestSuccess(t *testing.T) {
 		permissionID := uid.New(uid.PermissionPrefix)
 		permissionName := "test.get.permission"
 		permissionDesc := "Test permission for get endpoint"
-		createdAt := time.Now()
 
-		_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			ID:          permissionID,
-			WorkspaceID: workspace.ID,
-			Name:        permissionName,
-			Description: db.NewNullString(permissionDesc),
-			CreatedAtM:  db.NewNullTime(createdAt),
+		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+			PermissionID: permissionID,
+			WorkspaceID:  workspace.ID,
+			Name:         permissionName,
+			Slug:         "test-get-permission",
+			Description:  sql.NullString{Valid: true, String: permissionDesc},
+			CreatedAtM:   time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
 
@@ -77,8 +79,9 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, permissionID, permission.Id)
 		require.Equal(t, permissionName, permission.Name)
 		require.Equal(t, workspace.ID, permission.WorkspaceId)
-		require.Equal(t, permissionDesc, permission.Description)
-		require.NotEmpty(t, permission.CreatedAt)
+		require.NotNil(t, permission.Description)
+		require.Equal(t, permissionDesc, *permission.Description)
+		require.NotNil(t, permission.CreatedAt)
 	})
 
 	// Test case for getting a permission without description
@@ -87,11 +90,13 @@ func TestSuccess(t *testing.T) {
 		permissionID := uid.New(uid.PermissionPrefix)
 		permissionName := "test.get.permission.no.desc"
 
-		_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			ID:          permissionID,
-			WorkspaceID: workspace.ID,
-			Name:        permissionName,
-			Description: db.NullString{}, // Empty description
+		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+			PermissionID: permissionID,
+			WorkspaceID:  workspace.ID,
+			Name:         permissionName,
+			Slug:         "test-get-permission-no-desc",
+			Description:  sql.NullString{}, // Empty description
+			CreatedAtM:   time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
 
@@ -117,6 +122,6 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, permissionID, permission.Id)
 		require.Equal(t, permissionName, permission.Name)
 		require.Equal(t, workspace.ID, permission.WorkspaceId)
-		require.Empty(t, permission.Description)
+		require.Nil(t, permission.Description)
 	})
 }

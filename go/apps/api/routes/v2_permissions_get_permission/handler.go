@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
@@ -36,12 +37,9 @@ func New(svc Services) zen.Route {
 		}
 
 		// 2. Request validation
-		var req Request
-		err = s.BindBody(&req)
+		req, err := zen.BindBody[Request](s)
 		if err != nil {
-			return fault.Wrap(err,
-				fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
-			)
+			return err
 		}
 
 		// 3. Permission check
@@ -50,7 +48,7 @@ func New(svc Services) zen.Route {
 			auth.KeyID,
 			rbac.Or(
 				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Permission,
+					ResourceType: rbac.Rbac,
 					ResourceID:   "*",
 					Action:       rbac.ReadPermission,
 				}),
@@ -77,25 +75,32 @@ func New(svc Services) zen.Route {
 
 		// 5. Check if permission belongs to authorized workspace
 		if permission.WorkspaceID != auth.AuthorizedWorkspaceID {
-			return fault.New("permission not found",
+			return fault.New("permission does not belong to authorized workspace",
 				fault.Code(codes.Data.Permission.NotFound.URN()),
-				fault.Internal("permission not found"), fault.Public("The requested permission does not exist."),
+				fault.Public("The requested permission does not exist."),
 			)
 		}
 
 		// 6. Return success response
+		createdAt := time.UnixMilli(permission.CreatedAtM).UTC()
+		permissionResponse := openapi.Permission{
+			Id:          permission.ID,
+			Name:        permission.Name,
+			WorkspaceId: permission.WorkspaceID,
+			CreatedAt:   &createdAt,
+		}
+
+		// Add description only if it's valid
+		if permission.Description.Valid {
+			permissionResponse.Description = &permission.Description.String
+		}
+
 		return s.JSON(http.StatusOK, Response{
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
 			},
 			Data: openapi.PermissionsGetPermissionResponseData{
-				Permission: openapi.Permission{
-					Id:          permission.ID,
-					Name:        permission.Name,
-					WorkspaceId: permission.WorkspaceID,
-					Description: permission.Description.String,
-					CreatedAt:   permission.CreatedAtM.Time.Format(http.TimeFormat),
-				},
+				Permission: permissionResponse,
 			},
 		})
 	})
