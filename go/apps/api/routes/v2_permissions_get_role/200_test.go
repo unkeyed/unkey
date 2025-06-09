@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -11,6 +12,7 @@ import (
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_get_role"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestSuccess(t *testing.T) {
@@ -44,33 +46,34 @@ func TestSuccess(t *testing.T) {
 		roleID := uid.New(uid.TestPrefix)
 		roleName := "test.get.role"
 		roleDesc := "Test role for get endpoint"
-		createdAt := time.Now()
 
-		_, err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-			ID:          roleID,
+		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+			RoleID:      roleID,
 			WorkspaceID: workspace.ID,
 			Name:        roleName,
-			Description: db.NewNullString(roleDesc),
-			CreatedAtM:  db.NewNullTime(createdAt),
+			Description: sql.NullString{Valid: true, String: roleDesc},
 		})
 		require.NoError(t, err)
 
 		// Create some permissions to assign to the role
 		permIDs := []string{uid.New(uid.PermissionPrefix), uid.New(uid.PermissionPrefix)}
 		for i, permID := range permIDs {
-			_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-				ID:          permID,
-				WorkspaceID: workspace.ID,
-				Name:        fmt.Sprintf("test.perm.%d", i),
-				Description: db.NewNullString(fmt.Sprintf("Test permission %d", i)),
-				CreatedAtM:  db.NewNullTime(createdAt),
+			err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+				PermissionID: permID,
+				WorkspaceID:  workspace.ID,
+				Name:         fmt.Sprintf("test.perm.%d", i),
+				Slug:         fmt.Sprintf("test-perm-%d", i),
+				Description:  sql.NullString{Valid: true, String: fmt.Sprintf("Test permission %d", i)},
+				CreatedAtM:   time.Now().UnixMilli(),
 			})
 			require.NoError(t, err)
 
 			// Create role-permission relationship
-			_, err = db.Query.InsertRolePermission(ctx, h.DB.RW(), db.InsertRolePermissionParams{
+			err = db.Query.InsertRolePermission(ctx, h.DB.RW(), db.InsertRolePermissionParams{
 				RoleID:       roleID,
 				PermissionID: permID,
+				WorkspaceID:  workspace.ID,
+				CreatedAtM:   time.Now().UnixMilli(),
 			})
 			require.NoError(t, err)
 		}
@@ -97,7 +100,8 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, roleID, role.Id)
 		require.Equal(t, roleName, role.Name)
 		require.Equal(t, workspace.ID, role.WorkspaceId)
-		require.Equal(t, roleDesc, role.Description)
+		require.NotNil(t, role.Description)
+		require.Equal(t, roleDesc, *role.Description)
 		require.NotEmpty(t, role.CreatedAt)
 
 		// Verify permissions
@@ -124,11 +128,11 @@ func TestSuccess(t *testing.T) {
 		roleName := "test.get.role.no.perms"
 		roleDesc := "Test role with no permissions"
 
-		_, err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-			ID:          roleID,
+		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+			RoleID:      roleID,
 			WorkspaceID: workspace.ID,
 			Name:        roleName,
-			Description: db.NewNullString(roleDesc),
+			Description: sql.NullString{Valid: true, String: roleDesc},
 		})
 		require.NoError(t, err)
 
@@ -154,7 +158,8 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, roleID, role.Id)
 		require.Equal(t, roleName, role.Name)
 		require.Equal(t, workspace.ID, role.WorkspaceId)
-		require.Equal(t, roleDesc, role.Description)
+		require.NotNil(t, role.Description)
+		require.Equal(t, roleDesc, *role.Description)
 
 		// Verify permissions array is empty
 		require.NotNil(t, role.Permissions)

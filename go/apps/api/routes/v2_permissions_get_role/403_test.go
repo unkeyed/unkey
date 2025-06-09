@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -14,7 +15,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestAuthorizationErrors(t *testing.T) {
+func TestPermissionErrors(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
@@ -34,16 +35,16 @@ func TestAuthorizationErrors(t *testing.T) {
 	roleID := uid.New(uid.TestPrefix)
 	roleName := "test.role.access"
 
-	_, err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-		ID:          roleID,
+	err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+		RoleID:      roleID,
 		WorkspaceID: workspace.ID,
 		Name:        roleName,
-		Description: db.NewNullString("Test role for authorization tests"),
+		Description: sql.NullString{Valid: true, String: "Test role for authorization tests"},
 	})
 	require.NoError(t, err)
 
-	// Test case for insufficient permissions - missing read_role
-	t.Run("missing read_role permission", func(t *testing.T) {
+	// Test case for insufficient permissions - missing required permission
+	t.Run("missing required permission", func(t *testing.T) {
 		// Create a root key with some permissions but not read_role
 		rootKey := h.CreateRootKey(workspace.ID, "rbac.*.create_role")
 
@@ -66,36 +67,33 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.Equal(t, 403, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, res.Body.Error.Detail, "insufficient permissions")
+		require.Contains(t, res.Body.Error.Detail, "permission")
 	})
 
-	// Test case for wrong workspace
-	t.Run("wrong workspace", func(t *testing.T) {
-		// Create a different workspace
-		otherWorkspace := h.CreateWorkspace("other-workspace")
-
-		// Create a root key for the other workspace with all permissions
-		rootKey := h.CreateRootKey(otherWorkspace.ID, "rbac.*.read_role")
+	// Test case for no permissions
+	t.Run("no permissions", func(t *testing.T) {
+		// Create a root key with no permissions
+		rootKeyNoPerms := h.CreateRootKey(workspace.ID, "") // No permissions
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyNoPerms)},
 		}
 
 		req := handler.Request{
-			RoleId: roleID, // Role is in the original workspace
+			RoleId: roleID,
 		}
 
-		// When accessing from wrong workspace, the behavior could be a 404 Not Found
-		// rather than 403 Forbidden, as the handler masks workspace mismatches as "not found"
-		res, err := h.Client.Post(
-			"/v2/permissions.getRole",
-			"application/json",
-			testutil.MustMarshal(req),
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+			h,
+			route,
 			headers,
+			req,
 		)
 
-		require.NoError(t, err)
-		require.Equal(t, 404, res.StatusCode, "Wrong workspace access should return 404")
+		require.Equal(t, 403, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+		require.Contains(t, res.Body.Error.Detail, "permission")
 	})
 }

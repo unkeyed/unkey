@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
@@ -36,12 +37,9 @@ func New(svc Services) zen.Route {
 		}
 
 		// 2. Request validation
-		var req Request
-		err = s.BindBody(&req)
+		req, err := zen.BindBody[Request](s)
 		if err != nil {
-			return fault.Wrap(err,
-				fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
-			)
+			return err
 		}
 
 		// 3. Permission check
@@ -50,7 +48,7 @@ func New(svc Services) zen.Route {
 			auth.KeyID,
 			rbac.Or(
 				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Role,
+					ResourceType: rbac.Rbac,
 					ResourceID:   "*",
 					Action:       rbac.ReadRole,
 				}),
@@ -77,9 +75,9 @@ func New(svc Services) zen.Route {
 
 		// 5. Check if role belongs to authorized workspace
 		if role.WorkspaceID != auth.AuthorizedWorkspaceID {
-			return fault.New("role not found",
+			return fault.New("role does not belong to authorized workspace",
 				fault.Code(codes.Data.Role.NotFound.URN()),
-				fault.Internal("role not found"), fault.Public("The requested role does not exist."),
+				fault.Public("The requested role does not exist."),
 			)
 		}
 
@@ -95,29 +93,43 @@ func New(svc Services) zen.Route {
 		// 7. Transform permissions to the response format
 		permissions := make([]openapi.Permission, 0, len(rolePermissions))
 		for _, perm := range rolePermissions {
-			permissions = append(permissions, openapi.Permission{
+			permCreatedAt := time.UnixMilli(perm.CreatedAtM).UTC()
+			permission := openapi.Permission{
 				Id:          perm.ID,
 				Name:        perm.Name,
 				WorkspaceId: perm.WorkspaceID,
-				Description: perm.Description.String,
-				CreatedAt:   perm.CreatedAtM.Time.Format(http.TimeFormat),
-			})
+				CreatedAt:   &permCreatedAt,
+			}
+
+			// Add description only if it's valid
+			if perm.Description.Valid {
+				permission.Description = &perm.Description.String
+			}
+
+			permissions = append(permissions, permission)
 		}
 
 		// 8. Return the role with its permissions
+		roleCreatedAt := time.UnixMilli(role.CreatedAtM).UTC()
+		roleResponse := openapi.RoleWithPermissions{
+			Id:          role.ID,
+			Name:        role.Name,
+			WorkspaceId: role.WorkspaceID,
+			CreatedAt:   &roleCreatedAt,
+			Permissions: permissions,
+		}
+
+		// Add description only if it's valid
+		if role.Description.Valid {
+			roleResponse.Description = &role.Description.String
+		}
+
 		return s.JSON(http.StatusOK, Response{
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
 			},
 			Data: openapi.PermissionsGetRoleResponseData{
-				Role: openapi.RoleWithPermissions{
-					Id:          role.ID,
-					Name:        role.Name,
-					WorkspaceId: role.WorkspaceID,
-					Description: role.Description.String,
-					CreatedAt:   role.CreatedAtM.Time.Format(http.TimeFormat),
-					Permissions: permissions,
-				},
+				Role: roleResponse,
 			},
 		})
 	})

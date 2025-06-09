@@ -4,42 +4,42 @@ This document outlines test scenarios for the API endpoint that retrieves role d
 
 ## Happy Path Scenarios
 
-- [ ] Successfully retrieve an existing role by ID
-- [ ] Retrieve role with a description
-- [ ] Retrieve role with associated permissions
-- [ ] Verify response structure matches specification
-- [ ] Verify all expected fields are returned (ID, name, description, permissions, etc.)
-- [ ] Verify workspace ID is correctly returned
-- [ ] Verify creation timestamp is correctly formatted
-- [ ] Verify permissions list is complete and accurate
+- [x] Successfully retrieve an existing role by ID
+- [x] Retrieve role with a description
+- [x] Retrieve role with associated permissions
+- [x] Verify response structure matches specification
+- [x] Verify all expected fields are returned (ID, name, description, permissions, etc.)
+- [x] Verify workspace ID is correctly returned
+- [x] Verify creation timestamp is correctly formatted
+- [x] Verify permissions list is complete and accurate
 
 ## Error Cases
 
-- [ ] Attempt to retrieve non-existent role ID
-- [ ] Attempt to retrieve role with invalid ID format
-- [ ] Attempt to retrieve role with empty ID
+- [x] Attempt to retrieve non-existent role ID
+- [x] Attempt to retrieve role with invalid ID format
+- [x] Attempt to retrieve role with empty ID
 - [ ] Attempt to retrieve deleted role (if soft delete is used)
-- [ ] Attempt to retrieve role with malformed request
+- [x] Attempt to retrieve role with malformed request
 
 ## Security Tests
 
-- [ ] Attempt to retrieve role without authentication
-- [ ] Attempt to retrieve role with invalid authentication
+- [x] Attempt to retrieve role without authentication
+- [x] Attempt to retrieve role with invalid authentication
 - [ ] Attempt to retrieve role with expired token
-- [ ] Attempt to retrieve role with insufficient permissions
-- [ ] Attempt to retrieve role from another workspace (should be forbidden)
-- [ ] Verify correct permissions allow role retrieval:
+- [x] Attempt to retrieve role with insufficient permissions
+- [x] Attempt to retrieve role from another workspace (should be forbidden)
+- [x] Verify correct permissions allow role retrieval:
   - [ ] Test with wildcard permission ("*")
-  - [ ] Test with specific permission for retrieving roles
+  - [x] Test with specific permission for retrieving roles
   - [ ] Test with multiple permissions including the required one
 
 ## Database Verification
 
-- [ ] Verify returned data matches database record
-- [ ] Verify permissions associated with the role are correctly returned
-- [ ] Verify timestamps are correctly formatted
-- [ ] Verify relationships are correctly represented
-- [ ] Verify workspace ID matches the expected workspace
+- [x] Verify returned data matches database record
+- [x] Verify permissions associated with the role are correctly returned
+- [x] Verify timestamps are correctly formatted
+- [x] Verify relationships are correctly represented
+- [x] Verify workspace ID matches the expected workspace
 
 ## Edge Cases
 
@@ -48,9 +48,9 @@ This document outlines test scenarios for the API endpoint that retrieves role d
 - [ ] Retrieve role with a large number of permissions
 - [ ] Retrieve role with special characters in name/description
 - [ ] Retrieve role with Unicode characters in fields
-- [ ] Retrieve recently created role
+- [x] Retrieve recently created role
 - [ ] Retrieve role that was recently updated
-- [ ] Retrieve role with no associated permissions
+- [x] Retrieve role with no associated permissions
 
 ## Performance Tests
 

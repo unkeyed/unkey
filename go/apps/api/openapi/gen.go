@@ -603,6 +603,11 @@ type PermissionsGetPermissionResponseData struct {
 	Permission Permission `json:"permission"`
 }
 
+// PermissionsGetRoleResponseData defines model for PermissionsGetRoleResponseData.
+type PermissionsGetRoleResponseData struct {
+	Role RoleWithPermissions `json:"role"`
+}
+
 // PermissionsListPermissionsResponseData defines model for PermissionsListPermissionsResponseData.
 type PermissionsListPermissionsResponseData struct {
 	// Cursor Cursor for pagination
@@ -1863,6 +1868,20 @@ type V2PermissionsGetPermissionResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2PermissionsGetRoleRequestBody defines model for V2PermissionsGetRoleRequestBody.
+type V2PermissionsGetRoleRequestBody struct {
+	// RoleId The id of the role to retrieve
+	RoleId string `json:"roleId"`
+}
+
+// V2PermissionsGetRoleResponseBody defines model for V2PermissionsGetRoleResponseBody.
+type V2PermissionsGetRoleResponseBody struct {
+	Data PermissionsGetRoleResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The requestId is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2PermissionsListPermissionsRequestBody defines model for V2PermissionsListPermissionsRequestBody.
 type V2PermissionsListPermissionsRequestBody struct {
 	// Cursor Cursor for pagination
@@ -2219,6 +2238,9 @@ type DeleteRoleJSONRequestBody = V2PermissionsDeleteRoleRequestBody
 
 // GetPermissionJSONRequestBody defines body for GetPermission for application/json ContentType.
 type GetPermissionJSONRequestBody = V2PermissionsGetPermissionRequestBody
+
+// GetRoleJSONRequestBody defines body for GetRole for application/json ContentType.
+type GetRoleJSONRequestBody = V2PermissionsGetRoleRequestBody
 
 // ListPermissionsJSONRequestBody defines body for ListPermissions for application/json ContentType.
 type ListPermissionsJSONRequestBody = V2PermissionsListPermissionsRequestBody
