@@ -1,5 +1,4 @@
-import { Empty } from "@unkey/ui";
-import { Button } from "@unkey/ui";
+import { Button, Empty } from "@unkey/ui";
 import Link from "next/link";
 export default function NotFound() {
   return (

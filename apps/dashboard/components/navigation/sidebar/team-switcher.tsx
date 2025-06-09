@@ -1,5 +1,4 @@
 "use client";
-import { Loading } from "@/components/dashboard/loading";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -17,7 +16,7 @@ import { setSessionCookie } from "@/lib/auth/cookies";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { ChevronExpandY } from "@unkey/icons";
-import { InfoTooltip } from "@unkey/ui";
+import { InfoTooltip, Loading } from "@unkey/ui";
 import { Check, Plus, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -108,7 +107,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
             </AvatarFallback>
           </Avatar>
           {isUserMembershipsLoading ? (
-            <Loading />
+            <Loading type="dots" size={24} />
           ) : isCollapsed ? null : (
             <InfoTooltip
               variant="inverted"
