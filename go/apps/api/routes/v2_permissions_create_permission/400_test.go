@@ -41,7 +41,8 @@ func TestValidationErrors(t *testing.T) {
 	t.Run("missing name", func(t *testing.T) {
 
 		req := handler.Request{
-			// Name is missing
+			// Name is missing but slug is provided
+			Slug: "test-slug",
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
@@ -54,7 +55,28 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, "POST request body for '/v2/permissions.createPermission' failed to validate schema", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "validate schema")
+	})
+
+	// Test case for missing required slug
+	t.Run("missing slug", func(t *testing.T) {
+
+		req := handler.Request{
+			Name: "test.permission",
+			// Slug is missing
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, http.StatusBadRequest, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+		require.Contains(t, res.Body.Error.Detail, "validate schema")
 	})
 
 	// Test case for empty name
@@ -62,6 +84,7 @@ func TestValidationErrors(t *testing.T) {
 
 		req := handler.Request{
 			Name: "", // Empty string is invalid
+			Slug: "test-slug",
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
@@ -74,7 +97,28 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, "POST request body for '/v2/permissions.createPermission' failed to validate schema", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "validate schema")
+	})
+
+	// Test case for empty slug
+	t.Run("empty slug", func(t *testing.T) {
+
+		req := handler.Request{
+			Name: "test.permission",
+			Slug: "", // Empty string is invalid
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, http.StatusBadRequest, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+		require.Contains(t, res.Body.Error.Detail, "validate schema")
 	})
 
 	// Test case for malformed JSON body
@@ -97,6 +141,100 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Status)
 	})
 
+	// Test case for invalid slug pattern - spaces
+	t.Run("invalid slug with spaces", func(t *testing.T) {
+		req := handler.Request{
+			Name: "test.permission",
+			Slug: "test slug with spaces", // Contains spaces which are not allowed
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, http.StatusBadRequest, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+		require.Contains(t, res.Body.Error.Detail, "validate schema")
+	})
+
+	// Test case for invalid slug pattern - special characters
+	t.Run("invalid slug with special characters", func(t *testing.T) {
+		req := handler.Request{
+			Name: "test.permission",
+			Slug: "test@slug#with$special%chars", // Contains special chars not allowed
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, http.StatusBadRequest, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+		require.Contains(t, res.Body.Error.Detail, "validate schema")
+	})
+
+	// Test case for slug too long
+	t.Run("slug too long", func(t *testing.T) {
+		// Create a slug longer than 128 characters
+		veryLongSlug := ""
+		for i := 0; i < 130; i++ { // 130 characters, over the 128 limit
+			veryLongSlug += "a"
+		}
+
+		req := handler.Request{
+			Name: "test.permission",
+			Slug: veryLongSlug,
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, http.StatusBadRequest, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+		require.Contains(t, res.Body.Error.Detail, "validate schema")
+	})
+
+	// Test case for valid slug patterns
+	t.Run("valid slug patterns", func(t *testing.T) {
+		validSlugs := []string{
+			"simple",
+			"with-dashes",
+			"with_underscores",
+			"with.periods",
+			"Mixed123Case",
+			"all-valid_chars.123",
+		}
+
+		for i, slug := range validSlugs {
+			req := handler.Request{
+				Name: fmt.Sprintf("test.permission.%d", i),
+				Slug: slug,
+			}
+
+			res := testutil.CallRoute[handler.Request, handler.Response](
+				h,
+				route,
+				headers,
+				req,
+			)
+
+			require.Equal(t, http.StatusOK, res.Status, "Valid slug '%s' should be accepted", slug)
+		}
+	})
+
 	// Test for very long description
 	t.Run("very long description", func(t *testing.T) {
 		// Create a very long description (more than would be reasonable)
@@ -107,6 +245,7 @@ func TestValidationErrors(t *testing.T) {
 
 		req := handler.Request{
 			Name:        "test.permission",
+			Slug:        "test-permission",
 			Description: &veryLongDesc,
 		}
 

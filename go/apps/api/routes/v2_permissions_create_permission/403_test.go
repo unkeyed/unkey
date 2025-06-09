@@ -39,6 +39,7 @@ func TestAuthorizationErrors(t *testing.T) {
 
 		req := handler.Request{
 			Name: "test.permission.unauthorized",
+			Slug: "test-permission-unauthorized",
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
@@ -69,6 +70,7 @@ func TestAuthorizationErrors(t *testing.T) {
 
 		req := handler.Request{
 			Name: "test.permission.wrong.workspace",
+			Slug: "test-permission-wrong-workspace",
 		}
 
 		// This is generally masked as a 404 or 403 depending on the implementation

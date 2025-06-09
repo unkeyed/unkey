@@ -83,6 +83,7 @@ func New(svc Services) zen.Route {
 			PermissionID: permissionID,
 			WorkspaceID:  auth.AuthorizedWorkspaceID,
 			Name:         req.Name,
+			Slug:         req.Slug,
 			Description:  sql.NullString{Valid: description != "", String: description},
 			CreatedAtM:   time.Now().UnixMilli(),
 		})
@@ -119,6 +120,7 @@ func New(svc Services) zen.Route {
 						DisplayName: req.Name,
 						Meta: map[string]interface{}{
 							"name":        req.Name,
+							"slug":        req.Slug,
 							"description": description,
 						},
 					},

@@ -43,6 +43,7 @@ func TestSuccess(t *testing.T) {
 		description := "Test permission description"
 		req := handler.Request{
 			Name:        "test.permission",
+			Slug:        "test-permission",
 			Description: &description,
 		}
 
@@ -64,6 +65,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, res.Body.Data.PermissionId, perm.ID)
 		require.Equal(t, req.Name, perm.Name)
+		require.Equal(t, req.Slug, perm.Slug)
 		require.Equal(t, description, perm.Description.String)
 		require.Equal(t, workspace.ID, perm.WorkspaceID)
 
@@ -86,6 +88,7 @@ func TestSuccess(t *testing.T) {
 	t.Run("create permission without description", func(t *testing.T) {
 		req := handler.Request{
 			Name: "test.permission.no.desc",
+			Slug: "test-permission-no-desc",
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -105,6 +108,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, res.Body.Data.PermissionId, perm.ID)
 		require.Equal(t, req.Name, perm.Name)
+		require.Equal(t, req.Slug, perm.Slug)
 		require.False(t, perm.Description.Valid, "Description should be empty")
 		require.Equal(t, workspace.ID, perm.WorkspaceID)
 	})

@@ -1795,6 +1795,9 @@ type V2PermissionsCreatePermissionRequestBody struct {
 
 	// Name The unique name of your permission
 	Name string `json:"name"`
+
+	// Slug The unique slug identifier for your permission, used for URL-safe references. Only alphanumeric characters, periods, underscores, and dashes are allowed.
+	Slug string `json:"slug"`
 }
 
 // V2PermissionsCreatePermissionResponseBody defines model for V2PermissionsCreatePermissionResponseBody.

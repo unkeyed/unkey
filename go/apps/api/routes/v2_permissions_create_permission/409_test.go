@@ -43,6 +43,7 @@ func TestConflictErrors(t *testing.T) {
 		// First, create a permission
 		req1 := handler.Request{
 			Name: permissionName,
+			Slug: "test-duplicate-permission",
 		}
 
 		res1 := testutil.CallRoute[handler.Request, handler.Response](
@@ -60,6 +61,7 @@ func TestConflictErrors(t *testing.T) {
 		// Now try to create another permission with the same name
 		req2 := handler.Request{
 			Name: permissionName,
+			Slug: "test-duplicate-permission-2",
 		}
 
 		res2 := testutil.CallRoute[handler.Request, openapi.ConflictErrorResponse](
@@ -83,6 +85,7 @@ func TestConflictErrors(t *testing.T) {
 		// First, create a permission
 		req1 := handler.Request{
 			Name: permissionName,
+			Slug: "test-case-sensitive-permission",
 		}
 
 		res1 := testutil.CallRoute[handler.Request, handler.Response](
@@ -97,6 +100,7 @@ func TestConflictErrors(t *testing.T) {
 		// Now try to create another permission with the same name but different case
 		req2 := handler.Request{
 			Name: "test.case.sensitive.permission", // lowercase version
+			Slug: "test-case-sensitive-permission-lowercase",
 		}
 
 		// This test might pass or fail depending on if permission names are case-sensitive

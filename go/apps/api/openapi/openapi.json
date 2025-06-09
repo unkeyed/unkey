@@ -2265,7 +2265,8 @@
       "V2PermissionsCreatePermissionRequestBody": {
         "type": "object",
         "required": [
-          "name"
+          "name",
+          "slug"
         ],
         "properties": {
           "name": {
@@ -2274,6 +2275,14 @@
             "maxLength": 512,
             "description": "The unique name of your permission",
             "example": "record.write"
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[a-zA-Z0-9._-]+$",
+            "description": "The unique slug identifier for your permission, used for URL-safe references. Only alphanumeric characters, periods, underscores, and dashes are allowed.",
+            "example": "record-write"
           },
           "description": {
             "type": "string",
@@ -7164,10 +7173,10 @@
         "tags": [
           "permissions"
         ],
-        "summary": "Delete a permission",
-        "description": "Permanently removes a permission from the workspace. This endpoint is used when a permission is no longer needed or when cleaning up unused permissions.\n\nWhen a permission is deleted:\n- All direct assignments to API keys are removed\n- The permission is removed from any roles it was assigned to\n- The permission's name becomes available for reuse\n\nImportant: This operation cannot be undone, and it immediately affects all API keys and roles that had this permission assigned. Consider carefully before deleting permissions that are actively in use.",
-        "operationId": "deletePermission",
-        "x-speakeasy-name-override": "DeletePermission",
+        "summary": "Create a new permission",
+        "description": "Creates a new permission in the workspace. Permissions are the fundamental building blocks of access control in Unkey's RBAC system, representing specific actions or capabilities that can be granted to API keys either directly or through roles.\n\nThis endpoint allows you to:\n- Define new permissions with descriptive names and URL-safe slugs\n- Set up granular access control for your API keys\n- Build the foundation for role-based access control\n- Organize permissions with consistent naming patterns\n\nBest practices:\n- Use hierarchical naming (e.g., 'resource.action' or 'resource.subresource.action')\n- Choose descriptive but concise permission names\n- Use URL-safe slugs for easy reference in APIs",
+        "operationId": "createPermission",
+        "x-speakeasy-name-override": "CreatePermission",
         "security": [
           {
             "rootKey": []
@@ -7178,6 +7187,31 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/V2PermissionsCreatePermissionRequestBody"
+              },
+              "examples": {
+                "basic": {
+                  "summary": "Basic permission creation",
+                  "value": {
+                    "name": "documents.read",
+                    "slug": "documents-read",
+                    "description": "Allows reading document resources"
+                  }
+                },
+                "withoutDescription": {
+                  "summary": "Permission without description",
+                  "value": {
+                    "name": "files.upload",
+                    "slug": "files-upload"
+                  }
+                },
+                "complexPermission": {
+                  "summary": "Complex permission with detailed info",
+                  "value": {
+                    "name": "admin.users.delete",
+                    "slug": "admin-users-delete",
+                    "description": "Grants full administrative access to delete user accounts. This is a high-privilege permission that should be used carefully."
+                  }
+                }
               }
             }
           },
