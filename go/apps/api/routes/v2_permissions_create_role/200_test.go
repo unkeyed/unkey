@@ -61,70 +61,36 @@ func TestSuccess(t *testing.T) {
 		require.True(t, len(res.Body.Data.RoleId) > 0, "RoleId should not be empty")
 
 		// Verify role was created in database
-		role, err := h.DB.RO().QueryContext(ctx,
-			`SELECT "id", "name", "description", "workspaceId" FROM "roles" WHERE "id" = $1`,
-			res.Body.Data.RoleId)
+		role, err := db.Query.FindRoleById(ctx, h.DB.RO(), res.Body.Data.RoleId)
 		require.NoError(t, err)
-		require.True(t, role.Next(), "Role should exist in database")
-
-		var id, name, desc, wsID string
-		err = role.Scan(&id, &name, &desc, &wsID)
-		require.NoError(t, err)
-		require.Equal(t, res.Body.Data.RoleId, id)
-		require.Equal(t, req.Name, name)
-		require.Equal(t, description, desc)
-		require.Equal(t, workspace.ID, wsID)
-		role.Close()
-
-		// Verify no role-permission relationships exist
-		rolePerms, err := h.DB.RO().QueryContext(ctx,
-			`SELECT COUNT(*) FROM "role_permissions" WHERE "roleId" = $1`,
-			res.Body.Data.RoleId)
-		require.NoError(t, err)
-		require.True(t, rolePerms.Next(), "Should get a count result")
-
-		var count int
-		err = rolePerms.Scan(&count)
-		require.NoError(t, err)
-		require.Equal(t, 0, count, "Should have no role-permission relationships")
-		rolePerms.Close()
+		require.Equal(t, res.Body.Data.RoleId, role.ID)
+		require.Equal(t, req.Name, role.Name)
+		require.Equal(t, description, role.Description.String)
+		require.Equal(t, workspace.ID, role.WorkspaceID)
 
 		// Verify audit log was created
-		auditLogs, err := h.DB.RO().QueryContext(ctx,
-			`SELECT * FROM "auditlogs" WHERE "event" = 'role.create' AND "resourceId" = $1`,
-			res.Body.Data.RoleId)
+		auditLogs, err := db.Query.FindAuditLogTargetById(ctx, h.DB.RO(), res.Body.Data.RoleId)
 		require.NoError(t, err)
-		require.True(t, auditLogs.Next(), "Audit log for role creation should exist")
-		auditLogs.Close()
+		require.NotEmpty(t, auditLogs, "Audit log for role creation should exist")
+
+		foundCreateEvent := false
+		for _, log := range auditLogs {
+			if log.AuditLog.Event == "role.create" {
+				foundCreateEvent = true
+				break
+			}
+		}
+		require.True(t, foundCreateEvent, "Should find a role.create audit log event")
 	})
 
-	// Test case for creating a role with permissions
-	t.Run("create role with permissions", func(t *testing.T) {
-		roleName := "test.role.with.permissions"
-		description := "Test role with permissions"
+	// Test case for creating a role with description
+	t.Run("create role with description", func(t *testing.T) {
+		roleName := "test.role.with.description"
+		description := "Test role with a description field"
 
-		// First, create some permissions to assign to the role
-		permissionIDs := []string{
-			uid.New(uid.PermissionPrefix),
-			uid.New(uid.PermissionPrefix),
-		}
-
-		// Insert the permissions
-		for i, permID := range permissionIDs {
-			_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-				ID:          permID,
-				WorkspaceID: workspace.ID,
-				Name:        fmt.Sprintf("test.perm.%d", i),
-				Description: db.NewNullString(fmt.Sprintf("Test permission %d", i)),
-			})
-			require.NoError(t, err)
-		}
-
-		// Create the role with permissions
 		req := handler.Request{
-			Name:          roleName,
-			Description:   &description,
-			PermissionIds: &permissionIDs,
+			Name:        roleName,
+			Description: &description,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -140,38 +106,26 @@ func TestSuccess(t *testing.T) {
 		require.NotEmpty(t, res.Body.Data.RoleId)
 
 		// Verify role was created in database
-		role, err := h.DB.RO().QueryContext(ctx,
-			`SELECT "id", "name", "description", "workspaceId" FROM "roles" WHERE "id" = $1`,
-			res.Body.Data.RoleId)
+		role, err := db.Query.FindRoleById(ctx, h.DB.RO(), res.Body.Data.RoleId)
 		require.NoError(t, err)
-		require.True(t, role.Next(), "Role should exist in database")
-
-		var id, name, desc, wsID string
-		err = role.Scan(&id, &name, &desc, &wsID)
-		require.NoError(t, err)
-		require.Equal(t, res.Body.Data.RoleId, id)
-		require.Equal(t, req.Name, name)
-		require.Equal(t, description, desc)
-		require.Equal(t, workspace.ID, wsID)
-		role.Close()
-
-		// Verify role-permission relationships exist
-		for _, permID := range permissionIDs {
-			rolePerms, err := h.DB.RO().QueryContext(ctx,
-				`SELECT * FROM "role_permissions" WHERE "roleId" = $1 AND "permissionId" = $2`,
-				res.Body.Data.RoleId, permID)
-			require.NoError(t, err)
-			require.True(t, rolePerms.Next(), "Role-permission relationship should exist")
-			rolePerms.Close()
-		}
+		require.Equal(t, res.Body.Data.RoleId, role.ID)
+		require.Equal(t, req.Name, role.Name)
+		require.Equal(t, description, role.Description.String)
+		require.Equal(t, workspace.ID, role.WorkspaceID)
 
 		// Verify audit log was created
-		auditLogs, err := h.DB.RO().QueryContext(ctx,
-			`SELECT * FROM "auditlogs" WHERE "event" = 'role.create' AND "resourceId" = $1`,
-			res.Body.Data.RoleId)
+		auditLogs, err := db.Query.FindAuditLogTargetById(ctx, h.DB.RO(), res.Body.Data.RoleId)
 		require.NoError(t, err)
-		require.True(t, auditLogs.Next(), "Audit log for role creation should exist")
-		auditLogs.Close()
+		require.NotEmpty(t, auditLogs, "Audit log for role creation should exist")
+
+		foundCreateEvent := false
+		for _, log := range auditLogs {
+			if log.AuditLog.Event == "role.create" {
+				foundCreateEvent = true
+				break
+			}
+		}
+		require.True(t, foundCreateEvent, "Should find a role.create audit log event")
 	})
 
 	// Test case for creating a role without description
@@ -193,19 +147,11 @@ func TestSuccess(t *testing.T) {
 		require.NotEmpty(t, res.Body.Data.RoleId)
 
 		// Verify role was created in database
-		role, err := h.DB.RO().QueryContext(ctx,
-			`SELECT "id", "name", "description", "workspaceId" FROM "roles" WHERE "id" = $1`,
-			res.Body.Data.RoleId)
+		role, err := db.Query.FindRoleById(ctx, h.DB.RO(), res.Body.Data.RoleId)
 		require.NoError(t, err)
-		require.True(t, role.Next(), "Role should exist in database")
-
-		var id, name, desc, wsID string
-		err = role.Scan(&id, &name, &desc, &wsID)
-		require.NoError(t, err)
-		require.Equal(t, res.Body.Data.RoleId, id)
-		require.Equal(t, req.Name, name)
-		require.Empty(t, desc, "Description should be empty")
-		require.Equal(t, workspace.ID, wsID)
-		role.Close()
+		require.Equal(t, res.Body.Data.RoleId, role.ID)
+		require.Equal(t, req.Name, role.Name)
+		require.False(t, role.Description.Valid, "Description should be null")
+		require.Equal(t, workspace.ID, role.WorkspaceID)
 	})
 }

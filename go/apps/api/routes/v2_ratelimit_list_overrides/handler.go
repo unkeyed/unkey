@@ -11,7 +11,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -69,12 +68,12 @@ func New(svc Services) zen.Route {
 				rbac.T(rbac.Tuple{
 					ResourceType: rbac.Ratelimit,
 					ResourceID:   namespace.ID,
-					Action:       rbac.ListOverrides,
+					Action:       rbac.ReadOverride,
 				}),
 				rbac.T(rbac.Tuple{
 					ResourceType: rbac.Ratelimit,
 					ResourceID:   "*",
-					Action:       rbac.ListOverrides,
+					Action:       rbac.ReadOverride,
 				}),
 			),
 		)
@@ -87,12 +86,6 @@ func New(svc Services) zen.Route {
 			NamespaceID: namespace.ID,
 		})
 
-		if db.IsNotFound(err) {
-			return fault.New("override not found",
-				fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
-				fault.Internal("override not found"), fault.Public("This override does not exist."),
-			)
-		}
 		if err != nil {
 			return err
 		}
@@ -103,7 +96,7 @@ func New(svc Services) zen.Route {
 			Data: make([]openapi.RatelimitOverride, len(overrides)),
 			Pagination: &openapi.Pagination{
 				Cursor:  nil,
-				HasMore: ptr.P(false),
+				HasMore: false,
 			},
 		}
 

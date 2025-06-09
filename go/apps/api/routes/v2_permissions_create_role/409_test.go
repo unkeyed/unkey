@@ -11,6 +11,7 @@ import (
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_create_role"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestConflictErrors(t *testing.T) {
@@ -75,7 +76,7 @@ func TestConflictErrors(t *testing.T) {
 		require.Equal(t, 409, res2.Status, "Duplicate role creation should fail with 409")
 		require.NotNil(t, res2.Body)
 		require.NotNil(t, res2.Body.Error)
-		require.Equal(t, res2.Body.Error.Detail, "already exists")
+		require.Contains(t, res2.Body.Error.Detail, "already exists")
 	})
 
 	// Test case for duplicate role name with different case (if case-insensitive)
@@ -102,34 +103,30 @@ func TestConflictErrors(t *testing.T) {
 		}
 
 		// This test might pass or fail depending on if role names are case-sensitive
-		// Include both possible assertions based on the expected behavior
-		res2, err := h.Client.Post(
-			"/v2/permissions.createRole",
-			"application/json",
-			testutil.MustMarshal(req2),
+		// Try to create the role and check the response
+		res2 := testutil.CallRoute[handler.Request, openapi.ConflictErrorResponse](
+			h,
+			route,
 			headers,
+			req2,
 		)
 
-		require.NoError(t, err)
-		// If roles are case-sensitive, could be 200 OK
 		// If roles are case-insensitive, should be 409 Conflict
-		// Check either case
-		if res2.StatusCode == 409 {
+		if res2.Status == 409 {
 			// Case-insensitive implementation
-			conflict := testutil.UnmarshalBody[openapi.ConflictErrorResponse](t, res2)
-			require.NotNil(t, conflict.Error)
-			require.Equal(t, conflict.Error.Detail, "already exists")
+			require.NotNil(t, res2.Body.Error)
+			require.Contains(t, res2.Body.Error.Detail, "already exists")
 		}
 	})
 
 	// Test case for creating a role using existing database records
 	t.Run("existing role in database", func(t *testing.T) {
 		// Directly insert a role into the database
-		roleID := uid.New(uid.TestPrefix)
+		roleID := uid.New(uid.RolePrefix)
 		roleName := "test.existing.role"
 
-		_, err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-			ID:          roleID,
+		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+			RoleID:      roleID,
 			WorkspaceID: workspace.ID,
 			Name:        roleName,
 		})
@@ -150,6 +147,6 @@ func TestConflictErrors(t *testing.T) {
 		require.Equal(t, 409, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, res.Body.Error.Detail, "already exists")
+		require.Contains(t, res.Body.Error.Detail, "already exists")
 	})
 }

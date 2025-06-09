@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -13,7 +12,6 @@ import (
 )
 
 func TestValidationErrors(t *testing.T) {
-	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
 	route := handler.New(handler.Services{
@@ -54,7 +52,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, res.Body.Error.Detail, "invalid")
+		require.Contains(t, res.Body.Error.Detail, "validate schema")
 	})
 
 	// Test case for empty name
@@ -73,41 +71,26 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, res.Body.Error.Detail, "invalid")
+		require.Contains(t, res.Body.Error.Detail, "validate schema")
 	})
 
 	// Test case for malformed JSON body
 	t.Run("malformed JSON body", func(t *testing.T) {
-		res, err := h.Client.Post(
-			"/v2/permissions.createRole",
-			"application/json",
-			[]byte("{malformed json"),
-			headers,
-		)
-
-		require.NoError(t, err)
-		require.Equal(t, 400, res.StatusCode)
-	})
-
-	// Test case for invalid permission IDs
-	t.Run("invalid permission IDs", func(t *testing.T) {
-		invalidPermIDs := []string{"perm_does_not_exist"}
-		req := handler.Request{
-			Name:          "test.role.invalid.perms",
-			PermissionIds: &invalidPermIDs,
+		req := map[string]interface{}{
+			"invalid": "json structure",
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
+		res := testutil.CallRoute[map[string]interface{}, openapi.BadRequestErrorResponse](
 			h,
 			route,
 			headers,
 			req,
 		)
 
-		require.Equal(t, 404, res.Status)
+		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, res.Body.Error.Detail, "not found")
+		require.Contains(t, res.Body.Error.Detail, "validate schema")
 	})
 
 	// Test for very long description

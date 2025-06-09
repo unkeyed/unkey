@@ -2535,13 +2535,6 @@
             "description": "Explain what this role does. This is just for your team, your users will not see this.",
             "example": "dns.records.manager can read and write dns records for our domains.",
             "maxLength": 512
-          },
-          "permissionIds": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "The permission IDs to assign to this role"
           }
         },
         "additionalProperties": false
@@ -6045,6 +6038,119 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/NotFoundErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/v2/permissions.createRole": {
+      "post": {
+        "tags": [
+          "permissions"
+        ],
+        "summary": "Create a new role with permissions",
+        "description": "Creates a new role in the workspace with optional permission assignments. Roles are collections of permissions that can be assigned to API keys, providing a convenient way to manage access control at scale.\n\nRoles enable you to:\n- Group related permissions together for easier management\n- Assign consistent permission sets to multiple API keys\n- Implement role-based access control (RBAC) patterns\n- Simplify permission management as your system grows\n\nWhen creating a role, you can optionally assign existing permissions to it immediately. The role becomes available for assignment to API keys as soon as it's created.",
+        "operationId": "createRole",
+        "x-speakeasy-name-override": "CreateRole",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2PermissionsCreateRoleRequestBody"
+              },
+              "examples": {
+                "basic": {
+                  "summary": "Basic role creation",
+                  "value": {
+                    "name": "content.editor",
+                    "description": "Can read and write content"
+                  }
+                },
+                "withoutDescription": {
+                  "summary": "Role without description",
+                  "value": {
+                    "name": "api.reader"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2PermissionsCreateRoleResponseBody"
+                }
+              }
+            },
+            "description": "Successfully created role"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found - One or more specified permissions do not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict - A role with this name already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictErrorResponse"
                 }
               }
             }

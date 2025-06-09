@@ -7,6 +7,7 @@ import (
 	v2RatelimitDeleteOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_delete_override"
 	v2RatelimitGetOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_get_override"
 	v2RatelimitLimit "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_limit"
+	v2RatelimitListOverrides "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_list_overrides"
 	v2RatelimitSetOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_set_override"
 
 	v2ApisCreateApi "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_create_api"
@@ -102,6 +103,17 @@ func Register(srv *zen.Server, svc *Services) {
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
 			Auditlogs:   svc.Auditlogs,
+		}),
+	)
+
+	// v2/ratelimit.listOverrides
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		v2RatelimitListOverrides.New(v2RatelimitListOverrides.Services{
+			Logger:      svc.Logger,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Permissions: svc.Permissions,
 		}),
 	)
 

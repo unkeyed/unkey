@@ -54,8 +54,9 @@ func TestWorkspacePermissions(t *testing.T) {
 
 	h.Register(route)
 
-	// Create a key for a different workspace
-	differentWorkspaceKey := h.CreateRootKey(h.Resources().DifferentWorkspace.ID)
+	// Create a different workspace and key for testing cross-workspace access
+	differentWorkspace := h.CreateWorkspace()
+	differentWorkspaceKey := h.CreateRootKey(differentWorkspace.ID)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

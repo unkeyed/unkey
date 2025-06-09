@@ -592,6 +592,12 @@ type PermissionsCreatePermissionResponseData struct {
 	PermissionId string `json:"permissionId"`
 }
 
+// PermissionsCreateRoleResponseData defines model for PermissionsCreateRoleResponseData.
+type PermissionsCreateRoleResponseData struct {
+	// RoleId The id of the role. This is used internally
+	RoleId string `json:"roleId"`
+}
+
 // PermissionsGetPermissionResponseData defines model for PermissionsGetPermissionResponseData.
 type PermissionsGetPermissionResponseData struct {
 	Permission Permission `json:"permission"`
@@ -1799,6 +1805,23 @@ type V2PermissionsCreatePermissionResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2PermissionsCreateRoleRequestBody defines model for V2PermissionsCreateRoleRequestBody.
+type V2PermissionsCreateRoleRequestBody struct {
+	// Description Explain what this role does. This is just for your team, your users will not see this.
+	Description *string `json:"description,omitempty"`
+
+	// Name The unique name of your role
+	Name string `json:"name"`
+}
+
+// V2PermissionsCreateRoleResponseBody defines model for V2PermissionsCreateRoleResponseBody.
+type V2PermissionsCreateRoleResponseBody struct {
+	Data PermissionsCreateRoleResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The requestId is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2PermissionsDeleteRoleRequestBody defines model for V2PermissionsDeleteRoleRequestBody.
 type V2PermissionsDeleteRoleRequestBody struct {
 	// RoleId The id of the role to delete
@@ -2169,6 +2192,9 @@ type WhoamiJSONRequestBody = V2KeysWhoamiRequestBody
 
 // DeletePermissionJSONRequestBody defines body for DeletePermission for application/json ContentType.
 type DeletePermissionJSONRequestBody = V2PermissionsCreatePermissionRequestBody
+
+// CreateRoleJSONRequestBody defines body for CreateRole for application/json ContentType.
+type CreateRoleJSONRequestBody = V2PermissionsCreateRoleRequestBody
 
 // DeleteRoleJSONRequestBody defines body for DeleteRole for application/json ContentType.
 type DeleteRoleJSONRequestBody = V2PermissionsDeleteRoleRequestBody

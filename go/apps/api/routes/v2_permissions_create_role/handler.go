@@ -2,16 +2,19 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
+	"github.com/unkeyed/unkey/go/pkg/auditlog"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/zen"
@@ -39,12 +42,9 @@ func New(svc Services) zen.Route {
 		}
 
 		// 2. Request validation
-		var req Request
-		err = s.BindBody(&req)
+		req, err := zen.BindBody[Request](s)
 		if err != nil {
-			return fault.Wrap(err,
-				fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
-			)
+			return err
 		}
 
 		// 3. Permission check
@@ -65,127 +65,84 @@ func New(svc Services) zen.Route {
 
 		// 4. Prepare role creation
 		roleID := uid.New(uid.RolePrefix)
-		var description string
-		if req.Description != nil {
-			description = *req.Description
-		}
+		description := ptr.SafeDeref(req.Description)
 
-		// Check for existing role with the same name in this workspace
-		existingRole, err := db.Query.FindRoleByNameAndWorkspace(ctx, svc.DB.RO(), req.Name, auth.AuthorizedWorkspaceID)
-		if err == nil && existingRole != nil {
-			// Role with this name already exists
-			return fault.New("role already exists",
-				fault.Code(codes.Data.Role.AlreadyExists.URN()),
-				fault.Internal("role already exists"), fault.Public("A role with name \""+req.Name+"\" already exists in this workspace"),
+		// 5. Create role in a transaction with audit log
+		tx, err := svc.DB.RW().Begin(ctx)
+		if err != nil {
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to create transaction"), fault.Public("Unable to start database transaction."),
 			)
 		}
 
-		// 5. Validate permission IDs if provided
-		var permissionIDs []string
-		if req.PermissionIds != nil && len(*req.PermissionIds) > 0 {
-			permissionIDs = *req.PermissionIds
-
-			// Verify all permissions exist and belong to the workspace
-			for _, permID := range permissionIDs {
-				permission, err := db.Query.FindPermissionById(ctx, svc.DB.RO(), permID)
-				if err != nil {
-					if db.IsNotFound(err) {
-						return fault.New("permission not found",
-							fault.Code(codes.Data.Permission.NotFound.URN()),
-							fault.Internal("permission not found"), fault.Public("Permission with ID \""+permID+"\" does not exist."),
-						)
-					}
-					return fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("database error"), fault.Public("Failed to retrieve permission information."),
-					)
-				}
-
-				// Check if permission belongs to authorized workspace
-				if permission.WorkspaceID != auth.AuthorizedWorkspaceID {
-					return fault.New("permission not found",
-						fault.Code(codes.Data.Permission.NotFound.URN()),
-						fault.Internal("permission not found"), fault.Public("Permission with ID \""+permID+"\" does not exist."),
-					)
-				}
+		defer func() {
+			if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+				svc.Logger.Error("failed to rollback transaction", "error", err)
 			}
-		}
+		}()
 
-		// 6. Create role in a transaction with permission assignments and audit log
-		err = svc.DB.WithTransaction(ctx, func(ctx context.Context, tx db.Tx) error {
-			// Insert the role
-			_, err := db.Query.InsertRole(ctx, tx, db.InsertRoleParams{
-				ID:          roleID,
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Name:        req.Name,
-				Description: db.NewNullString(description),
-			})
-			if err != nil {
-				if db.IsDuplicate(err) {
-					return fault.New("role already exists",
-						fault.Code(codes.Data.Role.AlreadyExists.URN()),
-						fault.Internal("role already exists"), fault.Public("A role with name \""+req.Name+"\" already exists in this workspace"),
-					)
-				}
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to create role."),
-				)
-			}
-
-			// Create role-permission relationships if permissions were provided
-			for _, permID := range permissionIDs {
-				_, err := db.Query.InsertRolePermission(ctx, tx, db.InsertRolePermissionParams{
-					RoleID:       roleID,
-					PermissionID: permID,
-				})
-				if err != nil {
-					return fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("database error"), fault.Public("Failed to assign permissions to role."),
-					)
-				}
-			}
-
-			// Create audit log
-			metaData := map[string]interface{}{
-				"name":        req.Name,
-				"description": description,
-			}
-
-			if len(permissionIDs) > 0 {
-				metaData["permissions"] = permissionIDs
-			}
-
-			err = svc.Auditlogs.CreateAuditLog(ctx, tx, auditlogs.CreateAuditLogParams{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       "role.create",
-				ActorType:   "key",
-				ActorID:     auth.KeyID,
-				Description: "Created " + roleID,
-				Resources: []auditlogs.Resource{
-					{
-						Type: "role",
-						ID:   roleID,
-						Meta: metaData,
-					},
-				},
-				Context: auditlogs.Context{
-					Location:  s.Location(),
-					UserAgent: s.UserAgent(),
-				},
-			})
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("audit log error"), fault.Public("Failed to create audit log for role creation."),
-				)
-			}
-
-			return nil
+		// Insert the role
+		err = db.Query.InsertRole(ctx, tx, db.InsertRoleParams{
+			RoleID:      roleID,
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+			Name:        req.Name,
+			Description: sql.NullString{Valid: description != "", String: description},
 		})
 		if err != nil {
-			return err
+			if db.IsDuplicateKeyError(err) {
+				return fault.New("role already exists",
+					fault.Code(codes.UnkeyDataErrorsIdentityDuplicate),
+					fault.Internal("role already exists"), fault.Public("A role with name \""+req.Name+"\" already exists in this workspace"),
+				)
+			}
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to create role."),
+			)
+		}
+
+		// Create audit log
+		metaData := map[string]interface{}{
+			"name":        req.Name,
+			"description": description,
+		}
+
+		err = svc.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
+			{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Event:       "role.create",
+				ActorType:   auditlog.RootKeyActor,
+				ActorID:     auth.KeyID,
+				ActorName:   "root key",
+				Display:     "Created " + roleID,
+				RemoteIP:    s.Location(),
+				UserAgent:   s.UserAgent(),
+				Resources: []auditlog.AuditLogResource{
+					{
+						Type:        "role",
+						ID:          roleID,
+						Name:        req.Name,
+						DisplayName: req.Name,
+						Meta:        metaData,
+					},
+				},
+			},
+		})
+		if err != nil {
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("audit log error"), fault.Public("Failed to create audit log for role creation."),
+			)
+		}
+
+		// Commit the transaction
+		err = tx.Commit()
+		if err != nil {
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to commit transaction"), fault.Public("Failed to commit changes."),
+			)
 		}
 
 		// 7. Return success response
