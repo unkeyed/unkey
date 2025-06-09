@@ -1,9 +1,8 @@
 import { nameSchema } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.schema";
-import { DialogContainer } from "@/components/dialog-container";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, FormInput } from "@unkey/ui";
+import { Button, DialogContainer, FormInput } from "@unkey/ui";
 import { useEffect } from "react";
 import { FormProvider } from "react-hook-form";
 import { z } from "zod";

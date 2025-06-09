@@ -1,5 +1,5 @@
-import type { StepNamesFrom } from "@/components/dialog-container/navigable-dialog";
 import { CalendarClock, ChartPie, Code, Gauge, Key2 } from "@unkey/icons";
+import type { StepNamesFrom } from "@unkey/ui";
 import type { SectionState } from "./types";
 
 import { UsageSetup } from "./components/credits-setup";

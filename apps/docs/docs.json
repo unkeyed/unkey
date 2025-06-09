@@ -230,7 +230,6 @@
                       "api-reference/keys/update",
                       "api-reference/keys/update-remaining",
                       "api-reference/keys/delete",
-                      "api-reference/keys/verifications",
                       "api-reference/keys/add-permissions",
                       "api-reference/keys/remove-permissions",
                       "api-reference/keys/set-permissions",
@@ -315,7 +314,6 @@
                           "libraries/ts/sdk/keys/update",
                           "libraries/ts/sdk/keys/update-remaining",
                           "libraries/ts/sdk/keys/delete",
-                          "libraries/ts/sdk/keys/verifications",
                           "libraries/ts/sdk/keys/add-permission",
                           "libraries/ts/sdk/keys/remove-permission",
                           "libraries/ts/sdk/keys/set-permission",
@@ -323,6 +321,10 @@
                           "libraries/ts/sdk/keys/remove-roles",
                           "libraries/ts/sdk/keys/set-roles"
                         ]
+                      },
+                      {
+                        "group": "Analytics",
+                        "pages": ["libraries/ts/sdk/analytics/get"]
                       },
                       {
                         "group": "APIs",

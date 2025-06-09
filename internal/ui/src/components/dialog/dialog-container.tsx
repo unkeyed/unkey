@@ -1,8 +1,14 @@
 "use client";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { cn } from "@unkey/ui/src/lib/utils";
+// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
+import * as React from "react";
 import type { PropsWithChildren, ReactNode } from "react";
-import { DefaultDialogContentArea, DefaultDialogFooter, DefaultDialogHeader } from "./dialog-parts";
+import { cn } from "../../lib/utils";
+import { Dialog, DialogContent } from "./parts/dialog";
+import {
+  DefaultDialogContentArea,
+  DefaultDialogFooter,
+  DefaultDialogHeader,
+} from "./parts/dialog-parts";
 
 type DialogContainerProps = PropsWithChildren<{
   className?: string;

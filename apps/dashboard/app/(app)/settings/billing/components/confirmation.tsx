@@ -1,7 +1,6 @@
 "use client";
 
-import { DialogContainer } from "@/components/dialog-container";
-import { Button } from "@unkey/ui";
+import { Button, DialogContainer } from "@unkey/ui";
 import { useState } from "react";
 
 type Props = {

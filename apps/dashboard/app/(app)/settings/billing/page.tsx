@@ -12,8 +12,8 @@ import Stripe from "stripe";
 import { WorkspaceNavbar } from "../workspace-navbar";
 import { Client } from "./client";
 import { Shell } from "./components/shell";
+
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 export default async function BillingPage() {
   const { orgId } = await getAuth();
@@ -28,7 +28,6 @@ export default async function BillingPage() {
   if (!workspace) {
     return redirect("/new");
   }
-
   const e = stripeEnv();
   if (!e) {
     return (
