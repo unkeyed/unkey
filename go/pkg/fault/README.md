@@ -21,33 +21,60 @@ Fault addresses common challenges in production error handling:
 - Automatic source location tracking
 - Safe error chain unwrapping and inspection
 
-### Dual-Message Pattern
-Maintain separate internal and public error messages:
+### Primary API (Recommended)
+Fault provides a clean, concise API for adding error context:
+
 ```go
+// Internal debugging information (not exposed to users)
 fault.Wrap(err,
-    fault.WithDesc(
-        "database error: connection timeout", // internal message
-        "Service temporarily unavailable."     // public message
-    ),
+    fault.Internal("connection failed to 192.168.1.1:5432 after 30s timeout"),
+)
+
+// User-facing messages (safe for API responses)
+fault.Wrap(err,
+    fault.Public("The service is temporarily unavailable. Please try again later."),
+)
+
+// Combine as needed
+fault.Wrap(err,
+    fault.Internal("detailed debug info"),
+    fault.Public("user-friendly message"),
+    fault.Code(DATABASE_ERROR),
 )
 ```
-
 
 ### Error Classification
 Tag errors for consistent handling:
 ```go
-var DATABASE_ERROR = fault.Tag("DATABASE_ERROR")
+var DATABASE_ERROR = codes.URN("DATABASE_ERROR")
 
 err := fault.New("connection failed",
-    fault.WithTag(DATABASE_ERROR),
+    fault.Code(DATABASE_ERROR),
 )
 
-switch fault.GetTag(err) {
-	case DATABASE_ERROR:
-		// handle
-	default:
-		// handle
+code, ok := fault.GetCode(err)
+if ok && code == DATABASE_ERROR {
+    // handle database errors
 }
+```
+
+### Legacy API (Deprecated)
+The following functions are still available for backward compatibility but are deprecated:
+
+```go
+// Deprecated: Use fault.Internal() and fault.Public() separately
+fault.Wrap(err,
+    fault.WithDesc("database error: connection timeout", "Service temporarily unavailable"),
+)
+
+// Deprecated: Use fault.Internal() instead
+fault.Wrap(err, fault.WithInternalDesc("debug info"))
+
+// Deprecated: Use fault.Public() instead  
+fault.Wrap(err, fault.WithPublicDesc("user message"))
+
+// Deprecated: Use fault.Code() instead
+fault.Wrap(err, fault.WithCode(DATABASE_ERROR))
 ```
 
 ### Location Tracking
@@ -61,9 +88,15 @@ err = fault.Wrap(err, fault.WithDesc(...))      // captures new location
 
 Fault is built on these principles:
 
-Fault embraces Go’s simplicity and power. By focusing only on essential
+**Concise and Clear**: The primary API (`Internal`, `Public`, `Code`) uses short, 
+descriptive names that make error handling fast to write and easy to read.
+
+**Separation of Concerns**: Internal debugging information is kept separate from 
+user-facing messages, preventing accidental exposure of sensitive details.
+
+**Go Idioms**: Fault embraces Go's simplicity and power. By focusing only on essential
 abstractions, it keeps your code clean, maintainable, and in harmony with
-Go’s design principles.
+Go's design principles.
 
 ## Usage
 
@@ -74,14 +107,30 @@ func ProcessOrder(id string) error {
     order, err := db.FindOrder(id)
     if err != nil {
         return fault.Wrap(err,
-            fault.WithTag(DATABASE_ERROR),
-            fault.WithDesc(
-                fmt.Sprintf("failed to find order %s", id),
-                "Order not found",
-            ),
+            fault.Code(DATABASE_ERROR),
+            fault.Internal(fmt.Sprintf("failed to find order %s", id)),
+            fault.Public("Order not found"),
         )
     }
 
     // ... process order ...
+}
+
+func ValidateInput(data string) error {
+    if data == "" {
+        // Only need user-facing message for validation errors
+        return fault.New("validation failed",
+            fault.Public("Input cannot be empty"),
+        )
+    }
+    
+    if err := complexValidation(data); err != nil {
+        // Only need internal debugging for complex operations
+        return fault.Wrap(err,
+            fault.Internal(fmt.Sprintf("validation failed for input: %q", data)),
+        )
+    }
+    
+    return nil
 }
 ```

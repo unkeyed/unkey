@@ -34,18 +34,4 @@ func GetCode(err error) (codes.URN, bool) {
 	return "", false
 }
 
-func WithCode(code codes.URN) Wrapper {
-	return func(err error) error {
-		if err == nil {
-			return nil
-		}
 
-		return &wrapped{
-			err:      err,
-			code:     code,
-			location: "",
-			internal: "",
-			public:   "",
-		}
-	}
-}

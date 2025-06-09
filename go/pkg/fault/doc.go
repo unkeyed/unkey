@@ -1,27 +1,45 @@
-// Package fault provides a comprehensive error handling system designed for
-// building robust applications with rich error context and debugging
-// capabilities. It implements a multi-layered error handling approach with
-// several key features:
+// Package fault provides a clean, concise error handling system designed for
+// building robust applications with rich error context and secure user messaging.
 //
-//   - Dual-message error pattern: Separate internal (debug) and
-//     public (user-facing) error messages.
-//   - Error chain tracking: Capture and preserve complete error context with
-//     source locations.
-//   - Error tagging: Flexible error classification system for consistent error
-//     handling.
-//   - Stack trace preservation: Automatic capture of error locations throughout
-//     the chain.
+// The primary API consists of four essential functions:
+//   - fault.Wrap: Wraps errors while capturing source locations
+//   - fault.Internal: Adds debugging information (not exposed to users)
+//   - fault.Public: Adds user-safe messages (safe for API responses)
+//   - fault.Code: Adds error classification codes
 //
-// It builds upon Go's standard error handling patterns while adding structured
-// context and safety mechanisms.
+// Key features:
+//   - Clean separation between internal debugging and user-facing messages
+//   - Concise, ergonomic API with short function names
+//   - Automatic source location tracking throughout error chains
+//   - Flexible error classification system
+//   - Safe error chain unwrapping and inspection
 //
 // Basic usage:
 //
 //	err := fault.New("database connection failed")
 //	if err != nil {
 //	    return fault.Wrap(err,
-//	        fault.WithTag(DATABASE_ERROR),
-//	        fault.WithDesc("init failed", "Service temporarily unavailable"),
+//	        fault.Code(DATABASE_ERROR),
+//	        fault.Internal("connection timeout after 30s"),
+//	        fault.Public("Service temporarily unavailable"),
 //	    )
 //	}
+//
+// Individual message control:
+//
+//	// Only internal debugging information
+//	fault.Wrap(err, fault.Internal("detailed debug context"))
+//
+//	// Only user-facing message  
+//	fault.Wrap(err, fault.Public("Please try again later"))
+//
+//	// Combine as needed
+//	fault.Wrap(err,
+//	    fault.Internal("connection failed to 192.168.1.1:5432"),
+//	    fault.Public("Database unavailable"),
+//	    fault.Code(DATABASE_ERROR),
+//	)
+//
+// Legacy API: The following functions are deprecated but still available:
+// WithDesc, WithInternalDesc, WithPublicDesc, WithCode
 package fault

@@ -8,6 +8,7 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	cacheMiddleware "github.com/unkeyed/unkey/go/pkg/cache/middleware"
+	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/vault/keyring"
 	"github.com/unkeyed/unkey/go/pkg/vault/storage"
@@ -52,12 +53,13 @@ func New(cfg Config) (*Service, error) {
 		return nil, fmt.Errorf("failed to create keyring: %w", err)
 	}
 
-	cache, err := cache.New[string, *vaultv1.DataEncryptionKey](cache.Config[string, *vaultv1.DataEncryptionKey]{
+	cache, err := cache.New(cache.Config[string, *vaultv1.DataEncryptionKey]{
 		Fresh:    time.Hour,
 		Stale:    24 * time.Hour,
 		MaxSize:  10000,
 		Logger:   cfg.Logger,
 		Resource: "data_encryption_key",
+		Clock:    clock.New(),
 	})
 
 	return &Service{

@@ -34,18 +34,27 @@ func TestWrapSingleWrapper(t *testing.T) {
 		expectedInt    string
 	}{
 		{
-			name:           "with description",
+			name:           "with internal description",
 			err:            errors.New("base error"),
-			wrapper:        WithDesc("internal message", "public message"),
+			wrapper:        Internal("internal message"),
 			expectedErr:    errors.New("base error"),
 			expectedCode:   "",
 			expectedInt:    "internal message",
+			expectedPublic: "",
+		},
+		{
+			name:           "with public description",
+			err:            errors.New("base error"),
+			wrapper:        Public("public message"),
+			expectedErr:    errors.New("base error"),
+			expectedCode:   "",
+			expectedInt:    "",
 			expectedPublic: "public message",
 		},
 		{
-			name:           "with tag",
+			name:           "with code",
 			err:            errors.New("base error"),
-			wrapper:        WithCode(codes.URN("TEST_TAG")),
+			wrapper:        Code(codes.URN("TEST_TAG")),
 			expectedErr:    errors.New("base error"),
 			expectedCode:   codes.URN("TEST_TAG"),
 			expectedPublic: "",
@@ -78,75 +87,158 @@ func TestWrapSingleWrapper(t *testing.T) {
 func TestWrapMultipleWrappers(t *testing.T) {
 	err := New("base error")
 	err = Wrap(err,
-		WithDesc("internal 1", "public 1"),
-		WithCode(codes.URN("TEST_TAG")),
+		Internal("internal 1"),
+		Public("public 1"),
+		Code(codes.URN("TEST_TAG")),
 	)
 	err = Wrap(err,
-		WithDesc("internal 2", "public 2"),
+		Internal("internal 2"),
+		Public("public 2"),
 	)
 
 	// Verify base error is preserved
 	require.Equal(t, "internal 2: internal 1: base error", err.Error())
 }
 
-func TestWithDescNil(t *testing.T) {
-	wrapper := WithDesc("internal", "public")
+func TestInternalNil(t *testing.T) {
+	wrapper := Internal("internal")
 	result := wrapper(nil)
 	require.Nil(t, result)
 }
 
-func TestWithDescBasic(t *testing.T) {
+func TestPublicNil(t *testing.T) {
+	wrapper := Public("public")
+	result := wrapper(nil)
+	require.Nil(t, result)
+}
+
+func TestCodeNil(t *testing.T) {
+	wrapper := Code(codes.URN("TEST"))
+	result := wrapper(nil)
+	require.Nil(t, result)
+}
+
+func TestNewAPIChaining(t *testing.T) {
+	baseErr := errors.New("base error")
+	first := Wrap(baseErr, Internal("internal 1"), Public("public 1"))
+	second := Wrap(first, Internal("internal 2"), Public("public 2"))
+
+	// Test error message includes internal descriptions
+	require.Equal(t, "internal 2: internal 1: base error", second.Error())
+	
+	// Test user facing message includes public descriptions
+	require.Equal(t, "public 2 public 1", UserFacingMessage(second))
+}
+
+func TestBasicWrapperFunctionality(t *testing.T) {
+	baseErr := errors.New("base error")
+	
 	tests := []struct {
-		name        string
-		internal    string
-		public      string
-		baseErr     error
-		expectedInt string
-		expectedPub string
+		name     string
+		wrapper  Wrapper
+		checkErr func(*testing.T, error)
 	}{
 		{
-			name:        "empty descriptions",
-			internal:    "",
-			public:      "",
-			baseErr:     errors.New("base error"),
-			expectedInt: "",
-			expectedPub: "",
+			name:    "Internal wrapper",
+			wrapper: Internal("debug info"),
+			checkErr: func(t *testing.T, err error) {
+				w, ok := err.(*wrapped)
+				require.True(t, ok)
+				require.Equal(t, "debug info", w.internal)
+				require.Equal(t, "", w.public)
+			},
 		},
 		{
-			name:        "normal descriptions",
-			internal:    "internal desc",
-			public:      "public desc",
-			baseErr:     errors.New("base error"),
-			expectedInt: "internal desc",
-			expectedPub: "public desc",
+			name:    "Public wrapper",
+			wrapper: Public("user message"),
+			checkErr: func(t *testing.T, err error) {
+				w, ok := err.(*wrapped)
+				require.True(t, ok)
+				require.Equal(t, "", w.internal)
+				require.Equal(t, "user message", w.public)
+			},
+		},
+		{
+			name:    "Code wrapper",
+			wrapper: Code(codes.URN("TEST_CODE")),
+			checkErr: func(t *testing.T, err error) {
+				w, ok := err.(*wrapped)
+				require.True(t, ok)
+				require.Equal(t, codes.URN("TEST_CODE"), w.code)
+			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := WithDesc(tt.internal, tt.public)(tt.baseErr)
-			wrapped, ok := result.(*wrapped)
-			require.True(t, ok)
-			require.Equal(t, tt.expectedInt, wrapped.internal)
-			require.Equal(t, tt.expectedPub, wrapped.public)
-			require.Equal(t, tt.baseErr.Error(), wrapped.err.Error())
+			result := tt.wrapper(baseErr)
+			tt.checkErr(t, result)
 		})
 	}
 }
 
-func TestWithDescChaining(t *testing.T) {
+func TestComplexErrorChaining(t *testing.T) {
 	baseErr := errors.New("base error")
-	first := WithDesc("internal 1", "public 1")(baseErr)
-	second := WithDesc("internal 2", "public 2")(first)
+	err := Wrap(baseErr,
+		Code(codes.URN("TEST_CODE")),
+		Internal("internal message"),
+		Public("public message"),
+	)
 
-	w1, ok := second.(*wrapped)
-	require.True(t, ok)
-	require.Equal(t, "internal 2", w1.internal)
-	require.Equal(t, "public 2", w1.public)
+	// Test error message includes internal descriptions only
+	expectedError := "internal message: base error"
+	require.Equal(t, expectedError, err.Error())
 
-	w2, ok := w1.err.(*wrapped)
+	// Test user facing message includes public descriptions
+	expectedPublic := "public message"
+	require.Equal(t, expectedPublic, UserFacingMessage(err))
+
+	// Test code is preserved
+	code, ok := GetCode(err)
 	require.True(t, ok)
-	require.Equal(t, "internal 1", w2.internal)
-	require.Equal(t, "public 1", w2.public)
-	require.Equal(t, baseErr.Error(), w2.err.Error())
+	require.Equal(t, codes.URN("TEST_CODE"), code)
 }
+
+func TestSingleWrappedInstance(t *testing.T) {
+	baseErr := errors.New("base error")
+	err := Wrap(baseErr,
+		Code(codes.URN("TEST_CODE")),
+		Internal("internal message"),
+		Public("public message"),
+	)
+
+	// Verify we have only one wrapped instance
+	wrappedErr, ok := err.(*wrapped)
+	require.True(t, ok)
+	
+	// Check that all fields are set on the single instance
+	require.Equal(t, codes.URN("TEST_CODE"), wrappedErr.code)
+	require.Equal(t, "internal message", wrappedErr.internal)
+	require.Equal(t, "public message", wrappedErr.public)
+	require.Equal(t, baseErr, wrappedErr.err)
+	
+	// Verify there's no nested wrapped instances
+	// The underlying error should be the original base error, not another wrapped
+	require.Equal(t, baseErr, wrappedErr.err)
+	
+	// Test multiple messages accumulate properly in single instance
+	multiErr := Wrap(baseErr,
+		Internal("debug 1"),
+		Public("user 1"),
+		Internal("debug 2"),
+		Public("user 2"),
+		Code(codes.URN("MULTI_CODE")),
+	)
+	
+	multiWrapped, ok := multiErr.(*wrapped)
+	require.True(t, ok)
+	
+	// Verify messages are accumulated (newer first)
+	require.Equal(t, "debug 2: debug 1", multiWrapped.internal)
+	require.Equal(t, "user 2 user 1", multiWrapped.public)
+	require.Equal(t, codes.URN("MULTI_CODE"), multiWrapped.code)
+	require.Equal(t, baseErr, multiWrapped.err)
+}
+
+
+
