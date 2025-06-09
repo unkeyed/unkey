@@ -79,7 +79,7 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 
 		// Create a different workspace
 		differentWorkspace := h.CreateWorkspace()
-		
+
 		// Try to delete it using a key from different workspace
 		differentWorkspaceKey := h.CreateRootKey(differentWorkspace.ID, "identity.*.delete_identity")
 		differentHeaders := http.Header{
@@ -124,7 +124,7 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 
 		// Create a different workspace
 		differentWorkspace := h.CreateWorkspace()
-		
+
 		// Try to delete it using external ID with a key from different workspace
 		differentWorkspaceKey := h.CreateRootKey(differentWorkspace.ID, "identity.*.delete_identity")
 		differentHeaders := http.Header{
@@ -195,7 +195,7 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 	t.Run("delete identity with valid ID format but wrong workspace", func(t *testing.T) {
 		// Create a different workspace
 		differentWorkspace := h.CreateWorkspace()
-		
+
 		// Create identity in different workspace
 		identityId := uid.New(uid.IdentityPrefix)
 		err := db.Query.InsertIdentity(t.Context(), h.DB.RW(), db.InsertIdentityParams{

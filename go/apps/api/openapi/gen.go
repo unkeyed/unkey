@@ -207,6 +207,21 @@ type IdentitiesGetIdentityResponseData struct {
 // IdentitiesListIdentitiesResponseData List of identities matching the specified criteria.
 type IdentitiesListIdentitiesResponseData = []Identity
 
+// IdentitiesUpdateIdentityResponseData defines model for IdentitiesUpdateIdentityResponseData.
+type IdentitiesUpdateIdentityResponseData struct {
+	// ExternalId The external identifier for this identity in your system.
+	ExternalId string `json:"externalId"`
+
+	// Id The unique identifier for this identity in Unkey's system (begins with 'id_').
+	Id string `json:"id"`
+
+	// Meta Custom metadata associated with this identity after the update.
+	Meta *map[string]interface{} `json:"meta,omitempty"`
+
+	// Ratelimits Rate limits associated with this identity after the update.
+	Ratelimits *[]Ratelimit `json:"ratelimits,omitempty"`
+}
+
 // Identity defines model for Identity.
 type Identity struct {
 	// ExternalId External identity ID
@@ -1023,6 +1038,36 @@ type V2IdentitiesListIdentitiesResponseBody struct {
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The requestId is particularly important when troubleshooting issues with the Unkey support team.
 	Meta       Meta       `json:"meta"`
 	Pagination Pagination `json:"pagination"`
+}
+
+// V2IdentitiesUpdateIdentityRequestBody defines model for V2IdentitiesUpdateIdentityRequestBody.
+type V2IdentitiesUpdateIdentityRequestBody struct {
+	// ExternalId The external ID of the identity to update. This is the ID from your own system that was used during identity creation. Use either identityId or externalId to specify which identity to update. If both are provided, identityId takes precedence.
+	ExternalId *string `json:"externalId,omitempty"`
+
+	// IdentityId The Unkey Identity ID (begins with 'id_'). Use either identityId or externalId to specify which identity to update. If both are provided, identityId takes precedence.
+	IdentityId *string `json:"identityId,omitempty"`
+
+	// Meta Custom metadata to associate with this identity. This can include any JSON-serializable data you want to store with the identity. Set to an empty object {} to clear existing metadata.
+	Meta *map[string]interface{} `json:"meta,omitempty"`
+
+	// Ratelimits Array of ratelimits to apply to this identity. These limits are shared across all API keys associated with this identity. Providing this array will completely replace any existing ratelimits. Set to an empty array [] to remove all ratelimits.
+	Ratelimits *[]Ratelimit `json:"ratelimits,omitempty"`
+	union      json.RawMessage
+}
+
+// V2IdentitiesUpdateIdentityRequestBody0 defines model for .
+type V2IdentitiesUpdateIdentityRequestBody0 = interface{}
+
+// V2IdentitiesUpdateIdentityRequestBody1 defines model for .
+type V2IdentitiesUpdateIdentityRequestBody1 = interface{}
+
+// V2IdentitiesUpdateIdentityResponseBody defines model for V2IdentitiesUpdateIdentityResponseBody.
+type V2IdentitiesUpdateIdentityResponseBody struct {
+	Data IdentitiesUpdateIdentityResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The requestId is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
 }
 
 // V2KeysAddPermissionsRequestBody defines model for V2KeysAddPermissionsRequestBody.
@@ -2080,6 +2125,9 @@ type IdentitiesGetIdentityJSONRequestBody = V2IdentitiesGetIdentityRequestBody
 // IdentitiesListIdentitiesJSONRequestBody defines body for IdentitiesListIdentities for application/json ContentType.
 type IdentitiesListIdentitiesJSONRequestBody = V2IdentitiesListIdentitiesRequestBody
 
+// V2IdentitiesUpdateIdentityJSONRequestBody defines body for V2IdentitiesUpdateIdentity for application/json ContentType.
+type V2IdentitiesUpdateIdentityJSONRequestBody = V2IdentitiesUpdateIdentityRequestBody
+
 // AddPermissionsJSONRequestBody defines body for AddPermissions for application/json ContentType.
 type AddPermissionsJSONRequestBody = V2KeysAddPermissionsRequestBody
 
@@ -2363,6 +2411,144 @@ func (t *V2IdentitiesGetIdentityRequestBody) UnmarshalJSON(b []byte) error {
 		err = json.Unmarshal(raw, &t.IdentityId)
 		if err != nil {
 			return fmt.Errorf("error reading 'identityId': %w", err)
+		}
+	}
+
+	return err
+}
+
+// AsV2IdentitiesUpdateIdentityRequestBody0 returns the union data inside the V2IdentitiesUpdateIdentityRequestBody as a V2IdentitiesUpdateIdentityRequestBody0
+func (t V2IdentitiesUpdateIdentityRequestBody) AsV2IdentitiesUpdateIdentityRequestBody0() (V2IdentitiesUpdateIdentityRequestBody0, error) {
+	var body V2IdentitiesUpdateIdentityRequestBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2IdentitiesUpdateIdentityRequestBody0 overwrites any union data inside the V2IdentitiesUpdateIdentityRequestBody as the provided V2IdentitiesUpdateIdentityRequestBody0
+func (t *V2IdentitiesUpdateIdentityRequestBody) FromV2IdentitiesUpdateIdentityRequestBody0(v V2IdentitiesUpdateIdentityRequestBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2IdentitiesUpdateIdentityRequestBody0 performs a merge with any union data inside the V2IdentitiesUpdateIdentityRequestBody, using the provided V2IdentitiesUpdateIdentityRequestBody0
+func (t *V2IdentitiesUpdateIdentityRequestBody) MergeV2IdentitiesUpdateIdentityRequestBody0(v V2IdentitiesUpdateIdentityRequestBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsV2IdentitiesUpdateIdentityRequestBody1 returns the union data inside the V2IdentitiesUpdateIdentityRequestBody as a V2IdentitiesUpdateIdentityRequestBody1
+func (t V2IdentitiesUpdateIdentityRequestBody) AsV2IdentitiesUpdateIdentityRequestBody1() (V2IdentitiesUpdateIdentityRequestBody1, error) {
+	var body V2IdentitiesUpdateIdentityRequestBody1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2IdentitiesUpdateIdentityRequestBody1 overwrites any union data inside the V2IdentitiesUpdateIdentityRequestBody as the provided V2IdentitiesUpdateIdentityRequestBody1
+func (t *V2IdentitiesUpdateIdentityRequestBody) FromV2IdentitiesUpdateIdentityRequestBody1(v V2IdentitiesUpdateIdentityRequestBody1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2IdentitiesUpdateIdentityRequestBody1 performs a merge with any union data inside the V2IdentitiesUpdateIdentityRequestBody, using the provided V2IdentitiesUpdateIdentityRequestBody1
+func (t *V2IdentitiesUpdateIdentityRequestBody) MergeV2IdentitiesUpdateIdentityRequestBody1(v V2IdentitiesUpdateIdentityRequestBody1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t V2IdentitiesUpdateIdentityRequestBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if t.ExternalId != nil {
+		object["externalId"], err = json.Marshal(t.ExternalId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'externalId': %w", err)
+		}
+	}
+
+	if t.IdentityId != nil {
+		object["identityId"], err = json.Marshal(t.IdentityId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'identityId': %w", err)
+		}
+	}
+
+	if t.Meta != nil {
+		object["meta"], err = json.Marshal(t.Meta)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'meta': %w", err)
+		}
+	}
+
+	if t.Ratelimits != nil {
+		object["ratelimits"], err = json.Marshal(t.Ratelimits)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'ratelimits': %w", err)
+		}
+	}
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *V2IdentitiesUpdateIdentityRequestBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["externalId"]; found {
+		err = json.Unmarshal(raw, &t.ExternalId)
+		if err != nil {
+			return fmt.Errorf("error reading 'externalId': %w", err)
+		}
+	}
+
+	if raw, found := object["identityId"]; found {
+		err = json.Unmarshal(raw, &t.IdentityId)
+		if err != nil {
+			return fmt.Errorf("error reading 'identityId': %w", err)
+		}
+	}
+
+	if raw, found := object["meta"]; found {
+		err = json.Unmarshal(raw, &t.Meta)
+		if err != nil {
+			return fmt.Errorf("error reading 'meta': %w", err)
+		}
+	}
+
+	if raw, found := object["ratelimits"]; found {
+		err = json.Unmarshal(raw, &t.Ratelimits)
+		if err != nil {
+			return fmt.Errorf("error reading 'ratelimits': %w", err)
 		}
 	}
 

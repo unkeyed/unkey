@@ -35,6 +35,10 @@ type Querier interface {
 	//  DELETE FROM permissions
 	//  WHERE id = ?
 	DeletePermission(ctx context.Context, db DBTX, permissionID string) error
+	//DeleteRatelimit
+	//
+	//  DELETE FROM `ratelimits` WHERE id = ?
+	DeleteRatelimit(ctx context.Context, db DBTX, id string) error
 	//DeleteRatelimitNamespace
 	//
 	//  UPDATE `ratelimit_namespaces`
@@ -677,6 +681,26 @@ type Querier interface {
 	//  SET delete_protection = ?
 	//  WHERE id = ?
 	UpdateApiDeleteProtection(ctx context.Context, db DBTX, arg UpdateApiDeleteProtectionParams) error
+	//UpdateIdentity
+	//
+	//  UPDATE `identities`
+	//  SET
+	//      meta = ?,
+	//      updated_at = NOW()
+	//  WHERE
+	//      id = ?
+	UpdateIdentity(ctx context.Context, db DBTX, arg UpdateIdentityParams) error
+	//UpdateRatelimit
+	//
+	//  UPDATE `ratelimits`
+	//  SET
+	//      name = ?,
+	//      `limit` = ?,
+	//      duration = ?,
+	//      updated_at = NOW()
+	//  WHERE
+	//      id = ?
+	UpdateRatelimit(ctx context.Context, db DBTX, arg UpdateRatelimitParams) error
 	//UpdateRatelimitOverride
 	//
 	//  UPDATE `ratelimit_overrides`

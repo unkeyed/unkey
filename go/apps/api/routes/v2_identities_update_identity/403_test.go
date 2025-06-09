@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -17,67 +18,123 @@ import (
 func TestForbidden(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := handler.New(handler.Services{
-		Logger:      h.Logger(),
-		DB:          h.Database(),
-		Keys:        h.Keys(),
-		Permissions: h.Permissions(),
-		Auditlogs:   h.Auditlogs(),
+		Logger:      h.Logger,
+		DB:          h.DB,
+		Keys:        h.Keys,
+		Permissions: h.Permissions,
+		Auditlogs:   h.Auditlogs,
 	})
 
-	rootKeyID := h.CreateRootKey()
-	headers := testutil.RootKeyAuth(rootKeyID)
-
-	// Create test identity
-	ctx := context.Background()
-	tx, err := h.Database().RW().Begin(ctx)
-	require.NoError(t, err)
-	defer tx.Rollback()
-
-	workspaceID := h.DefaultWorkspaceID()
-	identityID := uid.New(uid.IdentityPrefix)
-	externalID := "test_user_403"
-
-	// Insert test identity
-	err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
-		ID:          identityID,
-		ExternalID:  externalID,
-		WorkspaceID: workspaceID,
-		Environment: "default",
-		CreatedAt:   time.Now().UnixMilli(),
-	})
-	require.NoError(t, err)
-
-	err = tx.Commit()
-	require.NoError(t, err)
+	h.Register(route)
 
 	t.Run("no permission to update identity", func(t *testing.T) {
-		// Ensure no permissions are set
-		h.SetupPermissions(t, rootKeyID, workspaceID, "identity.*.update_identity", false)
+		// Create root key without permissions
+		rootKeyID := h.CreateRootKey(h.Resources().UserWorkspace.ID)
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
+		}
 
+		identityID := uid.New(uid.IdentityPrefix)
+		meta := map[string]interface{}{
+			"test": "value",
+		}
 		req := handler.Request{
-			identityID: &identityID,
-			meta: map[string]interface{}{
-				"test": "value",
-			},
+			IdentityId: &identityID,
+			Meta:       &meta,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/auth/authorization/insufficient_permissions", res.Body.Error.Type)
-		require.Equal(t, res.Body.Error.Detail, "insufficient permission")
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Contains(t, res.Body.Error.Detail, "permission")
+	})
+
+	t.Run("wrong permission type", func(t *testing.T) {
+		// Create root key with wrong permission
+		rootKeyID := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.create_identity")
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
+		}
+
+		identityID := uid.New(uid.IdentityPrefix)
+		meta := map[string]interface{}{
+			"test": "value",
+		}
+		req := handler.Request{
+			IdentityId: &identityID,
+			Meta:       &meta,
+		}
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusForbidden, res.Status)
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Contains(t, res.Body.Error.Detail, "permission")
 	})
 
 	t.Run("with permission to update identity", func(t *testing.T) {
-		// Set permission
-		h.SetupPermissions(t, rootKeyID, workspaceID, "identity.*.update_identity", true)
+		// Create test identity first
+		ctx := context.Background()
+		tx, err := h.DB.RW().Begin(ctx)
+		require.NoError(t, err)
+		defer tx.Rollback()
 
+		workspaceID := h.Resources().UserWorkspace.ID
+		identityID := uid.New(uid.IdentityPrefix)
+		externalID := "test_user_403"
+
+		// Insert test identity
+		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
+			ID:          identityID,
+			ExternalID:  externalID,
+			WorkspaceID: workspaceID,
+			Environment: "default",
+			CreatedAt:   time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+		err = tx.Commit()
+		require.NoError(t, err)
+
+		// Create root key with correct permission
+		rootKeyID := h.CreateRootKey(workspaceID, "identity.*.update_identity")
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
+		}
+
+		meta := map[string]interface{}{
+			"test": "value",
+		}
 		req := handler.Request{
-			identityID: &identityID,
-			meta: map[string]interface{}{
-				"test": "value",
-			},
+			IdentityId: &identityID,
+			Meta:       &meta,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, got: %d, response: %s", res.Status, res.RawBody)
-		require.Equal(t, identityID, res.Body.Data.ID)
+		require.Equal(t, identityID, res.Body.Data.Id)
+	})
+
+	t.Run("specific identity permission for wrong identity", func(t *testing.T) {
+		// Create a different identity ID
+		differentIdentityId := uid.New(uid.IdentityPrefix)
+
+		// Create root key with permission for the different identity
+		rootKeyID := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("identity.%s.update_identity", differentIdentityId))
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
+		}
+
+		identityID := uid.New(uid.IdentityPrefix)
+		meta := map[string]interface{}{
+			"test": "value",
+		}
+		req := handler.Request{
+			IdentityId: &identityID,
+			Meta:       &meta,
+		}
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusForbidden, res.Status)
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Contains(t, res.Body.Error.Detail, "permission")
 	})
 }

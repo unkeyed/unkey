@@ -23,34 +23,8 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request struct {
-	// The id of the identity to update, use either `identityID` or `externalID`,
-	// if both are provided, `identityID` takes precedence.
-	identityID *string `json:"identityId,omitempty"`
-
-	// The externalId of the identity to update, use either `identityID` or `externalID`,
-	// if both are provided, `identityID` takes precedence.
-	externalID *string `json:"externalId,omitempty"`
-
-	// Filter by environment. Default is "default".
-	environment *string `json:"environment,omitempty"`
-
-	// Metadata to attach to the identity
-	meta map[string]interface{} `json:"meta,omitempty"`
-
-	// Ratelimits to attach to the identity
-	ratelimits *[]openapi.Ratelimit `json:"ratelimits,omitempty"`
-}
-
-type Response struct {
-	Meta openapi.Meta `json:"meta"`
-	Data struct {
-		ID         string                 `json:"id"`
-		ExternalID string                 `json:"externalId"`
-		Meta       map[string]interface{} `json:"meta"`
-		Ratelimits []openapi.Ratelimit    `json:"ratelimits"`
-	} `json:"data"`
-}
+type Request = openapi.V2IdentitiesUpdateIdentityRequestBody
+type Response = openapi.V2IdentitiesUpdateIdentityResponseBody
 
 type Services struct {
 	Logger      logging.Logger
@@ -82,20 +56,19 @@ func New(svc Services) zen.Route {
 		}
 
 		// Validate that at least one of identityID or externalID is provided
-		if req.identityID == nil && req.externalID == nil {
+		if req.IdentityId == nil && req.ExternalId == nil {
 			return fault.New("missing required field",
 				fault.Code(codes.App.Validation.InvalidInput.URN()),
 				fault.Internal("missing required field"), fault.Public("Provide either identityId or externalId"),
 			)
 		}
 
-		// Set default environment if not provided
-		environment := "default"
-		if req.environment != nil && *req.environment != "" {
-			environment = *req.environment
+		// Check permissions
+		var identityIdForPermissions string
+		if req.IdentityId != nil {
+			identityIdForPermissions = *req.IdentityId
 		}
 
-		// Check permissions
 		err = svc.Permissions.Check(
 			ctx,
 			auth.KeyID,
@@ -107,7 +80,7 @@ func New(svc Services) zen.Route {
 				}),
 				rbac.T(rbac.Tuple{
 					ResourceType: rbac.Identity,
-					ResourceID:   req.IdentityId,
+					ResourceID:   identityIdForPermissions,
 					Action:       rbac.UpdateIdentity,
 				}),
 			),
@@ -117,12 +90,12 @@ func New(svc Services) zen.Route {
 		}
 
 		// Check ratelimits for unique names
-		if req.ratelimits != nil {
+		if req.Ratelimits != nil {
 			nameSet := make(map[string]bool)
-			for _, ratelimit := range *req.ratelimits {
+			for _, ratelimit := range *req.Ratelimits {
 				if _, exists := nameSet[ratelimit.Name]; exists {
 					return fault.New("duplicate ratelimit name",
-						fault.Code(codes.Data.Ratelimit.Duplicate.URN()),
+						fault.Code(codes.App.Validation.InvalidInput.URN()),
 						fault.Internal("duplicate ratelimit name"), fault.Public(fmt.Sprintf("Ratelimit with name \"%s\" is already defined in the request", ratelimit.Name)),
 					)
 				}
@@ -132,9 +105,9 @@ func New(svc Services) zen.Route {
 
 		// Check metadata size
 		var metaBytes []byte
-		if req.meta != nil {
+		if req.Meta != nil {
 			var metaErr error
-			metaBytes, metaErr = json.Marshal(req.meta)
+			metaBytes, metaErr = json.Marshal(*req.Meta)
 			if metaErr != nil {
 				return fault.Wrap(metaErr,
 					fault.Code(codes.App.Validation.InvalidInput.URN()),
@@ -169,20 +142,19 @@ func New(svc Services) zen.Route {
 		// Get the identity
 		var identity db.Identity
 		var existingRatelimits []db.Ratelimit
-		var associatedKeyIDs []string
 
-		if req.identityID != nil {
+		if req.IdentityId != nil {
 			// Find by identity ID
-			identity, err = db.Query.GetIdentityByID(ctx, tx, db.GetIdentityByIDParams{
-				ID:          *req.identityID,
-				WorkspaceID: auth.AuthorizedWorkspaceID,
+			identity, err = db.Query.FindIdentityByID(ctx, tx, db.FindIdentityByIDParams{
+				ID:      *req.IdentityId,
+				Deleted: false,
 			})
 		} else {
-			// Find by external ID and environment
-			identity, err = db.Query.GetIdentityByExternalID(ctx, tx, db.GetIdentityByExternalIDParams{
-				ExternalID:  *req.externalID,
+			// Find by external ID
+			identity, err = db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
+				ExternalID:  *req.ExternalId,
 				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Environment: environment,
+				Deleted:     false,
 			})
 		}
 
@@ -190,7 +162,7 @@ func New(svc Services) zen.Route {
 			if errors.Is(err, sql.ErrNoRows) {
 				return fault.New("identity not found",
 					fault.Code(codes.Data.Identity.NotFound.URN()),
-					fault.Internal("identity not found"), fault.Public(fmt.Sprintf("Identity not found in this workspace")),
+					fault.Internal("identity not found"), fault.Public("Identity not found in this workspace"),
 				)
 			}
 			return fault.Wrap(err,
@@ -198,19 +170,19 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		// Get existing ratelimits
-		existingRatelimits, err = db.Query.GetRatelimitsByIdentityID(ctx, tx, identity.ID)
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return fault.Wrap(err,
-				fault.Internal("unable to fetch ratelimits"), fault.Public("We're unable to retrieve the identity's ratelimits."),
+		// Verify workspace
+		if identity.WorkspaceID != auth.AuthorizedWorkspaceID {
+			return fault.New("identity not found",
+				fault.Code(codes.Data.Identity.NotFound.URN()),
+				fault.Internal("wrong workspace, masking as 404"), fault.Public("Identity not found in this workspace"),
 			)
 		}
 
-		// Get associated key IDs
-		associatedKeyIDs, err = db.Query.GetActiveKeyIDsByIdentityID(ctx, tx, identity.ID)
+		// Get existing ratelimits
+		existingRatelimits, err = db.Query.FindRatelimitsByIdentityID(ctx, tx, sql.NullString{String: identity.ID, Valid: true})
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return fault.Wrap(err,
-				fault.Internal("unable to fetch associated keys"), fault.Public("We're unable to retrieve the keys associated with this identity."),
+				fault.Internal("unable to fetch ratelimits"), fault.Public("We're unable to retrieve the identity's ratelimits."),
 			)
 		}
 
@@ -238,8 +210,8 @@ func New(svc Services) zen.Route {
 		}
 
 		// Update metadata if provided
-		if req.meta != nil {
-			err = db.Query.UpdateIdentityMeta(ctx, tx, db.UpdateIdentityMetaParams{
+		if req.Meta != nil {
+			err = db.Query.UpdateIdentity(ctx, tx, db.UpdateIdentityParams{
 				ID:   identity.ID,
 				Meta: metaBytes,
 			})
@@ -251,7 +223,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// Handle ratelimits if provided
-		if req.ratelimits != nil {
+		if req.Ratelimits != nil {
 			// Process ratelimits changes
 			// 1. Delete ratelimits that no longer exist
 			// 2. Update existing ratelimits
@@ -264,8 +236,8 @@ func New(svc Services) zen.Route {
 			}
 
 			newRatelimitMap := make(map[string]openapi.Ratelimit)
-			if req.ratelimits != nil {
-				for _, rl := range *req.ratelimits {
+			if req.Ratelimits != nil {
+				for _, rl := range *req.Ratelimits {
 					newRatelimitMap[rl.Name] = rl
 				}
 			}
@@ -419,9 +391,9 @@ func New(svc Services) zen.Route {
 		}
 
 		// Get updated identity with ratelimits
-		updatedIdentity, err := db.Query.GetIdentityByID(ctx, svc.DB.RO(), db.GetIdentityByIDParams{
-			ID:          identity.ID,
-			WorkspaceID: auth.AuthorizedWorkspaceID,
+		updatedIdentity, err := db.Query.FindIdentityByID(ctx, svc.DB.RO(), db.FindIdentityByIDParams{
+			ID:      identity.ID,
+			Deleted: false,
 		})
 		if err != nil {
 			return fault.Wrap(err,
@@ -429,7 +401,7 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		updatedRatelimits, err := db.Query.GetRatelimitsByIdentityID(ctx, svc.DB.RO(), identity.ID)
+		updatedRatelimits, err := db.Query.FindRatelimitsByIdentityID(ctx, svc.DB.RO(), sql.NullString{String: identity.ID, Valid: true})
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return fault.Wrap(err,
 				fault.Internal("unable to fetch updated ratelimits"), fault.Public("We were able to update the identity but unable to retrieve the updated ratelimits."),
@@ -441,20 +413,22 @@ func New(svc Services) zen.Route {
 		for _, r := range updatedRatelimits {
 			responseRatelimits = append(responseRatelimits, openapi.Ratelimit{
 				Name:     r.Name,
-				Limit:    int(r.Limit),
+				Limit:    int64(r.Limit),
 				Duration: r.Duration,
 			})
 		}
 
 		// Parse metadata
-		responseMeta := make(map[string]interface{})
+		var responseMeta *map[string]interface{}
 		if updatedIdentity.Meta != nil && len(updatedIdentity.Meta) > 0 {
-			err = json.Unmarshal(updatedIdentity.Meta, &responseMeta)
+			metaMap := make(map[string]interface{})
+			err = json.Unmarshal(updatedIdentity.Meta, &metaMap)
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Internal("unable to unmarshal metadata"), fault.Public("We're unable to parse the identity's metadata."),
 				)
 			}
+			responseMeta = &metaMap
 		}
 
 		// Build response
@@ -462,11 +436,13 @@ func New(svc Services) zen.Route {
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
 			},
+			Data: openapi.IdentitiesUpdateIdentityResponseData{
+				Id:         updatedIdentity.ID,
+				ExternalId: updatedIdentity.ExternalID,
+				Meta:       responseMeta,
+				Ratelimits: &responseRatelimits,
+			},
 		}
-		response.Data.ID = updatedIdentity.ID
-		response.Data.ExternalID = updatedIdentity.ExternalID
-		response.Data.Meta = responseMeta
-		response.Data.Ratelimits = responseRatelimits
 
 		return s.JSON(http.StatusOK, response)
 	})

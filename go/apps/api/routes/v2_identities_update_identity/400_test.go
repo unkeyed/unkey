@@ -1,6 +1,8 @@
 package handler_test
 
 import (
+	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -13,31 +15,34 @@ import (
 func TestBadRequests(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := handler.New(handler.Services{
-		Logger:      h.Logger(),
-		DB:          h.Database(),
-		Keys:        h.Keys(),
-		Permissions: h.Permissions(),
-		Auditlogs:   h.Auditlogs(),
+		Logger:      h.Logger,
+		DB:          h.DB,
+		Keys:        h.Keys,
+		Permissions: h.Permissions,
+		Auditlogs:   h.Auditlogs,
 	})
 
-	rootKeyID := h.CreateRootKey()
-	headers := testutil.RootKeyAuth(rootKeyID)
+	h.Register(route)
 
-	// Set up permissions
-	h.SetupPermissions(t, rootKeyID, h.DefaultWorkspaceID(), "identity.*.update_identity", true)
+	rootKeyID := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.update_identity")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
+	}
 
 	t.Run("missing both identityId and externalId", func(t *testing.T) {
+		meta := map[string]interface{}{
+			"test": "value",
+		}
 		req := handler.Request{
-			meta: map[string]interface{}{
-				"test": "value",
-			},
+			Meta: &meta,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
 		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "missing required field", res.Body.Error.Detail)
+		require.Equal(t, "POST request body for '/v2/identities.updateIdentity' failed to validate schema", res.Body.Error.Detail)
 		require.Equal(t, 400, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
@@ -45,11 +50,12 @@ func TestBadRequests(t *testing.T) {
 
 	t.Run("empty identityId", func(t *testing.T) {
 		emptyStr := ""
+		meta := map[string]interface{}{
+			"test": "value",
+		}
 		req := handler.Request{
-			identityID: &emptyStr,
-			meta: map[string]interface{}{
-				"test": "value",
-			},
+			IdentityId: &emptyStr,
+			Meta:       &meta,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
@@ -64,11 +70,12 @@ func TestBadRequests(t *testing.T) {
 
 	t.Run("empty externalId", func(t *testing.T) {
 		emptyStr := ""
+		meta := map[string]interface{}{
+			"test": "value",
+		}
 		req := handler.Request{
-			externalID: &emptyStr,
-			meta: map[string]interface{}{
-				"test": "value",
-			},
+			ExternalId: &emptyStr,
+			Meta:       &meta,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
@@ -97,14 +104,13 @@ func TestBadRequests(t *testing.T) {
 		}
 
 		req := handler.Request{
-			identityID: &identityID,
-			ratelimits: &ratelimits,
+			IdentityId: &identityID,
+			Ratelimits: &ratelimits,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/ratelimit/duplicate", res.Body.Error.Type)
-		require.Equal(t, res.Body.Error.Detail, "duplicate ratelimit name")
-		require.Equal(t, res.Body.Error.Detail, "api_calls")
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Contains(t, res.Body.Error.Detail, "api_calls")
 	})
 
 	t.Run("metadata too large", func(t *testing.T) {
@@ -117,12 +123,12 @@ func TestBadRequests(t *testing.T) {
 		}
 
 		req := handler.Request{
-			identityID: &identityID,
-			meta:       largeMeta,
+			IdentityId: &identityID,
+			Meta:       &largeMeta,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, res.Body.Error.Detail, "metadata is too large")
+		require.Contains(t, res.Body.Error.Detail, "Metadata is too large")
 	})
 }

@@ -502,15 +502,12 @@
         ],
         "properties": {
           "meta": {
-            "$ref": "#/components/schemas/Meta",
-            "description": "Metadata about the API response, including a unique request ID that should be included in any support inquiries related to this verification."
+            "$ref": "#/components/schemas/Meta"
           },
           "data": {
-            "$ref": "#/components/schemas/KeysVerifyKeyResponseData",
-            "description": "The verification result containing all information about the key's validity, permissions, rate limits, and associated metadata."
+            "$ref": "#/components/schemas/KeysVerifyKeyResponseData"
           }
-        },
-        "description": "The standard response format for key verification, containing both request metadata and the verification result. Even when verification fails (invalid key, rate limited, etc.), the response uses this format with a 200 status code - examine data.valid to determine the outcome."
+        }
       },
       "V2KeysAddPermissionsRequestBody": {
         "type": "object",
@@ -3257,18 +3254,115 @@
           "code"
         ]
       },
-      "V2KeysVerifyKeyResponseBody": {
+      "V2IdentitiesUpdateIdentityRequestBody": {
+        "type": "object",
+        "properties": {
+          "identityId": {
+            "type": "string",
+            "minLength": 3,
+            "description": "The Unkey Identity ID (begins with 'id_'). Use either identityId or externalId to specify which identity to update. If both are provided, identityId takes precedence.",
+            "example": "id_01H9TQPP77V5E48E9SH0BG0ZQX"
+          },
+          "externalId": {
+            "type": "string",
+            "minLength": 3,
+            "description": "The external ID of the identity to update. This is the ID from your own system that was used during identity creation. Use either identityId or externalId to specify which identity to update. If both are provided, identityId takes precedence.",
+            "example": "user_abc123"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Custom metadata to associate with this identity. This can include any JSON-serializable data you want to store with the identity. Set to an empty object {} to clear existing metadata.",
+            "example": {
+              "name": "Alice Smith",
+              "email": "alice@example.com",
+              "plan": "premium"
+            }
+          },
+          "ratelimits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ratelimit"
+            },
+            "description": "Array of ratelimits to apply to this identity. These limits are shared across all API keys associated with this identity. Providing this array will completely replace any existing ratelimits. Set to an empty array [] to remove all ratelimits.",
+            "example": [
+              {
+                "name": "requests",
+                "limit": 1000,
+                "duration": 3600000
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "identityId"
+            ]
+          },
+          {
+            "required": [
+              "externalId"
+            ]
+          }
+        ]
+      },
+      "IdentitiesUpdateIdentityResponseData": {
         "type": "object",
         "required": [
-          "meta",
-          "data"
+          "id",
+          "externalId"
         ],
         "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier for this identity in Unkey's system (begins with 'id_').",
+            "example": "id_01H9TQPP77V5E48E9SH0BG0ZQX"
+          },
+          "externalId": {
+            "type": "string",
+            "description": "The external identifier for this identity in your system.",
+            "example": "user_abc123"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Custom metadata associated with this identity after the update.",
+            "example": {
+              "name": "Alice Smith",
+              "email": "alice@example.com",
+              "plan": "premium"
+            }
+          },
+          "ratelimits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ratelimit"
+            },
+            "description": "Rate limits associated with this identity after the update.",
+            "example": [
+              {
+                "name": "requests",
+                "limit": 1000,
+                "duration": 3600000
+              }
+            ]
+          }
+        }
+      },
+      "V2IdentitiesUpdateIdentityResponseBody": {
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/IdentitiesUpdateIdentityResponseData"
+          },
           "meta": {
             "$ref": "#/components/schemas/Meta"
-          },
-          "data": {
-            "$ref": "#/components/schemas/KeysVerifyKeyResponseData"
           }
         }
       }
@@ -8089,6 +8183,107 @@
               }
             },
             "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/v2/identities.updateIdentity": {
+      "post": {
+        "tags": [
+          "identities"
+        ],
+        "summary": "Update an existing identity",
+        "description": "Updates an existing identity's metadata and rate limits. This endpoint allows you to modify the metadata and rate limits associated with an identity.",
+        "operationId": "v2.identities.updateIdentity",
+        "x-speakeasy-name-override": "updateIdentity",
+        "security": [
+          {
+            "rootKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2IdentitiesUpdateIdentityRequestBody"
+              },
+              "examples": {
+                "updateMetadata": {
+                  "summary": "Update identity metadata only",
+                  "value": {
+                    "identityId": "id_01H9TQPP77V5E48E9SH0BG0ZQX",
+                    "meta": {
+                      "name": "Alice Smith",
+                      "email": "alice.updated@example.com",
+                      "plan": "enterprise"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2IdentitiesUpdateIdentityResponseBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            },
+            "description": "Error"
           }
         }
       }

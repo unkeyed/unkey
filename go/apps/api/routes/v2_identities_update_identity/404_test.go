@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -15,31 +16,34 @@ import (
 func TestNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := handler.New(handler.Services{
-		Logger:      h.Logger(),
-		DB:          h.Database(),
-		Keys:        h.Keys(),
-		Permissions: h.Permissions(),
-		Auditlogs:   h.Auditlogs(),
+		Logger:      h.Logger,
+		DB:          h.DB,
+		Keys:        h.Keys,
+		Permissions: h.Permissions,
+		Auditlogs:   h.Auditlogs,
 	})
 
-	rootKeyID := h.CreateRootKey()
-	headers := testutil.RootKeyAuth(rootKeyID)
+	h.Register(route)
 
-	// Setup permissions to allow updating any identity
-	h.SetupPermissions(t, rootKeyID, h.DefaultWorkspaceID(), "identity.*.update_identity", true)
+	rootKeyID := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.update_identity")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
+	}
 
 	t.Run("identity ID does not exist", func(t *testing.T) {
 		nonExistentID := uid.New(uid.IdentityPrefix)
+		meta := map[string]interface{}{
+			"test": "value",
+		}
 		req := handler.Request{
-			identityID: &nonExistentID,
-			meta: map[string]interface{}{
-				"test": "value",
-			},
+			IdentityId: &nonExistentID,
+			Meta:       &meta,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, got: %d", res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/identity/not_found", res.Body.Error.Type)
-		require.Equal(t, res.Body.Error.Detail, "not found")
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/identity_not_found", res.Body.Error.Type)
+		require.Equal(t, "Identity not found in this workspace", res.Body.Error.Detail)
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
@@ -47,16 +51,36 @@ func TestNotFound(t *testing.T) {
 
 	t.Run("external ID does not exist", func(t *testing.T) {
 		nonExistentExternalID := "non_existent_external_id"
+		meta := map[string]interface{}{
+			"test": "value",
+		}
 		req := handler.Request{
-			externalID: &nonExistentExternalID,
-			meta: map[string]interface{}{
-				"test": "value",
-			},
+			ExternalId: &nonExistentExternalID,
+			Meta:       &meta,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, got: %d", res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/identity/not_found", res.Body.Error.Type)
-		require.Equal(t, res.Body.Error.Detail, "not found")
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/identity_not_found", res.Body.Error.Type)
+		require.Equal(t, "Identity not found in this workspace", res.Body.Error.Detail)
+		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
+		require.Equal(t, "Not Found", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+	})
+
+	t.Run("identity from different workspace", func(t *testing.T) {
+		// Try to access an identity ID that might exist in different workspace
+		differentWorkspaceIdentityId := uid.New(uid.IdentityPrefix)
+		meta := map[string]interface{}{
+			"test": "value",
+		}
+		req := handler.Request{
+			IdentityId: &differentWorkspaceIdentityId,
+			Meta:       &meta,
+		}
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, got: %d", res.Status)
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/identity_not_found", res.Body.Error.Type)
+		require.Equal(t, "Identity not found in this workspace", res.Body.Error.Detail)
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)

@@ -165,9 +165,9 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 	})
 
 	t.Run("multiple permissions but none matching", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, 
-			"key.*.delete_key", 
-			"api.*.delete_api", 
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
+			"key.*.delete_key",
+			"api.*.delete_api",
 			"workspace.*.read_workspace") // Multiple permissions but none for identity deletion
 		headers := http.Header{
 			"Content-Type":  {"application/json"},

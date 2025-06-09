@@ -143,7 +143,7 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 	t.Run("key from wrong workspace", func(t *testing.T) {
 		// Create a different workspace
 		differentWorkspace := h.CreateWorkspace()
-		
+
 		// Create a root key for different workspace
 		differentWorkspaceKey := h.CreateRootKey(differentWorkspace.ID, "identity.*.delete_identity")
 		headers := http.Header{
