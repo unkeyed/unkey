@@ -15,10 +15,12 @@ INSERT INTO permissions (
   id,
   workspace_id,
   name,
+  slug,
   description,
   created_at_m
 )
 VALUES (
+  ?,
   ?,
   ?,
   ?,
@@ -31,6 +33,7 @@ type InsertPermissionParams struct {
 	PermissionID string         `db:"permission_id"`
 	WorkspaceID  string         `db:"workspace_id"`
 	Name         string         `db:"name"`
+	Slug         string         `db:"slug"`
 	Description  sql.NullString `db:"description"`
 	CreatedAtM   int64          `db:"created_at_m"`
 }
@@ -41,10 +44,12 @@ type InsertPermissionParams struct {
 //	  id,
 //	  workspace_id,
 //	  name,
+//	  slug,
 //	  description,
 //	  created_at_m
 //	)
 //	VALUES (
+//	  ?,
 //	  ?,
 //	  ?,
 //	  ?,
@@ -56,6 +61,7 @@ func (q *Queries) InsertPermission(ctx context.Context, db DBTX, arg InsertPermi
 		arg.PermissionID,
 		arg.WorkspaceID,
 		arg.Name,
+		arg.Slug,
 		arg.Description,
 		arg.CreatedAtM,
 	)

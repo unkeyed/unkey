@@ -170,7 +170,7 @@ func New(svc Services) zen.Route {
 		// If user requested decryption, check permissions and decrypt
 		plaintextMap := make(map[string]string)
 		if req.Decrypt != nil && *req.Decrypt {
-			decryptPermission, err := svc.Permissions.Check(
+			err := svc.Permissions.Check(
 				ctx,
 				auth.KeyID,
 				rbac.Or(
@@ -181,24 +181,16 @@ func New(svc Services) zen.Route {
 					}),
 					rbac.T(rbac.Tuple{
 						ResourceType: rbac.Api,
-						ResourceID:   req.ApiId,
+						ResourceID:   api.ID,
 						Action:       rbac.DecryptKey,
 					}),
 				),
 			)
 			if err != nil {
-				return fault.Wrap(err,
-					fault.Internal("unable to check decrypt permissions"), fault.Public("We're unable to check the decrypt permissions of your key."),
-				)
+				return err
 			}
 
-			if !decryptPermission.Valid {
-				return fault.New("insufficient permissions to decrypt keys",
-					fault.Code(codes.Auth.Authorization.InsufficientPermissions.URN()),
-					fault.Internal("insufficient permissions to decrypt keys"), fault.Public(decryptPermission.Message),
-				)
-			}
-
+			// If we have permission, proceed with decryption
 			for _, key := range keys {
 				if key.EncryptedKey.Valid && key.EncryptionKeyID.Valid {
 					decrypted, err := svc.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
@@ -219,7 +211,7 @@ func New(svc Services) zen.Route {
 
 		// Transform keys into the response format
 		responseData := make([]openapi.KeyResponse, 0, len(keys))
-		for _, key := range keys {
+		for i, key := range keys {
 			k := openapi.KeyResponse{
 				KeyId:     key.Key.ID,
 				Start:     key.Key.Start,
@@ -286,21 +278,31 @@ func New(svc Services) zen.Route {
 				}
 			}
 
-			// Get permissions and roles for the key
-			permissions, err := db.Query.FindPermissionsByKeyId(ctx, svc.DB.RO(), key.ID)
-			if err == nil {
-				permNames := make([]string, 0, len(permissions))
-				for _, perm := range permissions {
-					permNames = append(permNames, perm.Name)
-				}
-				k.Permissions = permNames
+			// Get permissions for the key
+			permissionSlugs, err := db.Query.FindPermissionsForKey(ctx, svc.DB.RO(), db.FindPermissionsForKeyParams{
+				KeyID: k.KeyId,
+			})
+			if err != nil {
+				return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
+					fault.Internal("unable to find permissions for key"), fault.Public("Could not load permissions for key."))
+			}
+			k.Permissions = ptr.P(permissionSlugs)
+
+			// Get roles for the key
+			roles, err := db.Query.FindRolesForKey(ctx, svc.DB.RO(), k.KeyId)
+			if err != nil {
+				return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
+					fault.Internal("unable to find roles for key"), fault.Public("Could not load roles for key."))
 			}
 
-			// Get roles for the key - would need to implement a similar query for roles
-			// For now, just set an empty array
-			k.Roles = []string{}
+			roleNames := make([]string, len(roles))
+			for i, role := range roles {
+				roleNames[i] = role.Name
+			}
 
-			responseKeys = append(responseKeys, k)
+			k.Roles = ptr.P(roleNames)
+
+			responseData[i] = k
 		}
 
 		// Determine the cursor for the next page
@@ -314,10 +316,10 @@ func New(svc Services) zen.Route {
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
 			},
-			Data: []openapi.KeyResponse{},
+			Data: responseData,
 			Pagination: &openapi.Pagination{
 				Cursor:  nextCursor,
-				HasMore: ptr.P(len(keys) > limit),
+				HasMore: len(keys) > limit,
 			},
 		})
 	})

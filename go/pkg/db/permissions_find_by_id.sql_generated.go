@@ -10,7 +10,7 @@ import (
 )
 
 const findPermissionById = `-- name: FindPermissionById :one
-SELECT id, workspace_id, name, description, created_at_m, updated_at_m
+SELECT id, workspace_id, name, slug, description, created_at_m, updated_at_m
 FROM permissions
 WHERE id = ?
 LIMIT 1
@@ -19,7 +19,7 @@ LIMIT 1
 // Finds a permission record by its ID
 // Returns: The permission record if found
 //
-//	SELECT id, workspace_id, name, description, created_at_m, updated_at_m
+//	SELECT id, workspace_id, name, slug, description, created_at_m, updated_at_m
 //	FROM permissions
 //	WHERE id = ?
 //	LIMIT 1
@@ -30,6 +30,7 @@ func (q *Queries) FindPermissionById(ctx context.Context, db DBTX, permissionID 
 		&i.ID,
 		&i.WorkspaceID,
 		&i.Name,
+		&i.Slug,
 		&i.Description,
 		&i.CreatedAtM,
 		&i.UpdatedAtM,

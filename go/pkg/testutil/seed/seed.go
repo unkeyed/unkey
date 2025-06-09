@@ -19,8 +19,6 @@ type Resources struct {
 	RootWorkspace db.Workspace
 	RootKeyring   db.KeyAuth
 	UserWorkspace db.Workspace
-
-	DifferentWorkspace db.Workspace
 }
 
 // Seeder provides methods to seed test data
@@ -39,20 +37,28 @@ func New(t *testing.T, database db.Database) *Seeder {
 	}
 }
 
-// Seed initializes the database with test data
-func (s *Seeder) Seed(ctx context.Context) {
-	// Insert root workspace
-	insertRootWorkspaceParams := db.InsertWorkspaceParams{
+func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
+	params := db.InsertWorkspaceParams{
 		ID:        uid.New("test_ws"),
-		OrgID:     uid.New("unkey"),
-		Name:      "unkey",
+		OrgID:     uid.New("test_org"),
+		Name:      uid.New("test_name"),
 		CreatedAt: time.Now().UnixMilli(),
 	}
 
-	err := db.Query.InsertWorkspace(ctx, s.DB.RW(), insertRootWorkspaceParams)
+	err := db.Query.InsertWorkspace(ctx, s.DB.RW(), params)
 	require.NoError(s.t, err)
-	s.Resources.RootWorkspace, err = db.Query.FindWorkspaceByID(ctx, s.DB.RW(), insertRootWorkspaceParams.ID)
+
+	ws, err := db.Query.FindWorkspaceByID(ctx, s.DB.RW(), params.ID)
 	require.NoError(s.t, err)
+
+	return ws
+}
+
+// Seed initializes the database with test data
+func (s *Seeder) Seed(ctx context.Context) {
+	// Insert root workspace
+
+	s.Resources.RootWorkspace = s.CreateWorkspace(ctx)
 
 	// Insert root keyring
 	insertRootKeyringParams := db.InsertKeyringParams{
@@ -64,37 +70,14 @@ func (s *Seeder) Seed(ctx context.Context) {
 		CreatedAtM:         time.Now().UnixMilli(),
 	}
 
-	err = db.Query.InsertKeyring(ctx, s.DB.RW(), insertRootKeyringParams)
+	err := db.Query.InsertKeyring(ctx, s.DB.RW(), insertRootKeyringParams)
 	require.NoError(s.t, err)
 
 	s.Resources.RootKeyring, err = db.Query.FindKeyringByID(ctx, s.DB.RW(), insertRootKeyringParams.ID)
 	require.NoError(s.t, err)
 
-	// Insert user workspace
-	insertUserWorkspaceParams := db.InsertWorkspaceParams{
-		ID:        uid.New("test_ws"),
-		OrgID:     uid.New("user"),
-		Name:      "user",
-		CreatedAt: time.Now().UnixMilli(),
-	}
+	s.Resources.UserWorkspace = s.CreateWorkspace(ctx)
 
-	err = db.Query.InsertWorkspace(ctx, s.DB.RW(), insertUserWorkspaceParams)
-	require.NoError(s.t, err)
-
-	s.Resources.UserWorkspace, err = db.Query.FindWorkspaceByID(ctx, s.DB.RW(), insertUserWorkspaceParams.ID)
-	require.NoError(s.t, err)
-
-	// Insert different workspace for permission tests
-	insertDifferentWorkspaceParams := db.InsertWorkspaceParams{
-		ID:        uid.New("test_ws"),
-		OrgID:     uid.New("alice"),
-		Name:      "alice",
-		CreatedAt: time.Now().UnixMilli(),
-	}
-
-	err = db.Query.InsertWorkspace(ctx, s.DB.RW(), insertDifferentWorkspaceParams)
-	require.NoError(s.t, err)
-	s.Resources.DifferentWorkspace, err = db.Query.FindWorkspaceByID(ctx, s.DB.RW(), insertDifferentWorkspaceParams.ID)
 	require.NoError(s.t, err)
 }
 
@@ -132,6 +115,7 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 				PermissionID: permissionID,
 				WorkspaceID:  s.Resources.RootWorkspace.ID,
 				Name:         permission,
+				Slug:         permission,
 				Description:  sql.NullString{String: "", Valid: false},
 				CreatedAtM:   time.Now().UnixMilli(),
 			})
@@ -139,7 +123,7 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 			mysqlErr := &mysql.MySQLError{} // nolint:exhaustruct
 			if errors.As(err, &mysqlErr) {
 				// Error 1062 (23000): Duplicate entry
-				require.Equal(s.t, uint16(1062), mysqlErr.Number)
+				require.Equal(s.t, uint16(1062), mysqlErr.Number, "Unexpected MySQL error number, got %d, expected %d", mysqlErr.Number, uint16(1062))
 				existing, findErr := db.Query.FindPermissionByWorkspaceAndName(ctx, s.DB.RO(), db.FindPermissionByWorkspaceAndNameParams{
 					WorkspaceID: s.Resources.RootWorkspace.ID,
 					Name:        permission,

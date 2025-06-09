@@ -129,7 +129,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// 3. Permission check
-		permissions, err := svc.Permissions.Check(
+		err = svc.Permissions.Check(
 			ctx,
 			auth.KeyID,
 			rbac.Or(
@@ -138,14 +138,8 @@ func New(svc Services) zen.Route {
 		)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithDesc("unable to check permissions", "We're unable to check the permissions of your key."),
-			)
-		}
-
-		if !permissions.Valid {
-			return fault.New("insufficient permissions",
-				fault.WithCode(codes.Auth.Authorization.InsufficientPermissions.URN()),
-				fault.WithDesc(permissions.Message, permissions.Message),
+				fault.Internal("unable to check permissions"),
+				fault.Public("We're unable to check the permissions of your key."),
 			)
 		}
 

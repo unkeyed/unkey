@@ -11,23 +11,23 @@ import (
 
 const findPermissionsForKey = `-- name: FindPermissionsForKey :many
 WITH direct_permissions AS (
-    SELECT p.name as permission_name
+    SELECT p.slug as permission_slug
     FROM keys_permissions kp
     JOIN permissions p ON kp.permission_id = p.id
     WHERE kp.key_id = ?
 ),
 role_permissions AS (
-    SELECT p.name as permission_name
+    SELECT p.slug as permission_slug
     FROM keys_roles kr
     JOIN roles_permissions rp ON kr.role_id = rp.role_id
     JOIN permissions p ON rp.permission_id = p.id
     WHERE kr.key_id = ?
 )
-SELECT DISTINCT permission_name
+SELECT DISTINCT permission_slug
 FROM (
-    SELECT permission_name FROM direct_permissions
+    SELECT permission_slug FROM direct_permissions
     UNION ALL
-    SELECT permission_name FROM role_permissions
+    SELECT permission_slug FROM role_permissions
 ) all_permissions
 `
 
@@ -38,23 +38,23 @@ type FindPermissionsForKeyParams struct {
 // FindPermissionsForKey
 //
 //	WITH direct_permissions AS (
-//	    SELECT p.name as permission_name
+//	    SELECT p.slug as permission_slug
 //	    FROM keys_permissions kp
 //	    JOIN permissions p ON kp.permission_id = p.id
 //	    WHERE kp.key_id = ?
 //	),
 //	role_permissions AS (
-//	    SELECT p.name as permission_name
+//	    SELECT p.slug as permission_slug
 //	    FROM keys_roles kr
 //	    JOIN roles_permissions rp ON kr.role_id = rp.role_id
 //	    JOIN permissions p ON rp.permission_id = p.id
 //	    WHERE kr.key_id = ?
 //	)
-//	SELECT DISTINCT permission_name
+//	SELECT DISTINCT permission_slug
 //	FROM (
-//	    SELECT permission_name FROM direct_permissions
+//	    SELECT permission_slug FROM direct_permissions
 //	    UNION ALL
-//	    SELECT permission_name FROM role_permissions
+//	    SELECT permission_slug FROM role_permissions
 //	) all_permissions
 func (q *Queries) FindPermissionsForKey(ctx context.Context, db DBTX, arg FindPermissionsForKeyParams) ([]string, error) {
 	rows, err := db.QueryContext(ctx, findPermissionsForKey, arg.KeyID, arg.KeyID)
@@ -64,11 +64,11 @@ func (q *Queries) FindPermissionsForKey(ctx context.Context, db DBTX, arg FindPe
 	defer rows.Close()
 	var items []string
 	for rows.Next() {
-		var permission_name string
-		if err := rows.Scan(&permission_name); err != nil {
+		var permission_slug string
+		if err := rows.Scan(&permission_slug); err != nil {
 			return nil, err
 		}
-		items = append(items, permission_name)
+		items = append(items, permission_slug)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err

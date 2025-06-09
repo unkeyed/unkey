@@ -28,7 +28,7 @@ func (c *Containers) RunS3(t *testing.T) S3 {
 
 	resource, err := c.pool.RunWithOptions(&dockertest.RunOptions{
 		Repository: "minio/minio",
-		Tag:        "latest",
+		Tag:        "RELEASE.2025-04-03T14-56-28Z", // They fucked their license or something and it broke, don't use latest
 		Networks:   []*dockertest.Network{c.network},
 		Env: []string{
 			fmt.Sprintf("MINIO_ROOT_USER=%s", user),
@@ -39,7 +39,10 @@ func (c *Containers) RunS3(t *testing.T) S3 {
 	require.NoError(c.t, err)
 
 	c.t.Cleanup(func() {
-		require.NoError(c.t, c.pool.Purge(resource))
+		if !c.t.Failed() {
+
+			require.NoError(c.t, c.pool.Purge(resource))
+		}
 	})
 
 	return S3{

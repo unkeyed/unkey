@@ -62,33 +62,24 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		permissions, err := svc.Permissions.Check(
+		err = svc.Permissions.Check(
 			ctx,
 			auth.KeyID,
 			rbac.Or(
 				rbac.T(rbac.Tuple{
 					ResourceType: rbac.Ratelimit,
 					ResourceID:   namespace.ID,
-					Action:       rbac.ReadOverride,
+					Action:       rbac.ListOverrides,
 				}),
 				rbac.T(rbac.Tuple{
 					ResourceType: rbac.Ratelimit,
 					ResourceID:   "*",
-					Action:       rbac.ReadOverride,
+					Action:       rbac.ListOverrides,
 				}),
 			),
 		)
 		if err != nil {
-			return fault.Wrap(err,
-				fault.Internal("unable to check permissions"), fault.Public("We're unable to check the permissions of your key."),
-			)
-		}
-
-		if !permissions.Valid {
-			return fault.New("insufficient permissions",
-				fault.Code(codes.Auth.Authorization.InsufficientPermissions.URN()),
-				fault.Internal(permissions.Message), fault.Public(permissions.Message),
-			)
+			return err
 		}
 
 		overrides, err := db.Query.ListRatelimitOverrides(ctx, svc.DB.RO(), db.ListRatelimitOverridesParams{

@@ -39,11 +39,13 @@ CREATE TABLE `permissions` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`name` varchar(512) NOT NULL,
+	`slug` varchar(128) NOT NULL,
 	`description` varchar(512),
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
 	CONSTRAINT `permissions_id` PRIMARY KEY(`id`),
-	CONSTRAINT `unique_name_per_workspace_idx` UNIQUE(`name`,`workspace_id`)
+	CONSTRAINT `unique_name_per_workspace_idx` UNIQUE(`name`,`workspace_id`),
+	CONSTRAINT `unique_slug_per_workspace_idx` UNIQUE(`slug`,`workspace_id`)
 );
 --> statement-breakpoint
 CREATE TABLE `roles` (

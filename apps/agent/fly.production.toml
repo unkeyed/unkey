@@ -1,73 +1,74 @@
+# fly.toml app configuration file generated for unkey-production-agent on 2025-06-09T13:58:09+02:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
 
 app = 'unkey-production-agent'
 primary_region = 'iad'
 
-[build]
-dockerfile = "Dockerfile"
 [experimental]
-cmd = ["/usr/local/bin/unkey", "agent", "--config=./config.production.json"]
+cmd = ['/usr/local/bin/unkey', 'agent', '--config=./config.production.json']
 
+[build]
+dockerfile = 'Dockerfile'
+
+[deploy]
+strategy = 'canary'
+max_unavailable = 10.0
+
+[env]
+PORT = '8080'
+RPC_PORT = '9095'
+SERF_PORT = '7373'
 
 [http_service]
 internal_port = 8080
-auto_stop_machines = true
+auto_stop_machines = 'stop'
 auto_start_machines = true
 min_machines_running = 0
 processes = ['app']
 
 [http_service.concurrency]
-type = "requests"
-soft_limit = 100
+type = 'requests'
 hard_limit = 250
+soft_limit = 100
 
-[[http_service.checks]]
-grace_period = "10s"
-interval = "30s"
-method = "GET"
-timeout = "5s"
-path = "/v1/liveness"
-
+[http_service.http_options]
 [http_service.http_options.response]
 pristine = true
 
-# Serf
+[[http_service.checks]]
+interval = '30s'
+timeout = '5s'
+grace_period = '10s'
+method = 'GET'
+path = '/v1/liveness'
+
 [[services]]
+protocol = 'tcp'
 internal_port = 7373
-protocol = "tcp"
+
 [[services.ports]]
-handlers = ["tls"]
 port = 7373
+handlers = ['tls']
 
-
-# RPC
 [[services]]
+protocol = 'tcp'
 internal_port = 9095
-protocol = "tcp"
-[[services.ports]]
-handlers = ["tls"]
-port = 9095
 
+[[services.ports]]
+port = 9095
+handlers = ['tls']
+
+[[restart]]
+policy = 'always'
+retries = 10
 
 [[vm]]
 memory = '2gb'
 cpu_kind = 'shared'
 cpus = 2
 
-[deploy]
-strategy = "canary"
-max_unavailable = 1
-
-[[restart]]
-policy = "always"
-retries = 10
-
-
-[metrics]
+[[metrics]]
 port = 2112
-path = "/metrics" # default for most prometheus exporters
-
-
-[env]
-PORT = "8080"
-RPC_PORT = "9095"
-SERF_PORT = "7373" # Spells 'serf' on a phone, I'm so funny
+path = '/metrics'

@@ -10,20 +10,20 @@ import (
 )
 
 const findPermissionsByRoleId = `-- name: FindPermissionsByRoleId :many
-SELECT p.id, p.workspace_id, p.name, p.description, p.created_at_m, p.updated_at_m
+SELECT p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
 FROM permissions p
 JOIN roles_permissions rp ON p.id = rp.permission_id
 WHERE rp.role_id = ?
-ORDER BY p.name
+ORDER BY p.slug
 `
 
 // FindPermissionsByRoleId
 //
-//	SELECT p.id, p.workspace_id, p.name, p.description, p.created_at_m, p.updated_at_m
+//	SELECT p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
 //	FROM permissions p
 //	JOIN roles_permissions rp ON p.id = rp.permission_id
 //	WHERE rp.role_id = ?
-//	ORDER BY p.name
+//	ORDER BY p.slug
 func (q *Queries) FindPermissionsByRoleId(ctx context.Context, db DBTX, roleID string) ([]Permission, error) {
 	rows, err := db.QueryContext(ctx, findPermissionsByRoleId, roleID)
 	if err != nil {
@@ -37,6 +37,7 @@ func (q *Queries) FindPermissionsByRoleId(ctx context.Context, db DBTX, roleID s
 			&i.ID,
 			&i.WorkspaceID,
 			&i.Name,
+			&i.Slug,
 			&i.Description,
 			&i.CreatedAtM,
 			&i.UpdatedAtM,

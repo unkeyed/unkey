@@ -51,28 +51,19 @@ func New(svc Services) zen.Route {
 		cursor := ptr.SafeDeref(req.Cursor, "")
 
 		// 3. Permission check
-		permissionCheck, err := svc.Permissions.Check(
+		err = svc.Permissions.Check(
 			ctx,
 			auth.KeyID,
 			rbac.Or(
 				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Rbac,
+					ResourceType: rbac.Permission,
 					ResourceID:   "*",
-					Action:       rbac.ReadPermission,
+					Action:       rbac.ListPermissions,
 				}),
 			),
 		)
 		if err != nil {
-			return fault.Wrap(err,
-				fault.Internal("unable to check permissions"), fault.Public("We're unable to check the permissions of your key."),
-			)
-		}
-
-		if !permissionCheck.Valid {
-			return fault.New("insufficient permissions",
-				fault.Code(codes.Auth.Authorization.InsufficientPermissions.URN()),
-				fault.Internal(permissionCheck.Message), fault.Public(permissionCheck.Message),
-			)
+			return err
 		}
 
 		// 4. Query permissions with pagination

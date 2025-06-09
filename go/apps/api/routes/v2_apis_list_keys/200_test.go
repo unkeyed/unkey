@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_list_keys"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestSuccess(t *testing.T) {
@@ -29,33 +30,19 @@ func TestSuccess(t *testing.T) {
 
 	// Create a workspace and user
 	workspace := h.Resources().UserWorkspace
-	user := h.Resources().User
 
 	// Create a root key with appropriate permissions
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key", "api.*.read_api")
 
-	// Create an API for testing
-	api, err := db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-		Name:        "Test API",
-		WorkspaceID: workspace.ID,
-	})
-	require.NoError(t, err)
-
-	// Create a KeyAuth for the API
-	keyAuth, err := db.Query.InsertKeyAuth(ctx, h.DB.RW(), db.InsertKeyAuthParams{
-		ApiID: api.ID,
-	})
-	require.NoError(t, err)
-
-	// Update the API with KeyAuthID
-	_, err = db.Query.UpdateApiSetKeyAuthId(ctx, h.DB.RW(), api.ID, keyAuth.ID)
-	require.NoError(t, err)
-
+	externalID := uid.New("test_external_id")
 	// Create a test identity
-	identity, err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
-		ExternalID:  "test-external-id",
+	err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
+		ID:          uid.New("test_identity"),
+		ExternalID:  externalID,
 		WorkspaceID: workspace.ID,
-		UserID:      user.ID,
+		Environment: "",
+		CreatedAt:   time.Now().UnixMilli(),
+		Meta:        []byte{},
 	})
 	require.NoError(t, err)
 

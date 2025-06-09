@@ -167,14 +167,14 @@ type Querier interface {
 	// Finds a permission record by its ID
 	// Returns: The permission record if found
 	//
-	//  SELECT id, workspace_id, name, description, created_at_m, updated_at_m
+	//  SELECT id, workspace_id, name, slug, description, created_at_m, updated_at_m
 	//  FROM permissions
 	//  WHERE id = ?
 	//  LIMIT 1
 	FindPermissionById(ctx context.Context, db DBTX, permissionID string) (Permission, error)
 	//FindPermissionByNameAndWorkspace
 	//
-	//  SELECT id, workspace_id, name, description, created_at_m, updated_at_m
+	//  SELECT id, workspace_id, name, slug, description, created_at_m, updated_at_m
 	//  FROM permissions
 	//  WHERE name = ?
 	//  AND workspace_id = ?
@@ -182,37 +182,37 @@ type Querier interface {
 	FindPermissionByNameAndWorkspace(ctx context.Context, db DBTX, arg FindPermissionByNameAndWorkspaceParams) (Permission, error)
 	//FindPermissionByWorkspaceAndName
 	//
-	//  SELECT id, workspace_id, name, description, created_at_m, updated_at_m FROM `permissions`
+	//  SELECT id, workspace_id, name, slug, description, created_at_m, updated_at_m FROM `permissions`
 	//  WHERE workspace_id = ? AND name = ?
 	FindPermissionByWorkspaceAndName(ctx context.Context, db DBTX, arg FindPermissionByWorkspaceAndNameParams) (Permission, error)
 	//FindPermissionsByRoleId
 	//
-	//  SELECT p.id, p.workspace_id, p.name, p.description, p.created_at_m, p.updated_at_m
+	//  SELECT p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
 	//  FROM permissions p
 	//  JOIN roles_permissions rp ON p.id = rp.permission_id
 	//  WHERE rp.role_id = ?
-	//  ORDER BY p.name
+	//  ORDER BY p.slug
 	FindPermissionsByRoleId(ctx context.Context, db DBTX, roleID string) ([]Permission, error)
 	//FindPermissionsForKey
 	//
 	//  WITH direct_permissions AS (
-	//      SELECT p.name as permission_name
+	//      SELECT p.slug as permission_slug
 	//      FROM keys_permissions kp
 	//      JOIN permissions p ON kp.permission_id = p.id
 	//      WHERE kp.key_id = ?
 	//  ),
 	//  role_permissions AS (
-	//      SELECT p.name as permission_name
+	//      SELECT p.slug as permission_slug
 	//      FROM keys_roles kr
 	//      JOIN roles_permissions rp ON kr.role_id = rp.role_id
 	//      JOIN permissions p ON rp.permission_id = p.id
 	//      WHERE kr.key_id = ?
 	//  )
-	//  SELECT DISTINCT permission_name
+	//  SELECT DISTINCT permission_slug
 	//  FROM (
-	//      SELECT permission_name FROM direct_permissions
+	//      SELECT permission_slug FROM direct_permissions
 	//      UNION ALL
-	//      SELECT permission_name FROM role_permissions
+	//      SELECT permission_slug FROM role_permissions
 	//  ) all_permissions
 	FindPermissionsForKey(ctx context.Context, db DBTX, arg FindPermissionsForKeyParams) ([]string, error)
 	//FindRatelimitNamespaceByID
@@ -274,6 +274,14 @@ type Querier interface {
 	//  AND workspace_id = ?
 	//  LIMIT 1
 	FindRoleByNameAndWorkspace(ctx context.Context, db DBTX, arg FindRoleByNameAndWorkspaceParams) (Role, error)
+	//FindRolesForKey
+	//
+	//  SELECT r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m
+	//  FROM roles r
+	//  JOIN keys_roles kr ON r.id = kr.role_id
+	//  WHERE kr.key_id = ?
+	//  ORDER BY r.name
+	FindRolesForKey(ctx context.Context, db DBTX, keyID string) ([]Role, error)
 	//FindWorkspaceByID
 	//
 	//  SELECT id, org_id, name, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
@@ -487,10 +495,12 @@ type Querier interface {
 	//    id,
 	//    workspace_id,
 	//    name,
+	//    slug,
 	//    description,
 	//    created_at_m
 	//  )
 	//  VALUES (
+	//    ?,
 	//    ?,
 	//    ?,
 	//    ?,
