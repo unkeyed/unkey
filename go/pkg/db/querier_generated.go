@@ -674,6 +674,15 @@ type Querier interface {
 	//  WHERE identity_id = ?
 	//  ORDER BY id ASC
 	ListIdentityRatelimits(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error)
+	//ListPermissions
+	//
+	//  SELECT p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
+	//  FROM permissions p
+	//  WHERE p.workspace_id = ?
+	//    AND p.id > ?
+	//  ORDER BY p.id
+	//  LIMIT 101
+	ListPermissions(ctx context.Context, db DBTX, arg ListPermissionsParams) ([]Permission, error)
 	//ListRatelimitOverrides
 	//
 	//  SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides

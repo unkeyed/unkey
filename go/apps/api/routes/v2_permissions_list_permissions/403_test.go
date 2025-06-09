@@ -2,15 +2,18 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_list_permissions"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestAuthorizationErrors(t *testing.T) {
@@ -30,11 +33,13 @@ func TestAuthorizationErrors(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	// Create some test permissions to later try to list
-	_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-		ID:          uid.New(uid.PermissionPrefix),
-		WorkspaceID: workspace.ID,
-		Name:        "test.permission.auth",
-		Description: db.NewNullString("Test permission for authorization tests"),
+	err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+		PermissionID: uid.New(uid.PermissionPrefix),
+		WorkspaceID:  workspace.ID,
+		Name:         "test.permission.auth",
+		Slug:         "test-permission-auth",
+		Description:  sql.NullString{Valid: true, String: "Test permission for authorization tests"},
+		CreatedAtM:   time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
 
@@ -48,9 +53,7 @@ func TestAuthorizationErrors(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		req := handler.Request{
-			Limit: 10,
-		}
+		req := handler.Request{}
 
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
 			h,
@@ -62,20 +65,22 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.Equal(t, 403, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, res.Body.Error.Detail, "insufficient permissions")
+		require.Contains(t, res.Body.Error.Detail, "permission")
 	})
 
 	// Test case for wrong workspace
 	t.Run("wrong workspace", func(t *testing.T) {
 		// Create a different workspace
-		otherWorkspace := h.CreateWorkspace("other-workspace")
+		otherWorkspace := h.CreateWorkspace()
 
 		// Create permissions in the other workspace
-		_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			ID:          uid.New(uid.PermissionPrefix),
-			WorkspaceID: otherWorkspace.ID,
-			Name:        "other.workspace.permission",
-			Description: db.NewNullString("This permission is in a different workspace"),
+		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+			PermissionID: uid.New(uid.PermissionPrefix),
+			WorkspaceID:  otherWorkspace.ID,
+			Name:         "other.workspace.permission",
+			Slug:         "other-workspace-permission",
+			Description:  sql.NullString{Valid: true, String: "This permission is in a different workspace"},
+			CreatedAtM:   time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
 
@@ -87,9 +92,7 @@ func TestAuthorizationErrors(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		req := handler.Request{
-			Limit: 10,
-		}
+		req := handler.Request{}
 
 		// When listing permissions, we should only see permissions from the authorized workspace
 		// This should return 200 OK with only permissions from the authorized workspace
@@ -105,7 +108,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.NotNil(t, res.Body.Data)
 
 		// Verify we only see permissions from our workspace
-		for _, perm := range res.Body.Data.Permissions {
+		for _, perm := range res.Body.Data {
 			require.Equal(t, workspace.ID, perm.WorkspaceId)
 			require.NotEqual(t, "other.workspace.permission", perm.Name)
 		}

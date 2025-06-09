@@ -2365,14 +2365,6 @@
       "V2PermissionsListPermissionsRequestBody": {
         "type": "object",
         "properties": {
-          "limit": {
-            "type": "integer",
-            "format": "int32",
-            "description": "The maximum number of permissions to return",
-            "default": 100,
-            "minimum": 1,
-            "maximum": 100
-          },
           "cursor": {
             "type": "string",
             "description": "Cursor for pagination"
@@ -2381,27 +2373,10 @@
         "additionalProperties": false
       },
       "PermissionsListPermissionsResponseData": {
-        "type": "object",
-        "properties": {
-          "permissions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Permission"
-            }
-          },
-          "cursor": {
-            "type": "string",
-            "description": "Cursor for pagination"
-          },
-          "total": {
-            "type": "integer",
-            "description": "Total number of permissions"
-          }
-        },
-        "required": [
-          "permissions",
-          "total"
-        ]
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Permission"
+        }
       },
       "V2PermissionsListPermissionsResponseBody": {
         "type": "object",
@@ -2415,6 +2390,9 @@
           },
           "data": {
             "$ref": "#/components/schemas/PermissionsListPermissionsResponseData"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
           }
         }
       },

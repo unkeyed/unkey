@@ -609,14 +609,7 @@ type PermissionsGetRoleResponseData struct {
 }
 
 // PermissionsListPermissionsResponseData defines model for PermissionsListPermissionsResponseData.
-type PermissionsListPermissionsResponseData struct {
-	// Cursor Cursor for pagination
-	Cursor      *string      `json:"cursor,omitempty"`
-	Permissions []Permission `json:"permissions"`
-
-	// Total Total number of permissions
-	Total int `json:"total"`
-}
+type PermissionsListPermissionsResponseData = []Permission
 
 // PermissionsListRolesResponseData defines model for PermissionsListRolesResponseData.
 type PermissionsListRolesResponseData struct {
@@ -1886,9 +1879,6 @@ type V2PermissionsGetRoleResponseBody struct {
 type V2PermissionsListPermissionsRequestBody struct {
 	// Cursor Cursor for pagination
 	Cursor *string `json:"cursor,omitempty"`
-
-	// Limit The maximum number of permissions to return
-	Limit *int32 `json:"limit,omitempty"`
 }
 
 // V2PermissionsListPermissionsResponseBody defines model for V2PermissionsListPermissionsResponseBody.
@@ -1896,7 +1886,8 @@ type V2PermissionsListPermissionsResponseBody struct {
 	Data PermissionsListPermissionsResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The requestId is particularly important when troubleshooting issues with the Unkey support team.
-	Meta Meta `json:"meta"`
+	Meta       Meta        `json:"meta"`
+	Pagination *Pagination `json:"pagination,omitempty"`
 }
 
 // V2PermissionsListRolesRequestBody defines model for V2PermissionsListRolesRequestBody.

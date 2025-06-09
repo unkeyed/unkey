@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -10,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_list_permissions"
 	"github.com/unkeyed/unkey/go/pkg/db"
+
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -53,32 +55,33 @@ func TestSuccess(t *testing.T) {
 	}
 
 	// Insert test permissions into the database
-	for _, perm := range testPermissions {
-		_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			ID:          perm.ID,
-			WorkspaceID: workspace.ID,
-			Name:        perm.Name,
-			Description: db.NewNullString(perm.Description),
-			CreatedAtM:  db.NewNullTime(time.Now()),
+	for i, perm := range testPermissions {
+		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+			PermissionID: perm.ID,
+			WorkspaceID:  workspace.ID,
+			Name:         perm.Name,
+			Slug:         fmt.Sprintf("test-permission-%d", i+1),
+			Description:  sql.NullString{Valid: true, String: perm.Description},
+			CreatedAtM:   time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
 	}
 
 	// Create permissions in a different workspace to test isolation
-	otherWorkspace := h.CreateWorkspace("other-workspace")
-	_, err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-		ID:          uid.New(uid.PermissionPrefix),
-		WorkspaceID: otherWorkspace.ID,
-		Name:        "other.workspace.permission",
-		Description: db.NewNullString("This permission is in a different workspace"),
+	otherWorkspace := h.CreateWorkspace()
+	err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+		PermissionID: uid.New(uid.PermissionPrefix),
+		WorkspaceID:  otherWorkspace.ID,
+		Name:         "other.workspace.permission",
+		Slug:         "other-workspace-permission",
+		Description:  sql.NullString{Valid: true, String: "This permission is in a different workspace"},
+		CreatedAtM:   time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
 
 	// Test case for listing all permissions
 	t.Run("list all permissions", func(t *testing.T) {
-		req := handler.Request{
-			Limit: 100,
-		}
+		req := handler.Request{}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
 			h,
@@ -90,13 +93,14 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data)
-		require.Len(t, res.Body.Data.Permissions, len(testPermissions))
-		require.Equal(t, len(testPermissions), res.Body.Data.Total)
-		require.Nil(t, res.Body.Data.Cursor) // No more pages
+		require.Len(t, res.Body.Data, len(testPermissions))
+		require.NotNil(t, res.Body.Pagination)
+		require.False(t, res.Body.Pagination.HasMore) // No more pages
+		require.Nil(t, res.Body.Pagination.Cursor)
 
 		// Verify we got the correct permissions
 		permMap := make(map[string]bool)
-		for _, perm := range res.Body.Data.Permissions {
+		for _, perm := range res.Body.Data {
 			permMap[perm.Id] = true
 			require.Equal(t, workspace.ID, perm.WorkspaceId)
 		}
@@ -107,33 +111,52 @@ func TestSuccess(t *testing.T) {
 		}
 	})
 
-	// Test case for limiting results
-	t.Run("limit results", func(t *testing.T) {
-		req := handler.Request{
-			Limit: 2,
+	// Test case for empty results in a new workspace
+	t.Run("empty results", func(t *testing.T) {
+		emptyWorkspace := h.CreateWorkspace()
+		emptyKey := h.CreateRootKey(emptyWorkspace.ID, "rbac.*.read_permission")
+
+		emptyHeaders := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", emptyKey)},
 		}
+
+		req := handler.Request{}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
 			h,
 			route,
-			headers,
+			emptyHeaders,
 			req,
 		)
 
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data)
-		require.Len(t, res.Body.Data.Permissions, 2)
-		require.Equal(t, len(testPermissions), res.Body.Data.Total)
-		require.NotNil(t, res.Body.Data.Cursor)
+		require.Len(t, res.Body.Data, 0)
+		require.NotNil(t, res.Body.Pagination)
+		require.False(t, res.Body.Pagination.HasMore)
+		require.Nil(t, res.Body.Pagination.Cursor)
 	})
 
 	// Test case for pagination with cursor
 	t.Run("pagination with cursor", func(t *testing.T) {
-		// First page
-		req1 := handler.Request{
-			Limit: 2,
+		// Create 101 additional permissions to test pagination
+		for i := 0; i < 101; i++ {
+			permID := uid.New(uid.PermissionPrefix)
+			err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+				PermissionID: permID,
+				WorkspaceID:  workspace.ID,
+				Name:         fmt.Sprintf("bulk.permission.%d", i),
+				Slug:         fmt.Sprintf("bulk-permission-%d", i),
+				Description:  sql.NullString{Valid: true, String: fmt.Sprintf("Bulk permission %d", i)},
+				CreatedAtM:   time.Now().UnixMilli(),
+			})
+			require.NoError(t, err)
 		}
+
+		// First page - should return 100 permissions with cursor
+		req1 := handler.Request{}
 
 		res1 := testutil.CallRoute[handler.Request, handler.Response](
 			h,
@@ -143,13 +166,13 @@ func TestSuccess(t *testing.T) {
 		)
 
 		require.Equal(t, 200, res1.Status)
-		require.NotNil(t, res1.Body.Data.Cursor)
-		require.Len(t, res1.Body.Data.Permissions, 2)
+		require.NotNil(t, res1.Body.Pagination.Cursor)
+		require.Len(t, res1.Body.Data, 100)
+		require.True(t, res1.Body.Pagination.HasMore)
 
 		// Second page
 		req2 := handler.Request{
-			Limit:  2,
-			Cursor: res1.Body.Data.Cursor,
+			Cursor: res1.Body.Pagination.Cursor,
 		}
 
 		res2 := testutil.CallRoute[handler.Request, handler.Response](
@@ -162,62 +185,13 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, 200, res2.Status)
 		require.NotNil(t, res2.Body)
 		require.NotNil(t, res2.Body.Data)
-		require.Len(t, res2.Body.Data.Permissions, 2)
-		require.NotNil(t, res2.Body.Data.Cursor)
+		require.Greater(t, len(res2.Body.Data), 0) // Should have some permissions
 
 		// Verify first and second page have different permissions
-		for _, perm1 := range res1.Body.Data.Permissions {
-			for _, perm2 := range res2.Body.Data.Permissions {
+		for _, perm1 := range res1.Body.Data {
+			for _, perm2 := range res2.Body.Data {
 				require.NotEqual(t, perm1.Id, perm2.Id, "Permission should not appear on both pages")
 			}
 		}
-
-		// Third page (should have 1 remaining permission)
-		req3 := handler.Request{
-			Limit:  2,
-			Cursor: res2.Body.Data.Cursor,
-		}
-
-		res3 := testutil.CallRoute[handler.Request, handler.Response](
-			h,
-			route,
-			headers,
-			req3,
-		)
-
-		require.Equal(t, 200, res3.Status)
-		require.NotNil(t, res3.Body)
-		require.NotNil(t, res3.Body.Data)
-		require.Len(t, res3.Body.Data.Permissions, 1)
-		require.Nil(t, res3.Body.Data.Cursor) // No more pages
-	})
-
-	// Test empty results in a new workspace
-	t.Run("empty results", func(t *testing.T) {
-		emptyWorkspace := h.CreateWorkspace("empty-workspace")
-		emptyKey := h.CreateRootKey(emptyWorkspace.ID, "rbac.*.read_permission")
-
-		emptyHeaders := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", emptyKey)},
-		}
-
-		req := handler.Request{
-			Limit: 100,
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](
-			h,
-			route,
-			emptyHeaders,
-			req,
-		)
-
-		require.Equal(t, 200, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Data)
-		require.Len(t, res.Body.Data.Permissions, 0)
-		require.Equal(t, 0, res.Body.Data.Total)
-		require.Nil(t, res.Body.Data.Cursor)
 	})
 }

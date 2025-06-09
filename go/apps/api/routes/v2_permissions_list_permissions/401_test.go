@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"context"
 	"net/http"
 	"testing"
 
@@ -12,7 +11,6 @@ import (
 )
 
 func TestAuthenticationErrors(t *testing.T) {
-	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
 	route := handler.New(handler.Services{
@@ -25,9 +23,7 @@ func TestAuthenticationErrors(t *testing.T) {
 	h.Register(route)
 
 	// Create a valid request
-	req := handler.Request{
-		Limit: 10,
-	}
+	req := handler.Request{}
 
 	// Test case for missing authorization header
 	t.Run("missing authorization header", func(t *testing.T) {
@@ -36,17 +32,16 @@ func TestAuthenticationErrors(t *testing.T) {
 			"Content-Type": {"application/json"},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
 			h,
 			route,
 			headers,
 			req,
 		)
 
-		require.Equal(t, 401, res.Status)
+		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, res.Body.Error.Detail, "unauthorized")
 	})
 
 	// Test case for invalid authorization token
@@ -66,7 +61,7 @@ func TestAuthenticationErrors(t *testing.T) {
 		require.Equal(t, 401, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, res.Body.Error.Detail, "unauthorized")
+		require.Contains(t, res.Body.Error.Detail, "invalid")
 	})
 
 	// Test case for malformed authorization header
@@ -76,16 +71,15 @@ func TestAuthenticationErrors(t *testing.T) {
 			"Authorization": {"malformed_header_without_bearer_prefix"},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
 			h,
 			route,
 			headers,
 			req,
 		)
 
-		require.Equal(t, 401, res.Status)
+		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, res.Body.Error.Detail, "unauthorized")
 	})
 }

@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
@@ -37,17 +38,12 @@ func New(svc Services) zen.Route {
 		}
 
 		// 2. Request validation
-		var req Request
-		err = s.BindBody(&req)
+		req, err := zen.BindBody[Request](s)
 		if err != nil {
-			return fault.Wrap(err,
-				fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
-			)
+			return err
 		}
 
-		limit := ptr.SafeDeref(req.Limit, 100)
-
-		// Handle null cursor
+		// Handle null cursor - use empty string to start from beginning
 		cursor := ptr.SafeDeref(req.Cursor, "")
 
 		// 3. Permission check
@@ -56,9 +52,9 @@ func New(svc Services) zen.Route {
 			auth.KeyID,
 			rbac.Or(
 				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Permission,
+					ResourceType: rbac.Rbac,
 					ResourceID:   "*",
-					Action:       rbac.ListPermissions,
+					Action:       rbac.ReadPermission,
 				}),
 			),
 		)
@@ -67,13 +63,12 @@ func New(svc Services) zen.Route {
 		}
 
 		// 4. Query permissions with pagination
-		permissions, total, err := db.Query.ListPermissions(
+		permissions, err := db.Query.ListPermissions(
 			ctx,
 			svc.DB.RO(),
 			db.ListPermissionsParams{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Cursor:      cursor,
-				Limit:       limit,
+				IDCursor:    cursor,
 			},
 		)
 		if err != nil {
@@ -83,23 +78,33 @@ func New(svc Services) zen.Route {
 			)
 		}
 
+		// Check if we have more results by seeing if we got 101 permissions
+		hasMore := len(permissions) > 100
+		var nextCursor *string
+
+		// If we have more than 100, truncate to 100
+		if hasMore {
+			nextCursor = ptr.P(permissions[100].ID)
+			permissions = permissions[:100]
+		}
+
 		// 5. Transform permissions into response format
 		responsePermissions := make([]openapi.Permission, 0, len(permissions))
 		for _, perm := range permissions {
-			responsePermissions = append(responsePermissions, openapi.Permission{
+			permCreatedAt := time.UnixMilli(perm.CreatedAtM).UTC()
+			permission := openapi.Permission{
 				Id:          perm.ID,
 				Name:        perm.Name,
 				WorkspaceId: perm.WorkspaceID,
-				Description: perm.Description.String,
-				CreatedAt:   perm.CreatedAtM.Time.Format(http.TimeFormat),
-			})
-		}
+				CreatedAt:   &permCreatedAt,
+			}
 
-		// 6. Determine next cursor
-		var nextCursor *string
-		if len(permissions) > 0 && len(permissions) == limit {
-			cursor := permissions[len(permissions)-1].ID
-			nextCursor = &cursor
+			// Add description only if it's valid
+			if perm.Description.Valid {
+				permission.Description = &perm.Description.String
+			}
+
+			responsePermissions = append(responsePermissions, permission)
 		}
 
 		// 7. Return success response
@@ -107,10 +112,10 @@ func New(svc Services) zen.Route {
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
 			},
-			Data: openapi.PermissionsListPermissionsResponseData{
-				Permissions: responsePermissions,
-				Total:       int(total),
-				Cursor:      nextCursor,
+			Data: responsePermissions,
+			Pagination: &openapi.Pagination{
+				Cursor:  nextCursor,
+				HasMore: hasMore,
 			},
 		})
 	})
