@@ -26,7 +26,7 @@ export function Navigation() {
           Roles
         </Navbar.Breadcrumbs.Link>
       </Navbar.Breadcrumbs>
-      <UpsertRoleDialog />
+      <UpsertRoleDialog triggerButton />
     </Navbar>
   );
 }

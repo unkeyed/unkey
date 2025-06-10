@@ -18,7 +18,6 @@ export type MenuItem = {
   divider?: boolean;
   ActionComponent?: FC<ActionComponentProps>;
   prefetch?: () => Promise<void>;
-  shouldPrefetch?: boolean;
 };
 
 type BaseTableActionPopoverProps = PropsWithChildren<{
@@ -39,9 +38,9 @@ export const KeysTableActionPopover = ({
 
   useEffect(() => {
     if (open) {
-      // Prefetch all items that need prefetching when popover opens
+      // Prefetch all items that need prefetching and haven't been prefetched yet
       items
-        .filter((item) => item.shouldPrefetch && item.prefetch && prefetchedItems.has(item.id))
+        .filter((item) => item.prefetch && !prefetchedItems.has(item.id))
         .forEach(async (item) => {
           try {
             await item.prefetch?.();
@@ -64,10 +63,10 @@ export const KeysTableActionPopover = ({
   };
 
   const handleItemHover = async (item: MenuItem) => {
-    if (item.shouldPrefetch && item.prefetch && !prefetchedItems.has(item.id)) {
+    if (item.prefetch && !prefetchedItems.has(item.id)) {
       try {
         await item.prefetch();
-        setPrefetchedItems((prev) => new Set(prev).add(item.id));
+        setPrefetchedItems((prev) => new Set([...prev, item.id]));
       } catch (error) {
         console.error(`Failed to prefetch data for ${item.id}:`, error);
       }

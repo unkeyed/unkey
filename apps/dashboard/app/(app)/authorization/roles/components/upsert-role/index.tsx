@@ -49,7 +49,7 @@ const getDefaultValues = (existingRole?: ExistingRole): Partial<FormValues> => {
 
 type UpsertRoleDialogProps = {
   existingRole?: ExistingRole;
-  triggerButton?: React.ReactNode;
+  triggerButton?: boolean;
   isOpen?: boolean;
   onClose?: () => void;
 };
@@ -157,13 +157,7 @@ export const UpsertRoleDialog = ({
 
   return (
     <>
-      {!triggerButton && <Navbar.Actions>{defaultTrigger}</Navbar.Actions>}
-
-      {triggerButton && (
-        // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
-        <div onClick={() => setIsDialogOpen(true)}>{triggerButton}</div>
-      )}
-
+      {triggerButton && <Navbar.Actions>{defaultTrigger}</Navbar.Actions>}
       <FormProvider {...methods}>
         <form id={`upsert-role-form-${existingRole?.id}`} onSubmit={handleSubmit(onSubmit)}>
           {/* Hidden input for roleId in edit mode */}

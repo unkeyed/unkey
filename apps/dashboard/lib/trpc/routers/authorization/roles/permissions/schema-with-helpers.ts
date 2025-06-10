@@ -16,7 +16,7 @@ const PermissionSchema = z.object({
 });
 
 export const permissionsSearchPayload = z.object({
-  query: z.string().min(1, "Search query cannot be empty"),
+  query: z.string().trim().min(1, "Search query cannot be empty"),
 });
 
 export const permissionsQueryPayload = z.object({

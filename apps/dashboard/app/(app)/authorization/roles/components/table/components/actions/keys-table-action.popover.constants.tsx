@@ -22,7 +22,6 @@ export const RolesTableActions = ({ role }: RolesTableActionsProps) => {
         label: "Edit role...",
         icon: <PenWriting3 size="md-regular" />,
         ActionComponent: (props) => <EditRole role={role} {...props} />,
-        shouldPrefetch: true,
         prefetch: async () => {
           await trpcUtils.authorization.roles.connectedKeysAndPerms.prefetch({
             roleId: role.roleId,

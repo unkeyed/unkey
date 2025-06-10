@@ -17,24 +17,16 @@ export const searchRolesPermissions = t.procedure
     const { query } = input;
     const workspaceId = ctx.workspace.id;
 
-    if (!query.trim()) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Search query cannot be empty",
-      });
-    }
-
     try {
-      const searchTerm = `%${query.trim()}%`;
       const permissionsQuery = await db.query.permissions.findMany({
         where: (permission, { and, eq, or, like }) => {
           return and(
             eq(permission.workspaceId, workspaceId),
             or(
-              like(permission.id, searchTerm),
-              like(permission.slug, searchTerm),
-              like(permission.name, searchTerm),
-              like(permission.description, searchTerm),
+              like(permission.id, query),
+              like(permission.slug, query),
+              like(permission.name, query),
+              like(permission.description, query),
             ),
           );
         },

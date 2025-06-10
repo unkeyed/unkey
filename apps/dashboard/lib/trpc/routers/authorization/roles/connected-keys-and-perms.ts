@@ -1,6 +1,7 @@
-import { db, sql } from "@/lib/db";
+import { and, db, eq } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
+import { keys, keysRoles, permissions, roles, rolesPermissions } from "@unkey/db/src/schema";
 import { z } from "zod";
 
 const roleDetailsInput = z.object({
@@ -44,94 +45,63 @@ export const getConnectedKeysAndPerms = t.procedure
 
     try {
       // First, verify the role exists in this workspace - security check
-      const roleCheck = await db.execute(sql`
-        SELECT id, name, description, updated_at_m
-        FROM roles 
-        WHERE id = ${roleId} AND workspace_id = ${workspaceId}
-        LIMIT 1
-      `);
+      const roleResult = await db
+        .select({
+          id: roles.id,
+          name: roles.name,
+          description: roles.description,
+          updated_at_m: roles.updatedAtM,
+        })
+        .from(roles)
+        .where(and(eq(roles.id, roleId), eq(roles.workspaceId, workspaceId)))
+        .limit(1);
 
-      const roleRows = roleCheck.rows as {
-        id: string;
-        name: string;
-        description: string | null;
-        updated_at_m: number;
-      }[];
-
-      if (roleRows.length === 0) {
+      if (roleResult.length === 0) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Role not found or access denied",
         });
       }
 
-      const role = roleRows[0];
+      const role = roleResult[0];
+      const [keyResults, permissionResults] = await Promise.all([
+        db
+          .selectDistinct({
+            id: keys.id,
+            name: keys.name,
+          })
+          .from(keysRoles)
+          .innerJoin(keys, eq(keysRoles.keyId, keys.id))
+          .where(and(eq(keysRoles.roleId, roleId), eq(keysRoles.workspaceId, workspaceId)))
+          .orderBy(keys.name),
 
-      // Validate required fields
-      if (!role.id || !role.name) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Invalid role data retrieved",
-        });
-      }
-
-      // Fetch all keys for this role
-      const keysResult = await db.execute(sql`
-        SELECT DISTINCT k.id, k.name
-        FROM keys_roles kr
-        JOIN \`keys\` k ON kr.key_id = k.id
-        WHERE kr.role_id = ${roleId} 
-          AND kr.workspace_id = ${workspaceId}
-        ORDER BY COALESCE(k.name, k.id)
-      `);
-
-      const keyRows = keysResult.rows as {
-        id: string;
-        name: string | null;
-      }[];
-
-      // Fetch all permissions for this role
-      const permissionsResult = await db.execute(sql`
-        SELECT DISTINCT p.name, p.slug, p.description, p.id
-        FROM roles_permissions rp
-        JOIN permissions p ON rp.permission_id = p.id
-        WHERE rp.role_id = ${roleId} 
-          AND rp.workspace_id = ${workspaceId}
-          AND p.name IS NOT NULL
-        ORDER BY p.name
-      `);
-
-      const permissionRows = permissionsResult.rows as {
-        id: string;
-        name: string;
-        slug: string;
-        description: string | null;
-      }[];
+        db
+          .selectDistinct({
+            id: permissions.id,
+            name: permissions.name,
+            slug: permissions.slug,
+            description: permissions.description,
+          })
+          .from(rolesPermissions)
+          .innerJoin(permissions, eq(rolesPermissions.permissionId, permissions.id))
+          .where(
+            and(eq(rolesPermissions.roleId, roleId), eq(rolesPermissions.workspaceId, workspaceId)),
+          )
+          .orderBy(permissions.name),
+      ]);
 
       return {
         roleId: role.id,
         name: role.name,
         description: role.description,
         lastUpdated: Number(role.updated_at_m),
-        keys: keyRows.map((row) => {
-          if (!row.id) {
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message: "Invalid key data retrieved",
-            });
-          }
+        keys: keyResults.map((row) => {
           return {
             id: row.id,
             name: row.name,
           };
         }),
-        permissions: permissionRows.map((row) => {
-          if (!row.name || !row.slug) {
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message: "Invalid permission data retrieved",
-            });
-          }
+        permissions: permissionResults.map((row) => {
           return {
             id: row.id,
             name: row.name,
