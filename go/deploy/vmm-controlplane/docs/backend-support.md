@@ -10,21 +10,21 @@ The VMM Control Plane supports multiple hypervisor backends through a unified AP
 graph TB
     subgraph "Workload Requirements"
         Fast[Fast Startup<br/>< 100ms]
-        Secure[High Security<br/>Minimal Attack Surface] 
+        Secure[High Security<br/>Minimal Attack Surface]
         Rich[Rich Features<br/>Full Device Support]
         Persistent[Long Running<br/>Stateful Apps]
     end
-    
+
     subgraph "Backend Recommendations"
         FC[Firecracker<br/>✅ Fast Startup<br/>✅ High Security<br/>❌ Limited Features<br/>❌ Short Lived]
         CH[Cloud Hypervisor<br/>⚠️ Medium Startup<br/>✅ Good Security<br/>✅ Rich Features<br/>✅ Persistent]
     end
-    
+
     Fast --> FC
     Secure --> FC
     Rich --> CH
     Persistent --> CH
-    
+
     style FC fill:#e8f5e8
     style CH fill:#fff3e0
 ```
@@ -101,11 +101,11 @@ graph LR
         A[VM Creation Request] --> B{Backend Type}
         B -->|Cloud Hypervisor| C[300-500ms]
         B -->|Firecracker| D[50-100ms]
-        
+
         C --> E[VM Ready]
         D --> E
     end
-    
+
     style D fill:#e8f5e8
     style C fill:#fff3e0
 ```
@@ -144,7 +144,7 @@ graph LR
 {
   "use_cases": [
     "Long-running applications",
-    "Database servers", 
+    "Database servers",
     "Web application servers",
     "Development environments",
     "Complex multi-tier applications"
@@ -184,7 +184,7 @@ graph LR
 {
   "use_cases": [
     "Function-as-a-Service (FaaS)",
-    "Serverless containers", 
+    "Serverless containers",
     "CI/CD runners",
     "Short-lived workloads",
     "Multi-tenant isolation"
@@ -225,22 +225,22 @@ graph LR
 ```mermaid
 flowchart TD
     Start([Choose Backend]) --> Duration{Workload Duration}
-    
+
     Duration -->|< 10 minutes| ShortLived[Short-lived]
     Duration -->|> 10 minutes| LongLived[Long-lived]
-    
+
     ShortLived --> Density{VM Density Important?}
     Density -->|Yes| FC1[Firecracker ✅]
     Density -->|No| Performance{Performance Critical?}
     Performance -->|Startup Speed| FC2[Firecracker ✅]
     Performance -->|Runtime Performance| Either1[Either Backend ✅]
-    
+
     LongLived --> Features{Need Advanced Features?}
     Features -->|Yes| CH1[Cloud Hypervisor ✅]
     Features -->|No| Scaling{Need Resource Scaling?}
     Scaling -->|Yes| CH2[Cloud Hypervisor ✅]
     Scaling -->|No| Either2[Either Backend ✅]
-    
+
     style FC1 fill:#e8f5e8
     style FC2 fill:#e8f5e8
     style CH1 fill:#fff3e0
@@ -306,7 +306,7 @@ VMs cannot be migrated between backends at runtime. To switch backends:
 - Device statistics
 - NUMA topology usage
 
-#### Firecracker Metrics  
+#### Firecracker Metrics
 - Startup latency distribution
 - VM density per host
 - Memory efficiency

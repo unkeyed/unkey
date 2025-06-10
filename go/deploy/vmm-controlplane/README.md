@@ -1,15 +1,16 @@
-# Cloud Hypervisor Control Plane
+# VMM Control Plane
 
-The Cloud Hypervisor Control Plane (CHCP) provides a controlled, observable frontend for creating and managing VMs on a host. It acts as an intermediary between the Deploy control plane and Cloud Hypervisor instances, offering a ConnectRPC-based API with comprehensive observability through OpenTelemetry.
+The VMM Control Plane (VMCP) provides a controlled, observable frontend for creating and managing VMs on a host. It acts as an intermediary between the Deploy control plane and VMM instances (Cloud Hypervisor, Firecracker), offering a ConnectRPC-based API with comprehensive observability through OpenTelemetry.
 
 ## Features
 
-- **ConnectRPC API** based on Cloud Hypervisor's [OpenAPI v3 spec](https://raw.githubusercontent.com/cloud-hypervisor/cloud-hypervisor/master/vmm/src/api/openapi/cloud-hypervisor.yaml)
+- **Unified ConnectRPC API** supporting multiple hypervisor backends
+- **Multi-backend support** for Cloud Hypervisor, Firecracker, and future VMMs
 - **Full OpenTelemetry instrumentation** with tracing and metrics
 - **Configurable trace sampling** with parent-based sampling and always-on error capture
 - **Dual metrics export** via OTLP push and Prometheus pull
 - **Health checks** with comprehensive system metrics
-- **Unix socket support** for Cloud Hypervisor communication
+- **Unix socket support** for VMM communication
 - **Graceful shutdown** handling
 
 ## Quick Start
@@ -18,12 +19,12 @@ The Cloud Hypervisor Control Plane (CHCP) provides a controlled, observable fron
 # Build the API server
 make build
 
-# Start with default configuration
-./build/chcp-api
+# Start with default configuration (Cloud Hypervisor backend)
+./build/vmcp-api
 
 # Or with OpenTelemetry enabled
-export UNKEY_CHCP_OTEL_ENABLED=true
-./build/chcp-api
+export UNKEY_VMCP_OTEL_ENABLED=true
+./build/vmcp-api
 ```
 
 ## Configuration
@@ -34,26 +35,27 @@ All configuration is done via environment variables:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `CHCP_PORT` | API server port | `8080` |
-| `CHCP_ADDRESS` | Bind address | `0.0.0.0` |
-| `CHCP_BACKEND` | Backend type | `cloudhypervisor` |
-| `CHCP_CH_ENDPOINT` | Cloud Hypervisor endpoint | `unix:///tmp/ch.sock` |
+| `UNKEY_VMCP_PORT` | API server port | `8080` |
+| `UNKEY_VMCP_ADDRESS` | Bind address | `0.0.0.0` |
+| `UNKEY_VMCP_BACKEND` | Backend type (cloudhypervisor/firecracker) | `cloudhypervisor` |
+| `UNKEY_VMCP_CH_ENDPOINT` | Cloud Hypervisor endpoint | `unix:///tmp/ch.sock` |
+| `UNKEY_VMCP_FC_ENDPOINT` | Firecracker endpoint | `unix:///tmp/firecracker.sock` |
 
 ### OpenTelemetry Configuration
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `UNKEY_CHCP_OTEL_ENABLED` | Enable OpenTelemetry | `false` |
-| `UNKEY_CHCP_OTEL_SERVICE_NAME` | Service name for telemetry | `cloud-hypervisor-controlplane` |
-| `UNKEY_CHCP_OTEL_SERVICE_VERSION` | Service version | `0.0.1` |
-| `UNKEY_CHCP_OTEL_SAMPLING_RATE` | Trace sampling rate (0.0-1.0) | `1.0` |
-| `UNKEY_CHCP_OTEL_ENDPOINT` | OTLP endpoint | `localhost:4318` |
-| `UNKEY_CHCP_OTEL_PROMETHEUS_ENABLED` | Enable Prometheus metrics | `true` |
-| `UNKEY_CHCP_OTEL_PROMETHEUS_PORT` | Prometheus metrics port | `9464` |
+| `UNKEY_VMCP_OTEL_ENABLED` | Enable OpenTelemetry | `false` |
+| `UNKEY_VMCP_OTEL_SERVICE_NAME` | Service name for telemetry | `vmm-controlplane` |
+| `UNKEY_VMCP_OTEL_SERVICE_VERSION` | Service version | `0.0.1` |
+| `UNKEY_VMCP_OTEL_SAMPLING_RATE` | Trace sampling rate (0.0-1.0) | `1.0` |
+| `UNKEY_VMCP_OTEL_ENDPOINT` | OTLP endpoint | `localhost:4318` |
+| `UNKEY_VMCP_OTEL_PROMETHEUS_ENABLED` | Enable Prometheus metrics | `true` |
+| `UNKEY_VMCP_OTEL_PROMETHEUS_PORT` | Prometheus metrics port | `9464` |
 
 ## Observability
 
-CHCP includes comprehensive observability with OpenTelemetry:
+VMCP includes comprehensive observability with OpenTelemetry:
 
 ### Start the Observability Stack
 
@@ -68,7 +70,7 @@ make o11y-stop
 
 ### Trace Sampling
 
-CHCP uses parent-based sampling with configurable ratios:
+VMCP uses parent-based sampling with configurable ratios:
 - **Parent-based**: Honors upstream sampling decisions for distributed traces
 - **Configurable ratio**: Set `UNKEY_VMCP_OTEL_SAMPLING_RATE` between 0.0 and 1.0
 - **Always-on for errors**: Errors are always captured regardless of sampling rate
@@ -88,14 +90,14 @@ Available metrics include:
 ## API Endpoints
 
 ### VM Management (ConnectRPC)
-- `/cloudhypervisor.v1.VmService/CreateVm`
-- `/cloudhypervisor.v1.VmService/DeleteVm`
-- `/cloudhypervisor.v1.VmService/BootVm`
-- `/cloudhypervisor.v1.VmService/ShutdownVm`
-- `/cloudhypervisor.v1.VmService/PauseVm`
-- `/cloudhypervisor.v1.VmService/ResumeVm`
-- `/cloudhypervisor.v1.VmService/RebootVm`
-- `/cloudhypervisor.v1.VmService/GetVmInfo`
+- `/vmm.v1.VmService/CreateVm`
+- `/vmm.v1.VmService/DeleteVm`
+- `/vmm.v1.VmService/BootVm`
+- `/vmm.v1.VmService/ShutdownVm`
+- `/vmm.v1.VmService/PauseVm`
+- `/vmm.v1.VmService/ResumeVm`
+- `/vmm.v1.VmService/RebootVm`
+- `/vmm.v1.VmService/GetVmInfo`
 
 ### Health & Metrics
 - `/health` - Simple health check

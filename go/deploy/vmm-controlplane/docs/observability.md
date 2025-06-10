@@ -1,10 +1,10 @@
 # Observability Guide
 
-This guide covers the OpenTelemetry implementation in the Cloud Hypervisor Control Plane.
+This guide covers the OpenTelemetry implementation in the VMM Control Plane.
 
 ## Overview
 
-CHCP includes comprehensive observability features powered by OpenTelemetry (OTEL):
+VMCP includes comprehensive observability features powered by OpenTelemetry (OTEL):
 - **Distributed tracing** for all RPC and HTTP requests
 - **Metrics collection** with dual export (OTLP push + Prometheus pull)
 - **Parent-based sampling** with configurable rates
@@ -25,16 +25,16 @@ make o11y
 # - OTLP gRPC: 0.0.0.0:4317
 ```
 
-### 2. Run CHCP with Telemetry
+### 2. Run VMCP with Telemetry
 
 ```bash
 # Enable OpenTelemetry
-export UNKEY_CHCP_OTEL_ENABLED=true
-export UNKEY_CHCP_OTEL_SAMPLING_RATE=1.0
-export UNKEY_CHCP_OTEL_ENDPOINT=localhost:4318
+export UNKEY_VMCP_OTEL_ENABLED=true
+export UNKEY_VMCP_OTEL_SAMPLING_RATE=1.0
+export UNKEY_VMCP_OTEL_ENDPOINT=localhost:4318
 
 # Start the API
-./build/chcp-api
+./build/vmcp-api
 ```
 
 ### 3. View Telemetry Data
@@ -49,17 +49,17 @@ export UNKEY_CHCP_OTEL_ENDPOINT=localhost:4318
 
 | Variable | Description | Default | Valid Values |
 |----------|-------------|---------|--------------|
-| `UNKEY_CHCP_OTEL_ENABLED` | Enable/disable OpenTelemetry | `false` | `true`, `false` |
-| `UNKEY_CHCP_OTEL_SERVICE_NAME` | Service name in telemetry | `cloud-hypervisor-controlplane` | Any string |
-| `UNKEY_CHCP_OTEL_SERVICE_VERSION` | Service version | `0.0.1` | Any string |
-| `UNKEY_CHCP_OTEL_SAMPLING_RATE` | Trace sampling ratio | `1.0` | `0.0` to `1.0` |
-| `UNKEY_CHCP_OTEL_ENDPOINT` | OTLP HTTP endpoint | `localhost:4318` | Host:port |
-| `UNKEY_CHCP_OTEL_PROMETHEUS_ENABLED` | Enable Prometheus endpoint | `true` | `true`, `false` |
-| `UNKEY_CHCP_OTEL_PROMETHEUS_PORT` | Prometheus metrics port | `9464` | Any port |
+| `UNKEY_VMCP_OTEL_ENABLED` | Enable/disable OpenTelemetry | `false` | `true`, `false` |
+| `UNKEY_VMCP_OTEL_SERVICE_NAME` | Service name in telemetry | `vmm-controlplane` | Any string |
+| `UNKEY_VMCP_OTEL_SERVICE_VERSION` | Service version | `0.0.1` | Any string |
+| `UNKEY_VMCP_OTEL_SAMPLING_RATE` | Trace sampling ratio | `1.0` | `0.0` to `1.0` |
+| `UNKEY_VMCP_OTEL_ENDPOINT` | OTLP HTTP endpoint | `localhost:4318` | Host:port |
+| `UNKEY_VMCP_OTEL_PROMETHEUS_ENABLED` | Enable Prometheus endpoint | `true` | `true`, `false` |
+| `UNKEY_VMCP_OTEL_PROMETHEUS_PORT` | Prometheus metrics port | `9464` | Any port |
 
 ### Sampling Configuration
 
-CHCP uses a sophisticated sampling strategy:
+VMCP uses a sophisticated sampling strategy:
 
 1. **Parent-Based Sampling**: If a request has an existing trace context (from an upstream service), we honor its sampling decision
 2. **Local Sampling Rate**: For new traces (no parent), we use `UNKEY_CHCP_OTEL_SAMPLING_RATE`
@@ -98,7 +98,7 @@ http://0.0.0.0:9464/metrics
 Example Prometheus configuration:
 ```yaml
 scrape_configs:
-  - job_name: 'chcp'
+  - job_name: 'vmcp'
     static_configs:
       - targets: ['your-server-ip:9464']
 ```
@@ -115,7 +115,7 @@ CHCP supports W3C Trace Context propagation:
 ### Trace Attributes
 
 Each span includes:
-- `service.name`: cloud-hypervisor-controlplane
+- `service.name`: vmm-controlplane
 - `service.version`: 0.0.1
 - `service.namespace`: unkey
 - `rpc.system`: connect_rpc
@@ -135,13 +135,13 @@ Each span includes:
 
 ```bash
 # Production settings
-export UNKEY_CHCP_OTEL_ENABLED=true
-export UNKEY_CHCP_OTEL_SERVICE_NAME=chcp-prod
-export UNKEY_CHCP_OTEL_SERVICE_VERSION=1.0.0
-export UNKEY_CHCP_OTEL_SAMPLING_RATE=0.05  # 5% sampling
-export UNKEY_CHCP_OTEL_ENDPOINT=otel-collector.internal:4318
-export UNKEY_CHCP_OTEL_PROMETHEUS_ENABLED=true
-export UNKEY_CHCP_OTEL_PROMETHEUS_PORT=9464
+export UNKEY_VMCP_OTEL_ENABLED=true
+export UNKEY_VMCP_OTEL_SERVICE_NAME=vmcp-prod
+export UNKEY_VMCP_OTEL_SERVICE_VERSION=1.0.0
+export UNKEY_VMCP_OTEL_SAMPLING_RATE=0.05  # 5% sampling
+export UNKEY_VMCP_OTEL_ENDPOINT=otel-collector.internal:4318
+export UNKEY_VMCP_OTEL_PROMETHEUS_ENABLED=true
+export UNKEY_VMCP_OTEL_PROMETHEUS_PORT=9464
 ```
 
 ### Security Considerations
@@ -156,9 +156,9 @@ export UNKEY_CHCP_OTEL_PROMETHEUS_PORT=9464
 
 ### No Traces Appearing
 
-1. Check OTEL is enabled: `UNKEY_CHCP_OTEL_ENABLED=true`
+1. Check OTEL is enabled: `UNKEY_VMCP_OTEL_ENABLED=true`
 2. Verify endpoint is reachable: `curl http://localhost:4318/v1/traces`
-3. Check sampling rate isn't 0: `UNKEY_CHCP_OTEL_SAMPLING_RATE > 0`
+3. Check sampling rate isn't 0: `UNKEY_VMCP_OTEL_SAMPLING_RATE > 0`
 4. Look for errors in logs about OTLP export failures
 
 ### High Memory Usage
@@ -179,19 +179,19 @@ If you see "conflicting Schema URL" errors:
 
 ```bash
 # Manual testing with different sampling rates
-export UNKEY_CHCP_OTEL_ENABLED=true
+export UNKEY_VMCP_OTEL_ENABLED=true
 
 # Test 0% sampling (only errors)
-export UNKEY_CHCP_OTEL_SAMPLING_RATE=0.0
-./build/chcp-api
+export UNKEY_VMCP_OTEL_SAMPLING_RATE=0.0
+./build/vmcp-api
 
 # Test 50% sampling
-export UNKEY_CHCP_OTEL_SAMPLING_RATE=0.5
-./build/chcp-api
+export UNKEY_VMCP_OTEL_SAMPLING_RATE=0.5
+./build/vmcp-api
 
 # Test 100% sampling
-export UNKEY_CHCP_OTEL_SAMPLING_RATE=1.0
-./build/chcp-api
+export UNKEY_VMCP_OTEL_SAMPLING_RATE=1.0
+./build/vmcp-api
 ```
 
 **Note**: ✅ **Unit tests implemented** for OTEL configuration in `internal/config/config_test.go`. Future work should include:
@@ -205,12 +205,12 @@ export UNKEY_CHCP_OTEL_SAMPLING_RATE=1.0
 make o11y
 
 # Terminal 2: Run with full sampling
-export UNKEY_CHCP_OTEL_ENABLED=true
-export UNKEY_CHCP_OTEL_SAMPLING_RATE=1.0
+export UNKEY_VMCP_OTEL_ENABLED=true
+export UNKEY_VMCP_OTEL_SAMPLING_RATE=1.0
 make run
 
 # Terminal 3: Generate test traffic
-curl -X POST http://localhost:8080/cloudhypervisor.v1.VmService/CreateVm \
+curl -X POST http://localhost:8080/vmm.v1.VmService/CreateVm \
   -H "Content-Type: application/json" \
   -d '{"cpus":{"boot_vcpus":2},"memory":{"size":1024}}'
 ```
@@ -232,14 +232,14 @@ For CI/CD pipelines, you can disable OTEL to avoid unnecessary overhead:
 ```yaml
 # GitHub Actions example
 env:
-  UNKEY_CHCP_OTEL_ENABLED: false
+  UNKEY_VMCP_OTEL_ENABLED: false
 ```
 
 Or enable with specific settings for integration tests:
 
 ```yaml
 env:
-  UNKEY_CHCP_OTEL_ENABLED: true
-  UNKEY_CHCP_OTEL_SAMPLING_RATE: 1.0
-  UNKEY_CHCP_OTEL_ENDPOINT: otel-collector:4318
+  UNKEY_VMCP_OTEL_ENABLED: true
+  UNKEY_VMCP_OTEL_SAMPLING_RATE: 1.0
+  UNKEY_VMCP_OTEL_ENDPOINT: otel-collector:4318
 ```

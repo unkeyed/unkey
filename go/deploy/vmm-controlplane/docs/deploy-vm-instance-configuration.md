@@ -36,7 +36,7 @@ graph TB
     FCImpl -->|Unix Socket| FCProcess[Firecracker Process]
     CHProcess --> VM1[VM Instance]
     FCProcess --> VM2[VM Instance]
-    
+
     style API fill:#e1f5fe
     style Service fill:#f3e5f5
     style Backend fill:#e8f5e8
@@ -53,22 +53,22 @@ sequenceDiagram
     participant Config as Configuration
     participant CH as Cloud Hypervisor
     participant FC as Firecracker
-    
+
     Client->>VMCP: Start VMM Control Plane
     VMCP->>Config: Read UNKEY_VMCP_BACKEND
-    
+
     alt Backend = cloudhypervisor
         Config-->>VMCP: cloudhypervisor
         VMCP->>CH: Initialize Cloud Hypervisor Client
         VMCP->>CH: Test Connection (Ping)
         CH-->>VMCP: Backend Ready
     else Backend = firecracker
-        Config-->>VMCP: firecracker  
+        Config-->>VMCP: firecracker
         VMCP->>FC: Initialize Firecracker Client
         VMCP->>FC: Test Connection (Ping)
         FC-->>VMCP: Backend Ready
     end
-    
+
     VMCP-->>Client: API Server Ready
 ```
 
@@ -81,7 +81,7 @@ The hypervisor backend is configured via environment variables:
 export UNKEY_VMCP_BACKEND=cloudhypervisor
 export UNKEY_VMCP_CH_ENDPOINT=unix:///tmp/ch.sock
 
-# Use Firecracker backend  
+# Use Firecracker backend
 export UNKEY_VMCP_BACKEND=firecracker
 export UNKEY_VMCP_FC_ENDPOINT=unix:///tmp/firecracker.sock
 ```
@@ -135,7 +135,7 @@ More comprehensive configuration with networking and console:
     },
     "boot": {
       "kernel_path": "/opt/kernels/vmlinux-5.15",
-      "initrd_path": "/opt/initrd/initramfs-5.15.img", 
+      "initrd_path": "/opt/initrd/initramfs-5.15.img",
       "kernel_args": "console=ttyS0 root=/dev/vda1 rw quiet"
     },
     "storage": [
@@ -145,7 +145,7 @@ More comprehensive configuration with networking and console:
         "is_root_device": true
       },
       {
-        "path": "/var/lib/vms/data.img", 
+        "path": "/var/lib/vms/data.img",
         "read_only": false,
         "is_root_device": false
       }
@@ -208,7 +208,7 @@ Enterprise-ready configuration with multiple resources:
         "mac_address": "52:54:00:01:02:10"
       },
       {
-        "id": "data", 
+        "id": "data",
         "tap_device": "vmtap-data",
         "mac_address": "52:54:00:01:02:20"
       }
@@ -236,7 +236,7 @@ Enterprise-ready configuration with multiple resources:
 |-------|------|----------|-------------|-----------------|
 | `size_bytes` | int64 | Yes | Memory size in bytes | All |
 
-### Boot Configuration (`boot`) 
+### Boot Configuration (`boot`)
 
 | Field | Type | Required | Description | Backend Support |
 |-------|------|----------|-------------|-----------------|
@@ -277,22 +277,22 @@ graph LR
         CH1[Cloud Hypervisor<br/>~300-500ms]
         FC1[Firecracker<br/>~50-100ms]
     end
-    
+
     subgraph "Memory Overhead"
         CH2[Cloud Hypervisor<br/>~50-100MB]
         FC2[Firecracker<br/>~5-15MB]
     end
-    
+
     subgraph "Device Support"
         CH3[Cloud Hypervisor<br/>Full virtio + Legacy]
         FC3[Firecracker<br/>Minimal virtio]
     end
-    
+
     subgraph "Use Cases"
         CH4[Cloud Hypervisor<br/>• Production workloads<br/>• Complex networking<br/>• Device passthrough<br/>• Long-running VMs]
         FC4[Firecracker<br/>• Serverless functions<br/>• Microservices<br/>• CI/CD runners<br/>• Short-lived VMs]
     end
-    
+
     style FC1 fill:#e8f5e8
     style FC2 fill:#e8f5e8
     style CH3 fill:#fff3e0
@@ -355,7 +355,7 @@ curl -X POST http://localhost:8080/vmm.v1.VmService/CreateVm \
     }
   }'
 
-# Create serverless VM with Firecracker  
+# Create serverless VM with Firecracker
 export UNKEY_VMCP_BACKEND=firecracker
 curl -X POST http://localhost:8080/vmm.v1.VmService/CreateVm \
   -H "Content-Type: application/json" \
@@ -383,7 +383,7 @@ sequenceDiagram
     participant API as VMM Control Plane
     participant Backend as Backend (CH/FC)
     participant VM as VM Instance
-    
+
     Note over Client,VM: VM Creation & Startup
     Client->>API: CreateVm(config)
     API->>API: Validate Configuration
@@ -391,14 +391,14 @@ sequenceDiagram
     Backend->>VM: Configure VM Resources
     Backend-->>API: VM ID
     API-->>Client: {vm_id: "vm-12345"}
-    
+
     Client->>API: BootVm(vm_id)
     API->>Backend: BootVM(vm_id)
     Backend->>VM: Start VM Process
     VM-->>Backend: VM Running
     Backend-->>API: Success
     API-->>Client: {success: true}
-    
+
     Note over Client,VM: VM Operations
     Client->>API: GetVmInfo(vm_id)
     API->>Backend: GetVMInfo(vm_id)
@@ -406,7 +406,7 @@ sequenceDiagram
     VM-->>Backend: State: Running
     Backend-->>API: {state: RUNNING, config: {...}}
     API-->>Client: VM Info Response
-    
+
     Note over Client,VM: VM Shutdown & Cleanup
     Client->>API: ShutdownVm(vm_id)
     API->>Backend: ShutdownVM(vm_id)
@@ -414,7 +414,7 @@ sequenceDiagram
     VM-->>Backend: VM Stopped
     Backend-->>API: Success
     API-->>Client: {success: true}
-    
+
     Client->>API: DeleteVm(vm_id)
     API->>Backend: DeleteVM(vm_id)
     Backend->>VM: Cleanup Resources
@@ -441,7 +441,7 @@ curl -X POST http://localhost:8080/vmm.v1.VmService/ShutdownVm \
   -H "Content-Type: application/json" \
   -d '{"vm_id": "vm-12345"}'
 
-# Delete VM  
+# Delete VM
 curl -X POST http://localhost:8080/vmm.v1.VmService/DeleteVm \
   -H "Content-Type: application/json" \
   -d '{"vm_id": "vm-12345"}'
@@ -502,7 +502,7 @@ curl -X POST http://localhost:8080/vmm.v1.VmService/DeleteVm \
     },
     "storage": [
       {
-        "path": "/var/lib/vms/db-system.img", 
+        "path": "/var/lib/vms/db-system.img",
         "is_root_device": true
       },
       {
@@ -527,7 +527,7 @@ curl -X POST http://localhost:8080/vmm.v1.VmService/DeleteVm \
 - Configure multiple network interfaces for traffic separation
 - Use block devices instead of files for production storage
 
-### Firecracker Optimization  
+### Firecracker Optimization
 
 - Keep memory allocation minimal for faster startup
 - Use read-only root filesystems when possible
@@ -537,7 +537,7 @@ curl -X POST http://localhost:8080/vmm.v1.VmService/DeleteVm \
 ## Security Best Practices
 
 1. **Isolation**: Use separate storage for different security domains
-2. **Read-only**: Make system images read-only when possible  
+2. **Read-only**: Make system images read-only when possible
 3. **Network Segmentation**: Use multiple network interfaces for different traffic types
 4. **Minimal Kernels**: Remove unnecessary kernel features to reduce attack surface
 5. **Console Logging**: Enable console logging for debugging and auditing

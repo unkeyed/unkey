@@ -15,7 +15,7 @@ graph LR
         OldClient[Cloud Hypervisor Client]
         CH1[Cloud Hypervisor Only]
     end
-    
+
     subgraph "After: Unified VMM API"
         NewAPI[vmm.v1.VmService]
         Backend[Backend Interface]
@@ -23,14 +23,14 @@ graph LR
         FC[Firecracker]
         Future[Future Backends...]
     end
-    
+
     OldAPI --> NewAPI
     OldClient --> Backend
     CH1 --> CH2
     Backend --> CH2
     Backend --> FC
     Backend --> Future
-    
+
     style NewAPI fill:#e1f5fe
     style Backend fill:#e8f5e8
     style CH2 fill:#fff3e0
@@ -247,7 +247,7 @@ package main
 import (
     "context"
     "net/http"
-    
+
     "connectrpc.com/connect"
     cloudhypervisorv1 "vmm-controlplane/gen/cloudhypervisor/v1"
     "vmm-controlplane/gen/cloudhypervisor/v1/cloudhypervisorv1connect"
@@ -258,7 +258,7 @@ func createVM() {
         http.DefaultClient,
         "http://localhost:8080",
     )
-    
+
     req := &cloudhypervisorv1.CreateVmRequest{
         Config: &cloudhypervisorv1.VmConfig{
             Cpu: &cloudhypervisorv1.CpuConfig{
@@ -269,7 +269,7 @@ func createVM() {
             },
         },
     }
-    
+
     resp, err := client.CreateVm(context.Background(), connect.NewRequest(req))
     // handle response
 }
@@ -282,7 +282,7 @@ package main
 import (
     "context"
     "net/http"
-    
+
     "connectrpc.com/connect"
     vmmv1 "vmm-controlplane/gen/vmm/v1"  // Updated import
     "vmm-controlplane/gen/vmm/v1/vmmv1connect"  // Updated import
@@ -293,7 +293,7 @@ func createVM() {
         http.DefaultClient,
         "http://localhost:8080",
     )
-    
+
     req := &vmmv1.CreateVmRequest{  // Updated type
         Config: &vmmv1.VmConfig{   // Updated type
             Cpu: &vmmv1.CpuConfig{ // Updated type
@@ -304,7 +304,7 @@ func createVM() {
             },
         },
     }
-    
+
     resp, err := client.CreateVm(context.Background(), connect.NewRequest(req))
     // handle response - same as before
 }
@@ -609,7 +609,7 @@ export UNKEY_VMCP_BACKEND=cloudhypervisor  # or firecracker
 ### Documentation
 
 - [VM Configuration Guide](deploy-vm-instance-configuration.md) - Updated for unified API
-- [API Reference](api-reference.md) - Complete endpoint documentation  
+- [API Reference](api-reference.md) - Complete endpoint documentation
 - [Backend Support Matrix](backend-support.md) - Backend comparison and selection
 - [VMM Control Plane Glossary](glossary.md) - Updated terminology
 

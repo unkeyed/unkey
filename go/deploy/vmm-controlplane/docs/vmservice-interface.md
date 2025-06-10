@@ -25,11 +25,11 @@ The unified API is defined in `proto/vmm/v1/vm.proto` and provides these operati
 ### Core VM Operations
 
 - **CreateVm**: Create a new virtual machine instance
-- **DeleteVm**: Remove a virtual machine instance  
+- **DeleteVm**: Remove a virtual machine instance
 - **BootVm**: Start a created virtual machine
 - **ShutdownVm**: Gracefully stop a running virtual machine
 - **PauseVm**: Pause a running virtual machine
-- **ResumeVm**: Resume a paused virtual machine  
+- **ResumeVm**: Resume a paused virtual machine
 - **RebootVm**: Restart a running virtual machine
 
 ### Information & Management
@@ -73,28 +73,28 @@ All hypervisor backends must implement the `Backend` interface defined in `inter
 type Backend interface {
     // CreateVM creates a new VM instance with the given configuration
     CreateVM(ctx context.Context, config *vmmv1.VmConfig) (string, error)
-    
+
     // DeleteVM removes a VM instance
     DeleteVM(ctx context.Context, vmID string) error
-    
+
     // BootVM starts a created VM
     BootVM(ctx context.Context, vmID string) error
-    
+
     // ShutdownVM gracefully stops a running VM
     ShutdownVM(ctx context.Context, vmID string) error
-    
+
     // PauseVM pauses a running VM
     PauseVM(ctx context.Context, vmID string) error
-    
+
     // ResumeVM resumes a paused VM
     ResumeVM(ctx context.Context, vmID string) error
-    
+
     // RebootVM restarts a running VM
     RebootVM(ctx context.Context, vmID string) error
-    
+
     // GetVMInfo retrieves current VM state and configuration
     GetVMInfo(ctx context.Context, vmID string) (*VMInfo, error)
-    
+
     // Ping checks if the backend is healthy and responsive
     Ping(ctx context.Context) error
 }
@@ -123,7 +123,7 @@ package qemu
 import (
     "context"
     "log/slog"
-    
+
     "vmm-controlplane/internal/backend/types"
     vmmv1 "vmm-controlplane/gen/vmm/v1"
 )
@@ -152,7 +152,7 @@ func (c *Client) CreateVM(ctx context.Context, config *vmmv1.VmConfig) (string, 
 
     // Convert unified config to QEMU command line or QMP commands
     qemuArgs := c.convertVMMConfigToQEMU(config)
-    
+
     // Launch QEMU process or send QMP commands
     vmID, err := c.launchQEMUVM(ctx, qemuArgs)
     if err != nil {
@@ -169,18 +169,18 @@ func (c *Client) CreateVM(ctx context.Context, config *vmmv1.VmConfig) (string, 
 func (c *Client) convertVMMConfigToQEMU(config *vmmv1.VmConfig) []string {
     // Convert unified config to QEMU command line arguments
     args := []string{"qemu-system-x86_64"}
-    
+
     // CPU configuration
     if config.Cpu != nil {
         args = append(args, "-smp", fmt.Sprintf("%d", config.Cpu.VcpuCount))
     }
-    
-    // Memory configuration  
+
+    // Memory configuration
     if config.Memory != nil {
         memMB := config.Memory.SizeBytes / (1024 * 1024)
         args = append(args, "-m", fmt.Sprintf("%d", memMB))
     }
-    
+
     // Boot configuration
     if config.Boot != nil {
         if config.Boot.KernelPath != "" {
@@ -193,23 +193,23 @@ func (c *Client) convertVMMConfigToQEMU(config *vmmv1.VmConfig) []string {
             args = append(args, "-append", config.Boot.KernelArgs)
         }
     }
-    
+
     // Storage devices
     for i, storage := range config.Storage {
         if storage.IsRootDevice {
-            args = append(args, "-drive", 
+            args = append(args, "-drive",
                 fmt.Sprintf("file=%s,format=raw,if=virtio", storage.Path))
         }
     }
-    
+
     // Network interfaces
     for _, network := range config.Network {
-        args = append(args, "-netdev", 
+        args = append(args, "-netdev",
             fmt.Sprintf("tap,id=%s,ifname=%s", network.Id, network.TapDevice))
         args = append(args, "-device",
             fmt.Sprintf("virtio-net-pci,netdev=%s,mac=%s", network.Id, network.MacAddress))
     }
-    
+
     return args
 }
 
@@ -219,18 +219,18 @@ func (c *Client) launchQEMUVM(ctx context.Context, args []string) (string, error
     // - QMP (QEMU Machine Protocol) over Unix socket
     // - Libvirt integration
     // - QEMU Guest Agent communication
-    
+
     // Example: Direct process execution
     vmID := fmt.Sprintf("qemu-vm-%d", time.Now().Unix())
-    
+
     cmd := exec.CommandContext(ctx, args[0], args[1:]...)
     if err := cmd.Start(); err != nil {
         return "", fmt.Errorf("failed to start qemu process: %w", err)
     }
-    
+
     // Store process reference for management
     c.storeVMProcess(vmID, cmd.Process)
-    
+
     return vmID, nil
 }
 
@@ -279,9 +279,9 @@ func LoadConfigWithSocketPath(socketPath string) (*Config, error) {
     chEndpoint := getEnvOrDefault("VMCP_CH_ENDPOINT", "unix:///tmp/ch.sock")
     fcEndpoint := getEnvOrDefault("VMCP_FC_ENDPOINT", "unix:///tmp/firecracker.sock")
     qemuEndpoint := getEnvOrDefault("VMCP_QEMU_ENDPOINT", "qemu:///system")  // Add QEMU
-    
+
     // ... rest of configuration
-    
+
     Backend: BackendConfig{
         Type: types.BackendType(getEnvOrDefault("VMCP_BACKEND", string(types.BackendTypeCloudHypervisor))),
         CloudHypervisor: CloudHypervisorConfig{
