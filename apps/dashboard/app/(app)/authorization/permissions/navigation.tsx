@@ -1,6 +1,21 @@
 "use client";
+import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
-import { ShieldKey } from "@unkey/icons";
+import { Plus, ShieldKey } from "@unkey/icons";
+import dynamic from "next/dynamic";
+
+const UpsertPermissionDialog = dynamic(
+  () => import("./components/upsert-permission").then((mod) => mod.UpsertPermissionDialog),
+  {
+    ssr: false,
+    loading: () => (
+      <NavbarActionButton disabled>
+        <Plus />
+        Create new permission
+      </NavbarActionButton>
+    ),
+  },
+);
 
 export function Navigation() {
   return (
@@ -11,6 +26,7 @@ export function Navigation() {
           Permissions
         </Navbar.Breadcrumbs.Link>
       </Navbar.Breadcrumbs>
+      <UpsertPermissionDialog triggerButton />
     </Navbar>
   );
 }

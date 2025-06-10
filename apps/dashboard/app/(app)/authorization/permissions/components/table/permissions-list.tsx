@@ -199,7 +199,7 @@ export const PermissionsList = () => {
         hasMore,
         headerContent: (
           <SelectionControls
-            selectedRoles={selectedPermissions}
+            selectedPermissions={selectedPermissions}
             setSelectedRoles={setSelectedPermissions}
           />
         ),

@@ -7,11 +7,14 @@ import { useRef, useState } from "react";
 import { useDeleteRole } from "../actions/components/hooks/use-delete-role";
 
 type SelectionControlsProps = {
-  selectedRoles: Set<string>;
+  selectedPermissions: Set<string>;
   setSelectedRoles: (keys: Set<string>) => void;
 };
 
-export const SelectionControls = ({ selectedRoles, setSelectedRoles }: SelectionControlsProps) => {
+export const SelectionControls = ({
+  selectedPermissions,
+  setSelectedRoles,
+}: SelectionControlsProps) => {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -25,14 +28,14 @@ export const SelectionControls = ({ selectedRoles, setSelectedRoles }: Selection
 
   const performRoleDeletion = () => {
     deleteRole.mutate({
-      roleIds: Array.from(selectedRoles),
+      roleIds: Array.from(selectedPermissions),
     });
   };
 
   return (
     <>
       <AnimatePresence>
-        {selectedRoles.size > 0 && (
+        {selectedPermissions.size > 0 && (
           <motion.div
             key="selection-controls"
             className="border-b border-grayA-3"
@@ -56,7 +59,7 @@ export const SelectionControls = ({ selectedRoles, setSelectedRoles }: Selection
           >
             <div className="flex justify-between items-center w-full p-[18px]">
               <div className="items-center flex gap-2">
-                <AnimatedCounter value={selectedRoles.size} />
+                <AnimatedCounter value={selectedPermissions.size} />
                 <div className="text-accent-9 text-[13px] leading-6">selected</div>
               </div>
               <div className="flex items-center gap-2">
@@ -93,9 +96,9 @@ export const SelectionControls = ({ selectedRoles, setSelectedRoles }: Selection
         triggerRef={deleteButtonRef}
         title="Confirm role deletion"
         description={`This action is irreversible. All data associated with ${
-          selectedRoles.size > 1 ? "these roles" : "this role"
+          selectedPermissions.size > 1 ? "these roles" : "this role"
         } will be permanently deleted.`}
-        confirmButtonText={`Delete role${selectedRoles.size > 1 ? "s" : ""}`}
+        confirmButtonText={`Delete role${selectedPermissions.size > 1 ? "s" : ""}`}
         cancelButtonText="Cancel"
         variant="danger"
       />
