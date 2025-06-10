@@ -1493,12 +1493,7 @@
             "description": "The duration of the rate limit window in milliseconds"
           }
         },
-        "required": [
-          "id",
-          "name",
-          "limit",
-          "duration"
-        ]
+        "required": ["id", "name", "limit", "duration"]
       },
       "V2LivenessResponseBody": {
         "type": "object",
