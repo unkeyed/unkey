@@ -1478,7 +1478,7 @@ type V2KeysSetPermissionsRequestBody struct {
 	//
 	// Unlike addPermissions (which only adds) or removePermissions (which only removes), this endpoint performs a wholesale replacement of the permission set.
 	Permissions []struct {
-		// Create When true, if a permission with this name doesn't exist, it will be automatically created on-the-fly. Only works when specifying name, not ID.
+		// Create When true, if a permission with this slug doesn't exist, it will be automatically created on-the-fly. Only works when specifying slug, not ID.
 		//
 		// SECURITY CONSIDERATIONS:
 		// - Requires the 'rbac.*.create_permission' permission on your root key
@@ -1488,11 +1488,11 @@ type V2KeysSetPermissionsRequestBody struct {
 		// - Typos with create=true will create unintended permissions that persist in your system
 		Create *bool `json:"create,omitempty"`
 
-		// Id The ID of an existing permission (begins with 'perm_'). Provide either ID or name for each permission, not both. Using ID is more precise and guarantees you're referencing the exact permission intended, regardless of name changes or duplicates. IDs are particularly useful in automation scripts and when migrating permissions between environments.
+		// Id The ID of an existing permission (begins with 'perm_'). Provide either ID or slug for each permission, not both. Using ID is more precise and guarantees you're referencing the exact permission intended, regardless of slug changes or duplicates. IDs are particularly useful in automation scripts and when migrating permissions between environments.
 		Id *string `json:"id,omitempty"`
 
-		// Name The name of the permission. Provide either ID or name for each permission, not both. Names must match exactly as defined in your permission system - including case sensitivity and the complete hierarchical path. Names are generally more human-readable but can be ambiguous if not carefully managed across your workspace.
-		Name *string `json:"name,omitempty"`
+		// Slug The slug of the permission. Provide either ID or slug for each permission, not both. Slugs must match exactly as defined in your permission system - including case sensitivity and the complete hierarchical path. Slugs are generally more human-readable but can be ambiguous if not carefully managed across your workspace.
+		Slug *string `json:"slug,omitempty"`
 	} `json:"permissions"`
 }
 

@@ -671,19 +671,19 @@
               "properties": {
                 "id": {
                   "type": "string",
-                  "description": "The ID of an existing permission (begins with 'perm_'). Provide either ID or name for each permission, not both. Using ID is more precise and guarantees you're referencing the exact permission intended, regardless of name changes or duplicates. IDs are particularly useful in automation scripts and when migrating permissions between environments.",
+                  "description": "The ID of an existing permission (begins with 'perm_'). Provide either ID or slug for each permission, not both. Using ID is more precise and guarantees you're referencing the exact permission intended, regardless of slug changes or duplicates. IDs are particularly useful in automation scripts and when migrating permissions between environments.",
                   "example": "perm_1n9McEIBSqy44Qy7hzWyM5",
                   "minLength": 3
                 },
-                "name": {
+                "slug": {
                   "type": "string",
-                  "description": "The name of the permission. Provide either ID or name for each permission, not both. Names must match exactly as defined in your permission system - including case sensitivity and the complete hierarchical path. Names are generally more human-readable but can be ambiguous if not carefully managed across your workspace.",
+                  "description": "The slug of the permission. Provide either ID or slug for each permission, not both. Slugs must match exactly as defined in your permission system - including case sensitivity and the complete hierarchical path. Slugs are generally more human-readable but can be ambiguous if not carefully managed across your workspace.",
                   "example": "documents.write",
                   "minLength": 1
                 },
                 "create": {
                   "type": "boolean",
-                  "description": "When true, if a permission with this name doesn't exist, it will be automatically created on-the-fly. Only works when specifying name, not ID.\n\nSECURITY CONSIDERATIONS:\n- Requires the 'rbac.*.create_permission' permission on your root key\n- Created permissions are permanent and visible throughout your workspace\n- Use carefully to avoid permission proliferation and inconsistency\n- Consider using a controlled process for permission creation instead\n- Typos with create=true will create unintended permissions that persist in your system",
+                  "description": "When true, if a permission with this slug doesn't exist, it will be automatically created on-the-fly. Only works when specifying slug, not ID.\n\nSECURITY CONSIDERATIONS:\n- Requires the 'rbac.*.create_permission' permission on your root key\n- Created permissions are permanent and visible throughout your workspace\n- Use carefully to avoid permission proliferation and inconsistency\n- Consider using a controlled process for permission creation instead\n- Typos with create=true will create unintended permissions that persist in your system",
                   "default": false
                 }
               },
@@ -3573,16 +3573,16 @@
                   }
                 },
                 "withNames": {
-                  "summary": "Add permissions using names",
-                  "description": "Using permission names is more readable and maintainable. Names must be unique within your workspace.",
+                  "summary": "Add permissions using slugs",
+                  "description": "Using permission slugs is more readable and maintainable. Slugs must be unique within your workspace.",
                   "value": {
                     "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
                     "permissions": [
                       {
-                        "name": "documents.write"
+                        "slug": "documents.write"
                       },
                       {
-                        "name": "documents.delete"
+                        "slug": "documents.delete"
                       }
                     ]
                   }
@@ -3594,10 +3594,10 @@
                     "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
                     "permissions": [
                       {
-                        "name": "documents.write"
+                        "slug": "documents.write"
                       },
                       {
-                        "name": "reports.export",
+                        "slug": "reports.export",
                         "create": true
                       },
                       {
@@ -3617,10 +3617,10 @@
                         "id": "perm_1n9McEIBSqy44Qy7hzWyM5"
                       },
                       {
-                        "name": "documents.delete"
+                        "slug": "documents.delete"
                       },
                       {
-                        "name": "reports.view",
+                        "slug": "reports.view",
                         "create": true
                       }
                     ]

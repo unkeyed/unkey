@@ -224,6 +224,14 @@ type Querier interface {
 	//  AND workspace_id = ?
 	//  LIMIT 1
 	FindPermissionByNameAndWorkspace(ctx context.Context, db DBTX, arg FindPermissionByNameAndWorkspaceParams) (Permission, error)
+	//FindPermissionBySlugAndWorkspace
+	//
+	//  SELECT id, workspace_id, name, slug, description, created_at_m, updated_at_m
+	//  FROM permissions
+	//  WHERE slug = ?
+	//  AND workspace_id = ?
+	//  LIMIT 1
+	FindPermissionBySlugAndWorkspace(ctx context.Context, db DBTX, arg FindPermissionBySlugAndWorkspaceParams) (Permission, error)
 	//FindPermissionByWorkspaceAndName
 	//
 	//  SELECT id, workspace_id, name, slug, description, created_at_m, updated_at_m FROM `permissions`

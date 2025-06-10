@@ -31,6 +31,7 @@ import (
 	v2PermissionsListRoles "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_list_roles"
 
 	v2KeysAddRoles "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_add_roles"
+	v2KeysSetPermissions "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_set_permissions"
 	v2KeysSetRoles "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_set_roles"
 
 	zen "github.com/unkeyed/unkey/go/pkg/zen"
@@ -333,6 +334,17 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		v2KeysSetRoles.New(v2KeysSetRoles.Services{
+			Logger:      svc.Logger,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Permissions: svc.Permissions,
+			Auditlogs:   svc.Auditlogs,
+		}),
+	)
+
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		v2KeysSetPermissions.New(v2KeysSetPermissions.Services{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
