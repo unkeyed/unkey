@@ -1,4 +1,6 @@
 "use client";
+import { PermissionsListControlCloud } from "./components/control-cloud";
+import { PermissionListControls } from "./components/controls";
 import { PermissionsList } from "./components/table/permissions-list";
 import { Navigation } from "./navigation";
 
@@ -7,8 +9,8 @@ export default function RolesPage() {
     <div>
       <Navigation />
       <div className="flex flex-col">
-        {/*   <RoleListControls /> */}
-        {/*   <RolesListControlCloud /> */}
+        <PermissionListControls />
+        <PermissionsListControlCloud />
         <PermissionsList />
       </div>
     </div>

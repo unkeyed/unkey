@@ -160,7 +160,7 @@ export const PermissionsList = () => {
       {
         key: "last_updated",
         header: "Last Updated",
-        width: "20%",
+        width: "12%",
         render: (permission) => {
           return (
             <LastUpdated

@@ -1,12 +1,12 @@
 import { ControlsContainer, ControlsLeft } from "@/components/logs/controls-container";
 import { LogsFilters } from "./components/logs-filters";
-import { RolesSearch } from "./components/logs-search";
+import { PermissionSearch } from "./components/logs-search";
 
-export function RoleListControls() {
+export function PermissionListControls() {
   return (
     <ControlsContainer>
       <ControlsLeft>
-        <RolesSearch />
+        <PermissionSearch />
         <LogsFilters />
       </ControlsLeft>
     </ControlsContainer>

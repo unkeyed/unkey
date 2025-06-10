@@ -4,27 +4,26 @@ import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import {
-  type RolesFilterField,
-  rolesFilterFieldConfig,
-  rolesListFilterFieldNames,
+  type PermissionsFilterField,
+  permissionsFilterFieldConfig,
+  permissionsListFilterFieldNames,
 } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 
-const FIELD_DISPLAY_CONFIG: Record<RolesFilterField, { label: string; shortcut: string }> = {
+const FIELD_DISPLAY_CONFIG: Record<PermissionsFilterField, { label: string; shortcut: string }> = {
   name: { label: "Name", shortcut: "n" },
   description: { label: "Description", shortcut: "d" },
-  permissionSlug: { label: "Permission slug", shortcut: "p" },
-  permissionName: { label: "Permission name", shortcut: "m" },
-  keyId: { label: "Key ID", shortcut: "k" },
-  keyName: { label: "Key name", shortcut: "y" },
+  slug: { label: "Slug", shortcut: "k" },
+  roleName: { label: "Role name", shortcut: "p" },
+  roleId: { label: "Role ID", shortcut: "m" },
 } as const;
 
 export const LogsFilters = () => {
   const { filters, updateFilters } = useFilters();
 
   // Generate filter items dynamically from schema
-  const filterItems = rolesListFilterFieldNames.map((fieldName) => {
-    const fieldConfig = rolesFilterFieldConfig[fieldName];
+  const filterItems = permissionsListFilterFieldNames.map((fieldName) => {
+    const fieldConfig = permissionsFilterFieldConfig[fieldName];
     const displayConfig = FIELD_DISPLAY_CONFIG[fieldName];
 
     if (!displayConfig) {

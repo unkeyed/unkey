@@ -4,7 +4,7 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { useFilters } from "../../../../hooks/use-filters";
 
-export const RolesSearch = () => {
+export const PermissionSearch = () => {
   const { filters, updateFilters } = useFilters();
 
   const queryLLMForStructuredOutput = trpc.authorization.roles.llmSearch.useMutation({

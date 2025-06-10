@@ -1,26 +1,25 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { ControlCloud } from "@/components/logs/control-cloud";
-import type { RolesFilterField } from "../../filters.schema";
+import type { PermissionsFilterField } from "../../filters.schema";
 import { useFilters } from "../../hooks/use-filters";
 
-const FIELD_DISPLAY_NAMES: Record<RolesFilterField, string> = {
+const FIELD_DISPLAY_NAMES: Record<PermissionsFilterField, string> = {
   name: "Name",
   description: "Description",
-  permissionSlug: "Permission slug",
-  permissionName: "Permission name",
-  keyId: "Key ID",
-  keyName: "Key name",
+  roleId: "Role ID",
+  roleName: "Role name",
+  slug: "Slug",
 } as const;
 
 const formatFieldName = (field: string): string => {
   if (field in FIELD_DISPLAY_NAMES) {
-    return FIELD_DISPLAY_NAMES[field as RolesFilterField];
+    return FIELD_DISPLAY_NAMES[field as PermissionsFilterField];
   }
 
   return field.charAt(0).toUpperCase() + field.slice(1);
 };
 
-export const RolesListControlCloud = () => {
+export const PermissionsListControlCloud = () => {
   const { filters, updateFilters, removeFilter } = useFilters();
 
   return (
