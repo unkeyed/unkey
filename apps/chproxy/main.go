@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -38,11 +39,15 @@ func main() {
 	}
 
 	httpClient = &http.Client{
-		Timeout: 5 * time.Second,
+		Timeout: 30 * time.Second, // For the whole connection lifecycle
 		Transport: &http.Transport{
+			Dial: (&net.Dialer{
+				Timeout:   5 * time.Second,
+				KeepAlive: 10 * time.Second,
+			}).Dial,
 			MaxIdleConns:        25,
 			MaxIdleConnsPerHost: 25,
-			IdleConnTimeout:     30 * time.Second,
+			IdleConnTimeout:     60 * time.Second,
 		},
 	}
 
