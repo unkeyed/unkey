@@ -203,7 +203,7 @@ export const UpsertPermissionDialog = ({
                 placeholder="manage.domains"
                 label="Slug"
                 maxLength={50}
-                description="A unique identifier used in code. These are not customer facing."
+                description="A unique identifier used in code."
                 error={errors.slug?.message}
                 variant="default"
                 required

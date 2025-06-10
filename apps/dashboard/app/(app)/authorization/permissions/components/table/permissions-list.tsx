@@ -200,7 +200,7 @@ export const PermissionsList = () => {
         headerContent: (
           <SelectionControls
             selectedPermissions={selectedPermissions}
-            setSelectedRoles={setSelectedPermissions}
+            setSelectedPermissions={setSelectedPermissions}
           />
         ),
         countInfoText: (

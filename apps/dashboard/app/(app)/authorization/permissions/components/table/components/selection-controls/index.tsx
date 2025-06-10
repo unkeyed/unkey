@@ -4,31 +4,31 @@ import { Trash, XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRef, useState } from "react";
-import { useDeleteRole } from "../actions/components/hooks/use-delete-role";
+import { useDeletePermission } from "../actions/components/hooks/use-delete-permission";
 
 type SelectionControlsProps = {
   selectedPermissions: Set<string>;
-  setSelectedRoles: (keys: Set<string>) => void;
+  setSelectedPermissions: (keys: Set<string>) => void;
 };
 
 export const SelectionControls = ({
   selectedPermissions,
-  setSelectedRoles,
+  setSelectedPermissions,
 }: SelectionControlsProps) => {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
-  const deleteRole = useDeleteRole(() => {
-    setSelectedRoles(new Set());
+  const deletePermission = useDeletePermission(() => {
+    setSelectedPermissions(new Set());
   });
 
   const handleDeleteButtonClick = () => {
     setIsDeleteConfirmOpen(true);
   };
 
-  const performRoleDeletion = () => {
-    deleteRole.mutate({
-      roleIds: Array.from(selectedPermissions),
+  const performPermissionDelete = () => {
+    deletePermission.mutate({
+      permissionIds: Array.from(selectedPermissions),
     });
   };
 
@@ -67,8 +67,8 @@ export const SelectionControls = ({
                   variant="outline"
                   size="sm"
                   className="text-gray-12 font-medium text-[13px]"
-                  disabled={deleteRole.isLoading}
-                  loading={deleteRole.isLoading}
+                  disabled={deletePermission.isLoading}
+                  loading={deletePermission.isLoading}
                   onClick={handleDeleteButtonClick}
                   ref={deleteButtonRef}
                 >
@@ -79,7 +79,7 @@ export const SelectionControls = ({
                   size="icon"
                   variant="ghost"
                   className="[&_svg]:size-[14px] ml-3"
-                  onClick={() => setSelectedRoles(new Set())}
+                  onClick={() => setSelectedPermissions(new Set())}
                 >
                   <XMark />
                 </Button>
@@ -92,13 +92,13 @@ export const SelectionControls = ({
       <ConfirmPopover
         isOpen={isDeleteConfirmOpen}
         onOpenChange={setIsDeleteConfirmOpen}
-        onConfirm={performRoleDeletion}
+        onConfirm={performPermissionDelete}
         triggerRef={deleteButtonRef}
         title="Confirm role deletion"
         description={`This action is irreversible. All data associated with ${
-          selectedPermissions.size > 1 ? "these roles" : "this role"
+          selectedPermissions.size > 1 ? "these permissions" : "this permission"
         } will be permanently deleted.`}
-        confirmButtonText={`Delete role${selectedPermissions.size > 1 ? "s" : ""}`}
+        confirmButtonText={`Delete permission${selectedPermissions.size > 1 ? "s" : ""}`}
         cancelButtonText="Cancel"
         variant="danger"
       />

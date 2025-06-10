@@ -3,7 +3,8 @@ import type { MenuItem } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_compon
 import { KeysTableActionPopover } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover";
 import { toast } from "@/components/ui/toaster";
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
-import { Clone, PenWriting3 } from "@unkey/icons";
+import { Clone, PenWriting3, Trash } from "@unkey/icons";
+import { DeletePermission } from "./components/delete-permission";
 import { EditPermission } from "./components/edit-permission";
 
 type PermissionsTableActionsProps = {
@@ -28,7 +29,7 @@ export const PermissionsTableActions = ({ permission }: PermissionsTableActionsP
           navigator.clipboard
             .writeText(JSON.stringify(permission))
             .then(() => {
-              toast.success("Role data copied to clipboard");
+              toast.success("Permission data copied to clipboard");
             })
             .catch((error) => {
               console.error("Failed to copy to clipboard:", error);
@@ -37,14 +38,12 @@ export const PermissionsTableActions = ({ permission }: PermissionsTableActionsP
         },
         divider: true,
       },
-      // {
-      //   id: "delete-permision",
-      //   label: "Delete permission",
-      //   icon: <Trash size="md-regular" />,
-      //   ActionComponent: (props) => (
-      //     <DeleteRole {...props} roleDetails={permission} />
-      //   ),
-      // },
+      {
+        id: "delete-permision",
+        label: "Delete permission",
+        icon: <Trash size="md-regular" />,
+        ActionComponent: (props) => <DeletePermission {...props} permissionDetails={permission} />,
+      },
     ];
   };
 
