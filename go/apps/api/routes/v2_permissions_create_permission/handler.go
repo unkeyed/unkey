@@ -142,9 +142,6 @@ func New(svc Services) zen.Route {
 				fault.Internal("database failed to commit transaction"), fault.Public("Failed to commit changes."),
 			)
 		}
-		if err != nil {
-			return err
-		}
 
 		// 5. Return success response
 		return s.JSON(http.StatusOK, Response{
