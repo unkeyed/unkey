@@ -1,10 +1,9 @@
 import type { ActionComponentProps } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover";
 import { ConfirmPopover } from "@/components/confirmation-popover";
-import { DialogContainer } from "@/components/dialog-container";
 import type { Roles } from "@/lib/trpc/routers/authorization/roles/query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TriangleWarning2 } from "@unkey/icons";
-import { Button, FormCheckbox } from "@unkey/ui";
+import { Button, DialogContainer, FormCheckbox } from "@unkey/ui";
 import { useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
