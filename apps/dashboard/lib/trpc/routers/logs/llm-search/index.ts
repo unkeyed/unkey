@@ -14,7 +14,7 @@ export const llmSearch = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
   .use(withLlmAccess())
-  .input(z.object({ timestamp: z.number() }))
+  .input(z.object({ query: z.string(), timestamp: z.number() }))
   .mutation(async ({ input, ctx }) => {
     return await getStructuredSearchFromLLM(openai, ctx.validatedQuery, input.timestamp);
   });
