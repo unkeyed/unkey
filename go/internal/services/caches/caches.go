@@ -18,8 +18,8 @@ type Caches struct {
 	RatelimitNamespaceByName cache.Cache[db.FindRatelimitNamespaceByNameParams, db.RatelimitNamespace]
 
 	// RatelimitOverridesMatch caches ratelimit override matches for specific criteria.
-	// Keys are db.FindRatelimitOverrideMatchesParams and values are slices of db.RatelimitOverride.
-	RatelimitOverridesMatch cache.Cache[db.FindRatelimitOverrideMatchesParams, []db.RatelimitOverride]
+	// Keys are db.ListRatelimitOverrideMatchesParams and values are slices of db.RatelimitOverride.
+	RatelimitOverridesMatch cache.Cache[db.ListRatelimitOverrideMatchesParams, []db.RatelimitOverride]
 
 	// KeyByHash caches API key lookups by their hash.
 	// Keys are string (hash) and values are db.Key.
@@ -90,7 +90,7 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
-	ratelimitOverridesMatch, err := cache.New(cache.Config[db.FindRatelimitOverrideMatchesParams, []db.RatelimitOverride]{
+	ratelimitOverridesMatch, err := cache.New(cache.Config[db.ListRatelimitOverrideMatchesParams, []db.RatelimitOverride]{
 		Fresh:    time.Minute,
 		Stale:    24 * time.Hour,
 		Logger:   config.Logger,

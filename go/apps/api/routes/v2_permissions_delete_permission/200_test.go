@@ -59,7 +59,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify the permission exists before deletion
-		perm, err := db.Query.FindPermissionById(ctx, h.DB.RO(), permissionID)
+		perm, err := db.Query.FindPermissionByID(ctx, h.DB.RO(), permissionID)
 		require.NoError(t, err)
 		require.Equal(t, permissionID, perm.ID)
 
@@ -80,12 +80,12 @@ func TestSuccess(t *testing.T) {
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 
 		// Verify the permission no longer exists
-		_, err = db.Query.FindPermissionById(ctx, h.DB.RO(), permissionID)
+		_, err = db.Query.FindPermissionByID(ctx, h.DB.RO(), permissionID)
 		require.Error(t, err, "Permission should no longer exist")
 		require.True(t, db.IsNotFound(err), "Error should be 'not found'")
 
 		// Verify audit log was created
-		auditLogs, err := db.Query.FindAuditLogTargetById(ctx, h.DB.RO(), permissionID)
+		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), permissionID)
 		require.NoError(t, err)
 		require.NotEmpty(t, auditLogs, "Audit log for permission deletion should exist")
 
@@ -117,7 +117,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify the permission exists before deletion
-		perm, err := db.Query.FindPermissionById(ctx, h.DB.RO(), permissionID)
+		perm, err := db.Query.FindPermissionByID(ctx, h.DB.RO(), permissionID)
 		require.NoError(t, err)
 		require.Equal(t, permissionID, perm.ID)
 		require.Equal(t, permissionDesc, perm.Description.String)
@@ -137,7 +137,7 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 
 		// Verify the permission no longer exists
-		_, err = db.Query.FindPermissionById(ctx, h.DB.RO(), permissionID)
+		_, err = db.Query.FindPermissionByID(ctx, h.DB.RO(), permissionID)
 		require.Error(t, err, "Permission should no longer exist")
 		require.True(t, db.IsNotFound(err), "Error should be 'not found'")
 	})

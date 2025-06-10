@@ -139,7 +139,7 @@ func TestCreateApi_BadRequest(t *testing.T) {
 			require.NotEmpty(t, res.Body.Data.ApiId)
 
 			// Verify the API was created with the correct name
-			api, err := db.Query.FindApiById(context.Background(), h.DB.RO(), res.Body.Data.ApiId)
+			api, err := db.Query.FindApiByID(context.Background(), h.DB.RO(), res.Body.Data.ApiId)
 			require.NoError(t, err)
 			require.Equal(t, "valid-api-name", api.Name)
 		}

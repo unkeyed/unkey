@@ -103,7 +103,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify role exists before deletion
-		_, err = db.Query.FindRoleById(ctx, h.DB.RO(), roleID)
+		_, err = db.Query.FindRoleByID(ctx, h.DB.RO(), roleID)
 		require.NoError(t, err)
 
 		// Delete the role
@@ -123,13 +123,13 @@ func TestSuccess(t *testing.T) {
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 
 		// Verify role has been deleted
-		_, err = db.Query.FindRoleById(ctx, h.DB.RO(), roleID)
+		_, err = db.Query.FindRoleByID(ctx, h.DB.RO(), roleID)
 		require.Error(t, err)
 		require.True(t, db.IsNotFound(err), "Role should not exist after deletion")
 
 		// Verify role_permissions have been deleted
 		for _, permID := range permIDs {
-			rolePerms, err := db.Query.FindRolePermissionsByRoleIdAndPermissionId(ctx, h.DB.RO(), db.FindRolePermissionsByRoleIdAndPermissionIdParams{
+			rolePerms, err := db.Query.FindRolePermissionByRoleAndPermissionID(ctx, h.DB.RO(), db.FindRolePermissionByRoleAndPermissionIDParams{
 				RoleID:       roleID,
 				PermissionID: permID,
 			})
@@ -138,7 +138,7 @@ func TestSuccess(t *testing.T) {
 		}
 
 		// Verify key_roles have been deleted
-		keyRoles, err := db.Query.FindKeyRolesByKeyIdAndRoleId(ctx, h.DB.RO(), db.FindKeyRolesByKeyIdAndRoleIdParams{
+		keyRoles, err := db.Query.FindKeyRoleByKeyAndRoleID(ctx, h.DB.RO(), db.FindKeyRoleByKeyAndRoleIDParams{
 			KeyID:  keyID,
 			RoleID: roleID,
 		})
@@ -162,7 +162,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify role exists before deletion
-		_, err = db.Query.FindRoleById(ctx, h.DB.RO(), roleID)
+		_, err = db.Query.FindRoleByID(ctx, h.DB.RO(), roleID)
 		require.NoError(t, err)
 
 		// Delete the role
@@ -182,7 +182,7 @@ func TestSuccess(t *testing.T) {
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 
 		// Verify role has been deleted
-		_, err = db.Query.FindRoleById(ctx, h.DB.RO(), roleID)
+		_, err = db.Query.FindRoleByID(ctx, h.DB.RO(), roleID)
 		require.Error(t, err)
 		require.True(t, db.IsNotFound(err), "Role should not exist after deletion")
 	})

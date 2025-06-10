@@ -311,7 +311,7 @@ func TestGetApiSuccessfully(t *testing.T) {
 		require.Equal(t, apiName, res.Body.Data.Name)
 
 		// Verify in database that timestamp is correct
-		api, err := db.Query.FindApiById(ctx, h.DB.RO(), apiID)
+		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
 		require.NoError(t, err)
 		require.Equal(t, creationTime, api.CreatedAtM, "Creation timestamp should match")
 	})
@@ -374,7 +374,7 @@ func TestGetApiSuccessfully(t *testing.T) {
 		require.Equal(t, apiName, res.Body.Data.Name)
 
 		// Verify database record matches exactly what's returned
-		api, err := db.Query.FindApiById(ctx, h.DB.RO(), apiID)
+		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
 		require.NoError(t, err)
 
 		// Verify core fields

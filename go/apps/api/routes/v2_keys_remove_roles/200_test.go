@@ -114,7 +114,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify key has both roles initially
-		currentRoles, err := db.Query.FindRolesForKey(ctx, h.DB.RO(), keyID)
+		currentRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.Len(t, currentRoles, 2)
 
@@ -143,13 +143,13 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, "developer", res.Body.Data[0].Name)
 
 		// Verify role was removed from key
-		finalRoles, err := db.Query.FindRolesForKey(ctx, h.DB.RO(), keyID)
+		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.Len(t, finalRoles, 1)
 		require.Equal(t, role2ID, finalRoles[0].ID)
 
 		// Verify audit log was created
-		auditLogs, err := db.Query.FindAuditLogTargetById(ctx, h.DB.RO(), keyID)
+		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.NotEmpty(t, auditLogs)
 
@@ -222,7 +222,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify key has role initially
-		currentRoles, err := db.Query.FindRolesForKey(ctx, h.DB.RO(), keyID)
+		currentRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.Len(t, currentRoles, 1)
 
@@ -249,7 +249,7 @@ func TestSuccess(t *testing.T) {
 		require.Len(t, res.Body.Data, 0) // No roles remaining
 
 		// Verify role was removed from key
-		finalRoles, err := db.Query.FindRolesForKey(ctx, h.DB.RO(), keyID)
+		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.Len(t, finalRoles, 0)
 	})
@@ -302,7 +302,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify key has no roles initially
-		currentRoles, err := db.Query.FindRolesForKey(ctx, h.DB.RO(), keyID)
+		currentRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.Len(t, currentRoles, 0)
 
@@ -329,7 +329,7 @@ func TestSuccess(t *testing.T) {
 		require.Len(t, res.Body.Data, 0) // Still no roles
 
 		// Verify key still has no roles
-		finalRoles, err := db.Query.FindRolesForKey(ctx, h.DB.RO(), keyID)
+		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.Len(t, finalRoles, 0)
 	})

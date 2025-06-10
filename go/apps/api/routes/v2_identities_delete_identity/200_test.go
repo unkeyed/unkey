@@ -158,7 +158,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		testIdentity := createTestIdentity(t, h, numberOfRatelimits)
 
 		// Verify rate limits exist
-		rateLimits, err := db.Query.FindRatelimitsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: testIdentity.ID, Valid: true})
+		rateLimits, err := db.Query.ListIdentityRatelimitsByID(ctx, h.DB.RO(), sql.NullString{String: testIdentity.ID, Valid: true})
 		require.NoError(t, err)
 		require.Len(t, rateLimits, numberOfRatelimits)
 
@@ -177,7 +177,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		require.Equal(t, sql.ErrNoRows, err)
 
 		// Verify rate limits still exist (they should remain for audit purposes)
-		rateLimitsAfterDeletion, err := db.Query.FindRatelimitsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: testIdentity.ID, Valid: true})
+		rateLimitsAfterDeletion, err := db.Query.ListIdentityRatelimitsByID(ctx, h.DB.RO(), sql.NullString{String: testIdentity.ID, Valid: true})
 		require.NoError(t, err)
 		require.Len(t, rateLimitsAfterDeletion, numberOfRatelimits, "rate limits should still exist after soft deletion")
 	})
@@ -240,7 +240,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 
 		// Verify audit logs were created
-		auditLogs, err := db.Query.FindAuditLogTargetById(ctx, h.DB.RO(), testIdentity.ID)
+		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), testIdentity.ID)
 		require.NoError(t, err)
 		require.GreaterOrEqual(t, len(auditLogs), 1, "should have audit logs for identity deletion")
 

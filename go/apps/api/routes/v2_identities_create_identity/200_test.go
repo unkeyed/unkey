@@ -91,7 +91,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		rateLimits, err := db.Query.FindRatelimitsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identityID, Valid: true})
+		rateLimits, err := db.Query.ListIdentityRatelimitsByID(ctx, h.DB.RO(), sql.NullString{String: identityID, Valid: true})
 		require.NoError(t, err)
 		require.Len(t, rateLimits, 1)
 		require.Equal(t, rateLimits[0].Name, "Requests")
@@ -179,7 +179,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, identity.ExternalID, req.ExternalId)
 
-		rateLimits, err := db.Query.FindRatelimitsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: res.Body.Data.IdentityId, Valid: true})
+		rateLimits, err := db.Query.ListIdentityRatelimitsByID(ctx, h.DB.RO(), sql.NullString{String: res.Body.Data.IdentityId, Valid: true})
 		require.NoError(t, err)
 		require.Len(t, rateLimits, len(identityRateLimits))
 
@@ -244,7 +244,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.Equal(t, *meta, dbMeta)
 
 		// Verify rate limits
-		rateLimits, err := db.Query.FindRatelimitsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: res.Body.Data.IdentityId, Valid: true})
+		rateLimits, err := db.Query.ListIdentityRatelimitsByID(ctx, h.DB.RO(), sql.NullString{String: res.Body.Data.IdentityId, Valid: true})
 		require.NoError(t, err)
 		require.Len(t, rateLimits, len(identityRateLimits))
 

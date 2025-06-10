@@ -88,7 +88,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify key has no roles initially
-		currentRoles, err := db.Query.FindRolesForKey(ctx, h.DB.RO(), keyID)
+		currentRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.Empty(t, currentRoles)
 
@@ -117,13 +117,13 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, "admin_set_single_id", res.Body.Data[0].Name)
 
 		// Verify role was added to key
-		finalRoles, err := db.Query.FindRolesForKey(ctx, h.DB.RO(), keyID)
+		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.Len(t, finalRoles, 1)
 		require.Equal(t, roleID, finalRoles[0].ID)
 
 		// Verify audit log was created
-		auditLogs, err := db.Query.FindAuditLogTargetById(ctx, h.DB.RO(), keyID)
+		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.NotEmpty(t, auditLogs)
 
@@ -211,7 +211,7 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, roleName, res.Body.Data[0].Name)
 
 		// Verify role was added to key
-		finalRoles, err := db.Query.FindRolesForKey(ctx, h.DB.RO(), keyID)
+		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.Len(t, finalRoles, 1)
 		require.Equal(t, roleID, finalRoles[0].ID)
@@ -312,12 +312,12 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, []string{"admin_set_multi", "editor_set_multi", "viewer_set_multi"}, roleNames)
 
 		// Verify roles were added to key
-		finalRoles, err := db.Query.FindRolesForKey(ctx, h.DB.RO(), keyID)
+		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.Len(t, finalRoles, 3)
 
 		// Verify audit logs were created (one for each role)
-		auditLogs, err := db.Query.FindAuditLogTargetById(ctx, h.DB.RO(), keyID)
+		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.NotEmpty(t, auditLogs)
 
@@ -397,7 +397,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify key has the old role
-		currentRoles, err := db.Query.FindRolesForKey(ctx, h.DB.RO(), keyID)
+		currentRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.Len(t, currentRoles, 1)
 		require.Equal(t, oldRoleID, currentRoles[0].ID)
@@ -428,13 +428,13 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, "editor_replace_new", res.Body.Data[0].Name)
 
 		// Verify only new role exists on key
-		finalRoles, err := db.Query.FindRolesForKey(ctx, h.DB.RO(), keyID)
+		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.Len(t, finalRoles, 1)
 		require.Equal(t, newRoleID, finalRoles[0].ID)
 
 		// Verify audit logs show both removal and addition
-		auditLogs, err := db.Query.FindAuditLogTargetById(ctx, h.DB.RO(), keyID)
+		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.NotEmpty(t, auditLogs)
 
@@ -510,7 +510,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify key has the role
-		currentRoles, err := db.Query.FindRolesForKey(ctx, h.DB.RO(), keyID)
+		currentRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.Len(t, currentRoles, 1)
 
@@ -536,12 +536,12 @@ func TestSuccess(t *testing.T) {
 		require.Len(t, res.Body.Data, 0) // No roles left
 
 		// Verify no roles exist on key
-		finalRoles, err := db.Query.FindRolesForKey(ctx, h.DB.RO(), keyID)
+		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.Len(t, finalRoles, 0)
 
 		// Verify audit log shows removal
-		auditLogs, err := db.Query.FindAuditLogTargetById(ctx, h.DB.RO(), keyID)
+		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.NotEmpty(t, auditLogs)
 
@@ -612,7 +612,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		// Count existing audit logs
-		auditLogsBefore, err := db.Query.FindAuditLogTargetById(ctx, h.DB.RO(), keyID)
+		auditLogsBefore, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		auditLogCountBefore := len(auditLogsBefore)
 
@@ -642,13 +642,13 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, "admin_no_change", res.Body.Data[0].Name)
 
 		// Verify role still exists on key
-		finalRoles, err := db.Query.FindRolesForKey(ctx, h.DB.RO(), keyID)
+		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.Len(t, finalRoles, 1)
 		require.Equal(t, roleID, finalRoles[0].ID)
 
 		// Verify no new audit logs were created (no changes)
-		auditLogsAfter, err := db.Query.FindAuditLogTargetById(ctx, h.DB.RO(), keyID)
+		auditLogsAfter, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		auditLogCountAfter := len(auditLogsAfter)
 		require.Equal(t, auditLogCountBefore, auditLogCountAfter, "No new audit logs should be created when no changes are made")
@@ -741,7 +741,7 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, "admin_set_both_ref", res.Body.Data[0].Name) // Should be role1, not role2
 
 		// Verify correct role was set
-		finalRoles, err := db.Query.FindRolesForKey(ctx, h.DB.RO(), keyID)
+		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.Len(t, finalRoles, 1)
 		require.Equal(t, role1ID, finalRoles[0].ID)

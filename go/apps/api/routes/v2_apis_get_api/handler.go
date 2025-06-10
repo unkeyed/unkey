@@ -63,7 +63,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// Get API from database
-		api, err := db.Query.FindApiById(ctx, svc.DB.RO(), req.ApiId)
+		api, err := db.Query.FindApiByID(ctx, svc.DB.RO(), req.ApiId)
 		if err != nil {
 			if db.IsNotFound(err) {
 				return fault.New("api not found",

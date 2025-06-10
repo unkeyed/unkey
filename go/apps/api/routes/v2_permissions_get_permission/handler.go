@@ -59,7 +59,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// 4. Get permission by ID
-		permission, err := db.Query.FindPermissionById(ctx, svc.DB.RO(), req.PermissionId)
+		permission, err := db.Query.FindPermissionByID(ctx, svc.DB.RO(), req.PermissionId)
 		if err != nil {
 			if db.IsNotFound(err) {
 				return fault.New("permission not found",

@@ -86,7 +86,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// 5. Get current direct permissions for the key
-		currentPermissions, err := db.Query.FindDirectPermissionsForKey(ctx, svc.DB.RO(), req.KeyId)
+		currentPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, svc.DB.RO(), req.KeyId)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -107,7 +107,7 @@ func New(svc Services) zen.Route {
 
 			if permRef.Id != nil {
 				// Find by ID
-				permission, err = db.Query.FindPermissionById(ctx, svc.DB.RO(), *permRef.Id)
+				permission, err = db.Query.FindPermissionByID(ctx, svc.DB.RO(), *permRef.Id)
 				if err != nil {
 					if db.IsNotFound(err) {
 						return fault.New("permission not found",
@@ -122,7 +122,7 @@ func New(svc Services) zen.Route {
 				}
 			} else if permRef.Name != nil {
 				// Find by name
-				permission, err = db.Query.FindPermissionByNameAndWorkspace(ctx, svc.DB.RO(), db.FindPermissionByNameAndWorkspaceParams{
+				permission, err = db.Query.FindPermissionByNameAndWorkspaceID(ctx, svc.DB.RO(), db.FindPermissionByNameAndWorkspaceIDParams{
 					Name:        *permRef.Name,
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 				})
@@ -184,7 +184,7 @@ func New(svc Services) zen.Route {
 
 			// Remove permissions
 			for _, permission := range permissionsToRemove {
-				err := db.Query.DeleteKeyPermissionByKeyIdAndPermissionId(ctx, tx, db.DeleteKeyPermissionByKeyIdAndPermissionIdParams{
+				err := db.Query.DeleteKeyPermissionByKeyAndPermissionID(ctx, tx, db.DeleteKeyPermissionByKeyAndPermissionIDParams{
 					KeyID:        req.KeyId,
 					PermissionID: permission.ID,
 				})

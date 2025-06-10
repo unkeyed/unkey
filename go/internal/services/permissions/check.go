@@ -17,7 +17,7 @@ func (s *service) Check(ctx context.Context, keyID string, query rbac.Permission
 	defer span.End()
 
 	permissions, err := s.cache.SWR(ctx, keyID, func(ctx context.Context) ([]string, error) {
-		return db.Query.FindPermissionsForKey(ctx, s.db.RO(), db.FindPermissionsForKeyParams{
+		return db.Query.ListPermissionsByKeyID(ctx, s.db.RO(), db.ListPermissionsByKeyIDParams{
 			KeyID: keyID,
 		})
 

@@ -89,7 +89,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// 5. Get current direct permissions for the key
-		currentPermissions, err := db.Query.FindDirectPermissionsForKey(ctx, svc.DB.RO(), req.KeyId)
+		currentPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, svc.DB.RO(), req.KeyId)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -104,7 +104,7 @@ func New(svc Services) zen.Route {
 
 			if permissionRef.Id != nil && *permissionRef.Id != "" {
 				// Find by ID
-				permission, err = db.Query.FindPermissionById(ctx, svc.DB.RO(), *permissionRef.Id)
+				permission, err = db.Query.FindPermissionByID(ctx, svc.DB.RO(), *permissionRef.Id)
 				if err != nil {
 					if db.IsNotFound(err) {
 						return fault.New("permission not found",
@@ -119,7 +119,7 @@ func New(svc Services) zen.Route {
 				}
 			} else if permissionRef.Slug != nil && *permissionRef.Slug != "" {
 				// Find by slug
-				permission, err = db.Query.FindPermissionBySlugAndWorkspace(ctx, svc.DB.RO(), db.FindPermissionBySlugAndWorkspaceParams{
+				permission, err = db.Query.FindPermissionBySlugAndWorkspaceID(ctx, svc.DB.RO(), db.FindPermissionBySlugAndWorkspaceIDParams{
 					Slug:        *permissionRef.Slug,
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 				})
@@ -145,7 +145,7 @@ func New(svc Services) zen.Route {
 							}
 
 							// Fetch the newly created permission
-							permission, err = db.Query.FindPermissionById(ctx, svc.DB.RO(), permissionID)
+							permission, err = db.Query.FindPermissionByID(ctx, svc.DB.RO(), permissionID)
 							if err != nil {
 								return fault.Wrap(err,
 									fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -231,7 +231,7 @@ func New(svc Services) zen.Route {
 
 		// Remove permissions that are no longer needed
 		for _, permissionID := range permissionsToRemove {
-			err := db.Query.DeleteKeyPermissionByKeyIdAndPermissionId(ctx, tx, db.DeleteKeyPermissionByKeyIdAndPermissionIdParams{
+			err := db.Query.DeleteKeyPermissionByKeyAndPermissionID(ctx, tx, db.DeleteKeyPermissionByKeyAndPermissionIDParams{
 				KeyID:        req.KeyId,
 				PermissionID: permissionID,
 			})
@@ -339,7 +339,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// 10. Get final state of permissions and build response
-		finalPermissions, err := db.Query.FindDirectPermissionsForKey(ctx, svc.DB.RO(), req.KeyId)
+		finalPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, svc.DB.RO(), req.KeyId)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

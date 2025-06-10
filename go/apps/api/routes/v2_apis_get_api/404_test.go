@@ -95,7 +95,7 @@ func TestGetApiNotFound(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify it exists
-		api, err := db.Query.FindApiById(ctx, h.DB.RO(), apiID)
+		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
 		require.NoError(t, err)
 		require.Equal(t, apiID, api.ID)
 		require.False(t, api.DeletedAtM.Valid)
@@ -108,7 +108,7 @@ func TestGetApiNotFound(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify it's marked as deleted
-		deletedApi, err := db.Query.FindApiById(ctx, h.DB.RO(), apiID)
+		deletedApi, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
 		require.NoError(t, err)
 		require.True(t, deletedApi.DeletedAtM.Valid)
 

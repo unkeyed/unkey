@@ -74,7 +74,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions")
 
 		// Verify the permission still exists (wasn't deleted)
-		perm, err := db.Query.FindPermissionById(ctx, h.DB.RO(), permissionID)
+		perm, err := db.Query.FindPermissionByID(ctx, h.DB.RO(), permissionID)
 		require.NoError(t, err)
 		require.Equal(t, permissionID, perm.ID)
 	})
@@ -111,7 +111,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "does not exist")
 
 		// Verify the permission still exists (wasn't deleted)
-		perm, err := db.Query.FindPermissionById(ctx, h.DB.RO(), permissionID)
+		perm, err := db.Query.FindPermissionByID(ctx, h.DB.RO(), permissionID)
 		require.NoError(t, err)
 		require.Equal(t, permissionID, perm.ID)
 	})

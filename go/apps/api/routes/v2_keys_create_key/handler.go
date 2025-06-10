@@ -73,7 +73,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// 4. Validate API exists and belongs to workspace
-		api, err := db.Query.FindApiById(ctx, svc.DB.RO(), req.ApiId)
+		api, err := db.Query.FindApiByID(ctx, svc.DB.RO(), req.ApiId)
 		if err != nil {
 			if db.IsNotFound(err) {
 				return fault.New("api not found",
@@ -98,11 +98,8 @@ func New(svc Services) zen.Route {
 		// 5. Generate key using key service
 		keyID := uid.New(uid.KeyPrefix)
 		keyResult, err := svc.Keys.CreateKey(ctx, keys.CreateKeyRequest{
-			Prefix:      ptr.SafeDeref(req.Prefix),
-			ByteLength:  ptr.SafeDeref(req.ByteLength, 16),
-			KeyID:       keyID,
-			KeyringID:   api.KeyAuthID.String,
-			WorkspaceID: auth.AuthorizedWorkspaceID,
+			Prefix:     ptr.SafeDeref(req.Prefix),
+			ByteLength: ptr.SafeDeref(req.ByteLength, 16),
 		})
 		if err != nil {
 			return err
@@ -114,7 +111,7 @@ func New(svc Services) zen.Route {
 		var resolvedPermissions []db.Permission
 		if req.Permissions != nil {
 			for _, permName := range *req.Permissions {
-				permission, err := db.Query.FindPermissionByNameAndWorkspace(ctx, svc.DB.RO(), db.FindPermissionByNameAndWorkspaceParams{
+				permission, err := db.Query.FindPermissionByNameAndWorkspaceID(ctx, svc.DB.RO(), db.FindPermissionByNameAndWorkspaceIDParams{
 					Name:        permName,
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 				})
@@ -138,7 +135,7 @@ func New(svc Services) zen.Route {
 		var resolvedRoles []db.Role
 		if req.Roles != nil {
 			for _, roleName := range *req.Roles {
-				role, err := db.Query.FindRoleByNameAndWorkspace(ctx, svc.DB.RO(), db.FindRoleByNameAndWorkspaceParams{
+				role, err := db.Query.FindRoleByNameAndWorkspaceID(ctx, svc.DB.RO(), db.FindRoleByNameAndWorkspaceIDParams{
 					Name:        roleName,
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 				})
@@ -175,7 +172,7 @@ func New(svc Services) zen.Route {
 
 		// 9. Insert the key
 		insertKeyParams := db.InsertKeyParams{
-			ID:                keyResult.KeyID,
+			ID:                keyID,
 			KeyringID:         api.KeyAuthID.String,
 			Hash:              keyResult.Hash,
 			Start:             keyResult.Start,
@@ -236,7 +233,7 @@ func New(svc Services) zen.Route {
 				err = db.Query.InsertKeyRatelimit(ctx, tx, db.InsertKeyRatelimitParams{
 					ID:          ratelimitID,
 					WorkspaceID: auth.AuthorizedWorkspaceID,
-					KeyID:       sql.NullString{String: keyResult.KeyID, Valid: true},
+					KeyID:       sql.NullString{String: keyID, Valid: true},
 					Name:        ratelimit.Name,
 					Limit:       int32(ratelimit.Limit),
 					Duration:    int64(ratelimit.Duration),
@@ -254,8 +251,8 @@ func New(svc Services) zen.Route {
 		// 11. Handle permissions if provided
 		var auditLogs []auditlog.AuditLog
 		for _, permission := range resolvedPermissions {
-			err := db.Query.InsertKeyPermission(ctx, tx, db.InsertKeyPermissionParams{
-				KeyID:        keyResult.KeyID,
+			err = db.Query.InsertKeyPermission(ctx, svc.DB.RW(), db.InsertKeyPermissionParams{
+				KeyID:        keyID,
 				PermissionID: permission.ID,
 				WorkspaceID:  auth.AuthorizedWorkspaceID,
 				CreatedAt:    now,
@@ -273,13 +270,13 @@ func New(svc Services) zen.Route {
 				ActorType:   auditlog.RootKeyActor,
 				ActorID:     auth.KeyID,
 				ActorName:   "root key",
-				Display:     fmt.Sprintf("Added permission %s to key %s", permission.Name, keyResult.KeyID),
+				Display:     fmt.Sprintf("Added permission %s to key %s", permission.Name, keyID),
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
 					{
 						Type:        "key",
-						ID:          keyResult.KeyID,
+						ID:          keyID,
 						Name:        insertKeyParams.Name.String,
 						DisplayName: insertKeyParams.Name.String,
 					},
@@ -296,7 +293,7 @@ func New(svc Services) zen.Route {
 		// 12. Handle roles if provided
 		for _, role := range resolvedRoles {
 			err := db.Query.InsertKeyRole(ctx, tx, db.InsertKeyRoleParams{
-				KeyID:       keyResult.KeyID,
+				KeyID:       keyID,
 				RoleID:      role.ID,
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				CreatedAtM:  now,
@@ -314,13 +311,13 @@ func New(svc Services) zen.Route {
 				ActorType:   auditlog.RootKeyActor,
 				ActorID:     auth.KeyID,
 				ActorName:   "root key",
-				Display:     fmt.Sprintf("Added role %s to key %s", role.Name, keyResult.KeyID),
+				Display:     fmt.Sprintf("Added role %s to key %s", role.Name, keyID),
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
 					{
 						Type:        "key",
-						ID:          keyResult.KeyID,
+						ID:          keyID,
 						Name:        insertKeyParams.Name.String,
 						DisplayName: insertKeyParams.Name.String,
 					},
@@ -341,13 +338,13 @@ func New(svc Services) zen.Route {
 			ActorType:   auditlog.RootKeyActor,
 			ActorID:     auth.KeyID,
 			ActorName:   "root key",
-			Display:     fmt.Sprintf("Created key %s", keyResult.KeyID),
+			Display:     fmt.Sprintf("Created key %s", keyID),
 			RemoteIP:    s.Location(),
 			UserAgent:   s.UserAgent(),
 			Resources: []auditlog.AuditLogResource{
 				{
 					Type:        "key",
-					ID:          keyResult.KeyID,
+					ID:          keyID,
 					Name:        insertKeyParams.Name.String,
 					DisplayName: insertKeyParams.Name.String,
 				},
@@ -384,7 +381,7 @@ func New(svc Services) zen.Route {
 				RequestId: s.RequestID(),
 			},
 			Data: openapi.KeysCreateKeyResponseData{
-				KeyId: keyResult.KeyID,
+				KeyId: keyID,
 				Key:   keyResult.Key,
 			},
 		})

@@ -67,7 +67,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		// Ensure API exists before deletion
-		apiBeforeDelete, err := db.Query.FindApiById(ctx, h.DB.RO(), apiID)
+		apiBeforeDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
 		require.NoError(t, err)
 
 		require.Equal(t, apiID, apiBeforeDelete.ID)
@@ -90,7 +90,7 @@ func TestSuccess(t *testing.T) {
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 
 		// Verify API is marked as deleted
-		apiAfterDelete, err := db.Query.FindApiById(ctx, h.DB.RO(), apiID)
+		apiAfterDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
 		require.NoError(t, err) // Should still find it, just marked as deleted
 		require.True(t, apiAfterDelete.DeletedAtM.Valid)
 	})
@@ -135,7 +135,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		// Ensure API exists before deletion
-		apiBeforeDelete, err := db.Query.FindApiById(ctx, h.DB.RO(), apiID)
+		apiBeforeDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
 		require.NoError(t, err)
 		require.Equal(t, apiID, apiBeforeDelete.ID)
 		require.False(t, apiBeforeDelete.DeletedAtM.Valid)
@@ -157,7 +157,7 @@ func TestSuccess(t *testing.T) {
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 
 		// Verify API is marked as deleted
-		apiAfterDelete, err := db.Query.FindApiById(ctx, h.DB.RO(), apiID)
+		apiAfterDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
 		require.NoError(t, err)
 		require.True(t, apiAfterDelete.DeletedAtM.Valid)
 
@@ -195,7 +195,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify the API was created
-		apiBeforeDelete, err := db.Query.FindApiById(ctx, h.DB.RO(), apiID)
+		apiBeforeDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
 		require.NoError(t, err)
 		require.Equal(t, apiID, apiBeforeDelete.ID)
 		require.Equal(t, apiName, apiBeforeDelete.Name)
@@ -218,7 +218,7 @@ func TestSuccess(t *testing.T) {
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 
 		// Verify API is marked as deleted
-		apiAfterDelete, err := db.Query.FindApiById(ctx, h.DB.RO(), apiID)
+		apiAfterDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
 		require.NoError(t, err)
 		require.True(t, apiAfterDelete.DeletedAtM.Valid)
 	})

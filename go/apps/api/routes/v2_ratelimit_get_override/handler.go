@@ -75,7 +75,7 @@ func New(svc Services) zen.Route {
 			return err
 		}
 
-		override, err := db.Query.FindRatelimitOverridesByIdentifier(ctx, svc.DB.RO(), db.FindRatelimitOverridesByIdentifierParams{
+		override, err := db.Query.FindRatelimitOverrideByIdentifier(ctx, svc.DB.RO(), db.FindRatelimitOverrideByIdentifierParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			NamespaceID: namespace.ID,
 			Identifier:  req.Identifier,

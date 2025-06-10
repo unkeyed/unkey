@@ -59,7 +59,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// 4. Get role by ID
-		role, err := db.Query.FindRoleById(ctx, svc.DB.RO(), req.RoleId)
+		role, err := db.Query.FindRoleByID(ctx, svc.DB.RO(), req.RoleId)
 		if err != nil {
 			if db.IsNotFound(err) {
 				return fault.New("role not found",
@@ -82,7 +82,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// 6. Fetch permissions associated with the role
-		rolePermissions, err := db.Query.FindPermissionsByRoleId(ctx, svc.DB.RO(), req.RoleId)
+		rolePermissions, err := db.Query.ListPermissionsByRoleID(ctx, svc.DB.RO(), req.RoleId)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

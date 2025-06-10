@@ -105,7 +105,7 @@ func New(svc Services) zen.Route {
 		}()
 
 		// Check if the override exists before deleting
-		override, err := db.Query.FindRatelimitOverridesByIdentifier(ctx, tx, db.FindRatelimitOverridesByIdentifierParams{
+		override, err := db.Query.FindRatelimitOverrideByIdentifier(ctx, tx, db.FindRatelimitOverrideByIdentifierParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			NamespaceID: namespace.ID,
 			Identifier:  req.Identifier,

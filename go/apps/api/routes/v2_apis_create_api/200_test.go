@@ -59,7 +59,7 @@ func TestCreateApiSuccessfully(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		api, err := db.Query.FindApiById(ctx, h.DB.RO(), apiID)
+		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
 		require.NoError(t, err)
 		require.Equal(t, apiName, api.Name)
 		require.Equal(t, h.Resources().UserWorkspace.ID, api.WorkspaceID)
@@ -80,7 +80,7 @@ func TestCreateApiSuccessfully(t *testing.T) {
 		require.NotEmpty(t, res.Body.Data.ApiId)
 
 		// Verify the API in the database
-		api, err := db.Query.FindApiById(ctx, h.DB.RO(), res.Body.Data.ApiId)
+		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), res.Body.Data.ApiId)
 		require.NoError(t, err)
 		require.Equal(t, apiName, api.Name)
 		require.Equal(t, h.Resources().UserWorkspace.ID, api.WorkspaceID)
@@ -97,7 +97,7 @@ func TestCreateApiSuccessfully(t *testing.T) {
 		require.False(t, keyAuth.DeletedAtM.Valid)
 
 		// Verify the audit log was created
-		auditLogs, err := db.Query.FindAuditLogTargetById(ctx, h.DB.RO(), res.Body.Data.ApiId)
+		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), res.Body.Data.ApiId)
 		require.NoError(t, err)
 		require.GreaterOrEqual(t, len(auditLogs), 1)
 
@@ -138,7 +138,7 @@ func TestCreateApiSuccessfully(t *testing.T) {
 
 		// Verify each API in the database
 		for i, apiId := range apiIds {
-			api, err := db.Query.FindApiById(ctx, h.DB.RO(), apiId)
+			api, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiId)
 			require.NoError(t, err)
 			require.Equal(t, apiNames[i], api.Name)
 		}
@@ -154,7 +154,7 @@ func TestCreateApiSuccessfully(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
 
-		api, err := db.Query.FindApiById(ctx, h.DB.RO(), res.Body.Data.ApiId)
+		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), res.Body.Data.ApiId)
 		require.NoError(t, err)
 		require.Equal(t, apiName, api.Name)
 	})
@@ -169,7 +169,7 @@ func TestCreateApiSuccessfully(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
 
-		api, err := db.Query.FindApiById(ctx, h.DB.RO(), res.Body.Data.ApiId)
+		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), res.Body.Data.ApiId)
 		require.NoError(t, err)
 		require.Equal(t, apiName, api.Name)
 	})
@@ -186,7 +186,7 @@ func TestCreateApiSuccessfully(t *testing.T) {
 		require.NotEmpty(t, res.Body.Data.ApiId)
 
 		// Verify the API in the database
-		api, err := db.Query.FindApiById(ctx, h.DB.RO(), res.Body.Data.ApiId)
+		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), res.Body.Data.ApiId)
 		require.NoError(t, err)
 		require.Equal(t, apiName, api.Name)
 
@@ -208,7 +208,7 @@ func TestCreateApiSuccessfully(t *testing.T) {
 		require.NotEmpty(t, res.Body.Data.ApiId)
 
 		// Verify the API in the database
-		api, err := db.Query.FindApiById(ctx, h.DB.RO(), res.Body.Data.ApiId)
+		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), res.Body.Data.ApiId)
 		require.NoError(t, err)
 		require.Equal(t, apiName, api.Name)
 		require.Equal(t, h.Resources().UserWorkspace.ID, api.WorkspaceID)
@@ -227,7 +227,7 @@ func TestCreateApiSuccessfully(t *testing.T) {
 		require.NotEmpty(t, res.Body.Data.ApiId)
 
 		// Verify the API in the database
-		api, err := db.Query.FindApiById(ctx, h.DB.RO(), res.Body.Data.ApiId)
+		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), res.Body.Data.ApiId)
 		require.NoError(t, err)
 		require.Equal(t, apiName, api.Name)
 		require.Equal(t, h.Resources().UserWorkspace.ID, api.WorkspaceID)
@@ -246,7 +246,7 @@ func TestCreateApiSuccessfully(t *testing.T) {
 		require.NotEmpty(t, res.Body.Data.ApiId)
 
 		// Verify the API in the database
-		api, err := db.Query.FindApiById(ctx, h.DB.RO(), res.Body.Data.ApiId)
+		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), res.Body.Data.ApiId)
 		require.NoError(t, err)
 		require.Equal(t, apiName, api.Name)
 		require.Equal(t, h.Resources().UserWorkspace.ID, api.WorkspaceID)

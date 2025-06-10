@@ -77,7 +77,7 @@ func TestWorkspacePermissions(t *testing.T) {
 	require.NotNil(t, res.Body)
 
 	// Verify the override was NOT deleted
-	override, err := db.Query.FindRatelimitOverrideById(ctx, h.DB.RO(), db.FindRatelimitOverrideByIdParams{
+	override, err := db.Query.FindRatelimitOverrideByID(ctx, h.DB.RO(), db.FindRatelimitOverrideByIDParams{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 		OverrideID:  overrideID,
 	})

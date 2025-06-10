@@ -220,7 +220,7 @@ func New(svc Services) zen.Route {
 			},
 		}
 
-		ratelimits, err := db.Query.FindRatelimitsByIdentityID(ctx, tx, sql.NullString{String: identity.ID, Valid: true})
+		ratelimits, err := db.Query.ListIdentityRatelimitsByID(ctx, tx, sql.NullString{String: identity.ID, Valid: true})
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -292,7 +292,7 @@ func deleteOldIdentity(ctx context.Context, tx *sql.Tx, workspaceID, externalID 
 		)
 	}
 
-	err = db.Query.DeleteRatelimitsByIdentityID(ctx, tx, sql.NullString{String: oldIdentity.ID, Valid: true})
+	err = db.Query.DeleteManyRatelimitsByIdentityID(ctx, tx, sql.NullString{String: oldIdentity.ID, Valid: true})
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

@@ -61,7 +61,7 @@ func TestSetOverrideSuccessfully(t *testing.T) {
 		require.NotEmpty(t, res.Body.Data.OverrideId, "Override ID should not be empty")
 
 		// Verify the override was created correctly
-		override, err := db.Query.FindRatelimitOverrideById(ctx, h.DB.RO(), db.FindRatelimitOverrideByIdParams{
+		override, err := db.Query.FindRatelimitOverrideByID(ctx, h.DB.RO(), db.FindRatelimitOverrideByIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			OverrideID:  res.Body.Data.OverrideId,
 		})
@@ -87,7 +87,7 @@ func TestSetOverrideSuccessfully(t *testing.T) {
 		require.NotEmpty(t, res.Body.Data.OverrideId, "Override ID should not be empty")
 
 		// Verify the override was created correctly
-		override, err := db.Query.FindRatelimitOverrideById(ctx, h.DB.RO(), db.FindRatelimitOverrideByIdParams{
+		override, err := db.Query.FindRatelimitOverrideByID(ctx, h.DB.RO(), db.FindRatelimitOverrideByIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			OverrideID:  res.Body.Data.OverrideId,
 		})
@@ -113,7 +113,7 @@ func TestSetOverrideSuccessfully(t *testing.T) {
 		require.NotEmpty(t, res.Body.Data.OverrideId, "Override ID should not be empty")
 
 		// Verify the override was created correctly
-		override, err := db.Query.FindRatelimitOverrideById(ctx, h.DB.RO(), db.FindRatelimitOverrideByIdParams{
+		override, err := db.Query.FindRatelimitOverrideByID(ctx, h.DB.RO(), db.FindRatelimitOverrideByIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			OverrideID:  res.Body.Data.OverrideId,
 		})

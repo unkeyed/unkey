@@ -75,7 +75,7 @@ func TestDeleteProtection(t *testing.T) {
 		require.NoError(t, err)
 
 		// Ensure API exists and has delete protection
-		apiBeforeDelete, err := db.Query.FindApiById(ctx, h.DB.RO(), apiID)
+		apiBeforeDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
 		require.NoError(t, err)
 		require.Equal(t, apiID, apiBeforeDelete.ID)
 		require.True(t, apiBeforeDelete.DeleteProtection.Valid)
@@ -99,7 +99,7 @@ func TestDeleteProtection(t *testing.T) {
 		require.Equal(t, "This API has delete protection enabled. Disable it before attempting to delete.", res.Body.Error.Detail)
 
 		// Verify API was NOT deleted
-		apiAfterDelete, err := db.Query.FindApiById(ctx, h.DB.RO(), apiID)
+		apiAfterDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
 		require.NoError(t, err)
 		require.False(t, apiAfterDelete.DeletedAtM.Valid, "API should not have been deleted")
 	})

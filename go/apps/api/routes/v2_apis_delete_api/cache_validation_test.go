@@ -71,7 +71,7 @@ func TestCacheInvalidation(t *testing.T) {
 		// Get API to ensure it's in the cache
 		_, err = h.Caches.ApiByID.SWR(ctx, apiID, func(ctx context.Context) (db.Api, error) {
 
-			return db.Query.FindApiById(ctx, h.DB.RO(), apiID)
+			return db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
 
 		}, caches.DefaultFindFirstOp)
 		require.NoError(t, err)
@@ -90,7 +90,7 @@ func TestCacheInvalidation(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 
 		// Verify API is soft-deleted in the database
-		apiAfterDelete, err := db.Query.FindApiById(ctx, h.DB.RO(), apiID)
+		apiAfterDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
 		require.NoError(t, err)
 		require.True(t, apiAfterDelete.DeletedAtM.Valid)
 

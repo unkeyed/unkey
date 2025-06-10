@@ -61,7 +61,7 @@ func TestSuccess(t *testing.T) {
 		require.True(t, len(res.Body.Data.RoleId) > 0, "RoleId should not be empty")
 
 		// Verify role was created in database
-		role, err := db.Query.FindRoleById(ctx, h.DB.RO(), res.Body.Data.RoleId)
+		role, err := db.Query.FindRoleByID(ctx, h.DB.RO(), res.Body.Data.RoleId)
 		require.NoError(t, err)
 		require.Equal(t, res.Body.Data.RoleId, role.ID)
 		require.Equal(t, req.Name, role.Name)
@@ -69,7 +69,7 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, workspace.ID, role.WorkspaceID)
 
 		// Verify audit log was created
-		auditLogs, err := db.Query.FindAuditLogTargetById(ctx, h.DB.RO(), res.Body.Data.RoleId)
+		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), res.Body.Data.RoleId)
 		require.NoError(t, err)
 		require.NotEmpty(t, auditLogs, "Audit log for role creation should exist")
 
@@ -106,7 +106,7 @@ func TestSuccess(t *testing.T) {
 		require.NotEmpty(t, res.Body.Data.RoleId)
 
 		// Verify role was created in database
-		role, err := db.Query.FindRoleById(ctx, h.DB.RO(), res.Body.Data.RoleId)
+		role, err := db.Query.FindRoleByID(ctx, h.DB.RO(), res.Body.Data.RoleId)
 		require.NoError(t, err)
 		require.Equal(t, res.Body.Data.RoleId, role.ID)
 		require.Equal(t, req.Name, role.Name)
@@ -114,7 +114,7 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, workspace.ID, role.WorkspaceID)
 
 		// Verify audit log was created
-		auditLogs, err := db.Query.FindAuditLogTargetById(ctx, h.DB.RO(), res.Body.Data.RoleId)
+		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), res.Body.Data.RoleId)
 		require.NoError(t, err)
 		require.NotEmpty(t, auditLogs, "Audit log for role creation should exist")
 
@@ -147,7 +147,7 @@ func TestSuccess(t *testing.T) {
 		require.NotEmpty(t, res.Body.Data.RoleId)
 
 		// Verify role was created in database
-		role, err := db.Query.FindRoleById(ctx, h.DB.RO(), res.Body.Data.RoleId)
+		role, err := db.Query.FindRoleByID(ctx, h.DB.RO(), res.Body.Data.RoleId)
 		require.NoError(t, err)
 		require.Equal(t, res.Body.Data.RoleId, role.ID)
 		require.Equal(t, req.Name, role.Name)

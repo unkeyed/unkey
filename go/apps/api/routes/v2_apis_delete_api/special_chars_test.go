@@ -92,7 +92,7 @@ func TestSpecialCharactersInApiId(t *testing.T) {
 				require.Equal(t, 200, res.Status, "Failed to delete API with ID: %s", apiID)
 
 				// Verify API is marked as deleted
-				apiAfterDelete, err := db.Query.FindApiById(ctx, h.DB.RO(), apiID)
+				apiAfterDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
 				require.NoError(t, err)
 				require.True(t, apiAfterDelete.DeletedAtM.Valid)
 			})

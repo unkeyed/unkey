@@ -89,7 +89,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify key has no permissions initially
-		currentPermissions, err := db.Query.FindDirectPermissionsForKey(ctx, h.DB.RO(), keyID)
+		currentPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.Empty(t, currentPermissions)
 
@@ -119,13 +119,13 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, "documents.read.single.id", res.Body.Data[0].Name)
 
 		// Verify permission was added to key
-		finalPermissions, err := db.Query.FindDirectPermissionsForKey(ctx, h.DB.RO(), keyID)
+		finalPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.Len(t, finalPermissions, 1)
 		require.Equal(t, permissionID, finalPermissions[0].ID)
 
 		// Verify audit log was created
-		auditLogs, err := db.Query.FindAuditLogTargetById(ctx, h.DB.RO(), keyID)
+		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.NotEmpty(t, auditLogs)
 
@@ -190,7 +190,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify key has no permissions initially
-		currentPermissions, err := db.Query.FindDirectPermissionsForKey(ctx, h.DB.RO(), keyID)
+		currentPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.Empty(t, currentPermissions)
 
@@ -220,7 +220,7 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, "documents.write.single.name", res.Body.Data[0].Name)
 
 		// Verify permission was added to key
-		finalPermissions, err := db.Query.FindDirectPermissionsForKey(ctx, h.DB.RO(), keyID)
+		finalPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.Len(t, finalPermissions, 1)
 		require.Equal(t, permissionID, finalPermissions[0].ID)
@@ -317,7 +317,7 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, "documents.write.multiple", res.Body.Data[1].Name)
 
 		// Verify permissions were added to key
-		finalPermissions, err := db.Query.FindDirectPermissionsForKey(ctx, h.DB.RO(), keyID)
+		finalPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.Len(t, finalPermissions, 2)
 	})
@@ -408,7 +408,7 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, res1.Body.Data[0].Name, res2.Body.Data[0].Name)
 
 		// Verify only one permission in database
-		finalPermissions, err := db.Query.FindDirectPermissionsForKey(ctx, h.DB.RO(), keyID)
+		finalPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.Len(t, finalPermissions, 1)
 	})
@@ -512,7 +512,7 @@ func TestSuccess(t *testing.T) {
 		require.True(t, permissionIDs[newPermissionID])
 
 		// Verify permissions in database
-		finalPermissions, err := db.Query.FindDirectPermissionsForKey(ctx, h.DB.RO(), keyID)
+		finalPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.Len(t, finalPermissions, 2)
 	})

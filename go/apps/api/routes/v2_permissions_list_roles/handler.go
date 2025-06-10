@@ -92,7 +92,7 @@ func New(svc Services) zen.Route {
 		roleResponses := make([]openapi.RoleWithPermissions, 0, len(roles))
 		for _, role := range roles {
 			// Get permissions for this role
-			rolePermissions, err := db.Query.FindPermissionsByRoleId(ctx, svc.DB.RO(), role.ID)
+			rolePermissions, err := db.Query.ListPermissionsByRoleID(ctx, svc.DB.RO(), role.ID)
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

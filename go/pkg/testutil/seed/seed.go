@@ -124,7 +124,7 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 			if errors.As(err, &mysqlErr) {
 				// Error 1062 (23000): Duplicate entry
 				require.Equal(s.t, uint16(1062), mysqlErr.Number, "Unexpected MySQL error number, got %d, expected %d", mysqlErr.Number, uint16(1062))
-				existing, findErr := db.Query.FindPermissionByWorkspaceAndName(ctx, s.DB.RO(), db.FindPermissionByWorkspaceAndNameParams{
+				existing, findErr := db.Query.FindPermissionByNameAndWorkspaceID(ctx, s.DB.RO(), db.FindPermissionByNameAndWorkspaceIDParams{
 					WorkspaceID: s.Resources.RootWorkspace.ID,
 					Name:        permission,
 				})

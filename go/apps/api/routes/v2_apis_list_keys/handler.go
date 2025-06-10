@@ -89,7 +89,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// 4. Get API from database
-		api, err := db.Query.FindApiById(ctx, svc.DB.RO(), req.ApiId)
+		api, err := db.Query.FindApiByID(ctx, svc.DB.RO(), req.ApiId)
 		if err != nil {
 			if db.IsNotFound(err) {
 				return fault.New("api not found",
@@ -157,10 +157,10 @@ func New(svc Services) zen.Route {
 		limit := ptr.SafeDeref(req.Limit, 100)
 		cursor := ptr.SafeDeref(req.Cursor, "")
 		// List keys
-		keys, err := db.Query.FindKeysByKeyAuthId(
+		keys, err := db.Query.ListKeysByKeyAuthID(
 			ctx,
 			svc.DB.RO(),
-			db.FindKeysByKeyAuthIdParams{
+			db.ListKeysByKeyAuthIDParams{
 				KeyAuthID:  api.KeyAuthID.String,
 				Limit:      int32(limit + 1),
 				IDCursor:   cursor,
@@ -175,7 +175,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// Query ratelimits for all returned keys
-		ratelimitsMap := make(map[string][]db.FindRatelimitsByKeyIDsRow)
+		ratelimitsMap := make(map[string][]db.ListRatelimitsByKeyIDsRow)
 		if len(keys) > 0 {
 			// Extract key IDs and convert to sql.NullString slice
 			keyIDs := make([]sql.NullString, len(keys))
@@ -184,7 +184,7 @@ func New(svc Services) zen.Route {
 			}
 
 			// Query ratelimits for these keys
-			ratelimits, err := db.Query.FindRatelimitsByKeyIDs(ctx, svc.DB.RO(), keyIDs)
+			ratelimits, err := db.Query.ListRatelimitsByKeyIDs(ctx, svc.DB.RO(), keyIDs)
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -245,7 +245,7 @@ func New(svc Services) zen.Route {
 		// Filter out the cursor key if cursor was provided (to avoid duplicates)
 		filteredKeys := keys
 		if cursor != "" {
-			var filtered []db.FindKeysByKeyAuthIdRow
+			var filtered []db.ListKeysByKeyAuthIDRow
 			for _, key := range keys {
 				if key.Key.ID != cursor {
 					filtered = append(filtered, key)
@@ -333,7 +333,7 @@ func New(svc Services) zen.Route {
 			}
 
 			// Get permissions for the key
-			permissionSlugs, err := db.Query.FindPermissionsForKey(ctx, svc.DB.RO(), db.FindPermissionsForKeyParams{
+			permissionSlugs, err := db.Query.ListPermissionsByKeyID(ctx, svc.DB.RO(), db.ListPermissionsByKeyIDParams{
 				KeyID: k.KeyId,
 			})
 			if err != nil {
@@ -343,7 +343,7 @@ func New(svc Services) zen.Route {
 			k.Permissions = ptr.P(permissionSlugs)
 
 			// Get roles for the key
-			roles, err := db.Query.FindRolesForKey(ctx, svc.DB.RO(), k.KeyId)
+			roles, err := db.Query.ListRolesByKeyID(ctx, svc.DB.RO(), k.KeyId)
 			if err != nil {
 				return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
 					fault.Internal("unable to find roles for key"), fault.Public("Could not load roles for key."))

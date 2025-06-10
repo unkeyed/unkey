@@ -74,7 +74,7 @@ func TestCreateApi_Forbidden(t *testing.T) {
 					require.NotEmpty(t, res.Body.Data.ApiId)
 
 					// Verify the API in the database
-					api, err := db.Query.FindApiById(context.Background(), h.DB.RO(), res.Body.Data.ApiId)
+					api, err := db.Query.FindApiByID(context.Background(), h.DB.RO(), res.Body.Data.ApiId)
 					require.NoError(t, err)
 					require.Equal(t, req.Name, api.Name)
 				} else {

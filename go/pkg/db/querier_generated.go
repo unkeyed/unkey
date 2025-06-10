@@ -14,37 +14,44 @@ type Querier interface {
 	//
 	//  DELETE FROM identities WHERE id = ?
 	DeleteIdentity(ctx context.Context, db DBTX, id string) error
-	//DeleteKeyPermissionByKeyIdAndPermissionId
+	//DeleteKeyPermissionByKeyAndPermissionID
 	//
 	//  DELETE FROM keys_permissions
 	//  WHERE key_id = ? AND permission_id = ?
-	DeleteKeyPermissionByKeyIdAndPermissionId(ctx context.Context, db DBTX, arg DeleteKeyPermissionByKeyIdAndPermissionIdParams) error
-	//DeleteKeyPermissionsByPermissionId
+	DeleteKeyPermissionByKeyAndPermissionID(ctx context.Context, db DBTX, arg DeleteKeyPermissionByKeyAndPermissionIDParams) error
+	//DeleteManyKeyPermissionsByPermissionID
 	//
 	//  DELETE FROM keys_permissions
 	//  WHERE permission_id = ?
-	DeleteKeyPermissionsByPermissionId(ctx context.Context, db DBTX, permissionID string) error
-	//DeleteKeyRoleByKeyIdAndRoleId
+	DeleteManyKeyPermissionsByPermissionID(ctx context.Context, db DBTX, permissionID string) error
+	//DeleteManyKeyRolesByKeyID
 	//
 	//  DELETE FROM keys_roles
 	//  WHERE key_id = ? AND role_id = ?
-	DeleteKeyRoleByKeyIdAndRoleId(ctx context.Context, db DBTX, arg DeleteKeyRoleByKeyIdAndRoleIdParams) error
-	//DeleteKeyRolesByRoleId
+	DeleteManyKeyRolesByKeyID(ctx context.Context, db DBTX, arg DeleteManyKeyRolesByKeyIDParams) error
+	//DeleteManyKeyRolesByRoleID
 	//
 	//  DELETE FROM keys_roles
 	//  WHERE role_id = ?
-	DeleteKeyRolesByRoleId(ctx context.Context, db DBTX, roleID string) error
-	//DeleteKeysByKeyAuthId
-	//
-	//  UPDATE `keys`
-	//  SET deleted_at_m = ?
-	//  WHERE key_auth_id = ?
-	//  AND deleted_at_m IS NULL
-	DeleteKeysByKeyAuthId(ctx context.Context, db DBTX, arg DeleteKeysByKeyAuthIdParams) error
+	DeleteManyKeyRolesByRoleID(ctx context.Context, db DBTX, roleID string) error
 	//DeleteManyRatelimitsByIDs
 	//
 	//  DELETE FROM ratelimits WHERE id IN (/*SLICE:ids*/?)
 	DeleteManyRatelimitsByIDs(ctx context.Context, db DBTX, ids []string) error
+	//DeleteManyRatelimitsByIdentityID
+	//
+	//  DELETE FROM ratelimits WHERE identity_id = ?
+	DeleteManyRatelimitsByIdentityID(ctx context.Context, db DBTX, identityID sql.NullString) error
+	//DeleteManyRolePermissionsByPermissionID
+	//
+	//  DELETE FROM roles_permissions
+	//  WHERE permission_id = ?
+	DeleteManyRolePermissionsByPermissionID(ctx context.Context, db DBTX, permissionID string) error
+	//DeleteManyRolePermissionsByRoleID
+	//
+	//  DELETE FROM roles_permissions
+	//  WHERE role_id = ?
+	DeleteManyRolePermissionsByRoleID(ctx context.Context, db DBTX, roleID string) error
 	//DeletePermission
 	//
 	//  DELETE FROM permissions
@@ -60,44 +67,22 @@ type Querier interface {
 	//  SET deleted_at_m = ?
 	//  WHERE id = ?
 	DeleteRatelimitNamespace(ctx context.Context, db DBTX, arg DeleteRatelimitNamespaceParams) (sql.Result, error)
-	//DeleteRatelimitsByIdentityID
-	//
-	//  DELETE FROM ratelimits WHERE identity_id = ?
-	DeleteRatelimitsByIdentityID(ctx context.Context, db DBTX, identityID sql.NullString) error
-	//DeleteRoleById
+	//DeleteRoleByID
 	//
 	//  DELETE FROM roles
 	//  WHERE id = ?
-	DeleteRoleById(ctx context.Context, db DBTX, roleID string) error
-	//DeleteRolePermissionsByPermissionId
-	//
-	//  DELETE FROM roles_permissions
-	//  WHERE permission_id = ?
-	DeleteRolePermissionsByPermissionId(ctx context.Context, db DBTX, permissionID string) error
-	//DeleteRolePermissionsByRoleId
-	//
-	//  DELETE FROM roles_permissions
-	//  WHERE role_id = ?
-	DeleteRolePermissionsByRoleId(ctx context.Context, db DBTX, roleID string) error
-	//FindApiById
+	DeleteRoleByID(ctx context.Context, db DBTX, roleID string) error
+	//FindApiByID
 	//
 	//  SELECT id, name, workspace_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
-	FindApiById(ctx context.Context, db DBTX, id string) (Api, error)
-	//FindAuditLogTargetById
+	FindApiByID(ctx context.Context, db DBTX, id string) (Api, error)
+	//FindAuditLogTargetByID
 	//
 	//  SELECT audit_log_target.workspace_id, audit_log_target.bucket_id, audit_log_target.bucket, audit_log_target.audit_log_id, audit_log_target.display_name, audit_log_target.type, audit_log_target.id, audit_log_target.name, audit_log_target.meta, audit_log_target.created_at, audit_log_target.updated_at, audit_log.id, audit_log.workspace_id, audit_log.bucket, audit_log.bucket_id, audit_log.event, audit_log.time, audit_log.display, audit_log.remote_ip, audit_log.user_agent, audit_log.actor_type, audit_log.actor_id, audit_log.actor_name, audit_log.actor_meta, audit_log.created_at, audit_log.updated_at
 	//  FROM audit_log_target
 	//  JOIN audit_log ON audit_log.id = audit_log_target.audit_log_id
 	//  WHERE audit_log_target.id = ?
-	FindAuditLogTargetById(ctx context.Context, db DBTX, id string) ([]FindAuditLogTargetByIdRow, error)
-	//FindDirectPermissionsForKey
-	//
-	//  SELECT p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
-	//  FROM keys_permissions kp
-	//  JOIN permissions p ON kp.permission_id = p.id
-	//  WHERE kp.key_id = ?
-	//  ORDER BY p.name
-	FindDirectPermissionsForKey(ctx context.Context, db DBTX, keyID string) ([]Permission, error)
+	FindAuditLogTargetByID(ctx context.Context, db DBTX, id string) ([]FindAuditLogTargetByIDRow, error)
 	//FindIdentityByExternalID
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at FROM identities WHERE workspace_id = ? AND external_id = ? AND deleted = ?
@@ -176,38 +161,18 @@ type Querier interface {
 	//  WHERE k.hash = ?
 	//  GROUP BY k.id
 	FindKeyForVerification(ctx context.Context, db DBTX, hash string) (FindKeyForVerificationRow, error)
-	//FindKeyRolesByKeyIdAndRoleId
+	//FindKeyRoleByKeyAndRoleID
 	//
 	//  SELECT key_id, role_id, workspace_id, created_at_m, updated_at_m
 	//  FROM keys_roles
 	//  WHERE key_id = ?
 	//    AND role_id = ?
-	FindKeyRolesByKeyIdAndRoleId(ctx context.Context, db DBTX, arg FindKeyRolesByKeyIdAndRoleIdParams) ([]KeysRole, error)
+	FindKeyRoleByKeyAndRoleID(ctx context.Context, db DBTX, arg FindKeyRoleByKeyAndRoleIDParams) ([]KeysRole, error)
 	//FindKeyringByID
 	//
 	//  SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth`
 	//  WHERE id = ?
 	FindKeyringByID(ctx context.Context, db DBTX, id string) (KeyAuth, error)
-	//FindKeysByKeyAuthId
-	//
-	//  SELECT
-	//    k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
-	//    i.id as identity_id,
-	//    i.external_id as external_id,
-	//    i.meta as identity_meta,
-	//    ek.encrypted as encrypted_key,
-	//    ek.encryption_key_id as encryption_key_id
-	//
-	//  FROM `keys` k
-	//  LEFT JOIN `identities` i ON k.identity_id = i.id
-	//  LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
-	//  WHERE k.key_auth_id = ?
-	//  AND k.id >= ?
-	//  AND (? IS NULL OR k.identity_id = ?)
-	//  AND k.deleted_at_m IS NULL
-	//  ORDER BY k.id ASC
-	//  LIMIT ?
-	FindKeysByKeyAuthId(ctx context.Context, db DBTX, arg FindKeysByKeyAuthIdParams) ([]FindKeysByKeyAuthIdRow, error)
 	// Finds a permission record by its ID
 	// Returns: The permission record if found
 	//
@@ -215,58 +180,23 @@ type Querier interface {
 	//  FROM permissions
 	//  WHERE id = ?
 	//  LIMIT 1
-	FindPermissionById(ctx context.Context, db DBTX, permissionID string) (Permission, error)
-	//FindPermissionByNameAndWorkspace
+	FindPermissionByID(ctx context.Context, db DBTX, permissionID string) (Permission, error)
+	//FindPermissionByNameAndWorkspaceID
 	//
 	//  SELECT id, workspace_id, name, slug, description, created_at_m, updated_at_m
 	//  FROM permissions
 	//  WHERE name = ?
 	//  AND workspace_id = ?
 	//  LIMIT 1
-	FindPermissionByNameAndWorkspace(ctx context.Context, db DBTX, arg FindPermissionByNameAndWorkspaceParams) (Permission, error)
-	//FindPermissionBySlugAndWorkspace
+	FindPermissionByNameAndWorkspaceID(ctx context.Context, db DBTX, arg FindPermissionByNameAndWorkspaceIDParams) (Permission, error)
+	//FindPermissionBySlugAndWorkspaceID
 	//
 	//  SELECT id, workspace_id, name, slug, description, created_at_m, updated_at_m
 	//  FROM permissions
 	//  WHERE slug = ?
 	//  AND workspace_id = ?
 	//  LIMIT 1
-	FindPermissionBySlugAndWorkspace(ctx context.Context, db DBTX, arg FindPermissionBySlugAndWorkspaceParams) (Permission, error)
-	//FindPermissionByWorkspaceAndName
-	//
-	//  SELECT id, workspace_id, name, slug, description, created_at_m, updated_at_m FROM `permissions`
-	//  WHERE workspace_id = ? AND name = ?
-	FindPermissionByWorkspaceAndName(ctx context.Context, db DBTX, arg FindPermissionByWorkspaceAndNameParams) (Permission, error)
-	//FindPermissionsByRoleId
-	//
-	//  SELECT p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
-	//  FROM permissions p
-	//  JOIN roles_permissions rp ON p.id = rp.permission_id
-	//  WHERE rp.role_id = ?
-	//  ORDER BY p.slug
-	FindPermissionsByRoleId(ctx context.Context, db DBTX, roleID string) ([]Permission, error)
-	//FindPermissionsForKey
-	//
-	//  WITH direct_permissions AS (
-	//      SELECT p.slug as permission_slug
-	//      FROM keys_permissions kp
-	//      JOIN permissions p ON kp.permission_id = p.id
-	//      WHERE kp.key_id = ?
-	//  ),
-	//  role_permissions AS (
-	//      SELECT p.slug as permission_slug
-	//      FROM keys_roles kr
-	//      JOIN roles_permissions rp ON kr.role_id = rp.role_id
-	//      JOIN permissions p ON rp.permission_id = p.id
-	//      WHERE kr.key_id = ?
-	//  )
-	//  SELECT DISTINCT permission_slug
-	//  FROM (
-	//      SELECT permission_slug FROM direct_permissions
-	//      UNION ALL
-	//      SELECT permission_slug FROM role_permissions
-	//  ) all_permissions
-	FindPermissionsForKey(ctx context.Context, db DBTX, arg FindPermissionsForKeyParams) ([]string, error)
+	FindPermissionBySlugAndWorkspaceID(ctx context.Context, db DBTX, arg FindPermissionBySlugAndWorkspaceIDParams) (Permission, error)
 	//FindRatelimitNamespaceByID
 	//
 	//  SELECT id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m FROM `ratelimit_namespaces`
@@ -278,49 +208,21 @@ type Querier interface {
 	//  WHERE name = ?
 	//  AND workspace_id = ?
 	FindRatelimitNamespaceByName(ctx context.Context, db DBTX, arg FindRatelimitNamespaceByNameParams) (RatelimitNamespace, error)
-	//FindRatelimitOverrideById
+	//FindRatelimitOverrideByID
 	//
 	//  SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
 	//  WHERE
 	//      workspace_id = ?
 	//      AND id = ?
-	FindRatelimitOverrideById(ctx context.Context, db DBTX, arg FindRatelimitOverrideByIdParams) (RatelimitOverride, error)
-	//FindRatelimitOverrideMatches
-	//
-	//  SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
-	//  WHERE
-	//      workspace_id = ?
-	//      AND namespace_id = ?
-	//      AND ? LIKE
-	//            REPLACE(
-	//              REPLACE(identifier, '*', '%'), -- Replace * with % wildcard
-	//              '_', '\\_'                              -- Escape underscore literals
-	//            )
-	FindRatelimitOverrideMatches(ctx context.Context, db DBTX, arg FindRatelimitOverrideMatchesParams) ([]RatelimitOverride, error)
-	//FindRatelimitOverridesByIdentifier
+	FindRatelimitOverrideByID(ctx context.Context, db DBTX, arg FindRatelimitOverrideByIDParams) (RatelimitOverride, error)
+	//FindRatelimitOverrideByIdentifier
 	//
 	//  SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
 	//  WHERE
 	//      workspace_id = ?
 	//      AND namespace_id = ?
 	//      AND identifier = ?
-	FindRatelimitOverridesByIdentifier(ctx context.Context, db DBTX, arg FindRatelimitOverridesByIdentifierParams) (RatelimitOverride, error)
-	//FindRatelimitsByIdentityID
-	//
-	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration FROM ratelimits WHERE identity_id = ?
-	FindRatelimitsByIdentityID(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error)
-	//FindRatelimitsByKeyIDs
-	//
-	//  SELECT
-	//    id,
-	//    key_id,
-	//    name,
-	//    `limit`,
-	//    duration
-	//  FROM ratelimits
-	//  WHERE key_id IN (/*SLICE:key_ids*/?)
-	//  ORDER BY key_id, id
-	FindRatelimitsByKeyIDs(ctx context.Context, db DBTX, keyIds []sql.NullString) ([]FindRatelimitsByKeyIDsRow, error)
+	FindRatelimitOverrideByIdentifier(ctx context.Context, db DBTX, arg FindRatelimitOverrideByIdentifierParams) (RatelimitOverride, error)
 	// Finds a role record by its ID
 	// Returns: The role record if found
 	//
@@ -328,7 +230,7 @@ type Querier interface {
 	//  FROM roles
 	//  WHERE id = ?
 	//  LIMIT 1
-	FindRoleById(ctx context.Context, db DBTX, roleID string) (Role, error)
+	FindRoleByID(ctx context.Context, db DBTX, roleID string) (Role, error)
 	// Finds a role record by its name within a specific workspace
 	// Returns: The role record if found
 	//
@@ -337,22 +239,14 @@ type Querier interface {
 	//  WHERE name = ?
 	//  AND workspace_id = ?
 	//  LIMIT 1
-	FindRoleByNameAndWorkspace(ctx context.Context, db DBTX, arg FindRoleByNameAndWorkspaceParams) (Role, error)
-	//FindRolePermissionsByRoleIdAndPermissionId
+	FindRoleByNameAndWorkspaceID(ctx context.Context, db DBTX, arg FindRoleByNameAndWorkspaceIDParams) (Role, error)
+	//FindRolePermissionByRoleAndPermissionID
 	//
 	//  SELECT role_id, permission_id, workspace_id, created_at_m, updated_at_m
 	//  FROM roles_permissions
 	//  WHERE role_id = ?
 	//    AND permission_id = ?
-	FindRolePermissionsByRoleIdAndPermissionId(ctx context.Context, db DBTX, arg FindRolePermissionsByRoleIdAndPermissionIdParams) ([]RolesPermission, error)
-	//FindRolesForKey
-	//
-	//  SELECT r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m
-	//  FROM roles r
-	//  JOIN keys_roles kr ON r.id = kr.role_id
-	//  WHERE kr.key_id = ?
-	//  ORDER BY r.name
-	FindRolesForKey(ctx context.Context, db DBTX, keyID string) ([]Role, error)
+	FindRolePermissionByRoleAndPermissionID(ctx context.Context, db DBTX, arg FindRolePermissionByRoleAndPermissionIDParams) ([]RolesPermission, error)
 	//FindWorkspaceByID
 	//
 	//  SELECT id, org_id, name, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
@@ -715,6 +609,14 @@ type Querier interface {
 	//      true
 	//  )
 	InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error
+	//ListDirectPermissionsByKeyID
+	//
+	//  SELECT p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
+	//  FROM keys_permissions kp
+	//  JOIN permissions p ON kp.permission_id = p.id
+	//  WHERE kp.key_id = ?
+	//  ORDER BY p.name
+	ListDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error)
 	//ListIdentities
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -732,6 +634,30 @@ type Querier interface {
 	//  WHERE identity_id = ?
 	//  ORDER BY id ASC
 	ListIdentityRatelimits(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error)
+	//ListIdentityRatelimitsByID
+	//
+	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration FROM ratelimits WHERE identity_id = ?
+	ListIdentityRatelimitsByID(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error)
+	//ListKeysByKeyAuthID
+	//
+	//  SELECT
+	//    k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
+	//    i.id as identity_id,
+	//    i.external_id as external_id,
+	//    i.meta as identity_meta,
+	//    ek.encrypted as encrypted_key,
+	//    ek.encryption_key_id as encryption_key_id
+	//
+	//  FROM `keys` k
+	//  LEFT JOIN `identities` i ON k.identity_id = i.id
+	//  LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
+	//  WHERE k.key_auth_id = ?
+	//  AND k.id >= ?
+	//  AND (? IS NULL OR k.identity_id = ?)
+	//  AND k.deleted_at_m IS NULL
+	//  ORDER BY k.id ASC
+	//  LIMIT ?
+	ListKeysByKeyAuthID(ctx context.Context, db DBTX, arg ListKeysByKeyAuthIDParams) ([]ListKeysByKeyAuthIDRow, error)
 	//ListPermissions
 	//
 	//  SELECT p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
@@ -741,13 +667,67 @@ type Querier interface {
 	//  ORDER BY p.id
 	//  LIMIT 101
 	ListPermissions(ctx context.Context, db DBTX, arg ListPermissionsParams) ([]Permission, error)
-	//ListRatelimitOverrides
+	//ListPermissionsByKeyID
+	//
+	//  WITH direct_permissions AS (
+	//      SELECT p.slug as permission_slug
+	//      FROM keys_permissions kp
+	//      JOIN permissions p ON kp.permission_id = p.id
+	//      WHERE kp.key_id = ?
+	//  ),
+	//  role_permissions AS (
+	//      SELECT p.slug as permission_slug
+	//      FROM keys_roles kr
+	//      JOIN roles_permissions rp ON kr.role_id = rp.role_id
+	//      JOIN permissions p ON rp.permission_id = p.id
+	//      WHERE kr.key_id = ?
+	//  )
+	//  SELECT DISTINCT permission_slug
+	//  FROM (
+	//      SELECT permission_slug FROM direct_permissions
+	//      UNION ALL
+	//      SELECT permission_slug FROM role_permissions
+	//  ) all_permissions
+	ListPermissionsByKeyID(ctx context.Context, db DBTX, arg ListPermissionsByKeyIDParams) ([]string, error)
+	//ListPermissionsByRoleID
+	//
+	//  SELECT p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
+	//  FROM permissions p
+	//  JOIN roles_permissions rp ON p.id = rp.permission_id
+	//  WHERE rp.role_id = ?
+	//  ORDER BY p.slug
+	ListPermissionsByRoleID(ctx context.Context, db DBTX, roleID string) ([]Permission, error)
+	//ListRatelimitOverrideMatches
 	//
 	//  SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
 	//  WHERE
 	//      workspace_id = ?
 	//      AND namespace_id = ?
-	ListRatelimitOverrides(ctx context.Context, db DBTX, arg ListRatelimitOverridesParams) ([]RatelimitOverride, error)
+	//      AND ? LIKE
+	//            REPLACE(
+	//              REPLACE(identifier, '*', '%'), -- Replace * with % wildcard
+	//              '_', '\\_'                              -- Escape underscore literals
+	//            )
+	ListRatelimitOverrideMatches(ctx context.Context, db DBTX, arg ListRatelimitOverrideMatchesParams) ([]RatelimitOverride, error)
+	//ListRatelimitOverridesByNamespaceID
+	//
+	//  SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
+	//  WHERE
+	//      workspace_id = ?
+	//      AND namespace_id = ?
+	ListRatelimitOverridesByNamespaceID(ctx context.Context, db DBTX, arg ListRatelimitOverridesByNamespaceIDParams) ([]RatelimitOverride, error)
+	//ListRatelimitsByKeyIDs
+	//
+	//  SELECT
+	//    id,
+	//    key_id,
+	//    name,
+	//    `limit`,
+	//    duration
+	//  FROM ratelimits
+	//  WHERE key_id IN (/*SLICE:key_ids*/?)
+	//  ORDER BY key_id, id
+	ListRatelimitsByKeyIDs(ctx context.Context, db DBTX, keyIds []sql.NullString) ([]ListRatelimitsByKeyIDsRow, error)
 	//ListRoles
 	//
 	//  SELECT r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m
@@ -757,6 +737,14 @@ type Querier interface {
 	//  ORDER BY r.id
 	//  LIMIT 101
 	ListRoles(ctx context.Context, db DBTX, arg ListRolesParams) ([]Role, error)
+	//ListRolesByKeyID
+	//
+	//  SELECT r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m
+	//  FROM roles r
+	//  JOIN keys_roles kr ON r.id = kr.role_id
+	//  WHERE kr.key_id = ?
+	//  ORDER BY r.name
+	ListRolesByKeyID(ctx context.Context, db DBTX, keyID string) ([]Role, error)
 	//ListWorkspaces
 	//
 	//  SELECT
@@ -778,6 +766,13 @@ type Querier interface {
 	//
 	//  UPDATE identities set deleted = 1 WHERE id = ?
 	SoftDeleteIdentity(ctx context.Context, db DBTX, id string) error
+	//SoftDeleteManyKeysByKeyAuthID
+	//
+	//  UPDATE `keys`
+	//  SET deleted_at_m = ?
+	//  WHERE key_auth_id = ?
+	//  AND deleted_at_m IS NULL
+	SoftDeleteManyKeysByKeyAuthID(ctx context.Context, db DBTX, arg SoftDeleteManyKeysByKeyAuthIDParams) error
 	//SoftDeleteRatelimitNamespace
 	//
 	//  UPDATE `ratelimit_namespaces`

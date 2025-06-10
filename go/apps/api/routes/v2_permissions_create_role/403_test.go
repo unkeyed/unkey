@@ -56,7 +56,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions")
 
 		// Verify no role was created
-		_, err := db.Query.FindRoleByNameAndWorkspace(context.Background(), h.DB.RO(), db.FindRoleByNameAndWorkspaceParams{
+		_, err := db.Query.FindRoleByNameAndWorkspaceID(context.Background(), h.DB.RO(), db.FindRoleByNameAndWorkspaceIDParams{
 			Name:        req.Name,
 			WorkspaceID: workspace.ID,
 		})
@@ -90,7 +90,7 @@ func TestAuthorizationErrors(t *testing.T) {
 
 		// The role should be created in the authorized workspace (the other workspace)
 		// not in the original workspace
-		_, err := db.Query.FindRoleByNameAndWorkspace(context.Background(), h.DB.RO(), db.FindRoleByNameAndWorkspaceParams{
+		_, err := db.Query.FindRoleByNameAndWorkspaceID(context.Background(), h.DB.RO(), db.FindRoleByNameAndWorkspaceIDParams{
 			Name:        req.Name,
 			WorkspaceID: workspace.ID,
 		})

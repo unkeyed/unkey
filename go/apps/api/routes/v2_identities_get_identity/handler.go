@@ -113,7 +113,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// Next, get the ratelimits for this identity
-		ratelimits, err = db.Query.FindRatelimitsByIdentityID(ctx, tx, sql.NullString{Valid: true, String: identity.ID})
+		ratelimits, err = db.Query.ListIdentityRatelimitsByID(ctx, tx, sql.NullString{Valid: true, String: identity.ID})
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return fault.Wrap(err,
 				fault.Internal("unable to fetch ratelimits"), fault.Public("We're unable to retrieve the identity's ratelimits."),

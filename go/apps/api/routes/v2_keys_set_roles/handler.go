@@ -88,7 +88,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// 5. Get current roles for the key
-		currentRoles, err := db.Query.FindRolesForKey(ctx, svc.DB.RO(), req.KeyId)
+		currentRoles, err := db.Query.ListRolesByKeyID(ctx, svc.DB.RO(), req.KeyId)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -103,7 +103,7 @@ func New(svc Services) zen.Route {
 
 			if roleRef.Id != nil {
 				// Find by ID
-				role, err = db.Query.FindRoleById(ctx, svc.DB.RO(), *roleRef.Id)
+				role, err = db.Query.FindRoleByID(ctx, svc.DB.RO(), *roleRef.Id)
 				if err != nil {
 					if db.IsNotFound(err) {
 						return fault.New("role not found",
@@ -118,7 +118,7 @@ func New(svc Services) zen.Route {
 				}
 			} else if roleRef.Name != nil {
 				// Find by name
-				role, err = db.Query.FindRoleByNameAndWorkspace(ctx, svc.DB.RO(), db.FindRoleByNameAndWorkspaceParams{
+				role, err = db.Query.FindRoleByNameAndWorkspaceID(ctx, svc.DB.RO(), db.FindRoleByNameAndWorkspaceIDParams{
 					Name:        *roleRef.Name,
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 				})
@@ -200,7 +200,7 @@ func New(svc Services) zen.Route {
 
 		// Remove roles that are no longer needed
 		for _, roleID := range rolesToRemove {
-			err := db.Query.DeleteKeyRoleByKeyIdAndRoleId(ctx, tx, db.DeleteKeyRoleByKeyIdAndRoleIdParams{
+			err := db.Query.DeleteManyKeyRolesByKeyID(ctx, tx, db.DeleteManyKeyRolesByKeyIDParams{
 				KeyID:  req.KeyId,
 				RoleID: roleID,
 			})
@@ -308,7 +308,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// 10. Get final state of roles and build response
-		finalRoles, err := db.Query.FindRolesForKey(ctx, svc.DB.RO(), req.KeyId)
+		finalRoles, err := db.Query.ListRolesByKeyID(ctx, svc.DB.RO(), req.KeyId)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

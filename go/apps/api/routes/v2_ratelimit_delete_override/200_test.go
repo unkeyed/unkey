@@ -71,7 +71,7 @@ func TestDeleteOverrideSuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 
 		// Verify the override was deleted (check soft delete)
-		override, err := db.Query.FindRatelimitOverrideById(ctx, h.DB.RO(), db.FindRatelimitOverrideByIdParams{
+		override, err := db.Query.FindRatelimitOverrideByID(ctx, h.DB.RO(), db.FindRatelimitOverrideByIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			OverrideID:  overrideID,
 		})

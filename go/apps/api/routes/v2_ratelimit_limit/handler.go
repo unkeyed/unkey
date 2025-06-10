@@ -35,7 +35,7 @@ type Services struct {
 	Permissions                   permissions.PermissionService
 	Ratelimit                     ratelimit.Service
 	RatelimitNamespaceByNameCache cache.Cache[db.FindRatelimitNamespaceByNameParams, db.RatelimitNamespace]
-	RatelimitOverrideMatchesCache cache.Cache[db.FindRatelimitOverrideMatchesParams, []db.RatelimitOverride]
+	RatelimitOverrideMatchesCache cache.Cache[db.ListRatelimitOverrideMatchesParams, []db.RatelimitOverride]
 	TestMode                      bool
 }
 
@@ -121,14 +121,14 @@ func New(svc Services) zen.Route {
 			return err
 		}
 
-		findOverrideMatchesArgs := db.FindRatelimitOverrideMatchesParams{
+		findOverrideMatchesArgs := db.ListRatelimitOverrideMatchesParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			NamespaceID: namespace.ID,
 			Identifier:  req.Identifier,
 		}
-		ctx, overridesSpan := tracing.Start(ctx, "FindRatelimitOverrideMatches")
+		ctx, overridesSpan := tracing.Start(ctx, "ListRatelimitOverrideMatches")
 		overrides, err := svc.RatelimitOverrideMatchesCache.SWR(ctx, findOverrideMatchesArgs, func(ctx context.Context) ([]db.RatelimitOverride, error) {
-			return db.Query.FindRatelimitOverrideMatches(ctx, svc.DB.RO(), findOverrideMatchesArgs)
+			return db.Query.ListRatelimitOverrideMatches(ctx, svc.DB.RO(), findOverrideMatchesArgs)
 		}, func(err error) cache.Op {
 			if err == nil {
 				// everything went well and we have a namespace response

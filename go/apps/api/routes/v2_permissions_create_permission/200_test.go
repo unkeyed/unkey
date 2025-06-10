@@ -61,7 +61,7 @@ func TestSuccess(t *testing.T) {
 		require.True(t, len(res.Body.Data.PermissionId) > 0, "PermissionId should not be empty")
 
 		// Verify permission was created in database
-		perm, err := db.Query.FindPermissionById(ctx, h.DB.RO(), res.Body.Data.PermissionId)
+		perm, err := db.Query.FindPermissionByID(ctx, h.DB.RO(), res.Body.Data.PermissionId)
 		require.NoError(t, err)
 		require.Equal(t, res.Body.Data.PermissionId, perm.ID)
 		require.Equal(t, req.Name, perm.Name)
@@ -70,7 +70,7 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, workspace.ID, perm.WorkspaceID)
 
 		// Verify audit log was created
-		auditLogs, err := db.Query.FindAuditLogTargetById(ctx, h.DB.RO(), res.Body.Data.PermissionId)
+		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), res.Body.Data.PermissionId)
 		require.NoError(t, err)
 		require.NotEmpty(t, auditLogs, "Audit log for permission creation should exist")
 
@@ -104,7 +104,7 @@ func TestSuccess(t *testing.T) {
 		require.NotEmpty(t, res.Body.Data.PermissionId)
 
 		// Verify permission was created in database
-		perm, err := db.Query.FindPermissionById(ctx, h.DB.RO(), res.Body.Data.PermissionId)
+		perm, err := db.Query.FindPermissionByID(ctx, h.DB.RO(), res.Body.Data.PermissionId)
 		require.NoError(t, err)
 		require.Equal(t, res.Body.Data.PermissionId, perm.ID)
 		require.Equal(t, req.Name, perm.Name)

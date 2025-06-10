@@ -62,7 +62,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// 4. Get role by ID to verify existence and workspace ownership
-		role, err := db.Query.FindRoleById(ctx, svc.DB.RO(), req.RoleId)
+		role, err := db.Query.FindRoleByID(ctx, svc.DB.RO(), req.RoleId)
 		if err != nil {
 			if db.IsNotFound(err) {
 				return fault.New("role not found",
@@ -100,7 +100,7 @@ func New(svc Services) zen.Route {
 		}()
 
 		// Delete role-permission relationships
-		err = db.Query.DeleteRolePermissionsByRoleId(ctx, tx, req.RoleId)
+		err = db.Query.DeleteManyRolePermissionsByRoleID(ctx, tx, req.RoleId)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -109,7 +109,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// Delete key-role relationships
-		err = db.Query.DeleteKeyRolesByRoleId(ctx, tx, req.RoleId)
+		err = db.Query.DeleteManyKeyRolesByRoleID(ctx, tx, req.RoleId)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -118,7 +118,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// Delete the role itself
-		err = db.Query.DeleteRoleById(ctx, tx, req.RoleId)
+		err = db.Query.DeleteRoleByID(ctx, tx, req.RoleId)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

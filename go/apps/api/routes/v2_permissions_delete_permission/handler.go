@@ -61,7 +61,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// 4. Check if permission exists and belongs to authorized workspace
-		permission, err := db.Query.FindPermissionById(ctx, svc.DB.RO(), req.PermissionId)
+		permission, err := db.Query.FindPermissionByID(ctx, svc.DB.RO(), req.PermissionId)
 		if err != nil {
 			if db.IsNotFound(err) {
 				return fault.New("permission not found",
@@ -99,7 +99,7 @@ func New(svc Services) zen.Route {
 		}()
 
 		// Delete role-permission relationships
-		err = db.Query.DeleteRolePermissionsByPermissionId(ctx, tx, req.PermissionId)
+		err = db.Query.DeleteManyRolePermissionsByPermissionID(ctx, tx, req.PermissionId)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -108,7 +108,7 @@ func New(svc Services) zen.Route {
 		}
 
 		// Delete key-permission relationships
-		err = db.Query.DeleteKeyPermissionsByPermissionId(ctx, tx, req.PermissionId)
+		err = db.Query.DeleteManyKeyPermissionsByPermissionID(ctx, tx, req.PermissionId)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
