@@ -19,6 +19,11 @@ type Querier interface {
 	//  DELETE FROM keys_permissions
 	//  WHERE permission_id = ?
 	DeleteKeyPermissionsByPermissionId(ctx context.Context, db DBTX, permissionID string) error
+	//DeleteKeyRoleByKeyIdAndRoleId
+	//
+	//  DELETE FROM keys_roles
+	//  WHERE key_id = ? AND role_id = ?
+	DeleteKeyRoleByKeyIdAndRoleId(ctx context.Context, db DBTX, arg DeleteKeyRoleByKeyIdAndRoleIdParams) error
 	//DeleteKeyRolesByRoleId
 	//
 	//  DELETE FROM keys_roles
