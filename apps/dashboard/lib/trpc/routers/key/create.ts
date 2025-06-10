@@ -48,6 +48,7 @@ export const createKey = t.procedure
           hash,
           start,
           identityId: input.externalId,
+          ownerId: input.externalId,
           meta: JSON.stringify(input.meta ?? {}),
           workspaceId: ctx.workspace.id,
           forWorkspaceId: null,
