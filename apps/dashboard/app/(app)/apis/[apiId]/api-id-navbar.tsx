@@ -27,12 +27,9 @@ const CreateKeyDialog = dynamic(
   },
 );
 
-const DialogContainer = dynamic(
-  () => import("@/components/dialog-container").then((mod) => mod.DialogContainer),
-  {
-    ssr: false,
-  },
-);
+const DialogContainer = dynamic(() => import("@unkey/ui").then((mod) => mod.DialogContainer), {
+  ssr: false,
+});
 
 const KeysTableActionPopover = dynamic(
   () =>

@@ -28,6 +28,7 @@ export default async function middleware(req: NextRequest, _evt: NextFetchEvent)
     "/api/v1/workos/webhooks",
     "/api/v1/github/verify",
     "/api/auth/refresh",
+    "/success",
     "/_next",
   ];
 

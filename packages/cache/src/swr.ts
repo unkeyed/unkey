@@ -105,21 +105,22 @@ export class SwrCache<TNamespace extends string, TValue> {
   ): Promise<Result<TValue | undefined, CacheError>> {
     const res = await this._get(namespace, key);
     if (res.err) {
-      return Err(res.err);
-    }
-    const { value, revalidate } = res.val;
-    if (typeof value !== "undefined") {
-      if (revalidate) {
-        this.ctx.waitUntil(
-          this.deduplicateLoadFromOrigin(namespace, key, loadFromOrigin).then((res) =>
-            this.set(namespace, key, res),
-          ),
-        );
+      // ignore error, so we fall back to loading from origin
+      console.error(res.err);
+    } else {
+      const { value, revalidate } = res.val;
+      if (typeof value !== "undefined") {
+        if (revalidate) {
+          this.ctx.waitUntil(
+            this.deduplicateLoadFromOrigin(namespace, key, loadFromOrigin).then((res) =>
+              this.set(namespace, key, res),
+            ),
+          );
+        }
+
+        return Ok(value);
       }
-
-      return Ok(value);
     }
-
     try {
       const value = await this.deduplicateLoadFromOrigin(namespace, key, loadFromOrigin);
       this.ctx.waitUntil(this.set(namespace, key, value));

@@ -1,9 +1,9 @@
 "use client";
 
-import { Loading } from "@/components/dashboard/loading";
 import { GitHub, Google } from "@/components/ui/icons";
 import { toast } from "@/components/ui/toaster";
 import type { OAuthStrategy } from "@/lib/auth/types";
+import { Loading } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import * as React from "react";
 import { signInViaOAuth } from "../actions";
