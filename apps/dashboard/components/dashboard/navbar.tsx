@@ -3,8 +3,8 @@
 import Link from "next/link";
 import * as React from "react";
 
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { Separator } from "@unkey/ui";
 import { useRouter, useSelectedLayoutSegment } from "next/navigation";
 
 type Props = {

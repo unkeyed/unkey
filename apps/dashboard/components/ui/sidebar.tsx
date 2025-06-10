@@ -4,7 +4,6 @@ import { Slot } from "@radix-ui/react-slot";
 import { type VariantProps, cva } from "class-variance-authority";
 import * as React from "react";
 
-import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
   SheetContent,
@@ -14,6 +13,7 @@ import {
 } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { Separator } from "@unkey/ui";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
