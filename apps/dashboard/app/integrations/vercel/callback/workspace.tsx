@@ -5,7 +5,6 @@
 
 "use client";
 
-import { Loading } from "@/components/dashboard/loading";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/components/ui/toaster";
 import { setSessionCookie } from "@/lib/auth/cookies";
 import { trpc } from "@/lib/trpc/client";
+import { Loading } from "@unkey/ui";
 
 export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
   const { data: user } = trpc.user.getCurrentUser.useQuery();

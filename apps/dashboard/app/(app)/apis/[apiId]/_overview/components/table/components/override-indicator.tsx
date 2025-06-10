@@ -2,7 +2,7 @@
 import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { TriangleWarning2 } from "@unkey/icons";
-import { AnimatedLoadingSpinner, InfoTooltip } from "@unkey/ui";
+import { InfoTooltip, Loading } from "@unkey/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
@@ -71,7 +71,7 @@ export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierCol
       >
         {isNavigating ? (
           <div className="size-[12px] items-center justify-center flex">
-            <AnimatedLoadingSpinner />
+            <Loading size={18} />
           </div>
         ) : (
           <div className={cn("transition-opacity", hasErrors ? "opacity-100" : "opacity-0")}>
