@@ -131,6 +131,7 @@ func New(svc Services) zen.Route {
 			identity, err := db.Query.FindIdentityByExternalID(ctx, svc.DB.RO(), db.FindIdentityByExternalIDParams{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				ExternalID:  *req.ExternalId,
+				Deleted:     false,
 			})
 			if err != nil {
 				if !db.IsNotFound(err) {
@@ -267,9 +268,20 @@ func New(svc Services) zen.Route {
 		for i := 0; i < numKeysToReturn; i++ {
 			key := filteredKeys[i]
 			k := openapi.KeyResponse{
-				KeyId:     key.Key.ID,
-				Start:     key.Key.Start,
-				CreatedAt: key.Key.CreatedAtM,
+				KeyId:       key.Key.ID,
+				Start:       key.Key.Start,
+				CreatedAt:   key.Key.CreatedAtM,
+				Credits:     nil,
+				Environment: nil,
+				Expires:     nil,
+				Identity:    nil,
+				Meta:        nil,
+				Name:        nil,
+				Permissions: nil,
+				Plaintext:   nil,
+				Ratelimits:  nil,
+				Roles:       nil,
+				UpdatedAt:   nil,
 			}
 
 			if key.Key.Name.Valid {
@@ -297,11 +309,14 @@ func New(svc Services) zen.Route {
 			if key.Key.RemainingRequests.Valid {
 				k.Credits = &openapi.KeyCredits{
 					Remaining: int(key.Key.RemainingRequests.Int32),
+					Refill:    nil,
 				}
 				if key.Key.RefillAmount.Valid {
 					k.Credits.Refill = &openapi.KeyCreditsRefill{
-						Amount:    int(key.Key.RemainingRequests.Int32),
-						RefillDay: ptr.P(int(key.Key.RefillDay.Int16)),
+						Amount:       int(key.Key.RefillAmount.Int32),
+						Interval:     "",
+						RefillDay:    ptr.P(int(key.Key.RefillDay.Int16)),
+						LastRefillAt: nil,
 					}
 					if key.Key.LastRefillAt.Valid {
 						k.Credits.Refill.LastRefillAt = ptr.P(key.Key.LastRefillAt.Time.UnixMilli())
@@ -322,6 +337,8 @@ func New(svc Services) zen.Route {
 				k.Identity = &openapi.Identity{
 					ExternalId: key.ExternalID.String,
 					Id:         key.IdentityID.String,
+					Meta:       nil,
+					Ratelimits: nil,
 				}
 				if key.IdentityMeta != nil && len(key.IdentityMeta) > 0 {
 					err = json.Unmarshal(key.IdentityMeta, &k.Identity.Meta)

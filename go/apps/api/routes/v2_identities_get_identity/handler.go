@@ -73,6 +73,7 @@ func New(svc Services) zen.Route {
 			identity, err = db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
 				ExternalID:  *req.ExternalId,
 				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Deleted:     false,
 			})
 		} else {
 			return fault.New("invalid request",

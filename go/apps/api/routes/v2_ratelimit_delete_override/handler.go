@@ -144,7 +144,6 @@ func New(svc Services) zen.Route {
 				Bucket:      auditlogs.DEFAULT_BUCKET,
 				ActorType:   auditlog.RootKeyActor,
 				ActorName:   "root key",
-				ActorMeta:   nil,
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{

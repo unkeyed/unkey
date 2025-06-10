@@ -204,7 +204,6 @@ func New(svc Services) zen.Route {
 				Bucket:      auditlogs.DEFAULT_BUCKET,
 				ActorID:     auth.KeyID,
 				ActorType:   auditlog.RootKeyActor,
-				ActorMeta:   nil,
 				ActorName:   "root key",
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
@@ -236,7 +235,6 @@ func New(svc Services) zen.Route {
 				Bucket:      auditlogs.DEFAULT_BUCKET,
 				ActorID:     auth.KeyID,
 				ActorType:   auditlog.RootKeyActor,
-				ActorMeta:   nil,
 				ActorName:   "root key",
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
@@ -275,7 +273,11 @@ func New(svc Services) zen.Route {
 			)
 		}
 
-		return s.JSON(http.StatusOK, Response{})
+		return s.JSON(http.StatusOK, Response{
+			Meta: openapi.Meta{
+				RequestId: s.RequestID(),
+			},
+		})
 	})
 }
 

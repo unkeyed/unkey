@@ -118,7 +118,6 @@ func New(svc Services) zen.Route {
 				Display:     fmt.Sprintf("Created API %s", apiId),
 				ActorID:     auth.KeyID,
 				ActorName:   "root key",
-				ActorMeta:   nil,
 				Bucket:      auditlogs.DEFAULT_BUCKET,
 				ActorType:   auditlog.RootKeyActor,
 				RemoteIP:    s.Location(),

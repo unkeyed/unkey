@@ -115,6 +115,7 @@ func New(svc Services) zen.Route {
 				Id:         identity.ID,
 				ExternalId: identity.ExternalID,
 				Ratelimits: formattedRatelimits,
+				Meta:       nil,
 			}
 
 			// Add metadata if available

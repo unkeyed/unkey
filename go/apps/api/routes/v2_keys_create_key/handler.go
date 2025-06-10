@@ -177,14 +177,14 @@ func New(svc Services) zen.Route {
 			Hash:              keyResult.Hash,
 			Start:             keyResult.Start,
 			WorkspaceID:       auth.AuthorizedWorkspaceID,
-			ForWorkspaceID:    sql.NullString{},
+			ForWorkspaceID:    sql.NullString{String: "", Valid: false},
 			CreatedAtM:        now,
 			Enabled:           true,
-			RemainingRequests: sql.NullInt32{},
-			RatelimitAsync:    sql.NullBool{},
-			RatelimitLimit:    sql.NullInt32{},
-			RatelimitDuration: sql.NullInt64{},
-			Environment:       sql.NullString{},
+			RemainingRequests: sql.NullInt32{Int32: 0, Valid: false},
+			RatelimitAsync:    sql.NullBool{Bool: false, Valid: false},
+			RatelimitLimit:    sql.NullInt32{Int32: 0, Valid: false},
+			RatelimitDuration: sql.NullInt64{Int64: 0, Valid: false},
+			Environment:       sql.NullString{String: "", Valid: false},
 		}
 
 		// Set optional fields

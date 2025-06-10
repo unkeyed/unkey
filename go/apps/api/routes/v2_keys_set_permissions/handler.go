@@ -134,7 +134,7 @@ func New(svc Services) zen.Route {
 								WorkspaceID:  auth.AuthorizedWorkspaceID,
 								Name:         *permissionRef.Slug,
 								Slug:         *permissionRef.Slug,
-								Description:  sql.NullString{Valid: false},
+								Description:  sql.NullString{String: "", Valid: false},
 								CreatedAtM:   time.Now().UnixMilli(),
 							})
 							if err != nil {

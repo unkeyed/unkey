@@ -47,7 +47,12 @@ func New(svc Services) zen.Route {
 		}
 
 		// Parse request
-		req := Request{}
+		req := Request{
+			ExternalId: nil,
+			IdentityId: nil,
+			Meta:       nil,
+			Ratelimits: nil,
+		}
 		err = s.BindBody(&req)
 		if err != nil {
 			return fault.Wrap(err,
@@ -204,6 +209,7 @@ func New(svc Services) zen.Route {
 						Type:        auditlog.IdentityResourceType,
 						Name:        identity.ExternalID,
 						DisplayName: identity.ExternalID,
+						Meta:        nil,
 					},
 				},
 			},
@@ -268,14 +274,16 @@ func New(svc Services) zen.Route {
 							{
 								ID:          identity.ID,
 								Type:        auditlog.IdentityResourceType,
-								Name:        identity.ExternalID,
 								DisplayName: identity.ExternalID,
+								Name:        identity.ExternalID,
+								Meta:        nil,
 							},
 							{
 								ID:          existingRL.ID,
 								Type:        auditlog.RatelimitResourceType,
-								Name:        existingRL.Name,
 								DisplayName: existingRL.Name,
+								Name:        existingRL.Name,
+								Meta:        nil,
 							},
 						},
 					})
@@ -315,12 +323,14 @@ func New(svc Services) zen.Route {
 								Type:        auditlog.IdentityResourceType,
 								Name:        identity.ExternalID,
 								DisplayName: identity.ExternalID,
+								Meta:        nil,
 							},
 							{
 								ID:          existingRL.ID,
 								Type:        auditlog.RatelimitResourceType,
 								Name:        newRL.Name,
 								DisplayName: newRL.Name,
+								Meta:        nil,
 							},
 						},
 					})
@@ -357,14 +367,16 @@ func New(svc Services) zen.Route {
 							{
 								ID:          identity.ID,
 								Type:        auditlog.IdentityResourceType,
-								Name:        identity.ExternalID,
 								DisplayName: identity.ExternalID,
+								Name:        identity.ExternalID,
+								Meta:        nil,
 							},
 							{
 								ID:          ratelimitID,
 								Type:        auditlog.RatelimitResourceType,
-								Name:        newRL.Name,
 								DisplayName: newRL.Name,
+								Name:        newRL.Name,
+								Meta:        nil,
 							},
 						},
 					})
