@@ -21,6 +21,7 @@ import { updateApiName } from "./api/updateName";
 import { fetchAuditLog } from "./audit/fetch";
 import { auditLogsSearch } from "./audit/llm-search";
 import { deletePermissionWithRelations } from "./authorization/permissions/delete";
+import { permissionsLlmSearch } from "./authorization/permissions/llm-search";
 import { queryPermissions } from "./authorization/permissions/query";
 import { upsertPermission } from "./authorization/permissions/upsert";
 import { getConnectedKeysAndPerms } from "./authorization/roles/connected-keys-and-perms";
@@ -169,6 +170,7 @@ export const router = t.router({
       query: queryPermissions,
       upsert: upsertPermission,
       delete: deletePermissionWithRelations,
+      llmSearch: permissionsLlmSearch,
     }),
     roles: t.router({
       query: queryRoles,

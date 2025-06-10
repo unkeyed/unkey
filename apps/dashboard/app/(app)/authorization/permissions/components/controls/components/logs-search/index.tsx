@@ -7,7 +7,7 @@ import { useFilters } from "../../../../hooks/use-filters";
 export const PermissionSearch = () => {
   const { filters, updateFilters } = useFilters();
 
-  const queryLLMForStructuredOutput = trpc.authorization.roles.llmSearch.useMutation({
+  const queryLLMForStructuredOutput = trpc.authorization.permissions.llmSearch.useMutation({
     onSuccess(data) {
       if (data?.filters.length === 0 || !data) {
         toast.error(

@@ -73,7 +73,7 @@ export const SelectionControls = ({
                   ref={deleteButtonRef}
                 >
                   <Trash size="sm-regular" />
-                  Delete roles
+                  Delete permissions
                 </Button>
                 <Button
                   size="icon"

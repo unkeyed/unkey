@@ -218,8 +218,8 @@ export const PermissionsList = () => {
             <Empty.Icon className="w-auto" />
             <Empty.Title>No Permissions Found</Empty.Title>
             <Empty.Description className="text-left">
-              There are no roles configured yet. Create your first permission to start managing
-              permissions and access control.
+              There are no permissions configured yet. Create your first permission to start
+              managing permissions and access control.
             </Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
               <a
