@@ -33,6 +33,9 @@ type Services struct {
 	Caches      caches.Caches
 }
 
+// TODO: Implement caching strategy for listKeys similar to TypeScript v1 implementation
+// The current implementation queries the database directly without caching, which may impact performance.
+// Consider implementing cache with optional bypass via revalidateKeysCache parameter.
 func New(svc Services) zen.Route {
 	return zen.NewRoute("POST", "/v2/apis.listKeys", func(ctx context.Context, s *zen.Session) error {
 
@@ -169,6 +172,32 @@ func New(svc Services) zen.Route {
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error"), fault.Public("Failed to retrieve keys."),
 			)
+		}
+
+		// Query ratelimits for all returned keys
+		ratelimitsMap := make(map[string][]db.FindRatelimitsByKeyIDsRow)
+		if len(keys) > 0 {
+			// Extract key IDs and convert to sql.NullString slice
+			keyIDs := make([]sql.NullString, len(keys))
+			for i, key := range keys {
+				keyIDs[i] = sql.NullString{Valid: true, String: key.Key.ID}
+			}
+
+			// Query ratelimits for these keys
+			ratelimits, err := db.Query.FindRatelimitsByKeyIDs(ctx, svc.DB.RO(), keyIDs)
+			if err != nil {
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to retrieve ratelimits."),
+				)
+			}
+
+			// Group ratelimits by key_id
+			for _, rl := range ratelimits {
+				if rl.KeyID.Valid {
+					ratelimitsMap[rl.KeyID.String] = append(ratelimitsMap[rl.KeyID.String], rl)
+				}
+			}
 		}
 
 		// If user requested decryption, check permissions and decrypt
@@ -326,6 +355,20 @@ func New(svc Services) zen.Route {
 			}
 
 			k.Roles = ptr.P(roleNames)
+
+			// Add ratelimits for the key
+			if keyRatelimits, exists := ratelimitsMap[k.KeyId]; exists {
+				ratelimitsResponse := make([]openapi.RatelimitResponse, len(keyRatelimits))
+				for j, rl := range keyRatelimits {
+					ratelimitsResponse[j] = openapi.RatelimitResponse{
+						Id:       rl.ID,
+						Name:     rl.Name,
+						Limit:    int(rl.Limit),
+						Duration: int(rl.Duration),
+					}
+				}
+				k.Ratelimits = ptr.P(ratelimitsResponse)
+			}
 
 			responseData[i] = k
 		}

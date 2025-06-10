@@ -302,6 +302,9 @@ type KeyResponse struct {
 	// Plaintext The decrypted key value (only included if decrypt=true)
 	Plaintext *string `json:"plaintext,omitempty"`
 
+	// Ratelimits Rate limits applied to this key
+	Ratelimits *[]RatelimitResponse `json:"ratelimits,omitempty"`
+
 	// Roles Roles assigned to this key
 	Roles *[]string `json:"roles,omitempty"`
 
@@ -741,6 +744,21 @@ type RatelimitOverride struct {
 
 	// OverrideId The unique identifier of this specific rate limit override. This ID is generated when the override is created and can be used for management operations like updating or deleting the override.
 	OverrideId string `json:"overrideId"`
+}
+
+// RatelimitResponse defines model for RatelimitResponse.
+type RatelimitResponse struct {
+	// Duration The duration of the rate limit window in milliseconds
+	Duration int `json:"duration"`
+
+	// Id The unique identifier for this rate limit
+	Id string `json:"id"`
+
+	// Limit The maximum number of requests allowed within the duration
+	Limit int `json:"limit"`
+
+	// Name The name of the rate limit
+	Name string `json:"name"`
 }
 
 // RatelimitSetOverrideResponseData defines model for RatelimitSetOverrideResponseData.

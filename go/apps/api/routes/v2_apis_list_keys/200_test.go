@@ -468,4 +468,106 @@ func TestSuccess(t *testing.T) {
 			require.True(t, len(key.Start) <= 32, "Start should be a reasonable prefix length")
 		}
 	})
+
+	t.Run("verify ratelimits are returned correctly", func(t *testing.T) {
+		// Create a key with ratelimits
+		keyWithRatelimits := uid.New("key")
+		err := db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
+			ID:                keyWithRatelimits,
+			KeyringID:         keyAuthID,
+			Hash:              hash.Sha256("rl_test_" + uid.New("")),
+			Start:             "rl_test_",
+			WorkspaceID:       workspace.ID,
+			Name:              sql.NullString{Valid: true, String: "Key with Ratelimits"},
+			CreatedAtM:        time.Now().UnixMilli(),
+			Enabled:           true,
+			ForWorkspaceID:    sql.NullString{Valid: false},
+			Meta:              sql.NullString{Valid: false},
+			Expires:           sql.NullTime{Valid: false},
+			RemainingRequests: sql.NullInt32{Valid: false},
+			RatelimitAsync:    sql.NullBool{Valid: false},
+			RatelimitLimit:    sql.NullInt32{Valid: false},
+			RatelimitDuration: sql.NullInt64{Valid: false},
+			Environment:       sql.NullString{Valid: false},
+			IdentityID:        sql.NullString{Valid: false},
+		})
+		require.NoError(t, err)
+
+		// Create a key without ratelimits
+		keyWithoutRatelimits := uid.New("key")
+		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
+			ID:                keyWithoutRatelimits,
+			KeyringID:         keyAuthID,
+			Hash:              hash.Sha256("no_rl_test_" + uid.New("")),
+			Start:             "no_rl_test_",
+			WorkspaceID:       workspace.ID,
+			Name:              sql.NullString{Valid: true, String: "Key without Ratelimits"},
+			CreatedAtM:        time.Now().UnixMilli(),
+			Enabled:           true,
+			ForWorkspaceID:    sql.NullString{Valid: false},
+			Meta:              sql.NullString{Valid: false},
+			Expires:           sql.NullTime{Valid: false},
+			RemainingRequests: sql.NullInt32{Valid: false},
+			RatelimitAsync:    sql.NullBool{Valid: false},
+			RatelimitLimit:    sql.NullInt32{Valid: false},
+			RatelimitDuration: sql.NullInt64{Valid: false},
+			Environment:       sql.NullString{Valid: false},
+			IdentityID:        sql.NullString{Valid: false},
+		})
+		require.NoError(t, err)
+
+		// Add ratelimits to the first key only
+		err = db.Query.InsertKeyRatelimit(ctx, h.DB.RW(), db.InsertKeyRatelimitParams{
+			ID:          uid.New("ratelimit"),
+			WorkspaceID: workspace.ID,
+			KeyID:       sql.NullString{Valid: true, String: keyWithRatelimits},
+			Name:        "requests",
+			Limit:       100,
+			Duration:    60000,
+			CreatedAt:   time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		// Call the endpoint
+		req := handler.Request{
+			ApiId: apiID,
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body.Data)
+
+		// Find both keys in the response and verify ratelimits behavior
+		var foundKeyWithRatelimits, foundKeyWithoutRatelimits bool
+		for _, key := range res.Body.Data {
+			switch key.KeyId {
+			case keyWithRatelimits:
+				foundKeyWithRatelimits = true
+				require.NotNil(t, key.Ratelimits, "Key with ratelimits should have ratelimits field")
+				require.Len(t, *key.Ratelimits, 1, "Should have exactly 1 ratelimit")
+
+				ratelimit := (*key.Ratelimits)[0]
+				require.Equal(t, "requests", ratelimit.Name)
+				require.Equal(t, 100, ratelimit.Limit)
+				require.Equal(t, 60000, ratelimit.Duration)
+				require.NotEmpty(t, ratelimit.Id, "Ratelimit should have an ID")
+
+			case keyWithoutRatelimits:
+				foundKeyWithoutRatelimits = true
+				// Key without ratelimits should have nil or empty ratelimits array
+				if key.Ratelimits != nil {
+					require.Len(t, *key.Ratelimits, 0, "Key without ratelimits should have empty ratelimits array")
+				}
+				// Both nil and empty array are acceptable
+			}
+		}
+		require.True(t, foundKeyWithRatelimits, "Should find the key with ratelimits in response")
+		require.True(t, foundKeyWithoutRatelimits, "Should find the key without ratelimits in response")
+	})
 }

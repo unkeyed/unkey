@@ -283,6 +283,18 @@ type Querier interface {
 	//
 	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration FROM ratelimits WHERE identity_id = ?
 	FindRatelimitsByIdentityID(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error)
+	//FindRatelimitsByKeyIDs
+	//
+	//  SELECT
+	//    id,
+	//    key_id,
+	//    name,
+	//    `limit`,
+	//    duration
+	//  FROM ratelimits
+	//  WHERE key_id IN (/*SLICE:key_ids*/?)
+	//  ORDER BY key_id, id
+	FindRatelimitsByKeyIDs(ctx context.Context, db DBTX, keyIds []sql.NullString) ([]FindRatelimitsByKeyIDsRow, error)
 	// Finds a role record by its ID
 	// Returns: The role record if found
 	//
@@ -500,6 +512,26 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertKeyPermission(ctx context.Context, db DBTX, arg InsertKeyPermissionParams) error
+	//InsertKeyRatelimit
+	//
+	//  INSERT INTO `ratelimits` (
+	//      id,
+	//      workspace_id,
+	//      key_id,
+	//      name,
+	//      `limit`,
+	//      duration,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertKeyRatelimit(ctx context.Context, db DBTX, arg InsertKeyRatelimitParams) error
 	//InsertKeyRole
 	//
 	//  INSERT INTO keys_roles (
