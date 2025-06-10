@@ -1,0 +1,457 @@
+package handler_test
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"net/http"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/apps/api/openapi"
+	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_add_roles"
+	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/hash"
+	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/uid"
+)
+
+func TestAuthorizationErrors(t *testing.T) {
+	ctx := context.Background()
+	h := testutil.NewHarness(t)
+
+	route := handler.New(handler.Services{
+		DB:          h.DB,
+		Keys:        h.Keys,
+		Logger:      h.Logger,
+		Permissions: h.Permissions,
+		Auditlogs:   h.Auditlogs,
+	})
+
+	h.Register(route)
+
+	// Test case for insufficient permissions
+	t.Run("insufficient permissions - no update_key", func(t *testing.T) {
+		// Create a workspace and root key without UpdateKey permission
+		workspace := h.Resources().UserWorkspace
+		rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key") // Only read permission
+
+		// Create a test keyring
+		keyAuthID := uid.New(uid.KeyAuthPrefix)
+		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
+			ID:                 keyAuthID,
+			WorkspaceID:        workspace.ID,
+			StoreEncryptedKeys: false,
+			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
+			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
+			CreatedAtM:         time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		// Create a test key
+		keyID := uid.New(uid.KeyPrefix)
+		keyString := "test_" + uid.New("")
+		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
+			ID:                keyID,
+			KeyringID:         keyAuthID,
+			Hash:              hash.Sha256(keyString),
+			Start:             keyString[:4],
+			WorkspaceID:       workspace.ID,
+			ForWorkspaceID:    sql.NullString{Valid: false},
+			Name:              sql.NullString{Valid: true, String: "Test Key"},
+			CreatedAtM:        time.Now().UnixMilli(),
+			Enabled:           true,
+			IdentityID:        sql.NullString{Valid: false},
+			Meta:              sql.NullString{Valid: false},
+			Expires:           sql.NullTime{Valid: false},
+			RemainingRequests: sql.NullInt32{Valid: false},
+			RatelimitAsync:    sql.NullBool{Valid: false},
+			RatelimitLimit:    sql.NullInt32{Valid: false},
+			RatelimitDuration: sql.NullInt64{Valid: false},
+			Environment:       sql.NullString{Valid: false},
+		})
+		require.NoError(t, err)
+
+		req := handler.Request{
+			KeyId: keyID,
+			Roles: []struct {
+				Id   *string `json:"id,omitempty"`
+				Name *string `json:"name,omitempty"`
+			}{
+				{Id: func() *string { s := "role_123"; return &s }()},
+			},
+		}
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 403, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions")
+	})
+
+	// Test case for cross workspace access
+	t.Run("cross workspace access", func(t *testing.T) {
+		// Create two different workspaces
+		workspace1 := h.Resources().UserWorkspace
+		workspace2 := h.CreateWorkspace()
+
+		// Root key from workspace1
+		rootKey := h.CreateRootKey(workspace1.ID, "api.*.update_key")
+
+		// Create a test keyring in workspace2
+		keyAuthID := uid.New(uid.KeyAuthPrefix)
+		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
+			ID:                 keyAuthID,
+			WorkspaceID:        workspace2.ID,
+			StoreEncryptedKeys: false,
+			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
+			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
+			CreatedAtM:         time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		// Create a test key in workspace2
+		keyID := uid.New(uid.KeyPrefix)
+		keyString := "test_" + uid.New("")
+		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
+			ID:                keyID,
+			KeyringID:         keyAuthID,
+			Hash:              hash.Sha256(keyString),
+			Start:             keyString[:4],
+			WorkspaceID:       workspace2.ID,
+			ForWorkspaceID:    sql.NullString{Valid: false},
+			Name:              sql.NullString{Valid: true, String: "Test Key"},
+			CreatedAtM:        time.Now().UnixMilli(),
+			Enabled:           true,
+			IdentityID:        sql.NullString{Valid: false},
+			Meta:              sql.NullString{Valid: false},
+			Expires:           sql.NullTime{Valid: false},
+			RemainingRequests: sql.NullInt32{Valid: false},
+			RatelimitAsync:    sql.NullBool{Valid: false},
+			RatelimitLimit:    sql.NullInt32{Valid: false},
+			RatelimitDuration: sql.NullInt64{Valid: false},
+			Environment:       sql.NullString{Valid: false},
+		})
+		require.NoError(t, err)
+
+		req := handler.Request{
+			KeyId: keyID,
+			Roles: []struct {
+				Id   *string `json:"id,omitempty"`
+				Name *string `json:"name,omitempty"`
+			}{
+				{Id: func() *string { s := "role_123"; return &s }()},
+			},
+		}
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 404, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+		require.Contains(t, res.Body.Error.Detail, "The specified key was not found")
+	})
+
+	// Test case for disabled root key
+	t.Run("disabled root key", func(t *testing.T) {
+		workspace := h.Resources().UserWorkspace
+		rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
+
+		// Create a test keyring
+		keyAuthID := uid.New(uid.KeyAuthPrefix)
+		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
+			ID:                 keyAuthID,
+			WorkspaceID:        workspace.ID,
+			StoreEncryptedKeys: false,
+			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
+			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
+			CreatedAtM:         time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		// Create a test key
+		keyID := uid.New(uid.KeyPrefix)
+		keyString := "test_" + uid.New("")
+		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
+			ID:                keyID,
+			KeyringID:         keyAuthID,
+			Hash:              hash.Sha256(keyString),
+			Start:             keyString[:4],
+			WorkspaceID:       workspace.ID,
+			ForWorkspaceID:    sql.NullString{Valid: false},
+			Name:              sql.NullString{Valid: true, String: "Test Key"},
+			CreatedAtM:        time.Now().UnixMilli(),
+			Enabled:           true,
+			IdentityID:        sql.NullString{Valid: false},
+			Meta:              sql.NullString{Valid: false},
+			Expires:           sql.NullTime{Valid: false},
+			RemainingRequests: sql.NullInt32{Valid: false},
+			RatelimitAsync:    sql.NullBool{Valid: false},
+			RatelimitLimit:    sql.NullInt32{Valid: false},
+			RatelimitDuration: sql.NullInt64{Valid: false},
+			Environment:       sql.NullString{Valid: false},
+		})
+		require.NoError(t, err)
+
+		// Use invalid root key to simulate disabled key
+		rootKey = "invalid_disabled_key"
+
+		req := handler.Request{
+			KeyId: keyID,
+			Roles: []struct {
+				Id   *string `json:"id,omitempty"`
+				Name *string `json:"name,omitempty"`
+			}{
+				{Id: func() *string { s := "role_123"; return &s }()},
+			},
+		}
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 401, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+	})
+
+	// Test case for root key with only read permissions
+	t.Run("root key with read only permissions", func(t *testing.T) {
+		workspace := h.Resources().UserWorkspace
+		// Create root key with only read permissions
+		rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key", "rbac.*.read_role")
+
+		// Create a test keyring
+		keyAuthID := uid.New(uid.KeyAuthPrefix)
+		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
+			ID:                 keyAuthID,
+			WorkspaceID:        workspace.ID,
+			StoreEncryptedKeys: false,
+			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
+			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
+			CreatedAtM:         time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		// Create a test key
+		keyID := uid.New(uid.KeyPrefix)
+		keyString := "test_" + uid.New("")
+		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
+			ID:                keyID,
+			KeyringID:         keyAuthID,
+			Hash:              hash.Sha256(keyString),
+			Start:             keyString[:4],
+			WorkspaceID:       workspace.ID,
+			ForWorkspaceID:    sql.NullString{Valid: false},
+			Name:              sql.NullString{Valid: true, String: "Test Key"},
+			CreatedAtM:        time.Now().UnixMilli(),
+			Enabled:           true,
+			IdentityID:        sql.NullString{Valid: false},
+			Meta:              sql.NullString{Valid: false},
+			Expires:           sql.NullTime{Valid: false},
+			RemainingRequests: sql.NullInt32{Valid: false},
+			RatelimitAsync:    sql.NullBool{Valid: false},
+			RatelimitLimit:    sql.NullInt32{Valid: false},
+			RatelimitDuration: sql.NullInt64{Valid: false},
+			Environment:       sql.NullString{Valid: false},
+		})
+		require.NoError(t, err)
+
+		req := handler.Request{
+			KeyId: keyID,
+			Roles: []struct {
+				Id   *string `json:"id,omitempty"`
+				Name *string `json:"name,omitempty"`
+			}{
+				{Id: func() *string { s := "role_123"; return &s }()},
+			},
+		}
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 403, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions")
+	})
+
+	// Test case for expired root key
+	t.Run("expired root key", func(t *testing.T) {
+		workspace := h.Resources().UserWorkspace
+		// Use invalid root key to simulate expired key
+		rootKey := "expired_root_key_12345"
+
+		// Create a test keyring
+		keyAuthID := uid.New(uid.KeyAuthPrefix)
+		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
+			ID:                 keyAuthID,
+			WorkspaceID:        workspace.ID,
+			StoreEncryptedKeys: false,
+			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
+			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
+			CreatedAtM:         time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		// Create a test key
+		keyID := uid.New(uid.KeyPrefix)
+		keyString := "test_" + uid.New("")
+		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
+			ID:                keyID,
+			KeyringID:         keyAuthID,
+			Hash:              hash.Sha256(keyString),
+			Start:             keyString[:4],
+			WorkspaceID:       workspace.ID,
+			ForWorkspaceID:    sql.NullString{Valid: false},
+			Name:              sql.NullString{Valid: true, String: "Test Key"},
+			CreatedAtM:        time.Now().UnixMilli(),
+			Enabled:           true,
+			IdentityID:        sql.NullString{Valid: false},
+			Meta:              sql.NullString{Valid: false},
+			Expires:           sql.NullTime{Valid: false},
+			RemainingRequests: sql.NullInt32{Valid: false},
+			RatelimitAsync:    sql.NullBool{Valid: false},
+			RatelimitLimit:    sql.NullInt32{Valid: false},
+			RatelimitDuration: sql.NullInt64{Valid: false},
+			Environment:       sql.NullString{Valid: false},
+		})
+		require.NoError(t, err)
+
+		req := handler.Request{
+			KeyId: keyID,
+			Roles: []struct {
+				Id   *string `json:"id,omitempty"`
+				Name *string `json:"name,omitempty"`
+			}{
+				{Id: func() *string { s := "role_123"; return &s }()},
+			},
+		}
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 401, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+	})
+
+	// Test case for deleted workspace
+	t.Run("deleted workspace", func(t *testing.T) {
+		workspace := h.CreateWorkspace()
+		rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
+
+		// Create a test keyring
+		keyAuthID := uid.New(uid.KeyAuthPrefix)
+		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
+			ID:                 keyAuthID,
+			WorkspaceID:        workspace.ID,
+			StoreEncryptedKeys: false,
+			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
+			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
+			CreatedAtM:         time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		// Create a test key
+		keyID := uid.New(uid.KeyPrefix)
+		keyString := "test_" + uid.New("")
+		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
+			ID:                keyID,
+			KeyringID:         keyAuthID,
+			Hash:              hash.Sha256(keyString),
+			Start:             keyString[:4],
+			WorkspaceID:       workspace.ID,
+			ForWorkspaceID:    sql.NullString{Valid: false},
+			Name:              sql.NullString{Valid: true, String: "Test Key"},
+			CreatedAtM:        time.Now().UnixMilli(),
+			Enabled:           true,
+			IdentityID:        sql.NullString{Valid: false},
+			Meta:              sql.NullString{Valid: false},
+			Expires:           sql.NullTime{Valid: false},
+			RemainingRequests: sql.NullInt32{Valid: false},
+			RatelimitAsync:    sql.NullBool{Valid: false},
+			RatelimitLimit:    sql.NullInt32{Valid: false},
+			RatelimitDuration: sql.NullInt64{Valid: false},
+			Environment:       sql.NullString{Valid: false},
+		})
+		require.NoError(t, err)
+
+		// Use invalid root key to simulate deleted workspace scenario
+		rootKey = "invalid_deleted_workspace_key"
+
+		req := handler.Request{
+			KeyId: keyID,
+			Roles: []struct {
+				Id   *string `json:"id,omitempty"`
+				Name *string `json:"name,omitempty"`
+			}{
+				{Id: func() *string { s := "role_123"; return &s }()},
+			},
+		}
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 401, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+	})
+}

@@ -475,7 +475,7 @@ func TestSuccess(t *testing.T) {
 		err := db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 			ID:                keyWithRatelimits,
 			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256("rl_test_" + uid.New("")),
+			Hash:              hash.Sha256(uid.New("test")),
 			Start:             "rl_test_",
 			WorkspaceID:       workspace.ID,
 			Name:              sql.NullString{Valid: true, String: "Key with Ratelimits"},
