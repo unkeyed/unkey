@@ -1,11 +1,5 @@
 import { db, sql } from "@/lib/db";
-import {
-  ratelimit,
-  requireUser,
-  requireWorkspace,
-  t,
-  withRatelimit,
-} from "@/lib/trpc/trpc";
+import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { z } from "zod";
 
 const MAX_ITEMS_TO_SHOW = 3;
@@ -138,9 +132,7 @@ export const queryPermissions = t.procedure
     const permissionsResponseData: Permissions[] = items.map((row) => {
       // Parse concatenated strings back to arrays
       const roleItems = row.role_items
-        ? row.role_items
-            .split(ITEM_SEPARATOR)
-            .filter((item) => item.trim() !== "")
+        ? row.role_items.split(ITEM_SEPARATOR).filter((item) => item.trim() !== "")
         : [];
 
       return {
@@ -182,7 +174,7 @@ function buildRoleFilter(
       }[]
     | null
     | undefined,
-  workspaceId: string
+  workspaceId: string,
 ) {
   const conditions = [];
 
@@ -290,7 +282,7 @@ function buildFilterConditions(
       }[]
     | null
     | undefined,
-  columnName: string
+  columnName: string,
 ) {
   if (!filters || filters.length === 0) {
     return sql``;
