@@ -14,6 +14,11 @@ type Querier interface {
 	//
 	//  DELETE FROM identities WHERE id = ?
 	DeleteIdentity(ctx context.Context, db DBTX, id string) error
+	//DeleteKeyPermissionByKeyIdAndPermissionId
+	//
+	//  DELETE FROM keys_permissions
+	//  WHERE key_id = ? AND permission_id = ?
+	DeleteKeyPermissionByKeyIdAndPermissionId(ctx context.Context, db DBTX, arg DeleteKeyPermissionByKeyIdAndPermissionIdParams) error
 	//DeleteKeyPermissionsByPermissionId
 	//
 	//  DELETE FROM keys_permissions
@@ -85,6 +90,14 @@ type Querier interface {
 	//  JOIN audit_log ON audit_log.id = audit_log_target.audit_log_id
 	//  WHERE audit_log_target.id = ?
 	FindAuditLogTargetById(ctx context.Context, db DBTX, id string) ([]FindAuditLogTargetByIdRow, error)
+	//FindDirectPermissionsForKey
+	//
+	//  SELECT p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
+	//  FROM keys_permissions kp
+	//  JOIN permissions p ON kp.permission_id = p.id
+	//  WHERE kp.key_id = ?
+	//  ORDER BY p.name
+	FindDirectPermissionsForKey(ctx context.Context, db DBTX, keyID string) ([]Permission, error)
 	//FindIdentityByExternalID
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at FROM identities WHERE workspace_id = ? AND external_id = ? AND deleted = ?
