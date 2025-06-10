@@ -22,7 +22,7 @@ export function Navigation() {
     <Navbar className="w-full flex justify-between">
       <Navbar.Breadcrumbs icon={<ShieldKey />} className="flex-1 w-full">
         <Navbar.Breadcrumbs.Link href="/authorization/roles">Authorization</Navbar.Breadcrumbs.Link>
-        <Navbar.Breadcrumbs.Link href="/authorization/permissions" active>
+        <Navbar.Breadcrumbs.Link href="/authorization/roles" active>
           Roles
         </Navbar.Breadcrumbs.Link>
       </Navbar.Breadcrumbs>
