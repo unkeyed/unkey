@@ -7,14 +7,15 @@ import { BookBookmark, HandHoldingKey } from "@unkey/icons";
 import { Button, Checkbox, Empty } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useCallback, useMemo, useState } from "react";
+import { PermissionsTableActions } from "./components/actions/keys-table-action.popover.constants";
 import { AssignedItemsCell } from "./components/assigned-items-cell";
 import { LastUpdated } from "./components/last-updated";
 import { SelectionControls } from "./components/selection-controls";
 import {
   ActionColumnSkeleton,
   AssignedKeysColumnSkeleton,
+  AssignedToKeysColumnSkeleton,
   LastUpdatedColumnSkeleton,
-  PermissionsColumnSkeleton,
   RoleColumnSkeleton,
   SlugColumnSkeleton,
 } from "./components/skeletons";
@@ -113,7 +114,7 @@ export const PermissionsList = () => {
         ),
       },
       {
-        key: "roles",
+        key: "used_in_roles",
         header: "Used in Roles",
         width: "20%",
         render: (permission) => (
@@ -169,14 +170,14 @@ export const PermissionsList = () => {
           );
         },
       },
-      // {
-      //   key: "action",
-      //   header: "",
-      //   width: "15%",
-      //   render: (role) => {
-      //     return <RolesTableActions role={role} />;
-      //   },
-      // },
+      {
+        key: "action",
+        header: "",
+        width: "15%",
+        render: (permission) => {
+          return <PermissionsTableActions permission={permission} />;
+        },
+      },
     ],
     [selectedPermissions, toggleSelection, hoveredPermissionName, selectedPermission?.permissionId],
   );
@@ -253,8 +254,8 @@ export const PermissionsList = () => {
           >
             {column.key === "permission" && <RoleColumnSkeleton />}
             {column.key === "slug" && <SlugColumnSkeleton />}
-            {column.key === "assignedKeys" && <AssignedKeysColumnSkeleton />}
-            {column.key === "permissions" && <PermissionsColumnSkeleton />}
+            {column.key === "used_in_roles" && <AssignedKeysColumnSkeleton />}
+            {column.key === "assigned_to_keys" && <AssignedToKeysColumnSkeleton />}
             {column.key === "last_updated" && <LastUpdatedColumnSkeleton />}
             {column.key === "action" && <ActionColumnSkeleton />}
           </td>

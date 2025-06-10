@@ -3,39 +3,39 @@ import type { MenuItem } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_compon
 import { KeysTableActionPopover } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import type { Roles } from "@/lib/trpc/routers/authorization/roles/query";
+import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
 import { Clone, PenWriting3, Trash } from "@unkey/icons";
 import { DeleteRole } from "./components/delete-role";
 import { EditRole } from "./components/edit-role";
 
-type RolesTableActionsProps = {
-  role: Roles;
+type PermissionsTableActionsProps = {
+  permission: Permission;
 };
 
-export const RolesTableActions = ({ role }: RolesTableActionsProps) => {
+export const PermissionsTableActions = ({ permission }: PermissionsTableActionsProps) => {
   const trpcUtils = trpc.useUtils();
 
-  const getRolesTableActionItems = (role: Roles): MenuItem[] => {
+  const getPermissionsTableActionItems = (permission: Permission): MenuItem[] => {
     return [
       {
-        id: "edit-role",
-        label: "Edit role...",
+        id: "edit-permission",
+        label: "Edit permission...",
         icon: <PenWriting3 size="md-regular" />,
-        ActionComponent: (props) => <EditRole role={role} {...props} />,
+        ActionComponent: (props) => <EditRole role={permission} {...props} />,
         prefetch: async () => {
           await trpcUtils.authorization.roles.connectedKeysAndPerms.prefetch({
-            roleId: role.roleId,
+            roleId: permission.roleId,
           });
         },
       },
       {
         id: "copy",
-        label: "Copy role",
+        label: "Copy permission",
         className: "mt-1",
         icon: <Clone size="md-regular" />,
         onClick: () => {
           navigator.clipboard
-            .writeText(JSON.stringify(role))
+            .writeText(JSON.stringify(permission))
             .then(() => {
               toast.success("Role data copied to clipboard");
             })
@@ -50,12 +50,12 @@ export const RolesTableActions = ({ role }: RolesTableActionsProps) => {
         id: "delete-role",
         label: "Delete role",
         icon: <Trash size="md-regular" />,
-        ActionComponent: (props) => <DeleteRole {...props} roleDetails={role} />,
+        ActionComponent: (props) => <DeleteRole {...props} roleDetails={permission} />,
       },
     ];
   };
 
-  const menuItems = getRolesTableActionItems(role);
+  const menuItems = getPermissionsTableActionItems(permission);
 
   return <KeysTableActionPopover items={menuItems} />;
 };
