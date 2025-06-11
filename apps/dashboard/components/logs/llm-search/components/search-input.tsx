@@ -11,6 +11,7 @@ type SearchInputProps = {
   inputRef: React.RefObject<HTMLInputElement>;
 };
 
+const LLM_LIMITS_MAX_QUERY_LENGTH = 120;
 export const SearchInput = ({
   value,
   placeholder,
@@ -39,6 +40,7 @@ export const SearchInput = ({
       value={value}
       onKeyDown={onKeyDown}
       onChange={onChange}
+      maxLength={LLM_LIMITS_MAX_QUERY_LENGTH}
       placeholder={placeholder}
       className="truncate text-accent-12 font-medium text-[13px] bg-transparent border-none outline-none focus:ring-0 focus:outline-none placeholder:text-accent-12 selection:bg-gray-6 w-full"
       disabled={isProcessing && searchMode !== "allowTypeDuringSearch"}
