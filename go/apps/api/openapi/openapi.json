@@ -18,9 +18,7 @@
       "maxElapsedTime": 10000,
       "exponent": 1.5
     },
-    "statusCodes": [
-      "5XX"
-    ],
+    "statusCodes": ["5XX"],
     "retryConnectionErrors": true
   },
   "security": [
@@ -41,9 +39,7 @@
     "schemas": {
       "V2KeysUpdateKeyRequestBody": {
         "type": "object",
-        "required": [
-          "keyId"
-        ],
+        "required": ["keyId"],
         "properties": {
           "keyId": {
             "type": "string",
@@ -101,10 +97,7 @@
                 "properties": {
                   "interval": {
                     "type": "string",
-                    "enum": [
-                      "daily",
-                      "monthly"
-                    ],
+                    "enum": ["daily", "monthly"],
                     "description": "How often the credits should be refilled. For 'monthly' refills, you can specify the day of month using 'refillDay'. Use 'daily' for high-frequency use cases (e.g., 100 requests per day) and 'monthly' for subscription-based models."
                   },
                   "amount": {
@@ -119,16 +112,11 @@
                     "description": "For monthly refills, the day of month when refills occur. Cannot be used with 'daily' interval. Useful for aligning quota refills with billing cycles or subscription renewal dates."
                   }
                 },
-                "required": [
-                  "interval",
-                  "amount"
-                ],
+                "required": ["interval", "amount"],
                 "description": "Configuration for automatic credit refills. Set to null to disable automatic refills (creating a one-time credit allocation). Omit this field to leave existing refill settings unchanged. Use refills to implement recurring quotas that reset on a schedule."
               }
             },
-            "required": [
-              "remaining"
-            ],
+            "required": ["remaining"],
             "description": "Usage limits configuration for this key. Set to null to disable usage limits entirely (unlimited usage). Omit this field to leave all usage limit settings unchanged. Note: Cannot set refill when credits is null; setting refillDay requires interval to be 'monthly'. Use this to implement usage-based pricing models or to apply different quotas for different subscription tiers."
           },
           "ratelimits": {
@@ -136,11 +124,7 @@
             "nullable": true,
             "items": {
               "type": "object",
-              "required": [
-                "name",
-                "limit",
-                "duration"
-              ],
+              "required": ["name", "limit", "duration"],
               "properties": {
                 "name": {
                   "type": "string",
@@ -186,9 +170,7 @@
       },
       "V2KeysUpdateKeyResponseBody": {
         "type": "object",
-        "required": [
-          "meta"
-        ],
+        "required": ["meta"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -200,9 +182,7 @@
       },
       "V2KeysDeleteKeyRequestBody": {
         "type": "object",
-        "required": [
-          "keyId"
-        ],
+        "required": ["keyId"],
         "properties": {
           "keyId": {
             "type": "string",
@@ -226,9 +206,7 @@
       },
       "V2KeysDeleteKeyResponseBody": {
         "type": "object",
-        "required": [
-          "meta"
-        ],
+        "required": ["meta"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -240,9 +218,7 @@
       },
       "V2KeysGetKeyRequestBody": {
         "type": "object",
-        "required": [
-          "keyId"
-        ],
+        "required": ["keyId"],
         "properties": {
           "keyId": {
             "type": "string",
@@ -260,13 +236,7 @@
       },
       "KeysGetKeyResponseData": {
         "type": "object",
-        "required": [
-          "id",
-          "start",
-          "workspaceId",
-          "createdAt",
-          "enabled"
-        ],
+        "required": ["id", "start", "workspaceId", "createdAt", "enabled"],
         "properties": {
           "id": {
             "type": "string",
@@ -351,17 +321,11 @@
               },
               "refill": {
                 "type": "object",
-                "required": [
-                  "interval",
-                  "amount"
-                ],
+                "required": ["interval", "amount"],
                 "properties": {
                   "interval": {
                     "type": "string",
-                    "enum": [
-                      "daily",
-                      "monthly"
-                    ],
+                    "enum": ["daily", "monthly"],
                     "description": "How often the credits are automatically refilled."
                   },
                   "amount": {
@@ -390,11 +354,7 @@
             "type": "array",
             "items": {
               "type": "object",
-              "required": [
-                "name",
-                "limit",
-                "duration"
-              ],
+              "required": ["name", "limit", "duration"],
               "properties": {
                 "name": {
                   "type": "string",
@@ -428,10 +388,7 @@
               "type": "string"
             },
             "description": "List of role names assigned to this key. Roles are collections of permissions.",
-            "example": [
-              "api_admin",
-              "billing_reader"
-            ]
+            "example": ["api_admin", "billing_reader"]
           },
           "permissions": {
             "type": "array",
@@ -439,11 +396,7 @@
               "type": "string"
             },
             "description": "List of permission names directly assigned to this key.",
-            "example": [
-              "documents.read",
-              "documents.write",
-              "settings.view"
-            ]
+            "example": ["documents.read", "documents.write", "settings.view"]
           },
           "enabled": {
             "type": "boolean",
@@ -471,20 +424,14 @@
                 "description": "Additional metadata associated with this identity."
               }
             },
-            "required": [
-              "id",
-              "externalId"
-            ],
+            "required": ["id", "externalId"],
             "description": "The identity associated with this key, if any. Identities allow resource sharing (like ratelimits) across multiple keys belonging to the same user/entity. This enables scenarios like issuing separate keys for different devices/services while maintaining global usage limits for the user. An identity's externalId typically matches your user ID or tenant ID."
           }
         }
       },
       "V2KeysGetKeyResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -496,10 +443,7 @@
       },
       "V2KeysVerifyKeyResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -511,10 +455,7 @@
       },
       "V2KeysAddPermissionsRequestBody": {
         "type": "object",
-        "required": [
-          "keyId",
-          "permissions"
-        ],
+        "required": ["keyId", "permissions"],
         "properties": {
           "keyId": {
             "type": "string",
@@ -558,11 +499,7 @@
         "description": "Complete list of all permissions directly assigned to the key (including both newly added permissions and those that were already assigned).\n\nThis response includes:\n- All direct permissions assigned to the key (both pre-existing and newly added)\n- Permissions sorted alphabetically by name for consistent response format\n- Both the permission ID and name for each permission\n\nImportant notes:\n- This list does NOT include permissions granted through roles\n- For a complete permission picture, use /v2/keys.getKey instead\n- An empty array indicates the key has no direct permissions assigned\n- Only includes direct permissions from the same workspace as the key",
         "items": {
           "type": "object",
-          "required": [
-            "id",
-            "name",
-            "slug"
-          ],
+          "required": ["id", "name", "slug"],
           "properties": {
             "id": {
               "type": "string",
@@ -584,10 +521,7 @@
       },
       "V2KeysAddPermissionsResponse": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -599,10 +533,7 @@
       },
       "V2KeysRemovePermissionsRequestBody": {
         "type": "object",
-        "required": [
-          "keyId",
-          "permissions"
-        ],
+        "required": ["keyId", "permissions"],
         "properties": {
           "keyId": {
             "type": "string",
@@ -643,10 +574,7 @@
       },
       "V2KeysRemovePermissionsResponse": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -658,10 +586,7 @@
       },
       "V2KeysSetPermissionsRequestBody": {
         "type": "object",
-        "required": [
-          "keyId",
-          "permissions"
-        ],
+        "required": ["keyId", "permissions"],
         "properties": {
           "keyId": {
             "type": "string",
@@ -704,10 +629,7 @@
         "description": "Complete list of all permissions now directly assigned to the key after the set operation has completed.\n\nThe response includes:\n- The comprehensive, updated set of direct permissions (reflecting the complete replacement)\n- Both ID and name for each permission for easy reference\n- Permissions sorted alphabetically by name for consistent response format\n\nImportant notes:\n- This only shows direct permissions, not those granted through roles\n- An empty array means the key has no direct permissions assigned\n- For a complete permission picture including roles, use keys.getKey instead\n- All permission changes are logged in the audit log for security tracking",
         "items": {
           "type": "object",
-          "required": [
-            "id",
-            "name"
-          ],
+          "required": ["id", "name"],
           "properties": {
             "id": {
               "type": "string",
@@ -724,10 +646,7 @@
       },
       "V2KeysSetPermissionsResponse": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -739,10 +658,7 @@
       },
       "V2KeysAddRolesRequestBody": {
         "type": "object",
-        "required": [
-          "keyId",
-          "roles"
-        ],
+        "required": ["keyId", "roles"],
         "properties": {
           "keyId": {
             "type": "string",
@@ -781,10 +697,7 @@
         "description": "Complete list of all roles directly assigned to the key after the operation completes.\n\nThe response includes:\n- All roles now assigned to the key (both pre-existing and newly added)\n- Both ID and name of each role for easy reference\n- Roles sorted alphabetically by name for consistent response format\n\nImportant notes:\n- The response shows the complete current state after the addition\n- An empty array means the key has no roles assigned (unlikely after an add operation)\n- This only shows direct role assignments, not inherited or nested roles\n- Role permissions are not expanded in this response - use keys.getKey for full details\n- All role changes are logged in the audit log for security tracking",
         "items": {
           "type": "object",
-          "required": [
-            "id",
-            "name"
-          ],
+          "required": ["id", "name"],
           "properties": {
             "id": {
               "type": "string",
@@ -801,10 +714,7 @@
       },
       "V2KeysAddRolesResponse": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -816,10 +726,7 @@
       },
       "V2KeysRemoveRolesRequestBody": {
         "type": "object",
-        "required": [
-          "keyId",
-          "roles"
-        ],
+        "required": ["keyId", "roles"],
         "properties": {
           "keyId": {
             "type": "string",
@@ -858,10 +765,7 @@
         "description": "Complete list of all roles directly assigned to the key after the removal operation completes.\n\nThe response includes:\n- The remaining roles still assigned to the key (after removing the specified roles)\n- Both ID and name for each role for easy reference\n- Roles sorted alphabetically by name for consistent response format\n\nImportant notes:\n- The response reflects the current state after the removal operation\n- An empty array indicates the key now has no roles assigned\n- This only shows direct role assignments\n- Role permissions are not expanded in this response - use keys.getKey for full details\n- All role changes are logged in the audit log for security tracking\n- Changes take effect immediately for new verifications but cached sessions may retain old permissions briefly",
         "items": {
           "type": "object",
-          "required": [
-            "id",
-            "name"
-          ],
+          "required": ["id", "name"],
           "properties": {
             "id": {
               "type": "string",
@@ -878,10 +782,7 @@
       },
       "V2KeysRemoveRolesResponse": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -893,10 +794,7 @@
       },
       "V2KeysSetRolesRequestBody": {
         "type": "object",
-        "required": [
-          "keyId",
-          "roles"
-        ],
+        "required": ["keyId", "roles"],
         "properties": {
           "keyId": {
             "type": "string",
@@ -934,10 +832,7 @@
         "description": "Complete list of all roles now directly assigned to the key after the set operation has completed.\n\nThe response includes:\n- The comprehensive, updated set of roles (reflecting the complete replacement)\n- Both ID and name for each role for easy reference\n- Roles sorted alphabetically by name for consistent response format\n\nImportant notes:\n- This response shows the final state after the complete replacement\n- If you provided an empty array in the request, this will also be empty\n- This only shows direct role assignments on the key\n- Role permissions are not expanded in this response - use keys.getKey for complete details\n- All role changes are logged in the audit log for security tracking\n- An empty array indicates the key now has no roles assigned at all",
         "items": {
           "type": "object",
-          "required": [
-            "id",
-            "name"
-          ],
+          "required": ["id", "name"],
           "properties": {
             "id": {
               "type": "string",
@@ -954,10 +849,7 @@
       },
       "V2KeysSetRolesResponse": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -969,10 +861,7 @@
       },
       "V2KeysUpdateRemainingRequestBody": {
         "type": "object",
-        "required": [
-          "keyId",
-          "remaining"
-        ],
+        "required": ["keyId", "remaining"],
         "properties": {
           "keyId": {
             "type": "string",
@@ -996,9 +885,7 @@
       },
       "KeysUpdateRemainingResponseData": {
         "type": "object",
-        "required": [
-          "remaining"
-        ],
+        "required": ["remaining"],
         "properties": {
           "remaining": {
             "type": "integer",
@@ -1012,12 +899,7 @@
             "properties": {
               "interval": {
                 "type": "string",
-                "enum": [
-                  "daily",
-                  "weekly",
-                  "monthly",
-                  "never"
-                ],
+                "enum": ["daily", "weekly", "monthly", "never"],
                 "description": "The interval at which credits are automatically refilled. 'daily' resets at midnight UTC, 'weekly' resets on the specified weekday (where 1=Monday, 7=Sunday), 'monthly' resets on the specified day of month, and 'never' means no automatic refills occur."
               },
               "amount": {
@@ -1044,10 +926,7 @@
       },
       "V2KeysUpdateRemainingResponse": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -1059,9 +938,7 @@
       },
       "V2KeysCreateKeyRequestBody": {
         "type": "object",
-        "required": [
-          "apiId"
-        ],
+        "required": ["apiId"],
         "properties": {
           "apiId": {
             "type": "string",
@@ -1115,10 +992,7 @@
               "maxLength": 512
             },
             "description": "Roles to assign to this key for permission management. Each role represents a collection of permissions that define what actions the key can perform. Roles must already exist in your workspace. During verification, all permissions from these roles are checked against requested permissions. Common role names include 'admin', 'editor', 'viewer', etc.",
-            "example": [
-              "api_admin",
-              "billing_reader"
-            ]
+            "example": ["api_admin", "billing_reader"]
           },
           "permissions": {
             "type": "array",
@@ -1128,11 +1002,7 @@
               "maxLength": 512
             },
             "description": "Individual permissions to assign directly to this key. Permissions define specific actions the key can perform when verified with the permissions check. Use a hierarchical naming pattern like 'resource.action' (e.g., 'documents.read', 'users.delete') to create logical groupings. During verification, a key with permission 'documents.*' will have access to both 'documents.read' and 'documents.write'.",
-            "example": [
-              "documents.read",
-              "documents.write",
-              "settings.view"
-            ]
+            "example": ["documents.read", "documents.write", "settings.view"]
           },
           "expires": {
             "type": "integer",
@@ -1143,9 +1013,7 @@
           },
           "credits": {
             "type": "object",
-            "required": [
-              "remaining"
-            ],
+            "required": ["remaining"],
             "properties": {
               "remaining": {
                 "type": "integer",
@@ -1158,10 +1026,7 @@
                 "properties": {
                   "interval": {
                     "type": "string",
-                    "enum": [
-                      "daily",
-                      "monthly"
-                    ],
+                    "enum": ["daily", "monthly"],
                     "description": "How frequently credits should be automatically refilled. With 'daily', credits reset at midnight UTC. With 'monthly', credits reset on the specified refillDay (or the 1st if not specified)."
                   },
                   "amount": {
@@ -1176,10 +1041,7 @@
                     "description": "For monthly refills, the day of month when credits are replenished. If the month doesn't have this day (e.g., refillDay=31 in February), the refill occurs on the last day of the month."
                   }
                 },
-                "required": [
-                  "interval",
-                  "amount"
-                ],
+                "required": ["interval", "amount"],
                 "description": "Configuration for automatic credit refills. This creates a subscription-like recurring quota that resets on a schedule. To implement monthly plans with usage quotas, set interval='monthly' with the appropriate amount and refillDay."
               }
             },
@@ -1189,11 +1051,7 @@
             "type": "array",
             "items": {
               "type": "object",
-              "required": [
-                "name",
-                "limit",
-                "duration"
-              ],
+              "required": ["name", "limit", "duration"],
               "properties": {
                 "name": {
                   "type": "string",
@@ -1260,17 +1118,11 @@
             "example": "prod_2cGKbMxRjIzhCxo1IdjH3arELti7Sdyc8w6XYbvtcyuBowPT"
           }
         },
-        "required": [
-          "keyId",
-          "key"
-        ]
+        "required": ["keyId", "key"]
       },
       "V2KeysCreateKeyResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -1282,9 +1134,7 @@
       },
       "Meta": {
         "type": "object",
-        "required": [
-          "requestId"
-        ],
+        "required": ["requestId"],
         "properties": {
           "requestId": {
             "description": "A unique id for this request. Always include this ID when contacting support about a specific API request. This identifier allows Unkey's support team to trace the exact request through logs and diagnostic systems to provide faster assistance.",
@@ -1309,9 +1159,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "hasMore"
-        ],
+        "required": ["hasMore"],
         "additionalProperties": false
       },
       "BaseError": {
@@ -1346,12 +1194,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "detail",
-          "status",
-          "title",
-          "type"
-        ],
+        "required": ["detail", "status", "title", "type"],
         "description": "Standard error structure that provides detailed information about errors encountered during API operations. This follows a problem details format that includes both machine-readable error codes and human-readable explanations. All error responses in the API include this structure to provide consistent, actionable error information."
       },
       "ValidationError": {
@@ -1374,10 +1217,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "message",
-          "location"
-        ],
+        "required": ["message", "location"],
         "description": "Detailed information about a specific validation error in a request. Each validation error pinpoints exactly what part of the request failed validation, why it failed, and how to fix it. Multiple validation errors may be returned in a single response when there are issues with multiple fields or parameters."
       },
       "BadRequestErrorDetails": {
@@ -1396,19 +1236,14 @@
                 "type": "array"
               }
             },
-            "required": [
-              "errors"
-            ]
+            "required": ["errors"]
           }
         ],
         "description": "Extended error details specifically for bad request (400) errors. This builds on the BaseError structure by adding an array of individual validation errors that provide specific information about each validation failure in the request. This is particularly useful for requests with multiple fields that might have different validation issues simultaneously."
       },
       "NotFoundErrorResponse": {
         "type": "object",
-        "required": [
-          "meta",
-          "error"
-        ],
+        "required": ["meta", "error"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -1421,10 +1256,7 @@
       },
       "ConflictErrorResponse": {
         "type": "object",
-        "required": [
-          "meta",
-          "error"
-        ],
+        "required": ["meta", "error"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -1437,10 +1269,7 @@
       },
       "UnauthorizedErrorResponse": {
         "type": "object",
-        "required": [
-          "meta",
-          "error"
-        ],
+        "required": ["meta", "error"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -1453,10 +1282,7 @@
       },
       "ForbiddenErrorResponse": {
         "type": "object",
-        "required": [
-          "meta",
-          "error"
-        ],
+        "required": ["meta", "error"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -1469,10 +1295,7 @@
       },
       "PreconditionFailedErrorResponse": {
         "type": "object",
-        "required": [
-          "meta",
-          "error"
-        ],
+        "required": ["meta", "error"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -1485,10 +1308,7 @@
       },
       "BadRequestErrorResponse": {
         "type": "object",
-        "required": [
-          "meta",
-          "error"
-        ],
+        "required": ["meta", "error"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -1501,10 +1321,7 @@
       },
       "InternalServerErrorResponse": {
         "type": "object",
-        "required": [
-          "meta",
-          "error"
-        ],
+        "required": ["meta", "error"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -1538,11 +1355,7 @@
             "description": "Identity ratelimits"
           }
         },
-        "required": [
-          "id",
-          "externalId",
-          "ratelimits"
-        ]
+        "required": ["id", "externalId", "ratelimits"]
       },
       "KeyCredits": {
         "type": "object",
@@ -1556,19 +1369,14 @@
             "$ref": "#/components/schemas/KeyCreditsRefill"
           }
         },
-        "required": [
-          "remaining"
-        ]
+        "required": ["remaining"]
       },
       "KeyCreditsRefill": {
         "type": "object",
         "properties": {
           "interval": {
             "type": "string",
-            "enum": [
-              "daily",
-              "monthly"
-            ],
+            "enum": ["daily", "monthly"],
             "description": "Refill interval"
           },
           "amount": {
@@ -1585,10 +1393,7 @@
             "description": "Last time the key was refilled (Unix timestamp)"
           }
         },
-        "required": [
-          "interval",
-          "amount"
-        ]
+        "required": ["interval", "amount"]
       },
       "KeyResponse": {
         "type": "object",
@@ -1660,11 +1465,7 @@
             "description": "Rate limits applied to this key"
           }
         },
-        "required": [
-          "keyId",
-          "start",
-          "createdAt"
-        ]
+        "required": ["keyId", "start", "createdAt"]
       },
       "LivenessResponseData": {
         "type": "object",
@@ -1675,9 +1476,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "message"
-        ],
+        "required": ["message"],
         "description": "Response data for the liveness check endpoint. This provides a simple indication of whether the Unkey API service is running and able to process requests. Monitoring systems can use this endpoint to track service availability and trigger alerts if the service becomes unhealthy."
       },
       "RatelimitResponse": {
@@ -1700,19 +1499,11 @@
             "description": "The duration of the rate limit window in milliseconds"
           }
         },
-        "required": [
-          "id",
-          "name",
-          "limit",
-          "duration"
-        ]
+        "required": ["id", "name", "limit", "duration"]
       },
       "V2LivenessResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -1755,11 +1546,7 @@
             "minimum": 0
           }
         },
-        "required": [
-          "identifier",
-          "limit",
-          "duration"
-        ],
+        "required": ["identifier", "limit", "duration"],
         "type": "object"
       },
       "RatelimitSetOverrideResponseData": {
@@ -1770,16 +1557,11 @@
             "type": "string"
           }
         },
-        "required": [
-          "overrideId"
-        ]
+        "required": ["overrideId"]
       },
       "V2RatelimitSetOverrideResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -1812,17 +1594,12 @@
             "maxLength": 255
           }
         },
-        "required": [
-          "identifier"
-        ],
+        "required": ["identifier"],
         "type": "object"
       },
       "V2RatelimitGetOverrideResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -1867,10 +1644,7 @@
       },
       "V2RatelimitListOverridesResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -1918,12 +1692,7 @@
             "minimum": 1
           }
         },
-        "required": [
-          "namespace",
-          "identifier",
-          "limit",
-          "duration"
-        ],
+        "required": ["namespace", "identifier", "limit", "duration"],
         "type": "object"
       },
       "RatelimitLimitResponseData": {
@@ -1953,19 +1722,11 @@
             "type": "string"
           }
         },
-        "required": [
-          "limit",
-          "remaining",
-          "reset",
-          "success"
-        ]
+        "required": ["limit", "remaining", "reset", "success"]
       },
       "V2RatelimitLimitResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -1998,9 +1759,7 @@
             "maxLength": 255
           }
         },
-        "required": [
-          "identifier"
-        ],
+        "required": ["identifier"],
         "type": "object"
       },
       "RatelimitDeleteOverrideResponseData": {
@@ -2010,10 +1769,7 @@
       },
       "V2RatelimitDeleteOverrideResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -2025,9 +1781,7 @@
       },
       "V2IdentitiesCreateIdentityRequestBody": {
         "type": "object",
-        "required": [
-          "externalId"
-        ],
+        "required": ["externalId"],
         "properties": {
           "externalId": {
             "type": "string",
@@ -2050,11 +1804,7 @@
       },
       "Ratelimit": {
         "type": "object",
-        "required": [
-          "name",
-          "limit",
-          "duration"
-        ],
+        "required": ["name", "limit", "duration"],
         "properties": {
           "name": {
             "description": "The name of this rate limit. This name is used to identify which limit to check during key verification.\n\nBest practices for limit names:\n- Use descriptive, semantic names like 'api_requests', 'heavy_operations', or 'downloads'\n- Be consistent with naming conventions across your application\n- Create separate limits for different resource types or operation costs\n- Consider using namespaced names for better organization (e.g., 'files.downloads', 'compute.training')\n\nYou will reference this exact name when verifying keys to check against this specific limit.",
@@ -2083,16 +1833,11 @@
             "type": "string"
           }
         },
-        "required": [
-          "identityId"
-        ]
+        "required": ["identityId"]
       },
       "V2IdentitiesCreateIdentityResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -2121,23 +1866,16 @@
         "additionalProperties": false,
         "oneOf": [
           {
-            "required": [
-              "identityId"
-            ]
+            "required": ["identityId"]
           },
           {
-            "required": [
-              "externalId"
-            ]
+            "required": ["externalId"]
           }
         ]
       },
       "IdentitiesGetIdentityResponseData": {
         "type": "object",
-        "required": [
-          "id",
-          "externalId"
-        ],
+        "required": ["id", "externalId"],
         "properties": {
           "id": {
             "type": "string",
@@ -2177,10 +1915,7 @@
       },
       "V2IdentitiesGetIdentityResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -2211,11 +1946,7 @@
       },
       "V2IdentitiesListIdentitiesResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data",
-          "pagination"
-        ],
+        "required": ["meta", "data", "pagination"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -2247,15 +1978,11 @@
         },
         "oneOf": [
           {
-            "required": [
-              "externalId"
-            ],
+            "required": ["externalId"],
             "description": "Identify by external ID from your system"
           },
           {
-            "required": [
-              "identityId"
-            ],
+            "required": ["identityId"],
             "description": "Identify by Unkey's internal identity ID"
           }
         ]
@@ -2268,9 +1995,7 @@
             "$ref": "#/components/schemas/Meta"
           }
         },
-        "required": [
-          "meta"
-        ]
+        "required": ["meta"]
       },
       "Permission": {
         "type": "object",
@@ -2297,18 +2022,11 @@
             "description": "When the permission was created"
           }
         },
-        "required": [
-          "id",
-          "name",
-          "workspaceId"
-        ]
+        "required": ["id", "name", "workspaceId"]
       },
       "V2PermissionsCreatePermissionRequestBody": {
         "type": "object",
-        "required": [
-          "name",
-          "slug"
-        ],
+        "required": ["name", "slug"],
         "properties": {
           "name": {
             "type": "string",
@@ -2343,16 +2061,11 @@
             "example": "perm_123"
           }
         },
-        "required": [
-          "permissionId"
-        ]
+        "required": ["permissionId"]
       },
       "V2PermissionsCreatePermissionResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -2364,9 +2077,7 @@
       },
       "V2PermissionsGetPermissionRequestBody": {
         "type": "object",
-        "required": [
-          "permissionId"
-        ],
+        "required": ["permissionId"],
         "properties": {
           "permissionId": {
             "type": "string",
@@ -2384,16 +2095,11 @@
             "$ref": "#/components/schemas/Permission"
           }
         },
-        "required": [
-          "permission"
-        ]
+        "required": ["permission"]
       },
       "V2PermissionsGetPermissionResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -2421,10 +2127,7 @@
       },
       "V2PermissionsListPermissionsResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -2463,9 +2166,7 @@
       },
       "V2PermissionsDeleteRoleRequestBody": {
         "type": "object",
-        "required": [
-          "roleId"
-        ],
+        "required": ["roleId"],
         "properties": {
           "roleId": {
             "type": "string",
@@ -2478,9 +2179,7 @@
       },
       "V2PermissionsDeleteRoleResponseBody": {
         "type": "object",
-        "required": [
-          "meta"
-        ],
+        "required": ["meta"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -2489,10 +2188,7 @@
       },
       "V2PermissionsListRolesResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -2507,9 +2203,7 @@
       },
       "V2PermissionsDeletePermissionRequestBody": {
         "type": "object",
-        "required": [
-          "permissionId"
-        ],
+        "required": ["permissionId"],
         "properties": {
           "permissionId": {
             "type": "string",
@@ -2522,9 +2216,7 @@
       },
       "V2PermissionsDeletePermissionResponseBody": {
         "type": "object",
-        "required": [
-          "meta"
-        ],
+        "required": ["meta"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -2533,9 +2225,7 @@
       },
       "V2PermissionsCreateRoleRequestBody": {
         "type": "object",
-        "required": [
-          "name"
-        ],
+        "required": ["name"],
         "properties": {
           "name": {
             "type": "string",
@@ -2562,16 +2252,11 @@
             "example": "role_123"
           }
         },
-        "required": [
-          "roleId"
-        ]
+        "required": ["roleId"]
       },
       "V2PermissionsCreateRoleResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -2606,11 +2291,7 @@
             "description": "When the role was created"
           }
         },
-        "required": [
-          "id",
-          "name",
-          "workspaceId"
-        ]
+        "required": ["id", "name", "workspaceId"]
       },
       "RoleWithPermissions": {
         "type": "object",
@@ -2644,18 +2325,11 @@
             "description": "The permissions assigned to this role"
           }
         },
-        "required": [
-          "id",
-          "name",
-          "workspaceId",
-          "permissions"
-        ]
+        "required": ["id", "name", "workspaceId", "permissions"]
       },
       "V2PermissionsGetRoleRequestBody": {
         "type": "object",
-        "required": [
-          "roleId"
-        ],
+        "required": ["roleId"],
         "properties": {
           "roleId": {
             "type": "string",
@@ -2673,16 +2347,11 @@
             "$ref": "#/components/schemas/RoleWithPermissions"
           }
         },
-        "required": [
-          "role"
-        ]
+        "required": ["role"]
       },
       "V2PermissionsGetRoleResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -2694,9 +2363,7 @@
       },
       "V2ApisCreateApiRequestBody": {
         "type": "object",
-        "required": [
-          "name"
-        ],
+        "required": ["name"],
         "properties": {
           "name": {
             "type": "string",
@@ -2716,15 +2383,11 @@
             "example": "api_2cGKbMxRjIzhCxo1IdjH3a"
           }
         },
-        "required": [
-          "apiId"
-        ]
+        "required": ["apiId"]
       },
       "V2ApisDeleteApiRequestBody": {
         "type": "object",
-        "required": [
-          "apiId"
-        ],
+        "required": ["apiId"],
         "properties": {
           "apiId": {
             "type": "string",
@@ -2737,9 +2400,7 @@
       },
       "V2ApisGetApiRequestBody": {
         "type": "object",
-        "required": [
-          "apiId"
-        ],
+        "required": ["apiId"],
         "properties": {
           "apiId": {
             "type": "string",
@@ -2764,17 +2425,11 @@
             "example": "payment-service-production"
           }
         },
-        "required": [
-          "id",
-          "name"
-        ]
+        "required": ["id", "name"]
       },
       "V2ApisCreateApiResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -2786,9 +2441,7 @@
       },
       "V2ApisDeleteApiResponseBody": {
         "type": "object",
-        "required": [
-          "meta"
-        ],
+        "required": ["meta"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -2797,10 +2450,7 @@
       },
       "V2ApisGetApiResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -2812,9 +2462,7 @@
       },
       "V2ApisListKeysRequestBody": {
         "type": "object",
-        "required": [
-          "apiId"
-        ],
+        "required": ["apiId"],
         "properties": {
           "apiId": {
             "type": "string",
@@ -2861,10 +2509,7 @@
       },
       "V2ApisListKeysResponseBody": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -2912,19 +2557,11 @@
             "minimum": 0
           }
         },
-        "required": [
-          "namespaceId",
-          "overrideId",
-          "duration",
-          "identifier",
-          "limit"
-        ]
+        "required": ["namespaceId", "overrideId", "duration", "identifier", "limit"]
       },
       "V2KeysWhoamiRequestBody": {
         "type": "object",
-        "required": [
-          "key"
-        ],
+        "required": ["key"],
         "properties": {
           "key": {
             "type": "string",
@@ -2971,10 +2608,7 @@
                 "example": "user_12345"
               }
             },
-            "required": [
-              "id",
-              "externalId"
-            ],
+            "required": ["id", "externalId"],
             "description": "The identity object associated with the key (null if no identity is associated)"
           },
           "meta": {
@@ -3006,18 +2640,11 @@
             "example": "production"
           }
         },
-        "required": [
-          "id",
-          "createdAt",
-          "enabled"
-        ]
+        "required": ["id", "createdAt", "enabled"]
       },
       "V2KeysWhoamiResponse": {
         "type": "object",
-        "required": [
-          "meta",
-          "data"
-        ],
+        "required": ["meta", "data"],
         "properties": {
           "meta": {
             "$ref": "#/components/schemas/Meta"
@@ -3029,10 +2656,7 @@
       },
       "V2KeysVerifyKeyRequestBody": {
         "type": "object",
-        "required": [
-          "apiId",
-          "key"
-        ],
+        "required": ["apiId", "key"],
         "properties": {
           "apiId": {
             "type": "string",
@@ -3074,10 +2698,7 @@
                 "properties": {
                   "type": {
                     "type": "string",
-                    "enum": [
-                      "and",
-                      "or"
-                    ],
+                    "enum": ["and", "or"],
                     "description": "Logical operator to apply to the permissions. 'and' requires all permissions to be present, 'or' requires at least one."
                   },
                   "permissions": {
@@ -3088,10 +2709,7 @@
                     "description": "List of permissions to check against the key's assigned permissions and roles."
                   }
                 },
-                "required": [
-                  "type",
-                  "permissions"
-                ]
+                "required": ["type", "permissions"]
               }
             ],
             "description": "Optional RBAC permission checks to verify the key has the required permissions. If provided, the verification will only succeed if the key has the specified permissions (either directly or through roles). This is the recommended way to implement authorization in your API."
@@ -3112,9 +2730,7 @@
             "type": "array",
             "items": {
               "type": "object",
-              "required": [
-                "name"
-              ],
+              "required": ["name"],
               "properties": {
                 "name": {
                   "type": "string",
@@ -3225,12 +2841,7 @@
             "type": "array",
             "items": {
               "type": "object",
-              "required": [
-                "name",
-                "limit",
-                "remaining",
-                "reset"
-              ],
+              "required": ["name", "limit", "remaining", "reset"],
               "properties": {
                 "name": {
                   "type": "string",
@@ -3256,10 +2867,7 @@
             "description": "Information about the rate limits applied during verification. Only included when rate limits were checked. If verification failed with code=RATE_LIMITED, this will show which specific rate limit was exceeded."
           }
         },
-        "required": [
-          "valid",
-          "code"
-        ]
+        "required": ["valid", "code"]
       },
       "V2IdentitiesUpdateIdentityRequestBody": {
         "type": "object",
@@ -3304,23 +2912,16 @@
         "additionalProperties": false,
         "anyOf": [
           {
-            "required": [
-              "identityId"
-            ]
+            "required": ["identityId"]
           },
           {
-            "required": [
-              "externalId"
-            ]
+            "required": ["externalId"]
           }
         ]
       },
       "IdentitiesUpdateIdentityResponseData": {
         "type": "object",
-        "required": [
-          "id",
-          "externalId"
-        ],
+        "required": ["id", "externalId"],
         "properties": {
           "id": {
             "type": "string",
@@ -3360,10 +2961,7 @@
       },
       "V2IdentitiesUpdateIdentityResponseBody": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
           "data": {
             "$ref": "#/components/schemas/IdentitiesUpdateIdentityResponseData"
@@ -3378,9 +2976,7 @@
   "paths": {
     "/v2/keys.whoami": {
       "post": {
-        "tags": [
-          "keys"
-        ],
+        "tags": ["keys"],
         "summary": "Get information about an API key",
         "description": "Retrieves detailed information about an API key without incrementing its usage counter",
         "operationId": "whoami",
@@ -3536,9 +3132,7 @@
     },
     "/v2/keys.setPermissions": {
       "post": {
-        "tags": [
-          "keys"
-        ],
+        "tags": ["keys"],
         "summary": "Set (replace) all permissions on an API key",
         "description": "Sets the permissions for an existing API key by replacing all existing direct permissions with the provided set. This is a complete replacement operation - permissions not specified in the request will be removed.\n\nUse this endpoint when you want to:\n- Synchronize API key permissions with an external system\n- Reset a key's permissions to a known state\n- Apply a standardized permission template to a key\n- Remove all permissions from a key (by providing an empty array)\n- Fix over-permissioned keys by applying the precise set needed\n\nKey differences from other endpoints:\n- Unlike addPermissions, this replaces all permissions instead of just adding\n- Unlike removePermissions, this sets the complete state rather than removing specific permissions\n- The advantage is atomic replacement in a single operation versus multiple incremental changes\n\nOnly direct permissions are affected - permissions granted through roles remain unchanged. Changes take effect immediately for new verifications, though existing authorized sessions may continue until their cache expires (typically under 30 seconds).",
         "operationId": "setPermissions",
@@ -3900,9 +3494,7 @@
     },
     "/v2/keys.removePermissions": {
       "post": {
-        "tags": [
-          "keys"
-        ],
+        "tags": ["keys"],
         "summary": "Remove permissions from an API key",
         "description": "Removes one or more permissions from an existing API key. This endpoint is used to selectively revoke access rights from a key without deleting it or affecting other permissions.\n\nKey features:\n- Selective removal - revoke specific permissions while leaving others intact\n- Direct permissions only - doesn't affect permissions granted through roles\n- Idempotent operation - removing permissions multiple times has no additional effect\n- Atomic transaction - all permissions are removed or none are (rollback on failure)\n- Immediate effect - new verifications will see changes within seconds\n- Cache invalidation - all regions eventually reflect the changes\n\nUse cases:\n- Downgrading user access privileges\n- Removing temporary elevated permissions\n- Implementing granular permission adjustments\n- Revoking access to specific resources\n\nThis endpoint complements addPermissions (for granting) and setPermissions (for complete replacement). Use this when you need to selectively remove capabilities without altering other permissions.",
         "operationId": "removePermissions",
@@ -4198,9 +3790,7 @@
     },
     "/v2/keys.addRoles": {
       "post": {
-        "tags": [
-          "keys"
-        ],
+        "tags": ["keys"],
         "summary": "Add roles to an API key",
         "description": "Assigns one or more roles to an existing API key, incrementally adding to any existing roles already assigned.\n\nRoles are collections of permissions that provide a convenient and manageable way to assign multiple permissions at once. Rather than assigning individual permissions one by one, roles let you bundle related permissions together and assign them as a unit.\n\nKey features:\n- Idempotent operation - adding the same role multiple times has no additional effect\n- Atomic transaction - all roles are added or none are (with rollback on failure)\n- Immediate effect - new verifications will see changes within seconds\n- Cache invalidation - all regions eventually reflect the changes\n- Permission aggregation - during verification, permissions from all roles are combined\n\nUse cases:\n- Promoting users to higher access levels\n- Adding specialized function access to existing keys\n- Implementing role-based access control (RBAC)\n- Standardizing permission bundles across many keys\n\nUnlike setRoles (which replaces all roles), this endpoint only adds to the existing set of roles assigned to a key.",
         "operationId": "addRoles",
@@ -4388,9 +3978,7 @@
     },
     "/v2/keys.addPermissions": {
       "post": {
-        "tags": [
-          "keys"
-        ],
+        "tags": ["keys"],
         "summary": "Add permissions to an API key",
         "description": "Assigns one or more permissions to an existing API key. This endpoint is used to incrementally add permissions without removing existing ones.\n\nPermissions define access control capabilities that are validated during key verification. Each permission typically follows a 'resource.action' naming pattern (e.g., 'documents.read', 'users.create'). A key can have both direct permissions (added via this endpoint) and indirect permissions (granted through roles).\n\nKey features:\n- Idempotent operation - adding the same permission multiple times has no additional effect\n- Atomic transaction - all permissions are added or none are (rollback on failure)\n- Permission creation - optionally create new permissions if they don't exist (with 'create: true')\n- Cache invalidation - changes take effect immediately for new verifications\n- Hierarchical permissions - during verification, 'documents.*' grants access to both 'documents.read' and 'documents.write'\n\nUnlike setPermissions (which replaces all permissions), this endpoint only adds to the existing set. Use this when incrementally granting new capabilities to existing keys.",
         "operationId": "addPermissions",
@@ -4805,9 +4393,7 @@
     },
     "/v2/keys.removeRoles": {
       "post": {
-        "tags": [
-          "keys"
-        ],
+        "tags": ["keys"],
         "summary": "Remove roles from an API key",
         "description": "Removes one or more roles from an existing API key. This endpoint is used to selectively revoke role-based access without affecting other assigned roles.\n\nWhen a role is removed:\n- All permissions granted exclusively through that role are revoked\n- Permissions that are also granted through remaining roles or direct assignments remain accessible\n- The change is effective immediately for new verifications\n- Cached sessions may retain old permissions briefly (typically <30 seconds)\n\nKey features:\n- Selective removal - revoke specific roles while leaving others intact\n- Idempotent operation - removing roles multiple times has no additional effect\n- Atomic transaction - all specified roles are removed or none are (rollback on failure)\n- Cache invalidation - all regions eventually reflect the changes\n- Permission recalculation - verification immediately uses updated role assignments\n\nThis endpoint complements addRoles (for granting) and setRoles (for complete replacement). Use this when you need to selectively remove roles without altering other role assignments.",
         "operationId": "removeRoles",
@@ -4987,9 +4573,7 @@
     },
     "/v2/keys.updateRemaining": {
       "post": {
-        "tags": [
-          "keys"
-        ],
+        "tags": ["keys"],
         "summary": "Update remaining credits for an API key",
         "description": "Sets the remaining number of credits for a key. This endpoint provides precise control over usage limits and is essential for implementing usage-based business models.\n\nKey use cases:\n- Adding credits when a customer makes a purchase\n- Resetting credits for subscription renewals\n- Adjusting credits for refunds or promotions\n- Converting between subscription models (automatic to fixed or vice versa)\n- Implementing free trial extensions\n- Granting bonus credits as incentives\n- Converting a limited key to unlimited usage or vice versa\n\nThe credits feature provides a globally consistent way to limit how many times a key can be used. Each successful verification decrements the counter (by the 'cost' value, default 1). When credits reach zero, verification fails with code=USAGE_EXCEEDED.\n\nUnlike rate limits (which control frequency), credits control total usage with high consistency but slightly higher latency, making them ideal for monetization models where accuracy is critical.\n\nThis endpoint complements createKey (which sets initial credits) and the automatic refill system (which replenishes credits on a schedule). You can also optionally remove any automatic refill settings from the key, effectively converting it from a key with periodic refills to one with a fixed credit allocation.",
         "operationId": "updateRemaining",
@@ -5153,9 +4737,7 @@
     },
     "/v2/keys.setRoles": {
       "post": {
-        "tags": [
-          "keys"
-        ],
+        "tags": ["keys"],
         "summary": "Set roles for an API key",
         "description": "Replaces all existing direct role assignments on a key with the provided set of roles. This endpoint offers complete control over a key's role assignments in a single operation.\n\nUnlike incremental endpoints like addRoles or removeRoles, setRoles performs a wholesale replacement, making it ideal for:\n- Synchronizing key roles with an external system\n- Applying standardized role templates to keys\n- Completely resetting a key's roles to a known state\n- Implementing role-based access control (RBAC) with predictable outcomes\n- Removing all roles from a key (by providing an empty array)\n\nKey behaviors:\n- All existing direct role assignments not included in the request will be removed\n- This is a complete replacement operation, not an incremental update\n- Only direct role assignments are affected, not roles granted through other mechanisms\n- The operation is atomic - all roles are set or none are (with rollback on failure)\n- Changes take effect immediately for new verifications\n- All role changes are logged in the audit log for security tracking\n\nAfter roles are set, any cached versions of the key are immediately invalidated to ensure consistency, though existing verification sessions may retain old roles briefly (typically under 30 seconds).",
         "operationId": "setRoles",
@@ -5313,9 +4895,7 @@
     },
     "/v2/keys.updateKey": {
       "post": {
-        "tags": [
-          "keys"
-        ],
+        "tags": ["keys"],
         "summary": "Update API key properties without changing the key itself",
         "description": "Modifies the properties of an existing API key without changing the key string itself. This endpoint supports partial updates - you only need to include the fields you want to change.\n\nYou can use this endpoint to:\n- Rename keys for better organization\n- Update metadata to reflect changes in user status, plan, or properties\n- Modify usage limits or rate limits\n- Enable or disable keys temporarily\n- Change key expiration dates\n- Add or update user identifiers\n\nTo explicitly remove/disable a feature, set its field to null. Fields not included in the request remain unchanged. For managing permissions or roles, use the specialized endpoints (keys.addPermissions, keys.removePermissions, etc.) instead.\n\nChanges may take up to 30 seconds to propagate to all regions due to cache invalidation. For immediate effect in the current region, follow the update with a verification request.",
         "operationId": "updateKey",
@@ -5471,9 +5051,7 @@
     },
     "/v2/keys.deleteKey": {
       "post": {
-        "tags": [
-          "keys"
-        ],
+        "tags": ["keys"],
         "summary": "Delete an API key",
         "description": "Permanently deletes an API key, preventing it from being used for future verification attempts. This endpoint is used when a key is no longer needed, has been compromised, or needs to be revoked.\n\nWhen a key is deleted:\n- Verification attempts will fail with code=NOT_FOUND\n- The key no longer appears in API key listings\n- Historical verification data is preserved for analytics\n\nThis endpoint supports two deletion modes:\n- Soft deletion (default): Marks the key as deleted but preserves its data\n- Permanent deletion: Completely removes all traces of the key from the database\n\nPermanent deletion is useful for regulatory compliance (e.g., GDPR), resolving hash collisions during migrations, or when you need to reuse the same key string in the future.",
         "operationId": "deleteKey",
@@ -5559,9 +5137,7 @@
     },
     "/v2/keys.getKey": {
       "post": {
-        "tags": [
-          "keys"
-        ],
+        "tags": ["keys"],
         "summary": "Retrieve detailed information about an API key",
         "description": "Retrieves comprehensive information about a specific API key by its ID. This endpoint provides access to all key properties, metadata, permissions, and usage limits.\n\nThis is particularly useful for:\n- Displaying key details in administrative interfaces\n- Checking key configuration before making updates\n- Retrieving metadata associated with a key\n- Verifying permissions and role assignments\n- Checking expiration dates and usage limits\n\nWith appropriate permissions and if the key was created with the recoverable option, this endpoint can also return the complete plaintext key value, though this should be used with caution for security reasons.",
         "operationId": "getKey",
@@ -5647,9 +5223,7 @@
     },
     "/v2/keys.createKey": {
       "post": {
-        "tags": [
-          "keys"
-        ],
+        "tags": ["keys"],
         "summary": "Create a new API key with customizable security features",
         "description": "Creates a new API key with configurable security properties, usage limits, and metadata. This endpoint generates a cryptographically secure key that you can distribute to your users for authenticating with your API.\n\nThe key is only returned once in the response - Unkey stores only a secure hash of the key, not the key itself. You must provide this key directly to your end user; it cannot be retrieved later (unless created with `recoverable: true`, which is less secure).\n\nKeys are associated with a specific API (via `apiId`), which helps isolate environments (dev/staging/prod) and prevents keys from being used across different services. Keys can be further configured with:\n- Optional prefixes for visual identification\n- Expiration dates for temporary access\n- Usage limits (credits) for consumption-based APIs\n- Rate limits for abuse prevention\n- Permissions and roles for granular access control\n- Metadata for storing context with the key\n\nBest practices include using environment-specific API IDs, meaningful prefixes, appropriate byte length for security needs, and avoiding storing keys in your databases.",
         "operationId": "createKey",
@@ -5725,14 +5299,8 @@
                     "apiId": "api_1234567890abcdef",
                     "prefix": "prod",
                     "externalId": "user_12345",
-                    "permissions": [
-                      "documents.read",
-                      "documents.write",
-                      "profile.view"
-                    ],
-                    "roles": [
-                      "editor"
-                    ]
+                    "permissions": ["documents.read", "documents.write", "profile.view"],
+                    "roles": ["editor"]
                   }
                 }
               }
@@ -5820,9 +5388,7 @@
     },
     "/v2/ratelimit.limit": {
       "post": {
-        "tags": [
-          "ratelimit"
-        ],
+        "tags": ["ratelimit"],
         "summary": "Apply rate limiting to any identifier",
         "description": "Checks and enforces rate limits for any identifier in your application. This is the core rate limiting endpoint that provides flexible, namespace-based rate limiting for any entity in your system.\n\nUnlike API key-based rate limiting, this endpoint can be used to limit any identifiable entity:\n- Anonymous users by IP address\n- Authenticated users by user ID\n- Organizations by organization ID\n- API clients by client ID\n- Specific actions or resources by custom identifiers\n\nThe endpoint is designed for high-performance rate limiting with predictable behavior. It returns information about limit status, remaining capacity, and reset times that can be communicated to consumers of your API or service.\n\nFeatures:\n- Namespace-based organization for different limit types\n- Custom costs for variable-weight operations\n- Flexible time windows (1 second to 24 hours)\n- Override support for custom limits for specific identifiers\n- Consistent sliding window implementation\n\nImplementation tips:\n- Always check the 'success' field to determine if the request should proceed\n- Use the 'reset' time to implement intelligent client-side retry logic\n- Leverage the 'remaining' count to display usage information to users\n- Store the namespaceId after first use to avoid name lookups in high-volume scenarios\n- Consider using smaller durations for security-critical operations",
         "operationId": "ratelimit.limit",
@@ -5983,9 +5549,7 @@
     },
     "/v2/permissions.listRoles": {
       "post": {
-        "tags": [
-          "permissions"
-        ],
+        "tags": ["permissions"],
         "summary": "List all roles in a workspace",
         "description": "Retrieves a paginated list of all roles defined in the workspace, including their assigned permissions. This endpoint is essential for role-based access control (RBAC) administration.\n\nRoles are collections of permissions that can be assigned to API keys, providing a convenient way to manage access control at scale. This endpoint allows you to:\n- View all available roles for assignment\n- Inspect which permissions are granted by each role\n- Build role management interfaces\n- Audit your RBAC configuration\n\nResults are paginated and sorted alphabetically by role name. Each role includes its complete set of assigned permissions.",
         "operationId": "listRoles",
@@ -6071,9 +5635,7 @@
     },
     "/v2/permissions.createRole": {
       "post": {
-        "tags": [
-          "permissions"
-        ],
+        "tags": ["permissions"],
         "summary": "Create a new role with permissions",
         "description": "Creates a new role in the workspace with optional permission assignments. Roles are collections of permissions that can be assigned to API keys, providing a convenient way to manage access control at scale.\n\nRoles enable you to:\n- Group related permissions together for easier management\n- Assign consistent permission sets to multiple API keys\n- Implement role-based access control (RBAC) patterns\n- Simplify permission management as your system grows\n\nWhen creating a role, you can optionally assign existing permissions to it immediately. The role becomes available for assignment to API keys as soon as it's created.",
         "operationId": "createRole",
@@ -6184,9 +5746,7 @@
     },
     "/v2/ratelimit.setOverride": {
       "post": {
-        "tags": [
-          "ratelimit"
-        ],
+        "tags": ["ratelimit"],
         "summary": "Create or update a custom rate limit for specific identifiers",
         "description": "Creates a new or updates an existing rate limit override for specific identifiers within a namespace.\n\nOverrides allow you to implement special rate limiting rules that differ from the default limits. This is essential for:\n\n- Creating tiered rate limits for different customer segments\n- Implementing premium tiers with higher limits\n- Applying stricter limits to suspicious or abusive users\n- Setting emergency limits during system stress\n- Creating customized rate limiting policies\n\nWhen an override exists, it completely replaces the default rate limit for matching identifiers. The override takes effect immediately and will be applied to the very next rate limit check that matches the identifier pattern.\n\nWildcard patterns can be used to create powerful matching rules that apply to groups of identifiers without having to create individual overrides for each one.",
         "operationId": "ratelimit.setOverride",
@@ -6301,9 +5861,7 @@
     },
     "/v2/ratelimit.getOverride": {
       "post": {
-        "tags": [
-          "ratelimit"
-        ],
+        "tags": ["ratelimit"],
         "summary": "Retrieve a specific rate limit override",
         "description": "Retrieves the details of a specific rate limit override by its identifier pattern.\n\nThis endpoint allows you to inspect the current configuration of an override, including:\n- The exact identifier pattern it matches\n- The custom limit value applied\n- The duration of the rate limit window\n- The namespace it belongs to\n\nThis is particularly useful for:\n- Auditing your rate limiting policies\n- Verifying override configurations\n- Retrieving settings before making modifications\n- Debugging rate limiting behavior\n\nThe identifier must match exactly as it was specified when creating the override, including any wildcard patterns.",
         "operationId": "ratelimit.getOverride",
@@ -6405,9 +5963,7 @@
     },
     "/v2/ratelimit.listOverrides": {
       "post": {
-        "tags": [
-          "ratelimit"
-        ],
+        "tags": ["ratelimit"],
         "summary": "List all rate limit overrides for a namespace",
         "description": "Retrieves a paginated list of all rate limit overrides defined for a specific namespace.\n\nThis endpoint is essential for:\n- Auditing your rate limiting policies\n- Reviewing all custom rate limit rules\n- Building administrative dashboards\n- Finding patterns in your override configurations\n- Managing and cleaning up overrides\n\nThe response includes detailed information about each override, including the identifier patterns, limits, and durations. For namespaces with many overrides, results are paginated and can be retrieved in chunks using the cursor parameter.",
         "operationId": "ratelimit.listOverrides",
@@ -6516,9 +6072,7 @@
     },
     "/v2/ratelimit.deleteOverride": {
       "post": {
-        "tags": [
-          "ratelimit"
-        ],
+        "tags": ["ratelimit"],
         "summary": "Delete a rate limit override",
         "description": "Permanently removes a rate limit override from a namespace. Once deleted, the affected identifiers will immediately revert to using the default rate limits for that namespace.\n\nThis endpoint is useful for:\n- Removing temporary overrides that are no longer needed\n- Resetting entities back to standard rate limits\n- Cleaning up outdated rate limiting rules\n- Removing emergency rate limit adjustments\n- Correcting misconfigured overrides\n\nThe deletion operation is immediate and permanent - once an override is deleted, it cannot be recovered. If you need to reinstate an override after deletion, you must create it again using the setOverride endpoint.",
         "operationId": "ratelimit.deleteOverride",
@@ -6620,9 +6174,7 @@
     },
     "/v2/identities.createIdentity": {
       "post": {
-        "tags": [
-          "identities"
-        ],
+        "tags": ["identities"],
         "summary": "Create a new identity for resource sharing across keys",
         "description": "Creates a new identity that can be associated with multiple API keys to enable resource sharing.\n\nIdentities are a powerful concept in Unkey that allow multiple API keys to share resources like rate limits and to be associated with the same entity (user, organization, etc.). This is essential for:\n\n- Implementing consistent rate limiting across multiple API keys\n- Associating multiple keys with the same user or organization\n- Sharing metadata across all keys for an entity\n- Enabling user-based analytics across multiple keys\n- Simplifying key management for multi-device or multi-service users\n\nWhen you create keys with the same externalId, they'll share rate limits and appear grouped in analytics. This enables scenarios like letting users generate multiple API keys for different devices while still treating them as a single entity for usage limits.\n\nThe identity concept creates a separation between your user entities and their authentication credentials (API keys), similar to how users can have multiple passwords or sessions.",
         "operationId": "identities.createIdentity",
@@ -6764,9 +6316,7 @@
     },
     "/v2/identities.getIdentity": {
       "post": {
-        "tags": [
-          "identities"
-        ],
+        "tags": ["identities"],
         "summary": "Retrieve identity information",
         "description": "Retrieves detailed information about a specific identity by its Unkey ID or external ID.\n\nIdentities in Unkey represent entities in your system (users, organizations, etc.) that can be associated with multiple API keys. This endpoint provides access to:\n- Identity metadata that was stored during creation\n- Rate limiting configurations that apply across all keys for this identity\n- Mapping between your system's external IDs and Unkey's internal IDs\n\nThis endpoint is useful for:\n- Checking if an identity exists\n- Retrieving metadata associated with an identity\n- Viewing rate limit configurations\n- Finding the Unkey ID for an identity when you only have the external ID\n\nYou must provide either the identityId or externalId parameter to identify which identity to retrieve.",
         "operationId": "identities.getIdentity",
@@ -6898,9 +6448,7 @@
     },
     "/v2/identities.listIdentities": {
       "post": {
-        "tags": [
-          "identities"
-        ],
+        "tags": ["identities"],
         "summary": "List identities in your workspace",
         "description": "Retrieves a paginated list of identities in your workspace. Identities represent entities in your system (users, organizations, etc.) that can be associated with multiple API keys for resource sharing.\n\nThis endpoint allows you to:\n- Browse all identities in your workspace\n- Search for specific identities by environment\n- View rate limits configured for each identity\n- Implement identity management interfaces\n\nResults are paginated if there are more identities than the specified limit. Use the returned cursor to fetch subsequent pages.",
         "operationId": "identities.listIdentities",
@@ -7061,9 +6609,7 @@
     },
     "/v2/identities.deleteIdentity": {
       "post": {
-        "tags": [
-          "identities"
-        ],
+        "tags": ["identities"],
         "summary": "Delete an existing identity",
         "description": "Permanently removes an identity from your workspace. This operation cannot be undone.\n\nDeleting an identity has several important effects:\n- All metadata associated with the identity is permanently removed\n- Any rate limit history for this identity is cleared\n- The identity's externalId becomes available for reuse\n- Keys remain functional but lose their identity association\n\nImportant notes:\n- This operation does NOT delete or disable any API keys associated with this identity\n- After deletion, keys previously linked to this identity will function independently\n- Rate limits that were shared across keys via this identity will no longer be shared\n- The externalId can be reused immediately after deletion\n\nUse this endpoint for compliance with data deletion requirements, cleaning up test data, or when an entity (user, organization) is permanently removed from your system.",
         "operationId": "v2.identities.deleteIdentity",
@@ -7175,9 +6721,7 @@
     },
     "/v2/permissions.createPermission": {
       "post": {
-        "tags": [
-          "permissions"
-        ],
+        "tags": ["permissions"],
         "summary": "Create a new permission",
         "description": "Creates a new permission in the workspace. Permissions are the fundamental building blocks of access control in Unkey's RBAC system, representing specific actions or capabilities that can be granted to API keys either directly or through roles.\n\nThis endpoint allows you to:\n- Define new permissions with descriptive names and URL-safe slugs\n- Set up granular access control for your API keys\n- Build the foundation for role-based access control\n- Organize permissions with consistent naming patterns\n\nBest practices:\n- Use hierarchical naming (e.g., 'resource.action' or 'resource.subresource.action')\n- Choose descriptive but concise permission names\n- Use URL-safe slugs for easy reference in APIs",
         "operationId": "createPermission",
@@ -7288,9 +6832,7 @@
     },
     "/v2/permissions.getPermission": {
       "post": {
-        "tags": [
-          "permissions"
-        ],
+        "tags": ["permissions"],
         "summary": "Retrieve details about a specific permission",
         "description": "Retrieves detailed information about a specific permission by its ID. This endpoint allows you to inspect a permission's properties, including its name, description, and workspace association.\n\nThis is useful for:\n- Verifying a permission exists before assigning it\n- Retrieving permission details for display in administrative interfaces\n- Checking permission configuration before making updates\n- Building permission management tools\n\nPermissions are the fundamental building blocks of access control in Unkey's RBAC system, representing specific capabilities that can be granted to API keys either directly or through roles.",
         "operationId": "getPermission",
@@ -7376,9 +6918,7 @@
     },
     "/v2/permissions.listPermissions": {
       "post": {
-        "tags": [
-          "permissions"
-        ],
+        "tags": ["permissions"],
         "summary": "List all permissions in a workspace",
         "description": "Retrieves a paginated list of all permissions defined in the workspace. This endpoint is essential for permission management and RBAC administration.\n\nPermissions are the fundamental building blocks of access control in Unkey, representing specific actions or capabilities that can be granted to API keys either directly or through roles.\n\nThis endpoint allows you to:\n- View all available permissions for assignment\n- Build permission management interfaces\n- Audit your RBAC configuration\n- Identify existing permissions before creating new ones\n\nResults are paginated and typically sorted alphabetically by permission name.",
         "operationId": "listPermissions",
@@ -7454,9 +6994,7 @@
     },
     "/v2/permissions.deletePermission": {
       "post": {
-        "tags": [
-          "permissions"
-        ],
+        "tags": ["permissions"],
         "summary": "Delete a permission",
         "description": "Permanently removes a permission from the workspace. This endpoint is used when a permission is no longer needed or when cleaning up unused permissions.\n\nWhen a permission is deleted:\n- All direct assignments to API keys are removed\n- The permission is removed from any roles it was assigned to\n- The permission's name becomes available for reuse\n\nImportant: This operation cannot be undone, and it immediately affects all API keys and roles that had this permission assigned. Consider carefully before deleting permissions that are actively in use.",
         "operationId": "deletePermission",
@@ -7550,9 +7088,7 @@
     },
     "/v2/permissions.deleteRole": {
       "post": {
-        "tags": [
-          "permissions"
-        ],
+        "tags": ["permissions"],
         "summary": "Delete a role",
         "description": "Permanently removes a role from the workspace. This endpoint is used when a role is no longer needed or needs to be replaced with a different role structure.\n\nWhen a role is deleted:\n- All keys that had this role assigned will lose the permissions granted by this role\n- The role will no longer appear in role listings\n- The role's name becomes available for reuse\n\nImportant: This operation cannot be undone, and it immediately affects all API keys that had this role assigned. Consider carefully before deleting roles that are actively in use by many keys.",
         "operationId": "deleteRole",
@@ -7638,9 +7174,7 @@
     },
     "/v2/permissions.getRole": {
       "post": {
-        "tags": [
-          "permissions"
-        ],
+        "tags": ["permissions"],
         "summary": "Retrieve details about a specific role",
         "description": "Retrieves detailed information about a specific role by its ID, including all permissions assigned to the role. This endpoint allows you to inspect a role's properties and understand what permissions it grants.\n\nThis is useful for:\n- Verifying a role exists before assigning it to API keys\n- Retrieving role details for display in administrative interfaces\n- Checking role configuration before making updates\n- Building role management tools\n- Understanding the complete permission set granted by a role\n\nRoles are collections of permissions that can be assigned to API keys, providing a convenient way to manage access control at scale in Unkey's RBAC system.",
         "operationId": "getRole",
@@ -7726,9 +7260,7 @@
     },
     "/v2/apis.createApi": {
       "post": {
-        "tags": [
-          "apis"
-        ],
+        "tags": ["apis"],
         "summary": "Create a new API namespace for organizing keys",
         "description": "Creates a new API namespace that serves as a container for related API keys.\n\nAPIs in Unkey provide important functionality:\n- They organize keys into logical groups for easier management\n- They isolate keys between different environments (dev/staging/production)\n- They enforce security boundaries between services or products\n- They provide a foundation for permission scoping and access control\n\nCommon use cases for creating separate APIs include:\n- Separating development, staging, and production environments\n- Isolating different services or microservices from each other\n- Creating boundaries between different products or teams\n- Implementing multi-tenant isolation for SaaS applications\n\nYou'll use the resulting API ID when creating keys to associate them with this API namespace. During key verification, you must provide the same API ID to ensure keys can't be used across different environments or services.",
         "operationId": "createApi",
@@ -7837,9 +7369,7 @@
     },
     "/v2/apis.deleteApi": {
       "post": {
-        "tags": [
-          "apis"
-        ],
+        "tags": ["apis"],
         "summary": "Delete an API and invalidate all its associated keys",
         "description": "Permanently deletes an API namespace and invalidates all keys associated with it.\n\nWARNING: This is a destructive operation with significant consequences:\n- All keys associated with this API will be invalidated immediately\n- Verification attempts for these keys will fail with code=NOT_FOUND\n- Historical analytics data for the API and its keys will be preserved\n- This action cannot be undone\n\nCommon reasons to delete an API include:\n- Removing test or development environments no longer needed\n- Retiring deprecated services or products\n- Cleaning up unused resources\n- Implementing security isolation after compromise\n\nBefore deletion, ensure that:\n- You have the correct API ID (check the environment/service)\n- You have migrated any needed keys to a new API\n- You have updated all client applications to use new keys\n- You have backed up any important metadata or analytics",
         "operationId": "deleteApi",
@@ -7933,9 +7463,7 @@
     },
     "/v2/apis.getApi": {
       "post": {
-        "tags": [
-          "apis"
-        ],
+        "tags": ["apis"],
         "summary": "Retrieve information about an API namespace",
         "description": "Retrieves detailed information about a specific API namespace.\n\nThis endpoint is useful for:\n- Verifying an API exists before attempting to use it\n- Retrieving the name of an API when you only have its ID\n- Checking if you have access to a particular API\n- Confirming API details before performing operations on it\n\nThe information returned is minimal by design, as APIs are primarily organizational containers. Most of the valuable data lies in the keys associated with an API, which can be retrieved using the apis.listKeys endpoint.",
         "operationId": "getApi",
@@ -8043,9 +7571,7 @@
     },
     "/v2/apis.listKeys": {
       "post": {
-        "tags": [
-          "apis"
-        ],
+        "tags": ["apis"],
         "summary": "List all keys associated with an API namespace",
         "description": "Retrieves a paginated list of all API keys associated with a specific API namespace.\n\nThis endpoint is essential for:\n- Building admin dashboards for API key management\n- Auditing active keys for security reviews\n- Finding keys associated with specific users or organizations\n- Monitoring key usage and distribution\n- Identifying keys that need rotation or updates\n\nThe response includes detailed information about each key, including its metadata, permissions, and usage limits. For large APIs with many keys, results are paginated and can be filtered by externalId to find keys for specific users or entities.\n\nNote that for security reasons, the full key values are never returned unless specifically requested with decrypt=true, and then only for keys created with recoverable=true and when the caller has sufficient permissions.",
         "operationId": "listKeys",
@@ -8108,10 +7634,7 @@
                           "start": "prod_abc",
                           "name": "Production Admin Key",
                           "createdAt": 1671048264000,
-                          "permissions": [
-                            "admin.read",
-                            "admin.write"
-                          ],
+                          "permissions": ["admin.read", "admin.write"],
                           "meta": {
                             "owner": "alice@example.com",
                             "department": "Engineering"
@@ -8122,10 +7645,7 @@
                           "start": "prod_def",
                           "name": "CI/CD Pipeline Key",
                           "createdAt": 1671135600000,
-                          "permissions": [
-                            "deploy.trigger",
-                            "logs.read"
-                          ]
+                          "permissions": ["deploy.trigger", "logs.read"]
                         }
                       ],
                       "pagination": {
@@ -8195,9 +7715,7 @@
     "/v2/liveness": {
       "get": {
         "x-speakeasy-ignore": "true",
-        "tags": [
-          "liveness"
-        ],
+        "tags": ["liveness"],
         "security": [],
         "operationId": "liveness",
         "description": "Checks if the Unkey API service is functioning correctly and ready to handle requests. This endpoint provides a simple health check mechanism that can be used by load balancers, monitoring tools, and orchestration systems to verify service availability.\n\nUnlike other endpoints, this one:\n- Does not require authentication\n- Has minimal processing overhead\n- Responds quickly with a simple status\n- Performs basic internal health verification\n\nBest practices for using this endpoint:\n- Include in automated monitoring systems\n- Use for health checks in container orchestration\n- Set appropriate alerting thresholds on failures\n- Implement exponential backoff when retrying after failures",
@@ -8283,9 +7801,7 @@
     },
     "/v2/keys.verifyKey": {
       "post": {
-        "tags": [
-          "keys"
-        ],
+        "tags": ["keys"],
         "security": [
           {
             "rootKey": []
@@ -8316,10 +7832,7 @@
                     "key": "my_prefix_1234567890abcdef",
                     "permissions": {
                       "type": "and",
-                      "permissions": [
-                        "users.read",
-                        "users.edit"
-                      ]
+                      "permissions": ["users.read", "users.edit"]
                     }
                   }
                 },
@@ -8355,11 +7868,7 @@
                         "cost": 1
                       }
                     ],
-                    "tags": [
-                      "path=/api/resources",
-                      "method=POST",
-                      "ip=203.0.113.42"
-                    ]
+                    "tags": ["path=/api/resources", "method=POST", "ip=203.0.113.42"]
                   }
                 }
               }
@@ -8398,13 +7907,8 @@
                             "reset": 1714582980000
                           }
                         ],
-                        "permissions": [
-                          "documents.read",
-                          "documents.write"
-                        ],
-                        "roles": [
-                          "editor"
-                        ]
+                        "permissions": ["documents.read", "documents.write"],
+                        "roles": ["editor"]
                       }
                     }
                   },
@@ -8452,9 +7956,7 @@
                         "valid": false,
                         "code": "INSUFFICIENT_PERMISSIONS",
                         "keyId": "key_01H9TQP8NP8JN3X8HWSKPW43JE",
-                        "permissions": [
-                          "documents.read"
-                        ]
+                        "permissions": ["documents.read"]
                       }
                     }
                   }
@@ -8518,9 +8020,7 @@
     },
     "/v2/identities.updateIdentity": {
       "post": {
-        "tags": [
-          "identities"
-        ],
+        "tags": ["identities"],
         "summary": "Update an existing identity",
         "description": "Updates an existing identity's metadata and rate limits. This endpoint allows you to modify the metadata and rate limits associated with an identity.",
         "operationId": "v2.identities.updateIdentity",
