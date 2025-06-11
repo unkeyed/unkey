@@ -1,0 +1,53 @@
+[Unit]
+Description=Metald VM Management Service
+Documentation=https://github.com/unkeyed/unkey/go/deploy/metald
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=metald
+Group=metald
+WorkingDirectory=/opt/metald
+ExecStart=/usr/local/bin/metald
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=metald
+
+# Environment variables
+Environment=UNKEY_METALD_BACKEND=firecracker
+Environment=UNKEY_METALD_OTEL_ENABLED=true
+Environment=UNKEY_METALD_PORT=8080
+Environment=UNKEY_METALD_ADDRESS=0.0.0.0
+Environment=UNKEY_METALD_OTEL_SERVICE_NAME=metald
+Environment=UNKEY_METALD_OTEL_ENDPOINT=localhost:4318
+Environment=UNKEY_METALD_OTEL_PROMETHEUS_PORT=9464
+
+# Process Manager Configuration
+Environment=UNKEY_METALD_SOCKET_DIR=/opt/metald/sockets
+Environment=UNKEY_METALD_LOG_DIR=/opt/metald/logs
+Environment=UNKEY_METALD_MAX_PROCESSES=25
+
+# Billing Configuration
+Environment=UNKEY_METALD_BILLING_ENABLED=true
+Environment=UNKEY_METALD_BILLING_ENDPOINT=http://localhost:8081
+Environment=UNKEY_METALD_BILLING_MOCK_MODE=false
+
+# Jailer configuration for production (disabled by default)
+Environment=UNKEY_METALD_JAILER_ENABLED=false
+Environment=UNKEY_METALD_JAILER_BINARY=/usr/bin/jailer
+Environment=UNKEY_METALD_FIRECRACKER_BINARY=/usr/bin/firecracker
+Environment=UNKEY_METALD_JAILER_UID=1000
+Environment=UNKEY_METALD_JAILER_GID=1000
+Environment=UNKEY_METALD_JAILER_CHROOT_DIR=/srv/jailer
+Environment=UNKEY_METALD_JAILER_NETNS=true
+Environment=UNKEY_METALD_JAILER_PIDNS=true
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target

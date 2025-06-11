@@ -1,0 +1,1 @@
+- **Never** take shortcuts. Ask the user if they want to take a shortcut.

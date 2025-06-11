@@ -1,0 +1,38 @@
+[Unit]
+Description=Billaged VM Usage Billing Service
+Documentation=https://github.com/unkeyed/unkey/go/deploy/billaged
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=billaged
+Group=billaged
+WorkingDirectory=/opt/billaged
+ExecStart=/usr/local/bin/billaged
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=billaged
+
+# Environment variables
+Environment=BILLAGED_PORT=8081
+Environment=BILLAGED_ADDRESS=0.0.0.0
+Environment=BILLAGED_AGGREGATION_INTERVAL=60s
+
+# OpenTelemetry Configuration (enabled for production)
+Environment=BILLAGED_OTEL_ENABLED=true
+Environment=BILLAGED_OTEL_SERVICE_NAME=billaged
+Environment=BILLAGED_OTEL_SERVICE_VERSION=0.0.1
+Environment=BILLAGED_OTEL_SAMPLING_RATE=1.0
+Environment=BILLAGED_OTEL_ENDPOINT=localhost:4318
+Environment=BILLAGED_OTEL_PROMETHEUS_ENABLED=true
+Environment=BILLAGED_OTEL_PROMETHEUS_PORT=9465
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target
