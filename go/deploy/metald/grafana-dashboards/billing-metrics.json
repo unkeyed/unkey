@@ -74,13 +74,13 @@
       "pluginVersion": "9.5.2",
       "targets": [
         {
-          "expr": "sum(rate(unkey_metald_vm_metrics_requests_total[$__rate_interval]))",
+          "expr": "sum(rate(metald_vm_metrics_requests_total[$__rate_interval]))",
           "format": "time_series",
-          "legendFormat": "Active VMs Being Monitored",
+          "legendFormat": "VM Metrics Requests Rate",
           "refId": "A"
         }
       ],
-      "title": "Active VMs Collecting Metrics",
+      "title": "VM Metrics Request Rate",
       "type": "stat"
     },
     {

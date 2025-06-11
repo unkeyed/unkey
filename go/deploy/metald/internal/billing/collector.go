@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
+	"github.com/unkeyed/unkey/go/deploy/metald/internal/observability"
 )
 
 // MetricsCollector manages high-frequency metrics collection for billing
@@ -15,6 +16,7 @@ type MetricsCollector struct {
 	backend       types.Backend
 	billingClient BillingClient
 	logger        *slog.Logger
+	billingMetrics *observability.BillingMetrics
 
 	// State management
 	mu        sync.RWMutex
@@ -46,11 +48,12 @@ type VMMetricsTracker struct {
 }
 
 // NewMetricsCollector creates a new metrics collector instance
-func NewMetricsCollector(backend types.Backend, billingClient BillingClient, logger *slog.Logger, instanceID string) *MetricsCollector {
+func NewMetricsCollector(backend types.Backend, billingClient BillingClient, logger *slog.Logger, instanceID string, billingMetrics *observability.BillingMetrics) *MetricsCollector {
 	return &MetricsCollector{
 		backend:            backend,
 		billingClient:      billingClient,
 		logger:             logger.With("component", "metrics_collector"),
+		billingMetrics:     billingMetrics,
 		activeVMs:          make(map[string]*VMMetricsTracker),
 		collectionInterval: 100 * time.Millisecond,
 		batchSize:          600, // 1 minute worth at 100ms intervals
@@ -193,6 +196,10 @@ func (mc *MetricsCollector) StartHeartbeat() {
 					"error", err,
 				)
 			} else {
+				// Record successful heartbeat
+				if mc.billingMetrics != nil {
+					mc.billingMetrics.RecordHeartbeatSent(ctx, mc.instanceID)
+				}
 				mc.logger.Debug("heartbeat sent successfully",
 					"instance_id", mc.instanceID,
 					"active_vms_count", len(activeVMs),
@@ -228,6 +235,11 @@ func (mc *MetricsCollector) runCollection(tracker *VMMetricsTracker) {
 			cancel()
 			collectDuration := time.Since(start)
 
+			// Record VM metrics request
+			if mc.billingMetrics != nil {
+				mc.billingMetrics.RecordVMMetricsRequest(ctx, tracker.vmID)
+			}
+
 			if err != nil {
 				tracker.consecutiveErrors++
 				tracker.lastError = time.Now()
@@ -253,6 +265,11 @@ func (mc *MetricsCollector) runCollection(tracker *VMMetricsTracker) {
 
 			tracker.mu.Lock()
 			tracker.buffer = append(tracker.buffer, metrics)
+
+			// Record metrics collected
+			if mc.billingMetrics != nil {
+				mc.billingMetrics.RecordMetricsCollected(ctx, tracker.vmID, 1, collectDuration)
+			}
 
 			mc.logger.Debug("collected metrics",
 				"vm_id", tracker.vmID,
@@ -312,6 +329,11 @@ func (mc *MetricsCollector) sendBatch(tracker *VMMetricsTracker) {
 		)
 		// TODO: Implement retry logic with local queuing
 		return
+	}
+
+	// Record successful batch send
+	if mc.billingMetrics != nil {
+		mc.billingMetrics.RecordBillingBatchSent(ctx, tracker.vmID, tracker.customerID, len(batchCopy), sendDuration)
 	}
 
 	mc.logger.Debug("sent metrics batch successfully",

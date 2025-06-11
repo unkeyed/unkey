@@ -155,7 +155,7 @@ func initMeterProvider(ctx context.Context, cfg *config.Config, res *resource.Re
 
 	readers = append(readers, sdkmetric.NewPeriodicReader(
 		metricExporter,
-		sdkmetric.WithInterval(30*time.Second),
+		sdkmetric.WithInterval(15*time.Second),
 	))
 
 	// Prometheus exporter

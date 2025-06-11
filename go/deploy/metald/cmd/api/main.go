@@ -167,15 +167,9 @@ func main() {
 		logger.Info("billing disabled, using mock client")
 	}
 
-	// Create metrics collector
-	instanceID := fmt.Sprintf("metald-%d", time.Now().Unix())
-	metricsCollector := billing.NewMetricsCollector(backend, billingClient, logger, instanceID)
-
-	// Start heartbeat service
-	metricsCollector.StartHeartbeat()
-
 	// Create VM metrics (only if OpenTelemetry is enabled)
 	var vmMetrics *observability.VMMetrics
+	var billingMetrics *observability.BillingMetrics
 	if cfg.OpenTelemetry.Enabled {
 		var err error
 		vmMetrics, err = observability.NewVMMetrics(logger)
@@ -185,8 +179,23 @@ func main() {
 			)
 			os.Exit(1)
 		}
-		logger.Info("VM metrics initialized")
+		
+		billingMetrics, err = observability.NewBillingMetrics(logger)
+		if err != nil {
+			logger.Error("failed to initialize billing metrics",
+				slog.String("error", err.Error()),
+			)
+			os.Exit(1)
+		}
+		logger.Info("VM and billing metrics initialized")
 	}
+
+	// Create metrics collector
+	instanceID := fmt.Sprintf("metald-%d", time.Now().Unix())
+	metricsCollector := billing.NewMetricsCollector(backend, billingClient, logger, instanceID, billingMetrics)
+
+	// Start heartbeat service
+	metricsCollector.StartHeartbeat()
 
 	// Create VM service
 	vmService := service.NewVMService(backend, logger, metricsCollector, vmMetrics)

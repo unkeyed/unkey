@@ -317,7 +317,10 @@ func (vm *VMMetrics) RecordVMCreateRequest(ctx context.Context, backend string) 
 }
 
 func (vm *VMMetrics) RecordVMCreateSuccess(ctx context.Context, vmID string, backend string) {
-	vm.vmCreateSuccess.Add(ctx, 1, metric.WithAttributes(vm.vmAttributes(vmID, backend)...))
+	// Success counters don't include VM ID to avoid high cardinality
+	vm.vmCreateSuccess.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("backend", backend),
+	))
 }
 
 func (vm *VMMetrics) RecordVMCreateFailure(ctx context.Context, backend string, errorType string) {
@@ -328,40 +331,46 @@ func (vm *VMMetrics) RecordVMCreateFailure(ctx context.Context, backend string, 
 }
 
 func (vm *VMMetrics) RecordVMBootRequest(ctx context.Context, vmID string, backend string) {
-	vm.vmBootRequests.Add(ctx, 1, metric.WithAttributes(vm.vmAttributes(vmID, backend)...))
+	// Request counters don't include VM ID to avoid high cardinality
+	vm.vmBootRequests.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("backend", backend),
+	))
 }
 
 func (vm *VMMetrics) RecordVMBootSuccess(ctx context.Context, vmID string, backend string) {
-	vm.vmBootSuccess.Add(ctx, 1, metric.WithAttributes(vm.vmAttributes(vmID, backend)...))
+	// Success counters don't include VM ID to avoid high cardinality
+	vm.vmBootSuccess.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("backend", backend),
+	))
 }
 
 func (vm *VMMetrics) RecordVMBootFailure(ctx context.Context, vmID string, backend string, errorType string) {
+	// Failure metrics only include backend and error type, not VM ID
 	vm.vmBootFailures.Add(ctx, 1, metric.WithAttributes(
-		attribute.String("vm_id", vmID),
 		attribute.String("backend", backend),
 		attribute.String("error_type", errorType),
 	))
 }
 
 func (vm *VMMetrics) RecordVMShutdownRequest(ctx context.Context, vmID string, backend string, force bool) {
+	// Request counters don't include VM ID to avoid high cardinality
 	vm.vmShutdownRequests.Add(ctx, 1, metric.WithAttributes(
-		attribute.String("vm_id", vmID),
 		attribute.String("backend", backend),
 		attribute.Bool("force", force),
 	))
 }
 
 func (vm *VMMetrics) RecordVMShutdownSuccess(ctx context.Context, vmID string, backend string, force bool) {
+	// Success counters don't include VM ID to avoid high cardinality
 	vm.vmShutdownSuccess.Add(ctx, 1, metric.WithAttributes(
-		attribute.String("vm_id", vmID),
 		attribute.String("backend", backend),
 		attribute.Bool("force", force),
 	))
 }
 
 func (vm *VMMetrics) RecordVMShutdownFailure(ctx context.Context, vmID string, backend string, force bool, errorType string) {
+	// Failure metrics only include backend, force flag, and error type
 	vm.vmShutdownFailures.Add(ctx, 1, metric.WithAttributes(
-		attribute.String("vm_id", vmID),
 		attribute.String("backend", backend),
 		attribute.Bool("force", force),
 		attribute.String("error_type", errorType),
@@ -369,16 +378,22 @@ func (vm *VMMetrics) RecordVMShutdownFailure(ctx context.Context, vmID string, b
 }
 
 func (vm *VMMetrics) RecordVMDeleteRequest(ctx context.Context, vmID string, backend string) {
-	vm.vmDeleteRequests.Add(ctx, 1, metric.WithAttributes(vm.vmAttributes(vmID, backend)...))
+	// Request counters don't include VM ID to avoid high cardinality
+	vm.vmDeleteRequests.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("backend", backend),
+	))
 }
 
 func (vm *VMMetrics) RecordVMDeleteSuccess(ctx context.Context, vmID string, backend string) {
-	vm.vmDeleteSuccess.Add(ctx, 1, metric.WithAttributes(vm.vmAttributes(vmID, backend)...))
+	// Success counters don't include VM ID to avoid high cardinality
+	vm.vmDeleteSuccess.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("backend", backend),
+	))
 }
 
 func (vm *VMMetrics) RecordVMDeleteFailure(ctx context.Context, vmID string, backend string, errorType string) {
+	// Failure metrics only include backend and error type
 	vm.vmDeleteFailures.Add(ctx, 1, metric.WithAttributes(
-		attribute.String("vm_id", vmID),
 		attribute.String("backend", backend),
 		attribute.String("error_type", errorType),
 	))
@@ -386,48 +401,66 @@ func (vm *VMMetrics) RecordVMDeleteFailure(ctx context.Context, vmID string, bac
 
 // VM state operation metric methods
 func (vm *VMMetrics) RecordVMPauseRequest(ctx context.Context, vmID string, backend string) {
-	vm.vmPauseRequests.Add(ctx, 1, metric.WithAttributes(vm.vmAttributes(vmID, backend)...))
+	// Request counters don't include VM ID to avoid high cardinality
+	vm.vmPauseRequests.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("backend", backend),
+	))
 }
 
 func (vm *VMMetrics) RecordVMPauseSuccess(ctx context.Context, vmID string, backend string) {
-	vm.vmPauseSuccess.Add(ctx, 1, metric.WithAttributes(vm.vmAttributes(vmID, backend)...))
+	// Success counters don't include VM ID to avoid high cardinality
+	vm.vmPauseSuccess.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("backend", backend),
+	))
 }
 
 func (vm *VMMetrics) RecordVMPauseFailure(ctx context.Context, vmID string, backend string, errorType string) {
+	// Failure metrics only include backend and error type
 	vm.vmPauseFailures.Add(ctx, 1, metric.WithAttributes(
-		attribute.String("vm_id", vmID),
 		attribute.String("backend", backend),
 		attribute.String("error_type", errorType),
 	))
 }
 
 func (vm *VMMetrics) RecordVMResumeRequest(ctx context.Context, vmID string, backend string) {
-	vm.vmResumeRequests.Add(ctx, 1, metric.WithAttributes(vm.vmAttributes(vmID, backend)...))
+	// Request counters don't include VM ID to avoid high cardinality
+	vm.vmResumeRequests.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("backend", backend),
+	))
 }
 
 func (vm *VMMetrics) RecordVMResumeSuccess(ctx context.Context, vmID string, backend string) {
-	vm.vmResumeSuccess.Add(ctx, 1, metric.WithAttributes(vm.vmAttributes(vmID, backend)...))
+	// Success counters don't include VM ID to avoid high cardinality
+	vm.vmResumeSuccess.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("backend", backend),
+	))
 }
 
 func (vm *VMMetrics) RecordVMResumeFailure(ctx context.Context, vmID string, backend string, errorType string) {
+	// Failure metrics only include backend and error type
 	vm.vmResumeFailures.Add(ctx, 1, metric.WithAttributes(
-		attribute.String("vm_id", vmID),
 		attribute.String("backend", backend),
 		attribute.String("error_type", errorType),
 	))
 }
 
 func (vm *VMMetrics) RecordVMRebootRequest(ctx context.Context, vmID string, backend string) {
-	vm.vmRebootRequests.Add(ctx, 1, metric.WithAttributes(vm.vmAttributes(vmID, backend)...))
+	// Request counters don't include VM ID to avoid high cardinality
+	vm.vmRebootRequests.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("backend", backend),
+	))
 }
 
 func (vm *VMMetrics) RecordVMRebootSuccess(ctx context.Context, vmID string, backend string) {
-	vm.vmRebootSuccess.Add(ctx, 1, metric.WithAttributes(vm.vmAttributes(vmID, backend)...))
+	// Success counters don't include VM ID to avoid high cardinality
+	vm.vmRebootSuccess.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("backend", backend),
+	))
 }
 
 func (vm *VMMetrics) RecordVMRebootFailure(ctx context.Context, vmID string, backend string, errorType string) {
+	// Failure metrics only include backend and error type
 	vm.vmRebootFailures.Add(ctx, 1, metric.WithAttributes(
-		attribute.String("vm_id", vmID),
 		attribute.String("backend", backend),
 		attribute.String("error_type", errorType),
 	))
@@ -435,7 +468,10 @@ func (vm *VMMetrics) RecordVMRebootFailure(ctx context.Context, vmID string, bac
 
 // VM information metric methods
 func (vm *VMMetrics) RecordVMInfoRequest(ctx context.Context, vmID string, backend string) {
-	vm.vmInfoRequests.Add(ctx, 1, metric.WithAttributes(vm.vmAttributes(vmID, backend)...))
+	// Info request counters don't include VM ID to avoid high cardinality
+	vm.vmInfoRequests.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("backend", backend),
+	))
 }
 
 func (vm *VMMetrics) RecordVMListRequest(ctx context.Context, backend string) {
@@ -445,7 +481,10 @@ func (vm *VMMetrics) RecordVMListRequest(ctx context.Context, backend string) {
 }
 
 func (vm *VMMetrics) RecordVMMetricsRequest(ctx context.Context, vmID string, backend string) {
-	vm.vmMetricsRequests.Add(ctx, 1, metric.WithAttributes(vm.vmAttributes(vmID, backend)...))
+	// Metrics request counters don't include VM ID to avoid high cardinality
+	vm.vmMetricsRequests.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("backend", backend),
+	))
 }
 
 // Process management metric methods

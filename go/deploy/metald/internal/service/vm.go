@@ -164,8 +164,16 @@ func (s *VMService) BootVm(ctx context.Context, req *connect.Request[metaldv1.Bo
 		slog.String("vm_id", vmID),
 	)
 
+	// Record VM boot request metric
+	if s.vmMetrics != nil {
+		s.vmMetrics.RecordVMBootRequest(ctx, vmID, s.getBackendType())
+	}
+
 	if vmID == "" {
 		s.logger.LogAttrs(ctx, slog.LevelError, "missing vm id")
+		if s.vmMetrics != nil {
+			s.vmMetrics.RecordVMBootFailure(ctx, "", s.getBackendType(), "missing_vm_id")
+		}
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("vm_id is required"))
 	}
 
@@ -174,6 +182,9 @@ func (s *VMService) BootVm(ctx context.Context, req *connect.Request[metaldv1.Bo
 			slog.String("vm_id", vmID),
 			slog.String("error", err.Error()),
 		)
+		if s.vmMetrics != nil {
+			s.vmMetrics.RecordVMBootFailure(ctx, vmID, s.getBackendType(), "backend_error")
+		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to boot vm: %w", err))
 	}
 
@@ -199,6 +210,11 @@ func (s *VMService) BootVm(ctx context.Context, req *connect.Request[metaldv1.Bo
 		slog.String("vm_id", vmID),
 	)
 
+	// Record successful VM boot
+	if s.vmMetrics != nil {
+		s.vmMetrics.RecordVMBootSuccess(ctx, vmID, s.getBackendType())
+	}
+
 	return connect.NewResponse(&metaldv1.BootVmResponse{
 		Success: true,
 		State:   metaldv1.VmState_VM_STATE_RUNNING,
@@ -219,8 +235,16 @@ func (s *VMService) ShutdownVm(ctx context.Context, req *connect.Request[metaldv
 		slog.Int("timeout_seconds", int(timeout)),
 	)
 
+	// Record VM shutdown request metric
+	if s.vmMetrics != nil {
+		s.vmMetrics.RecordVMShutdownRequest(ctx, vmID, s.getBackendType(), force)
+	}
+
 	if vmID == "" {
 		s.logger.LogAttrs(ctx, slog.LevelError, "missing vm id")
+		if s.vmMetrics != nil {
+			s.vmMetrics.RecordVMShutdownFailure(ctx, "", s.getBackendType(), force, "missing_vm_id")
+		}
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("vm_id is required"))
 	}
 
@@ -237,12 +261,20 @@ func (s *VMService) ShutdownVm(ctx context.Context, req *connect.Request[metaldv
 			slog.String("vm_id", vmID),
 			slog.String("error", err.Error()),
 		)
+		if s.vmMetrics != nil {
+			s.vmMetrics.RecordVMShutdownFailure(ctx, vmID, s.getBackendType(), force, "backend_error")
+		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to shutdown vm: %w", err))
 	}
 
 	s.logger.LogAttrs(ctx, slog.LevelInfo, "vm shutdown successfully",
 		slog.String("vm_id", vmID),
 	)
+
+	// Record successful VM shutdown
+	if s.vmMetrics != nil {
+		s.vmMetrics.RecordVMShutdownSuccess(ctx, vmID, s.getBackendType(), force)
+	}
 
 	return connect.NewResponse(&metaldv1.ShutdownVmResponse{
 		Success: true,
@@ -355,6 +387,11 @@ func (s *VMService) GetVmInfo(ctx context.Context, req *connect.Request[metaldv1
 		slog.String("vm_id", vmID),
 	)
 
+	// Record VM info request metric
+	if s.vmMetrics != nil {
+		s.vmMetrics.RecordVMInfoRequest(ctx, vmID, s.getBackendType())
+	}
+
 	if vmID == "" {
 		s.logger.LogAttrs(ctx, slog.LevelError, "missing vm id")
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("vm_id is required"))
@@ -385,6 +422,11 @@ func (s *VMService) ListVms(ctx context.Context, req *connect.Request[metaldv1.L
 	s.logger.LogAttrs(ctx, slog.LevelInfo, "listing vms",
 		slog.String("method", "ListVms"),
 	)
+
+	// Record VM list request metric
+	if s.vmMetrics != nil {
+		s.vmMetrics.RecordVMListRequest(ctx, s.getBackendType())
+	}
 
 	var vms []*metaldv1.VmInfo
 	var totalCount int32
