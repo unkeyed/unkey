@@ -43,6 +43,10 @@ import { deleteRootKeys } from "./key/deleteRootKey";
 import { fetchKeyPermissions } from "./key/fetch-key-permissions";
 import { queryKeyDetailsLogs } from "./key/query-logs";
 import { keyDetailsVerificationsTimeseries } from "./key/query-timeseries";
+import { getConnectedRolesAndPerms } from "./key/rbac/connected-roles-and-perms";
+import { queryKeysRoles } from "./key/rbac/roles/query-keys-roles";
+import { searchKeysRoles } from "./key/rbac/roles/search-keys-roles";
+import { updateKeyRbac } from "./key/rbac/update-rbac";
 import { updateKeysEnabled } from "./key/updateEnabled";
 import { updateKeyExpiration } from "./key/updateExpiration";
 import { updateKeyMetadata } from "./key/updateMetadata";
@@ -116,7 +120,19 @@ export const router = t.router({
       ownerId: updateKeyOwner,
       ratelimit: updateKeyRatelimit,
       remaining: updateKeyRemaining,
+      rbac: t.router({
+        update: updateKeyRbac,
+        roles: t.router({
+          search: searchKeysRoles,
+          query: queryKeysRoles,
+        }),
+        permissions: t.router({
+          search: searchRolesPermissions,
+          query: queryRolesPermissions,
+        }),
+      }),
     }),
+    connectedRolesAndPerms: getConnectedRolesAndPerms,
   }),
   rootKey: t.router({
     create: createRootKey,

@@ -91,7 +91,7 @@ export const KeysTableActionPopover = ({
         )}
       </PopoverTrigger>
       <PopoverContent
-        className="w-60 bg-gray-1 dark:bg-black drop-shadow-2xl border-gray-6 rounded-lg p-0"
+        className="min-w-60 max-w-full bg-gray-1 dark:bg-black drop-shadow-2xl border-gray-6 rounded-lg p-0"
         align={align}
         onOpenAutoFocus={(e) => {
           e.preventDefault();

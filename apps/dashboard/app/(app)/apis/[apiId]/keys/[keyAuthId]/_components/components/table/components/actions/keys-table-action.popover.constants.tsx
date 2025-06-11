@@ -1,4 +1,5 @@
 import { toast } from "@/components/ui/toaster";
+import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import {
   ArrowOppositeDirectionY,
@@ -10,6 +11,7 @@ import {
   Code,
   Gauge,
   PenWriting3,
+  Tag,
   Trash,
 } from "@unkey/icons";
 import { DeleteKey } from "./components/delete-key";
@@ -20,10 +22,17 @@ import { EditExternalId } from "./components/edit-external-id";
 import { EditKeyName } from "./components/edit-key-name";
 import { EditMetadata } from "./components/edit-metadata";
 import { EditRatelimits } from "./components/edit-ratelimits";
-import type { MenuItem } from "./keys-table-action.popover";
+import { KeyRbacDialog } from "./components/edit-rbac";
+import { KeysTableActionPopover, type MenuItem } from "./keys-table-action.popover";
 
-export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
-  return [
+type KeysTableActionsProps = {
+  keyData: KeyDetails;
+};
+
+export const KeysTableActions = ({ keyData: key }: KeysTableActionsProps) => {
+  const trpcUtils = trpc.useUtils();
+
+  const keysTableActionItems: MenuItem[] = [
     {
       id: "override",
       label: "Edit key name...",
@@ -88,10 +97,35 @@ export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
       divider: true,
     },
     {
+      id: "edit-rbac",
+      label: "Manage roles and permissions...",
+      icon: <Tag size="md-regular" />,
+      ActionComponent: (props) => (
+        <KeyRbacDialog
+          {...props}
+          existingKey={{
+            id: key.id,
+            // Those permissionId and roleIds are being derived from prefetched tRPC call
+            permissionIds: [],
+            roleIds: [],
+            name: key.name ?? undefined,
+          }}
+        />
+      ),
+      prefetch: async () => {
+        await trpcUtils.key.connectedRolesAndPerms.prefetch({
+          keyId: key.id,
+        });
+      },
+      divider: true,
+    },
+    {
       id: "delete-key",
       label: "Delete key",
       icon: <Trash size="md-regular" />,
       ActionComponent: (props) => <DeleteKey {...props} keyDetails={key} />,
     },
   ];
+
+  return <KeysTableActionPopover items={keysTableActionItems} />;
 };
