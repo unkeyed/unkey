@@ -1,0 +1,48 @@
+---
+title: Separator
+description: A visual divider that separates content either horizontally or vertically.
+---
+import { HorizontalSeparator, VerticalSeparator, DecorativeSeparator } from "./separator.example";
+
+## Usage
+
+```tsx
+import { Separator } from "@unkey/ui";
+
+export default function MyComponent() {
+  return (
+    <div>
+      <div>Above the separator</div>
+      <Separator />
+      <div>Below the separator</div>
+    </div>
+  );
+}
+```
+
+## Examples
+
+### Horizontal
+<HorizontalSeparator />
+
+### Vertical
+<VerticalSeparator />
+
+### Decorative
+<DecorativeSeparator />
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `orientation` | `"horizontal" \| "vertical"` | `"horizontal"` | The orientation of the separator. |
+| `decorative` | `boolean` | `false` | Whether the separator is decorative and should not be visible to screen readers. |
+
+
+## Accessibility
+
+The Separator component is built on top of the [Radix UI Separator](https://www.radix-ui.com/primitives/docs/components/separator) primitive and follows WAI-ARIA guidelines:
+
+- Uses `role="separator"` to indicate its semantic meaning
+- Can be marked as decorative using the `decorative` prop
+- Maintains proper spacing and visual contrast for accessibility 
