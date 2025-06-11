@@ -10,17 +10,17 @@ export function VisibleButtonDemo() {
   return (
     <RenderComponentWithSnippet>
       <div className="flex flex-col gap-8">
-        <div className="flex items-center gap-4">
-          <VisibleButton isVisible={isVisible} setIsVisible={setIsVisible} />
-          <span className="text-sm text-gray-600 dark:text-gray-400">
+        <div className="rounded flex items-center gap-2 border border-gray-6 bg-black mx-auto text-center">
+          <code className="flex-row px-2 bg-transparent border-none  mx-2 overflow-hidden text-ellipsis">
             {isVisible ? "Content is visible" : "Content is hidden"}
-          </span>
+          </code>
+          <VisibleButton isVisible={isVisible} setIsVisible={setIsVisible} className="right-1" />
         </div>
-        <div className="flex items-center gap-4">
-          <VisibleButton isVisible={isVisible} setIsVisible={setIsVisible} />
-          <code className="rounded bg-gray-100 px-2 py-1 text-sm dark:bg-gray-800">
+        <div className="rounded flex items-center gap-2 border border-gray-6 bg-black mx-auto text-center">
+          <code className="flex-2 px-2 bg-transparent border-none overflow-hidden text-ellipsis">
             {isVisible ? "sk_1234567890abcdef" : "••••••••••••••••"}
           </code>
+          <VisibleButton isVisible={isVisible} setIsVisible={setIsVisible} className="right-1" />
         </div>
       </div>
     </RenderComponentWithSnippet>
