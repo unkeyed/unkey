@@ -6,14 +6,15 @@ import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyPermission, KeyRole } from "@/lib/trpc/routers/key/rbac/connected-roles-and-perms";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PenWriting3 } from "@unkey/icons";
+import { HandHoldingKey, PenWriting3 } from "@unkey/icons";
 import { Button, DialogContainer } from "@unkey/ui";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Controller, FormProvider } from "react-hook-form";
 import { useUpdateKeyRbac } from "../hooks/use-edit-rbac";
 import { KeyInfo } from "../key-info";
 import { PermissionField } from "./components/assign-permission/permissions-field";
 import { RoleField } from "./components/assign-role/role-field";
+import { useFetchPermissionSlugs } from "./components/hooks/use-fetch-permission-slugs";
 import { type FormValues, updateKeyRbacSchema } from "./update-key-rbac.schema";
 
 const FORM_STORAGE_KEY = "unkey_key_rbac_form_state";
@@ -49,6 +50,91 @@ const getDefaultValues = (
     roleIds: apiData?.roles.map((r) => r.id) ?? existingKey.roleIds ?? [],
     permissionIds: apiData?.permissions.map((p) => p.id) ?? existingKey.permissionIds ?? [],
   };
+};
+
+const GrantedAccess = ({
+  slugs,
+  totalCount,
+  isLoading,
+}: {
+  slugs?: string[];
+  totalCount?: number;
+  isLoading: boolean;
+}) => {
+  const [displaySlugs, setDisplaySlugs] = useState<string[]>([]);
+  const [displayCount, setDisplayCount] = useState(0);
+
+  useEffect(() => {
+    if (!isLoading && slugs) {
+      const timer = setTimeout(() => {
+        setDisplaySlugs(slugs);
+        setDisplayCount(totalCount || 0);
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [slugs, totalCount, isLoading]);
+
+  const memoizedSlugs = useMemo(() => {
+    return displaySlugs.map((slug) => (
+      <div
+        className="flex gap-2 items-center bg-grayA-3 rounded-md p-1.5 transition-all duration-200 ease-in-out transform animate-in fade-in slide-in-from-bottom-2"
+        key={slug}
+      >
+        <HandHoldingKey size="sm-regular" className="text-grayA-11" />
+        <span className="text-gray-11 text-xs font-mono">{slug}</span>
+      </div>
+    ));
+  }, [displaySlugs]);
+
+  if (displaySlugs.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2 items-center transition-all duration-300 ease-in-out">
+        <div className="font-medium text-sm text-gray-12">Granted Access</div>
+        <div
+          className={`
+            rounded-full border bg-grayA-3 border-grayA-3 w-[22px] h-[18px] 
+            flex items-center justify-center font-medium text-[11px] text-grayA-12
+            transition-all duration-300 ease-in-out transform
+            ${isLoading ? "animate-pulse" : "animate-in zoom-in-50"}
+          `}
+        >
+          {isLoading ? "..." : displayCount}
+        </div>
+      </div>
+
+      <div className="h-[1px] bg-grayA-3 w-full transition-opacity duration-200" />
+
+      <div
+        className={`
+          flex flex-wrap gap-1 items-center min-h-[2rem]
+          transition-all duration-300 ease-in-out
+          ${isLoading ? "opacity-50" : "opacity-100"}
+        `}
+      >
+        {isLoading ? (
+          <div className="flex gap-1">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-7 w-20 bg-grayA-4 rounded-md animate-pulse"
+                style={{ animationDelay: `${i * 100}ms` }}
+              />
+            ))}
+          </div>
+        ) : displaySlugs.length > 0 ? (
+          memoizedSlugs
+        ) : (
+          <div className="text-grayA-9 text-xs italic py-2 animate-in fade-in">
+            No permissions selected
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export const KeyRbacDialog = ({
@@ -90,7 +176,19 @@ export const KeyRbacDialog = ({
     saveCurrentValues,
     loadSavedValues,
     control,
+    watch,
   } = methods;
+
+  // Watch form values with debouncing for performance
+  const watchedRoleIds = watch("roleIds");
+  const watchedPermissionIds = watch("permissionIds");
+
+  // Debounced slugs fetch - only enabled when dialog is open
+  const { data: dataSlugs, isLoading: isSlugsLoading } = useFetchPermissionSlugs(
+    watchedRoleIds,
+    watchedPermissionIds,
+    isDialogOpen, // Only fetch when dialog is open
+  );
 
   // Only reset when dialog opens AND data is loaded
   useEffect(() => {
@@ -116,7 +214,6 @@ export const KeyRbacDialog = ({
     setIsDialogOpen(false);
   });
 
-  // Rest of component remains the same...
   const onSubmit = async (data: FormValues) => {
     updateKeyRbacMutation.mutate(data);
   };
@@ -137,7 +234,7 @@ export const KeyRbacDialog = ({
         isOpen={isDialogOpen}
         onOpenChange={handleDialogToggle}
       >
-        <div className="p-4">Loading key data...</div>
+        <div className="p-4 animate-pulse">Loading key data...</div>
       </DialogContainer>
     );
   }
@@ -171,7 +268,7 @@ export const KeyRbacDialog = ({
                   form={`key-rbac-form-${existingKey.id}`}
                   variant="primary"
                   size="xlg"
-                  className="w-full rounded-lg"
+                  className="w-full rounded-lg transition-all duration-200"
                   disabled={!isValid || updateKeyRbacMutation.isLoading}
                   loading={updateKeyRbacMutation.isLoading}
                 >
@@ -215,6 +312,12 @@ export const KeyRbacDialog = ({
                     assignedPermsDetails={data?.permissions ?? []}
                   />
                 )}
+              />
+
+              <GrantedAccess
+                slugs={dataSlugs?.slugs}
+                totalCount={dataSlugs?.totalCount}
+                isLoading={isSlugsLoading}
               />
             </div>
           </DialogContainer>
