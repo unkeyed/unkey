@@ -16,6 +16,7 @@ runCommonRouteTests<V1PermissionsDeleteRoleRequest>({
     await rh.db.primary.insert(schema.permissions).values({
       id: roleId,
       name: randomUUID(),
+      slug: randomUUID(),
       workspaceId: rh.resources.userWorkspace.id,
     });
     return {

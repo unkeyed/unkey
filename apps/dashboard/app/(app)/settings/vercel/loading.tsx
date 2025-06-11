@@ -1,4 +1,4 @@
-import { Loading } from "@/components/dashboard/loading";
+import { Loading } from "@unkey/ui";
 
 export default function () {
   // You can add any UI inside Loading, including a Skeleton.

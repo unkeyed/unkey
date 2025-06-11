@@ -1,6 +1,4 @@
 "use client";
-import { RatelimitOverviewTooltip } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/table/components/ratelimit-overview-tooltip";
-import { Loading } from "@/components/dashboard/loading";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -18,6 +16,7 @@ import { setSessionCookie } from "@/lib/auth/cookies";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { ChevronExpandY } from "@unkey/icons";
+import { InfoTooltip, Loading } from "@unkey/ui";
 import { Check, Plus, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -108,15 +107,17 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
             </AvatarFallback>
           </Avatar>
           {isUserMembershipsLoading ? (
-            <Loading />
+            <Loading type="dots" size={24} />
           ) : isCollapsed ? null : (
-            <RatelimitOverviewTooltip
-              content={<span className="text-[13px] font-medium">{props.workspace.name}</span>}
+            <InfoTooltip
+              variant="inverted"
+              position={{ side: "right", sideOffset: 10 }}
+              content={<span>{props.workspace.name}</span>}
+              className="text-xs font-medium py-2"
+              triggerClassName="overflow-hidden text-sm font-medium text-ellipsis"
             >
-              <span className="overflow-hidden text-[13px] font-medium text-ellipsis">
-                {props.workspace.name}
-              </span>
-            </RatelimitOverviewTooltip>
+              {props.workspace.name}
+            </InfoTooltip>
           )}
         </div>
         {!isCollapsed && (

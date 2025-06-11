@@ -1,6 +1,5 @@
 "use client";
 
-import { Loading } from "@/components/dashboard/loading";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { PostHogIdentify } from "@/providers/PostHogProvider";
@@ -110,7 +109,7 @@ export const CreateApi: React.FC<Props> = ({ workspace }) => {
                 loading={createApi.isLoading}
                 className="w-full h-9"
               >
-                {createApi.isLoading ? <Loading /> : "Create API"}
+                Create API
               </Button>
             </div>
           </form>

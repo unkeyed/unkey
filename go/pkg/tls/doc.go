@@ -9,6 +9,4 @@
 //   - Loading TLS certificates and keys from files
 //   - Configuring HTTPS servers with sensible security defaults
 //   - Enabling HTTPS in command-line applications
-//
-// The package enforces secure defaults such as requiring TLS 1.2 or higher.
 package tls

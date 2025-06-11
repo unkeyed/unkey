@@ -27,12 +27,9 @@ const CreateKeyDialog = dynamic(
   },
 );
 
-const DialogContainer = dynamic(
-  () => import("@/components/dialog-container").then((mod) => mod.DialogContainer),
-  {
-    ssr: false,
-  },
-);
+const DialogContainer = dynamic(() => import("@unkey/ui").then((mod) => mod.DialogContainer), {
+  ssr: false,
+});
 
 const KeysTableActionPopover = dynamic(
   () =>
@@ -50,15 +47,18 @@ const KeysTableActionPopover = dynamic(
   },
 );
 
-const RBACDialogContent = dynamic(() => import("./_components/rbac-dialog-content"), {
-  ssr: false,
-  loading: () => (
-    <NavbarActionButton disabled>
-      <ShieldKey size="sm-regular" />
-      Permissions
-    </NavbarActionButton>
-  ),
-});
+const RBACDialogContent = dynamic(
+  () => import("./_components/rbac-dialog-content").then((mod) => mod.RBACDialogContent),
+  {
+    ssr: false,
+    loading: () => (
+      <NavbarActionButton disabled>
+        <ShieldKey size="sm-regular" />
+        Permissions
+      </NavbarActionButton>
+    ),
+  },
+);
 
 export const ApisNavbar = ({
   api,

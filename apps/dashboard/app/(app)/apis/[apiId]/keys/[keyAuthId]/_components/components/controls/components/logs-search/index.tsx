@@ -23,7 +23,7 @@ export const LogsSearch = ({ keyspaceId }: { keyspaceId: string }) => {
         return;
       }
       const transformedFilters = transformStructuredOutputToFilters(data, filters);
-      updateFilters(transformedFilters as any);
+      updateFilters(transformedFilters);
     },
     onError(error) {
       const errorMessage = `Unable to process your search request${

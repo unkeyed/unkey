@@ -27,11 +27,16 @@ const route = createRoute({
                 z.object({
                   id: z.string().min(3).optional().openapi({
                     description:
-                      "The id of the permission. Provide either `id` or `name`. If both are provided `id` is used.",
+                      "The id of the permission. Provide either `id` or `slug`. If both are provided `id` is used.",
                   }),
                   name: z.string().min(1).optional().openapi({
+                    deprecated: true,
                     description:
-                      "Identify the permission via its name. Provide either `id` or `name`. If both are provided `id` is used.",
+                      "This field is deprecated and will be removed in a future release. please use `slug` instead.",
+                  }),
+                  slug: z.string().min(1).optional().openapi({
+                    description:
+                      "Identify the permission via its slug. Provide either `id` or `slug`. If both are provided `id` is used.",
                   }),
                 }),
               )
@@ -113,8 +118,11 @@ export const registerV1KeysRemovePermissions = (app: App) =>
         if ("id" in deleteRequest) {
           return cr.permissionId === deleteRequest.id;
         }
+        if ("slug" in deleteRequest) {
+          return cr.permission.slug === deleteRequest.slug;
+        }
         if ("name" in deleteRequest) {
-          return cr.permission.name === deleteRequest.name;
+          return cr.permission.slug === deleteRequest.name;
         }
       }
     });

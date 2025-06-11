@@ -1,11 +1,13 @@
 "use client";
-import { DialogContainer } from "@/components/dialog-container";
+
 import { toast } from "@/components/ui/toaster";
 import type { AuthenticatedUser, Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "@unkey/icons";
 import {
+  Button,
+  DialogContainer,
   FormInput,
   Select,
   SelectContent,
@@ -13,7 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
-import { Button } from "@unkey/ui";
 import type React from "react";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -56,7 +57,7 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
       );
       setDialogOpen(false);
     },
-    onError: (error: { message: any }) => {
+    onError: (error: { message: string }) => {
       toast.error(`Failed to send invitation: ${error.message}`);
     },
   });

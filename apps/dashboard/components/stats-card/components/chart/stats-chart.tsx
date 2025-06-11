@@ -17,7 +17,7 @@ import { LogsChartLoading } from "./components/logs-chart-loading";
 export type BaseTimeseriesData = {
   originalTimestamp: number;
   total: number;
-  [key: string]: any; // Allow for any additional properties
+  [key: string]: unknown; // Allow for any additional properties
 };
 
 export type TimeseriesChartProps<T extends BaseTimeseriesData> = {
@@ -25,7 +25,7 @@ export type TimeseriesChartProps<T extends BaseTimeseriesData> = {
   config: ChartConfig;
   isLoading?: boolean;
   isError?: boolean;
-  tooltipExtraContent?: (payload: any) => React.ReactNode;
+  tooltipExtraContent?: (payload: unknown) => React.ReactNode;
 };
 
 export function StatsTimeseriesBarChart<T extends BaseTimeseriesData>({
@@ -76,7 +76,7 @@ export function StatsTimeseriesBarChart<T extends BaseTimeseriesData>({
                   label={label}
                   active={active}
                   bottomExplainer={
-                    <div className="grid gap-1.5 pt-2 border-t border-gray-4">
+                    <div className="grid gap-1.5 pt-2 border-t border-grayA-4">
                       <div className="flex w-full [&>svg]:size-4 gap-4 px-4 items-center">
                         <Grid className="text-gray-6" />
                         <div className="flex gap-4 leading-none justify-between w-full py-1 items-center">
@@ -97,6 +97,7 @@ export function StatsTimeseriesBarChart<T extends BaseTimeseriesData>({
                     </div>
                   }
                   className="rounded-lg shadow-lg border border-gray-4"
+                  //@ts-expect-error safe to ignore for now
                   labelFormatter={(_, payload) => createTimeIntervalFormatter(data)(payload)}
                 />
               );

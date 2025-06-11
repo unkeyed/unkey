@@ -3,8 +3,7 @@ import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { formatNumber } from "@/lib/fmt";
-import { SettingCard } from "@unkey/ui";
-import { Button, Empty, Input } from "@unkey/ui";
+import { Button, Empty, Input, SettingCard } from "@unkey/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -12,8 +11,8 @@ import Stripe from "stripe";
 import { WorkspaceNavbar } from "../workspace-navbar";
 import { Client } from "./client";
 import { Shell } from "./components/shell";
+
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 export default async function BillingPage() {
   const { orgId } = await getAuth();
@@ -28,7 +27,6 @@ export default async function BillingPage() {
   if (!workspace) {
     return redirect("/new");
   }
-
   const e = stripeEnv();
   if (!e) {
     return (

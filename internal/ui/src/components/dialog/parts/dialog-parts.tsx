@@ -1,12 +1,13 @@
 "use client";
-
+// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
+import * as React from "react";
+import type { PropsWithChildren } from "react";
+import { cn } from "../../../lib/utils";
 import {
   DialogFooter as ShadcnDialogFooter,
   DialogHeader as ShadcnDialogHeader,
   DialogTitle as ShadcnDialogTitle,
-} from "@/components/ui/dialog";
-import { cn } from "@unkey/ui/src/lib/utils";
-import type { PropsWithChildren } from "react";
+} from "./dialog";
 
 type DefaultDialogHeaderProps = {
   title: string;
@@ -36,7 +37,12 @@ export const DefaultDialogContentArea = ({
   className,
 }: DefaultDialogContentAreaProps) => {
   return (
-    <div className={cn("bg-grayA-2 flex flex-col gap-4 py-4 px-6 text-gray-11", className)}>
+    <div
+      className={cn(
+        "bg-grayA-2 flex flex-col gap-4 py-4 px-6 text-gray-11 overflow-y-auto scrollbar-hide flex-grow",
+        className,
+      )}
+    >
       {children}
     </div>
   );

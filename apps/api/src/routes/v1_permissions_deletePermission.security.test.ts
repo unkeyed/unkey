@@ -16,6 +16,7 @@ runCommonRouteTests<V1PermissionsDeletePermissionRequest>({
     await rh.db.primary.insert(schema.permissions).values({
       id: permissionId,
       name: randomUUID(),
+      slug: randomUUID(),
       workspaceId: rh.resources.userWorkspace.id,
     });
     return {
@@ -42,6 +43,7 @@ describe("correct roles", () => {
       await h.db.primary.insert(schema.permissions).values({
         id: permissionId,
         name: randomUUID(),
+        slug: randomUUID(),
         workspaceId: h.resources.userWorkspace.id,
       });
 

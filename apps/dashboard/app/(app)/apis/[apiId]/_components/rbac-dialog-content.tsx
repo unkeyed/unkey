@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
-import { AnimatedLoadingSpinner, Button } from "@unkey/ui";
+import { Button, Loading } from "@unkey/ui";
 import dynamic from "next/dynamic";
 
 const PermissionList = dynamic(
@@ -27,7 +27,7 @@ type Props = {
   keyspaceId: string;
 };
 
-export default function RBACDialogContent({ keyId, keyspaceId }: Props) {
+export function RBACDialogContent({ keyId, keyspaceId }: Props) {
   const trpcUtils = trpc.useUtils();
 
   const {
@@ -45,7 +45,7 @@ export default function RBACDialogContent({ keyId, keyspaceId }: Props) {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center p-4 min-h-[250px] [&_svg]:size-10">
-        <AnimatedLoadingSpinner />
+        <Loading size={18} />
       </div>
     );
   }
@@ -140,11 +140,13 @@ function calculatePermissionData(permissionsData?: PermissionsResponse) {
   }
 
   // Build roles list matching the original format
-  const roles = permissionsData.workspace.roles.map((role: any) => {
+  const roles = permissionsData.workspace.roles.map((role: { id: string; name: string }) => {
     return {
       id: role.id,
       name: role.name,
-      isActive: permissionsData.roles.some((keyRole: any) => keyRole.roleId === role.id),
+      isActive: permissionsData.roles.some(
+        (keyRole: { roleId: string }) => keyRole.roleId === role.id,
+      ),
     };
   });
 

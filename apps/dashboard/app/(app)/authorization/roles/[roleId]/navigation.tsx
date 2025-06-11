@@ -20,14 +20,19 @@ export function Navigation({ role }: { role: Role }) {
         </Navbar.Breadcrumbs.Link>
       </Navbar.Breadcrumbs>
       <Navbar.Actions>
-        <NavbarActionButton onClick={() => setIsUpdateModalOpen(true)}>
+        <NavbarActionButton title="Update role" onClick={() => setIsUpdateModalOpen(true)}>
           Update Role
         </NavbarActionButton>
 
         <DeleteRole
           role={role}
           trigger={
-            <NavbarActionButton variant="destructive" color="danger" className="">
+            <NavbarActionButton
+              title="Delete role"
+              variant="destructive"
+              color="danger"
+              className=""
+            >
               Delete Role
             </NavbarActionButton>
           }

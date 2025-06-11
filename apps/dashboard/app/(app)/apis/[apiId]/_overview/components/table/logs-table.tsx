@@ -5,8 +5,7 @@ import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { Ban, BookBookmark } from "@unkey/icons";
-import { TimestampInfo } from "@unkey/ui";
-import { Button, Empty } from "@unkey/ui";
+import { Button, Empty, TimestampInfo } from "@unkey/ui";
 
 import { useSort } from "@/components/logs/hooks/use-sort";
 import { formatNumber } from "@/lib/fmt";

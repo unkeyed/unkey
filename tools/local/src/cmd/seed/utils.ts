@@ -59,7 +59,7 @@ export async function getWorkspaceOptions() {
       .from(schema.workspaces)
       .limit(20);
 
-    return workspaces.map((w: any) => ({
+    return workspaces.map((w: { id: string; name: string }) => ({
       value: w.id,
       label: `${w.name}`,
       hint: w.id,
@@ -147,7 +147,7 @@ export function generateMetadata() {
     selectedFields.add(field);
   }
 
-  const metadata: Record<string, any> = {};
+  const metadata: Record<string, unknown> = {};
 
   selectedFields.forEach((field) => {
     switch (field) {
@@ -392,7 +392,7 @@ export function generateRandomApiRequest(workspaceId: string) {
   }
 
   // Generate appropriate request and response bodies based on the path and status
-  let requestBody: Record<string, any> = {};
+  let requestBody: Record<string, unknown> = {};
   let responseBody: Record<string, any> = {};
   let error = "";
 

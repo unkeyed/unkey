@@ -16,7 +16,7 @@ import { z } from "zod";
 
 const DynamicDialogContainer = dynamic(
   () =>
-    import("@/components/dialog-container").then((mod) => ({
+    import("@unkey/ui").then((mod) => ({
       default: mod.DialogContainer,
     })),
   { ssr: false },
@@ -67,7 +67,12 @@ export const CreateApiButton = ({
 
   return (
     <>
-      <NavbarActionButton {...rest} color="default" onClick={() => setIsOpen(true)}>
+      <NavbarActionButton
+        title="Create new API"
+        {...rest}
+        color="default"
+        onClick={() => setIsOpen(true)}
+      >
         <Plus />
         Create new API
       </NavbarActionButton>

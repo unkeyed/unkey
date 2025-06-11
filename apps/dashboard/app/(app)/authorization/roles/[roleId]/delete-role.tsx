@@ -1,9 +1,8 @@
 "use client";
-import { DialogContainer } from "@/components/dialog-container";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Input } from "@unkey/ui";
+import { Button, DialogContainer, Input } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";

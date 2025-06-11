@@ -2,8 +2,10 @@ import { LogsLLMSearch } from "@/components/logs/llm-search";
 import { transformStructuredOutputToFilters } from "@/components/logs/validation/utils/transform-structured-output-filter-format";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import type { KeyDetailsFilterValue } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 
+const VALID_FIELDS = ["startTime", "endTime", "since", "outcomes"] as const;
 export const LogsSearch = ({ apiId }: { apiId: string }) => {
   const { filters, updateFilters } = useFilters();
   const queryLLMForStructuredOutput = trpc.api.keys.llmSearch.useMutation({
@@ -22,8 +24,15 @@ export const LogsSearch = ({ apiId }: { apiId: string }) => {
         );
         return;
       }
+      type ValidField = (typeof VALID_FIELDS)[number];
+
       const transformedFilters = transformStructuredOutputToFilters(data, filters);
-      updateFilters(transformedFilters as any);
+
+      const validFilters = transformedFilters.filter((filter): filter is KeyDetailsFilterValue =>
+        VALID_FIELDS.includes(filter.field as ValidField),
+      );
+
+      updateFilters(validFilters);
     },
     onError(error) {
       const errorMessage = `Unable to process your search request${

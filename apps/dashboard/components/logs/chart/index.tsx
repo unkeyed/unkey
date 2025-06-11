@@ -27,7 +27,7 @@ type Selection = {
 type TimeseriesData = {
   originalTimestamp: number;
   total: number;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 type LogsTimeseriesBarChartProps = {
@@ -62,6 +62,7 @@ export function LogsTimeseriesBarChart({
     }
   }, [onMount, isLoading, isError]);
 
+  // biome-ignore lint/suspicious/noExplicitAny: those are safe to leave
   const handleMouseDown = (e: any) => {
     if (!enableSelection) {
       return;
@@ -75,6 +76,7 @@ export function LogsTimeseriesBarChart({
     });
   };
 
+  // biome-ignore lint/suspicious/noExplicitAny: those are safe to leave
   const handleMouseMove = (e: any) => {
     if (!enableSelection) {
       return;
@@ -185,6 +187,7 @@ export function LogsTimeseriesBarChart({
                     }
                     className="rounded-lg shadow-lg border border-gray-4"
                     labelFormatter={(_, payload) =>
+                      //@ts-expect-error This is okay to ignore
                       createTimeIntervalFormatter(data, "HH:mm")(payload)
                     }
                   />
