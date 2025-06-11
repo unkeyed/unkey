@@ -13,6 +13,7 @@ import (
 type VMMetrics struct {
 	logger *slog.Logger
 	meter  metric.Meter
+	highCardinalityEnabled bool
 	
 	// VM lifecycle counters
 	vmCreateRequests    metric.Int64Counter
@@ -58,12 +59,13 @@ type VMMetrics struct {
 }
 
 // NewVMMetrics creates a new VM metrics instance
-func NewVMMetrics(logger *slog.Logger) (*VMMetrics, error) {
+func NewVMMetrics(logger *slog.Logger, highCardinalityEnabled bool) (*VMMetrics, error) {
 	meter := otel.Meter("unkey.metald.vm.operations")
 	
 	vm := &VMMetrics{
 		logger: logger.With("component", "vm_metrics"),
 		meter:  meter,
+		highCardinalityEnabled: highCardinalityEnabled,
 	}
 	
 	var err error
@@ -301,13 +303,6 @@ func NewVMMetrics(logger *slog.Logger) (*VMMetrics, error) {
 	return vm, nil
 }
 
-// Common attributes for VM operations
-func (vm *VMMetrics) vmAttributes(vmID string, backend string) []attribute.KeyValue {
-	return []attribute.KeyValue{
-		attribute.String("vm_id", vmID),
-		attribute.String("backend", backend),
-	}
-}
 
 // VM lifecycle metric methods
 func (vm *VMMetrics) RecordVMCreateRequest(ctx context.Context, backend string) {
@@ -489,62 +484,92 @@ func (vm *VMMetrics) RecordVMMetricsRequest(ctx context.Context, vmID string, ba
 
 // Process management metric methods
 func (vm *VMMetrics) RecordProcessCreateRequest(ctx context.Context, vmID string, useJailer bool) {
-	vm.processCreateRequests.Add(ctx, 1, metric.WithAttributes(
-		attribute.String("vm_id", vmID),
-		attribute.Bool("use_jailer", useJailer),
-	))
+	var attrs []attribute.KeyValue
+	if vm.highCardinalityEnabled {
+		attrs = append(attrs, attribute.String("vm_id", vmID))
+	}
+	attrs = append(attrs, attribute.Bool("use_jailer", useJailer))
+	vm.processCreateRequests.Add(ctx, 1, metric.WithAttributes(attrs...))
 }
 
 func (vm *VMMetrics) RecordProcessCreateSuccess(ctx context.Context, vmID string, processID string, useJailer bool) {
-	vm.processCreateSuccess.Add(ctx, 1, metric.WithAttributes(
-		attribute.String("vm_id", vmID),
-		attribute.String("process_id", processID),
-		attribute.Bool("use_jailer", useJailer),
-	))
+	var attrs []attribute.KeyValue
+	if vm.highCardinalityEnabled {
+		attrs = append(attrs, 
+			attribute.String("vm_id", vmID),
+			attribute.String("process_id", processID),
+		)
+	}
+	attrs = append(attrs, attribute.Bool("use_jailer", useJailer))
+	vm.processCreateSuccess.Add(ctx, 1, metric.WithAttributes(attrs...))
 }
 
 func (vm *VMMetrics) RecordProcessCreateFailure(ctx context.Context, vmID string, useJailer bool, errorType string) {
-	vm.processCreateFailures.Add(ctx, 1, metric.WithAttributes(
-		attribute.String("vm_id", vmID),
+	var attrs []attribute.KeyValue
+	if vm.highCardinalityEnabled {
+		attrs = append(attrs, attribute.String("vm_id", vmID))
+	}
+	attrs = append(attrs, 
 		attribute.Bool("use_jailer", useJailer),
 		attribute.String("error_type", errorType),
-	))
+	)
+	vm.processCreateFailures.Add(ctx, 1, metric.WithAttributes(attrs...))
 }
 
 func (vm *VMMetrics) RecordProcessTermination(ctx context.Context, vmID string, processID string, exitCode int) {
-	vm.processTerminations.Add(ctx, 1, metric.WithAttributes(
-		attribute.String("vm_id", vmID),
-		attribute.String("process_id", processID),
-		attribute.Int("exit_code", exitCode),
-	))
+	var attrs []attribute.KeyValue
+	if vm.highCardinalityEnabled {
+		attrs = append(attrs, 
+			attribute.String("vm_id", vmID),
+			attribute.String("process_id", processID),
+		)
+	}
+	attrs = append(attrs, attribute.Int("exit_code", exitCode))
+	vm.processTerminations.Add(ctx, 1, metric.WithAttributes(attrs...))
 }
 
 func (vm *VMMetrics) RecordProcessCleanup(ctx context.Context, vmID string, processID string) {
-	vm.processCleanups.Add(ctx, 1, metric.WithAttributes(
-		attribute.String("vm_id", vmID),
-		attribute.String("process_id", processID),
-	))
+	var attrs []attribute.KeyValue
+	if vm.highCardinalityEnabled {
+		attrs = append(attrs, 
+			attribute.String("vm_id", vmID),
+			attribute.String("process_id", processID),
+		)
+	}
+	vm.processCleanups.Add(ctx, 1, metric.WithAttributes(attrs...))
 }
 
 // Jailer-specific metric methods
 func (vm *VMMetrics) RecordJailerStartRequest(ctx context.Context, vmID string, jailerID string) {
-	vm.jailerStartRequests.Add(ctx, 1, metric.WithAttributes(
-		attribute.String("vm_id", vmID),
-		attribute.String("jailer_id", jailerID),
-	))
+	var attrs []attribute.KeyValue
+	if vm.highCardinalityEnabled {
+		attrs = append(attrs, 
+			attribute.String("vm_id", vmID),
+			attribute.String("jailer_id", jailerID),
+		)
+	}
+	vm.jailerStartRequests.Add(ctx, 1, metric.WithAttributes(attrs...))
 }
 
 func (vm *VMMetrics) RecordJailerStartSuccess(ctx context.Context, vmID string, jailerID string) {
-	vm.jailerStartSuccess.Add(ctx, 1, metric.WithAttributes(
-		attribute.String("vm_id", vmID),
-		attribute.String("jailer_id", jailerID),
-	))
+	var attrs []attribute.KeyValue
+	if vm.highCardinalityEnabled {
+		attrs = append(attrs, 
+			attribute.String("vm_id", vmID),
+			attribute.String("jailer_id", jailerID),
+		)
+	}
+	vm.jailerStartSuccess.Add(ctx, 1, metric.WithAttributes(attrs...))
 }
 
 func (vm *VMMetrics) RecordJailerStartFailure(ctx context.Context, vmID string, jailerID string, errorType string) {
-	vm.jailerStartFailures.Add(ctx, 1, metric.WithAttributes(
-		attribute.String("vm_id", vmID),
-		attribute.String("jailer_id", jailerID),
-		attribute.String("error_type", errorType),
-	))
+	var attrs []attribute.KeyValue
+	if vm.highCardinalityEnabled {
+		attrs = append(attrs, 
+			attribute.String("vm_id", vmID),
+			attribute.String("jailer_id", jailerID),
+		)
+	}
+	attrs = append(attrs, attribute.String("error_type", errorType))
+	vm.jailerStartFailures.Add(ctx, 1, metric.WithAttributes(attrs...))
 }

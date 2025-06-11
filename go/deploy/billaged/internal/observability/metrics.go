@@ -16,10 +16,11 @@ type BillingMetrics struct {
 	aggregationDuration   metric.Float64Histogram
 	activeVMs             metric.Int64UpDownCounter
 	billingErrors         metric.Int64Counter
+	highCardinalityEnabled bool
 }
 
 // NewBillingMetrics creates new billing metrics
-func NewBillingMetrics(logger *slog.Logger) (*BillingMetrics, error) {
+func NewBillingMetrics(logger *slog.Logger, highCardinalityEnabled bool) (*BillingMetrics, error) {
 	meter := meter()
 	if meter == nil {
 		return nil, fmt.Errorf("OpenTelemetry meter not available")
@@ -68,6 +69,7 @@ func NewBillingMetrics(logger *slog.Logger) (*BillingMetrics, error) {
 		aggregationDuration:   aggregationDuration,
 		activeVMs:             activeVMs,
 		billingErrors:         billingErrors,
+		highCardinalityEnabled: highCardinalityEnabled,
 	}, nil
 }
 
@@ -79,12 +81,14 @@ func meter() metric.Meter {
 // RecordUsageProcessed records that a usage record was processed
 func (m *BillingMetrics) RecordUsageProcessed(ctx context.Context, vmID, customerID string) {
 	if m != nil {
-		m.usageRecordsProcessed.Add(ctx, 1,
-			metric.WithAttributes(
+		var attrs []attribute.KeyValue
+		if m.highCardinalityEnabled {
+			attrs = []attribute.KeyValue{
 				attribute.String("vm_id", vmID),
 				attribute.String("customer_id", customerID),
-			),
-		)
+			}
+		}
+		m.usageRecordsProcessed.Add(ctx, 1, metric.WithAttributes(attrs...))
 	}
 }
 

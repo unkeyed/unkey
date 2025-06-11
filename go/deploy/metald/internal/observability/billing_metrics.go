@@ -14,6 +14,7 @@ import (
 type BillingMetrics struct {
 	logger *slog.Logger
 	meter  metric.Meter
+	highCardinalityEnabled bool
 
 	// Billing batch metrics
 	billingBatchesSent      metric.Int64Counter
@@ -27,12 +28,13 @@ type BillingMetrics struct {
 }
 
 // NewBillingMetrics creates new billing metrics
-func NewBillingMetrics(logger *slog.Logger) (*BillingMetrics, error) {
+func NewBillingMetrics(logger *slog.Logger, highCardinalityEnabled bool) (*BillingMetrics, error) {
 	meter := otel.Meter("unkey.metald.billing")
 	
 	bm := &BillingMetrics{
 		logger: logger.With("component", "billing_metrics"),
 		meter:  meter,
+		highCardinalityEnabled: highCardinalityEnabled,
 	}
 	
 	var err error
@@ -89,9 +91,12 @@ func NewBillingMetrics(logger *slog.Logger) (*BillingMetrics, error) {
 
 // RecordBillingBatchSent records a billing batch being sent
 func (bm *BillingMetrics) RecordBillingBatchSent(ctx context.Context, vmID, customerID string, batchSize int, duration time.Duration) {
-	attrs := []attribute.KeyValue{
-		attribute.String("vm_id", vmID),
-		attribute.String("customer_id", customerID),
+	var attrs []attribute.KeyValue
+	if bm.highCardinalityEnabled {
+		attrs = []attribute.KeyValue{
+			attribute.String("vm_id", vmID),
+			attribute.String("customer_id", customerID),
+		}
 	}
 	
 	bm.billingBatchesSent.Add(ctx, 1, metric.WithAttributes(attrs...))
@@ -107,8 +112,11 @@ func (bm *BillingMetrics) RecordHeartbeatSent(ctx context.Context, instanceID st
 
 // RecordMetricsCollected records VM metrics being collected
 func (bm *BillingMetrics) RecordMetricsCollected(ctx context.Context, vmID string, metricsCount int, duration time.Duration) {
-	attrs := []attribute.KeyValue{
-		attribute.String("vm_id", vmID),
+	var attrs []attribute.KeyValue
+	if bm.highCardinalityEnabled {
+		attrs = []attribute.KeyValue{
+			attribute.String("vm_id", vmID),
+		}
 	}
 	
 	bm.metricsCollected.Add(ctx, int64(metricsCount), metric.WithAttributes(attrs...))
@@ -117,7 +125,11 @@ func (bm *BillingMetrics) RecordMetricsCollected(ctx context.Context, vmID strin
 
 // RecordVMMetricsRequest records a VM metrics request
 func (bm *BillingMetrics) RecordVMMetricsRequest(ctx context.Context, vmID string) {
-	bm.vmMetricsRequests.Add(ctx, 1, metric.WithAttributes(
-		attribute.String("vm_id", vmID),
-	))
+	var attrs []attribute.KeyValue
+	if bm.highCardinalityEnabled {
+		attrs = []attribute.KeyValue{
+			attribute.String("vm_id", vmID),
+		}
+	}
+	bm.vmMetricsRequests.Add(ctx, 1, metric.WithAttributes(attrs...))
 }

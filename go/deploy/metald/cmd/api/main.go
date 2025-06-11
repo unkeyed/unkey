@@ -106,6 +106,7 @@ func main() {
 			slog.Float64("sampling_rate", cfg.OpenTelemetry.TracingSamplingRate),
 			slog.String("otlp_endpoint", cfg.OpenTelemetry.OTLPEndpoint),
 			slog.Bool("prometheus_enabled", cfg.OpenTelemetry.PrometheusEnabled),
+			slog.Bool("high_cardinality_enabled", cfg.OpenTelemetry.HighCardinalityLabelsEnabled),
 		)
 	}
 
@@ -172,7 +173,7 @@ func main() {
 	var billingMetrics *observability.BillingMetrics
 	if cfg.OpenTelemetry.Enabled {
 		var err error
-		vmMetrics, err = observability.NewVMMetrics(logger)
+		vmMetrics, err = observability.NewVMMetrics(logger, cfg.OpenTelemetry.HighCardinalityLabelsEnabled)
 		if err != nil {
 			logger.Error("failed to initialize VM metrics",
 				slog.String("error", err.Error()),
@@ -180,14 +181,16 @@ func main() {
 			os.Exit(1)
 		}
 		
-		billingMetrics, err = observability.NewBillingMetrics(logger)
+		billingMetrics, err = observability.NewBillingMetrics(logger, cfg.OpenTelemetry.HighCardinalityLabelsEnabled)
 		if err != nil {
 			logger.Error("failed to initialize billing metrics",
 				slog.String("error", err.Error()),
 			)
 			os.Exit(1)
 		}
-		logger.Info("VM and billing metrics initialized")
+		logger.Info("VM and billing metrics initialized",
+			slog.Bool("high_cardinality_enabled", cfg.OpenTelemetry.HighCardinalityLabelsEnabled),
+		)
 	}
 
 	// Create metrics collector
@@ -380,6 +383,7 @@ func printUsage() {
 	fmt.Printf("  UNKEY_METALD_OTEL_ENDPOINT             OTLP endpoint (default: localhost:4318)\n")
 	fmt.Printf("  UNKEY_METALD_OTEL_PROMETHEUS_ENABLED   Enable Prometheus metrics (default: true)\n")
 	fmt.Printf("  UNKEY_METALD_OTEL_PROMETHEUS_PORT      Prometheus metrics port on 0.0.0.0 (default: 9464)\n")
+	fmt.Printf("  UNKEY_METALD_OTEL_HIGH_CARDINALITY_ENABLED  Enable high-cardinality labels (default: false)\n")
 	fmt.Printf("\nJailer Configuration (Firecracker production):\n")
 	fmt.Printf("  UNKEY_METALD_JAILER_ENABLED            Enable jailer for production security (default: false)\n")
 	fmt.Printf("  UNKEY_METALD_JAILER_BINARY             Path to jailer binary (default: /usr/bin/jailer)\n")

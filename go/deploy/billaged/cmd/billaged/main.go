@@ -42,7 +42,7 @@ func main() {
 	slog.SetDefault(logger)
 
 	// Load configuration
-	cfg, err := config.LoadConfig()
+	cfg, err := config.LoadConfigWithLogger(logger)
 	if err != nil {
 		logger.Error("failed to load configuration",
 			slog.String("error", err.Error()),
@@ -93,6 +93,23 @@ func main() {
 			slog.Float64("sampling_rate", cfg.OpenTelemetry.TracingSamplingRate),
 			slog.String("otlp_endpoint", cfg.OpenTelemetry.OTLPEndpoint),
 			slog.Bool("prometheus_enabled", cfg.OpenTelemetry.PrometheusEnabled),
+			slog.Bool("high_cardinality_enabled", cfg.OpenTelemetry.HighCardinalityLabelsEnabled),
+		)
+	}
+
+	// Initialize billing metrics if OpenTelemetry is enabled
+	var billingMetrics *observability.BillingMetrics
+	if cfg.OpenTelemetry.Enabled {
+		var err error
+		billingMetrics, err = observability.NewBillingMetrics(logger, cfg.OpenTelemetry.HighCardinalityLabelsEnabled)
+		if err != nil {
+			logger.Error("failed to initialize billing metrics",
+				slog.String("error", err.Error()),
+			)
+			os.Exit(1)
+		}
+		logger.Info("billing metrics initialized",
+			slog.Bool("high_cardinality_enabled", cfg.OpenTelemetry.HighCardinalityLabelsEnabled),
 		)
 	}
 
@@ -105,7 +122,7 @@ func main() {
 	})
 
 	// Create billing service
-	billingService := service.NewBillingService(logger, agg)
+	billingService := service.NewBillingService(logger, agg, billingMetrics)
 
 	// Create ConnectRPC handler with interceptors
 	interceptors := []connect.Interceptor{
@@ -348,6 +365,7 @@ func printUsage() {
 	fmt.Printf("  BILLAGED_OTEL_ENDPOINT                OTLP endpoint (default: localhost:4318)\n")
 	fmt.Printf("  BILLAGED_OTEL_PROMETHEUS_ENABLED      Enable Prometheus metrics (default: true)\n")
 	fmt.Printf("  BILLAGED_OTEL_PROMETHEUS_PORT         Prometheus metrics port on 0.0.0.0 (default: 9465)\n")
+	fmt.Printf("  BILLAGED_OTEL_HIGH_CARDINALITY_ENABLED  Enable high-cardinality labels (default: false)\n")
 	fmt.Printf("\nDescription:\n")
 	fmt.Printf("  Billaged receives VM usage metrics from metald instances and aggregates\n")
 	fmt.Printf("  them for billing purposes. It calculates usage summaries every 60 seconds\n")

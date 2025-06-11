@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
@@ -151,6 +152,10 @@ type OpenTelemetryConfig struct {
 
 	// PrometheusPort for scraping metrics
 	PrometheusPort string
+
+	// HighCardinalityLabelsEnabled allows high-cardinality labels like vm_id and process_id
+	// Set to false in production to reduce cardinality
+	HighCardinalityLabelsEnabled bool
 }
 
 // LoadConfig loads configuration from environment variables
@@ -160,6 +165,12 @@ func LoadConfig() (*Config, error) {
 
 // LoadConfigWithSocketPath loads configuration with an optional socket path override
 func LoadConfigWithSocketPath(socketPath string) (*Config, error) {
+	// Use default logger for backward compatibility
+	return LoadConfigWithSocketPathAndLogger(socketPath, slog.Default())
+}
+
+// LoadConfigWithSocketPathAndLogger loads configuration with optional socket path override and custom logger
+func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (*Config, error) {
 	// Determine endpoints based on socket path or environment
 	chEndpoint := getEnvOrDefault("UNKEY_METALD_CH_ENDPOINT", "unix:///tmp/ch.sock")
 	fcEndpoint := getEnvOrDefault("UNKEY_METALD_FC_ENDPOINT", "unix:///tmp/firecracker.sock")
@@ -173,6 +184,11 @@ func LoadConfigWithSocketPath(socketPath string) (*Config, error) {
 	if samplingStr := os.Getenv("UNKEY_METALD_OTEL_SAMPLING_RATE"); samplingStr != "" {
 		if parsed, err := strconv.ParseFloat(samplingStr, 64); err == nil {
 			samplingRate = parsed
+		} else {
+			logger.Warn("invalid UNKEY_METALD_OTEL_SAMPLING_RATE, using default 1.0",
+				slog.String("value", samplingStr),
+				slog.String("error", err.Error()),
+			)
 		}
 	}
 
@@ -181,6 +197,11 @@ func LoadConfigWithSocketPath(socketPath string) (*Config, error) {
 	if enabledStr := os.Getenv("UNKEY_METALD_OTEL_ENABLED"); enabledStr != "" {
 		if parsed, err := strconv.ParseBool(enabledStr); err == nil {
 			otelEnabled = parsed
+		} else {
+			logger.Warn("invalid UNKEY_METALD_OTEL_ENABLED, using default false",
+				slog.String("value", enabledStr),
+				slog.String("error", err.Error()),
+			)
 		}
 	}
 
@@ -189,6 +210,24 @@ func LoadConfigWithSocketPath(socketPath string) (*Config, error) {
 	if promStr := os.Getenv("UNKEY_METALD_OTEL_PROMETHEUS_ENABLED"); promStr != "" {
 		if parsed, err := strconv.ParseBool(promStr); err == nil {
 			prometheusEnabled = parsed
+		} else {
+			logger.Warn("invalid UNKEY_METALD_OTEL_PROMETHEUS_ENABLED, using default true",
+				slog.String("value", promStr),
+				slog.String("error", err.Error()),
+			)
+		}
+	}
+
+	// Parse high cardinality labels flag
+	highCardinalityLabelsEnabled := false // Default to false for production safety
+	if highCardStr := os.Getenv("UNKEY_METALD_OTEL_HIGH_CARDINALITY_ENABLED"); highCardStr != "" {
+		if parsed, err := strconv.ParseBool(highCardStr); err == nil {
+			highCardinalityLabelsEnabled = parsed
+		} else {
+			logger.Warn("invalid UNKEY_METALD_OTEL_HIGH_CARDINALITY_ENABLED, using default false",
+				slog.String("value", highCardStr),
+				slog.String("error", err.Error()),
+			)
 		}
 	}
 
@@ -197,6 +236,11 @@ func LoadConfigWithSocketPath(socketPath string) (*Config, error) {
 	if jailerStr := os.Getenv("UNKEY_METALD_JAILER_ENABLED"); jailerStr != "" {
 		if parsed, err := strconv.ParseBool(jailerStr); err == nil {
 			jailerEnabled = parsed
+		} else {
+			logger.Warn("invalid UNKEY_METALD_JAILER_ENABLED, using default false",
+				slog.String("value", jailerStr),
+				slog.String("error", err.Error()),
+			)
 		}
 	}
 
@@ -205,6 +249,11 @@ func LoadConfigWithSocketPath(socketPath string) (*Config, error) {
 	if uidStr := os.Getenv("UNKEY_METALD_JAILER_UID"); uidStr != "" {
 		if parsed, err := strconv.ParseUint(uidStr, 10, 32); err == nil {
 			jailerUID = uint32(parsed)
+		} else {
+			logger.Warn("invalid UNKEY_METALD_JAILER_UID, using default 1000",
+				slog.String("value", uidStr),
+				slog.String("error", err.Error()),
+			)
 		}
 	}
 
@@ -212,6 +261,11 @@ func LoadConfigWithSocketPath(socketPath string) (*Config, error) {
 	if gidStr := os.Getenv("UNKEY_METALD_JAILER_GID"); gidStr != "" {
 		if parsed, err := strconv.ParseUint(gidStr, 10, 32); err == nil {
 			jailerGID = uint32(parsed)
+		} else {
+			logger.Warn("invalid UNKEY_METALD_JAILER_GID, using default 1000",
+				slog.String("value", gidStr),
+				slog.String("error", err.Error()),
+			)
 		}
 	}
 
@@ -315,13 +369,14 @@ func LoadConfigWithSocketPath(socketPath string) (*Config, error) {
 			MockMode: billingMockMode,
 		},
 		OpenTelemetry: OpenTelemetryConfig{
-			Enabled:             otelEnabled,
-			ServiceName:         getEnvOrDefault("UNKEY_METALD_OTEL_SERVICE_NAME", "metald"),
-			ServiceVersion:      getEnvOrDefault("UNKEY_METALD_OTEL_SERVICE_VERSION", "0.0.1"),
-			TracingSamplingRate: samplingRate,
-			OTLPEndpoint:        getEnvOrDefault("UNKEY_METALD_OTEL_ENDPOINT", "localhost:4318"),
-			PrometheusEnabled:   prometheusEnabled,
-			PrometheusPort:      getEnvOrDefault("UNKEY_METALD_OTEL_PROMETHEUS_PORT", "9464"),
+			Enabled:                      otelEnabled,
+			ServiceName:                  getEnvOrDefault("UNKEY_METALD_OTEL_SERVICE_NAME", "metald"),
+			ServiceVersion:               getEnvOrDefault("UNKEY_METALD_OTEL_SERVICE_VERSION", "0.0.1"),
+			TracingSamplingRate:          samplingRate,
+			OTLPEndpoint:                 getEnvOrDefault("UNKEY_METALD_OTEL_ENDPOINT", "localhost:4318"),
+			PrometheusEnabled:            prometheusEnabled,
+			PrometheusPort:               getEnvOrDefault("UNKEY_METALD_OTEL_PROMETHEUS_PORT", "9464"),
+			HighCardinalityLabelsEnabled: highCardinalityLabelsEnabled,
 		},
 	}
 

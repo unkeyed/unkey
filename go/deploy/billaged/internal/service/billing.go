@@ -4,24 +4,28 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"connectrpc.com/connect"
 	billingv1 "github.com/unkeyed/unkey/go/deploy/billaged/gen/billing/v1"
 	"github.com/unkeyed/unkey/go/deploy/billaged/gen/billing/v1/billingv1connect"
 	"github.com/unkeyed/unkey/go/deploy/billaged/internal/aggregator"
+	"github.com/unkeyed/unkey/go/deploy/billaged/internal/observability"
 )
 
 // BillingService implements the billaged ConnectRPC service
 type BillingService struct {
 	logger     *slog.Logger
 	aggregator *aggregator.Aggregator
+	metrics    *observability.BillingMetrics
 }
 
 // NewBillingService creates a new billing service
-func NewBillingService(logger *slog.Logger, agg *aggregator.Aggregator) *BillingService {
+func NewBillingService(logger *slog.Logger, agg *aggregator.Aggregator, metrics *observability.BillingMetrics) *BillingService {
 	return &BillingService{
 		logger:     logger.With("component", "billing_service"),
 		aggregator: agg,
+		metrics:    metrics,
 	}
 }
 
@@ -59,8 +63,19 @@ func (s *BillingService) SendMetricsBatch(
 		"timespan_ms", last.Timestamp.AsTime().Sub(first.Timestamp.AsTime()).Milliseconds(),
 	)
 
+	// Record metrics
+	start := time.Now()
+	if s.metrics != nil {
+		s.metrics.RecordUsageProcessed(ctx, vmID, customerID)
+	}
+
 	// Process metrics through aggregator
 	s.aggregator.ProcessMetricsBatch(vmID, customerID, metrics)
+
+	// Record aggregation duration
+	if s.metrics != nil {
+		s.metrics.RecordAggregationDuration(ctx, time.Since(start).Seconds())
+	}
 
 	return connect.NewResponse(&billingv1.SendMetricsBatchResponse{
 		Success: true,

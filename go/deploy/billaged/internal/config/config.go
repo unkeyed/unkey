@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"strconv"
 )
@@ -55,15 +56,29 @@ type OpenTelemetryConfig struct {
 
 	// PrometheusPort for scraping metrics
 	PrometheusPort string
+
+	// HighCardinalityLabelsEnabled allows high-cardinality labels like vm_id and customer_id
+	// Set to false in production to reduce cardinality
+	HighCardinalityLabelsEnabled bool
 }
 
 // LoadConfig loads configuration from environment variables
 func LoadConfig() (*Config, error) {
+	return LoadConfigWithLogger(slog.Default())
+}
+
+// LoadConfigWithLogger loads configuration from environment variables with custom logger
+func LoadConfigWithLogger(logger *slog.Logger) (*Config, error) {
 	// Parse sampling rate
 	samplingRate := 1.0
 	if samplingStr := os.Getenv("BILLAGED_OTEL_SAMPLING_RATE"); samplingStr != "" {
 		if parsed, err := strconv.ParseFloat(samplingStr, 64); err == nil {
 			samplingRate = parsed
+		} else {
+			logger.Warn("invalid BILLAGED_OTEL_SAMPLING_RATE, using default 1.0",
+				slog.String("value", samplingStr),
+				slog.String("error", err.Error()),
+			)
 		}
 	}
 
@@ -72,6 +87,11 @@ func LoadConfig() (*Config, error) {
 	if enabledStr := os.Getenv("BILLAGED_OTEL_ENABLED"); enabledStr != "" {
 		if parsed, err := strconv.ParseBool(enabledStr); err == nil {
 			otelEnabled = parsed
+		} else {
+			logger.Warn("invalid BILLAGED_OTEL_ENABLED, using default false",
+				slog.String("value", enabledStr),
+				slog.String("error", err.Error()),
+			)
 		}
 	}
 
@@ -80,6 +100,24 @@ func LoadConfig() (*Config, error) {
 	if promStr := os.Getenv("BILLAGED_OTEL_PROMETHEUS_ENABLED"); promStr != "" {
 		if parsed, err := strconv.ParseBool(promStr); err == nil {
 			prometheusEnabled = parsed
+		} else {
+			logger.Warn("invalid BILLAGED_OTEL_PROMETHEUS_ENABLED, using default true",
+				slog.String("value", promStr),
+				slog.String("error", err.Error()),
+			)
+		}
+	}
+
+	// Parse high cardinality labels flag
+	highCardinalityLabelsEnabled := false // Default to false for production safety
+	if highCardStr := os.Getenv("BILLAGED_OTEL_HIGH_CARDINALITY_ENABLED"); highCardStr != "" {
+		if parsed, err := strconv.ParseBool(highCardStr); err == nil {
+			highCardinalityLabelsEnabled = parsed
+		} else {
+			logger.Warn("invalid BILLAGED_OTEL_HIGH_CARDINALITY_ENABLED, using default false",
+				slog.String("value", highCardStr),
+				slog.String("error", err.Error()),
+			)
 		}
 	}
 
@@ -92,13 +130,14 @@ func LoadConfig() (*Config, error) {
 			Interval: getEnvOrDefault("BILLAGED_AGGREGATION_INTERVAL", "60s"),
 		},
 		OpenTelemetry: OpenTelemetryConfig{
-			Enabled:             otelEnabled,
-			ServiceName:         getEnvOrDefault("BILLAGED_OTEL_SERVICE_NAME", "billaged"),
-			ServiceVersion:      getEnvOrDefault("BILLAGED_OTEL_SERVICE_VERSION", "0.0.1"),
-			TracingSamplingRate: samplingRate,
-			OTLPEndpoint:        getEnvOrDefault("BILLAGED_OTEL_ENDPOINT", "localhost:4318"),
-			PrometheusEnabled:   prometheusEnabled,
-			PrometheusPort:      getEnvOrDefault("BILLAGED_OTEL_PROMETHEUS_PORT", "9465"),
+			Enabled:                      otelEnabled,
+			ServiceName:                  getEnvOrDefault("BILLAGED_OTEL_SERVICE_NAME", "billaged"),
+			ServiceVersion:               getEnvOrDefault("BILLAGED_OTEL_SERVICE_VERSION", "0.0.1"),
+			TracingSamplingRate:          samplingRate,
+			OTLPEndpoint:                 getEnvOrDefault("BILLAGED_OTEL_ENDPOINT", "localhost:4318"),
+			PrometheusEnabled:            prometheusEnabled,
+			PrometheusPort:               getEnvOrDefault("BILLAGED_OTEL_PROMETHEUS_PORT", "9465"),
+			HighCardinalityLabelsEnabled: highCardinalityLabelsEnabled,
 		},
 	}
 
