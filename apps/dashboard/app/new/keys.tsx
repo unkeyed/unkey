@@ -10,9 +10,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
-import { Separator } from "@/components/ui/separator";
 import { trpc } from "@/lib/trpc/client";
-import { Button, CopyButton, Empty, VisibleButton } from "@unkey/ui";
+import { Button, CopyButton, Empty, Separator, VisibleButton } from "@unkey/ui";
 import { AlertCircle, KeyRound, Lock } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
