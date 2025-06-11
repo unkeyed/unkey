@@ -40,6 +40,8 @@ export const DialogContainer = ({
           "w-[90%] md:w-[70%] lg:w-[70%] xl:w-[50%] 2xl:w-[45%] max-w-[600px] max-h-[90vh] sm:max-h-[90vh] md:max-h-[70vh] lg:max-h-[90vh] xl:max-h-[80vh]",
           className,
         )}
+        // Otherwise our shortcuts hijacks dialog inputs
+        onKeyDown={(e) => e.stopPropagation()}
         onOpenAutoFocus={(e) => {
           if (preventAutoFocus) {
             e.preventDefault();
