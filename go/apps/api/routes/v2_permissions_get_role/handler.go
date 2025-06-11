@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
@@ -105,12 +104,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// 7. Transform permissions to the response format
 	permissions := make([]openapi.Permission, 0, len(rolePermissions))
 	for _, perm := range rolePermissions {
-		permCreatedAt := time.UnixMilli(perm.CreatedAtM).UTC()
 		permission := openapi.Permission{
 			Id:          perm.ID,
 			Name:        perm.Name,
 			WorkspaceId: perm.WorkspaceID,
-			CreatedAt:   &permCreatedAt,
+			CreatedAt:   perm.CreatedAtM,
 		}
 
 		// Add description only if it's valid
@@ -122,12 +120,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// 8. Return the role with its permissions
-	roleCreatedAt := time.UnixMilli(role.CreatedAtM).UTC()
 	roleResponse := openapi.RoleWithPermissions{
 		Id:          role.ID,
 		Name:        role.Name,
 		WorkspaceId: role.WorkspaceID,
-		CreatedAt:   &roleCreatedAt,
+		CreatedAt:   role.CreatedAtM,
 		Permissions: permissions,
 	}
 

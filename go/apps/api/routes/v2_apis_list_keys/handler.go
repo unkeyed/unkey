@@ -317,12 +317,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		if key.Key.RemainingRequests.Valid {
 			k.Credits = &openapi.KeyCredits{
-				Remaining: int(key.Key.RemainingRequests.Int32),
+				Remaining: int64(key.Key.RemainingRequests.Int32),
 				Refill:    nil,
 			}
 			if key.Key.RefillAmount.Valid {
 				k.Credits.Refill = &openapi.KeyCreditsRefill{
-					Amount:       int(key.Key.RefillAmount.Int32),
+					Amount:       int64(key.Key.RefillAmount.Int32),
 					Interval:     "",
 					RefillDay:    ptr.P(int(key.Key.RefillDay.Int16)),
 					LastRefillAt: nil,
@@ -389,8 +389,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ratelimitsResponse[j] = openapi.RatelimitResponse{
 					Id:       rl.ID,
 					Name:     rl.Name,
-					Limit:    int(rl.Limit),
-					Duration: int(rl.Duration),
+					Limit:    int64(rl.Limit),
+					Duration: int64(rl.Duration),
 				}
 			}
 			k.Ratelimits = ptr.P(ratelimitsResponse)

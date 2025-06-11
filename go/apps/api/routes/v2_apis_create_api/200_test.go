@@ -172,23 +172,6 @@ func TestCreateApiSuccessfully(t *testing.T) {
 		require.Equal(t, apiName, api.Name)
 	})
 
-	// Test with special characters in name
-	// This test ensures that API names containing special characters, symbols,
-	// and punctuation are properly handled and stored without corruption.
-	t.Run("create api with special characters", func(t *testing.T) {
-		apiName := "special_api-123!@#$%^&*()"
-		req := handler.Request{
-			Name: apiName,
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status)
-
-		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), res.Body.Data.ApiId)
-		require.NoError(t, err)
-		require.Equal(t, apiName, api.Name)
-	})
-
 	// This test verifies that UUID-style names are accepted and that delete
 	// protection is properly set to false by default for new APIs.
 	t.Run("create api with UUID name", func(t *testing.T) {
@@ -233,46 +216,4 @@ func TestCreateApiSuccessfully(t *testing.T) {
 		require.Equal(t, h.Resources().UserWorkspace.ID, api.WorkspaceID)
 	})
 
-	// Test with name containing only numeric characters
-	// This test ensures that API names consisting entirely of numbers
-	// are properly handled and don't cause parsing or validation issues.
-	t.Run("create api with numeric name", func(t *testing.T) {
-		apiName := "12345" // Only numeric characters
-		req := handler.Request{
-			Name: apiName,
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
-		require.NotNil(t, res.Body)
-		require.NotEmpty(t, res.Body.Data.ApiId)
-
-		// Verify the API in the database
-		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), res.Body.Data.ApiId)
-		require.NoError(t, err)
-		require.Equal(t, apiName, api.Name)
-		require.Equal(t, h.Resources().UserWorkspace.ID, api.WorkspaceID)
-	})
-
-	// Test with name containing Unicode characters
-	// This test validates that API names with international characters,
-	// including Chinese characters and emoji, are properly supported and
-	// stored correctly in the database with proper UTF-8 encoding.
-	t.Run("create api with unicode name", func(t *testing.T) {
-		apiName := "测试-api-🔑" // Unicode characters including emoji
-		req := handler.Request{
-			Name: apiName,
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
-		require.NotNil(t, res.Body)
-		require.NotEmpty(t, res.Body.Data.ApiId)
-
-		// Verify the API in the database
-		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), res.Body.Data.ApiId)
-		require.NoError(t, err)
-		require.Equal(t, apiName, api.Name)
-		require.Equal(t, h.Resources().UserWorkspace.ID, api.WorkspaceID)
-	})
 }

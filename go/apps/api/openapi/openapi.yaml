@@ -36,7 +36,7 @@ components:
 
         To authenticate, include your root key in the Authorization header of each request:
         ```
-        Authorization: Bearer your_root_key_here
+        Authorization: Bearer unkey_123
         ```
 
         Root keys have specific permissions attached to them, controlling what operations they can perform. Key permissions follow a hierarchical structure with patterns like 'resource.resource_id.action' (e.g., 'apis.*.create_key', 'apis.*.read_api').
@@ -57,8 +57,8 @@ components:
         keyId:
           type: string
           minLength: 3
-          maxLength: 255  # Reasonable upper bound for database identifiers
-          pattern: "^[a-zA-Z0-9_-]+$"
+          maxLength: 255 # Reasonable upper bound for database identifiers
+          pattern: "^[a-zA-Z0-9_]+$"
           description: |
             Specifies which key to update using the database identifier returned from createKey.
             Do not confuse this with the actual API key string that users include in requests.
@@ -67,7 +67,7 @@ components:
           type: string
           nullable: true
           minLength: 1
-          maxLength: 200  # Human-readable names should be concise but descriptive
+          maxLength: 200 # Human-readable names should be concise but descriptive
           description: |
             Sets a human-readable name for internal organization and identification.
             Omitting this field leaves the current name unchanged, while setting null removes it entirely.
@@ -77,18 +77,19 @@ components:
           type: string
           nullable: true
           minLength: 1
-          maxLength: 255  # Match database varchar limits for external identifiers
+          maxLength: 255 # Match database varchar limits for external identifiers
           pattern: "^[a-zA-Z0-9_.-]+$"
           description: |
             Links this key to a user or entity in your system for ownership tracking during verification.
             Omitting this field preserves the current association, while setting null disconnects the key from any identity.
             Essential for user-specific analytics, billing, and key management across multiple users.
+            Supports letters, numbers, underscores, dots, and hyphens for flexible identifier formats.
           example: user_912a841d
         meta:
           type: object
           nullable: true
           additionalProperties: true
-          maxProperties: 100  # Prevent DoS while allowing rich metadata
+          maxProperties: 100 # Prevent DoS while allowing rich metadata
           description: |
             Stores arbitrary JSON metadata returned during key verification.
             Omitting this field preserves existing metadata, while setting null removes all metadata entirely.
@@ -113,7 +114,7 @@ components:
           nullable: true
           format: int64
           minimum: 0
-          maximum: 4102444800000  # January 1, 2100 - reasonable future limit
+          maximum: 4102444800000 # January 1, 2100 - reasonable future limit
           description: |
             Sets when this key automatically expires as a Unix timestamp in milliseconds.
             Verification fails with code=EXPIRED immediately after this time passes.
@@ -131,7 +132,7 @@ components:
               type: integer
               format: int64
               minimum: 0
-              maximum: 9223372036854775807  # Max int64 value
+              maximum: 9223372036854775807 # Max int64 value
               description: |
                 Counts how many times this key can be used before becoming invalid.
                 Each verification reduces this count by the verification cost (default 1).
@@ -148,13 +149,13 @@ components:
                     - daily
                     - monthly
                   description: |
-                    Sets how often credits automatically refill. Monthly refills support specific days via refillDay, 
-                    while daily refills occur at midnight UTC. Choose daily for high-frequency APIs and monthly for 
+                    Sets how often credits automatically refill. Monthly refills support specific days via refillDay,
+                    while daily refills occur at midnight UTC. Choose daily for high-frequency APIs and monthly for
                     subscription-based quotas.
                 amount:
                   type: integer
                   minimum: 1
-                  maximum: 1000000  # Reasonable upper bound for subscription quotas
+                  maximum: 1000000 # Reasonable upper bound for subscription quotas
                   description: |
                     Specifies how many credits to add during each refill cycle.
                     This amount gets added to remaining credits, not replaced, so unused credits carry over.
@@ -163,7 +164,7 @@ components:
                 refillDay:
                   type: integer
                   minimum: 1
-                  maximum: 31  # Valid calendar days
+                  maximum: 31 # Valid calendar days
                   description: |
                     Sets the day of month for monthly refills (1-31). Only valid with monthly interval.
                     Days beyond month length (like 31 in February) default to the last valid day.
@@ -173,7 +174,7 @@ components:
                 - interval
                 - amount
               description: |
-                Configures automatic credit refills on a schedule. 
+                Configures automatic credit refills on a schedule.
                 Omitting this field preserves existing refill settings, while setting null disables refills entirely.
                 Refills add to existing credits rather than replacing them, allowing unused quotas to accumulate.
           required:
@@ -186,7 +187,7 @@ components:
         ratelimits:
           type: array
           nullable: true
-          maxItems: 50  # Reasonable limit for rate limit configurations per key
+          maxItems: 50 # Reasonable limit for rate limit configurations per key
           items:
             type: object
             required:
@@ -197,18 +198,19 @@ components:
               name:
                 type: string
                 minLength: 1
-                maxLength: 50  # Keep rate limit names concise and readable
+                maxLength: 50 # Keep rate limit names concise and readable
                 pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
                 description: |
-                  Identifies this rate limit uniquely within the key. Names must start with a letter and use semantic 
+                  Identifies this rate limit uniquely within the key. Names must start with a letter and use semantic
                   identifiers like 'requests', 'computations', or 'write_operations' rather than generic terms.
+                  Use only letters, numbers, underscores, and hyphens after the initial letter.
                   Duplicate names within the same key are not allowed.
                 example: requests
               limit:
                 type: integer
                 format: int64
                 minimum: 1
-                maximum: 1000000  # Reasonable upper bound for rate limits
+                maximum: 1000000 # Reasonable upper bound for rate limits
                 description: |
                   Sets the maximum operations allowed within the duration window.
                   When this limit is reached, verification fails with code=RATE_LIMITED until the window resets.
@@ -217,21 +219,14 @@ components:
               duration:
                 type: integer
                 format: int32
-                minimum: 1000  # 1 second minimum window
-                maximum: 2592000000  # 30 days maximum window
+                minimum: 1000 # 1 second minimum window
+                maximum: 2592000000 # 30 days maximum window
                 description: |
-                  Duration of the rate limit window in milliseconds. Common values include 60000 (1 minute), 
+                  Duration of the rate limit window in milliseconds. Common values include 60000 (1 minute),
                   3600000 (1 hour), and 86400000 (24 hours). The rate limit automatically resets after this period elapses.
                   Windows shorter than 1 second are not supported for performance reasons.
                 example: 60000
-              async:
-                type: boolean
-                default: true
-                description: |
-                  Controls whether this rate limit uses fast (async=true) or consistent (async=false) mode.
-                  Fast mode has lower latency but may allow brief bursts above the limit during high concurrency.
-                  Consistent mode provides strict guarantees but adds latency to every verification.
-                  Use consistent mode only when precise rate limiting is essential for billing or security.
+
           description: |
             Defines time-based rate limits that protect against abuse by controlling request frequency.
             Omitting this field preserves existing rate limits, while setting null removes all rate limits.
@@ -272,35 +267,35 @@ components:
         keyId:
           type: string
           minLength: 3
-          description:
-            The unique identifier of the key to delete (starts with 'key_').
-            This is the database ID returned from createKey, not the actual API key
-            string itself. Once deleted, verification attempts with this key will
-            fail with code=NOT_FOUND and it will no longer appear in key listings.
+          maxLength: 255 # Reasonable upper bound for database identifiers
+          pattern: "^[a-zA-Z0-9_]+$"
+          description: |
+            Specifies which key to delete using the database identifier returned from createKey.
+            Do not confuse this with the actual API key string that users include in requests.
+            Deletion immediately invalidates the key, causing all future verification attempts to fail with code=NOT_FOUND.
+            Key deletion triggers cache invalidation across all regions but may take up to 30 seconds to fully propagate.
           example: key_2cGKbMxRyIzhCxo1Idjz8q
         permanent:
           type: boolean
           default: false
-          description:
-            "Controls whether the key should be soft-deleted (default)
-            or permanently erased from the database. Soft deletion marks the key as
-            deleted but preserves its data, allowing potential recovery via direct
-            database operations. Permanent deletion completely removes all traces
-            of the key including its hash and metadata. Use permanent=true for regulatory
-            compliance scenarios (like GDPR), resolving hash collisions during migrations,
-            or when you need to reuse the same key string in the future. CAUTION:
-            Permanent deletion cannot be undone."
+          description: |
+            Controls deletion behavior between recoverable soft-deletion and irreversible permanent erasure.
+            Soft deletion (default) preserves key data for potential recovery through direct database operations.
+            Permanent deletion completely removes all traces including hash values and metadata with no recovery option.
+
+            Use permanent deletion only for regulatory compliance (GDPR), resolving hash collisions, or when reusing identical key strings.
+            Permanent deletion cannot be undone and may affect analytics data that references the deleted key.
+            Most applications should use soft deletion to maintain audit trails and prevent accidental data loss.
           example: false
       additionalProperties: false
     KeysDeleteKeyResponseData:
       type: object
       properties: {}
-      description:
-        Empty response object. A successful response indicates the key
-        was deleted successfully. Deletion triggers cache invalidation across all
-        regions, but it may take up to 30 seconds for the deletion to be fully propagated
-        due to eventual consistency. During this propagation period, some verification
-        attempts might still succeed in certain regions.
+      description: |
+        Confirms successful key deletion with no additional data returned.
+        Deletion immediately invalidates the key in the primary database but cache propagation across regions may take up to 30 seconds.
+        During this propagation window, some verification attempts might still succeed in certain regions due to eventual consistency.
+        Monitor your application logs during the propagation period to ensure no unexpected authentication successes occur.
     V2KeysDeleteKeyResponseBody:
       type: object
       required:
@@ -318,22 +313,25 @@ components:
         keyId:
           type: string
           minLength: 3
-          description:
-            The unique identifier of the key to retrieve (starts with 'key_').
-            This is the database ID returned from createKey, not the actual API key
-            string itself. You can find this ID in the creation response, key listings,
-            or in the dashboard.
+          maxLength: 255 # Reasonable upper bound for database identifiers
+          pattern: "^[a-zA-Z0-9_]+$"
+          description: |
+            Specifies which key to retrieve using the database identifier returned from createKey.
+            Do not confuse this with the actual API key string that users include in requests.
+            Key data includes metadata, permissions, usage statistics, and configuration but never the plaintext key value unless decrypt=true.
+            Find this ID in creation responses, key listings, dashboard, or verification responses.
           example: key_2cGKbMxRyIzhCxo1Idjz8q
         decrypt:
           type: boolean
           default: false
-          description:
-            "Whether to include the plaintext key in the response. This
-            is only possible for keys created with 'recoverable: true' and requires
-            the 'decrypt_key' permission. SECURITY WARNING: This should be used
-            sparingly and only for legitimate recovery purposes. Keys returned this
-            way must be handled securely and not logged or stored insecurely. Most
-            applications should set this to false."
+          description: |
+            Controls whether to include the plaintext key value in the response for recovery purposes.
+            Only works for keys created with recoverable=true and requires the decrypt_key permission.
+            Returned keys must be handled securely, never logged, cached, or stored insecurely.
+
+            Use only for legitimate recovery scenarios like user password resets or emergency access.
+            Most applications should keep this false to maintain security best practices and avoid accidental key exposure.
+            Decryption requests are audited and may trigger security alerts in enterprise environments.
       additionalProperties: false
     KeysGetKeyResponseData:
       type: object
@@ -592,56 +590,64 @@ components:
       properties:
         keyId:
           type: string
-          description:
-            The ID of the key to which permissions will be added (begins
-            with 'key_')
-          example: key_2cGKbMxRyIzhCxo1Idjz8q
           minLength: 3
+          maxLength: 255 # Reasonable upper bound for database identifiers
+          pattern: "^[a-zA-Z0-9_]+$"
+          description: |
+            Specifies which key receives the additional permissions using the database identifier returned from createKey.
+            Do not confuse this with the actual API key string that users include in requests.
+            Added permissions supplement existing permissions and roles without replacing them.
+            Permission changes take effect immediately but may take up to 30 seconds to propagate across all regions.
+          example: key_2cGKbMxRyIzhCxo1Idjz8q
         permissions:
           type: array
           minItems: 1
-          description: |-
-            List of permissions to add to the key. Each permission can be identified by ID or name (if both are provided in the same object, ID takes precedence).
+          maxItems: 1000 # Allow extensive permission sets for complex applications
+          description: |
+            Grants additional permissions to the key through direct assignment or automatic creation.
+            Duplicate permissions are ignored automatically, making this operation idempotent.
+            Use either ID for existing permissions or slug for new permissions with optional auto-creation.
 
-            Best practices:
-            - Use consistent naming patterns (e.g., 'resource.action' or 'resource.subresouce.action')
-            - Group related permissions (e.g., 'documents.read', 'documents.write', 'documents.delete')
-            - Use hierarchical naming for verification flexibility
-            - Consider creating a permission naming guide for your team
-
-            Duplicate permissions are automatically handled (adding the same permission twice has no effect). During verification, hierarchical patterns are matched - a key with 'billing.*' permission will have access to 'billing.invoices.view'.
+            During verification, hierarchical patterns match descendant permissions - 'billing.*' grants access to 'billing.invoices.view'.
+            Permission changes take effect immediately but cache propagation across regions may take up to 30 seconds.
+            Adding permissions never removes existing permissions or role-based permissions.
           items:
             type: object
             properties:
               id:
                 type: string
-                description:
-                  The ID of an existing permission (begins with 'perm_').
-                  Provide either ID or name. Use ID when you know the exact permission
-                  identifier and want to ensure you're referencing a specific permission.
-                example: perm_1n9McEIBSqy44Qy7hzWyM5
                 minLength: 3
+                maxLength: 255 # Reasonable upper bound for database identifiers
+                pattern: "^[a-zA-Z0-9_]+$"
+                description: |
+                  References an existing permission by its database identifier.
+                  Use when you know the exact permission ID and want to ensure you're referencing a specific permission.
+                  Takes precedence over slug when both are provided in the same object.
+                  The referenced permission must already exist in your workspace.
+                example: perm_1n9McEIBSqy44Qy7hzWyM5
               slug:
                 type: string
-                description:
-                  The slug of the permission. Provide either ID or slug.
-                  Permission names typically follow a 'resource.action' format (e.g.,
-                  'documents.read', 'users.delete'). Use consistent naming patterns
-                  to create logical permission hierarchies. Slugs must be unique.
-                example: documents.write
                 minLength: 1
+                maxLength: 100 # Keep permission names concise and readable
+                pattern: "^[a-zA-Z0-9_]+$"
+                description: |
+                  Identifies the permission by its human-readable name using hierarchical naming patterns.
+                  Use 'resource.action' format for logical organization and verification flexibility.
+                  Slugs must be unique within your workspace and support wildcard matching during verification.
+                  Combined with create=true, allows automatic permission creation for streamlined workflows.
+                example: documents.write
               create:
                 type: boolean
-                description: |-
-                  When true, if a permission with this slug doesn't exist, it will be automatically created on-the-fly. Only works when specifying slug, not ID.
-
-                  SECURITY CONSIDERATIONS:
-                  - Requires the 'rbac.*.create_permission' permission on your root key
-                  - Use carefully to avoid permission proliferation
-                  - Consider centralizing permission creation in a controlled process
-                  - Typos with create=true can lead to unintended permissions
-                  - Created permissions are permanent and visible to all API keys in the workspace
                 default: false
+                description: |
+                  Enables automatic permission creation when the specified slug does not exist.
+                  Only works with slug-based references, not ID-based references.
+                  Requires the rbac.*.create_permission permission on your root key.
+
+                  Created permissions are permanent and visible workspace-wide to all API keys.
+                  Use carefully to avoid permission proliferation from typos or uncontrolled creation.
+                  Consider centralizing permission creation in controlled processes for better governance.
+                  Auto-created permissions use the slug as both the name and identifier.
             additionalProperties: false
       additionalProperties: false
     V2KeysAddPermissionsResponseData:
@@ -710,49 +716,52 @@ components:
       properties:
         keyId:
           type: string
-          description:
-            The unique identifier of the key from which permissions will
-            be removed (begins with 'key_'). This is the database ID returned from
-            createKey, not the actual API key string itself. Every operation requires
-            this identifier to specify which key to modify.
-          example: key_2cGKbMxRyIzhCxo1Idjz8q
           minLength: 3
+          maxLength: 255 # Reasonable upper bound for database identifiers
+          pattern: "^[a-zA-Z0-9_]+$"
+          description: |
+            Specifies which key loses the permissions using the database identifier returned from createKey.
+            Do not confuse this with the actual API key string that users include in requests.
+            Removing permissions only affects direct assignments, not permissions inherited from roles.
+            Permission changes take effect immediately but may take up to 30 seconds to propagate across all regions.
+          example: key_2cGKbMxRyIzhCxo1Idjz8q
         permissions:
           type: array
           minItems: 1
-          description: |-
-            List of permissions to remove from the key. Each permission can be identified by ID or name (if both are provided in the same object, ID takes precedence).
+          maxItems: 1000 # Allow extensive permission sets for complex applications
+          description: |
+            Removes direct permissions from the key without affecting role-based permissions.
+            Operations are idempotent - removing non-existent permissions has no effect and causes no errors.
+            Use either ID for existing permissions or name for exact string matching.
 
-            Important details:
-            - This operation only affects direct permissions on the key, not permissions granted through roles
-            - Removing permissions that aren't assigned to the key is a no-op and doesn't cause an error
-            - Removing all permissions doesn't disable the key - it just removes its direct permissions
-            - The operation is idempotent - multiple identical requests have the same effect as a single request
-            - After removal, any verification checks for these permissions will fail unless granted via roles
-            - Each permission must include either id or name - you can't use wildcards for removal
+            After removal, verification checks for these permissions will fail unless granted through roles.
+            Permission changes take effect immediately but cache propagation across regions may take up to 30 seconds.
+            Removing all direct permissions does not disable the key, only removes its direct permission grants.
           items:
             type: object
             properties:
               id:
                 type: string
-                description:
-                  The ID of the permission to remove (begins with 'perm_').
-                  Provide either ID or name, not both. Using ID guarantees you're
-                  removing the exact permission intended, even if multiple permissions
-                  have similar names. The ID is especially useful in automation scripts
-                  where precision is important.
-                example: perm_1n9McEIBSqy44Qy7hzWyM5
                 minLength: 3
+                maxLength: 255 # Reasonable upper bound for database identifiers
+                pattern: "^[a-zA-Z0-9_]+$"
+                description: |
+                  References the permission to remove by its database identifier.
+                  Use when you know the exact permission ID and want to ensure you're removing a specific permission.
+                  Takes precedence over name when both are provided in the same object.
+                  Essential for automation scripts where precision prevents accidental permission removal.
+                example: perm_1n9McEIBSqy44Qy7hzWyM5
               name:
                 type: string
-                description:
-                  The name of the permission to remove. Provide either
-                  ID or name, not both. When using names, the string must match exactly
-                  as it was defined - including case sensitivity and full hierarchical
-                  path (e.g., 'documents.write', not just 'write'). Name lookup happens
-                  within the same workspace as the key.
-                example: documents.write
                 minLength: 1
+                maxLength: 100 # Keep permission names concise and readable
+                pattern: "^[a-zA-Z0-9_]+$"
+                description: |
+                  Identifies the permission to remove by its exact name with case-sensitive matching.
+                  Must match the complete hierarchical path as originally defined, starting with a letter and using only letters, numbers, underscores, dots, asterisks, or hyphens.
+                  No wildcard removal is supported - specify each permission individually for safety.
+                  Name lookup occurs within the same workspace as the target key.
+                example: documents.write
             additionalProperties: false
       additionalProperties: false
     V2KeysRemovePermissionsResponseData:
@@ -890,51 +899,53 @@ components:
       properties:
         keyId:
           type: string
-          description:
-            The ID of the key to which roles will be added (begins with
-            'key_'). This is the database reference ID for the key, not the actual
-            API key string. This ID uniquely identifies which key will receive the
-            additional roles.
-          example: key_2cGKbMxRyIzhCxo1Idjz8q
           minLength: 3
+          maxLength: 255 # Reasonable upper bound for database identifiers
+          pattern: "^[a-zA-Z0-9_]+$"
+          description: |
+            Specifies which key receives the additional roles using the database identifier returned from createKey.
+            Do not confuse this with the actual API key string that users include in requests.
+            Added roles supplement existing roles and permissions without replacing them.
+            Role assignments take effect immediately but may take up to 30 seconds to propagate across all regions.
+          example: key_2cGKbMxRyIzhCxo1Idjz8q
         roles:
           type: array
           minItems: 1
-          description: |-
-            List of roles to add to the key. Each role can be identified by ID or name (if both are provided in the same object, ID takes precedence).
+          maxItems: 100 # Reasonable limit for role assignments per key
+          description: |
+            Assigns additional roles to the key through direct assignment to existing workspace roles.
+            Operations are idempotent - adding existing roles has no effect and causes no errors.
+            Use either ID for existing roles or name for human-readable references.
 
-            Key behaviors:
-            - Duplicate roles are automatically handled (adding the same role twice has no effect)
-            - The operation is idempotent - running it multiple times produces the same result
-            - Roles must already exist - unlike permissions, roles cannot be created on-the-fly
-            - All roles must belong to the same workspace as the key
-            - Invalid roles will cause the entire operation to fail (atomic transaction)
-
-            Roles are collections of permissions that provide a convenient way to assign multiple permissions at once. When a key is verified, all permissions granted through all assigned roles are checked, alongside any direct permissions on the key.
+            All roles must already exist in the workspace - roles cannot be created automatically.
+            Invalid roles cause the entire operation to fail atomically, ensuring consistent state.
+            Role assignments take effect immediately but cache propagation across regions may take up to 30 seconds.
           items:
             type: object
             properties:
               id:
                 type: string
-                description:
-                  The ID of an existing role (begins with 'role_'). Provide
-                  either ID or name, not both. Using the ID guarantees you're referencing
-                  the exact role intended, regardless of name changes. This is particularly
-                  valuable for scripting, automation, and ensuring consistency between
-                  environments where role names might differ but IDs are stable references.
-                example: role_1n9McEIBSqy44Qy7hzWyM5
                 minLength: 3
+                maxLength: 255 # Reasonable upper bound for database identifiers
+                pattern: "^[a-zA-Z0-9_]+$"
+                description: |
+                  References an existing role by its database identifier.
+                  Use when you know the exact role ID and want to ensure you're referencing a specific role.
+                  Takes precedence over name when both are provided in the same object.
+                  Essential for automation scripts where role names might change but IDs remain stable.
+                example: role_1n9McEIBSqy44Qy7hzWyM5
               name:
                 type: string
-                description:
-                  The name of the role. Provide either ID or name, not
-                  both. Role names must be unique within a workspace, making them
-                  generally safe to use as references. Names are more human-readable
-                  and easier to work with in configurations and documentation. However,
-                  if roles are renamed, any integration using name references will
-                  need to be updated.
-                example: admin
                 minLength: 1
+                maxLength: 100 # Keep role names concise and readable
+                pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+                description: |
+                  Identifies the role by its human-readable name within the workspace.
+                  Role names must start with a letter and contain only letters, numbers, underscores, or hyphens.
+                  Names must be unique within the workspace and are case-sensitive.
+                  More readable than IDs but vulnerable to integration breaks if roles are renamed.
+                  Use IDs for automation and names for human-configured integrations.
+                example: admin
             additionalProperties: false
       additionalProperties: false
     V2KeysAddRolesResponseData:
@@ -995,52 +1006,52 @@ components:
       properties:
         keyId:
           type: string
-          description:
-            The ID of the key from which roles will be removed (begins
-            with 'key_'). This is the database reference for the key, not the actual
-            API key string that users authenticate with. Every operation requires
-            this identifier to specify which key to modify.
-          example: key_2cGKbMxRyIzhCxo1Idjz8q
           minLength: 3
+          maxLength: 255 # Reasonable upper bound for database identifiers
+          pattern: "^[a-zA-Z0-9_]+$"
+          description: |
+            Specifies which key loses the roles using the database identifier returned from createKey.
+            Do not confuse this with the actual API key string that users include in requests.
+            Removing roles only affects direct assignments, not permissions inherited from other sources.
+            Role changes take effect immediately but may take up to 30 seconds to propagate across all regions.
+          example: key_2cGKbMxRyIzhCxo1Idjz8q
         roles:
           type: array
           minItems: 1
-          description: |-
-            List of roles to remove from the key. Each role can be identified by ID or name (if both are provided in the same object, ID takes precedence).
+          maxItems: 100 # Reasonable limit for role assignments per key
+          description: |
+            Removes direct role assignments from the key without affecting other role sources or permissions.
+            Operations are idempotent - removing non-assigned roles has no effect and causes no errors.
+            Use either ID for existing roles or name for exact string matching.
 
-            Key behaviors:
-            - Only affects direct role assignments on the key
-            - Removing roles that aren't assigned to the key has no effect (silent no-op)
-            - The operation is idempotent - multiple identical requests have the same effect
-            - Invalid role references will cause the entire operation to fail (atomic transaction)
-            - After removal, the key will lose access to any permissions that were only granted through these roles
-            - Inherited roles or permissions from other sources are not affected
-
-            This operation is commonly used when downgrading access levels, removing temporary elevated privileges, or fine-tuning access control for API keys.
+            After removal, the key loses access to permissions that were only granted through these roles.
+            Role changes take effect immediately but cache propagation across regions may take up to 30 seconds.
+            Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
           items:
             type: object
             properties:
               id:
                 type: string
-                description:
-                  The ID of an existing role (begins with 'role_'). Provide
-                  either ID or name, not both. Using the role ID ensures you're removing
-                  exactly the intended role, even if multiple roles have similar or
-                  identical names. IDs are especially useful in automation scripts
-                  and cross-environment scenarios where consistent references are
-                  important.
-                example: role_1n9McEIBSqy44Qy7hzWyM5
                 minLength: 3
+                maxLength: 255 # Reasonable upper bound for database identifiers
+                pattern: "^[a-zA-Z0-9_]+$"
+                description: |
+                  References the role to remove by its database identifier.
+                  Use when you know the exact role ID and want to ensure you're removing a specific role.
+                  Takes precedence over name when both are provided in the same object.
+                  Essential for automation scripts where role names might change but IDs remain stable.
+                example: role_1n9McEIBSqy44Qy7hzWyM5
               name:
                 type: string
-                description:
-                  The name of the role. Provide either ID or name, not
-                  both. Role names must exactly match the role's current name in your
-                  workspace, including case sensitivity. Names are more human-readable
-                  and easier to work with in configurations, but if roles are renamed,
-                  any systems using name references will need to be updated.
-                example: admin
                 minLength: 1
+                maxLength: 100 # Keep role names concise and readable
+                pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+                description: |
+                  Identifies the role to remove by its exact name with case-sensitive matching.
+                  Must match the complete role name as currently defined in the workspace, starting with a letter and using only letters, numbers, underscores, or hyphens.
+                  More readable than IDs but vulnerable to integration breaks if roles are renamed.
+                  Use IDs for automation and names for human-configured integrations.
+                example: admin
             additionalProperties: false
       additionalProperties: false
     V2KeysRemoveRolesResponseData:
@@ -1096,53 +1107,53 @@ components:
       properties:
         keyId:
           type: string
-          description:
-            The ID of the key for which to set roles (begins with 'key_').
-            This is the database reference ID for the key, not the actual API key
-            string. This operation will replace all existing direct role assignments
-            for this key.
-          example: key_2cGKbMxRyIzhCxo1Idjz8q
           minLength: 3
+          maxLength: 255 # Reasonable upper bound for database identifiers
+          pattern: "^[a-zA-Z0-9_]+$"
+          description: |
+            Specifies which key gets the complete role replacement using the database identifier returned from createKey.
+            Do not confuse this with the actual API key string that users include in requests.
+            This is a wholesale replacement operation that removes all existing roles not included in the request.
+            Role changes take effect immediately but may take up to 30 seconds to propagate across all regions.
+          example: key_2cGKbMxRyIzhCxo1Idjz8q
         roles:
           type: array
-          description: |-
-            Complete list of roles to assign to the key. This is a wholesale replacement operation - it replaces all existing direct role assignments with this new set.
+          maxItems: 100 # Reasonable limit for role assignments per key
+          description: |
+            Replaces all existing role assignments with this complete list of roles.
+            This is a wholesale replacement operation, not an incremental update like add/remove operations.
+            Use either ID for existing roles or name for human-readable references.
 
-            Key behaviors:
-            - This operation is a complete replacement, not an incremental update
-            - Any existing roles not included in this request will be removed
-            - Providing an empty array removes all direct role assignments from the key
-            - Roles must already exist - they cannot be created on-the-fly like permissions
-            - All roles must belong to the same workspace as the key
-            - Invalid role references will cause the entire operation to fail (atomic transaction)
-            - Changes take effect immediately for new verifications
-
-            This approach allows you to precisely control the full role set in a single operation, making it ideal for synchronizing roles with external systems or implementing controlled role templates.
+            Providing an empty array removes all direct role assignments from the key.
+            All roles must already exist in the workspace - roles cannot be created automatically.
+            Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
+            Role changes take effect immediately but cache propagation across regions may take up to 30 seconds.
           items:
             type: object
             properties:
               id:
                 type: string
-                description:
-                  The ID of an existing role (begins with 'role_'). Provide
-                  either ID or name, not both. Using role IDs guarantees you're referencing
-                  the exact roles intended, regardless of name changes or duplications.
-                  This approach is particularly valuable in automation scripts, cross-environment
-                  deployments, and systems where role names might change but IDs remain
-                  stable.
-                example: role_1n9McEIBSqy44Qy7hzWyM5
                 minLength: 3
+                maxLength: 255 # Reasonable upper bound for database identifiers
+                pattern: "^[a-zA-Z0-9_]+$"
+                description: |
+                  References an existing role by its database identifier.
+                  Use when you know the exact role ID and want to ensure you're referencing a specific role.
+                  Takes precedence over name when both are provided in the same object.
+                  Essential for automation scripts where role names might change but IDs remain stable.
+                example: role_1n9McEIBSqy44Qy7hzWyM5
               name:
                 type: string
-                description:
-                  The name of the role. Provide either ID or name, not
-                  both. Role names must be unique within a workspace, making them
-                  generally safe to use as references. Names are more human-readable
-                  and easier to work with in configurations, especially when implementing
-                  standardized role templates across many keys. However, if roles
-                  are renamed, any integrations using name references will need updates.
-                example: admin
                 minLength: 1
+                maxLength: 100 # Keep role names concise and readable
+                pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+                description: |
+                  Identifies the role by its human-readable name within the workspace.
+                  Role names must start with a letter and contain only letters, numbers, underscores, or hyphens.
+                  Names must be unique within the workspace and are case-sensitive.
+                  More readable than IDs but vulnerable to integration breaks if roles are renamed.
+                  Use IDs for automation and names for human-configured integrations.
+                example: admin
             additionalProperties: false
       additionalProperties: false
     V2KeysSetRolesResponseData:
@@ -1323,8 +1334,8 @@ components:
         apiId:
           type: string
           minLength: 3
-          maxLength: 255  # Reasonable upper bound for database identifiers
-          pattern: "^[a-zA-Z0-9_-]+$"
+          maxLength: 255 # Reasonable upper bound for database identifiers
+          pattern: "^[a-zA-Z0-9_]+$"
           description: |
             Specifies which API this key belongs to, providing complete isolation between environments.
             Keys from one API cannot be used to access another API, preventing cross-environment access.
@@ -1333,8 +1344,8 @@ components:
         prefix:
           type: string
           minLength: 1
-          maxLength: 16  # Keep prefixes short for readability
-          pattern: "^[a-zA-Z0-9_-]+$"
+          maxLength: 16 # Keep prefixes short for readability
+          pattern: "^[a-zA-Z0-9_]+$"
           description: |
             Adds a visual identifier to the beginning of the generated key for easier recognition in logs and dashboards.
             The prefix becomes part of the actual key string (e.g., 'prod_xxxxxxxxx').
@@ -1343,7 +1354,7 @@ components:
         name:
           type: string
           minLength: 1
-          maxLength: 200  # Human-readable names should be concise but descriptive
+          maxLength: 200 # Human-readable names should be concise but descriptive
           description: |
             Sets a human-readable identifier for internal organization and dashboard display.
             Never exposed to end users, only visible in management interfaces and API responses.
@@ -1351,8 +1362,8 @@ components:
           example: Payment Service Production Key
         byteLength:
           type: integer
-          minimum: 16  # Minimum secure key length
-          maximum: 255  # Reasonable upper bound for key generation
+          minimum: 16 # Minimum secure key length
+          maximum: 255 # Reasonable upper bound for key generation
           default: 16
           description: |
             Controls the cryptographic strength of the generated key in bytes.
@@ -1363,18 +1374,19 @@ components:
         externalId:
           type: string
           minLength: 1
-          maxLength: 255  # Match database varchar limits for external identifiers
+          maxLength: 255 # Match database varchar limits for external identifiers
           pattern: "^[a-zA-Z0-9_.-]+$"
           description: |
             Links this key to a user or entity in your system using your own identifier.
             Returned during verification to identify the key owner without additional database lookups.
             Essential for user-specific analytics, billing, and multi-tenant key management.
             Use your primary user ID, organization ID, or tenant ID for best results.
+            Accepts letters, numbers, underscores, dots, and hyphens for flexible identifier formats.
           example: user_912a841d
         meta:
           type: object
           additionalProperties: true
-          maxProperties: 100  # Prevent DoS while allowing rich metadata
+          maxProperties: 100 # Prevent DoS while allowing rich metadata
           description: |
             Stores arbitrary JSON metadata returned during key verification for contextual information.
             Eliminates additional database lookups during verification, improving performance for stateless services.
@@ -1391,11 +1403,11 @@ components:
               renewal: "2024-12-31"
         roles:
           type: array
-          maxItems: 100  # Reasonable limit for role assignments per key
+          maxItems: 100 # Reasonable limit for role assignments per key
           items:
             type: string
             minLength: 1
-            maxLength: 100  # Keep role names concise and readable
+            maxLength: 100 # Keep role names concise and readable
             pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
           description: |
             Assigns existing roles to this key for permission management through role-based access control.
@@ -1407,12 +1419,12 @@ components:
             - billing_reader
         permissions:
           type: array
-          maxItems: 1000  # Allow extensive permission sets for complex applications
+          maxItems: 1000 # Allow extensive permission sets for complex applications
           items:
             type: string
             minLength: 1
-            maxLength: 100  # Keep permission names concise and readable
-            pattern: "^[a-zA-Z][a-zA-Z0-9_.*-]*$"
+            maxLength: 100 # Keep permission names concise and readable
+            pattern: "^[a-zA-Z0-9_]+$"
           description: |
             Grants specific permissions directly to this key without requiring role membership.
             Use hierarchical naming patterns like 'resource.action' for logical organization.
@@ -1426,12 +1438,12 @@ components:
           type: integer
           format: int64
           minimum: 0
-          maximum: 4102444800000  # January 1, 2100 - reasonable future limit
+          maximum: 4102444800000 # January 1, 2100 - reasonable future limit
           description: |
             Sets when this key automatically expires as a Unix timestamp in milliseconds.
             Verification fails with code=EXPIRED immediately after this time passes.
             Omitting this field creates a permanent key that never expires.
-            
+
             Avoid setting timestamps in the past as they immediately invalidate the key.
             Keys expire based on server time, not client time, which prevents timezone-related issues.
             Essential for trial periods, temporary access, and security compliance requiring key rotation.
@@ -1445,7 +1457,7 @@ components:
               type: integer
               format: int64
               minimum: 0
-              maximum: 9223372036854775807  # Max int64 value
+              maximum: 9223372036854775807 # Max int64 value
               description: |
                 Sets the initial number of times this key can be used before becoming invalid.
                 Each verification reduces this count by the verification cost (default 1).
@@ -1461,13 +1473,13 @@ components:
                     - daily
                     - monthly
                   description: |
-                    Sets how often credits automatically refill. Daily refills occur at midnight UTC, 
+                    Sets how often credits automatically refill. Daily refills occur at midnight UTC,
                     while monthly refills support specific days via refillDay.
                     Choose daily for high-frequency APIs and monthly for subscription-based quotas.
                 amount:
                   type: integer
                   minimum: 1
-                  maximum: 1000000  # Reasonable upper bound for subscription quotas
+                  maximum: 1000000 # Reasonable upper bound for subscription quotas
                   description: |
                     Specifies how many credits to add during each refill cycle.
                     This amount gets added to remaining credits, not replaced, so unused credits carry over.
@@ -1476,7 +1488,7 @@ components:
                 refillDay:
                   type: integer
                   minimum: 1
-                  maximum: 31  # Valid calendar days
+                  maximum: 31 # Valid calendar days
                   description: |
                     Sets the day of month for monthly refills (1-31). Only valid with monthly interval.
                     Days beyond month length (like 31 in February) default to the last valid day.
@@ -1496,7 +1508,7 @@ components:
             Omitting this field creates unlimited usage, while setting null is not allowed during creation.
         ratelimits:
           type: array
-          maxItems: 50  # Reasonable limit for rate limit configurations per key
+          maxItems: 50 # Reasonable limit for rate limit configurations per key
           items:
             type: object
             required:
@@ -1507,10 +1519,10 @@ components:
               name:
                 type: string
                 minLength: 1
-                maxLength: 50  # Keep rate limit names concise and readable
+                maxLength: 50 # Keep rate limit names concise and readable
                 pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
                 description: |
-                  Identifies this rate limit uniquely within the key. Names must start with a letter and use semantic 
+                  Identifies this rate limit uniquely within the key. Names must start with a letter and use semantic
                   identifiers like 'requests', 'computations', or 'write_operations' rather than generic terms.
                   Duplicate names within the same key are not allowed.
                 example: requests
@@ -1518,7 +1530,7 @@ components:
                 type: integer
                 format: int64
                 minimum: 1
-                maximum: 1000000  # Reasonable upper bound for rate limits
+                maximum: 1000000 # Reasonable upper bound for rate limits
                 description: |
                   Sets the maximum operations allowed within the duration window.
                   When this limit is reached, verification fails with code=RATE_LIMITED until the window resets.
@@ -1527,10 +1539,10 @@ components:
               duration:
                 type: integer
                 format: int32
-                minimum: 1000  # 1 second minimum window
-                maximum: 2592000000  # 30 days maximum window
+                minimum: 1000 # 1 second minimum window
+                maximum: 2592000000 # 30 days maximum window
                 description: |
-                  Duration of the rate limit window in milliseconds. Common values include 60000 (1 minute), 
+                  Duration of the rate limit window in milliseconds. Common values include 60000 (1 minute),
                   3600000 (1 hour), and 86400000 (24 hours). The rate limit automatically resets after this period elapses.
                   Windows shorter than 1 second are not supported for performance reasons.
                 example: 60000
@@ -1632,13 +1644,21 @@ components:
       type: object
       properties:
         cursor:
-          description: Opaque token for retrieving the next set of results
-          example: cursor_xyz123
           type: string
+          minLength: 1
+          maxLength: 1024 # Reasonable upper bound for cursor tokens
+          description: |
+            Opaque pagination token for retrieving the next page of results.
+            Include this exact value in the cursor field of subsequent requests.
+            Cursors are temporary and may expire after extended periods.
+          example: eyJrZXkiOiJrZXlfMTIzNCIsInRzIjoxNjk5Mzc4ODAwfQ==
         hasMore:
-          description: Indicates if more results exist beyond this page
-          example: true
           type: boolean
+          description: |
+            Indicates whether additional results exist beyond this page.
+            When true, use the cursor to fetch the next page.
+            When false, you have reached the end of the result set.
+          example: true
       required:
         - hasMore
       additionalProperties: false
@@ -1935,15 +1955,20 @@ components:
         - ratelimits
     KeyCredits:
       type: object
-      description: Remaining requests for this key
+      description: Credit configuration and remaining balance for this key.
       properties:
         remaining:
           type: integer
-          description: Remaining credits
+          format: int64
+          minimum: -1 # -1 represents unlimited
+          maximum: 9223372036854775807
+          description: Number of credits remaining (-1 for unlimited).
+          example: 1000
         refill:
           "$ref": "#/components/schemas/KeyCreditsRefill"
       required:
         - remaining
+      additionalProperties: false
     KeyCreditsRefill:
       type: object
       properties:
@@ -1952,76 +1977,125 @@ components:
           enum:
             - daily
             - monthly
-          description: Refill interval
+          description: How often credits are automatically refilled.
+          example: daily
         amount:
           type: integer
-          description: Amount to refill
+          format: int64
+          minimum: 1
+          maximum: 1000000
+          description: Number of credits added during each refill.
+          example: 100
         refillDay:
           type: integer
-          description: Day of the month when refill happens (for monthly interval)
+          minimum: 1
+          maximum: 31
+          description: Day of month for monthly refills (1-31).
+          example: 1
         lastRefillAt:
           type: integer
           format: int64
-          description: Last time the key was refilled (Unix timestamp)
+          minimum: 0
+          maximum: 9223372036854775807
+          description: Unix timestamp in milliseconds of last refill.
+          example: 1701425400000
       required:
         - interval
         - amount
+      additionalProperties: false
     KeyResponse:
       type: object
       properties:
         keyId:
           type: string
-          description: The key ID
+          minLength: 8
+          maxLength: 255
+          pattern: "^key_[a-zA-Z0-9_]+$"
+          description: Unique identifier for this key.
+          example: key_1234567890abcdef
         start:
           type: string
-          description: The first few characters of the key
+          minLength: 1
+          maxLength: 50
+          description: First few characters of the key for identification.
+          example: sk_test_abc123
         name:
           type: string
-          description: Optional name for the key
+          maxLength: 255
+          description: Human-readable name for this key.
+          example: Production API Key
         meta:
           type: object
-          description: Optional metadata for the key
+          additionalProperties: true
+          maxProperties: 100
+          description: Custom metadata associated with this key.
+          example:
+            plan: premium
+            region: us-east-1
         createdAt:
           type: integer
           format: int64
-          description: When the key was created (Unix timestamp)
+          minimum: 0
+          maximum: 9223372036854775807
+          description: Unix timestamp in milliseconds when key was created.
+          example: 1701425400000
         updatedAt:
           type: integer
           format: int64
-          description: When the key was last updated (Unix timestamp)
+          minimum: 0
+          maximum: 9223372036854775807
+          description: Unix timestamp in milliseconds when key was last updated.
+          example: 1701425400000
         expires:
           type: integer
           format: int64
-          description: When the key expires (Unix timestamp)
+          minimum: 0
+          maximum: 9223372036854775807
+          description: Unix timestamp in milliseconds when key expires.
+          example: 1733000000000
         credits:
           "$ref": "#/components/schemas/KeyCredits"
         environment:
           type: string
-          description: Optional environment tag
+          maxLength: 100
+          pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+          description: Environment tag for this key.
+          example: production
         plaintext:
           type: string
-          description: The decrypted key value (only included if decrypt=true)
+          description: Decrypted key value (only when decrypt=true).
+          example: sk_test_abc123def456
         roles:
           type: array
+          maxItems: 100
           items:
             type: string
-          description: Roles assigned to this key
+            minLength: 1
+            maxLength: 255
+          description: Role names assigned to this key.
+          example: ["admin", "user"]
         permissions:
           type: array
+          maxItems: 100
           items:
             type: string
-          description: Permissions assigned to this key
+            minLength: 1
+            maxLength: 255
+          description: Permission names assigned to this key.
+          example: ["users.read", "posts.write"]
         identity:
           "$ref": "#/components/schemas/Identity"
         ratelimits:
           type: array
+          maxItems: 50
           items:
             "$ref": "#/components/schemas/RatelimitResponse"
-          description: Rate limits applied to this key
+          description: Rate limit configurations for this key.
       required:
         - keyId
         - start
         - createdAt
+      additionalProperties: false
     LivenessResponseData:
       type: object
       properties:
@@ -2045,21 +2119,38 @@ components:
       properties:
         id:
           type: string
-          description: The unique identifier for this rate limit
+          minLength: 8
+          maxLength: 255
+          pattern: "^rl_[a-zA-Z0-9_]+$"
+          description: Unique identifier for this rate limit configuration.
+          example: rl_1234567890abcdef
         name:
           type: string
-          description: The name of the rate limit
+          minLength: 1
+          maxLength: 128
+          pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+          description: Human-readable name for this rate limit.
+          example: api_requests
         limit:
           type: integer
-          description: The maximum number of requests allowed within the duration
+          format: int64
+          minimum: 1
+          maximum: 1000000
+          description: Maximum requests allowed within the time window.
+          example: 1000
         duration:
           type: integer
-          description: The duration of the rate limit window in milliseconds
+          format: int64
+          minimum: 1000
+          maximum: 2592000000
+          description: Rate limit window duration in milliseconds.
+          example: 3600000
       required:
         - id
         - name
         - limit
         - duration
+      additionalProperties: false
     V2LivenessResponseBody:
       type: object
       required:
@@ -2286,75 +2377,63 @@ components:
       additionalProperties: false
       properties:
         namespace:
-          description: |-
-            The namespace name for the rate limit. Namespaces provide a way to organize and segment different rate limits in your application.
-
-            Best practices for namespaces:
-            - Use descriptive, hierarchical names (e.g., 'auth.login', 'api.requests', 'media.uploads')
-            - Create separate namespaces for different resources or operations
-            - Keep naming conventions consistent across your application
-            - Consider service or feature-based namespaces for easier monitoring
-
-            Namespaces are unique within your workspace, so choose names that clearly indicate their purpose.
           type: string
-          example: sms.sign_up
           minLength: 1
-          maxLength: 255
+          maxLength: 255 # Reasonable upper bound for namespace identifiers
+          pattern: "^[a-zA-Z][a-zA-Z0-9_./-]*$"
+          description: |
+            Identifies the rate limit category using hierarchical naming for organization and monitoring.
+            Namespaces must start with a letter and can contain letters, numbers, underscores, dots, slashes, or hyphens.
+            Use descriptive, hierarchical names like 'auth.login', 'api.requests', or 'media.uploads' for clear categorization.
+            Namespaces must be unique within your workspace and support segmentation of different API operations.
+            Consistent naming conventions across your application improve monitoring and debugging capabilities.
+          example: sms.sign_up
         cost:
-          description: |-
-            The cost of the request against the rate limit. This allows different operations to consume varying amounts of the rate limit quota.
-
-            Common use cases:
-            - Set to 1 (default) for standard operations
-            - Set higher values (e.g., 5, 10) for resource-intensive operations
-            - Set to 0 for operations that should be tracked but not count against limits
-            - Use weighted costs to implement fair queuing or priority systems
-
-            When the total accrued cost exceeds the limit within the duration window, subsequent requests will be rejected.
-          format: int64
           type: integer
-          default: 1
+          format: int64
           minimum: 0
+          maximum: 1000 # Reasonable upper bound for operation costs
+          default: 1
+          description: |
+            Sets how much of the rate limit quota this request consumes, enabling weighted rate limiting.
+            Use higher values for resource-intensive operations and 0 for tracking without limiting.
+            When accumulated cost exceeds the limit within the duration window, subsequent requests are rejected.
+            Essential for implementing fair usage policies and preventing resource abuse through expensive operations.
+          example: 5
         duration:
-          description: |-
-            The duration in milliseconds for the rate limit window. After this period elapses, the rate limit counter resets.
-
-            Common values:
-            - 1000 (1 second): For very strict, per-second limits
-            - 60000 (1 minute): For standard API rate limiting
-            - 3600000 (1 hour): For less frequent but resource-intensive operations
-            - 86400000 (24 hours): For daily quotas
-
-            The duration affects how quickly users can retry after hitting limits. Shorter durations allow faster recovery but may be less effective against certain abuse patterns.
-          format: int64
           type: integer
-          minimum: 1000
-          maximum: 86400000
+          format: int64
+          minimum: 1000 # 1 second minimum window
+          maximum: 2592000000 # 30 days maximum window
+          description: |
+            Sets the rate limit window duration in milliseconds after which the counter resets.
+            Shorter durations enable faster recovery but may be less effective against sustained abuse.
+            Common values include 60000 (1 minute), 3600000 (1 hour), and 86400000 (24 hours).
+            Balance user experience with protection needs when choosing window sizes.
+          example: 60000
         identifier:
-          description: |-
-            The unique identifier for the entity being rate limited. This defines the scope of the rate limit and is typically:
-
-            - A user ID for per-user limits
-            - An IP address for anonymous rate limiting
-            - An API key ID for per-key limits
-            - A session ID for per-session limits
-            - A tenant/organization ID for organizational limits
-
-            The same identifier can be used across different namespaces to apply multiple types of limits to the same entity.
           type: string
+          minLength: 1
+          maxLength: 255 # Reasonable upper bound for identifiers
+          pattern: "^[a-zA-Z0-9_.:/-]+$"
+          description: |
+            Defines the scope of rate limiting by identifying the entity being limited.
+            Use user IDs for per-user limits, IP addresses for anonymous limiting, or API key IDs for per-key limits.
+            Accepts letters, numbers, underscores, dots, colons, slashes, and hyphens for flexible identifier formats.
+            The same identifier can be used across different namespaces to apply multiple rate limit types.
+            Choose identifiers that provide appropriate granularity for your rate limiting strategy.
+          example: "user_12345"
         limit:
-          description: |-
-            The maximum number of operations (adjusted by cost) allowed within the time window. When this limit is reached, subsequent requests will be rejected with a RATE_LIMITED response.
-
-            Considerations for setting limits:
-            - Balance between user experience and resource protection
-            - Different limits for different user tiers or subscription levels
-            - Higher limits for authenticated vs. unauthenticated requests
-            - System capacity and scaling limitations
-            - Business requirements and fair usage policies
-          format: int64
           type: integer
+          format: int64
           minimum: 1
+          maximum: 1000000 # Reasonable upper bound for rate limits
+          description: |
+            Sets the maximum operations allowed within the duration window before requests are rejected.
+            When this limit is reached, subsequent requests fail with RATE_LIMITED until the window resets.
+            Balance user experience with resource protection when setting limits for different user tiers.
+            Consider system capacity, business requirements, and fair usage policies in limit determination.
+          example: 1000
       required:
         - namespace
         - identifier
@@ -2502,59 +2581,43 @@ components:
         externalId:
           type: string
           minLength: 3
+          maxLength: 255 # Match database varchar limits for external identifiers
+          pattern: "^[a-zA-Z0-9_.-]+$"
           description: |
-            The id of this identity in your system.
+            Creates an identity using your system's unique identifier for a user, organization, or entity.
+            Must be stable and unique across your workspace - duplicate externalIds return CONFLICT errors.
+            This identifier links Unkey identities to your authentication system, database records, or tenant structure.
 
-            This should be a stable, unique identifier that represents a user, organization, or entity in your application. Common sources include:
-            - User IDs from your authentication system
-            - Organization/tenant IDs
-            - Customer IDs from your database
-            - Email addresses (if they serve as stable identifiers)
-
-            Best practices:
-            - Use consistent identifier types across your application
-            - Prefer UUIDs or opaque IDs over sequential numbers
-            - Ensure the ID remains stable even if other user properties change
-            - Consider namespace prefixing (e.g., 'user_123', 'org_456') for clarity
-
-            `externalId`s are unique across your workspace and therefore a `CONFLICT` error is returned when you try to create duplicates.
+            Avoid changing externalIds after creation as this breaks the link between your systems.
+            Use consistent identifier patterns across your application for easier management and debugging.
+            Accepts letters, numbers, underscores, dots, and hyphens for flexible identifier formats.
+            Essential for implementing proper multi-tenant isolation and user-specific rate limiting.
           example: user_123
         meta:
           type: object
+          additionalProperties: true
+          maxProperties: 100 # Prevent DoS while allowing rich metadata
           description: |
-            Attach metadata to this identity that you need to have access to when verifying a key.
+            Stores arbitrary JSON metadata returned during key verification for contextual information.
+            Eliminates additional database lookups during verification, improving performance for stateless services.
+            Avoid storing sensitive data here as it's returned in verification responses.
 
-            Metadata lets you store context with the identity that will be accessible during key verification without additional database lookups. This improves performance and reduces dependencies.
-
-            Common metadata uses:
-            - User profile information (name, email, etc.)
-            - Subscription or plan details
-            - Feature flags and entitlements
-            - Usage limits or quotas
-            - Organization information
-            - Region or localization preferences
-
-            This data is returned as-is in the `verifyKey` response when verifying any key associated with this identity.
-
-            Note: Metadata should be kept reasonably small as it affects verification performance. For large data sets, consider storing only identifiers or essential information.
+            Large metadata objects increase verification latency and should stay under 10KB total size.
+            Use this for subscription details, feature flags, user preferences, and organization information.
+            Metadata is returned as-is whenever keys associated with this identity are verified.
         ratelimits:
           type: array
+          maxItems: 50 # Reasonable limit for rate limit configurations per identity
           items:
             "$ref": "#/components/schemas/Ratelimit"
           description: |
-            Attach ratelimits to this identity.
+            Defines shared rate limits that apply to all keys belonging to this identity.
+            Prevents abuse by users with multiple keys by enforcing consistent limits across their entire key portfolio.
+            Essential for implementing fair usage policies and tiered access levels in multi-tenant applications.
 
-            Identity-based rate limits provide shared rate limiting across all keys belonging to the same identity. This is essential for:
-
-            - Implementing fair usage policies across multiple API keys
-            - Preventing abuse by users with multiple keys
-            - Enforcing consistent limits regardless of how many keys a user creates
-            - Creating tiered access levels with different rate limits
-
-            How it works:
-            - Rate limits defined here apply to all keys that share this identity
-            - During verification, specify which named limits to check
-            - Counters are shared across all keys with this identity
+            Rate limit counters are shared across all keys with this identity, regardless of how many keys the user creates.
+            During verification, specify which named limits to check for enforcement.
+            Identity rate limits supplement any key-specific rate limits that may also be configured.
             - Each named limit can have different thresholds and windows
 
             When verifying keys, you can specify which limits you want to use and all keys attached to this identity will share the limits, regardless of which specific key is used.
@@ -2791,24 +2854,59 @@ components:
       properties:
         id:
           type: string
-          description: The unique identifier for the permission
+          minLength: 3
+          maxLength: 255
+          pattern: "^perm_[a-zA-Z0-9_]+$"
+          description: |
+            The unique identifier for this permission within Unkey's system.
+            Generated automatically when the permission is created and used to reference this permission in API operations.
+            Always begins with 'perm_' followed by alphanumeric characters and underscores.
+          example: perm_1234567890abcdef
         name:
           type: string
-          description: The unique name of the permission
+          minLength: 1
+          maxLength: 512
+          description: |
+            The human-readable name for this permission that describes its purpose.
+            Should be descriptive enough for developers to understand what access it grants.
+            Use clear, semantic names that reflect the resources or actions being permitted.
+            Names must be unique within your workspace to avoid confusion and conflicts.
+          example: "users.read"
         description:
           type: string
-          description: A description of what this permission grants access to
+          maxLength: 2048
+          description: |
+            Optional detailed explanation of what this permission grants access to.
+            Helps team members understand the scope and implications of granting this permission.
+            Include information about what resources can be accessed and what actions can be performed.
+            Not visible to end users - this is for internal documentation and team clarity.
+          example: "Allows reading user profile information and account details"
         workspaceId:
           type: string
-          description: The workspace this permission belongs to
+          minLength: 3
+          maxLength: 255
+          pattern: "^ws_[a-zA-Z0-9_]+$"
+          description: |
+            The workspace that owns this permission.
+            Permissions are scoped to workspaces and cannot be shared across workspace boundaries.
+            Always begins with 'ws_' followed by alphanumeric characters and underscores.
+          example: ws_1234567890abcdef
         createdAt:
-          type: string
-          format: date-time
-          description: When the permission was created
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9223372036854775807 # Max int64 value for future-proofing
+          description: |
+            Unix timestamp in milliseconds indicating when this permission was first created.
+            Useful for auditing and understanding the evolution of your permission structure.
+            Automatically set by the system and cannot be modified.
+          example: 1701425400000
       required:
         - id
         - name
         - workspaceId
+        - createdAt
+      additionalProperties: false
     V2PermissionsCreatePermissionRequestBody:
       type: object
       required:
@@ -2819,35 +2917,61 @@ components:
           type: string
           minLength: 1
           maxLength: 512
-          description: The unique name of your permission
-          example: record.write
+          description: |
+            Creates a permission with this human-readable name that describes its purpose.
+            Names must be unique within your workspace to prevent conflicts during assignment.
+            Use clear, semantic names that developers can easily understand when building authorization logic.
+            Consider using hierarchical naming conventions like 'resource.action' for better organization.
+
+            Examples: 'users.read', 'billing.write', 'analytics.view', 'admin.manage'
+          example: "users.read"
         slug:
           type: string
           minLength: 1
           maxLength: 128
-          pattern: "^[a-zA-Z0-9._-]+$"
-          description:
-            The unique slug identifier for your permission, used for URL-safe
-            references. Only alphanumeric characters, periods, underscores, and dashes
-            are allowed.
-          example: record-write
+          pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+          description: |
+            Creates a URL-safe identifier for this permission that can be used in APIs and integrations.
+            Must start with a letter and contain only letters, numbers, periods, underscores, and hyphens.
+            Slugs are often used in REST endpoints, configuration files, and external integrations.
+            Should closely match the name but in a format suitable for technical usage.
+            Must be unique within your workspace to ensure reliable permission lookups.
+
+            Keep slugs concise but descriptive for better developer experience.
+          example: "users-read"
         description:
           type: string
-          description:
-            Explain what this permission does. This is just for your team,
-            your users will not see this.
-          example: record.write can create new dns records for our domains.
-          maxLength: 512
+          maxLength: 2048
+          description: |
+            Provides detailed documentation of what this permission grants access to.
+            Include information about affected resources, allowed actions, and any important limitations.
+            This internal documentation helps team members understand permission scope and security implications.
+            Not visible to end users - designed for development teams and security audits.
+
+            Consider documenting:
+            - What resources can be accessed
+            - What operations are permitted
+            - Any conditions or limitations
+            - Related permissions that might be needed
+          example: "Grants read-only access to user profile information, account settings, and subscription status. Does not include access to payment methods or billing history."
       additionalProperties: false
     PermissionsCreatePermissionResponseData:
       type: object
       properties:
         permissionId:
           type: string
-          description: The id of the permission. This is used internally
-          example: perm_123
+          minLength: 3
+          maxLength: 255
+          pattern: "^perm_[a-zA-Z0-9_]+$"
+          description: |
+            The unique identifier assigned to the newly created permission.
+            Use this ID to reference the permission in role assignments, key operations, and other API calls.
+            Always begins with 'perm_' followed by a unique alphanumeric sequence.
+            Store this ID if you need to manage or reference this permission in future operations.
+          example: perm_1234567890abcdef
       required:
         - permissionId
+      additionalProperties: false
     V2PermissionsCreatePermissionResponseBody:
       type: object
       required:
@@ -2865,9 +2989,15 @@ components:
       properties:
         permissionId:
           type: string
-          minLength: 1
-          description: The id of the permission to retrieve
-          example: perm_123
+          minLength: 3
+          maxLength: 255
+          pattern: "^perm_[a-zA-Z0-9_]+$"
+          description: |
+            Specifies which permission to retrieve by its unique identifier.
+            Must be a valid permission ID that begins with 'perm_' and exists within your workspace.
+            Use this endpoint to verify permission details, check its current configuration, or retrieve metadata.
+            Returns detailed information including name, description, and workspace association.
+          example: perm_1234567890abcdef
       additionalProperties: false
     PermissionsGetPermissionResponseData:
       type: object
@@ -2876,6 +3006,8 @@ components:
           "$ref": "#/components/schemas/Permission"
       required:
         - permission
+      additionalProperties: false
+      description: Complete permission details including ID, name, and metadata.
     V2PermissionsGetPermissionResponseBody:
       type: object
       required:
@@ -2891,12 +3023,29 @@ components:
       properties:
         cursor:
           type: string
-          description: Cursor for pagination
+          maxLength: 1024
+          description: |
+            Pagination cursor from a previous response to fetch the next page of permissions.
+            Include this value when you need to retrieve additional permissions beyond the initial response.
+            Each response containing more results than the requested limit includes a cursor for subsequent pages.
+
+            Leave empty or omit this field to start from the beginning of the permission list.
+            Cursors are temporary and may expire - always handle cases where a cursor becomes invalid.
+          example: "eyJrZXkiOiJwZXJtXzEyMzQifQ=="
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 100
+          description: Maximum number of permissions to return in a single response.
+          example: 50
       additionalProperties: false
     PermissionsListPermissionsResponseData:
       type: array
+      maxItems: 1000 # DoS protection while allowing reasonable batch sizes
       items:
         "$ref": "#/components/schemas/Permission"
+      description: Array of permission objects with complete configuration details.
     V2PermissionsListPermissionsResponseBody:
       type: object
       required:
@@ -2909,24 +3058,38 @@ components:
           "$ref": "#/components/schemas/PermissionsListPermissionsResponseData"
         pagination:
           "$ref": "#/components/schemas/Pagination"
+      additionalProperties: false
     V2PermissionsListRolesRequestBody:
       type: object
       properties:
         limit:
           type: integer
-          format: int32
-          description: The maximum number of roles to return
-          default: 100
           minimum: 1
           maximum: 100
+          default: 100
+          description: |
+            Maximum number of roles to return in a single response.
+            Use smaller values for faster response times and better UI performance.
+            Use larger values when you need to process many roles efficiently.
+            Results exceeding this limit will be paginated with a cursor for continuation.
+          example: 50
         cursor:
           type: string
-          description: Cursor for pagination
+          maxLength: 1024
+          description: |
+            Pagination cursor from a previous response to fetch the next page of roles.
+            Include this when you need to retrieve additional roles beyond the first page.
+            Each response containing more results will include a cursor value that can be used here.
+            Leave empty or omit this field to start from the beginning of the role list.
+          example: "eyJrZXkiOiJyb2xlXzEyMzQifQ=="
       additionalProperties: false
     PermissionsListRolesResponseData:
       type: array
+      maxItems: 1000
       items:
         "$ref": "#/components/schemas/RoleWithPermissions"
+      description: Array of roles with their assigned permissions.
+
     V2PermissionsDeleteRoleRequestBody:
       type: object
       required:
@@ -2934,9 +3097,25 @@ components:
       properties:
         roleId:
           type: string
-          minLength: 1
-          description: The id of the role to delete
-          example: role_123
+          minLength: 8
+          maxLength: 255
+          pattern: "^role_[a-zA-Z0-9_]+$"
+          description: |
+            Unique identifier of the role to permanently delete from your workspace.
+            Must be a valid role ID that begins with 'role_' and exists within your workspace.
+
+            WARNING: Deletion is immediate and irreversible with significant consequences:
+            - All API keys assigned this role will lose the associated permissions
+            - Access to resources protected by this role's permissions will be denied
+            - Any authorization logic depending on this role will start failing
+            - Historical analytics and audit logs referencing this role remain intact
+
+            Before deletion, ensure:
+            - You have the correct role ID (verify the role name and permissions)
+            - You've updated any dependent authorization logic or code
+            - You've migrated any keys to use alternative roles or direct permissions
+            - You've notified relevant team members of the access changes
+          example: role_dns_manager
       additionalProperties: false
     V2PermissionsDeleteRoleResponseBody:
       type: object
@@ -2945,6 +3124,7 @@ components:
       properties:
         meta:
           "$ref": "#/components/schemas/Meta"
+      additionalProperties: false
     V2PermissionsListRolesResponseBody:
       type: object
       required:
@@ -2957,6 +3137,7 @@ components:
           "$ref": "#/components/schemas/PermissionsListRolesResponseData"
         pagination:
           "$ref": "#/components/schemas/Pagination"
+      additionalProperties: false
     V2PermissionsDeletePermissionRequestBody:
       type: object
       required:
@@ -2964,9 +3145,24 @@ components:
       properties:
         permissionId:
           type: string
-          minLength: 1
-          description: The id of the permission to delete
-          example: perm_123
+          minLength: 3
+          maxLength: 255
+          pattern: "^perm_[a-zA-Z0-9_]+$"
+          description: |
+            Specifies which permission to permanently delete from your workspace.
+
+            WARNING: Deleting a permission has immediate and irreversible consequences:
+            - All API keys with this permission will lose that access immediately
+            - All roles containing this permission will have it removed
+            - Any verification requests checking for this permission will fail
+            - This action cannot be undone
+
+            Before deletion, ensure you:
+            - Have updated any keys or roles that depend on this permission
+            - Have migrated to alternative permissions if needed
+            - Have notified affected users about the access changes
+            - Have the correct permission ID (double-check against your permission list)
+          example: perm_1234567890abcdef
       additionalProperties: false
     V2PermissionsDeletePermissionResponseBody:
       type: object
@@ -2975,6 +3171,7 @@ components:
       properties:
         meta:
           "$ref": "#/components/schemas/Meta"
+      additionalProperties: false
     V2PermissionsCreateRoleRequestBody:
       type: object
       required:
@@ -2984,25 +3181,55 @@ components:
           type: string
           minLength: 1
           maxLength: 512
-          description: The unique name of your role
-          example: dns.records.manager
+          pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+          description: |
+            Creates a role with this unique name that groups related permissions together.
+            Names must be unique within your workspace to prevent conflicts during assignment.
+            Use descriptive names that clearly indicate the role's purpose and scope of access.
+            Consider hierarchical naming conventions like 'department.function' for better organization.
+
+            Role names should be:
+            - Descriptive enough to understand their purpose
+            - Consistent with your organization's naming conventions
+            - Unique to avoid confusion during role assignment
+            - Focused on a specific function or responsibility
+
+            Examples: 'admin.billing', 'support.readonly', 'developer.api', 'manager.analytics'
+          example: "support.readonly"
         description:
           type: string
-          description:
-            Explain what this role does. This is just for your team, your
-            users will not see this.
-          example: dns.records.manager can read and write dns records for our domains.
-          maxLength: 512
+          maxLength: 2048
+          description: |
+            Provides comprehensive documentation of what this role encompasses and what access it grants.
+            Include information about the intended use case, what permissions should be assigned, and any important considerations.
+            This internal documentation helps team members understand role boundaries and security implications.
+            Not visible to end users - designed for administration teams and access control audits.
+
+            Consider documenting:
+            - The role's intended purpose and scope
+            - What types of users should receive this role
+            - What permissions are typically associated with it
+            - Any security considerations or limitations
+            - Related roles that might be used together
+          example: "Provides read-only access for customer support representatives. Includes permissions to view user accounts, support tickets, and basic analytics. Does not include access to billing, admin functions, or data modification capabilities."
       additionalProperties: false
     PermissionsCreateRoleResponseData:
       type: object
       properties:
         roleId:
           type: string
-          description: The id of the role. This is used internally
-          example: role_123
+          minLength: 3
+          maxLength: 255
+          pattern: "^role_[a-zA-Z0-9_]+$"
+          description: |
+            The unique identifier assigned to the newly created role.
+            Use this ID to reference the role in permission assignments, key operations, and role management calls.
+            Always begins with 'role_' followed by a unique alphanumeric sequence.
+            Store this ID if you need to manage, modify, or assign this role in future operations.
+          example: role_1234567890abcdef
       required:
         - roleId
+      additionalProperties: false
     V2PermissionsCreateRoleResponseBody:
       type: object
       required:
@@ -3018,53 +3245,129 @@ components:
       properties:
         id:
           type: string
-          description: The unique identifier for the role
+          minLength: 3
+          maxLength: 255
+          pattern: "^role_[a-zA-Z0-9_]+$"
+          description: |
+            The unique identifier for this role within Unkey's system.
+            Generated automatically when the role is created and used to reference this role in API operations.
+            Always begins with 'role_' followed by alphanumeric characters and underscores.
+          example: role_1234567890abcdef
         name:
           type: string
-          description: The unique name of the role
+          minLength: 1
+          maxLength: 512
+          description: |
+            The human-readable name for this role that describes its function.
+            Should be descriptive enough for administrators to understand what access this role provides.
+            Use clear, semantic names that reflect the job function or responsibility level.
+            Names must be unique within your workspace to avoid confusion during role assignment.
+          example: "support.readonly"
         description:
           type: string
-          description: A description of what this role represents
+          maxLength: 2048
+          description: |
+            Optional detailed explanation of what this role encompasses and what access it provides.
+            Helps team members understand the role's scope, intended use cases, and security implications.
+            Include information about what types of users should receive this role and what they can accomplish.
+            Not visible to end users - this is for internal documentation and access control audits.
+          example: "Provides read-only access for customer support representatives to view user accounts and support tickets"
         workspaceId:
           type: string
-          description: The workspace this role belongs to
+          minLength: 3
+          maxLength: 255
+          pattern: "^ws_[a-zA-Z0-9_]+$"
+          description: |
+            The workspace that owns this role.
+            Roles are scoped to workspaces and cannot be shared across workspace boundaries.
+            Always begins with 'ws_' followed by alphanumeric characters and underscores.
+          example: ws_1234567890abcdef
         createdAt:
-          type: string
-          format: date-time
-          description: When the role was created
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9223372036854775807 # Max int64 value for future-proofing
+          description: |
+            Unix timestamp in milliseconds indicating when this role was first created.
+            Useful for auditing and understanding the evolution of your access control structure.
+            Automatically set by the system and cannot be modified.
+          example: 1701425400000
       required:
         - id
         - name
         - workspaceId
+        - createdAt
+      additionalProperties: false
     RoleWithPermissions:
       type: object
       properties:
         id:
           type: string
-          description: The unique identifier for the role
+          minLength: 3
+          maxLength: 255
+          pattern: "^role_[a-zA-Z0-9_]+$"
+          description: |
+            The unique identifier for this role within Unkey's system.
+            Generated automatically when the role is created and used to reference this role in API operations.
+            Always begins with 'role_' followed by alphanumeric characters and underscores.
+          example: role_1234567890abcdef
         name:
           type: string
-          description: The unique name of the role
+          minLength: 1
+          maxLength: 512
+          description: |
+            The human-readable name for this role that describes its function.
+            Should be descriptive enough for administrators to understand what access this role provides.
+            Use clear, semantic names that reflect the job function or responsibility level.
+            Names must be unique within your workspace to avoid confusion during role assignment.
+          example: "support.readonly"
         description:
           type: string
-          description: A description of what this role represents
+          maxLength: 2048
+          description: |
+            Optional detailed explanation of what this role encompasses and what access it provides.
+            Helps team members understand the role's scope, intended use cases, and security implications.
+            Include information about what types of users should receive this role and what they can accomplish.
+            Not visible to end users - this is for internal documentation and access control audits.
+          example: "Provides read-only access for customer support representatives to view user accounts and support tickets"
         workspaceId:
           type: string
-          description: The workspace this role belongs to
+          minLength: 3
+          maxLength: 255
+          pattern: "^ws_[a-zA-Z0-9_]+$"
+          description: |
+            The workspace that owns this role.
+            Roles are scoped to workspaces and cannot be shared across workspace boundaries.
+            Always begins with 'ws_' followed by alphanumeric characters and underscores.
+          example: ws_1234567890abcdef
         createdAt:
-          type: string
-          format: date-time
-          description: When the role was created
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9223372036854775807 # Max int64 value for future-proofing
+          description: |
+            Unix timestamp in milliseconds indicating when this role was first created.
+            Useful for auditing and understanding the evolution of your access control structure.
+            Automatically set by the system and cannot be modified.
+          example: 1701425400000
         permissions:
           type: array
           items:
             "$ref": "#/components/schemas/Permission"
-          description: The permissions assigned to this role
+          maxItems: 100
+          description: |
+            Complete list of permissions currently assigned to this role.
+            Each permission grants specific access rights that will be inherited by any keys or users assigned this role.
+            Use this list to understand the full scope of access provided by this role.
+            Permissions can be added or removed from roles without affecting the role's identity or other properties.
+            Empty array indicates a role with no permissions currently assigned.
       required:
         - id
         - name
         - workspaceId
         - permissions
+        - createdAt
+      additionalProperties: false
     V2PermissionsGetRoleRequestBody:
       type: object
       required:
@@ -3072,9 +3375,15 @@ components:
       properties:
         roleId:
           type: string
-          minLength: 1
-          description: The id of the role to retrieve
-          example: role_123
+          minLength: 3
+          maxLength: 255
+          pattern: "^role_[a-zA-Z0-9_]+$"
+          description: |
+            Specifies which role to retrieve by its unique identifier.
+            Must be a valid role ID that begins with 'role_' and exists within your workspace.
+            Use this endpoint to verify role details, check its current permissions, or retrieve metadata.
+            Returns complete role information including all assigned permissions for comprehensive access review.
+          example: role_1234567890abcdef
       additionalProperties: false
     PermissionsGetRoleResponseData:
       type: object
@@ -3083,6 +3392,8 @@ components:
           "$ref": "#/components/schemas/RoleWithPermissions"
       required:
         - role
+      additionalProperties: false
+      description: Complete role details including assigned permissions.
     V2PermissionsGetRoleResponseBody:
       type: object
       required:
@@ -3093,6 +3404,7 @@ components:
           "$ref": "#/components/schemas/Meta"
         data:
           "$ref": "#/components/schemas/PermissionsGetRoleResponseData"
+      additionalProperties: false
     V2ApisCreateApiRequestBody:
       type: object
       required:
@@ -3101,34 +3413,47 @@ components:
         name:
           type: string
           minLength: 3
-          description: |-
-            The name for your API. This is an internal identifier used for organization and not shown to end users. APIs are containers for groups of keys and provide isolation between different environments or services.
+          maxLength: 255 # Reasonable upper bound for API names
+          pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$" # Must start with letter, then alphanumeric/underscore/dot/hyphen
+          description: |
+            Creates an API with this name as an internal identifier for organization and isolation.
+            APIs serve as containers for groups of keys and provide namespace separation between environments or services.
+            Names must be unique within your workspace and are not shown to end users.
 
-            Best practices for API names:
-            - Use descriptive names that identify the purpose or environment
-            - Include environment indicators (e.g., 'payment-service-production', 'auth-service-staging')
-            - Use consistent naming conventions across your organization
-            - Keep names relatively short but informative
+            Use descriptive names that clearly identify the API's purpose and environment:
+            - Include environment indicators like 'production', 'staging', 'development'
+            - Use service-based naming like 'payment-service', 'user-management', 'analytics'
+            - Follow consistent naming conventions across your organization
+            - Keep names concise but informative for easy identification
 
-            Common patterns include:
-            - Environment separation: 'production-api', 'staging-api', 'development-api'
-            - Service-based: 'payment-service', 'user-management', 'data-analytics'
-            - Product-based: 'premium-tier', 'free-tier', 'internal-tools'
+            Must start with a letter and contain only letters, numbers, underscores, dots, and hyphens.
+            Avoid generic names like 'api' or 'main' that don't provide meaningful context.
           example: payment-service-production
       additionalProperties: false
     ApisCreateApiResponseData:
       type: object
       properties:
         apiId:
-          description:
-            The unique identifier for the newly created API (begins with
-            'api_'). This ID is used in all subsequent operations related to this
-            API, including key creation, key verification, and API management. Store
-            this ID securely as it's required when creating keys within this API namespace.
           type: string
+          minLength: 8
+          maxLength: 255
+          pattern: "^api_[a-zA-Z0-9_]+$"
+          description: |
+            The unique identifier assigned to the newly created API.
+            Use this ID for all subsequent operations including key creation, verification, and API management.
+            Always begins with 'api_' followed by a unique alphanumeric sequence.
+
+            Store this ID securely as it's required when:
+            - Creating API keys within this namespace
+            - Verifying keys associated with this API
+            - Managing API settings and metadata
+            - Listing keys belonging to this API
+
+            This identifier is permanent and cannot be changed after creation.
           example: api_2cGKbMxRjIzhCxo1IdjH3a
       required:
         - apiId
+      additionalProperties: false
     V2ApisDeleteApiRequestBody:
       type: object
       required:
@@ -3136,20 +3461,29 @@ components:
       properties:
         apiId:
           type: string
-          minLength: 3
-          description: |-
-            The id of the API you want to delete (begins with 'api_').
+          minLength: 8
+          maxLength: 255
+          pattern: "^api_[a-zA-Z0-9_]+$"
+          description: |
+            Specifies which API to permanently delete from your workspace.
+            Must be a valid API ID that begins with 'api_' and exists within your workspace.
 
-            WARNING: Deleting an API has significant consequences:
-            - All keys associated with this API will be invalidated immediately
-            - Verification attempts for these keys will fail with code=NOT_FOUND
-            - This action cannot be undone
+            CRITICAL WARNING: Deletion is immediate and irreversible with severe consequences:
+            - ALL keys associated with this API become invalid instantly
+            - Verification requests for these keys will fail with code=NOT_FOUND
+            - Client applications using these keys will lose access immediately
+            - Analytics data and key metadata are permanently removed
+            - This operation cannot be undone under any circumstances
 
-            Before deletion, ensure that:
-            - You have the correct API ID (check the environment/service)
-            - You have migrated any needed keys to a new API
-            - You have updated all client applications to use new keys
-            - You have backed up any important metadata or analytics
+            Before proceeding, ensure you have:
+            - Verified the correct API ID (double-check environment and service)
+            - Migrated all active keys to alternative APIs
+            - Updated all client applications to use replacement keys
+            - Backed up critical analytics data and key configurations
+            - Notified all stakeholders of the service interruption
+            - Tested replacement systems in non-production environments
+
+            Consider disabling keys first to test impact before permanent deletion.
           example: api_VNcuGfVjUkrVcWJmda0A
       additionalProperties: false
     V2ApisGetApiRequestBody:
@@ -3159,34 +3493,50 @@ components:
       properties:
         apiId:
           type: string
-          minLength: 1
-          description:
-            The ID of the API to retrieve (begins with 'api_'). This identifier
-            uniquely references a specific API in your workspace. Use this endpoint
-            to verify an API exists, check its name, or retrieve its ID when you only
-            have the name stored.
-          example: api_1234
+          minLength: 8
+          maxLength: 255
+          pattern: "^api_[a-zA-Z0-9_]+$"
+          description: |
+            Specifies which API to retrieve by its unique identifier.
+            Must be a valid API ID that begins with 'api_' and exists within your workspace.
+
+            Use this endpoint to:
+            - Verify an API exists and is accessible
+            - Retrieve the API's current name and configuration
+            - Validate API IDs before performing key operations
+            - Check API status during debugging or troubleshooting
+
+            Returns complete API information including name, ID, and metadata.
+          example: api_1234567890abcdef
       additionalProperties: false
     ApisGetApiResponseData:
       type: object
       properties:
         id:
-          description:
-            The unique identifier of the API (begins with 'api_'). This
-            ID is used in all operations related to this API, including key creation,
-            key verification, and API management.
           type: string
+          minLength: 8
+          maxLength: 255
+          pattern: "^api_[a-zA-Z0-9_]+$"
+          description: |
+            The unique identifier of this API within Unkey's system.
+            Used in all operations related to this API including key creation, verification, and management.
+            Always begins with 'api_' followed by alphanumeric characters and underscores.
+            This identifier is permanent and never changes after API creation.
           example: api_1234567890abcdef
         name:
-          description:
-            The name of the API as specified during creation. This is an
-            internal identifier used for organization and is not shown to end users.
-            The name helps identify the purpose or environment of this API.
           type: string
+          minLength: 3
+          maxLength: 255
+          description: |
+            The internal name of this API as specified during creation.
+            Used for organization and identification within your workspace.
+            Helps distinguish between different environments, services, or access tiers.
+            Not visible to end users - this is purely for administrative purposes.
           example: payment-service-production
       required:
         - id
         - name
+      additionalProperties: false
     V2ApisCreateApiResponseBody:
       type: object
       required:
@@ -3197,6 +3547,7 @@ components:
           "$ref": "#/components/schemas/Meta"
         data:
           "$ref": "#/components/schemas/ApisCreateApiResponseData"
+      additionalProperties: false
     V2ApisDeleteApiResponseBody:
       type: object
       required:
@@ -3204,6 +3555,7 @@ components:
       properties:
         meta:
           "$ref": "#/components/schemas/Meta"
+      additionalProperties: false
     V2ApisGetApiResponseBody:
       type: object
       required:
@@ -3214,6 +3566,7 @@ components:
           "$ref": "#/components/schemas/Meta"
         data:
           "$ref": "#/components/schemas/ApisGetApiResponseData"
+      additionalProperties: false
     V2ApisListKeysRequestBody:
       type: object
       required:
@@ -3277,8 +3630,10 @@ components:
       additionalProperties: false
     ApisListKeysResponseData:
       type: array
+      maxItems: 100 # DoS protection matching request limit
       items:
         "$ref": "#/components/schemas/KeyResponse"
+      description: Array of API keys with complete configuration and metadata.
     V2ApisListKeysResponseBody:
       type: object
       required:
@@ -3291,6 +3646,7 @@ components:
           "$ref": "#/components/schemas/ApisListKeysResponseData"
         pagination:
           "$ref": "#/components/schemas/Pagination"
+      additionalProperties: false
     RatelimitOverride:
       type: object
       additionalProperties: false
@@ -3454,48 +3810,54 @@ components:
         apiId:
           type: string
           minLength: 3
-          maxLength: 255
-          description:
-            The ID of the API this key belongs to. This is required to
-            ensure keys from different environments (dev/staging/prod) or different
-            services don't leak between contexts. You should store this API ID alongside
-            your service configuration.
+          maxLength: 255 # Reasonable upper bound for database identifiers
+          pattern: "^[a-zA-Z0-9_]+$"
+          description: |
+            Specifies which API the key belongs to for complete environment isolation.
+            Keys from different APIs cannot access each other, preventing cross-environment leaks.
+            Essential for ensuring development keys cannot access production data and vice versa.
+            Store this API ID in your service configuration rather than hardcoding it.
           example: api_1234
         key:
           type: string
           minLength: 1
-          description:
-            "The API key to verify. This is the full string provided by
-            your user - including any prefix. Unkey uses a secure hashing algorithm
-            to verify the key without storing the plaintext value. SECURITY NOTICE:
-            Never log or store API keys in your system."
+          maxLength: 512 # Reasonable upper bound for API key strings
+          description: |
+            The complete API key string provided by your user, including any prefix.
+            Verification uses secure hashing algorithms without storing plaintext values.
+            Never log, cache, or store API keys in your system as they provide full access to user resources.
+            Include the full key exactly as provided - even minor modifications will cause verification failure.
           example: prefix_f4cc2d765275c206b7d76ff0e92e583067c4e33603fb4055d7ba3031cd7ce36a
         tags:
           type: array
           items:
             type: string
             minLength: 1
-            maxLength: 128
-          maxItems: 10
-          description:
-            Optional metadata tags for analytics and monitoring. These
-            don't affect verification outcomes but let you segment API usage in analytics
-            dashboards. Good uses include tracking endpoints, client versions, regions,
-            or request details. Format as 'key=value' for best compatibility with
-            analytics tools.
+            maxLength: 128 # Keep individual tags concise for analytics performance
+            pattern: "^[a-zA-Z0-9_=/.:-]+$"
+          maxItems: 20 # Allow sufficient tags for detailed analytics without performance impact
+          description: |
+            Attaches metadata tags for analytics and monitoring without affecting verification outcomes.
+            Enables segmentation of API usage in dashboards by endpoint, client version, region, or custom dimensions.
+            Use 'key=value' format for compatibility with most analytics tools and clear categorization.
+            Avoid including sensitive data in tags as they may appear in logs and analytics reports.
           example:
             - endpoint=/users/profile
             - method=GET
             - region=us-east-1
             - clientVersion=2.3.0
+            - feature=premium
         permissions:
           oneOf:
             - type: string
-              description:
-                A single permission to check. The key is valid only if it
-                has this exact permission. Permission checks are hierarchical - a key
-                with permission 'documents.*' will have access to 'documents.read' and
-                'documents.write'.
+              minLength: 1
+              maxLength: 100 # Keep permission names concise and readable
+              pattern: "^[a-zA-Z0-9_]+$"
+              description: |
+                Checks if the key has this specific permission. Supports hierarchical permissions where
+                'documents.*' grants access to 'documents.read' and 'documents.write'.
+                Verification fails if the key lacks this exact permission or a parent wildcard permission.
+              example: "documents.read"
             - type: object
               properties:
                 type:
@@ -3503,42 +3865,57 @@ components:
                   enum:
                     - and
                     - or
-                  description:
-                    Logical operator to apply to the permissions. 'and' requires
-                    all permissions to be present, 'or' requires at least one.
+                  description: |
+                    Sets the logical operator for multiple permission checks.
+                    Use 'and' when all permissions are required, 'or' when any one permission is sufficient.
+                    Choose 'and' for restrictive access and 'or' for flexible role-based access patterns.
                 permissions:
                   type: array
                   items:
                     type: string
-                  description:
-                    List of permissions to check against the key's assigned
-                    permissions and roles.
+                    minLength: 1
+                    maxLength: 100 # Keep permission names concise and readable
+                    pattern: "^[a-zA-Z0-9_]+$"
+                  maxItems: 100 # Allow complex permission sets without performance degradation
+                  minItems: 1
+                  description: |
+                    Lists permissions to evaluate against the key's assigned permissions and roles.
+                    Each permission supports hierarchical matching with wildcard notation.
+                    Empty arrays are not allowed - omit the permissions field entirely for no authorization.
+                  example: ["documents.read", "documents.write", "users.view"]
               required:
                 - type
                 - permissions
-          description:
-            Optional RBAC permission checks to verify the key has the required
-            permissions. If provided, the verification will only succeed if the key
-            has the specified permissions (either directly or through roles). This
-            is the recommended way to implement authorization in your API.
+              additionalProperties: false
+          description: |
+            Enforces role-based access control by verifying the key has required permissions.
+            Omitting this field skips permission checks entirely, allowing any valid key to proceed.
+            When provided, verification fails unless the key has the specified permissions through direct assignment or role inheritance.
+            Essential for implementing fine-grained authorization in multi-tenant or privilege-separated APIs.
         credits:
           type: object
           properties:
             cost:
               type: integer
-              format: int32
+              format: int64
+              minimum: 0
+              maximum: 1000 # Reasonable upper bound for operation costs
               default: 1
-              description:
-                The number of credits to deduct for this verification.
-                Set to 0 to validate the key without consuming credits (useful for
-                read-only or free operations). Set higher for premium/expensive operations.
-                This allows implementing tiered usage within a single API.
-          description:
-            Optional configuration for how this request should affect the
-            key's remaining usage credits. Credits provide a globally consistent mechanism
-            for limiting key usage, ideal for paid APIs with strict usage limits.
+              description: |
+                Sets how many credits to deduct for this verification request.
+                Use 0 for read-only operations or free tier access, higher values for premium features.
+                Credits are deducted immediately upon verification, even if the key lacks required permissions.
+                Essential for implementing usage-based pricing with different operation costs.
+              example: 5
+          additionalProperties: false
+          description: |
+            Controls credit consumption for usage-based billing and quota enforcement.
+            Omitting this field uses the default cost of 1 credit per verification.
+            Credits provide globally consistent usage tracking, essential for paid APIs with strict quotas.
+            Verification can succeed while credit deduction fails if the key has insufficient credits.
         ratelimits:
           type: array
+          maxItems: 10 # Reasonable limit for rate limit checks per verification
           items:
             type: object
             required:
@@ -3547,39 +3924,50 @@ components:
               name:
                 type: string
                 minLength: 1
-                description:
-                  The name of the ratelimit to check. This must match a
-                  ratelimit configured for the key or identity. Use semantic names
-                  like 'requests', 'computations', or 'heavy_operations'.
+                maxLength: 50 # Keep rate limit names concise and readable
+                pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+                description: |
+                  Identifies which rate limit configuration to check. Must match a rate limit defined on the key or identity.
+                  Use semantic names that clearly describe what's being limited, avoiding generic terms like 'limit1'.
+                  Rate limit names are case-sensitive and must exist in the key's configuration.
                 example: api_requests
               cost:
                 type: integer
-                format: int32
+                format: int64
                 minimum: 0
+                maximum: 1000 # Reasonable upper bound for operation costs
                 default: 1
-                description:
-                  The cost of this operation against the ratelimit. Higher
-                  values consume more of the ratelimit quota. Use this to model operations
-                  with different weights.
+                description: |
+                  Sets how much of the rate limit quota this operation consumes.
+                  Use higher values for expensive operations and 0 for operations that should not count against the limit.
+                  Cost is applied immediately, even if other rate limits or permissions cause verification to fail.
+                example: 3
               limit:
                 type: integer
-                format: int32
-                description:
-                  Temporarily override the configured limit for this request
-                  only. This won't change the stored configuration.
+                format: int64
+                minimum: 1
+                maximum: 1000000 # Reasonable upper bound for rate limits
+                description: |
+                  Temporarily overrides the configured rate limit for this request only.
+                  Does not modify the stored configuration and applies only to this single verification.
+                  Useful for implementing per-request dynamic limits based on user tier or operation type.
+                example: 1000
               duration:
                 type: integer
-                format: int32
-                description:
-                  Temporarily override the ratelimit window duration in
-                  milliseconds for this request only. This won't change the stored
-                  configuration.
-          description:
-            Optional array of ratelimits to check during verification.
-            Ratelimits provide protection against abuse by limiting the frequency
-            of operations. Multiple named ratelimits can be used to control different
-            aspects of your API. Unlike credits, ratelimits are optimized for performance
-            with eventual consistency.
+                format: int64
+                minimum: 1000 # 1 second minimum window
+                maximum: 2592000000 # 30 days maximum window
+                description: |
+                  Temporarily overrides the rate limit window duration in milliseconds for this request only.
+                  Does not modify the stored configuration and applies only to this single verification.
+                  Common values include 60000 (1 minute), 3600000 (1 hour), and 86400000 (24 hours).
+                example: 60000
+            additionalProperties: false
+          description: |
+            Enforces time-based rate limiting during verification to prevent abuse and ensure fair usage.
+            Omitting this field skips rate limit checks entirely, relying only on configured key rate limits.
+            Multiple rate limits can be checked simultaneously, each with different costs and temporary overrides.
+            Rate limit checks are optimized for performance but may allow brief bursts during high concurrency.
       additionalProperties: false
     KeysVerifyKeyResponseData:
       type: object
@@ -3737,40 +4125,49 @@ components:
         identityId:
           type: string
           minLength: 3
-          description:
-            The Unkey Identity ID (begins with 'id_'). Use either identityId
-            or externalId to specify which identity to update. If both are provided,
-            identityId takes precedence.
+          maxLength: 255 # Reasonable upper bound for database identifiers
+          pattern: "^[a-zA-Z0-9_]+$"
+          description: |
+            Specifies which identity to update using the Unkey database identifier.
+            Takes precedence over externalId when both are provided in the same request.
+            Use this when you have stored the Unkey identity ID from previous API calls.
+            Essential for direct identity management when you track Unkey's internal identifiers.
           example: id_01H9TQPP77V5E48E9SH0BG0ZQX
         externalId:
           type: string
           minLength: 3
-          description:
-            The external ID of the identity to update. This is the ID from
-            your own system that was used during identity creation. Use either identityId
-            or externalId to specify which identity to update. If both are provided,
-            identityId takes precedence.
+          maxLength: 255 # Match database varchar limits for external identifiers
+          pattern: "^[a-zA-Z0-9_.-]+$"
+          description: |
+            Specifies which identity to update using your system's identifier from identity creation.
+            Ignored when identityId is also provided in the same request.
+            Use this when you track identities by your own user IDs, organization IDs, or tenant identifiers.
+            More convenient than identityId when integrating with existing user management systems.
+            Accepts letters, numbers, underscores, dots, and hyphens for flexible identifier formats.
           example: user_abc123
         meta:
           type: object
           additionalProperties: true
-          description:
-            Custom metadata to associate with this identity. This can include
-            any JSON-serializable data you want to store with the identity. Set to
-            an empty object {} to clear existing metadata.
+          maxProperties: 100 # Prevent DoS while allowing rich metadata
+          description: |
+            Replaces all existing metadata with this new metadata object.
+            Omitting this field preserves existing metadata, while providing an empty object clears all metadata.
+            Avoid storing sensitive data here as it's returned in verification responses.
+            Large metadata objects increase verification latency and should stay under 10KB total size.
           example:
             name: Alice Smith
             email: alice@example.com
             plan: premium
         ratelimits:
           type: array
+          maxItems: 50 # Reasonable limit for rate limit configurations per identity
           items:
             "$ref": "#/components/schemas/Ratelimit"
-          description:
-            Array of ratelimits to apply to this identity. These limits
-            are shared across all API keys associated with this identity. Providing
-            this array will completely replace any existing ratelimits. Set to an
-            empty array [] to remove all ratelimits.
+          description: |
+            Replaces all existing identity rate limits with this complete list of rate limits.
+            Omitting this field preserves existing rate limits, while providing an empty array removes all rate limits.
+            These limits are shared across all keys belonging to this identity, preventing abuse through multiple keys.
+            Rate limit changes take effect immediately but may take up to 30 seconds to propagate across all regions.
           example:
             - name: requests
               limit: 1000
@@ -3830,9 +4227,14 @@ paths:
       tags:
         - keys
       summary: Get information about an API key
-      description:
-        Retrieves detailed information about an API key without incrementing
-        its usage counter
+      description: |-
+        Retrieves comprehensive information about an API key without consuming credits or incrementing usage counters. Returns the key's configuration, metadata, permissions, and current status for introspection and debugging purposes.
+
+        Use this endpoint to validate that a key exists and is properly configured before using it in production systems. The response includes all available key details including sensitive metadata, so restrict usage to secure contexts only. Applications commonly call this during startup routines to validate API key configuration, in admin dashboards to display key information, and in support tools for troubleshooting authentication issues.
+
+        The endpoint returns real-time data including recent permission and role changes. When a key has an associated identity, the response includes that identity information as well. Effective permissions appear from both direct assignment and role inheritance, providing a complete view of what the key can access.
+
+        Since the response may contain sensitive business data in metadata fields, consider implementing rate limiting in client applications to prevent abuse. The endpoint requires a valid API key in the request body but does not affect any usage metrics or billing calculations.
       operationId: whoami
       x-speakeasy-name-override: whoami
       security:
@@ -4459,24 +4861,11 @@ paths:
         - keys
       summary: Add roles to an API key
       description: |-
-        Assigns one or more roles to an existing API key, incrementally adding to any existing roles already assigned.
+        Assigns one or more roles to an existing API key, incrementally adding to any existing roles already assigned. Roles are collections of permissions that provide a convenient way to assign multiple permissions at once rather than assigning individual permissions one by one.
 
-        Roles are collections of permissions that provide a convenient and manageable way to assign multiple permissions at once. Rather than assigning individual permissions one by one, roles let you bundle related permissions together and assign them as a unit.
+        This operation is idempotent, meaning adding the same role multiple times has no additional effect. The assignment happens as an atomic transaction where all roles are added or none are with rollback on failure. Changes take effect immediately for new verifications within seconds, and during verification, permissions from all assigned roles are combined.
 
-        Key features:
-        - Idempotent operation - adding the same role multiple times has no additional effect
-        - Atomic transaction - all roles are added or none are (with rollback on failure)
-        - Immediate effect - new verifications will see changes within seconds
-        - Cache invalidation - all regions eventually reflect the changes
-        - Permission aggregation - during verification, permissions from all roles are combined
-
-        Use cases:
-        - Promoting users to higher access levels
-        - Adding specialized function access to existing keys
-        - Implementing role-based access control (RBAC)
-        - Standardizing permission bundles across many keys
-
-        Unlike setRoles (which replaces all roles), this endpoint only adds to the existing set of roles assigned to a key.
+        Use this endpoint when promoting users to higher access levels, adding specialized function access to existing keys, or implementing role-based access control patterns. It provides a standardized way to bundle permissions across many keys while preserving existing role assignments. Unlike setRoles which replaces all roles, this endpoint only adds to the existing set of roles assigned to a key.
       operationId: addRoles
       x-speakeasy-name-override: addRoles
       security:
@@ -4899,22 +5288,11 @@ paths:
         - keys
       summary: Remove roles from an API key
       description: |-
-        Removes one or more roles from an existing API key. This endpoint is used to selectively revoke role-based access without affecting other assigned roles.
+        Removes one or more roles from an existing API key, selectively revoking role-based access without affecting other assigned roles. When a role is removed, all permissions granted exclusively through that role are revoked, while permissions also granted through remaining roles or direct assignments remain accessible.
 
-        When a role is removed:
-        - All permissions granted exclusively through that role are revoked
-        - Permissions that are also granted through remaining roles or direct assignments remain accessible
-        - The change is effective immediately for new verifications
-        - Cached sessions may retain old permissions briefly (typically <30 seconds)
+        The operation is idempotent, meaning removing roles multiple times has no additional effect. All specified roles are removed atomically or none are with rollback on failure. Changes take effect immediately for new verifications, though cached sessions may retain old permissions briefly (typically under 30 seconds) due to cache invalidation across all regions.
 
-        Key features:
-        - Selective removal - revoke specific roles while leaving others intact
-        - Idempotent operation - removing roles multiple times has no additional effect
-        - Atomic transaction - all specified roles are removed or none are (rollback on failure)
-        - Cache invalidation - all regions eventually reflect the changes
-        - Permission recalculation - verification immediately uses updated role assignments
-
-        This endpoint complements addRoles (for granting) and setRoles (for complete replacement). Use this when you need to selectively remove roles without altering other role assignments.
+        This endpoint complements addRoles for granting access and setRoles for complete replacement. Use this when you need to selectively revoke specific roles without altering other role assignments, providing precise control over role-based access management.
       operationId: removeRoles
       x-speakeasy-name-override: removeRoles
       security:
@@ -5036,22 +5414,11 @@ paths:
         - keys
       summary: Update remaining credits for an API key
       description: |-
-        Sets the remaining number of credits for a key. This endpoint provides precise control over usage limits and is essential for implementing usage-based business models.
+        Sets the remaining number of credits for a key, providing precise control over usage limits for implementing usage-based business models. Use this endpoint when customers make purchases to add credits, during subscription renewals to reset credits, or for adjustments due to refunds and promotions.
 
-        Key use cases:
-        - Adding credits when a customer makes a purchase
-        - Resetting credits for subscription renewals
-        - Adjusting credits for refunds or promotions
-        - Converting between subscription models (automatic to fixed or vice versa)
-        - Implementing free trial extensions
-        - Granting bonus credits as incentives
-        - Converting a limited key to unlimited usage or vice versa
+        The credits feature provides globally consistent usage limiting where each successful verification decrements the counter by the specified cost value (default 1). When credits reach zero, verification fails with code=USAGE_EXCEEDED, making this ideal for monetization models where accuracy is critical compared to rate limits which control frequency.
 
-        The credits feature provides a globally consistent way to limit how many times a key can be used. Each successful verification decrements the counter (by the 'cost' value, default 1). When credits reach zero, verification fails with code=USAGE_EXCEEDED.
-
-        Unlike rate limits (which control frequency), credits control total usage with high consistency but slightly higher latency, making them ideal for monetization models where accuracy is critical.
-
-        This endpoint complements createKey (which sets initial credits) and the automatic refill system (which replenishes credits on a schedule). You can also optionally remove any automatic refill settings from the key, effectively converting it from a key with periodic refills to one with a fixed credit allocation.
+        This endpoint works alongside createKey for setting initial credits and the automatic refill system for periodic replenishment. You can optionally remove automatic refill settings from the key, effectively converting it from periodic refills to fixed credit allocation. Common scenarios include implementing free trial extensions, granting bonus credits as incentives, or converting between subscription models.
       operationId: updateRemaining
       x-speakeasy-name-override: updateRemaining
       security:
@@ -5180,22 +5547,11 @@ paths:
       description: |-
         Replaces all existing direct role assignments on a key with the provided set of roles. This endpoint offers complete control over a key's role assignments in a single operation.
 
-        Unlike incremental endpoints like addRoles or removeRoles, setRoles performs a wholesale replacement, making it ideal for:
-        - Synchronizing key roles with an external system
-        - Applying standardized role templates to keys
-        - Completely resetting a key's roles to a known state
-        - Implementing role-based access control (RBAC) with predictable outcomes
-        - Removing all roles from a key (by providing an empty array)
+        Unlike incremental endpoints like addRoles or removeRoles, setRoles performs a wholesale replacement that completely resets a key's roles to the specified set. This makes it ideal for synchronizing key roles with external systems, applying standardized role templates to keys, or implementing role-based access control with predictable outcomes.
 
-        Key behaviors:
-        - All existing direct role assignments not included in the request will be removed
-        - This is a complete replacement operation, not an incremental update
-        - Only direct role assignments are affected, not roles granted through other mechanisms
-        - The operation is atomic - all roles are set or none are (with rollback on failure)
-        - Changes take effect immediately for new verifications
-        - All role changes are logged in the audit log for security tracking
+        All existing direct role assignments not included in the request will be removed, making this a complete replacement operation rather than an incremental update. The operation is atomic where all roles are set or none are with rollback on failure, and changes take effect immediately for new verifications with all role changes logged in the audit log for security tracking.
 
-        After roles are set, any cached versions of the key are immediately invalidated to ensure consistency, though existing verification sessions may retain old roles briefly (typically under 30 seconds).
+        After roles are set, cached versions of the key are immediately invalidated to ensure consistency, though existing verification sessions may retain old roles briefly (typically under 30 seconds). Only direct role assignments are affected, not roles granted through other mechanisms.
       operationId: setRoles
       x-speakeasy-name-override: setRoles
       security:
@@ -5890,13 +6246,9 @@ paths:
       description: |-
         Creates a new role in the workspace with optional permission assignments. Roles are collections of permissions that can be assigned to API keys, providing a convenient way to manage access control at scale.
 
-        Roles enable you to:
-        - Group related permissions together for easier management
-        - Assign consistent permission sets to multiple API keys
-        - Implement role-based access control (RBAC) patterns
-        - Simplify permission management as your system grows
+        Roles enable you to group related permissions together for easier management, assign consistent permission sets to multiple API keys, and implement role-based access control patterns that simplify permission management as your system grows. When creating a role, you can optionally assign existing permissions to it immediately, and the role becomes available for assignment to API keys as soon as it's created.
 
-        When creating a role, you can optionally assign existing permissions to it immediately. The role becomes available for assignment to API keys as soon as it's created.
+        Use roles to establish standardized access patterns in your application, making it easier to maintain consistent security policies across many API keys while reducing the complexity of individual permission management.
       operationId: createRole
       x-speakeasy-name-override: CreateRole
       security:
@@ -6059,21 +6411,11 @@ paths:
         - ratelimit
       summary: Retrieve a specific rate limit override
       description: |-
-        Retrieves the details of a specific rate limit override by its identifier pattern.
+        Retrieves the details of a specific rate limit override by its identifier pattern. Returns the exact configuration including the identifier pattern, custom limit value, duration window, and namespace association.
 
-        This endpoint allows you to inspect the current configuration of an override, including:
-        - The exact identifier pattern it matches
-        - The custom limit value applied
-        - The duration of the rate limit window
-        - The namespace it belongs to
+        Use this endpoint to inspect override configurations before making modifications, audit your rate limiting policies, or debug rate limiting behavior. The identifier must match exactly as it was specified when creating the override, including any wildcard patterns.
 
-        This is particularly useful for:
-        - Auditing your rate limiting policies
-        - Verifying override configurations
-        - Retrieving settings before making modifications
-        - Debugging rate limiting behavior
-
-        The identifier must match exactly as it was specified when creating the override, including any wildcard patterns.
+        This endpoint is essential for understanding why certain identifiers receive different rate limits than the default. When troubleshooting rate limiting issues, this endpoint helps verify that overrides are configured correctly and matching the expected identifiers.
       operationId: ratelimit.getOverride
       x-speakeasy-name-override: getOverride
       security:
@@ -6138,16 +6480,11 @@ paths:
         - ratelimit
       summary: List all rate limit overrides for a namespace
       description: |-
-        Retrieves a paginated list of all rate limit overrides defined for a specific namespace.
+        Retrieves a paginated list of all rate limit overrides defined for a specific namespace. Returns detailed information about each override including identifier patterns, limits, and durations.
 
-        This endpoint is essential for:
-        - Auditing your rate limiting policies
-        - Reviewing all custom rate limit rules
-        - Building administrative dashboards
-        - Finding patterns in your override configurations
-        - Managing and cleaning up overrides
+        Use this endpoint to audit your rate limiting policies, build administrative dashboards, or manage and clean up override configurations. For namespaces with many overrides, results are paginated and can be retrieved in chunks using the cursor parameter.
 
-        The response includes detailed information about each override, including the identifier patterns, limits, and durations. For namespaces with many overrides, results are paginated and can be retrieved in chunks using the cursor parameter.
+        This endpoint is particularly useful when you need to review all custom rate limit rules for a namespace, find patterns in your override configurations, or implement management interfaces for rate limiting policies.
       operationId: ratelimit.listOverrides
       x-speakeasy-name-override: listOverrides
       security:
@@ -6217,16 +6554,9 @@ paths:
         - ratelimit
       summary: Delete a rate limit override
       description: |-
-        Permanently removes a rate limit override from a namespace. Once deleted, the affected identifiers will immediately revert to using the default rate limits for that namespace.
+        Permanently removes a rate limit override from a namespace. Once deleted, the affected identifiers immediately revert to using the default rate limits for that namespace.
 
-        This endpoint is useful for:
-        - Removing temporary overrides that are no longer needed
-        - Resetting entities back to standard rate limits
-        - Cleaning up outdated rate limiting rules
-        - Removing emergency rate limit adjustments
-        - Correcting misconfigured overrides
-
-        The deletion operation is immediate and permanent - once an override is deleted, it cannot be recovered. If you need to reinstate an override after deletion, you must create it again using the setOverride endpoint.
+        Use this endpoint to remove temporary overrides that are no longer needed, reset entities back to standard rate limits, or clean up outdated rate limiting rules. The deletion operation is immediate and permanent - once an override is deleted, it cannot be recovered and must be recreated using the setOverride endpoint if needed again.
       operationId: ratelimit.deleteOverride
       x-speakeasy-name-override: deleteOverride
       security:
@@ -7335,18 +7665,11 @@ paths:
         - apis
       summary: List all keys associated with an API namespace
       description: |-
-        Retrieves a paginated list of all API keys associated with a specific API namespace.
+        Retrieves a paginated list of all API keys associated with a specific API namespace. Returns detailed information about each key including metadata, permissions, and usage limits.
 
-        This endpoint is essential for:
-        - Building admin dashboards for API key management
-        - Auditing active keys for security reviews
-        - Finding keys associated with specific users or organizations
-        - Monitoring key usage and distribution
-        - Identifying keys that need rotation or updates
+        Use this endpoint to build admin dashboards for API key management, audit active keys for security reviews, or find keys associated with specific users through the externalId filter. For large APIs with many keys, results are paginated and can be filtered to locate specific keys efficiently.
 
-        The response includes detailed information about each key, including its metadata, permissions, and usage limits. For large APIs with many keys, results are paginated and can be filtered by externalId to find keys for specific users or entities.
-
-        Note that for security reasons, the full key values are never returned unless specifically requested with decrypt=true, and then only for keys created with recoverable=true and when the caller has sufficient permissions.
+        For security reasons, full key values are never returned unless specifically requested with decrypt=true, and only for keys created with recoverable=true when the caller has sufficient permissions.
       operationId: listKeys
       x-speakeasy-name-override: listKeys
       security:
@@ -7451,19 +7774,9 @@ paths:
       security: []
       operationId: liveness
       description: |-
-        Checks if the Unkey API service is functioning correctly and ready to handle requests. This endpoint provides a simple health check mechanism that can be used by load balancers, monitoring tools, and orchestration systems to verify service availability.
+        Checks if the Unkey API service is functioning correctly and ready to handle requests. Returns a simple health status that load balancers, monitoring tools, and orchestration systems can use to verify service availability.
 
-        Unlike other endpoints, this one:
-        - Does not require authentication
-        - Has minimal processing overhead
-        - Responds quickly with a simple status
-        - Performs basic internal health verification
-
-        Best practices for using this endpoint:
-        - Include in automated monitoring systems
-        - Use for health checks in container orchestration
-        - Set appropriate alerting thresholds on failures
-        - Implement exponential backoff when retrying after failures
+        This endpoint requires no authentication and has minimal processing overhead for fast health verification. The response indicates whether the service can process requests normally or if there are issues requiring attention. Monitor this endpoint to detect service degradation and implement automated failover or alerting when the service becomes unhealthy.
       responses:
         "200":
           content:
@@ -7705,9 +8018,14 @@ paths:
       tags:
         - identities
       summary: Update an existing identity
-      description:
-        Updates an existing identity's metadata and rate limits. This endpoint
-        allows you to modify the metadata and rate limits associated with an identity.
+      description: |-
+        Updates an existing identity's metadata and rate limits with support for partial updates. You can modify the metadata to reflect changes in user status, subscription plans, or other entity properties, and adjust rate limits to match new usage tiers or requirements.
+
+        This endpoint supports flexible identification using either the Unkey identity ID or your external ID, making it easy to integrate with existing user management systems. Fields not included in the request remain unchanged, allowing for targeted updates without affecting other identity properties.
+
+        Changes to rate limits take effect immediately for new API key verifications, though existing sessions may retain old limits briefly due to caching. When updating metadata, consider that this information is returned during key verification, so avoid storing sensitive data that shouldn't be exposed to client applications.
+
+        Common use cases include updating user plan information after subscription changes, adjusting rate limits for different service tiers, and maintaining current contact or organizational information associated with the identity.
       operationId: v2.identities.updateIdentity
       x-speakeasy-name-override: updateIdentity
       security:

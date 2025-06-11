@@ -554,8 +554,8 @@ func TestSuccess(t *testing.T) {
 
 				ratelimit := (*key.Ratelimits)[0]
 				require.Equal(t, "requests", ratelimit.Name)
-				require.Equal(t, 100, ratelimit.Limit)
-				require.Equal(t, 60000, ratelimit.Duration)
+				require.Equal(t, int64(100), ratelimit.Limit)
+				require.Equal(t, int64(60000), ratelimit.Duration)
 				require.NotEmpty(t, ratelimit.Id, "Ratelimit should have an ID")
 
 			case keyWithoutRatelimits:
