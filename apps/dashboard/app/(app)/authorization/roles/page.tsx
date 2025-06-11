@@ -1,10 +1,9 @@
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { PageContent } from "@/components/page-content";
-import { Badge } from "@/components/ui/badge";
 import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
-import { Button } from "@unkey/ui";
+import { Badge, Button } from "@unkey/ui";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
