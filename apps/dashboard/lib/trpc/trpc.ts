@@ -2,6 +2,7 @@ import { env } from "@/lib/env";
 import { TRPCError, initTRPC } from "@trpc/server";
 import { Ratelimit } from "@unkey/ratelimit";
 import superjson from "superjson";
+import { z } from "zod";
 import type { Context } from "./context";
 
 export const t = initTRPC.context<Context>().create({ transformer: superjson });
@@ -124,4 +125,65 @@ export const withRatelimit = (ratelimit: Ratelimit | undefined) =>
     }
 
     return next();
+  });
+
+export const LLM_LIMITS = {
+  MIN_QUERY_LENGTH: 3,
+  MAX_QUERY_LENGTH: 120,
+  MAX_TOKENS_ESTIMATE: 30, // ~4 chars per token for 120 chars
+  RATE_LIMIT: 10,
+  RATE_DURATION: "60s",
+} as const;
+
+const llmRatelimit = env().UNKEY_ROOT_KEY
+  ? new Ratelimit({
+      rootKey: env().UNKEY_ROOT_KEY ?? "",
+      namespace: "trpc_llm",
+      limit: LLM_LIMITS.RATE_LIMIT,
+      duration: LLM_LIMITS.RATE_DURATION,
+    })
+  : null;
+
+const llmQuerySchema = z.object({
+  query: z
+    .string()
+    .trim()
+    .min(LLM_LIMITS.MIN_QUERY_LENGTH, "Query must be at least 3 characters")
+    .max(LLM_LIMITS.MAX_QUERY_LENGTH, "Query cannot exceed 120 characters"),
+});
+
+export const withLlmAccess = () =>
+  t.middleware(async ({ next, ctx, rawInput }) => {
+    if (llmRatelimit) {
+      const response = await llmRatelimit.limit(ctx.user!.id);
+      if (!response.success) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: `LLM rate limit exceeded. You can make ${LLM_LIMITS.RATE_LIMIT} requests per minute.`,
+        });
+      }
+    }
+
+    let validatedInput: z.infer<typeof llmQuerySchema>;
+    try {
+      validatedInput = llmQuerySchema.parse(rawInput);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const firstError = error.errors[0];
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: firstError?.message || "Invalid query format",
+        });
+      }
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Invalid input format",
+      });
+    }
+
+    return next({
+      ctx: {
+        validatedQuery: validatedInput.query,
+      },
+    });
   });
