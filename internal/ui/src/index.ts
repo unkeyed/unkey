@@ -17,4 +17,5 @@ export * from "./components/checkbox";
 export * from "./components/timestamp-info";
 export * from "./components/tooltip";
 export * from "./components/keyboard-button";
+export * from "./components/separator";
 export * from "./components/badge";
