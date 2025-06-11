@@ -189,12 +189,14 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                   height: `${virtualizer.getVirtualItems()[0]?.start || 0}px`,
                 }}
               />
+
               {virtualizer.getVirtualItems().map((virtualRow) => {
                 if (isLoading) {
                   if (renderSkeletonRow) {
                     return (
                       <tr
                         key={`skeleton-${virtualRow.key}`}
+                        className={cn(config.rowBorders && "border-b border-gray-4")}
                         style={{ height: `${config.rowHeight}px` }}
                       >
                         {renderSkeletonRow({
@@ -207,6 +209,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                   return (
                     <tr
                       key={`skeleton-${virtualRow.key}`}
+                      className={cn(config.rowBorders && "border-b border-gray-4")}
                       style={{ height: `${config.rowHeight}px` }}
                     >
                       {columns.map((column) => (
@@ -217,6 +220,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                     </tr>
                   );
                 }
+
                 const item = tableData.getItemAt(virtualRow.index);
                 if (!item) {
                   return null;
