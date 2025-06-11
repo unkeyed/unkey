@@ -4,10 +4,10 @@ import {
   ControlsLeft,
   ControlsRight,
 } from "@/components/logs/controls-container";
-import { Separator } from "@/components/ui/separator";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { Coins } from "@unkey/icons";
+import { Separator } from "@unkey/ui";
 import { AnimatePresence, motion } from "framer-motion";
 import { LogsDateTime } from "./components/logs-datetime";
 import { LogsFilters } from "./components/logs-filters";
