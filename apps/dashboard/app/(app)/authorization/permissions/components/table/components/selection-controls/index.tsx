@@ -94,7 +94,7 @@ export const SelectionControls = ({
         onOpenChange={setIsDeleteConfirmOpen}
         onConfirm={performPermissionDelete}
         triggerRef={deleteButtonRef}
-        title="Confirm role deletion"
+        title="Confirm permission deletion"
         description={`This action is irreversible. All data associated with ${
           selectedPermissions.size > 1 ? "these permissions" : "this permission"
         } will be permanently deleted.`}
