@@ -1,9 +1,8 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
-import { Button, Loading } from "@unkey/ui";
+import { Badge, Button, Loading } from "@unkey/ui";
 import dynamic from "next/dynamic";
 
 const PermissionList = dynamic(

@@ -1,5 +1,4 @@
 "use client";
-import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { trpc } from "@/lib/trpc/client";
@@ -16,9 +15,7 @@ import {
   TimeClock,
   TriangleWarning2,
 } from "@unkey/icons";
-import { CopyButton } from "@unkey/ui";
-import { TimestampInfo } from "@unkey/ui";
-import { Button, Empty, InfoTooltip } from "@unkey/ui";
+import { Badge, Button, CopyButton, Empty, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import { useCallback, useState } from "react";
 import { useKeyDetailsLogsContext } from "../../context/logs";
 import { StatusBadge } from "./components/status-badge";
