@@ -3,9 +3,10 @@ import { useFetchIdentities } from "@/app/(app)/apis/[apiId]/_components/create-
 import { createIdentityOptions } from "@/app/(app)/apis/[apiId]/_components/create-key/hooks/use-fetch-identities/create-identity-options";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { TriangleWarning2 } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, Loading } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useState } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { useSearchIdentities } from "./use-search-identities";
 
 type ExternalIdFieldProps = {
   value: string | null;
@@ -21,11 +22,30 @@ export const ExternalIdField = ({
   disabled = false,
 }: ExternalIdFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
+  const [isPending, startTransition] = useTransition();
   const { identities, isFetchingNextPage, hasNextPage, loadMore } = useFetchIdentities();
+  const { searchResults, isSearching } = useSearchIdentities(searchValue);
 
   const createIdentity = useCreateIdentity((data) => {
     onChange(data.identityId, data.externalId);
   });
+
+  // Combine loaded identities with search results, prioritizing search when available
+  const allIdentities = useMemo(() => {
+    if (searchValue.trim() && searchResults.length > 0) {
+      // When searching, use search results
+      return searchResults;
+    }
+    if (searchValue.trim() && searchResults.length === 0 && !isSearching) {
+      // No search results found, filter from loaded identities as fallback
+      const searchTerm = searchValue.toLowerCase().trim();
+      return identities.filter((identity) =>
+        identity.externalId.toLowerCase().includes(searchTerm),
+      );
+    }
+    // No search query, use all loaded identities
+    return identities;
+  }, [identities, searchResults, searchValue, isSearching]);
 
   const handleCreateIdentity = () => {
     if (searchValue.trim()) {
@@ -36,27 +56,30 @@ export const ExternalIdField = ({
     }
   };
 
-  const exactMatch = identities.some(
+  const exactMatch = allIdentities.some(
     (id) => id.externalId.toLowerCase() === searchValue.toLowerCase().trim(),
   );
 
   const filteredIdentities = searchValue.trim()
-    ? identities.filter((identity) =>
+    ? allIdentities.filter((identity) =>
         identity.externalId.toLowerCase().includes(searchValue.toLowerCase().trim()),
       )
-    : identities;
+    : allIdentities;
 
   const hasPartialMatches = filteredIdentities.length > 0;
 
+  // Don't show load more when actively searching
+  const showLoadMore = !searchValue.trim() && hasNextPage;
+
   const baseOptions = createIdentityOptions({
     identities: filteredIdentities,
-    hasNextPage,
+    hasNextPage: showLoadMore,
     isFetchingNextPage,
     loadMore,
   });
 
   const createOption =
-    searchValue.trim() && !exactMatch && hasPartialMatches
+    searchValue.trim() && !exactMatch && hasPartialMatches && !isSearching
       ? {
           label: (
             <div className="flex items-center gap-2 w-full">
@@ -82,6 +105,9 @@ export const ExternalIdField = ({
 
   const options = createOption ? [createOption, ...baseOptions] : baseOptions;
 
+  // Determine if we're in a transitional state
+  const isTransitioning = isSearching || isPending;
+
   return (
     <FormCombobox
       optional
@@ -90,24 +116,50 @@ export const ExternalIdField = ({
       options={options}
       key={value}
       value={value || ""}
-      onChange={(e) => setSearchValue(e.currentTarget.value)}
+      onChange={(e) => {
+        const newValue = e.currentTarget.value;
+        startTransition(() => {
+          setSearchValue(newValue);
+        });
+      }}
       onSelect={(val) => {
         if (val === "__create_new__") {
           handleCreateIdentity();
           return;
         }
-        const identity = identities.find((id) => id.id === val);
+        const identity = allIdentities.find((id) => id.id === val);
         onChange(identity?.id || null, identity?.externalId || null);
       }}
       placeholder={
-        <div className="flex w-full text-grayA-8 text-xs gap-1.5 items-center py-2">
-          Select External ID
+        <div className="relative flex w-full text-grayA-8 text-xs items-center py-2">
+          <div
+            className={cn(
+              "absolute inset-0 flex items-center gap-1.5 transition-opacity duration-200 ease-in-out",
+              isTransitioning ? "opacity-100" : "opacity-0",
+            )}
+          >
+            <Loading />
+            <span>Searching...</span>
+          </div>
+          <div
+            className={cn(
+              "flex items-center transition-opacity duration-200 ease-in-out",
+              isTransitioning ? "opacity-0" : "opacity-100",
+            )}
+          >
+            Select External ID
+          </div>
         </div>
       }
       searchPlaceholder="Search External ID..."
       emptyMessage={
         searchValue.trim() && !exactMatch ? (
-          <div className="p-0 max-w-[600px]">
+          <div
+            className={cn(
+              "p-0 w-full transition-all duration-300 ease-in-out",
+              "animate-in fade-in-0 slide-in-from-top-2",
+            )}
+          >
             <div className="px-3 py-3 w-full">
               <div className="flex gap-2 items-center justify-start">
                 <div
@@ -115,6 +167,7 @@ export const ExternalIdField = ({
                     "flex items-center rounded size-5 justify-center",
                     "bg-warningA-4",
                     "text-warning-11",
+                    "transition-colors duration-200",
                   )}
                 >
                   <TriangleWarning2 size="sm-regular" />
@@ -137,7 +190,11 @@ export const ExternalIdField = ({
                 type="button"
                 variant="primary"
                 size="xlg"
-                className="rounded-lg w-full"
+                className={cn(
+                  "rounded-lg w-full",
+                  "transition-all duration-200 ease-in-out",
+                  "hover:scale-[1.02] active:scale-[0.98]",
+                )}
                 onClick={handleCreateIdentity}
                 loading={createIdentity.isLoading}
                 disabled={!searchValue.trim() || createIdentity.isLoading || disabled}
@@ -147,7 +204,15 @@ export const ExternalIdField = ({
             </div>
           </div>
         ) : (
-          <div className="px-3 py-3 text-gray-10 text-[13px]">No results found</div>
+          <div
+            className={cn(
+              "px-3 mt-2 text-gray-10 text-[13px]",
+              "transition-all duration-200 ease-in-out",
+              "animate-in fade-in-0",
+            )}
+          >
+            No results found
+          </div>
         )
       }
       variant="default"

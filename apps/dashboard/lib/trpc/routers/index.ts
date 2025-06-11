@@ -23,6 +23,7 @@ import { auditLogsSearch } from "./audit/llm-search";
 import { queryUsage } from "./billing/query-usage";
 import { createIdentity } from "./identity/create";
 import { queryIdentities } from "./identity/query";
+import { searchIdentities } from "./identity/search";
 import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
 import { deleteKeys } from "./key/delete";
@@ -226,6 +227,7 @@ export const router = t.router({
   identity: t.router({
     create: createIdentity,
     query: queryIdentities,
+    search: searchIdentities,
   }),
 });
 
