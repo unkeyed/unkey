@@ -54,7 +54,7 @@ export const AssignedItemsCell = ({
       {hasMore && (
         <div className={itemClassName}>
           <span className="text-grayA-9 text-xs max-w-[150px] truncate">
-            {totalCount - items.length} more roles...
+            {totalCount - items.length} more permissions...
           </span>
         </div>
       )}
