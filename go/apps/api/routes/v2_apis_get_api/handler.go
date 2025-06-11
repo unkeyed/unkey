@@ -16,90 +16,100 @@ import (
 )
 
 type Request = openapi.V2ApisGetApiRequestBody
-
 type Response = openapi.V2ApisGetApiResponseBody
 
-type Services struct {
+// Handler implements zen.Route interface for the v2 APIs get API endpoint
+type Handler struct {
+	// Services as public fields
 	Logger      logging.Logger
 	DB          db.Database
 	Keys        keys.KeyService
 	Permissions permissions.PermissionService
 }
 
-func New(svc Services) zen.Route {
-	return zen.NewRoute("POST", "/v2/apis.getApi", func(ctx context.Context, s *zen.Session) error {
-		svc.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/apis.getApi")
-		auth, err := svc.Keys.VerifyRootKey(ctx, s)
-		if err != nil {
-			return err
-		}
+// Method returns the HTTP method this route responds to
+func (h *Handler) Method() string {
+	return "POST"
+}
 
-		var req Request
-		err = s.BindBody(&req)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
-			)
-		}
+// Path returns the URL path pattern this route matches
+func (h *Handler) Path() string {
+	return "/v2/apis.getApi"
+}
 
-		err = svc.Permissions.Check(
-			ctx,
-			auth.KeyID,
-			rbac.Or(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   "*",
-					Action:       rbac.ReadAPI,
-				}),
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   req.ApiId,
-					Action:       rbac.ReadAPI,
-				}),
-			),
+// Handle processes the HTTP request
+func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
+	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/apis.getApi")
+	auth, err := h.Keys.VerifyRootKey(ctx, s)
+	if err != nil {
+		return err
+	}
+
+	var req Request
+	err = s.BindBody(&req)
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
 		)
-		if err != nil {
-			return err
-		}
+	}
 
-		// Get API from database
-		api, err := db.Query.FindApiByID(ctx, svc.DB.RO(), req.ApiId)
-		if err != nil {
-			if db.IsNotFound(err) {
-				return fault.New("api not found",
-					fault.Code(codes.Data.Api.NotFound.URN()),
-					fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
-				)
-			}
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
-			)
-		}
-		// Check if API belongs to the authorized workspace
-		if api.WorkspaceID != auth.AuthorizedWorkspaceID {
-			return fault.New("wrong workspace",
-				fault.Code(codes.Data.Api.NotFound.URN()),
-				fault.Internal("wrong workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
-			)
-		}
+	err = h.Permissions.Check(
+		ctx,
+		auth.KeyID,
+		rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   "*",
+				Action:       rbac.ReadAPI,
+			}),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   req.ApiId,
+				Action:       rbac.ReadAPI,
+			}),
+		),
+	)
+	if err != nil {
+		return err
+	}
 
-		// Check if API is deleted
-		if api.DeletedAtM.Valid {
+	// Get API from database
+	api, err := db.Query.FindApiByID(ctx, h.DB.RO(), req.ApiId)
+	if err != nil {
+		if db.IsNotFound(err) {
 			return fault.New("api not found",
 				fault.Code(codes.Data.Api.NotFound.URN()),
 				fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
 			)
 		}
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
+		)
+	}
+	// Check if API belongs to the authorized workspace
+	if api.WorkspaceID != auth.AuthorizedWorkspaceID {
+		return fault.New("wrong workspace",
+			fault.Code(codes.Data.Api.NotFound.URN()),
+			fault.Internal("wrong workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
+		)
+	}
 
-		return s.JSON(http.StatusOK, Response{
-			Meta: openapi.Meta{
-				RequestId: s.RequestID(),
-			},
-			Data: openapi.ApisGetApiResponseData{
-				Id:   api.ID,
-				Name: api.Name,
-			},
-		})
+	// Check if API is deleted
+	if api.DeletedAtM.Valid {
+		return fault.New("api not found",
+			fault.Code(codes.Data.Api.NotFound.URN()),
+			fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
+		)
+	}
+
+	return s.JSON(http.StatusOK, Response{
+		Meta: openapi.Meta{
+			RequestId: s.RequestID(),
+		},
+		Data: openapi.ApisGetApiResponseData{
+			Id:   api.ID,
+			Name: api.Name,
+		},
 	})
 }

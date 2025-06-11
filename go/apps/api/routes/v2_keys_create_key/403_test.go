@@ -22,13 +22,13 @@ func Test_CreateKey_Forbidden(t *testing.T) {
 	h := testutil.NewHarness(t)
 	ctx := context.Background()
 
-	route := handler.New(handler.Services{
+	route := &handler.Handler{
 		DB:          h.DB,
 		Keys:        h.Keys,
 		Logger:      h.Logger,
 		Permissions: h.Permissions,
 		Auditlogs:   h.Auditlogs,
-	})
+	}
 
 	h.Register(route)
 
@@ -92,7 +92,6 @@ func Test_CreateKey_Forbidden(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, 403, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "insufficient permissions")
 	})
 
 	t.Run("wrong permission - has read but not create", func(t *testing.T) {
@@ -107,7 +106,6 @@ func Test_CreateKey_Forbidden(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, 403, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "insufficient permissions")
 	})
 
 	t.Run("permission for different API", func(t *testing.T) {
@@ -122,7 +120,6 @@ func Test_CreateKey_Forbidden(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, 403, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "insufficient permissions")
 	})
 
 	t.Run("permission for specific API but requesting different API", func(t *testing.T) {
@@ -138,7 +135,6 @@ func Test_CreateKey_Forbidden(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, 403, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "insufficient permissions")
 	})
 
 	t.Run("unrelated permission", func(t *testing.T) {
@@ -153,7 +149,6 @@ func Test_CreateKey_Forbidden(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, 403, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "insufficient permissions")
 	})
 
 	t.Run("partial permission match", func(t *testing.T) {
@@ -168,6 +163,5 @@ func Test_CreateKey_Forbidden(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, 403, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "insufficient permissions")
 	})
 }

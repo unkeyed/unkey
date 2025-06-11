@@ -21,13 +21,13 @@ func TestValidationErrors(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
-	route := handler.New(handler.Services{
+	route := &handler.Handler{
 		DB:          h.DB,
 		Keys:        h.Keys,
 		Logger:      h.Logger,
 		Permissions: h.Permissions,
 		Auditlogs:   h.Auditlogs,
-	})
+	}
 
 	h.Register(route)
 
@@ -192,7 +192,7 @@ func TestValidationErrors(t *testing.T) {
 			Permissions: []struct {
 				Create *bool   `json:"create,omitempty"`
 				Id     *string `json:"id,omitempty"`
-				Name   *string `json:"name,omitempty"`
+				Slug   *string `json:"slug,omitempty"`
 			}{
 				{}, // Neither id nor name provided
 			},
@@ -208,7 +208,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "must specify either 'id' or 'name'")
+		require.Contains(t, res.Body.Error.Detail, "must specify either 'id' or 'slug'")
 	})
 
 	t.Run("permission not found by id", func(t *testing.T) {
@@ -219,7 +219,7 @@ func TestValidationErrors(t *testing.T) {
 			Permissions: []struct {
 				Create *bool   `json:"create,omitempty"`
 				Id     *string `json:"id,omitempty"`
-				Name   *string `json:"name,omitempty"`
+				Slug   *string `json:"slug,omitempty"`
 			}{
 				{Id: &nonExistentPermissionID},
 			},
@@ -238,17 +238,17 @@ func TestValidationErrors(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "was not found")
 	})
 
-	t.Run("permission not found by name", func(t *testing.T) {
-		nonExistentPermissionName := "nonexistent.permission"
+	t.Run("permission not found by slug", func(t *testing.T) {
+		nonExistentPermissionSlug := "nonexistent.permission"
 
 		req := handler.Request{
 			KeyId: validKeyID,
 			Permissions: []struct {
 				Create *bool   `json:"create,omitempty"`
 				Id     *string `json:"id,omitempty"`
-				Name   *string `json:"name,omitempty"`
+				Slug   *string `json:"slug,omitempty"`
 			}{
-				{Name: &nonExistentPermissionName},
+				{Slug: &nonExistentPermissionSlug},
 			},
 		}
 
@@ -284,7 +284,7 @@ func TestValidationErrors(t *testing.T) {
 			Permissions: []struct {
 				Create *bool   `json:"create,omitempty"`
 				Id     *string `json:"id,omitempty"`
-				Name   *string `json:"name,omitempty"`
+				Slug   *string `json:"slug,omitempty"`
 			}{
 				{Id: &permissionID},
 			},

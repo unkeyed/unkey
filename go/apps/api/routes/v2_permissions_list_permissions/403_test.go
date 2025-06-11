@@ -20,12 +20,12 @@ func TestAuthorizationErrors(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
-	route := handler.New(handler.Services{
+	route := &handler.Handler{
 		DB:          h.DB,
 		Keys:        h.Keys,
 		Logger:      h.Logger,
 		Permissions: h.Permissions,
-	})
+	}
 
 	h.Register(route)
 

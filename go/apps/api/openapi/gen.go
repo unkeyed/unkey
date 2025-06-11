@@ -1100,7 +1100,7 @@ type V2KeysAddPermissionsRequestBody struct {
 	//
 	// Duplicate permissions are automatically handled (adding the same permission twice has no effect). During verification, hierarchical patterns are matched - a key with 'billing.*' permission will have access to 'billing.invoices.view'.
 	Permissions []struct {
-		// Create When true, if a permission with this name doesn't exist, it will be automatically created on-the-fly. Only works when specifying name, not ID.
+		// Create When true, if a permission with this slug doesn't exist, it will be automatically created on-the-fly. Only works when specifying slug, not ID.
 		//
 		// SECURITY CONSIDERATIONS:
 		// - Requires the 'rbac.*.create_permission' permission on your root key
@@ -1113,8 +1113,8 @@ type V2KeysAddPermissionsRequestBody struct {
 		// Id The ID of an existing permission (begins with 'perm_'). Provide either ID or name. Use ID when you know the exact permission identifier and want to ensure you're referencing a specific permission.
 		Id *string `json:"id,omitempty"`
 
-		// Name The name of the permission. Provide either ID or name. Permission names typically follow a 'resource.action' format (e.g., 'documents.read', 'users.delete'). Use consistent naming patterns to create logical permission hierarchies.
-		Name *string `json:"name,omitempty"`
+		// Slug The slug of the permission. Provide either ID or slug. Permission names typically follow a 'resource.action' format (e.g., 'documents.read', 'users.delete'). Use consistent naming patterns to create logical permission hierarchies. Slugs must be unique.
+		Slug *string `json:"slug,omitempty"`
 	} `json:"permissions"`
 }
 
@@ -1154,7 +1154,10 @@ type V2KeysAddPermissionsResponseData = []struct {
 	// Id The unique identifier of the permission (begins with 'perm_'). This ID can be used in other API calls to reference this specific permission. IDs are guaranteed unique and won't change, making them ideal for scripting and automation. You can store these IDs in your system for consistent reference.
 	Id string `json:"id"`
 
-	// Name The name of the permission, typically following a 'resource.action' pattern like 'documents.read'. Names are human-readable identifiers used both for assignment and verification.
+	// Name The human-readable name of the permission.
+	Name string `json:"name"`
+
+	// Slug The slug of the permission, typically following a 'resource.action' pattern like 'documents.read'. Names are human-readable identifiers used both for assignment and verification.
 	//
 	// During verification:
 	// - The exact name is matched (e.g., 'documents.read')
@@ -1163,7 +1166,7 @@ type V2KeysAddPermissionsResponseData = []struct {
 	// - Wildcards can appear at any level: 'billing.*.view' matches 'billing.invoices.view' and 'billing.payments.view'
 	//
 	// However, when adding permissions, you must specify each exact permission - wildcards are not valid for assignment.
-	Name string `json:"name"`
+	Slug string `json:"slug"`
 }
 
 // V2KeysAddRolesRequestBody defines model for V2KeysAddRolesRequestBody.

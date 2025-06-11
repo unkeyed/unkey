@@ -21,13 +21,13 @@ func TestNotFoundErrors(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
-	route := handler.New(handler.Services{
+	route := &handler.Handler{
 		DB:          h.DB,
 		Keys:        h.Keys,
 		Logger:      h.Logger,
 		Permissions: h.Permissions,
 		Auditlogs:   h.Auditlogs,
-	})
+	}
 
 	h.Register(route)
 
@@ -61,7 +61,7 @@ func TestNotFoundErrors(t *testing.T) {
 			Permissions: []struct {
 				Create *bool   `json:"create,omitempty"`
 				Id     *string `json:"id,omitempty"`
-				Name   *string `json:"name,omitempty"`
+				Slug   *string `json:"slug,omitempty"`
 			}{
 				{Id: &permissionID},
 			},
@@ -124,7 +124,7 @@ func TestNotFoundErrors(t *testing.T) {
 			Permissions: []struct {
 				Create *bool   `json:"create,omitempty"`
 				Id     *string `json:"id,omitempty"`
-				Name   *string `json:"name,omitempty"`
+				Slug   *string `json:"slug,omitempty"`
 			}{
 				{Id: &nonExistentPermissionID},
 			},
@@ -179,17 +179,16 @@ func TestNotFoundErrors(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// Use a non-existent permission name
-		nonExistentPermissionName := "nonexistent.permission.name"
+		nonExistentPermissionSlug := "nonexistent.permission.name"
 
 		req := handler.Request{
 			KeyId: keyID,
 			Permissions: []struct {
 				Create *bool   `json:"create,omitempty"`
 				Id     *string `json:"id,omitempty"`
-				Name   *string `json:"name,omitempty"`
+				Slug   *string `json:"slug,omitempty"`
 			}{
-				{Name: &nonExistentPermissionName},
+				{Slug: &nonExistentPermissionSlug},
 			},
 		}
 
@@ -268,7 +267,7 @@ func TestNotFoundErrors(t *testing.T) {
 			Permissions: []struct {
 				Create *bool   `json:"create,omitempty"`
 				Id     *string `json:"id,omitempty"`
-				Name   *string `json:"name,omitempty"`
+				Slug   *string `json:"slug,omitempty"`
 			}{
 				{Id: &otherPermissionID},
 			},
@@ -349,7 +348,7 @@ func TestNotFoundErrors(t *testing.T) {
 			Permissions: []struct {
 				Create *bool   `json:"create,omitempty"`
 				Id     *string `json:"id,omitempty"`
-				Name   *string `json:"name,omitempty"`
+				Slug   *string `json:"slug,omitempty"`
 			}{
 				{Id: &permissionID},
 			},

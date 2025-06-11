@@ -21,13 +21,13 @@ func Test_CreateKey_Success(t *testing.T) {
 	h := testutil.NewHarness(t)
 	ctx := context.Background()
 
-	route := handler.New(handler.Services{
+	route := &handler.Handler{
+		Logger:      h.Logger,
 		DB:          h.DB,
 		Keys:        h.Keys,
-		Logger:      h.Logger,
 		Permissions: h.Permissions,
 		Auditlogs:   h.Auditlogs,
-	})
+	}
 
 	h.Register(route)
 
@@ -89,13 +89,13 @@ func Test_CreateKey_WithOptionalFields(t *testing.T) {
 	h := testutil.NewHarness(t)
 	ctx := context.Background()
 
-	route := handler.New(handler.Services{
+	route := &handler.Handler{
 		DB:          h.DB,
 		Keys:        h.Keys,
 		Logger:      h.Logger,
 		Permissions: h.Permissions,
 		Auditlogs:   h.Auditlogs,
-	})
+	}
 
 	h.Register(route)
 

@@ -30,12 +30,12 @@ func TestOverrideNotFound(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	route := handler.New(handler.Services{
+	route := &handler.Handler{
 		DB:          h.DB,
 		Keys:        h.Keys,
 		Logger:      h.Logger,
 		Permissions: h.Permissions,
-	})
+	}
 
 	h.Register(route)
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.read_override", namespaceID))
@@ -85,5 +85,33 @@ func TestOverrideNotFound(t *testing.T) {
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
 		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/ratelimit_namespace_not_found", res.Body.Error.Type)
+	})
+
+	// Test with non-existent identifier
+	t.Run("identifier not found", func(t *testing.T) {
+
+		namespaceID := uid.New(uid.TestPrefix)
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.read_override", namespaceID))
+		err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
+			ID:          namespaceID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Name:        uid.New(uid.TestPrefix),
+			CreatedAt:   time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		nonExistentIdentifier := "nonexistent_identifier"
+		req := handler.Request{
+			NamespaceId: &namespaceID,
+			Identifier:  nonExistentIdentifier,
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, http.Header{
+			"Content-Type":  []string{"application/json"},
+			"Authorization": []string{fmt.Sprintf("Bearer %s", rootKey)},
+		}, req)
+		require.Equal(t, http.StatusNotFound, res.Status)
+		require.NotNil(t, res.Body)
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/ratelimit_override_not_found", res.Body.Error.Type)
 	})
 }

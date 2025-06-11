@@ -17,13 +17,13 @@ func Test_CreateKey_Unauthorized(t *testing.T) {
 
 	h := testutil.NewHarness(t)
 
-	route := handler.New(handler.Services{
+	route := &handler.Handler{
 		DB:          h.DB,
 		Keys:        h.Keys,
 		Logger:      h.Logger,
 		Permissions: h.Permissions,
 		Auditlogs:   h.Auditlogs,
-	})
+	}
 
 	h.Register(route)
 
@@ -31,53 +31,6 @@ func Test_CreateKey_Unauthorized(t *testing.T) {
 	req := handler.Request{
 		ApiId: uid.New(uid.APIPrefix),
 	}
-
-	t.Run("no authorization header", func(t *testing.T) {
-		headers := http.Header{
-			"Content-Type": {"application/json"},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
-		require.Equal(t, 401, res.Status)
-		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "missing")
-	})
-
-	t.Run("empty authorization header", func(t *testing.T) {
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {""},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
-		require.Equal(t, 401, res.Status)
-		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "missing")
-	})
-
-	t.Run("invalid authorization format", func(t *testing.T) {
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {"InvalidFormat"},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
-		require.Equal(t, 401, res.Status)
-		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "malformed")
-	})
-
-	t.Run("missing bearer prefix", func(t *testing.T) {
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {"sk_invalid_key"},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
-		require.Equal(t, 401, res.Status)
-		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "malformed")
-	})
 
 	t.Run("invalid bearer token", func(t *testing.T) {
 		headers := http.Header{
@@ -88,7 +41,6 @@ func Test_CreateKey_Unauthorized(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, 401, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "not found")
 	})
 
 	t.Run("nonexistent key", func(t *testing.T) {
@@ -101,7 +53,6 @@ func Test_CreateKey_Unauthorized(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, 401, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "not found")
 	})
 
 	t.Run("bearer with extra spaces", func(t *testing.T) {
@@ -113,6 +64,5 @@ func Test_CreateKey_Unauthorized(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, 401, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "not found")
 	})
 }

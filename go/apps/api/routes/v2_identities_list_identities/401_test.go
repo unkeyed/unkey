@@ -12,12 +12,12 @@ import (
 
 func TestUnauthorized(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := handler.New(handler.Services{
+	route := &handler.Handler{
 		Logger:      h.Logger,
 		DB:          h.DB,
 		Keys:        h.Keys,
 		Permissions: h.Permissions,
-	})
+	}
 
 	// Register the route with the harness
 	h.Register(route)

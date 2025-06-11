@@ -18,109 +18,120 @@ import (
 type Request = openapi.V2RatelimitGetOverrideRequestBody
 type Response = openapi.V2RatelimitGetOverrideResponseBody
 
-type Services struct {
+// Handler implements zen.Route interface for the v2 ratelimit get override endpoint
+type Handler struct {
+	// Services as public fields
 	Logger      logging.Logger
 	DB          db.Database
 	Keys        keys.KeyService
 	Permissions permissions.PermissionService
 }
 
-func New(svc Services) zen.Route {
-	return zen.NewRoute("POST", "/v2/ratelimit.getOverride", func(ctx context.Context, s *zen.Session) error {
-		auth, err := svc.Keys.VerifyRootKey(ctx, s)
-		if err != nil {
-			return err
-		}
+// Method returns the HTTP method this route responds to
+func (h *Handler) Method() string {
+	return "POST"
+}
 
-		// nolint:exhaustruct
-		req := Request{}
-		err = s.BindBody(&req)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
-			)
-		}
+// Path returns the URL path pattern this route matches
+func (h *Handler) Path() string {
+	return "/v2/ratelimit.getOverride"
+}
 
-		namespace, err := getNamespace(ctx, svc, auth.AuthorizedWorkspaceID, req)
+// Handle processes the HTTP request
+func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
+	auth, err := h.Keys.VerifyRootKey(ctx, s)
+	if err != nil {
+		return err
+	}
 
-		if err != nil {
-			// already handled correctly in getNamespace
-			return err
-		}
-
-		if namespace.WorkspaceID != auth.AuthorizedWorkspaceID {
-			return fault.New("namespace not found",
-				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-				fault.Internal("namespace was deleted"), fault.Public("This namespace does not exist."),
-			)
-		}
-
-		err = svc.Permissions.Check(
-			ctx,
-			auth.KeyID,
-			rbac.Or(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Ratelimit,
-					ResourceID:   namespace.ID,
-					Action:       rbac.ReadOverride,
-				}),
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Ratelimit,
-					ResourceID:   "*",
-					Action:       rbac.ReadOverride,
-				}),
-			),
+	// nolint:exhaustruct
+	req := Request{}
+	err = s.BindBody(&req)
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
 		)
-		if err != nil {
-			return err
-		}
+	}
 
-		override, err := db.Query.FindRatelimitOverrideByIdentifier(ctx, svc.DB.RO(), db.FindRatelimitOverrideByIdentifierParams{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			NamespaceID: namespace.ID,
-			Identifier:  req.Identifier,
-		})
+	namespace, err := getNamespace(ctx, h, auth.AuthorizedWorkspaceID, req)
 
-		if db.IsNotFound(err) {
-			return fault.New("override not found",
-				fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
-				fault.Internal("override not found"), fault.Public("This override does not exist."),
-			)
-		}
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database failed to find the override"), fault.Public("Error finding the ratelimit override."),
-			)
-		}
+	if err != nil {
+		// already handled correctly in getNamespace
+		return err
+	}
 
-		return s.JSON(http.StatusOK, Response{
-			Meta: openapi.Meta{
-				RequestId: s.RequestID(),
-			},
-			Data: openapi.RatelimitOverride{
+	if namespace.WorkspaceID != auth.AuthorizedWorkspaceID {
+		return fault.New("namespace not found",
+			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+			fault.Internal("namespace was deleted"), fault.Public("This namespace does not exist."),
+		)
+	}
 
-				OverrideId:  override.ID,
-				Duration:    int64(override.Duration),
-				Identifier:  override.Identifier,
-				NamespaceId: override.NamespaceID,
-				Limit:       int64(override.Limit),
-			},
-		})
+	err = h.Permissions.Check(
+		ctx,
+		auth.KeyID,
+		rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Ratelimit,
+				ResourceID:   namespace.ID,
+				Action:       rbac.ReadOverride,
+			}),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Ratelimit,
+				ResourceID:   "*",
+				Action:       rbac.ReadOverride,
+			}),
+		),
+	)
+	if err != nil {
+		return err
+	}
+
+	override, err := db.Query.FindRatelimitOverrideByIdentifier(ctx, h.DB.RO(), db.FindRatelimitOverrideByIdentifierParams{
+		WorkspaceID: auth.AuthorizedWorkspaceID,
+		NamespaceID: namespace.ID,
+		Identifier:  req.Identifier,
+	})
+
+	if db.IsNotFound(err) {
+		return fault.New("override not found",
+			fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
+			fault.Internal("override not found"), fault.Public("This override does not exist."),
+		)
+	}
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database failed to find the override"), fault.Public("Error finding the ratelimit override."),
+		)
+	}
+
+	return s.JSON(http.StatusOK, Response{
+		Meta: openapi.Meta{
+			RequestId: s.RequestID(),
+		},
+		Data: openapi.RatelimitOverride{
+
+			OverrideId:  override.ID,
+			Duration:    int64(override.Duration),
+			Identifier:  override.Identifier,
+			NamespaceId: override.NamespaceID,
+			Limit:       int64(override.Limit),
+		},
 	})
 }
 
-func getNamespace(ctx context.Context, svc Services, workspaceID string, req Request) (namespace db.RatelimitNamespace, err error) {
+func getNamespace(ctx context.Context, h *Handler, workspaceID string, req Request) (namespace db.RatelimitNamespace, err error) {
 
 	switch {
 	case req.NamespaceId != nil:
 		{
-			namespace, err = db.Query.FindRatelimitNamespaceByID(ctx, svc.DB.RO(), *req.NamespaceId)
+			namespace, err = db.Query.FindRatelimitNamespaceByID(ctx, h.DB.RO(), *req.NamespaceId)
 			break
 		}
 	case req.NamespaceName != nil:
 		{
-			namespace, err = db.Query.FindRatelimitNamespaceByName(ctx, svc.DB.RO(), db.FindRatelimitNamespaceByNameParams{
+			namespace, err = db.Query.FindRatelimitNamespaceByName(ctx, h.DB.RO(), db.FindRatelimitNamespaceByNameParams{
 				WorkspaceID: workspaceID,
 				Name:        *req.NamespaceName,
 			})

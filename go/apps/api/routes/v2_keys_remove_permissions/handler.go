@@ -22,7 +22,9 @@ import (
 type Request = openapi.V2KeysRemovePermissionsRequestBody
 type Response = openapi.V2KeysRemovePermissionsResponse
 
-type Services struct {
+// Handler implements zen.Route interface for the v2 keys remove permissions endpoint
+type Handler struct {
+	// Services as public fields
 	Logger      logging.Logger
 	DB          db.Database
 	Keys        keys.KeyService
@@ -30,224 +32,233 @@ type Services struct {
 	Auditlogs   auditlogs.AuditLogService
 }
 
-func New(svc Services) zen.Route {
-	return zen.NewRoute("POST", "/v2/keys.removePermissions", func(ctx context.Context, s *zen.Session) error {
-		svc.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.removePermissions")
+// Method returns the HTTP method this route responds to
+func (h *Handler) Method() string {
+	return "POST"
+}
 
-		// 1. Authentication
-		auth, err := svc.Keys.VerifyRootKey(ctx, s)
-		if err != nil {
-			return err
-		}
+// Path returns the URL path pattern this route matches
+func (h *Handler) Path() string {
+	return "/v2/keys.removePermissions"
+}
 
-		// 2. Request validation
-		req, err := zen.BindBody[Request](s)
-		if err != nil {
-			return err
-		}
+// Handle processes the HTTP request
+func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
+	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.removePermissions")
 
-		// 3. Permission check
-		err = svc.Permissions.Check(
-			ctx,
-			auth.KeyID,
-			rbac.Or(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   "*",
-					Action:       rbac.UpdateKey,
-				}),
-			),
-		)
-		if err != nil {
-			return err
-		}
+	// 1. Authentication
+	auth, err := h.Keys.VerifyRootKey(ctx, s)
+	if err != nil {
+		return err
+	}
 
-		// 4. Validate key exists and belongs to workspace
-		key, err := db.Query.FindKeyByID(ctx, svc.DB.RO(), req.KeyId)
-		if err != nil {
-			if db.IsNotFound(err) {
-				return fault.New("key not found",
-					fault.Code(codes.Data.Key.NotFound.URN()),
-					fault.Internal("key not found"), fault.Public("The specified key was not found."),
-				)
-			}
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"), fault.Public("Failed to retrieve key."),
-			)
-		}
+	// 2. Request validation
+	req, err := zen.BindBody[Request](s)
+	if err != nil {
+		return err
+	}
 
-		// Validate key belongs to authorized workspace
-		if key.WorkspaceID != auth.AuthorizedWorkspaceID {
+	// 3. Permission check
+	err = h.Permissions.Check(
+		ctx,
+		auth.KeyID,
+		rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   "*",
+				Action:       rbac.UpdateKey,
+			}),
+		),
+	)
+	if err != nil {
+		return err
+	}
+
+	// 4. Validate key exists and belongs to workspace
+	key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), req.KeyId)
+	if err != nil {
+		if db.IsNotFound(err) {
 			return fault.New("key not found",
 				fault.Code(codes.Data.Key.NotFound.URN()),
-				fault.Internal("key belongs to different workspace"), fault.Public("The specified key was not found."),
+				fault.Internal("key not found"), fault.Public("The specified key was not found."),
+			)
+		}
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"), fault.Public("Failed to retrieve key."),
+		)
+	}
+
+	// Validate key belongs to authorized workspace
+	if key.WorkspaceID != auth.AuthorizedWorkspaceID {
+		return fault.New("key not found",
+			fault.Code(codes.Data.Key.NotFound.URN()),
+			fault.Internal("key belongs to different workspace"), fault.Public("The specified key was not found."),
+		)
+	}
+
+	// 5. Get current direct permissions for the key
+	currentPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), req.KeyId)
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"), fault.Public("Failed to retrieve current permissions."),
+		)
+	}
+
+	// Convert current permissions to a map for efficient lookup
+	currentPermissionIDs := make(map[string]db.Permission)
+	for _, permission := range currentPermissions {
+		currentPermissionIDs[permission.ID] = permission
+	}
+
+	// 6. Resolve and validate requested permissions to remove
+	requestedPermissions := make([]db.Permission, 0, len(req.Permissions))
+	for _, permRef := range req.Permissions {
+		var permission db.Permission
+
+		if permRef.Id != nil {
+			// Find by ID
+			permission, err = db.Query.FindPermissionByID(ctx, h.DB.RO(), *permRef.Id)
+			if err != nil {
+				if db.IsNotFound(err) {
+					return fault.New("permission not found",
+						fault.Code(codes.Data.Permission.NotFound.URN()),
+						fault.Internal("permission not found"), fault.Public(fmt.Sprintf("Permission with ID '%s' was not found.", *permRef.Id)),
+					)
+				}
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to retrieve permission."),
+				)
+			}
+		} else if permRef.Name != nil {
+			// Find by name
+			permission, err = db.Query.FindPermissionByNameAndWorkspaceID(ctx, h.DB.RO(), db.FindPermissionByNameAndWorkspaceIDParams{
+				Name:        *permRef.Name,
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+			})
+			if err != nil {
+				if db.IsNotFound(err) {
+					return fault.New("permission not found",
+						fault.Code(codes.Data.Permission.NotFound.URN()),
+						fault.Internal("permission not found"), fault.Public(fmt.Sprintf("Permission with name '%s' was not found.", *permRef.Name)),
+					)
+				}
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to retrieve permission."),
+				)
+			}
+		} else {
+			return fault.New("invalid permission reference",
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal("permission missing id and name"), fault.Public("Each permission must specify either 'id' or 'name'."),
 			)
 		}
 
-		// 5. Get current direct permissions for the key
-		currentPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, svc.DB.RO(), req.KeyId)
+		// Validate permission belongs to the same workspace
+		if permission.WorkspaceID != auth.AuthorizedWorkspaceID {
+			return fault.New("permission not found",
+				fault.Code(codes.Data.Permission.NotFound.URN()),
+				fault.Internal("permission belongs to different workspace"), fault.Public(fmt.Sprintf("Permission '%s' was not found.", permission.Name)),
+			)
+		}
+
+		requestedPermissions = append(requestedPermissions, permission)
+	}
+
+	// 7. Determine which permissions to remove (only remove permissions that are currently assigned)
+	permissionsToRemove := make([]db.Permission, 0)
+	for _, permission := range requestedPermissions {
+		if _, exists := currentPermissionIDs[permission.ID]; exists {
+			permissionsToRemove = append(permissionsToRemove, permission)
+		}
+	}
+
+	// 8. Apply changes in transaction (only if there are permissions to remove)
+	if len(permissionsToRemove) > 0 {
+		tx, err := h.DB.RW().Begin(ctx)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"), fault.Public("Failed to retrieve current permissions."),
+				fault.Internal("database failed to create transaction"), fault.Public("Unable to start database transaction."),
 			)
 		}
 
-		// Convert current permissions to a map for efficient lookup
-		currentPermissionIDs := make(map[string]db.Permission)
-		for _, permission := range currentPermissions {
-			currentPermissionIDs[permission.ID] = permission
-		}
-
-		// 6. Resolve and validate requested permissions to remove
-		requestedPermissions := make([]db.Permission, 0, len(req.Permissions))
-		for _, permRef := range req.Permissions {
-			var permission db.Permission
-
-			if permRef.Id != nil {
-				// Find by ID
-				permission, err = db.Query.FindPermissionByID(ctx, svc.DB.RO(), *permRef.Id)
-				if err != nil {
-					if db.IsNotFound(err) {
-						return fault.New("permission not found",
-							fault.Code(codes.Data.Permission.NotFound.URN()),
-							fault.Internal("permission not found"), fault.Public(fmt.Sprintf("Permission with ID '%s' was not found.", *permRef.Id)),
-						)
-					}
-					return fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("database error"), fault.Public("Failed to retrieve permission."),
-					)
-				}
-			} else if permRef.Name != nil {
-				// Find by name
-				permission, err = db.Query.FindPermissionByNameAndWorkspaceID(ctx, svc.DB.RO(), db.FindPermissionByNameAndWorkspaceIDParams{
-					Name:        *permRef.Name,
-					WorkspaceID: auth.AuthorizedWorkspaceID,
-				})
-				if err != nil {
-					if db.IsNotFound(err) {
-						return fault.New("permission not found",
-							fault.Code(codes.Data.Permission.NotFound.URN()),
-							fault.Internal("permission not found"), fault.Public(fmt.Sprintf("Permission with name '%s' was not found.", *permRef.Name)),
-						)
-					}
-					return fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("database error"), fault.Public("Failed to retrieve permission."),
-					)
-				}
-			} else {
-				return fault.New("invalid permission reference",
-					fault.Code(codes.App.Validation.InvalidInput.URN()),
-					fault.Internal("permission missing id and name"), fault.Public("Each permission must specify either 'id' or 'name'."),
-				)
+		defer func() {
+			if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+				h.Logger.Error("failed to rollback transaction", "error", err)
 			}
+		}()
 
-			// Validate permission belongs to the same workspace
-			if permission.WorkspaceID != auth.AuthorizedWorkspaceID {
-				return fault.New("permission not found",
-					fault.Code(codes.Data.Permission.NotFound.URN()),
-					fault.Internal("permission belongs to different workspace"), fault.Public(fmt.Sprintf("Permission '%s' was not found.", permission.Name)),
-				)
-			}
+		var auditLogs []auditlog.AuditLog
 
-			requestedPermissions = append(requestedPermissions, permission)
-		}
-
-		// 7. Determine which permissions to remove (only remove permissions that are currently assigned)
-		permissionsToRemove := make([]db.Permission, 0)
-		for _, permission := range requestedPermissions {
-			if _, exists := currentPermissionIDs[permission.ID]; exists {
-				permissionsToRemove = append(permissionsToRemove, permission)
-			}
-		}
-
-		// 8. Apply changes in transaction (only if there are permissions to remove)
-		if len(permissionsToRemove) > 0 {
-			tx, err := svc.DB.RW().Begin(ctx)
+		// Remove permissions
+		for _, permission := range permissionsToRemove {
+			err := db.Query.DeleteKeyPermissionByKeyAndPermissionID(ctx, tx, db.DeleteKeyPermissionByKeyAndPermissionIDParams{
+				KeyID:        req.KeyId,
+				PermissionID: permission.ID,
+			})
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database failed to create transaction"), fault.Public("Unable to start database transaction."),
+					fault.Internal("database error"), fault.Public("Failed to remove permission assignment."),
 				)
 			}
 
-			defer func() {
-				if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
-					svc.Logger.Error("failed to rollback transaction", "error", err)
-				}
-			}()
-
-			var auditLogs []auditlog.AuditLog
-
-			// Remove permissions
-			for _, permission := range permissionsToRemove {
-				err := db.Query.DeleteKeyPermissionByKeyAndPermissionID(ctx, tx, db.DeleteKeyPermissionByKeyAndPermissionIDParams{
-					KeyID:        req.KeyId,
-					PermissionID: permission.ID,
-				})
-				if err != nil {
-					return fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("database error"), fault.Public("Failed to remove permission assignment."),
-					)
-				}
-
-				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID: auth.AuthorizedWorkspaceID,
-					Event:       auditlog.AuthDisconnectPermissionKeyEvent,
-					ActorType:   auditlog.RootKeyActor,
-					ActorID:     auth.KeyID,
-					ActorName:   "root key",
-					Display:     fmt.Sprintf("Removed permission %s from key %s", permission.Name, req.KeyId),
-					RemoteIP:    s.Location(),
-					UserAgent:   s.UserAgent(),
-					Resources: []auditlog.AuditLogResource{
-						{
-							Type:        "key",
-							ID:          req.KeyId,
-							Name:        key.Name.String,
-							DisplayName: key.Name.String,
-						},
-						{
-							Type:        "permission",
-							ID:          permission.ID,
-							Name:        permission.Name,
-							DisplayName: permission.Name,
-						},
+			auditLogs = append(auditLogs, auditlog.AuditLog{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Event:       auditlog.AuthDisconnectPermissionKeyEvent,
+				ActorType:   auditlog.RootKeyActor,
+				ActorID:     auth.KeyID,
+				ActorName:   "root key",
+				Display:     fmt.Sprintf("Removed permission %s from key %s", permission.Name, req.KeyId),
+				RemoteIP:    s.Location(),
+				UserAgent:   s.UserAgent(),
+				Resources: []auditlog.AuditLogResource{
+					{
+						Type:        "key",
+						ID:          req.KeyId,
+						Name:        key.Name.String,
+						DisplayName: key.Name.String,
 					},
-				})
-			}
+					{
+						Type:        "permission",
+						ID:          permission.ID,
+						Name:        permission.Name,
+						DisplayName: permission.Name,
+					},
+				},
+			})
+		}
 
-			// Insert audit logs
-			if len(auditLogs) > 0 {
-				err = svc.Auditlogs.Insert(ctx, tx, auditLogs)
-				if err != nil {
-					return fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("audit log error"), fault.Public("Failed to create audit log for permission removals."),
-					)
-				}
-			}
-
-			// Commit the transaction
-			err = tx.Commit()
+		// Insert audit logs
+		if len(auditLogs) > 0 {
+			err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database failed to commit transaction"), fault.Public("Unable to commit database transaction."),
+					fault.Internal("audit log error"), fault.Public("Failed to create audit log for permission removals."),
 				)
 			}
 		}
 
-		// 9. Return empty success response (as specified in OpenAPI)
-		return s.JSON(http.StatusOK, Response{
-			Meta: openapi.Meta{
-				RequestId: s.RequestID(),
-			},
-			Data: make(map[string]interface{}),
-		})
+		// Commit the transaction
+		err = tx.Commit()
+		if err != nil {
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to commit transaction"), fault.Public("Unable to commit database transaction."),
+			)
+		}
+	}
+
+	// 9. Return empty success response (as specified in OpenAPI)
+	return s.JSON(http.StatusOK, Response{
+		Meta: openapi.Meta{
+			RequestId: s.RequestID(),
+		},
+		Data: make(map[string]interface{}),
 	})
 }

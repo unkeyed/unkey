@@ -13,13 +13,13 @@ import (
 func TestAuthenticationErrors(t *testing.T) {
 	h := testutil.NewHarness(t)
 
-	route := handler.New(handler.Services{
+	route := &handler.Handler{
 		DB:          h.DB,
 		Keys:        h.Keys,
 		Logger:      h.Logger,
 		Permissions: h.Permissions,
 		Auditlogs:   h.Auditlogs,
-	})
+	}
 
 	h.Register(route)
 
@@ -66,7 +66,6 @@ func TestAuthenticationErrors(t *testing.T) {
 		require.NotNil(t, res.Body.Error)
 		require.Contains(t, res.Body.Error.Detail, "invalid")
 	})
-
 	// Test case for malformed authorization header
 	t.Run("malformed authorization header", func(t *testing.T) {
 		headers := http.Header{

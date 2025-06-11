@@ -15,13 +15,13 @@ import (
 func TestCreateApi_Forbidden(t *testing.T) {
 	h := testutil.NewHarness(t)
 
-	route := handler.New(handler.Services{
+	route := &handler.Handler{
+		Logger:      h.Logger,
 		DB:          h.DB,
 		Keys:        h.Keys,
-		Logger:      h.Logger,
 		Permissions: h.Permissions,
 		Auditlogs:   h.Auditlogs,
-	})
+	}
 
 	h.Register(route)
 

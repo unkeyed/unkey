@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_create_key"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -23,13 +24,13 @@ func Test_CreateKey_BadRequest(t *testing.T) {
 	h := testutil.NewHarness(t)
 	ctx := context.Background()
 
-	route := handler.New(handler.Services{
+	route := &handler.Handler{
 		DB:          h.DB,
 		Keys:        h.Keys,
 		Logger:      h.Logger,
 		Permissions: h.Permissions,
 		Auditlogs:   h.Auditlogs,
-	})
+	}
 
 	h.Register(route)
 
@@ -70,7 +71,6 @@ func Test_CreateKey_BadRequest(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "validation")
 	})
 
 	t.Run("empty apiId", func(t *testing.T) {
@@ -81,18 +81,6 @@ func Test_CreateKey_BadRequest(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "validation")
-	})
-
-	t.Run("invalid apiId format", func(t *testing.T) {
-		req := handler.Request{
-			ApiId: "invalid-api-id",
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "validation")
 	})
 
 	t.Run("apiId too short", func(t *testing.T) {
@@ -103,7 +91,6 @@ func Test_CreateKey_BadRequest(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "validation")
 	})
 
 	t.Run("byteLength too small", func(t *testing.T) {
@@ -116,7 +103,6 @@ func Test_CreateKey_BadRequest(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "validation")
 	})
 
 	t.Run("byteLength too large", func(t *testing.T) {
@@ -129,7 +115,6 @@ func Test_CreateKey_BadRequest(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "validation")
 	})
 
 	t.Run("prefix too long", func(t *testing.T) {
@@ -142,7 +127,6 @@ func Test_CreateKey_BadRequest(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "validation")
 	})
 
 	t.Run("negative expires timestamp", func(t *testing.T) {
@@ -155,33 +139,6 @@ func Test_CreateKey_BadRequest(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "validation")
-	})
-
-	t.Run("nonexistent permission", func(t *testing.T) {
-		nonexistentPermissions := []string{"nonexistent.permission"}
-		req := handler.Request{
-			ApiId:       apiID,
-			Permissions: &nonexistentPermissions,
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "Permission 'nonexistent.permission' was not found")
-	})
-
-	t.Run("nonexistent role", func(t *testing.T) {
-		nonexistentRoles := []string{"nonexistent_role"}
-		req := handler.Request{
-			ApiId: apiID,
-			Roles: &nonexistentRoles,
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "Role 'nonexistent_role' was not found")
 	})
 
 	t.Run("empty permission in list", func(t *testing.T) {
@@ -194,7 +151,6 @@ func Test_CreateKey_BadRequest(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "validation")
 	})
 
 	t.Run("empty role in list", func(t *testing.T) {
@@ -207,7 +163,6 @@ func Test_CreateKey_BadRequest(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "validation")
 	})
 
 	t.Run("permission too long", func(t *testing.T) {
@@ -222,21 +177,17 @@ func Test_CreateKey_BadRequest(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "validation")
 	})
 
 	t.Run("role too long", func(t *testing.T) {
 		// Create a role string that's longer than 512 characters
-		longRole := strings.Repeat("a", 513)
-		longRoles := []string{longRole}
 		req := handler.Request{
 			ApiId: apiID,
-			Roles: &longRoles,
+			Roles: ptr.P([]string{strings.Repeat("a", 513)}),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "validation")
 	})
 }

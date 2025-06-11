@@ -59,7 +59,7 @@ func Register(srv *zen.Server, svc *Services) {
 		withValidation,
 	}
 
-	srv.RegisterRoute(defaultMiddlewares, v2Liveness.New())
+	srv.RegisterRoute(defaultMiddlewares, &v2Liveness.Handler{})
 
 	// ---------------------------------------------------------------------------
 	// v2/ratelimit
@@ -67,7 +67,7 @@ func Register(srv *zen.Server, svc *Services) {
 	// v2/ratelimit.limit
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2RatelimitLimit.New(v2RatelimitLimit.Services{
+		&v2RatelimitLimit.Handler{
 			Logger:                        svc.Logger,
 			DB:                            svc.Database,
 			Keys:                          svc.Keys,
@@ -77,53 +77,53 @@ func Register(srv *zen.Server, svc *Services) {
 			RatelimitNamespaceByNameCache: svc.Caches.RatelimitNamespaceByName,
 			RatelimitOverrideMatchesCache: svc.Caches.RatelimitOverridesMatch,
 			TestMode:                      srv.Flags().TestMode,
-		}),
+		},
 	)
 
 	// v2/ratelimit.setOverride
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2RatelimitSetOverride.New(v2RatelimitSetOverride.Services{
+		&v2RatelimitSetOverride.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
 			Auditlogs:   svc.Auditlogs,
-		}),
+		},
 	)
 
 	// v2/ratelimit.getOverride
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2RatelimitGetOverride.New(v2RatelimitGetOverride.Services{
+		&v2RatelimitGetOverride.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
-		}),
+		},
 	)
 
 	// v2/ratelimit.deleteOverride
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2RatelimitDeleteOverride.New(v2RatelimitDeleteOverride.Services{
+		&v2RatelimitDeleteOverride.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
 			Auditlogs:   svc.Auditlogs,
-		}),
+		},
 	)
 
 	// v2/ratelimit.listOverrides
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2RatelimitListOverrides.New(v2RatelimitListOverrides.Services{
+		&v2RatelimitListOverrides.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
-		}),
+		},
 	)
 
 	// ---------------------------------------------------------------------------
@@ -132,59 +132,59 @@ func Register(srv *zen.Server, svc *Services) {
 	// v2/identities.createIdentity
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2IdentitiesCreateIdentity.New(v2IdentitiesCreateIdentity.Services{
+		&v2IdentitiesCreateIdentity.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
 			Auditlogs:   svc.Auditlogs,
-		}),
+		},
 	)
 
 	// v2/identities.deleteIdentity
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2IdentitiesDeleteIdentity.New(v2IdentitiesDeleteIdentity.Services{
+		&v2IdentitiesDeleteIdentity.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
 			Auditlogs:   svc.Auditlogs,
-		}),
+		},
 	)
 
 	// v2/identities.getIdentity
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2IdentitiesGetIdentity.New(v2IdentitiesGetIdentity.Services{
+		&v2IdentitiesGetIdentity.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
-		}),
+		},
 	)
 
 	// v2/identities.listIdentities
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2IdentitiesListIdentities.New(v2IdentitiesListIdentities.Services{
+		&v2IdentitiesListIdentities.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
-		}),
+		},
 	)
 
 	// v2/identities.updateIdentity
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2IdentitiesUpdateIdentity.New(v2IdentitiesUpdateIdentity.Services{
+		&v2IdentitiesUpdateIdentity.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
 			Auditlogs:   svc.Auditlogs,
-		}),
+		},
 	)
 
 	// ---------------------------------------------------------------------------
@@ -193,47 +193,48 @@ func Register(srv *zen.Server, svc *Services) {
 	// v2/apis.createApi
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2ApisCreateApi.New(v2ApisCreateApi.Services{
+		&v2ApisCreateApi.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
-		}),
+			Auditlogs:   svc.Auditlogs,
+		},
 	)
 	// v2/apis.getApi
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2ApisGetApi.New(v2ApisGetApi.Services{
+		&v2ApisGetApi.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
-		}),
+		},
 	)
 
 	// v2/apis.listKeys
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2ApisListKeys.New(v2ApisListKeys.Services{
+		&v2ApisListKeys.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
 			Vault:       svc.Vault,
-		}),
+		},
 	)
 
 	// v2/apis.deleteApi
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2ApisDeleteApi.New(v2ApisDeleteApi.Services{
+		&v2ApisDeleteApi.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
 			Auditlogs:   svc.Auditlogs,
 			Caches:      svc.Caches,
-		}),
+		},
 	)
 
 	// ---------------------------------------------------------------------------
@@ -242,93 +243,93 @@ func Register(srv *zen.Server, svc *Services) {
 	// v2/permissions.createPermission
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2PermissionsCreatePermission.New(v2PermissionsCreatePermission.Services{
+		&v2PermissionsCreatePermission.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
 			Auditlogs:   svc.Auditlogs,
-		}),
+		},
 	)
 
 	// v2/permissions.getPermission
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2PermissionsGetPermission.New(v2PermissionsGetPermission.Services{
+		&v2PermissionsGetPermission.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
-		}),
+		},
 	)
 
 	// v2/permissions.getRole
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2PermissionsGetRole.New(v2PermissionsGetRole.Services{
+		&v2PermissionsGetRole.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
-		}),
+		},
 	)
 
 	// v2/permissions.listPermissions
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2PermissionsListPermissions.New(v2PermissionsListPermissions.Services{
+		&v2PermissionsListPermissions.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
-		}),
+		},
 	)
 
 	// v2/permissions.deletePermission
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2PermissionsDeletePermission.New(v2PermissionsDeletePermission.Services{
+		&v2PermissionsDeletePermission.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
 			Auditlogs:   svc.Auditlogs,
-		}),
+		},
 	)
 
 	// v2/permissions.createRole
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2PermissionsCreateRole.New(v2PermissionsCreateRole.Services{
+		&v2PermissionsCreateRole.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
 			Auditlogs:   svc.Auditlogs,
-		}),
+		},
 	)
 
 	// v2/permissions.listRoles
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2PermissionsListRoles.New(v2PermissionsListRoles.Services{
+		&v2PermissionsListRoles.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
-		}),
+		},
 	)
 
 	// v2/permissions.deleteRole
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2PermissionsDeleteRole.New(v2PermissionsDeleteRole.Services{
+		&v2PermissionsDeleteRole.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
 			Auditlogs:   svc.Auditlogs,
-		}),
+		},
 	)
 
 	// ---------------------------------------------------------------------------
@@ -337,84 +338,84 @@ func Register(srv *zen.Server, svc *Services) {
 	// v2/keys.createKey
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2KeysCreateKey.New(v2KeysCreateKey.Services{
+		&v2KeysCreateKey.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
 			Auditlogs:   svc.Auditlogs,
-		}),
+		},
 	)
 
 	// v2/keys.setRoles
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2KeysSetRoles.New(v2KeysSetRoles.Services{
+		&v2KeysSetRoles.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
 			Auditlogs:   svc.Auditlogs,
-		}),
+		},
 	)
 
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2KeysSetPermissions.New(v2KeysSetPermissions.Services{
+		&v2KeysSetPermissions.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
 			Auditlogs:   svc.Auditlogs,
-		}),
+		},
 	)
 
 	// v2/keys.addPermissions
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2KeysAddPermissions.New(v2KeysAddPermissions.Services{
+		&v2KeysAddPermissions.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
 			Auditlogs:   svc.Auditlogs,
-		}),
+		},
 	)
 
 	// v2/keys.addRoles
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2KeysAddRoles.New(v2KeysAddRoles.Services{
+		&v2KeysAddRoles.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
 			Auditlogs:   svc.Auditlogs,
-		}),
+		},
 	)
 
 	// v2/keys.removePermissions
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2KeysRemovePermissions.New(v2KeysRemovePermissions.Services{
+		&v2KeysRemovePermissions.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
 			Auditlogs:   svc.Auditlogs,
-		}),
+		},
 	)
 
 	// v2/keys.removeRoles
 	srv.RegisterRoute(
 		defaultMiddlewares,
-		v2KeysRemoveRoles.New(v2KeysRemoveRoles.Services{
+		&v2KeysRemoveRoles.Handler{
 			Logger:      svc.Logger,
 			DB:          svc.Database,
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
 			Auditlogs:   svc.Auditlogs,
-		}),
+		},
 	)
 
 	// ---------------------------------------------------------------------------
@@ -425,6 +426,8 @@ func Register(srv *zen.Server, svc *Services) {
 		withMetrics,
 		withLogging,
 		withErrorHandling,
-	}, reference.New())
+	}, &reference.Handler{
+		Logger: svc.Logger,
+	})
 
 }

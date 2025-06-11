@@ -20,13 +20,13 @@ func TestSuccess(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
-	route := handler.New(handler.Services{
+	route := &handler.Handler{
 		DB:          h.DB,
 		Keys:        h.Keys,
 		Logger:      h.Logger,
 		Permissions: h.Permissions,
 		Auditlogs:   h.Auditlogs,
-	})
+	}
 
 	h.Register(route)
 
@@ -98,7 +98,7 @@ func TestSuccess(t *testing.T) {
 			Permissions: []struct {
 				Create *bool   `json:"create,omitempty"`
 				Id     *string `json:"id,omitempty"`
-				Name   *string `json:"name,omitempty"`
+				Slug   *string `json:"slug,omitempty"`
 			}{
 				{Id: &permissionID},
 			},
@@ -116,7 +116,7 @@ func TestSuccess(t *testing.T) {
 		require.NotNil(t, res.Body.Data)
 		require.Len(t, res.Body.Data, 1)
 		require.Equal(t, permissionID, res.Body.Data[0].Id)
-		require.Equal(t, "documents.read.single.id", res.Body.Data[0].Name)
+		require.Equal(t, "documents.read.single.id", res.Body.Data[0].Slug)
 
 		// Verify permission was added to key
 		finalPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), keyID)
@@ -179,12 +179,12 @@ func TestSuccess(t *testing.T) {
 
 		// Create a permission
 		permissionID := uid.New(uid.TestPrefix)
-		permissionName := "documents.write.single.name"
+		permissionSlug := "documents.write.single.name"
 		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permissionID,
 			WorkspaceID:  workspace.ID,
-			Name:         permissionName,
-			Slug:         permissionName,
+			Name:         permissionSlug,
+			Slug:         permissionSlug,
 			Description:  sql.NullString{Valid: true, String: "Write documents permission"},
 		})
 		require.NoError(t, err)
@@ -199,9 +199,9 @@ func TestSuccess(t *testing.T) {
 			Permissions: []struct {
 				Create *bool   `json:"create,omitempty"`
 				Id     *string `json:"id,omitempty"`
-				Name   *string `json:"name,omitempty"`
+				Slug   *string `json:"slug,omitempty"`
 			}{
-				{Name: &permissionName},
+				{Slug: &permissionSlug},
 			},
 		}
 
@@ -276,12 +276,12 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		permission2ID := uid.New(uid.TestPrefix)
-		permission2Name := "documents.write.multiple"
+		permission2Slug := "documents.write.multiple"
 		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permission2ID,
 			WorkspaceID:  workspace.ID,
-			Name:         permission2Name,
-			Slug:         permission2Name,
+			Name:         permission2Slug,
+			Slug:         permission2Slug,
 			Description:  sql.NullString{Valid: true, String: "Write documents permission"},
 		})
 		require.NoError(t, err)
@@ -291,10 +291,10 @@ func TestSuccess(t *testing.T) {
 			Permissions: []struct {
 				Create *bool   `json:"create,omitempty"`
 				Id     *string `json:"id,omitempty"`
-				Name   *string `json:"name,omitempty"`
+				Slug   *string `json:"slug,omitempty"`
 			}{
 				{Id: &permission1ID},
-				{Name: &permission2Name},
+				{Slug: &permission2Slug},
 			},
 		}
 
@@ -375,7 +375,7 @@ func TestSuccess(t *testing.T) {
 			Permissions: []struct {
 				Create *bool   `json:"create,omitempty"`
 				Id     *string `json:"id,omitempty"`
-				Name   *string `json:"name,omitempty"`
+				Slug   *string `json:"slug,omitempty"`
 			}{
 				{Id: &permissionID},
 			},
@@ -485,7 +485,7 @@ func TestSuccess(t *testing.T) {
 			Permissions: []struct {
 				Create *bool   `json:"create,omitempty"`
 				Id     *string `json:"id,omitempty"`
-				Name   *string `json:"name,omitempty"`
+				Slug   *string `json:"slug,omitempty"`
 			}{
 				{Id: &newPermissionID},
 			},

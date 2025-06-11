@@ -17,13 +17,13 @@ func Test_CreateKey_NotFound(t *testing.T) {
 
 	h := testutil.NewHarness(t)
 
-	route := handler.New(handler.Services{
+	route := &handler.Handler{
 		DB:          h.DB,
 		Keys:        h.Keys,
 		Logger:      h.Logger,
 		Permissions: h.Permissions,
 		Auditlogs:   h.Auditlogs,
-	})
+	}
 
 	h.Register(route)
 
@@ -114,4 +114,5 @@ func Test_CreateKey_NotFound(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.Contains(t, res.Body.Error.Detail, "The specified API was not found")
 	})
+
 }

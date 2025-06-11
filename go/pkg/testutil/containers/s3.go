@@ -2,11 +2,13 @@ package containers
 
 import (
 	"fmt"
+	"net/http"
 	"testing"
 	"time"
 
 	"github.com/ory/dockertest/v3"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/pkg/retry"
 )
 
 type S3 struct {
@@ -40,15 +42,34 @@ func (c *Containers) RunS3(t *testing.T) S3 {
 
 	c.t.Cleanup(func() {
 		if !c.t.Failed() {
-
 			require.NoError(c.t, c.pool.Purge(resource))
 		}
 	})
 
-	return S3{
+	s3 := S3{
 		DockerURL:       fmt.Sprintf("http://%s:9000", resource.GetIPInNetwork(c.network)),
 		HostURL:         fmt.Sprintf("http://localhost:%s", resource.GetPort("9000/tcp")),
 		AccessKeyId:     user,
 		AccessKeySecret: password,
 	}
+
+	err = retry.New(
+		retry.Attempts(10),
+		retry.Backoff(func(n int) time.Duration {
+			return time.Duration(n*n*100) * time.Millisecond
+		}),
+	).Do(func() error {
+		resp, err := http.Get(fmt.Sprintf("%s/minio/health/live", s3.HostURL))
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("unexpected status code: %s", resp.Status)
+		}
+		return nil
+	})
+	require.NoError(t, err, "S3 is not healthy")
+
+	return s3
 }

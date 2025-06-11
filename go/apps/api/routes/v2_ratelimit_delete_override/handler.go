@@ -24,7 +24,9 @@ import (
 type Request = openapi.V2RatelimitDeleteOverrideRequestBody
 type Response = openapi.V2RatelimitDeleteOverrideResponseBody
 
-type Services struct {
+// Handler implements zen.Route interface for the v2 ratelimit delete override endpoint
+type Handler struct {
+	// Services as public fields
 	Logger      logging.Logger
 	DB          db.Database
 	Keys        keys.KeyService
@@ -32,177 +34,182 @@ type Services struct {
 	Auditlogs   auditlogs.AuditLogService
 }
 
-func New(svc Services) zen.Route {
-	return zen.NewRoute("POST", "/v2/ratelimit.deleteOverride", func(ctx context.Context, s *zen.Session) error {
-		auth, err := svc.Keys.VerifyRootKey(ctx, s)
-		if err != nil {
-			return err
-		}
+// Method returns the HTTP method this route responds to
+func (h *Handler) Method() string {
+	return "POST"
+}
 
-		// nolint:exhaustruct
-		req := Request{}
-		err = s.BindBody(&req)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Internal("invalid request body"),
-				fault.Public("The request body is invalid."),
-			)
-		}
+// Path returns the URL path pattern this route matches
+func (h *Handler) Path() string {
+	return "/v2/ratelimit.deleteOverride"
+}
 
-		namespace, err := getNamespace(ctx, svc, auth.AuthorizedWorkspaceID, req)
-		if db.IsNotFound(err) {
-			return fault.New("namespace not found",
-				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-				fault.Internal("namespace not found"),
-				fault.Public("This namespace does not exist."),
-			)
-		}
-		if err != nil {
-			return err
-		}
+// Handle processes the HTTP request
+func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
+	auth, err := h.Keys.VerifyRootKey(ctx, s)
+	if err != nil {
+		return err
+	}
 
-		if namespace.WorkspaceID != auth.AuthorizedWorkspaceID {
-			return fault.New("namespace not found",
-				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-				fault.Internal("wrong workspace, masking as 404"),
-				fault.Public("This namespace does not exist."),
-			)
-		}
-
-		err = svc.Permissions.Check(
-			ctx,
-			auth.KeyID,
-			rbac.Or(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Ratelimit,
-					ResourceID:   namespace.ID,
-					Action:       rbac.DeleteOverride,
-				}),
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Ratelimit,
-					ResourceID:   "*",
-					Action:       rbac.DeleteOverride,
-				}),
-			),
+	// nolint:exhaustruct
+	req := Request{}
+	err = s.BindBody(&req)
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Internal("invalid request body"),
+			fault.Public("The request body is invalid."),
 		)
-		if err != nil {
-			return err
-		}
+	}
 
-		tx, err := svc.DB.RW().Begin(ctx)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database failed to create transaction"),
-				fault.Public("Unable to start database transaction."),
-			)
-		}
-		defer func() {
-			rollbackErr := tx.Rollback()
-			if rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
-				svc.Logger.Error("rollback failed", "requestId", s.RequestID(), "error", rollbackErr)
-			}
-		}()
+	namespace, err := getNamespace(ctx, h, auth.AuthorizedWorkspaceID, req)
+	if db.IsNotFound(err) {
+		return fault.New("namespace not found",
+			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+			fault.Internal("namespace not found"),
+			fault.Public("This namespace does not exist."),
+		)
+	}
+	if err != nil {
+		return err
+	}
 
-		// Check if the override exists before deleting
-		override, err := db.Query.FindRatelimitOverrideByIdentifier(ctx, tx, db.FindRatelimitOverrideByIdentifierParams{
+	if namespace.WorkspaceID != auth.AuthorizedWorkspaceID {
+		return fault.New("namespace not found",
+			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+			fault.Internal("wrong workspace, masking as 404"),
+			fault.Public("This namespace does not exist."),
+		)
+	}
+
+	err = h.Permissions.Check(
+		ctx,
+		auth.KeyID,
+		rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Ratelimit,
+				ResourceID:   namespace.ID,
+				Action:       rbac.DeleteOverride,
+			}),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Ratelimit,
+				ResourceID:   "*",
+				Action:       rbac.DeleteOverride,
+			}),
+		),
+	)
+	if err != nil {
+		return err
+	}
+
+	tx, err := h.DB.RW().Begin(ctx)
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database failed to create transaction"),
+			fault.Public("Unable to start database transaction."),
+		)
+	}
+	defer func() {
+		rollbackErr := tx.Rollback()
+		if rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
+			h.Logger.Error("rollback failed", "requestId", s.RequestID(), "error", rollbackErr)
+		}
+	}()
+
+	// Check if the override exists before deleting
+	override, err := db.Query.FindRatelimitOverrideByIdentifier(ctx, tx, db.FindRatelimitOverrideByIdentifierParams{
+		WorkspaceID: auth.AuthorizedWorkspaceID,
+		NamespaceID: namespace.ID,
+		Identifier:  req.Identifier,
+	})
+
+	if db.IsNotFound(err) {
+		return fault.New("override not found",
+			fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
+			fault.Internal("override not found"),
+			fault.Public("This override does not exist."),
+		)
+	}
+	if err != nil {
+		return err
+	}
+	// Perform soft delete by updating the DeletedAt field
+	err = db.Query.SoftDeleteRatelimitOverride(ctx, tx, db.SoftDeleteRatelimitOverrideParams{
+		ID:  override.ID,
+		Now: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	})
+
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database failed to soft delete ratelimit override"),
+			fault.Public("The database is unavailable."),
+		)
+	}
+
+	err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
+		{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
-			NamespaceID: namespace.ID,
-			Identifier:  req.Identifier,
-		})
-
-		if db.IsNotFound(err) {
-			return fault.New("override not found",
-				fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
-				fault.Internal("override not found"),
-				fault.Public("This override does not exist."),
-			)
-		}
-		if err != nil {
-			return err
-		}
-		// Perform soft delete by updating the DeletedAt field
-		err = db.Query.SoftDeleteRatelimitOverride(ctx, tx, db.SoftDeleteRatelimitOverrideParams{
-			ID:  override.ID,
-			Now: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-		})
-
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database failed to soft delete ratelimit override"),
-				fault.Public("The database is unavailable."),
-			)
-		}
-
-		err = svc.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
-			{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       auditlog.RatelimitDeleteOverrideEvent,
-				Display:     fmt.Sprintf("Deleted override %s.", override.ID),
-				ActorID:     auth.KeyID,
-				Bucket:      auditlogs.DEFAULT_BUCKET,
-				ActorType:   auditlog.RootKeyActor,
-				ActorName:   "root key",
-				RemoteIP:    s.Location(),
-				UserAgent:   s.UserAgent(),
-				Resources: []auditlog.AuditLogResource{
-					{
-						ID:          override.ID,
-						Name:        override.Identifier,
-						DisplayName: override.Identifier,
-						Type:        auditlog.RatelimitOverrideResourceType,
-						Meta:        nil,
-					},
-					{
-						ID:          namespace.ID,
-						Name:        namespace.Name,
-						DisplayName: namespace.Name,
-						Type:        auditlog.RatelimitNamespaceResourceType,
-						Meta:        nil,
-					},
+			Event:       auditlog.RatelimitDeleteOverrideEvent,
+			Display:     fmt.Sprintf("Deleted override %s.", override.ID),
+			ActorID:     auth.KeyID,
+			Bucket:      auditlogs.DEFAULT_BUCKET,
+			ActorType:   auditlog.RootKeyActor,
+			ActorName:   "root key",
+			RemoteIP:    s.Location(),
+			UserAgent:   s.UserAgent(),
+			Resources: []auditlog.AuditLogResource{
+				{
+					ID:          override.ID,
+					Name:        override.Identifier,
+					DisplayName: override.Identifier,
+					Type:        auditlog.RatelimitOverrideResourceType,
+					Meta:        nil,
+				},
+				{
+					ID:          namespace.ID,
+					Name:        namespace.Name,
+					DisplayName: namespace.Name,
+					Type:        auditlog.RatelimitNamespaceResourceType,
+					Meta:        nil,
 				},
 			},
-		})
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database failed to insert audit logs"),
-				fault.Public("Failed to insert audit logs"),
-			)
-		}
+		},
+	})
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database failed to insert audit logs"),
+			fault.Public("Failed to insert audit logs"),
+		)
+	}
 
-		err = tx.Commit()
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database failed to commit transaction"),
-				fault.Public("Failed to commit changes."),
-			)
-		}
+	err = tx.Commit()
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database failed to commit transaction"),
+			fault.Public("Failed to commit changes."),
+		)
+	}
 
-		return s.JSON(http.StatusOK, Response{
-			Meta: openapi.Meta{
-				RequestId: s.RequestID(),
-			},
-			Data: openapi.RatelimitDeleteOverrideResponseData{},
-		})
+	return s.JSON(http.StatusOK, Response{
+		Meta: openapi.Meta{
+			RequestId: s.RequestID(),
+		},
+		Data: openapi.RatelimitDeleteOverrideResponseData{},
 	})
 }
 
-func getNamespace(ctx context.Context, svc Services, workspaceID string, req Request) (db.RatelimitNamespace, error) {
+func getNamespace(ctx context.Context, h *Handler, workspaceID string, req Request) (db.RatelimitNamespace, error) {
 	switch {
 	case req.NamespaceId != nil:
-		{
-			return db.Query.FindRatelimitNamespaceByID(ctx, svc.DB.RO(), *req.NamespaceId)
-		}
+		return db.Query.FindRatelimitNamespaceByID(ctx, h.DB.RO(), *req.NamespaceId)
 	case req.NamespaceName != nil:
-		{
-			return db.Query.FindRatelimitNamespaceByName(ctx, svc.DB.RO(), db.FindRatelimitNamespaceByNameParams{
-				WorkspaceID: workspaceID,
-				Name:        *req.NamespaceName,
-			})
-		}
+		return db.Query.FindRatelimitNamespaceByName(ctx, h.DB.RO(), db.FindRatelimitNamespaceByNameParams{
+			WorkspaceID: workspaceID,
+			Name:        *req.NamespaceName,
+		})
 	}
 
 	return db.RatelimitNamespace{}, fault.New("missing namespace id or name",
