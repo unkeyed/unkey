@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -101,96 +100,80 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	tx, err := h.DB.RW().Begin(ctx)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to create transaction"),
-			fault.Public("Unable to start database transaction."),
-		)
-	}
-	defer func() {
-		rollbackErr := tx.Rollback()
-		if rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
-			h.Logger.Error("rollback failed", "requestId", s.RequestID(), "error", rollbackErr)
-		}
-	}()
-
-	// Check if the override exists before deleting
-	override, err := db.Query.FindRatelimitOverrideByIdentifier(ctx, tx, db.FindRatelimitOverrideByIdentifierParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
-		NamespaceID: namespace.ID,
-		Identifier:  req.Identifier,
-	})
-
-	if db.IsNotFound(err) {
-		return fault.New("override not found",
-			fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
-			fault.Internal("override not found"),
-			fault.Public("This override does not exist."),
-		)
-	}
-	if err != nil {
-		return err
-	}
-	// Perform soft delete by updating the DeletedAt field
-	err = db.Query.SoftDeleteRatelimitOverride(ctx, tx, db.SoftDeleteRatelimitOverrideParams{
-		ID:  override.ID,
-		Now: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-	})
-
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to soft delete ratelimit override"),
-			fault.Public("The database is unavailable."),
-		)
-	}
-
-	err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
-		{
+	_, err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (interface{}, error) {
+		// Check if the override exists before deleting
+		override, err := db.Query.FindRatelimitOverrideByIdentifier(ctx, tx, db.FindRatelimitOverrideByIdentifierParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Event:       auditlog.RatelimitDeleteOverrideEvent,
-			Display:     fmt.Sprintf("Deleted override %s.", override.ID),
-			ActorID:     auth.KeyID,
-			Bucket:      auditlogs.DEFAULT_BUCKET,
-			ActorType:   auditlog.RootKeyActor,
-			ActorName:   "root key",
-			RemoteIP:    s.Location(),
-			UserAgent:   s.UserAgent(),
-			Resources: []auditlog.AuditLogResource{
-				{
-					ID:          override.ID,
-					Name:        override.Identifier,
-					DisplayName: override.Identifier,
-					Type:        auditlog.RatelimitOverrideResourceType,
-					Meta:        nil,
-				},
-				{
-					ID:          namespace.ID,
-					Name:        namespace.Name,
-					DisplayName: namespace.Name,
-					Type:        auditlog.RatelimitNamespaceResourceType,
-					Meta:        nil,
+			NamespaceID: namespace.ID,
+			Identifier:  req.Identifier,
+		})
+
+		if db.IsNotFound(err) {
+			return nil, fault.New("override not found",
+				fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
+				fault.Internal("override not found"),
+				fault.Public("This override does not exist."),
+			)
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		// Perform soft delete by updating the DeletedAt field
+		err = db.Query.SoftDeleteRatelimitOverride(ctx, tx, db.SoftDeleteRatelimitOverrideParams{
+			ID:  override.ID,
+			Now: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		})
+
+		if err != nil {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to soft delete ratelimit override"),
+				fault.Public("The database is unavailable."),
+			)
+		}
+
+		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
+			{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Event:       auditlog.RatelimitDeleteOverrideEvent,
+				Display:     fmt.Sprintf("Deleted override %s.", override.ID),
+				ActorID:     auth.KeyID,
+				Bucket:      auditlogs.DEFAULT_BUCKET,
+				ActorType:   auditlog.RootKeyActor,
+				ActorName:   "root key",
+				RemoteIP:    s.Location(),
+				UserAgent:   s.UserAgent(),
+				Resources: []auditlog.AuditLogResource{
+					{
+						ID:          override.ID,
+						Name:        override.Identifier,
+						DisplayName: override.Identifier,
+						Type:        auditlog.RatelimitOverrideResourceType,
+						Meta:        nil,
+					},
+					{
+						ID:          namespace.ID,
+						Name:        namespace.Name,
+						DisplayName: namespace.Name,
+						Type:        auditlog.RatelimitNamespaceResourceType,
+						Meta:        nil,
+					},
 				},
 			},
-		},
+		})
+		if err != nil {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to insert audit logs"),
+				fault.Public("Failed to insert audit logs"),
+			)
+		}
+
+		return nil, nil
 	})
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to insert audit logs"),
-			fault.Public("Failed to insert audit logs"),
-		)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to commit transaction"),
-			fault.Public("Failed to commit changes."),
-		)
+		return err
 	}
 
 	return s.JSON(http.StatusOK, Response{

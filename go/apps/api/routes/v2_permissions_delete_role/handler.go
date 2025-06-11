@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"database/sql"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -97,86 +96,70 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// 6. Delete the role in a transaction
-	tx, err := h.DB.RW().Begin(ctx)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to create transaction"), fault.Public("Unable to start database transaction."),
-		)
-	}
-
-	defer func() {
-		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
-			h.Logger.Error("failed to rollback transaction", "error", err)
+	_, err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (interface{}, error) {
+		// Delete role-permission relationships
+		err := db.Query.DeleteManyRolePermissionsByRoleID(ctx, tx, req.RoleId)
+		if err != nil {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to delete role-permission relationships."),
+			)
 		}
-	}()
 
-	// Delete role-permission relationships
-	err = db.Query.DeleteManyRolePermissionsByRoleID(ctx, tx, req.RoleId)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to delete role-permission relationships."),
-		)
-	}
+		// Delete key-role relationships
+		err = db.Query.DeleteManyKeyRolesByRoleID(ctx, tx, req.RoleId)
+		if err != nil {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to delete key-role relationships."),
+			)
+		}
 
-	// Delete key-role relationships
-	err = db.Query.DeleteManyKeyRolesByRoleID(ctx, tx, req.RoleId)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to delete key-role relationships."),
-		)
-	}
+		// Delete the role itself
+		err = db.Query.DeleteRoleByID(ctx, tx, req.RoleId)
+		if err != nil {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to delete role."),
+			)
+		}
 
-	// Delete the role itself
-	err = db.Query.DeleteRoleByID(ctx, tx, req.RoleId)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to delete role."),
-		)
-	}
-
-	// Create audit log for role deletion
-	err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
-		{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Event:       "role.delete",
-			ActorType:   auditlog.RootKeyActor,
-			ActorID:     auth.KeyID,
-			ActorName:   "root key",
-			Display:     "Deleted " + req.RoleId,
-			RemoteIP:    s.Location(),
-			UserAgent:   s.UserAgent(),
-			Resources: []auditlog.AuditLogResource{
-				{
-					Type:        "role",
-					ID:          req.RoleId,
-					Name:        role.Name,
-					DisplayName: role.Name,
-					Meta: map[string]interface{}{
-						"name":        role.Name,
-						"description": role.Description.String,
+		// Create audit log for role deletion
+		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
+			{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Event:       "role.delete",
+				ActorType:   auditlog.RootKeyActor,
+				ActorID:     auth.KeyID,
+				ActorName:   "root key",
+				Display:     "Deleted " + req.RoleId,
+				RemoteIP:    s.Location(),
+				UserAgent:   s.UserAgent(),
+				Resources: []auditlog.AuditLogResource{
+					{
+						Type:        "role",
+						ID:          req.RoleId,
+						Name:        role.Name,
+						DisplayName: role.Name,
+						Meta: map[string]interface{}{
+							"name":        role.Name,
+							"description": role.Description.String,
+						},
 					},
 				},
 			},
-		},
+		})
+		if err != nil {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("audit log error"), fault.Public("Failed to create audit log for role deletion."),
+			)
+		}
+
+		return nil, nil
 	})
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("audit log error"), fault.Public("Failed to create audit log for role deletion."),
-		)
-	}
-
-	// Commit the transaction
-	err = tx.Commit()
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to commit transaction"), fault.Public("Failed to commit changes."),
-		)
+		return err
 	}
 
 	// 7. Return success response

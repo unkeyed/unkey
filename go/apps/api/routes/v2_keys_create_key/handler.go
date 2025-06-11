@@ -165,122 +165,177 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	// 8. Start transaction for all database operations
-	tx, err := h.DB.RW().Begin(ctx)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to create transaction"), fault.Public("Unable to start database transaction."),
-		)
-	}
-
-	defer func() {
-		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
-			h.Logger.Error("failed to rollback transaction", "error", err)
+	// 8. Execute all database operations in a transaction
+	_, err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (interface{}, error) {
+		// 9. Insert the key
+		insertKeyParams := db.InsertKeyParams{
+			ID:                keyID,
+			KeyringID:         api.KeyAuthID.String,
+			Hash:              keyResult.Hash,
+			Start:             keyResult.Start,
+			WorkspaceID:       auth.AuthorizedWorkspaceID,
+			ForWorkspaceID:    sql.NullString{String: "", Valid: false},
+			CreatedAtM:        now,
+			Enabled:           true,
+			RemainingRequests: sql.NullInt32{Int32: 0, Valid: false},
+			RatelimitAsync:    sql.NullBool{Bool: false, Valid: false},
+			RatelimitLimit:    sql.NullInt32{Int32: 0, Valid: false},
+			RatelimitDuration: sql.NullInt64{Int64: 0, Valid: false},
+			Environment:       sql.NullString{String: "", Valid: false},
 		}
-	}()
 
-	// 9. Insert the key
-	insertKeyParams := db.InsertKeyParams{
-		ID:                keyID,
-		KeyringID:         api.KeyAuthID.String,
-		Hash:              keyResult.Hash,
-		Start:             keyResult.Start,
-		WorkspaceID:       auth.AuthorizedWorkspaceID,
-		ForWorkspaceID:    sql.NullString{String: "", Valid: false},
-		CreatedAtM:        now,
-		Enabled:           true,
-		RemainingRequests: sql.NullInt32{Int32: 0, Valid: false},
-		RatelimitAsync:    sql.NullBool{Bool: false, Valid: false},
-		RatelimitLimit:    sql.NullInt32{Int32: 0, Valid: false},
-		RatelimitDuration: sql.NullInt64{Int64: 0, Valid: false},
-		Environment:       sql.NullString{String: "", Valid: false},
-	}
-
-	// Set optional fields
-	if req.Name != nil {
-		insertKeyParams.Name = sql.NullString{String: *req.Name, Valid: true}
-	}
-
-	// Note: owner_id is set to null in the SQL query, so we skip setting it here
-
-	if req.Meta != nil {
-		metaBytes, err := json.Marshal(*req.Meta)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal("failed to marshal meta"), fault.Public("Invalid metadata format."),
-			)
+		// Set optional fields
+		if req.Name != nil {
+			insertKeyParams.Name = sql.NullString{String: *req.Name, Valid: true}
 		}
-		insertKeyParams.Meta = sql.NullString{String: string(metaBytes), Valid: true}
-	}
 
-	if req.Expires != nil {
-		insertKeyParams.Expires = sql.NullTime{Time: time.UnixMilli(*req.Expires), Valid: true}
-	}
+		// Note: owner_id is set to null in the SQL query, so we skip setting it here
 
-	if req.Credits != nil {
-		insertKeyParams.RemainingRequests = sql.NullInt32{Int32: int32(req.Credits.Remaining), Valid: true}
-	}
-
-	// Set enabled status (default true)
-	if req.Enabled != nil {
-		insertKeyParams.Enabled = *req.Enabled
-	}
-
-	err = db.Query.InsertKey(ctx, tx, insertKeyParams)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to create key."),
-		)
-	}
-
-	// 10. Handle rate limits if provided
-	if req.Ratelimits != nil {
-		for _, ratelimit := range *req.Ratelimits {
-			ratelimitID := uid.New(uid.RatelimitPrefix)
-			err = db.Query.InsertKeyRatelimit(ctx, tx, db.InsertKeyRatelimitParams{
-				ID:          ratelimitID,
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				KeyID:       sql.NullString{String: keyID, Valid: true},
-				Name:        ratelimit.Name,
-				Limit:       int32(ratelimit.Limit),
-				Duration:    int64(ratelimit.Duration),
-				CreatedAt:   now,
-			})
+		if req.Meta != nil {
+			metaBytes, err := json.Marshal(*req.Meta)
 			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to create rate limit."),
+				return nil, fault.Wrap(err,
+					fault.Code(codes.App.Validation.InvalidInput.URN()),
+					fault.Internal("failed to marshal meta"), fault.Public("Invalid metadata format."),
 				)
 			}
+			insertKeyParams.Meta = sql.NullString{String: string(metaBytes), Valid: true}
 		}
-	}
 
-	// 11. Handle permissions if provided
-	var auditLogs []auditlog.AuditLog
-	for _, permission := range resolvedPermissions {
-		err = db.Query.InsertKeyPermission(ctx, h.DB.RW(), db.InsertKeyPermissionParams{
-			KeyID:        keyID,
-			PermissionID: permission.ID,
-			WorkspaceID:  auth.AuthorizedWorkspaceID,
-			CreatedAt:    now,
-		})
+		if req.Expires != nil {
+			insertKeyParams.Expires = sql.NullTime{Time: time.UnixMilli(*req.Expires), Valid: true}
+		}
+
+		if req.Credits != nil {
+			insertKeyParams.RemainingRequests = sql.NullInt32{Int32: int32(req.Credits.Remaining), Valid: true}
+		}
+
+		// Set enabled status (default true)
+		if req.Enabled != nil {
+			insertKeyParams.Enabled = *req.Enabled
+		}
+
+		err := db.Query.InsertKey(ctx, tx, insertKeyParams)
 		if err != nil {
-			return fault.Wrap(err,
+			return nil, fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"), fault.Public("Failed to assign permission."),
+				fault.Internal("database error"), fault.Public("Failed to create key."),
 			)
 		}
 
+		// 10. Handle rate limits if provided
+		if req.Ratelimits != nil {
+			for _, ratelimit := range *req.Ratelimits {
+				ratelimitID := uid.New(uid.RatelimitPrefix)
+				err = db.Query.InsertKeyRatelimit(ctx, tx, db.InsertKeyRatelimitParams{
+					ID:          ratelimitID,
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					KeyID:       sql.NullString{String: keyID, Valid: true},
+					Name:        ratelimit.Name,
+					Limit:       int32(ratelimit.Limit),
+					Duration:    int64(ratelimit.Duration),
+					CreatedAt:   now,
+				})
+				if err != nil {
+					return nil, fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("database error"), fault.Public("Failed to create rate limit."),
+					)
+				}
+			}
+		}
+
+		// 11. Handle permissions if provided
+		var auditLogs []auditlog.AuditLog
+		for _, permission := range resolvedPermissions {
+			err = db.Query.InsertKeyPermission(ctx, tx, db.InsertKeyPermissionParams{
+				KeyID:        keyID,
+				PermissionID: permission.ID,
+				WorkspaceID:  auth.AuthorizedWorkspaceID,
+				CreatedAt:    now,
+			})
+			if err != nil {
+				return nil, fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to assign permission."),
+				)
+			}
+
+			auditLogs = append(auditLogs, auditlog.AuditLog{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Event:       auditlog.AuthConnectPermissionKeyEvent,
+				ActorType:   auditlog.RootKeyActor,
+				ActorID:     auth.KeyID,
+				ActorName:   "root key",
+				Display:     fmt.Sprintf("Added permission %s to key %s", permission.Name, keyID),
+				RemoteIP:    s.Location(),
+				UserAgent:   s.UserAgent(),
+				Resources: []auditlog.AuditLogResource{
+					{
+						Type:        "key",
+						ID:          keyID,
+						Name:        insertKeyParams.Name.String,
+						DisplayName: insertKeyParams.Name.String,
+					},
+					{
+						Type:        "permission",
+						ID:          permission.ID,
+						Name:        permission.Name,
+						DisplayName: permission.Name,
+					},
+				},
+			})
+		}
+
+		// 12. Handle roles if provided
+		for _, role := range resolvedRoles {
+			err := db.Query.InsertKeyRole(ctx, tx, db.InsertKeyRoleParams{
+				KeyID:       keyID,
+				RoleID:      role.ID,
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				CreatedAtM:  now,
+			})
+			if err != nil {
+				return nil, fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to assign role."),
+				)
+			}
+
+			auditLogs = append(auditLogs, auditlog.AuditLog{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Event:       auditlog.AuthConnectRoleKeyEvent,
+				ActorType:   auditlog.RootKeyActor,
+				ActorID:     auth.KeyID,
+				ActorName:   "root key",
+				Display:     fmt.Sprintf("Added role %s to key %s", role.Name, keyID),
+				RemoteIP:    s.Location(),
+				UserAgent:   s.UserAgent(),
+				Resources: []auditlog.AuditLogResource{
+					{
+						Type:        "key",
+						ID:          keyID,
+						Name:        insertKeyParams.Name.String,
+						DisplayName: insertKeyParams.Name.String,
+					},
+					{
+						Type:        "role",
+						ID:          role.ID,
+						Name:        role.Name,
+						DisplayName: role.Name,
+					},
+				},
+			})
+		}
+
+		// 13. Create main audit log for key creation
 		auditLogs = append(auditLogs, auditlog.AuditLog{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Event:       auditlog.AuthConnectPermissionKeyEvent,
+			Event:       auditlog.KeyCreateEvent,
 			ActorType:   auditlog.RootKeyActor,
 			ActorID:     auth.KeyID,
 			ActorName:   "root key",
-			Display:     fmt.Sprintf("Added permission %s to key %s", permission.Name, keyID),
+			Display:     fmt.Sprintf("Created key %s", keyID),
 			RemoteIP:    s.Location(),
 			UserAgent:   s.UserAgent(),
 			Resources: []auditlog.AuditLogResource{
@@ -291,98 +346,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					DisplayName: insertKeyParams.Name.String,
 				},
 				{
-					Type:        "permission",
-					ID:          permission.ID,
-					Name:        permission.Name,
-					DisplayName: permission.Name,
+					Type:        "api",
+					ID:          api.ID,
+					Name:        api.Name,
+					DisplayName: api.Name,
 				},
 			},
 		})
-	}
 
-	// 12. Handle roles if provided
-	for _, role := range resolvedRoles {
-		err := db.Query.InsertKeyRole(ctx, tx, db.InsertKeyRoleParams{
-			KeyID:       keyID,
-			RoleID:      role.ID,
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			CreatedAtM:  now,
-		})
+		// 14. Insert audit logs
+		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 		if err != nil {
-			return fault.Wrap(err,
+			return nil, fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"), fault.Public("Failed to assign role."),
+				fault.Internal("audit log error"), fault.Public("Failed to create audit log."),
 			)
 		}
 
-		auditLogs = append(auditLogs, auditlog.AuditLog{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Event:       auditlog.AuthConnectRoleKeyEvent,
-			ActorType:   auditlog.RootKeyActor,
-			ActorID:     auth.KeyID,
-			ActorName:   "root key",
-			Display:     fmt.Sprintf("Added role %s to key %s", role.Name, keyID),
-			RemoteIP:    s.Location(),
-			UserAgent:   s.UserAgent(),
-			Resources: []auditlog.AuditLogResource{
-				{
-					Type:        "key",
-					ID:          keyID,
-					Name:        insertKeyParams.Name.String,
-					DisplayName: insertKeyParams.Name.String,
-				},
-				{
-					Type:        "role",
-					ID:          role.ID,
-					Name:        role.Name,
-					DisplayName: role.Name,
-				},
-			},
-		})
-	}
-
-	// 13. Create main audit log for key creation
-	auditLogs = append(auditLogs, auditlog.AuditLog{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
-		Event:       auditlog.KeyCreateEvent,
-		ActorType:   auditlog.RootKeyActor,
-		ActorID:     auth.KeyID,
-		ActorName:   "root key",
-		Display:     fmt.Sprintf("Created key %s", keyID),
-		RemoteIP:    s.Location(),
-		UserAgent:   s.UserAgent(),
-		Resources: []auditlog.AuditLogResource{
-			{
-				Type:        "key",
-				ID:          keyID,
-				Name:        insertKeyParams.Name.String,
-				DisplayName: insertKeyParams.Name.String,
-			},
-			{
-				Type:        "api",
-				ID:          api.ID,
-				Name:        api.Name,
-				DisplayName: api.Name,
-			},
-		},
+		return nil, nil
 	})
-
-	// 14. Insert audit logs
-	err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("audit log error"), fault.Public("Failed to create audit log."),
-		)
-	}
-
-	// 15. Commit the transaction
-	err = tx.Commit()
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to commit transaction"), fault.Public("Unable to commit database transaction."),
-		)
+		return err
 	}
 
 	// 16. Return success response

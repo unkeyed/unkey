@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"slices"
@@ -179,79 +178,63 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// 8. Apply changes in transaction (only if there are roles to remove)
 	if len(rolesToRemove) > 0 {
-		tx, err := h.DB.RW().Begin(ctx)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database failed to create transaction"), fault.Public("Unable to start database transaction."),
-			)
-		}
+		_, err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (interface{}, error) {
+			var auditLogs []auditlog.AuditLog
 
-		defer func() {
-			if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
-				h.Logger.Error("failed to rollback transaction", "error", err)
-			}
-		}()
+			// Remove roles
+			for _, role := range rolesToRemove {
+				err := db.Query.DeleteManyKeyRolesByKeyID(ctx, tx, db.DeleteManyKeyRolesByKeyIDParams{
+					KeyID:  req.KeyId,
+					RoleID: role.ID,
+				})
+				if err != nil {
+					return nil, fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("database error"), fault.Public("Failed to remove role assignment."),
+					)
+				}
 
-		var auditLogs []auditlog.AuditLog
-
-		// Remove roles
-		for _, role := range rolesToRemove {
-			err := db.Query.DeleteManyKeyRolesByKeyID(ctx, tx, db.DeleteManyKeyRolesByKeyIDParams{
-				KeyID:  req.KeyId,
-				RoleID: role.ID,
-			})
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to remove role assignment."),
-				)
-			}
-
-			auditLogs = append(auditLogs, auditlog.AuditLog{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       auditlog.AuthDisconnectRoleKeyEvent,
-				ActorType:   auditlog.RootKeyActor,
-				ActorID:     auth.KeyID,
-				ActorName:   "root key",
-				Display:     fmt.Sprintf("Removed role %s from key %s", role.Name, req.KeyId),
-				RemoteIP:    s.Location(),
-				UserAgent:   s.UserAgent(),
-				Resources: []auditlog.AuditLogResource{
-					{
-						Type:        "key",
-						ID:          req.KeyId,
-						Name:        key.Name.String,
-						DisplayName: key.Name.String,
+				auditLogs = append(auditLogs, auditlog.AuditLog{
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					Event:       auditlog.AuthDisconnectRoleKeyEvent,
+					ActorType:   auditlog.RootKeyActor,
+					ActorID:     auth.KeyID,
+					ActorName:   "root key",
+					Display:     fmt.Sprintf("Removed role %s from key %s", role.Name, req.KeyId),
+					RemoteIP:    s.Location(),
+					UserAgent:   s.UserAgent(),
+					Resources: []auditlog.AuditLogResource{
+						{
+							Type:        "key",
+							ID:          req.KeyId,
+							Name:        key.Name.String,
+							DisplayName: key.Name.String,
+						},
+						{
+							Type:        "role",
+							ID:          role.ID,
+							Name:        role.Name,
+							DisplayName: role.Name,
+						},
 					},
-					{
-						Type:        "role",
-						ID:          role.ID,
-						Name:        role.Name,
-						DisplayName: role.Name,
-					},
-				},
-			})
-		}
-
-		// Insert audit logs
-		if len(auditLogs) > 0 {
-			err = h.Auditlogs.Insert(ctx, tx, auditLogs)
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("audit log error"), fault.Public("Failed to create audit log for role removals."),
-				)
+				})
 			}
-		}
 
-		// Commit the transaction
-		err = tx.Commit()
+			// Insert audit logs
+			if len(auditLogs) > 0 {
+				err = h.Auditlogs.Insert(ctx, tx, auditLogs)
+				if err != nil {
+					return nil, fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("audit log error"), fault.Public("Failed to create audit log for role removals."),
+					)
+				}
+			}
+
+			return nil, nil
+		})
 		if err != nil {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database failed to commit transaction"), fault.Public("Unable to commit database transaction."),
-			)
+			return err
 		}
 	}
 

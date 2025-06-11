@@ -68,7 +68,6 @@ package handler
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -171,118 +170,102 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	tx, err := h.DB.RW().Begin(ctx)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to create transaction"), fault.Public("Unable to start database transaction."),
-		)
-	}
+	_, err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (interface{}, error) {
+		err := db.Query.SoftDeleteIdentity(ctx, tx, identity.ID)
 
-	defer func() {
-		rollbackErr := tx.Rollback()
-		if rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
-			h.Logger.Error("rollback failed", "requestId", s.RequestID(), "error", rollbackErr)
+		// If we hit a duplicate key error, we know that we have an identity that was already soft deleted
+		// so we can hard delete the "old" deleted version
+		if db.IsDuplicateKeyError(err) {
+			err = deleteOldIdentity(ctx, tx, auth.AuthorizedWorkspaceID, identity.ExternalID)
+			if err != nil {
+				return nil, err
+			}
+
+			// Re-apply the soft delete operation
+			err = db.Query.SoftDeleteIdentity(ctx, tx, identity.ID)
+
 		}
-	}()
-
-	err = db.Query.SoftDeleteIdentity(ctx, tx, identity.ID)
-
-	// If we hit a duplicate key error, we know that we have an identity that was already soft deleted
-	// so we can hard delete the "old" deleted version
-	if db.IsDuplicateKeyError(err) {
-		err = deleteOldIdentity(ctx, tx, auth.AuthorizedWorkspaceID, identity.ExternalID)
 		if err != nil {
-			return err
+
+			return nil, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to soft delete identity"), fault.Public("Failed to delete Identity."),
+			)
 		}
 
-		// Re-apply the soft delete operation
-		err = db.Query.SoftDeleteIdentity(ctx, tx, identity.ID)
-
-	}
-	if err != nil {
-
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to soft delete identity"), fault.Public("Failed to delete Identity."),
-		)
-	}
-
-	auditLogs := []auditlog.AuditLog{
-		{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Event:       auditlog.IdentityDeleteEvent,
-			Display:     fmt.Sprintf("Deleted identity %s.", identity.ID),
-			Bucket:      auditlogs.DEFAULT_BUCKET,
-			ActorID:     auth.KeyID,
-			ActorType:   auditlog.RootKeyActor,
-			ActorName:   "root key",
-			RemoteIP:    s.Location(),
-			UserAgent:   s.UserAgent(),
-			Resources: []auditlog.AuditLogResource{
-				{
-					ID:          identity.ID,
-					Meta:        nil,
-					Type:        auditlog.IdentityResourceType,
-					DisplayName: identity.ExternalID,
-					Name:        identity.ExternalID,
+		auditLogs := []auditlog.AuditLog{
+			{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Event:       auditlog.IdentityDeleteEvent,
+				Display:     fmt.Sprintf("Deleted identity %s.", identity.ID),
+				Bucket:      auditlogs.DEFAULT_BUCKET,
+				ActorID:     auth.KeyID,
+				ActorType:   auditlog.RootKeyActor,
+				ActorName:   "root key",
+				RemoteIP:    s.Location(),
+				UserAgent:   s.UserAgent(),
+				Resources: []auditlog.AuditLogResource{
+					{
+						ID:          identity.ID,
+						Meta:        nil,
+						Type:        auditlog.IdentityResourceType,
+						DisplayName: identity.ExternalID,
+						Name:        identity.ExternalID,
+					},
 				},
 			},
-		},
-	}
+		}
 
-	ratelimits, err := db.Query.ListIdentityRatelimitsByID(ctx, tx, sql.NullString{String: identity.ID, Valid: true})
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to load identity ratelimits"), fault.Public("Failed to load Identity ratelimits."),
-		)
-	}
+		ratelimits, err := db.Query.ListIdentityRatelimitsByID(ctx, tx, sql.NullString{String: identity.ID, Valid: true})
+		if err != nil {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to load identity ratelimits"), fault.Public("Failed to load Identity ratelimits."),
+			)
+		}
 
-	for _, rl := range ratelimits {
-		auditLogs = append(auditLogs, auditlog.AuditLog{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Event:       auditlog.RatelimitDeleteEvent,
-			Display:     fmt.Sprintf("Deleted ratelimit %s.", rl.ID),
-			Bucket:      auditlogs.DEFAULT_BUCKET,
-			ActorID:     auth.KeyID,
-			ActorType:   auditlog.RootKeyActor,
-			ActorName:   "root key",
-			RemoteIP:    s.Location(),
-			UserAgent:   s.UserAgent(),
-			Resources: []auditlog.AuditLogResource{
-				{
-					Type:        auditlog.IdentityResourceType,
-					Meta:        nil,
-					ID:          identity.ID,
-					DisplayName: identity.ExternalID,
-					Name:        identity.ExternalID,
+		for _, rl := range ratelimits {
+			auditLogs = append(auditLogs, auditlog.AuditLog{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Event:       auditlog.RatelimitDeleteEvent,
+				Display:     fmt.Sprintf("Deleted ratelimit %s.", rl.ID),
+				Bucket:      auditlogs.DEFAULT_BUCKET,
+				ActorID:     auth.KeyID,
+				ActorType:   auditlog.RootKeyActor,
+				ActorName:   "root key",
+				RemoteIP:    s.Location(),
+				UserAgent:   s.UserAgent(),
+				Resources: []auditlog.AuditLogResource{
+					{
+						Type:        auditlog.IdentityResourceType,
+						Meta:        nil,
+						ID:          identity.ID,
+						DisplayName: identity.ExternalID,
+						Name:        identity.ExternalID,
+					},
+					{
+						Type:        auditlog.RatelimitResourceType,
+						Meta:        nil,
+						ID:          rl.ID,
+						DisplayName: rl.Name,
+						Name:        rl.Name,
+					},
 				},
-				{
-					Type:        auditlog.RatelimitResourceType,
-					Meta:        nil,
-					ID:          rl.ID,
-					DisplayName: rl.Name,
-					Name:        rl.Name,
-				},
-			},
-		})
-	}
+			})
+		}
 
-	err = h.Auditlogs.Insert(ctx, tx, auditLogs)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to insert audit logs"), fault.Public("Failed to insert audit logs"),
-		)
-	}
+		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
+		if err != nil {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to insert audit logs"), fault.Public("Failed to insert audit logs"),
+			)
+		}
 
-	err = tx.Commit()
+		return nil, nil
+	})
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to commit transaction"), fault.Public("Failed to commit changes."),
-		)
+		return err
 	}
 
 	return s.JSON(http.StatusOK, Response{
@@ -292,7 +275,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 }
 
-func deleteOldIdentity(ctx context.Context, tx *sql.Tx, workspaceID, externalID string) error {
+func deleteOldIdentity(ctx context.Context, tx db.DBTX, workspaceID, externalID string) error {
 	oldIdentity, err := db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
 		WorkspaceID: workspaceID,
 		ExternalID:  externalID,

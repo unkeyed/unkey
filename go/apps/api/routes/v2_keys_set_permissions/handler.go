@@ -225,129 +225,113 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// 8. Apply changes in transaction
-	tx, err := h.DB.RW().Begin(ctx)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to create transaction"), fault.Public("Unable to start database transaction."),
-		)
-	}
+	_, err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (interface{}, error) {
+		var auditLogs []auditlog.AuditLog
 
-	defer func() {
-		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
-			h.Logger.Error("failed to rollback transaction", "error", err)
+		// Remove permissions that are no longer needed
+		for _, permissionID := range permissionsToRemove {
+			err := db.Query.DeleteKeyPermissionByKeyAndPermissionID(ctx, tx, db.DeleteKeyPermissionByKeyAndPermissionIDParams{
+				KeyID:        req.KeyId,
+				PermissionID: permissionID,
+			})
+			if err != nil {
+				return nil, fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to remove permission assignment."),
+				)
+			}
+
+			// Find the permission for audit log
+			var permissionName string
+			for _, p := range currentPermissions {
+				if p.ID == permissionID {
+					permissionName = p.Name
+					break
+				}
+			}
+
+			auditLogs = append(auditLogs, auditlog.AuditLog{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Event:       auditlog.AuthDisconnectPermissionKeyEvent,
+				ActorType:   auditlog.RootKeyActor,
+				ActorID:     auth.KeyID,
+				ActorName:   "root key",
+				Display:     fmt.Sprintf("Removed permission %s from key %s", permissionName, req.KeyId),
+				RemoteIP:    s.Location(),
+				UserAgent:   s.UserAgent(),
+				Resources: []auditlog.AuditLogResource{
+					{
+						Type:        "key",
+						ID:          req.KeyId,
+						Name:        key.Name.String,
+						DisplayName: key.Name.String,
+					},
+					{
+						Type:        "permission",
+						ID:          permissionID,
+						Name:        permissionName,
+						DisplayName: permissionName,
+					},
+				},
+			})
 		}
-	}()
 
-	var auditLogs []auditlog.AuditLog
+		// Add new permissions
+		for _, permission := range permissionsToAdd {
+			err := db.Query.InsertKeyPermission(ctx, tx, db.InsertKeyPermissionParams{
+				KeyID:        req.KeyId,
+				PermissionID: permission.ID,
+				WorkspaceID:  auth.AuthorizedWorkspaceID,
+				CreatedAt:    time.Now().UnixMilli(),
+			})
+			if err != nil {
+				return nil, fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to add permission assignment."),
+				)
+			}
 
-	// Remove permissions that are no longer needed
-	for _, permissionID := range permissionsToRemove {
-		err := db.Query.DeleteKeyPermissionByKeyAndPermissionID(ctx, tx, db.DeleteKeyPermissionByKeyAndPermissionIDParams{
-			KeyID:        req.KeyId,
-			PermissionID: permissionID,
-		})
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"), fault.Public("Failed to remove permission assignment."),
-			)
+			auditLogs = append(auditLogs, auditlog.AuditLog{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Event:       auditlog.AuthConnectPermissionKeyEvent,
+				ActorType:   auditlog.RootKeyActor,
+				ActorID:     auth.KeyID,
+				ActorName:   "root key",
+				Display:     fmt.Sprintf("Added permission %s to key %s", permission.Name, req.KeyId),
+				RemoteIP:    s.Location(),
+				UserAgent:   s.UserAgent(),
+				Resources: []auditlog.AuditLogResource{
+					{
+						Type:        "key",
+						ID:          req.KeyId,
+						Name:        key.Name.String,
+						DisplayName: key.Name.String,
+					},
+					{
+						Type:        "permission",
+						ID:          permission.ID,
+						Name:        permission.Name,
+						DisplayName: permission.Name,
+					},
+				},
+			})
 		}
 
-		// Find the permission details for the audit log
-		var removedPermission db.Permission
-		for _, permission := range currentPermissions {
-			if permission.ID == permissionID {
-				removedPermission = permission
-				break
+		// Insert audit logs
+		if len(auditLogs) > 0 {
+			err = h.Auditlogs.Insert(ctx, tx, auditLogs)
+			if err != nil {
+				return nil, fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("audit log error"), fault.Public("Failed to create audit log for permission changes."),
+				)
 			}
 		}
 
-		auditLogs = append(auditLogs, auditlog.AuditLog{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Event:       auditlog.AuthDisconnectPermissionKeyEvent,
-			ActorType:   auditlog.RootKeyActor,
-			ActorID:     auth.KeyID,
-			ActorName:   "root key",
-			Display:     fmt.Sprintf("Removed permission %s from key %s", removedPermission.Name, req.KeyId),
-			RemoteIP:    s.Location(),
-			UserAgent:   s.UserAgent(),
-			Resources: []auditlog.AuditLogResource{
-				{
-					Type:        "key",
-					ID:          req.KeyId,
-					Name:        key.Name.String,
-					DisplayName: key.Name.String,
-				},
-				{
-					Type:        "permission",
-					ID:          removedPermission.ID,
-					Name:        removedPermission.Name,
-					DisplayName: removedPermission.Name,
-				},
-			},
-		})
-	}
-
-	// Add new permissions
-	for _, permission := range permissionsToAdd {
-		err := db.Query.InsertKeyPermission(ctx, tx, db.InsertKeyPermissionParams{
-			KeyID:        req.KeyId,
-			PermissionID: permission.ID,
-			WorkspaceID:  auth.AuthorizedWorkspaceID,
-			CreatedAt:    time.Now().UnixMilli(),
-		})
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"), fault.Public("Failed to add permission assignment."),
-			)
-		}
-
-		auditLogs = append(auditLogs, auditlog.AuditLog{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Event:       auditlog.AuthConnectPermissionKeyEvent,
-			ActorType:   auditlog.RootKeyActor,
-			ActorID:     auth.KeyID,
-			ActorName:   "root key",
-			Display:     fmt.Sprintf("Added permission %s to key %s", permission.Name, req.KeyId),
-			RemoteIP:    s.Location(),
-			UserAgent:   s.UserAgent(),
-			Resources: []auditlog.AuditLogResource{
-				{
-					Type:        "key",
-					ID:          req.KeyId,
-					Name:        key.Name.String,
-					DisplayName: key.Name.String,
-				},
-				{
-					Type:        "permission",
-					ID:          permission.ID,
-					Name:        permission.Name,
-					DisplayName: permission.Name,
-				},
-			},
-		})
-	}
-
-	// Insert audit logs if there are changes
-	if len(auditLogs) > 0 {
-		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("audit log error"), fault.Public("Failed to create audit log for permission changes."),
-			)
-		}
-	}
-
-	// Commit the transaction
-	err = tx.Commit()
+		return nil, nil
+	})
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to commit transaction"), fault.Public("Unable to commit database transaction."),
-		)
+		return err
 	}
 
 	// 10. Get final state of permissions and build response

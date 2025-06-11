@@ -12,11 +12,38 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
+// DEFAULT_BUCKET is the default bucket name used for audit logs when no bucket
+// is specified. All audit logs are categorized into buckets for organization
+// and querying purposes, with "unkey_mutations" serving as the standard bucket
+// for most operational audit events.
 const (
 	DEFAULT_BUCKET = "unkey_mutations"
 )
 
-func (s *service) Insert(ctx context.Context, tx *sql.Tx, logs []auditlog.AuditLog) error {
+// Insert implements AuditLogService.Insert, persisting audit logs and their
+// associated resource targets to the database within a transactional context.
+// Insert handles batch processing of multiple audit logs, automatically managing
+// transaction lifecycle, ID generation, and metadata serialization.
+//
+// The method creates two types of database records for each audit log:
+//   - Primary audit log records containing event details and actor information
+//   - Resource target records linking the audit event to affected resources
+//
+// When tx is nil, Insert creates its own transaction to ensure all logs are
+// committed atomically. This prevents partial audit log insertion that could
+// result in compliance gaps or inconsistent audit trails.
+//
+// The method handles several important edge cases:
+//   - Empty log slices return immediately without database interaction
+//   - Missing bucket names are automatically set to DEFAULT_BUCKET
+//   - JSON serialization failures for metadata cause immediate error return
+//   - Transaction rollback is handled gracefully with error logging
+//   - Context cancellation triggers automatic cleanup
+//
+// All audit logs receive unique identifiers and consistent timestamps to
+// maintain proper audit trail ordering and prevent ID conflicts in
+// high-concurrency scenarios.
+func (s *service) Insert(ctx context.Context, tx db.DBTX, logs []auditlog.AuditLog) error {
 	if len(logs) == 0 {
 		return nil
 	}

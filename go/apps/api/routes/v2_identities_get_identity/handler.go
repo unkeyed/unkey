@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -55,55 +54,64 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Find the identity based on either IdentityId or ExternalId
-	var identity db.Identity
-	var ratelimits []db.Ratelimit
-
-	tx, err := h.DB.RO().Begin(ctx)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to create transaction"), fault.Public("Unable to start database transaction."),
-		)
-	}
-	defer func() {
-		rollbackErr := tx.Rollback()
-		if rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
-			h.Logger.Error("rollback failed", "requestId", s.RequestID(), "error", rollbackErr)
-		}
-	}()
-
-	// First try to get the identity
-	if req.IdentityId != nil {
-		// Find by IdentityId
-		identity, err = db.Query.FindIdentityByID(ctx, tx, db.FindIdentityByIDParams{
-			ID:      *req.IdentityId,
-			Deleted: false,
-		})
-	} else if req.ExternalId != nil {
-		// Find by ExternalId
-		identity, err = db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
-			ExternalID:  *req.ExternalId,
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Deleted:     false,
-		})
-	} else {
-		return fault.New("invalid request",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal("either identityId or externalId must be provided"), fault.Public("Either identityId or externalId must be provided."),
-		)
+	type IdentityResult struct {
+		Identity   db.Identity
+		Ratelimits []db.Ratelimit
 	}
 
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return fault.New("identity not found",
-				fault.Code(codes.Data.Identity.NotFound.URN()),
-				fault.Internal("identity not found"), fault.Public("This identity does not exist."),
+	result, err := db.Tx(ctx, h.DB.RO(), func(ctx context.Context, tx db.DBTX) (IdentityResult, error) {
+		var identity db.Identity
+		var err error
+
+		// First try to get the identity
+		if req.IdentityId != nil {
+			// Find by IdentityId
+			identity, err = db.Query.FindIdentityByID(ctx, tx, db.FindIdentityByIDParams{
+				ID:      *req.IdentityId,
+				Deleted: false,
+			})
+		} else if req.ExternalId != nil {
+			// Find by ExternalId
+			identity, err = db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
+				ExternalID:  *req.ExternalId,
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Deleted:     false,
+			})
+		} else {
+			return IdentityResult{}, fault.New("invalid request",
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal("either identityId or externalId must be provided"), fault.Public("Either identityId or externalId must be provided."),
 			)
 		}
-		return fault.Wrap(err,
-			fault.Internal("unable to find identity"), fault.Public("We're unable to retrieve the identity."),
-		)
+
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return IdentityResult{}, fault.New("identity not found",
+					fault.Code(codes.Data.Identity.NotFound.URN()),
+					fault.Internal("identity not found"), fault.Public("This identity does not exist."),
+				)
+			}
+			return IdentityResult{}, fault.Wrap(err,
+				fault.Internal("unable to find identity"), fault.Public("We're unable to retrieve the identity."),
+			)
+		}
+
+		// Get the ratelimits for this identity
+		ratelimits, err := db.Query.ListIdentityRatelimitsByID(ctx, tx, sql.NullString{Valid: true, String: identity.ID})
+		if err != nil && err != sql.ErrNoRows {
+			return IdentityResult{}, fault.Wrap(err,
+				fault.Internal("unable to fetch ratelimits"), fault.Public("We're unable to retrieve the identity's ratelimits."),
+			)
+		}
+
+		return IdentityResult{Identity: identity, Ratelimits: ratelimits}, nil
+	})
+	if err != nil {
+		return err
 	}
+
+	identity := result.Identity
+	ratelimits := result.Ratelimits
 
 	// Check permissions using either wildcard or the specific identity ID
 	permissionCheck := rbac.Or(
@@ -122,14 +130,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = h.Permissions.Check(ctx, auth.KeyID, permissionCheck)
 	if err != nil {
 		return err
-	}
-
-	// Next, get the ratelimits for this identity
-	ratelimits, err = db.Query.ListIdentityRatelimitsByID(ctx, tx, sql.NullString{Valid: true, String: identity.ID})
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return fault.Wrap(err,
-			fault.Internal("unable to fetch ratelimits"), fault.Public("We're unable to retrieve the identity's ratelimits."),
-		)
 	}
 
 	// Parse metadata

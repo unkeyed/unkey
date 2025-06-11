@@ -12,6 +12,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 )
 
+// TestCreateApi_Forbidden verifies that API creation requests are properly
+// rejected when the authenticated user lacks the required permissions. This test
+// ensures that RBAC (Role-Based Access Control) is correctly enforced and that
+// users without api.*.create_api permission receive 403 Forbidden responses.
 func TestCreateApi_Forbidden(t *testing.T) {
 	h := testutil.NewHarness(t)
 
@@ -32,6 +36,9 @@ func TestCreateApi_Forbidden(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
+	// This test validates that a root key with valid authentication but
+	// insufficient permissions (lacking api.*.create_api) is properly rejected
+	// with a 403 status code, ensuring permission boundaries are enforced.
 	t.Run("insufficient permissions", func(t *testing.T) {
 		req := handler.Request{
 			Name: "test-api",
@@ -41,7 +48,9 @@ func TestCreateApi_Forbidden(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, res.Status)
 	})
 
-	// Test with various permission combinations (matching TypeScript tests)
+	// This test validates various permission combinations to ensure that only
+	// root keys with the exact api.*.create_api permission can create APIs, while
+	// keys with other permissions or insufficient permissions are rejected.
 	t.Run("permission combinations", func(t *testing.T) {
 		testCases := []struct {
 			name        string
@@ -54,6 +63,8 @@ func TestCreateApi_Forbidden(t *testing.T) {
 			{name: "unrelated permission", permissions: []string{"identity.*.create_identity"}, shouldPass: false},
 		}
 
+		// Each test case validates a specific permission scenario to ensure
+		// proper RBAC enforcement across different permission combinations.
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				// Create a root key with the specific permissions

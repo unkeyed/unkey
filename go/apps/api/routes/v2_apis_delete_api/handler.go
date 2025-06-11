@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -121,62 +120,46 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	now := time.Now()
 
-	tx, err := h.DB.RW().Begin(ctx)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to create transaction"), fault.Public("Unable to start database transaction."),
-		)
-	}
-
-	defer func() {
-		rollbackErr := tx.Rollback()
-		if rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
-			h.Logger.Error("rollback failed", "requestId", s.RequestID(), "error", rollbackErr)
+	_, err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (interface{}, error) {
+		// Soft delete the API
+		err := db.Query.SoftDeleteApi(ctx, tx, db.SoftDeleteApiParams{
+			ApiID: req.ApiId,
+			Now:   sql.NullInt64{Valid: true, Int64: now.UnixMilli()},
+		})
+		if err != nil {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to delete API."),
+			)
 		}
-	}()
 
-	// Soft delete the API
-	err = db.Query.SoftDeleteApi(ctx, tx, db.SoftDeleteApiParams{
-		ApiID: req.ApiId,
-		Now:   sql.NullInt64{Valid: true, Int64: now.UnixMilli()},
+		// Create audit log for API deletion
+		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{{
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+			Event:       auditlog.APIDeleteEvent,
+			ActorType:   auditlog.RootKeyActor,
+			ActorID:     auth.KeyID,
+			Display:     fmt.Sprintf("Deleted API %s", req.ApiId),
+			Resources: []auditlog.AuditLogResource{
+				{
+					Type: auditlog.APIResourceType,
+					ID:   req.ApiId,
+				},
+			},
+			RemoteIP:  s.Location(),
+			UserAgent: s.UserAgent(),
+		}})
+		if err != nil {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("audit log error"), fault.Public("Failed to create audit log for API deletion."),
+			)
+		}
+
+		return nil, nil
 	})
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to delete API."),
-		)
-	}
-
-	// Create audit log for API deletion
-	err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
-		Event:       auditlog.APIDeleteEvent,
-		ActorType:   auditlog.RootKeyActor,
-		ActorID:     auth.KeyID,
-		Display:     fmt.Sprintf("Deleted API %s", req.ApiId),
-		Resources: []auditlog.AuditLogResource{
-			{
-				Type: auditlog.APIResourceType,
-				ID:   req.ApiId,
-			},
-		},
-		RemoteIP:  s.Location(),
-		UserAgent: s.UserAgent(),
-	}})
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("audit log error"), fault.Public("Failed to create audit log for API deletion."),
-		)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to commit transaction"), fault.Public("Failed to commit changes."),
-		)
+		return err
 	}
 
 	h.Caches.ApiByID.SetNull(ctx, req.ApiId)

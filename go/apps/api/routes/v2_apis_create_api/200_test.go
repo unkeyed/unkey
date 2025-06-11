@@ -15,6 +15,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
+// TestCreateApiSuccessfully verifies the complete API creation workflow including
+// authentication, authorization, database operations, and various API name formats.
+// This comprehensive test covers the happy path scenarios and edge cases for valid
+// API creation requests.
 func TestCreateApiSuccessfully(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
@@ -36,6 +40,8 @@ func TestCreateApiSuccessfully(t *testing.T) {
 	}
 
 	// Test creating an API manually via DB to verify queries
+	// This test validates that the underlying database queries work correctly
+	// by bypassing the HTTP handler and directly testing the DB operations.
 	t.Run("insert api via DB", func(t *testing.T) {
 		keyAuthID := uid.New(uid.KeyAuthPrefix)
 		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
@@ -68,6 +74,9 @@ func TestCreateApiSuccessfully(t *testing.T) {
 	})
 
 	// Test creating a basic API
+	// This test verifies the complete end-to-end flow through the HTTP handler,
+	// including authentication, transaction handling, and response validation.
+	// It confirms that the API, keyring, and audit logs are created correctly.
 	t.Run("create basic api", func(t *testing.T) {
 		apiName := "test-api-basic"
 		req := handler.Request{
@@ -113,6 +122,8 @@ func TestCreateApiSuccessfully(t *testing.T) {
 	})
 
 	// Test creating multiple APIs
+	// This test ensures that multiple API creation requests work correctly
+	// and that each API gets a unique identifier, preventing ID collisions.
 	t.Run("create multiple apis", func(t *testing.T) {
 		apiNames := []string{"api-1", "api-2", "api-3"}
 		apiIds := make([]string, len(apiNames))
@@ -145,6 +156,8 @@ func TestCreateApiSuccessfully(t *testing.T) {
 	})
 
 	// Test with a longer API name
+	// This test validates that API names with many characters are handled
+	// correctly and stored properly in the database without truncation.
 	t.Run("create api with long name", func(t *testing.T) {
 		apiName := "my-super-awesome-production-api-for-customer-management-and-analytics"
 		req := handler.Request{
@@ -160,6 +173,8 @@ func TestCreateApiSuccessfully(t *testing.T) {
 	})
 
 	// Test with special characters in name
+	// This test ensures that API names containing special characters, symbols,
+	// and punctuation are properly handled and stored without corruption.
 	t.Run("create api with special characters", func(t *testing.T) {
 		apiName := "special_api-123!@#$%^&*()"
 		req := handler.Request{
@@ -174,6 +189,8 @@ func TestCreateApiSuccessfully(t *testing.T) {
 		require.Equal(t, apiName, api.Name)
 	})
 
+	// This test verifies that UUID-style names are accepted and that delete
+	// protection is properly set to false by default for new APIs.
 	t.Run("create api with UUID name", func(t *testing.T) {
 		apiName := uid.New("uuid-test-") // Using uid.New to generate a unique ID
 		req := handler.Request{
@@ -196,6 +213,8 @@ func TestCreateApiSuccessfully(t *testing.T) {
 	})
 
 	// Test with minimum name length (exactly 3 characters)
+	// This test validates the lower boundary for API name length validation,
+	// ensuring that names at the minimum allowed length are accepted.
 	t.Run("create api with minimum length name", func(t *testing.T) {
 		apiName := "min" // Exactly 3 characters
 		req := handler.Request{
@@ -215,6 +234,8 @@ func TestCreateApiSuccessfully(t *testing.T) {
 	})
 
 	// Test with name containing only numeric characters
+	// This test ensures that API names consisting entirely of numbers
+	// are properly handled and don't cause parsing or validation issues.
 	t.Run("create api with numeric name", func(t *testing.T) {
 		apiName := "12345" // Only numeric characters
 		req := handler.Request{
@@ -234,6 +255,9 @@ func TestCreateApiSuccessfully(t *testing.T) {
 	})
 
 	// Test with name containing Unicode characters
+	// This test validates that API names with international characters,
+	// including Chinese characters and emoji, are properly supported and
+	// stored correctly in the database with proper UTF-8 encoding.
 	t.Run("create api with unicode name", func(t *testing.T) {
 		apiName := "测试-api-🔑" // Unicode characters including emoji
 		req := handler.Request{

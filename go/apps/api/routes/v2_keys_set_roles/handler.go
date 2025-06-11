@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"slices"
@@ -194,129 +193,113 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// 8. Apply changes in transaction
-	tx, err := h.DB.RW().Begin(ctx)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to create transaction"), fault.Public("Unable to start database transaction."),
-		)
-	}
+	_, err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (interface{}, error) {
+		var auditLogs []auditlog.AuditLog
 
-	defer func() {
-		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
-			h.Logger.Error("failed to rollback transaction", "error", err)
+		// Remove roles that are no longer needed
+		for _, roleID := range rolesToRemove {
+			err := db.Query.DeleteManyKeyRolesByKeyID(ctx, tx, db.DeleteManyKeyRolesByKeyIDParams{
+				KeyID:  req.KeyId,
+				RoleID: roleID,
+			})
+			if err != nil {
+				return nil, fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to remove role assignment."),
+				)
+			}
+
+			// Find the role for audit log
+			var removedRole db.Role
+			for _, role := range currentRoles {
+				if role.ID == roleID {
+					removedRole = role
+					break
+				}
+			}
+
+			auditLogs = append(auditLogs, auditlog.AuditLog{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Event:       auditlog.AuthDisconnectRoleKeyEvent,
+				ActorType:   auditlog.RootKeyActor,
+				ActorID:     auth.KeyID,
+				ActorName:   "root key",
+				Display:     fmt.Sprintf("Removed role %s from key %s", removedRole.Name, req.KeyId),
+				RemoteIP:    s.Location(),
+				UserAgent:   s.UserAgent(),
+				Resources: []auditlog.AuditLogResource{
+					{
+						Type:        "key",
+						ID:          req.KeyId,
+						Name:        key.Name.String,
+						DisplayName: key.Name.String,
+					},
+					{
+						Type:        "role",
+						ID:          removedRole.ID,
+						Name:        removedRole.Name,
+						DisplayName: removedRole.Name,
+					},
+				},
+			})
 		}
-	}()
 
-	var auditLogs []auditlog.AuditLog
+		// Add new roles
+		for _, role := range rolesToAdd {
+			err := db.Query.InsertKeyRole(ctx, tx, db.InsertKeyRoleParams{
+				KeyID:       req.KeyId,
+				RoleID:      role.ID,
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				CreatedAtM:  time.Now().UnixMilli(),
+			})
+			if err != nil {
+				return nil, fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to add role assignment."),
+				)
+			}
 
-	// Remove roles that are no longer needed
-	for _, roleID := range rolesToRemove {
-		err := db.Query.DeleteManyKeyRolesByKeyID(ctx, tx, db.DeleteManyKeyRolesByKeyIDParams{
-			KeyID:  req.KeyId,
-			RoleID: roleID,
-		})
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"), fault.Public("Failed to remove role assignment."),
-			)
+			auditLogs = append(auditLogs, auditlog.AuditLog{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Event:       auditlog.AuthConnectRoleKeyEvent,
+				ActorType:   auditlog.RootKeyActor,
+				ActorID:     auth.KeyID,
+				ActorName:   "root key",
+				Display:     fmt.Sprintf("Added role %s to key %s", role.Name, req.KeyId),
+				RemoteIP:    s.Location(),
+				UserAgent:   s.UserAgent(),
+				Resources: []auditlog.AuditLogResource{
+					{
+						Type:        "key",
+						ID:          req.KeyId,
+						Name:        key.Name.String,
+						DisplayName: key.Name.String,
+					},
+					{
+						Type:        "role",
+						ID:          role.ID,
+						Name:        role.Name,
+						DisplayName: role.Name,
+					},
+				},
+			})
 		}
 
-		// Find the role details for the audit log
-		var removedRole db.Role
-		for _, role := range currentRoles {
-			if role.ID == roleID {
-				removedRole = role
-				break
+		// Insert audit logs if there are changes
+		if len(auditLogs) > 0 {
+			err = h.Auditlogs.Insert(ctx, tx, auditLogs)
+			if err != nil {
+				return nil, fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("audit log error"), fault.Public("Failed to create audit log for role changes."),
+				)
 			}
 		}
 
-		auditLogs = append(auditLogs, auditlog.AuditLog{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Event:       auditlog.AuthDisconnectRoleKeyEvent,
-			ActorType:   auditlog.RootKeyActor,
-			ActorID:     auth.KeyID,
-			ActorName:   "root key",
-			Display:     fmt.Sprintf("Removed role %s from key %s", removedRole.Name, req.KeyId),
-			RemoteIP:    s.Location(),
-			UserAgent:   s.UserAgent(),
-			Resources: []auditlog.AuditLogResource{
-				{
-					Type:        "key",
-					ID:          req.KeyId,
-					Name:        key.Name.String,
-					DisplayName: key.Name.String,
-				},
-				{
-					Type:        "role",
-					ID:          removedRole.ID,
-					Name:        removedRole.Name,
-					DisplayName: removedRole.Name,
-				},
-			},
-		})
-	}
-
-	// Add new roles
-	for _, role := range rolesToAdd {
-		err := db.Query.InsertKeyRole(ctx, tx, db.InsertKeyRoleParams{
-			KeyID:       req.KeyId,
-			RoleID:      role.ID,
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			CreatedAtM:  time.Now().UnixMilli(),
-		})
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"), fault.Public("Failed to add role assignment."),
-			)
-		}
-
-		auditLogs = append(auditLogs, auditlog.AuditLog{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Event:       auditlog.AuthConnectRoleKeyEvent,
-			ActorType:   auditlog.RootKeyActor,
-			ActorID:     auth.KeyID,
-			ActorName:   "root key",
-			Display:     fmt.Sprintf("Added role %s to key %s", role.Name, req.KeyId),
-			RemoteIP:    s.Location(),
-			UserAgent:   s.UserAgent(),
-			Resources: []auditlog.AuditLogResource{
-				{
-					Type:        "key",
-					ID:          req.KeyId,
-					Name:        key.Name.String,
-					DisplayName: key.Name.String,
-				},
-				{
-					Type:        "role",
-					ID:          role.ID,
-					Name:        role.Name,
-					DisplayName: role.Name,
-				},
-			},
-		})
-	}
-
-	// Insert audit logs if there are changes
-	if len(auditLogs) > 0 {
-		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("audit log error"), fault.Public("Failed to create audit log for role changes."),
-			)
-		}
-	}
-
-	// Commit the transaction
-	err = tx.Commit()
+		return nil, nil
+	})
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to commit transaction"), fault.Public("Unable to commit database transaction."),
-		)
+		return err
 	}
 
 	// 10. Get final state of roles and build response

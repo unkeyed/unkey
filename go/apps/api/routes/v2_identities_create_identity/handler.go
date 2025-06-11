@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -133,135 +132,119 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	tx, err := h.DB.RW().Begin(ctx)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to create transaction"), fault.Public("Unable to start database transaction."),
-		)
-	}
-
-	defer func() {
-		rollbackErr := tx.Rollback()
-		if rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
-			h.Logger.Error("rollback failed", "requestId", s.RequestID(), "error", rollbackErr)
-		}
-	}()
-
-	identityID := uid.New(uid.IdentityPrefix)
-	args := db.InsertIdentityParams{
-		ID:          identityID,
-		ExternalID:  req.ExternalId,
-		WorkspaceID: auth.AuthorizedWorkspaceID,
-		Environment: "default",
-		CreatedAt:   time.Now().UnixMilli(),
-		Meta:        meta,
-	}
-	h.Logger.Warn("inserting identity",
-		"args", args,
-	)
-	err = db.Query.InsertIdentity(ctx, tx, args)
-
-	h.Logger.Error("insert identity failed", "requestId", s.RequestID(), "error", err)
-	if err != nil {
-		if db.IsDuplicateKeyError(err) {
-			return fault.Wrap(err,
-				fault.Code(codes.Data.Identity.Duplicate.URN()),
-				fault.Internal("identity already exists"), fault.Public(fmt.Sprintf("Identity with externalId \"%s\" already exists in this workspace.", req.ExternalId)),
-			)
-		}
-
-		return fault.Wrap(err,
-			fault.Internal("unable to create identity"), fault.Public("We're unable to create the identity and its ratelimits."),
-		)
-	}
-
-	auditLogs := []auditlog.AuditLog{
-		{
+	identityID, err := db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
+		identityID := uid.New(uid.IdentityPrefix)
+		args := db.InsertIdentityParams{
+			ID:          identityID,
+			ExternalID:  req.ExternalId,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Event:       auditlog.IdentityCreateEvent,
-			Display:     fmt.Sprintf("Created identity %s.", identityID),
-			ActorID:     auth.KeyID,
-			ActorName:   "root key",
-			Bucket:      auditlogs.DEFAULT_BUCKET,
-			ActorType:   auditlog.RootKeyActor,
-			RemoteIP:    s.Location(),
-			UserAgent:   s.UserAgent(),
-			Resources: []auditlog.AuditLogResource{
-				{
-					ID:          identityID,
-					Type:        auditlog.IdentityResourceType,
-					Meta:        nil,
-					Name:        req.ExternalId,
-					DisplayName: req.ExternalId,
-				},
-			},
-		},
-	}
+			Environment: "default",
+			CreatedAt:   time.Now().UnixMilli(),
+			Meta:        meta,
+		}
+		h.Logger.Warn("inserting identity",
+			"args", args,
+		)
+		err := db.Query.InsertIdentity(ctx, tx, args)
 
-	if req.Ratelimits != nil {
-		for _, ratelimit := range *req.Ratelimits {
-			ratelimitID := uid.New(uid.RatelimitPrefix)
-			err = db.Query.InsertIdentityRatelimit(ctx, tx, db.InsertIdentityRatelimitParams{
-				ID:          ratelimitID,
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				IdentityID:  sql.NullString{String: identityID, Valid: true},
-				Name:        ratelimit.Name,
-				Limit:       int32(ratelimit.Limit), // nolint:gosec
-				Duration:    ratelimit.Duration,
-				CreatedAt:   time.Now().UnixMilli(),
-			})
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Internal("unable to create ratelimit"), fault.Public("We're unable to create a ratelimit for the identity."),
+		h.Logger.Error("insert identity failed", "requestId", s.RequestID(), "error", err)
+		if err != nil {
+			if db.IsDuplicateKeyError(err) {
+				return "", fault.Wrap(err,
+					fault.Code(codes.Data.Identity.Duplicate.URN()),
+					fault.Internal("identity already exists"), fault.Public(fmt.Sprintf("Identity with externalId \"%s\" already exists in this workspace.", req.ExternalId)),
 				)
 			}
 
-			auditLogs = append(auditLogs, auditlog.AuditLog{
+			return "", fault.Wrap(err,
+				fault.Internal("unable to create identity"), fault.Public("We're unable to create the identity and its ratelimits."),
+			)
+		}
+
+		auditLogs := []auditlog.AuditLog{
+			{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       auditlog.RatelimitCreateEvent,
-				Display:     fmt.Sprintf("Created ratelimit %s.", ratelimitID),
+				Event:       auditlog.IdentityCreateEvent,
+				Display:     fmt.Sprintf("Created identity %s.", identityID),
 				ActorID:     auth.KeyID,
+				ActorName:   "root key",
 				Bucket:      auditlogs.DEFAULT_BUCKET,
 				ActorType:   auditlog.RootKeyActor,
-				ActorName:   "root key",
-				ActorMeta:   nil,
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
 					{
-						Type:        auditlog.IdentityResourceType,
 						ID:          identityID,
-						Name:        req.ExternalId,
+						Type:        auditlog.IdentityResourceType,
 						Meta:        nil,
+						Name:        req.ExternalId,
 						DisplayName: req.ExternalId,
 					},
-					{
-						Type:        auditlog.RatelimitResourceType,
-						ID:          ratelimitID,
-						DisplayName: ratelimit.Name,
-						Name:        ratelimit.Name,
-						Meta:        nil,
-					},
 				},
-			})
+			},
 		}
-	}
 
-	err = h.Auditlogs.Insert(ctx, tx, auditLogs)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to insert audit logs"), fault.Public("Failed to insert audit logs"),
-		)
-	}
+		if req.Ratelimits != nil {
+			for _, ratelimit := range *req.Ratelimits {
+				ratelimitID := uid.New(uid.RatelimitPrefix)
+				err = db.Query.InsertIdentityRatelimit(ctx, tx, db.InsertIdentityRatelimitParams{
+					ID:          ratelimitID,
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					IdentityID:  sql.NullString{String: identityID, Valid: true},
+					Name:        ratelimit.Name,
+					Limit:       int32(ratelimit.Limit), // nolint:gosec
+					Duration:    ratelimit.Duration,
+					CreatedAt:   time.Now().UnixMilli(),
+				})
+				if err != nil {
+					return "", fault.Wrap(err,
+						fault.Internal("unable to create ratelimit"), fault.Public("We're unable to create a ratelimit for the identity."),
+					)
+				}
 
-	err = tx.Commit()
+				auditLogs = append(auditLogs, auditlog.AuditLog{
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					Event:       auditlog.RatelimitCreateEvent,
+					Display:     fmt.Sprintf("Created ratelimit %s.", ratelimitID),
+					ActorID:     auth.KeyID,
+					Bucket:      auditlogs.DEFAULT_BUCKET,
+					ActorType:   auditlog.RootKeyActor,
+					ActorName:   "root key",
+					ActorMeta:   nil,
+					RemoteIP:    s.Location(),
+					UserAgent:   s.UserAgent(),
+					Resources: []auditlog.AuditLogResource{
+						{
+							Type:        auditlog.IdentityResourceType,
+							ID:          identityID,
+							Name:        req.ExternalId,
+							Meta:        nil,
+							DisplayName: req.ExternalId,
+						},
+						{
+							Type:        auditlog.RatelimitResourceType,
+							ID:          ratelimitID,
+							DisplayName: ratelimit.Name,
+							Name:        ratelimit.Name,
+							Meta:        nil,
+						},
+					},
+				})
+			}
+		}
+
+		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
+		if err != nil {
+			return "", fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to insert audit logs"), fault.Public("Failed to insert audit logs"),
+			)
+		}
+
+		return identityID, nil
+	})
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to commit transaction"), fault.Public("Failed to commit changes."),
-		)
+		return err
 	}
 
 	return s.JSON(http.StatusOK, Response{

@@ -14,6 +14,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 )
 
+// TestCreateApi_BadRequest verifies that API creation requests with invalid
+// request bodies, missing required fields, or malformed JSON are properly
+// rejected with 400 Bad Request responses. This ensures proper input validation
+// and prevents creation of APIs with invalid or incomplete data.
 func TestCreateApi_BadRequest(t *testing.T) {
 	h := testutil.NewHarness(t)
 
@@ -33,7 +37,8 @@ func TestCreateApi_BadRequest(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	// Test with name too short
+	// This test validates the minimum length constraint for API names,
+	// ensuring that names below the required character limit are rejected.
 	t.Run("name too short", func(t *testing.T) {
 		req := handler.Request{
 			Name: "ab", // Name should be at least 3 characters
@@ -43,8 +48,9 @@ func TestCreateApi_BadRequest(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Status)
 	})
 
-	// Test with missing name
-	t.Run("missing name", func(t *testing.T) {
+	// This test validates that the required 'name' field is properly validated
+	// and that requests missing this field are rejected with appropriate error messages.
+	t.Run("missing name field", func(t *testing.T) {
 		// Using empty struct to simulate missing name
 		req := handler.Request{}
 
@@ -52,7 +58,8 @@ func TestCreateApi_BadRequest(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Status)
 	})
 
-	// Test with empty name
+	// This test ensures that API names cannot be empty strings, validating
+	// the minimum length requirements for API naming.
 	t.Run("empty name", func(t *testing.T) {
 		req := handler.Request{
 			Name: "",

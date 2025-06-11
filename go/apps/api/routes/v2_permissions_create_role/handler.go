@@ -80,81 +80,65 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	description := ptr.SafeDeref(req.Description)
 
 	// 5. Create role in a transaction with audit log
-	tx, err := h.DB.RW().Begin(ctx)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to create transaction"), fault.Public("Unable to start database transaction."),
-		)
-	}
-
-	defer func() {
-		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
-			h.Logger.Error("failed to rollback transaction", "error", err)
-		}
-	}()
-
-	// Insert the role
-	err = db.Query.InsertRole(ctx, tx, db.InsertRoleParams{
-		RoleID:      roleID,
-		WorkspaceID: auth.AuthorizedWorkspaceID,
-		Name:        req.Name,
-		Description: sql.NullString{Valid: description != "", String: description},
-	})
-	if err != nil {
-		if db.IsDuplicateKeyError(err) {
-			return fault.New("role already exists",
-				fault.Code(codes.UnkeyDataErrorsIdentityDuplicate),
-				fault.Internal("role already exists"), fault.Public("A role with name \""+req.Name+"\" already exists in this workspace"),
+	_, err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (interface{}, error) {
+		// Insert the role
+		err := db.Query.InsertRole(ctx, tx, db.InsertRoleParams{
+			RoleID:      roleID,
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+			Name:        req.Name,
+			Description: sql.NullString{Valid: description != "", String: description},
+		})
+		if err != nil {
+			if db.IsDuplicateKeyError(err) {
+				return nil, fault.New("role already exists",
+					fault.Code(codes.UnkeyDataErrorsIdentityDuplicate),
+					fault.Internal("role already exists"), fault.Public("A role with name \""+req.Name+"\" already exists in this workspace"),
+				)
+			}
+			return nil, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to create role."),
 			)
 		}
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to create role."),
-		)
-	}
 
-	// Create audit log
-	metaData := map[string]interface{}{
-		"name":        req.Name,
-		"description": description,
-	}
+		// Create audit log
+		metaData := map[string]interface{}{
+			"name":        req.Name,
+			"description": description,
+		}
 
-	err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
-		{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Event:       "role.create",
-			ActorType:   auditlog.RootKeyActor,
-			ActorID:     auth.KeyID,
-			ActorName:   "root key",
-			Display:     "Created " + roleID,
-			RemoteIP:    s.Location(),
-			UserAgent:   s.UserAgent(),
-			Resources: []auditlog.AuditLogResource{
-				{
-					Type:        "role",
-					ID:          roleID,
-					Name:        req.Name,
-					DisplayName: req.Name,
-					Meta:        metaData,
+		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
+			{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Event:       "role.create",
+				ActorType:   auditlog.RootKeyActor,
+				ActorID:     auth.KeyID,
+				ActorName:   "root key",
+				Display:     "Created " + roleID,
+				RemoteIP:    s.Location(),
+				UserAgent:   s.UserAgent(),
+				Resources: []auditlog.AuditLogResource{
+					{
+						Type:        "role",
+						ID:          roleID,
+						Name:        req.Name,
+						DisplayName: req.Name,
+						Meta:        metaData,
+					},
 				},
 			},
-		},
+		})
+		if err != nil {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("audit log error"), fault.Public("Failed to create audit log for role creation."),
+			)
+		}
+
+		return nil, nil
 	})
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("audit log error"), fault.Public("Failed to create audit log for role creation."),
-		)
-	}
-
-	// Commit the transaction
-	err = tx.Commit()
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to commit transaction"), fault.Public("Failed to commit changes."),
-		)
+		return err
 	}
 
 	// 7. Return success response

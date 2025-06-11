@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -71,88 +70,72 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	tx, err := h.DB.RW().Begin(ctx)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to create transaction"), fault.Public("Unable to start database transaction."),
-		)
-	}
-
-	defer func() {
-		rollbackErr := tx.Rollback()
-		if rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
-			h.Logger.Error("rollback failed", "requestId", s.RequestID(), "error", rollbackErr)
+	apiId, err := db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
+		keyAuthId := uid.New(uid.KeyAuthPrefix)
+		err := db.Query.InsertKeyring(ctx, tx, db.InsertKeyringParams{
+			ID:                 keyAuthId,
+			WorkspaceID:        auth.AuthorizedWorkspaceID,
+			CreatedAtM:         time.Now().UnixMilli(),
+			DefaultPrefix:      sql.NullString{Valid: false, String: ""},
+			DefaultBytes:       sql.NullInt32{Valid: false, Int32: 0},
+			StoreEncryptedKeys: false,
+		})
+		if err != nil {
+			return "", fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("unable to create key auth"), fault.Public("We're unable to create key authentication for the API."),
+			)
 		}
-	}()
 
-	keyAuthId := uid.New(uid.KeyAuthPrefix)
-	err = db.Query.InsertKeyring(ctx, tx, db.InsertKeyringParams{
-		ID:                 keyAuthId,
-		WorkspaceID:        auth.AuthorizedWorkspaceID,
-		CreatedAtM:         time.Now().UnixMilli(),
-		DefaultPrefix:      sql.NullString{Valid: false, String: ""},
-		DefaultBytes:       sql.NullInt32{Valid: false, Int32: 0},
-		StoreEncryptedKeys: false,
-	})
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("unable to create key auth"), fault.Public("We're unable to create key authentication for the API."),
-		)
-	}
-
-	apiId := uid.New(uid.APIPrefix)
-	err = db.Query.InsertApi(ctx, tx, db.InsertApiParams{
-		ID:          apiId,
-		Name:        req.Name,
-		WorkspaceID: auth.AuthorizedWorkspaceID,
-		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: keyAuthId},
-		CreatedAtM:  time.Now().UnixMilli(),
-	})
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("unable to create api"), fault.Public("We're unable to create the API."),
-		)
-	}
-
-	err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
-		{
+		apiId := uid.New(uid.APIPrefix)
+		err = db.Query.InsertApi(ctx, tx, db.InsertApiParams{
+			ID:          apiId,
+			Name:        req.Name,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Event:       auditlog.APICreateEvent,
-			Display:     fmt.Sprintf("Created API %s", apiId),
-			ActorID:     auth.KeyID,
-			ActorName:   "root key",
-			Bucket:      auditlogs.DEFAULT_BUCKET,
-			ActorType:   auditlog.RootKeyActor,
-			RemoteIP:    s.Location(),
-			UserAgent:   s.UserAgent(),
-			Resources: []auditlog.AuditLogResource{
-				{
-					ID:          apiId,
-					Type:        auditlog.APIResourceType,
-					Meta:        nil,
-					Name:        req.Name,
-					DisplayName: req.Name,
+			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
+			KeyAuthID:   sql.NullString{Valid: true, String: keyAuthId},
+			CreatedAtM:  time.Now().UnixMilli(),
+		})
+		if err != nil {
+			return "", fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("unable to create api"), fault.Public("We're unable to create the API."),
+			)
+		}
+
+		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
+			{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Event:       auditlog.APICreateEvent,
+				Display:     fmt.Sprintf("Created API %s", apiId),
+				ActorID:     auth.KeyID,
+				ActorName:   "root key",
+				Bucket:      auditlogs.DEFAULT_BUCKET,
+				ActorType:   auditlog.RootKeyActor,
+				RemoteIP:    s.Location(),
+				UserAgent:   s.UserAgent(),
+				Resources: []auditlog.AuditLogResource{
+					{
+						ID:          apiId,
+						Type:        auditlog.APIResourceType,
+						Meta:        nil,
+						Name:        req.Name,
+						DisplayName: req.Name,
+					},
 				},
 			},
-		},
+		})
+		if err != nil {
+			return "", fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to insert audit logs"), fault.Public("Failed to insert audit logs"),
+			)
+		}
+
+		return apiId, nil
 	})
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to insert audit logs"), fault.Public("Failed to insert audit logs"),
-		)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to commit transaction"), fault.Public("Failed to commit changes."),
-		)
+		return err
 	}
 
 	return s.JSON(http.StatusOK, Response{

@@ -102,74 +102,59 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	tx, err := h.DB.RW().Begin(ctx)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to create transaction"), fault.Public("Unable to start database transaction."),
-		)
-	}
-	defer func() {
-		rollbackErr := tx.Rollback()
-		if rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
-			h.Logger.Error("rollback failed", "requestId", s.RequestID(), "error", rollbackErr)
-		}
-	}()
-
-	overrideID := uid.New(uid.RatelimitOverridePrefix)
-	err = db.Query.InsertRatelimitOverride(ctx, tx, db.InsertRatelimitOverrideParams{
-		ID:          overrideID,
-		WorkspaceID: auth.AuthorizedWorkspaceID,
-		NamespaceID: namespace.ID,
-		Identifier:  req.Identifier,
-		Limit:       int32(req.Limit),    // nolint:gosec
-		Duration:    int32(req.Duration), //nolint:gosec
-		CreatedAt:   time.Now().UnixMilli(),
-	})
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed"), fault.Public("The database is unavailable."),
-		)
-	}
-
-	err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
-		{
+	overrideID, err := db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
+		overrideID := uid.New(uid.RatelimitOverridePrefix)
+		err := db.Query.InsertRatelimitOverride(ctx, tx, db.InsertRatelimitOverrideParams{
+			ID:          overrideID,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Event:       auditlog.RatelimitSetOverrideEvent,
-			ActorID:     auth.KeyID,
-			ActorType:   auditlog.RootKeyActor,
-			ActorName:   "root key",
-			ActorMeta:   nil,
-			Bucket:      auditlogs.DEFAULT_BUCKET,
+			NamespaceID: namespace.ID,
+			Identifier:  req.Identifier,
+			Limit:       int32(req.Limit),    // nolint:gosec
+			Duration:    int32(req.Duration), //nolint:gosec
+			CreatedAt:   time.Now().UnixMilli(),
+		})
+		if err != nil {
+			return "", fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed"), fault.Public("The database is unavailable."),
+			)
+		}
 
-			RemoteIP:  s.Location(),
-			UserAgent: s.UserAgent(),
-			Display:   fmt.Sprintf("Set ratelimit override for %s and %s", namespace.ID, req.Identifier),
-			Resources: []auditlog.AuditLogResource{
-				{
-					Type:        auditlog.RatelimitOverrideResourceType,
-					ID:          overrideID,
-					Name:        req.Identifier,
-					DisplayName: req.Identifier,
-					Meta:        nil,
+		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
+			{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Event:       auditlog.RatelimitSetOverrideEvent,
+				ActorID:     auth.KeyID,
+				ActorType:   auditlog.RootKeyActor,
+				ActorName:   "root key",
+				ActorMeta:   nil,
+				Bucket:      auditlogs.DEFAULT_BUCKET,
+
+				RemoteIP:  s.Location(),
+				UserAgent: s.UserAgent(),
+				Display:   fmt.Sprintf("Set ratelimit override for %s and %s", namespace.ID, req.Identifier),
+				Resources: []auditlog.AuditLogResource{
+					{
+						Type:        auditlog.RatelimitOverrideResourceType,
+						ID:          overrideID,
+						Name:        req.Identifier,
+						DisplayName: req.Identifier,
+						Meta:        nil,
+					},
 				},
 			},
-		},
+		})
+		if err != nil {
+			return "", fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to insert audit logs"), fault.Public("Failed to insert audit logs"),
+			)
+		}
+
+		return overrideID, nil
 	})
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to insert audit logs"), fault.Public("Failed to insert audit logs"),
-		)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to commit transaction"), fault.Public("Failed to commit changes."),
-		)
+		return err
 	}
 
 	return s.JSON(http.StatusOK, Response{
