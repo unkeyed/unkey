@@ -1,1 +1,2 @@
 - **Never** take shortcuts. Ask the user if they want to take a shortcut.
+- **Always** leave the codebase better tested, better documented, and easier to work with for the next developer.
