@@ -1,45 +1,26 @@
 "use client";
-
-// TODO: Convert to Nucleo Icons, Add them to unkey/icons
-import { Hide, View } from "@unkey/icons";
-// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
-import React, { useEffect } from "react";
+import { Eye, EyeSlash } from "@unkey/icons";
+import { cn } from "../lib/utils";
 import { Button, type ButtonProps } from "./button";
+
 type VisibleButtonProps = ButtonProps & {
   isVisible: boolean;
   setIsVisible: (visible: boolean) => void;
 };
 
-export function VisibleButton({
-  className,
-  isVisible,
-  setIsVisible,
-  ...props
-}: VisibleButtonProps) {
-  useEffect(() => {
-    if (!isVisible) {
-      return;
-    }
-    const timer = setTimeout(() => {
-      setIsVisible(false);
-    }, 10000);
-    return () => clearTimeout(timer);
-  }, [setIsVisible, isVisible]);
-
+export function VisibleButton({ isVisible, setIsVisible, ...props }: VisibleButtonProps) {
+  const { title, className, ...rest } = props;
   return (
     <Button
-      {...props}
-      type="button"
-      shape="square"
-      variant="ghost"
+      {...rest}
+      variant="outline"
       size="icon"
-      className={className}
-      onClick={() => {
-        setIsVisible(!isVisible);
-      }}
+      className={cn("bg-grayA-3 transition-all", className)}
+      onClick={() => setIsVisible(!isVisible)}
+      aria-label={isVisible ? `Hide ${title}` : `Show ${title}`}
+      title={isVisible ? `Hide ${title}` : `Show ${title}`}
     >
-      <span className="sr-only">Show</span>
-      {isVisible ? <View size="lg-thin" /> : <Hide size="lg-thin" />}
+      {isVisible ? <EyeSlash /> : <Eye />}
     </Button>
   );
 }

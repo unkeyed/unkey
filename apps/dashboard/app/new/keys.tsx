@@ -73,7 +73,6 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
     "apiId": "${apiId}"
   }'
   `;
-
   function maskKey(key: string): string {
     if (key.length === 0) {
       return "";
