@@ -12,33 +12,33 @@ import (
 
 // BillingMetrics tracks billing-related operations
 type BillingMetrics struct {
-	logger *slog.Logger
-	meter  metric.Meter
+	logger                 *slog.Logger
+	meter                  metric.Meter
 	highCardinalityEnabled bool
 
 	// Billing batch metrics
-	billingBatchesSent      metric.Int64Counter
+	billingBatchesSent       metric.Int64Counter
 	billingBatchSendDuration metric.Float64Histogram
-	heartbeatsSent          metric.Int64Counter
-	
+	heartbeatsSent           metric.Int64Counter
+
 	// Metrics collection
-	metricsCollected         metric.Int64Counter
+	metricsCollected          metric.Int64Counter
 	metricsCollectionDuration metric.Float64Histogram
-	vmMetricsRequests        metric.Int64Counter
+	vmMetricsRequests         metric.Int64Counter
 }
 
 // NewBillingMetrics creates new billing metrics
 func NewBillingMetrics(logger *slog.Logger, highCardinalityEnabled bool) (*BillingMetrics, error) {
 	meter := otel.Meter("unkey.metald.billing")
-	
+
 	bm := &BillingMetrics{
-		logger: logger.With("component", "billing_metrics"),
-		meter:  meter,
+		logger:                 logger.With("component", "billing_metrics"),
+		meter:                  meter,
 		highCardinalityEnabled: highCardinalityEnabled,
 	}
-	
+
 	var err error
-	
+
 	// Billing batch metrics
 	if bm.billingBatchesSent, err = meter.Int64Counter(
 		"metald_billing_batches_sent_total",
@@ -46,7 +46,7 @@ func NewBillingMetrics(logger *slog.Logger, highCardinalityEnabled bool) (*Billi
 	); err != nil {
 		return nil, err
 	}
-	
+
 	if bm.billingBatchSendDuration, err = meter.Float64Histogram(
 		"metald_billing_batch_send_duration_seconds",
 		metric.WithDescription("Duration of billing batch send operations"),
@@ -54,14 +54,14 @@ func NewBillingMetrics(logger *slog.Logger, highCardinalityEnabled bool) (*Billi
 	); err != nil {
 		return nil, err
 	}
-	
+
 	if bm.heartbeatsSent, err = meter.Int64Counter(
 		"metald_heartbeat_sent_total",
 		metric.WithDescription("Total number of heartbeats sent to billing service"),
 	); err != nil {
 		return nil, err
 	}
-	
+
 	// Metrics collection
 	if bm.metricsCollected, err = meter.Int64Counter(
 		"metald_metrics_collected_total",
@@ -69,7 +69,7 @@ func NewBillingMetrics(logger *slog.Logger, highCardinalityEnabled bool) (*Billi
 	); err != nil {
 		return nil, err
 	}
-	
+
 	if bm.metricsCollectionDuration, err = meter.Float64Histogram(
 		"metald_metrics_collection_duration_seconds",
 		metric.WithDescription("Duration of metrics collection operations"),
@@ -77,14 +77,14 @@ func NewBillingMetrics(logger *slog.Logger, highCardinalityEnabled bool) (*Billi
 	); err != nil {
 		return nil, err
 	}
-	
+
 	if bm.vmMetricsRequests, err = meter.Int64Counter(
 		"metald_vm_metrics_requests_total",
 		metric.WithDescription("Total number of VM metrics requests"),
 	); err != nil {
 		return nil, err
 	}
-	
+
 	logger.Info("billing metrics initialized")
 	return bm, nil
 }
@@ -98,7 +98,7 @@ func (bm *BillingMetrics) RecordBillingBatchSent(ctx context.Context, vmID, cust
 			attribute.String("customer_id", customerID),
 		}
 	}
-	
+
 	bm.billingBatchesSent.Add(ctx, 1, metric.WithAttributes(attrs...))
 	bm.billingBatchSendDuration.Record(ctx, duration.Seconds(), metric.WithAttributes(attrs...))
 }
@@ -118,7 +118,7 @@ func (bm *BillingMetrics) RecordMetricsCollected(ctx context.Context, vmID strin
 			attribute.String("vm_id", vmID),
 		}
 	}
-	
+
 	bm.metricsCollected.Add(ctx, int64(metricsCount), metric.WithAttributes(attrs...))
 	bm.metricsCollectionDuration.Record(ctx, duration.Seconds(), metric.WithAttributes(attrs...))
 }

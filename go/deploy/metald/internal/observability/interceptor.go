@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
@@ -65,7 +66,9 @@ func NewOTELInterceptor() connect.UnaryInterceptorFunc {
 	metrics, err := NewMetrics(meter)
 	if err != nil {
 		// Log error but continue without metrics
-		fmt.Printf("Failed to create metrics: %v\n", err)
+		slog.Default().Error("failed to create OTEL interceptor metrics",
+			slog.String("error", err.Error()),
+		)
 	}
 
 	return func(next connect.UnaryFunc) connect.UnaryFunc {

@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1/vmprovisionerv1connect"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/billing"
+	"github.com/unkeyed/unkey/go/deploy/metald/internal/database"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/observability"
 
 	"connectrpc.com/connect"
@@ -22,16 +23,18 @@ type VMService struct {
 	logger           *slog.Logger
 	metricsCollector *billing.MetricsCollector
 	vmMetrics        *observability.VMMetrics
+	vmRepo           *database.VMRepository
 	vmprovisionerv1connect.UnimplementedVmServiceHandler
 }
 
 // NewVMService creates a new VM service instance
-func NewVMService(backend types.Backend, logger *slog.Logger, metricsCollector *billing.MetricsCollector, vmMetrics *observability.VMMetrics) *VMService {
+func NewVMService(backend types.Backend, logger *slog.Logger, metricsCollector *billing.MetricsCollector, vmMetrics *observability.VMMetrics, vmRepo *database.VMRepository) *VMService {
 	return &VMService{
 		backend:          backend,
 		logger:           logger.With("service", "vm"),
 		metricsCollector: metricsCollector,
 		vmMetrics:        vmMetrics,
+		vmRepo:           vmRepo,
 	}
 }
 
@@ -55,6 +58,25 @@ func (s *VMService) CreateVm(ctx context.Context, req *connect.Request[metaldv1.
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("vm config is required"))
 	}
 
+	// Extract authenticated customer ID from context
+	customerID, err := ExtractCustomerID(ctx)
+	if err != nil {
+		s.logger.LogAttrs(ctx, slog.LevelError, "missing authenticated customer context")
+		if s.vmMetrics != nil {
+			s.vmMetrics.RecordVMCreateFailure(ctx, s.getBackendType(), "missing_customer_context")
+		}
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("customer authentication required"))
+	}
+
+	// Validate that request customer_id matches authenticated customer (if provided)
+	if req.Msg.GetCustomerId() != "" && req.Msg.GetCustomerId() != customerID {
+		s.logger.LogAttrs(ctx, slog.LevelWarn, "SECURITY: customer_id mismatch in request",
+			slog.String("authenticated_customer", customerID),
+			slog.String("request_customer", req.Msg.GetCustomerId()),
+		)
+		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("customer_id mismatch"))
+	}
+
 	// Validate required fields
 	if err := s.validateVMConfig(config); err != nil {
 		s.logger.LogAttrs(ctx, slog.LevelError, "invalid vm config",
@@ -74,7 +96,9 @@ func (s *VMService) CreateVm(ctx context.Context, req *connect.Request[metaldv1.
 	)
 
 	// Create VM using backend (config is already in unified format)
+	start := time.Now()
 	vmID, err := s.backend.CreateVM(ctx, config)
+	duration := time.Since(start)
 	if err != nil {
 		s.logWithTenantContext(ctx, slog.LevelError, "failed to create vm",
 			slog.String("error", err.Error()),
@@ -85,13 +109,39 @@ func (s *VMService) CreateVm(ctx context.Context, req *connect.Request[metaldv1.
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create vm: %w", err))
 	}
 
+	// Persist VM to database - critical for state consistency
+	if err := s.vmRepo.CreateVMWithContext(ctx, vmID, customerID, config, metaldv1.VmState_VM_STATE_CREATED); err != nil {
+		s.logger.LogAttrs(ctx, slog.LevelError, "failed to persist vm to database",
+			slog.String("vm_id", vmID),
+			slog.String("customer_id", customerID),
+			slog.String("error", err.Error()),
+		)
+		
+		// Attempt robust cleanup with retries to prevent resource leaks
+		cleanupSuccess := s.performVMCleanup(ctx, vmID, "database_persistence_failure")
+		if !cleanupSuccess {
+			// Log critical error - this VM is now orphaned and requires manual intervention
+			s.logger.LogAttrs(ctx, slog.LevelError, "CRITICAL: vm cleanup failed after database error - orphaned vm detected",
+				slog.String("vm_id", vmID),
+				slog.String("customer_id", customerID),
+				slog.String("action_required", "manual_cleanup_needed"),
+			)
+		}
+		
+		if s.vmMetrics != nil {
+			s.vmMetrics.RecordVMCreateFailure(ctx, s.getBackendType(), "database_error")
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to persist vm: %w", err))
+	}
+
 	s.logger.LogAttrs(ctx, slog.LevelInfo, "vm created successfully",
 		slog.String("vm_id", vmID),
+		slog.Duration("duration", duration),
 	)
 
 	// Record successful VM creation
 	if s.vmMetrics != nil {
-		s.vmMetrics.RecordVMCreateSuccess(ctx, vmID, s.getBackendType())
+		s.vmMetrics.RecordVMCreateSuccess(ctx, vmID, s.getBackendType(), duration)
 	}
 
 	return connect.NewResponse(&metaldv1.CreateVmResponse{
@@ -122,6 +172,14 @@ func (s *VMService) DeleteVm(ctx context.Context, req *connect.Request[metaldv1.
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("vm_id is required"))
 	}
 
+	// Validate customer ownership
+	if err := s.validateVMOwnership(ctx, vmID); err != nil {
+		if s.vmMetrics != nil {
+			s.vmMetrics.RecordVMDeleteFailure(ctx, vmID, s.getBackendType(), "ownership_validation_failed")
+		}
+		return nil, err
+	}
+
 	// Stop metrics collection before deletion
 	if s.metricsCollector != nil {
 		s.metricsCollector.StopCollection(vmID)
@@ -130,7 +188,10 @@ func (s *VMService) DeleteVm(ctx context.Context, req *connect.Request[metaldv1.
 		)
 	}
 
-	if err := s.backend.DeleteVM(ctx, vmID); err != nil {
+	start := time.Now()
+	err := s.backend.DeleteVM(ctx, vmID)
+	duration := time.Since(start)
+	if err != nil {
 		s.logger.LogAttrs(ctx, slog.LevelError, "failed to delete vm",
 			slog.String("vm_id", vmID),
 			slog.String("error", err.Error()),
@@ -141,13 +202,36 @@ func (s *VMService) DeleteVm(ctx context.Context, req *connect.Request[metaldv1.
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete vm: %w", err))
 	}
 
+	// Soft delete VM in database - required for state consistency
+	if err := s.vmRepo.DeleteVMWithContext(ctx, vmID); err != nil {
+		s.logger.LogAttrs(ctx, slog.LevelError, "failed to delete vm from database",
+			slog.String("vm_id", vmID),
+			slog.String("error", err.Error()),
+		)
+		
+		// Database state consistency is critical - record as partial failure
+		if s.vmMetrics != nil {
+			s.vmMetrics.RecordVMDeleteFailure(ctx, vmID, s.getBackendType(), "database_error")
+		}
+		
+		// Log warning about state inconsistency but don't fail the operation
+		// since backend deletion was successful
+		s.logger.LogAttrs(ctx, slog.LevelWarn, "vm delete succeeded in backend but failed in database - state inconsistency detected",
+			slog.String("vm_id", vmID),
+			slog.String("backend_status", "deleted"),
+			slog.String("database_status", "active"),
+			slog.String("action_required", "manual_database_cleanup"),
+		)
+	}
+
 	s.logger.LogAttrs(ctx, slog.LevelInfo, "vm deleted successfully",
 		slog.String("vm_id", vmID),
+		slog.Duration("duration", duration),
 	)
 
 	// Record successful VM deletion
 	if s.vmMetrics != nil {
-		s.vmMetrics.RecordVMDeleteSuccess(ctx, vmID, s.getBackendType())
+		s.vmMetrics.RecordVMDeleteSuccess(ctx, vmID, s.getBackendType(), duration)
 	}
 
 	return connect.NewResponse(&metaldv1.DeleteVmResponse{
@@ -177,7 +261,18 @@ func (s *VMService) BootVm(ctx context.Context, req *connect.Request[metaldv1.Bo
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("vm_id is required"))
 	}
 
-	if err := s.backend.BootVM(ctx, vmID); err != nil {
+	// Validate customer ownership
+	if err := s.validateVMOwnership(ctx, vmID); err != nil {
+		if s.vmMetrics != nil {
+			s.vmMetrics.RecordVMBootFailure(ctx, vmID, s.getBackendType(), "ownership_validation_failed")
+		}
+		return nil, err
+	}
+
+	start := time.Now()
+	err := s.backend.BootVM(ctx, vmID)
+	duration := time.Since(start)
+	if err != nil {
 		s.logger.LogAttrs(ctx, slog.LevelError, "failed to boot vm",
 			slog.String("vm_id", vmID),
 			slog.String("error", err.Error()),
@@ -186,6 +281,22 @@ func (s *VMService) BootVm(ctx context.Context, req *connect.Request[metaldv1.Bo
 			s.vmMetrics.RecordVMBootFailure(ctx, vmID, s.getBackendType(), "backend_error")
 		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to boot vm: %w", err))
+	}
+
+	// Update VM state in database - required for state consistency
+	if err := s.vmRepo.UpdateVMStateWithContext(ctx, vmID, metaldv1.VmState_VM_STATE_RUNNING, nil); err != nil {
+		s.logger.LogAttrs(ctx, slog.LevelError, "failed to update vm state in database",
+			slog.String("vm_id", vmID),
+			slog.String("error", err.Error()),
+		)
+		
+		// Log warning about state inconsistency
+		s.logger.LogAttrs(ctx, slog.LevelWarn, "vm boot succeeded in backend but state update failed in database - state inconsistency detected",
+			slog.String("vm_id", vmID),
+			slog.String("backend_status", "running"),
+			slog.String("database_status", "unknown"),
+			slog.String("action_required", "manual_state_sync"),
+		)
 	}
 
 	// Start metrics collection for billing
@@ -208,11 +319,12 @@ func (s *VMService) BootVm(ctx context.Context, req *connect.Request[metaldv1.Bo
 
 	s.logger.LogAttrs(ctx, slog.LevelInfo, "vm booted successfully",
 		slog.String("vm_id", vmID),
+		slog.Duration("duration", duration),
 	)
 
 	// Record successful VM boot
 	if s.vmMetrics != nil {
-		s.vmMetrics.RecordVMBootSuccess(ctx, vmID, s.getBackendType())
+		s.vmMetrics.RecordVMBootSuccess(ctx, vmID, s.getBackendType(), duration)
 	}
 
 	return connect.NewResponse(&metaldv1.BootVmResponse{
@@ -248,6 +360,14 @@ func (s *VMService) ShutdownVm(ctx context.Context, req *connect.Request[metaldv
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("vm_id is required"))
 	}
 
+	// Validate customer ownership
+	if err := s.validateVMOwnership(ctx, vmID); err != nil {
+		if s.vmMetrics != nil {
+			s.vmMetrics.RecordVMShutdownFailure(ctx, vmID, s.getBackendType(), force, "ownership_validation_failed")
+		}
+		return nil, err
+	}
+
 	// Stop metrics collection before shutdown
 	if s.metricsCollector != nil {
 		s.metricsCollector.StopCollection(vmID)
@@ -256,7 +376,10 @@ func (s *VMService) ShutdownVm(ctx context.Context, req *connect.Request[metaldv
 		)
 	}
 
-	if err := s.backend.ShutdownVMWithOptions(ctx, vmID, force, timeout); err != nil {
+	start := time.Now()
+	err := s.backend.ShutdownVMWithOptions(ctx, vmID, force, timeout)
+	duration := time.Since(start)
+	if err != nil {
 		s.logger.LogAttrs(ctx, slog.LevelError, "failed to shutdown vm",
 			slog.String("vm_id", vmID),
 			slog.String("error", err.Error()),
@@ -267,13 +390,30 @@ func (s *VMService) ShutdownVm(ctx context.Context, req *connect.Request[metaldv
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to shutdown vm: %w", err))
 	}
 
+	// Update VM state in database - required for state consistency
+	if err := s.vmRepo.UpdateVMStateWithContext(ctx, vmID, metaldv1.VmState_VM_STATE_SHUTDOWN, nil); err != nil {
+		s.logger.LogAttrs(ctx, slog.LevelError, "failed to update vm state in database",
+			slog.String("vm_id", vmID),
+			slog.String("error", err.Error()),
+		)
+		
+		// Log warning about state inconsistency
+		s.logger.LogAttrs(ctx, slog.LevelWarn, "vm shutdown succeeded in backend but state update failed in database - state inconsistency detected",
+			slog.String("vm_id", vmID),
+			slog.String("backend_status", "shutdown"),
+			slog.String("database_status", "unknown"),
+			slog.String("action_required", "manual_state_sync"),
+		)
+	}
+
 	s.logger.LogAttrs(ctx, slog.LevelInfo, "vm shutdown successfully",
 		slog.String("vm_id", vmID),
+		slog.Duration("duration", duration),
 	)
 
 	// Record successful VM shutdown
 	if s.vmMetrics != nil {
-		s.vmMetrics.RecordVMShutdownSuccess(ctx, vmID, s.getBackendType(), force)
+		s.vmMetrics.RecordVMShutdownSuccess(ctx, vmID, s.getBackendType(), force, duration)
 	}
 
 	return connect.NewResponse(&metaldv1.ShutdownVmResponse{
@@ -294,6 +434,11 @@ func (s *VMService) PauseVm(ctx context.Context, req *connect.Request[metaldv1.P
 	if vmID == "" {
 		s.logger.LogAttrs(ctx, slog.LevelError, "missing vm id")
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("vm_id is required"))
+	}
+
+	// Validate customer ownership
+	if err := s.validateVMOwnership(ctx, vmID); err != nil {
+		return nil, err
 	}
 
 	if err := s.backend.PauseVM(ctx, vmID); err != nil {
@@ -328,6 +473,11 @@ func (s *VMService) ResumeVm(ctx context.Context, req *connect.Request[metaldv1.
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("vm_id is required"))
 	}
 
+	// Validate customer ownership
+	if err := s.validateVMOwnership(ctx, vmID); err != nil {
+		return nil, err
+	}
+
 	if err := s.backend.ResumeVM(ctx, vmID); err != nil {
 		s.logger.LogAttrs(ctx, slog.LevelError, "failed to resume vm",
 			slog.String("vm_id", vmID),
@@ -358,6 +508,11 @@ func (s *VMService) RebootVm(ctx context.Context, req *connect.Request[metaldv1.
 	if vmID == "" {
 		s.logger.LogAttrs(ctx, slog.LevelError, "missing vm id")
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("vm_id is required"))
+	}
+
+	// Validate customer ownership
+	if err := s.validateVMOwnership(ctx, vmID); err != nil {
+		return nil, err
 	}
 
 	if err := s.backend.RebootVM(ctx, vmID); err != nil {
@@ -397,6 +552,11 @@ func (s *VMService) GetVmInfo(ctx context.Context, req *connect.Request[metaldv1
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("vm_id is required"))
 	}
 
+	// Validate customer ownership
+	if err := s.validateVMOwnership(ctx, vmID); err != nil {
+		return nil, err
+	}
+
 	info, err := s.backend.GetVMInfo(ctx, vmID)
 	if err != nil {
 		s.logger.LogAttrs(ctx, slog.LevelError, "failed to get vm info",
@@ -417,7 +577,7 @@ func (s *VMService) GetVmInfo(ctx context.Context, req *connect.Request[metaldv1
 	}), nil
 }
 
-// ListVms lists all VMs managed by this service
+// ListVms lists all VMs managed by this service for the authenticated customer
 func (s *VMService) ListVms(ctx context.Context, req *connect.Request[metaldv1.ListVmsRequest]) (*connect.Response[metaldv1.ListVmsResponse], error) {
 	s.logger.LogAttrs(ctx, slog.LevelInfo, "listing vms",
 		slog.String("method", "ListVms"),
@@ -428,44 +588,52 @@ func (s *VMService) ListVms(ctx context.Context, req *connect.Request[metaldv1.L
 		s.vmMetrics.RecordVMListRequest(ctx, s.getBackendType())
 	}
 
+	// Extract authenticated customer ID for filtering
+	customerID, err := ExtractCustomerID(ctx)
+	if err != nil {
+		s.logger.LogAttrs(ctx, slog.LevelError, "missing authenticated customer context")
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("customer authentication required"))
+	}
+
+	// Get VMs from database filtered by customer
+	dbVMs, err := s.vmRepo.ListVMsByCustomerWithContext(ctx, customerID)
+	if err != nil {
+		s.logger.LogAttrs(ctx, slog.LevelError, "failed to list vms from database",
+			slog.String("customer_id", customerID),
+			slog.String("error", err.Error()),
+		)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list vms: %w", err))
+	}
+
 	var vms []*metaldv1.VmInfo
-	var totalCount int32
+	totalCount := int32(len(dbVMs))
 
-	if listProvider, ok := s.backend.(types.VMListProvider); ok {
-		// Backend supports listing (e.g., ManagedClient)
-		managedVMs := listProvider.ListVMs()
-		totalCount = int32(len(managedVMs))
-
-		// Convert to protobuf format
-		for _, vm := range managedVMs {
-			vmInfo := &metaldv1.VmInfo{
-				VmId:  vm.ID,
-				State: vm.State,
-			}
-
-			// Add CPU and memory info if available
-			if vm.Config != nil {
-				if vm.Config.Cpu != nil {
-					vmInfo.VcpuCount = vm.Config.Cpu.VcpuCount
-				}
-				if vm.Config.Memory != nil {
-					vmInfo.MemorySizeBytes = vm.Config.Memory.SizeBytes
-				}
-				if vm.Config.Metadata != nil {
-					vmInfo.Metadata = vm.Config.Metadata
-				}
-			}
-
-			// Set timestamps (using current time as placeholder)
-			now := time.Now().Unix()
-			vmInfo.CreatedTimestamp = now
-			vmInfo.ModifiedTimestamp = now
-
-			vms = append(vms, vmInfo)
+	// Convert database VMs to protobuf format
+	for _, vm := range dbVMs {
+		vmInfo := &metaldv1.VmInfo{
+			VmId:      vm.ID,
+			State:     vm.State,
+			CustomerId: vm.CustomerID,
 		}
-	} else {
-		// Backend doesn't support listing (legacy single-VM backends)
-		s.logger.LogAttrs(ctx, slog.LevelInfo, "backend does not support vm listing")
+
+		// Add CPU and memory info if available
+		if vm.ParsedConfig != nil {
+			if vm.ParsedConfig.Cpu != nil {
+				vmInfo.VcpuCount = vm.ParsedConfig.Cpu.VcpuCount
+			}
+			if vm.ParsedConfig.Memory != nil {
+				vmInfo.MemorySizeBytes = vm.ParsedConfig.Memory.SizeBytes
+			}
+			if vm.ParsedConfig.Metadata != nil {
+				vmInfo.Metadata = vm.ParsedConfig.Metadata
+			}
+		}
+
+		// Set timestamps from database
+		vmInfo.CreatedTimestamp = vm.CreatedAt.Unix()
+		vmInfo.ModifiedTimestamp = vm.UpdatedAt.Unix()
+
+		vms = append(vms, vmInfo)
 	}
 
 	s.logger.LogAttrs(ctx, slog.LevelInfo, "vm listing completed",
@@ -537,13 +705,27 @@ func (s *VMService) validateVMConfig(config *metaldv1.VmConfig) error {
 	return nil
 }
 
-// extractCustomerID extracts the customer ID for billing from VM context
-// This can come from baggage, VM metadata, or other sources
+// extractCustomerID extracts the customer ID for billing from VM database record
+// Falls back to baggage context and finally to default customer ID
 func (s *VMService) extractCustomerID(ctx context.Context, vmID string) string {
-	// Try to extract from baggage first (preferred for multi-tenant systems)
+	// First try to get from database (preferred source)
+	if vm, err := s.vmRepo.GetVMWithContext(ctx, vmID); err == nil {
+		s.logger.LogAttrs(ctx, slog.LevelDebug, "extracted customer ID from database",
+			slog.String("vm_id", vmID),
+			slog.String("customer_id", vm.CustomerID),
+		)
+		return vm.CustomerID
+	} else {
+		s.logger.LogAttrs(ctx, slog.LevelWarn, "failed to get customer ID from database, trying fallback methods",
+			slog.String("vm_id", vmID),
+			slog.String("error", err.Error()),
+		)
+	}
+
+	// Fallback to baggage extraction (for compatibility with existing multi-tenant systems)
 	if requestBaggage := baggage.FromContext(ctx); len(requestBaggage.Members()) > 0 {
 		if tenantID := requestBaggage.Member("tenant_id").Value(); tenantID != "" {
-			s.logger.LogAttrs(ctx, slog.LevelDebug, "extracted customer ID from baggage",
+			s.logger.LogAttrs(ctx, slog.LevelDebug, "extracted customer ID from baggage as fallback",
 				slog.String("vm_id", vmID),
 				slog.String("customer_id", tenantID),
 			)
@@ -551,8 +733,7 @@ func (s *VMService) extractCustomerID(ctx context.Context, vmID string) string {
 		}
 	}
 
-	// TODO: Try to extract from VM metadata/config
-	// For now, use a placeholder approach
+	// Final fallback to default customer ID
 	customerID := "default-customer"
 	s.logger.LogAttrs(ctx, slog.LevelWarn, "using default customer ID for billing",
 		slog.String("vm_id", vmID),
@@ -560,6 +741,72 @@ func (s *VMService) extractCustomerID(ctx context.Context, vmID string) string {
 	)
 
 	return customerID
+}
+
+// performVMCleanup attempts robust cleanup of a backend VM with retries
+// Returns true if cleanup was successful, false if cleanup failed and VM is orphaned
+func (s *VMService) performVMCleanup(ctx context.Context, vmID, reason string) bool {
+	const maxRetries = 3
+	const retryDelay = time.Second
+	const cleanupGracePeriod = 30 * time.Second
+	
+	// Create a cleanup context with grace period to ensure critical cleanup completes
+	// even if the original context is cancelled
+	cleanupCtx, cancel := context.WithTimeout(context.Background(), cleanupGracePeriod)
+	defer cancel()
+	
+	s.logger.LogAttrs(ctx, slog.LevelInfo, "attempting vm cleanup",
+		slog.String("vm_id", vmID),
+		slog.String("reason", reason),
+		slog.Int("max_retries", maxRetries),
+		slog.Duration("grace_period", cleanupGracePeriod),
+	)
+	
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		if attempt > 1 {
+			// Wait before retry using cleanup context
+			select {
+			case <-cleanupCtx.Done():
+				s.logger.LogAttrs(ctx, slog.LevelError, "vm cleanup cancelled due to grace period timeout",
+					slog.String("vm_id", vmID),
+					slog.Int("attempt", attempt),
+					slog.Duration("grace_period", cleanupGracePeriod),
+				)
+				return false
+			case <-time.After(retryDelay):
+			}
+		}
+		
+		s.logger.LogAttrs(ctx, slog.LevelDebug, "attempting vm cleanup",
+			slog.String("vm_id", vmID),
+			slog.Int("attempt", attempt),
+		)
+		
+		if err := s.backend.DeleteVM(cleanupCtx, vmID); err != nil {
+			s.logger.LogAttrs(ctx, slog.LevelWarn, "vm cleanup attempt failed",
+				slog.String("vm_id", vmID),
+				slog.Int("attempt", attempt),
+				slog.String("error", err.Error()),
+			)
+			
+			if attempt == maxRetries {
+				s.logger.LogAttrs(ctx, slog.LevelError, "vm cleanup failed after all retries",
+					slog.String("vm_id", vmID),
+					slog.String("final_error", err.Error()),
+				)
+				return false
+			}
+			continue
+		}
+		
+		s.logger.LogAttrs(ctx, slog.LevelInfo, "vm cleanup successful",
+			slog.String("vm_id", vmID),
+			slog.Int("attempt", attempt),
+		)
+		return true
+	}
+	
+	return false
 }
 
 // logWithTenantContext logs a message with tenant context from baggage for audit trails

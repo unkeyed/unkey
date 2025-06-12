@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/billing"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/config"
+	"github.com/unkeyed/unkey/go/deploy/metald/internal/database"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/health"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/observability"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/service"
@@ -110,6 +111,24 @@ func main() {
 		)
 	}
 
+	// Initialize database
+	db, err := database.NewWithLogger(cfg.Database.DataDir, logger)
+	if err != nil {
+		logger.Error("failed to initialize database",
+			slog.String("error", err.Error()),
+			slog.String("data_dir", cfg.Database.DataDir),
+		)
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	// Create VM repository
+	vmRepo := database.NewVMRepository(db)
+
+	logger.Info("database initialized",
+		slog.String("data_dir", cfg.Database.DataDir),
+	)
+
 	// Initialize backend based on configuration
 	var backend types.Backend
 	switch cfg.Backend.Type {
@@ -180,7 +199,7 @@ func main() {
 			)
 			os.Exit(1)
 		}
-		
+
 		billingMetrics, err = observability.NewBillingMetrics(logger, cfg.OpenTelemetry.HighCardinalityLabelsEnabled)
 		if err != nil {
 			logger.Error("failed to initialize billing metrics",
@@ -201,13 +220,14 @@ func main() {
 	metricsCollector.StartHeartbeat()
 
 	// Create VM service
-	vmService := service.NewVMService(backend, logger, metricsCollector, vmMetrics)
+	vmService := service.NewVMService(backend, logger, metricsCollector, vmMetrics, vmRepo)
 
 	// Create health handler
 	healthHandler := health.NewHandler(backend, logger, startTime)
 
 	// Create ConnectRPC handler with interceptors
 	interceptors := []connect.Interceptor{
+		service.AuthenticationInterceptor(logger), // Authentication must come first
 		loggingInterceptor(logger),
 	}
 

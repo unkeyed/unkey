@@ -89,6 +89,7 @@ proto-breaking: ## Check for breaking changes in protobuf files
 # Installation targets
 install: build ## Install metald binary and systemd service
 	@echo "Installing metald binary and service..."
+	sudo systemctl stop metald 2>/dev/null || true
 	sudo mkdir -p /opt/metald
 	sudo mkdir -p /var/log/metald
 	sudo cp $(BUILD_DIR)/$(BINARY_NAME) /usr/local/bin/$(BINARY_NAME)
@@ -107,7 +108,8 @@ install: build ## Install metald binary and systemd service
 	sudo mkdir -p /opt/vm-assets
 	sudo chown -R metald:metald /opt/vm-assets 2>/dev/null || echo "VM assets directory doesn't exist or already configured"
 	sudo systemctl daemon-reload
-	@echo "Installation complete. Use 'make service-start' to start the service."
+	sudo systemctl start metald 2>/dev/null || true
+	@echo "Installation complete. Service started."
 
 uninstall: ## Uninstall metald service and binary
 	@echo "Uninstalling metald service..."

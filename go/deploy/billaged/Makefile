@@ -83,6 +83,7 @@ setup: deps install-tools generate ## Complete development setup
 # Installation targets
 install: build ## Install billaged binary and systemd service
 	@echo "Installing billaged binary and service..."
+	sudo systemctl stop billaged 2>/dev/null || true
 	sudo mkdir -p /opt/billaged
 	sudo mkdir -p /var/log/billaged
 	sudo cp $(BUILD_DIR)/$(BINARY_NAME) /usr/local/bin/$(BINARY_NAME)
@@ -92,7 +93,8 @@ install: build ## Install billaged binary and systemd service
 	sudo useradd -r -s /bin/false -d /opt/billaged -c "Billaged VM Usage Billing Service" billaged 2>/dev/null || true
 	sudo chown -R billaged:billaged /opt/billaged /var/log/billaged
 	sudo systemctl daemon-reload
-	@echo "Installation complete. Use 'make service-start' to start the service."
+	sudo systemctl start billaged 2>/dev/null || true
+	@echo "Installation complete. Service started."
 
 uninstall: ## Uninstall billaged service and binary
 	@echo "Uninstalling billaged service..."

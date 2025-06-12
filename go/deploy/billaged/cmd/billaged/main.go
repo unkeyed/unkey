@@ -115,7 +115,7 @@ func main() {
 
 	// Create aggregator with usage summary callback
 	agg := aggregator.NewAggregator(logger, aggregationInterval)
-	
+
 	// Set up usage summary callback to print results
 	agg.SetUsageSummaryCallback(func(summary *aggregator.UsageSummary) {
 		printUsageSummary(logger, summary)
@@ -149,12 +149,12 @@ func main() {
 	// Add stats endpoint
 	mux.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
 		activeVMs := agg.GetActiveVMCount()
-		
+
 		response := fmt.Sprintf(`{
 			"active_vms": %d,
 			"aggregation_interval": "%s"
 		}`, activeVMs, aggregationInterval.String())
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(response))
@@ -189,7 +189,7 @@ func main() {
 	// Start periodic aggregation
 	aggCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	
+
 	go agg.StartPeriodicAggregation(aggCtx)
 
 	// Start Prometheus server on separate port if enabled
@@ -241,7 +241,7 @@ func main() {
 	defer shutdownCancel()
 
 	cancel() // Stop aggregation
-	
+
 	// Shutdown all servers
 	var shutdownErrors []error
 
@@ -274,39 +274,39 @@ func printUsageSummary(logger *slog.Logger, summary *aggregator.UsageSummary) {
 		"start_time", summary.StartTime.Format("15:04:05"),
 		"end_time", summary.EndTime.Format("15:04:05"),
 	)
-	
+
 	logger.Info("CPU USAGE",
 		"vm_id", summary.VMID,
 		"cpu_time_used_ms", summary.CPUTimeUsedMs,
 		"cpu_time_used_seconds", float64(summary.CPUTimeUsedMs)/1000.0,
 	)
-	
+
 	logger.Info("MEMORY USAGE",
 		"vm_id", summary.VMID,
 		"avg_memory_usage_mb", summary.AvgMemoryUsageBytes/(1024*1024),
 		"max_memory_usage_mb", summary.MaxMemoryUsageBytes/(1024*1024),
 	)
-	
+
 	logger.Info("DISK I/O",
 		"vm_id", summary.VMID,
 		"disk_read_mb", summary.DiskReadBytes/(1024*1024),
 		"disk_write_mb", summary.DiskWriteBytes/(1024*1024),
 		"total_disk_io_mb", summary.TotalDiskIO/(1024*1024),
 	)
-	
+
 	logger.Info("NETWORK I/O",
 		"vm_id", summary.VMID,
 		"network_rx_mb", summary.NetworkRxBytes/(1024*1024),
 		"network_tx_mb", summary.NetworkTxBytes/(1024*1024),
 		"total_network_io_mb", summary.TotalNetworkIO/(1024*1024),
 	)
-	
+
 	logger.Info("BILLING METRICS",
 		"vm_id", summary.VMID,
 		"resource_score", fmt.Sprintf("%.2f", summary.ResourceScore),
 		"sample_count", summary.SampleCount,
 	)
-	
+
 	logger.Info("=== END USAGE SUMMARY ===",
 		"vm_id", summary.VMID,
 	)
@@ -380,4 +380,3 @@ func printUsage() {
 	fmt.Printf("  BILLAGED_OTEL_ENABLED=true %s        # Enable telemetry\n", os.Args[0])
 	fmt.Printf("  BILLAGED_AGGREGATION_INTERVAL=30s %s # 30-second summaries\n", os.Args[0])
 }
-

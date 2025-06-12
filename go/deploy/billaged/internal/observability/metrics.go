@@ -12,10 +12,10 @@ import (
 
 // BillingMetrics holds billing-specific metrics
 type BillingMetrics struct {
-	usageRecordsProcessed metric.Int64Counter
-	aggregationDuration   metric.Float64Histogram
-	activeVMs             metric.Int64UpDownCounter
-	billingErrors         metric.Int64Counter
+	usageRecordsProcessed  metric.Int64Counter
+	aggregationDuration    metric.Float64Histogram
+	activeVMs              metric.Int64UpDownCounter
+	billingErrors          metric.Int64Counter
 	highCardinalityEnabled bool
 }
 
@@ -65,10 +65,10 @@ func NewBillingMetrics(logger *slog.Logger, highCardinalityEnabled bool) (*Billi
 	logger.Info("billing metrics initialized")
 
 	return &BillingMetrics{
-		usageRecordsProcessed: usageRecordsProcessed,
-		aggregationDuration:   aggregationDuration,
-		activeVMs:             activeVMs,
-		billingErrors:         billingErrors,
+		usageRecordsProcessed:  usageRecordsProcessed,
+		aggregationDuration:    aggregationDuration,
+		activeVMs:              activeVMs,
+		billingErrors:          billingErrors,
 		highCardinalityEnabled: highCardinalityEnabled,
 	}, nil
 }

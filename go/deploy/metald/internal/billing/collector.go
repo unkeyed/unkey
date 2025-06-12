@@ -13,9 +13,9 @@ import (
 
 // MetricsCollector manages high-frequency metrics collection for billing
 type MetricsCollector struct {
-	backend       types.Backend
-	billingClient BillingClient
-	logger        *slog.Logger
+	backend        types.Backend
+	billingClient  BillingClient
+	logger         *slog.Logger
 	billingMetrics *observability.BillingMetrics
 
 	// State management

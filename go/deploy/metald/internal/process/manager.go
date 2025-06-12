@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/config"
-	
+
 	"go.opentelemetry.io/otel/baggage"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -29,11 +29,11 @@ type FirecrackerProcess struct {
 	Status            ProcessStatus
 	VMID              string // VM currently assigned to this process
 	MetricsConfigured bool   // Whether metrics have been configured for this process
-	
+
 	// Jailer specific fields
-	UseJailer        bool   // Whether this process uses jailer
-	JailerID         string // Unique jailer ID for chroot isolation
-	ChrootPath       string // Path to jailer chroot directory
+	UseJailer  bool   // Whether this process uses jailer
+	JailerID   string // Unique jailer ID for chroot isolation
+	ChrootPath string // Path to jailer chroot directory
 }
 
 type ProcessStatus string
@@ -63,7 +63,7 @@ type Manager struct {
 	maxProcesses int
 	idleTimeout  time.Duration
 	startTimeout time.Duration
-	
+
 	// Jailer configuration
 	jailerConfig *config.JailerConfig
 }
@@ -224,7 +224,7 @@ func (m *Manager) Shutdown(ctx context.Context) error {
 // createNewProcess spawns a new Firecracker process
 func (m *Manager) createNewProcess(ctx context.Context) (*FirecrackerProcess, error) {
 	processID := fmt.Sprintf("fc-%d", time.Now().UnixNano())
-	
+
 	// Check if jailer is enabled
 	useJailer := m.jailerConfig != nil && m.jailerConfig.Enabled
 	var jailerID string
@@ -242,15 +242,15 @@ func (m *Manager) createNewProcess(ctx context.Context) (*FirecrackerProcess, er
 	}
 
 	process := &FirecrackerProcess{
-		ID:          processID,
-		SocketPath:  socketPath,
-		PIDFile:     filepath.Join(m.logDir, processID+".pid"),
-		LogFile:     filepath.Join(m.logDir, processID+".log"),
-		Started:     time.Now(),
-		Status:      StatusStarting,
-		UseJailer:   useJailer,
-		JailerID:    jailerID,
-		ChrootPath:  chrootPath,
+		ID:         processID,
+		SocketPath: socketPath,
+		PIDFile:    filepath.Join(m.logDir, processID+".pid"),
+		LogFile:    filepath.Join(m.logDir, processID+".log"),
+		Started:    time.Now(),
+		Status:     StatusStarting,
+		UseJailer:  useJailer,
+		JailerID:   jailerID,
+		ChrootPath: chrootPath,
 	}
 
 	m.logger.LogAttrs(ctx, slog.LevelInfo, "creating new firecracker process",
@@ -271,7 +271,7 @@ func (m *Manager) createNewProcess(ctx context.Context) (*FirecrackerProcess, er
 	// AIDEV-NOTE: Use appCtx (application-scoped) instead of ctx (request-scoped) for process lifecycle
 	// This enables distributed tracing while keeping processes alive beyond individual requests
 	processCtx := m.createProcessContext(ctx, processID)
-	
+
 	var cmd *exec.Cmd
 	if useJailer {
 		cmd, err = m.createJailerCommand(processCtx, process)
@@ -283,7 +283,7 @@ func (m *Manager) createNewProcess(ctx context.Context) (*FirecrackerProcess, er
 		os.Remove(process.SocketPath)
 		cmd = exec.CommandContext(processCtx, "firecracker", "--api-sock", process.SocketPath)
 	}
-	
+
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
 	cmd.SysProcAttr = &syscall.SysProcAttr{
@@ -395,7 +395,7 @@ func (m *Manager) stopProcess(ctx context.Context, proc *FirecrackerProcess) err
 	// Cleanup files
 	os.Remove(proc.SocketPath)
 	os.Remove(proc.PIDFile)
-	
+
 	// Cleanup jailer chroot directory if using jailer
 	if proc.UseJailer && proc.ChrootPath != "" {
 		if err := os.RemoveAll(proc.ChrootPath); err != nil {
@@ -578,21 +578,19 @@ func (m *Manager) createJailerCommand(ctx context.Context, process *FirecrackerP
 		args = append(args, "--netns", "/var/run/netns/fc-"+process.JailerID)
 	}
 
-	// Add resource limits
+	// Add resource limits using cgroup v2 format
+	args = append(args, "--cgroup-version", "2")
+	
 	if m.jailerConfig.ResourceLimits.MemoryLimitBytes > 0 {
-		// Convert bytes to MB for cgroup v1 compatibility
-		memMB := m.jailerConfig.ResourceLimits.MemoryLimitBytes / (1024 * 1024)
-		if memMB == 0 {
-			memMB = 1 // Minimum 1MB
-		}
-		args = append(args, "--cgroup-version", "1")
-		args = append(args, "--resource-limit", fmt.Sprintf("memory.limit_in_bytes=%d", m.jailerConfig.ResourceLimits.MemoryLimitBytes))
+		// Use cgroup v2 memory.max instead of v1 memory.limit_in_bytes
+		args = append(args, "--resource-limit", fmt.Sprintf("memory.max=%d", m.jailerConfig.ResourceLimits.MemoryLimitBytes))
 	}
 
 	if m.jailerConfig.ResourceLimits.CPUQuota > 0 {
-		// CPU quota in microseconds per period (100ms period = 100000 microseconds)
+		// Use cgroup v2 cpu.max format: "quota period" (both in microseconds)
+		// Period is typically 100ms = 100000 microseconds
 		cpuQuotaUs := m.jailerConfig.ResourceLimits.CPUQuota * 1000 // Convert percentage to microseconds
-		args = append(args, "--resource-limit", fmt.Sprintf("cpu.cfs_quota_us=%d", cpuQuotaUs))
+		args = append(args, "--resource-limit", fmt.Sprintf("cpu.max=%d 100000", cpuQuotaUs))
 	}
 
 	// Add Firecracker arguments after --

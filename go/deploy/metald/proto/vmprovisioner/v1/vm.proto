@@ -173,6 +173,9 @@ message CreateVmRequest {
 
   // VM configuration
   VmConfig config = 2;
+
+  // Customer identifier for billing and isolation
+  string customer_id = 3;
 }
 
 message CreateVmResponse {
@@ -312,4 +315,7 @@ message VmInfo {
 
   // Metadata
   map<string, string> metadata = 7;
+
+  // Customer identifier
+  string customer_id = 8;
 }

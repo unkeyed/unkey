@@ -26,6 +26,9 @@ type Config struct {
 
 	// OpenTelemetry configuration
 	OpenTelemetry OpenTelemetryConfig
+
+	// Database configuration
+	Database DatabaseConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -156,6 +159,12 @@ type OpenTelemetryConfig struct {
 	// HighCardinalityLabelsEnabled allows high-cardinality labels like vm_id and process_id
 	// Set to false in production to reduce cardinality
 	HighCardinalityLabelsEnabled bool
+}
+
+// DatabaseConfig holds database configuration
+type DatabaseConfig struct {
+	// DataDir is the directory where the SQLite database file is stored
+	DataDir string
 }
 
 // LoadConfig loads configuration from environment variables
@@ -307,7 +316,7 @@ func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (
 	}
 
 	// Parse process manager configuration with secure defaults
-	maxProcesses := 25 // Default based on 32-core host
+	maxProcesses := 1000 // Default suitable for Firecracker's thousands-of-VMs capability
 	if maxProcStr := os.Getenv("UNKEY_METALD_MAX_PROCESSES"); maxProcStr != "" {
 		if parsed, err := strconv.Atoi(maxProcStr); err == nil && parsed > 0 {
 			maxProcesses = parsed
@@ -377,6 +386,9 @@ func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (
 			PrometheusEnabled:            prometheusEnabled,
 			PrometheusPort:               getEnvOrDefault("UNKEY_METALD_OTEL_PROMETHEUS_PORT", "9464"),
 			HighCardinalityLabelsEnabled: highCardinalityLabelsEnabled,
+		},
+		Database: DatabaseConfig{
+			DataDir: getEnvOrDefault("UNKEY_METALD_DATA_DIR", "/opt/metald/data"),
 		},
 	}
 

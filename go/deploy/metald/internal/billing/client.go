@@ -115,9 +115,9 @@ func NewConnectRPCBillingClient(endpoint string, logger *slog.Logger) *ConnectRP
 	httpClient := &http.Client{
 		Timeout: 30 * time.Second,
 	}
-	
+
 	billingClient := billingv1connect.NewBillingServiceClient(httpClient, endpoint)
-	
+
 	return &ConnectRPCBillingClient{
 		endpoint: endpoint,
 		logger:   logger.With("component", "connectrpc_billing_client"),
@@ -139,29 +139,29 @@ func (c *ConnectRPCBillingClient) SendMetricsBatch(ctx context.Context, vmID, cu
 			NetworkTxBytes:   m.NetworkTxBytes,
 		}
 	}
-	
+
 	req := &billingv1.SendMetricsBatchRequest{
 		VmId:       vmID,
 		CustomerId: customerID,
 		Metrics:    billingMetrics,
 	}
-	
+
 	resp, err := c.client.SendMetricsBatch(ctx, connect.NewRequest(req))
 	if err != nil {
 		return fmt.Errorf("failed to send metrics batch: %w", err)
 	}
-	
+
 	if !resp.Msg.Success {
 		return fmt.Errorf("billaged rejected metrics batch: %s", resp.Msg.Message)
 	}
-	
+
 	c.logger.Debug("sent metrics batch to billaged",
 		"vm_id", vmID,
 		"customer_id", customerID,
 		"metrics_count", len(metrics),
 		"message", resp.Msg.Message,
 	)
-	
+
 	return nil
 }
 
@@ -170,16 +170,16 @@ func (c *ConnectRPCBillingClient) SendHeartbeat(ctx context.Context, instanceID 
 		InstanceId: instanceID,
 		ActiveVms:  activeVMs,
 	}
-	
+
 	resp, err := c.client.SendHeartbeat(ctx, connect.NewRequest(req))
 	if err != nil {
 		return fmt.Errorf("failed to send heartbeat: %w", err)
 	}
-	
+
 	if !resp.Msg.Success {
 		return fmt.Errorf("billaged rejected heartbeat")
 	}
-	
+
 	return nil
 }
 
@@ -189,16 +189,16 @@ func (c *ConnectRPCBillingClient) NotifyVmStarted(ctx context.Context, vmID, cus
 		CustomerId: customerID,
 		StartTime:  startTime,
 	}
-	
+
 	resp, err := c.client.NotifyVmStarted(ctx, connect.NewRequest(req))
 	if err != nil {
 		return fmt.Errorf("failed to notify VM started: %w", err)
 	}
-	
+
 	if !resp.Msg.Success {
 		return fmt.Errorf("billaged rejected VM started notification")
 	}
-	
+
 	return nil
 }
 
@@ -207,16 +207,16 @@ func (c *ConnectRPCBillingClient) NotifyVmStopped(ctx context.Context, vmID stri
 		VmId:     vmID,
 		StopTime: stopTime,
 	}
-	
+
 	resp, err := c.client.NotifyVmStopped(ctx, connect.NewRequest(req))
 	if err != nil {
 		return fmt.Errorf("failed to notify VM stopped: %w", err)
 	}
-	
+
 	if !resp.Msg.Success {
 		return fmt.Errorf("billaged rejected VM stopped notification")
 	}
-	
+
 	return nil
 }
 
@@ -226,16 +226,16 @@ func (c *ConnectRPCBillingClient) NotifyPossibleGap(ctx context.Context, vmID st
 		LastSent:   lastSent,
 		ResumeTime: resumeTime,
 	}
-	
+
 	resp, err := c.client.NotifyPossibleGap(ctx, connect.NewRequest(req))
 	if err != nil {
 		return fmt.Errorf("failed to notify possible gap: %w", err)
 	}
-	
+
 	if !resp.Msg.Success {
 		return fmt.Errorf("billaged rejected possible gap notification")
 	}
-	
+
 	return nil
 }
 

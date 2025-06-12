@@ -7,7 +7,6 @@ import (
 	"time"
 
 	metaldv1 "github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
-	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/health"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/process"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/recovery"
@@ -15,10 +14,10 @@ import (
 
 // ReliabilityConfig configures the reliability subsystem
 type ReliabilityConfig struct {
-	Enabled           bool                        `json:"enabled"`
-	HealthCheck       *health.HealthCheckConfig   `json:"health_check"`
-	Recovery          *recovery.RecoveryConfig    `json:"recovery"`
-	ReconcileInterval time.Duration               `json:"reconcile_interval"`
+	Enabled           bool                      `json:"enabled"`
+	HealthCheck       *health.HealthCheckConfig `json:"health_check"`
+	Recovery          *recovery.RecoveryConfig  `json:"recovery"`
+	ReconcileInterval time.Duration             `json:"reconcile_interval"`
 }
 
 // DefaultReliabilityConfig returns sensible defaults
@@ -33,20 +32,20 @@ func DefaultReliabilityConfig() *ReliabilityConfig {
 
 // ReliabilityManager integrates health checking and recovery with existing VM management
 type ReliabilityManager struct {
-	logger             *slog.Logger
-	config             *ReliabilityConfig
-	healthChecker      *health.VMHealthChecker
-	recoveryManager    *recovery.VMRecoveryManager
-	processManager     *process.Manager
-	
+	logger          *slog.Logger
+	config          *ReliabilityConfig
+	healthChecker   *health.VMHealthChecker
+	recoveryManager *recovery.VMRecoveryManager
+	processManager  *process.Manager
+
 	// VM registry adapter
-	vmRegistry         *VMRegistryAdapter
+	vmRegistry *VMRegistryAdapter
 }
 
 // VMRegistryAdapter adapts the managed client's VM registry to the recovery interfaces
 type VMRegistryAdapter struct {
-	managedVMs    map[string]*ManagedVMInfo
-	logger        *slog.Logger
+	managedVMs map[string]*ManagedVMInfo
+	logger     *slog.Logger
 }
 
 // ManagedVMInfo implements the recovery.VMInfo interface
@@ -58,23 +57,25 @@ type ManagedVMInfo struct {
 	lastActivity time.Time
 }
 
-func (m *ManagedVMInfo) GetID() string                   { return m.id }
-func (m *ManagedVMInfo) GetProcessID() string            { return m.processID }
-func (m *ManagedVMInfo) GetConfig() *metaldv1.VmConfig   { return m.config }
-func (m *ManagedVMInfo) GetState() metaldv1.VmState      { return m.state }
-func (m *ManagedVMInfo) GetLastActivity() time.Time     { return m.lastActivity }
+func (m *ManagedVMInfo) GetID() string                 { return m.id }
+func (m *ManagedVMInfo) GetProcessID() string          { return m.processID }
+func (m *ManagedVMInfo) GetConfig() *metaldv1.VmConfig { return m.config }
+func (m *ManagedVMInfo) GetState() metaldv1.VmState    { return m.state }
+func (m *ManagedVMInfo) GetLastActivity() time.Time    { return m.lastActivity }
 
 // ProcessInfoAdapter adapts the process manager's process info to the recovery interface
 type ProcessInfoAdapter struct {
 	proc *process.FirecrackerProcess
 }
 
-func (p *ProcessInfoAdapter) GetID() string          { return p.proc.ID }
-func (p *ProcessInfoAdapter) GetSocketPath() string  { return p.proc.SocketPath }
-func (p *ProcessInfoAdapter) GetPID() int            { return p.proc.Process.Pid }
-func (p *ProcessInfoAdapter) GetVMID() string        { return p.proc.VMID }
-func (p *ProcessInfoAdapter) GetStatus() string      { return string(p.proc.Status) }
-func (p *ProcessInfoAdapter) IsRunning() bool        { return p.proc.Status == process.StatusReady || p.proc.Status == process.StatusBusy }
+func (p *ProcessInfoAdapter) GetID() string         { return p.proc.ID }
+func (p *ProcessInfoAdapter) GetSocketPath() string { return p.proc.SocketPath }
+func (p *ProcessInfoAdapter) GetPID() int           { return p.proc.Process.Pid }
+func (p *ProcessInfoAdapter) GetVMID() string       { return p.proc.VMID }
+func (p *ProcessInfoAdapter) GetStatus() string     { return string(p.proc.Status) }
+func (p *ProcessInfoAdapter) IsRunning() bool {
+	return p.proc.Status == process.StatusReady || p.proc.Status == process.StatusBusy
+}
 
 // ProcessManagerAdapter adapts the process manager to the recovery interface
 type ProcessManagerAdapter struct {
@@ -97,11 +98,11 @@ func (p *ProcessManagerAdapter) ReleaseProcess(ctx context.Context, vmID string)
 func (p *ProcessManagerAdapter) GetProcessInfo() map[string]recovery.ProcessInfo {
 	processes := p.manager.GetProcessInfo()
 	result := make(map[string]recovery.ProcessInfo)
-	
+
 	for id, proc := range processes {
 		result[id] = &ProcessInfoAdapter{proc: proc}
 	}
-	
+
 	return result
 }
 
@@ -111,7 +112,7 @@ func (p *ProcessManagerAdapter) IsProcessHealthy(processID string) bool {
 	if !exists {
 		return false
 	}
-	
+
 	return proc.Status == process.StatusReady || proc.Status == process.StatusBusy
 }
 
@@ -133,15 +134,15 @@ func (vr *VMRegistryAdapter) UpdateVMProcess(vmID, processID string) error {
 	if !exists {
 		return fmt.Errorf("vm %s not found in registry", vmID)
 	}
-	
+
 	vm.processID = processID
 	vm.lastActivity = time.Now()
-	
+
 	vr.logger.Info("updated vm process mapping",
 		"vm_id", vmID,
 		"new_process_id", processID,
 	)
-	
+
 	return nil
 }
 
@@ -158,15 +159,15 @@ func (vr *VMRegistryAdapter) MarkVMFailed(vmID string, reason string) error {
 	if !exists {
 		return fmt.Errorf("vm %s not found in registry", vmID)
 	}
-	
-	vm.state = metaldv1.VmState_VM_STATE_ERROR
+
+	vm.state = metaldv1.VmState_VM_STATE_UNSPECIFIED  // Indicates failed/unknown state
 	vm.lastActivity = time.Now()
-	
+
 	vr.logger.Error("marked vm as failed",
 		"vm_id", vmID,
 		"reason", reason,
 	)
-	
+
 	return nil
 }
 
@@ -179,7 +180,7 @@ func (vr *VMRegistryAdapter) AddVM(vmID, processID string, config *metaldv1.VmCo
 		state:        state,
 		lastActivity: time.Now(),
 	}
-	
+
 	vr.logger.Info("added vm to registry",
 		"vm_id", vmID,
 		"process_id", processID,
@@ -199,15 +200,15 @@ func (vr *VMRegistryAdapter) UpdateVMState(vmID string, state metaldv1.VmState) 
 	if !exists {
 		return fmt.Errorf("vm %s not found in registry", vmID)
 	}
-	
+
 	vm.state = state
 	vm.lastActivity = time.Now()
-	
+
 	vr.logger.Debug("updated vm state",
 		"vm_id", vmID,
 		"new_state", state,
 	)
-	
+
 	return nil
 }
 
@@ -220,7 +221,7 @@ func NewReliabilityManager(
 	if config == nil {
 		config = DefaultReliabilityConfig()
 	}
-	
+
 	if !config.Enabled {
 		logger.Info("reliability subsystem disabled")
 		return &ReliabilityManager{
@@ -228,32 +229,32 @@ func NewReliabilityManager(
 			config: config,
 		}, nil
 	}
-	
+
 	// Initialize health checker
 	healthChecker, err := health.NewVMHealthChecker(logger, config.HealthCheck)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create health checker: %w", err)
 	}
-	
+
 	// Initialize recovery manager
 	recoveryManager, err := recovery.NewVMRecoveryManager(logger, config.Recovery, healthChecker)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create recovery manager: %w", err)
 	}
-	
+
 	// Create VM registry adapter
 	vmRegistry := NewVMRegistryAdapter(logger)
-	
+
 	// Create process manager adapter
 	processManagerAdapter := &ProcessManagerAdapter{
 		manager: processManager,
 		logger:  logger,
 	}
-	
+
 	// Wire up dependencies
 	recoveryManager.SetProcessManager(processManagerAdapter)
 	recoveryManager.SetVMRegistry(vmRegistry)
-	
+
 	return &ReliabilityManager{
 		logger:          logger.With("component", "reliability_manager"),
 		config:          config,
@@ -270,14 +271,14 @@ func (rm *ReliabilityManager) Start(ctx context.Context) error {
 		rm.logger.Info("reliability subsystem disabled")
 		return nil
 	}
-	
+
 	rm.logger.Info("starting reliability subsystem")
-	
+
 	// Start recovery manager
 	if err := rm.recoveryManager.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start recovery manager: %w", err)
 	}
-	
+
 	rm.logger.Info("reliability subsystem started")
 	return nil
 }
@@ -287,19 +288,19 @@ func (rm *ReliabilityManager) Stop() {
 	if !rm.config.Enabled {
 		return
 	}
-	
+
 	rm.logger.Info("stopping reliability subsystem")
-	
+
 	// Stop recovery manager
 	if rm.recoveryManager != nil {
 		rm.recoveryManager.Stop()
 	}
-	
+
 	// Stop health checker
 	if rm.healthChecker != nil {
 		rm.healthChecker.Shutdown()
 	}
-	
+
 	rm.logger.Info("reliability subsystem stopped")
 }
 
@@ -308,10 +309,10 @@ func (rm *ReliabilityManager) OnVMCreated(vmID, processID string, config *metald
 	if !rm.config.Enabled {
 		return
 	}
-	
+
 	// Add to registry
-	rm.vmRegistry.AddVM(vmID, processID, config, metaldv1.VmState_VM_STATE_STARTING)
-	
+	rm.vmRegistry.AddVM(vmID, processID, config, metaldv1.VmState_VM_STATE_CREATED)
+
 	// Start health monitoring if we have process info
 	if rm.healthChecker != nil && processID != "" {
 		processes := rm.processManager.GetProcessInfo()
@@ -326,7 +327,7 @@ func (rm *ReliabilityManager) OnVMCreated(vmID, processID string, config *metald
 			}
 		}
 	}
-	
+
 	rm.logger.Info("reliability tracking started for vm",
 		"vm_id", vmID,
 		"process_id", processID,
@@ -338,9 +339,9 @@ func (rm *ReliabilityManager) OnVMStarted(vmID string) {
 	if !rm.config.Enabled {
 		return
 	}
-	
+
 	rm.vmRegistry.UpdateVMState(vmID, metaldv1.VmState_VM_STATE_RUNNING)
-	
+
 	rm.logger.Debug("vm marked as running",
 		"vm_id", vmID,
 	)
@@ -351,14 +352,14 @@ func (rm *ReliabilityManager) OnVMStopped(vmID string) {
 	if !rm.config.Enabled {
 		return
 	}
-	
-	rm.vmRegistry.UpdateVMState(vmID, metaldv1.VmState_VM_STATE_STOPPED)
-	
+
+	rm.vmRegistry.UpdateVMState(vmID, metaldv1.VmState_VM_STATE_SHUTDOWN)
+
 	// Stop health monitoring
 	if rm.healthChecker != nil {
 		rm.healthChecker.StopMonitoring(vmID)
 	}
-	
+
 	rm.logger.Debug("vm marked as stopped",
 		"vm_id", vmID,
 	)
@@ -369,15 +370,15 @@ func (rm *ReliabilityManager) OnVMDeleted(vmID string) {
 	if !rm.config.Enabled {
 		return
 	}
-	
+
 	// Remove from registry
 	rm.vmRegistry.RemoveVM(vmID)
-	
+
 	// Stop health monitoring
 	if rm.healthChecker != nil {
 		rm.healthChecker.StopMonitoring(vmID)
 	}
-	
+
 	rm.logger.Info("reliability tracking stopped for vm",
 		"vm_id", vmID,
 	)
@@ -388,9 +389,9 @@ func (rm *ReliabilityManager) OnVMError(vmID string, err error) {
 	if !rm.config.Enabled {
 		return
 	}
-	
+
 	rm.vmRegistry.MarkVMFailed(vmID, err.Error())
-	
+
 	rm.logger.Error("vm error reported",
 		"vm_id", vmID,
 		"error", err,
@@ -402,7 +403,7 @@ func (rm *ReliabilityManager) GetVMHealth(vmID string) (*health.VMHealthStatus, 
 	if !rm.config.Enabled || rm.healthChecker == nil {
 		return nil, false
 	}
-	
+
 	return rm.healthChecker.GetVMHealth(vmID)
 }
 
@@ -411,7 +412,7 @@ func (rm *ReliabilityManager) GetAllVMHealth() map[string]*health.VMHealthStatus
 	if !rm.config.Enabled || rm.healthChecker == nil {
 		return make(map[string]*health.VMHealthStatus)
 	}
-	
+
 	return rm.healthChecker.GetAllVMHealth()
 }
 
@@ -420,7 +421,7 @@ func (rm *ReliabilityManager) GetOrphanedVMs() map[string]*recovery.OrphanedVM {
 	if !rm.config.Enabled || rm.recoveryManager == nil {
 		return make(map[string]*recovery.OrphanedVM)
 	}
-	
+
 	return rm.recoveryManager.GetOrphanedVMs()
 }
 
@@ -429,7 +430,7 @@ func (rm *ReliabilityManager) GetRecoveryAttempts(vmID string) []*recovery.Recov
 	if !rm.config.Enabled || rm.recoveryManager == nil {
 		return nil
 	}
-	
+
 	return rm.recoveryManager.GetRecoveryAttempts(vmID)
 }
 
@@ -439,12 +440,12 @@ func (rm *ReliabilityManager) ForceRecovery(ctx context.Context, vmID string) er
 	if !rm.config.Enabled {
 		return fmt.Errorf("reliability subsystem disabled")
 	}
-	
+
 	rm.logger.Error("manual recovery requested - restart service or wait for next detection cycle",
 		"vm_id", vmID,
 		"action_required", "service_restart_or_wait",
 	)
-	
+
 	return fmt.Errorf("manual recovery requires service restart or waiting for detection cycle")
 }
 
@@ -453,17 +454,17 @@ func (rm *ReliabilityManager) GetReliabilityStatus() map[string]interface{} {
 	status := map[string]interface{}{
 		"enabled": rm.config.Enabled,
 	}
-	
+
 	if !rm.config.Enabled {
 		return status
 	}
-	
+
 	// Add health check status
 	if rm.healthChecker != nil {
 		healthStatuses := rm.healthChecker.GetAllVMHealth()
 		healthyCount := 0
 		unhealthyCount := 0
-		
+
 		for _, health := range healthStatuses {
 			if health.IsHealthy {
 				healthyCount++
@@ -471,28 +472,28 @@ func (rm *ReliabilityManager) GetReliabilityStatus() map[string]interface{} {
 				unhealthyCount++
 			}
 		}
-		
+
 		status["health_check"] = map[string]interface{}{
 			"total_vms":     len(healthStatuses),
 			"healthy_vms":   healthyCount,
 			"unhealthy_vms": unhealthyCount,
 		}
 	}
-	
+
 	// Add recovery status
 	if rm.recoveryManager != nil {
 		orphanedVMs := rm.recoveryManager.GetOrphanedVMs()
-		
+
 		status["recovery"] = map[string]interface{}{
 			"orphaned_vms": len(orphanedVMs),
 		}
 	}
-	
+
 	// Add registry status
 	allVMs := rm.vmRegistry.GetAllVMs()
 	status["registry"] = map[string]interface{}{
 		"total_vms": len(allVMs),
 	}
-	
+
 	return status
 }

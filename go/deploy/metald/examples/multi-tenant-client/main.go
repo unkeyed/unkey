@@ -32,7 +32,7 @@ func main() {
 	acmeCtx := baggage.ContextWithBaggage(ctx, acmeBaggage)
 
 	fmt.Println("=== Creating VM for Acme Corp (Enterprise Plan) ===")
-	acmeVM, err := createVM(acmeCtx, client, "acme-vm", 4, 4*1024*1024*1024) // 4 vCPU, 4GB
+	acmeVM, err := createVM(acmeCtx, client, "acme-vm", 4, 4*1024*1024*1024, "dev_customer_acme-corp") // 4 vCPU, 4GB
 	if err != nil {
 		log.Printf("Failed to create Acme VM: %v", err)
 	} else {
@@ -47,7 +47,7 @@ func main() {
 	startupCtx := baggage.ContextWithBaggage(ctx, startupBaggage)
 
 	fmt.Println("\n=== Creating VM for StartupCo (Starter Plan) ===")
-	startupVM, err := createVM(startupCtx, client, "startup-vm", 1, 512*1024*1024) // 1 vCPU, 512MB
+	startupVM, err := createVM(startupCtx, client, "startup-vm", 1, 512*1024*1024, "dev_customer_startup-co") // 1 vCPU, 512MB
 	if err != nil {
 		log.Printf("Failed to create Startup VM: %v", err)
 	} else {
@@ -57,11 +57,14 @@ func main() {
 	// Scenario 3: Attempt cross-tenant access (should be logged/audited)
 	fmt.Println("\n=== Cross-tenant access example ===")
 	if acmeVM != nil && startupVM != nil {
-		// Try to access StartupCo VM with Acme context (this should be audited)
+		// Try to access StartupCo VM with Acme authentication (this should be denied)
 		fmt.Printf("Acme trying to access StartupCo VM %s...\n", startupVM.VmId)
-		_, err := client.GetVmInfo(acmeCtx, connect.NewRequest(&metaldv1.GetVmInfoRequest{
+		req := connect.NewRequest(&metaldv1.GetVmInfoRequest{
 			VmId: startupVM.VmId,
-		}))
+		})
+		req.Header().Set("Authorization", "Bearer dev_customer_acme-corp")
+		
+		_, err := client.GetVmInfo(acmeCtx, req)
 		if err != nil {
 			fmt.Printf("⚠️  Access denied (expected): %v\n", err)
 		} else {
@@ -74,8 +77,9 @@ func main() {
 	fmt.Println("This demonstrates how all VM operations are audited with tenant context")
 }
 
-func createVM(ctx context.Context, client vmprovisionerv1connect.VmServiceClient, name string, vcpus int32, memoryBytes int64) (*metaldv1.CreateVmResponse, error) {
+func createVM(ctx context.Context, client vmprovisionerv1connect.VmServiceClient, name string, vcpus int32, memoryBytes int64, customerToken string) (*metaldv1.CreateVmResponse, error) {
 	req := &metaldv1.CreateVmRequest{
+		VmId: name,
 		Config: &metaldv1.VmConfig{
 			Cpu: &metaldv1.CpuConfig{
 				VcpuCount: vcpus,
@@ -87,7 +91,7 @@ func createVM(ctx context.Context, client vmprovisionerv1connect.VmServiceClient
 				KernelPath: "/opt/vm-assets/vmlinux",
 				KernelArgs: "console=ttyS0 root=/dev/vda rw init=/bin/sh",
 			},
-			Storage: []*metaldv1.StorageConfig{
+			Storage: []*metaldv1.StorageDevice{
 				{
 					Id:           "rootfs",
 					Path:         "/opt/vm-assets/rootfs.ext4",
@@ -98,7 +102,11 @@ func createVM(ctx context.Context, client vmprovisionerv1connect.VmServiceClient
 		},
 	}
 
-	resp, err := client.CreateVm(ctx, connect.NewRequest(req))
+	// Create ConnectRPC request and add authentication
+	connectReq := connect.NewRequest(req)
+	connectReq.Header().Set("Authorization", "Bearer "+customerToken)
+
+	resp, err := client.CreateVm(ctx, connectReq)
 	if err != nil {
 		return nil, err
 	}

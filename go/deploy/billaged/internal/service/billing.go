@@ -97,7 +97,7 @@ func (s *BillingService) SendHeartbeat(
 		"active_vms", activeVMs,
 	)
 
-	// Heartbeat processing could include health checks, 
+	// Heartbeat processing could include health checks,
 	// gap detection, or VM lifecycle validation here
 
 	return connect.NewResponse(&billingv1.SendHeartbeatResponse{

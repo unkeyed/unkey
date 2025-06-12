@@ -28,7 +28,7 @@ Environment=UNKEY_METALD_OTEL_PROMETHEUS_PORT=9464
 # Process Manager Configuration
 Environment=UNKEY_METALD_SOCKET_DIR=/opt/metald/sockets
 Environment=UNKEY_METALD_LOG_DIR=/opt/metald/logs
-Environment=UNKEY_METALD_MAX_PROCESSES=25
+Environment=UNKEY_METALD_MAX_PROCESSES=1000
 
 # Billing Configuration
 Environment=UNKEY_METALD_BILLING_ENABLED=true
@@ -36,7 +36,7 @@ Environment=UNKEY_METALD_BILLING_ENDPOINT=http://localhost:8081
 Environment=UNKEY_METALD_BILLING_MOCK_MODE=false
 
 # Jailer configuration for production (disabled by default)
-Environment=UNKEY_METALD_JAILER_ENABLED=false
+Environment=UNKEY_METALD_JAILER_ENABLED=true
 Environment=UNKEY_METALD_JAILER_BINARY=/usr/bin/jailer
 Environment=UNKEY_METALD_FIRECRACKER_BINARY=/usr/bin/firecracker
 Environment=UNKEY_METALD_JAILER_UID=1000

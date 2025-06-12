@@ -18,6 +18,23 @@ This directory contains pre-built Grafana dashboards for comprehensive metald mo
 - `unkey_metald_process_*_total` - Process management metrics
 - `unkey_metald_jailer_*_total` - Jailer operations
 
+**⚠️ Missing Features:**
+- No authentication/authorization failure tracking
+- No customer_id filtering or multi-tenant segmentation
+- No security validation metrics
+
+### 1b. Security & Authentication Operations Dashboard (`security-operations.json`) **[NEW]**
+- **Authentication Failures**: Track auth/authz failures by type and operation
+- **Ownership Validation**: Monitor customer ownership validation failures
+- **Security Alerts**: Real-time security incident monitoring
+- **Jailer Security**: Enhanced jailer operation monitoring
+
+**Key Metrics:**
+- `unkey_metald_vm_*_failures_total{error_type="ownership_validation_failed"}` - Ownership violations
+- `unkey_metald_vm_*_failures_total{error_type="missing_customer_context"}` - Auth context missing
+- `unkey_metald_vm_*_failures_total{error_type="permission_denied"}` - Permission failures
+- `unkey_metald_jailer_*_total` - Enhanced jailer security metrics
+
 ### 2. Billing & Metrics Dashboard (`billing-metrics.json`)
 - **Metrics Collection**: Real-time VM metrics collection (100ms precision)
 - **Billing Batches**: Batch transmission to billing service
@@ -30,6 +47,24 @@ This directory contains pre-built Grafana dashboards for comprehensive metald mo
 - `metald_billing_batches_sent_total` - Billing batch transmission
 - `metald_heartbeat_sent_total` - Heartbeat counts
 - `metald_*_duration_seconds` - Performance metrics
+
+**⚠️ Missing Features:**
+- Customer_id template variable exists but is NOT used in panel queries
+- No customer-level billing breakdowns (only VM-level)
+- No per-customer usage or cost analysis
+
+### 2b. Multi-Tenant Billing & Usage Dashboard (`multi-tenant-billing.json`) **[NEW]**
+- **Customer Segmentation**: Filter and analyze by customer_id
+- **Per-Customer Metrics**: Billing metrics broken down by customer
+- **Customer Usage Patterns**: VM operations and resource usage by customer
+- **Customer Failure Analysis**: Authentication and operation failures by customer
+- **Billing Performance**: Per-customer billing batch processing performance
+
+**Key Metrics:**
+- `metald_billing_batches_sent_total` by customer_id - Customer billing transmission
+- `unkey_metald_vm_*_requests_total` by customer_id - Customer VM operations
+- `metald_metrics_collected_total` by customer_id - Customer metrics collection
+- `unkey_metald_vm_*_failures_total` by customer_id - Customer failure rates
 
 ### 3. System Health Dashboard (`system-health.json`)
 - **Service Status**: Overall metald health and uptime
@@ -77,7 +112,9 @@ UNKEY_METALD_OTEL_PROMETHEUS_ENABLED=true \
 ### 4. Access Dashboards
 - **Grafana UI**: http://localhost:3000 (admin/admin)
 - **VM Operations**: http://localhost:3000/d/metald-vm-ops
+- **Security Operations**: http://localhost:3000/d/metald-security-ops **[NEW]**
 - **Billing & Metrics**: http://localhost:3000/d/metald-billing
+- **Multi-Tenant Billing**: http://localhost:3000/d/metald-multi-tenant-billing **[NEW]**
 - **System Health**: http://localhost:3000/d/metald-system-health
 
 ## Configuration
@@ -110,9 +147,15 @@ scrape_configs:
 ## Dashboard Features
 
 ### Variables and Templating
-- **Backend Filter**: Filter by Firecracker/Cloud Hypervisor
-- **VM ID Filter**: Focus on specific VMs
-- **Customer ID Filter**: Billing metrics by customer
+- **Backend Filter**: Filter by Firecracker/Cloud Hypervisor (vm-operations, security-operations)
+- **Customer ID Filter**: Multi-tenant filtering (multi-tenant-billing, security-operations)
+- **VM ID Filter**: Focus on specific VMs (legacy dashboards)
+
+### New Multi-Tenant Features
+- **Customer Segmentation**: Filter all metrics by customer_id
+- **Security Monitoring**: Authentication and authorization failure tracking
+- **Ownership Validation**: Customer ownership violation alerts
+- **Per-Customer Analytics**: Usage, billing, and performance by customer
 
 ### Alerting Ready
 All dashboards include threshold configurations suitable for Grafana alerting:

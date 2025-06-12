@@ -205,7 +205,9 @@ main() {
         echo ""
         echo "📋 Available dashboards:"
         echo "   • VM Operations: $GRAFANA_URL/d/metald-vm-ops"
+        echo "   • Security Operations: $GRAFANA_URL/d/metald-security-ops"
         echo "   • Billing & Metrics: $GRAFANA_URL/d/metald-billing"
+        echo "   • Multi-Tenant Billing: $GRAFANA_URL/d/metald-multi-tenant-billing"
         echo "   • System Health: $GRAFANA_URL/d/metald-system-health"
     fi
 }

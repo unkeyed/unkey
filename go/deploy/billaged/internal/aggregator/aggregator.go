@@ -11,22 +11,22 @@ import (
 
 // VMUsageData tracks usage for a single VM
 type VMUsageData struct {
-	VMID         string
-	CustomerID   string
-	StartTime    time.Time
-	LastUpdate   time.Time
-	TotalCPUNanos int64
-	TotalMemoryBytes int64
-	TotalDiskReadBytes int64
+	VMID                string
+	CustomerID          string
+	StartTime           time.Time
+	LastUpdate          time.Time
+	TotalCPUNanos       int64
+	TotalMemoryBytes    int64
+	TotalDiskReadBytes  int64
 	TotalDiskWriteBytes int64
 	TotalNetworkRxBytes int64
 	TotalNetworkTxBytes int64
-	SampleCount  int64
-	
+	SampleCount         int64
+
 	// For calculating rates/deltas
-	LastCPUNanos     int64
-	LastMemoryBytes  int64
-	LastDiskReadBytes int64
+	LastCPUNanos       int64
+	LastMemoryBytes    int64
+	LastDiskReadBytes  int64
 	LastDiskWriteBytes int64
 	LastNetworkRxBytes int64
 	LastNetworkTxBytes int64
@@ -34,33 +34,33 @@ type VMUsageData struct {
 
 // UsageSummary contains aggregated usage over a time period
 type UsageSummary struct {
-	VMID         string
-	CustomerID   string
-	Period       time.Duration
-	StartTime    time.Time
-	EndTime      time.Time
-	
+	VMID       string
+	CustomerID string
+	Period     time.Duration
+	StartTime  time.Time
+	EndTime    time.Time
+
 	// CPU time actually used (not just allocated)
 	CPUTimeUsedNanos int64
 	CPUTimeUsedMs    int64
-	
-	// Memory usage statistics  
+
+	// Memory usage statistics
 	AvgMemoryUsageBytes int64
 	MaxMemoryUsageBytes int64
-	
+
 	// Disk I/O totals
 	DiskReadBytes  int64
 	DiskWriteBytes int64
 	TotalDiskIO    int64
-	
+
 	// Network I/O totals
 	NetworkRxBytes int64
 	NetworkTxBytes int64
 	TotalNetworkIO int64
-	
+
 	// Overall resource usage score (for billing)
 	ResourceScore float64
-	
+
 	SampleCount int64
 }
 
@@ -70,10 +70,10 @@ type Aggregator struct {
 	mu        sync.RWMutex
 	vmData    map[string]*VMUsageData // vmID -> usage data
 	customers map[string][]string     // customerID -> []vmID
-	
+
 	// Aggregation interval (configurable)
 	aggregationInterval time.Duration
-	
+
 	// Callbacks for reporting
 	onUsageSummary func(*UsageSummary)
 }
@@ -97,11 +97,11 @@ func (a *Aggregator) SetUsageSummaryCallback(callback func(*UsageSummary)) {
 func (a *Aggregator) ProcessMetricsBatch(vmID, customerID string, metrics []*billingv1.VMMetrics) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	
+
 	if len(metrics) == 0 {
 		return
 	}
-	
+
 	// Get or create VM usage data
 	vmUsage, exists := a.vmData[vmID]
 	if !exists {
@@ -111,19 +111,19 @@ func (a *Aggregator) ProcessMetricsBatch(vmID, customerID string, metrics []*bil
 			StartTime:  metrics[0].Timestamp.AsTime(),
 		}
 		a.vmData[vmID] = vmUsage
-		
+
 		// Track customer -> VM mapping
 		a.customers[customerID] = append(a.customers[customerID], vmID)
 	}
-	
+
 	// Process each metric in the batch
 	for _, metric := range metrics {
 		a.processMetric(vmUsage, metric)
 	}
-	
+
 	vmUsage.LastUpdate = time.Now()
 	vmUsage.SampleCount += int64(len(metrics))
-	
+
 	a.logger.Debug("processed metrics batch",
 		"vm_id", vmID,
 		"customer_id", customerID,
@@ -140,7 +140,7 @@ func (a *Aggregator) processMetric(vmUsage *VMUsageData, metric *billingv1.VMMet
 	diskWriteDelta := metric.DiskWriteBytes - vmUsage.LastDiskWriteBytes
 	netRxDelta := metric.NetworkRxBytes - vmUsage.LastNetworkRxBytes
 	netTxDelta := metric.NetworkTxBytes - vmUsage.LastNetworkTxBytes
-	
+
 	// Only add positive deltas (handle counter resets gracefully)
 	if cpuDelta > 0 {
 		vmUsage.TotalCPUNanos += cpuDelta
@@ -157,12 +157,12 @@ func (a *Aggregator) processMetric(vmUsage *VMUsageData, metric *billingv1.VMMet
 	if netTxDelta > 0 {
 		vmUsage.TotalNetworkTxBytes += netTxDelta
 	}
-	
+
 	// Memory is a point-in-time value, track max and average
 	if metric.MemoryUsageBytes > vmUsage.TotalMemoryBytes {
 		vmUsage.TotalMemoryBytes = metric.MemoryUsageBytes
 	}
-	
+
 	// Update last values for next delta calculation
 	vmUsage.LastCPUNanos = metric.CpuTimeNanos
 	vmUsage.LastMemoryBytes = metric.MemoryUsageBytes
@@ -176,7 +176,7 @@ func (a *Aggregator) processMetric(vmUsage *VMUsageData, metric *billingv1.VMMet
 func (a *Aggregator) NotifyVMStarted(vmID, customerID string, startTime int64) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	
+
 	// Initialize or reset VM usage data
 	vmUsage := &VMUsageData{
 		VMID:       vmID,
@@ -184,7 +184,7 @@ func (a *Aggregator) NotifyVMStarted(vmID, customerID string, startTime int64) {
 		StartTime:  time.Unix(0, startTime),
 	}
 	a.vmData[vmID] = vmUsage
-	
+
 	// Track customer mapping
 	vmIDs := a.customers[customerID]
 	found := false
@@ -197,7 +197,7 @@ func (a *Aggregator) NotifyVMStarted(vmID, customerID string, startTime int64) {
 	if !found {
 		a.customers[customerID] = append(vmIDs, vmID)
 	}
-	
+
 	a.logger.Info("VM started tracking",
 		"vm_id", vmID,
 		"customer_id", customerID,
@@ -209,32 +209,32 @@ func (a *Aggregator) NotifyVMStarted(vmID, customerID string, startTime int64) {
 func (a *Aggregator) NotifyVMStopped(vmID string, stopTime int64) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	
+
 	vmUsage, exists := a.vmData[vmID]
 	if !exists {
 		a.logger.Warn("received stop notification for unknown VM", "vm_id", vmID)
 		return
 	}
-	
+
 	// Generate final usage summary
 	endTime := time.Unix(0, stopTime)
 	summary := a.generateUsageSummary(vmUsage, endTime)
-	
+
 	a.logger.Info("VM stopped, generating final usage summary",
 		"vm_id", vmID,
 		"customer_id", vmUsage.CustomerID,
 		"stop_time", endTime.Format(time.RFC3339),
 		"total_runtime", endTime.Sub(vmUsage.StartTime).String(),
 	)
-	
+
 	// Send summary if callback is set
 	if a.onUsageSummary != nil {
 		a.onUsageSummary(summary)
 	}
-	
+
 	// Clean up VM data
 	delete(a.vmData, vmID)
-	
+
 	// Remove from customer mapping
 	if vmIDs, exists := a.customers[vmUsage.CustomerID]; exists {
 		for i, existingVMID := range vmIDs {
@@ -250,17 +250,17 @@ func (a *Aggregator) NotifyVMStopped(vmID string, stopTime int64) {
 func (a *Aggregator) GeneratePeriodicSummaries() {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
-	
+
 	now := time.Now()
-	
+
 	for vmID, vmUsage := range a.vmData {
 		// Skip VMs with no recent activity
 		if now.Sub(vmUsage.LastUpdate) > a.aggregationInterval*2 {
 			continue
 		}
-		
+
 		summary := a.generateUsageSummary(vmUsage, now)
-		
+
 		a.logger.Debug("generated periodic usage summary",
 			"vm_id", vmID,
 			"customer_id", vmUsage.CustomerID,
@@ -268,7 +268,7 @@ func (a *Aggregator) GeneratePeriodicSummaries() {
 			"avg_memory_mb", summary.AvgMemoryUsageBytes/(1024*1024),
 			"resource_score", summary.ResourceScore,
 		)
-		
+
 		if a.onUsageSummary != nil {
 			a.onUsageSummary(summary)
 		}
@@ -278,7 +278,7 @@ func (a *Aggregator) GeneratePeriodicSummaries() {
 // generateUsageSummary creates a usage summary for a VM
 func (a *Aggregator) generateUsageSummary(vmUsage *VMUsageData, endTime time.Time) *UsageSummary {
 	period := endTime.Sub(vmUsage.StartTime)
-	
+
 	// AIDEV-BUSINESS_RULE: Resource Score Calculation for VM Billing
 	// The resource score is a composite metric that combines CPU, memory, and I/O usage
 	// into a single billing unit. This weighted formula reflects the relative cost impact
@@ -297,13 +297,13 @@ func (a *Aggregator) generateUsageSummary(vmUsage *VMUsageData, endTime time.Tim
 	cpuWeight := 1.0
 	memoryWeight := 0.5
 	ioWeight := 0.3
-	
+
 	cpuScore := float64(vmUsage.TotalCPUNanos) / float64(time.Second) * cpuWeight
-	memoryScore := float64(vmUsage.TotalMemoryBytes) / (1024 * 1024 * 1024) * memoryWeight // GB
+	memoryScore := float64(vmUsage.TotalMemoryBytes) / (1024 * 1024 * 1024) * memoryWeight                // GB
 	ioScore := float64(vmUsage.TotalDiskReadBytes+vmUsage.TotalDiskWriteBytes) / (1024 * 1024) * ioWeight // MB
-	
+
 	resourceScore := cpuScore + memoryScore + ioScore
-	
+
 	return &UsageSummary{
 		VMID:                vmUsage.VMID,
 		CustomerID:          vmUsage.CustomerID,
@@ -329,7 +329,7 @@ func (a *Aggregator) generateUsageSummary(vmUsage *VMUsageData, endTime time.Tim
 func (a *Aggregator) GetCustomerStats() map[string]int {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
-	
+
 	stats := make(map[string]int)
 	for customerID, vmIDs := range a.customers {
 		stats[customerID] = len(vmIDs)
@@ -348,11 +348,11 @@ func (a *Aggregator) GetActiveVMCount() int {
 func (a *Aggregator) StartPeriodicAggregation(ctx context.Context) {
 	ticker := time.NewTicker(a.aggregationInterval)
 	defer ticker.Stop()
-	
+
 	a.logger.Info("started periodic aggregation",
 		"interval", a.aggregationInterval.String(),
 	)
-	
+
 	for {
 		select {
 		case <-ticker.C:

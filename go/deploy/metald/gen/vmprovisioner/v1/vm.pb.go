@@ -702,7 +702,9 @@ type CreateVmRequest struct {
 	// Unique identifier for the VM (optional, will be generated if not provided)
 	VmId string `protobuf:"bytes,1,opt,name=vm_id,json=vmId,proto3" json:"vm_id,omitempty"`
 	// VM configuration
-	Config        *VmConfig `protobuf:"bytes,2,opt,name=config,proto3" json:"config,omitempty"`
+	Config *VmConfig `protobuf:"bytes,2,opt,name=config,proto3" json:"config,omitempty"`
+	// Customer identifier for billing and isolation
+	CustomerId    string `protobuf:"bytes,3,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -749,6 +751,13 @@ func (x *CreateVmRequest) GetConfig() *VmConfig {
 		return x.Config
 	}
 	return nil
+}
+
+func (x *CreateVmRequest) GetCustomerId() string {
+	if x != nil {
+		return x.CustomerId
+	}
+	return ""
 }
 
 type CreateVmResponse struct {
@@ -1880,7 +1889,9 @@ type VmInfo struct {
 	CreatedTimestamp  int64 `protobuf:"varint,5,opt,name=created_timestamp,json=createdTimestamp,proto3" json:"created_timestamp,omitempty"`
 	ModifiedTimestamp int64 `protobuf:"varint,6,opt,name=modified_timestamp,json=modifiedTimestamp,proto3" json:"modified_timestamp,omitempty"`
 	// Metadata
-	Metadata      map[string]string `protobuf:"bytes,7,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Metadata map[string]string `protobuf:"bytes,7,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Customer identifier
+	CustomerId    string `protobuf:"bytes,8,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1964,6 +1975,13 @@ func (x *VmInfo) GetMetadata() map[string]string {
 	return nil
 }
 
+func (x *VmInfo) GetCustomerId() string {
+	if x != nil {
+		return x.CustomerId
+	}
+	return ""
+}
+
 var File_vmprovisioner_v1_vm_proto protoreflect.FileDescriptor
 
 const file_vmprovisioner_v1_vm_proto_rawDesc = "" +
@@ -2039,10 +2057,12 @@ const file_vmprovisioner_v1_vm_proto_rawDesc = "" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x16\n" +
 	"\x06output\x18\x02 \x01(\tR\x06output\x12\x14\n" +
 	"\x05input\x18\x03 \x01(\tR\x05input\x12!\n" +
-	"\fconsole_type\x18\x04 \x01(\tR\vconsoleType\"Z\n" +
+	"\fconsole_type\x18\x04 \x01(\tR\vconsoleType\"{\n" +
 	"\x0fCreateVmRequest\x12\x13\n" +
 	"\x05vm_id\x18\x01 \x01(\tR\x04vmId\x122\n" +
-	"\x06config\x18\x02 \x01(\v2\x1a.vmprovisioner.v1.VmConfigR\x06config\"X\n" +
+	"\x06config\x18\x02 \x01(\v2\x1a.vmprovisioner.v1.VmConfigR\x06config\x12\x1f\n" +
+	"\vcustomer_id\x18\x03 \x01(\tR\n" +
+	"customerId\"X\n" +
 	"\x10CreateVmResponse\x12\x13\n" +
 	"\x05vm_id\x18\x01 \x01(\tR\x04vmId\x12/\n" +
 	"\x05state\x18\x02 \x01(\x0e2\x19.vmprovisioner.v1.VmStateR\x05state\"<\n" +
@@ -2116,7 +2136,7 @@ const file_vmprovisioner_v1_vm_proto_rawDesc = "" +
 	"\x03vms\x18\x01 \x03(\v2\x18.vmprovisioner.v1.VmInfoR\x03vms\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n" +
 	"\vtotal_count\x18\x03 \x01(\x05R\n" +
-	"totalCount\"\xf6\x02\n" +
+	"totalCount\"\x97\x03\n" +
 	"\x06VmInfo\x12\x13\n" +
 	"\x05vm_id\x18\x01 \x01(\tR\x04vmId\x12/\n" +
 	"\x05state\x18\x02 \x01(\x0e2\x19.vmprovisioner.v1.VmStateR\x05state\x12\x1d\n" +
@@ -2125,7 +2145,9 @@ const file_vmprovisioner_v1_vm_proto_rawDesc = "" +
 	"\x11memory_size_bytes\x18\x04 \x01(\x03R\x0fmemorySizeBytes\x12+\n" +
 	"\x11created_timestamp\x18\x05 \x01(\x03R\x10createdTimestamp\x12-\n" +
 	"\x12modified_timestamp\x18\x06 \x01(\x03R\x11modifiedTimestamp\x12B\n" +
-	"\bmetadata\x18\a \x03(\v2&.vmprovisioner.v1.VmInfo.MetadataEntryR\bmetadata\x1a;\n" +
+	"\bmetadata\x18\a \x03(\v2&.vmprovisioner.v1.VmInfo.MetadataEntryR\bmetadata\x12\x1f\n" +
+	"\vcustomer_id\x18\b \x01(\tR\n" +
+	"customerId\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01*{\n" +

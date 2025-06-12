@@ -99,15 +99,17 @@ func main() {
 		},
 	}
 
-	// Create requests
+	// Create requests with customer ID
 	basicRequest := &metaldv1.CreateVmRequest{
-		VmId:   "basic-vm-example",
-		Config: basicVMConfig,
+		VmId:       "basic-vm-example",
+		Config:     basicVMConfig,
+		CustomerId: "acme-corp", // Example customer ID
 	}
 
 	advancedRequest := &metaldv1.CreateVmRequest{
-		VmId:   "advanced-vm-example",
-		Config: advancedVMConfig,
+		VmId:       "advanced-vm-example",
+		Config:     advancedVMConfig,
+		CustomerId: "acme-corp", // Example customer ID
 	}
 
 	fmt.Println("=== ConnectRPC Client VM Creation Examples ===")
@@ -175,7 +177,7 @@ func displayVMCreationData(client vmprovisionerv1connect.VmServiceClient, req *m
 }
 
 func showConnectRPCCall(client vmprovisionerv1connect.VmServiceClient, req *metaldv1.CreateVmRequest) {
-	fmt.Printf("Go Code Example:\n")
+	fmt.Printf("Go Code Example with Authentication:\n")
 	fmt.Printf(`
 // Create ConnectRPC client
 client := metaldv1connect.NewVmServiceClient(
@@ -185,6 +187,9 @@ client := metaldv1connect.NewVmServiceClient(
 
 // Create VM request
 req := connect.NewRequest(req)
+
+// Add authentication header (development token format)
+req.Header().Set("Authorization", "Bearer dev_customer_acme-corp")
 
 // Make the call (commented out to prevent actual execution)
 // resp, err := client.CreateVm(context.Background(), req)
@@ -210,6 +215,7 @@ fmt.Println("Call would be made to: POST /vmm.v1.VmService/CreateVm")
 	fmt.Printf(`
 curl -X POST http://localhost:8080/vmm.v1.VmService/CreateVm \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer dev_customer_acme-corp" \
   -d '%s'
 `, string(prettyBytes))
 }
