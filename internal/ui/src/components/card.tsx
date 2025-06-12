@@ -41,7 +41,7 @@ const MetricCardTitle = React.forwardRef<
     {...props}
   />
 ));
-MetricCardTitle.displayName = "CardTitle";
+MetricCardTitle.displayName = "MetricCardTitle";
 
 const CardDescription = React.forwardRef<
   HTMLParagraphElement,
