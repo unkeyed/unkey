@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_delete_role"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -84,7 +85,7 @@ func TestSuccess(t *testing.T) {
 		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 			ID:          keyID,
 			KeyringID:   workspace.ID, // Using workspace ID as keyring ID for test
-			Hash:        "test_hash",
+			Hash:        hash.Sha256(uid.New(uid.TestPrefix)),
 			Start:       "test_",
 			WorkspaceID: workspace.ID,
 			Name:        sql.NullString{Valid: true, String: "test key"},

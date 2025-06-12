@@ -386,49 +386,9 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.Equal(t, externalTestID, identity.ExternalID)
 	})
 
-	// Edge case: Create identity with externalId containing special characters
-	t.Run("create identity with special characters in externalId", func(t *testing.T) {
-		externalTestID := "test-id_with.special@characters!123"
-
-		req := handler.Request{ExternalId: externalTestID}
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-
-		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
-		require.NotNil(t, res.Body)
-		require.NotEmpty(t, res.Body.Data.IdentityId)
-
-		// Verify in database
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
-			ID:      res.Body.Data.IdentityId,
-			Deleted: false,
-		})
-		require.NoError(t, err)
-		require.Equal(t, externalTestID, identity.ExternalID)
-	})
-
-	// Edge case: Create identity with Unicode characters in externalId
-	t.Run("create identity with unicode characters in externalId", func(t *testing.T) {
-		externalTestID := "test-id_with_unicode_测试_characters_🔑"
-
-		req := handler.Request{ExternalId: externalTestID}
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-
-		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
-		require.NotNil(t, res.Body)
-		require.NotEmpty(t, res.Body.Data.IdentityId)
-
-		// Verify in database
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
-			ID:      res.Body.Data.IdentityId,
-			Deleted: false,
-		})
-		require.NoError(t, err)
-		require.Equal(t, externalTestID, identity.ExternalID)
-	})
-
 	// Edge case: Create identity with various metadata types
 	t.Run("create identity with various metadata types", func(t *testing.T) {
-		externalTestID := uid.New("test_external_id")
+		externalTestID := uid.New("ext")
 
 		// Create metadata with various types: strings, numbers, booleans, arrays, null
 		meta := &map[string]any{

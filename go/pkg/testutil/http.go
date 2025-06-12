@@ -22,6 +22,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/vault"
+	masterKeys "github.com/unkeyed/unkey/go/pkg/vault/keys"
 	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 	"github.com/unkeyed/unkey/go/pkg/zen/validation"
@@ -136,10 +137,13 @@ func NewHarness(t *testing.T) *Harness {
 		Logger:            logger,
 	})
 	require.NoError(t, err)
+
+	_, masterKey, err := masterKeys.GenerateMasterKey()
+	require.NoError(t, err)
 	v, err := vault.New(vault.Config{
 		Logger:     logger,
 		Storage:    vaultStorage,
-		MasterKeys: []string{"abcdef", "ghijkl"},
+		MasterKeys: []string{masterKey},
 	})
 	require.NoError(t, err)
 

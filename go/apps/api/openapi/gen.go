@@ -461,9 +461,6 @@ type KeysGetKeyResponseData struct {
 
 	// UpdatedAt Unix timestamp (in milliseconds) when the key was last updated.
 	UpdatedAt *int64 `json:"updatedAt,omitempty"`
-
-	// WorkspaceId The ID of the workspace that owns this key.
-	WorkspaceId string `json:"workspaceId"`
 }
 
 // KeysGetKeyResponseDataCreditsRefillInterval How often the credits are automatically refilled.
@@ -611,11 +608,6 @@ type Permission struct {
 	// Use clear, semantic names that reflect the resources or actions being permitted.
 	// Names must be unique within your workspace to avoid confusion and conflicts.
 	Name string `json:"name"`
-
-	// WorkspaceId The workspace that owns this permission.
-	// Permissions are scoped to workspaces and cannot be shared across workspace boundaries.
-	// Always begins with 'ws_' followed by alphanumeric characters and underscores.
-	WorkspaceId string `json:"workspaceId"`
 }
 
 // PermissionsCreatePermissionResponseData defines model for PermissionsCreatePermissionResponseData.
@@ -839,11 +831,6 @@ type RoleWithPermissions struct {
 	// Permissions can be added or removed from roles without affecting the role's identity or other properties.
 	// Empty array indicates a role with no permissions currently assigned.
 	Permissions []Permission `json:"permissions"`
-
-	// WorkspaceId The workspace that owns this role.
-	// Roles are scoped to workspaces and cannot be shared across workspace boundaries.
-	// Always begins with 'ws_' followed by alphanumeric characters and underscores.
-	WorkspaceId string `json:"workspaceId"`
 }
 
 // UnauthorizedErrorResponse Error response when authentication has failed or credentials are missing. This occurs when:

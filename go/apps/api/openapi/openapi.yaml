@@ -407,7 +407,6 @@ components:
       required:
         - id
         - start
-        - workspaceId
         - createdAt
         - enabled
       properties:
@@ -423,10 +422,6 @@ components:
             recognize which key is being used without revealing sensitive information.
             Typically includes the prefix if one was specified.
           example: prod_5j1
-        workspaceId:
-          type: string
-          description: The ID of the workspace that owns this key.
-          example: ws_1234abcd
         apiId:
           type: string
           description: The ID of the API this key belongs to.
@@ -697,7 +692,7 @@ components:
                 type: string
                 minLength: 1
                 maxLength: 100 # Keep permission names concise and readable
-                pattern: "^[a-zA-Z0-9_]+$"
+                pattern: "^[a-zA-Z0-9_.]+$"
                 description: |
                   Identifies the permission by its human-readable name using hierarchical naming patterns.
                   Use `resource.action` format for logical organization and verification flexibility.
@@ -814,7 +809,7 @@ components:
                 type: string
                 minLength: 1
                 maxLength: 100 # Keep permission slugs concise and readable
-                pattern: "^[a-zA-Z0-9_]+$"
+                pattern: "^[a-zA-Z0-9_.]+$"
                 description: |
                   Identifies the permission by slug for removal from the key's direct assignment list.
                 example: documents.write
@@ -2095,7 +2090,7 @@ components:
           type: string
           minLength: 8
           maxLength: 255
-          pattern: "^key_[a-zA-Z0-9_]+$"
+          pattern: "^[a-zA-Z0-9_]+$"
           description: Unique identifier for this key.
           example: key_1234567890abcdef
         start:
@@ -2941,7 +2936,7 @@ components:
           type: string
           minLength: 3
           maxLength: 255
-          pattern: "^perm_[a-zA-Z0-9_]+$"
+          pattern: "^[a-zA-Z0-9_]+$"
           description: |
             The unique identifier for this permission within Unkey's system.
             Generated automatically when the permission is created and used to reference this permission in API operations.
@@ -2966,16 +2961,6 @@ components:
             Include information about what resources can be accessed and what actions can be performed.
             Not visible to end users - this is for internal documentation and team clarity.
           example: "Allows reading user profile information and account details"
-        workspaceId:
-          type: string
-          minLength: 3
-          maxLength: 255
-          pattern: "^ws_[a-zA-Z0-9_]+$"
-          description: |
-            The workspace that owns this permission.
-            Permissions are scoped to workspaces and cannot be shared across workspace boundaries.
-            Always begins with 'ws_' followed by alphanumeric characters and underscores.
-          example: ws_1234567890abcdef
         createdAt:
           type: integer
           format: int64
@@ -2989,7 +2974,6 @@ components:
       required:
         - id
         - name
-        - workspaceId
         - createdAt
       additionalProperties: false
     V2PermissionsCreatePermissionRequestBody:
@@ -3026,7 +3010,7 @@ components:
           example: "users-read"
         description:
           type: string
-          maxLength: 2048
+          maxLength: 128
           description: |
             Provides detailed documentation of what this permission grants access to.
             Include information about affected resources, allowed actions, and any important limitations.
@@ -3047,7 +3031,7 @@ components:
           type: string
           minLength: 3
           maxLength: 255
-          pattern: "^perm_[a-zA-Z0-9_]+$"
+          pattern: "^[a-zA-Z0-9_]+$"
           description: |
             The unique identifier assigned to the newly created permission.
             Use this ID to reference the permission in role assignments, key operations, and other API calls.
@@ -3076,7 +3060,7 @@ components:
           type: string
           minLength: 3
           maxLength: 255
-          pattern: "^perm_[a-zA-Z0-9_]+$"
+          pattern: "^[a-zA-Z0-9_]+$"
           description: |
             Specifies which permission to retrieve by its unique identifier.
             Must be a valid permission ID that begins with 'perm_' and exists within your workspace.
@@ -3184,7 +3168,7 @@ components:
           type: string
           minLength: 8
           maxLength: 255
-          pattern: "^role_[a-zA-Z0-9_]+$"
+          pattern: "^[a-zA-Z0-9_]+$"
           description: |
             Unique identifier of the role to permanently delete from your workspace.
             Must be a valid role ID that begins with 'role_' and exists within your workspace.
@@ -3232,7 +3216,7 @@ components:
           type: string
           minLength: 3
           maxLength: 255
-          pattern: "^perm_[a-zA-Z0-9_]+$"
+          pattern: "^[a-zA-Z0-9_]+$"
           description: |
             Specifies which permission to permanently delete from your workspace.
 
@@ -3305,7 +3289,7 @@ components:
           type: string
           minLength: 3
           maxLength: 255
-          pattern: "^role_[a-zA-Z0-9_]+$"
+          pattern: "^[a-zA-Z0-9_]+$"
           description: |
             The unique identifier assigned to the newly created role.
             Use this ID to reference the role in permission assignments, key operations, and role management calls.
@@ -3332,7 +3316,7 @@ components:
           type: string
           minLength: 3
           maxLength: 255
-          pattern: "^role_[a-zA-Z0-9_]+$"
+          pattern: "^[a-zA-Z0-9_]+$"
           description: |
             The unique identifier for this role within Unkey's system.
             Generated automatically when the role is created and used to reference this role in API operations.
@@ -3357,16 +3341,6 @@ components:
             Include information about what types of users should receive this role and what they can accomplish.
             Not visible to end users - this is for internal documentation and access control audits.
           example: "Provides read-only access for customer support representatives to view user accounts and support tickets"
-        workspaceId:
-          type: string
-          minLength: 3
-          maxLength: 255
-          pattern: "^ws_[a-zA-Z0-9_]+$"
-          description: |
-            The workspace that owns this role.
-            Roles are scoped to workspaces and cannot be shared across workspace boundaries.
-            Always begins with 'ws_' followed by alphanumeric characters and underscores.
-          example: ws_1234567890abcdef
         createdAt:
           type: integer
           format: int64
@@ -3380,7 +3354,6 @@ components:
       required:
         - id
         - name
-        - workspaceId
         - createdAt
       additionalProperties: false
     RoleWithPermissions:
@@ -3390,7 +3363,7 @@ components:
           type: string
           minLength: 3
           maxLength: 255
-          pattern: "^role_[a-zA-Z0-9_]+$"
+          pattern: "^[a-zA-Z0-9_]+$"
           description: |
             The unique identifier for this role within Unkey's system.
             Generated automatically when the role is created and used to reference this role in API operations.
@@ -3415,16 +3388,6 @@ components:
             Include information about what types of users should receive this role and what they can accomplish.
             Not visible to end users - this is for internal documentation and access control audits.
           example: "Provides read-only access for customer support representatives to view user accounts and support tickets"
-        workspaceId:
-          type: string
-          minLength: 3
-          maxLength: 255
-          pattern: "^ws_[a-zA-Z0-9_]+$"
-          description: |
-            The workspace that owns this role.
-            Roles are scoped to workspaces and cannot be shared across workspace boundaries.
-            Always begins with 'ws_' followed by alphanumeric characters and underscores.
-          example: ws_1234567890abcdef
         createdAt:
           type: integer
           format: int64
@@ -3449,7 +3412,6 @@ components:
       required:
         - id
         - name
-        - workspaceId
         - permissions
         - createdAt
       additionalProperties: false
@@ -3462,7 +3424,7 @@ components:
           type: string
           minLength: 3
           maxLength: 255
-          pattern: "^role_[a-zA-Z0-9_]+$"
+          pattern: "^[a-zA-Z0-9_]+$"
           description: |
             Specifies which role to retrieve by its unique identifier.
             Must be a valid role ID that begins with 'role_' and exists within your workspace.
@@ -3522,7 +3484,7 @@ components:
           type: string
           minLength: 8
           maxLength: 255
-          pattern: "^api_[a-zA-Z0-9_]+$"
+          pattern: "^[a-zA-Z0-9_]+$"
           description: |
             The unique identifier assigned to the newly created API.
             Use this ID for all subsequent operations including key creation, verification, and API management.
@@ -3548,7 +3510,7 @@ components:
           type: string
           minLength: 8
           maxLength: 255
-          pattern: "^api_[a-zA-Z0-9_]+$"
+          pattern: "^[a-zA-Z0-9_]+$"
           description: |
             Specifies which API to permanently delete from your workspace.
             Must be a valid API ID that begins with 'api_' and exists within your workspace.
@@ -3580,7 +3542,7 @@ components:
           type: string
           minLength: 8
           maxLength: 255
-          pattern: "^api_[a-zA-Z0-9_]+$"
+          pattern: "^[a-zA-Z0-9_]+$"
           description: |
             Specifies which API to retrieve by its unique identifier.
             Must be a valid API ID that begins with 'api_' and exists within your workspace.
@@ -3601,7 +3563,7 @@ components:
           type: string
           minLength: 8
           maxLength: 255
-          pattern: "^api_[a-zA-Z0-9_]+$"
+          pattern: "^[a-zA-Z0-9_]+$"
           description: |
             The unique identifier of this API within Unkey's system.
             Used in all operations related to this API including key creation, verification, and management.

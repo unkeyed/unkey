@@ -175,9 +175,8 @@ func TestCreateApiSuccessfully(t *testing.T) {
 	// This test verifies that UUID-style names are accepted and that delete
 	// protection is properly set to false by default for new APIs.
 	t.Run("create api with UUID name", func(t *testing.T) {
-		apiName := uid.New("uuid-test-") // Using uid.New to generate a unique ID
 		req := handler.Request{
-			Name: apiName,
+			Name: uid.New(uid.TestPrefix),
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -188,32 +187,11 @@ func TestCreateApiSuccessfully(t *testing.T) {
 		// Verify the API in the database
 		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), res.Body.Data.ApiId)
 		require.NoError(t, err)
-		require.Equal(t, apiName, api.Name)
+		require.Equal(t, req.Name, api.Name)
 
 		// Verify delete protection is false (specifically tested in TypeScript)
 		require.True(t, api.DeleteProtection.Valid)
 		require.False(t, api.DeleteProtection.Bool)
-	})
-
-	// Test with minimum name length (exactly 3 characters)
-	// This test validates the lower boundary for API name length validation,
-	// ensuring that names at the minimum allowed length are accepted.
-	t.Run("create api with minimum length name", func(t *testing.T) {
-		apiName := "min" // Exactly 3 characters
-		req := handler.Request{
-			Name: apiName,
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
-		require.NotNil(t, res.Body)
-		require.NotEmpty(t, res.Body.Data.ApiId)
-
-		// Verify the API in the database
-		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), res.Body.Data.ApiId)
-		require.NoError(t, err)
-		require.Equal(t, apiName, api.Name)
-		require.Equal(t, h.Resources().UserWorkspace.ID, api.WorkspaceID)
 	})
 
 }

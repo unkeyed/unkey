@@ -199,7 +199,7 @@ func TestNotFoundErrors(t *testing.T) {
 			req,
 		)
 
-		require.Equal(t, 404, res.Status)
+		require.Equal(t, 404, res.Status, "Wanted status code 404, received: %s", res.RawBody)
 		require.NotNil(t, res.Body)
 		require.Contains(t, res.Body.Error.Detail, "was not found")
 	})

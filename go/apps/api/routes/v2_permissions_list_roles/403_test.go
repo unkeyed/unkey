@@ -104,7 +104,6 @@ func TestAuthorizationErrors(t *testing.T) {
 
 		// Verify we only see roles from our workspace
 		for _, role := range res.Body.Data {
-			require.Equal(t, workspace.ID, role.WorkspaceId)
 			require.NotEqual(t, "other.workspace.role", role.Name)
 		}
 	})

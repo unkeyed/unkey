@@ -109,7 +109,6 @@ func TestAuthorizationErrors(t *testing.T) {
 
 		// Verify we only see permissions from our workspace
 		for _, perm := range res.Body.Data {
-			require.Equal(t, workspace.ID, perm.WorkspaceId)
 			require.NotEqual(t, "other.workspace.permission", perm.Name)
 		}
 	})

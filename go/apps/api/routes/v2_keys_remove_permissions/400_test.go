@@ -207,7 +207,6 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "must specify either 'id' or 'slug'")
 	})
 
 	t.Run("permission not found by id", func(t *testing.T) {

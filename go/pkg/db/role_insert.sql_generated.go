@@ -15,9 +15,11 @@ INSERT INTO roles (
   id,
   workspace_Id,
   name,
-  description
+  description,
+  created_at_m
 )
 VALUES (
+  ?,
   ?,
   ?,
   ?,
@@ -30,6 +32,7 @@ type InsertRoleParams struct {
 	WorkspaceID string         `db:"workspace_id"`
 	Name        string         `db:"name"`
 	Description sql.NullString `db:"description"`
+	CreatedAt   int64          `db:"created_at"`
 }
 
 // InsertRole
@@ -38,9 +41,11 @@ type InsertRoleParams struct {
 //	  id,
 //	  workspace_Id,
 //	  name,
-//	  description
+//	  description,
+//	  created_at_m
 //	)
 //	VALUES (
+//	  ?,
 //	  ?,
 //	  ?,
 //	  ?,
@@ -52,6 +57,7 @@ func (q *Queries) InsertRole(ctx context.Context, db DBTX, arg InsertRoleParams)
 		arg.WorkspaceID,
 		arg.Name,
 		arg.Description,
+		arg.CreatedAt,
 	)
 	return err
 }

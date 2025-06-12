@@ -52,6 +52,7 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID: workspace.ID,
 			Name:        roleName,
 			Description: sql.NullString{Valid: true, String: roleDesc},
+			CreatedAt:   time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
 
@@ -90,6 +91,7 @@ func TestSuccess(t *testing.T) {
 			req,
 		)
 
+		t.Logf("res: %s", res.RawBody)
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data)
@@ -99,7 +101,6 @@ func TestSuccess(t *testing.T) {
 		role := res.Body.Data.Role
 		require.Equal(t, roleID, role.Id)
 		require.Equal(t, roleName, role.Name)
-		require.Equal(t, workspace.ID, role.WorkspaceId)
 		require.NotNil(t, role.Description)
 		require.Equal(t, roleDesc, *role.Description)
 		require.NotEmpty(t, role.CreatedAt)
@@ -112,7 +113,6 @@ func TestSuccess(t *testing.T) {
 		permMap := make(map[string]bool)
 		for _, perm := range role.Permissions {
 			permMap[perm.Id] = true
-			require.Equal(t, workspace.ID, perm.WorkspaceId)
 		}
 
 		// Verify all expected permissions are present
@@ -157,7 +157,6 @@ func TestSuccess(t *testing.T) {
 		role := res.Body.Data.Role
 		require.Equal(t, roleID, role.Id)
 		require.Equal(t, roleName, role.Name)
-		require.Equal(t, workspace.ID, role.WorkspaceId)
 		require.NotNil(t, role.Description)
 		require.Equal(t, roleDesc, *role.Description)
 

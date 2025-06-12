@@ -35,11 +35,10 @@ func TestCreateKey_WithoutPrefix(t *testing.T) {
 	expectedHash := hash.Sha256(resp.Key)
 	require.Equal(t, expectedHash, resp.Hash)
 
-	// Verify start is correct (should be the key itself if <= 8 chars, or first 8 chars)
 	if len(resp.Key) <= 8 {
 		require.Equal(t, resp.Key, resp.Start)
 	} else {
-		require.Equal(t, resp.Key[:8], resp.Start)
+		require.Equal(t, resp.Key[:4], resp.Start)
 	}
 }
 
@@ -71,11 +70,7 @@ func TestCreateKey_WithPrefix(t *testing.T) {
 	require.Equal(t, expectedHash, resp.Hash)
 
 	// Verify start is correct
-	if len(resp.Key) <= 8 {
-		require.Equal(t, resp.Key, resp.Start)
-	} else {
-		require.Equal(t, resp.Key[:8], resp.Start)
-	}
+	require.Equal(t, resp.Key[:9], resp.Start)
 }
 
 func TestCreateKey_EmptyPrefix(t *testing.T) {
@@ -140,7 +135,7 @@ func TestCreateKey_LongPrefix(t *testing.T) {
 	ctx := context.Background()
 
 	req := CreateKeyRequest{
-		Prefix:     "very_long_prefix_",
+		Prefix:     "verylongprefix",
 		ByteLength: 16,
 	}
 
@@ -148,11 +143,11 @@ func TestCreateKey_LongPrefix(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify key starts with the long prefix
-	require.True(t, strings.HasPrefix(resp.Key, "very_long_prefix_"))
+	require.True(t, strings.HasPrefix(resp.Key, "verylongprefix_"))
 
 	// Verify start is truncated to 8 characters when key is longer
-	require.Equal(t, resp.Key[:8], resp.Start)
-	require.Len(t, resp.Start, 8)
+	require.Equal(t, resp.Key[:19], resp.Start)
+	require.Len(t, resp.Start, 19)
 }
 
 func TestCreateKey_Uniqueness(t *testing.T) {

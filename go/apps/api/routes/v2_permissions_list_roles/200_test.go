@@ -129,7 +129,6 @@ func TestSuccess(t *testing.T) {
 		roleMap := make(map[string]bool)
 		for _, role := range res.Body.Data {
 			roleMap[role.Id] = true
-			require.Equal(t, workspace.ID, role.WorkspaceId)
 			require.NotNil(t, role.Description)
 			require.NotNil(t, role.CreatedAt)
 
@@ -140,7 +139,6 @@ func TestSuccess(t *testing.T) {
 			for _, perm := range role.Permissions {
 				require.NotEmpty(t, perm.Id)
 				require.NotEmpty(t, perm.Name)
-				require.Equal(t, workspace.ID, perm.WorkspaceId)
 				require.NotNil(t, perm.Description)
 			}
 		}

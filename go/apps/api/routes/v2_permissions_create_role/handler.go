@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
+	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
@@ -87,6 +88,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			Name:        req.Name,
 			Description: sql.NullString{Valid: description != "", String: description},
+			CreatedAt:   time.Now().UnixMilli(),
 		})
 		if err != nil {
 			if db.IsDuplicateKeyError(err) {

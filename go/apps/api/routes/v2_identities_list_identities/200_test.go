@@ -292,6 +292,7 @@ func TestSuccess(t *testing.T) {
 		err = db.Query.InsertWorkspace(ctx, tx, db.InsertWorkspaceParams{
 			ID:        singleWorkspaceID,
 			Name:      "Single Identity Workspace",
+			OrgID:     uid.New(uid.OrgPrefix),
 			CreatedAt: time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)

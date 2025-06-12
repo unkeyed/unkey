@@ -102,7 +102,6 @@ func TestSuccess(t *testing.T) {
 		permMap := make(map[string]bool)
 		for _, perm := range res.Body.Data {
 			permMap[perm.Id] = true
-			require.Equal(t, workspace.ID, perm.WorkspaceId)
 		}
 
 		// Check that all created permissions are in the response

@@ -78,7 +78,6 @@ func TestSuccess(t *testing.T) {
 		permission := res.Body.Data.Permission
 		require.Equal(t, permissionID, permission.Id)
 		require.Equal(t, permissionName, permission.Name)
-		require.Equal(t, workspace.ID, permission.WorkspaceId)
 		require.NotNil(t, permission.Description)
 		require.Equal(t, permissionDesc, *permission.Description)
 		require.NotNil(t, permission.CreatedAt)
@@ -121,7 +120,6 @@ func TestSuccess(t *testing.T) {
 		permission := res.Body.Data.Permission
 		require.Equal(t, permissionID, permission.Id)
 		require.Equal(t, permissionName, permission.Name)
-		require.Equal(t, workspace.ID, permission.WorkspaceId)
 		require.Nil(t, permission.Description)
 	})
 }

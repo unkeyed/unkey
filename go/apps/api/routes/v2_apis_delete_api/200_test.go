@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_delete_api"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -129,7 +130,7 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			CreatedAtM:  time.Now().UnixMilli(),
 			// Add other required fields based on your schema
-			Hash:  "testhash",
+			Hash:  hash.Sha256(uid.New(uid.TestPrefix)),
 			Start: "teststart",
 		})
 		require.NoError(t, err)

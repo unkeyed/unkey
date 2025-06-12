@@ -97,7 +97,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Id:          permission.ID,
 		Name:        permission.Name,
 		Description: nil,
-		WorkspaceId: permission.WorkspaceID,
 		CreatedAt:   permission.CreatedAtM,
 	}
 

@@ -202,7 +202,7 @@ func Run(ctx context.Context, cfg Config) error {
 	vaultSvc, err := vault.New(vault.Config{
 		Logger:     logger,
 		Storage:    vaultStorage,
-		MasterKeys: []string{"default-key"},
+		MasterKeys: cfg.VaultMasterKeys,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create vault service: %w", err)

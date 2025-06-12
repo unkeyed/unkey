@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_get_identity"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -531,7 +532,7 @@ func TestSuccess(t *testing.T) {
 
 			IdentityID: sql.NullString{Valid: true, String: identityWithKeysID},
 			CreatedAtM: time.Now().UnixMilli(),
-			Hash:       "hash1",
+			Hash:       hash.Sha256(uid.New(uid.TestPrefix)),
 			Start:      "test_key1",
 			Name:       sql.NullString{Valid: true, String: "First Key"},
 		})
@@ -545,7 +546,7 @@ func TestSuccess(t *testing.T) {
 
 			IdentityID: sql.NullString{Valid: true, String: identityWithKeysID},
 			CreatedAtM: time.Now().UnixMilli(),
-			Hash:       "hash2",
+			Hash:       hash.Sha256(uid.New(uid.TestPrefix)),
 			Start:      "test_key2",
 			Name:       sql.NullString{Valid: true, String: "Second Key"},
 		})

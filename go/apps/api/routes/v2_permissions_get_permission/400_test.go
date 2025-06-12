@@ -95,7 +95,7 @@ func TestValidationErrors(t *testing.T) {
 	// Test case for invalid permissionId format
 	t.Run("invalid permissionId format", func(t *testing.T) {
 		req := handler.Request{
-			PermissionId: "not_a_valid_permission_id_format",
+			PermissionId: "not_a.valid_permission_id_format",
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -105,10 +105,8 @@ func TestValidationErrors(t *testing.T) {
 			req,
 		)
 
-		require.Equal(t, 404, res.Status)
+		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "does not exist")
-		// Note: The handler does database lookup first, so invalid formats return 404, not 400
 	})
 }

@@ -140,7 +140,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "was not found")
 	})
 
-	t.Run("permission not found by name", func(t *testing.T) {
+	t.Run("permission not found by slug", func(t *testing.T) {
 		// Create a test keyring
 		keyAuthID := uid.New(uid.KeyAuthPrefix)
 		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
@@ -197,7 +197,7 @@ func TestNotFoundErrors(t *testing.T) {
 			req,
 		)
 
-		require.Equal(t, 404, res.Status)
+		require.Equal(t, 404, res.Status, "Expected status code 404, got: %s", res.RawBody)
 		require.NotNil(t, res.Body)
 		require.Contains(t, res.Body.Error.Detail, "was not found")
 	})
