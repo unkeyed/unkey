@@ -222,6 +222,7 @@ export const PermissionField = ({
           </div>
         )}
         renderPrimaryText={(permission) => permission.name}
+        enableTransitions
         renderSecondaryText={(permission) => permission.slug}
         renderBadge={(permission) =>
           permission.isInherited && (

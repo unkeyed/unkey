@@ -47,13 +47,13 @@ const getDefaultValues = (
   apiData?: { roles: KeyRole[]; permissions: KeyPermission[] },
 ): FormValues => {
   // Separate direct permissions from role-inherited permissions
-  const directPermissions =
+  const directPermissionIds =
     apiData?.permissions.filter((p) => p.source === "direct").map((p) => p.id) ?? [];
 
   return {
     keyId: existingKey.id,
     roleIds: apiData?.roles.map((r) => r.id) ?? existingKey.roleIds ?? [],
-    directPermissionIds: directPermissions,
+    directPermissionIds,
   };
 };
 
@@ -114,8 +114,7 @@ export const KeyRbacDialog = ({
 
   const { data: dataSlugs, isLoading: isSlugsLoading } = useFetchPermissionSlugs(
     watchedRoleIds,
-    allEffectivePermissionIds, // Pass all effective permissions
-    connectedRolesAndPerms?.permissions ?? [],
+    allEffectivePermissionIds,
     isDialogOpen,
   );
 

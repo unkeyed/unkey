@@ -69,7 +69,7 @@ export const RoleField = ({
 
       return true;
     });
-  }, [baseOptions, value]); // Removed keyId and allRoles dependencies
+  }, [baseOptions, value]);
 
   const selectedRoles = useMemo(() => {
     return value
@@ -155,6 +155,7 @@ export const RoleField = ({
             <Tag size="sm-regular" className="text-grayA-11" />
           </div>
         )}
+        enableTransitions
         renderPrimaryText={(role) => role.name || "Unnamed Role"}
         renderSecondaryText={(role) => ("description" in role && role.description) || role.id}
       />
