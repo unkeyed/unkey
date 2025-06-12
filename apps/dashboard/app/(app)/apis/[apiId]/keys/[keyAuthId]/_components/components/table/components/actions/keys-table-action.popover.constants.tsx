@@ -25,14 +25,10 @@ import { EditRatelimits } from "./components/edit-ratelimits";
 import { KeyRbacDialog } from "./components/edit-rbac";
 import { KeysTableActionPopover, type MenuItem } from "./keys-table-action.popover";
 
-type KeysTableActionsProps = {
-  keyData: KeyDetails;
-};
-
-export const KeysTableActions = ({ keyData: key }: KeysTableActionsProps) => {
+export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
   const trpcUtils = trpc.useUtils();
 
-  const keysTableActionItems: MenuItem[] = [
+  return [
     {
       id: "override",
       label: "Edit key name...",
@@ -105,7 +101,6 @@ export const KeysTableActions = ({ keyData: key }: KeysTableActionsProps) => {
           {...props}
           existingKey={{
             id: key.id,
-            // Those permissionId and roleIds are being derived from prefetched tRPC call
             permissionIds: [],
             roleIds: [],
             name: key.name ?? undefined,
@@ -126,6 +121,13 @@ export const KeysTableActions = ({ keyData: key }: KeysTableActionsProps) => {
       ActionComponent: (props) => <DeleteKey {...props} keyDetails={key} />,
     },
   ];
+};
 
-  return <KeysTableActionPopover items={keysTableActionItems} />;
+type KeysTableActionsProps = {
+  keyData: KeyDetails;
+};
+
+export const KeysTableActions = ({ keyData }: KeysTableActionsProps) => {
+  const items = getKeysTableActionItems(keyData);
+  return <KeysTableActionPopover items={items} />;
 };

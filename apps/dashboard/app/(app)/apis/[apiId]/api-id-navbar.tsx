@@ -69,9 +69,6 @@ export const ApisNavbar = ({
 }) => {
   const isMobile = useIsMobile();
 
-  const keyId = keyData?.id || "";
-  const keyspaceId = api.keyAuthId || "";
-
   return (
     <>
       <div className="w-full">
@@ -145,6 +142,7 @@ export const ApisNavbar = ({
           {keyData?.id ? (
             <div className="flex gap-3 items-center">
               <Navbar.Actions>
+                {/* Use KeysTableActionPopover with custom button */}
                 <KeysTableActionPopover items={getKeysTableActionItems(keyData)}>
                   <NavbarActionButton>
                     <Gear size="sm-regular" />

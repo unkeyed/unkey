@@ -31,11 +31,9 @@ export const RoleField = ({
   // Combine loaded roles with search results, prioritizing search when available
   const allRoles = useMemo(() => {
     if (searchValue.trim() && searchResults.length > 0) {
-      // When searching, use search results
       return searchResults;
     }
     if (searchValue.trim() && searchResults.length === 0 && !isSearching) {
-      // No search results found, filter from loaded roles as fallback
       const searchTerm = searchValue.toLowerCase().trim();
       return roles.filter(
         (role) =>
@@ -44,11 +42,9 @@ export const RoleField = ({
           role.description?.toLowerCase().includes(searchTerm),
       );
     }
-    // No search query, use all loaded roles
     return roles;
   }, [roles, searchResults, searchValue, isSearching]);
 
-  // Don't show load more when actively searching
   const showLoadMore = !searchValue.trim() && hasNextPage;
 
   const baseOptions = createRoleOptions({
@@ -56,36 +52,29 @@ export const RoleField = ({
     hasNextPage: showLoadMore,
     isFetchingNextPage,
     keyId,
+    previouslySelectedRoleIds: assignedRoleDetails.map((r) => r.id),
     loadMore,
   });
 
   const selectableOptions = useMemo(() => {
     return baseOptions.filter((option) => {
-      // Always allow the load more option
       if (option.value === "__load_more__") {
         return true;
       }
-      // Don't show already selected roles
+
+      // Don't show already selected roles (based on current form state)
       if (value.includes(option.value)) {
         return false;
       }
-      // Find the role and check if it's already assigned to this key
-      const role = allRoles.find((r) => r.id === option.value);
-      if (!role) {
-        return true;
-      }
-      // Filter out roles that already have this key assigned (if keyId provided)
-      if (keyId) {
-        return !role.keys.some((key) => key.id === keyId);
-      }
+
       return true;
     });
-  }, [baseOptions, allRoles, keyId, value]);
+  }, [baseOptions, value]); // Removed keyId and allRoles dependencies
 
   const selectedRoles = useMemo(() => {
     return value
       .map((roleId) => {
-        // First: check assignedRoleDetails (for pre-loaded edit data)
+        // Check assignedRoleDetails first (for pre-loaded edit data)
         const preLoadedRole = assignedRoleDetails.find((r) => r.id === roleId);
         if (preLoadedRole) {
           return {
@@ -94,7 +83,8 @@ export const RoleField = ({
             description: preLoadedRole.description,
           };
         }
-        // Second: check loaded roles (for newly added roles)
+
+        // Check loaded roles (for newly added roles)
         const loadedRole = allRoles.find((r) => r.id === roleId);
         if (loadedRole) {
           return {
@@ -103,7 +93,8 @@ export const RoleField = ({
             description: loadedRole.description,
           };
         }
-        // Third: fallback to ID-only display (ensures role is always removable)
+
+        // Fallback to ID-only display
         return {
           id: roleId,
           name: null,
@@ -117,6 +108,13 @@ export const RoleField = ({
     onChange(value.filter((id) => id !== roleId));
   };
 
+  const handleAddRole = (roleId: string) => {
+    if (!value.includes(roleId)) {
+      onChange([...value, roleId]);
+    }
+    setSearchValue("");
+  };
+
   return (
     <div className="space-y-3">
       <FormCombobox
@@ -125,17 +123,7 @@ export const RoleField = ({
         options={selectableOptions}
         value=""
         onChange={(e) => setSearchValue(e.currentTarget.value)}
-        onSelect={(val) => {
-          if (val === "__load_more__") {
-            return;
-          }
-          // Add the selected role to the array
-          if (!value.includes(val)) {
-            onChange([...value, val]);
-          }
-          // Clear search after selection
-          setSearchValue("");
-        }}
+        onSelect={handleAddRole}
         placeholder={
           <div className="flex w-full text-grayA-8 text-[13px] gap-1.5 items-center py-2">
             Select roles
@@ -155,7 +143,11 @@ export const RoleField = ({
       />
 
       <SelectedItemsList
-        items={selectedRoles}
+        items={selectedRoles.map((r) => ({
+          name: r.name ?? "",
+          description: r.description ?? "",
+          id: r.id,
+        }))}
         disabled={disabled}
         onRemoveItem={handleRemoveRole}
         renderIcon={() => (

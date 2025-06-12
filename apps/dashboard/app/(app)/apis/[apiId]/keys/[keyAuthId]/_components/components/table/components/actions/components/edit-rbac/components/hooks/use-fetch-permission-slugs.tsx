@@ -1,42 +1,40 @@
 "use client";
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import type { KeyPermission } from "@/lib/trpc/routers/key/rbac/connected-roles-and-perms";
+import { useMemo } from "react";
 
 export const useFetchPermissionSlugs = (
   roleIds: string[] = [],
-  permissionIds: string[] = [],
+  directPermissionIds: string[] = [], // Changed parameter name to be explicit
+  allPermissions: KeyPermission[] = [],
   enabled = true,
 ) => {
+  // Calculate all effective permissions: role-inherited + direct
+  const allEffectivePermissionIds = useMemo(() => {
+    // Get permissions from currently selected roles
+    const rolePermissionIds = new Set<string>();
+    allPermissions.forEach((permission) => {
+      if (
+        permission.source === "role" &&
+        permission.roleId &&
+        roleIds.includes(permission.roleId)
+      ) {
+        rolePermissionIds.add(permission.id);
+      }
+    });
+
+    // Combine role permissions and direct permissions, removing duplicates
+    const combined = new Set([...rolePermissionIds, ...directPermissionIds]);
+    return Array.from(combined);
+  }, [roleIds, directPermissionIds, allPermissions]);
+
   const { data, isLoading, error, refetch } = trpc.key.queryPermissionSlugs.useQuery(
     {
       roleIds,
-      permissionIds,
+      permissionIds: directPermissionIds,
     },
     {
       enabled,
-      onError(err) {
-        if (err.data?.code === "BAD_REQUEST") {
-          toast.error("Invalid Roles or Permissions", {
-            description:
-              "One or more selected roles or permissions could not be found. Please refresh and try again.",
-          });
-        } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
-          toast.error("Server Error", {
-            description:
-              "We were unable to resolve permission slugs. Please try again or contact support@unkey.dev",
-          });
-        } else {
-          toast.error("Failed to Resolve Permission Slugs", {
-            description:
-              err.message ||
-              "An unexpected error occurred. Please try again or contact support@unkey.dev",
-            action: {
-              label: "Contact Support",
-              onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
-            },
-          });
-        }
-      },
     },
   );
 
@@ -46,5 +44,6 @@ export const useFetchPermissionSlugs = (
     error,
     refetch,
     hasData: !isLoading && data !== undefined,
+    allEffectivePermissionIds, // Export this in case components need it
   };
 };

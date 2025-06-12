@@ -28,6 +28,7 @@ const keyPermission = z.object({
   slug: z.string(),
   description: z.string().nullable(),
   source: z.enum(["direct", "role"]).optional(), // Track if permission comes from direct assignment or role
+  roleId: z.string().optional(),
 });
 export type KeyPermission = z.infer<typeof keyPermission>;
 
@@ -38,7 +39,7 @@ const keyDetailsResponse = z.object({
   roles: z.array(keyRole),
   permissions: z.array(keyPermission),
 });
-export type KeyDetails = z.infer<typeof keyDetailsResponse>;
+export type KeyRbacDetails = z.infer<typeof keyDetailsResponse>;
 
 export const getConnectedRolesAndPerms = t.procedure
   .use(requireUser)
@@ -106,6 +107,7 @@ export const getConnectedRolesAndPerms = t.procedure
             name: permissions.name,
             slug: permissions.slug,
             description: permissions.description,
+            roleId: keysRoles.roleId,
           })
           .from(keysRoles)
           .innerJoin(rolesPermissions, eq(keysRoles.roleId, rolesPermissions.roleId))
@@ -136,6 +138,7 @@ export const getConnectedRolesAndPerms = t.procedure
             name: perm.name,
             slug: perm.slug,
             description: perm.description,
+            roleId: perm.roleId,
             source: "role",
           });
         }
@@ -145,11 +148,13 @@ export const getConnectedRolesAndPerms = t.procedure
         keyId: key.id,
         name: key.name,
         lastUpdated: key.updated_at_m || Date.now(),
-        roles: roleResults.map((row) => ({
-          id: row.id,
-          name: row.name,
-          description: row.description,
-        })),
+        roles: roleResults
+          .map((row) => ({
+            id: row.id,
+            name: row.name,
+            description: row.description,
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name)),
         permissions: Array.from(allPermissions.values()).sort((a, b) =>
           a.name.localeCompare(b.name),
         ),

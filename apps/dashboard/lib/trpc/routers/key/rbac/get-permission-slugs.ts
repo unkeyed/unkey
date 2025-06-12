@@ -92,7 +92,6 @@ export const getPermissionSlugs = t.procedure
         });
       }
 
-      // Deduplicate slugs using Set
       const slugsSet = new Set<string>();
 
       rolePermissions.forEach(({ slug }) => slugsSet.add(slug));

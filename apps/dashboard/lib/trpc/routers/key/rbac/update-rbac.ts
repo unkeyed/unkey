@@ -9,7 +9,7 @@ export const updateKeyRbac = t.procedure
   .use(requireWorkspace)
   .input(updateKeyRbacSchema)
   .mutation(async ({ input, ctx }) => {
-    const { keyId, roleIds, permissionIds } = input;
+    const { keyId, roleIds, directPermissionIds } = input;
     const workspaceId = ctx.workspace.id;
 
     // Verify key exists and belongs to workspace
@@ -57,12 +57,12 @@ export const updateKeyRbac = t.procedure
       }
     }
 
-    // Validate permissions exist in workspace
-    if (permissionIds.length > 0) {
+    // Validate direct permissions exist in workspace
+    if (directPermissionIds.length > 0) {
       const existingPermissions = await db.query.permissions
         .findMany({
           where: (table, { eq, and, inArray }) =>
-            and(eq(table.workspaceId, workspaceId), inArray(table.id, permissionIds)),
+            and(eq(table.workspaceId, workspaceId), inArray(table.id, directPermissionIds)),
           columns: { id: true },
         })
         .catch((_err) => {
@@ -73,7 +73,7 @@ export const updateKeyRbac = t.procedure
           });
         });
 
-      if (existingPermissions.length !== permissionIds.length) {
+      if (existingPermissions.length !== directPermissionIds.length) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "One or more permissions do not exist in this workspace",
@@ -81,8 +81,43 @@ export const updateKeyRbac = t.procedure
       }
     }
 
+    // Calculate total effective permissions for response
+    let totalEffectivePermissions = directPermissionIds.length;
+
     await db
       .transaction(async (tx) => {
+        // Get permissions that come from the requested roles for audit/response purposes
+        const rolePermissions =
+          roleIds.length > 0
+            ? await tx.query.rolesPermissions
+                .findMany({
+                  where: (table, { inArray, eq, and }) =>
+                    and(inArray(table.roleId, roleIds), eq(table.workspaceId, workspaceId)),
+                  columns: { permissionId: true },
+                })
+                .catch((_err) => {
+                  throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message:
+                      "Unable to resolve role permissions. Please try again or contact support@unkey.dev",
+                  });
+                })
+            : [];
+
+        // Calculate unique role permissions for total count
+        const uniqueRolePermissionIds = new Set(rolePermissions.map((rp) => rp.permissionId));
+
+        // Add role permissions to total, avoiding double-counting
+        directPermissionIds.forEach((id) => {
+          if (!uniqueRolePermissionIds.has(id)) {
+            uniqueRolePermissionIds.add(id);
+          }
+        });
+
+        totalEffectivePermissions =
+          uniqueRolePermissionIds.size +
+          directPermissionIds.filter((id) => !uniqueRolePermissionIds.has(id)).length;
+
         // Remove existing role assignments
         await tx
           .delete(schema.keysRoles)
@@ -131,12 +166,12 @@ export const updateKeyRbac = t.procedure
             });
         }
 
-        // Insert new permission assignments
-        if (permissionIds.length > 0) {
+        // Insert direct permission assignments
+        if (directPermissionIds.length > 0) {
           await tx
             .insert(schema.keysPermissions)
             .values(
-              permissionIds.map((permissionId) => ({
+              directPermissionIds.map((permissionId) => ({
                 keyId,
                 permissionId,
                 workspaceId,
@@ -158,7 +193,7 @@ export const updateKeyRbac = t.procedure
             id: ctx.user.id,
           },
           event: "key.update",
-          description: `Updated RBAC for key ${key.id}: ${roleIds.length} roles, ${permissionIds.length} permissions`,
+          description: `Updated RBAC for key ${key.id}: ${roleIds.length} roles, ${directPermissionIds.length} direct permissions (${totalEffectivePermissions} total effective permissions)`,
           resources: [
             {
               type: "key",
@@ -187,6 +222,7 @@ export const updateKeyRbac = t.procedure
       keyId: key.id,
       success: true,
       rolesAssigned: roleIds.length,
-      permissionsAssigned: permissionIds.length,
+      directPermissionsAssigned: directPermissionIds.length,
+      totalEffectivePermissions,
     };
   });
