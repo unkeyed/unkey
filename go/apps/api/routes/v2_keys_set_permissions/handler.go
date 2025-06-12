@@ -114,6 +114,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	for _, permissionRef := range req.Permissions {
 		var permission db.Permission
 
+		// nolint:nestif
 		if permissionRef.Id != nil && *permissionRef.Id != "" {
 			// Find by ID
 			permission, err = db.Query.FindPermissionByID(ctx, h.DB.RO(), *permissionRef.Id)
@@ -225,17 +226,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// 8. Apply changes in transaction
-	_, err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (interface{}, error) {
+	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		var auditLogs []auditlog.AuditLog
 
 		// Remove permissions that are no longer needed
 		for _, permissionID := range permissionsToRemove {
-			err := db.Query.DeleteKeyPermissionByKeyAndPermissionID(ctx, tx, db.DeleteKeyPermissionByKeyAndPermissionIDParams{
+			err = db.Query.DeleteKeyPermissionByKeyAndPermissionID(ctx, tx, db.DeleteKeyPermissionByKeyAndPermissionIDParams{
 				KeyID:        req.KeyId,
 				PermissionID: permissionID,
 			})
 			if err != nil {
-				return nil, fault.Wrap(err,
+				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 					fault.Internal("database error"), fault.Public("Failed to remove permission assignment."),
 				)
@@ -256,6 +257,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ActorType:   auditlog.RootKeyActor,
 				ActorID:     auth.KeyID,
 				ActorName:   "root key",
+				ActorMeta:   map[string]any{},
 				Display:     fmt.Sprintf("Removed permission %s from key %s", permissionName, req.KeyId),
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
@@ -265,12 +267,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						ID:          req.KeyId,
 						Name:        key.Name.String,
 						DisplayName: key.Name.String,
+						Meta:        map[string]any{},
 					},
 					{
 						Type:        "permission",
 						ID:          permissionID,
 						Name:        permissionName,
 						DisplayName: permissionName,
+						Meta:        map[string]any{},
 					},
 				},
 			})
@@ -278,14 +282,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		// Add new permissions
 		for _, permission := range permissionsToAdd {
-			err := db.Query.InsertKeyPermission(ctx, tx, db.InsertKeyPermissionParams{
+			err = db.Query.InsertKeyPermission(ctx, tx, db.InsertKeyPermissionParams{
 				KeyID:        req.KeyId,
 				PermissionID: permission.ID,
 				WorkspaceID:  auth.AuthorizedWorkspaceID,
 				CreatedAt:    time.Now().UnixMilli(),
 			})
 			if err != nil {
-				return nil, fault.Wrap(err,
+				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 					fault.Internal("database error"), fault.Public("Failed to add permission assignment."),
 				)
@@ -297,6 +301,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ActorType:   auditlog.RootKeyActor,
 				ActorID:     auth.KeyID,
 				ActorName:   "root key",
+				ActorMeta:   map[string]any{},
 				Display:     fmt.Sprintf("Added permission %s to key %s", permission.Name, req.KeyId),
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
@@ -306,12 +311,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						ID:          req.KeyId,
 						Name:        key.Name.String,
 						DisplayName: key.Name.String,
+						Meta:        map[string]any{},
 					},
 					{
 						Type:        "permission",
 						ID:          permission.ID,
 						Name:        permission.Name,
 						DisplayName: permission.Name,
+						Meta:        map[string]any{},
 					},
 				},
 			})
@@ -321,14 +328,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if len(auditLogs) > 0 {
 			err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 			if err != nil {
-				return nil, fault.Wrap(err,
+				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 					fault.Internal("audit log error"), fault.Public("Failed to create audit log for permission changes."),
 				)
 			}
 		}
 
-		return nil, nil
+		return nil
 	})
 	if err != nil {
 		return err

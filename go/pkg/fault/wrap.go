@@ -38,6 +38,7 @@ func Wrap(err error, wraps ...Wrapper) error {
 
 	// Apply all wrappers to accumulate information into a single instance
 	for _, w := range wraps {
+		// nolint:nestif
 		if nextErr := w(result); nextErr != nil {
 			// If wrapper returns a new error, extract its info and merge
 			if nextWrapped, ok := nextErr.(*wrapped); ok {

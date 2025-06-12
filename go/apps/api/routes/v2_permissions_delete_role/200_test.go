@@ -59,7 +59,7 @@ func TestSuccess(t *testing.T) {
 		// Create some permissions to assign to the role
 		permIDs := []string{uid.New(uid.PermissionPrefix), uid.New(uid.PermissionPrefix)}
 		for i, permID := range permIDs {
-			err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+			err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 				PermissionID: permID,
 				WorkspaceID:  workspace.ID,
 				Name:         fmt.Sprintf("test.perm.%d", i),
@@ -129,11 +129,11 @@ func TestSuccess(t *testing.T) {
 
 		// Verify role_permissions have been deleted
 		for _, permID := range permIDs {
-			rolePerms, err := db.Query.FindRolePermissionByRoleAndPermissionID(ctx, h.DB.RO(), db.FindRolePermissionByRoleAndPermissionIDParams{
+			rolePerms, findErr := db.Query.FindRolePermissionByRoleAndPermissionID(ctx, h.DB.RO(), db.FindRolePermissionByRoleAndPermissionIDParams{
 				RoleID:       roleID,
 				PermissionID: permID,
 			})
-			require.NoError(t, err)
+			require.NoError(t, findErr)
 			require.Empty(t, rolePerms, "Role-Permission relationships should be deleted")
 		}
 

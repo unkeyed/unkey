@@ -175,7 +175,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "validate schema")
 	})
 
-	t.Run("permission missing both id and name", func(t *testing.T) {
+	t.Run("permission missing both id and slug", func(t *testing.T) {
 		// Create a permission for valid structure
 		permissionID := uid.New(uid.TestPrefix)
 		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
@@ -191,9 +191,9 @@ func TestValidationErrors(t *testing.T) {
 			KeyId: validKeyID,
 			Permissions: []struct {
 				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
+				Slug *string `json:"slug,omitempty"`
 			}{
-				{}, // Neither id nor name provided
+				{}, // Neither id nor slug provided
 			},
 		}
 
@@ -207,7 +207,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "must specify either 'id' or 'name'")
+		require.Contains(t, res.Body.Error.Detail, "must specify either 'id' or 'slug'")
 	})
 
 	t.Run("permission not found by id", func(t *testing.T) {
@@ -217,7 +217,7 @@ func TestValidationErrors(t *testing.T) {
 			KeyId: validKeyID,
 			Permissions: []struct {
 				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
+				Slug *string `json:"slug,omitempty"`
 			}{
 				{Id: &nonExistentPermissionID},
 			},
@@ -243,9 +243,9 @@ func TestValidationErrors(t *testing.T) {
 			KeyId: validKeyID,
 			Permissions: []struct {
 				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
+				Slug *string `json:"slug,omitempty"`
 			}{
-				{Name: &nonExistentPermissionName},
+				{Slug: &nonExistentPermissionName},
 			},
 		}
 
@@ -280,7 +280,7 @@ func TestValidationErrors(t *testing.T) {
 			KeyId: nonExistentKeyID,
 			Permissions: []struct {
 				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
+				Slug *string `json:"slug,omitempty"`
 			}{
 				{Id: &permissionID},
 			},

@@ -59,9 +59,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Ratelimits []db.Ratelimit
 	}
 
-	result, err := db.Tx(ctx, h.DB.RO(), func(ctx context.Context, tx db.DBTX) (IdentityResult, error) {
+	result, err := db.TxWithResult(ctx, h.DB.RO(), func(ctx context.Context, tx db.DBTX) (IdentityResult, error) {
 		var identity db.Identity
-		var err error
 
 		// First try to get the identity
 		if req.IdentityId != nil {
@@ -97,9 +96,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		// Get the ratelimits for this identity
-		ratelimits, err := db.Query.ListIdentityRatelimitsByID(ctx, tx, sql.NullString{Valid: true, String: identity.ID})
-		if err != nil && err != sql.ErrNoRows {
-			return IdentityResult{}, fault.Wrap(err,
+		ratelimits, listErr := db.Query.ListIdentityRatelimitsByID(ctx, tx, sql.NullString{Valid: true, String: identity.ID})
+		if listErr != nil {
+
+			return IdentityResult{}, fault.Wrap(listErr,
 				fault.Internal("unable to fetch ratelimits"), fault.Public("We're unable to retrieve the identity's ratelimits."),
 			)
 		}
@@ -134,7 +134,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Parse metadata
 	var metaMap map[string]interface{}
-	if identity.Meta != nil && len(identity.Meta) > 0 {
+	if len(identity.Meta) > 0 {
 		err = json.Unmarshal(identity.Meta, &metaMap)
 		if err != nil {
 			return fault.Wrap(err,

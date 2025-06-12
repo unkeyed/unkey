@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
@@ -131,17 +132,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					fault.Internal("database error"), fault.Public("Failed to retrieve permission."),
 				)
 			}
-		} else if permRef.Name != nil {
-			// Find by name
-			permission, err = db.Query.FindPermissionByNameAndWorkspaceID(ctx, h.DB.RO(), db.FindPermissionByNameAndWorkspaceIDParams{
-				Name:        *permRef.Name,
+		} else if permRef.Slug != nil {
+			// Find by slug
+			permission, err = db.Query.FindPermissionBySlugAndWorkspaceID(ctx, h.DB.RO(), db.FindPermissionBySlugAndWorkspaceIDParams{
+				Slug:        *permRef.Slug,
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 			})
 			if err != nil {
 				if db.IsNotFound(err) {
 					return fault.New("permission not found",
 						fault.Code(codes.Data.Permission.NotFound.URN()),
-						fault.Internal("permission not found"), fault.Public(fmt.Sprintf("Permission with name '%s' was not found.", *permRef.Name)),
+						fault.Internal("permission not found"), fault.Public(fmt.Sprintf("Permission with slug '%s' was not found.", *permRef.Slug)),
 					)
 				}
 				return fault.Wrap(err,
@@ -177,17 +178,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// 8. Apply changes in transaction (only if there are permissions to remove)
 	if len(permissionsToRemove) > 0 {
-		_, err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (interface{}, error) {
+		err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 			var auditLogs []auditlog.AuditLog
 
 			// Remove permissions
 			for _, permission := range permissionsToRemove {
-				err := db.Query.DeleteKeyPermissionByKeyAndPermissionID(ctx, tx, db.DeleteKeyPermissionByKeyAndPermissionIDParams{
+				err = db.Query.DeleteKeyPermissionByKeyAndPermissionID(ctx, tx, db.DeleteKeyPermissionByKeyAndPermissionIDParams{
 					KeyID:        req.KeyId,
 					PermissionID: permission.ID,
 				})
 				if err != nil {
-					return nil, fault.Wrap(err,
+					return fault.Wrap(err,
 						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 						fault.Internal("database error"), fault.Public("Failed to remove permission assignment."),
 					)
@@ -199,6 +200,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					ActorType:   auditlog.RootKeyActor,
 					ActorID:     auth.KeyID,
 					ActorName:   "root key",
+					ActorMeta:   map[string]any{},
 					Display:     fmt.Sprintf("Removed permission %s from key %s", permission.Name, req.KeyId),
 					RemoteIP:    s.Location(),
 					UserAgent:   s.UserAgent(),
@@ -208,12 +210,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 							ID:          req.KeyId,
 							Name:        key.Name.String,
 							DisplayName: key.Name.String,
+							Meta:        map[string]any{},
 						},
 						{
 							Type:        "permission",
 							ID:          permission.ID,
 							Name:        permission.Name,
 							DisplayName: permission.Name,
+							Meta:        map[string]any{},
 						},
 					},
 				})
@@ -223,25 +227,58 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if len(auditLogs) > 0 {
 				err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 				if err != nil {
-					return nil, fault.Wrap(err,
+					return fault.Wrap(err,
 						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 						fault.Internal("audit log error"), fault.Public("Failed to create audit log for permission removals."),
 					)
 				}
 			}
 
-			return nil, nil
+			return nil
 		})
 		if err != nil {
 			return err
 		}
 	}
 
-	// 9. Return empty success response (as specified in OpenAPI)
+	// 9. Get final state of direct permissions and build response
+	finalPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RW(), req.KeyId)
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"), fault.Public("Failed to retrieve final permission state."),
+		)
+	}
+
+	// Sort permissions alphabetically by name for consistent response
+	slices.SortFunc(finalPermissions, func(a, b db.Permission) int {
+		if a.Name < b.Name {
+			return -1
+		} else if a.Name > b.Name {
+			return 1
+		}
+		return 0
+	})
+
+	// Build response data
+	responseData := make(openapi.V2KeysRemovePermissionsResponseData, len(finalPermissions))
+	for i, permission := range finalPermissions {
+		responseData[i] = struct {
+			Id   string `json:"id"`
+			Name string `json:"name"`
+			Slug string `json:"slug"`
+		}{
+			Id:   permission.ID,
+			Name: permission.Name,
+			Slug: permission.Slug,
+		}
+	}
+
+	// 10. Return success response with remaining permissions
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: make(map[string]interface{}),
+		Data: responseData,
 	})
 }

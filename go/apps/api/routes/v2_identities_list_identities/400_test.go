@@ -90,7 +90,7 @@ func TestBadRequests(t *testing.T) {
 		malformedJSON := `{"limit": 5, "cursor": "missing_quote_here}`
 
 		// Manual approach to avoid JSON parsing issues
-		resp, err := http.NewRequest("POST", route.Path(), strings.NewReader(malformedJSON))
+		resp, err := http.NewRequest(route.Method(), route.Path(), strings.NewReader(malformedJSON))
 		require.NoError(t, err)
 
 		// Set headers

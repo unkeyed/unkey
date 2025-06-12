@@ -114,6 +114,7 @@ func TestCreateKey_DifferentByteLengths(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			req := CreateKeyRequest{
 				Prefix:     "",
 				ByteLength: tc.byteLength,
@@ -258,6 +259,7 @@ func TestCreateKey_ByteLengthValidation_BoundaryValues(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			req := CreateKeyRequest{
 				Prefix:     "",
 				ByteLength: tc.byteLength,

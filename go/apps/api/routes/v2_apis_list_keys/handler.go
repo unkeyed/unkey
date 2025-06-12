@@ -44,7 +44,6 @@ func (h *Handler) Path() string {
 }
 
 // Handle processes the HTTP request
-// TODO: Implement caching strategy for listKeys similar to TypeScript v1 implementation
 // The current implementation queries the database directly without caching, which may impact performance.
 // Consider implementing cache with optional bypass via revalidateKeysCache parameter.
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
@@ -137,14 +136,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// 5. Query the keys
 	var identityId string
 	if req.ExternalId != nil && *req.ExternalId != "" {
-		identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
+		identity, findErr := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			ExternalID:  *req.ExternalId,
 			Deleted:     false,
 		})
-		if err != nil {
-			if !db.IsNotFound(err) {
-				return fault.Wrap(err,
+		if findErr != nil {
+			if !db.IsNotFound(findErr) {
+				return fault.Wrap(findErr,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 					fault.Internal("database error"), fault.Public("Failed to retrieve identity information."),
 				)
@@ -172,7 +171,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		h.DB.RO(),
 		db.ListKeysByKeyAuthIDParams{
 			KeyAuthID:  api.KeyAuthID.String,
-			Limit:      int32(limit + 1),
+			Limit:      int32(limit + 1), // nolint:gosec
 			IDCursor:   cursor,
 			IdentityID: sql.NullString{Valid: identityId != "", String: identityId},
 		},
@@ -194,9 +193,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		// Query ratelimits for these keys
-		ratelimits, err := db.Query.ListRatelimitsByKeyIDs(ctx, h.DB.RO(), keyIDs)
-		if err != nil {
-			return fault.Wrap(err,
+		ratelimits, listErr := db.Query.ListRatelimitsByKeyIDs(ctx, h.DB.RO(), keyIDs)
+		if listErr != nil {
+			return fault.Wrap(listErr,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error"), fault.Public("Failed to retrieve ratelimits."),
 			)
@@ -211,9 +210,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// If user requested decryption, check permissions and decrypt
-	plaintextMap := make(map[string]string)
+	plaintextMap := map[string]string{} // nolint:staticcheck
 	if req.Decrypt != nil && *req.Decrypt {
-		err := h.Permissions.Check(
+		err = h.Permissions.Check(
 			ctx,
 			auth.KeyID,
 			rbac.Or(
@@ -236,14 +235,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// If we have permission, proceed with decryption
 		for _, key := range keys {
 			if key.EncryptedKey.Valid && key.EncryptionKeyID.Valid {
-				decrypted, err := h.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
+				decrypted, decryptErr := h.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
 					Keyring:   key.Key.WorkspaceID,
 					Encrypted: key.EncryptedKey.String,
 				})
-				if err != nil {
+				if decryptErr != nil {
 					h.Logger.Error("failed to decrypt key",
 						"keyId", key.Key.ID,
-						"error", err,
+						"error", decryptErr,
 					)
 					continue
 				}
@@ -334,10 +333,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		// Add plaintext if available
-		if plaintextMap != nil {
-			if plaintext, ok := plaintextMap[key.Key.ID]; ok {
-				k.Plaintext = ptr.P(plaintext)
-			}
+		if plaintext, ok := plaintextMap[key.Key.ID]; ok {
+			k.Plaintext = ptr.P(plaintext)
 		}
 
 		// Add identity information if available
@@ -349,7 +346,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Meta:       nil,
 				Ratelimits: nil,
 			}
-			if key.IdentityMeta != nil && len(key.IdentityMeta) > 0 {
+			if len(key.IdentityMeta) > 0 {
 				err = json.Unmarshal(key.IdentityMeta, &k.Identity.Meta)
 				if err != nil {
 					return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
@@ -390,7 +387,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					Id:       rl.ID,
 					Name:     rl.Name,
 					Limit:    int64(rl.Limit),
-					Duration: int64(rl.Duration),
+					Duration: rl.Duration,
 				}
 			}
 			k.Ratelimits = ptr.P(ratelimitsResponse)

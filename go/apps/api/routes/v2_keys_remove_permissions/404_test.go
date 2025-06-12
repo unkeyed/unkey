@@ -60,7 +60,7 @@ func TestNotFoundErrors(t *testing.T) {
 			KeyId: nonExistentKeyID,
 			Permissions: []struct {
 				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
+				Slug *string `json:"slug,omitempty"`
 			}{
 				{Id: &permissionID},
 			},
@@ -122,7 +122,7 @@ func TestNotFoundErrors(t *testing.T) {
 			KeyId: keyID,
 			Permissions: []struct {
 				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
+				Slug *string `json:"slug,omitempty"`
 			}{
 				{Id: &nonExistentPermissionID},
 			},
@@ -178,15 +178,15 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NoError(t, err)
 
 		// Use a non-existent permission name
-		nonExistentPermissionName := "nonexistent.permission.remove.name"
+		nonExistentPermissionSlug := "nonexistent.permission.remove.name"
 
 		req := handler.Request{
 			KeyId: keyID,
 			Permissions: []struct {
 				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
+				Slug *string `json:"slug,omitempty"`
 			}{
-				{Name: &nonExistentPermissionName},
+				{Slug: &nonExistentPermissionSlug},
 			},
 		}
 
@@ -264,7 +264,7 @@ func TestNotFoundErrors(t *testing.T) {
 			KeyId: keyID,
 			Permissions: []struct {
 				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
+				Slug *string `json:"slug,omitempty"`
 			}{
 				{Id: &otherPermissionID},
 			},
@@ -344,7 +344,7 @@ func TestNotFoundErrors(t *testing.T) {
 			KeyId: otherKeyID,
 			Permissions: []struct {
 				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
+				Slug *string `json:"slug,omitempty"`
 			}{
 				{Id: &permissionID},
 			},

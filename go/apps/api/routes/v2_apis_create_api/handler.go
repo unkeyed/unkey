@@ -70,9 +70,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	apiId, err := db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
+	apiId, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
 		keyAuthId := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, tx, db.InsertKeyringParams{
+		err = db.Query.InsertKeyring(ctx, tx, db.InsertKeyringParams{
 			ID:                 keyAuthId,
 			WorkspaceID:        auth.AuthorizedWorkspaceID,
 			CreatedAtM:         time.Now().UnixMilli(),
@@ -110,7 +110,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Display:     fmt.Sprintf("Created API %s", apiId),
 				ActorID:     auth.KeyID,
 				ActorName:   "root key",
-				Bucket:      auditlogs.DEFAULT_BUCKET,
+				ActorMeta:   map[string]any{},
 				ActorType:   auditlog.RootKeyActor,
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),

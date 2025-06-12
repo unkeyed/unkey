@@ -14,7 +14,7 @@ SELECT p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.up
 FROM keys_permissions kp
 JOIN permissions p ON kp.permission_id = p.id
 WHERE kp.key_id = ?
-ORDER BY p.name
+ORDER BY p.slug
 `
 
 // ListDirectPermissionsByKeyID
@@ -23,7 +23,7 @@ ORDER BY p.name
 //	FROM keys_permissions kp
 //	JOIN permissions p ON kp.permission_id = p.id
 //	WHERE kp.key_id = ?
-//	ORDER BY p.name
+//	ORDER BY p.slug
 func (q *Queries) ListDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error) {
 	rows, err := db.QueryContext(ctx, listDirectPermissionsByKeyID, keyID)
 	if err != nil {

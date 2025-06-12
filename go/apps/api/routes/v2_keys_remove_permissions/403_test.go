@@ -83,7 +83,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		KeyId: keyID,
 		Permissions: []struct {
 			Id   *string `json:"id,omitempty"`
-			Name *string `json:"name,omitempty"`
+			Slug *string `json:"slug,omitempty"`
 		}{
 			{Id: &permissionID},
 		},
@@ -185,7 +185,7 @@ func TestAuthorizationErrors(t *testing.T) {
 			KeyId: otherKeyID,
 			Permissions: []struct {
 				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
+				Slug *string `json:"slug,omitempty"`
 			}{
 				{Id: &permissionID},
 			},
@@ -237,7 +237,7 @@ func TestAuthorizationErrors(t *testing.T) {
 			KeyId: keyID,
 			Permissions: []struct {
 				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
+				Slug *string `json:"slug,omitempty"`
 			}{
 				{Id: &otherPermissionID},
 			},

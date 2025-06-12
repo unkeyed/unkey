@@ -45,7 +45,6 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
 		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("insufficient permissions - wrong permission", func(t *testing.T) {
@@ -65,7 +64,6 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
 		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("insufficient permissions - different resource permission", func(t *testing.T) {
@@ -85,7 +83,6 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
 		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("specific identity permission for wrong identity", func(t *testing.T) {
@@ -121,7 +118,6 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
 		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("read-only permission", func(t *testing.T) {
@@ -141,7 +137,6 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
 		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("partial permission match", func(t *testing.T) {
@@ -161,7 +156,6 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
 		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("multiple permissions but none matching", func(t *testing.T) {
@@ -184,7 +178,6 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
 		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("case sensitivity test", func(t *testing.T) {
@@ -204,6 +197,5 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
 		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 }

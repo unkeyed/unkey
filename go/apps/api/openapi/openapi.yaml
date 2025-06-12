@@ -2,14 +2,83 @@ info:
   title: Unkey API
   version: 2.0.0
   description: |-
-    Unkey API provides comprehensive API key management services including creation, verification, and management of API keys with fine-grained permissions, rate limiting, and analytics.
+    Unkey's API provides programmatic access for all resources within our platform.
 
-    This API uses HTTP Bearer authentication with root keys. Most endpoints require specific permissions associated with your root key. When making requests, include your root key in the Authorization header:
+
+
+    ### Authentication
+    #
+    This API uses HTTP Bearer authentication with root keys. Most endpoints require specific permissions associated with your root key. When making requests, include your root key in the `Authorization` header:
     ```
-    Authorization: Bearer your_root_key_here
+    Authorization: Bearer unkey_xxxxxxxxxxx
     ```
 
-    All responses follow a consistent structure with a 'meta' object containing request metadata and a 'data' object containing the actual response data. Error responses include detailed information about what went wrong and how to fix it.
+    All responses follow a consistent envelope structure that separates operational metadata from actual data. This design provides several benefits:
+    - Debugging: Every response includes a unique requestId for tracing issues
+    - Consistency: Predictable response format across all endpoints
+    - Extensibility: Easy to add new metadata without breaking existing integrations
+    - Error Handling: Unified error format with actionable information
+
+    ### Success Response Format:
+    ```json
+    {
+      "meta": {
+        "requestId": "req_123456"
+      },
+      "data": {
+        // Actual response data here
+      }
+    }
+    ```
+
+    The meta object contains operational information:
+    - `requestId`: Unique identifier for this request (essential for support)
+
+    The data object contains the actual response data specific to each endpoint.
+
+    ### Paginated Response Format:
+    ```json
+    {
+      "meta": {
+        "requestId": "req_123456"
+      },
+      "data": [
+        // Array of results
+      ],
+      "pagination": {
+        "cursor": "next_page_token",
+        "hasMore": true
+      }
+    }
+    ```
+
+    The pagination object appears on list endpoints and contains:
+    - `cursor`: Token for requesting the next page
+    - `hasMore`: Whether more results are available
+
+    ### Error Response Format:
+    ```json
+    {
+      "meta": {
+        "requestId": "req_2c9a0jf23l4k567"
+      },
+      "error": {
+        "detail": "The resource you are attempting to modify is protected and cannot be changed",
+        "status": 403,
+        "title": "Forbidden",
+        "type": "https://unkey.com/docs/api-reference/errors-v2/unkey/application/protected_resource"
+      }
+    }
+    ```
+
+    Error responses include comprehensive diagnostic information:
+    - `title`: Human-readable error summary
+    - `detail`: Specific description of what went wrong
+    - `status`: HTTP status code
+    - `type`: Link to error documentation
+    - `errors`: Array of validation errors (for 400 responses)
+
+    This structure ensures you always have the context needed to debug issues and take corrective action.
 openapi: 3.0.1
 servers:
   - url: https://api.unkey.com
@@ -39,7 +108,7 @@ components:
         Authorization: Bearer unkey_123
         ```
 
-        Root keys have specific permissions attached to them, controlling what operations they can perform. Key permissions follow a hierarchical structure with patterns like 'resource.resource_id.action' (e.g., 'apis.*.create_key', 'apis.*.read_api').
+        Root keys have specific permissions attached to them, controlling what operations they can perform. Key permissions follow a hierarchical structure with patterns like `resource.resource_id.action` (e.g., `apis.*.create_key`, `apis.*.read_api`).
 
         Security best practices:
         - Keep root keys secure and never expose them in client-side code
@@ -60,7 +129,7 @@ components:
           maxLength: 255 # Reasonable upper bound for database identifiers
           pattern: "^[a-zA-Z0-9_]+$"
           description: |
-            Specifies which key to update using the database identifier returned from createKey.
+            Specifies which key to update using the database identifier returned from `createKey`.
             Do not confuse this with the actual API key string that users include in requests.
           example: key_2cGKbMxRyIzhCxo1Idjz8q
         name:
@@ -136,7 +205,7 @@ components:
               description: |
                 Counts how many times this key can be used before becoming invalid.
                 Each verification reduces this count by the verification cost (default 1).
-                When reaching 0, further verifications fail with INSUFFICIENT_CREDITS.
+                When reaching 0, further verifications fail with `USAGE_EXCEEDED`.
                 Required when specifying credits for usage-based pricing or quotas.
               example: 1000
             refill:
@@ -236,7 +305,7 @@ components:
           type: boolean
           description: |
             Controls whether the key is currently active for verification requests.
-            When set to false, all verification attempts fail with code=DISABLED regardless of other settings.
+            When set to `false`, all verification attempts fail with `code=DISABLED` regardless of other settings.
             Omitting this field preserves the current enabled status.
             Useful for temporarily suspending access during billing issues, security incidents, or maintenance windows without losing key configuration.
           example: true
@@ -249,7 +318,7 @@ components:
         the key was updated successfully. The endpoint doesn't return the updated
         key to reduce response size and avoid exposing sensitive information. Changes
         may take up to 30 seconds to propagate to all regions due to cache invalidation
-        delays. If you need the updated key state, use a subsequent call to keys.getKey.
+        delays. If you need the updated key state, use a subsequent call to `keys.getKey`.
     V2KeysUpdateKeyResponseBody:
       type: object
       required:
@@ -270,9 +339,9 @@ components:
           maxLength: 255 # Reasonable upper bound for database identifiers
           pattern: "^[a-zA-Z0-9_]+$"
           description: |
-            Specifies which key to delete using the database identifier returned from createKey.
+            Specifies which key to delete using the database identifier returned from `createKey`.
             Do not confuse this with the actual API key string that users include in requests.
-            Deletion immediately invalidates the key, causing all future verification attempts to fail with code=NOT_FOUND.
+            Deletion immediately invalidates the key, causing all future verification attempts to fail with `code=NOT_FOUND`.
             Key deletion triggers cache invalidation across all regions but may take up to 30 seconds to fully propagate.
           example: key_2cGKbMxRyIzhCxo1Idjz8q
         permanent:
@@ -316,9 +385,9 @@ components:
           maxLength: 255 # Reasonable upper bound for database identifiers
           pattern: "^[a-zA-Z0-9_]+$"
           description: |
-            Specifies which key to retrieve using the database identifier returned from createKey.
+            Specifies which key to retrieve using the database identifier returned from `keys.createKey`.
             Do not confuse this with the actual API key string that users include in requests.
-            Key data includes metadata, permissions, usage statistics, and configuration but never the plaintext key value unless decrypt=true.
+            Key data includes metadata, permissions, usage statistics, and configuration but never the plaintext key value unless `decrypt=true`.
             Find this ID in creation responses, key listings, dashboard, or verification responses.
           example: key_2cGKbMxRyIzhCxo1Idjz8q
         decrypt:
@@ -326,7 +395,7 @@ components:
           default: false
           description: |
             Controls whether to include the plaintext key value in the response for recovery purposes.
-            Only works for keys created with recoverable=true and requires the decrypt_key permission.
+            Only works for keys created with `recoverable=true` and requires the `decrypt_key` permission.
             Returned keys must be handled securely, never logged, cached, or stored insecurely.
 
             Use only for legitimate recovery scenarios like user password resets or emergency access.
@@ -526,15 +595,15 @@ components:
           type: boolean
           description:
             Whether the key is currently active. Disabled keys will fail
-            verification with code=DISABLED. Toggling this allows you to temporarily
+            verification with `code=DISABLED`. Toggling this allows you to temporarily
             suspend access without deleting the key, which is useful for maintenance,
-            account freezing, or debugging. Can be updated using the updateKey endpoint.
+            account freezing, or debugging. Can be updated using the `keys.updateKey` endpoint.
           example: true
         plaintext:
           type: string
           description:
-            "The full API key in plaintext. Only included when 'decrypt'
-            is true and the key was created with 'recoverable: true'. SECURITY RISK:
+            "The full `API key` in plaintext. Only included when `decrypt`
+            is `true` and the key was created with `recoverable: true`. SECURITY RISK:
             This field contains the actual secret key which should never be logged,
             stored in databases, or exposed in any frontend code. It should only be
             displayed directly to users through secure channels. Most applications
@@ -594,7 +663,7 @@ components:
           maxLength: 255 # Reasonable upper bound for database identifiers
           pattern: "^[a-zA-Z0-9_]+$"
           description: |
-            Specifies which key receives the additional permissions using the database identifier returned from createKey.
+            Specifies which key receives the additional permissions using the database identifier returned from `keys.createKey`.
             Do not confuse this with the actual API key string that users include in requests.
             Added permissions supplement existing permissions and roles without replacing them.
             Permission changes take effect immediately but may take up to 30 seconds to propagate across all regions.
@@ -608,7 +677,6 @@ components:
             Duplicate permissions are ignored automatically, making this operation idempotent.
             Use either ID for existing permissions or slug for new permissions with optional auto-creation.
 
-            During verification, hierarchical patterns match descendant permissions - 'billing.*' grants access to 'billing.invoices.view'.
             Permission changes take effect immediately but cache propagation across regions may take up to 30 seconds.
             Adding permissions never removes existing permissions or role-based permissions.
           items:
@@ -632,9 +700,9 @@ components:
                 pattern: "^[a-zA-Z0-9_]+$"
                 description: |
                   Identifies the permission by its human-readable name using hierarchical naming patterns.
-                  Use 'resource.action' format for logical organization and verification flexibility.
-                  Slugs must be unique within your workspace and support wildcard matching during verification.
-                  Combined with create=true, allows automatic permission creation for streamlined workflows.
+                  Use `resource.action` format for logical organization and verification flexibility.
+                  Slugs must be unique within your `workspace` and support wildcard matching during verification.
+                  Combined with `create=true`, allows automatic permission creation for streamlined workflows.
                 example: documents.write
               create:
                 type: boolean
@@ -642,7 +710,7 @@ components:
                 description: |
                   Enables automatic permission creation when the specified slug does not exist.
                   Only works with slug-based references, not ID-based references.
-                  Requires the rbac.*.create_permission permission on your root key.
+                  Requires the `rbac.*.create_permission` permission on your root key.
 
                   Created permissions are permanent and visible workspace-wide to all API keys.
                   Use carefully to avoid permission proliferation from typos or uncontrolled creation.
@@ -662,9 +730,8 @@ components:
 
         Important notes:
         - This list does NOT include permissions granted through roles
-        - For a complete permission picture, use /v2/keys.getKey instead
+        - For a complete permission picture, use `/v2/keys.getKey` instead
         - An empty array indicates the key has no direct permissions assigned
-        - Only includes direct permissions from the same workspace as the key
       items:
         type: object
         required:
@@ -675,7 +742,7 @@ components:
           id:
             type: string
             description:
-              The unique identifier of the permission (begins with 'perm_').
+              The unique identifier of the permission (begins with `perm_`).
               This ID can be used in other API calls to reference this specific permission.
               IDs are guaranteed unique and won't change, making them ideal for scripting
               and automation. You can store these IDs in your system for consistent
@@ -688,15 +755,7 @@ components:
           slug:
             type: string
             description: |-
-              The slug of the permission, typically following a 'resource.action' pattern like 'documents.read'. Names are human-readable identifiers used both for assignment and verification.
-
-              During verification:
-              - The exact name is matched (e.g., 'documents.read')
-              - Hierarchical wildcards are supported in verification requests
-              - A key with permission 'documents.*' grants access to 'documents.read', 'documents.write', etc.
-              - Wildcards can appear at any level: 'billing.*.view' matches 'billing.invoices.view' and 'billing.payments.view'
-
-              However, when adding permissions, you must specify each exact permission - wildcards are not valid for assignment.
+              The slug of the permission, typically following a `resource.action` pattern like `documents.read`.
             example: documents.write
     V2KeysAddPermissionsResponse:
       type: object
@@ -720,7 +779,7 @@ components:
           maxLength: 255 # Reasonable upper bound for database identifiers
           pattern: "^[a-zA-Z0-9_]+$"
           description: |
-            Specifies which key loses the permissions using the database identifier returned from createKey.
+            Specifies which key to remove permissions from using the database identifier returned from `keys.createKey`.
             Do not confuse this with the actual API key string that users include in requests.
             Removing permissions only affects direct assignments, not permissions inherited from roles.
             Permission changes take effect immediately but may take up to 30 seconds to propagate across all regions.
@@ -751,31 +810,66 @@ components:
                   Takes precedence over name when both are provided in the same object.
                   Essential for automation scripts where precision prevents accidental permission removal.
                 example: perm_1n9McEIBSqy44Qy7hzWyM5
-              name:
+              slug:
                 type: string
                 minLength: 1
-                maxLength: 100 # Keep permission names concise and readable
+                maxLength: 100 # Keep permission slugs concise and readable
                 pattern: "^[a-zA-Z0-9_]+$"
                 description: |
-                  Identifies the permission to remove by its exact name with case-sensitive matching.
-                  Must match the complete hierarchical path as originally defined, starting with a letter and using only letters, numbers, underscores, dots, asterisks, or hyphens.
-                  No wildcard removal is supported - specify each permission individually for safety.
-                  Name lookup occurs within the same workspace as the target key.
+                  Identifies the permission by slug for removal from the key's direct assignment list.
                 example: documents.write
             additionalProperties: false
       additionalProperties: false
     V2KeysRemovePermissionsResponseData:
-      type: object
+      type: array
       description: |-
-        Empty response object by design. A successful response indicates the permissions were successfully removed from the key. Unlike the addPermissions endpoint which returns the current permissions, this endpoint returns an empty object to reduce response size.
+        Complete list of all permissions directly assigned to the key after the removal operation (remaining permissions only).
 
-        Important post-operation effects:
+        This response includes:
+        - All direct permissions still assigned to the key after removal
+        - Permissions sorted alphabetically by name for consistent response format
+        - Both the permission ID and name for each remaining permission
+
+        Important notes:
+        - This list does NOT include permissions granted through roles
+        - For a complete permission picture, use `/v2/keys.getKey` instead
+        - An empty array indicates the key has no direct permissions assigned
         - Any cached versions of the key are immediately invalidated to ensure consistency
         - Changes to permissions take effect within seconds for new verifications
-        - Existing verification sessions might retain permissions until their cache expires (usually <30 seconds)
-        - To get the updated list of permissions, use the keys.getKey endpoint
         - All permission removals are logged to the audit log for security tracking
-      additionalProperties: false
+      items:
+        type: object
+        required:
+          - id
+          - name
+          - slug
+        properties:
+          id:
+            type: string
+            description:
+              The unique identifier of the permission (begins with `perm_`).
+              This ID can be used in other API calls to reference this specific permission.
+              IDs are guaranteed unique and won't change, making them ideal for scripting
+              and automation. You can store these IDs in your system for consistent
+              reference.
+            example: perm_1n9McEIBSqy44Qy7hzWyM5
+          name:
+            type: string
+            description: The name of the permission
+            example: documents.write
+          slug:
+            type: string
+            description: |-
+              The slug of the permission, typically following a `resource.action` pattern like `documents.read`. Names are human-readable identifiers used both for assignment and verification.
+
+              During verification:
+              - The exact name is matched (e.g., `documents.read`)
+              - Hierarchical wildcards are supported in verification requests
+              - A key with permission `documents.*` grants access to `documents.read`, `documents.write`, etc.
+              - Wildcards can appear at any level: `billing.*.view` matches `billing.invoices.view` and `billing.payments.view`
+
+              However, when adding permissions, you must specify each exact permission - wildcards are not valid for assignment.
+            example: documents.write
     V2KeysRemovePermissionsResponse:
       type: object
       required:
@@ -820,7 +914,7 @@ components:
               id:
                 type: string
                 description:
-                  The ID of an existing permission (begins with 'perm_').
+                  The ID of an existing permission (begins with `perm_`).
                   Provide either ID or slug for each permission, not both. Using ID
                   is more precise and guarantees you're referencing the exact permission
                   intended, regardless of slug changes or duplicates. IDs are particularly
@@ -844,11 +938,11 @@ components:
                   When true, if a permission with this slug doesn't exist, it will be automatically created on-the-fly. Only works when specifying slug, not ID.
 
                   SECURITY CONSIDERATIONS:
-                  - Requires the 'rbac.*.create_permission' permission on your root key
+                  - Requires the `rbac.*.create_permission` permission on your root key
                   - Created permissions are permanent and visible throughout your workspace
                   - Use carefully to avoid permission proliferation and inconsistency
                   - Consider using a controlled process for permission creation instead
-                  - Typos with create=true will create unintended permissions that persist in your system
+                  - Typos with `create=true` will create unintended permissions that persist in your system
                 default: false
             additionalProperties: false
       additionalProperties: false
@@ -903,7 +997,7 @@ components:
           maxLength: 255 # Reasonable upper bound for database identifiers
           pattern: "^[a-zA-Z0-9_]+$"
           description: |
-            Specifies which key receives the additional roles using the database identifier returned from createKey.
+            Specifies which key receives the additional roles using the database identifier returned from `createKey`.
             Do not confuse this with the actual API key string that users include in requests.
             Added roles supplement existing roles and permissions without replacing them.
             Role assignments take effect immediately but may take up to 30 seconds to propagate across all regions.
@@ -973,7 +1067,7 @@ components:
           id:
             type: string
             description:
-              The unique identifier of the role (begins with 'role_').
+              The unique identifier of the role (begins with `role_`).
               This ID can be used in other API calls to reference this specific role.
               Role IDs are immutable and guaranteed to be unique within your Unkey
               workspace, making them reliable reference points for integration and
@@ -985,8 +1079,8 @@ components:
               The name of the role. This is a human-readable identifier
               that's unique within your workspace. Role names help identify what access
               level or function a role provides. Common patterns include naming by
-              access level ('admin', 'editor', 'viewer'), by department ('billing_manager',
-              'support_agent'), or by feature area ('analytics_user', 'dashboard_admin').
+              access level (`admin`, `editor`, `viewer`), by department (`billing_manager`,
+              `support_agent`), or by feature area (`analytics_user`, `dashboard_admin`).
             example: admin
     V2KeysAddRolesResponse:
       type: object
@@ -1080,7 +1174,7 @@ components:
           id:
             type: string
             description:
-              The unique identifier of the role (begins with 'role_').
+              The unique identifier of the role (begins with `role_`).
               This ID can be used in other API calls to reference this specific role.
             example: role_1n9McEIBSqy44Qy7hzWyM5
           name:
@@ -1182,7 +1276,7 @@ components:
           id:
             type: string
             description:
-              The unique identifier of the role (begins with 'role_').
+              The unique identifier of the role (begins with `role_`).
               This ID can be used in other API calls to reference this specific role.
               Role IDs are immutable and guaranteed to be unique, making them reliable
               reference points for integration and automation systems.
@@ -1216,7 +1310,7 @@ components:
         keyId:
           type: string
           description:
-            The ID of the key to update (begins with 'key_'). This is the
+            The ID of the key to update (begins with `key_`). This is the
             database reference ID for the key, not the actual API key string that
             users authenticate with. This ID uniquely identifies which key's credits
             will be updated.
@@ -1348,7 +1442,7 @@ components:
           pattern: "^[a-zA-Z0-9_]+$"
           description: |
             Adds a visual identifier to the beginning of the generated key for easier recognition in logs and dashboards.
-            The prefix becomes part of the actual key string (e.g., 'prod_xxxxxxxxx').
+            The prefix becomes part of the actual key string (e.g., `prod_xxxxxxxxx`).
             Avoid using sensitive information in prefixes as they may appear in logs and error messages.
           example: prod
         name:
@@ -1427,8 +1521,8 @@ components:
             pattern: "^[a-zA-Z0-9_]+$"
           description: |
             Grants specific permissions directly to this key without requiring role membership.
-            Use hierarchical naming patterns like 'resource.action' for logical organization.
-            Wildcard permissions like 'documents.*' grant access to all sub-permissions including 'documents.read' and 'documents.write'.
+            Use hierarchical naming patterns like `resource.action` for logical organization.
+            Wildcard permissions like `documents.*` grant access to all sub-permissions including `documents.read` and `documents.write`.
             Direct permissions supplement any permissions inherited from assigned roles.
           example:
             - documents.read
@@ -1572,9 +1666,9 @@ components:
           default: true
           description: |
             Controls whether the key is active immediately upon creation.
-            When set to false, the key exists but all verification attempts fail with code=DISABLED.
+            When set to `false`, the key exists but all verification attempts fail with `code=DISABLED`.
             Useful for pre-creating keys that will be activated later or for keys requiring manual approval.
-            Most keys should be created with enabled=true for immediate use.
+            Most keys should be created with `enabled=true` for immediate use.
           example: true
         recoverable:
           type: boolean
@@ -1606,7 +1700,7 @@ components:
             the complete key - Unkey only stores a securely hashed version. Never
             log or store this value in your own systems; provide it directly to your
             end user via secure channels. After this API call completes, this value
-            cannot be retrieved again (unless created with recoverable=true)."
+            cannot be retrieved again (unless created with `recoverable=true`)."
           example: prod_2cGKbMxRjIzhCxo1IdjH3arELti7Sdyc8w6XYbvtcyuBowPT
       required:
         - keyId
@@ -1638,7 +1732,7 @@ components:
       description:
         Metadata object included in every API response. This provides context
         about the request and is essential for debugging, audit trails, and support
-        inquiries. The requestId is particularly important when troubleshooting issues
+        inquiries. The `requestId` is particularly important when troubleshooting issues
         with the Unkey support team.
     Pagination:
       type: object
@@ -1672,21 +1766,12 @@ components:
             for developers troubleshooting the issue.
           example: Property foo is required but is missing.
           type: string
-        instance:
-          description:
-            A URI reference that identifies the specific occurrence of
-            the problem. This can be used to look up additional information about
-            this specific error instance in logs or error tracking systems, and is
-            particularly useful when reporting issues to support.
-          example: https://example.com/error-log/abc123
-          format: uri
-          type: string
         status:
           description:
             HTTP status code that corresponds to this error. This will
-            match the status code in the HTTP response. Common codes include 400 (Bad
-            Request), 401 (Unauthorized), 403 (Forbidden), 404 (Not Found), 409 (Conflict),
-            and 500 (Internal Server Error).
+            match the status code in the HTTP response. Common codes include `400` (Bad
+            Request), `401` (Unauthorized), `403` (Forbidden), `404` (Not Found), `409` (Conflict),
+            and `500` (Internal Server Error).
           example: 404
           format: int
           type: integer
@@ -1836,7 +1921,7 @@ components:
         - The authentication token has expired
 
         To fix this error:
-        1. Ensure you're including the Authorization header with format: 'Bearer your_root_key'
+        1. Ensure you're including the `Authorization` header with format: `Bearer your_root_key`
         2. Verify your root key is valid and has not been revoked in the Unkey dashboard
         3. Check that you're using the correct root key for the environment
         4. If using a new key, ensure it was created successfully
@@ -1930,7 +2015,7 @@ components:
         with the service infrastructure, database connectivity issues, unexpected
         exceptions, or service failures. When receiving this error, clients should
         implement appropriate retry strategies with backoff and report the issue if
-        it persists. The requestId in the meta object is essential for troubleshooting
+        it persists. The `requestId` in the `meta` object is essential for troubleshooting
         and should be included in any support inquiries.
     Identity:
       type: object
@@ -2175,8 +2260,8 @@ components:
       properties:
         namespaceId:
           description:
-            The unique ID of the rate limit namespace. Either namespaceId
-            or namespaceName must be provided, but not both. Using namespaceId guarantees
+            The unique ID of the rate limit namespace. Either `namespaceId`
+            or `namespaceName` must be provided, but not both. Using `namespaceId` guarantees
             you're targeting the exact namespace intended, even if names change, making
             it ideal for automation and scripts.
           type: string
@@ -2184,8 +2269,8 @@ components:
           maxLength: 255
         namespaceName:
           description:
-            The name of the rate limit namespace. Either namespaceId or
-            namespaceName must be provided, but not both. Using namespaceName is more
+            The name of the rate limit namespace. Either `namespaceId` or
+            `namespaceName` must be provided, but not both. Using `namespaceName` is more
             human-readable and convenient for manual operations and configurations.
           type: string
         duration:
@@ -2276,8 +2361,8 @@ components:
       properties:
         namespaceId:
           description:
-            The unique ID of the rate limit namespace. Either namespaceId
-            or namespaceName must be provided, but not both. Using namespaceId is
+            The unique ID of the rate limit namespace. Either `namespaceId`
+            or `namespaceName` must be provided, but not both. Using `namespaceId` is
             more precise and less prone to naming conflicts, making it ideal for scripts
             and automated operations.
           type: string
@@ -2285,8 +2370,8 @@ components:
           maxLength: 255
         namespaceName:
           description:
-            The name of the rate limit namespace. Either namespaceId or
-            namespaceName must be provided, but not both. Using namespaceName is more
+            The name of the rate limit namespace. Either `namespaceId` or
+            `namespaceName` must be provided, but not both. Using `namespaceName` is more
             human-readable and easier to work with for manual operations and configurations.
           type: string
           minLength: 1
@@ -2323,8 +2408,8 @@ components:
         namespaceId:
           description:
             The unique ID of the rate limit namespace to list overrides
-            for. Either namespaceId or namespaceName must be provided, but not both.
-            Using namespaceId guarantees you're targeting the exact namespace intended,
+            for. Either `namespaceId` or `namespaceName` must be provided, but not both.
+            Using `namespaceId` guarantees you're targeting the exact namespace intended,
             even if names change over time.
           type: string
           minLength: 1
@@ -2332,8 +2417,8 @@ components:
         namespaceName:
           description:
             The name of the rate limit namespace to list overrides for.
-            Either namespaceId or namespaceName must be provided, but not both. Using
-            namespaceName is more human-readable and convenient for manual operations
+            Either `namespaceId` or `namespaceName` must be provided, but not both. Using
+            `namespaceName` is more human-readable and convenient for manual operations
             and dashboards.
           type: string
         cursor:
@@ -2430,7 +2515,7 @@ components:
           maximum: 1000000 # Reasonable upper bound for rate limits
           description: |
             Sets the maximum operations allowed within the duration window before requests are rejected.
-            When this limit is reached, subsequent requests fail with RATE_LIMITED until the window resets.
+            When this limit is reached, subsequent requests fail with `RATE_LIMITED` until the window resets.
             Balance user experience with resource protection when setting limits for different user tiers.
             Consider system capacity, business requirements, and fair usage policies in limit determination.
           example: 1000
@@ -2479,7 +2564,7 @@ components:
           description: |-
             Whether the request passed the rate limit check. If true, the request is allowed to proceed. If false, the request has exceeded the rate limit and should be blocked or rejected.
 
-            You MUST check this field to determine if the request should proceed, as the endpoint always returns HTTP 200 even when rate limited.
+            You MUST check this field to determine if the request should proceed, as the endpoint always returns `HTTP 200` even when rate limited.
           type: boolean
         overrideId:
           description: |-
@@ -2523,8 +2608,8 @@ components:
         namespaceId:
           description:
             The unique ID of the rate limit namespace containing the override.
-            Either namespaceId or namespaceName must be provided, but not both. Using
-            namespaceId is more precise and less prone to naming conflicts, making
+            Either `namespaceId` or `namespaceName` must be provided, but not both. Using
+            `namespaceId` is more precise and less prone to naming conflicts, making
             it ideal for automation and scripts.
           type: string
           minLength: 1
@@ -2532,8 +2617,8 @@ components:
         namespaceName:
           description:
             The name of the rate limit namespace containing the override.
-            Either namespaceId or namespaceName must be provided, but not both. Using
-            namespaceName is more human-readable and convenient for manual operations
+            Either `namespaceId` or `namespaceName` must be provided, but not both. Using
+            `namespaceName` is more human-readable and convenient for manual operations
             and configurations.
           type: string
           minLength: 1
@@ -2647,7 +2732,7 @@ components:
           description: |-
             The maximum number of operations allowed within the specified time window.
 
-            When this limit is reached, verification requests will fail with code=RATE_LIMITED until the window resets. The limit should reflect:
+            When this limit is reached, verification requests will fail with `code=RATE_LIMITED` until the window resets. The limit should reflect:
             - Your infrastructure capacity and scaling limitations
             - Fair usage expectations for your service
             - Different tier levels for various user types
@@ -2674,14 +2759,14 @@ components:
       properties:
         identityId:
           description: |-
-            The unique identifier for this identity in Unkey's system (begins with 'id_').
+            The unique identifier for this identity in Unkey's system (begins with `id_`).
 
-            This ID is generated automatically and used internally by Unkey to reference this identity. While you typically don't need to store this value (your externalId is sufficient), it can be useful to record it for:
+            This ID is generated automatically and used internally by Unkey to reference this identity. While you typically don't need to store this value (your `externalId` is sufficient), it can be useful to record it for:
             - Debugging purposes
             - Advanced API operations
             - Integration with Unkey's analytics
 
-            Unlike externalId which comes from your system, this ID is guaranteed unique across all Unkey workspaces.
+            Unlike `externalId` which comes from your system, this ID is guaranteed unique across all Unkey `workspaces`.
           type: string
       required:
         - identityId
@@ -3470,7 +3555,7 @@ components:
 
             CRITICAL WARNING: Deletion is immediate and irreversible with severe consequences:
             - ALL keys associated with this API become invalid instantly
-            - Verification requests for these keys will fail with code=NOT_FOUND
+            - Verification requests for these keys will fail with `code=NOT_FOUND`
             - Client applications using these keys will lose access immediately
             - Analytics data and key metadata are permanently removed
             - This operation cannot be undone under any circumstances
@@ -3855,7 +3940,7 @@ components:
               pattern: "^[a-zA-Z0-9_]+$"
               description: |
                 Checks if the key has this specific permission. Supports hierarchical permissions where
-                'documents.*' grants access to 'documents.read' and 'documents.write'.
+                `documents.*` grants access to `documents.read` and `documents.write`.
                 Verification fails if the key lacks this exact permission or a parent wildcard permission.
               example: "documents.read"
             - type: object
@@ -3992,18 +4077,18 @@ components:
             - EXPIRED
           description:
             "A machine-readable code indicating the verification status
-            or failure reason. Values: VALID (key is valid), NOT_FOUND (key doesn't
-            exist), FORBIDDEN (key exists but belongs to a different API), USAGE_EXCEEDED
-            (key has no more credits), RATE_LIMITED (key exceeded rate limits), UNAUTHORIZED
-            (key can't be used for this action), DISABLED (key was explicitly disabled),
-            INSUFFICIENT_PERMISSIONS (key lacks required permissions), EXPIRED (key
+            or failure reason. Values: `VALID` (key is valid), `NOT_FOUND` (key doesn't
+            exist), `FORBIDDEN` (key exists but belongs to a different API), `USAGE_EXCEEDED`
+            (key has no more credits), `RATE_LIMITED` (key exceeded rate limits), `UNAUTHORIZED`
+            (key can't be used for this action), `DISABLED` (key was explicitly disabled),
+            `INSUFFICIENT_PERMISSIONS` (key lacks required permissions), `EXPIRED` (key
             has passed its expiration date)."
         keyId:
           type: string
           description:
             The unique identifier of the verified key in Unkey's system.
             Use this ID for operations like updating or revoking the key. This field
-            is returned for both valid and invalid keys (except when code=NOT_FOUND).
+            is returned for both valid and invalid keys (except when `code=NOT_FOUND`).
         name:
           type: string
           description:
@@ -4045,7 +4130,7 @@ components:
           type: boolean
           description:
             Indicates if the key is currently enabled. Disabled keys will
-            always fail verification with code=DISABLED. This is useful for implementing
+            always fail verification with `code=DISABLED`. This is useful for implementing
             temporary suspensions without deleting the key.
         permissions:
           type: array
@@ -4055,7 +4140,7 @@ components:
             A list of all permission names assigned to this key, either
             directly or through roles. These permissions determine what actions the
             key can perform. Only returned when permissions were checked during verification
-            or when the key fails with code=INSUFFICIENT_PERMISSIONS.
+            or when the key fails with `code=INSUFFICIENT_PERMISSIONS`.
         roles:
           type: array
           items:
@@ -4115,7 +4200,7 @@ components:
           description:
             Information about the rate limits applied during verification.
             Only included when rate limits were checked. If verification failed with
-            code=RATE_LIMITED, this will show which specific rate limit was exceeded.
+            `code=RATE_LIMITED`, this will show which specific rate limit was exceeded.
       required:
         - valid
         - code
@@ -4228,13 +4313,19 @@ paths:
         - keys
       summary: Get information about an API key
       description: |-
-        Retrieves comprehensive information about an API key without consuming credits or incrementing usage counters. Returns the key's configuration, metadata, permissions, and current status for introspection and debugging purposes.
+        Identifies the owner and details of an API key without triggering billing or usage tracking. This endpoint is designed for scenarios where users provide API keys to your application and you need to determine key ownership and basic information without performing a billed verification.
 
-        Use this endpoint to validate that a key exists and is properly configured before using it in production systems. The response includes all available key details including sensitive metadata, so restrict usage to secure contexts only. Applications commonly call this during startup routines to validate API key configuration, in admin dashboards to display key information, and in support tools for troubleshooting authentication issues.
+        Common use cases:
+        - User onboarding flows where customers enter their API keys and you need to identify the account owner
+        - Admin dashboards displaying which user or organization owns specific keys
+        - Key validation during setup without consuming credits or affecting usage metrics
+        - Support tools for troubleshooting key ownership and configuration issues
 
-        The endpoint returns real-time data including recent permission and role changes. When a key has an associated identity, the response includes that identity information as well. Effective permissions appear from both direct assignment and role inheritance, providing a complete view of what the key can access.
+        The response includes key metadata, identity information (if associated), permissions, and current status. When a key has an associated identity, you can use the `externalId` to map it back to your user system without storing the raw API key.
 
-        Since the response may contain sensitive business data in metadata fields, consider implementing rate limiting in client applications to prevent abuse. The endpoint requires a valid API key in the request body but does not affect any usage metrics or billing calculations.
+        This endpoint provides an alternative to verification when you only need identification rather than access control. Unlike verification, it does not consume credits, increment usage counters, or affect rate limits associated with the key.
+
+        Since the response may contain sensitive business data in metadata fields, restrict usage to secure contexts and consider implementing rate limiting to prevent abuse.
       operationId: whoami
       x-speakeasy-name-override: whoami
       security:
@@ -4401,7 +4492,7 @@ paths:
                 summary: Set with permission creation
                 description:
                   This example demonstrates setting permissions while simultaneously
-                  creating new ones that don't exist yet. Requires the rbac.*.create_permission
+                  creating new ones that don't exist yet. Requires the `rbac.*.create_permission`
                   permission on your root key.
                 value:
                   keyId: key_2cGKbMxRyIzhCxo1Idjz8q
@@ -4511,8 +4602,8 @@ paths:
                       type: unauthorized
         "403":
           description:
-            Forbidden - Insufficient permissions (requires 'rbac.*.add_permission_to_key'
-            and 'rbac.*.remove_permission_from_key' and potentially 'rbac.*.create_permission')
+            Forbidden - Insufficient permissions (requires `rbac.*.add_permission_to_key`
+            and `rbac.*.remove_permission_from_key` and potentially `rbac.*.create_permission`)
           content:
             application/json:
               schema:
@@ -4786,7 +4877,7 @@ paths:
                       status: 401
                       type: unauthorized
         "403":
-          description: Forbidden - Insufficient permissions (requires 'rbac.*.remove_permission_from_key')
+          description: Forbidden - Insufficient permissions (requires `rbac.*.remove_permission_from_key`)
           content:
             application/json:
               schema:
@@ -5033,7 +5124,7 @@ paths:
                 summary: Add and create new permissions
                 description:
                   Setting create=true dynamically creates permissions if
-                  they don't exist yet. This requires the rbac.*.create_permission
+                  they don't exist yet. This requires the `rbac.*.create_permission`
                   permission on your root key.
                 value:
                   keyId: key_2cGKbMxRyIzhCxo1Idjz8q
@@ -5188,8 +5279,8 @@ paths:
                       type: unauthorized
         "403":
           description:
-            Forbidden - Insufficient permissions (requires 'rbac.*.add_permission_to_key'
-            and potentially 'rbac.*.create_permission')
+            Forbidden - Insufficient permissions (requires `rbac.*.add_permission_to_key`
+            and potentially `rbac.*.create_permission`)
           content:
             application/json:
               schema:
@@ -5416,9 +5507,9 @@ paths:
       description: |-
         Sets the remaining number of credits for a key, providing precise control over usage limits for implementing usage-based business models. Use this endpoint when customers make purchases to add credits, during subscription renewals to reset credits, or for adjustments due to refunds and promotions.
 
-        The credits feature provides globally consistent usage limiting where each successful verification decrements the counter by the specified cost value (default 1). When credits reach zero, verification fails with code=USAGE_EXCEEDED, making this ideal for monetization models where accuracy is critical compared to rate limits which control frequency.
+        The credits feature provides globally consistent usage limiting where each successful verification decrements the counter by the specified cost value (default 1). When credits reach zero, verification fails with `code=USAGE_EXCEEDED`, making this ideal for monetization models where accuracy is critical compared to rate limits which control frequency.
 
-        This endpoint works alongside createKey for setting initial credits and the automatic refill system for periodic replenishment. You can optionally remove automatic refill settings from the key, effectively converting it from periodic refills to fixed credit allocation. Common scenarios include implementing free trial extensions, granting bonus credits as incentives, or converting between subscription models.
+        This endpoint works alongside `createKey` for setting initial credits and the automatic refill system for periodic replenishment. You can optionally remove automatic refill settings from the key, effectively converting it from periodic refills to fixed credit allocation. Common scenarios include implementing free trial extensions, granting bonus credits as incentives, or converting between subscription models.
       operationId: updateRemaining
       x-speakeasy-name-override: updateRemaining
       security:
@@ -5777,7 +5868,7 @@ paths:
         Permanently deletes an API key, preventing it from being used for future verification attempts. This endpoint is used when a key is no longer needed, has been compromised, or needs to be revoked.
 
         When a key is deleted:
-        - Verification attempts will fail with code=NOT_FOUND
+        - Verification attempts will fail with `code=NOT_FOUND`
         - The key no longer appears in API key listings
         - Historical verification data is preserved for analytics
 
@@ -5807,7 +5898,7 @@ paths:
             in the current region, but it may take up to 30 seconds for deletion to
             propagate to all regions due to eventual consistency. After deletion,
             the key will no longer appear in key listings, and verification attempts
-            will return code=NOT_FOUND. Soft-deleted keys (permanent=false) remain
+            will return `code=NOT_FOUND`. Soft-deleted keys (`permanent=false`) remain
             in the database but are marked as deleted, while permanently deleted keys
             are completely removed.
         "400":
@@ -7509,7 +7600,7 @@ paths:
 
         WARNING: This is a destructive operation with significant consequences:
         - All keys associated with this API will be invalidated immediately
-        - Verification attempts for these keys will fail with code=NOT_FOUND
+        - Verification attempts for these keys will fail with `code=NOT_FOUND`
         - Historical analytics data for the API and its keys will be preserved
         - This action cannot be undone
 

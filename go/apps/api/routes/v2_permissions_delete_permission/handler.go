@@ -94,11 +94,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// 5. Delete the permission in a transaction
-	_, err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (interface{}, error) {
+	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		// Delete role-permission relationships
-		err := db.Query.DeleteManyRolePermissionsByPermissionID(ctx, tx, req.PermissionId)
+		err = db.Query.DeleteManyRolePermissionsByPermissionID(ctx, tx, req.PermissionId)
 		if err != nil {
-			return nil, fault.Wrap(err,
+			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error"), fault.Public("Failed to delete role-permission relationships."),
 			)
@@ -107,7 +107,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// Delete key-permission relationships
 		err = db.Query.DeleteManyKeyPermissionsByPermissionID(ctx, tx, req.PermissionId)
 		if err != nil {
-			return nil, fault.Wrap(err,
+			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error"), fault.Public("Failed to delete key-permission relationships."),
 			)
@@ -116,7 +116,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// Delete the permission itself
 		err = db.Query.DeletePermission(ctx, tx, req.PermissionId)
 		if err != nil {
-			return nil, fault.Wrap(err,
+			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error"), fault.Public("Failed to delete permission."),
 			)
@@ -130,6 +130,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ActorType:   auditlog.RootKeyActor,
 				ActorID:     auth.KeyID,
 				ActorName:   "root key",
+				ActorMeta:   map[string]any{},
 				Display:     "Deleted " + req.PermissionId,
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
@@ -148,13 +149,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			},
 		})
 		if err != nil {
-			return nil, fault.Wrap(err,
+			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("audit log error"), fault.Public("Failed to create audit log for permission deletion."),
 			)
 		}
 
-		return nil, nil
+		return nil
 	})
 	if err != nil {
 		return err

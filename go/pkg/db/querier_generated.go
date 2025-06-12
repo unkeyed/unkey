@@ -615,7 +615,7 @@ type Querier interface {
 	//  FROM keys_permissions kp
 	//  JOIN permissions p ON kp.permission_id = p.id
 	//  WHERE kp.key_id = ?
-	//  ORDER BY p.name
+	//  ORDER BY p.slug
 	ListDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error)
 	//ListIdentities
 	//

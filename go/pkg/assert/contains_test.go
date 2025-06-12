@@ -39,6 +39,7 @@ func FuzzContains(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, s, substr string) {
 		err := assert.Contains(s, substr)
+		// nolint:nestif
 		if s == "" && substr == "" {
 			// Special case: empty string contains empty string
 			if err != nil {

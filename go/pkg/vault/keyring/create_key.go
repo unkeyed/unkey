@@ -29,7 +29,7 @@ func (k *Keyring) CreateKey(ctx context.Context, ringID string) (*vaultv1.DataEn
 		return nil, fmt.Errorf("failed to encrypt and encode dek: %w", err)
 	}
 
-	err = k.store.PutObject(ctx, k.buildLookupKey(ringID, dek.Id), b)
+	err = k.store.PutObject(ctx, k.buildLookupKey(ringID, dek.GetId()), b)
 	if err != nil {
 		return nil, fmt.Errorf("failed to put encrypted dek: %w", err)
 	}

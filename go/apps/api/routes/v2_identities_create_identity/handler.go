@@ -132,7 +132,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	identityID, err := db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
+	identityID, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
 		identityID := uid.New(uid.IdentityPrefix)
 		args := db.InsertIdentityParams{
 			ID:          identityID,
@@ -145,9 +145,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		h.Logger.Warn("inserting identity",
 			"args", args,
 		)
-		err := db.Query.InsertIdentity(ctx, tx, args)
+		err = db.Query.InsertIdentity(ctx, tx, args)
 
-		h.Logger.Error("insert identity failed", "requestId", s.RequestID(), "error", err)
 		if err != nil {
 			if db.IsDuplicateKeyError(err) {
 				return "", fault.Wrap(err,
@@ -168,7 +167,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Display:     fmt.Sprintf("Created identity %s.", identityID),
 				ActorID:     auth.KeyID,
 				ActorName:   "root key",
-				Bucket:      auditlogs.DEFAULT_BUCKET,
+				ActorMeta:   map[string]any{},
 				ActorType:   auditlog.RootKeyActor,
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
@@ -207,10 +206,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					Event:       auditlog.RatelimitCreateEvent,
 					Display:     fmt.Sprintf("Created ratelimit %s.", ratelimitID),
 					ActorID:     auth.KeyID,
-					Bucket:      auditlogs.DEFAULT_BUCKET,
 					ActorType:   auditlog.RootKeyActor,
 					ActorName:   "root key",
-					ActorMeta:   nil,
+					ActorMeta:   map[string]any{},
 					RemoteIP:    s.Location(),
 					UserAgent:   s.UserAgent(),
 					Resources: []auditlog.AuditLogResource{

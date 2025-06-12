@@ -193,17 +193,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// 8. Apply changes in transaction
-	_, err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (interface{}, error) {
+	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		var auditLogs []auditlog.AuditLog
 
 		// Remove roles that are no longer needed
 		for _, roleID := range rolesToRemove {
-			err := db.Query.DeleteManyKeyRolesByKeyID(ctx, tx, db.DeleteManyKeyRolesByKeyIDParams{
+			err = db.Query.DeleteManyKeyRolesByKeyID(ctx, tx, db.DeleteManyKeyRolesByKeyIDParams{
 				KeyID:  req.KeyId,
 				RoleID: roleID,
 			})
 			if err != nil {
-				return nil, fault.Wrap(err,
+				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 					fault.Internal("database error"), fault.Public("Failed to remove role assignment."),
 				)
@@ -224,6 +224,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ActorType:   auditlog.RootKeyActor,
 				ActorID:     auth.KeyID,
 				ActorName:   "root key",
+				ActorMeta:   map[string]any{},
 				Display:     fmt.Sprintf("Removed role %s from key %s", removedRole.Name, req.KeyId),
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
@@ -233,12 +234,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						ID:          req.KeyId,
 						Name:        key.Name.String,
 						DisplayName: key.Name.String,
+						Meta:        map[string]any{},
 					},
 					{
 						Type:        "role",
 						ID:          removedRole.ID,
 						Name:        removedRole.Name,
 						DisplayName: removedRole.Name,
+						Meta:        map[string]any{},
 					},
 				},
 			})
@@ -246,14 +249,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		// Add new roles
 		for _, role := range rolesToAdd {
-			err := db.Query.InsertKeyRole(ctx, tx, db.InsertKeyRoleParams{
+			err = db.Query.InsertKeyRole(ctx, tx, db.InsertKeyRoleParams{
 				KeyID:       req.KeyId,
 				RoleID:      role.ID,
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				CreatedAtM:  time.Now().UnixMilli(),
 			})
 			if err != nil {
-				return nil, fault.Wrap(err,
+				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 					fault.Internal("database error"), fault.Public("Failed to add role assignment."),
 				)
@@ -265,6 +268,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ActorType:   auditlog.RootKeyActor,
 				ActorID:     auth.KeyID,
 				ActorName:   "root key",
+				ActorMeta:   map[string]any{},
 				Display:     fmt.Sprintf("Added role %s to key %s", role.Name, req.KeyId),
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
@@ -274,12 +278,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						ID:          req.KeyId,
 						Name:        key.Name.String,
 						DisplayName: key.Name.String,
+						Meta:        map[string]any{},
 					},
 					{
 						Type:        "role",
 						ID:          role.ID,
 						Name:        role.Name,
 						DisplayName: role.Name,
+						Meta:        map[string]any{},
 					},
 				},
 			})
@@ -289,14 +295,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if len(auditLogs) > 0 {
 			err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 			if err != nil {
-				return nil, fault.Wrap(err,
+				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 					fault.Internal("audit log error"), fault.Public("Failed to create audit log for role changes."),
 				)
 			}
 		}
 
-		return nil, nil
+		return nil
 	})
 	if err != nil {
 		return err

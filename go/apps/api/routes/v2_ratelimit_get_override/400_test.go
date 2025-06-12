@@ -46,7 +46,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("missing identifier", func(t *testing.T) {
@@ -65,7 +64,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("empty identifier", func(t *testing.T) {
@@ -86,7 +84,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("neither namespace ID nor name provided", func(t *testing.T) {
@@ -107,7 +104,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Equal(t, len(res.Body.Error.Errors), 0)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("missing authorization header", func(t *testing.T) {

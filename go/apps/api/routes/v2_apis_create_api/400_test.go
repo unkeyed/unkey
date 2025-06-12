@@ -96,7 +96,7 @@ func TestCreateApi_BadRequest(t *testing.T) {
 		invalidJSON := `{"name": "test-api", "invalid json": }`
 
 		// Make a direct HTTP request with invalid JSON payload
-		req, err := http.NewRequest("POST", "/v2/apis.createApi", strings.NewReader(invalidJSON))
+		req, err := http.NewRequest(route.Method(), route.Path(), strings.NewReader(invalidJSON))
 		require.NoError(t, err)
 
 		// Add headers

@@ -56,10 +56,10 @@ func TestMigrateDeks(t *testing.T) {
 		require.NoError(t, err)
 		res, encryptErr := v.Encrypt(ctx, &vaultv1.EncryptRequest{
 			Keyring: "keyring",
-			Data:    string(d),
+			Data:    d,
 		})
 		require.NoError(t, encryptErr)
-		data[d] = res.Encrypted
+		data[d] = res.GetEncrypted()
 	}
 
 	// Simulate Restart
@@ -84,7 +84,7 @@ func TestMigrateDeks(t *testing.T) {
 			Encrypted: e,
 		})
 		require.NoError(t, decryptErr)
-		require.Equal(t, d, res.Plaintext)
+		require.Equal(t, d, res.GetPlaintext())
 	}
 	// Simulate another restart, removing the old master key
 
@@ -102,7 +102,7 @@ func TestMigrateDeks(t *testing.T) {
 			Encrypted: e,
 		})
 		require.NoError(t, err)
-		require.Equal(t, d, res.Plaintext)
+		require.Equal(t, d, res.GetPlaintext())
 	}
 
 }

@@ -63,10 +63,10 @@ func Test_ColdStart(t *testing.T) {
 	// Alice decrypts her secret
 	aliceDecryptionRes, err := v.Decrypt(ctx, &vaultv1.DecryptRequest{
 		Keyring:   "alice",
-		Encrypted: aliceEncryptionRes.Encrypted,
+		Encrypted: aliceEncryptionRes.GetEncrypted(),
 	})
 	require.NoError(t, err)
-	require.Equal(t, aliceData, aliceDecryptionRes.Plaintext)
+	require.Equal(t, aliceData, aliceDecryptionRes.GetPlaintext())
 
 	// Bob reencrypts his secret
 
@@ -76,18 +76,18 @@ func Test_ColdStart(t *testing.T) {
 	require.NoError(t, err)
 	bobReencryptionRes, err := v.ReEncrypt(ctx, &vaultv1.ReEncryptRequest{
 		Keyring:   "bob",
-		Encrypted: bobEncryptionRes.Encrypted,
+		Encrypted: bobEncryptionRes.GetEncrypted(),
 	})
 	require.NoError(t, err)
 
 	// Bob decrypts his secret
 	bobDecryptionRes, err := v.Decrypt(ctx, &vaultv1.DecryptRequest{
 		Keyring:   "bob",
-		Encrypted: bobReencryptionRes.Encrypted,
+		Encrypted: bobReencryptionRes.GetEncrypted(),
 	})
 	require.NoError(t, err)
-	require.Equal(t, bobData, bobDecryptionRes.Plaintext)
+	require.Equal(t, bobData, bobDecryptionRes.GetPlaintext())
 	// expect the key to be different
-	require.NotEqual(t, bobEncryptionRes.KeyId, bobReencryptionRes.KeyId)
+	require.NotEqual(t, bobEncryptionRes.GetKeyId(), bobReencryptionRes.GetKeyId())
 
 }

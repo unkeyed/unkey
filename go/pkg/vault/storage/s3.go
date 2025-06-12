@@ -36,7 +36,9 @@ func NewS3(config S3Config) (Storage, error) {
 
 	logger.Info("using s3 storage")
 
+	// nolint:staticcheck
 	r2Resolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...any) (aws.Endpoint, error) {
+		// nolint:staticcheck
 		return aws.Endpoint{
 			URL:               config.S3URL,
 			HostnameImmutable: true,
@@ -45,7 +47,7 @@ func NewS3(config S3Config) (Storage, error) {
 	})
 
 	cfg, err := awsConfig.LoadDefaultConfig(context.Background(),
-		awsConfig.WithEndpointResolverWithOptions(r2Resolver),
+		awsConfig.WithEndpointResolverWithOptions(r2Resolver), // nolint:staticcheck
 		awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(config.S3AccessKeyId, config.S3AccessKeySecret, "")),
 		awsConfig.WithRegion("auto"),
 		awsConfig.WithRetryMode(aws.RetryModeStandard),

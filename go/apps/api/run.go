@@ -24,6 +24,8 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/prometheus"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
+	"github.com/unkeyed/unkey/go/pkg/vault"
+	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 	"github.com/unkeyed/unkey/go/pkg/version"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 	"github.com/unkeyed/unkey/go/pkg/zen/validation"
@@ -190,6 +192,22 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create permissions service: %w", err)
 	}
 
+	vaultStorage, err := storage.NewMemory(storage.MemoryConfig{
+		Logger: logger,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create vault storage: %w", err)
+	}
+
+	vaultSvc, err := vault.New(vault.Config{
+		Logger:     logger,
+		Storage:    vaultStorage,
+		MasterKeys: []string{"default-key"},
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create vault service: %w", err)
+	}
+
 	routes.Register(srv, &routes.Services{
 		Logger:      logger,
 		Database:    db,
@@ -203,6 +221,7 @@ func Run(ctx context.Context, cfg Config) error {
 			DB:     db,
 		}),
 		Caches: caches,
+		Vault:  vaultSvc,
 	})
 
 	go func() {

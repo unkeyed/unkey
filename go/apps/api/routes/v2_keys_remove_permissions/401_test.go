@@ -83,7 +83,7 @@ func TestAuthenticationErrors(t *testing.T) {
 		KeyId: keyID,
 		Permissions: []struct {
 			Id   *string `json:"id,omitempty"`
-			Name *string `json:"name,omitempty"`
+			Slug *string `json:"slug,omitempty"`
 		}{
 			{Id: &permissionID},
 		},

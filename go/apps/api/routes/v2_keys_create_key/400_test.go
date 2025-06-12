@@ -19,7 +19,6 @@ import (
 )
 
 func Test_CreateKey_BadRequest(t *testing.T) {
-	t.Parallel()
 
 	h := testutil.NewHarness(t)
 	ctx := context.Background()

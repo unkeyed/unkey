@@ -61,7 +61,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		WorkspaceID: auth.AuthorizedWorkspaceID,
 		Deleted:     false,
 		IDCursor:    cursor,
-		Limit:       int32(limit + 1),
+		Limit:       int32(limit + 1), // nolint:gosec
 	})
 
 	if err != nil {
@@ -131,7 +131,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		// Add metadata if available
-		if identity.Meta != nil && len(identity.Meta) > 0 {
+		if len(identity.Meta) > 0 {
 			// Initialize the Meta field with an empty map
 			metaMap := make(map[string]interface{})
 			newIdentity.Meta = &metaMap

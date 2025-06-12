@@ -61,6 +61,9 @@ func New(cfg Config) (*Service, error) {
 		Resource: "data_encryption_key",
 		Clock:    clock.New(),
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create cache: %w", err)
+	}
 
 	return &Service{
 		logger:         cfg.Logger,
@@ -77,11 +80,11 @@ func loadMasterKeys(masterKeys []string) (*vaultv1.KeyEncryptionKey, map[string]
 	if len(masterKeys) == 0 {
 		return nil, nil, fmt.Errorf("no master keys provided")
 	}
-	encryptionKey := &vaultv1.KeyEncryptionKey{}
+	encryptionKey := &vaultv1.KeyEncryptionKey{} // nolint:exhaustruct
 	decryptionKeys := make(map[string]*vaultv1.KeyEncryptionKey)
 
 	for _, mk := range masterKeys {
-		kek := &vaultv1.KeyEncryptionKey{}
+		kek := &vaultv1.KeyEncryptionKey{} // nolint:exhaustruct
 		b, err := base64.StdEncoding.DecodeString(mk)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to decode master key: %w", err)
@@ -92,7 +95,7 @@ func loadMasterKeys(masterKeys []string) (*vaultv1.KeyEncryptionKey, map[string]
 			return nil, nil, fmt.Errorf("failed to unmarshal master key: %w", err)
 		}
 
-		decryptionKeys[kek.Id] = kek
+		decryptionKeys[kek.GetId()] = kek
 		// this way, the last key in the list is used for encryption
 		encryptionKey = kek
 

@@ -69,12 +69,11 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 			RequestId: ctxutil.GetRequestId(r.Context()),
 		},
 		Error: openapi.BadRequestErrorDetails{
-			Title:    "Bad Request",
-			Detail:   "One or more fields failed validation",
-			Instance: nil,
-			Status:   http.StatusBadRequest,
-			Type:     "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input",
-			Errors:   []openapi.ValidationError{},
+			Title:  "Bad Request",
+			Detail: "One or more fields failed validation",
+			Status: http.StatusBadRequest,
+			Type:   "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input",
+			Errors: []openapi.ValidationError{},
 		},
 	}
 

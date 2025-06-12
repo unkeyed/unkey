@@ -29,9 +29,9 @@ func (k *Keyring) RollKeys(ctx context.Context, ringID string) error {
 		if err != nil {
 			return fmt.Errorf("failed to decode and decrypt key: %w", err)
 		}
-		if encryptionKeyId == k.encryptionKey.Id {
+		if encryptionKeyId == k.encryptionKey.GetId() {
 			k.logger.Info("key already encrypted with latest kek",
-				"keyId", dek.Id,
+				"keyId", dek.GetId(),
 			)
 			continue
 		}

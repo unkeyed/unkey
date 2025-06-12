@@ -106,7 +106,7 @@ func TestSuccess(t *testing.T) {
 			KeyId: keyID,
 			Permissions: []struct {
 				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
+				Slug *string `json:"slug,omitempty"`
 			}{
 				{Id: &permissionID},
 			},
@@ -207,9 +207,9 @@ func TestSuccess(t *testing.T) {
 			KeyId: keyID,
 			Permissions: []struct {
 				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
+				Slug *string `json:"slug,omitempty"`
 			}{
-				{Name: &permissionName},
+				{Slug: &permissionName},
 			},
 		}
 
@@ -312,10 +312,10 @@ func TestSuccess(t *testing.T) {
 			KeyId: keyID,
 			Permissions: []struct {
 				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
+				Slug *string `json:"slug,omitempty"`
 			}{
 				{Id: &permission1ID},
-				{Name: &permission2Name},
+				{Slug: &permission2Name},
 			},
 		}
 
@@ -389,7 +389,7 @@ func TestSuccess(t *testing.T) {
 			KeyId: keyID,
 			Permissions: []struct {
 				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
+				Slug *string `json:"slug,omitempty"`
 			}{
 				{Id: &permissionID},
 			},
@@ -502,7 +502,7 @@ func TestSuccess(t *testing.T) {
 			KeyId: keyID,
 			Permissions: []struct {
 				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
+				Slug *string `json:"slug,omitempty"`
 			}{
 				{Id: &removePermissionID}, // Only remove this one
 			},
@@ -629,7 +629,7 @@ func TestSuccess(t *testing.T) {
 			KeyId: keyID,
 			Permissions: []struct {
 				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
+				Slug *string `json:"slug,omitempty"`
 			}{
 				{Id: &permission1ID},
 				{Id: &permission2ID},

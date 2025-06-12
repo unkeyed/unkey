@@ -69,21 +69,21 @@ func TestReEncrypt(t *testing.T) {
 					Keyring: keyring,
 				})
 				require.NoError(t, createDekErr)
-				require.NotContains(t, deks, dek.KeyId)
-				deks = append(deks, dek.KeyId)
+				require.NotContains(t, deks, dek.GetKeyId())
+				deks = append(deks, dek.GetKeyId())
 				_, err = v.ReEncrypt(ctx, &vaultv1.ReEncryptRequest{
 					Keyring:   keyring,
-					Encrypted: enc.Encrypted,
+					Encrypted: enc.GetEncrypted(),
 				})
 				require.NoError(t, err)
 			}
 
 			dec, err := v.Decrypt(ctx, &vaultv1.DecryptRequest{
 				Keyring:   keyring,
-				Encrypted: enc.Encrypted,
+				Encrypted: enc.GetEncrypted(),
 			})
 			require.NoError(t, err)
-			require.Equal(t, data, dec.Plaintext)
+			require.Equal(t, data, dec.GetPlaintext())
 		})
 
 	}

@@ -114,9 +114,10 @@ func TestSuccess(t *testing.T) {
 		// Ratelimits can be in any order, so we need to find the specific ones
 		var apiCallsLimit, specialFeatureLimit *openapi.Ratelimit
 		for i := range *res.Body.Data.Ratelimits {
-			if (*res.Body.Data.Ratelimits)[i].Name == "api_calls" {
+			switch (*res.Body.Data.Ratelimits)[i].Name {
+			case "api_calls":
 				apiCallsLimit = &(*res.Body.Data.Ratelimits)[i]
-			} else if (*res.Body.Data.Ratelimits)[i].Name == "special_feature" {
+			case "special_feature":
 				specialFeatureLimit = &(*res.Body.Data.Ratelimits)[i]
 			}
 		}

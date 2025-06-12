@@ -96,11 +96,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// 6. Delete the role in a transaction
-	_, err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (interface{}, error) {
+	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		// Delete role-permission relationships
-		err := db.Query.DeleteManyRolePermissionsByRoleID(ctx, tx, req.RoleId)
+		err = db.Query.DeleteManyRolePermissionsByRoleID(ctx, tx, req.RoleId)
 		if err != nil {
-			return nil, fault.Wrap(err,
+			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error"), fault.Public("Failed to delete role-permission relationships."),
 			)
@@ -109,7 +109,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// Delete key-role relationships
 		err = db.Query.DeleteManyKeyRolesByRoleID(ctx, tx, req.RoleId)
 		if err != nil {
-			return nil, fault.Wrap(err,
+			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error"), fault.Public("Failed to delete key-role relationships."),
 			)
@@ -118,7 +118,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// Delete the role itself
 		err = db.Query.DeleteRoleByID(ctx, tx, req.RoleId)
 		if err != nil {
-			return nil, fault.Wrap(err,
+			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error"), fault.Public("Failed to delete role."),
 			)
@@ -132,6 +132,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ActorType:   auditlog.RootKeyActor,
 				ActorID:     auth.KeyID,
 				ActorName:   "root key",
+				ActorMeta:   map[string]any{},
 				Display:     "Deleted " + req.RoleId,
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
@@ -150,13 +151,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			},
 		})
 		if err != nil {
-			return nil, fault.Wrap(err,
+			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("audit log error"), fault.Public("Failed to create audit log for role deletion."),
 			)
 		}
 
-		return nil, nil
+		return nil
 	})
 	if err != nil {
 		return err

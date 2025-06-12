@@ -102,9 +102,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	overrideID, err := db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
+	overrideID, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
 		overrideID := uid.New(uid.RatelimitOverridePrefix)
-		err := db.Query.InsertRatelimitOverride(ctx, tx, db.InsertRatelimitOverrideParams{
+		err = db.Query.InsertRatelimitOverride(ctx, tx, db.InsertRatelimitOverrideParams{
 			ID:          overrideID,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			NamespaceID: namespace.ID,
@@ -127,12 +127,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ActorID:     auth.KeyID,
 				ActorType:   auditlog.RootKeyActor,
 				ActorName:   "root key",
-				ActorMeta:   nil,
-				Bucket:      auditlogs.DEFAULT_BUCKET,
-
-				RemoteIP:  s.Location(),
-				UserAgent: s.UserAgent(),
-				Display:   fmt.Sprintf("Set ratelimit override for %s and %s", namespace.ID, req.Identifier),
+				ActorMeta:   map[string]any{},
+				RemoteIP:    s.Location(),
+				UserAgent:   s.UserAgent(),
+				Display:     fmt.Sprintf("Set ratelimit override for %s and %s", namespace.ID, req.Identifier),
 				Resources: []auditlog.AuditLogResource{
 					{
 						Type:        auditlog.RatelimitOverrideResourceType,

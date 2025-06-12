@@ -127,7 +127,7 @@ func TestValidationErrors(t *testing.T) {
 		invalidJSON := `{"name": "test.permission", "invalid json": }`
 
 		// Make a direct HTTP request with invalid JSON payload
-		req, err := http.NewRequest("POST", "/v2/permissions.createPermission", strings.NewReader(invalidJSON))
+		req, err := http.NewRequest(http.MethodPost, "/v2/permissions.createPermission", strings.NewReader(invalidJSON))
 		require.NoError(t, err)
 
 		// Add headers

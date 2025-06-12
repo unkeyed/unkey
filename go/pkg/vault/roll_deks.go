@@ -28,9 +28,9 @@ func (s *Service) RollDeks(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("failed to decode and decrypt key: %w", err)
 		}
-		if kekID == s.encryptionKey.Id {
+		if kekID == s.encryptionKey.GetId() {
 			s.logger.Info("key already encrypted with latest kek",
-				"dekId", dek.Id,
+				"dekId", dek.GetId(),
 			)
 			continue
 		}

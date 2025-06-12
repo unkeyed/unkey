@@ -140,7 +140,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	_, err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (interface{}, error) {
+	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		// Get the identity
 		var identity db.Identity
 		var existingRatelimits []db.Ratelimit
@@ -162,19 +162,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		if err != nil {
 			if err == sql.ErrNoRows {
-				return nil, fault.New("identity not found",
+				return fault.New("identity not found",
 					fault.Code(codes.Data.Identity.NotFound.URN()),
 					fault.Internal("identity not found"), fault.Public("Identity not found in this workspace"),
 				)
 			}
-			return nil, fault.Wrap(err,
+			return fault.Wrap(err,
 				fault.Internal("unable to find identity"), fault.Public("We're unable to retrieve the identity."),
 			)
 		}
 
 		// Verify workspace
 		if identity.WorkspaceID != auth.AuthorizedWorkspaceID {
-			return nil, fault.New("identity not found",
+			return fault.New("identity not found",
 				fault.Code(codes.Data.Identity.NotFound.URN()),
 				fault.Internal("wrong workspace, masking as 404"), fault.Public("Identity not found in this workspace"),
 			)
@@ -183,7 +183,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// Get existing ratelimits
 		existingRatelimits, err = db.Query.ListIdentityRatelimitsByID(ctx, tx, sql.NullString{String: identity.ID, Valid: true})
 		if err != nil && err != sql.ErrNoRows {
-			return nil, fault.Wrap(err,
+			return fault.Wrap(err,
 				fault.Internal("unable to fetch ratelimits"), fault.Public("We're unable to retrieve the identity's ratelimits."),
 			)
 		}
@@ -197,9 +197,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ActorID:     auth.KeyID,
 				ActorName:   "root key",
 				ActorType:   auditlog.RootKeyActor,
+				ActorMeta:   map[string]any{},
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
-				Bucket:      auditlogs.DEFAULT_BUCKET,
 				Resources: []auditlog.AuditLogResource{
 					{
 						ID:          identity.ID,
@@ -219,7 +219,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Meta: metaBytes,
 			})
 			if err != nil {
-				return nil, fault.Wrap(err,
+				return fault.Wrap(err,
 					fault.Internal("unable to update metadata"), fault.Public("We're unable to update the identity's metadata."),
 				)
 			}
@@ -251,7 +251,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					// Delete this ratelimit
 					err = db.Query.DeleteRatelimit(ctx, tx, existingRL.ID)
 					if err != nil {
-						return nil, fault.Wrap(err,
+						return fault.Wrap(err,
 							fault.Internal("unable to delete ratelimit"), fault.Public("We're unable to delete a ratelimit."),
 						)
 					}
@@ -264,9 +264,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						ActorID:     auth.KeyID,
 						ActorName:   "root key",
 						ActorType:   auditlog.RootKeyActor,
+						ActorMeta:   map[string]any{},
 						RemoteIP:    s.Location(),
 						UserAgent:   s.UserAgent(),
-						Bucket:      auditlogs.DEFAULT_BUCKET,
 						Resources: []auditlog.AuditLogResource{
 							{
 								ID:          identity.ID,
@@ -294,11 +294,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					err = db.Query.UpdateRatelimit(ctx, tx, db.UpdateRatelimitParams{
 						ID:       existingRL.ID,
 						Name:     newRL.Name,
-						Limit:    int32(newRL.Limit),
+						Limit:    int32(newRL.Limit), // nolint:gosec
 						Duration: newRL.Duration,
 					})
 					if err != nil {
-						return nil, fault.Wrap(err,
+						return fault.Wrap(err,
 							fault.Internal("unable to update ratelimit"), fault.Public("We're unable to update a ratelimit."),
 						)
 					}
@@ -311,9 +311,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						ActorID:     auth.KeyID,
 						ActorName:   "root key",
 						ActorType:   auditlog.RootKeyActor,
+						ActorMeta:   map[string]any{},
 						RemoteIP:    s.Location(),
 						UserAgent:   s.UserAgent(),
-						Bucket:      auditlogs.DEFAULT_BUCKET,
 						Resources: []auditlog.AuditLogResource{
 							{
 								ID:          identity.ID,
@@ -339,12 +339,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						WorkspaceID: auth.AuthorizedWorkspaceID,
 						IdentityID:  sql.NullString{String: identity.ID, Valid: true},
 						Name:        newRL.Name,
-						Limit:       int32(newRL.Limit),
+						Limit:       int32(newRL.Limit), // nolint:gosec
 						Duration:    newRL.Duration,
 						CreatedAt:   time.Now().UnixMilli(),
 					})
 					if err != nil {
-						return nil, fault.Wrap(err,
+						return fault.Wrap(err,
 							fault.Internal("unable to create ratelimit"), fault.Public("We're unable to create a new ratelimit."),
 						)
 					}
@@ -357,9 +357,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						ActorID:     auth.KeyID,
 						ActorName:   "root key",
 						ActorType:   auditlog.RootKeyActor,
+						ActorMeta:   map[string]any{},
 						RemoteIP:    s.Location(),
 						UserAgent:   s.UserAgent(),
-						Bucket:      auditlogs.DEFAULT_BUCKET,
 						Resources: []auditlog.AuditLogResource{
 							{
 								ID:          identity.ID,
@@ -384,13 +384,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// Insert audit logs
 		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 		if err != nil {
-			return nil, fault.Wrap(err,
+			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database failed to insert audit logs"), fault.Public("Failed to insert audit logs"),
 			)
 		}
 
-		return nil, nil
+		return nil
 	})
 	if err != nil {
 		return err
@@ -435,7 +435,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Parse metadata
 	var responseMeta *map[string]interface{}
-	if identity.Meta != nil && len(identity.Meta) > 0 {
+	if len(identity.Meta) > 0 {
 		metaMap := make(map[string]interface{})
 		err = json.Unmarshal(identity.Meta, &metaMap)
 		if err != nil {

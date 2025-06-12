@@ -67,15 +67,15 @@ func FuzzInRange(f *testing.F) {
 	f.Add(1, 1, 10)
 	f.Add(10, 1, 10)
 
-	f.Fuzz(func(t *testing.T, val, min, max int) {
-		err := assert.InRange(val, min, max)
-		if val >= min && val <= max {
+	f.Fuzz(func(t *testing.T, val, miniumum, maximum int) {
+		err := assert.InRange(val, miniumum, maximum)
+		if val >= miniumum && val <= maximum {
 			if err != nil {
-				t.Errorf("InRange(%d, %d, %d) should return nil error but got: %v", val, min, max, err)
+				t.Errorf("InRange(%d, %d, %d) should return nil error but got: %v", val, miniumum, maximum, err)
 			}
 		} else {
 			if err == nil {
-				t.Errorf("InRange(%d, %d, %d) should return error but got nil", val, min, max)
+				t.Errorf("InRange(%d, %d, %d) should return error but got nil", val, miniumum, maximum)
 			}
 		}
 	})

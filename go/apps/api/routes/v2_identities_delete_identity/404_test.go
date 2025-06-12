@@ -46,7 +46,6 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("delete identity with non-existent external ID", func(t *testing.T) {
@@ -61,7 +60,6 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("delete identity from different workspace (masked as 404)", func(t *testing.T) {
@@ -97,7 +95,6 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 
 		// Verify the identity still exists in the original workspace
 		identity, err := db.Query.FindIdentityByID(t.Context(), h.DB.RO(), db.FindIdentityByIDParams{
@@ -142,7 +139,6 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("delete already deleted identity", func(t *testing.T) {
@@ -173,7 +169,6 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("delete identity with malformed ID prefix", func(t *testing.T) {
@@ -189,7 +184,6 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("delete identity with valid ID format but wrong workspace", func(t *testing.T) {
@@ -219,7 +213,6 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("delete identity using very long non-existent external ID", func(t *testing.T) {
@@ -234,6 +227,5 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 }

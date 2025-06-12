@@ -100,23 +100,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	_, err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (interface{}, error) {
+	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		// Check if the override exists before deleting
-		override, err := db.Query.FindRatelimitOverrideByIdentifier(ctx, tx, db.FindRatelimitOverrideByIdentifierParams{
+		override, overrideErr := db.Query.FindRatelimitOverrideByIdentifier(ctx, tx, db.FindRatelimitOverrideByIdentifierParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			NamespaceID: namespace.ID,
 			Identifier:  req.Identifier,
 		})
 
-		if db.IsNotFound(err) {
-			return nil, fault.New("override not found",
+		if db.IsNotFound(overrideErr) {
+			return fault.New("override not found",
 				fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
 				fault.Internal("override not found"),
 				fault.Public("This override does not exist."),
 			)
 		}
-		if err != nil {
-			return nil, err
+		if overrideErr != nil {
+			return overrideErr
 		}
 
 		// Perform soft delete by updating the DeletedAt field
@@ -126,7 +126,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 
 		if err != nil {
-			return nil, fault.Wrap(err,
+			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database failed to soft delete ratelimit override"),
 				fault.Public("The database is unavailable."),
@@ -139,9 +139,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Event:       auditlog.RatelimitDeleteOverrideEvent,
 				Display:     fmt.Sprintf("Deleted override %s.", override.ID),
 				ActorID:     auth.KeyID,
-				Bucket:      auditlogs.DEFAULT_BUCKET,
 				ActorType:   auditlog.RootKeyActor,
 				ActorName:   "root key",
+				ActorMeta:   map[string]any{},
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
@@ -163,14 +163,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			},
 		})
 		if err != nil {
-			return nil, fault.Wrap(err,
+			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database failed to insert audit logs"),
 				fault.Public("Failed to insert audit logs"),
 			)
 		}
 
-		return nil, nil
+		return nil
 	})
 	if err != nil {
 		return err

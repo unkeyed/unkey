@@ -42,7 +42,6 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("malformed authorization header", func(t *testing.T) {
@@ -61,7 +60,6 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("invalid auth token", func(t *testing.T) {
@@ -80,7 +78,6 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 		require.Equal(t, http.StatusUnauthorized, res.Body.Error.Status)
 		require.Equal(t, "Unauthorized", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("empty bearer token", func(t *testing.T) {
@@ -99,7 +96,6 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("bearer token with invalid format", func(t *testing.T) {
@@ -118,7 +114,6 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 		require.Equal(t, http.StatusUnauthorized, res.Body.Error.Status)
 		require.Equal(t, "Unauthorized", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("token with wrong format", func(t *testing.T) {
@@ -137,7 +132,6 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 		require.Equal(t, http.StatusUnauthorized, res.Body.Error.Status)
 		require.Equal(t, "Unauthorized", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("key from wrong workspace", func(t *testing.T) {
@@ -161,7 +155,6 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("completely invalid token format", func(t *testing.T) {
@@ -180,6 +173,5 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 		require.Equal(t, http.StatusUnauthorized, res.Body.Error.Status)
 		require.Equal(t, "Unauthorized", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 }

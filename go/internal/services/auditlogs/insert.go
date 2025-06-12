@@ -51,7 +51,7 @@ func (s *service) Insert(ctx context.Context, tx db.DBTX, logs []auditlog.AuditL
 	auditLogs := make([]db.InsertAuditLogParams, 0)
 	auditLogTargets := make([]db.InsertAuditLogTargetParams, 0)
 
-	var dbTx db.DBTX = tx
+	var dbTx = tx
 	var rwTx *sql.Tx
 	if tx == nil {
 		// If we didn't get a transaction, start a new one so we can commit all
@@ -74,9 +74,6 @@ func (s *service) Insert(ctx context.Context, tx db.DBTX, logs []auditlog.AuditL
 
 	for _, l := range logs {
 		auditLogID := uid.New(uid.AuditLogPrefix)
-		if l.Bucket == "" {
-			l.Bucket = DEFAULT_BUCKET
-		}
 
 		now := time.Now().UnixMilli()
 

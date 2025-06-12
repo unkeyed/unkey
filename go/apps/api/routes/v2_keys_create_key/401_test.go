@@ -13,7 +13,6 @@ import (
 )
 
 func Test_CreateKey_Unauthorized(t *testing.T) {
-	t.Parallel()
 
 	h := testutil.NewHarness(t)
 

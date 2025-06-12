@@ -26,7 +26,7 @@ func (c *Containers) RunS3(t *testing.T) S3 {
 		c.t.Logf("starting S3 took %s", time.Since(start))
 	}(time.Now())
 	user := "minio_root_user"
-	password := "minio_root_password"
+	password := "minio_root_password" // nolint:gosec
 
 	resource, err := c.pool.RunWithOptions(&dockertest.RunOptions{
 		Repository: "minio/minio",
@@ -59,9 +59,9 @@ func (c *Containers) RunS3(t *testing.T) S3 {
 			return time.Duration(n*n*100) * time.Millisecond
 		}),
 	).Do(func() error {
-		resp, err := http.Get(fmt.Sprintf("%s/minio/health/live", s3.HostURL))
-		if err != nil {
-			return err
+		resp, liveErr := http.Get(fmt.Sprintf("%s/minio/health/live", s3.HostURL))
+		if liveErr != nil {
+			return liveErr
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {

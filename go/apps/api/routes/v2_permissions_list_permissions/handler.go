@@ -105,6 +105,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		permission := openapi.Permission{
 			Id:          perm.ID,
 			Name:        perm.Name,
+			Description: nil,
 			WorkspaceId: perm.WorkspaceID,
 			CreatedAt:   perm.CreatedAtM,
 		}

@@ -45,7 +45,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("empty external ID", func(t *testing.T) {
@@ -60,7 +59,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("external ID too short", func(t *testing.T) {
@@ -75,7 +73,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("empty identity ID", func(t *testing.T) {
@@ -90,7 +87,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("invalid identity ID format", func(t *testing.T) {
@@ -104,7 +100,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("both identity ID and external ID provided", func(t *testing.T) {
@@ -122,7 +117,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("invalid JSON body", func(t *testing.T) {
@@ -143,7 +137,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("identity ID too long", func(t *testing.T) {
@@ -159,7 +152,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("external ID too long", func(t *testing.T) {
@@ -175,6 +167,5 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 }

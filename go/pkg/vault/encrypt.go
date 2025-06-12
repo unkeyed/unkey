@@ -20,21 +20,21 @@ func (s *Service) Encrypt(
 ) (*vaultv1.EncryptResponse, error) {
 	ctx, span := tracing.Start(ctx, "vault.Encrypt")
 	defer span.End()
-	span.SetAttributes(attribute.String("keyring", req.Keyring))
+	span.SetAttributes(attribute.String("keyring", req.GetKeyring()))
 
-	cacheKey := fmt.Sprintf("%s-%s", req.Keyring, LATEST)
+	cacheKey := fmt.Sprintf("%s-%s", req.GetKeyring(), LATEST)
 
 	dek, hit := s.keyCache.Get(ctx, cacheKey)
 	if hit != cache.Hit {
 		var err error
-		dek, err = s.keyring.GetOrCreateKey(ctx, req.Keyring, LATEST)
+		dek, err = s.keyring.GetOrCreateKey(ctx, req.GetKeyring(), LATEST)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get latest dek in keyring %s: %w", req.Keyring, err)
+			return nil, fmt.Errorf("failed to get latest dek in keyring %s: %w", req.GetKeyring(), err)
 		}
 		s.keyCache.Set(ctx, cacheKey, dek)
 	}
 
-	nonce, ciphertext, err := encryption.Encrypt(dek.Key, []byte(req.GetData()))
+	nonce, ciphertext, err := encryption.Encrypt(dek.GetKey(), []byte(req.GetData()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to encrypt data: %w", err)
 	}

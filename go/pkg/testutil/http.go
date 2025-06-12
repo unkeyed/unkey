@@ -141,6 +141,7 @@ func NewHarness(t *testing.T) *Harness {
 		Storage:    vaultStorage,
 		MasterKeys: []string{"abcdef", "ghijkl"},
 	})
+	require.NoError(t, err)
 
 	// Create seeder
 	seeder := seed.New(t, db)

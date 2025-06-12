@@ -117,6 +117,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			permission := openapi.Permission{
 				Id:          perm.ID,
 				Name:        perm.Name,
+				Description: nil,
 				WorkspaceId: perm.WorkspaceID,
 				CreatedAt:   perm.CreatedAtM,
 			}
@@ -133,6 +134,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		roleResponse := openapi.RoleWithPermissions{
 			Id:          role.ID,
 			Name:        role.Name,
+			Description: nil,
 			WorkspaceId: role.WorkspaceID,
 			CreatedAt:   role.CreatedAtM,
 			Permissions: permissions,

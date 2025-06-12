@@ -70,7 +70,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	// Uncomment and adapt these tests if needed
@@ -136,7 +135,6 @@ func TestMissingAuthorizationHeader(t *testing.T) {
 		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("missing authorization header", func(t *testing.T) {
@@ -177,6 +175,5 @@ func TestMissingAuthorizationHeader(t *testing.T) {
 		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authentication/malformed", res.Body.Error.Type)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 }

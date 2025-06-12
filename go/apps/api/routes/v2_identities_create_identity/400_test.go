@@ -34,7 +34,7 @@ func TestBadRequests(t *testing.T) {
 	}
 
 	t.Run("missing external id", func(t *testing.T) {
-		req := openapi.V2IdentitiesCreateIdentityRequestBody{}
+		req := handler.Request{}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
@@ -45,11 +45,10 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("empty external id", func(t *testing.T) {
-		req := openapi.V2IdentitiesCreateIdentityRequestBody{ExternalId: ""}
+		req := handler.Request{ExternalId: ""}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
@@ -60,11 +59,10 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("external id too short", func(t *testing.T) {
-		req := openapi.V2IdentitiesCreateIdentityRequestBody{ExternalId: "12"}
+		req := handler.Request{ExternalId: "12"}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
@@ -75,7 +73,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("metadata exceeds maximum size limit", func(t *testing.T) {
@@ -85,7 +82,7 @@ func TestBadRequests(t *testing.T) {
 			metaData[fmt.Sprintf("key_%d", i)] = ptr.P(fmt.Sprintf("some_%d", i))
 		}
 
-		req := openapi.V2IdentitiesCreateIdentityRequestBody{ExternalId: uid.New("test"), Meta: &metaData}
+		req := handler.Request{ExternalId: uid.New("test"), Meta: &metaData}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
@@ -95,12 +92,11 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	// Test for missing name in rate limit
 	t.Run("missing rate limit name", func(t *testing.T) {
-		req := openapi.V2IdentitiesCreateIdentityRequestBody{
+		req := handler.Request{
 			ExternalId: uid.New("test"),
 			Ratelimits: &[]openapi.Ratelimit{
 				{
@@ -119,12 +115,11 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	// Test for negative limit value
 	t.Run("negative rate limit value", func(t *testing.T) {
-		req := openapi.V2IdentitiesCreateIdentityRequestBody{
+		req := handler.Request{
 			ExternalId: uid.New("test"),
 			Ratelimits: &[]openapi.Ratelimit{
 				{
@@ -143,12 +138,11 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	// Test for zero limit value
 	t.Run("zero rate limit value", func(t *testing.T) {
-		req := openapi.V2IdentitiesCreateIdentityRequestBody{
+		req := handler.Request{
 			ExternalId: uid.New("test"),
 			Ratelimits: &[]openapi.Ratelimit{
 				{
@@ -167,12 +161,11 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	// Test for duration less than 1000ms
 	t.Run("duration less than 1000ms", func(t *testing.T) {
-		req := openapi.V2IdentitiesCreateIdentityRequestBody{
+		req := handler.Request{
 			ExternalId: uid.New("test"),
 			Ratelimits: &[]openapi.Ratelimit{
 				{
@@ -191,7 +184,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	// Note: Testing invalid JSON directly is difficult because the Go JSON unmarshaller

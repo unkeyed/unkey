@@ -170,15 +170,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	_, err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (interface{}, error) {
-		err := db.Query.SoftDeleteIdentity(ctx, tx, identity.ID)
+	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		err = db.Query.SoftDeleteIdentity(ctx, tx, identity.ID)
 
 		// If we hit a duplicate key error, we know that we have an identity that was already soft deleted
 		// so we can hard delete the "old" deleted version
 		if db.IsDuplicateKeyError(err) {
 			err = deleteOldIdentity(ctx, tx, auth.AuthorizedWorkspaceID, identity.ExternalID)
 			if err != nil {
-				return nil, err
+				return err
 			}
 
 			// Re-apply the soft delete operation
@@ -187,7 +187,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 		if err != nil {
 
-			return nil, fault.Wrap(err,
+			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database failed to soft delete identity"), fault.Public("Failed to delete Identity."),
 			)
@@ -198,10 +198,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.IdentityDeleteEvent,
 				Display:     fmt.Sprintf("Deleted identity %s.", identity.ID),
-				Bucket:      auditlogs.DEFAULT_BUCKET,
 				ActorID:     auth.KeyID,
 				ActorType:   auditlog.RootKeyActor,
 				ActorName:   "root key",
+				ActorMeta:   map[string]any{},
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
@@ -216,9 +216,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			},
 		}
 
-		ratelimits, err := db.Query.ListIdentityRatelimitsByID(ctx, tx, sql.NullString{String: identity.ID, Valid: true})
-		if err != nil {
-			return nil, fault.Wrap(err,
+		ratelimits, listErr := db.Query.ListIdentityRatelimitsByID(ctx, tx, sql.NullString{String: identity.ID, Valid: true})
+		if listErr != nil {
+			return fault.Wrap(listErr,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database failed to load identity ratelimits"), fault.Public("Failed to load Identity ratelimits."),
 			)
@@ -229,10 +229,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.RatelimitDeleteEvent,
 				Display:     fmt.Sprintf("Deleted ratelimit %s.", rl.ID),
-				Bucket:      auditlogs.DEFAULT_BUCKET,
 				ActorID:     auth.KeyID,
 				ActorType:   auditlog.RootKeyActor,
 				ActorName:   "root key",
+				ActorMeta:   map[string]any{},
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
@@ -256,13 +256,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 		if err != nil {
-			return nil, fault.Wrap(err,
+			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database failed to insert audit logs"), fault.Public("Failed to insert audit logs"),
 			)
 		}
 
-		return nil, nil
+		return nil
 	})
 	if err != nil {
 		return err

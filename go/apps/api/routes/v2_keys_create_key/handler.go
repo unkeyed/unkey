@@ -121,18 +121,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	var resolvedPermissions []db.Permission
 	if req.Permissions != nil {
 		for _, permName := range *req.Permissions {
-			permission, err := db.Query.FindPermissionByNameAndWorkspaceID(ctx, h.DB.RO(), db.FindPermissionByNameAndWorkspaceIDParams{
+			permission, findErr := db.Query.FindPermissionByNameAndWorkspaceID(ctx, h.DB.RO(), db.FindPermissionByNameAndWorkspaceIDParams{
 				Name:        permName,
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 			})
-			if err != nil {
-				if db.IsNotFound(err) {
+			if findErr != nil {
+				if db.IsNotFound(findErr) {
 					return fault.New("permission not found",
 						fault.Code(codes.Data.Permission.NotFound.URN()),
 						fault.Internal("permission not found"), fault.Public(fmt.Sprintf("Permission '%s' was not found.", permName)),
 					)
 				}
-				return fault.Wrap(err,
+				return fault.Wrap(findErr,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 					fault.Internal("database error"), fault.Public("Failed to retrieve permission."),
 				)
@@ -145,18 +145,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	var resolvedRoles []db.Role
 	if req.Roles != nil {
 		for _, roleName := range *req.Roles {
-			role, err := db.Query.FindRoleByNameAndWorkspaceID(ctx, h.DB.RO(), db.FindRoleByNameAndWorkspaceIDParams{
+			role, findErr := db.Query.FindRoleByNameAndWorkspaceID(ctx, h.DB.RO(), db.FindRoleByNameAndWorkspaceIDParams{
 				Name:        roleName,
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 			})
-			if err != nil {
-				if db.IsNotFound(err) {
+			if findErr != nil {
+				if db.IsNotFound(findErr) {
 					return fault.New("role not found",
 						fault.Code(codes.Data.Role.NotFound.URN()),
 						fault.Internal("role not found"), fault.Public(fmt.Sprintf("Role '%s' was not found.", roleName)),
 					)
 				}
-				return fault.Wrap(err,
+				return fault.Wrap(findErr,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 					fault.Internal("database error"), fault.Public("Failed to retrieve role."),
 				)
@@ -166,7 +166,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// 8. Execute all database operations in a transaction
-	_, err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (interface{}, error) {
+	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		// 9. Insert the key
 		insertKeyParams := db.InsertKeyParams{
 			ID:                keyID,
@@ -178,6 +178,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			CreatedAtM:        now,
 			Enabled:           true,
 			RemainingRequests: sql.NullInt32{Int32: 0, Valid: false},
+			Name:              sql.NullString{String: "", Valid: false},
+			IdentityID:        sql.NullString{String: "", Valid: false},
+			Meta:              sql.NullString{String: "", Valid: false},
+			Expires:           sql.NullTime{Time: time.Time{}, Valid: false},
 			RatelimitAsync:    sql.NullBool{Bool: false, Valid: false},
 			RatelimitLimit:    sql.NullInt32{Int32: 0, Valid: false},
 			RatelimitDuration: sql.NullInt64{Int64: 0, Valid: false},
@@ -192,9 +196,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// Note: owner_id is set to null in the SQL query, so we skip setting it here
 
 		if req.Meta != nil {
-			metaBytes, err := json.Marshal(*req.Meta)
-			if err != nil {
-				return nil, fault.Wrap(err,
+			metaBytes, marshalErr := json.Marshal(*req.Meta)
+			if marshalErr != nil {
+				return fault.Wrap(marshalErr,
 					fault.Code(codes.App.Validation.InvalidInput.URN()),
 					fault.Internal("failed to marshal meta"), fault.Public("Invalid metadata format."),
 				)
@@ -207,7 +211,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if req.Credits != nil {
-			insertKeyParams.RemainingRequests = sql.NullInt32{Int32: int32(req.Credits.Remaining), Valid: true}
+			insertKeyParams.RemainingRequests = sql.NullInt32{
+				Int32: int32(req.Credits.Remaining), // nolint:gosec
+				Valid: true,
+			}
 		}
 
 		// Set enabled status (default true)
@@ -215,9 +222,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			insertKeyParams.Enabled = *req.Enabled
 		}
 
-		err := db.Query.InsertKey(ctx, tx, insertKeyParams)
+		err = db.Query.InsertKey(ctx, tx, insertKeyParams)
 		if err != nil {
-			return nil, fault.Wrap(err,
+			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error"), fault.Public("Failed to create key."),
 			)
@@ -232,12 +239,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					KeyID:       sql.NullString{String: keyID, Valid: true},
 					Name:        ratelimit.Name,
-					Limit:       int32(ratelimit.Limit),
+					Limit:       int32(ratelimit.Limit), // nolint:gosec
 					Duration:    int64(ratelimit.Duration),
 					CreatedAt:   now,
 				})
 				if err != nil {
-					return nil, fault.Wrap(err,
+					return fault.Wrap(err,
 						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 						fault.Internal("database error"), fault.Public("Failed to create rate limit."),
 					)
@@ -255,7 +262,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				CreatedAt:    now,
 			})
 			if err != nil {
-				return nil, fault.Wrap(err,
+				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 					fault.Internal("database error"), fault.Public("Failed to assign permission."),
 				)
@@ -267,6 +274,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ActorType:   auditlog.RootKeyActor,
 				ActorID:     auth.KeyID,
 				ActorName:   "root key",
+				ActorMeta:   map[string]any{},
 				Display:     fmt.Sprintf("Added permission %s to key %s", permission.Name, keyID),
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
@@ -276,12 +284,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						ID:          keyID,
 						Name:        insertKeyParams.Name.String,
 						DisplayName: insertKeyParams.Name.String,
+						Meta:        map[string]any{},
 					},
 					{
 						Type:        "permission",
 						ID:          permission.ID,
 						Name:        permission.Name,
 						DisplayName: permission.Name,
+						Meta:        map[string]any{},
 					},
 				},
 			})
@@ -289,14 +299,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		// 12. Handle roles if provided
 		for _, role := range resolvedRoles {
-			err := db.Query.InsertKeyRole(ctx, tx, db.InsertKeyRoleParams{
+			err = db.Query.InsertKeyRole(ctx, tx, db.InsertKeyRoleParams{
 				KeyID:       keyID,
 				RoleID:      role.ID,
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				CreatedAtM:  now,
 			})
 			if err != nil {
-				return nil, fault.Wrap(err,
+				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 					fault.Internal("database error"), fault.Public("Failed to assign role."),
 				)
@@ -308,21 +318,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ActorType:   auditlog.RootKeyActor,
 				ActorID:     auth.KeyID,
 				ActorName:   "root key",
-				Display:     fmt.Sprintf("Added role %s to key %s", role.Name, keyID),
+				ActorMeta:   map[string]any{},
+				Display:     fmt.Sprintf("Connected role %s to key %s", role.Name, keyID),
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
 					{
 						Type:        "key",
 						ID:          keyID,
-						Name:        insertKeyParams.Name.String,
 						DisplayName: insertKeyParams.Name.String,
+						Name:        insertKeyParams.Name.String,
+						Meta:        map[string]any{},
 					},
 					{
 						Type:        "role",
 						ID:          role.ID,
-						Name:        role.Name,
 						DisplayName: role.Name,
+						Name:        role.Name,
+						Meta:        map[string]any{},
 					},
 				},
 			})
@@ -335,6 +348,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ActorType:   auditlog.RootKeyActor,
 			ActorID:     auth.KeyID,
 			ActorName:   "root key",
+			ActorMeta:   map[string]any{},
 			Display:     fmt.Sprintf("Created key %s", keyID),
 			RemoteIP:    s.Location(),
 			UserAgent:   s.UserAgent(),
@@ -342,14 +356,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				{
 					Type:        "key",
 					ID:          keyID,
-					Name:        insertKeyParams.Name.String,
-					DisplayName: insertKeyParams.Name.String,
+					DisplayName: keyID,
+					Name:        keyID,
+					Meta:        map[string]any{},
 				},
 				{
 					Type:        "api",
-					ID:          api.ID,
-					Name:        api.Name,
+					ID:          req.ApiId,
 					DisplayName: api.Name,
+					Name:        api.Name,
+					Meta:        map[string]any{},
 				},
 			},
 		})
@@ -357,13 +373,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// 14. Insert audit logs
 		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 		if err != nil {
-			return nil, fault.Wrap(err,
+			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("audit log error"), fault.Public("Failed to create audit log."),
 			)
 		}
 
-		return nil, nil
+		return nil
 	})
 	if err != nil {
 		return err

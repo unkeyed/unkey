@@ -75,9 +75,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	description := ptr.SafeDeref(req.Description)
 
 	// Create permission in a transaction with audit log
-	_, err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (interface{}, error) {
+	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		// Insert the permission
-		err := db.Query.InsertPermission(ctx, tx, db.InsertPermissionParams{
+		err = db.Query.InsertPermission(ctx, tx, db.InsertPermissionParams{
 			PermissionID: permissionID,
 			WorkspaceID:  auth.AuthorizedWorkspaceID,
 			Name:         req.Name,
@@ -88,12 +88,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if err != nil {
 			if db.IsDuplicateKeyError(err) {
 
-				return nil, fault.New("permission already exists",
+				return fault.New("permission already exists",
 					fault.Code(codes.UnkeyDataErrorsIdentityDuplicate), // Reuse the identity duplicate code for conflict status
 					fault.Internal("already exists"), fault.Public("A permission with name \""+req.Name+"\" already exists in this workspace"),
 				)
 			}
-			return nil, fault.Wrap(err,
+			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error"), fault.Public("Failed to create permission."),
 			)
@@ -107,6 +107,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ActorType:   auditlog.RootKeyActor,
 				ActorID:     auth.KeyID,
 				ActorName:   "root key",
+				ActorMeta:   map[string]any{},
 				Display:     "Created " + permissionID,
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
@@ -126,13 +127,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			},
 		})
 		if err != nil {
-			return nil, fault.Wrap(err,
+			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("audit log error"), fault.Public("Failed to create audit log for permission creation."),
 			)
 		}
 
-		return nil, nil
+		return nil
 	})
 	if err != nil {
 		return err

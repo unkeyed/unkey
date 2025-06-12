@@ -51,7 +51,7 @@ func TestReuseDEKsForSameKeyring(t *testing.T) {
 			Data:    uuid.NewString(),
 		})
 		require.NoError(t, encryptErr)
-		deks[res.KeyId] = true
+		deks[res.GetKeyId()] = true
 	}
 
 	require.Len(t, deks, 1)
@@ -95,7 +95,7 @@ func TestIndividualDEKsPerKeyring(t *testing.T) {
 			Data:    uuid.NewString(),
 		})
 		require.NoError(t, encryptErr)
-		deks[res.KeyId] = true
+		deks[res.GetKeyId()] = true
 	}
 
 	require.Len(t, deks, 10)

@@ -120,14 +120,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	now := time.Now()
 
-	_, err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (interface{}, error) {
+	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		// Soft delete the API
-		err := db.Query.SoftDeleteApi(ctx, tx, db.SoftDeleteApiParams{
+		err = db.Query.SoftDeleteApi(ctx, tx, db.SoftDeleteApiParams{
 			ApiID: req.ApiId,
 			Now:   sql.NullInt64{Valid: true, Int64: now.UnixMilli()},
 		})
 		if err != nil {
-			return nil, fault.Wrap(err,
+			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error"), fault.Public("Failed to delete API."),
 			)
@@ -139,24 +139,29 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Event:       auditlog.APIDeleteEvent,
 			ActorType:   auditlog.RootKeyActor,
 			ActorID:     auth.KeyID,
+			ActorName:   "root key",
+			ActorMeta:   map[string]any{},
 			Display:     fmt.Sprintf("Deleted API %s", req.ApiId),
 			Resources: []auditlog.AuditLogResource{
 				{
-					Type: auditlog.APIResourceType,
-					ID:   req.ApiId,
+					Type:        auditlog.APIResourceType,
+					ID:          api.ID,
+					DisplayName: api.Name,
+					Name:        api.Name,
+					Meta:        map[string]any{},
 				},
 			},
 			RemoteIP:  s.Location(),
 			UserAgent: s.UserAgent(),
 		}})
 		if err != nil {
-			return nil, fault.Wrap(err,
+			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("audit log error"), fault.Public("Failed to create audit log for API deletion."),
 			)
 		}
 
-		return nil, nil
+		return nil
 	})
 	if err != nil {
 		return err
