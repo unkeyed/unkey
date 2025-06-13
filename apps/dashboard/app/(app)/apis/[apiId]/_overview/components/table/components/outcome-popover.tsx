@@ -1,10 +1,9 @@
 "use client";
-import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 import { ChevronRight } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Badge, Button } from "@unkey/ui";
 import { formatOutcomeName, getOutcomeBadgeStyle, getOutcomeColor } from "../../../utils";
 import { STATUS_STYLES } from "../utils/get-row-class";
 

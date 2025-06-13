@@ -1,7 +1,6 @@
 "use client";
 
 import { Alert } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +19,7 @@ import {
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Button, Checkbox, InfoTooltip } from "@unkey/ui";
+import { Badge, Button, Checkbox, InfoTooltip } from "@unkey/ui";
 import { ArrowUpDown, Minus, MoreHorizontal, MoreVertical, Trash } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";

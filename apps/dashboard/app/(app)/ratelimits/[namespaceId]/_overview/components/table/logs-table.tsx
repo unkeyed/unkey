@@ -1,14 +1,13 @@
 "use client";
 
 import { useSort } from "@/components/logs/hooks/use-sort";
-import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { Ban, BookBookmark } from "@unkey/icons";
-import { Button, Empty, TimestampInfo } from "@unkey/ui";
+import { Badge, Button, Empty, TimestampInfo } from "@unkey/ui";
 import { useState } from "react";
 import { InlineFilter } from "./components/inline-filter";
 import { LogsTableAction } from "./components/logs-actions";

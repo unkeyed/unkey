@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@unkey/ui";
 import { memo } from "react";
 
 type StatusBadgeProps = {

@@ -1,8 +1,7 @@
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import { XMark } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Badge, Button } from "@unkey/ui";
 
 type Props = {
   log: Log;
