@@ -1,7 +1,9 @@
 import { FormCombobox } from "@/components/ui/form-combobox";
+import { trpc } from "@/lib/trpc/client";
 import type { RoleKey } from "@/lib/trpc/routers/authorization/roles/connected-keys-and-perms";
 import { Key2, XMark } from "@unkey/icons";
 import { useMemo, useState } from "react";
+import { RoleWarningCallout } from "../warning-callout";
 import { createKeyOptions } from "./create-key-options";
 import { useFetchKeys } from "./hooks/use-fetch-keys";
 import { useSearchKeys } from "./hooks/use-search-keys";
@@ -24,28 +26,34 @@ export const KeyField = ({
   assignedKeyDetails,
 }: KeyFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
+
+  const keysPreview = trpc.useUtils().authorization.roles.connectedKeys.getData({
+    roleId: roleId ?? "",
+    limit: 3,
+  });
+
+  const totalKeys = keysPreview?.totalCount || keysPreview?.items?.length || value.length || 0;
+  const hasWarning = roleId && totalKeys > 50;
+
   const { keys, isFetchingNextPage, hasNextPage, loadMore } = useFetchKeys();
   const { searchResults, isSearching } = useSearchKeys(searchValue);
 
-  // Combine loaded keys with search results, prioritizing search when available
   const allKeys = useMemo(() => {
     if (searchValue.trim() && searchResults.length > 0) {
-      // When searching, use search results
       return searchResults;
     }
+
     if (searchValue.trim() && searchResults.length === 0 && !isSearching) {
-      // No search results found, filter from loaded keys as fallback
       const searchTerm = searchValue.toLowerCase().trim();
       return keys.filter(
         (key) =>
           key.id.toLowerCase().includes(searchTerm) || key.name?.toLowerCase().includes(searchTerm),
       );
     }
-    // No search query, use all loaded keys
+
     return keys;
   }, [keys, searchResults, searchValue, isSearching]);
 
-  // Don't show load more when actively searching
   const showLoadMore = !searchValue.trim() && hasNextPage;
 
   const baseOptions = createKeyOptions({
@@ -58,23 +66,19 @@ export const KeyField = ({
 
   const selectableOptions = useMemo(() => {
     return baseOptions.filter((option) => {
-      // Always allow the load more option
       if (option.value === "__load_more__") {
         return true;
       }
 
-      // Don't show already selected keys
       if (value.includes(option.value)) {
         return false;
       }
 
-      // Find the key and check if it's already assigned to this role
       const key = allKeys.find((k) => k.id === option.value);
       if (!key) {
         return true;
       }
 
-      // Filter out keys that already have this role assigned (if roleId provided)
       if (roleId) {
         return !key.roles.some((role) => role.id === roleId);
       }
@@ -86,7 +90,6 @@ export const KeyField = ({
   const selectedKeys = useMemo(() => {
     return value
       .map((keyId) => {
-        // First: check selectedKeysData (for pre-loaded edit data)
         const preLoadedKey = assignedKeyDetails.find((k) => k.id === keyId);
         if (preLoadedKey) {
           return {
@@ -95,7 +98,6 @@ export const KeyField = ({
           };
         }
 
-        // Second: check loaded keys (for newly added keys)
         const loadedKey = allKeys.find((k) => k.id === keyId);
         if (loadedKey) {
           return {
@@ -104,7 +106,6 @@ export const KeyField = ({
           };
         }
 
-        // Third: fallback to ID-only display (ensures key is always removable)
         return {
           id: keyId,
           name: null,
@@ -130,11 +131,9 @@ export const KeyField = ({
           if (val === "__load_more__") {
             return;
           }
-          // Add the selected key to the array
           if (!value.includes(val)) {
             onChange([...value, val]);
           }
-          // Clear search after selection
           setSearchValue("");
         }}
         placeholder={
@@ -152,8 +151,10 @@ export const KeyField = ({
         }
         variant="default"
         error={error}
-        disabled={disabled}
+        disabled={disabled || Boolean(hasWarning)}
       />
+
+      {hasWarning ? <RoleWarningCallout count={totalKeys} type="keys" /> : null}
 
       {/* Selected Keys Display */}
       {selectedKeys.length > 0 && (

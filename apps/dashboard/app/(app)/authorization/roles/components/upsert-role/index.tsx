@@ -213,6 +213,7 @@ export const UpsertRoleDialog = ({
                 control={control}
                 render={({ field, fieldState }) => (
                   <KeyField
+                    roleId={existingRole?.id}
                     value={field.value ?? []}
                     onChange={field.onChange}
                     error={fieldState.error?.message}
@@ -226,6 +227,7 @@ export const UpsertRoleDialog = ({
                 control={control}
                 render={({ field, fieldState }) => (
                   <PermissionField
+                    roleId={existingRole?.id}
                     value={field.value ?? []}
                     onChange={field.onChange}
                     error={fieldState.error?.message}

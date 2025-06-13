@@ -84,7 +84,10 @@ export const AssignedItemsCell = ({
       {items.map((item, index) => (
         <div
           className={cn(itemClassName, "animate-in fade-in slide-in-from-left-2")}
-          key={item}
+          key={`${item}-${
+            // biome-ignore lint/suspicious/noArrayIndexKey: Since item names are not unique sometimes we get overlapping names
+            index
+          }`}
           style={{ animationDelay: `${index * 50}ms` }}
         >
           {icon}
