@@ -1,0 +1,25 @@
+Source: builderd
+Section: admin
+Priority: optional
+Maintainer: Unkey Team <dev@unkey.dev>
+Build-Depends: debhelper-compat (= 13), golang-go (>= 2:1.21)
+Standards-Version: 4.6.0
+Homepage: https://github.com/unkeyed/unkey/go/deploy/builderd
+
+Package: builderd
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}, systemd
+Recommends: docker.io
+Description: Builderd Multi-Tenant Build Service
+ Builderd is a multi-tenant build service that converts various source types
+ (Docker images, Git repositories, archives) into optimized rootfs images for
+ microVM execution with comprehensive observability and tenant isolation.
+ .
+ Features include:
+  - Multi-source build support (Docker, Git, Archive)
+  - Multi-tenant architecture with isolation
+  - Real-time build metrics and observability
+  - OpenTelemetry integration with traces and metrics
+  - ConnectRPC/protobuf-based API
+  - Resource quotas and sandboxing
+  - Configurable storage backends (local, S3, GCS)

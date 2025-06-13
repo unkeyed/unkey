@@ -1,0 +1,40 @@
+#!/bin/sh
+set -e
+
+# Create builderd user and group if they don't exist
+if ! getent group builderd > /dev/null 2>&1; then
+    addgroup --system builderd
+fi
+
+if ! getent passwd builderd > /dev/null 2>&1; then
+    adduser --system --home /opt/builderd --shell /bin/false \
+            --gecos "Builderd Multi-Tenant Build Service" \
+            --ingroup builderd builderd
+fi
+
+# Create required directories
+mkdir -p /opt/builderd/scratch
+mkdir -p /opt/builderd/rootfs
+mkdir -p /opt/builderd/workspace
+mkdir -p /opt/builderd/data
+mkdir -p /var/log/builderd
+
+# Set permissions
+chown -R builderd:builderd /opt/builderd
+chown -R builderd:builderd /var/log/builderd
+
+# Set directory permissions
+chmod 755 /opt/builderd
+chmod 755 /opt/builderd/scratch
+chmod 755 /opt/builderd/rootfs
+chmod 755 /opt/builderd/workspace
+chmod 755 /opt/builderd/data
+chmod 755 /var/log/builderd
+
+# Enable and start systemd service
+systemctl daemon-reload
+systemctl enable builderd.service
+
+#DEBHELPER#
+
+exit 0

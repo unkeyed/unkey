@@ -1,0 +1,11 @@
+#!/bin/sh
+set -e
+
+# Stop the service before removal
+if systemctl is-active --quiet builderd.service; then
+    systemctl stop builderd.service
+fi
+
+#DEBHELPER#
+
+exit 0
