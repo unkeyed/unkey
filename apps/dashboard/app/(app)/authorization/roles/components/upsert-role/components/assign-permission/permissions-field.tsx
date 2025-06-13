@@ -2,6 +2,8 @@ import { FormCombobox } from "@/components/ui/form-combobox";
 import type { RolePermission } from "@/lib/trpc/routers/authorization/roles/connected-keys-and-perms";
 import { HandHoldingKey, XMark } from "@unkey/icons";
 import { useMemo, useState } from "react";
+import { useRoleLimits } from "../../../table/hooks/use-role-limits";
+import { RoleWarningCallout } from "../warning-callout";
 import { createPermissionOptions } from "./create-permission-options";
 import { useFetchPermissions } from "./hooks/use-fetch-permissions";
 import { useSearchPermissions } from "./hooks/use-search-permissions";
@@ -14,23 +16,25 @@ type PermissionFieldProps = {
   roleId?: string;
   assignedPermsDetails: RolePermission[];
 };
-
 export const PermissionField = ({
   value,
   onChange,
   error,
   disabled = false,
   roleId,
-  assignedPermsDetails = [],
+  assignedPermsDetails,
 }: PermissionFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
+
+  const { calculateLimits } = useRoleLimits(roleId);
+  const { hasPermWarning, totalPerms } = calculateLimits(value);
+
   const { permissions, isFetchingNextPage, hasNextPage, loadMore } = useFetchPermissions();
   const { searchResults, isSearching } = useSearchPermissions(searchValue);
 
   // Combine loaded permissions with search results, prioritizing search when available
   const allPermissions = useMemo(() => {
     if (searchValue.trim() && searchResults.length > 0) {
-      // When searching, use search results
       return searchResults;
     }
     if (searchValue.trim() && searchResults.length === 0 && !isSearching) {
@@ -61,12 +65,9 @@ export const PermissionField = ({
 
   const selectableOptions = useMemo(() => {
     return baseOptions.filter((option) => {
-      // Always allow the load more option
       if (option.value === "__load_more__") {
         return true;
       }
-
-      // Don't show already selected permissions
       if (value.includes(option.value)) {
         return false;
       }
@@ -79,34 +80,36 @@ export const PermissionField = ({
 
       // Filter out permissions that already have this role assigned (if roleId provided)
       if (roleId) {
-        return !permission.roles.some((role) => role.id === roleId);
+        return !permission.roles?.some((role) => role.id === roleId);
       }
-
       return true;
     });
   }, [baseOptions, allPermissions, roleId, value]);
 
   const selectedPermissions = useMemo(() => {
     return value
-      .map((id) => {
+      .map((permId) => {
         // First: check selectedPermissionsData (for pre-loaded edit data)
-        const preLoadedPerm = assignedPermsDetails.find((p) => p.id === id);
+        const preLoadedPerm = assignedPermsDetails.find((p) => p.id === permId);
         if (preLoadedPerm) {
-          return preLoadedPerm;
+          return {
+            id: preLoadedPerm.id,
+            name: preLoadedPerm.name,
+            slug: preLoadedPerm.slug,
+          };
         }
 
         // Second: check loaded permissions (for newly added permissions)
-        const loadedPerm = allPermissions.find((p) => p.id === id);
+        const loadedPerm = allPermissions.find((p) => p.id === permId);
         if (loadedPerm) {
           return loadedPerm;
         }
 
         // Third: fallback
         return {
-          id: id,
-          name: id,
-          slug: id,
-          description: null,
+          id: permId,
+          name: null,
+          slug: null,
         };
       })
       .filter((perm): perm is NonNullable<typeof perm> => perm !== undefined);
@@ -129,11 +132,9 @@ export const PermissionField = ({
           if (val === "__load_more__") {
             return;
           }
-          // Add the selected permission to the array
           if (!value.includes(val)) {
             onChange([...value, val]);
           }
-          // Clear search after selection
           setSearchValue("");
         }}
         placeholder={
@@ -151,8 +152,10 @@ export const PermissionField = ({
         }
         variant="default"
         error={error}
-        disabled={disabled}
+        disabled={disabled || Boolean(hasPermWarning)}
       />
+
+      {hasPermWarning ? <RoleWarningCallout count={totalPerms} type="permissions" /> : null}
 
       {/* Selected Permissions Display */}
       {selectedPermissions.length > 0 && (
@@ -168,10 +171,10 @@ export const PermissionField = ({
                 </div>
                 <div className="flex flex-col gap-0.5 min-w-0">
                   <span className="font-medium text-accent-12 truncate text-xs">
-                    {permission.name}
+                    {permission.name || permission.slug || permission.id}
                   </span>
                   <span className="text-accent-9 text-[11px] font-mono truncate">
-                    {permission.slug}
+                    {permission.slug || "No slug"}
                   </span>
                 </div>
                 {!disabled && (
@@ -179,7 +182,7 @@ export const PermissionField = ({
                     type="button"
                     onClick={() => handleRemovePermission(permission.id)}
                     className="p-0.5 hover:bg-grayA-4 rounded text-grayA-11 hover:text-accent-12 transition-colors flex-shrink-0 ml-auto"
-                    aria-label={`Remove ${permission.name}`}
+                    aria-label={`Remove ${permission.name || permission.slug}`}
                   >
                     <XMark size="sm-regular" />
                   </button>
