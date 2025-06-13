@@ -4,29 +4,19 @@ import { db, sql } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { z } from "zod";
 
-const MAX_ITEMS_TO_SHOW = 3;
-const ITEM_SEPARATOR = "|||";
 export const DEFAULT_LIMIT = 50;
 
-export const roles = z.object({
+export const roleBasic = z.object({
   roleId: z.string(),
   name: z.string(),
   description: z.string(),
   lastUpdated: z.number(),
-  assignedKeys: z.object({
-    items: z.array(z.string()),
-    totalCount: z.number().optional(),
-  }),
-  permissions: z.object({
-    items: z.array(z.string()),
-    totalCount: z.number().optional(),
-  }),
 });
 
-export type Roles = z.infer<typeof roles>;
+export type RoleBasic = z.infer<typeof roleBasic>;
 
 const rolesResponse = z.object({
-  roles: z.array(roles),
+  roles: z.array(roleBasic),
   hasMore: z.boolean(),
   total: z.number(),
   nextCursor: z.number().int().nullish(),
@@ -48,114 +38,20 @@ export const queryRoles = t.procedure
     const keyFilter = buildKeyFilter(keyName, keyId, workspaceId);
     const permissionFilter = buildPermissionFilter(permissionName, permissionSlug, workspaceId);
 
-    // Build filter conditions for total count
-    const keyFilterForCount = buildKeyFilter(keyName, keyId, workspaceId);
-    const permissionFilterForCount = buildPermissionFilter(
-      permissionName,
-      permissionSlug,
-      workspaceId,
-    );
+    // Get total count first
+    const countResult = await db.execute(sql`
+      SELECT COUNT(*) as total
+      FROM roles 
+      WHERE workspace_id = ${workspaceId}
+        ${nameFilter}
+        ${descriptionFilter}
+        ${keyFilter}
+        ${permissionFilter}
+    `);
 
-    const result = await db.execute(sql`
- SELECT 
-   r.id,
-   r.name,
-   r.description,
-   r.updated_at_m,
-   
-   -- Keys: get first 3 unique names
-   (
-     SELECT GROUP_CONCAT(sub.display_name ORDER BY sub.sort_key SEPARATOR ${ITEM_SEPARATOR})
-     FROM (
-       SELECT DISTINCT 
-         CASE 
-           WHEN k.name IS NULL OR k.name = '' THEN 
-             CONCAT(SUBSTRING(k.id, 1, 8), '...', RIGHT(k.id, 4))
-           ELSE k.name 
-         END as display_name,
-         COALESCE(k.name, k.id) as sort_key
-       FROM keys_roles kr
-       JOIN \`keys\` k ON kr.key_id = k.id
-       WHERE kr.role_id = r.id 
-         AND kr.workspace_id = ${workspaceId}
-       ORDER BY sort_key
-       LIMIT ${MAX_ITEMS_TO_SHOW}
-     ) sub
-   ) as key_items,
-   
-   -- Keys: total count
-   (
-     SELECT COUNT(DISTINCT kr.key_id)
-     FROM keys_roles kr
-     JOIN \`keys\` k ON kr.key_id = k.id
-     WHERE kr.role_id = r.id 
-       AND kr.workspace_id = ${workspaceId}
-   ) as total_keys,
-   
-   -- Permissions: get first 3 unique names
-   (
-     SELECT GROUP_CONCAT(sub.name ORDER BY sub.name SEPARATOR ${ITEM_SEPARATOR})
-     FROM (
-       SELECT DISTINCT p.name
-       FROM roles_permissions rp
-       JOIN permissions p ON rp.permission_id = p.id
-       WHERE rp.role_id = r.id 
-         AND rp.workspace_id = ${workspaceId}
-         AND p.name IS NOT NULL
-       ORDER BY p.name
-       LIMIT ${MAX_ITEMS_TO_SHOW}
-     ) sub
-   ) as permission_items,
-   
-   -- Permissions: total count
-   (
-     SELECT COUNT(DISTINCT rp.permission_id)
-     FROM roles_permissions rp
-     JOIN permissions p ON rp.permission_id = p.id
-     WHERE rp.role_id = r.id 
-       AND rp.workspace_id = ${workspaceId}
-       AND p.name IS NOT NULL
-   ) as total_permissions,
-   
-   -- Total count of roles (with filters applied)
-   (
-     SELECT COUNT(*) 
-     FROM roles 
-     WHERE workspace_id = ${workspaceId}
-       ${nameFilter}
-       ${descriptionFilter}
-       ${keyFilterForCount}
-       ${permissionFilterForCount}
-   ) as grand_total
-   
- FROM (
-   SELECT id, name, description, updated_at_m
-   FROM roles 
-   WHERE workspace_id = ${workspaceId}
-     ${cursor ? sql`AND updated_at_m < ${cursor}` : sql``}
-     ${nameFilter}
-     ${descriptionFilter}
-     ${keyFilter}
-     ${permissionFilter}
-   ORDER BY updated_at_m DESC
-   LIMIT ${DEFAULT_LIMIT + 1}
- ) r
- ORDER BY r.updated_at_m DESC
-`);
+    const total = (countResult.rows[0] as { total: number }).total;
 
-    const rows = result.rows as {
-      id: string;
-      name: string;
-      description: string | null;
-      updated_at_m: number;
-      key_items: string | null;
-      total_keys: number;
-      permission_items: string | null;
-      total_permissions: number;
-      grand_total: number;
-    }[];
-
-    if (rows.length === 0) {
+    if (total === 0) {
       return {
         roles: [],
         hasMore: false,
@@ -164,37 +60,36 @@ export const queryRoles = t.procedure
       };
     }
 
-    const total = rows[0].grand_total;
+    // Get roles data - clean and fast
+    const result = await db.execute(sql`
+      SELECT id, name, description, updated_at_m
+      FROM roles 
+      WHERE workspace_id = ${workspaceId}
+        ${cursor ? sql`AND updated_at_m < ${cursor}` : sql``}
+        ${nameFilter}
+        ${descriptionFilter}
+        ${keyFilter}
+        ${permissionFilter}
+      ORDER BY updated_at_m DESC
+      LIMIT ${DEFAULT_LIMIT + 1}
+    `);
+
+    const rows = result.rows as {
+      id: string;
+      name: string;
+      description: string | null;
+      updated_at_m: number;
+    }[];
+
     const hasMore = rows.length > DEFAULT_LIMIT;
     const items = hasMore ? rows.slice(0, -1) : rows;
 
-    const rolesResponseData: Roles[] = items.map((row) => {
-      // Parse concatenated strings back to arrays
-      const keyItems = row.key_items
-        ? row.key_items.split(ITEM_SEPARATOR).filter((item) => item.trim() !== "")
-        : [];
-      const permissionItems = row.permission_items
-        ? row.permission_items.split(ITEM_SEPARATOR).filter((item) => item.trim() !== "")
-        : [];
-
-      return {
-        roleId: row.id,
-        name: row.name || "",
-        description: row.description || "",
-        lastUpdated: Number(row.updated_at_m) || 0,
-        assignedKeys:
-          row.total_keys <= MAX_ITEMS_TO_SHOW
-            ? { items: keyItems }
-            : { items: keyItems, totalCount: Number(row.total_keys) },
-        permissions:
-          row.total_permissions <= MAX_ITEMS_TO_SHOW
-            ? { items: permissionItems }
-            : {
-                items: permissionItems,
-                totalCount: Number(row.total_permissions),
-              },
-      };
-    });
+    const rolesResponseData: RoleBasic[] = items.map((row) => ({
+      roleId: row.id,
+      name: row.name || "",
+      description: row.description || "",
+      lastUpdated: Number(row.updated_at_m) || 0,
+    }));
 
     return {
       roles: rolesResponseData,
@@ -226,7 +121,6 @@ function buildKeyFilter(
 ) {
   const conditions = [];
 
-  // Handle name filters
   if (nameFilters && nameFilters.length > 0) {
     const nameConditions = nameFilters.map((filter) => {
       const value = filter.value;
@@ -270,7 +164,6 @@ function buildKeyFilter(
     conditions.push(sql`(${sql.join(nameConditions, sql` OR `)})`);
   }
 
-  // Handle ID filters
   if (idFilters && idFilters.length > 0) {
     const idConditions = idFilters.map((filter) => {
       const value = filter.value;
@@ -318,7 +211,6 @@ function buildKeyFilter(
     return sql``;
   }
 
-  // Join name and ID conditions with AND
   return sql`AND (${sql.join(conditions, sql` AND `)})`;
 }
 
@@ -352,7 +244,6 @@ function buildFilterConditions(
     }
   });
 
-  // Combine conditions with OR
   return sql`AND (${sql.join(conditions, sql` OR `)})`;
 }
 
@@ -375,7 +266,6 @@ function buildPermissionFilter(
 ) {
   const conditions = [];
 
-  // Handle name filters
   if (nameFilters && nameFilters.length > 0) {
     const nameConditions = nameFilters.map((filter) => {
       const value = filter.value;
@@ -419,7 +309,6 @@ function buildPermissionFilter(
     conditions.push(sql`(${sql.join(nameConditions, sql` OR `)})`);
   }
 
-  // Handle slug filters
   if (slugFilters && slugFilters.length > 0) {
     const slugConditions = slugFilters.map((filter) => {
       const value = filter.value;
@@ -467,6 +356,5 @@ function buildPermissionFilter(
     return sql``;
   }
 
-  // Join name and slug conditions with AND
   return sql`AND (${sql.join(conditions, sql` AND `)})`;
 }

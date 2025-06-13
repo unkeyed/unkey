@@ -1,4 +1,4 @@
-import type { Roles } from "@/lib/trpc/routers/authorization/roles/query";
+import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { UpsertRoleDialog } from "../../../../upsert-role";
@@ -9,17 +9,20 @@ export const EditRole = ({
   isOpen,
   onClose,
 }: {
-  role: Roles;
+  role: RoleBasic;
   isOpen: boolean;
   onClose: () => void;
 }) => {
-  const { permissions, keys, error } = useFetchConnectedKeysAndPerms(role.roleId);
+  const { permissions, keys, error } = useFetchConnectedKeysAndPerms(
+    role.roleId
+  );
 
   useEffect(() => {
     if (error) {
       if (error.data?.code === "NOT_FOUND") {
         toast.error("Role Not Found", {
-          description: "The requested role doesn't exist or you don't have access to it.",
+          description:
+            "The requested role doesn't exist or you don't have access to it.",
         });
       } else if (error.data?.code === "FORBIDDEN") {
         toast.error("Access Denied", {
@@ -33,7 +36,8 @@ export const EditRole = ({
         });
       } else {
         toast.error("Failed to Load Role Details", {
-          description: error.message || "An unexpected error occurred. Please try again.",
+          description:
+            error.message || "An unexpected error occurred. Please try again.",
           action: {
             label: "Contact Support",
             onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
