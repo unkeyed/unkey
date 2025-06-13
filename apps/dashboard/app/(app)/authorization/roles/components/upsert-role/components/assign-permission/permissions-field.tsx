@@ -3,6 +3,7 @@ import { trpc } from "@/lib/trpc/client";
 import type { RolePermission } from "@/lib/trpc/routers/authorization/roles/connected-keys-and-perms";
 import { HandHoldingKey, XMark } from "@unkey/icons";
 import { useMemo, useState } from "react";
+import { TOTAL_ATTACH_LIMIT } from "../../../table/components/actions/keys-table-action.popover.constants";
 import { RoleWarningCallout } from "../warning-callout";
 import { createPermissionOptions } from "./create-permission-options";
 import { useFetchPermissions } from "./hooks/use-fetch-permissions";
@@ -33,7 +34,7 @@ export const PermissionField = ({
   });
 
   const totalPerms = permsPreview?.totalCount || permsPreview?.items?.length || value.length || 0;
-  const hasWarning = roleId && totalPerms > 50;
+  const hasWarning = roleId && totalPerms > TOTAL_ATTACH_LIMIT;
 
   const { permissions, isFetchingNextPage, hasNextPage, loadMore } = useFetchPermissions();
   const { searchResults, isSearching } = useSearchPermissions(searchValue);

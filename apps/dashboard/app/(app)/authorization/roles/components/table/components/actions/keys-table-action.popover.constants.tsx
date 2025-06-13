@@ -13,6 +13,7 @@ type RolesTableActionsProps = {
   role: RoleBasic;
 };
 
+export const TOTAL_ATTACH_LIMIT = 50;
 export const RolesTableActions = ({ role }: RolesTableActionsProps) => {
   const trpcUtils = trpc.useUtils();
 
@@ -41,7 +42,7 @@ export const RolesTableActions = ({ role }: RolesTableActionsProps) => {
   const totalKeys = keysPreview?.totalCount || keysPreview?.items?.length || 0;
   const totalPerms = permsPreview?.totalCount || permsPreview?.items?.length || 0;
 
-  const shouldPrefetch = totalKeys <= 50 && totalPerms <= 50;
+  const shouldPrefetch = totalKeys <= TOTAL_ATTACH_LIMIT && totalPerms <= TOTAL_ATTACH_LIMIT;
 
   const getRolesTableActionItems = (role: RoleBasic): MenuItem[] => {
     return [
