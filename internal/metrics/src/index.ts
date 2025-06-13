@@ -138,6 +138,16 @@ export const metricSchema = z.discriminatedUnion("metric", [
     cfPassed: z.boolean(),
     awsPassed: z.boolean(),
   }),
+  z.object({
+    metric: z.literal("metric.credits.spent"),
+    workspaceId: z.string(),
+    deducted: z.boolean(),
+    latency: z.number(),
+    keyId: z.string(),
+    time: z.number(),
+    identityId: z.string().nullable(),
+    cost: z.number(),
+  }),
 ]);
 
 export type Metric = z.infer<typeof metricSchema>;

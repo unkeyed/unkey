@@ -614,12 +614,27 @@ export class KeyService {
       });
     }
 
+    console.warn("ABC");
     let remaining: number | undefined = undefined;
     if (data.key.remaining !== null) {
+      const t0 = performance.now();
+      const cost = req.remaining?.cost ?? DEFAULT_REMAINING_COST;
       const limited = await this.usageLimiter.limit({
         keyId: data.key.id,
-        cost: req.remaining?.cost ?? DEFAULT_REMAINING_COST,
+        cost,
       });
+
+      this.metrics.emit({
+        metric: "metric.credits.spent",
+        workspaceId: data.key.workspaceId,
+        deducted: limited.valid,
+        cost: cost,
+        keyId: data.key.id,
+        identityId: data.identity?.id ?? null,
+        latency: performance.now() - t0,
+        time: Date.now(),
+      });
+
       remaining = limited.remaining;
       if (!limited.valid) {
         return Ok({
