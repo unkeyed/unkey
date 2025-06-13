@@ -1,4 +1,3 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import type { Permission } from "@unkey/db";
-import { Button } from "@unkey/ui";
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@unkey/ui";
 import { Check } from "lucide-react";
 import { PermissionToggle } from "./permission_toggle";
 import type { UnkeyPermissions } from "./permissions";

@@ -1,7 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Metric } from "@/components/ui/metric";
 import { clickhouse } from "@/lib/clickhouse";
 import type { Key } from "@unkey/db";
+import { Card, CardContent, CardHeader, CardTitle } from "@unkey/ui";
 import { ArrowLeft } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
