@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.1.0",
+    "@tailwindcss/container-queries": "^0.1.1",
+    "@tailwindcss/typography": "^0.5.12",
     "@unkey/icons": "workspace:^",
     "@unkey/ui": "workspace:^",
     "fumadocs-core": "14.4.0",
@@ -24,9 +26,13 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-element-to-jsx-string": "^15.0.0",
+    "tailwind-merge": "^2.5.4",
+    "tailwindcss": "^3.4.3",
+    "tailwindcss-animate": "^1.0.7",
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@tailwindcss/aspect-ratio": "^0.4.2",
     "@types/node": "22.5.4",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.0",
