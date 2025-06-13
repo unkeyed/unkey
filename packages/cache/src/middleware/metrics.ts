@@ -99,6 +99,20 @@ class StoreWithMetrics<TNamespace extends string, TValue> implements Store<TName
     return res;
   }
 
+  public async getMany(
+    namespace: TNamespace,
+    keys: string[],
+  ): Promise<Result<Record<string, Entry<TValue> | undefined>, CacheError>> {
+    return Ok();
+  }
+
+  public async setMany(
+    namespace: TNamespace,
+    entries: Record<string, Entry<TValue>>,
+  ): Promise<Result<void, CacheError>> {
+    return Ok();
+  }
+
   public async remove(namespace: TNamespace, key: string): Promise<Result<void, CacheError>> {
     const start = performance.now();
     const res = this.store.remove(namespace, key);
