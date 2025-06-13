@@ -449,6 +449,12 @@ importers:
       '@radix-ui/react-slot':
         specifier: ^1.1.0
         version: 1.1.0(@types/react@18.3.11)(react@18.3.1)
+      '@tailwindcss/container-queries':
+        specifier: ^0.1.1
+        version: 0.1.1(tailwindcss@3.4.15)
+      '@tailwindcss/typography':
+        specifier: ^0.5.12
+        version: 0.5.12(tailwindcss@3.4.15)
       '@unkey/icons':
         specifier: workspace:^
         version: link:../../internal/icons
@@ -491,10 +497,22 @@ importers:
       react-element-to-jsx-string:
         specifier: ^15.0.0
         version: 15.0.0(react-dom@18.3.1)(react@18.3.1)
+      tailwind-merge:
+        specifier: ^2.5.4
+        version: 2.5.4
+      tailwindcss:
+        specifier: ^3.4.3
+        version: 3.4.15
+      tailwindcss-animate:
+        specifier: ^1.0.7
+        version: 1.0.7(tailwindcss@3.4.15)
       zod:
         specifier: 3.23.8
         version: 3.23.8
     devDependencies:
+      '@tailwindcss/aspect-ratio':
+        specifier: ^0.4.2
+        version: 0.4.2(tailwindcss@3.4.15)
       '@types/node':
         specifier: 22.5.4
         version: 22.5.4
@@ -510,9 +528,6 @@ importers:
       postcss:
         specifier: ^8.4.45
         version: 8.4.45
-      tailwindcss:
-        specifier: ^3.4.10
-        version: 3.4.15
       typescript:
         specifier: ^5.5.4
         version: 5.7.3
@@ -18530,7 +18545,7 @@ packages:
     dependencies:
       nanoid: 3.3.11
       picocolors: 1.1.1
-      source-map-js: 1.0.2
+      source-map-js: 1.2.1
     dev: false
 
   /postcss@8.4.38:
@@ -20785,7 +20800,7 @@ packages:
     dependencies:
       '@alloc/quick-lru': 5.2.0
       arg: 5.0.2
-      chokidar: 3.5.3
+      chokidar: 3.6.0
       didyoumean: 1.2.2
       dlv: 1.1.3
       fast-glob: 3.3.3

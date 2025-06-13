@@ -1,3 +1,130 @@
 @tailwind base;
-@tailwind components;
-@tailwind utilities;
+
+@layer base {
+  :root {
+    --chart-selection: var(--accent-6);
+
+    --white: 0 0% 100%;
+    --black: 0 0% 0%;
+    --background: 60 9% 98%;
+    --background-subtle: 60 9% 94%;
+
+    --brand: 262 93% 58%;
+    --brand-foreground: 262 93% 90%;
+
+    --warn: 46, 97%, 65%;
+    --warn-foreground: 46, 97%, 15%;
+
+    --alert: 0 100% 65%;
+    --alert-foreground: 0 100% 98%;
+
+    --success: 152, 56%, 39%;
+
+    --primary: 24 10% 10%;
+    --primary-foreground: 24 10% 90%;
+
+    --secondary: 20 6% 94%;
+    --secondary-foreground: 0 0% 0%;
+
+    --content: 240 10% 3.9%;
+    --content-subtle: 240 3.8% 46.1%;
+
+    --content-warn: 46, 97%, 40%;
+    --content-alert: 0 84.2% 60.2%;
+
+    --border: 24, 6%, 83%;
+    --ring: 24, 6%, 83%;
+  }
+
+  .dark {
+    --chart-selection: var(--accent-9);
+
+    --white: 0 0% 100%;
+    --black: 0 0% 0%;
+
+    --background: 20 14% 2%;
+    --background-subtle: 24 10% 10%;
+
+    --brand: 25 95% 53%;
+    --brand-foreground: 25 95% 90%;
+
+    --warn: 46, 100%, 45%;
+    --warn-foreground: 46, 97%, 5%;
+
+    --alert: 0 100% 45%;
+    --alert-foreground: 0 100% 95%;
+
+    --success: 152, 56%, 39%;
+
+    --primary: 20 6% 94%;
+    --primary-foreground: 20 6% 10%;
+
+    --secondary: 24 10% 10%;
+    --secondary-foreground: 24 10% 100%;
+
+    --content: 240 10% 90%;
+    --content-subtle: 240 3.8% 46.1%;
+    --content-warn: 46, 100%, 55%;
+    --content-alert: 0 84.2% 60.2%;
+
+    --border: 12, 6%, 15%;
+    --ring: 12, 6%, 15%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-background text-content;
+  }
+}
+
+code {
+  counter-reset: step;
+  counter-increment: step 0;
+  white-space: break-spaces;
+}
+
+code .line::before {
+  content: counter(step);
+  counter-increment: step;
+  width: 1rem;
+  margin-right: 1.5rem;
+  display: inline-block;
+  text-align: right;
+  color: rgba(115, 138, 148, 0.4);
+}
+
+@keyframes fillLeft {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* For Webkit-based browsers (Chrome, Safari and Opera) */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* For IE, Edge and Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.animate-fill-left {
+  animation: fillLeft 1s ease-in-out;
+}

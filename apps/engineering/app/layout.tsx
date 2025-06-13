@@ -4,8 +4,9 @@ import { GeistSans } from "geist/font/sans";
 
 import type { ReactNode } from "react";
 
-import { TooltipProvider } from "@unkey/ui/src/components/tooltip";
 import "./global.css";
+import "@unkey/ui/css";
+import { TooltipProvider } from "@unkey/ui/src/components/tooltip";
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
