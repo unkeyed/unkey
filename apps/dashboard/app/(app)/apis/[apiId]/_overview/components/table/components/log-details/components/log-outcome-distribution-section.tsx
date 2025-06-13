@@ -1,8 +1,7 @@
-import { Card, CardContent } from "@/components/ui/card";
 import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 import { Clone } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, Card, CardContent } from "@unkey/ui";
 import { toast } from "sonner";
 import { formatOutcomeName, getOutcomeColor } from "../../../../../utils";
 

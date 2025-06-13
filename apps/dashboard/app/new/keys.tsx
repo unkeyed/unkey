@@ -1,17 +1,21 @@
 "use client";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Code } from "@/components/ui/code";
+import { trpc } from "@/lib/trpc/client";
 import {
+  Button,
   Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Code } from "@/components/ui/code";
-import { trpc } from "@/lib/trpc/client";
-import { Button, CopyButton, Empty, Separator, VisibleButton } from "@unkey/ui";
+  CopyButton,
+  Empty,
+  Separator,
+  VisibleButton
+} from "@unkey/ui";
 import { AlertCircle, KeyRound, Lock } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";

@@ -1,6 +1,5 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
@@ -15,7 +14,18 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { type UnkeyPermission, unkeyPermissionValidation } from "@unkey/rbac";
-import { Button, Checkbox, CopyButton, Input, VisibleButton } from "@unkey/ui";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Checkbox,
+  CopyButton,
+  Input,
+  VisibleButton
+} from "@unkey/ui";
 import { ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createParser, parseAsArrayOf, useQueryState } from "nuqs";
