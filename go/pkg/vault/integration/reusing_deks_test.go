@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/vault"
 	"github.com/unkeyed/unkey/go/pkg/vault/keys"
 	"github.com/unkeyed/unkey/go/pkg/vault/storage"
@@ -24,7 +24,7 @@ func TestReuseDEKsForSameKeyring(t *testing.T) {
 
 	storage, err := storage.NewS3(storage.S3Config{
 		S3URL:             s3.HostURL,
-		S3Bucket:          "vault",
+		S3Bucket:          uid.New(""),
 		S3AccessKeyId:     s3.AccessKeyId,
 		S3AccessKeySecret: s3.AccessKeySecret,
 		Logger:            logger,
@@ -48,7 +48,7 @@ func TestReuseDEKsForSameKeyring(t *testing.T) {
 	for range 10 {
 		res, encryptErr := v.Encrypt(ctx, &vaultv1.EncryptRequest{
 			Keyring: "keyring",
-			Data:    uuid.NewString(),
+			Data:    uid.New(uid.TestPrefix),
 		})
 		require.NoError(t, encryptErr)
 		deks[res.GetKeyId()] = true
@@ -68,7 +68,7 @@ func TestIndividualDEKsPerKeyring(t *testing.T) {
 
 	storage, err := storage.NewS3(storage.S3Config{
 		S3URL:             s3.HostURL,
-		S3Bucket:          "vault",
+		S3Bucket:          uid.New(""),
 		S3AccessKeyId:     s3.AccessKeyId,
 		S3AccessKeySecret: s3.AccessKeySecret,
 		Logger:            logger,
@@ -91,8 +91,8 @@ func TestIndividualDEKsPerKeyring(t *testing.T) {
 
 	for range 10 {
 		res, encryptErr := v.Encrypt(ctx, &vaultv1.EncryptRequest{
-			Keyring: uuid.NewString(),
-			Data:    uuid.NewString(),
+			Keyring: uid.New(uid.TestPrefix),
+			Data:    uid.New(uid.TestPrefix),
 		})
 		require.NoError(t, encryptErr)
 		deks[res.GetKeyId()] = true

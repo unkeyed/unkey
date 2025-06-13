@@ -26,13 +26,15 @@ func (c *Containers) RunS3(t *testing.T) S3 {
 	password := "minio_root_password" // nolint:gosec
 
 	runOpts := &dockertest.RunOptions{
-		Name:       containerNameS3,
-		Repository: "minio/minio",
-		Tag:        "RELEASE.2025-04-03T14-56-28Z", // They fucked their license or something and it broke, don't use latest
-		Networks:   []*dockertest.Network{c.network},
+		Name:         containerNameS3,
+		Repository:   "minio/minio",
+		Tag:          "RELEASE.2025-04-03T14-56-28Z", // They fucked their license or something and it broke, don't use latest
+		Networks:     []*dockertest.Network{c.network},
+		ExposedPorts: []string{"9001"},
 		Env: []string{
 			fmt.Sprintf("MINIO_ROOT_USER=%s", user),
 			fmt.Sprintf("MINIO_ROOT_PASSWORD=%s", password),
+			"MINIO_CONSOLE_ADDRESS=:9001",
 		},
 		Cmd: []string{"server", "/Data"},
 	}
