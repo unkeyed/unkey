@@ -8,14 +8,12 @@ export const EditRole = ({
   role,
   isOpen,
   onClose,
-  shouldFetch,
 }: {
   role: RoleBasic;
   isOpen: boolean;
   onClose: () => void;
-  shouldFetch: boolean;
 }) => {
-  const { permissions, keys, error } = useFetchConnectedKeysAndPermsData(role.roleId, shouldFetch);
+  const { permissions, keys, error } = useFetchConnectedKeysAndPermsData(role.roleId);
 
   useEffect(() => {
     if (error) {

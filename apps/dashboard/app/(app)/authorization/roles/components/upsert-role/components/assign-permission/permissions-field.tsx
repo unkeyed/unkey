@@ -1,9 +1,8 @@
 import { FormCombobox } from "@/components/ui/form-combobox";
-import { trpc } from "@/lib/trpc/client";
 import type { RolePermission } from "@/lib/trpc/routers/authorization/roles/connected-keys-and-perms";
 import { HandHoldingKey, XMark } from "@unkey/icons";
 import { useMemo, useState } from "react";
-import { MAX_ATTACH_LIMIT } from "../../../table/components/actions/keys-table-action.popover.constants";
+import { useRoleLimits } from "../../../table/hooks/use-role-limits";
 import { RoleWarningCallout } from "../warning-callout";
 import { createPermissionOptions } from "./create-permission-options";
 import { useFetchPermissions } from "./hooks/use-fetch-permissions";
@@ -27,13 +26,8 @@ export const PermissionField = ({
 }: PermissionFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
 
-  const permsPreview = trpc.useUtils().authorization.roles.connectedPerms.getData({
-    roleId: roleId ?? "",
-    limit: 3,
-  });
-
-  const totalPerms = permsPreview?.totalCount || permsPreview?.items?.length || value.length || 0;
-  const hasWarning = roleId && totalPerms > MAX_ATTACH_LIMIT;
+  const { calculateLimits } = useRoleLimits(roleId);
+  const { hasPermWarning, totalPerms } = calculateLimits(value);
 
   const { permissions, isFetchingNextPage, hasNextPage, loadMore } = useFetchPermissions();
   const { searchResults, isSearching } = useSearchPermissions(searchValue);
@@ -158,10 +152,10 @@ export const PermissionField = ({
         }
         variant="default"
         error={error}
-        disabled={disabled || Boolean(hasWarning)}
+        disabled={disabled || Boolean(hasPermWarning)}
       />
 
-      {hasWarning ? <RoleWarningCallout count={totalPerms} type="permissions" /> : null}
+      {hasPermWarning ? <RoleWarningCallout count={totalPerms} type="permissions" /> : null}
 
       {/* Selected Permissions Display */}
       {selectedPermissions.length > 0 && (

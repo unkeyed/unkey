@@ -1,9 +1,8 @@
 import { FormCombobox } from "@/components/ui/form-combobox";
-import { trpc } from "@/lib/trpc/client";
 import type { RoleKey } from "@/lib/trpc/routers/authorization/roles/connected-keys-and-perms";
 import { Key2, XMark } from "@unkey/icons";
 import { useMemo, useState } from "react";
-import { MAX_ATTACH_LIMIT } from "../../../table/components/actions/keys-table-action.popover.constants";
+import { useRoleLimits } from "../../../table/hooks/use-role-limits";
 import { RoleWarningCallout } from "../warning-callout";
 import { createKeyOptions } from "./create-key-options";
 import { useFetchKeys } from "./hooks/use-fetch-keys";
@@ -28,13 +27,8 @@ export const KeyField = ({
 }: KeyFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
 
-  const keysPreview = trpc.useUtils().authorization.roles.connectedKeys.getData({
-    roleId: roleId ?? "",
-    limit: 3,
-  });
-
-  const totalKeys = keysPreview?.totalCount || keysPreview?.items?.length || value.length || 0;
-  const hasWarning = roleId && totalKeys > MAX_ATTACH_LIMIT;
+  const { calculateLimits } = useRoleLimits(roleId);
+  const { hasKeyWarning, totalKeys } = calculateLimits(value);
 
   const { keys, isFetchingNextPage, hasNextPage, loadMore } = useFetchKeys();
   const { searchResults, isSearching } = useSearchKeys(searchValue);
@@ -152,10 +146,10 @@ export const KeyField = ({
         }
         variant="default"
         error={error}
-        disabled={disabled || Boolean(hasWarning)}
+        disabled={disabled || Boolean(hasKeyWarning)}
       />
 
-      {hasWarning ? <RoleWarningCallout count={totalKeys} type="keys" /> : null}
+      {hasKeyWarning ? <RoleWarningCallout count={totalKeys} type="keys" /> : null}
 
       {/* Selected Keys Display */}
       {selectedKeys.length > 0 && (
