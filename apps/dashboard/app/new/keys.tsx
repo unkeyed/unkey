@@ -14,7 +14,7 @@ import {
   CopyButton,
   Empty,
   Separator,
-  VisibleButton
+  VisibleButton,
 } from "@unkey/ui";
 import { AlertCircle, KeyRound, Lock } from "lucide-react";
 import Link from "next/link";

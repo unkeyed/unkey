@@ -2,8 +2,8 @@
 import { Eye, EyeSlash } from "@unkey/icons";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import * as React from "react";
-import { Button, type ButtonProps } from "./button";
 import { cn } from "../lib/utils";
+import { Button, type ButtonProps } from "./button";
 
 type VisibleButtonProps = ButtonProps & {
   isVisible: boolean;
@@ -12,15 +12,15 @@ type VisibleButtonProps = ButtonProps & {
   size?: ButtonProps["size"];
 };
 
-export function VisibleButton({ 
+export function VisibleButton({
   isVisible,
-  setIsVisible, 
+  setIsVisible,
   variant = "outline",
   title,
   size = "icon",
   onClick,
   className,
-  ...rest 
+  ...rest
 }: VisibleButtonProps) {
   return (
     <Button
@@ -32,7 +32,7 @@ export function VisibleButton({
       className={cn("focus:ring-0 focus:border-grayA-6", className)}
       onClick={(e) => {
         setIsVisible(!isVisible);
-        onClick?.(e); 
+        onClick?.(e);
       }}
       aria-label={isVisible ? `Hide ${title}` : `Show ${title}`}
     >

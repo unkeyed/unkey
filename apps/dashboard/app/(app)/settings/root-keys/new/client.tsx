@@ -24,7 +24,7 @@ import {
   Checkbox,
   CopyButton,
   Input,
-  VisibleButton
+  VisibleButton,
 } from "@unkey/ui";
 import { ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
