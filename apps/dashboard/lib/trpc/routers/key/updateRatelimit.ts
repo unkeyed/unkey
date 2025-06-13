@@ -10,21 +10,7 @@ const baseRatelimitInputSchema = z.object({
   keyId: z.string(),
 });
 
-const ratelimitValidationV2 = ratelimitSchema.extend({
-  ratelimitType: z.literal("v2"),
-});
-
-const ratelimitValidationV1 = z.object({
-  enabled: z.boolean(),
-  ratelimitAsync: z.boolean().optional(),
-  ratelimitLimit: z.number().int().positive().optional(),
-  ratelimitDuration: z.number().int().positive().optional(),
-  ratelimitType: z.literal("v1"),
-});
-
-export const ratelimitInputSchema = z
-  .discriminatedUnion("ratelimitType", [ratelimitValidationV1, ratelimitValidationV2])
-  .and(baseRatelimitInputSchema);
+export const ratelimitInputSchema = ratelimitSchema.and(baseRatelimitInputSchema);
 
 type RatelimitInputSchema = z.infer<typeof ratelimitInputSchema>;
 
@@ -57,97 +43,12 @@ export const updateKeyRatelimit = t.procedure
       });
     }
 
-    if (input.ratelimitType === "v1") {
-      return updateRatelimitV1(input, key, {
-        audit: ctx.audit,
-        userId: ctx.user.id,
-        workspaceId: ctx.workspace.id,
-      });
-    }
     return updateRatelimitV2(input, key, {
       audit: ctx.audit,
       userId: ctx.user.id,
       workspaceId: ctx.workspace.id,
     });
   });
-
-const updateRatelimitV1 = async (
-  input: RatelimitInputSchema,
-  key: Key,
-  ctx: {
-    workspaceId: string;
-    userId: string;
-    audit: {
-      location: string;
-      userAgent: string | undefined;
-    };
-  },
-) => {
-  if (input.ratelimitType !== "v1") {
-    throw new TRPCError({
-      message: "Unsupported rate limit type. Only v1 ratelimits are supported.",
-      code: "BAD_REQUEST",
-    });
-  }
-  try {
-    await db.transaction(async (tx) => {
-      const ratelimitValues = input.enabled
-        ? {
-            ratelimitAsync: input.ratelimitAsync,
-            ratelimitLimit: input.ratelimitLimit,
-            ratelimitDuration: input.ratelimitDuration,
-          }
-        : {
-            ratelimitAsync: null,
-            ratelimitLimit: null,
-            ratelimitDuration: null,
-          };
-      await tx.update(schema.keys).set(ratelimitValues).where(eq(schema.keys.id, key.id));
-
-      const description = input.enabled
-        ? `Changed ratelimit of ${key.id}`
-        : `Disabled ratelimit of ${key.id}`;
-
-      const resources: UnkeyAuditLog["resources"] = [
-        {
-          type: "key",
-          id: key.id,
-          name: key.name || undefined,
-          meta: input.enabled
-            ? {
-                "ratelimit.async": input.ratelimitAsync,
-                "ratelimit.limit": input.ratelimitLimit,
-                "ratelimit.duration": input.ratelimitDuration,
-              }
-            : undefined,
-        },
-      ];
-      await insertAuditLogs(tx, {
-        workspaceId: ctx.workspaceId,
-        actor: {
-          type: "user",
-          id: ctx.userId,
-        },
-        event: "key.update",
-        description,
-        resources,
-        context: {
-          location: ctx.audit.location,
-          userAgent: ctx.audit.userAgent,
-        },
-      });
-    });
-  } catch (err) {
-    console.error(err);
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message:
-        "We were unable to update ratelimit on this key. Please try again or contact support@unkey.dev",
-    });
-  }
-
-  return { keyId: key.id };
-};
 
 const updateRatelimitV2 = async (
   input: RatelimitInputSchema,
@@ -161,12 +62,6 @@ const updateRatelimitV2 = async (
     };
   },
 ) => {
-  if (input.ratelimitType !== "v2") {
-    throw new TRPCError({
-      message: "Unsupported rate limit type. Only v2 ratelimits are supported.",
-      code: "BAD_REQUEST",
-    });
-  }
   try {
     await db.transaction(async (tx) => {
       if (input.ratelimit.enabled && input.ratelimit.data.length > 0) {
