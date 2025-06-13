@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc/client";
 import type { RolePermission } from "@/lib/trpc/routers/authorization/roles/connected-keys-and-perms";
 import { HandHoldingKey, XMark } from "@unkey/icons";
 import { useMemo, useState } from "react";
-import { TOTAL_ATTACH_LIMIT } from "../../../table/components/actions/keys-table-action.popover.constants";
+import { MAX_ATTACH_LIMIT } from "../../../table/components/actions/keys-table-action.popover.constants";
 import { RoleWarningCallout } from "../warning-callout";
 import { createPermissionOptions } from "./create-permission-options";
 import { useFetchPermissions } from "./hooks/use-fetch-permissions";
@@ -17,7 +17,6 @@ type PermissionFieldProps = {
   roleId?: string;
   assignedPermsDetails: RolePermission[];
 };
-
 export const PermissionField = ({
   value,
   onChange,
@@ -34,7 +33,7 @@ export const PermissionField = ({
   });
 
   const totalPerms = permsPreview?.totalCount || permsPreview?.items?.length || value.length || 0;
-  const hasWarning = roleId && totalPerms > TOTAL_ATTACH_LIMIT;
+  const hasWarning = roleId && totalPerms > MAX_ATTACH_LIMIT;
 
   const { permissions, isFetchingNextPage, hasNextPage, loadMore } = useFetchPermissions();
   const { searchResults, isSearching } = useSearchPermissions(searchValue);
@@ -45,16 +44,21 @@ export const PermissionField = ({
       return searchResults;
     }
     if (searchValue.trim() && searchResults.length === 0 && !isSearching) {
+      // No search results found, filter from loaded permissions as fallback
       const searchTerm = searchValue.toLowerCase().trim();
       return permissions.filter(
-        (perm) =>
-          perm.name.toLowerCase().includes(searchTerm) ||
-          perm.slug?.toLowerCase().includes(searchTerm),
+        (permission) =>
+          permission.id.toLowerCase().includes(searchTerm) ||
+          permission.name.toLowerCase().includes(searchTerm) ||
+          permission.slug.toLowerCase().includes(searchTerm) ||
+          permission.description?.toLowerCase().includes(searchTerm),
       );
     }
+    // No search query, use all loaded permissions
     return permissions;
   }, [permissions, searchResults, searchValue, isSearching]);
 
+  // Don't show load more when actively searching
   const showLoadMore = !searchValue.trim() && hasNextPage;
 
   const baseOptions = createPermissionOptions({
@@ -73,10 +77,14 @@ export const PermissionField = ({
       if (value.includes(option.value)) {
         return false;
       }
+
+      // Find the permission and check if it's already assigned to this role
       const permission = allPermissions.find((p) => p.id === option.value);
       if (!permission) {
         return true;
       }
+
+      // Filter out permissions that already have this role assigned (if roleId provided)
       if (roleId) {
         return !permission.roles?.some((role) => role.id === roleId);
       }
@@ -87,6 +95,7 @@ export const PermissionField = ({
   const selectedPermissions = useMemo(() => {
     return value
       .map((permId) => {
+        // First: check selectedPermissionsData (for pre-loaded edit data)
         const preLoadedPerm = assignedPermsDetails.find((p) => p.id === permId);
         if (preLoadedPerm) {
           return {
@@ -95,14 +104,14 @@ export const PermissionField = ({
             slug: preLoadedPerm.slug,
           };
         }
+
+        // Second: check loaded permissions (for newly added permissions)
         const loadedPerm = allPermissions.find((p) => p.id === permId);
         if (loadedPerm) {
-          return {
-            id: loadedPerm.id,
-            name: loadedPerm.name,
-            slug: loadedPerm.slug,
-          };
+          return loadedPerm;
         }
+
+        // Third: fallback
         return {
           id: permId,
           name: null,
@@ -112,8 +121,8 @@ export const PermissionField = ({
       .filter((perm): perm is NonNullable<typeof perm> => perm !== undefined);
   }, [value, allPermissions, assignedPermsDetails]);
 
-  const handleRemovePermission = (permId: string) => {
-    onChange(value.filter((id) => id !== permId));
+  const handleRemovePermission = (permissionId: string) => {
+    onChange(value.filter((id) => id !== permissionId));
   };
 
   return (
@@ -139,7 +148,7 @@ export const PermissionField = ({
             Select permissions
           </div>
         }
-        searchPlaceholder="Search permissions by name or slug..."
+        searchPlaceholder="Search permissions by name, ID, slug, or description..."
         emptyMessage={
           isSearching ? (
             <div className="px-3 py-3 text-gray-10 text-[13px]">Searching...</div>

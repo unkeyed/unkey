@@ -100,7 +100,7 @@ export const AssignedItemsCell = ({
           style={{ animationDelay: `${items.length * 50}ms` }}
         >
           <span className="text-grayA-9 text-xs max-w-[150px] truncate">
-            {totalCount! - items.length} more {type}...
+            {totalCount - items.length} more {type}...
           </span>
         </div>
       )}

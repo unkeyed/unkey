@@ -13,7 +13,11 @@ type RolesTableActionsProps = {
   role: RoleBasic;
 };
 
-export const TOTAL_ATTACH_LIMIT = 50;
+// `MAX_ATTACH_LIMIT` threshold for role attachments. Beyond this limit:
+// - Role editing is disabled to prevent UI performance degradation
+// - Warning callouts are shown to inform users of potential slowdowns
+// - Prefetching of connected keys/permissions is skipped to reduce API load
+export const MAX_ATTACH_LIMIT = 50;
 export const RolesTableActions = ({ role }: RolesTableActionsProps) => {
   const trpcUtils = trpc.useUtils();
 
@@ -42,7 +46,7 @@ export const RolesTableActions = ({ role }: RolesTableActionsProps) => {
   const totalKeys = keysPreview?.totalCount || keysPreview?.items?.length || 0;
   const totalPerms = permsPreview?.totalCount || permsPreview?.items?.length || 0;
 
-  const shouldPrefetch = totalKeys <= TOTAL_ATTACH_LIMIT && totalPerms <= TOTAL_ATTACH_LIMIT;
+  const shouldPrefetch = totalKeys <= MAX_ATTACH_LIMIT && totalPerms <= MAX_ATTACH_LIMIT;
 
   const getRolesTableActionItems = (role: RoleBasic): MenuItem[] => {
     return [
