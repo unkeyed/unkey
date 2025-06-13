@@ -60,7 +60,6 @@ export const queryRoles = t.procedure
       };
     }
 
-    // Get roles data - clean and fast
     const result = await db.execute(sql`
       SELECT id, name, description, updated_at_m
       FROM roles 
