@@ -1,0 +1,24 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure)
+        # Create metald user and group if they don't exist
+        if ! getent group metald >/dev/null; then
+            addgroup --system metald
+        fi
+        
+        if ! getent passwd metald >/dev/null; then
+            adduser --system --ingroup metald --home /opt/metald --no-create-home --shell /usr/sbin/nologin metald
+        fi
+        
+        # Set ownership of directories
+        chown -R metald:metald /opt/metald
+        chown -R metald:metald /srv/jailer
+        chown -R metald:metald /opt/vm-assets || true
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

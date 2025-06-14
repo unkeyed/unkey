@@ -1,7 +1,6 @@
 package tenant
 
 import (
-	"fmt"
 	"time"
 )
 

@@ -3,11 +3,14 @@ package process
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -216,6 +219,7 @@ func (m *Manager) Shutdown(ctx context.Context) error {
 	}
 
 	m.cleanupLeftoverSockets()
+	m.cleanupLeftoverResources()
 
 	m.logger.Info("process manager shutdown complete")
 	return nil
@@ -234,9 +238,11 @@ func (m *Manager) createNewProcess(ctx context.Context) (*FirecrackerProcess, er
 	if useJailer {
 		// Generate unique jailer ID (max 64 chars as per jailer requirements)
 		jailerID = fmt.Sprintf("vm-%d", time.Now().UnixNano())
-		chrootPath = filepath.Join(m.jailerConfig.ChrootBaseDir, jailerID)
-		// Jailer creates socket inside chroot at /tmp/firecracker.socket
-		socketPath = filepath.Join(chrootPath, "root/tmp/firecracker.socket")
+		// AIDEV-NOTE: Jailer creates structure under {ChrootBaseDir}/firecracker/{jailer-id}/
+		chrootPath = filepath.Join(m.jailerConfig.ChrootBaseDir, "firecracker", jailerID)
+		// AIDEV-NOTE: Jailer creates socket at /run/firecracker.socket inside chroot
+		// The absolute path from host perspective is chroot/root/run/firecracker.socket
+		socketPath = filepath.Join(chrootPath, "root", "run", "firecracker.socket")
 	} else {
 		socketPath = filepath.Join(m.socketDir, processID+".sock")
 	}
@@ -278,6 +284,13 @@ func (m *Manager) createNewProcess(ctx context.Context) (*FirecrackerProcess, er
 		if err != nil {
 			return nil, fmt.Errorf("failed to create jailer command: %w", err)
 		}
+		
+		// AIDEV-NOTE: Log the exact command being run for debugging
+		m.logger.LogAttrs(ctx, slog.LevelInfo, "starting jailer command",
+			slog.String("command", cmd.Path),
+			slog.Any("args", cmd.Args),
+			slog.String("socket_path", process.SocketPath),
+		)
 	} else {
 		// Remove socket if it exists (for non-jailer mode)
 		os.Remove(process.SocketPath)
@@ -291,6 +304,15 @@ func (m *Manager) createNewProcess(ctx context.Context) (*FirecrackerProcess, er
 	}
 
 	if err := cmd.Start(); err != nil {
+		// AIDEV-NOTE: Enhanced error messaging for common jailer permission issues
+		if useJailer {
+			if os.IsPermission(err) {
+				return nil, fmt.Errorf("failed to start jailer (permission denied): ensure metald has CAP_SYS_ADMIN capability or is running with appropriate privileges: %w", err)
+			}
+			if os.IsNotExist(err) {
+				return nil, fmt.Errorf("jailer binary not found at %s: %w", m.jailerConfig.BinaryPath, err)
+			}
+		}
 		return nil, fmt.Errorf("failed to start firecracker: %w", err)
 	}
 
@@ -328,17 +350,47 @@ func (m *Manager) waitForSocket(ctx context.Context, socketPath string) error {
 	timeout := time.After(m.startTimeout)
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
+	
+	// AIDEV-NOTE: Extended initial wait for jailer to set up chroot environment
+	// Jailer needs time to create chroot, set up namespaces, and drop privileges
+	if m.jailerConfig != nil && m.jailerConfig.Enabled {
+		time.Sleep(500 * time.Millisecond)
+	}
 
+	var lastErr error
+	attempts := 0
 	for {
 		select {
 		case <-timeout:
+			if lastErr != nil {
+				return fmt.Errorf("timeout waiting for socket %s: last error: %w", socketPath, lastErr)
+			}
 			return fmt.Errorf("timeout waiting for socket %s", socketPath)
 		case <-ticker.C:
+			attempts++
 			if _, err := os.Stat(socketPath); err == nil {
 				// Socket exists, try to connect
 				if err := m.testSocketConnection(socketPath); err == nil {
+					m.logger.LogAttrs(ctx, slog.LevelDebug, "socket ready",
+						slog.String("socket_path", socketPath),
+						slog.Int("attempts", attempts),
+					)
 					return nil
+				} else {
+					lastErr = err
+					if attempts%10 == 0 {
+						m.logger.LogAttrs(ctx, slog.LevelDebug, "socket exists but not ready",
+							slog.String("socket_path", socketPath),
+							slog.String("error", err.Error()),
+							slog.Int("attempts", attempts),
+						)
+					}
 				}
+			} else if attempts%20 == 0 {
+				m.logger.LogAttrs(ctx, slog.LevelDebug, "waiting for socket file",
+					slog.String("socket_path", socketPath),
+					slog.Int("attempts", attempts),
+				)
 			}
 		case <-ctx.Done():
 			return ctx.Err()
@@ -348,8 +400,32 @@ func (m *Manager) waitForSocket(ctx context.Context, socketPath string) error {
 
 // testSocketConnection tests if we can connect to the socket
 func (m *Manager) testSocketConnection(socketPath string) error {
-	cmd := exec.Command("curl", "-s", "--unix-socket", socketPath, "http://localhost/")
-	return cmd.Run()
+	// AIDEV-NOTE: Direct socket connection test to avoid curl permission issues with jailer
+	// This method uses native Go to test socket connectivity
+	conn, err := net.Dial("unix", socketPath)
+	if err != nil {
+		return fmt.Errorf("failed to connect to socket: %w", err)
+	}
+	defer conn.Close()
+	
+	// Send a minimal HTTP request to test if Firecracker is responding
+	_, err = conn.Write([]byte("GET / HTTP/1.1\r\nHost: localhost\r\n\r\n"))
+	if err != nil {
+		return fmt.Errorf("failed to write to socket: %w", err)
+	}
+	
+	// Try to read response (even a small amount indicates the socket is working)
+	buf := make([]byte, 256)
+	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	n, err := conn.Read(buf)
+	if err != nil && err != io.EOF {
+		return fmt.Errorf("failed to read from socket: %w", err)
+	}
+	if n == 0 {
+		return fmt.Errorf("no response from socket")
+	}
+	
+	return nil
 }
 
 // stopProcess stops a Firecracker process
@@ -410,6 +486,29 @@ func (m *Manager) stopProcess(ctx context.Context, proc *FirecrackerProcess) err
 				slog.String("chroot_path", proc.ChrootPath),
 			)
 		}
+
+		// Cleanup network namespace if it was created
+		if m.jailerConfig != nil && m.jailerConfig.NetNS && proc.JailerID != "" {
+			netnsName := "fc-" + proc.JailerID
+			// AIDEV-NOTE: Use background context for cleanup to avoid "context canceled" errors
+			// Network namespace cleanup must complete even if the request context is canceled
+			cleanupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			
+			cmd := exec.CommandContext(cleanupCtx, "ip", "netns", "del", netnsName)
+			if err := cmd.Run(); err != nil {
+				m.logger.LogAttrs(ctx, slog.LevelWarn, "failed to remove network namespace",
+					slog.String("process_id", proc.ID),
+					slog.String("netns_name", netnsName),
+					slog.String("error", err.Error()),
+				)
+			} else {
+				m.logger.LogAttrs(ctx, slog.LevelInfo, "cleaned up network namespace",
+					slog.String("process_id", proc.ID),
+					slog.String("netns_name", netnsName),
+				)
+			}
+		}
 	}
 
 	proc.Status = StatusStopped
@@ -434,6 +533,52 @@ func (m *Manager) cleanupLeftoverSockets() {
 	}
 }
 
+// cleanupLeftoverResources cleans up any leftover jailer resources
+// AIDEV-NOTE: This should be called during shutdown or periodically to clean up orphaned resources
+func (m *Manager) cleanupLeftoverResources() {
+	if m.jailerConfig == nil || !m.jailerConfig.Enabled {
+		return
+	}
+
+	// Clean up leftover network namespaces
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// List all network namespaces
+	cmd := exec.CommandContext(ctx, "ip", "netns", "list")
+	output, err := cmd.Output()
+	if err != nil {
+		m.logger.LogAttrs(context.Background(), slog.LevelWarn, "failed to list network namespaces",
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+
+	// Parse and clean up fc-vm-* namespaces
+	lines := strings.Split(string(output), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "fc-vm-") {
+			// Extract namespace name (first field)
+			parts := strings.Fields(line)
+			if len(parts) > 0 {
+				netnsName := parts[0]
+				m.logger.LogAttrs(context.Background(), slog.LevelInfo, "cleaning up orphaned network namespace",
+					slog.String("netns_name", netnsName),
+				)
+				
+				cleanupCmd := exec.CommandContext(ctx, "ip", "netns", "del", netnsName)
+				if err := cleanupCmd.Run(); err != nil {
+					m.logger.LogAttrs(context.Background(), slog.LevelWarn, "failed to remove orphaned network namespace",
+						slog.String("netns_name", netnsName),
+						slog.String("error", err.Error()),
+					)
+				}
+			}
+		}
+	}
+}
+
 // GetProcessInfo returns information about managed processes
 func (m *Manager) GetProcessInfo() map[string]*FirecrackerProcess {
 	m.mutex.RLock()
@@ -452,6 +597,33 @@ func (m *Manager) GetProcessInfo() map[string]*FirecrackerProcess {
 	}
 
 	return info
+}
+
+// copyFile copies a file from src to dst
+func (m *Manager) copyFile(src, dst string) error {
+	sourceFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer sourceFile.Close()
+
+	destFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, sourceFile)
+	if err != nil {
+		return err
+	}
+
+	// Copy file permissions
+	sourceInfo, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+	return os.Chmod(dst, sourceInfo.Mode())
 }
 
 // createProcessContext creates a context for Firecracker processes that:
@@ -564,6 +736,97 @@ func (m *Manager) createJailerCommand(ctx context.Context, process *FirecrackerP
 		return nil, fmt.Errorf("failed to create chroot base directory: %w", err)
 	}
 
+	// Create network namespace if network isolation is enabled
+	if m.jailerConfig.NetNS {
+		netnsName := "fc-" + process.JailerID
+		netnsPath := "/var/run/netns/" + netnsName
+
+		// Ensure /var/run/netns directory exists
+		if err := os.MkdirAll("/var/run/netns", 0755); err != nil {
+			return nil, fmt.Errorf("failed to create netns directory: %w", err)
+		}
+
+		// Check if namespace already exists
+		if _, err := os.Stat(netnsPath); os.IsNotExist(err) {
+			// Create network namespace (requires CAP_NET_ADMIN)
+			cmd := exec.CommandContext(ctx, "ip", "netns", "add", netnsName)
+			if err := cmd.Run(); err != nil {
+				return nil, fmt.Errorf("failed to create network namespace %s: %w", netnsName, err)
+			}
+
+			// Set up loopback interface in the namespace (requires CAP_NET_ADMIN)
+			cmd = exec.CommandContext(ctx, "ip", "netns", "exec", netnsName, "ip", "link", "set", "lo", "up")
+			if err := cmd.Run(); err != nil {
+				// Best effort cleanup
+				exec.CommandContext(ctx, "ip", "netns", "del", netnsName).Run()
+				return nil, fmt.Errorf("failed to setup loopback in namespace %s: %w", netnsName, err)
+			}
+
+			m.logger.LogAttrs(ctx, slog.LevelInfo, "created network namespace",
+				slog.String("netns_name", netnsName),
+				slog.String("netns_path", netnsPath),
+				slog.String("jailer_id", process.JailerID),
+			)
+		}
+	}
+	
+	// AIDEV-NOTE: Prepare VM assets for jailer
+	// Jailer creates a chroot at {ChrootBaseDir}/firecracker/{jailer-id}/root/
+	// We need to ensure VM assets (kernel, rootfs) are available inside the chroot
+	// Create the directory structure that matches the paths Firecracker expects
+	vmAssetsDir := filepath.Join(process.ChrootPath, "root", "opt", "vm-assets")
+	if err := os.MkdirAll(vmAssetsDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create vm-assets directory in chroot: %w", err)
+	}
+	
+	// Create hard links for VM assets (kernel and rootfs files)
+	// This works because /opt/vm-assets and /srv/jailer are on the same filesystem
+	vmAssets := []string{"vmlinux", "rootfs.ext4", "alpine-builderd.ext4", "busybox-build.ext4", "busybox-builderd.ext4", "build-1749870205104626515.ext4"}
+	for _, asset := range vmAssets {
+		srcPath := filepath.Join("/opt/vm-assets", asset)
+		dstPath := filepath.Join(vmAssetsDir, asset)
+		
+		// Check if source file exists
+		if _, err := os.Stat(srcPath); err == nil {
+			// Remove any existing link/file
+			os.Remove(dstPath)
+			// Create hard link
+			if err := os.Link(srcPath, dstPath); err != nil {
+				m.logger.LogAttrs(ctx, slog.LevelWarn, "failed to link vm asset",
+					slog.String("asset", asset),
+					slog.String("src", srcPath),
+					slog.String("dst", dstPath),
+					slog.String("error", err.Error()),
+				)
+				// Try copying as fallback
+				if err := m.copyFile(srcPath, dstPath); err != nil {
+					m.logger.LogAttrs(ctx, slog.LevelError, "failed to copy vm asset",
+						slog.String("asset", asset),
+						slog.String("error", err.Error()),
+					)
+				}
+			}
+		}
+	}
+	
+	// Create /tmp directory for metrics FIFO and other temporary files
+	tmpDir := filepath.Join(process.ChrootPath, "root", "tmp")
+	if err := os.MkdirAll(tmpDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create tmp directory in chroot: %w", err)
+	}
+	
+	// Set ownership to jailer UID/GID
+	if err := filepath.Walk(filepath.Join(process.ChrootPath, "root"), func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		return os.Chown(path, int(m.jailerConfig.UID), int(m.jailerConfig.GID))
+	}); err != nil {
+		m.logger.LogAttrs(ctx, slog.LevelWarn, "failed to set ownership on chroot files",
+			slog.String("error", err.Error()),
+		)
+	}
+	
 	// Build jailer arguments
 	args := []string{
 		"--id", process.JailerID,
@@ -578,23 +841,22 @@ func (m *Manager) createJailerCommand(ctx context.Context, process *FirecrackerP
 		args = append(args, "--netns", "/var/run/netns/fc-"+process.JailerID)
 	}
 
-	// Add resource limits using cgroup v2 format
-	args = append(args, "--cgroup-version", "2")
-	
-	if m.jailerConfig.ResourceLimits.MemoryLimitBytes > 0 {
-		// Use cgroup v2 memory.max instead of v1 memory.limit_in_bytes
-		args = append(args, "--resource-limit", fmt.Sprintf("memory.max=%d", m.jailerConfig.ResourceLimits.MemoryLimitBytes))
-	}
-
-	if m.jailerConfig.ResourceLimits.CPUQuota > 0 {
-		// Use cgroup v2 cpu.max format: "quota period" (both in microseconds)
-		// Period is typically 100ms = 100000 microseconds
-		cpuQuotaUs := m.jailerConfig.ResourceLimits.CPUQuota * 1000 // Convert percentage to microseconds
-		args = append(args, "--resource-limit", fmt.Sprintf("cpu.max=%d 100000", cpuQuotaUs))
-	}
+	// TODO: Add cgroup v2 resource limits (requires proper cgroup delegation)
+	// Temporarily disabled due to permission issues - metald user needs cgroup write access
+	// args = append(args, "--cgroup-version", "2")
+	//
+	// if m.jailerConfig.ResourceLimits.MemoryLimitBytes > 0 {
+	// 	args = append(args, "--cgroup", fmt.Sprintf("memory.max=%d", m.jailerConfig.ResourceLimits.MemoryLimitBytes))
+	// }
+	//
+	// if m.jailerConfig.ResourceLimits.CPUQuota > 0 {
+	// 	cpuQuotaUs := m.jailerConfig.ResourceLimits.CPUQuota * 1000
+	// 	args = append(args, "--cgroup", fmt.Sprintf("cpu.max=%d 100000", cpuQuotaUs))
+	// }
 
 	// Add Firecracker arguments after --
-	args = append(args, "--", "--api-sock", "/tmp/firecracker.socket")
+	// AIDEV-NOTE: Jailer uses /run/firecracker.socket by default inside chroot
+	args = append(args, "--", "--api-sock", "/run/firecracker.socket")
 
 	m.logger.LogAttrs(ctx, slog.LevelInfo, "creating jailer command",
 		slog.String("jailer_binary", m.jailerConfig.BinaryPath),

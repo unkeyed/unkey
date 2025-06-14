@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"time"
 
 	builderv1 "github.com/unkeyed/unkey/go/deploy/builderd/gen/proto/builder/v1"

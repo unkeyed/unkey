@@ -1,0 +1,28 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE = 1
+export DH_GOPKG := github.com/unkeyed/unkey/go/deploy/metald
+export DH_GOLANG_INSTALL_ALL := 1
+
+%:
+	dh $@ --buildsystem=golang --with=golang,systemd
+
+override_dh_auto_build:
+	cd go/deploy/metald && make build
+
+override_dh_auto_install:
+	dh_auto_install
+	install -D -m 0755 go/deploy/metald/build/metald debian/metald/usr/bin/metald
+	install -D -m 0644 go/deploy/metald/contrib/systemd/metald.service debian/metald/lib/systemd/system/metald.service
+	install -d -m 0755 debian/metald/opt/metald
+	install -d -m 0755 debian/metald/opt/metald/sockets
+	install -d -m 0755 debian/metald/opt/metald/logs
+	install -d -m 0755 debian/metald/opt/metald/data
+	install -d -m 0755 debian/metald/srv/jailer
+	install -d -m 0755 debian/metald/opt/vm-assets
+
+override_dh_dwz:
+	# Skip dwz (debug symbols)
+
+override_dh_auto_test:
+	# Skip tests during package build

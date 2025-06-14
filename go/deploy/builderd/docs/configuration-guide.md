@@ -27,7 +27,7 @@ All builderd configuration uses the `UNKEY_BUILDERD_` prefix for consistency wit
 
 | Variable | Default | Description | Production Notes |
 |----------|---------|-------------|------------------|
-| `UNKEY_BUILDERD_DATABASE_TYPE` | `sqlite` | Database type (sqlite, postgres) | Use PostgreSQL for production |
+| `UNKEY_BUILDERD_DATABASE_TYPE` | `sqlite` | Database type (sqlite, postgres) | SQLite3 recommended for all environments |
 | `UNKEY_BUILDERD_DATABASE_URL` | `file:/var/lib/builderd/builderd.db` | Database connection string | Include connection pooling |
 | `UNKEY_BUILDERD_DATABASE_DATA_DIR` | `/var/lib/builderd/data` | SQLite data directory | Use persistent storage |
 | `UNKEY_BUILDERD_DATABASE_MAX_CONNECTIONS` | `25` | Max database connections | Tune based on load |
@@ -116,8 +116,8 @@ UNKEY_BUILDERD_WORKSPACE_DIR=/var/lib/builderd/workspace
 UNKEY_BUILDERD_CACHE_DIR=/var/lib/builderd/cache
 
 # Database
-UNKEY_BUILDERD_DATABASE_TYPE=postgres
-UNKEY_BUILDERD_DATABASE_URL=postgres://builderd:password@localhost:5432/builderd?sslmode=require&pool_max_conns=25
+UNKEY_BUILDERD_DATABASE_TYPE=sqlite
+UNKEY_BUILDERD_DATABASE_DATA_DIR=/var/lib/builderd/data
 
 # Security
 UNKEY_BUILDERD_ENABLE_ISOLATION=true
@@ -153,28 +153,17 @@ services:
       - "9090:9090"
     environment:
       UNKEY_BUILDERD_HOST: "0.0.0.0"
-      UNKEY_BUILDERD_DATABASE_TYPE: "postgres"
-      UNKEY_BUILDERD_DATABASE_URL: "postgres://builderd:password@postgres:5432/builderd"
+      UNKEY_BUILDERD_DATABASE_TYPE: "sqlite"
+      UNKEY_BUILDERD_DATABASE_DATA_DIR: "/var/lib/builderd/data"
       UNKEY_BUILDERD_OTEL_ENDPOINT: "http://jaeger:14268/api/traces"
     volumes:
       - builderd_data:/var/lib/builderd
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
-      - postgres
       - jaeger
-
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: builderd
-      POSTGRES_USER: builderd
-      POSTGRES_PASSWORD: password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
 
 volumes:
   builderd_data:
-  postgres_data:
 ```
 
 ### Kubernetes Configuration
@@ -190,38 +179,38 @@ data:
   UNKEY_BUILDERD_PORT: "8082"
   UNKEY_BUILDERD_LOG_LEVEL: "info"
   UNKEY_BUILDERD_LOG_FORMAT: "json"
-  UNKEY_BUILDERD_DATABASE_TYPE: "postgres"
+  UNKEY_BUILDERD_DATABASE_TYPE: "sqlite"
+  UNKEY_BUILDERD_DATABASE_DATA_DIR: "/var/lib/builderd/data"
   UNKEY_BUILDERD_OTEL_ENABLED: "true"
   UNKEY_BUILDERD_OTEL_ENDPOINT: "http://jaeger-collector:14268/api/traces"
   UNKEY_BUILDERD_ENABLE_ISOLATION: "true"
   UNKEY_BUILDERD_ENABLE_ENCRYPTION: "true"
-
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: builderd-secrets
-type: Opaque
-stringData:
-  UNKEY_BUILDERD_DATABASE_URL: "postgres://builderd:secretpassword@postgres:5432/builderd?sslmode=require"
 ```
 
 ## Advanced Configuration
 
-### Database Connection Tuning
+### Database Configuration
 
-For PostgreSQL in production:
+SQLite3 is the recommended database for builderd due to its simplicity, reliability, and excellent performance for build workloads:
 
 ```bash
-# High-traffic configuration
-UNKEY_BUILDERD_DATABASE_URL="postgres://builderd:password@localhost:5432/builderd?sslmode=require&pool_max_conns=50&pool_min_conns=5&pool_max_conn_lifetime=1h&pool_max_conn_idle_time=30m"
+# Production SQLite configuration
+UNKEY_BUILDERD_DATABASE_TYPE=sqlite
+UNKEY_BUILDERD_DATABASE_DATA_DIR=/var/lib/builderd/data
+
+# Advanced SQLite tuning
+UNKEY_BUILDERD_DATABASE_PRAGMA_JOURNAL_MODE=WAL
+UNKEY_BUILDERD_DATABASE_PRAGMA_SYNCHRONOUS=NORMAL
+UNKEY_BUILDERD_DATABASE_PRAGMA_CACHE_SIZE=10000
+UNKEY_BUILDERD_DATABASE_PRAGMA_TEMP_STORE=MEMORY
 ```
 
-Connection pool parameters:
-- `pool_max_conns`: Maximum connections (default: 25)
-- `pool_min_conns`: Minimum connections (default: 0)
-- `pool_max_conn_lifetime`: Maximum connection lifetime
-- `pool_max_conn_idle_time`: Maximum idle time before closing
+SQLite3 advantages for builderd:
+- **Single file database**: Easy backup and deployment
+- **No external dependencies**: Simplified infrastructure
+- **Excellent performance**: Perfect for build metadata storage
+- **ACID compliance**: Data integrity guaranteed
+- **Concurrent reads**: Multiple readers with WAL mode
 
 ### Storage Backend Configuration
 
@@ -323,10 +312,13 @@ sudo chmod -R 750 /var/lib/builderd
 #### Database Connection Issues
 
 ```bash
-# Test database connectivity
-pg_isready -h localhost -p 5432 -U builderd
+# Test SQLite database accessibility
+sqlite3 /var/lib/builderd/data/builderd.db "SELECT 1;"
 
-# Check connection pool status
+# Check database file permissions
+ls -la /var/lib/builderd/data/builderd.db
+
+# Check database status
 curl http://localhost:8082/debug/database
 ```
 
@@ -352,8 +344,11 @@ UNKEY_BUILDERD_HOST=0.0.0.0
 UNKEY_BUILDERD_PORT=8082
 UNKEY_BUILDERD_HEALTH_CHECK_ENABLED=true
 
-# Database HA
-UNKEY_BUILDERD_DATABASE_URL="postgres://builderd:password@postgres-ha.example.com:5432/builderd?sslmode=require&target_session_attrs=read-write"
+# Database (SQLite with backup)
+UNKEY_BUILDERD_DATABASE_TYPE=sqlite
+UNKEY_BUILDERD_DATABASE_DATA_DIR=/var/lib/builderd/data
+UNKEY_BUILDERD_DATABASE_BACKUP_ENABLED=true
+UNKEY_BUILDERD_DATABASE_BACKUP_INTERVAL=1h
 
 # Distributed storage
 UNKEY_BUILDERD_STORAGE_BACKEND=distributed

@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -26,6 +27,40 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 )
+
+// version is set at build time via ldflags
+var version = "0.0.4"
+
+// AIDEV-NOTE: Enhanced version management with debug.ReadBuildInfo fallback
+// Handles production builds (ldflags), development builds (git commit), and module builds
+// getVersion returns the version string, with fallback to debug.ReadBuildInfo
+func getVersion() string {
+	// If version was set via ldflags (production builds), use it
+	if version != "" && version != "0.0.3" {
+		return version
+	}
+
+	// Fallback to debug.ReadBuildInfo for development/module builds
+	if info, ok := debug.ReadBuildInfo(); ok {
+		// Use the module version if available
+		if info.Main.Version != "(devel)" && info.Main.Version != "" {
+			return info.Main.Version
+		}
+
+		// Try to get version from VCS info
+		for _, setting := range info.Settings {
+			if setting.Key == "vcs.revision" && len(setting.Value) >= 7 {
+				return "dev-" + setting.Value[:7] // First 7 chars of commit hash
+			}
+		}
+
+		// Last resort: indicate it's a development build
+		return "dev"
+	}
+
+	// Final fallback
+	return version
+}
 
 func main() {
 	// Track application start time for uptime calculations
@@ -67,7 +102,7 @@ func main() {
 
 	// Log startup
 	logger.Info("starting builderd service",
-		slog.String("version", "0.0.1"),
+		slog.String("version", getVersion()),
 		slog.String("go_version", runtime.Version()),
 	)
 
@@ -92,7 +127,7 @@ func main() {
 	)
 
 	// Initialize OpenTelemetry with root context
-	providers, err := observability.InitProviders(rootCtx, cfg)
+	providers, err := observability.InitProviders(rootCtx, cfg, getVersion())
 	if err != nil {
 		logger.Error("failed to initialize OpenTelemetry",
 			slog.String("error", err.Error()),
@@ -114,7 +149,6 @@ func main() {
 
 	// Initialize build metrics if OpenTelemetry is enabled
 	var buildMetrics *observability.BuildMetrics
-	var metricsInitFailed bool
 	if cfg.OpenTelemetry.Enabled {
 		var err error
 		buildMetrics, err = observability.NewBuildMetrics(logger, cfg.OpenTelemetry.HighCardinalityLabelsEnabled)
@@ -122,7 +156,6 @@ func main() {
 			logger.Warn("failed to initialize build metrics, entering degraded mode",
 				slog.String("error", err.Error()),
 			)
-			metricsInitFailed = true
 			// Continue without metrics rather than failing completely
 		} else {
 			logger.Info("build metrics initialized",
@@ -271,6 +304,9 @@ func printUsage() {
 	fmt.Printf("  UNKEY_BUILDERD_STORAGE_RETENTION_DAYS       Storage retention days (default: 30)\n")
 	fmt.Printf("  UNKEY_BUILDERD_DOCKER_MAX_IMAGE_SIZE_GB     Max Docker image size (default: 5)\n")
 	fmt.Printf("  UNKEY_BUILDERD_TENANT_ISOLATION_ENABLED     Enable tenant isolation (default: true)\n")
+	fmt.Printf("\nDatabase Configuration:\n")
+	fmt.Printf("  UNKEY_BUILDERD_DATABASE_TYPE                Database type (default: sqlite)\n")
+	fmt.Printf("  UNKEY_BUILDERD_DATABASE_DATA_DIR            SQLite data directory (default: /opt/builderd/data)\n")
 	fmt.Printf("\nOpenTelemetry Configuration:\n")
 	fmt.Printf("  UNKEY_BUILDERD_OTEL_ENABLED                 Enable OpenTelemetry (default: false)\n")
 	fmt.Printf("  UNKEY_BUILDERD_OTEL_SERVICE_NAME            Service name (default: builderd)\n")
@@ -297,7 +333,7 @@ func printUsage() {
 // printVersion displays version information
 func printVersion() {
 	fmt.Printf("Builderd - Multi-Tenant Build Service\n")
-	fmt.Printf("Version: 0.0.1\n")
+	fmt.Printf("Version: %s\n", getVersion())
 	fmt.Printf("Built with: %s\n", runtime.Version())
 }
 
@@ -350,7 +386,7 @@ func createHealthHandler(startTime time.Time, logger *slog.Logger) http.Handler 
 		response := healthResponse{
 			Status:        "ok",
 			Service:       "builderd",
-			Version:       "0.0.1",
+			Version:       getVersion(),
 			UptimeSeconds: time.Since(startTime).Seconds(),
 		}
 

@@ -35,12 +35,13 @@ Environment=UNKEY_METALD_BILLING_ENABLED=true
 Environment=UNKEY_METALD_BILLING_ENDPOINT=http://localhost:8081
 Environment=UNKEY_METALD_BILLING_MOCK_MODE=false
 
-# Jailer configuration for production (disabled by default)
+# Jailer configuration for production
+# Set to false for development without jailer
 Environment=UNKEY_METALD_JAILER_ENABLED=true
-Environment=UNKEY_METALD_JAILER_BINARY=/usr/bin/jailer
-Environment=UNKEY_METALD_FIRECRACKER_BINARY=/usr/bin/firecracker
-Environment=UNKEY_METALD_JAILER_UID=1000
-Environment=UNKEY_METALD_JAILER_GID=1000
+Environment=UNKEY_METALD_JAILER_BINARY=/usr/local/bin/jailer
+Environment=UNKEY_METALD_FIRECRACKER_BINARY=/usr/local/bin/firecracker
+Environment=UNKEY_METALD_JAILER_UID=977
+Environment=UNKEY_METALD_JAILER_GID=976
 Environment=UNKEY_METALD_JAILER_CHROOT_DIR=/srv/jailer
 Environment=UNKEY_METALD_JAILER_NETNS=true
 Environment=UNKEY_METALD_JAILER_PIDNS=true
@@ -48,6 +49,21 @@ Environment=UNKEY_METALD_JAILER_PIDNS=true
 # Resource limits
 LimitNOFILE=65536
 LimitNPROC=4096
+
+# Linux capabilities for network namespace management and jailer operations
+# AIDEV-NOTE: CAP_SYS_ADMIN allows metald to spawn jailer processes
+# CAP_NET_ADMIN allows network namespace creation
+# CAP_DAC_OVERRIDE allows access to jailer chroot directories
+# CAP_MKNOD allows jailer to create device nodes like /dev/net/tun
+AmbientCapabilities=CAP_NET_ADMIN CAP_SYS_ADMIN CAP_DAC_OVERRIDE CAP_MKNOD
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_SYS_ADMIN CAP_DAC_OVERRIDE CAP_SETUID CAP_SETGID CAP_CHOWN CAP_MKNOD
+
+# Security settings - balanced for jailer spawning
+NoNewPrivileges=false
+PrivateDevices=false
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/jailer /opt/metald /var/run/netns /tmp
 
 [Install]
 WantedBy=multi-user.target

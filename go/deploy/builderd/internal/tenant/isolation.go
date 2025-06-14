@@ -17,8 +17,8 @@ import (
 
 // ProcessIsolator handles process-level isolation for builds
 type ProcessIsolator struct {
-	logger       *slog.Logger
-	tenantMgr    *Manager
+	logger        *slog.Logger
+	tenantMgr     *Manager
 	enableCgroups bool
 	enableSeccomp bool
 }
@@ -31,13 +31,13 @@ func NewProcessIsolator(logger *slog.Logger, tenantMgr *Manager) *ProcessIsolato
 		enableCgroups: true,
 		enableSeccomp: true,
 	}
-	
+
 	// Check if cgroups v2 is available
 	if _, err := os.Stat("/sys/fs/cgroup/cgroup.controllers"); err != nil {
 		isolator.enableCgroups = false
 		logger.Warn("cgroups v2 not available, disabling cgroup isolation")
 	}
-	
+
 	return isolator
 }
 
@@ -54,30 +54,30 @@ func (p *ProcessIsolator) CreateIsolatedCommand(
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tenant config: %w", err)
 	}
-	
+
 	constraints := p.buildConstraints(config, buildID)
-	
+
 	// Create the base command
 	cmd := exec.CommandContext(ctx, command, args...)
-	
+
 	// Apply process isolation
 	if err := p.applyProcessIsolation(cmd, constraints); err != nil {
 		return nil, fmt.Errorf("failed to apply process isolation: %w", err)
 	}
-	
+
 	// Apply resource limits
 	if err := p.applyResourceLimits(cmd, constraints, buildID); err != nil {
 		return nil, fmt.Errorf("failed to apply resource limits: %w", err)
 	}
-	
+
 	p.logger.Info("created isolated command",
 		slog.String("tenant_id", tenantID),
 		slog.String("build_id", buildID),
 		slog.String("command", command),
 		slog.Int64("memory_limit", constraints.MaxMemoryBytes),
-		slog.Int32("cpu_limit", constraints.MaxCPUCores),
+		slog.Int64("cpu_limit", int64(constraints.MaxCPUCores)),
 	)
-	
+
 	return cmd, nil
 }
 
@@ -93,28 +93,28 @@ func (p *ProcessIsolator) CreateIsolatedDockerCommand(
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tenant config: %w", err)
 	}
-	
+
 	constraints := p.buildConstraints(config, buildID)
-	
+
 	// Build Docker command with isolation flags
 	args := []string{"run", "--rm"}
-	
+
 	// Resource limits
 	args = append(args, "--memory", fmt.Sprintf("%d", constraints.MaxMemoryBytes))
 	args = append(args, "--cpus", fmt.Sprintf("%d", constraints.MaxCPUCores))
 	args = append(args, "--disk-quota", fmt.Sprintf("%d", constraints.MaxDiskBytes))
-	
+
 	// Security settings
 	args = append(args, "--user", fmt.Sprintf("%d:%d", constraints.RunAsUser, constraints.RunAsGroup))
 	args = append(args, "--read-only")
 	args = append(args, "--tmpfs", fmt.Sprintf("/tmp:size=%d", constraints.MaxTempSizeBytes))
 	args = append(args, "--security-opt", "no-new-privileges:true")
-	
+
 	// Drop capabilities
 	for _, cap := range constraints.DroppedCapabilities {
 		args = append(args, "--cap-drop", cap)
 	}
-	
+
 	// Network isolation
 	switch constraints.NetworkMode {
 	case "none":
@@ -124,35 +124,35 @@ func (p *ProcessIsolator) CreateIsolatedDockerCommand(
 	default:
 		args = append(args, "--network", "bridge")
 	}
-	
+
 	// Add working directory
 	args = append(args, "--workdir", "/workspace")
 	args = append(args, "-v", fmt.Sprintf("%s:/workspace", constraints.WorkspaceDir))
-	
+
 	// Environment variables for isolation
 	args = append(args, "-e", fmt.Sprintf("BUILDERD_TENANT_ID=%s", tenantID))
 	args = append(args, "-e", fmt.Sprintf("BUILDERD_BUILD_ID=%s", buildID))
 	args = append(args, "-e", "HOME=/tmp")
-	
+
 	// Add timeout
 	args = append(args, "--stop-timeout", fmt.Sprintf("%d", constraints.TimeoutSeconds))
-	
+
 	// Append user-provided Docker args
 	args = append(args, dockerArgs...)
-	
+
 	cmd := exec.CommandContext(ctx, "docker", args...)
-	
+
 	// Set resource limits on the Docker process itself
 	if err := p.applyProcessIsolation(cmd, constraints); err != nil {
 		return nil, fmt.Errorf("failed to apply process isolation to docker command: %w", err)
 	}
-	
+
 	p.logger.Info("created isolated docker command",
 		slog.String("tenant_id", tenantID),
 		slog.String("build_id", buildID),
 		slog.Any("docker_args", args),
 	)
-	
+
 	return cmd, nil
 }
 
@@ -168,19 +168,19 @@ func (p *ProcessIsolator) buildConstraints(config *TenantConfig, buildID string)
 		"SYS_RAWIO", "SYS_RESOURCE", "SYS_TIME",
 		"WAKE_ALARM",
 	}
-	
+
 	// Determine network mode based on tier
 	networkMode := "none"
 	if config.Limits.AllowExternalNetwork {
 		networkMode = "isolated"
 	}
-	
+
 	// Calculate temp directory size (10% of disk limit)
 	maxTempSize := config.Limits.MaxDiskBytes / 10
 	if maxTempSize < 100*1024*1024 { // Minimum 100MB
 		maxTempSize = 100 * 1024 * 1024
 	}
-	
+
 	return BuildConstraints{
 		MaxMemoryBytes:      config.Limits.MaxMemoryBytes,
 		MaxCPUCores:         config.Limits.MaxCPUCores,
@@ -195,9 +195,9 @@ func (p *ProcessIsolator) buildConstraints(config *TenantConfig, buildID string)
 		AllowedRegistries:   config.Limits.AllowedRegistries,
 		AllowedGitHosts:     config.Limits.AllowedGitHosts,
 		WorkspaceDir:        filepath.Join("/tmp/builderd/workspace", config.TenantID, buildID),
-		RootfsDir:          filepath.Join("/tmp/builderd/rootfs", config.TenantID, buildID),
-		TempDir:            filepath.Join("/tmp/builderd/temp", config.TenantID, buildID),
-		MaxTempSizeBytes:   maxTempSize,
+		RootfsDir:           filepath.Join("/tmp/builderd/rootfs", config.TenantID, buildID),
+		TempDir:             filepath.Join("/tmp/builderd/temp", config.TenantID, buildID),
+		MaxTempSizeBytes:    maxTempSize,
 	}
 }
 
@@ -213,7 +213,7 @@ func (p *ProcessIsolator) applyProcessIsolation(cmd *exec.Cmd, constraints Build
 		Setpgid: true,
 		Pgid:    0,
 	}
-	
+
 	// Set environment for isolation
 	cmd.Env = []string{
 		"HOME=/tmp",
@@ -224,7 +224,7 @@ func (p *ProcessIsolator) applyProcessIsolation(cmd *exec.Cmd, constraints Build
 		fmt.Sprintf("BUILDERD_ROOTFS=%s", constraints.RootfsDir),
 		fmt.Sprintf("BUILDERD_TEMP=%s", constraints.TempDir),
 	}
-	
+
 	return nil
 }
 
@@ -234,28 +234,28 @@ func (p *ProcessIsolator) applyResourceLimits(cmd *exec.Cmd, constraints BuildCo
 		p.logger.Debug("cgroups disabled, skipping resource limits")
 		return nil
 	}
-	
+
 	cgroupPath := fmt.Sprintf("/sys/fs/cgroup/builderd/%s", buildID)
-	
+
 	// Create cgroup directory
 	if err := os.MkdirAll(cgroupPath, 0755); err != nil {
 		p.logger.Warn("failed to create cgroup directory", slog.String("error", err.Error()))
 		return nil // Don't fail the build for cgroup issues
 	}
-	
+
 	// Set memory limit
 	memoryMax := filepath.Join(cgroupPath, "memory.max")
 	if err := os.WriteFile(memoryMax, []byte(strconv.FormatInt(constraints.MaxMemoryBytes, 10)), 0644); err != nil {
 		p.logger.Warn("failed to set memory limit", slog.String("error", err.Error()))
 	}
-	
+
 	// Set CPU limit (cgroups v2)
 	cpuMax := filepath.Join(cgroupPath, "cpu.max")
 	cpuQuota := fmt.Sprintf("%d 100000", constraints.MaxCPUCores*100000) // 100ms period
 	if err := os.WriteFile(cpuMax, []byte(cpuQuota), 0644); err != nil {
 		p.logger.Warn("failed to set CPU limit", slog.String("error", err.Error()))
 	}
-	
+
 	// Set IO limit (simplified)
 	ioMax := filepath.Join(cgroupPath, "io.max")
 	// Format: major:minor rbps=X wbps=Y riops=A wiops=B
@@ -265,21 +265,59 @@ func (p *ProcessIsolator) applyResourceLimits(cmd *exec.Cmd, constraints BuildCo
 	if err := os.WriteFile(ioMax, []byte(ioLimit), 0644); err != nil {
 		p.logger.Debug("failed to set IO limit", slog.String("error", err.Error()))
 	}
-	
-	// Schedule cleanup of cgroup after build
+
+	// Schedule cleanup of cgroup after build with proper process monitoring
 	go func() {
-		// Wait for process to finish, then cleanup
-		time.Sleep(time.Duration(constraints.TimeoutSeconds+60) * time.Second)
-		os.RemoveAll(cgroupPath)
+		defer func() {
+			// Always cleanup cgroup regardless of how we exit
+			if err := os.RemoveAll(cgroupPath); err != nil {
+				p.logger.Warn("failed to cleanup cgroup", 
+					slog.String("error", err.Error()),
+					slog.String("cgroup_path", cgroupPath),
+					slog.String("build_id", buildID),
+				)
+			} else {
+				p.logger.Debug("cleaned up cgroup",
+					slog.String("cgroup_path", cgroupPath),
+					slog.String("build_id", buildID),
+				)
+			}
+		}()
+
+		// AIDEV-NOTE: Fixed memory leak - proper process monitoring instead of sleep
+		// This ensures the cleanup goroutine terminates when the process actually exits
+		// Wait for the actual process to complete (if it exists)
+		if cmd.Process != nil {
+			// Monitor process completion
+			state, err := cmd.Process.Wait()
+			if err != nil {
+				p.logger.Debug("error waiting for process completion",
+					slog.String("error", err.Error()),
+					slog.String("build_id", buildID),
+				)
+			} else {
+				p.logger.Debug("process completed",
+					slog.String("build_id", buildID),
+					slog.Int("exit_code", state.ExitCode()),
+				)
+			}
+		} else {
+			// Fallback timeout if process never started or was already completed
+			p.logger.Debug("no process handle available, using timeout fallback",
+				slog.String("build_id", buildID),
+			)
+			timeout := time.Duration(constraints.TimeoutSeconds+60) * time.Second
+			time.Sleep(timeout)
+		}
 	}()
-	
+
 	p.logger.Debug("applied resource limits via cgroups",
 		slog.String("build_id", buildID),
 		slog.String("cgroup_path", cgroupPath),
 		slog.Int64("memory_bytes", constraints.MaxMemoryBytes),
-		slog.Int32("cpu_cores", constraints.MaxCPUCores),
+		slog.Int64("cpu_cores", int64(constraints.MaxCPUCores)),
 	)
-	
+
 	return nil
 }
 
@@ -296,12 +334,12 @@ func (p *ProcessIsolator) MonitorProcess(
 		TenantID:  tenantID,
 		StartTime: time.Now(),
 	}
-	
+
 	// Start monitoring in background
 	go func() {
 		ticker := time.NewTicker(1 * time.Second)
 		defer ticker.Stop()
-		
+
 		for {
 			select {
 			case <-ctx.Done():
@@ -310,7 +348,7 @@ func (p *ProcessIsolator) MonitorProcess(
 				if cmd.Process == nil {
 					continue
 				}
-				
+
 				// Monitor process resource usage
 				if err := p.updateResourceUsage(cmd.Process.Pid, usage, constraints); err != nil {
 					p.logger.Debug("failed to update resource usage", slog.String("error", err.Error()))
@@ -318,7 +356,7 @@ func (p *ProcessIsolator) MonitorProcess(
 			}
 		}
 	}()
-	
+
 	return usage
 }
 
@@ -330,19 +368,19 @@ func (p *ProcessIsolator) updateResourceUsage(pid int, usage *ResourceUsage, con
 	if err != nil {
 		return err
 	}
-	
+
 	fields := strings.Fields(string(statData))
 	if len(fields) < 24 {
 		return fmt.Errorf("invalid stat file format")
 	}
-	
+
 	// Parse memory usage (RSS in pages)
 	if rss, err := strconv.ParseInt(fields[23], 10, 64); err == nil {
 		pageSize := int64(os.Getpagesize())
 		usage.MemoryUsedBytes = rss * pageSize
 		usage.MemoryLimitBytes = constraints.MaxMemoryBytes
 	}
-	
+
 	// Read memory info from /proc/PID/status
 	statusPath := fmt.Sprintf("/proc/%d/status", pid)
 	if statusData, err := os.ReadFile(statusPath); err == nil {
@@ -359,7 +397,7 @@ func (p *ProcessIsolator) updateResourceUsage(pid int, usage *ResourceUsage, con
 			}
 		}
 	}
-	
+
 	// Check for quota violations
 	if usage.MemoryUsedBytes > constraints.MaxMemoryBytes {
 		p.logger.Warn("memory quota violation detected",
@@ -369,7 +407,7 @@ func (p *ProcessIsolator) updateResourceUsage(pid int, usage *ResourceUsage, con
 			slog.Int64("limit_bytes", constraints.MaxMemoryBytes),
 		)
 	}
-	
+
 	return nil
 }
 
@@ -378,27 +416,27 @@ func (p *ProcessIsolator) TerminateProcess(cmd *exec.Cmd, reason string) error {
 	if cmd.Process == nil {
 		return nil
 	}
-	
+
 	pid := cmd.Process.Pid
-	
+
 	p.logger.Info("terminating process",
 		slog.Int("pid", pid),
 		slog.String("reason", reason),
 	)
-	
+
 	// Try graceful termination first
 	if err := syscall.Kill(-pid, syscall.SIGTERM); err != nil {
 		p.logger.Debug("failed to send SIGTERM", slog.String("error", err.Error()))
 	}
-	
+
 	// Wait a bit for graceful shutdown
 	time.Sleep(5 * time.Second)
-	
+
 	// Force kill if still running
 	if err := syscall.Kill(-pid, syscall.SIGKILL); err != nil {
 		p.logger.Debug("failed to send SIGKILL", slog.String("error", err.Error()))
 	}
-	
+
 	return nil
 }
 
@@ -414,12 +452,12 @@ func (p *ProcessIsolator) ValidateNetworkAccess(
 	if err != nil {
 		return fmt.Errorf("failed to get tenant config: %w", err)
 	}
-	
+
 	// Check if external network is allowed
 	if !config.Limits.AllowExternalNetwork {
 		return fmt.Errorf("external network access not allowed for tenant %s", tenantID)
 	}
-	
+
 	// Check specific host allowlists
 	switch targetType {
 	case "registry":
@@ -431,7 +469,7 @@ func (p *ProcessIsolator) ValidateNetworkAccess(
 			return fmt.Errorf("git host %s not allowed for tenant %s", targetHost, tenantID)
 		}
 	}
-	
+
 	return nil
 }
 

@@ -49,16 +49,23 @@ func (s *BuilderService) CreateBuild(
 	ctx context.Context,
 	req *connect.Request[builderv1.CreateBuildRequest],
 ) (*connect.Response[builderv1.CreateBuildResponse], error) {
+	// Extract tenant info safely
+	var tenantID, customerID string
+	if req.Msg != nil && req.Msg.Config != nil && req.Msg.Config.Tenant != nil {
+		tenantID = req.Msg.Config.Tenant.TenantId
+		customerID = req.Msg.Config.Tenant.CustomerId
+	}
+
 	s.logger.Info("create build request received",
-		slog.String("tenant_id", req.Msg.Config.Tenant.TenantId),
-		slog.String("customer_id", req.Msg.Config.Tenant.CustomerId),
+		slog.String("tenant_id", tenantID),
+		slog.String("customer_id", customerID),
 	)
 
-	// Validate build configuration
+	// Validate build configuration first to prevent nil pointer dereference
 	if err := s.validateBuildConfig(req.Msg.Config); err != nil {
 		s.logger.Warn("invalid build configuration",
 			slog.String("error", err.Error()),
-			slog.String("tenant_id", req.Msg.Config.Tenant.TenantId),
+			slog.String("tenant_id", tenantID),
 		)
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
@@ -94,9 +101,10 @@ func (s *BuilderService) CreateBuild(
 	}
 
 	resp := &builderv1.CreateBuildResponse{
-		BuildId:   buildID,
-		State:     buildState,
-		CreatedAt: timestamppb.New(buildResult.StartTime),
+		BuildId:    buildID,
+		State:      buildState,
+		CreatedAt:  timestamppb.New(buildResult.StartTime),
+		RootfsPath: buildResult.RootfsPath,
 	}
 
 	return connect.NewResponse(resp), nil

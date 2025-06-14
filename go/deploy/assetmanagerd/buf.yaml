@@ -1,0 +1,10 @@
+version: v2
+modules:
+  - path: .
+    name: buf.build/unkeyed/assetmanagerd
+breaking:
+  use:
+    - FILE
+lint:
+  use:
+    - DEFAULT

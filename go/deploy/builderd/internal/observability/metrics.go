@@ -37,6 +37,11 @@ type BuildMetrics struct {
 	buildDiskUsage   metric.Int64Histogram
 	buildCPUUsage    metric.Float64Histogram
 
+	// Build step counters
+	buildStepsTotal   metric.Int64Counter
+	buildStepErrors   metric.Int64Counter
+	buildStepDuration metric.Float64Histogram
+
 	// Tenant metrics (if high cardinality enabled)
 	tenantBuildsTotal     metric.Int64Counter
 	tenantQuotaViolations metric.Int64Counter
@@ -230,6 +235,37 @@ func NewBuildMetrics(logger *slog.Logger, highCardinalityEnabled bool) (*BuildMe
 		return nil, err
 	}
 
+	// Build step metrics
+	metrics.buildStepsTotal, err = meter.Int64Counter(
+		"builderd_build_steps_total",
+		metric.WithDescription("Total number of build steps executed"),
+		metric.WithUnit("1"),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	metrics.buildStepErrors, err = meter.Int64Counter(
+		"builderd_build_step_errors_total",
+		metric.WithDescription("Total number of build step errors"),
+		metric.WithUnit("1"),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	metrics.buildStepDuration, err = meter.Float64Histogram(
+		"builderd_build_step_duration_seconds",
+		metric.WithDescription("Duration of individual build steps"),
+		metric.WithUnit("s"),
+		metric.WithExplicitBucketBoundaries(
+			0.1, 0.5, 1, 5, 10, 30, 60, 120, 300,
+		),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	// Tenant metrics (if enabled)
 	if highCardinalityEnabled {
 		metrics.tenantBuildsTotal, err = meter.Int64Counter(
@@ -389,4 +425,34 @@ func (m *BuildMetrics) RecordTenantQuotaViolation(ctx context.Context, tenantID,
 	}
 
 	m.tenantQuotaViolations.Add(ctx, 1, metric.WithAttributes(attrs...))
+}
+
+// RecordBuildStepStart records the start of a build step
+func (m *BuildMetrics) RecordBuildStepStart(ctx context.Context, stepName, sourceType string) {
+	attrs := []attribute.KeyValue{
+		attribute.String("step", stepName),
+		attribute.String("source_type", sourceType),
+	}
+
+	m.buildStepsTotal.Add(ctx, 1, metric.WithAttributes(attrs...))
+}
+
+// RecordBuildStepComplete records the completion of a build step
+func (m *BuildMetrics) RecordBuildStepComplete(ctx context.Context, stepName, sourceType string, duration time.Duration, success bool) {
+	attrs := []attribute.KeyValue{
+		attribute.String("step", stepName),
+		attribute.String("source_type", sourceType),
+		attribute.String("status", func() string {
+			if success {
+				return "success"
+			}
+			return "failure"
+		}()),
+	}
+
+	m.buildStepDuration.Record(ctx, duration.Seconds(), metric.WithAttributes(attrs...))
+
+	if !success {
+		m.buildStepErrors.Add(ctx, 1, metric.WithAttributes(attrs...))
+	}
 }

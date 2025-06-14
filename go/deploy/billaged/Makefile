@@ -59,6 +59,10 @@ proto-lint: ## Lint protobuf files
 clean: ## Clean build artifacts
 	rm -rf $(BUILD_DIR)
 
+# Clean generated code
+clean-gen:
+	rm -rf ./gen
+
 # Demo targets
 demo: build ## Run demo with sample data
 	@echo "Starting billaged demo..."

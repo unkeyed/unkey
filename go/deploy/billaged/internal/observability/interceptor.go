@@ -18,6 +18,7 @@ type Metrics struct {
 	requestCounter  metric.Int64Counter
 	requestDuration metric.Float64Histogram
 	activeRequests  metric.Int64UpDownCounter
+	panicCounter    metric.Int64Counter
 }
 
 // NewMetrics creates new metrics
@@ -49,10 +50,20 @@ func NewMetrics(meter metric.Meter) (*Metrics, error) {
 		return nil, fmt.Errorf("failed to create active requests counter: %w", err)
 	}
 
+	panicCounter, err := meter.Int64Counter(
+		"rpc_server_panics_total",
+		metric.WithDescription("Total number of RPC server panics"),
+		metric.WithUnit("1"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create panic counter: %w", err)
+	}
+
 	return &Metrics{
 		requestCounter:  requestCounter,
 		requestDuration: requestDuration,
 		activeRequests:  activeRequests,
+		panicCounter:    panicCounter,
 	}, nil
 }
 
@@ -82,7 +93,28 @@ func NewOTELInterceptor() connect.UnaryInterceptorFunc {
 					attribute.String("rpc.method", req.Spec().Procedure),
 				),
 			)
-			defer span.End()
+			// AIDEV-NOTE: Critical panic recovery in OTEL interceptor - preserves existing errors
+			defer func() {
+				// Add panic recovery
+				if r := recover(); r != nil {
+					// Record panic metrics
+					if metrics != nil {
+						attrs := []attribute.KeyValue{
+							attribute.String("rpc.method", procedure),
+							attribute.String("panic.type", fmt.Sprintf("%T", r)),
+						}
+						metrics.panicCounter.Add(ctx, 1, metric.WithAttributes(attrs...))
+					}
+
+					span.RecordError(fmt.Errorf("panic: %v", r))
+					span.SetStatus(codes.Error, fmt.Sprintf("panic: %v", r))
+					// Only override err if it's not already set
+					if err == nil {
+						err = connect.NewError(connect.CodeInternal, fmt.Errorf("internal server error: %v", r))
+					}
+				}
+				span.End()
+			}()
 
 			// Record metrics
 			if metrics != nil {

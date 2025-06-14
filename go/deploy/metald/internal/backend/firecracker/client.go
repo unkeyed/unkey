@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
@@ -159,7 +160,21 @@ func (c *Client) configureMetrics(ctx context.Context, vmID string) error {
 	}
 
 	// Create FIFO path for this VM
-	fifoPath := fmt.Sprintf("/tmp/firecracker-metrics-%s.fifo", vmID)
+	var fifoPath string
+	var fifoPathForFirecracker string
+	
+	// AIDEV-NOTE: When using jailer, FIFO must be created inside chroot
+	// and path given to Firecracker must be relative to chroot
+	if c.process != nil && c.process.UseJailer {
+		// Create FIFO inside the chroot's /tmp directory
+		fifoPath = filepath.Join(c.process.ChrootPath, "root", "tmp", fmt.Sprintf("firecracker-metrics-%s.fifo", vmID))
+		// Path that Firecracker sees (relative to its chroot)
+		fifoPathForFirecracker = fmt.Sprintf("/tmp/firecracker-metrics-%s.fifo", vmID)
+	} else {
+		// Non-jailer mode: use regular /tmp
+		fifoPath = fmt.Sprintf("/tmp/firecracker-metrics-%s.fifo", vmID)
+		fifoPathForFirecracker = fifoPath
+	}
 
 	// Create named pipe (FIFO)
 	if err := syscall.Mkfifo(fifoPath, 0644); err != nil && !os.IsExist(err) {
@@ -167,7 +182,7 @@ func (c *Client) configureMetrics(ctx context.Context, vmID string) error {
 	}
 
 	c.mu.Lock()
-	// Store FIFO path for this VM
+	// Store FIFO path for this VM (host path for reading)
 	c.metricsFIFOs[vmID] = fifoPath
 	// Initialize metrics channel with buffer for burst handling
 	c.collectors[vmID] = make(chan types.VMMetrics, 100)
@@ -175,7 +190,7 @@ func (c *Client) configureMetrics(ctx context.Context, vmID string) error {
 
 	// Configure Firecracker metrics via PUT /metrics API
 	metricsConfig := map[string]interface{}{
-		"metrics_path": fifoPath,
+		"metrics_path": fifoPathForFirecracker,
 	}
 
 	body, err := json.Marshal(metricsConfig)

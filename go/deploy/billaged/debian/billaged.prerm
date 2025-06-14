@@ -1,0 +1,11 @@
+#!/bin/sh
+set -e
+
+# Stop service if running
+if systemctl is-active --quiet billaged.service; then
+    systemctl stop billaged.service
+fi
+
+#DEBHELPER#
+
+exit 0

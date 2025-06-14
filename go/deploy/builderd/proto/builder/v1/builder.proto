@@ -356,6 +356,7 @@ message CreateBuildResponse {
   string build_id = 1;
   BuildState state = 2;
   google.protobuf.Timestamp created_at = 3;
+  string rootfs_path = 4;         // Path to the generated rootfs for VM creation
 }
 
 message GetBuildRequest {

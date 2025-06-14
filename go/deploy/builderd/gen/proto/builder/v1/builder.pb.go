@@ -7,13 +7,12 @@
 package builderv1
 
 import (
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
-
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
 )
 
 const (
@@ -2499,6 +2498,7 @@ type CreateBuildResponse struct {
 	BuildId       string                 `protobuf:"bytes,1,opt,name=build_id,json=buildId,proto3" json:"build_id,omitempty"`
 	State         BuildState             `protobuf:"varint,2,opt,name=state,proto3,enum=builder.v1.BuildState" json:"state,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	RootfsPath    string                 `protobuf:"bytes,4,opt,name=rootfs_path,json=rootfsPath,proto3" json:"rootfs_path,omitempty"` // Path to the generated rootfs for VM creation
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2552,6 +2552,13 @@ func (x *CreateBuildResponse) GetCreatedAt() *timestamppb.Timestamp {
 		return x.CreatedAt
 	}
 	return nil
+}
+
+func (x *CreateBuildResponse) GetRootfsPath() string {
+	if x != nil {
+		return x.RootfsPath
+	}
+	return ""
 }
 
 type GetBuildRequest struct {
@@ -3533,12 +3540,14 @@ const file_proto_builder_v1_builder_proto_rawDesc = "" +
 	"limitValue\x12\x18\n" +
 	"\amessage\x18\x04 \x01(\tR\amessage\"E\n" +
 	"\x12CreateBuildRequest\x12/\n" +
-	"\x06config\x18\x01 \x01(\v2\x17.builder.v1.BuildConfigR\x06config\"\x99\x01\n" +
+	"\x06config\x18\x01 \x01(\v2\x17.builder.v1.BuildConfigR\x06config\"\xba\x01\n" +
 	"\x13CreateBuildResponse\x12\x19\n" +
 	"\bbuild_id\x18\x01 \x01(\tR\abuildId\x12,\n" +
 	"\x05state\x18\x02 \x01(\x0e2\x16.builder.v1.BuildStateR\x05state\x129\n" +
 	"\n" +
-	"created_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"I\n" +
+	"created_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x1f\n" +
+	"\vrootfs_path\x18\x04 \x01(\tR\n" +
+	"rootfsPath\"I\n" +
 	"\x0fGetBuildRequest\x12\x19\n" +
 	"\bbuild_id\x18\x01 \x01(\tR\abuildId\x12\x1b\n" +
 	"\ttenant_id\x18\x02 \x01(\tR\btenantId\">\n" +

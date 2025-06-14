@@ -86,6 +86,9 @@ func (c *Client) genericToFirecrackerConfig(config *metaldv1.VmConfig) (firecrac
 
 	// Boot configuration
 	if config.Boot != nil {
+		// AIDEV-NOTE: When using jailer, paths must be relative to the chroot
+		// Jailer expects files to be available at the absolute paths inside the chroot
+		// So we keep absolute paths - jailer will look for them relative to chroot root
 		bootSource.KernelImagePath = config.Boot.KernelPath
 		bootSource.BootArgs = config.Boot.KernelArgs
 		bootSource.InitrdPath = config.Boot.InitrdPath
@@ -104,7 +107,7 @@ func (c *Client) genericToFirecrackerConfig(config *metaldv1.VmConfig) (firecrac
 
 		drive := firecrackerDrive{
 			DriveID:      driveID,
-			PathOnHost:   disk.Path,
+			PathOnHost:   disk.Path, // AIDEV-NOTE: Same as kernel - jailer expects absolute paths
 			IsRootDevice: disk.IsRootDevice || i == 0, // First disk is root if not explicitly set
 			IsReadOnly:   disk.ReadOnly,
 		}

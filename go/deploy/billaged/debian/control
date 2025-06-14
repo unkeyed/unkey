@@ -1,0 +1,21 @@
+Source: billaged
+Section: admin
+Priority: optional
+Maintainer: Unkey Team <dev@unkey.dev>
+Build-Depends: debhelper-compat (= 13), golang-go (>= 2:1.21)
+Standards-Version: 4.6.0
+Homepage: https://github.com/unkeyed/unkey/go/deploy/billaged
+
+Package: billaged
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}, systemd
+Description: Billaged VM Usage Billing Service
+ Billaged is a high-performance VM usage billing service that provides
+ real-time metrics collection and aggregation for virtual machine billing.
+ .
+ Features include:
+  - Real-time VM usage metrics collection
+  - Configurable aggregation intervals
+  - OpenTelemetry integration
+  - Prometheus metrics export
+  - Systemd service integration

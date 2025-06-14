@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"runtime/debug"
 	"time"
 
 	"connectrpc.com/connect"
@@ -20,6 +21,7 @@ type Metrics struct {
 	requestCounter  metric.Int64Counter
 	requestDuration metric.Float64Histogram
 	activeRequests  metric.Int64UpDownCounter
+	panicCounter    metric.Int64Counter
 }
 
 // NewMetrics creates new metrics
@@ -51,10 +53,20 @@ func NewMetrics(meter metric.Meter) (*Metrics, error) {
 		return nil, fmt.Errorf("failed to create active requests counter: %w", err)
 	}
 
+	panicCounter, err := meter.Int64Counter(
+		"rpc_server_panics_total",
+		metric.WithDescription("Total number of RPC server panics"),
+		metric.WithUnit("1"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create panic counter: %w", err)
+	}
+
 	return &Metrics{
 		requestCounter:  requestCounter,
 		requestDuration: requestDuration,
 		activeRequests:  activeRequests,
+		panicCounter:    panicCounter,
 	}, nil
 }
 
@@ -73,7 +85,7 @@ func NewOTELInterceptor() connect.UnaryInterceptorFunc {
 	}
 
 	return func(next connect.UnaryFunc) connect.UnaryFunc {
-		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+		return func(ctx context.Context, req connect.AnyRequest) (resp connect.AnyResponse, err error) {
 			// Extract procedure name
 			procedure := req.Spec().Procedure
 
@@ -86,7 +98,39 @@ func NewOTELInterceptor() connect.UnaryInterceptorFunc {
 					attribute.String("rpc.method", req.Spec().Procedure),
 				),
 			)
-			defer span.End()
+			// AIDEV-NOTE: Critical panic recovery in OTEL interceptor - preserves existing errors
+			defer func() {
+				// Add panic recovery
+				if r := recover(); r != nil {
+					// Get stack trace
+					stack := debug.Stack()
+					
+					// Log detailed panic information
+					slog.Default().Error("panic in OTEL interceptor",
+						slog.String("procedure", procedure),
+						slog.Any("panic", r),
+						slog.String("panic_type", fmt.Sprintf("%T", r)),
+						slog.String("stack_trace", string(stack)),
+					)
+
+					// Record panic metrics
+					if metrics != nil {
+						attrs := []attribute.KeyValue{
+							attribute.String("rpc.method", procedure),
+							attribute.String("panic.type", fmt.Sprintf("%T", r)),
+						}
+						metrics.panicCounter.Add(ctx, 1, metric.WithAttributes(attrs...))
+					}
+
+					span.RecordError(fmt.Errorf("panic: %v", r))
+					span.SetStatus(codes.Error, fmt.Sprintf("panic: %v", r))
+					// Only override err if it's not already set
+					if err == nil {
+						err = connect.NewError(connect.CodeInternal, fmt.Errorf("internal server error: %v", r))
+					}
+				}
+				span.End()
+			}()
 
 			// Record metrics
 			if metrics != nil {
@@ -100,7 +144,7 @@ func NewOTELInterceptor() connect.UnaryInterceptorFunc {
 			}
 
 			// Call the handler
-			resp, err := next(ctx, req)
+			resp, err = next(ctx, req)
 
 			// Record error and status
 			statusCode := "ok"
@@ -157,7 +201,26 @@ func NewOTELInterceptor() connect.UnaryInterceptorFunc {
 // NewLoggingInterceptor creates a ConnectRPC interceptor that logs all RPC calls
 func NewLoggingInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc {
 	return func(next connect.UnaryFunc) connect.UnaryFunc {
-		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+		return func(ctx context.Context, req connect.AnyRequest) (resp connect.AnyResponse, err error) {
+			// Add panic recovery
+			defer func() {
+				if r := recover(); r != nil {
+					// Get stack trace
+					stack := debug.Stack()
+					
+					logger.Error("panic in logging interceptor",
+						slog.String("procedure", req.Spec().Procedure),
+						slog.Any("panic", r),
+						slog.String("panic_type", fmt.Sprintf("%T", r)),
+						slog.String("stack_trace", string(stack)),
+					)
+					// Only override err if it's not already set
+					if err == nil {
+						err = connect.NewError(connect.CodeInternal, fmt.Errorf("internal server error: %v", r))
+					}
+				}
+			}()
+
 			start := time.Now()
 
 			// Extract trace ID if available
@@ -175,14 +238,15 @@ func NewLoggingInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc {
 			)
 
 			// Execute request
-			resp, err := next(ctx, req)
+			resp, err = next(ctx, req)
 
 			// Log response
 			duration := time.Since(start)
 			if err != nil {
 				// Determine log level based on error type
 				logLevel := slog.LevelError
-				if connectErr := new(connect.Error); errors.As(err, connectErr) {
+				var connectErr *connect.Error
+				if errors.As(err, &connectErr) {
 					switch connectErr.Code() {
 					case connect.CodeNotFound, connect.CodeAlreadyExists:
 						logLevel = slog.LevelWarn
@@ -215,7 +279,20 @@ func NewLoggingInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc {
 // NewTenantAuthInterceptor creates a ConnectRPC interceptor for tenant authentication
 func NewTenantAuthInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc {
 	return func(next connect.UnaryFunc) connect.UnaryFunc {
-		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+		return func(ctx context.Context, req connect.AnyRequest) (resp connect.AnyResponse, err error) {
+			// Add panic recovery
+			defer func() {
+				if r := recover(); r != nil {
+					logger.Error("panic in tenant auth interceptor",
+						slog.String("procedure", req.Spec().Procedure),
+						slog.Any("panic", r),
+					)
+					// Only override err if it's not already set
+					if err == nil {
+						err = connect.NewError(connect.CodeInternal, fmt.Errorf("internal server error: %v", r))
+					}
+				}
+			}()
 			// Extract tenant information from headers
 			tenantID := req.Header().Get("X-Tenant-ID")
 			customerID := req.Header().Get("X-Customer-ID")

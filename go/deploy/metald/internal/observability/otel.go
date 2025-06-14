@@ -35,7 +35,7 @@ type Providers struct {
 }
 
 // InitProviders initializes OpenTelemetry providers
-func InitProviders(ctx context.Context, cfg *config.Config) (*Providers, error) {
+func InitProviders(ctx context.Context, cfg *config.Config, version string) (*Providers, error) {
 	if !cfg.OpenTelemetry.Enabled {
 		// Return no-op providers
 		return &Providers{
@@ -55,7 +55,7 @@ func InitProviders(ctx context.Context, cfg *config.Config) (*Providers, error) 
 		resource.WithAttributes(
 			semconv.ServiceNamespace("unkey"),
 			semconv.ServiceName(cfg.OpenTelemetry.ServiceName),
-			semconv.ServiceVersion(cfg.OpenTelemetry.ServiceVersion),
+			semconv.ServiceVersion(version),
 		),
 	)
 	if err != nil {
@@ -212,10 +212,10 @@ func SpanKindFromMethod(method string) trace.SpanKind {
 }
 
 // ServiceAttributes returns common service attributes
-func ServiceAttributes(cfg *config.Config) []attribute.KeyValue {
+func ServiceAttributes(cfg *config.Config, version string) []attribute.KeyValue {
 	return []attribute.KeyValue{
 		semconv.ServiceName(cfg.OpenTelemetry.ServiceName),
-		semconv.ServiceVersion(cfg.OpenTelemetry.ServiceVersion),
+		semconv.ServiceVersion(version),
 		semconv.ServiceNamespace("unkey"),
 	}
 }

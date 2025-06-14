@@ -97,9 +97,9 @@ type ResourceLimits struct {
 // DatabaseConfig holds database configuration
 type DatabaseConfig struct {
 	DataDir string `yaml:"data_dir"`
-	Type    string `yaml:"type"` // "sqlite", "postgres"
+	Type    string `yaml:"type"` // "sqlite" (recommended), "postgres"
 
-	// PostgreSQL specific
+	// PostgreSQL specific (optional)
 	Host     string `yaml:"host,omitempty"`
 	Port     int    `yaml:"port,omitempty"`
 	Database string `yaml:"database,omitempty"`

@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
+	"runtime/debug"
 	"syscall"
 	"time"
 
@@ -23,15 +25,56 @@ import (
 	"golang.org/x/net/http2/h2c"
 )
 
+// version is set at build time via ldflags
+var version = "0.0.1"
+
+// AIDEV-NOTE: Enhanced version management with debug.ReadBuildInfo fallback
+// Handles production builds (ldflags), development builds (git commit), and module builds
+// getVersion returns the version string, with fallback to debug.ReadBuildInfo
+func getVersion() string {
+	// If version was set via ldflags (production builds), use it
+	if version != "" && version != "0.0.1" {
+		return version
+	}
+
+	// Fallback to debug.ReadBuildInfo for development/module builds
+	if info, ok := debug.ReadBuildInfo(); ok {
+		// Use the module version if available
+		if info.Main.Version != "(devel)" && info.Main.Version != "" {
+			return info.Main.Version
+		}
+
+		// Try to get version from VCS info
+		for _, setting := range info.Settings {
+			if setting.Key == "vcs.revision" && len(setting.Value) >= 7 {
+				return "dev-" + setting.Value[:7] // First 7 chars of commit hash
+			}
+		}
+
+		// Last resort: indicate it's a development build
+		return "dev"
+	}
+
+	// Final fallback
+	return version
+}
+
 func main() {
 	// Parse command-line flags with environment variable fallbacks
 	var (
-		showHelp = flag.Bool("help", false, "Show help information")
+		showHelp    = flag.Bool("help", false, "Show help information")
+		showVersion = flag.Bool("version", false, "Show version information")
 	)
 	flag.Parse()
 
+	// Handle help and version flags
 	if *showHelp {
 		printUsage()
+		os.Exit(0)
+	}
+
+	if *showVersion {
+		printVersion()
 		os.Exit(0)
 	}
 
@@ -60,7 +103,10 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Log startup
 	logger.Info("starting billaged service",
+		slog.String("version", getVersion()),
+		slog.String("go_version", runtime.Version()),
 		"port", cfg.Server.Port,
 		"address", cfg.Server.Address,
 		"aggregation_interval", aggregationInterval.String(),
@@ -69,7 +115,7 @@ func main() {
 
 	// Initialize OpenTelemetry
 	ctx := context.Background()
-	otelProviders, err := observability.InitProviders(ctx, cfg)
+	otelProviders, err := observability.InitProviders(ctx, cfg, getVersion())
 	if err != nil {
 		logger.Error("failed to initialize OpenTelemetry",
 			slog.String("error", err.Error()),
@@ -315,7 +361,21 @@ func printUsageSummary(logger *slog.Logger, summary *aggregator.UsageSummary) {
 // loggingInterceptor logs all RPC calls
 func loggingInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc {
 	return func(next connect.UnaryFunc) connect.UnaryFunc {
-		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+		return func(ctx context.Context, req connect.AnyRequest) (resp connect.AnyResponse, err error) {
+			// Add panic recovery
+			defer func() {
+				if r := recover(); r != nil {
+					logger.Error("panic in logging interceptor",
+						slog.String("procedure", req.Spec().Procedure),
+						slog.Any("panic", r),
+					)
+					// Only override err if it's not already set
+					if err == nil {
+						err = connect.NewError(connect.CodeInternal, fmt.Errorf("internal server error: %v", r))
+					}
+				}
+			}()
+
 			start := time.Now()
 
 			// Log request
@@ -325,7 +385,7 @@ func loggingInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc {
 			)
 
 			// Execute request
-			resp, err := next(ctx, req)
+			resp, err = next(ctx, req)
 
 			// Log response
 			duration := time.Since(start)
@@ -345,6 +405,13 @@ func loggingInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc {
 			return resp, err
 		}
 	}
+}
+
+// printVersion displays version information
+func printVersion() {
+	fmt.Printf("Billaged - VM Usage Billing Aggregation Service\n")
+	fmt.Printf("Version: %s\n", getVersion())
+	fmt.Printf("Built with: %s\n", runtime.Version())
 }
 
 // printUsage displays help information

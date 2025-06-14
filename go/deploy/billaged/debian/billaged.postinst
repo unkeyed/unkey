@@ -1,0 +1,25 @@
+#!/bin/sh
+set -e
+
+# Create billaged user and group if they don't exist
+if ! getent group billaged > /dev/null 2>&1; then
+    addgroup --system billaged
+fi
+
+if ! getent passwd billaged > /dev/null 2>&1; then
+    adduser --system --home /opt/billaged --shell /bin/false \
+            --gecos "Billaged VM Usage Billing Service" \
+            --ingroup billaged billaged
+fi
+
+# Set permissions
+chown -R billaged:billaged /opt/billaged
+chown -R billaged:billaged /var/log/billaged
+
+# Enable and start systemd service
+systemctl daemon-reload
+systemctl enable billaged.service
+
+#DEBHELPER#
+
+exit 0
