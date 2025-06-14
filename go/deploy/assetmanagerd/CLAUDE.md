@@ -4,6 +4,11 @@
 
 AssetManagerd is a dedicated VM asset management service that replaces hardcoded asset lists in metald, providing dynamic asset registration, reference counting, and garbage collection.
 
+### Integration Status
+- ✅ **Metald Integration Complete**: Metald now dynamically queries assetmanagerd for VM assets instead of using hardcoded lists
+- Integration is configurable via `UNKEY_METALD_ASSETMANAGER_*` environment variables
+- Falls back to hardcoded assets when assetmanagerd is unavailable
+
 ## Key Implementation Details
 
 ### Port Configuration

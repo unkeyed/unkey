@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1/vmprovisionerv1connect"
+	"github.com/unkeyed/unkey/go/deploy/metald/internal/assetmanager"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/cloudhypervisor"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/firecracker"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
@@ -22,6 +23,7 @@ import (
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/database"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/health"
+	"github.com/unkeyed/unkey/go/deploy/metald/internal/network"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/observability"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/service"
 
@@ -200,6 +202,52 @@ func main() {
 			os.Exit(1)
 		}
 		backend = managedClient
+		
+		// Initialize AssetManager client for Firecracker backend
+		assetClient, err := assetmanager.NewClient(&cfg.AssetManager, logger)
+		if err != nil {
+			logger.Error("failed to initialize asset manager client",
+				slog.String("error", err.Error()),
+			)
+			os.Exit(1)
+		}
+		
+		// Set the asset client on the managed client's process manager
+		managedClient.SetAssetClient(assetClient)
+		logger.Info("initialized asset manager client",
+			slog.Bool("enabled", cfg.AssetManager.Enabled),
+			slog.String("endpoint", cfg.AssetManager.Endpoint),
+		)
+		
+		// Initialize network manager if enabled
+		if cfg.Network.Enabled {
+			networkCfg := &network.Config{
+				BridgeName:      cfg.Network.BridgeName,
+				BridgeIP:        cfg.Network.BridgeIPv4, // Use IPv4 bridge IP
+				VMSubnet:        cfg.Network.VMSubnetIPv4, // Use IPv4 subnet
+				EnableIPv6:      cfg.Network.EnableIPv6,
+				DNSServers:      cfg.Network.DNSServersIPv4, // Use IPv4 DNS servers for now
+				EnableRateLimit: cfg.Network.EnableRateLimit,
+				RateLimitMbps:   cfg.Network.RateLimitMbps,
+			}
+			
+			networkMgr, err := network.NewManager(logger, networkCfg)
+			if err != nil {
+				logger.Error("failed to initialize network manager",
+					slog.String("error", err.Error()),
+				)
+				os.Exit(1)
+			}
+			
+			// Set the network manager on the managed client's process manager
+			managedClient.SetNetworkManager(networkMgr)
+			logger.Info("initialized network manager",
+				slog.Bool("ipv4_enabled", cfg.Network.EnableIPv4),
+				slog.Bool("ipv6_enabled", cfg.Network.EnableIPv6),
+				slog.String("bridge", cfg.Network.BridgeName),
+				slog.String("ipv6_mode", cfg.Network.IPv6Mode),
+			)
+		}
 	default:
 		logger.Error("unsupported backend type",
 			slog.String("backend", string(cfg.Backend.Type)),

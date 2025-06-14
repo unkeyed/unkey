@@ -29,6 +29,12 @@ type Config struct {
 
 	// Database configuration
 	Database DatabaseConfig
+
+	// AssetManager configuration
+	AssetManager AssetManagerConfig
+
+	// Network configuration
+	Network NetworkConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -165,6 +171,42 @@ type OpenTelemetryConfig struct {
 type DatabaseConfig struct {
 	// DataDir is the directory where the SQLite database file is stored
 	DataDir string
+}
+
+// AssetManagerConfig holds assetmanagerd service configuration
+type AssetManagerConfig struct {
+	// Enabled indicates if assetmanagerd integration is enabled
+	Enabled bool
+
+	// Endpoint is the assetmanagerd service endpoint (e.g., http://localhost:8082)
+	Endpoint string
+
+	// CacheDir is the local directory for caching assets
+	CacheDir string
+}
+
+// NetworkConfig holds network-related configuration
+type NetworkConfig struct {
+	// Enabled indicates if networking is enabled
+	Enabled bool
+
+	// IPv4 Configuration
+	EnableIPv4   bool
+	BridgeIPv4   string
+	VMSubnetIPv4 string
+	DNSServersIPv4 []string
+
+	// IPv6 Configuration
+	EnableIPv6   bool
+	BridgeIPv6   string
+	VMSubnetIPv6 string
+	DNSServersIPv6 []string
+	IPv6Mode     string // "dual-stack", "ipv6-only", "ipv4-only"
+
+	// Common Configuration
+	BridgeName      string
+	EnableRateLimit bool
+	RateLimitMbps   int
 }
 
 // LoadConfig loads configuration from environment variables
@@ -338,6 +380,19 @@ func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (
 		}
 	}
 
+	// Parse assetmanager configuration
+	assetManagerEnabled := true // Default to enabled
+	if enabledStr := os.Getenv("UNKEY_METALD_ASSETMANAGER_ENABLED"); enabledStr != "" {
+		if parsed, err := strconv.ParseBool(enabledStr); err == nil {
+			assetManagerEnabled = parsed
+		} else {
+			logger.Warn("invalid UNKEY_METALD_ASSETMANAGER_ENABLED, using default true",
+				slog.String("value", enabledStr),
+				slog.String("error", err.Error()),
+			)
+		}
+	}
+
 	cfg := &Config{
 		Server: ServerConfig{
 			Port:    getEnvOrDefault("UNKEY_METALD_PORT", "8080"),
@@ -390,6 +445,26 @@ func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (
 		Database: DatabaseConfig{
 			DataDir: getEnvOrDefault("UNKEY_METALD_DATA_DIR", "/opt/metald/data"),
 		},
+		AssetManager: AssetManagerConfig{
+			Enabled:  assetManagerEnabled,
+			Endpoint: getEnvOrDefault("UNKEY_METALD_ASSETMANAGER_ENDPOINT", "http://localhost:8083"),
+			CacheDir: getEnvOrDefault("UNKEY_METALD_ASSETMANAGER_CACHE_DIR", "/opt/metald/assets"),
+		},
+		Network: NetworkConfig{
+			Enabled:         getEnvBoolOrDefault("UNKEY_METALD_NETWORK_ENABLED", true),
+			EnableIPv4:      getEnvBoolOrDefault("UNKEY_METALD_NETWORK_IPV4_ENABLED", true),
+			BridgeIPv4:      getEnvOrDefault("UNKEY_METALD_NETWORK_BRIDGE_IPV4", "10.100.0.1/16"),
+			VMSubnetIPv4:    getEnvOrDefault("UNKEY_METALD_NETWORK_VM_SUBNET_IPV4", "10.100.0.0/16"),
+			DNSServersIPv4:  strings.Split(getEnvOrDefault("UNKEY_METALD_NETWORK_DNS_IPV4", "8.8.8.8,8.8.4.4"), ","),
+			EnableIPv6:      getEnvBoolOrDefault("UNKEY_METALD_NETWORK_IPV6_ENABLED", true),
+			BridgeIPv6:      getEnvOrDefault("UNKEY_METALD_NETWORK_BRIDGE_IPV6", "fd00::1/64"),
+			VMSubnetIPv6:    getEnvOrDefault("UNKEY_METALD_NETWORK_VM_SUBNET_IPV6", "fd00::/64"),
+			DNSServersIPv6:  strings.Split(getEnvOrDefault("UNKEY_METALD_NETWORK_DNS_IPV6", "2606:4700:4700::1111,2606:4700:4700::1001"), ","),
+			IPv6Mode:        getEnvOrDefault("UNKEY_METALD_NETWORK_IPV6_MODE", "dual-stack"),
+			BridgeName:      getEnvOrDefault("UNKEY_METALD_NETWORK_BRIDGE", "br-vms"),
+			EnableRateLimit: getEnvBoolOrDefault("UNKEY_METALD_NETWORK_RATE_LIMIT", true),
+			RateLimitMbps:   getEnvIntOrDefault("UNKEY_METALD_NETWORK_RATE_LIMIT_MBPS", 1000),
+		},
 	}
 
 	// Validate configuration
@@ -437,6 +512,28 @@ func (c *Config) Validate() error {
 func getEnvOrDefault(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
+	}
+	return defaultValue
+}
+
+func getEnvBoolOrDefault(key string, defaultValue bool) bool {
+	if value := os.Getenv(key); value != "" {
+		boolValue, err := strconv.ParseBool(value)
+		if err != nil {
+			return defaultValue
+		}
+		return boolValue
+	}
+	return defaultValue
+}
+
+func getEnvIntOrDefault(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		intValue, err := strconv.Atoi(value)
+		if err != nil {
+			return defaultValue
+		}
+		return intValue
 	}
 	return defaultValue
 }

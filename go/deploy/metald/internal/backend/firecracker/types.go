@@ -115,13 +115,25 @@ func (c *Client) genericToFirecrackerConfig(config *metaldv1.VmConfig) (firecrac
 	}
 
 	// Network configuration
-	for _, net := range config.Network {
+	// If the process has network info from the network manager, use that
+	if c.process != nil && c.process.NetworkInfo != nil {
+		// Use the network manager's TAP device and MAC address
 		netInterface := firecrackerNetworkInterface{
-			IfaceID:     net.Id,
-			GuestMac:    net.MacAddress,
-			HostDevName: net.TapDevice,
+			IfaceID:     "eth0", // Default interface name
+			GuestMac:    c.process.NetworkInfo.MacAddress,
+			HostDevName: c.process.NetworkInfo.TapDevice,
 		}
 		netInterfaces = append(netInterfaces, netInterface)
+	} else if len(config.Network) > 0 {
+		// Fall back to config-provided network interfaces
+		for _, net := range config.Network {
+			netInterface := firecrackerNetworkInterface{
+				IfaceID:     net.Id,
+				GuestMac:    net.MacAddress,
+				HostDevName: net.TapDevice,
+			}
+			netInterfaces = append(netInterfaces, netInterface)
+		}
 	}
 
 	return machineConfig, bootSource, drives, netInterfaces

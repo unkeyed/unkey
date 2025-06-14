@@ -150,6 +150,54 @@ message NetworkInterface {
 
   // Additional network options
   map<string, string> options = 5;
+  
+  // IPv4 configuration (optional)
+  IPv4Config ipv4_config = 6;
+  
+  // IPv6 configuration (optional)
+  IPv6Config ipv6_config = 7;
+  
+  // Network mode
+  NetworkMode mode = 8;
+  
+  // Rate limiting
+  RateLimit rx_rate_limit = 10;  // Receive rate limit
+  RateLimit tx_rate_limit = 11; // Transmit rate limit
+}
+
+// IPv4 network configuration
+message IPv4Config {
+  string address = 1;          // IPv4 address (e.g., "10.100.1.2")
+  string netmask = 2;          // Network mask (e.g., "255.255.255.0")
+  string gateway = 3;          // Default gateway
+  repeated string dns_servers = 4; // DNS servers
+  bool dhcp = 5;               // Use DHCP instead of static config
+}
+
+// IPv6 network configuration  
+message IPv6Config {
+  string address = 1;          // IPv6 address (e.g., "fd00::1:2")
+  int32 prefix_length = 2;     // Prefix length (e.g., 64)
+  string gateway = 3;          // Default gateway
+  repeated string dns_servers = 4; // DNS servers (IPv6 addresses)
+  bool slaac = 5;              // Use SLAAC (Stateless Address Autoconfiguration)
+  bool privacy_extensions = 6;  // Enable privacy extensions
+  string link_local = 7;       // Link-local address (auto-generated if empty)
+}
+
+// Network mode for the interface
+enum NetworkMode {
+  NETWORK_MODE_UNSPECIFIED = 0;
+  NETWORK_MODE_DUAL_STACK = 1;  // Both IPv4 and IPv6
+  NETWORK_MODE_IPV4_ONLY = 2;   // IPv4 only
+  NETWORK_MODE_IPV6_ONLY = 3;   // IPv6 only
+}
+
+// Rate limiting configuration
+message RateLimit {
+  int64 bandwidth = 1;    // Bandwidth in bytes/second
+  int64 refill_time = 2;  // Token bucket refill time in milliseconds
+  int64 burst = 3;        // Burst size in bytes
 }
 
 message ConsoleConfig {
@@ -253,6 +301,19 @@ message GetVmInfoResponse {
 
   // Backend-specific information
   map<string, string> backend_info = 5;
+  
+  // Network information if available
+  VmNetworkInfo network_info = 6;
+}
+
+// Network information for a VM
+message VmNetworkInfo {
+  string ip_address = 1;
+  string mac_address = 2;
+  string tap_device = 3;
+  string network_namespace = 4;
+  string gateway = 5;
+  repeated string dns_servers = 6;
 }
 
 message VmMetrics {

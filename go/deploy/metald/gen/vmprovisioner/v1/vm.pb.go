@@ -77,6 +77,59 @@ func (VmState) EnumDescriptor() ([]byte, []int) {
 	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{0}
 }
 
+// Network mode for the interface
+type NetworkMode int32
+
+const (
+	NetworkMode_NETWORK_MODE_UNSPECIFIED NetworkMode = 0
+	NetworkMode_NETWORK_MODE_DUAL_STACK  NetworkMode = 1 // Both IPv4 and IPv6
+	NetworkMode_NETWORK_MODE_IPV4_ONLY   NetworkMode = 2 // IPv4 only
+	NetworkMode_NETWORK_MODE_IPV6_ONLY   NetworkMode = 3 // IPv6 only
+)
+
+// Enum value maps for NetworkMode.
+var (
+	NetworkMode_name = map[int32]string{
+		0: "NETWORK_MODE_UNSPECIFIED",
+		1: "NETWORK_MODE_DUAL_STACK",
+		2: "NETWORK_MODE_IPV4_ONLY",
+		3: "NETWORK_MODE_IPV6_ONLY",
+	}
+	NetworkMode_value = map[string]int32{
+		"NETWORK_MODE_UNSPECIFIED": 0,
+		"NETWORK_MODE_DUAL_STACK":  1,
+		"NETWORK_MODE_IPV4_ONLY":   2,
+		"NETWORK_MODE_IPV6_ONLY":   3,
+	}
+)
+
+func (x NetworkMode) Enum() *NetworkMode {
+	p := new(NetworkMode)
+	*p = x
+	return p
+}
+
+func (x NetworkMode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (NetworkMode) Descriptor() protoreflect.EnumDescriptor {
+	return file_vmprovisioner_v1_vm_proto_enumTypes[1].Descriptor()
+}
+
+func (NetworkMode) Type() protoreflect.EnumType {
+	return &file_vmprovisioner_v1_vm_proto_enumTypes[1]
+}
+
+func (x NetworkMode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use NetworkMode.Descriptor instead.
+func (NetworkMode) EnumDescriptor() ([]byte, []int) {
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{1}
+}
+
 // Unified VM configuration that works across different hypervisors
 type VmConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -554,7 +607,16 @@ type NetworkInterface struct {
 	// Network interface type (virtio-net, e1000, etc.)
 	InterfaceType string `protobuf:"bytes,4,opt,name=interface_type,json=interfaceType,proto3" json:"interface_type,omitempty"`
 	// Additional network options
-	Options       map[string]string `protobuf:"bytes,5,rep,name=options,proto3" json:"options,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Options map[string]string `protobuf:"bytes,5,rep,name=options,proto3" json:"options,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// IPv4 configuration (optional)
+	Ipv4Config *IPv4Config `protobuf:"bytes,6,opt,name=ipv4_config,json=ipv4Config,proto3" json:"ipv4_config,omitempty"`
+	// IPv6 configuration (optional)
+	Ipv6Config *IPv6Config `protobuf:"bytes,7,opt,name=ipv6_config,json=ipv6Config,proto3" json:"ipv6_config,omitempty"`
+	// Network mode
+	Mode NetworkMode `protobuf:"varint,8,opt,name=mode,proto3,enum=vmprovisioner.v1.NetworkMode" json:"mode,omitempty"`
+	// Rate limiting
+	RxRateLimit   *RateLimit `protobuf:"bytes,10,opt,name=rx_rate_limit,json=rxRateLimit,proto3" json:"rx_rate_limit,omitempty"` // Receive rate limit
+	TxRateLimit   *RateLimit `protobuf:"bytes,11,opt,name=tx_rate_limit,json=txRateLimit,proto3" json:"tx_rate_limit,omitempty"` // Transmit rate limit
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -624,6 +686,272 @@ func (x *NetworkInterface) GetOptions() map[string]string {
 	return nil
 }
 
+func (x *NetworkInterface) GetIpv4Config() *IPv4Config {
+	if x != nil {
+		return x.Ipv4Config
+	}
+	return nil
+}
+
+func (x *NetworkInterface) GetIpv6Config() *IPv6Config {
+	if x != nil {
+		return x.Ipv6Config
+	}
+	return nil
+}
+
+func (x *NetworkInterface) GetMode() NetworkMode {
+	if x != nil {
+		return x.Mode
+	}
+	return NetworkMode_NETWORK_MODE_UNSPECIFIED
+}
+
+func (x *NetworkInterface) GetRxRateLimit() *RateLimit {
+	if x != nil {
+		return x.RxRateLimit
+	}
+	return nil
+}
+
+func (x *NetworkInterface) GetTxRateLimit() *RateLimit {
+	if x != nil {
+		return x.TxRateLimit
+	}
+	return nil
+}
+
+// IPv4 network configuration
+type IPv4Config struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Address       string                 `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`                         // IPv4 address (e.g., "10.100.1.2")
+	Netmask       string                 `protobuf:"bytes,2,opt,name=netmask,proto3" json:"netmask,omitempty"`                         // Network mask (e.g., "255.255.255.0")
+	Gateway       string                 `protobuf:"bytes,3,opt,name=gateway,proto3" json:"gateway,omitempty"`                         // Default gateway
+	DnsServers    []string               `protobuf:"bytes,4,rep,name=dns_servers,json=dnsServers,proto3" json:"dns_servers,omitempty"` // DNS servers
+	Dhcp          bool                   `protobuf:"varint,5,opt,name=dhcp,proto3" json:"dhcp,omitempty"`                              // Use DHCP instead of static config
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IPv4Config) Reset() {
+	*x = IPv4Config{}
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IPv4Config) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IPv4Config) ProtoMessage() {}
+
+func (x *IPv4Config) ProtoReflect() protoreflect.Message {
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IPv4Config.ProtoReflect.Descriptor instead.
+func (*IPv4Config) Descriptor() ([]byte, []int) {
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *IPv4Config) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
+func (x *IPv4Config) GetNetmask() string {
+	if x != nil {
+		return x.Netmask
+	}
+	return ""
+}
+
+func (x *IPv4Config) GetGateway() string {
+	if x != nil {
+		return x.Gateway
+	}
+	return ""
+}
+
+func (x *IPv4Config) GetDnsServers() []string {
+	if x != nil {
+		return x.DnsServers
+	}
+	return nil
+}
+
+func (x *IPv4Config) GetDhcp() bool {
+	if x != nil {
+		return x.Dhcp
+	}
+	return false
+}
+
+// IPv6 network configuration
+type IPv6Config struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Address           string                 `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`                                               // IPv6 address (e.g., "fd00::1:2")
+	PrefixLength      int32                  `protobuf:"varint,2,opt,name=prefix_length,json=prefixLength,proto3" json:"prefix_length,omitempty"`                // Prefix length (e.g., 64)
+	Gateway           string                 `protobuf:"bytes,3,opt,name=gateway,proto3" json:"gateway,omitempty"`                                               // Default gateway
+	DnsServers        []string               `protobuf:"bytes,4,rep,name=dns_servers,json=dnsServers,proto3" json:"dns_servers,omitempty"`                       // DNS servers (IPv6 addresses)
+	Slaac             bool                   `protobuf:"varint,5,opt,name=slaac,proto3" json:"slaac,omitempty"`                                                  // Use SLAAC (Stateless Address Autoconfiguration)
+	PrivacyExtensions bool                   `protobuf:"varint,6,opt,name=privacy_extensions,json=privacyExtensions,proto3" json:"privacy_extensions,omitempty"` // Enable privacy extensions
+	LinkLocal         string                 `protobuf:"bytes,7,opt,name=link_local,json=linkLocal,proto3" json:"link_local,omitempty"`                          // Link-local address (auto-generated if empty)
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *IPv6Config) Reset() {
+	*x = IPv6Config{}
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IPv6Config) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IPv6Config) ProtoMessage() {}
+
+func (x *IPv6Config) ProtoReflect() protoreflect.Message {
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IPv6Config.ProtoReflect.Descriptor instead.
+func (*IPv6Config) Descriptor() ([]byte, []int) {
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *IPv6Config) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
+func (x *IPv6Config) GetPrefixLength() int32 {
+	if x != nil {
+		return x.PrefixLength
+	}
+	return 0
+}
+
+func (x *IPv6Config) GetGateway() string {
+	if x != nil {
+		return x.Gateway
+	}
+	return ""
+}
+
+func (x *IPv6Config) GetDnsServers() []string {
+	if x != nil {
+		return x.DnsServers
+	}
+	return nil
+}
+
+func (x *IPv6Config) GetSlaac() bool {
+	if x != nil {
+		return x.Slaac
+	}
+	return false
+}
+
+func (x *IPv6Config) GetPrivacyExtensions() bool {
+	if x != nil {
+		return x.PrivacyExtensions
+	}
+	return false
+}
+
+func (x *IPv6Config) GetLinkLocal() string {
+	if x != nil {
+		return x.LinkLocal
+	}
+	return ""
+}
+
+// Rate limiting configuration
+type RateLimit struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Bandwidth     int64                  `protobuf:"varint,1,opt,name=bandwidth,proto3" json:"bandwidth,omitempty"`                     // Bandwidth in bytes/second
+	RefillTime    int64                  `protobuf:"varint,2,opt,name=refill_time,json=refillTime,proto3" json:"refill_time,omitempty"` // Token bucket refill time in milliseconds
+	Burst         int64                  `protobuf:"varint,3,opt,name=burst,proto3" json:"burst,omitempty"`                             // Burst size in bytes
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RateLimit) Reset() {
+	*x = RateLimit{}
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RateLimit) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RateLimit) ProtoMessage() {}
+
+func (x *RateLimit) ProtoReflect() protoreflect.Message {
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RateLimit.ProtoReflect.Descriptor instead.
+func (*RateLimit) Descriptor() ([]byte, []int) {
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *RateLimit) GetBandwidth() int64 {
+	if x != nil {
+		return x.Bandwidth
+	}
+	return 0
+}
+
+func (x *RateLimit) GetRefillTime() int64 {
+	if x != nil {
+		return x.RefillTime
+	}
+	return 0
+}
+
+func (x *RateLimit) GetBurst() int64 {
+	if x != nil {
+		return x.Burst
+	}
+	return 0
+}
+
 type ConsoleConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Whether console is enabled
@@ -640,7 +968,7 @@ type ConsoleConfig struct {
 
 func (x *ConsoleConfig) Reset() {
 	*x = ConsoleConfig{}
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[7]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -652,7 +980,7 @@ func (x *ConsoleConfig) String() string {
 func (*ConsoleConfig) ProtoMessage() {}
 
 func (x *ConsoleConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[7]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -665,7 +993,7 @@ func (x *ConsoleConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConsoleConfig.ProtoReflect.Descriptor instead.
 func (*ConsoleConfig) Descriptor() ([]byte, []int) {
-	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{7}
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ConsoleConfig) GetEnabled() bool {
@@ -711,7 +1039,7 @@ type CreateVmRequest struct {
 
 func (x *CreateVmRequest) Reset() {
 	*x = CreateVmRequest{}
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[8]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -723,7 +1051,7 @@ func (x *CreateVmRequest) String() string {
 func (*CreateVmRequest) ProtoMessage() {}
 
 func (x *CreateVmRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[8]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -736,7 +1064,7 @@ func (x *CreateVmRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateVmRequest.ProtoReflect.Descriptor instead.
 func (*CreateVmRequest) Descriptor() ([]byte, []int) {
-	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{8}
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *CreateVmRequest) GetVmId() string {
@@ -772,7 +1100,7 @@ type CreateVmResponse struct {
 
 func (x *CreateVmResponse) Reset() {
 	*x = CreateVmResponse{}
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[9]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -784,7 +1112,7 @@ func (x *CreateVmResponse) String() string {
 func (*CreateVmResponse) ProtoMessage() {}
 
 func (x *CreateVmResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[9]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -797,7 +1125,7 @@ func (x *CreateVmResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateVmResponse.ProtoReflect.Descriptor instead.
 func (*CreateVmResponse) Descriptor() ([]byte, []int) {
-	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{9}
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *CreateVmResponse) GetVmId() string {
@@ -825,7 +1153,7 @@ type DeleteVmRequest struct {
 
 func (x *DeleteVmRequest) Reset() {
 	*x = DeleteVmRequest{}
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[10]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -837,7 +1165,7 @@ func (x *DeleteVmRequest) String() string {
 func (*DeleteVmRequest) ProtoMessage() {}
 
 func (x *DeleteVmRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[10]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -850,7 +1178,7 @@ func (x *DeleteVmRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteVmRequest.ProtoReflect.Descriptor instead.
 func (*DeleteVmRequest) Descriptor() ([]byte, []int) {
-	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{10}
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *DeleteVmRequest) GetVmId() string {
@@ -876,7 +1204,7 @@ type DeleteVmResponse struct {
 
 func (x *DeleteVmResponse) Reset() {
 	*x = DeleteVmResponse{}
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[11]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -888,7 +1216,7 @@ func (x *DeleteVmResponse) String() string {
 func (*DeleteVmResponse) ProtoMessage() {}
 
 func (x *DeleteVmResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[11]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -901,7 +1229,7 @@ func (x *DeleteVmResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteVmResponse.ProtoReflect.Descriptor instead.
 func (*DeleteVmResponse) Descriptor() ([]byte, []int) {
-	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{11}
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *DeleteVmResponse) GetSuccess() bool {
@@ -920,7 +1248,7 @@ type BootVmRequest struct {
 
 func (x *BootVmRequest) Reset() {
 	*x = BootVmRequest{}
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[12]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -932,7 +1260,7 @@ func (x *BootVmRequest) String() string {
 func (*BootVmRequest) ProtoMessage() {}
 
 func (x *BootVmRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[12]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -945,7 +1273,7 @@ func (x *BootVmRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BootVmRequest.ProtoReflect.Descriptor instead.
 func (*BootVmRequest) Descriptor() ([]byte, []int) {
-	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{12}
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *BootVmRequest) GetVmId() string {
@@ -965,7 +1293,7 @@ type BootVmResponse struct {
 
 func (x *BootVmResponse) Reset() {
 	*x = BootVmResponse{}
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[13]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -977,7 +1305,7 @@ func (x *BootVmResponse) String() string {
 func (*BootVmResponse) ProtoMessage() {}
 
 func (x *BootVmResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[13]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -990,7 +1318,7 @@ func (x *BootVmResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BootVmResponse.ProtoReflect.Descriptor instead.
 func (*BootVmResponse) Descriptor() ([]byte, []int) {
-	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{13}
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *BootVmResponse) GetSuccess() bool {
@@ -1020,7 +1348,7 @@ type ShutdownVmRequest struct {
 
 func (x *ShutdownVmRequest) Reset() {
 	*x = ShutdownVmRequest{}
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[14]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1032,7 +1360,7 @@ func (x *ShutdownVmRequest) String() string {
 func (*ShutdownVmRequest) ProtoMessage() {}
 
 func (x *ShutdownVmRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[14]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1045,7 +1373,7 @@ func (x *ShutdownVmRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShutdownVmRequest.ProtoReflect.Descriptor instead.
 func (*ShutdownVmRequest) Descriptor() ([]byte, []int) {
-	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{14}
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ShutdownVmRequest) GetVmId() string {
@@ -1079,7 +1407,7 @@ type ShutdownVmResponse struct {
 
 func (x *ShutdownVmResponse) Reset() {
 	*x = ShutdownVmResponse{}
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[15]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1091,7 +1419,7 @@ func (x *ShutdownVmResponse) String() string {
 func (*ShutdownVmResponse) ProtoMessage() {}
 
 func (x *ShutdownVmResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[15]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1104,7 +1432,7 @@ func (x *ShutdownVmResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShutdownVmResponse.ProtoReflect.Descriptor instead.
 func (*ShutdownVmResponse) Descriptor() ([]byte, []int) {
-	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{15}
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ShutdownVmResponse) GetSuccess() bool {
@@ -1130,7 +1458,7 @@ type PauseVmRequest struct {
 
 func (x *PauseVmRequest) Reset() {
 	*x = PauseVmRequest{}
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[16]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1142,7 +1470,7 @@ func (x *PauseVmRequest) String() string {
 func (*PauseVmRequest) ProtoMessage() {}
 
 func (x *PauseVmRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[16]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1155,7 +1483,7 @@ func (x *PauseVmRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PauseVmRequest.ProtoReflect.Descriptor instead.
 func (*PauseVmRequest) Descriptor() ([]byte, []int) {
-	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{16}
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *PauseVmRequest) GetVmId() string {
@@ -1175,7 +1503,7 @@ type PauseVmResponse struct {
 
 func (x *PauseVmResponse) Reset() {
 	*x = PauseVmResponse{}
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[17]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1187,7 +1515,7 @@ func (x *PauseVmResponse) String() string {
 func (*PauseVmResponse) ProtoMessage() {}
 
 func (x *PauseVmResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[17]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1200,7 +1528,7 @@ func (x *PauseVmResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PauseVmResponse.ProtoReflect.Descriptor instead.
 func (*PauseVmResponse) Descriptor() ([]byte, []int) {
-	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{17}
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *PauseVmResponse) GetSuccess() bool {
@@ -1226,7 +1554,7 @@ type ResumeVmRequest struct {
 
 func (x *ResumeVmRequest) Reset() {
 	*x = ResumeVmRequest{}
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[18]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1238,7 +1566,7 @@ func (x *ResumeVmRequest) String() string {
 func (*ResumeVmRequest) ProtoMessage() {}
 
 func (x *ResumeVmRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[18]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1251,7 +1579,7 @@ func (x *ResumeVmRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResumeVmRequest.ProtoReflect.Descriptor instead.
 func (*ResumeVmRequest) Descriptor() ([]byte, []int) {
-	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{18}
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ResumeVmRequest) GetVmId() string {
@@ -1271,7 +1599,7 @@ type ResumeVmResponse struct {
 
 func (x *ResumeVmResponse) Reset() {
 	*x = ResumeVmResponse{}
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[19]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1283,7 +1611,7 @@ func (x *ResumeVmResponse) String() string {
 func (*ResumeVmResponse) ProtoMessage() {}
 
 func (x *ResumeVmResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[19]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1296,7 +1624,7 @@ func (x *ResumeVmResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResumeVmResponse.ProtoReflect.Descriptor instead.
 func (*ResumeVmResponse) Descriptor() ([]byte, []int) {
-	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{19}
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ResumeVmResponse) GetSuccess() bool {
@@ -1324,7 +1652,7 @@ type RebootVmRequest struct {
 
 func (x *RebootVmRequest) Reset() {
 	*x = RebootVmRequest{}
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[20]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1336,7 +1664,7 @@ func (x *RebootVmRequest) String() string {
 func (*RebootVmRequest) ProtoMessage() {}
 
 func (x *RebootVmRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[20]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1349,7 +1677,7 @@ func (x *RebootVmRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RebootVmRequest.ProtoReflect.Descriptor instead.
 func (*RebootVmRequest) Descriptor() ([]byte, []int) {
-	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{20}
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *RebootVmRequest) GetVmId() string {
@@ -1376,7 +1704,7 @@ type RebootVmResponse struct {
 
 func (x *RebootVmResponse) Reset() {
 	*x = RebootVmResponse{}
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[21]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1388,7 +1716,7 @@ func (x *RebootVmResponse) String() string {
 func (*RebootVmResponse) ProtoMessage() {}
 
 func (x *RebootVmResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[21]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1401,7 +1729,7 @@ func (x *RebootVmResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RebootVmResponse.ProtoReflect.Descriptor instead.
 func (*RebootVmResponse) Descriptor() ([]byte, []int) {
-	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{21}
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *RebootVmResponse) GetSuccess() bool {
@@ -1427,7 +1755,7 @@ type GetVmInfoRequest struct {
 
 func (x *GetVmInfoRequest) Reset() {
 	*x = GetVmInfoRequest{}
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[22]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1439,7 +1767,7 @@ func (x *GetVmInfoRequest) String() string {
 func (*GetVmInfoRequest) ProtoMessage() {}
 
 func (x *GetVmInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[22]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1452,7 +1780,7 @@ func (x *GetVmInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVmInfoRequest.ProtoReflect.Descriptor instead.
 func (*GetVmInfoRequest) Descriptor() ([]byte, []int) {
-	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{22}
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *GetVmInfoRequest) GetVmId() string {
@@ -1469,14 +1797,16 @@ type GetVmInfoResponse struct {
 	State   VmState                `protobuf:"varint,3,opt,name=state,proto3,enum=vmprovisioner.v1.VmState" json:"state,omitempty"`
 	Metrics *VmMetrics             `protobuf:"bytes,4,opt,name=metrics,proto3" json:"metrics,omitempty"`
 	// Backend-specific information
-	BackendInfo   map[string]string `protobuf:"bytes,5,rep,name=backend_info,json=backendInfo,proto3" json:"backend_info,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	BackendInfo map[string]string `protobuf:"bytes,5,rep,name=backend_info,json=backendInfo,proto3" json:"backend_info,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Network information if available
+	NetworkInfo   *VmNetworkInfo `protobuf:"bytes,6,opt,name=network_info,json=networkInfo,proto3" json:"network_info,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetVmInfoResponse) Reset() {
 	*x = GetVmInfoResponse{}
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[23]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1488,7 +1818,7 @@ func (x *GetVmInfoResponse) String() string {
 func (*GetVmInfoResponse) ProtoMessage() {}
 
 func (x *GetVmInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[23]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1501,7 +1831,7 @@ func (x *GetVmInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVmInfoResponse.ProtoReflect.Descriptor instead.
 func (*GetVmInfoResponse) Descriptor() ([]byte, []int) {
-	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{23}
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *GetVmInfoResponse) GetVmId() string {
@@ -1539,6 +1869,98 @@ func (x *GetVmInfoResponse) GetBackendInfo() map[string]string {
 	return nil
 }
 
+func (x *GetVmInfoResponse) GetNetworkInfo() *VmNetworkInfo {
+	if x != nil {
+		return x.NetworkInfo
+	}
+	return nil
+}
+
+// Network information for a VM
+type VmNetworkInfo struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	IpAddress        string                 `protobuf:"bytes,1,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`
+	MacAddress       string                 `protobuf:"bytes,2,opt,name=mac_address,json=macAddress,proto3" json:"mac_address,omitempty"`
+	TapDevice        string                 `protobuf:"bytes,3,opt,name=tap_device,json=tapDevice,proto3" json:"tap_device,omitempty"`
+	NetworkNamespace string                 `protobuf:"bytes,4,opt,name=network_namespace,json=networkNamespace,proto3" json:"network_namespace,omitempty"`
+	Gateway          string                 `protobuf:"bytes,5,opt,name=gateway,proto3" json:"gateway,omitempty"`
+	DnsServers       []string               `protobuf:"bytes,6,rep,name=dns_servers,json=dnsServers,proto3" json:"dns_servers,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *VmNetworkInfo) Reset() {
+	*x = VmNetworkInfo{}
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *VmNetworkInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VmNetworkInfo) ProtoMessage() {}
+
+func (x *VmNetworkInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VmNetworkInfo.ProtoReflect.Descriptor instead.
+func (*VmNetworkInfo) Descriptor() ([]byte, []int) {
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *VmNetworkInfo) GetIpAddress() string {
+	if x != nil {
+		return x.IpAddress
+	}
+	return ""
+}
+
+func (x *VmNetworkInfo) GetMacAddress() string {
+	if x != nil {
+		return x.MacAddress
+	}
+	return ""
+}
+
+func (x *VmNetworkInfo) GetTapDevice() string {
+	if x != nil {
+		return x.TapDevice
+	}
+	return ""
+}
+
+func (x *VmNetworkInfo) GetNetworkNamespace() string {
+	if x != nil {
+		return x.NetworkNamespace
+	}
+	return ""
+}
+
+func (x *VmNetworkInfo) GetGateway() string {
+	if x != nil {
+		return x.Gateway
+	}
+	return ""
+}
+
+func (x *VmNetworkInfo) GetDnsServers() []string {
+	if x != nil {
+		return x.DnsServers
+	}
+	return nil
+}
+
 type VmMetrics struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// CPU usage percentage (0-100)
@@ -1557,7 +1979,7 @@ type VmMetrics struct {
 
 func (x *VmMetrics) Reset() {
 	*x = VmMetrics{}
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[24]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1569,7 +1991,7 @@ func (x *VmMetrics) String() string {
 func (*VmMetrics) ProtoMessage() {}
 
 func (x *VmMetrics) ProtoReflect() protoreflect.Message {
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[24]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1582,7 +2004,7 @@ func (x *VmMetrics) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VmMetrics.ProtoReflect.Descriptor instead.
 func (*VmMetrics) Descriptor() ([]byte, []int) {
-	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{24}
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *VmMetrics) GetCpuUsagePercent() float64 {
@@ -1632,7 +2054,7 @@ type NetworkStats struct {
 
 func (x *NetworkStats) Reset() {
 	*x = NetworkStats{}
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[25]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1644,7 +2066,7 @@ func (x *NetworkStats) String() string {
 func (*NetworkStats) ProtoMessage() {}
 
 func (x *NetworkStats) ProtoReflect() protoreflect.Message {
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[25]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1657,7 +2079,7 @@ func (x *NetworkStats) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NetworkStats.ProtoReflect.Descriptor instead.
 func (*NetworkStats) Descriptor() ([]byte, []int) {
-	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{25}
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *NetworkStats) GetBytesReceived() int64 {
@@ -1700,7 +2122,7 @@ type StorageStats struct {
 
 func (x *StorageStats) Reset() {
 	*x = StorageStats{}
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[26]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1712,7 +2134,7 @@ func (x *StorageStats) String() string {
 func (*StorageStats) ProtoMessage() {}
 
 func (x *StorageStats) ProtoReflect() protoreflect.Message {
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[26]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1725,7 +2147,7 @@ func (x *StorageStats) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StorageStats.ProtoReflect.Descriptor instead.
 func (*StorageStats) Descriptor() ([]byte, []int) {
-	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{26}
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *StorageStats) GetBytesRead() int64 {
@@ -1769,7 +2191,7 @@ type ListVmsRequest struct {
 
 func (x *ListVmsRequest) Reset() {
 	*x = ListVmsRequest{}
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[27]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1781,7 +2203,7 @@ func (x *ListVmsRequest) String() string {
 func (*ListVmsRequest) ProtoMessage() {}
 
 func (x *ListVmsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[27]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1794,7 +2216,7 @@ func (x *ListVmsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListVmsRequest.ProtoReflect.Descriptor instead.
 func (*ListVmsRequest) Descriptor() ([]byte, []int) {
-	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{27}
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *ListVmsRequest) GetStateFilter() []VmState {
@@ -1829,7 +2251,7 @@ type ListVmsResponse struct {
 
 func (x *ListVmsResponse) Reset() {
 	*x = ListVmsResponse{}
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[28]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1841,7 +2263,7 @@ func (x *ListVmsResponse) String() string {
 func (*ListVmsResponse) ProtoMessage() {}
 
 func (x *ListVmsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[28]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1854,7 +2276,7 @@ func (x *ListVmsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListVmsResponse.ProtoReflect.Descriptor instead.
 func (*ListVmsResponse) Descriptor() ([]byte, []int) {
-	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{28}
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *ListVmsResponse) GetVms() []*VmInfo {
@@ -1898,7 +2320,7 @@ type VmInfo struct {
 
 func (x *VmInfo) Reset() {
 	*x = VmInfo{}
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[29]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1910,7 +2332,7 @@ func (x *VmInfo) String() string {
 func (*VmInfo) ProtoMessage() {}
 
 func (x *VmInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[29]
+	mi := &file_vmprovisioner_v1_vm_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1923,7 +2345,7 @@ func (x *VmInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VmInfo.ProtoReflect.Descriptor instead.
 func (*VmInfo) Descriptor() ([]byte, []int) {
-	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{29}
+	return file_vmprovisioner_v1_vm_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *VmInfo) GetVmId() string {
@@ -2041,7 +2463,7 @@ const file_vmprovisioner_v1_vm_proto_rawDesc = "" +
 	"\aoptions\x18\x06 \x03(\v2,.vmprovisioner.v1.StorageDevice.OptionsEntryR\aoptions\x1a:\n" +
 	"\fOptionsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x90\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xc3\x04\n" +
 	"\x10NetworkInterface\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
 	"\vmac_address\x18\x02 \x01(\tR\n" +
@@ -2049,10 +2471,42 @@ const file_vmprovisioner_v1_vm_proto_rawDesc = "" +
 	"\n" +
 	"tap_device\x18\x03 \x01(\tR\ttapDevice\x12%\n" +
 	"\x0einterface_type\x18\x04 \x01(\tR\rinterfaceType\x12I\n" +
-	"\aoptions\x18\x05 \x03(\v2/.vmprovisioner.v1.NetworkInterface.OptionsEntryR\aoptions\x1a:\n" +
+	"\aoptions\x18\x05 \x03(\v2/.vmprovisioner.v1.NetworkInterface.OptionsEntryR\aoptions\x12=\n" +
+	"\vipv4_config\x18\x06 \x01(\v2\x1c.vmprovisioner.v1.IPv4ConfigR\n" +
+	"ipv4Config\x12=\n" +
+	"\vipv6_config\x18\a \x01(\v2\x1c.vmprovisioner.v1.IPv6ConfigR\n" +
+	"ipv6Config\x121\n" +
+	"\x04mode\x18\b \x01(\x0e2\x1d.vmprovisioner.v1.NetworkModeR\x04mode\x12?\n" +
+	"\rrx_rate_limit\x18\n" +
+	" \x01(\v2\x1b.vmprovisioner.v1.RateLimitR\vrxRateLimit\x12?\n" +
+	"\rtx_rate_limit\x18\v \x01(\v2\x1b.vmprovisioner.v1.RateLimitR\vtxRateLimit\x1a:\n" +
 	"\fOptionsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"z\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x8f\x01\n" +
+	"\n" +
+	"IPv4Config\x12\x18\n" +
+	"\aaddress\x18\x01 \x01(\tR\aaddress\x12\x18\n" +
+	"\anetmask\x18\x02 \x01(\tR\anetmask\x12\x18\n" +
+	"\agateway\x18\x03 \x01(\tR\agateway\x12\x1f\n" +
+	"\vdns_servers\x18\x04 \x03(\tR\n" +
+	"dnsServers\x12\x12\n" +
+	"\x04dhcp\x18\x05 \x01(\bR\x04dhcp\"\xea\x01\n" +
+	"\n" +
+	"IPv6Config\x12\x18\n" +
+	"\aaddress\x18\x01 \x01(\tR\aaddress\x12#\n" +
+	"\rprefix_length\x18\x02 \x01(\x05R\fprefixLength\x12\x18\n" +
+	"\agateway\x18\x03 \x01(\tR\agateway\x12\x1f\n" +
+	"\vdns_servers\x18\x04 \x03(\tR\n" +
+	"dnsServers\x12\x14\n" +
+	"\x05slaac\x18\x05 \x01(\bR\x05slaac\x12-\n" +
+	"\x12privacy_extensions\x18\x06 \x01(\bR\x11privacyExtensions\x12\x1d\n" +
+	"\n" +
+	"link_local\x18\a \x01(\tR\tlinkLocal\"`\n" +
+	"\tRateLimit\x12\x1c\n" +
+	"\tbandwidth\x18\x01 \x01(\x03R\tbandwidth\x12\x1f\n" +
+	"\vrefill_time\x18\x02 \x01(\x03R\n" +
+	"refillTime\x12\x14\n" +
+	"\x05burst\x18\x03 \x01(\x03R\x05burst\"z\n" +
 	"\rConsoleConfig\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x16\n" +
 	"\x06output\x18\x02 \x01(\tR\x06output\x12\x14\n" +
@@ -2100,16 +2554,28 @@ const file_vmprovisioner_v1_vm_proto_rawDesc = "" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12/\n" +
 	"\x05state\x18\x02 \x01(\x0e2\x19.vmprovisioner.v1.VmStateR\x05state\"'\n" +
 	"\x10GetVmInfoRequest\x12\x13\n" +
-	"\x05vm_id\x18\x01 \x01(\tR\x04vmId\"\xdd\x02\n" +
+	"\x05vm_id\x18\x01 \x01(\tR\x04vmId\"\xa1\x03\n" +
 	"\x11GetVmInfoResponse\x12\x13\n" +
 	"\x05vm_id\x18\x01 \x01(\tR\x04vmId\x122\n" +
 	"\x06config\x18\x02 \x01(\v2\x1a.vmprovisioner.v1.VmConfigR\x06config\x12/\n" +
 	"\x05state\x18\x03 \x01(\x0e2\x19.vmprovisioner.v1.VmStateR\x05state\x125\n" +
 	"\ametrics\x18\x04 \x01(\v2\x1b.vmprovisioner.v1.VmMetricsR\ametrics\x12W\n" +
-	"\fbackend_info\x18\x05 \x03(\v24.vmprovisioner.v1.GetVmInfoResponse.BackendInfoEntryR\vbackendInfo\x1a>\n" +
+	"\fbackend_info\x18\x05 \x03(\v24.vmprovisioner.v1.GetVmInfoResponse.BackendInfoEntryR\vbackendInfo\x12B\n" +
+	"\fnetwork_info\x18\x06 \x01(\v2\x1f.vmprovisioner.v1.VmNetworkInfoR\vnetworkInfo\x1a>\n" +
 	"\x10BackendInfoEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x96\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xd6\x01\n" +
+	"\rVmNetworkInfo\x12\x1d\n" +
+	"\n" +
+	"ip_address\x18\x01 \x01(\tR\tipAddress\x12\x1f\n" +
+	"\vmac_address\x18\x02 \x01(\tR\n" +
+	"macAddress\x12\x1d\n" +
+	"\n" +
+	"tap_device\x18\x03 \x01(\tR\ttapDevice\x12+\n" +
+	"\x11network_namespace\x18\x04 \x01(\tR\x10networkNamespace\x12\x18\n" +
+	"\agateway\x18\x05 \x01(\tR\agateway\x12\x1f\n" +
+	"\vdns_servers\x18\x06 \x03(\tR\n" +
+	"dnsServers\"\x96\x02\n" +
 	"\tVmMetrics\x12*\n" +
 	"\x11cpu_usage_percent\x18\x01 \x01(\x01R\x0fcpuUsagePercent\x12,\n" +
 	"\x12memory_usage_bytes\x18\x02 \x01(\x03R\x10memoryUsageBytes\x12C\n" +
@@ -2156,7 +2622,12 @@ const file_vmprovisioner_v1_vm_proto_rawDesc = "" +
 	"\x10VM_STATE_CREATED\x10\x01\x12\x14\n" +
 	"\x10VM_STATE_RUNNING\x10\x02\x12\x13\n" +
 	"\x0fVM_STATE_PAUSED\x10\x03\x12\x15\n" +
-	"\x11VM_STATE_SHUTDOWN\x10\x042\xf3\x05\n" +
+	"\x11VM_STATE_SHUTDOWN\x10\x04*\x80\x01\n" +
+	"\vNetworkMode\x12\x1c\n" +
+	"\x18NETWORK_MODE_UNSPECIFIED\x10\x00\x12\x1b\n" +
+	"\x17NETWORK_MODE_DUAL_STACK\x10\x01\x12\x1a\n" +
+	"\x16NETWORK_MODE_IPV4_ONLY\x10\x02\x12\x1a\n" +
+	"\x16NETWORK_MODE_IPV6_ONLY\x10\x032\xf3\x05\n" +
 	"\tVmService\x12Q\n" +
 	"\bCreateVm\x12!.vmprovisioner.v1.CreateVmRequest\x1a\".vmprovisioner.v1.CreateVmResponse\x12Q\n" +
 	"\bDeleteVm\x12!.vmprovisioner.v1.DeleteVmRequest\x1a\".vmprovisioner.v1.DeleteVmResponse\x12K\n" +
@@ -2182,103 +2653,114 @@ func file_vmprovisioner_v1_vm_proto_rawDescGZIP() []byte {
 	return file_vmprovisioner_v1_vm_proto_rawDescData
 }
 
-var file_vmprovisioner_v1_vm_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_vmprovisioner_v1_vm_proto_msgTypes = make([]protoimpl.MessageInfo, 38)
+var file_vmprovisioner_v1_vm_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_vmprovisioner_v1_vm_proto_msgTypes = make([]protoimpl.MessageInfo, 42)
 var file_vmprovisioner_v1_vm_proto_goTypes = []any{
 	(VmState)(0),               // 0: vmprovisioner.v1.VmState
-	(*VmConfig)(nil),           // 1: vmprovisioner.v1.VmConfig
-	(*CpuConfig)(nil),          // 2: vmprovisioner.v1.CpuConfig
-	(*CpuTopology)(nil),        // 3: vmprovisioner.v1.CpuTopology
-	(*MemoryConfig)(nil),       // 4: vmprovisioner.v1.MemoryConfig
-	(*BootConfig)(nil),         // 5: vmprovisioner.v1.BootConfig
-	(*StorageDevice)(nil),      // 6: vmprovisioner.v1.StorageDevice
-	(*NetworkInterface)(nil),   // 7: vmprovisioner.v1.NetworkInterface
-	(*ConsoleConfig)(nil),      // 8: vmprovisioner.v1.ConsoleConfig
-	(*CreateVmRequest)(nil),    // 9: vmprovisioner.v1.CreateVmRequest
-	(*CreateVmResponse)(nil),   // 10: vmprovisioner.v1.CreateVmResponse
-	(*DeleteVmRequest)(nil),    // 11: vmprovisioner.v1.DeleteVmRequest
-	(*DeleteVmResponse)(nil),   // 12: vmprovisioner.v1.DeleteVmResponse
-	(*BootVmRequest)(nil),      // 13: vmprovisioner.v1.BootVmRequest
-	(*BootVmResponse)(nil),     // 14: vmprovisioner.v1.BootVmResponse
-	(*ShutdownVmRequest)(nil),  // 15: vmprovisioner.v1.ShutdownVmRequest
-	(*ShutdownVmResponse)(nil), // 16: vmprovisioner.v1.ShutdownVmResponse
-	(*PauseVmRequest)(nil),     // 17: vmprovisioner.v1.PauseVmRequest
-	(*PauseVmResponse)(nil),    // 18: vmprovisioner.v1.PauseVmResponse
-	(*ResumeVmRequest)(nil),    // 19: vmprovisioner.v1.ResumeVmRequest
-	(*ResumeVmResponse)(nil),   // 20: vmprovisioner.v1.ResumeVmResponse
-	(*RebootVmRequest)(nil),    // 21: vmprovisioner.v1.RebootVmRequest
-	(*RebootVmResponse)(nil),   // 22: vmprovisioner.v1.RebootVmResponse
-	(*GetVmInfoRequest)(nil),   // 23: vmprovisioner.v1.GetVmInfoRequest
-	(*GetVmInfoResponse)(nil),  // 24: vmprovisioner.v1.GetVmInfoResponse
-	(*VmMetrics)(nil),          // 25: vmprovisioner.v1.VmMetrics
-	(*NetworkStats)(nil),       // 26: vmprovisioner.v1.NetworkStats
-	(*StorageStats)(nil),       // 27: vmprovisioner.v1.StorageStats
-	(*ListVmsRequest)(nil),     // 28: vmprovisioner.v1.ListVmsRequest
-	(*ListVmsResponse)(nil),    // 29: vmprovisioner.v1.ListVmsResponse
-	(*VmInfo)(nil),             // 30: vmprovisioner.v1.VmInfo
-	nil,                        // 31: vmprovisioner.v1.VmConfig.MetadataEntry
-	nil,                        // 32: vmprovisioner.v1.CpuConfig.FeaturesEntry
-	nil,                        // 33: vmprovisioner.v1.MemoryConfig.BackingEntry
-	nil,                        // 34: vmprovisioner.v1.BootConfig.BootOptionsEntry
-	nil,                        // 35: vmprovisioner.v1.StorageDevice.OptionsEntry
-	nil,                        // 36: vmprovisioner.v1.NetworkInterface.OptionsEntry
-	nil,                        // 37: vmprovisioner.v1.GetVmInfoResponse.BackendInfoEntry
-	nil,                        // 38: vmprovisioner.v1.VmInfo.MetadataEntry
+	(NetworkMode)(0),           // 1: vmprovisioner.v1.NetworkMode
+	(*VmConfig)(nil),           // 2: vmprovisioner.v1.VmConfig
+	(*CpuConfig)(nil),          // 3: vmprovisioner.v1.CpuConfig
+	(*CpuTopology)(nil),        // 4: vmprovisioner.v1.CpuTopology
+	(*MemoryConfig)(nil),       // 5: vmprovisioner.v1.MemoryConfig
+	(*BootConfig)(nil),         // 6: vmprovisioner.v1.BootConfig
+	(*StorageDevice)(nil),      // 7: vmprovisioner.v1.StorageDevice
+	(*NetworkInterface)(nil),   // 8: vmprovisioner.v1.NetworkInterface
+	(*IPv4Config)(nil),         // 9: vmprovisioner.v1.IPv4Config
+	(*IPv6Config)(nil),         // 10: vmprovisioner.v1.IPv6Config
+	(*RateLimit)(nil),          // 11: vmprovisioner.v1.RateLimit
+	(*ConsoleConfig)(nil),      // 12: vmprovisioner.v1.ConsoleConfig
+	(*CreateVmRequest)(nil),    // 13: vmprovisioner.v1.CreateVmRequest
+	(*CreateVmResponse)(nil),   // 14: vmprovisioner.v1.CreateVmResponse
+	(*DeleteVmRequest)(nil),    // 15: vmprovisioner.v1.DeleteVmRequest
+	(*DeleteVmResponse)(nil),   // 16: vmprovisioner.v1.DeleteVmResponse
+	(*BootVmRequest)(nil),      // 17: vmprovisioner.v1.BootVmRequest
+	(*BootVmResponse)(nil),     // 18: vmprovisioner.v1.BootVmResponse
+	(*ShutdownVmRequest)(nil),  // 19: vmprovisioner.v1.ShutdownVmRequest
+	(*ShutdownVmResponse)(nil), // 20: vmprovisioner.v1.ShutdownVmResponse
+	(*PauseVmRequest)(nil),     // 21: vmprovisioner.v1.PauseVmRequest
+	(*PauseVmResponse)(nil),    // 22: vmprovisioner.v1.PauseVmResponse
+	(*ResumeVmRequest)(nil),    // 23: vmprovisioner.v1.ResumeVmRequest
+	(*ResumeVmResponse)(nil),   // 24: vmprovisioner.v1.ResumeVmResponse
+	(*RebootVmRequest)(nil),    // 25: vmprovisioner.v1.RebootVmRequest
+	(*RebootVmResponse)(nil),   // 26: vmprovisioner.v1.RebootVmResponse
+	(*GetVmInfoRequest)(nil),   // 27: vmprovisioner.v1.GetVmInfoRequest
+	(*GetVmInfoResponse)(nil),  // 28: vmprovisioner.v1.GetVmInfoResponse
+	(*VmNetworkInfo)(nil),      // 29: vmprovisioner.v1.VmNetworkInfo
+	(*VmMetrics)(nil),          // 30: vmprovisioner.v1.VmMetrics
+	(*NetworkStats)(nil),       // 31: vmprovisioner.v1.NetworkStats
+	(*StorageStats)(nil),       // 32: vmprovisioner.v1.StorageStats
+	(*ListVmsRequest)(nil),     // 33: vmprovisioner.v1.ListVmsRequest
+	(*ListVmsResponse)(nil),    // 34: vmprovisioner.v1.ListVmsResponse
+	(*VmInfo)(nil),             // 35: vmprovisioner.v1.VmInfo
+	nil,                        // 36: vmprovisioner.v1.VmConfig.MetadataEntry
+	nil,                        // 37: vmprovisioner.v1.CpuConfig.FeaturesEntry
+	nil,                        // 38: vmprovisioner.v1.MemoryConfig.BackingEntry
+	nil,                        // 39: vmprovisioner.v1.BootConfig.BootOptionsEntry
+	nil,                        // 40: vmprovisioner.v1.StorageDevice.OptionsEntry
+	nil,                        // 41: vmprovisioner.v1.NetworkInterface.OptionsEntry
+	nil,                        // 42: vmprovisioner.v1.GetVmInfoResponse.BackendInfoEntry
+	nil,                        // 43: vmprovisioner.v1.VmInfo.MetadataEntry
 }
 var file_vmprovisioner_v1_vm_proto_depIdxs = []int32{
-	2,  // 0: vmprovisioner.v1.VmConfig.cpu:type_name -> vmprovisioner.v1.CpuConfig
-	4,  // 1: vmprovisioner.v1.VmConfig.memory:type_name -> vmprovisioner.v1.MemoryConfig
-	5,  // 2: vmprovisioner.v1.VmConfig.boot:type_name -> vmprovisioner.v1.BootConfig
-	6,  // 3: vmprovisioner.v1.VmConfig.storage:type_name -> vmprovisioner.v1.StorageDevice
-	7,  // 4: vmprovisioner.v1.VmConfig.network:type_name -> vmprovisioner.v1.NetworkInterface
-	8,  // 5: vmprovisioner.v1.VmConfig.console:type_name -> vmprovisioner.v1.ConsoleConfig
-	31, // 6: vmprovisioner.v1.VmConfig.metadata:type_name -> vmprovisioner.v1.VmConfig.MetadataEntry
-	3,  // 7: vmprovisioner.v1.CpuConfig.topology:type_name -> vmprovisioner.v1.CpuTopology
-	32, // 8: vmprovisioner.v1.CpuConfig.features:type_name -> vmprovisioner.v1.CpuConfig.FeaturesEntry
-	33, // 9: vmprovisioner.v1.MemoryConfig.backing:type_name -> vmprovisioner.v1.MemoryConfig.BackingEntry
-	34, // 10: vmprovisioner.v1.BootConfig.boot_options:type_name -> vmprovisioner.v1.BootConfig.BootOptionsEntry
-	35, // 11: vmprovisioner.v1.StorageDevice.options:type_name -> vmprovisioner.v1.StorageDevice.OptionsEntry
-	36, // 12: vmprovisioner.v1.NetworkInterface.options:type_name -> vmprovisioner.v1.NetworkInterface.OptionsEntry
-	1,  // 13: vmprovisioner.v1.CreateVmRequest.config:type_name -> vmprovisioner.v1.VmConfig
-	0,  // 14: vmprovisioner.v1.CreateVmResponse.state:type_name -> vmprovisioner.v1.VmState
-	0,  // 15: vmprovisioner.v1.BootVmResponse.state:type_name -> vmprovisioner.v1.VmState
-	0,  // 16: vmprovisioner.v1.ShutdownVmResponse.state:type_name -> vmprovisioner.v1.VmState
-	0,  // 17: vmprovisioner.v1.PauseVmResponse.state:type_name -> vmprovisioner.v1.VmState
-	0,  // 18: vmprovisioner.v1.ResumeVmResponse.state:type_name -> vmprovisioner.v1.VmState
-	0,  // 19: vmprovisioner.v1.RebootVmResponse.state:type_name -> vmprovisioner.v1.VmState
-	1,  // 20: vmprovisioner.v1.GetVmInfoResponse.config:type_name -> vmprovisioner.v1.VmConfig
-	0,  // 21: vmprovisioner.v1.GetVmInfoResponse.state:type_name -> vmprovisioner.v1.VmState
-	25, // 22: vmprovisioner.v1.GetVmInfoResponse.metrics:type_name -> vmprovisioner.v1.VmMetrics
-	37, // 23: vmprovisioner.v1.GetVmInfoResponse.backend_info:type_name -> vmprovisioner.v1.GetVmInfoResponse.BackendInfoEntry
-	26, // 24: vmprovisioner.v1.VmMetrics.network_stats:type_name -> vmprovisioner.v1.NetworkStats
-	27, // 25: vmprovisioner.v1.VmMetrics.storage_stats:type_name -> vmprovisioner.v1.StorageStats
-	0,  // 26: vmprovisioner.v1.ListVmsRequest.state_filter:type_name -> vmprovisioner.v1.VmState
-	30, // 27: vmprovisioner.v1.ListVmsResponse.vms:type_name -> vmprovisioner.v1.VmInfo
-	0,  // 28: vmprovisioner.v1.VmInfo.state:type_name -> vmprovisioner.v1.VmState
-	38, // 29: vmprovisioner.v1.VmInfo.metadata:type_name -> vmprovisioner.v1.VmInfo.MetadataEntry
-	9,  // 30: vmprovisioner.v1.VmService.CreateVm:input_type -> vmprovisioner.v1.CreateVmRequest
-	11, // 31: vmprovisioner.v1.VmService.DeleteVm:input_type -> vmprovisioner.v1.DeleteVmRequest
-	13, // 32: vmprovisioner.v1.VmService.BootVm:input_type -> vmprovisioner.v1.BootVmRequest
-	15, // 33: vmprovisioner.v1.VmService.ShutdownVm:input_type -> vmprovisioner.v1.ShutdownVmRequest
-	17, // 34: vmprovisioner.v1.VmService.PauseVm:input_type -> vmprovisioner.v1.PauseVmRequest
-	19, // 35: vmprovisioner.v1.VmService.ResumeVm:input_type -> vmprovisioner.v1.ResumeVmRequest
-	21, // 36: vmprovisioner.v1.VmService.RebootVm:input_type -> vmprovisioner.v1.RebootVmRequest
-	23, // 37: vmprovisioner.v1.VmService.GetVmInfo:input_type -> vmprovisioner.v1.GetVmInfoRequest
-	28, // 38: vmprovisioner.v1.VmService.ListVms:input_type -> vmprovisioner.v1.ListVmsRequest
-	10, // 39: vmprovisioner.v1.VmService.CreateVm:output_type -> vmprovisioner.v1.CreateVmResponse
-	12, // 40: vmprovisioner.v1.VmService.DeleteVm:output_type -> vmprovisioner.v1.DeleteVmResponse
-	14, // 41: vmprovisioner.v1.VmService.BootVm:output_type -> vmprovisioner.v1.BootVmResponse
-	16, // 42: vmprovisioner.v1.VmService.ShutdownVm:output_type -> vmprovisioner.v1.ShutdownVmResponse
-	18, // 43: vmprovisioner.v1.VmService.PauseVm:output_type -> vmprovisioner.v1.PauseVmResponse
-	20, // 44: vmprovisioner.v1.VmService.ResumeVm:output_type -> vmprovisioner.v1.ResumeVmResponse
-	22, // 45: vmprovisioner.v1.VmService.RebootVm:output_type -> vmprovisioner.v1.RebootVmResponse
-	24, // 46: vmprovisioner.v1.VmService.GetVmInfo:output_type -> vmprovisioner.v1.GetVmInfoResponse
-	29, // 47: vmprovisioner.v1.VmService.ListVms:output_type -> vmprovisioner.v1.ListVmsResponse
-	39, // [39:48] is the sub-list for method output_type
-	30, // [30:39] is the sub-list for method input_type
-	30, // [30:30] is the sub-list for extension type_name
-	30, // [30:30] is the sub-list for extension extendee
-	0,  // [0:30] is the sub-list for field type_name
+	3,  // 0: vmprovisioner.v1.VmConfig.cpu:type_name -> vmprovisioner.v1.CpuConfig
+	5,  // 1: vmprovisioner.v1.VmConfig.memory:type_name -> vmprovisioner.v1.MemoryConfig
+	6,  // 2: vmprovisioner.v1.VmConfig.boot:type_name -> vmprovisioner.v1.BootConfig
+	7,  // 3: vmprovisioner.v1.VmConfig.storage:type_name -> vmprovisioner.v1.StorageDevice
+	8,  // 4: vmprovisioner.v1.VmConfig.network:type_name -> vmprovisioner.v1.NetworkInterface
+	12, // 5: vmprovisioner.v1.VmConfig.console:type_name -> vmprovisioner.v1.ConsoleConfig
+	36, // 6: vmprovisioner.v1.VmConfig.metadata:type_name -> vmprovisioner.v1.VmConfig.MetadataEntry
+	4,  // 7: vmprovisioner.v1.CpuConfig.topology:type_name -> vmprovisioner.v1.CpuTopology
+	37, // 8: vmprovisioner.v1.CpuConfig.features:type_name -> vmprovisioner.v1.CpuConfig.FeaturesEntry
+	38, // 9: vmprovisioner.v1.MemoryConfig.backing:type_name -> vmprovisioner.v1.MemoryConfig.BackingEntry
+	39, // 10: vmprovisioner.v1.BootConfig.boot_options:type_name -> vmprovisioner.v1.BootConfig.BootOptionsEntry
+	40, // 11: vmprovisioner.v1.StorageDevice.options:type_name -> vmprovisioner.v1.StorageDevice.OptionsEntry
+	41, // 12: vmprovisioner.v1.NetworkInterface.options:type_name -> vmprovisioner.v1.NetworkInterface.OptionsEntry
+	9,  // 13: vmprovisioner.v1.NetworkInterface.ipv4_config:type_name -> vmprovisioner.v1.IPv4Config
+	10, // 14: vmprovisioner.v1.NetworkInterface.ipv6_config:type_name -> vmprovisioner.v1.IPv6Config
+	1,  // 15: vmprovisioner.v1.NetworkInterface.mode:type_name -> vmprovisioner.v1.NetworkMode
+	11, // 16: vmprovisioner.v1.NetworkInterface.rx_rate_limit:type_name -> vmprovisioner.v1.RateLimit
+	11, // 17: vmprovisioner.v1.NetworkInterface.tx_rate_limit:type_name -> vmprovisioner.v1.RateLimit
+	2,  // 18: vmprovisioner.v1.CreateVmRequest.config:type_name -> vmprovisioner.v1.VmConfig
+	0,  // 19: vmprovisioner.v1.CreateVmResponse.state:type_name -> vmprovisioner.v1.VmState
+	0,  // 20: vmprovisioner.v1.BootVmResponse.state:type_name -> vmprovisioner.v1.VmState
+	0,  // 21: vmprovisioner.v1.ShutdownVmResponse.state:type_name -> vmprovisioner.v1.VmState
+	0,  // 22: vmprovisioner.v1.PauseVmResponse.state:type_name -> vmprovisioner.v1.VmState
+	0,  // 23: vmprovisioner.v1.ResumeVmResponse.state:type_name -> vmprovisioner.v1.VmState
+	0,  // 24: vmprovisioner.v1.RebootVmResponse.state:type_name -> vmprovisioner.v1.VmState
+	2,  // 25: vmprovisioner.v1.GetVmInfoResponse.config:type_name -> vmprovisioner.v1.VmConfig
+	0,  // 26: vmprovisioner.v1.GetVmInfoResponse.state:type_name -> vmprovisioner.v1.VmState
+	30, // 27: vmprovisioner.v1.GetVmInfoResponse.metrics:type_name -> vmprovisioner.v1.VmMetrics
+	42, // 28: vmprovisioner.v1.GetVmInfoResponse.backend_info:type_name -> vmprovisioner.v1.GetVmInfoResponse.BackendInfoEntry
+	29, // 29: vmprovisioner.v1.GetVmInfoResponse.network_info:type_name -> vmprovisioner.v1.VmNetworkInfo
+	31, // 30: vmprovisioner.v1.VmMetrics.network_stats:type_name -> vmprovisioner.v1.NetworkStats
+	32, // 31: vmprovisioner.v1.VmMetrics.storage_stats:type_name -> vmprovisioner.v1.StorageStats
+	0,  // 32: vmprovisioner.v1.ListVmsRequest.state_filter:type_name -> vmprovisioner.v1.VmState
+	35, // 33: vmprovisioner.v1.ListVmsResponse.vms:type_name -> vmprovisioner.v1.VmInfo
+	0,  // 34: vmprovisioner.v1.VmInfo.state:type_name -> vmprovisioner.v1.VmState
+	43, // 35: vmprovisioner.v1.VmInfo.metadata:type_name -> vmprovisioner.v1.VmInfo.MetadataEntry
+	13, // 36: vmprovisioner.v1.VmService.CreateVm:input_type -> vmprovisioner.v1.CreateVmRequest
+	15, // 37: vmprovisioner.v1.VmService.DeleteVm:input_type -> vmprovisioner.v1.DeleteVmRequest
+	17, // 38: vmprovisioner.v1.VmService.BootVm:input_type -> vmprovisioner.v1.BootVmRequest
+	19, // 39: vmprovisioner.v1.VmService.ShutdownVm:input_type -> vmprovisioner.v1.ShutdownVmRequest
+	21, // 40: vmprovisioner.v1.VmService.PauseVm:input_type -> vmprovisioner.v1.PauseVmRequest
+	23, // 41: vmprovisioner.v1.VmService.ResumeVm:input_type -> vmprovisioner.v1.ResumeVmRequest
+	25, // 42: vmprovisioner.v1.VmService.RebootVm:input_type -> vmprovisioner.v1.RebootVmRequest
+	27, // 43: vmprovisioner.v1.VmService.GetVmInfo:input_type -> vmprovisioner.v1.GetVmInfoRequest
+	33, // 44: vmprovisioner.v1.VmService.ListVms:input_type -> vmprovisioner.v1.ListVmsRequest
+	14, // 45: vmprovisioner.v1.VmService.CreateVm:output_type -> vmprovisioner.v1.CreateVmResponse
+	16, // 46: vmprovisioner.v1.VmService.DeleteVm:output_type -> vmprovisioner.v1.DeleteVmResponse
+	18, // 47: vmprovisioner.v1.VmService.BootVm:output_type -> vmprovisioner.v1.BootVmResponse
+	20, // 48: vmprovisioner.v1.VmService.ShutdownVm:output_type -> vmprovisioner.v1.ShutdownVmResponse
+	22, // 49: vmprovisioner.v1.VmService.PauseVm:output_type -> vmprovisioner.v1.PauseVmResponse
+	24, // 50: vmprovisioner.v1.VmService.ResumeVm:output_type -> vmprovisioner.v1.ResumeVmResponse
+	26, // 51: vmprovisioner.v1.VmService.RebootVm:output_type -> vmprovisioner.v1.RebootVmResponse
+	28, // 52: vmprovisioner.v1.VmService.GetVmInfo:output_type -> vmprovisioner.v1.GetVmInfoResponse
+	34, // 53: vmprovisioner.v1.VmService.ListVms:output_type -> vmprovisioner.v1.ListVmsResponse
+	45, // [45:54] is the sub-list for method output_type
+	36, // [36:45] is the sub-list for method input_type
+	36, // [36:36] is the sub-list for extension type_name
+	36, // [36:36] is the sub-list for extension extendee
+	0,  // [0:36] is the sub-list for field type_name
 }
 
 func init() { file_vmprovisioner_v1_vm_proto_init() }
@@ -2291,8 +2773,8 @@ func file_vmprovisioner_v1_vm_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_vmprovisioner_v1_vm_proto_rawDesc), len(file_vmprovisioner_v1_vm_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   38,
+			NumEnums:      2,
+			NumMessages:   42,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

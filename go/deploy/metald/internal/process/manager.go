@@ -15,7 +15,10 @@ import (
 	"syscall"
 	"time"
 
+	assetv1 "github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/proto/asset/v1"
+	"github.com/unkeyed/unkey/go/deploy/metald/internal/assetmanager"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/config"
+	"github.com/unkeyed/unkey/go/deploy/metald/internal/network"
 
 	"go.opentelemetry.io/otel/baggage"
 	"go.opentelemetry.io/otel/trace"
@@ -37,6 +40,9 @@ type FirecrackerProcess struct {
 	UseJailer  bool   // Whether this process uses jailer
 	JailerID   string // Unique jailer ID for chroot isolation
 	ChrootPath string // Path to jailer chroot directory
+
+	// Network information
+	NetworkInfo *network.VMNetwork // VM network configuration
 }
 
 type ProcessStatus string
@@ -69,6 +75,12 @@ type Manager struct {
 
 	// Jailer configuration
 	jailerConfig *config.JailerConfig
+
+	// AssetManager client
+	assetClient assetmanager.Client
+
+	// Network manager
+	networkMgr *network.Manager
 }
 
 // NewManager creates a new Firecracker process manager
@@ -98,6 +110,20 @@ func (m *Manager) SetJailerConfig(jailerConfig *config.JailerConfig) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	m.jailerConfig = jailerConfig
+}
+
+// SetAssetClient sets the asset manager client
+func (m *Manager) SetAssetClient(client assetmanager.Client) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.assetClient = client
+}
+
+// SetNetworkManager sets the network manager
+func (m *Manager) SetNetworkManager(networkMgr *network.Manager) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.networkMgr = networkMgr
 }
 
 // Initialize sets up the process manager
@@ -151,13 +177,12 @@ func (m *Manager) GetOrCreateProcess(ctx context.Context, vmID string) (*Firecra
 		return nil, fmt.Errorf("maximum number of processes (%d) reached", m.maxProcesses)
 	}
 
-	process, err := m.createNewProcess(ctx)
+	process, err := m.createNewProcess(ctx, vmID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new process: %w", err)
 	}
 
-	// Assign VM to process
-	process.VMID = vmID
+	// Process already has VMID set
 	process.Status = StatusBusy
 
 	m.logger.LogAttrs(ctx, slog.LevelInfo, "created dedicated process for vm",
@@ -226,7 +251,7 @@ func (m *Manager) Shutdown(ctx context.Context) error {
 }
 
 // createNewProcess spawns a new Firecracker process
-func (m *Manager) createNewProcess(ctx context.Context) (*FirecrackerProcess, error) {
+func (m *Manager) createNewProcess(ctx context.Context, vmID string) (*FirecrackerProcess, error) {
 	processID := fmt.Sprintf("fc-%d", time.Now().UnixNano())
 
 	// Check if jailer is enabled
@@ -257,6 +282,7 @@ func (m *Manager) createNewProcess(ctx context.Context) (*FirecrackerProcess, er
 		UseJailer:  useJailer,
 		JailerID:   jailerID,
 		ChrootPath: chrootPath,
+		VMID:       vmID, // Set VMID early for network setup
 	}
 
 	m.logger.LogAttrs(ctx, slog.LevelInfo, "creating new firecracker process",
@@ -489,24 +515,46 @@ func (m *Manager) stopProcess(ctx context.Context, proc *FirecrackerProcess) err
 
 		// Cleanup network namespace if it was created
 		if m.jailerConfig != nil && m.jailerConfig.NetNS && proc.JailerID != "" {
-			netnsName := "fc-" + proc.JailerID
-			// AIDEV-NOTE: Use background context for cleanup to avoid "context canceled" errors
-			// Network namespace cleanup must complete even if the request context is canceled
-			cleanupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-			
-			cmd := exec.CommandContext(cleanupCtx, "ip", "netns", "del", netnsName)
-			if err := cmd.Run(); err != nil {
-				m.logger.LogAttrs(ctx, slog.LevelWarn, "failed to remove network namespace",
-					slog.String("process_id", proc.ID),
-					slog.String("netns_name", netnsName),
-					slog.String("error", err.Error()),
-				)
+			// Use network manager for cleanup if available
+			if m.networkMgr != nil && proc.NetworkInfo != nil {
+				// AIDEV-NOTE: Use background context for cleanup to avoid "context canceled" errors
+				// Network cleanup must complete even if the request context is canceled
+				cleanupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				
+				if err := m.networkMgr.DeleteVMNetwork(cleanupCtx, proc.VMID); err != nil {
+					m.logger.LogAttrs(ctx, slog.LevelWarn, "failed to delete VM network",
+						slog.String("process_id", proc.ID),
+						slog.String("vm_id", proc.VMID),
+						slog.String("error", err.Error()),
+					)
+				} else {
+					m.logger.LogAttrs(ctx, slog.LevelInfo, "cleaned up VM network",
+						slog.String("process_id", proc.ID),
+						slog.String("vm_id", proc.VMID),
+					)
+				}
 			} else {
-				m.logger.LogAttrs(ctx, slog.LevelInfo, "cleaned up network namespace",
-					slog.String("process_id", proc.ID),
-					slog.String("netns_name", netnsName),
-				)
+				// Fallback to simple namespace cleanup
+				netnsName := "fc-" + proc.JailerID
+				// AIDEV-NOTE: Use background context for cleanup to avoid "context canceled" errors
+				// Network namespace cleanup must complete even if the request context is canceled
+				cleanupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				
+				cmd := exec.CommandContext(cleanupCtx, "ip", "netns", "del", netnsName)
+				if err := cmd.Run(); err != nil {
+					m.logger.LogAttrs(ctx, slog.LevelWarn, "failed to remove network namespace",
+						slog.String("process_id", proc.ID),
+						slog.String("netns_name", netnsName),
+						slog.String("error", err.Error()),
+					)
+				} else {
+					m.logger.LogAttrs(ctx, slog.LevelInfo, "cleaned up network namespace",
+						slog.String("process_id", proc.ID),
+						slog.String("netns_name", netnsName),
+					)
+				}
 			}
 		}
 	}
@@ -738,6 +786,7 @@ func (m *Manager) createJailerCommand(ctx context.Context, process *FirecrackerP
 
 	// Create network namespace if network isolation is enabled
 	if m.jailerConfig.NetNS {
+		// First create the namespace that jailer expects
 		netnsName := "fc-" + process.JailerID
 		netnsPath := "/var/run/netns/" + netnsName
 
@@ -768,45 +817,102 @@ func (m *Manager) createJailerCommand(ctx context.Context, process *FirecrackerP
 				slog.String("jailer_id", process.JailerID),
 			)
 		}
+
+		// Now setup VM networking using network manager if available
+		if m.networkMgr != nil && process.VMID != "" {
+			// The namespace already exists, so we'll set up networking in it
+			vmNet, err := m.networkMgr.CreateVMNetworkWithNamespace(ctx, process.VMID, netnsName)
+			if err != nil {
+				// Clean up namespace on failure
+				exec.CommandContext(ctx, "ip", "netns", "del", netnsName).Run()
+				return nil, fmt.Errorf("failed to create VM network: %w", err)
+			}
+			process.NetworkInfo = vmNet
+			
+			m.logger.LogAttrs(ctx, slog.LevelInfo, "configured VM network",
+				slog.String("vm_id", process.VMID),
+				slog.String("netns_name", vmNet.Namespace),
+				slog.String("tap_device", vmNet.TapDevice),
+				slog.String("ip_address", vmNet.IPAddress.String()),
+				slog.String("mac_address", vmNet.MacAddress),
+			)
+		}
 	}
 	
-	// AIDEV-NOTE: Prepare VM assets for jailer
+	// AIDEV-NOTE: Prepare VM assets for jailer using assetmanagerd integration
 	// Jailer creates a chroot at {ChrootBaseDir}/firecracker/{jailer-id}/root/
 	// We need to ensure VM assets (kernel, rootfs) are available inside the chroot
 	// Create the directory structure that matches the paths Firecracker expects
+	// INTEGRATION COMPLETE: This now uses assetmanagerd for dynamic asset management instead of hardcoded list
 	vmAssetsDir := filepath.Join(process.ChrootPath, "root", "opt", "vm-assets")
 	if err := os.MkdirAll(vmAssetsDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create vm-assets directory in chroot: %w", err)
 	}
 	
-	// Create hard links for VM assets (kernel and rootfs files)
-	// This works because /opt/vm-assets and /srv/jailer are on the same filesystem
-	vmAssets := []string{"vmlinux", "rootfs.ext4", "alpine-builderd.ext4", "busybox-build.ext4", "busybox-builderd.ext4", "build-1749870205104626515.ext4"}
-	for _, asset := range vmAssets {
-		srcPath := filepath.Join("/opt/vm-assets", asset)
-		dstPath := filepath.Join(vmAssetsDir, asset)
+	// Use assetmanagerd if available, otherwise fall back to hardcoded assets
+	if m.assetClient != nil {
+		// Query available assets from assetmanagerd
+		var assetIDs []string
 		
-		// Check if source file exists
-		if _, err := os.Stat(srcPath); err == nil {
-			// Remove any existing link/file
-			os.Remove(dstPath)
-			// Create hard link
-			if err := os.Link(srcPath, dstPath); err != nil {
-				m.logger.LogAttrs(ctx, slog.LevelWarn, "failed to link vm asset",
-					slog.String("asset", asset),
-					slog.String("src", srcPath),
-					slog.String("dst", dstPath),
-					slog.String("error", err.Error()),
-				)
-				// Try copying as fallback
-				if err := m.copyFile(srcPath, dstPath); err != nil {
-					m.logger.LogAttrs(ctx, slog.LevelError, "failed to copy vm asset",
-						slog.String("asset", asset),
-						slog.String("error", err.Error()),
-					)
-				}
+		// Get kernel assets
+		kernelAssets, err := m.assetClient.ListAssets(ctx, assetv1.AssetType_ASSET_TYPE_KERNEL, nil)
+		if err != nil {
+			m.logger.LogAttrs(ctx, slog.LevelWarn, "failed to list kernel assets from assetmanagerd",
+				slog.String("error", err.Error()),
+			)
+		} else {
+			for _, asset := range kernelAssets {
+				assetIDs = append(assetIDs, asset.Id)
 			}
 		}
+		
+		// Get rootfs assets
+		rootfsAssets, err := m.assetClient.ListAssets(ctx, assetv1.AssetType_ASSET_TYPE_ROOTFS, nil)
+		if err != nil {
+			m.logger.LogAttrs(ctx, slog.LevelWarn, "failed to list rootfs assets from assetmanagerd",
+				slog.String("error", err.Error()),
+			)
+		} else {
+			for _, asset := range rootfsAssets {
+				assetIDs = append(assetIDs, asset.Id)
+			}
+		}
+		
+		// Get disk image assets
+		diskAssets, err := m.assetClient.ListAssets(ctx, assetv1.AssetType_ASSET_TYPE_DISK_IMAGE, nil)
+		if err != nil {
+			m.logger.LogAttrs(ctx, slog.LevelWarn, "failed to list disk assets from assetmanagerd",
+				slog.String("error", err.Error()),
+			)
+		} else {
+			for _, asset := range diskAssets {
+				assetIDs = append(assetIDs, asset.Id)
+			}
+		}
+		
+		// Prepare assets in the jailer chroot
+		if len(assetIDs) > 0 {
+			assetPaths, err := m.assetClient.PrepareAssets(ctx, assetIDs, vmAssetsDir, process.VMID)
+			if err != nil {
+				m.logger.LogAttrs(ctx, slog.LevelError, "failed to prepare assets from assetmanagerd",
+					slog.String("error", err.Error()),
+					slog.String("vm_id", process.VMID),
+				)
+				// Fall back to hardcoded assets
+				m.prepareHardcodedAssets(ctx, vmAssetsDir, process.VMID)
+			} else {
+				m.logger.LogAttrs(ctx, slog.LevelInfo, "prepared assets from assetmanagerd",
+					slog.Int("asset_count", len(assetPaths)),
+					slog.String("vm_id", process.VMID),
+				)
+			}
+		} else {
+			m.logger.LogAttrs(ctx, slog.LevelWarn, "no assets found in assetmanagerd, using hardcoded assets")
+			m.prepareHardcodedAssets(ctx, vmAssetsDir, process.VMID)
+		}
+	} else {
+		// AssetManager not configured, use hardcoded assets
+		m.prepareHardcodedAssets(ctx, vmAssetsDir, process.VMID)
 	}
 	
 	// Create /tmp directory for metrics FIFO and other temporary files
@@ -838,7 +944,12 @@ func (m *Manager) createJailerCommand(ctx context.Context, process *FirecrackerP
 
 	// Add namespace isolation flags
 	if m.jailerConfig.NetNS {
-		args = append(args, "--netns", "/var/run/netns/fc-"+process.JailerID)
+		// Use the network manager's namespace if available
+		if process.NetworkInfo != nil {
+			args = append(args, "--netns", "/var/run/netns/"+process.NetworkInfo.Namespace)
+		} else {
+			args = append(args, "--netns", "/var/run/netns/fc-"+process.JailerID)
+		}
 	}
 
 	// TODO: Add cgroup v2 resource limits (requires proper cgroup delegation)
@@ -870,4 +981,38 @@ func (m *Manager) createJailerCommand(ctx context.Context, process *FirecrackerP
 	)
 
 	return exec.CommandContext(ctx, m.jailerConfig.BinaryPath, args...), nil
+}
+
+// prepareHardcodedAssets prepares hardcoded assets as a fallback
+func (m *Manager) prepareHardcodedAssets(ctx context.Context, vmAssetsDir string, vmID string) {
+	// AIDEV-NOTE: This is the fallback when assetmanagerd is not available or fails
+	// The hardcoded list should be updated to match your production assets
+	vmAssets := []string{"vmlinux", "rootfs.ext4", "alpine-builderd.ext4", "busybox-build.ext4", "busybox-builderd.ext4", "build-1749870205104626515.ext4"}
+	
+	for _, asset := range vmAssets {
+		srcPath := filepath.Join("/opt/vm-assets", asset)
+		dstPath := filepath.Join(vmAssetsDir, asset)
+		
+		// Check if source file exists
+		if _, err := os.Stat(srcPath); err == nil {
+			// Remove any existing link/file
+			os.Remove(dstPath)
+			// Create hard link
+			if err := os.Link(srcPath, dstPath); err != nil {
+				m.logger.LogAttrs(ctx, slog.LevelWarn, "failed to link vm asset",
+					slog.String("asset", asset),
+					slog.String("src", srcPath),
+					slog.String("dst", dstPath),
+					slog.String("error", err.Error()),
+				)
+				// Try copying as fallback
+				if err := m.copyFile(srcPath, dstPath); err != nil {
+					m.logger.LogAttrs(ctx, slog.LevelError, "failed to copy vm asset",
+						slog.String("asset", asset),
+						slog.String("error", err.Error()),
+					)
+				}
+			}
+		}
+	}
 }

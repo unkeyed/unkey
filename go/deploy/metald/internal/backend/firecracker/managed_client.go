@@ -9,8 +9,10 @@ import (
 	"time"
 
 	metaldv1 "github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
+	"github.com/unkeyed/unkey/go/deploy/metald/internal/assetmanager"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/config"
+	"github.com/unkeyed/unkey/go/deploy/metald/internal/network"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/process"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -24,11 +26,12 @@ type ManagedClient struct {
 }
 
 type managedVM struct {
-	ID        string
-	ProcessID string
-	Config    *metaldv1.VmConfig
-	State     metaldv1.VmState
-	Client    *Client // Regular Firecracker client for this specific process
+	ID          string
+	ProcessID   string
+	Config      *metaldv1.VmConfig
+	State       metaldv1.VmState
+	Client      *Client // Regular Firecracker client for this specific process
+	NetworkInfo *metaldv1.VmNetworkInfo // Optional network information
 }
 
 // NewManagedClient creates a new managed Firecracker backend client
@@ -59,6 +62,16 @@ func (mc *ManagedClient) Initialize() error {
 
 	mc.logger.Info("managed firecracker client initialized")
 	return nil
+}
+
+// SetAssetClient sets the asset manager client on the process manager
+func (mc *ManagedClient) SetAssetClient(client assetmanager.Client) {
+	mc.processManager.SetAssetClient(client)
+}
+
+// SetNetworkManager sets the network manager on the process manager
+func (mc *ManagedClient) SetNetworkManager(networkMgr *network.Manager) {
+	mc.processManager.SetNetworkManager(networkMgr)
 }
 
 // CreateVM creates a new VM instance with automatic process management
@@ -115,6 +128,19 @@ func (mc *ManagedClient) CreateVM(ctx context.Context, config *metaldv1.VmConfig
 		State:     metaldv1.VmState_VM_STATE_CREATED,
 		Client:    processClient,
 	}
+	
+	// Add network info if available
+	if firecrackerProcess.NetworkInfo != nil {
+		managedVm.NetworkInfo = &metaldv1.VmNetworkInfo{
+			IpAddress:        firecrackerProcess.NetworkInfo.IPAddress.String(),
+			MacAddress:       firecrackerProcess.NetworkInfo.MacAddress,
+			TapDevice:        firecrackerProcess.NetworkInfo.TapDevice,
+			NetworkNamespace: firecrackerProcess.NetworkInfo.Namespace,
+			Gateway:          firecrackerProcess.NetworkInfo.Gateway.String(),
+			DnsServers:       firecrackerProcess.NetworkInfo.DNSServers,
+		}
+	}
+	
 	mc.vmRegistry[vmID] = managedVm
 
 	mc.logger.LogAttrs(ctx, slog.LevelInfo, "managed vm created successfully",
@@ -276,8 +302,9 @@ func (mc *ManagedClient) GetVMInfo(ctx context.Context, vmID string) (*types.VMI
 	)
 
 	return &types.VMInfo{
-		Config: managedVm.Config,
-		State:  managedVm.State,
+		Config:      managedVm.Config,
+		State:       managedVm.State,
+		NetworkInfo: managedVm.NetworkInfo,
 	}, nil
 }
 

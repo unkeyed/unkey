@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -483,10 +485,39 @@ func (s *Service) PrepareAssets(
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to prepare asset %s", assetID))
 		}
 		
-		assetPaths[assetID] = localPath
+		// Prepare the target file path
+		targetFile := filepath.Join(req.Msg.TargetPath, filepath.Base(localPath))
 		
-		// TODO: Implement hard linking or copying to target path for jailer
-		// This would create hard links in the jailer chroot directory
+		// Create the target directory if it doesn't exist
+		if err := os.MkdirAll(req.Msg.TargetPath, 0755); err != nil {
+			s.logger.LogAttrs(ctx, slog.LevelError, "failed to create target directory",
+				slog.String("path", req.Msg.TargetPath),
+				slog.String("error", err.Error()),
+			)
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create target directory: %w", err))
+		}
+		
+		// Try to create a hard link first (most efficient)
+		if err := os.Link(localPath, targetFile); err != nil {
+			// If hard link fails (e.g., different filesystems), copy the file
+			s.logger.LogAttrs(ctx, slog.LevelDebug, "hard link failed, copying file",
+				slog.String("source", localPath),
+				slog.String("target", targetFile),
+				slog.String("error", err.Error()),
+			)
+			
+			// Copy the file
+			if err := copyFile(localPath, targetFile); err != nil {
+				s.logger.LogAttrs(ctx, slog.LevelError, "failed to copy asset to target",
+					slog.String("source", localPath),
+					slog.String("target", targetFile),
+					slog.String("error", err.Error()),
+				)
+				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to prepare asset %s: %w", assetID, err))
+			}
+		}
+		
+		assetPaths[assetID] = targetFile
 	}
 	
 	s.logger.LogAttrs(ctx, slog.LevelInfo, "prepared assets",
@@ -580,4 +611,41 @@ func (s *Service) UploadAsset(ctx context.Context, name string, assetType assetv
 	}
 	
 	return resp.Msg.Asset, nil
+}
+
+// copyFile copies a file from source to destination
+func copyFile(src, dst string) error {
+	sourceFile, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("failed to open source file: %w", err)
+	}
+	defer sourceFile.Close()
+
+	destFile, err := os.Create(dst)
+	if err != nil {
+		return fmt.Errorf("failed to create destination file: %w", err)
+	}
+	defer destFile.Close()
+
+	// Copy the file contents
+	if _, err := io.Copy(destFile, sourceFile); err != nil {
+		return fmt.Errorf("failed to copy file contents: %w", err)
+	}
+
+	// Sync to ensure all data is written to disk
+	if err := destFile.Sync(); err != nil {
+		return fmt.Errorf("failed to sync destination file: %w", err)
+	}
+
+	// Copy file permissions
+	sourceInfo, err := os.Stat(src)
+	if err != nil {
+		return fmt.Errorf("failed to stat source file: %w", err)
+	}
+	
+	if err := os.Chmod(dst, sourceInfo.Mode()); err != nil {
+		return fmt.Errorf("failed to set destination file permissions: %w", err)
+	}
+
+	return nil
 }

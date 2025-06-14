@@ -572,8 +572,10 @@ func (s *VMService) GetVmInfo(ctx context.Context, req *connect.Request[metaldv1
 	)
 
 	return connect.NewResponse(&metaldv1.GetVmInfoResponse{
-		Config: info.Config,
-		State:  info.State,
+		VmId:        vmID,
+		Config:      info.Config,
+		State:       info.State,
+		NetworkInfo: info.NetworkInfo,
 	}), nil
 }
 

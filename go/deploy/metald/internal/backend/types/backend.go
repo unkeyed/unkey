@@ -46,8 +46,9 @@ type Backend interface {
 
 // VMInfo contains VM state and configuration information
 type VMInfo struct {
-	Config *metaldv1.VmConfig
-	State  metaldv1.VmState
+	Config      *metaldv1.VmConfig
+	State       metaldv1.VmState
+	NetworkInfo *metaldv1.VmNetworkInfo // Optional network information
 }
 
 // ListableVMInfo represents VM information for listing operations
