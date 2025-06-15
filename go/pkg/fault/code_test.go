@@ -26,13 +26,13 @@ func TestGetCode(t *testing.T) {
 		},
 		{
 			name:     "tagged error returns correct tag",
-			err:      WithCode(codes.URN("CUSTOM_TAG"))(errors.New("tagged error")),
+			err:      Code(codes.URN("CUSTOM_TAG"))(errors.New("tagged error")),
 			expected: codes.URN("CUSTOM_TAG"),
 		},
 		{
 			name: "deeply wrapped error returns first tag encountered when unwrapping",
-			err: WithCode(codes.URN("OUTER_TAG"))(
-				WithCode(codes.URN("INNER_TAG"))(errors.New("inner error")),
+			err: Code(codes.URN("OUTER_TAG"))(
+				Code(codes.URN("INNER_TAG"))(errors.New("inner error")),
 			),
 			expected: codes.URN("OUTER_TAG"),
 		},
@@ -46,7 +46,7 @@ func TestGetCode(t *testing.T) {
 	}
 }
 
-func TestWithCode(t *testing.T) {
+func TestCode(t *testing.T) {
 	tests := []struct {
 		name   string
 		tag    codes.URN
@@ -75,7 +75,7 @@ func TestWithCode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := WithCode(tt.tag)(tt.err)
+			result := Code(tt.tag)(tt.err)
 			tt.verify(t, result)
 		})
 	}

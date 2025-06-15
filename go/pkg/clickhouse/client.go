@@ -60,7 +60,7 @@ func New(config Config) (*clickhouse, error) {
 
 	opts, err := ch.ParseDSN(config.URL)
 	if err != nil {
-		return nil, fault.Wrap(err, fault.WithDesc("parsing clickhouse DSN failed", ""))
+		return nil, fault.Wrap(err, fault.Internal("parsing clickhouse DSN failed"))
 	}
 
 	config.Logger.Info("initializing clickhouse client")
@@ -75,7 +75,7 @@ func New(config Config) (*clickhouse, error) {
 	config.Logger.Info("connecting to clickhouse")
 	conn, err := ch.Open(opts)
 	if err != nil {
-		return nil, fault.Wrap(err, fault.WithDesc("opening clickhouse failed", ""))
+		return nil, fault.Wrap(err, fault.Internal("opening clickhouse failed"))
 
 	}
 
@@ -89,7 +89,7 @@ func New(config Config) (*clickhouse, error) {
 			return conn.Ping(context.Background())
 		})
 	if err != nil {
-		return nil, fault.Wrap(err, fault.WithDesc("pinging clickhouse failed", ""))
+		return nil, fault.Wrap(err, fault.Internal("pinging clickhouse failed"))
 	}
 
 	c := &clickhouse{
@@ -178,7 +178,7 @@ func (c *clickhouse) Shutdown(ctx context.Context) error {
 	c.requests.Close()
 	err := c.conn.Close()
 	if err != nil {
-		return fault.Wrap(err, fault.WithDesc("clickhouse couldn't shut down", ""))
+		return fault.Wrap(err, fault.Internal("clickhouse couldn't shut down"))
 	}
 	return nil
 }

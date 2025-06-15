@@ -9,7 +9,7 @@ import (
 	"context"
 )
 
-const findRatelimitOverridesByIdentifier = `-- name: FindRatelimitOverridesByIdentifier :one
+const findRatelimitOverrideByIdentifier = `-- name: FindRatelimitOverrideByIdentifier :one
 SELECT id, workspace_id, namespace_id, identifier, ` + "`" + `limit` + "`" + `, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
 WHERE
     workspace_id = ?
@@ -17,21 +17,21 @@ WHERE
     AND identifier = ?
 `
 
-type FindRatelimitOverridesByIdentifierParams struct {
+type FindRatelimitOverrideByIdentifierParams struct {
 	WorkspaceID string `db:"workspace_id"`
 	NamespaceID string `db:"namespace_id"`
 	Identifier  string `db:"identifier"`
 }
 
-// FindRatelimitOverridesByIdentifier
+// FindRatelimitOverrideByIdentifier
 //
 //	SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
 //	WHERE
 //	    workspace_id = ?
 //	    AND namespace_id = ?
 //	    AND identifier = ?
-func (q *Queries) FindRatelimitOverridesByIdentifier(ctx context.Context, db DBTX, arg FindRatelimitOverridesByIdentifierParams) (RatelimitOverride, error) {
-	row := db.QueryRowContext(ctx, findRatelimitOverridesByIdentifier, arg.WorkspaceID, arg.NamespaceID, arg.Identifier)
+func (q *Queries) FindRatelimitOverrideByIdentifier(ctx context.Context, db DBTX, arg FindRatelimitOverrideByIdentifierParams) (RatelimitOverride, error) {
+	row := db.QueryRowContext(ctx, findRatelimitOverrideByIdentifier, arg.WorkspaceID, arg.NamespaceID, arg.Identifier)
 	var i RatelimitOverride
 	err := row.Scan(
 		&i.ID,

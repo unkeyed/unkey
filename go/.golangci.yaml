@@ -35,6 +35,8 @@ linters:
     - usestdlibvars
     - wastedassign
   settings:
+    nestif:
+      min-complexity: 15
     cyclop:
       max-complexity: 30
       package-average: 10

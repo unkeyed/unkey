@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/vault"
 	"github.com/unkeyed/unkey/go/pkg/zen/validation"
 )
 
@@ -27,4 +28,5 @@ type Services struct {
 	Ratelimit   ratelimit.Service
 	Auditlogs   auditlogs.AuditLogService
 	Caches      caches.Caches
+	Vault       *vault.Service
 }

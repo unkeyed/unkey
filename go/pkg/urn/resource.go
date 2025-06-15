@@ -47,7 +47,7 @@ func (rt ResourceType) ValidateForService(service Service) error {
 	validTypes, serviceExists := validResourceTypes[service]
 	if !serviceExists {
 		return fault.New("service has no valid resource types defined",
-			fault.WithCode(codes.App.Validation.AssertionFailed.URN()))
+			fault.Code(codes.App.Validation.AssertionFailed.URN()))
 	}
 
 	return assert.True(validTypes[rt],

@@ -68,7 +68,6 @@ package handler
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -88,7 +87,9 @@ import (
 type Request = openapi.V2IdentitiesDeleteIdentityRequestBody
 type Response = openapi.V2IdentitiesDeleteIdentityResponseBody
 
-type Services struct {
+// Handler implements zen.Route interface for the v2 identities delete identity endpoint
+type Handler struct {
+	// Services as public fields
 	Logger      logging.Logger
 	DB          db.Database
 	Keys        keys.KeyService
@@ -96,92 +97,80 @@ type Services struct {
 	Auditlogs   auditlogs.AuditLogService
 }
 
-func New(svc Services) zen.Route {
-	return zen.NewRoute("POST", "/v2/identities.deleteIdentity", func(ctx context.Context, s *zen.Session) error {
-		auth, err := svc.Keys.VerifyRootKey(ctx, s)
-		if err != nil {
-			return err
-		}
+// Method returns the HTTP method this route responds to
+func (h *Handler) Method() string {
+	return "POST"
+}
 
-		// nolint:exhaustruct
-		req := Request{}
-		err = s.BindBody(&req)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.WithDesc("invalid request body", "The request body is invalid."),
-			)
-		}
+// Path returns the URL path pattern this route matches
+func (h *Handler) Path() string {
+	return "/v2/identities.deleteIdentity"
+}
 
-		checks := []rbac.PermissionQuery{
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Identity,
-				ResourceID:   "*",
-				Action:       rbac.DeleteIdentity,
-			}),
-		}
+// Handle processes the HTTP request
+func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
+	auth, err := h.Keys.VerifyRootKey(ctx, s)
+	if err != nil {
+		return err
+	}
 
-		if req.IdentityId != nil {
-			checks = append(checks, rbac.T(rbac.Tuple{
-				ResourceType: rbac.Identity,
-				ResourceID:   *req.IdentityId,
-				Action:       rbac.DeleteIdentity,
-			}))
-		}
-
-		permissions, err := svc.Permissions.Check(
-			ctx,
-			auth.KeyID,
-			rbac.Or(checks...),
+	// nolint:exhaustruct
+	req := Request{}
+	err = s.BindBody(&req)
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
 		)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.WithDesc("unable to check permissions", "We're unable to check the permissions of your key."),
-			)
-		}
-		if !permissions.Valid {
-			return fault.New("insufficient permissions",
-				fault.WithCode(codes.Auth.Authorization.InsufficientPermissions.URN()),
-				fault.WithDesc(permissions.Message, permissions.Message),
-			)
-		}
+	}
 
-		identity, err := getIdentity(ctx, svc, req, auth.AuthorizedWorkspaceID)
-		if err != nil {
-			if db.IsNotFound(err) {
-				return fault.New("identity not found",
-					fault.WithCode(codes.Data.Identity.NotFound.URN()),
-					fault.WithDesc("identity not found", "This identity does not exist."),
-				)
-			}
+	checks := []rbac.PermissionQuery{
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Identity,
+			ResourceID:   "*",
+			Action:       rbac.DeleteIdentity,
+		}),
+	}
 
-			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to find the identity", "Error finding the identity."),
-			)
-		}
+	if req.IdentityId != nil {
+		checks = append(checks, rbac.T(rbac.Tuple{
+			ResourceType: rbac.Identity,
+			ResourceID:   *req.IdentityId,
+			Action:       rbac.DeleteIdentity,
+		}))
+	}
 
-		if identity.WorkspaceID != auth.AuthorizedWorkspaceID {
+	err = h.Permissions.Check(
+		ctx,
+		auth.KeyID,
+		rbac.Or(checks...),
+	)
+	if err != nil {
+		return err
+	}
+
+	identity, err := h.getIdentity(ctx, req, auth.AuthorizedWorkspaceID)
+	if err != nil {
+		if db.IsNotFound(err) {
 			return fault.New("identity not found",
-				fault.WithCode(codes.Data.Identity.NotFound.URN()),
-				fault.WithDesc("wrong workspace, masking as 404", "This identity does not exist."),
+				fault.Code(codes.Data.Identity.NotFound.URN()),
+				fault.Internal("identity not found"), fault.Public("This identity does not exist."),
 			)
 		}
 
-		tx, err := svc.DB.RW().Begin(ctx)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to create transaction", "Unable to start database transaction."),
-			)
-		}
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database failed to find the identity"), fault.Public("Error finding the identity."),
+		)
+	}
 
-		defer func() {
-			rollbackErr := tx.Rollback()
-			if rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
-				svc.Logger.Error("rollback failed", "requestId", s.RequestID(), "error", rollbackErr)
-			}
-		}()
+	if identity.WorkspaceID != auth.AuthorizedWorkspaceID {
+		return fault.New("identity not found",
+			fault.Code(codes.Data.Identity.NotFound.URN()),
+			fault.Internal("wrong workspace, masking as 404"), fault.Public("This identity does not exist."),
+		)
+	}
 
+	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err = db.Query.SoftDeleteIdentity(ctx, tx, identity.ID)
 
 		// If we hit a duplicate key error, we know that we have an identity that was already soft deleted
@@ -199,8 +188,8 @@ func New(svc Services) zen.Route {
 		if err != nil {
 
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to soft delete identity", "Failed to delete Identity."),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to soft delete identity"), fault.Public("Failed to delete Identity."),
 			)
 		}
 
@@ -209,11 +198,10 @@ func New(svc Services) zen.Route {
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.IdentityDeleteEvent,
 				Display:     fmt.Sprintf("Deleted identity %s.", identity.ID),
-				Bucket:      auditlogs.DEFAULT_BUCKET,
 				ActorID:     auth.KeyID,
 				ActorType:   auditlog.RootKeyActor,
-				ActorMeta:   nil,
 				ActorName:   "root key",
+				ActorMeta:   map[string]any{},
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
@@ -228,11 +216,11 @@ func New(svc Services) zen.Route {
 			},
 		}
 
-		ratelimits, err := db.Query.FindRatelimitsByIdentityID(ctx, tx, sql.NullString{String: identity.ID, Valid: true})
-		if err != nil {
-			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to load identity ratelimits", "Failed to load Identity ratelimits."),
+		ratelimits, listErr := db.Query.ListIdentityRatelimitsByID(ctx, tx, sql.NullString{String: identity.ID, Valid: true})
+		if listErr != nil {
+			return fault.Wrap(listErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to load identity ratelimits"), fault.Public("Failed to load Identity ratelimits."),
 			)
 		}
 
@@ -241,11 +229,10 @@ func New(svc Services) zen.Route {
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.RatelimitDeleteEvent,
 				Display:     fmt.Sprintf("Deleted ratelimit %s.", rl.ID),
-				Bucket:      auditlogs.DEFAULT_BUCKET,
 				ActorID:     auth.KeyID,
 				ActorType:   auditlog.RootKeyActor,
-				ActorMeta:   nil,
 				ActorName:   "root key",
+				ActorMeta:   map[string]any{},
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
@@ -267,27 +254,28 @@ func New(svc Services) zen.Route {
 			})
 		}
 
-		err = svc.Auditlogs.Insert(ctx, tx, auditLogs)
+		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 		if err != nil {
 			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to insert audit logs", "Failed to insert audit logs"),
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to insert audit logs"), fault.Public("Failed to insert audit logs"),
 			)
 		}
 
-		err = tx.Commit()
-		if err != nil {
-			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to commit transaction", "Failed to commit changes."),
-			)
-		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
 
-		return s.JSON(http.StatusOK, Response{})
+	return s.JSON(http.StatusOK, Response{
+		Meta: openapi.Meta{
+			RequestId: s.RequestID(),
+		},
 	})
 }
 
-func deleteOldIdentity(ctx context.Context, tx *sql.Tx, workspaceID, externalID string) error {
+func deleteOldIdentity(ctx context.Context, tx db.DBTX, workspaceID, externalID string) error {
 	oldIdentity, err := db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
 		WorkspaceID: workspaceID,
 		ExternalID:  externalID,
@@ -295,39 +283,39 @@ func deleteOldIdentity(ctx context.Context, tx *sql.Tx, workspaceID, externalID 
 	})
 	if err != nil {
 		return fault.Wrap(err,
-			fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.WithDesc("database failed to load old identity", "Failed to load Identity."),
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database failed to load old identity"), fault.Public("Failed to load Identity."),
 		)
 	}
 
-	err = db.Query.DeleteRatelimitsByIdentityID(ctx, tx, sql.NullString{String: oldIdentity.ID, Valid: true})
+	err = db.Query.DeleteManyRatelimitsByIdentityID(ctx, tx, sql.NullString{String: oldIdentity.ID, Valid: true})
 	if err != nil {
 		return fault.Wrap(err,
-			fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.WithDesc("database failed to delete identity ratelimits", "Failed to delete Identity ratelimits."),
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database failed to delete identity ratelimits"), fault.Public("Failed to delete Identity ratelimits."),
 		)
 	}
 
 	err = db.Query.DeleteIdentity(ctx, tx, oldIdentity.ID)
 	if err != nil {
 		return fault.Wrap(err,
-			fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.WithDesc("database failed to delete identity", "Failed to delete Identity."),
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database failed to delete identity"), fault.Public("Failed to delete Identity."),
 		)
 	}
 
 	return nil
 }
 
-func getIdentity(ctx context.Context, svc Services, req Request, workspaceID string) (db.Identity, error) {
+func (h *Handler) getIdentity(ctx context.Context, req Request, workspaceID string) (db.Identity, error) {
 	switch {
 	case req.IdentityId != nil:
-		return db.Query.FindIdentityByID(ctx, svc.DB.RO(), db.FindIdentityByIDParams{
+		return db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
 			ID:      *req.IdentityId,
 			Deleted: false,
 		})
 	case req.ExternalId != nil:
-		return db.Query.FindIdentityByExternalID(ctx, svc.DB.RO(), db.FindIdentityByExternalIDParams{
+		return db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 			WorkspaceID: workspaceID,
 			ExternalID:  *req.ExternalId,
 			Deleted:     false,
@@ -335,7 +323,7 @@ func getIdentity(ctx context.Context, svc Services, req Request, workspaceID str
 	}
 
 	return db.Identity{}, fault.New("missing identity id or external id",
-		fault.WithCode(codes.App.Validation.InvalidInput.URN()),
-		fault.WithDesc("missing identity id or external id", "You must provide either an identity ID or external ID."),
+		fault.Code(codes.App.Validation.InvalidInput.URN()),
+		fault.Internal("missing identity id or external id"), fault.Public("You must provide either an identity ID or external ID."),
 	)
 }

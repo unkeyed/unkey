@@ -68,20 +68,16 @@ import (
 // See also: [RunMySQL] for starting a MySQL container.
 func (c *Containers) RunRedis() (client *redis.Client, hostAddr, dockerAddr string) {
 	c.t.Helper()
-	defer func(start time.Time) {
-		c.t.Logf("starting Redis took %s", time.Since(start))
-	}(time.Now())
 
-	resource, err := c.pool.RunWithOptions(&dockertest.RunOptions{
+	runOpts := &dockertest.RunOptions{
+		Name:       containerNameRedis,
 		Repository: "redis",
 		Tag:        "latest",
 		Networks:   []*dockertest.Network{c.network},
-	})
-	require.NoError(c.t, err)
+	}
 
-	c.t.Cleanup(func() {
-		require.NoError(c.t, c.pool.Purge(resource))
-	})
+	resource, _, err := c.getOrCreateContainer(containerNameRedis, runOpts)
+	require.NoError(c.t, err)
 
 	hostAddr = fmt.Sprintf("redis://localhost:%s", resource.GetPort("6379/tcp"))
 	dockerAddr = fmt.Sprintf("redis://%s:6379", resource.GetIPInNetwork(c.network))

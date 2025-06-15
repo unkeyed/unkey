@@ -67,7 +67,7 @@ func New(certPEMBlock, keyPEMBlock []byte) (*tls.Config, error) {
 
 	cert, err := tls.X509KeyPair(certPEMBlock, keyPEMBlock)
 	if err != nil {
-		return nil, fault.Wrap(err, fault.WithDesc("failed to parse TLS certificate", "Invalid certificate or key format"))
+		return nil, fault.Wrap(err, fault.Internal("failed to parse TLS certificate"), fault.Public("Invalid certificate or key format"))
 	}
 
 	// nolint:exhaustruct
@@ -126,12 +126,12 @@ func New(certPEMBlock, keyPEMBlock []byte) (*tls.Config, error) {
 func NewFromFiles(certFile, keyFile string) (*tls.Config, error) {
 	certPEMBlock, err := os.ReadFile(certFile)
 	if err != nil {
-		return nil, fault.Wrap(err, fault.WithDesc("failed to read certificate file", ""))
+		return nil, fault.Wrap(err, fault.Internal("failed to read certificate file"))
 	}
 
 	keyPEMBlock, err := os.ReadFile(keyFile)
 	if err != nil {
-		return nil, fault.Wrap(err, fault.WithDesc("failed to read key file", ""))
+		return nil, fault.Wrap(err, fault.Internal("failed to read key file"))
 	}
 
 	return New(certPEMBlock, keyPEMBlock)

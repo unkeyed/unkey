@@ -32,6 +32,8 @@ const (
 	AuditLogBucketPrefix     Prefix = "buk"
 	AuditLogPrefix           Prefix = "log"
 	InstancePrefix           Prefix = "ins"
+	KeyEncryptionKeyPrefix   Prefix = "kek"
+	OrgPrefix                Prefix = "org"
 )
 
 // epoch starts more recently so that the 32-bit number space gives a
@@ -104,5 +106,10 @@ func New(prefix Prefix, byteSize ...int) string {
 		binary.BigEndian.PutUint32(buf[:4], t)
 	}
 
-	return fmt.Sprintf("%s_%s", prefix, base58.Encode(buf))
+	id := base58.Encode(buf)
+	if prefix != "" {
+		id = fmt.Sprintf("%s_%s", prefix, id)
+	}
+	return id
+
 }

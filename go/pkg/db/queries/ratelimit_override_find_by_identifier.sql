@@ -1,4 +1,4 @@
--- name: FindRatelimitOverridesByIdentifier :one
+-- name: FindRatelimitOverrideByIdentifier :one
 SELECT * FROM ratelimit_overrides
 WHERE
     workspace_id = sqlc.arg(workspace_id)

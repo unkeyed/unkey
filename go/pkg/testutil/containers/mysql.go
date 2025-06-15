@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
-	"time"
 
 	mysql "github.com/go-sql-driver/mysql"
 	"github.com/ory/dockertest/v3"
@@ -61,12 +60,9 @@ import (
 // where tests are executed. It will fail if Docker is not available.
 func (c *Containers) RunMySQL() (hostDsn, dockerDsn string) {
 	c.t.Helper()
-	defer func(start time.Time) {
-		c.t.Logf("starting MySQL took %s", time.Since(start))
-	}(time.Now())
 
-	// nolint:exhaustruct
-	resource, err := c.pool.RunWithOptions(&dockertest.RunOptions{
+	runOpts := &dockertest.RunOptions{
+		Name:       containerNameMySQL,
 		Repository: "mysql",
 		Tag:        "latest",
 		Env: []string{
@@ -76,12 +72,10 @@ func (c *Containers) RunMySQL() (hostDsn, dockerDsn string) {
 			"MYSQL_PASSWORD=password",
 		},
 		Networks: []*dockertest.Network{c.network},
-	})
-	require.NoError(c.t, err)
+	}
 
-	c.t.Cleanup(func() {
-		require.NoError(c.t, c.pool.Purge(resource))
-	})
+	resource, isNew, err := c.getOrCreateContainer(containerNameMySQL, runOpts)
+	require.NoError(c.t, err)
 
 	cfg := mysql.NewConfig()
 	cfg.User = "unkey"
@@ -113,19 +107,22 @@ func (c *Containers) RunMySQL() (hostDsn, dockerDsn string) {
 		require.NoError(c.t, conn.Close())
 	}()
 
-	// Creating the database tables
-	queries := strings.Split(string(db.Schema), ";")
-	for _, query := range queries {
-		query = strings.TrimSpace(query)
-		if query == "" {
-			continue
+	// Only run schema migrations for new containers
+	if isNew {
+		// Creating the database tables
+		queries := strings.Split(string(db.Schema), ";")
+		for _, query := range queries {
+			query = strings.TrimSpace(query)
+			if query == "" {
+				continue
+			}
+			// Add the semicolon back
+			query += ";"
+
+			_, err = conn.Exec(query)
+			require.NoError(c.t, err)
+
 		}
-		// Add the semicolon back
-		query += ";"
-
-		_, err = conn.Exec(query)
-		require.NoError(c.t, err)
-
 	}
 	hostDsn = cfg.FormatDSN()
 	cfg.Addr = fmt.Sprintf("%s:3306", resource.GetIPInNetwork(c.network))

@@ -9,26 +9,26 @@ import (
 	"context"
 )
 
-const listRatelimitOverrides = `-- name: ListRatelimitOverrides :many
+const listRatelimitOverridesByNamespaceID = `-- name: ListRatelimitOverridesByNamespaceID :many
 SELECT id, workspace_id, namespace_id, identifier, ` + "`" + `limit` + "`" + `, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
 WHERE
     workspace_id = ?
     AND namespace_id = ?
 `
 
-type ListRatelimitOverridesParams struct {
+type ListRatelimitOverridesByNamespaceIDParams struct {
 	WorkspaceID string `db:"workspace_id"`
 	NamespaceID string `db:"namespace_id"`
 }
 
-// ListRatelimitOverrides
+// ListRatelimitOverridesByNamespaceID
 //
 //	SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
 //	WHERE
 //	    workspace_id = ?
 //	    AND namespace_id = ?
-func (q *Queries) ListRatelimitOverrides(ctx context.Context, db DBTX, arg ListRatelimitOverridesParams) ([]RatelimitOverride, error) {
-	rows, err := db.QueryContext(ctx, listRatelimitOverrides, arg.WorkspaceID, arg.NamespaceID)
+func (q *Queries) ListRatelimitOverridesByNamespaceID(ctx context.Context, db DBTX, arg ListRatelimitOverridesByNamespaceIDParams) ([]RatelimitOverride, error) {
+	rows, err := db.QueryContext(ctx, listRatelimitOverridesByNamespaceID, arg.WorkspaceID, arg.NamespaceID)
 	if err != nil {
 		return nil, err
 	}

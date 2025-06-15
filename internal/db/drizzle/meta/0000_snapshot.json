@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "c0a0a8fb-53ef-426f-9cbc-50d8e7f72b86",
+  "id": "5c2fce2c-46b6-4c49-afa3-e6a76dadef1c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "apis": {
@@ -247,6 +247,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "slug": {
+          "name": "slug",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "description": {
           "name": "description",
           "type": "varchar(512)",
@@ -288,6 +295,10 @@
         "unique_name_per_workspace_idx": {
           "name": "unique_name_per_workspace_idx",
           "columns": ["name", "workspace_id"]
+        },
+        "unique_slug_per_workspace_idx": {
+          "name": "unique_slug_per_workspace_idx",
+          "columns": ["slug", "workspace_id"]
         }
       }
     },

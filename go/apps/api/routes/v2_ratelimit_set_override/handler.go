@@ -25,7 +25,9 @@ import (
 type Request = openapi.V2RatelimitSetOverrideRequestBody
 type Response = openapi.V2RatelimitSetOverrideResponseBody
 
-type Services struct {
+// Handler implements zen.Route interface for the v2 ratelimit set override endpoint
+type Handler struct {
+	// Services as public fields
 	Logger      logging.Logger
 	DB          db.Database
 	Keys        keys.KeyService
@@ -33,85 +35,74 @@ type Services struct {
 	Auditlogs   auditlogs.AuditLogService
 }
 
-func New(svc Services) zen.Route {
-	return zen.NewRoute("POST", "/v2/ratelimit.setOverride", func(ctx context.Context, s *zen.Session) error {
+// Method returns the HTTP method this route responds to
+func (h *Handler) Method() string {
+	return "POST"
+}
 
-		auth, err := svc.Keys.VerifyRootKey(ctx, s)
-		if err != nil {
-			return err
-		}
+// Path returns the URL path pattern this route matches
+func (h *Handler) Path() string {
+	return "/v2/ratelimit.setOverride"
+}
 
-		// nolint:exhaustruct
-		req := Request{}
-		err = s.BindBody(&req)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.UnexpectedError.URN()),
-				fault.WithDesc("invalid request body", "The request body is invalid."),
-			)
-		}
+// Handle processes the HTTP request
+func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
+	auth, err := h.Keys.VerifyRootKey(ctx, s)
+	if err != nil {
+		return err
+	}
 
-		namespace, err := getNamespace(ctx, svc, auth.AuthorizedWorkspaceID, req)
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return fault.Wrap(err,
-					fault.WithCode(codes.Data.RatelimitNamespace.NotFound.URN()),
-					fault.WithDesc("namespace not found", "This namespace does not exist."),
-				)
-			}
-			return err
-		}
-
-		if namespace.WorkspaceID != auth.AuthorizedWorkspaceID {
-			return fault.New("namespace not found",
-				fault.WithCode(codes.Data.RatelimitNamespace.NotFound.URN()),
-				fault.WithDesc("wrong workspace, masking as 404", "This namespace does not exist."),
-			)
-		}
-
-		permissions, err := svc.Permissions.Check(
-			ctx,
-			auth.KeyID,
-			rbac.Or(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Ratelimit,
-					ResourceID:   namespace.ID,
-					Action:       rbac.SetOverride,
-				}),
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Ratelimit,
-					ResourceID:   "*",
-					Action:       rbac.SetOverride,
-				}),
-			),
+	// nolint:exhaustruct
+	req := Request{}
+	err = s.BindBody(&req)
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
 		)
-		if err != nil {
+	}
+
+	namespace, err := getNamespace(ctx, h, auth.AuthorizedWorkspaceID, req)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
 			return fault.Wrap(err,
-				fault.WithDesc("unable to check permissions", "We're unable to check the permissions of your key."),
+				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+				fault.Internal("namespace not found"), fault.Public("This namespace does not exist."),
 			)
 		}
+		return err
+	}
 
-		if !permissions.Valid {
-			return fault.New("insufficient permissions",
-				fault.WithCode(codes.Auth.Authorization.InsufficientPermissions.URN()),
-				fault.WithDesc(permissions.Message, permissions.Message),
-			)
-		}
+	if namespace.WorkspaceID != auth.AuthorizedWorkspaceID {
+		return fault.New("namespace not found",
+			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+			fault.Internal("wrong workspace, masking as 404"), fault.Public("This namespace does not exist."),
+		)
+	}
 
-		tx, err := svc.DB.RW().Begin(ctx)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to create transaction", "Unable to start database transaction."),
-			)
-		}
-		defer func() {
-			rollbackErr := tx.Rollback()
-			if rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
-				svc.Logger.Error("rollback failed", "requestId", s.RequestID(), "error", rollbackErr)
-			}
-		}()
+	err = h.Permissions.Check(
+		ctx,
+		auth.KeyID,
+		rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Ratelimit,
+				ResourceID:   namespace.ID,
+				Action:       rbac.SetOverride,
+			}),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Ratelimit,
+				ResourceID:   "*",
+				Action:       rbac.SetOverride,
+			}),
+		),
+	)
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Internal("unable to check permissions"), fault.Public("We're unable to check the permissions of your key."),
+		)
+	}
 
+	overrideID, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
 		overrideID := uid.New(uid.RatelimitOverridePrefix)
 		err = db.Query.InsertRatelimitOverride(ctx, tx, db.InsertRatelimitOverrideParams{
 			ID:          overrideID,
@@ -123,25 +114,23 @@ func New(svc Services) zen.Route {
 			CreatedAt:   time.Now().UnixMilli(),
 		})
 		if err != nil {
-			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed", "The database is unavailable."),
+			return "", fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed"), fault.Public("The database is unavailable."),
 			)
 		}
 
-		err = svc.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
+		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.RatelimitSetOverrideEvent,
 				ActorID:     auth.KeyID,
 				ActorType:   auditlog.RootKeyActor,
 				ActorName:   "root key",
-				ActorMeta:   nil,
-				Bucket:      auditlogs.DEFAULT_BUCKET,
-
-				RemoteIP:  s.Location(),
-				UserAgent: s.UserAgent(),
-				Display:   fmt.Sprintf("Set ratelimit override for %s and %s", namespace.ID, req.Identifier),
+				ActorMeta:   map[string]any{},
+				RemoteIP:    s.Location(),
+				UserAgent:   s.UserAgent(),
+				Display:     fmt.Sprintf("Set ratelimit override for %s and %s", namespace.ID, req.Identifier),
 				Resources: []auditlog.AuditLogResource{
 					{
 						Type:        auditlog.RatelimitOverrideResourceType,
@@ -154,41 +143,38 @@ func New(svc Services) zen.Route {
 			},
 		})
 		if err != nil {
-			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to insert audit logs", "Failed to insert audit logs"),
+			return "", fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to insert audit logs"), fault.Public("Failed to insert audit logs"),
 			)
 		}
 
-		err = tx.Commit()
-		if err != nil {
-			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to commit transaction", "Failed to commit changes."),
-			)
-		}
+		return overrideID, nil
+	})
+	if err != nil {
+		return err
+	}
 
-		return s.JSON(http.StatusOK, Response{
-			Meta: openapi.Meta{
-				RequestId: s.RequestID(),
-			},
-			Data: openapi.RatelimitSetOverrideResponseData{
-				OverrideId: overrideID,
-			},
-		})
+	return s.JSON(http.StatusOK, Response{
+		Meta: openapi.Meta{
+			RequestId: s.RequestID(),
+		},
+		Data: openapi.RatelimitSetOverrideResponseData{
+			OverrideId: overrideID,
+		},
 	})
 }
 
-func getNamespace(ctx context.Context, svc Services, workspaceID string, req Request) (db.RatelimitNamespace, error) {
+func getNamespace(ctx context.Context, h *Handler, workspaceID string, req Request) (db.RatelimitNamespace, error) {
 
 	switch {
 	case req.NamespaceId != nil:
 		{
-			return db.Query.FindRatelimitNamespaceByID(ctx, svc.DB.RO(), *req.NamespaceId)
+			return db.Query.FindRatelimitNamespaceByID(ctx, h.DB.RO(), *req.NamespaceId)
 		}
 	case req.NamespaceName != nil:
 		{
-			return db.Query.FindRatelimitNamespaceByName(ctx, svc.DB.RO(), db.FindRatelimitNamespaceByNameParams{
+			return db.Query.FindRatelimitNamespaceByName(ctx, h.DB.RO(), db.FindRatelimitNamespaceByNameParams{
 				WorkspaceID: workspaceID,
 				Name:        *req.NamespaceName,
 			})
@@ -196,8 +182,8 @@ func getNamespace(ctx context.Context, svc Services, workspaceID string, req Req
 	}
 
 	return db.RatelimitNamespace{}, fault.New("missing namespace id or name",
-		fault.WithCode(codes.App.Validation.InvalidInput.URN()),
-		fault.WithDesc("missing namespace id or name", "You must provide either a namespace ID or name."),
+		fault.Code(codes.App.Validation.InvalidInput.URN()),
+		fault.Internal("missing namespace id or name"), fault.Public("You must provide either a namespace ID or name."),
 	)
 
 }

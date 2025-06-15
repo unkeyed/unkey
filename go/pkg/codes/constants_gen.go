@@ -109,4 +109,9 @@ const (
 
 	// ProtectedResource indicates an attempt to modify a protected resource.
 	UnkeyAppErrorsProtectionProtectedResource URN = "err:unkey:application:protected_resource"
+
+	// Precondition
+
+	// PreconditionFailed indicates a precondition check failed.
+	UnkeyAppErrorsPreconditionPreconditionFailed URN = "err:unkey:application:precondition_failed"
 )

@@ -117,14 +117,14 @@ func (s *Session) BindBody(dst any) error {
 	var err error
 	s.requestBody, err = io.ReadAll(s.r.Body)
 	if err != nil {
-		return fault.Wrap(err, fault.WithDesc("unable to read request body", "The request body is malformed."))
+		return fault.Wrap(err, fault.Internal("unable to read request body"), fault.Public("The request body is malformed."))
 	}
 	defer s.r.Body.Close()
 
 	err = json.Unmarshal(s.requestBody, dst)
 	if err != nil {
 		return fault.Wrap(err,
-			fault.WithDesc("failed to unmarshal request body", "The request body was not valid json."),
+			fault.Internal("failed to unmarshal request body"), fault.Public("The request body was not valid json."),
 		)
 	}
 	return nil
@@ -192,8 +192,8 @@ func (s *Session) BindQuery(dst interface{}) error {
 				intVal, err := strconv.ParseInt(values[0], 10, 64)
 				if err != nil {
 					return fault.Wrap(err,
-						fault.WithDesc(fmt.Sprintf("could not parse %s as integer", name),
-							fmt.Sprintf("The query parameter '%s' must be a valid integer.", name)))
+						fault.Internal(fmt.Sprintf("could not parse %s as integer", name)),
+						fault.Public(fmt.Sprintf("The query parameter '%s' must be a valid integer.", name)))
 				}
 				fieldValue.SetInt(intVal)
 			}
@@ -202,8 +202,8 @@ func (s *Session) BindQuery(dst interface{}) error {
 				uintVal, err := strconv.ParseUint(values[0], 10, 64)
 				if err != nil {
 					return fault.Wrap(err,
-						fault.WithDesc(fmt.Sprintf("could not parse %s as unsigned integer", name),
-							fmt.Sprintf("The query parameter '%s' must be a valid unsigned integer.", name)))
+						fault.Internal(fmt.Sprintf("could not parse %s as unsigned integer", name)),
+						fault.Public(fmt.Sprintf("The query parameter '%s' must be a valid unsigned integer.", name)))
 				}
 				fieldValue.SetUint(uintVal)
 			}
@@ -212,8 +212,8 @@ func (s *Session) BindQuery(dst interface{}) error {
 				floatVal, err := strconv.ParseFloat(values[0], 64)
 				if err != nil {
 					return fault.Wrap(err,
-						fault.WithDesc(fmt.Sprintf("could not parse %s as float", name),
-							fmt.Sprintf("The query parameter '%s' must be a valid floating point number.", name)))
+						fault.Internal(fmt.Sprintf("could not parse %s as float", name)),
+						fault.Public(fmt.Sprintf("The query parameter '%s' must be a valid floating point number.", name)))
 				}
 				fieldValue.SetFloat(floatVal)
 			}
@@ -222,8 +222,8 @@ func (s *Session) BindQuery(dst interface{}) error {
 				boolVal, err := strconv.ParseBool(values[0])
 				if err != nil {
 					return fault.Wrap(err,
-						fault.WithDesc(fmt.Sprintf("could not parse %s as boolean", name),
-							fmt.Sprintf("The query parameter '%s' must be a valid boolean value (true/false).", name)))
+						fault.Internal(fmt.Sprintf("could not parse %s as boolean", name)),
+						fault.Public(fmt.Sprintf("The query parameter '%s' must be a valid boolean value (true/false).", name)))
 				}
 				fieldValue.SetBool(boolVal)
 			}
@@ -246,8 +246,8 @@ func (s *Session) BindQuery(dst interface{}) error {
 							intVal, err := strconv.ParseInt(val, 10, 64)
 							if err != nil {
 								return fault.Wrap(err,
-									fault.WithDesc(fmt.Sprintf("could not parse item in %s as integer", name),
-										fmt.Sprintf("All items in query parameter '%s' must be valid integers.", name)))
+									fault.Internal(fmt.Sprintf("could not parse item in %s as integer", name)),
+									fault.Public(fmt.Sprintf("All items in query parameter '%s' must be valid integers.", name)))
 							}
 							slice.Index(j).SetInt(intVal)
 						}
@@ -256,8 +256,8 @@ func (s *Session) BindQuery(dst interface{}) error {
 							uintVal, err := strconv.ParseUint(val, 10, 64)
 							if err != nil {
 								return fault.Wrap(err,
-									fault.WithDesc(fmt.Sprintf("could not parse item in %s as unsigned integer", name),
-										fmt.Sprintf("All items in query parameter '%s' must be valid unsigned integers.", name)))
+									fault.Internal(fmt.Sprintf("could not parse item in %s as unsigned integer", name)),
+									fault.Public(fmt.Sprintf("All items in query parameter '%s' must be valid unsigned integers.", name)))
 							}
 							slice.Index(j).SetUint(uintVal)
 						}
@@ -266,8 +266,8 @@ func (s *Session) BindQuery(dst interface{}) error {
 							floatVal, err := strconv.ParseFloat(val, 64)
 							if err != nil {
 								return fault.Wrap(err,
-									fault.WithDesc(fmt.Sprintf("could not parse item in %s as float", name),
-										fmt.Sprintf("All items in query parameter '%s' must be valid floating point numbers.", name)))
+									fault.Internal(fmt.Sprintf("could not parse item in %s as float", name)),
+									fault.Public(fmt.Sprintf("All items in query parameter '%s' must be valid floating point numbers.", name)))
 							}
 							slice.Index(j).SetFloat(floatVal)
 						}
@@ -276,23 +276,21 @@ func (s *Session) BindQuery(dst interface{}) error {
 							boolVal, err := strconv.ParseBool(val)
 							if err != nil {
 								return fault.Wrap(err,
-									fault.WithDesc(fmt.Sprintf("could not parse item in %s as boolean", name),
-										fmt.Sprintf("All items in query parameter '%s' must be valid boolean values (true/false).", name)))
+									fault.Internal(fmt.Sprintf("could not parse item in %s as boolean", name)),
+									fault.Public(fmt.Sprintf("All items in query parameter '%s' must be valid boolean values (true/false).", name)))
 							}
 							slice.Index(j).SetBool(boolVal)
 						}
 					default:
 						return fault.New(fmt.Sprintf("unsupported slice element type for field %s", name),
-							fault.WithDesc("type conversion error",
-								fmt.Sprintf("The query parameter '%s' contains elements of an unsupported type.", name)))
+							fault.Internal("type conversion error"), fault.Public(fmt.Sprintf("The query parameter '%s' contains elements of an unsupported type.", name)))
 					}
 				}
 				fieldValue.Set(slice)
 			}
 		default:
 			return fault.New(fmt.Sprintf("unsupported field type for %s", name),
-				fault.WithDesc("type conversion error",
-					fmt.Sprintf("The query parameter '%s' is of an unsupported type.", name)))
+				fault.Internal("type conversion error"), fault.Public(fmt.Sprintf("The query parameter '%s' is of an unsupported type.", name)))
 		}
 	}
 
@@ -315,7 +313,7 @@ func (s *Session) send(status int, body []byte) error {
 	s.w.WriteHeader(status)
 	_, err := s.w.Write(body)
 	if err != nil {
-		return fault.Wrap(err, fault.WithDesc("failed to send bytes", "Unable to send response body."))
+		return fault.Wrap(err, fault.Internal("failed to send bytes"), fault.Public("Unable to send response body."))
 	}
 
 	return nil
@@ -337,7 +335,7 @@ func (s *Session) JSON(status int, body any) error {
 	b, err := json.Marshal(body)
 	if err != nil {
 		return fault.Wrap(err,
-			fault.WithDesc("json marshal failed", "The response body could not be marshalled to JSON."),
+			fault.Internal("json marshal failed"), fault.Public("The response body could not be marshalled to JSON."),
 		)
 	}
 	s.ResponseWriter().Header().Add("Content-Type", "application/json")

@@ -132,6 +132,13 @@ var Cmd = &cli.Command{
 			Value:    0,
 			Required: false,
 		},
+		&cli.StringSliceFlag{
+			Name:     "vault-master-keys",
+			Usage:    "Vault master keys for encryption",
+			Sources:  cli.EnvVars("UNKEY_VAULT_MASTER_KEYS"),
+			Value:    []string{},
+			Required: false,
+		},
 	},
 
 	Action: action,
@@ -181,6 +188,8 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		PrometheusPort: cmd.Int("prometheus-port"),
 		Clock:          clock.New(),
 		TestMode:       cmd.Bool("test-mode"),
+
+		VaultMasterKeys: cmd.StringSlice("vault-master-keys"),
 	}
 
 	err := config.Validate()

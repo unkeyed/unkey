@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/port"
 	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/go/pkg/uid"
+	"github.com/unkeyed/unkey/go/pkg/vault/keys"
 )
 
 // TestContextCancellation verifies that the API server responds properly to context cancellation
@@ -28,6 +29,9 @@ func TestContextCancellation(t *testing.T) {
 	// Create a cancellable context
 	ctx, cancel := context.WithCancel(context.Background())
 
+	_, masterKey, err := keys.GenerateMasterKey()
+	require.NoError(t, err)
+
 	// Configure the API server
 	config := api.Config{
 		Platform:                "test",
@@ -41,6 +45,7 @@ func TestContextCancellation(t *testing.T) {
 		DatabasePrimary:         dbDsn,
 		DatabaseReadonlyReplica: "",
 		OtelEnabled:             false,
+		VaultMasterKeys:         []string{masterKey},
 	}
 
 	// Create a channel to receive the result of the Run function
@@ -48,19 +53,19 @@ func TestContextCancellation(t *testing.T) {
 
 	// Start the API server in a goroutine
 	go func() {
-		err := api.Run(ctx, config)
+		runErr := api.Run(ctx, config)
 
-		if err != nil {
+		if runErr != nil {
 			// it's really hard to get this error cause the test fails before we read from the channel
-			t.Logf("Error from run: %s", err.Error())
+			t.Logf("Error from run: %s", runErr.Error())
 		}
-		resultCh <- err
+		resultCh <- runErr
 	}()
 
 	// Wait for the server to start up
 	require.Eventually(t, func() bool {
-		res, err := http.Get(fmt.Sprintf("http://localhost:%d/v2/liveness", httpPort))
-		if err != nil {
+		res, livenessErr := http.Get(fmt.Sprintf("http://localhost:%d/v2/liveness", httpPort))
+		if livenessErr != nil {
 			return false
 		}
 		defer res.Body.Close()
@@ -75,7 +80,7 @@ func TestContextCancellation(t *testing.T) {
 
 	// Wait for the server to shut down and check the result
 	select {
-	case err := <-resultCh:
+	case err = <-resultCh:
 		// The Run function should exit without error when context is canceled
 		require.NoError(t, err, "API server should shut down gracefully when context is canceled")
 		t.Log("API server shut down successfully")
@@ -84,6 +89,6 @@ func TestContextCancellation(t *testing.T) {
 	}
 
 	// Verify the server is no longer responding
-	_, err := http.Get(fmt.Sprintf("http://localhost:%d/v2/liveness", httpPort))
+	_, err = http.Get(fmt.Sprintf("http://localhost:%d/v2/liveness", httpPort))
 	require.Error(t, err, "Server should no longer be responding after shutdown")
 }

@@ -90,6 +90,9 @@ const (
 
 	// DeleteOverride permits removing rate limit overrides
 	DeleteOverride ActionType = "delete_override"
+
+	// ListOverrides permits viewing rate limit override lists
+	ListOverrides ActionType = "list_overrides"
 )
 
 // Predefined RBAC actions. These constants define operations that can be

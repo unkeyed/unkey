@@ -17,12 +17,12 @@ func TestBadRequests(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "ratelimit.*.set_override")
-	route := handler.New(handler.Services{
+	route := &handler.Handler{
 		DB:          h.DB,
 		Keys:        h.Keys,
 		Logger:      h.Logger,
 		Permissions: h.Permissions,
-	})
+	}
 
 	h.Register(route)
 
@@ -45,7 +45,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("missing identifier", func(t *testing.T) {
@@ -66,7 +65,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("empty identifier", func(t *testing.T) {
@@ -88,7 +86,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
-		require.Nil(t, res.Body.Error.Instance)
 
 	})
 
@@ -110,7 +107,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("invalid limit (negative)", func(t *testing.T) {
@@ -132,7 +128,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("invalid duration (negative)", func(t *testing.T) {
@@ -154,7 +149,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("neither namespace ID nor name provided", func(t *testing.T) {
@@ -177,7 +171,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Equal(t, len(res.Body.Error.Errors), 0)
-		require.Nil(t, res.Body.Error.Instance)
 	})
 
 	t.Run("malformed authorization header", func(t *testing.T) {

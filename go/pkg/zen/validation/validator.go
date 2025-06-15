@@ -28,14 +28,14 @@ type Validator struct {
 func New() (*Validator, error) {
 	document, err := libopenapi.NewDocument(openapi.Spec)
 	if err != nil {
-		return nil, fault.Wrap(err, fault.WithDesc("failed to create OpenAPI document", ""))
+		return nil, fault.Wrap(err, fault.Internal("failed to create OpenAPI document"))
 	}
 
 	v, errors := validator.NewValidator(document)
 	if len(errors) > 0 {
 		messages := make([]fault.Wrapper, len(errors))
 		for i, e := range errors {
-			messages[i] = fault.WithDesc(e.Error(), "")
+			messages[i] = fault.Internal(e.Error())
 		}
 		// nolint:wrapcheck
 		return nil, fault.New("failed to create validator", messages...)
@@ -44,7 +44,7 @@ func New() (*Validator, error) {
 	if !valid {
 		messages := make([]fault.Wrapper, len(docErrors))
 		for i, e := range docErrors {
-			messages[i] = fault.WithDesc(e.Message, "")
+			messages[i] = fault.Internal(e.Message)
 		}
 
 		return nil, fault.New("openapi document is invalid", messages...)
@@ -69,12 +69,11 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 			RequestId: ctxutil.GetRequestId(r.Context()),
 		},
 		Error: openapi.BadRequestErrorDetails{
-			Title:    "Bad Request",
-			Detail:   "One or more fields failed validation",
-			Instance: nil,
-			Status:   http.StatusBadRequest,
-			Type:     "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input",
-			Errors:   []openapi.ValidationError{},
+			Title:  "Bad Request",
+			Detail: "One or more fields failed validation",
+			Status: http.StatusBadRequest,
+			Type:   "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input",
+			Errors: []openapi.ValidationError{},
 		},
 	}
 

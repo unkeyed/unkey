@@ -18,8 +18,8 @@ type Caches struct {
 	RatelimitNamespaceByName cache.Cache[db.FindRatelimitNamespaceByNameParams, db.RatelimitNamespace]
 
 	// RatelimitOverridesMatch caches ratelimit override matches for specific criteria.
-	// Keys are db.FindRatelimitOverrideMatchesParams and values are slices of db.RatelimitOverride.
-	RatelimitOverridesMatch cache.Cache[db.FindRatelimitOverrideMatchesParams, []db.RatelimitOverride]
+	// Keys are db.ListRatelimitOverrideMatchesParams and values are slices of db.RatelimitOverride.
+	RatelimitOverridesMatch cache.Cache[db.ListRatelimitOverrideMatchesParams, []db.RatelimitOverride]
 
 	// KeyByHash caches API key lookups by their hash.
 	// Keys are string (hash) and values are db.Key.
@@ -32,6 +32,10 @@ type Caches struct {
 	// WorkspaceByID caches workspace lookups by their ID.
 	// Keys are string (workspace ID) and values are db.Workspace.
 	WorkspaceByID cache.Cache[string, db.Workspace]
+
+	ApiByID cache.Cache[string, db.Api]
+
+	IdentityByID cache.Cache[string, db.Identity]
 }
 
 // Config defines the configuration options for initializing caches.
@@ -86,7 +90,7 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
-	ratelimitOverridesMatch, err := cache.New(cache.Config[db.FindRatelimitOverrideMatchesParams, []db.RatelimitOverride]{
+	ratelimitOverridesMatch, err := cache.New(cache.Config[db.ListRatelimitOverrideMatchesParams, []db.RatelimitOverride]{
 		Fresh:    time.Minute,
 		Stale:    24 * time.Hour,
 		Logger:   config.Logger,
@@ -137,11 +141,39 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
+	apiById, err := cache.New(cache.Config[string, db.Api]{
+		Fresh:   10 * time.Second,
+		Stale:   24 * time.Hour,
+		Logger:  config.Logger,
+		MaxSize: 1_000_000,
+
+		Resource: "api_by_id",
+		Clock:    config.Clock,
+	})
+	if err != nil {
+		return Caches{}, err
+	}
+
+	identityByID, err := cache.New(cache.Config[string, db.Identity]{
+		Fresh:   10 * time.Second,
+		Stale:   24 * time.Hour,
+		Logger:  config.Logger,
+		MaxSize: 1_000_000,
+
+		Resource: "identity_by_id",
+		Clock:    config.Clock,
+	})
+	if err != nil {
+		return Caches{}, err
+	}
+
 	return Caches{
 		RatelimitNamespaceByName: middleware.WithTracing(ratelimitNamespace),
 		RatelimitOverridesMatch:  middleware.WithTracing(ratelimitOverridesMatch),
 		KeyByHash:                middleware.WithTracing(keyByHash),
 		PermissionsByKeyId:       middleware.WithTracing(permissionsByKeyId),
 		WorkspaceByID:            middleware.WithTracing(workspaceByID),
+		ApiByID:                  middleware.WithTracing(apiById),
+		IdentityByID:             middleware.WithTracing(identityByID),
 	}, nil
 }

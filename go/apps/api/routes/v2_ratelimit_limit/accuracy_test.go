@@ -56,7 +56,7 @@ func TestRateLimitAccuracy(t *testing.T) {
 								t.Run(fmt.Sprintf("load_%.1fx", loadFactor), func(t *testing.T) {
 									h := testutil.NewHarness(t)
 
-									route := handler.New(handler.Services{
+									route := &handler.Handler{
 										DB:                            h.DB,
 										Keys:                          h.Keys,
 										Logger:                        h.Logger,
@@ -65,7 +65,7 @@ func TestRateLimitAccuracy(t *testing.T) {
 										Ratelimit:                     h.Ratelimit,
 										RatelimitNamespaceByNameCache: h.Caches.RatelimitNamespaceByName,
 										RatelimitOverrideMatchesCache: h.Caches.RatelimitOverridesMatch,
-									})
+									}
 									h.Register(route)
 									ctx := context.Background()
 

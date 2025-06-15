@@ -158,14 +158,14 @@ func (g *ErrorChainGenerator) generateErrorChain() ([]codes.URN, []string, error
 
 		if g.rng.Float32() < 0.7 {
 			code := g.components.code[g.rng.Intn(len(g.components.code))]
-			wrappers = append(wrappers, fault.WithCode(code))
+			wrappers = append(wrappers, fault.Code(code))
 			usedTags = append(usedTags, code)
 		}
 
 		if g.rng.Float32() < 0.8 {
 			internal := g.components.internals[g.rng.Intn(len(g.components.internals))]
 			public := g.components.publics[g.rng.Intn(len(g.components.publics))]
-			wrappers = append(wrappers, fault.WithDesc(internal, public))
+			wrappers = append(wrappers, fault.Internal(internal), fault.Public(public))
 			usedMsgs = append(usedMsgs, internal)
 		}
 

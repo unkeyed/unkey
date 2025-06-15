@@ -43,7 +43,7 @@ func (c *clickhouse) GetBillableRatelimits(ctx context.Context, workspaceID stri
 	}
 
 	if err != nil {
-		return 0, fault.Wrap(err, fault.WithDesc("failed to query billable ratelimits", ""))
+		return 0, fault.Wrap(err, fault.Internal("failed to query billable ratelimits"))
 	}
 
 	return count, nil

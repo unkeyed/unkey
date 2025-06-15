@@ -43,7 +43,7 @@ func (c *clickhouse) GetBillableVerifications(ctx context.Context, workspaceID s
 	}
 
 	if err != nil {
-		return 0, fault.Wrap(err, fault.WithDesc("failed to query billable verifications", ""))
+		return 0, fault.Wrap(err, fault.Internal("failed to query billable verifications"))
 	}
 
 	return count, nil

@@ -30,17 +30,17 @@ func flush[T any](ctx context.Context, conn ch.Conn, table string, rows []T) err
 		driver.WithReleaseConnection(),
 	)
 	if err != nil {
-		return fault.Wrap(err, fault.WithDesc("preparing batch failed", ""))
+		return fault.Wrap(err, fault.Internal("preparing batch failed"))
 	}
 	for _, row := range rows {
 		err = batch.AppendStruct(&row)
 		if err != nil {
-			return fault.Wrap(err, fault.WithDesc("appending struct to batch failed", ""))
+			return fault.Wrap(err, fault.Internal("appending struct to batch failed"))
 		}
 	}
 	err = batch.Send()
 	if err != nil {
-		return fault.Wrap(err, fault.WithDesc("committing batch failed", ""))
+		return fault.Wrap(err, fault.Internal("committing batch failed"))
 	}
 	return nil
 }
