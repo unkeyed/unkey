@@ -18,6 +18,7 @@ const ownerValidationV1 = z.object({
 const ownerValidationV2 = z.object({
   identity: z.object({
     id: z.string().nullish(),
+    externalId: z.string().nullish(),
   }),
   ownerType: z.literal("v2"),
 });
@@ -194,8 +195,7 @@ const updateOwnerV2 = async (
         .update(schema.keys)
         .set({
           identityId: input.identity.id ?? null,
-          // Set ownerId to null to maintain consistency
-          ownerId: null,
+          ownerId: input.identity.externalId,
         })
         .where(
           and(

@@ -9,7 +9,7 @@ import { useState } from "react";
 
 type ExternalIdFieldProps = {
   value: string | null;
-  onChange: (id: string | null) => void;
+  onChange: (identityId: string | null, externalId: string | null) => void;
   error?: string;
   disabled?: boolean;
 };
@@ -24,7 +24,7 @@ export const ExternalIdField = ({
   const { identities, isFetchingNextPage, hasNextPage, loadMore } = useFetchIdentities();
 
   const createIdentity = useCreateIdentity((data) => {
-    onChange(data.identityId);
+    onChange(data.identityId, data.externalId);
   });
 
   const handleCreateIdentity = () => {
@@ -97,7 +97,7 @@ export const ExternalIdField = ({
           return;
         }
         const identity = identities.find((id) => id.id === val);
-        onChange(identity?.id || null);
+        onChange(identity?.id || null, identity?.externalId || null);
       }}
       placeholder={
         <div className="flex w-full text-grayA-8 text-xs gap-1.5 items-center py-2">
