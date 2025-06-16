@@ -1,6 +1,6 @@
 "use client";
 import { Gauge, Trash } from "@unkey/icons";
-import { Button, FormInput } from "@unkey/ui";
+import { Button, FormCheckbox, FormInput, InlineLink } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useEffect } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
@@ -93,7 +93,7 @@ export const RatelimitSetup = () => {
                   "[&_input:first-of-type]:h-[36px]",
                   fields.length <= 1 ? "w-full" : "flex-1",
                 )}
-                placeholder="Default"
+                placeholder="my-ratelimit"
                 type="text"
                 label="Name"
                 description="A name to identify this rate limit rule"
@@ -150,6 +150,27 @@ export const RatelimitSetup = () => {
                 {...register(`ratelimit.data.${index}.refillInterval`)}
               />
             </div>
+            <FormCheckbox
+              className={cn(
+                "[&_input:first-of-type]:h-[36px]",
+                fields.length <= 1 ? "w-full" : "flex-1",
+              )}
+              label="Auto Apply"
+              description={
+                <p>
+                  This rate limit rule will always be used.{" "}
+                  <InlineLink
+                    label="Learn more"
+                    target
+                    href="https://unkey.com/docs/apis/features/ratelimiting/overview#auto-apply-vs-manual-ratelimits"
+                  />
+                  .
+                </p>
+              }
+              error={errors.ratelimit?.data?.[index]?.autoApply?.message}
+              disabled={!ratelimitEnabled}
+              {...register(`ratelimit.data.${index}.autoApply`)}
+            />
           </div>
         ))}
       </div>

@@ -73,6 +73,7 @@ export const createKey = t.procedure
               workspaceId: ctx.workspace.id,
               createdAt: Date.now(),
               updatedAt: null,
+              autoApply: ratelimit.autoApply,
             })),
           );
         }
