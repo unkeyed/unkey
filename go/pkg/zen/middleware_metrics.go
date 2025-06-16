@@ -50,7 +50,7 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 
 			requestHeaders := []string{}
 			for k, vv := range s.r.Header {
-				if k == "authorization" {
+				if strings.ToLower(k) == "authorization" {
 					requestHeaders = append(requestHeaders, fmt.Sprintf("%s: %s", k, "[REDACTED]"))
 				} else {
 					requestHeaders = append(requestHeaders, fmt.Sprintf("%s: %s", k, strings.Join(vv, ",")))
