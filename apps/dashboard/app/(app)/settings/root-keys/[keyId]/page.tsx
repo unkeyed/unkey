@@ -1,11 +1,10 @@
 import { PageContent } from "@/components/page-content";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DialogTrigger } from "@/components/ui/dialog";
 import { getAuth } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { type Permission, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { Button } from "@unkey/ui";
+import { Button, Card, CardContent, CardHeader, CardTitle } from "@unkey/ui";
 import { notFound } from "next/navigation";
 import { AccessTable } from "./history/access-table";
 import { Navigation } from "./navigation";
