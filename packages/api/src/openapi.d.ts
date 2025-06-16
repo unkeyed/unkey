@@ -1888,10 +1888,15 @@ export interface operations {
            * ]
            */
           permissions: {
-            /** @description The id of the permission. Provide either `id` or `name`. If both are provided `id` is used. */
+            /** @description The id of the permission. Provide either `id` or `slug`. If both are provided `id` is used. */
             id?: string;
-            /** @description Identify the permission via its name. Provide either `id` or `name`. If both are provided `id` is used. */
+            /**
+             * @deprecated
+             * @description This field is deprecated and will be removed in a future release. please use `slug` instead.
+             */
             name?: string;
+            /** @description Identify the permission via its slug. Provide either `id` or `slug`. If both are provided `id` is used. */
+            slug?: string;
           }[];
         };
       };
@@ -1978,8 +1983,13 @@ export interface operations {
           permissions: {
             /** @description The id of the permission. Provide either `id` or `name`. If both are provided `id` is used. */
             id?: string;
-            /** @description Identify the permission via its name. Provide either `id` or `name`. If both are provided `id` is used. */
+            /**
+             * @deprecated
+             * @description This field is deprecated and will be removed in a future release. please use `slug` instead.
+             */
             name?: string;
+            /** @description Identify the permission via its slug. Provide either `id` or `slug`. If both are provided `id` is used. */
+            slug?: string;
             /**
              * @description Set to true to automatically create the permissions they do not exist yet. Only works when specifying `name`.
              *                 Autocreating permissions requires your root key to have the `rbac.*.create_permission` permission, otherwise the request will get rejected

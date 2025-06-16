@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { CircleInfo, TriangleWarning2 } from "@unkey/icons";
-import { OptionalTag, RequiredTag } from "@unkey/ui/src/components/form";
+import { OptionalTag, RequiredTag } from "@unkey/ui/src/components/form/form-tags";
 import * as React from "react";
 import { Combobox } from "./combobox";
 
