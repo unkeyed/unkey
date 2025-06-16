@@ -41,7 +41,7 @@ export const InlineLink: React.FC<InlineLinkProps> = ({
   return (
     <a
       href={href}
-      className={cn(className, "inline-flex hover:opacity-70")}
+      className={cn(className, "underline inline-flex hover:opacity-70")}
       target={target ? "_blank" : undefined}
       rel={target ? "noopener noreferrer" : undefined}
       {...props}
