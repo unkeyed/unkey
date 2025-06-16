@@ -45,30 +45,9 @@ export const queryRootKeys = t.procedure
   .input(queryRootKeysPayload)
   .output(RootKeysResponse)
   .query(async ({ ctx, input }) => {
-    // Get workspace
-    const workspace = await db.query.workspaces
-      .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "Failed to retrieve workspace due to an error. If this issue persists, please contact support@unkey.dev with the time this occurred.",
-        });
-      });
-
-    if (!workspace) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Workspace not found, please contact support using support@unkey.dev.",
-      });
-    }
-
     // Build base conditions
     const baseConditions = [
-      eq(schema.keys.forWorkspaceId, workspace.id),
+      eq(schema.keys.forWorkspaceId, ctx.workspace.id),
       isNull(schema.keys.deletedAtM),
     ];
 
@@ -78,18 +57,11 @@ export const queryRootKeys = t.procedure
     }
 
     try {
-      // Get total count
-      const countConditions = [
-        eq(schema.keys.forWorkspaceId, workspace.id),
-        isNull(schema.keys.deletedAtM),
-      ];
-
-      // Execute both queries in parallel
       const [totalResult, keysResult] = await Promise.all([
         db
           .select({ count: count() })
           .from(schema.keys)
-          .where(and(...countConditions)),
+          .where(and(...baseConditions)),
         db.query.keys.findMany({
           where: and(...baseConditions),
           orderBy: [desc(schema.keys.createdAtM)],
