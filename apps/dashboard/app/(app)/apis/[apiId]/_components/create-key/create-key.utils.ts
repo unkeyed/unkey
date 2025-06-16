@@ -76,7 +76,10 @@ export const getFieldsFromSchema = (schema: unknown, prefix = ""): string[] => {
     return [];
   }
 
-  const schemaObj = schema as { shape: Record<string, unknown>; _def?: { typeName: string } };
+  const schemaObj = schema as {
+    shape: Record<string, unknown>;
+    _def?: { typeName: string };
+  };
 
   return Object.keys(schemaObj.shape).flatMap((key) => {
     const fullPath = prefix ? `${prefix}.${key}` : key;
@@ -121,6 +124,7 @@ export const getDefaultValues = (
           name: "Default",
           limit: 10,
           refillInterval: 1000,
+          autoApply: true,
         },
       ],
     },
