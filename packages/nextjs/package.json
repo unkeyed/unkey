@@ -20,7 +20,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.14.9",
-    "next": "14.2.15",
+    "next": "14.2.30",
     "tsup": "^8.0.2",
     "typescript": "^5.5.3"
   },
