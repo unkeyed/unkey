@@ -346,7 +346,6 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
                     asChild
                   >
                     <Badge
-                      variant="success"
                       className={cn(
                         "whitespace-nowrap max-w-[150px] truncate",
                         selectedLog?.request_id === log.request_id
@@ -405,7 +404,6 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
                   asChild
                 >
                   <Badge
-                    variant="success"
                     className={cn(
                       "whitespace-nowrap",
                       selectedLog?.request_id === log.request_id
