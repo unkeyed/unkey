@@ -35,7 +35,6 @@ import { queryIdentities } from "./identity/query";
 import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
 import { deleteKeys } from "./key/delete";
-import { deleteRootKeys } from "./key/deleteRootKey";
 import { fetchKeyPermissions } from "./key/fetch-key-permissions";
 import { queryKeyDetailsLogs } from "./key/query-logs";
 import { keyDetailsVerificationsTimeseries } from "./key/query-timeseries";
@@ -85,6 +84,7 @@ import { disconnectRoleFromKey } from "./rbac/disconnectRoleFromKey";
 import { removePermissionFromRootKey } from "./rbac/removePermissionFromRootKey";
 import { updatePermission } from "./rbac/updatePermission";
 import { updateRole } from "./rbac/updateRole";
+import { deleteRootKeys } from "./settings/root-keys/delete";
 import { rootKeysLlmSearch } from "./settings/root-keys/llm-search";
 import { queryRootKeys } from "./settings/root-keys/query";
 import { cancelSubscription } from "./stripe/cancelSubscription";
@@ -118,7 +118,6 @@ export const router = t.router({
   }),
   rootKey: t.router({
     create: createRootKey,
-    delete: deleteRootKeys,
     update: t.router({
       name: updateRootKeyName,
     }),
@@ -127,6 +126,7 @@ export const router = t.router({
     rootKeys: t.router({
       query: queryRootKeys,
       llmSearch: rootKeysLlmSearch,
+      delete: deleteRootKeys,
     }),
   }),
   api: t.router({
