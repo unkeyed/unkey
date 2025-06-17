@@ -8,6 +8,7 @@ export const GeneralSetup = () => {
   const {
     register,
     formState: { errors },
+    setValue,
     control,
   } = useFormContext<FormValues>();
 
@@ -34,18 +35,23 @@ export const GeneralSetup = () => {
         optional
         {...register("prefix")}
       />
+
       <Controller
-        name="externalId"
+        name="identityId"
         control={control}
         defaultValue=""
         render={({ field }) => (
           <ExternalIdField
             value={field.value ?? null}
-            onChange={field.onChange}
+            onChange={(identityId: string | null, externalId: string | null) => {
+              field.onChange(identityId);
+              setValue("externalId", externalId);
+            }}
             error={errors.externalId?.message}
           />
         )}
       />
+
       <FormInput
         className="[&_input:first-of-type]:h-[36px]"
         label="Bytes"
