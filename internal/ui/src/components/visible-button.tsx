@@ -37,8 +37,9 @@ export function VisibleButton({
       variant={variant}
       className={cn("focus:ring-0 focus:border-grayA-6 w-6 h-6", className)}
       onClick={(e) => {
-        setIsVisible(!isVisible);
-        onClick?.(e);
+        if (!e.defaultPrevented) {
+          setIsVisible(!isVisible);
+        }
       }}
       aria-label={isVisible ? `Hide ${title}` : `Show ${title}`}
     >
