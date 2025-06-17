@@ -6,10 +6,18 @@ import { cn } from "../lib/utils";
 import { Button, type ButtonProps } from "./button";
 
 type VisibleButtonProps = ButtonProps & {
+  /**
+   * Current visibility state
+   */
   isVisible: boolean;
+  /**
+   * Function to set the visibility state
+   */
   setIsVisible: (visible: boolean) => void;
+  /**
+   * Variant of the button
+   */
   variant?: ButtonProps["variant"];
-  size?: ButtonProps["size"];
 };
 
 export function VisibleButton({
@@ -17,7 +25,6 @@ export function VisibleButton({
   setIsVisible,
   variant = "outline",
   title,
-  size = "icon",
   onClick,
   className,
   ...rest
@@ -28,8 +35,7 @@ export function VisibleButton({
       type="button"
       title={isVisible ? `Hide ${title}` : `Show ${title}`}
       variant={variant}
-      size={size}
-      className={cn("focus:ring-0 focus:border-grayA-6", className)}
+      className={cn("focus:ring-0 focus:border-grayA-6 w-6 h-6", className)}
       onClick={(e) => {
         setIsVisible(!isVisible);
         onClick?.(e);
