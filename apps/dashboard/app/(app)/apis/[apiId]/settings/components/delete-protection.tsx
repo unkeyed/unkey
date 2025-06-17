@@ -138,7 +138,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
                 : "Enable API Delete Protection"}
             </Button>
             <div className="font-normal text-[12px] text-gray-9 text-center">
-              This setting can be {api.deleteProtection ? "re-enabled" : "disabled"} at any time
+              This setting can be {api.deleteProtection ? "disabled" : "enabled"} at any time
             </div>
           </div>
         }
