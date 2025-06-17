@@ -29,8 +29,8 @@ const getRootKeyTableActionItems = (rootKey: RootKey, router: AppRouterInstance)
       divider: true,
     },
     {
-      id: "delete-role",
-      label: "Delete role",
+      id: "delete-root-key",
+      label: "Delete root key",
       icon: <Trash size="md-regular" />,
       ActionComponent: (props) => <DeleteRootKey {...props} rootKeyDetails={rootKey} />,
     },
