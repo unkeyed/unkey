@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table";
 import type { Column } from "@/components/virtual-table/types";
 import { formatNumber } from "@/lib/fmt";
+import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { Empty } from "@unkey/ui";
 import ms from "ms";
@@ -18,8 +19,6 @@ type Override = {
 
 type Props = {
   namespaceId: string;
-  ratelimits: Override[];
-  lastUsedTimes: Record<string, number | null>;
 };
 
 const STATUS_STYLES = {
@@ -47,7 +46,11 @@ const getRowClassName = () => {
   );
 };
 
-export const OverridesTable = ({ namespaceId, ratelimits, lastUsedTimes }: Props) => {
+export const OverridesTable = ({ namespaceId }: Props) => {
+  const { data, isLoading } = trpc.ratelimit.namespace.queryDetails.useQuery({
+    namespaceId,
+    includeOverrides: true,
+  });
   const columns: Column<Override>[] = [
     {
       key: "identifier",
@@ -148,7 +151,8 @@ export const OverridesTable = ({ namespaceId, ratelimits, lastUsedTimes }: Props
 
   return (
     <VirtualTable
-      data={ratelimits}
+      data={data?.ratelimitNamespaces ?? []}
+      isLoading={isLoading}
       columns={columns}
       keyExtractor={(override) => override.id}
       rowClassName={getRowClassName}
