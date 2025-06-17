@@ -210,6 +210,7 @@ export async function getAllKeys({
             name: true,
             limit: true,
             duration: true,
+            autoApply: true,
           },
         },
         identity: {
@@ -258,6 +259,7 @@ export async function getAllKeys({
               name: r.name,
               refillInterval: r.duration,
               id: r.id,
+              autoApply: r.autoApply,
             })),
           },
         },
