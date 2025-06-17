@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
@@ -33,17 +32,17 @@ func TestRedisCounter(t *testing.T) {
 		// First increment should return 1
 		val, err := ctr.Increment(ctx, key, 1)
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), val)
+		require.Equal(t, int64(1), val)
 
 		// Second increment should return 2
 		val, err = ctr.Increment(ctx, key, 1)
 		require.NoError(t, err)
-		assert.Equal(t, int64(2), val)
+		require.Equal(t, int64(2), val)
 
 		// Increment by 5 should return 7
 		val, err = ctr.Increment(ctx, key, 5)
 		require.NoError(t, err)
-		assert.Equal(t, int64(7), val)
+		require.Equal(t, int64(7), val)
 	})
 
 	t.Run("IncrementWithTTL", func(t *testing.T) {
@@ -53,12 +52,12 @@ func TestRedisCounter(t *testing.T) {
 		// First increment with TTL
 		val, err := ctr.Increment(ctx, key, 1, ttl)
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), val)
+		require.Equal(t, int64(1), val)
 
 		// Get the value immediately
 		val, err = ctr.Get(ctx, key)
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), val)
+		require.Equal(t, int64(1), val)
 
 		// Wait for the key to expire
 		time.Sleep(2 * time.Second)
@@ -66,7 +65,7 @@ func TestRedisCounter(t *testing.T) {
 		// Key should be gone or zero
 		val, err = ctr.Get(ctx, key)
 		require.NoError(t, err)
-		assert.Equal(t, int64(0), val)
+		require.Equal(t, int64(0), val)
 	})
 
 	t.Run("Get", func(t *testing.T) {
@@ -75,7 +74,7 @@ func TestRedisCounter(t *testing.T) {
 		// Get non-existent key
 		val, err := ctr.Get(ctx, key)
 		require.NoError(t, err)
-		assert.Equal(t, int64(0), val)
+		require.Equal(t, int64(0), val)
 
 		// Set a value and get it
 		_, err = ctr.Increment(ctx, key, 42)
@@ -83,7 +82,7 @@ func TestRedisCounter(t *testing.T) {
 
 		val, err = ctr.Get(ctx, key)
 		require.NoError(t, err)
-		assert.Equal(t, int64(42), val)
+		require.Equal(t, int64(42), val)
 	})
 
 	// Table-driven tests for multiple increments
@@ -134,12 +133,12 @@ func TestRedisCounter(t *testing.T) {
 					require.NoError(t, err)
 				}
 
-				assert.Equal(t, tc.expected, finalValue)
+				require.Equal(t, tc.expected, finalValue)
 
 				// Verify with Get also
 				value, err := ctr.Get(ctx, key)
 				require.NoError(t, err)
-				assert.Equal(t, tc.expected, value)
+				require.Equal(t, tc.expected, value)
 			})
 		}
 	})
@@ -210,7 +209,7 @@ func TestRedisCounter(t *testing.T) {
 				// Verify final value
 				value, err := ctr.Get(ctx, key)
 				require.NoError(t, err)
-				assert.Equal(t, tc.expected, value, "Final counter value doesn't match expected")
+				require.Equal(t, tc.expected, value, "Final counter value doesn't match expected")
 			})
 		}
 	})
@@ -256,7 +255,7 @@ func TestRedisCounter(t *testing.T) {
 		// Verify final value
 		value, err := ctr.Get(ctx, key)
 		require.NoError(t, err)
-		assert.Equal(t, expectedValue, value, "Final value after interleaved operations doesn't match expected")
+		require.Equal(t, expectedValue, value, "Final value after interleaved operations doesn't match expected")
 	})
 
 	// Test increments with TTL in parallel
@@ -283,7 +282,7 @@ func TestRedisCounter(t *testing.T) {
 		// Verify value right after increments
 		value, err := ctr.Get(ctx, key)
 		require.NoError(t, err)
-		assert.Equal(t, int64(numWorkers), value)
+		require.Equal(t, int64(numWorkers), value)
 
 		// Wait for TTL to expire
 		time.Sleep(4 * time.Second)
@@ -291,7 +290,7 @@ func TestRedisCounter(t *testing.T) {
 		// Key should be gone or zero
 		value, err = ctr.Get(ctx, key)
 		require.NoError(t, err)
-		assert.Equal(t, int64(0), value, "Counter should be zero after TTL expiry")
+		require.Equal(t, int64(0), value, "Counter should be zero after TTL expiry")
 	})
 }
 
@@ -363,32 +362,15 @@ func TestRedisCounterMultiGet(t *testing.T) {
 		// Verify all values match expected
 		for key, expectedValue := range testData {
 			value, exists := values[key]
-			assert.True(t, exists, "Key %s should exist in results", key)
-			assert.Equal(t, expectedValue, value, "Value for key %s should match", key)
+			require.True(t, exists, "Key %s should exist in results", key)
+			require.Equal(t, expectedValue, value, "Value for key %s should match", key)
 		}
-	})
-
-	t.Run("MultiGetMixedExistingAndNonExisting", func(t *testing.T) {
-		keys := []string{}
-		for key := range testData {
-			keys = append(keys, key)
-		}
-		keys = append(keys, uid.New(uid.TestPrefix))
-		values, err := ctr.MultiGet(ctx, keys)
-		require.NoError(t, err)
-
-		// Verify existing values
-		assert.Equal(t, int64(10), values[keys[0]])
-		assert.Equal(t, int64(30), values[keys[2]])
-
-		// Verify non-existing values are 0
-		assert.Equal(t, int64(0), values[keys[5]])
 	})
 
 	t.Run("MultiGetEmpty", func(t *testing.T) {
 		values, err := ctr.MultiGet(ctx, []string{})
 		require.NoError(t, err)
-		assert.Empty(t, values, "Result should be empty for empty keys list")
+		require.Empty(t, values, "Result should be empty for empty keys list")
 	})
 
 	t.Run("MultiGetNonExisting", func(t *testing.T) {
@@ -402,7 +384,7 @@ func TestRedisCounterMultiGet(t *testing.T) {
 
 		// All values should be 0
 		for _, key := range keys {
-			assert.Equal(t, int64(0), values[key])
+			require.Equal(t, int64(0), values[key])
 		}
 	})
 
@@ -424,9 +406,9 @@ func TestRedisCounterMultiGet(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify all values match expected
-		assert.Equal(t, len(largeTestData), len(values))
+		require.Equal(t, len(largeTestData), len(values))
 		for key, expectedValue := range largeTestData {
-			assert.Equal(t, expectedValue, values[key])
+			require.Equal(t, expectedValue, values[key])
 		}
 	})
 

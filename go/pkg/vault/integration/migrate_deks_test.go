@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/rand"
 	"testing"
+	"time"
 
+	"fmt"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -25,7 +27,7 @@ func TestMigrateDeks(t *testing.T) {
 
 	storage, err := storage.NewS3(storage.S3Config{
 		S3URL:             s3.HostURL,
-		S3Bucket:          uid.New(""),
+		S3Bucket:          fmt.Sprintf("%d", time.Now().Unix()),
 		S3AccessKeyId:     s3.AccessKeyId,
 		S3AccessKeySecret: s3.AccessKeySecret,
 		Logger:            logger,
@@ -44,10 +46,12 @@ func TestMigrateDeks(t *testing.T) {
 
 	ctx := context.Background()
 
+	keyring := uid.New("test")
 	// Seed some DEKs
 	for range 10 {
+
 		_, err = v.CreateDEK(ctx, &vaultv1.CreateDEKRequest{
-			Keyring: "keyring",
+			Keyring: keyring,
 		})
 		require.NoError(t, err)
 
@@ -56,7 +60,7 @@ func TestMigrateDeks(t *testing.T) {
 		d := string(buf)
 		require.NoError(t, err)
 		res, encryptErr := v.Encrypt(ctx, &vaultv1.EncryptRequest{
-			Keyring: "keyring",
+			Keyring: keyring,
 			Data:    d,
 		})
 		require.NoError(t, encryptErr)
@@ -81,7 +85,7 @@ func TestMigrateDeks(t *testing.T) {
 	// Check each piece of data can be decrypted
 	for d, e := range data {
 		res, decryptErr := v.Decrypt(ctx, &vaultv1.DecryptRequest{
-			Keyring:   "keyring",
+			Keyring:   keyring,
 			Encrypted: e,
 		})
 		require.NoError(t, decryptErr)
@@ -99,7 +103,7 @@ func TestMigrateDeks(t *testing.T) {
 	// Check each piece of data can be decrypted
 	for d, e := range data {
 		res, err := v.Decrypt(ctx, &vaultv1.DecryptRequest{
-			Keyring:   "keyring",
+			Keyring:   keyring,
 			Encrypted: e,
 		})
 		require.NoError(t, err)

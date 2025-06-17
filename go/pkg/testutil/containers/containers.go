@@ -2,9 +2,11 @@ package containers
 
 import (
 	"testing"
+	"time"
 
 	"github.com/ory/dockertest/v3"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/pkg/fault"
 )
 
 // Containers represents a container manager for running containerized services during tests.
@@ -88,16 +90,18 @@ func New(t *testing.T) *Containers {
 func (c *Containers) getOrCreateContainer(containerName string, runOpts *dockertest.RunOptions) (*dockertest.Resource, bool, error) {
 
 	var err error
-	for range 10 {
+	for i := range 10 {
 		resource, exists := c.pool.ContainerByName(containerName)
 		if exists {
 			return resource, false, nil
 		}
 		resource, err = c.pool.RunWithOptions(runOpts)
 		if err == nil {
-			return resource, false, nil
+			return resource, true, nil
 		}
+		time.Sleep(time.Duration(i) * time.Second)
+
 	}
-	return nil, false, err
+	return nil, false, fault.Wrap(err, fault.Internal("exceeded retries already"))
 
 }

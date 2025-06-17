@@ -26,7 +26,7 @@ func Test_ColdStart(t *testing.T) {
 
 	storage, err := storage.NewS3(storage.S3Config{
 		S3URL:             s3.HostURL,
-		S3Bucket:          uid.New("", 8),
+		S3Bucket:          "test",
 		S3AccessKeyId:     s3.AccessKeyId,
 		S3AccessKeySecret: s3.AccessKeySecret,
 		Logger:            logger,
@@ -45,10 +45,12 @@ func Test_ColdStart(t *testing.T) {
 
 	ctx := context.Background()
 
+	aliceKeyRing := uid.New("alice")
+	bobKeyRing := uid.New("bob")
 	// Alice encrypts a secret
 	aliceData := "alice secret"
 	aliceEncryptionRes, err := v.Encrypt(ctx, &vaultv1.EncryptRequest{
-		Keyring: "alice",
+		Keyring: aliceKeyRing,
 		Data:    aliceData,
 	})
 	require.NoError(t, err)
@@ -56,14 +58,14 @@ func Test_ColdStart(t *testing.T) {
 	// Bob encrypts a secret
 	bobData := "bob secret"
 	bobEncryptionRes, err := v.Encrypt(ctx, &vaultv1.EncryptRequest{
-		Keyring: "bob",
+		Keyring: bobKeyRing,
 		Data:    bobData,
 	})
 	require.NoError(t, err)
 
 	// Alice decrypts her secret
 	aliceDecryptionRes, err := v.Decrypt(ctx, &vaultv1.DecryptRequest{
-		Keyring:   "alice",
+		Keyring:   aliceKeyRing,
 		Encrypted: aliceEncryptionRes.GetEncrypted(),
 	})
 	require.NoError(t, err)
@@ -72,18 +74,18 @@ func Test_ColdStart(t *testing.T) {
 	// Bob reencrypts his secret
 
 	_, err = v.CreateDEK(ctx, &vaultv1.CreateDEKRequest{
-		Keyring: "bob",
+		Keyring: bobKeyRing,
 	})
 	require.NoError(t, err)
 	bobReencryptionRes, err := v.ReEncrypt(ctx, &vaultv1.ReEncryptRequest{
-		Keyring:   "bob",
+		Keyring:   bobKeyRing,
 		Encrypted: bobEncryptionRes.GetEncrypted(),
 	})
 	require.NoError(t, err)
 
 	// Bob decrypts his secret
 	bobDecryptionRes, err := v.Decrypt(ctx, &vaultv1.DecryptRequest{
-		Keyring:   "bob",
+		Keyring:   bobKeyRing,
 		Encrypted: bobReencryptionRes.GetEncrypted(),
 	})
 	require.NoError(t, err)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"fmt"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -12,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/vault"
 	"github.com/unkeyed/unkey/go/pkg/vault/keys"
 	"github.com/unkeyed/unkey/go/pkg/vault/storage"
+	"time"
 )
 
 // When encrypting multiple secrets with the same keyring, the same DEK should be reused for all of them.
@@ -24,7 +26,7 @@ func TestReuseDEKsForSameKeyring(t *testing.T) {
 
 	storage, err := storage.NewS3(storage.S3Config{
 		S3URL:             s3.HostURL,
-		S3Bucket:          uid.New(""),
+		S3Bucket:          fmt.Sprintf("%d", time.Now().UnixMilli()),
 		S3AccessKeyId:     s3.AccessKeyId,
 		S3AccessKeySecret: s3.AccessKeySecret,
 		Logger:            logger,
@@ -68,7 +70,7 @@ func TestIndividualDEKsPerKeyring(t *testing.T) {
 
 	storage, err := storage.NewS3(storage.S3Config{
 		S3URL:             s3.HostURL,
-		S3Bucket:          uid.New(""),
+		S3Bucket:          fmt.Sprintf("%d", time.Now().UnixMilli()),
 		S3AccessKeyId:     s3.AccessKeyId,
 		S3AccessKeySecret: s3.AccessKeySecret,
 		Logger:            logger,

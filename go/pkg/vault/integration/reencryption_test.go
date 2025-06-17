@@ -27,7 +27,7 @@ func TestReEncrypt(t *testing.T) {
 
 	storage, err := storage.NewS3(storage.S3Config{
 		S3URL:             s3.HostURL,
-		S3Bucket:          uid.New(""),
+		S3Bucket:          "vault",
 		S3AccessKeyId:     s3.AccessKeyId,
 		S3AccessKeySecret: s3.AccessKeySecret,
 		Logger:            logger,
@@ -51,7 +51,7 @@ func TestReEncrypt(t *testing.T) {
 		dataSize := int(math.Pow(8, float64(i)))
 		t.Run(fmt.Sprintf("with %d bytes", dataSize), func(t *testing.T) {
 
-			keyring := fmt.Sprintf("keyring-%d", i)
+			keyring := uid.New("test")
 			buf := make([]byte, dataSize)
 			_, err := rand.Read(buf)
 			require.NoError(t, err)
