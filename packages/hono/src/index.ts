@@ -13,6 +13,11 @@ export type UnkeyConfig = {
   apiId: string;
 
   /**
+   * 	Arbitrary tags you may add during the verification to filter later.
+   */
+  tags?: string[];
+
+  /**
    *
    * By default telemetry data is enabled, and sends:
    * runtime (Node.js / Edge)
@@ -62,7 +67,11 @@ export function unkey(config: UnkeyConfig): MiddlewareHandler {
       wrapperSdkVersion: `@unkey/hono@${version}`,
     });
 
-    const res = await unkeyInstance.keys.verify({ key, apiId: config.apiId });
+    const res = await unkeyInstance.keys.verify({
+      key,
+      apiId: config.apiId,
+      tags: config.tags,
+    });
     if (res.error) {
       if (config.onError) {
         return config.onError(c, res.error);
