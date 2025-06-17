@@ -34,7 +34,6 @@ export const RatelimitSetup = () => {
         name: "Default",
         limit: 10,
         refillInterval: 1000,
-        autoApply: false,
       });
     }
   }, [fields.length, append]);
@@ -49,7 +48,6 @@ export const RatelimitSetup = () => {
       name: "",
       limit: 10,
       refillInterval: 1000,
-      autoApply: false,
     };
     append(newItem);
   };
