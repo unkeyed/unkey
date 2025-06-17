@@ -22,6 +22,7 @@ export const EditExternalId = ({
   const [selectedIdentityId, setSelectedIdentityId] = useState<string | null>(
     keyDetails.identity_id || null,
   );
+  const [selectedExternalId, setSelectedExternalId] = useState<string | null>(null);
   const [isConfirmPopoverOpen, setIsConfirmPopoverOpen] = useState(false);
   const clearButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -36,6 +37,7 @@ export const EditExternalId = ({
       ownerType: "v2",
       identity: {
         id: selectedIdentityId,
+        externalId: selectedExternalId,
       },
     });
   };
@@ -114,7 +116,10 @@ export const EditExternalId = ({
         </div>
         <ExternalIdField
           value={selectedIdentityId}
-          onChange={setSelectedIdentityId}
+          onChange={(identityId: string | null, externalId: string | null) => {
+            setSelectedIdentityId(identityId);
+            setSelectedExternalId(externalId);
+          }}
           disabled={updateKeyOwner.isLoading || Boolean(originalIdentityId)}
         />
       </DialogContainer>
