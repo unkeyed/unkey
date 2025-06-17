@@ -94,19 +94,9 @@ export const UpsertPermissionDialog = ({
     }
 
     const loadData = async () => {
-      if (existingPermission) {
-        // Edit mode
-        const hasSavedData = await loadSavedValues();
-        if (!hasSavedData) {
-          const editValues = getDefaultValues(existingPermission);
-          reset(editValues);
-        }
-      } else {
-        // Create mode
-        const hasSavedData = await loadSavedValues();
-        if (!hasSavedData) {
-          reset(getDefaultValues());
-        }
+      const hasSavedData = await loadSavedValues();
+      if (!hasSavedData) {
+        reset(getDefaultValues(existingPermission));
       }
     };
 
