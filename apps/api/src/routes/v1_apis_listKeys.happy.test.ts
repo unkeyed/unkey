@@ -47,6 +47,56 @@ test("get api", async (t) => {
   expect(res.body.keys.length).toBeLessThanOrEqual(100); //  default page size
 });
 
+
+
+
+test("returns enabled", async (t) => {
+  const h = await IntegrationHarness.init(t);
+
+
+  const keys = new Array(10).fill(0).map(() => ({ id:newId("test"), enabled: Math.random() >0.5}));
+  for (let i = 0; i < keys.length; i++) {
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    await h.db.primary.insert(schema.keys).values({
+      id: keys[i].id,
+      keyAuthId: h.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: h.resources.userWorkspace.id,
+      enabled: keys[i].enabled,
+      createdAtM: Date.now(),
+    });
+  }
+
+  await revalidateKeyCount(h.db.primary, h.resources.userKeyAuth.id);
+  const root = await h.createRootKey([
+    `api.${h.resources.userApi.id}.read_api`,
+    `api.${h.resources.userApi.id}.read_key`,
+  ]);
+
+  const res = await h.get<V1ApisListKeysResponse>({
+    url: `/v1/apis.listKeys?apiId=${h.resources.userApi.id}`,
+    headers: {
+      Authorization: `Bearer ${root.key}`,
+    },
+  });
+
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+  expect(res.body.total).toBeGreaterThanOrEqual(keys.length);
+  expect(res.body.keys.length).toBeGreaterThanOrEqual(keys.length);
+  expect(res.body.keys.length).toBeLessThanOrEqual(100); //  default page size
+  
+
+  for (const key of res.body.keys) {
+    const found = keys.find(k=>k.id === key.id)
+    expect(found).toBe(true)
+    expect(found!.enabled).toBe(key.enabled)
+
+
+  }
+});
+
+
 test("returns identity", async (t) => {
   const h = await IntegrationHarness.init(t);
 
