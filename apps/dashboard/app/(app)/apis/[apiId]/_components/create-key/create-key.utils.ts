@@ -20,6 +20,7 @@ export const formValuesToApiInput = (formValues: FormValues, keyAuthId: string):
     prefix: formValues.prefix === "" ? undefined : formValues.prefix,
     bytes: formValues.bytes,
     externalId: formValues.externalId || null,
+    identityId: formValues.identityId || null,
     name: formValues.name === "" ? undefined : formValues.name,
     enabled: true,
     environment: formValues.environment === "" ? undefined : formValues.name,

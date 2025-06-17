@@ -1,10 +1,6 @@
 "use client";
 
-import { VisibleButton } from "@/components/dashboard/visible-button";
 import { Code } from "@/components/ui/code";
-import { Button, Checkbox, CopyButton, Input } from "@unkey/ui";
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dialog,
@@ -18,6 +14,18 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { type UnkeyPermission, unkeyPermissionValidation } from "@unkey/rbac";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Checkbox,
+  CopyButton,
+  Input,
+  VisibleButton,
+} from "@unkey/ui";
 import { ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createParser, parseAsArrayOf, useQueryState } from "nuqs";
@@ -285,7 +293,12 @@ export const Client: React.FC<Props> = ({ apis }) => {
             <Code className="flex items-center justify-between gap-4 my-8 ph-no-capture">
               {showKey ? key.data?.key : maskedKey}
               <div className="flex items-center justify-between gap-2">
-                <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
+                <VisibleButton
+                  isVisible={showKey}
+                  setIsVisible={setShowKey}
+                  variant="ghost"
+                  className="focus:ring-0"
+                />
                 <CopyButton value={key.data?.key ?? ""} />
               </div>
             </Code>
@@ -296,7 +309,12 @@ export const Client: React.FC<Props> = ({ apis }) => {
           </p>
           <Code className="flex flex-col items-start gap-2 w-full text-xs">
             <div className="w-full shrink-0 flex items-center justify-end gap-2">
-              <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
+              <VisibleButton
+                isVisible={showKeyInSnippet}
+                setIsVisible={setShowKeyInSnippet}
+                variant="ghost"
+                className="focus:ring-0"
+              />
               <CopyButton value={snippet} />
             </div>
             <div className="text-wrap">

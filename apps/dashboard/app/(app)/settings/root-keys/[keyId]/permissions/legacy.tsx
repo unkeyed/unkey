@@ -1,18 +1,18 @@
 "use client";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "@/components/ui/toaster";
+import { trpc } from "@/lib/trpc/client";
+import type { Permission } from "@unkey/db";
 import {
+  Button,
   Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
-import type { Permission } from "@unkey/db";
-import { Button } from "@unkey/ui";
+} from "@unkey/ui";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 

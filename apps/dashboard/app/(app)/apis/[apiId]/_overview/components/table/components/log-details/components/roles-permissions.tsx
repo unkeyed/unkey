@@ -1,7 +1,6 @@
-import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/components/ui/toaster";
 import { Clone } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, Card, CardContent } from "@unkey/ui";
 
 type Role = {
   name: string;
