@@ -1,14 +1,20 @@
 import { RenderComponentWithSnippet } from "@/app/components/render";
-import { FormInput } from "@unkey/ui";
+import { FormCheckbox, FormInput } from "@unkey/ui";
 
 export const DefaultFormInputVariant = () => {
   return (
     <RenderComponentWithSnippet>
-      <FormInput
-        label="Username"
-        description="Choose a unique username for your account"
-        placeholder="e.g. gandalf_grey"
-      />
+      <div className="flex flex-col gap-4">
+        <FormInput
+          label="Username"
+          description="Choose a unique username for your account"
+          placeholder="e.g. gandalf_grey"
+        />
+        <FormCheckbox
+          label="I agree to the terms and conditions"
+          description="By checking this box, you agree to the terms and conditions"
+        />
+      </div>
     </RenderComponentWithSnippet>
   );
 };
