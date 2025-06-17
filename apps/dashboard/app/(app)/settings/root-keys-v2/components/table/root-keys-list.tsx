@@ -30,7 +30,7 @@ export const RootKeysList = () => {
     () => [
       {
         key: "root_key",
-        header: "Key",
+        header: "Name",
         width: "15%",
         headerClassName: "pl-[18px]",
         render: (rootKey) => {
@@ -95,10 +95,7 @@ export const RootKeysList = () => {
           return (
             <TimestampInfo
               value={rootKey.createdAt}
-              className={cn(
-                "font-mono group-hover:underline decoration-dotted",
-                selectedRootKey?.id !== rootKey.id && "pointer-events-none",
-              )}
+              className={cn("font-mono group-hover:underline decoration-dotted")}
             />
           );
         },

@@ -85,6 +85,7 @@ import { disconnectRoleFromKey } from "./rbac/disconnectRoleFromKey";
 import { removePermissionFromRootKey } from "./rbac/removePermissionFromRootKey";
 import { updatePermission } from "./rbac/updatePermission";
 import { updateRole } from "./rbac/updateRole";
+import { rootKeysLlmSearch } from "./settings/root-keys/llm-search";
 import { queryRootKeys } from "./settings/root-keys/query";
 import { cancelSubscription } from "./stripe/cancelSubscription";
 import { createSubscription } from "./stripe/createSubscription";
@@ -125,6 +126,7 @@ export const router = t.router({
   settings: t.router({
     rootKeys: t.router({
       query: queryRootKeys,
+      llmSearch: rootKeysLlmSearch,
     }),
   }),
   api: t.router({

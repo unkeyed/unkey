@@ -11,7 +11,6 @@ export type RootKeysFilterOperator = z.infer<typeof rootKeysFilterOperatorEnum>;
 export type FilterFieldConfigs = {
   name: StringConfig<RootKeysFilterOperator>;
   start: StringConfig<RootKeysFilterOperator>;
-  identity: StringConfig<RootKeysFilterOperator>;
   permission: StringConfig<RootKeysFilterOperator>;
 };
 
@@ -21,18 +20,12 @@ export const rootKeysFilterFieldConfig: FilterFieldConfigs = {
     operators: [...commonStringOperators],
   },
   start: {
-    // Start of the `key` for security reasons
-    type: "string",
-    operators: [...commonStringOperators],
-  },
-  identity: {
-    // ExternalId of creator user
     type: "string",
     operators: [...commonStringOperators],
   },
   permission: {
     type: "string",
-    operators: [...commonStringOperators],
+    operators: ["contains"],
   },
 };
 
