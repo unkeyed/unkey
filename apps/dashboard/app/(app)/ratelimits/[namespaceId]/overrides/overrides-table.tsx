@@ -52,10 +52,6 @@ export const OverridesTable = ({ namespaceId }: Props) => {
     includeOverrides: true,
   });
 
-  if (!data || isLoading) {
-    return <div>Loading...</div>;
-  }
-
   const overrides = data.namespace.overrides ?? [];
   const columns: Column<Override>[] = [
     {
@@ -150,6 +146,7 @@ export const OverridesTable = ({ namespaceId }: Props) => {
   return (
     <VirtualTable
       data={overrides}
+      loading={isLoading}
       columns={columns}
       keyExtractor={(override) => override.id}
       rowClassName={getRowClassName}
