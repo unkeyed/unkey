@@ -12,22 +12,21 @@ const namespaceSchema = z.object({
   id: z.string(),
   workspaceId: z.string(),
   name: z.string(),
-});
-
-const namespaceWithOverridesSchema = namespaceSchema.extend({
-  overrides: z.array(
-    z.object({
-      id: z.string(),
-      identifier: z.string(),
-      limit: z.number(),
-      duration: z.number(),
-      async: z.boolean(),
-    }),
-  ),
+  overrides: z
+    .array(
+      z.object({
+        id: z.string(),
+        identifier: z.string(),
+        limit: z.number(),
+        duration: z.number(),
+        async: z.boolean(),
+      }),
+    )
+    .optional(),
 });
 
 const workspaceDetailsOutput = z.object({
-  namespace: z.union([namespaceSchema, namespaceWithOverridesSchema]),
+  namespace: namespaceSchema,
   ratelimitNamespaces: z.array(namespaceSchema),
   workspace: z
     .object({
@@ -76,6 +75,7 @@ export async function fetchWorkspaceDetails({
   namespaceId,
   includeOverrides = false,
 }: WorkspaceDetailsOptions): Promise<WorkspaceDetailsResponse> {
+  // Build the query dynamically based on includeOverrides
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     columns: {
@@ -93,6 +93,7 @@ export async function fetchWorkspaceDetails({
         with: includeOverrides
           ? {
               overrides: {
+                where: (table, { isNull }) => isNull(table.deletedAtM),
                 columns: {
                   id: true,
                   identifier: true,
@@ -100,7 +101,6 @@ export async function fetchWorkspaceDetails({
                   duration: true,
                   async: true,
                 },
-                where: (table, { isNull }) => isNull(table.deletedAtM),
               },
             }
           : undefined,
@@ -124,6 +124,7 @@ export async function fetchWorkspaceDetails({
   }
 
   const namespace = workspace.ratelimitNamespaces.find((ns) => ns.id === namespaceId);
+
   if (!namespace) {
     throw new TRPCError({
       code: "NOT_FOUND",
@@ -131,9 +132,18 @@ export async function fetchWorkspaceDetails({
     });
   }
 
-  return {
+  // Return data structure that matches schema
+  const result: WorkspaceDetailsResponse = {
     namespace,
     ratelimitNamespaces: workspace.ratelimitNamespaces,
-    ...(includeOverrides && { workspace }),
   };
+
+  if (includeOverrides) {
+    result.workspace = {
+      name: workspace.name,
+      orgId: workspace.orgId,
+    };
+  }
+
+  return result;
 }

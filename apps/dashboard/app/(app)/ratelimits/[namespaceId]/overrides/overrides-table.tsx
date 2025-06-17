@@ -7,6 +7,7 @@ import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { Empty } from "@unkey/ui";
 import ms from "ms";
+import { LastUsedCell } from "./last-used-cell";
 import { OverridesTableAction } from "./logs-actions";
 
 type Override = {
@@ -36,7 +37,6 @@ const STATUS_STYLES = {
 
 const getRowClassName = () => {
   const style = STATUS_STYLES.default;
-
   return cn(
     style.base,
     style.hover,
@@ -51,6 +51,12 @@ export const OverridesTable = ({ namespaceId }: Props) => {
     namespaceId,
     includeOverrides: true,
   });
+
+  if (!data || isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  const overrides = data.namespace.overrides ?? [];
   const columns: Column<Override>[] = [
     {
       key: "identifier",
@@ -118,17 +124,9 @@ export const OverridesTable = ({ namespaceId }: Props) => {
       key: "lastUsed",
       header: "Last used",
       width: "20%",
-      render: (override) => {
-        const lastUsed = lastUsedTimes[override.identifier];
-        if (lastUsed) {
-          return (
-            <span className="font-mono text-xs text-content-subtle">
-              {ms(Date.now() - lastUsed)} ago
-            </span>
-          );
-        }
-        return <div className="w-4 h-4 text-content-subtle">─</div>;
-      },
+      render: (override) => (
+        <LastUsedCell namespaceId={namespaceId} identifier={override.identifier} />
+      ),
     },
     {
       key: "actions",
@@ -151,8 +149,7 @@ export const OverridesTable = ({ namespaceId }: Props) => {
 
   return (
     <VirtualTable
-      data={data?.ratelimitNamespaces ?? []}
-      isLoading={isLoading}
+      data={overrides}
       columns={columns}
       keyExtractor={(override) => override.id}
       rowClassName={getRowClassName}
