@@ -9,8 +9,8 @@ export default function RootKeysPage() {
     <div>
       <Navigation
         workspace={{
-          id: "will-add-soon",
-          name: "will-add-soon",
+          id: "",
+          name: "",
         }}
         activePage={{
           href: "root-keys",

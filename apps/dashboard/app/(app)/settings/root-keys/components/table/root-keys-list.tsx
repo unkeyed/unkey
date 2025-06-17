@@ -109,9 +109,20 @@ export const RootKeysList = () => {
         ),
       },
       {
+        key: "permissions",
+        header: "Permissions",
+        width: "15%",
+        render: (rootKey) => (
+          <AssignedItemsCell
+            isSelected={rootKey.id === selectedRootKey?.id}
+            permissionSummary={rootKey.permissionSummary}
+          />
+        ),
+      },
+      {
         key: "created_at",
         header: "Created At",
-        width: "15%",
+        width: "20%",
         render: (rootKey) => {
           return (
             <TimestampInfo
@@ -120,17 +131,6 @@ export const RootKeysList = () => {
             />
           );
         },
-      },
-      {
-        key: "permissions",
-        header: "Permissions",
-        width: "20%",
-        render: (rootKey) => (
-          <AssignedItemsCell
-            isSelected={rootKey.id === selectedRootKey?.id}
-            permissionSummary={rootKey.permissionSummary}
-          />
-        ),
       },
       {
         key: "last_updated",
