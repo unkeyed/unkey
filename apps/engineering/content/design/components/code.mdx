@@ -1,0 +1,82 @@
+---
+title: Code
+description: A versatile code component for displaying inline and block code snippets with customizable styling.
+---
+
+import { CodeExample, CodeVariants } from "./code.example";
+
+# Code
+
+The Code component provides a consistent way to display code snippets within your application. It supports both inline and block code display with customizable styling options.
+
+## Features
+
+- Multiple variants (default, outline)
+- Consistent monospace font
+- Customizable styling
+- Accessible by default
+- Responsive design
+- Focus states for better interaction
+
+## Usage
+
+```tsx
+import { Code } from "@unkey/ui";
+
+function MyComponent() {
+  return <Code>const hello = "world";</Code>;
+}
+```
+
+## Examples
+
+### Default Variant
+
+The default variant provides a subtle background with a border.
+
+<CodeExample />
+
+### Variant Styles
+
+The Code component supports different visual styles.
+
+<CodeVariants />
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `variant` | `"default" \| "outline"` | `"default"` | The visual style of the code component |
+| `className` | `string` | `undefined` | Additional CSS classes to customize the component |
+
+The component also accepts all standard HTML pre element props.
+
+## Styling
+
+The Code component includes:
+
+- Monospace font for code readability
+- Consistent padding and border radius
+- Focus states for keyboard navigation
+- Hover effects for better interaction
+- Dark mode support
+- Responsive design
+
+## Best Practices
+
+- Use the default variant for inline code snippets
+- Use the outline variant when you need more visual separation
+- Add appropriate padding around the code component
+- Consider using syntax highlighting for complex code blocks
+- Ensure sufficient contrast between code and background
+- Use semantic HTML structure for better accessibility
+
+## Accessibility
+
+The Code component is built with accessibility in mind:
+
+- Proper ARIA attributes
+- Keyboard focus management
+- High contrast text
+- Semantic HTML structure
+- Screen reader support 
