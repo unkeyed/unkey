@@ -33,5 +33,3 @@ export const StatusBadge = ({ variant, icon, text, className, ...props }: Status
     </div>
   );
 };
-
-// font-mono text-sm text-secondary inline-flex rounded-sm bg-gray-50 px-1.5 shadow-[0_0_0_1px,0_1px_0] shadow-gray-200/60

@@ -26,6 +26,7 @@ test("create with roles and permissions", async (t) => {
     await h.db.primary.insert(schema.permissions).values({
       id: permissionId,
       name,
+      slug: name,
       workspaceId: h.resources.userWorkspace.id,
     });
 

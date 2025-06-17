@@ -3,7 +3,7 @@ import {
   ControlsLeft,
   ControlsRight,
 } from "@/components/logs/controls-container";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "@unkey/ui";
 import type { WorkspaceProps } from "../logs-client";
 import { LogsDateTime } from "./components/logs-datetime";
 import { LogsFilters } from "./components/logs-filters";

@@ -6,8 +6,7 @@ import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import { BookBookmark, TriangleWarning2 } from "@unkey/icons";
-import { TimestampInfo } from "@unkey/ui";
-import { Button, Empty } from "@unkey/ui";
+import { Button, Empty, TimestampInfo } from "@unkey/ui";
 import { useMemo } from "react";
 import { isDisplayProperty, useLogsContext } from "../../context/logs";
 import { extractResponseField } from "../../utils";
@@ -106,11 +105,9 @@ const additionalColumns: Column<Log>[] = [
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" "),
-  width: "1fr",
+  width: "auto",
   render: (log: Log) => (
-    <div className="font-mono whitespace-nowrap truncate max-w-[500px]">
-      {log[key as keyof Log]}
-    </div>
+    <div className="font-mono whitespace-nowrap truncate w-[500px]">{log[key as keyof Log]}</div>
   ),
 }));
 

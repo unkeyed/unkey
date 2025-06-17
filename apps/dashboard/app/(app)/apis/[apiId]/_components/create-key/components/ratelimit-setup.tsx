@@ -1,6 +1,7 @@
 "use client";
 import { Gauge, Trash } from "@unkey/icons";
 import { Button, FormInput } from "@unkey/ui";
+import { cn } from "@unkey/ui/src/lib/utils";
 import { useEffect } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import type { RatelimitFormValues, RatelimitItem } from "../create-key.schema";
@@ -52,18 +53,16 @@ export const RatelimitSetup = () => {
   };
 
   return (
-    <div className="space-y-5 px-1 py-1">
-      <div className="px-1">
-        <ProtectionSwitch
-          description="Turn on to restrict how frequently this key can be used. Requests
+    <div className="space-y-5 px-2 py-1">
+      <ProtectionSwitch
+        description="Turn on to restrict how frequently this key can be used. Requests
             beyond the limit will be blocked."
-          title="Ratelimit"
-          icon={<Gauge className="text-gray-12" size="sm-regular" />}
-          checked={ratelimitEnabled}
-          onCheckedChange={handleSwitchChange}
-          {...register("ratelimit.enabled")}
-        />
-      </div>
+        title="Ratelimit"
+        icon={<Gauge className="text-gray-12" size="sm-regular" />}
+        checked={ratelimitEnabled}
+        onCheckedChange={handleSwitchChange}
+        {...register("ratelimit.enabled")}
+      />
 
       <div className="flex w-full justify-between items-center px-1">
         <div className="flex gap-2 items-center">
@@ -83,12 +82,15 @@ export const RatelimitSetup = () => {
         </Button>
       </div>
 
-      <div className="max-h-[550px] overflow-y-auto px-1">
+      <div className="px-1">
         {fields.map((field, index) => (
           <div key={field.id} className="space-y-4 w-full border-t border-grayA-3 py-6">
             <div className="flex items-center gap-[14px] w-full">
               <FormInput
-                className="[&_input:first-of-type]:h-[36px] w-full"
+                className={cn(
+                  "[&_input:first-of-type]:h-[36px]",
+                  fields.length <= 1 ? "w-full" : "flex-1",
+                )}
                 placeholder="Default"
                 type="text"
                 label="Name"
@@ -98,20 +100,20 @@ export const RatelimitSetup = () => {
                 readOnly={!ratelimitEnabled}
                 {...register(`ratelimit.data.${index}.name`)}
               />
+
               {fields.length > 1 ? (
                 <Button
                   variant="ghost"
                   color="danger"
-                  className="bg-errorA-4"
+                  className="bg-errorA-4 size-[34px] rounded-lg"
                   onClick={() => remove(index)}
                   type="button"
                 >
                   <Trash size="sm-regular" className="text-error-11" />
                 </Button>
-              ) : (
-                <div className="w-[36px] h-[36px] invisible" />
-              )}
+              ) : null}
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormInput
                 className="hidden"
@@ -132,23 +134,19 @@ export const RatelimitSetup = () => {
                 readOnly={!ratelimitEnabled}
                 {...register(`ratelimit.data.${index}.limit`)}
               />
-              <div className="flex items-center gap-4">
-                <FormInput
-                  className="[&_input:first-of-type]:h-[36px] w-full"
-                  label="Refill Interval (ms)"
-                  placeholder="1000"
-                  inputMode="numeric"
-                  type="number"
-                  description="Time window in milliseconds"
-                  error={errors.ratelimit?.data?.[index]?.refillInterval?.message}
-                  disabled={!ratelimitEnabled}
-                  readOnly={!ratelimitEnabled}
-                  {...register(`ratelimit.data.${index}.refillInterval`)}
-                />
-                <Button variant="ghost" color="danger" className="bg-errorA-4 invisible">
-                  <Trash size="sm-regular" className="text-error-11" />
-                </Button>
-              </div>
+
+              <FormInput
+                className="[&_input:first-of-type]:h-[36px] w-full"
+                label="Refill Interval (ms)"
+                placeholder="1000"
+                inputMode="numeric"
+                type="number"
+                description="Time window in milliseconds"
+                error={errors.ratelimit?.data?.[index]?.refillInterval?.message}
+                disabled={!ratelimitEnabled}
+                readOnly={!ratelimitEnabled}
+                {...register(`ratelimit.data.${index}.refillInterval`)}
+              />
             </div>
           </div>
         ))}

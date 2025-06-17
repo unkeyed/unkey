@@ -57,6 +57,7 @@ export type VirtualTableProps<TTableData> = {
     itemLabel?: string;
     buttonText?: string;
     countInfoText?: React.ReactNode;
+    headerContent?: React.ReactNode;
     hasMore?: boolean;
     hide?: boolean;
   };
@@ -64,6 +65,14 @@ export type VirtualTableProps<TTableData> = {
     columns: Column<TTableData>[];
     rowHeight: number;
   }) => ReactNode;
+  /**
+   * Callback when mouse enters a row
+   */
+  onRowMouseEnter?: (item: TTableData) => void;
+  /**
+   * Callback when mouse leaves a row
+   */
+  onRowMouseLeave?: () => void;
 };
 
 export type SeparatorItem = {

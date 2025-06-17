@@ -15,6 +15,7 @@ test("return the role", async (t) => {
     id: newId("test"),
     name: randomUUID(),
     workspaceId: h.resources.userWorkspace.id,
+    slug: randomUUID(),
   };
   await h.db.primary.insert(schema.permissions).values(permission);
 

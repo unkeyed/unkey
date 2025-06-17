@@ -69,5 +69,3 @@ export const CalendarEvent: React.FC<IconProps> = ({ size, filled, ...props }) =
     </svg>
   );
 };
-
-export default CalendarEvent;

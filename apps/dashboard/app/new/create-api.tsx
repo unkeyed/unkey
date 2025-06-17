@@ -1,25 +1,15 @@
 "use client";
 
-import { Loading } from "@/components/dashboard/loading";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { PostHogIdentify } from "@/providers/PostHogProvider";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@unkey/ui";
+import { Button, FormInput } from "@unkey/ui";
 import { Code2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
+
 const formSchema = z.object({
   name: z.string().trim().min(3, "Name is required and should be at least 3 characters").max(50),
 });
@@ -32,22 +22,30 @@ type Props = {
 };
 
 export const CreateApi: React.FC<Props> = ({ workspace }) => {
-  const form = useForm<z.infer<typeof formSchema>>({
+  const {
+    handleSubmit,
+    control,
+    reset,
+    formState: { errors, isValid },
+  } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
+
   const { data: user, isLoading } = trpc.user.getCurrentUser.useQuery();
   const router = useRouter();
 
   if (!isLoading && user) {
     PostHogIdentify({ user });
   }
+
   const createApi = trpc.api.create.useMutation({
     onSuccess: async ({ id: apiId }) => {
       toast.success("Your API has been created");
-      form.reset();
+      reset();
       router.push(`/new?workspaceId=${workspace.id}&apiId=${apiId}`);
     },
   });
+
   function AsideContent() {
     return (
       <div className="space-y-2">
@@ -70,6 +68,7 @@ export const CreateApi: React.FC<Props> = ({ workspace }) => {
       </div>
     );
   }
+
   return (
     <div className="flex items-start justify-between gap-16">
       <main className="max-sm:w-full md:w-3/4">
@@ -78,41 +77,42 @@ export const CreateApi: React.FC<Props> = ({ workspace }) => {
         </aside>
 
         <div>
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit((values) => createApi.mutate({ ...values }))}
-              className="flex flex-col space-y-4"
-            >
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem className="w-full">
-                    <FormLabel>API Name</FormLabel>
-                    <FormMessage className="text-xs" />
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      <p>What should your api be called?</p>
-                      <p>This is just for you, and will not be visible to your customers</p>
-                    </FormDescription>
-                  </FormItem>
-                )}
-              />
+          <form
+            onSubmit={handleSubmit((values) => createApi.mutate({ ...values }))}
+            className="flex flex-col space-y-4"
+          >
+            <Controller
+              control={control}
+              name="name"
+              render={({ field }) => (
+                <div className="space-y-1.5 w-full">
+                  <div className="text-gray-11 text-[13px] flex items-center">API Name</div>
+                  <FormInput
+                    {...field}
+                    error={errors.name?.message}
+                    description={
+                      <>
+                        <p>What should your api be called?</p>
+                        <p>This is just for you, and will not be visible to your customers</p>
+                      </>
+                    }
+                  />
+                </div>
+              )}
+            />
 
-              <div className="mt-8">
-                <Button
-                  variant="primary"
-                  disabled={createApi.isLoading || !form.formState.isValid}
-                  type="submit"
-                  className="w-full"
-                >
-                  {createApi.isLoading ? <Loading /> : "Create API"}
-                </Button>
-              </div>
-            </form>
-          </Form>
+            <div className="mt-8">
+              <Button
+                variant="primary"
+                disabled={createApi.isLoading || !isValid}
+                type="submit"
+                loading={createApi.isLoading}
+                className="w-full h-9"
+              >
+                Create API
+              </Button>
+            </div>
+          </form>
         </div>
       </main>
       <aside className="flex-col items-start justify-center w-1/4 space-y-16 md:flex max-md:hidden ">

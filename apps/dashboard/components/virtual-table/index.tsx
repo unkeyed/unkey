@@ -11,7 +11,7 @@ import { useVirtualData } from "./hooks/useVirtualData";
 import type { Column, SeparatorItem, SortDirection, VirtualTableProps } from "./types";
 
 const MOBILE_TABLE_HEIGHT = 400;
-const calculateTableLayout = (columns: Column<any>[]) => {
+const calculateTableLayout = <TTableData,>(columns: Column<TTableData>[]) => {
   return columns.map((column) => {
     let width = "auto";
     if (typeof column.width === "number") {
@@ -34,6 +34,7 @@ export type VirtualTableRef = {
   containerRef: HTMLDivElement | null;
 };
 
+// biome-ignore lint/suspicious/noExplicitAny: Safe to leave
 export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
   function VirtualTable<TTableData>(
     props: VirtualTableProps<TTableData>,
@@ -55,6 +56,8 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
       isFetchingNextPage,
       loadMoreFooterProps,
       renderSkeletonRow,
+      onRowMouseEnter,
+      onRowMouseLeave,
     } = props;
 
     // Merge configs, allowing specific overrides
@@ -79,12 +82,12 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     });
 
     const tableClassName = cn(
-      "w-full bg-white dark:bg-black ",
+      "w-full",
       isGridLayout ? "border-collapse" : "border-separate border-spacing-0",
     );
 
     const containerClassName = cn(
-      "overflow-auto relative pb-4",
+      "overflow-auto relative pb-4 bg-white dark:bg-black ",
       config.containerPadding || "px-2", // Default to px-2 if containerPadding is not specified
     );
 
@@ -108,7 +111,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
           ref={containerRef}
         >
           <table className={tableClassName}>
-            <thead className="sticky top-0 z-10">
+            <thead className="sticky top-0 z-10 bg-white dark:bg-black">
               <tr>
                 {columns.map((column) => (
                   <th
@@ -152,18 +155,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                 <col key={idx} style={{ width: col.width }} />
               ))}
             </colgroup>
-
-            <thead className="sticky top-0 z-10">
-              <tr>
-                <th colSpan={columns.length} className="p-0">
-                  <div
-                    className={cn(
-                      "absolute top-0 bottom-0 bg-gray-1",
-                      hasPadding ? "inset-x-[-8px]" : "inset-x-0",
-                    )}
-                  />
-                </th>
-              </tr>
+            <thead className="sticky top-0 z-10 bg-white dark:bg-black">
               <tr>
                 {columns.map((column) => (
                   <th
@@ -197,12 +189,14 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                   height: `${virtualizer.getVirtualItems()[0]?.start || 0}px`,
                 }}
               />
+
               {virtualizer.getVirtualItems().map((virtualRow) => {
                 if (isLoading) {
                   if (renderSkeletonRow) {
                     return (
                       <tr
                         key={`skeleton-${virtualRow.key}`}
+                        className={cn(config.rowBorders && "border-b border-gray-4")}
                         style={{ height: `${config.rowHeight}px` }}
                       >
                         {renderSkeletonRow({
@@ -215,6 +209,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                   return (
                     <tr
                       key={`skeleton-${virtualRow.key}`}
+                      className={cn(config.rowBorders && "border-b border-gray-4")}
                       style={{ height: `${config.rowHeight}px` }}
                     >
                       {columns.map((column) => (
@@ -225,6 +220,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                     </tr>
                   );
                 }
+
                 const item = tableData.getItemAt(virtualRow.index);
                 if (!item) {
                   return null;
@@ -261,6 +257,8 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                       data-index={virtualRow.index}
                       aria-selected={isSelected}
                       onClick={() => onRowClick?.(typedItem)}
+                      onMouseEnter={() => onRowMouseEnter?.(typedItem)}
+                      onMouseLeave={() => onRowMouseLeave?.()}
                       onKeyDown={(event) => {
                         if (event.key === "Escape") {
                           event.preventDefault();
@@ -327,6 +325,8 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                       data-index={virtualRow.index}
                       aria-selected={isSelected}
                       onClick={() => onRowClick?.(typedItem)}
+                      onMouseEnter={() => onRowMouseEnter?.(typedItem)}
+                      onMouseLeave={() => onRowMouseLeave?.()}
                       onKeyDown={(event) => {
                         if (event.key === "Escape") {
                           event.preventDefault();
@@ -421,7 +421,7 @@ function HeaderCell<T>({ column }: { column: Column<T> }) {
       return;
     }
 
-    const nextDirection = !direction ? "asc" : direction === "asc" ? "desc" : null;
+    const nextDirection = direction ? (direction === "asc" ? "desc" : null) : "asc";
 
     onSort(nextDirection);
   };

@@ -1,9 +1,11 @@
 "use client";
 
-import { Loading } from "@/components/dashboard/loading";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { trpc } from "@/lib/trpc/client";
 import {
+  Button,
+  Empty,
+  Loading,
   Select,
   SelectContent,
   SelectGroup,
@@ -11,15 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
-import { Empty } from "@unkey/ui";
-import { Button } from "@unkey/ui";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Invitations } from "./invitations";
 import { InviteButton } from "./invite";
 import { Members } from "./members";
 
-export default function TeamPageClient({ team }: { team: boolean }) {
+export function TeamPageClient({ team }: { team: boolean }) {
   const { data: user } = trpc.user.getCurrentUser.useQuery();
 
   const { data: memberships, isLoading: isUserMembershipsLoading } =

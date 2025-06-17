@@ -1,13 +1,7 @@
 "use client";
 
-import { CopyButton } from "@/components/dashboard/copy-button";
-import { Loading } from "@/components/dashboard/loading";
 import { VisibleButton } from "@/components/dashboard/visible-button";
 import { Code } from "@/components/ui/code";
-import { Button } from "@unkey/ui";
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dialog,
@@ -17,11 +11,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { type UnkeyPermission, unkeyPermissionValidation } from "@unkey/rbac";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Checkbox,
+  CopyButton,
+  Input,
+} from "@unkey/ui";
 import { ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createParser, parseAsArrayOf, useQueryState } from "nuqs";
@@ -264,7 +268,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
           });
         }}
       >
-        {key.isLoading ? <Loading className="w-4 h-4" /> : "Create New Key"}
+        Create New Key
       </Button>
 
       <Dialog

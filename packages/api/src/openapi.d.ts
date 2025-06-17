@@ -1888,10 +1888,15 @@ export interface operations {
            * ]
            */
           permissions: {
-            /** @description The id of the permission. Provide either `id` or `name`. If both are provided `id` is used. */
+            /** @description The id of the permission. Provide either `id` or `slug`. If both are provided `id` is used. */
             id?: string;
-            /** @description Identify the permission via its name. Provide either `id` or `name`. If both are provided `id` is used. */
+            /**
+             * @deprecated
+             * @description This field is deprecated and will be removed in a future release. please use `slug` instead.
+             */
             name?: string;
+            /** @description Identify the permission via its slug. Provide either `id` or `slug`. If both are provided `id` is used. */
+            slug?: string;
           }[];
         };
       };
@@ -1978,8 +1983,13 @@ export interface operations {
           permissions: {
             /** @description The id of the permission. Provide either `id` or `name`. If both are provided `id` is used. */
             id?: string;
-            /** @description Identify the permission via its name. Provide either `id` or `name`. If both are provided `id` is used. */
+            /**
+             * @deprecated
+             * @description This field is deprecated and will be removed in a future release. please use `slug` instead.
+             */
             name?: string;
+            /** @description Identify the permission via its slug. Provide either `id` or `slug`. If both are provided `id` is used. */
+            slug?: string;
             /**
              * @description Set to true to automatically create the permissions they do not exist yet. Only works when specifying `name`.
              *                 Autocreating permissions requires your root key to have the `rbac.*.create_permission` permission, otherwise the request will get rejected
@@ -3659,9 +3669,14 @@ export interface operations {
         "application/json": {
           /**
            * @description The unique name of your permission.
-           * @example record.write
+           * @example Can write records
            */
           name: string;
+          /**
+           * @description The unique slug of your permission. If not provided, the name is used.
+           * @example record.write
+           */
+          slug?: string;
           /**
            * @description Explain what this permission does. This is just for your team, your users will not see this.
            * @example record.write can create new dns records for our domains.

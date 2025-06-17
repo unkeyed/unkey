@@ -6,8 +6,7 @@ import { toast } from "@/components/ui/toaster";
 import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SettingCard } from "@unkey/ui";
-import { Button, Input } from "@unkey/ui";
+import { Button, Input, SettingCard } from "@unkey/ui";
 import { validation } from "@unkey/validation";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
@@ -107,8 +106,8 @@ export const PermissionClient = ({ permission }: Props) => {
 
   return (
     <>
-      <div className="py-3 w-full flex items-center justify-center ">
-        <div className="w-[760px] flex flex-col justify-center items-center gap-5">
+      <div className="py-3 w-full flex items-center justify-center">
+        <div className="w-[900px] flex flex-col justify-center items-center gap-5">
           <div className="w-full text-accent-12 font-semibold text-lg py-6 text-left border-b border-gray-4">
             Permission Settings
           </div>

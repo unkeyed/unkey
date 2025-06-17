@@ -53,7 +53,7 @@ export type ApiRequestEvent = {
   response_status: number;
   response_body?: string;
   error?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 /**

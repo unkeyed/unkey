@@ -27,7 +27,7 @@ test(
     const { err: insertErr } = await ch.verifications.insert(verification);
     expect(insertErr).toBeUndefined();
 
-    const latestVerifications = await ch.verifications.logs({
+    const latestVerifications = await ch.verifications.latest({
       workspaceId: verification.workspace_id,
       keySpaceId: verification.key_space_id,
       keyId: verification.key_id,

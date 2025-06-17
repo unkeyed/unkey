@@ -1,8 +1,8 @@
-import { KeyboardButton } from "@/components/keyboard-button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import type { User } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
+import { KeyboardButton } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
 import type { FilterValue } from "../validation/filter.types";
 import { EmptyQueries } from "./empty";
@@ -99,7 +99,7 @@ export function QueriesPopover<T extends FilterValue, U extends QueryParamsTypes
           {children}
         </PopoverTrigger>
         <PopoverContent
-          className="flex flex-col min-w-[430px] w-full h-[924px] bg-white dark:bg-black rounded-lg p-2 pb-0 shadow-lg border-r border-gray-4"
+          className="flex flex-col min-w-[430px] w-full h-[calc(100dvh-120px)] max-h-[840px] bg-white dark:bg-black rounded-lg p-2 pb-0 shadow-lg border-r border-gray-4"
           align="start"
           onKeyDown={handleKeyNavigation}
         >

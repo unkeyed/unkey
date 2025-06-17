@@ -2,11 +2,9 @@
 
 import * as React from "react";
 
-import { Loading } from "@/components/dashboard/loading";
-import { FadeInStagger } from "@/components/landing/fade-in";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
+import { FormInput, Loading } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { useSignUp } from "../hooks/useSignUp";
 
@@ -46,8 +44,8 @@ export const EmailSignUp: React.FC<Props> = ({ setVerification }) => {
       }).then(() => {
         setVerification(true);
       });
-    } catch (err: any) {
-      const errorCode = err.message as AuthErrorCode;
+    } catch (err: unknown) {
+      const errorCode = (err as { message: string }).message as AuthErrorCode;
       toast.error(errorMessages[errorCode] || errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
       console.error(err);
     } finally {
@@ -56,70 +54,57 @@ export const EmailSignUp: React.FC<Props> = ({ setVerification }) => {
   };
 
   return (
-    <FadeInStagger>
-      <form className="grid gap-2" onSubmit={signUpWithCode}>
-        <div className="grid gap-4">
-          <div className="flex flex-row gap-3 ">
-            <div className="flex flex-col items-start w-1/2 gap-2">
-              <label htmlFor="first" className="text-xs text-white/50">
-                First Name
-              </label>
-              <Input
-                name="first"
-                placeholder="Bruce"
-                type="text"
-                required
-                autoCapitalize="none"
-                autoCorrect="off"
-                className="h-10 text-white duration-500 bg-transparent focus:text-black border-white/20 focus:bg-white focus:border-white hover:bg-white/20 hover:border-white/40 placeholder:white/20 "
-              />
-            </div>
-            <div className="flex flex-col items-start w-1/2 gap-2">
-              <label htmlFor="last" className="text-xs text-white/50">
-                Last Name
-              </label>
-              <Input
-                name="last"
-                placeholder="Banner"
-                type="text"
-                required
-                autoCapitalize="none"
-                autoCorrect="off"
-                className="h-10 text-white duration-500 bg-transparent focus:text-black border-white/20 focus:bg-white focus:border-white hover:bg-white/20 hover:border-white/40 placeholder:white/20 "
-              />
-            </div>
-          </div>
-          <div className="flex flex-col items-start gap-2">
-            <label htmlFor="email" className="text-xs text-white/50">
-              Email
-            </label>
-            <Input
-              name="email"
-              defaultValue={emailFromParams}
-              placeholder="name@example.com"
-              type="email"
+    <form className="grid gap-16" onSubmit={signUpWithCode}>
+      <div className="grid gap-10">
+        <div className="flex flex-row gap-3">
+          <div className="flex flex-col items-start w-1/2 gap-2">
+            <FormInput
+              label="First Name"
+              name="first"
+              placeholder="Bruce"
+              type="text"
               autoCapitalize="none"
-              autoComplete="email"
               autoCorrect="off"
-              required
-              className="h-10 text-white duration-500 bg-transparent focus:text-black border-white/20 focus:bg-white focus:border-white hover:bg-white/20 hover:border-white/40 placeholder:white/20 "
+              className="h-10 dark !bg-black"
+            />
+          </div>
+          <div className="flex flex-col items-start w-1/2 gap-2">
+            <FormInput
+              label="Last Name"
+              name="last"
+              placeholder="Banner"
+              type="text"
+              autoCapitalize="none"
+              autoCorrect="off"
+              className="h-10 dark !bg-black"
             />
           </div>
         </div>
-        <button
-          type="submit"
-          className="flex items-center justify-center h-10 gap-2 px-4 mt-8 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
-          disabled={isLoading}
-        >
-          {!clientLoaded ? (
-            "Sign Up with Email"
-          ) : isLoading ? (
-            <Loading className="w-4 h-4 animate-spin" />
-          ) : (
-            "Sign Up with Email"
-          )}
-        </button>
-      </form>
-    </FadeInStagger>
+        <div className="flex flex-col items-start gap-2">
+          <FormInput
+            label="Email"
+            name="email"
+            defaultValue={emailFromParams}
+            placeholder="name@example.com"
+            type="email"
+            autoCapitalize="none"
+            autoComplete="email"
+            autoCorrect="off"
+            className="h-10 dark !bg-black w-full"
+          />
+        </div>
+      </div>
+      <button
+        type="submit"
+        className="flex items-center justify-center h-10 gap-2 px-4 mt-8 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
+        disabled={isLoading}
+      >
+        {clientLoaded && isLoading ? (
+          <Loading className="w-4 h-4 animate-spin" />
+        ) : (
+          "Sign Up with Email"
+        )}
+      </button>
+    </form>
   );
 };

@@ -579,6 +579,7 @@ async function getPermissionIds(
     id: newId("permission"),
     workspaceId,
     name,
+    slug: name,
   }));
 
   await db.insert(schema.permissions).values(newPermissions);

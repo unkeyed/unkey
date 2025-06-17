@@ -1,8 +1,7 @@
 import { ExternalIdField } from "@/app/(app)/apis/[apiId]/_components/create-key/components/external-id-field";
 import { ConfirmPopover } from "@/components/confirmation-popover";
-import { DialogContainer } from "@/components/dialog-container";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { Button } from "@unkey/ui";
+import { Button, DialogContainer } from "@unkey/ui";
 import { useRef, useState } from "react";
 import type { ActionComponentProps } from "../../keys-table-action.popover";
 import { useEditExternalId } from "../hooks/use-edit-external-id";
@@ -33,7 +32,7 @@ export const EditExternalId = ({
 
   const handleSubmit = () => {
     updateKeyOwner.mutate({
-      keyId: keyDetails.id,
+      keyIds: keyDetails.id,
       ownerType: "v2",
       identity: {
         id: selectedIdentityId,
@@ -59,7 +58,7 @@ export const EditExternalId = ({
   const clearSelection = async () => {
     setSelectedIdentityId(null);
     await updateKeyOwner.mutateAsync({
-      keyId: keyDetails.id,
+      keyIds: keyDetails.id,
       ownerType: "v2",
       identity: {
         id: null,
@@ -71,7 +70,7 @@ export const EditExternalId = ({
     <>
       <DialogContainer
         isOpen={isOpen}
-        subTitle="Provide an owner to this key, like a userId from your system"
+        subTitle="Provide an owner to this key, like a userID from your system"
         onOpenChange={handleDialogOpenChange}
         title="Edit External ID"
         footer={

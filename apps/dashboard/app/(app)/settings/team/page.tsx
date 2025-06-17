@@ -1,7 +1,7 @@
 import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { WorkspaceNavbar } from "../workspace-navbar";
-import TeamPageClient from "./client";
+import { TeamPageClient } from "./client";
 
 export const revalidate = 0;
 

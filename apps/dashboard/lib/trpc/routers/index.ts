@@ -20,6 +20,15 @@ import { updateApiIpWhitelist } from "./api/updateIpWhitelist";
 import { updateApiName } from "./api/updateName";
 import { fetchAuditLog } from "./audit/fetch";
 import { auditLogsSearch } from "./audit/llm-search";
+import { getConnectedKeysAndPerms } from "./authorization/roles/connected-keys-and-perms";
+import { deleteRoleWithRelations } from "./authorization/roles/delete";
+import { queryKeys } from "./authorization/roles/keys/query-keys";
+import { searchKeys } from "./authorization/roles/keys/search-key";
+import { rolesLlmSearch } from "./authorization/roles/llm-search";
+import { queryRolesPermissions } from "./authorization/roles/permissions/query-permissions";
+import { searchRolesPermissions } from "./authorization/roles/permissions/search-permissions";
+import { queryRoles } from "./authorization/roles/query";
+import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
 import { createIdentity } from "./identity/create";
 import { queryIdentities } from "./identity/query";
@@ -27,7 +36,10 @@ import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
 import { deleteKeys } from "./key/delete";
 import { deleteRootKeys } from "./key/deleteRootKey";
-import { updateKeyEnabled } from "./key/updateEnabled";
+import { fetchKeyPermissions } from "./key/fetch-key-permissions";
+import { queryKeyDetailsLogs } from "./key/query-logs";
+import { keyDetailsVerificationsTimeseries } from "./key/query-timeseries";
+import { updateKeysEnabled } from "./key/updateEnabled";
 import { updateKeyExpiration } from "./key/updateExpiration";
 import { updateKeyMetadata } from "./key/updateMetadata";
 import { updateKeyName } from "./key/updateName";
@@ -87,8 +99,13 @@ export const router = t.router({
   key: t.router({
     create: createKey,
     delete: deleteKeys,
+    fetchPermissions: fetchKeyPermissions,
+    logs: t.router({
+      query: queryKeyDetailsLogs,
+      timeseries: keyDetailsVerificationsTimeseries,
+    }),
     update: t.router({
-      enabled: updateKeyEnabled,
+      enabled: updateKeysEnabled,
       expiration: updateKeyExpiration,
       metadata: updateKeyMetadata,
       name: updateKeyName,
@@ -143,6 +160,23 @@ export const router = t.router({
   vercel: vercelRouter,
   plain: t.router({
     createIssue: createPlainIssue,
+  }),
+  authorization: t.router({
+    roles: t.router({
+      query: queryRoles,
+      keys: t.router({
+        search: searchKeys,
+        query: queryKeys,
+      }),
+      permissions: t.router({
+        search: searchRolesPermissions,
+        query: queryRolesPermissions,
+      }),
+      upsert: upsertRole,
+      delete: deleteRoleWithRelations,
+      llmSearch: rolesLlmSearch,
+      connectedKeysAndPerms: getConnectedKeysAndPerms,
+    }),
   }),
   rbac: t.router({
     addPermissionToRootKey: addPermissionToRootKey,

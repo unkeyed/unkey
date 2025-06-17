@@ -1,11 +1,10 @@
 "use client";
 
-import { CopyButton } from "@/components/dashboard/copy-button";
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { Navbar } from "@/components/navigation/navbar";
 import { Badge } from "@/components/ui/badge";
 import { ChevronExpandY, Gear } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, CopyButton } from "@unkey/ui";
 import Link from "next/link";
 
 const settingsNavbar = [

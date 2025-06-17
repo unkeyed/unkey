@@ -19,10 +19,7 @@ export async function getStructuredSearchFromLLM(
     const completion = await openai.beta.chat.completions.parse({
       // Don't change the model only a few models allow structured outputs
       model: "gpt-4o-mini",
-      temperature: 0.2, // Range 0-2, lower = more focused/deterministic
-      top_p: 0.1, // Alternative to temperature, controls randomness
-      frequency_penalty: 0.5, // Range -2 to 2, higher = less repetition
-      presence_penalty: 0.5, // Range -2 to 2, higher = more topic diversity
+      temperature: 0.1, // Range 0-2, lower = more focused/deterministic
       n: 1, // Number of completions to generate
       messages: [
         {
@@ -62,7 +59,7 @@ export async function getStructuredSearchFromLLM(
       throw error;
     }
 
-    if ((error as any).response?.status === 429) {
+    if ((error as { response: { status: number } }).response?.status === 429) {
       throw new TRPCError({
         code: "TOO_MANY_REQUESTS",
         message: "Search rate limit exceeded. Please try again in a few minutes.",

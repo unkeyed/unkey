@@ -3,12 +3,12 @@ import {
   type CreditsFormValues,
   creditsSchema,
 } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.schema";
-import { DialogContainer } from "@/components/dialog-container";
 import { toast } from "@/components/ui/toaster";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
+import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@unkey/ui";
+import { Button, DialogContainer } from "@unkey/ui";
 import { useEffect } from "react";
 import { FormProvider } from "react-hook-form";
 import type { ActionComponentProps } from "../../keys-table-action.popover";
@@ -21,6 +21,7 @@ const EDIT_CREDITS_FORM_STORAGE_KEY = "unkey_edit_credits_form_state";
 type EditCreditsProps = { keyDetails: KeyDetails } & ActionComponentProps;
 
 export const EditCredits = ({ keyDetails, isOpen, onClose }: EditCreditsProps) => {
+  const trpcUtil = trpc.useUtils();
   const methods = usePersistedForm<CreditsFormValues>(
     `${EDIT_CREDITS_FORM_STORAGE_KEY}_${keyDetails.id}`,
     {
@@ -52,6 +53,7 @@ export const EditCredits = ({ keyDetails, isOpen, onClose }: EditCreditsProps) =
   const key = useEditCredits(() => {
     reset(getKeyLimitDefaults(keyDetails));
     clearPersistedData();
+    trpcUtil.key.fetchPermissions.invalidate();
     onClose();
   });
 

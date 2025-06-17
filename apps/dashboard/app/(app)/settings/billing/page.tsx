@@ -3,17 +3,16 @@ import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { formatNumber } from "@/lib/fmt";
-import { SettingCard } from "@unkey/ui";
-import { Button, Empty, Input } from "@unkey/ui";
+import { Button, Empty, Input, SettingCard } from "@unkey/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import Stripe from "stripe";
 import { WorkspaceNavbar } from "../workspace-navbar";
 import { Client } from "./client";
 import { Shell } from "./components/shell";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 export default async function BillingPage() {
   const { orgId } = await getAuth();
@@ -28,7 +27,6 @@ export default async function BillingPage() {
   if (!workspace) {
     return redirect("/new");
   }
-
   const e = stripeEnv();
   if (!e) {
     return (
@@ -165,25 +163,39 @@ export default async function BillingPage() {
   ]);
 
   return (
-    <Client
-      hasPreviousSubscriptions={hasPreviousSubscriptions}
-      workspace={workspace}
-      products={products}
-      usage={{
-        current: usedVerifications + usedRatelimits,
-        max: workspace.quotas?.requestsPerMonth ?? 150_000,
-      }}
-      subscription={
-        subscription
-          ? {
-              id: subscription.id,
-              status: subscription.status,
-              trialUntil: subscription.trial_end ? subscription.trial_end * 1000 : undefined,
-              cancelAt: subscription.cancel_at ? subscription.cancel_at * 1000 : undefined,
-            }
-          : undefined
+    <Suspense
+      fallback={
+        <div className="animate-pulse">
+          <WorkspaceNavbar
+            workspace={workspace}
+            activePage={{ href: "billing", text: "Billing" }}
+          />
+          <Shell workspace={workspace}>
+            <div className="w-full h-[500px] bg-gray-100 dark:bg-gray-800 rounded-lg" />
+          </Shell>
+        </div>
       }
-      currentProductId={subscription?.items.data.at(0)?.plan.product?.toString() ?? undefined}
-    />
+    >
+      <Client
+        hasPreviousSubscriptions={hasPreviousSubscriptions}
+        workspace={workspace}
+        products={products}
+        usage={{
+          current: usedVerifications + usedRatelimits,
+          max: workspace.quotas?.requestsPerMonth ?? 150_000,
+        }}
+        subscription={
+          subscription
+            ? {
+                id: subscription.id,
+                status: subscription.status,
+                trialUntil: subscription.trial_end ? subscription.trial_end * 1000 : undefined,
+                cancelAt: subscription.cancel_at ? subscription.cancel_at * 1000 : undefined,
+              }
+            : undefined
+        }
+        currentProductId={subscription?.items.data.at(0)?.plan.product?.toString() ?? undefined}
+      />
+    </Suspense>
   );
 }

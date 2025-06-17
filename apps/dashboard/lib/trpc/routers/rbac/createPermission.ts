@@ -40,6 +40,7 @@ export const createPermission = t.procedure
         await tx.insert(schema.permissions).values({
           id: permissionId,
           name: input.name,
+          slug: input.name,
           description: input.description,
           workspaceId: ctx.workspace.id,
         });

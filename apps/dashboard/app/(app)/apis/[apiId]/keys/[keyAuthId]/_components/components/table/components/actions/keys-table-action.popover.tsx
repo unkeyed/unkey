@@ -17,6 +17,7 @@ export type MenuItem = {
   disabled?: boolean;
   divider?: boolean;
   ActionComponent?: FC<ActionComponentProps>;
+  prefetch?: () => Promise<void>;
 };
 
 type BaseTableActionPopoverProps = PropsWithChildren<{
@@ -24,38 +25,70 @@ type BaseTableActionPopoverProps = PropsWithChildren<{
   align?: "start" | "end";
 }>;
 
-export const KeysTableActionPopover = ({ items, align = "end" }: BaseTableActionPopoverProps) => {
+export const KeysTableActionPopover = ({
+  items,
+  align = "end",
+  children,
+}: BaseTableActionPopoverProps) => {
   const [enabledItem, setEnabledItem] = useState<string>();
   const [open, setOpen] = useState(false);
   const [focusIndex, setFocusIndex] = useState(0);
+  const [prefetchedItems, setPrefetchedItems] = useState<Set<string>>(new Set());
   const menuItems = useRef<HTMLDivElement[]>([]);
 
   useEffect(() => {
     if (open) {
+      // Prefetch all items that need prefetching and haven't been prefetched yet
+      items
+        .filter((item) => item.prefetch && !prefetchedItems.has(item.id))
+        .forEach(async (item) => {
+          try {
+            await item.prefetch?.();
+            setPrefetchedItems((prev) => new Set(prev).add(item.id));
+          } catch (error) {
+            console.error(`Failed to prefetch data for ${item.id}:`, error);
+          }
+        });
+
       const firstEnabledIndex = items.findIndex((item) => !item.disabled);
       setFocusIndex(firstEnabledIndex >= 0 ? firstEnabledIndex : 0);
       if (firstEnabledIndex >= 0) {
         menuItems.current[firstEnabledIndex]?.focus();
       }
     }
-  }, [open, items]);
+  }, [open, items, prefetchedItems]);
 
   const handleActionSelection = (value: string) => {
     setEnabledItem(value);
   };
 
+  const handleItemHover = async (item: MenuItem) => {
+    if (item.prefetch && !prefetchedItems.has(item.id)) {
+      try {
+        await item.prefetch();
+        setPrefetchedItems((prev) => new Set([...prev, item.id]));
+      } catch (error) {
+        console.error(`Failed to prefetch data for ${item.id}:`, error);
+      }
+    }
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger onClick={(e) => e.stopPropagation()}>
-        <button
-          type="button"
-          className={cn(
-            "group-data-[state=open]:bg-gray-6 group-hover:bg-gray-6 group size-5 p-0 rounded m-0 items-center flex justify-center",
-            "border border-gray-6 hover:border-gray-8 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-7",
-          )}
-        >
-          <Dots className="group-hover:text-gray-12 text-gray-11" size="sm-regular" />
-        </button>
+        {children ? (
+          children
+        ) : (
+          <button
+            type="button"
+            className={cn(
+              "group-data-[state=open]:bg-gray-6 group-hover:bg-gray-6 group size-5 p-0 rounded m-0 items-center flex justify-center",
+              "border border-gray-6 group-hover:border-gray-8 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-7",
+            )}
+          >
+            <Dots className="group-hover:text-gray-12 text-gray-11" size="sm-regular" />
+          </button>
+        )}
       </PopoverTrigger>
       <PopoverContent
         className="w-60 bg-gray-1 dark:bg-black drop-shadow-2xl border-gray-6 rounded-lg p-0"
@@ -99,6 +132,7 @@ export const KeysTableActionPopover = ({ items, align = "end" }: BaseTableAction
                     item.disabled && "cursor-not-allowed opacity-50",
                     item.className,
                   )}
+                  onMouseEnter={() => handleItemHover(item)}
                   onClick={(e) => {
                     if (!item.disabled) {
                       item.onClick?.(e);

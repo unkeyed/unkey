@@ -4,7 +4,6 @@
  */
 
 "use client";
-import { Loading } from "@/components/dashboard/loading";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -15,16 +14,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import type { Api, Key, VercelBinding } from "@unkey/db";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
-import { Empty } from "@unkey/ui";
-import { Button } from "@unkey/ui";
+import {
+  Button,
+  Empty,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@unkey/ui";
 import { ExternalLink, Link2, MoreHorizontal, Plus, RefreshCw, Trash, Unlink2 } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
@@ -280,8 +287,8 @@ const ConnectedResource: React.FC<{
 
       <DropdownMenu>
         <DropdownMenuTrigger>
-          <Button variant="ghost" shape="square">
-            {isLoading ? <Loading className="w-4 h-4" /> : <MoreHorizontal className="w-4 h-4" />}
+          <Button variant="ghost" shape="square" loading={isLoading}>
+            <MoreHorizontal className="w-4 h-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>

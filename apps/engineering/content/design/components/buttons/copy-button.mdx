@@ -1,0 +1,38 @@
+---
+title: CopyButton
+summary: A button component that copies text to clipboard with visual feedback
+---
+import { Default } from "./copy-button.examples"
+
+The `CopyButton` component provides a simple way to copy text to the clipboard with visual feedback. When clicked, it copies the provided text and shows a checkmark icon to indicate success.
+
+## Features
+
+- Visual feedback with icon change on copy
+- Accessible with screen reader support
+- Automatic reset after 2 seconds
+- Customizable through className prop
+- TypeScript support
+
+## Props
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `value` | `string` | The text content to be copied to clipboard |
+| `src` | `string?` | Optional source identifier for analytics |
+| `className` | `string?` | Additional CSS classes to apply to the button |
+
+## Usage
+
+<Default />
+
+## Accessibility
+
+The component includes screen reader support with an appropriate "Copy" label. The visual state change (unchecked to checked icon) provides clear feedback for all users.
+
+## Behavior
+
+1. On click, the button copies the provided text to the clipboard
+2. The icon changes from an unchecked to checked state
+3. After 2 seconds, the icon reverts to its original state
+4. Parent click events are prevented from triggering (e.stopPropagation)

@@ -8,7 +8,7 @@ export type FilterOperator = z.infer<typeof filterOperatorEnum>;
 
 export type BaseFieldConfig<T extends string | number, TOperator extends string = string> = {
   type: T extends string ? "string" : "number";
-  operators: TOperator[];
+  operators: ReadonlyArray<TOperator>;
 };
 
 export type NumberConfig<TOperator extends string = string> = BaseFieldConfig<number, TOperator> & {

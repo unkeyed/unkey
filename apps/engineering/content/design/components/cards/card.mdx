@@ -1,0 +1,142 @@
+---
+title: Card
+description: A flexible container component for grouping related content with optional header, footer, and content sections.
+---
+
+import { BasicCard, CardWithHeader, CardWithFooter, CompleteCard, MetricCard, CardGrid } from "./card.example"
+
+## Basic Usage
+
+```tsx
+import { Card, CardContent } from "@unkey/ui";
+
+export default function MyComponent() {
+  return (
+    <Card>
+      <CardContent>
+        <p>Your content goes here</p>
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+## Examples
+
+### Basic Card
+A simple card with just content.
+
+<BasicCard />
+
+### Card with Header
+Card with a title and description in the header.
+
+<CardWithHeader />
+
+### Card with Footer
+Card with action buttons in the footer.
+
+<CardWithFooter />
+
+### Complete Card
+Card with header, content, and footer sections.
+
+<CompleteCard />
+
+### Metric Card
+Specialized card for displaying metrics with MetricCardTitle.
+
+<MetricCard />
+
+### Card Grid
+Multiple cards in a responsive grid layout.
+
+<CardGrid />
+
+## Components
+
+The Card system is composed of several subcomponents:
+
+- **Card**: The main container
+- **CardHeader**: Container for title and description
+- **CardTitle**: Main heading text (h2 element)
+- **MetricCardTitle**: Title specifically for metrics (p element)
+- **CardDescription**: Subtitle or description text
+- **CardContent**: Main content area
+- **CardFooter**: Footer area with border separator
+
+## Props
+
+### Card
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `className` | `string` | `undefined` | Additional CSS classes |
+| `children` | `React.ReactNode` | `undefined` | Card content |
+
+### CardHeader
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `className` | `string` | `undefined` | Additional CSS classes |
+| `children` | `React.ReactNode` | `undefined` | Header content |
+
+### CardTitle
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `className` | `string` | `undefined` | Additional CSS classes |
+| `children` | `React.ReactNode` | `undefined` | Title text |
+
+### MetricCardTitle
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `className` | `string` | `undefined` | Additional CSS classes |
+| `children` | `React.ReactNode` | `undefined` | Metric title text |
+
+### CardDescription
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `className` | `string` | `undefined` | Additional CSS classes |
+| `children` | `React.ReactNode` | `undefined` | Description text |
+
+### CardContent
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `className` | `string` | `undefined` | Additional CSS classes |
+| `children` | `React.ReactNode` | `undefined` | Main content |
+
+### CardFooter
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `className` | `string` | `undefined` | Additional CSS classes |
+| `children` | `React.ReactNode` | `undefined` | Footer content |
+
+## Features
+
+- Composable architecture for flexible layouts
+- Consistent styling with design system
+- Built-in spacing and typography
+- Responsive design
+- Border and background styling
+- Accessible semantic structure
+
+## Best Practices
+
+- Use `CardTitle` for main headings and `MetricCardTitle` for numeric metrics
+- Include `CardDescription` to provide context for the card content
+- Use `CardFooter` for actions or additional information
+- Combine components based on your content needs
+- Apply consistent spacing using the default padding
+
+## Accessibility
+
+- Uses semantic HTML elements (h2 for CardTitle, p for descriptions)
+- Maintains proper heading hierarchy
+- Provides sufficient color contrast
+- Supports keyboard navigation
+- Screen reader friendly structure 

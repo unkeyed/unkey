@@ -15,5 +15,5 @@ export type Selection = {
 
 export type TimeseriesData = {
   originalTimestamp: number;
-  [key: string]: any;
+  [key: string]: unknown;
 };

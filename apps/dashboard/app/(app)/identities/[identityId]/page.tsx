@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 
-import { CopyButton } from "@/components/dashboard/copy-button";
 import { PageContent } from "@/components/page-content";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +16,7 @@ import { getAuth } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
-import { Button } from "@unkey/ui";
+import { Button, CopyButton } from "@unkey/ui";
 import { ChevronRight, Minus } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";

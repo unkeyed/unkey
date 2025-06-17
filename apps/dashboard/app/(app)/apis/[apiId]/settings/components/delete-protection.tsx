@@ -1,11 +1,9 @@
 "use client";
-import { DialogContainer } from "@/components/dialog-container";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowUpRight, TriangleWarning2 } from "@unkey/icons";
-import { InlineLink, Input, SettingCard } from "@unkey/ui";
-import { Button } from "@unkey/ui";
+import { Button, DialogContainer, InlineLink, Input, SettingCard } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
@@ -88,16 +86,15 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
       }
       description={
         api.deleteProtection ? (
-          <div>Disabling this allows the API, along with all keys and data, to be deleted.</div>
+          <p>Disabling this allows the API, along with all keys and data, to be deleted.</p>
         ) : (
-          <div>Enabling this prevents the API from being deleted.</div>
+          <p>Enabling this prevents the API from being deleted.</p>
         )
       }
       border="top"
       className="border-b-1"
-      contentWidth="w-full lg:w-[320px]"
     >
-      <div className="flex w-full gap-2 lg:items-center justify-end lg:mt-1">
+      <div className="flex w-full gap-2 lg:items-center justify-end">
         {api.deleteProtection ? (
           <Button
             type="button"
@@ -141,7 +138,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
                 : "Enable API Delete Protection"}
             </Button>
             <div className="font-normal text-[12px] text-gray-9 text-center">
-              This setting can be {!api.deleteProtection ? "disabled" : "re-enabled"} at any time
+              This setting can be {api.deleteProtection ? "disabled" : "enabled"} at any time
             </div>
           </div>
         }
@@ -149,9 +146,9 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
         <div className="flex flex-col gap-4">
           <p className="text-gray-11 text-[13px]">
             <span className="font-medium">Important: </span>
-            {!api.deleteProtection
-              ? "Enabling this prevents the API from being deleted. This setting can be disabled at any time. "
-              : "Disabling this allows API deletion. This setting can be re-enabled at any time. "}
+            {api.deleteProtection
+              ? "Disabling this allows API deletion. This setting can be re-enabled at any time. "
+              : "Enabling this prevents the API from being deleted. This setting can be disabled at any time. "}
             <InlineLink
               label="Learn more"
               href="https://www.unkey.com/docs/security/delete-protection"

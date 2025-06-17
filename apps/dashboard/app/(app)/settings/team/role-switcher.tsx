@@ -1,10 +1,10 @@
 "use client";
 
-import { Loading } from "@/components/dashboard/loading";
 import { toast } from "@/components/ui/toaster";
 import type { AuthenticatedUser, Membership, Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import {
+  Loading,
   Select,
   SelectContent,
   SelectGroup,

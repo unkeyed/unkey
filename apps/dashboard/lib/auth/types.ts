@@ -6,6 +6,11 @@ export const PENDING_SESSION_COOKIE = "sess-temp";
 export const SIGN_IN_URL = "/auth/sign-in";
 export const SIGN_UP_URL = "/auth/sign-up";
 
+// Local Auth consts
+export const LOCAL_USER_ID = "user_local_admin";
+export const LOCAL_ORG_ID = "org_localdefault"; // org IDs can only have one underscore
+export const LOCAL_ORG_ROLE = "admin";
+
 export interface User {
   id: string;
   email: string;
@@ -186,6 +191,7 @@ export enum AuthErrorCode {
   INVALID_EMAIL = "INVALID_EMAIL",
   NETWORK_ERROR = "NETWORK_ERROR",
   UNKNOWN_ERROR = "UNKNOWN_ERROR",
+  RATE_ERROR = "RATE_ERROR",
   ACCOUNT_NOT_FOUND = "ACCOUNT_NOT_FOUND",
   ORGANIZATION_SELECTION_REQUIRED = "ORGANIZATION_SELECTION_REQUIRED",
   EMAIL_VERIFICATION_REQUIRED = "EMAIL_VERIFICATION_REQUIRED",
@@ -208,6 +214,7 @@ export const errorMessages: Record<AuthErrorCode, string> = {
     "Email address not verified. Please check your email for a verification code.",
   [AuthErrorCode.PENDING_SESSION_EXPIRED]:
     "Pending Authentication has expired. Please sign-in again.",
+  [AuthErrorCode.RATE_ERROR]: "Limited OTP attempts",
 };
 
 export interface MiddlewareConfig {

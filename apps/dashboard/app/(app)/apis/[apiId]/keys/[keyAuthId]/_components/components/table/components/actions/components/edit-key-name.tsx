@@ -1,9 +1,8 @@
 import { nameSchema } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.schema";
-import { DialogContainer } from "@/components/dialog-container";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, FormInput } from "@unkey/ui";
+import { Button, DialogContainer, FormInput } from "@unkey/ui";
 import { useEffect } from "react";
 import { FormProvider } from "react-hook-form";
 import { z } from "zod";
@@ -119,16 +118,6 @@ export const EditKeyName = ({ keyDetails, isOpen, onClose }: EditKeyNameProps) =
             <div className="h-[1px] bg-grayA-3 w-full" />
           </div>
           <div className="space-y-4">
-            <FormInput
-              className="[&_input:first-of-type]:h-[36px]"
-              placeholder="Key ID"
-              label="Name"
-              maxLength={256}
-              readOnly
-              defaultValue={keyDetails.id}
-              description="An identifier for the API, used in some API calls."
-              variant="default"
-            />
             <FormInput
               className="[&_input:first-of-type]:h-[36px]"
               placeholder="Key Name"
