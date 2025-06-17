@@ -1,3 +1,5 @@
+"use client";
+
 import { LogsClient } from "./_overview/logs-client";
 import { NamespaceNavbar } from "./namespace-navbar";
 
