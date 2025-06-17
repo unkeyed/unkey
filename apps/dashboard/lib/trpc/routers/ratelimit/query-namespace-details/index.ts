@@ -75,7 +75,6 @@ export async function fetchWorkspaceDetails({
   namespaceId,
   includeOverrides = false,
 }: WorkspaceDetailsOptions): Promise<WorkspaceDetailsResponse> {
-  // Build the query dynamically based on includeOverrides
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     columns: {
@@ -108,7 +107,6 @@ export async function fetchWorkspaceDetails({
     },
   });
 
-  // Early validation - fail fast
   if (!workspace) {
     throw new TRPCError({
       code: "NOT_FOUND",
@@ -132,7 +130,6 @@ export async function fetchWorkspaceDetails({
     });
   }
 
-  // Return data structure that matches schema
   const result: WorkspaceDetailsResponse = {
     namespace,
     ratelimitNamespaces: workspace.ratelimitNamespaces,
