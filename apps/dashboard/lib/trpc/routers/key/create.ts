@@ -72,7 +72,7 @@ export const createKey = t.procedure
         if (keyAuth.storeEncryptedKeys) {
           const { encrypted, keyId: encryptionKeyId } = await vault.encrypt({
             keyring: ctx.workspace.id,
-            data: keyId,
+            data: key,
           });
 
           await tx.insert(schema.encryptedKeys).values({
