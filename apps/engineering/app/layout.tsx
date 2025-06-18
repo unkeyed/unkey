@@ -7,8 +7,6 @@ import type { ReactNode } from "react";
 import "./global.css";
 import "@unkey/ui/css";
 import { TooltipProvider } from "@unkey/ui/src/components/tooltip";
-import "./global.css";
-import "@unkey/ui/css";
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
