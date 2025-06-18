@@ -1,9 +1,9 @@
 "use client";
 import { Gauge, Trash } from "@unkey/icons";
-import { Button, FormInput } from "@unkey/ui";
+import { Button, FormCheckbox, FormInput, InlineLink } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useEffect } from "react";
-import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
+import { Controller, useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import type { RatelimitFormValues, RatelimitItem } from "../create-key.schema";
 import { ProtectionSwitch } from "./protection-switch";
 
@@ -34,6 +34,7 @@ export const RatelimitSetup = () => {
         name: "Default",
         limit: 10,
         refillInterval: 1000,
+        autoApply: false,
       });
     }
   }, [fields.length, append]);
@@ -48,6 +49,7 @@ export const RatelimitSetup = () => {
       name: "",
       limit: 10,
       refillInterval: 1000,
+      autoApply: false,
     };
     append(newItem);
   };
@@ -91,7 +93,7 @@ export const RatelimitSetup = () => {
                   "[&_input:first-of-type]:h-[36px]",
                   fields.length <= 1 ? "w-full" : "flex-1",
                 )}
-                placeholder="Default"
+                placeholder="my-ratelimit"
                 type="text"
                 label="Name"
                 description="A name to identify this rate limit rule"
@@ -148,6 +150,37 @@ export const RatelimitSetup = () => {
                 {...register(`ratelimit.data.${index}.refillInterval`)}
               />
             </div>
+
+            <Controller
+              control={control}
+              name={`ratelimit.data.${index}.autoApply`}
+              render={({ field }) => (
+                <FormCheckbox
+                  className={cn(
+                    "[&_input:first-of-type]:h-[36px]",
+                    fields.length <= 1 ? "w-full" : "flex-1",
+                  )}
+                  label="Auto Apply"
+                  description={
+                    <p>
+                      This rate limit rule will always be used.{" "}
+                      <InlineLink
+                        label="Learn more"
+                        target
+                        href="https://unkey.com/docs/apis/features/ratelimiting/overview#auto-apply-vs-manual-ratelimits"
+                      />
+                      .
+                    </p>
+                  }
+                  error={errors.ratelimit?.data?.[index]?.autoApply?.message}
+                  disabled={!ratelimitEnabled}
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  name={field.name}
+                  ref={field.ref}
+                />
+              )}
+            />
           </div>
         ))}
       </div>

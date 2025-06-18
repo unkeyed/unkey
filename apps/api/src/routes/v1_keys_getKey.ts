@@ -60,6 +60,7 @@ export const registerV1KeysGetKey = (app: App) =>
             },
           },
           identity: true,
+          ratelimits: true,
         },
       });
       if (!dbRes) {
@@ -70,6 +71,7 @@ export const registerV1KeysGetKey = (app: App) =>
         api: dbRes.keyAuth.api,
         permissions: dbRes.permissions.map((p) => p.permission.name),
         roles: dbRes.roles.map((p) => p.role.name),
+        ratelimits: dbRes.ratelimits,
         identity: dbRes.identity
           ? {
               id: dbRes.identity.id,
@@ -138,6 +140,8 @@ export const registerV1KeysGetKey = (app: App) =>
       }
     }
 
+    const ratelimit = key.ratelimits.find((rl) => rl.name === "default");
+
     return c.json({
       id: key.id,
       start: key.start,
@@ -158,17 +162,15 @@ export const registerV1KeysGetKey = (app: App) =>
             lastRefillAt: key.lastRefillAt?.getTime(),
           }
         : undefined,
-      ratelimit:
-        key.ratelimitAsync !== null && key.ratelimitLimit !== null && key.ratelimitDuration !== null
-          ? {
-              async: key.ratelimitAsync,
-              type: key.ratelimitAsync ? "fast" : ("consistent" as unknown),
-              limit: key.ratelimitLimit,
-              duration: key.ratelimitDuration,
-              refillRate: key.ratelimitLimit,
-              refillInterval: key.ratelimitDuration,
-            }
-          : undefined,
+      ratelimit: ratelimit
+        ? {
+            async: false,
+            limit: ratelimit.limit,
+            duration: ratelimit.duration,
+            refillRate: ratelimit.limit,
+            refillInterval: ratelimit.duration,
+          }
+        : undefined,
       roles: data.roles,
       permissions: data.permissions,
       enabled: key.enabled,

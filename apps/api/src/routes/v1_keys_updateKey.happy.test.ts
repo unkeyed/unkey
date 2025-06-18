@@ -88,15 +88,19 @@ test("update all", async (t) => {
 
   const found = await h.db.primary.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
+    with: {
+      ratelimits: true,
+    },
   });
   expect(found).toBeDefined();
   expect(found?.name).toEqual("newName");
   expect(found?.ownerId).toEqual("newOwnerId");
   expect(found?.meta).toEqual(JSON.stringify({ new: "meta" }));
-  expect(found?.ratelimitAsync).toEqual(true);
-  expect(found?.ratelimitLimit).toEqual(10);
-  expect(found?.ratelimitDuration).toEqual(1000);
   expect(found?.remaining).toEqual(0);
+  expect(found!.ratelimits.length).toBe(1);
+  expect(found!.ratelimits[0].name).toBe("default");
+  expect(found!.ratelimits[0].limit).toBe(10);
+  expect(found!.ratelimits[0].duration).toBe(1000);
 });
 
 test("update ratelimit", async (t) => {
@@ -136,15 +140,19 @@ test("update ratelimit", async (t) => {
 
   const found = await h.db.primary.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
+    with: {
+      ratelimits: true,
+    },
   });
   expect(found).toBeDefined();
   expect(found?.name).toEqual("test");
   expect(found?.ownerId).toBeNull();
   expect(found?.meta).toBeNull();
-  expect(found?.ratelimitAsync).toEqual(true);
-  expect(found?.ratelimitLimit).toEqual(10);
-  expect(found?.ratelimitDuration).toEqual(1000);
   expect(found?.remaining).toBeNull();
+  expect(found!.ratelimits.length).toBe(1);
+  expect(found!.ratelimits[0].name).toBe("default");
+  expect(found!.ratelimits[0].limit).toBe(10);
+  expect(found!.ratelimits[0].duration).toBe(1000);
 });
 
 describe("update roles", () => {
@@ -823,16 +831,17 @@ test("update should not affect undefined fields", async (t) => {
 
   const found = await h.db.primary.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
+    with: {
+      ratelimits: true,
+    },
   });
   expect(found).toBeDefined();
   expect(found?.name).toEqual("test");
   expect(found?.ownerId).toEqual("newOwnerId");
   expect(found?.meta).toBeNull();
   expect(found?.expires).toEqual(key.expires);
-  expect(found?.ratelimitAsync).toBeNull();
-  expect(found?.ratelimitLimit).toBeNull();
-  expect(found?.ratelimitDuration).toBeNull();
   expect(found?.remaining).toBeNull();
+  expect(found!.ratelimits.length).toBe(0);
 });
 
 test("update enabled true", async (t) => {
@@ -993,12 +1002,16 @@ test("update ratelimit should not disable it", async (t) => {
 
   const found = await h.db.primary.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.body.keyId),
+    with: {
+      ratelimits: true,
+    },
   });
 
   expect(found).toBeDefined();
-  expect(found!.ratelimitAsync).toEqual(true);
-  expect(found!.ratelimitLimit).toEqual(5);
-  expect(found!.ratelimitDuration).toEqual(5000);
+  expect(found!.ratelimits.length).toBe(1);
+  expect(found!.ratelimits[0].name).toBe("default");
+  expect(found!.ratelimits[0].limit).toBe(5);
+  expect(found!.ratelimits[0].duration).toBe(5000);
 
   const verify = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
     url: "/v1/keys.verifyKey",
@@ -1106,12 +1119,16 @@ describe("update name", () => {
 
     const found = await h.db.primary.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, key.body.keyId),
+      with: {
+        ratelimits: true,
+      },
     });
 
     expect(found).toBeDefined();
-    expect(found!.ratelimitAsync).toEqual(true);
-    expect(found!.ratelimitLimit).toEqual(10);
-    expect(found!.ratelimitDuration).toEqual(1000);
+    expect(found!.ratelimits.length).toBe(1);
+    expect(found!.ratelimits[0].name).toBe("default");
+    expect(found!.ratelimits[0].limit).toBe(10);
+    expect(found!.ratelimits[0].duration).toBe(1000);
 
     const verify = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
       url: "/v1/keys.verifyKey",
