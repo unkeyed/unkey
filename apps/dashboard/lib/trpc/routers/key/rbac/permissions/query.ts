@@ -7,7 +7,7 @@ import {
   transformPermission,
 } from "./schema-with-helpers";
 
-export const querKeysPermissions = t.procedure
+export const queryKeysPermissions = t.procedure
   .use(requireWorkspace)
   .use(withRatelimit(ratelimit.read))
   .input(permissionsQueryPayload)

@@ -25,7 +25,7 @@ export const KeyField = ({
   assignedKeyDetails,
 }: KeyFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
-  const { keys, isFetchingNextPage, hasNextPage, loadMore } = useFetchKeys();
+  const { keys, isFetchingNextPage, hasNextPage, loadMore, isLoading } = useFetchKeys();
   const { searchResults, isSearching } = useSearchKeys(searchValue);
 
   // Combine loaded keys with search results, prioritizing search when available
@@ -87,7 +87,7 @@ export const KeyField = ({
   const selectedKeys = useMemo(() => {
     return value
       .map((keyId) => {
-        // First: check selectedKeysData (for pre-loaded edit data)
+        // check selectedKeysData (for pre-loaded edit data)
         const preLoadedKey = assignedKeyDetails.find((k) => k.id === keyId);
         if (preLoadedKey) {
           return {
@@ -96,7 +96,7 @@ export const KeyField = ({
           };
         }
 
-        // Second: check loaded keys (for newly added keys)
+        // check loaded keys (for newly added keys)
         const loadedKey = allKeys.find((k) => k.id === keyId);
         if (loadedKey) {
           return {
@@ -118,6 +118,15 @@ export const KeyField = ({
     onChange(value.filter((id) => id !== keyId));
   };
 
+  const handleAddKey = (keyId: string) => {
+    if (!value.includes(keyId)) {
+      onChange([...value, keyId]);
+    }
+    setSearchValue("");
+  };
+
+  const isComboboxLoading = isLoading || (isSearching && searchValue.trim().length > 0);
+
   return (
     <div className="space-y-3">
       <FormCombobox
@@ -131,12 +140,7 @@ export const KeyField = ({
           if (val === "__load_more__") {
             return;
           }
-          // Add the selected key to the array
-          if (!value.includes(val)) {
-            onChange([...value, val]);
-          }
-          // Clear search after selection
-          setSearchValue("");
+          handleAddKey(val);
         }}
         placeholder={
           <div className="flex w-full text-grayA-8 text-[13px] gap-1.5 items-center py-2">
@@ -145,17 +149,28 @@ export const KeyField = ({
         }
         searchPlaceholder="Search keys by name or ID..."
         emptyMessage={
-          isSearching ? (
-            <div className="px-3 py-3 text-gray-10 text-[13px]">Searching...</div>
+          isComboboxLoading ? (
+            <div className="px-3 py-3 text-gray-10 text-[13px] flex items-center gap-2">
+              <div className="animate-spin h-3 w-3 border border-gray-6 border-t-gray-11 rounded-full" />
+              {isSearching ? "Searching..." : "Loading keys..."}
+            </div>
           ) : (
             <div className="px-3 py-3 text-gray-10 text-[13px]">No keys found</div>
           )
         }
         variant="default"
         error={error}
-        disabled={disabled}
+        disabled={disabled || isLoading}
+        loading={isComboboxLoading}
+        title={
+          isComboboxLoading
+            ? isSearching && searchValue.trim()
+              ? "Searching for keys..."
+              : "Loading available keys..."
+            : undefined
+        }
       />
-      {/* Selected Keys Display */}
+
       <SelectedItemsList
         items={selectedKeys.map((k) => ({
           ...k,
@@ -164,6 +179,7 @@ export const KeyField = ({
         disabled={disabled}
         onRemoveItem={handleRemoveKey}
         renderIcon={() => <Key2 size="sm-regular" className="text-grayA-11" />}
+        enableTransitions
         renderPrimaryText={(key) =>
           key.id.length > 15 ? `${key.id.slice(0, 8)}...${key.id.slice(-4)}` : key.id
         }

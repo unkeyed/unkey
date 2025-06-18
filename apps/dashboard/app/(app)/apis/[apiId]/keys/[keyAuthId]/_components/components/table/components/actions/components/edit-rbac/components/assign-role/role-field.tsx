@@ -127,14 +127,7 @@ export const RoleField = ({
         onSelect={handleAddRole}
         placeholder={
           <div className="flex w-full text-grayA-8 text-[13px] gap-1.5 items-center py-2">
-            {isComboboxLoading ? (
-              <>
-                <div className="animate-spin h-3 w-3 border border-grayA-6 border-t-grayA-11 rounded-full" />
-                {isSearching && searchValue.trim() ? "Searching roles..." : "Loading roles..."}
-              </>
-            ) : (
-              "Select roles"
-            )}
+            Select roles
           </div>
         }
         searchPlaceholder="Search roles by name or description..."

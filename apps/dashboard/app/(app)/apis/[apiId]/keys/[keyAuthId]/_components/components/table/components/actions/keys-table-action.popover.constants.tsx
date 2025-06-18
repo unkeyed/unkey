@@ -1,3 +1,4 @@
+import { MAX_KEYS_FETCH_LIMIT } from "@/app/(app)/authorization/roles/components/upsert-role/components/assign-key/hooks/use-fetch-keys";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
@@ -144,6 +145,12 @@ export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
             trpcUtils.key.update.rbac.roles.query.prefetchInfinite({
               limit: MAX_ROLES_FETCH_LIMIT,
             }),
+            trpcUtils.authorization.roles.keys.query.prefetchInfinite({
+              limit: MAX_KEYS_FETCH_LIMIT,
+            }),
+            trpcUtils.authorization.roles.permissions.query.prefetchInfinite({
+              limit: MAX_PERMS_FETCH_LIMIT,
+            }),
           ]);
 
           await Promise.all([comboboxDataPromise, ...dependentPrefetches]);
@@ -156,6 +163,12 @@ export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
               }),
               trpcUtils.key.update.rbac.roles.query.prefetchInfinite({
                 limit: MAX_ROLES_FETCH_LIMIT,
+              }),
+              trpcUtils.authorization.roles.keys.query.prefetchInfinite({
+                limit: MAX_KEYS_FETCH_LIMIT,
+              }),
+              trpcUtils.authorization.roles.permissions.query.prefetchInfinite({
+                limit: MAX_PERMS_FETCH_LIMIT,
               }),
             ]);
           } catch (fallbackError) {

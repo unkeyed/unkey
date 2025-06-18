@@ -45,7 +45,7 @@ import { queryKeyDetailsLogs } from "./key/query-logs";
 import { keyDetailsVerificationsTimeseries } from "./key/query-timeseries";
 import { getConnectedRolesAndPerms } from "./key/rbac/connected-roles-and-perms";
 import { getPermissionSlugs } from "./key/rbac/get-permission-slugs";
-import { querKeysPermissions } from "./key/rbac/permissions/query";
+import { queryKeysPermissions } from "./key/rbac/permissions/query";
 import { queryKeysRoles } from "./key/rbac/roles/query-keys-roles";
 import { searchKeysRoles } from "./key/rbac/roles/search-keys-roles";
 import { updateKeyRbac } from "./key/rbac/update-rbac";
@@ -131,7 +131,7 @@ export const router = t.router({
         }),
         permissions: t.router({
           search: searchRolesPermissions,
-          query: querKeysPermissions,
+          query: queryKeysPermissions,
         }),
       }),
     }),

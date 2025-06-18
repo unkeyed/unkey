@@ -197,16 +197,7 @@ export const PermissionField = ({
         onSelect={handleAddPermission}
         placeholder={
           <div className="flex w-full text-grayA-8 text-[13px] gap-1.5 items-center py-2">
-            {isComboboxLoading ? (
-              <>
-                <div className="animate-spin h-3 w-3 border border-grayA-6 border-t-grayA-11 rounded-full" />
-                {isSearching && searchValue.trim()
-                  ? "Searching permissions..."
-                  : "Loading permissions..."}
-              </>
-            ) : (
-              "Select permissions"
-            )}
+            Select permissions
           </div>
         }
         searchPlaceholder="Search permissions by name, ID, slug, or description..."
