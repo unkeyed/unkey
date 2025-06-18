@@ -125,6 +125,7 @@ export const getDefaultValues = (
           name: "Default",
           limit: 10,
           refillInterval: 1000,
+          autoApply: true,
         },
       ],
     },

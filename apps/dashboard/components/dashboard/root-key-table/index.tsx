@@ -33,9 +33,6 @@ type Column = {
   expires: Date | null;
   ownerId: string | null;
   name: string | null;
-  ratelimitAsync: boolean | null;
-  ratelimitLimit: number | null;
-  ratelimitDuration: number | null;
   remaining: number | null;
 };
 
