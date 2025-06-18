@@ -4,8 +4,9 @@ import { createRoute, z } from "@hono/zod-openapi";
 import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { type Key, schema } from "@unkey/db";
+import { type Key, and, schema } from "@unkey/db";
 import { eq } from "@unkey/db";
+import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 import { upsertIdentity } from "./v1_keys_createKey";
 import { setPermissions } from "./v1_keys_setPermissions";
@@ -289,6 +290,7 @@ export const registerV1KeysUpdate = (app: App) =>
             api: true,
           },
         },
+        ratelimits: true,
       },
     });
 
@@ -374,16 +376,36 @@ export const registerV1KeysUpdate = (app: App) =>
     }
     if (typeof req.ratelimit !== "undefined") {
       if (req.ratelimit === null) {
-        changes.ratelimitAsync = null;
-        changes.ratelimitLimit = null;
-        changes.ratelimitDuration = null;
+        await db.primary
+          .delete(schema.ratelimits)
+          .where(
+            and(
+              eq(schema.ratelimits.workspaceId, auth.authorizedWorkspaceId),
+              eq(schema.ratelimits.name, "default"),
+              eq(schema.ratelimits.keyId, key.id),
+            ),
+          );
       } else {
-        changes.ratelimitAsync =
-          typeof req.ratelimit.async === "boolean"
-            ? req.ratelimit.async
-            : req.ratelimit.type === "fast";
-        changes.ratelimitLimit = req.ratelimit.limit ?? req.ratelimit.refillRate;
-        changes.ratelimitDuration = req.ratelimit.duration ?? req.ratelimit.refillInterval;
+        const existing = key.ratelimits.find((r) => r.name === "default");
+        if (existing) {
+          await db.primary
+            .update(schema.ratelimits)
+            .set({
+              limit: req.ratelimit.limit ?? req.ratelimit.refillRate,
+              duration: req.ratelimit.duration ?? req.ratelimit.refillInterval,
+            })
+            .where(and(eq(schema.ratelimits.id, existing.id)));
+        } else {
+          await db.primary.insert(schema.ratelimits).values({
+            id: newId("ratelimit"),
+            workspaceId: auth.authorizedWorkspaceId,
+            name: "default",
+            keyId: key.id,
+            limit: req.ratelimit.limit ?? req.ratelimit.refillRate!,
+            duration: req.ratelimit.duration ?? req.ratelimit.refillInterval!,
+            autoApply: true,
+          });
+        }
       }
     }
 

@@ -706,17 +706,26 @@ describe("with identity", () => {
       });
 
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+      const keyId = newId("test");
       await h.db.primary.insert(schema.keys).values({
-        id: newId("test"),
+        id: keyId,
         keyAuthId: h.resources.userKeyAuth.id,
         hash: await sha256(key),
         start: key.slice(0, 8),
         workspaceId: h.resources.userWorkspace.id,
         createdAtM: Date.now(),
         identityId,
-        ratelimitAsync: true,
-        ratelimitLimit: 1,
-        ratelimitDuration: 20_000,
+      });
+
+      await h.db.primary.insert(schema.ratelimits).values({
+        id: newId("test"),
+        workspaceId: h.resources.userWorkspace.id,
+        keyId: keyId,
+        limit: 1,
+        duration: 20_000,
+        autoApply: true,
+        identityId: null,
+        name: "default",
       });
 
       const testCases: TestCase[] = [

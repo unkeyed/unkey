@@ -59,7 +59,6 @@ export const EditRatelimits = ({ keyDetails, isOpen, onClose }: EditRatelimitsPr
     try {
       await key.mutateAsync({
         keyId: keyDetails.id,
-        ratelimitType: "v2",
         ratelimit: {
           enabled: data.ratelimit.enabled,
           data: data.ratelimit.data,

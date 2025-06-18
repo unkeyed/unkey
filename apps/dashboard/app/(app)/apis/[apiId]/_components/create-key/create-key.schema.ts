@@ -137,6 +137,7 @@ export const ratelimitItemSchema = z.object({
       }),
     })
     .positive({ message: "Limit must be greater than 0" }),
+  autoApply: z.boolean(),
 });
 
 export const metadataValidationSchema = z.object({
@@ -258,6 +259,7 @@ export const ratelimitSchema = z.object({
         name: "default",
         limit: 10,
         refillInterval: 1000,
+        autoApply: true,
       },
     ],
   }),
