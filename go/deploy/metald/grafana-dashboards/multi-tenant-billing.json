@@ -478,12 +478,7 @@
   "refresh": "5s",
   "schemaVersion": 36,
   "style": "dark",
-  "tags": [
-    "metald",
-    "billing",
-    "multi-tenant",
-    "customer"
-  ],
+  "tags": ["metald", "billing", "multi-tenant", "customer"],
   "templating": {
     "list": [
       {

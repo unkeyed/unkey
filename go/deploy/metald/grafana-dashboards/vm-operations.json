@@ -166,9 +166,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": ""
         },
         "showThresholdLabels": false,
@@ -644,11 +642,7 @@
   "refresh": "5s",
   "schemaVersion": 37,
   "style": "dark",
-  "tags": [
-    "metald",
-    "vm",
-    "operations"
-  ],
+  "tags": ["metald", "vm", "operations"],
   "templating": {
     "list": [
       {

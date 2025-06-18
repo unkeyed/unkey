@@ -492,9 +492,7 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -521,13 +519,7 @@
   "refresh": "5s",
   "schemaVersion": 36,
   "style": "dark",
-  "tags": [
-    "metald",
-    "security",
-    "authentication",
-    "authorization",
-    "multi-tenant"
-  ],
+  "tags": ["metald", "security", "authentication", "authorization", "multi-tenant"],
   "templating": {
     "list": [
       {
