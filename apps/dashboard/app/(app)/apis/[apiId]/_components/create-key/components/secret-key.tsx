@@ -1,8 +1,8 @@
 "use client"; // Keep if needed
 
 import { cn } from "@/lib/utils";
-import { CircleLock, Eye, EyeSlash } from "@unkey/icons";
-import { Button, CopyButton } from "@unkey/ui";
+import { CircleLock } from "@unkey/icons";
+import { Button, CopyButton, VisibleButton } from "@unkey/ui";
 import { useState } from "react";
 
 const maskKey = (key: string): string => {
@@ -22,11 +22,6 @@ export const SecretKey = ({
 
   const displayValue = isVisible ? value : maskKey(value);
 
-  const handleToggleVisibility = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsVisible(!isVisible);
-  };
-
   return (
     <div
       className={cn(
@@ -45,17 +40,11 @@ export const SecretKey = ({
           </p>
         </div>
         <div className="flex items-center justify-between gap-2 flex-shrink-0">
-          <Button
-            variant="outline"
-            size="icon"
-            className="bg-grayA-3 transition-all"
-            onClick={handleToggleVisibility}
-            aria-label={isVisible ? `Hide ${title}` : `Show ${title}`}
-            title={isVisible ? `Hide ${title}` : `Show ${title}`}
-          >
-            {isVisible ? <EyeSlash /> : <Eye />}
-          </Button>
-
+          <VisibleButton
+            isVisible={isVisible}
+            setIsVisible={(visible) => setIsVisible(visible)}
+            title={title}
+          />
           <Button
             variant="outline"
             size="icon"

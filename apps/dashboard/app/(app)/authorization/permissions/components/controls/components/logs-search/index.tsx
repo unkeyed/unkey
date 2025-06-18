@@ -45,12 +45,12 @@ export const PermissionSearch = () => {
   return (
     <LogsLLMSearch
       exampleQueries={[
-        "Find admin and moderator roles",
-        "Show roles with api.read permissions",
-        "Find roles assigned to user keys",
-        "Show roles containing database permissions",
-        "Find roles named exactly 'super_admin'",
-        "Show roles with write permissions and user keys",
+        "find admin permissions",
+        "show api.read and api.write permissions",
+        "permissions for database access",
+        "show permissions ending with .create",
+        "find permissions starting with api_",
+        "permissions for role_123",
       ]}
       isLoading={queryLLMForStructuredOutput.isLoading}
       searchMode="manual"

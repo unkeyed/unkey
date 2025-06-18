@@ -190,7 +190,7 @@ export const PermissionsList = () => {
       onLoadMore={loadMore}
       columns={columns}
       onRowClick={setSelectedPermission}
-      selectedItem={setSelectedPermission}
+      selectedItem={selectedPermission}
       keyExtractor={(permission) => permission.permissionId}
       rowClassName={(permission) => getRowClassName(permission, selectedPermission)}
       loadMoreFooterProps={{

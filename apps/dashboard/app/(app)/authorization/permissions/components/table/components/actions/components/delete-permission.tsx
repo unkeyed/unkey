@@ -50,15 +50,8 @@ export const DeletePermission = ({ permissionDetails, isOpen, onClose }: DeleteP
   });
 
   const handleDialogOpenChange = (open: boolean) => {
-    if (isConfirmPopoverOpen) {
-      // If confirm popover is active don't let this trigger outer popover
-      if (!open) {
-        return;
-      }
-    } else {
-      if (!open) {
-        onClose();
-      }
+    if (!open && !isConfirmPopoverOpen) {
+      onClose();
     }
   };
 

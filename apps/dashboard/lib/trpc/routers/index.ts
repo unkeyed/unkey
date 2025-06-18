@@ -94,6 +94,7 @@ import { disconnectRoleFromKey } from "./rbac/disconnectRoleFromKey";
 import { removePermissionFromRootKey } from "./rbac/removePermissionFromRootKey";
 import { updatePermission } from "./rbac/updatePermission";
 import { updateRole } from "./rbac/updateRole";
+import { queryRootKeys } from "./settings/root-keys/query";
 import { cancelSubscription } from "./stripe/cancelSubscription";
 import { createSubscription } from "./stripe/createSubscription";
 import { uncancelSubscription } from "./stripe/uncancelSubscription";
@@ -141,6 +142,11 @@ export const router = t.router({
     delete: deleteRootKeys,
     update: t.router({
       name: updateRootKeyName,
+    }),
+  }),
+  settings: t.router({
+    rootKeys: t.router({
+      query: queryRootKeys,
     }),
   }),
   api: t.router({

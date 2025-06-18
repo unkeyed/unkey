@@ -4,7 +4,7 @@ import { PermissionListControls } from "./components/controls";
 import { PermissionsList } from "./components/table/permissions-list";
 import { Navigation } from "./navigation";
 
-export default function RolesPage() {
+export default function PermissionsPage() {
   return (
     <div>
       <Navigation />
