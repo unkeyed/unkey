@@ -28,12 +28,6 @@ const namespaceSchema = z.object({
 const workspaceDetailsOutput = z.object({
   namespace: namespaceSchema,
   ratelimitNamespaces: z.array(namespaceSchema),
-  workspace: z
-    .object({
-      name: z.string(),
-      orgId: z.string(),
-    })
-    .optional(),
 });
 
 export type WorkspaceDetailsResponse = z.infer<typeof workspaceDetailsOutput>;
@@ -114,13 +108,6 @@ export async function fetchWorkspaceDetails({
     });
   }
 
-  if (workspace.orgId !== orgId) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Access denied to workspace",
-    });
-  }
-
   const namespace = workspace.ratelimitNamespaces.find((ns) => ns.id === namespaceId);
 
   if (!namespace) {
@@ -134,13 +121,6 @@ export async function fetchWorkspaceDetails({
     namespace,
     ratelimitNamespaces: workspace.ratelimitNamespaces,
   };
-
-  if (includeOverrides) {
-    result.workspace = {
-      name: workspace.name,
-      orgId: workspace.orgId,
-    };
-  }
 
   return result;
 }
