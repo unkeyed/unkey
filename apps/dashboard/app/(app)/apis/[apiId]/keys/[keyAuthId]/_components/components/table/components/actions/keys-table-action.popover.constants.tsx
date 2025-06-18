@@ -23,6 +23,8 @@ import { EditKeyName } from "./components/edit-key-name";
 import { EditMetadata } from "./components/edit-metadata";
 import { EditRatelimits } from "./components/edit-ratelimits";
 import { KeyRbacDialog } from "./components/edit-rbac";
+import { MAX_PERMS_FETCH_LIMIT } from "./components/edit-rbac/components/assign-permission/hooks/use-fetch-keys-permissions";
+import { MAX_ROLES_FETCH_LIMIT } from "./components/edit-rbac/components/assign-role/hooks/use-fetch-keys-roles";
 import { KeysTableActionPopover, type MenuItem } from "./keys-table-action.popover";
 
 export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
@@ -108,9 +110,58 @@ export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
         />
       ),
       prefetch: async () => {
-        await trpcUtils.key.connectedRolesAndPerms.prefetch({
-          keyId: key.id,
-        });
+        try {
+          // Primary data - always needed when dialog opens
+          const connectedData = await trpcUtils.key.connectedRolesAndPerms.fetch({
+            keyId: key.id,
+          });
+
+          const currentRoleIds = connectedData?.roles?.map((r) => r.id) ?? [];
+          const directPermissionIds =
+            connectedData?.permissions?.filter((p) => p.source === "direct")?.map((p) => p.id) ??
+            [];
+          const rolePermissionIds =
+            connectedData?.permissions?.filter((p) => p.source === "role")?.map((p) => p.id) ?? [];
+          const allEffectivePermissionIds = [...rolePermissionIds, ...directPermissionIds];
+
+          // Prefetch dependent data that requires connectedData
+          const dependentPrefetches = [];
+
+          if (allEffectivePermissionIds.length > 0 || currentRoleIds.length > 0) {
+            dependentPrefetches.push(
+              trpcUtils.key.queryPermissionSlugs.prefetch({
+                roleIds: currentRoleIds,
+                permissionIds: allEffectivePermissionIds,
+              }),
+            );
+          }
+
+          // Always prefetch combobox data - independent of connectedData
+          const comboboxDataPromise = Promise.all([
+            trpcUtils.key.update.rbac.permissions.query.prefetchInfinite({
+              limit: MAX_PERMS_FETCH_LIMIT,
+            }),
+            trpcUtils.key.update.rbac.roles.query.prefetchInfinite({
+              limit: MAX_ROLES_FETCH_LIMIT,
+            }),
+          ]);
+
+          await Promise.all([comboboxDataPromise, ...dependentPrefetches]);
+        } catch {
+          // Fallback: prefetch only the combobox data which doesn't depend on connectedData
+          try {
+            await Promise.all([
+              trpcUtils.key.update.rbac.permissions.query.prefetchInfinite({
+                limit: MAX_PERMS_FETCH_LIMIT,
+              }),
+              trpcUtils.key.update.rbac.roles.query.prefetchInfinite({
+                limit: MAX_ROLES_FETCH_LIMIT,
+              }),
+            ]);
+          } catch (fallbackError) {
+            console.warn("Failed to prefetch combobox data:", fallbackError);
+          }
+        }
       },
       divider: true,
     },
