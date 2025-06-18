@@ -15,7 +15,7 @@ type CachedIdentity = Pick<Identity, "id" | "externalId" | "meta">;
 
 export type CacheNamespaces = {
   keyById: {
-    key: Key & { encrypted: EncryptedKey | null };
+    key: Key & { encrypted: EncryptedKey | null; ratelimits: Ratelimit[] };
     api: Api;
     permissions: string[];
     roles: string[];
@@ -30,16 +30,16 @@ export type CacheNamespaces = {
       id: string;
       enabled: boolean;
     } | null;
-    key: Key & { encrypted: EncryptedKey | null };
+    key: Key & { encrypted: EncryptedKey | null; ratelimits: Ratelimit[] };
     api: Api;
     permissions: string[];
     roles: string[];
-    ratelimits: { [name: string]: Pick<Ratelimit, "name" | "limit" | "duration"> };
+    ratelimits: { [name: string]: Pick<Ratelimit, "name" | "limit" | "duration" | "autoApply"> };
     identity: CachedIdentity | null;
   } | null;
   apiById: (Api & { keyAuth: KeyAuth | null }) | null;
   keysByOwnerId: {
-    key: Key & { encrypted: EncryptedKey | null };
+    key: Key & { encrypted: EncryptedKey | null; ratelimits: Ratelimit[] };
     api: Api;
   }[];
   verificationsByKeyId: {
@@ -58,6 +58,7 @@ export type CacheNamespaces = {
         permissions: string[];
         roles: string[];
         identity: CachedIdentity | null;
+        ratelimits: Ratelimit[];
       }
     >;
     total: number;

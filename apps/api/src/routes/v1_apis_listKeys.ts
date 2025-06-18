@@ -200,6 +200,7 @@ export const registerV1ApisListKeys = (app: App) =>
                   permission: true,
                 },
               },
+              ratelimits: true,
             },
             limit: limit,
             orderBy: schema.keys.id,
@@ -233,6 +234,7 @@ export const registerV1ApisListKeys = (app: App) =>
               : null,
             permissions: Array.from(permissions.values()),
             roles: k.roles.map((r) => r.role.name),
+            ratelimits: k.ratelimits,
           };
         }),
         total: keySpace.sizeApprox,
@@ -293,51 +295,54 @@ export const registerV1ApisListKeys = (app: App) =>
         }),
       );
     }
+
     return c.json({
-      keys: data.keys.map((k) => ({
-        id: k.id,
-        start: k.start,
-        apiId: api.id,
-        workspaceId: k.workspaceId,
-        name: k.name ?? undefined,
-        ownerId: k.ownerId ?? undefined,
-        meta: k.meta ? JSON.parse(k.meta) : undefined,
-        createdAt: k.createdAtM ?? undefined,
-        updatedAt: k.updatedAtM ?? undefined,
-        expires: k.expires?.getTime() ?? undefined,
-        ratelimit:
-          k.ratelimitAsync !== null && k.ratelimitLimit !== null && k.ratelimitDuration !== null
+      keys: data.keys.map((k) => {
+        const ratelimit = k.ratelimits.find((rl) => rl.name === "default");
+        return {
+          id: k.id,
+          start: k.start,
+          apiId: api.id,
+          workspaceId: k.workspaceId,
+          name: k.name ?? undefined,
+          ownerId: k.ownerId ?? undefined,
+          meta: k.meta ? JSON.parse(k.meta) : undefined,
+          createdAt: k.createdAtM ?? undefined,
+          updatedAt: k.updatedAtM ?? undefined,
+          expires: k.expires?.getTime() ?? undefined,
+          ratelimit: ratelimit
             ? {
-                async: k.ratelimitAsync,
-                type: k.ratelimitAsync ? "fast" : ("consistent" as unknown),
-                limit: k.ratelimitLimit,
-                duration: k.ratelimitDuration,
-                refillRate: k.ratelimitLimit,
-                refillInterval: k.ratelimitDuration,
+                async: false,
+                limit: ratelimit.limit,
+                duration: ratelimit.duration,
+                refillRate: ratelimit.limit,
+                refillInterval: ratelimit.duration,
               }
             : undefined,
-        remaining: k.remaining ?? undefined,
-        refill: k.refillAmount
-          ? {
-              interval: k.refillDay ? ("monthly" as const) : ("daily" as const),
-              amount: k.refillAmount,
-              refillDay: k.refillDay,
-              lastRefillAt: k.lastRefillAt?.getTime(),
-            }
-          : undefined,
-        environment: k.environment ?? undefined,
-        plaintext: plaintext[k.id] ?? undefined,
-        roles: k.roles,
-        permissions: k.permissions,
-        identity: k.identity
-          ? {
-              id: k.identity.id,
-              externalId: k.identity.externalId,
-              meta: k.identity.meta ?? undefined,
-            }
-          : undefined,
-        enabled: k.enabled,
-      })),
+
+          remaining: k.remaining ?? undefined,
+          refill: k.refillAmount
+            ? {
+                interval: k.refillDay ? ("monthly" as const) : ("daily" as const),
+                amount: k.refillAmount,
+                refillDay: k.refillDay,
+                lastRefillAt: k.lastRefillAt?.getTime(),
+              }
+            : undefined,
+          environment: k.environment ?? undefined,
+          plaintext: plaintext[k.id] ?? undefined,
+          roles: k.roles,
+          permissions: k.permissions,
+          identity: k.identity
+            ? {
+                id: k.identity.id,
+                externalId: k.identity.externalId,
+                meta: k.identity.meta ?? undefined,
+              }
+            : undefined,
+             enabled: k.enabled,
+        };
+      }),
       total: data.total,
       cursor: data.keys.at(-1)?.id ?? undefined,
     });

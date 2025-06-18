@@ -81,6 +81,7 @@ export const registerV1KeysDeleteKey = (app: App) =>
               api: true,
             },
           },
+          ratelimits: true,
         },
       });
       if (!dbRes) {
@@ -98,6 +99,7 @@ export const registerV1KeysDeleteKey = (app: App) =>
               meta: dbRes.identity.meta,
             }
           : null,
+        ratelimits: dbRes.ratelimits,
       };
     });
 
