@@ -3,7 +3,9 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { useMemo } from "react";
 
-export const useFetchKeysRoles = (limit = 50) => {
+// No need to fetch more than 10 items, because combobox allows seeing 6 items at a time so even if users scroll 10 items are more than enough.
+const MAX_ROLES_FETCH_LIMIT = 10;
+export const useFetchKeysRoles = (limit = MAX_ROLES_FETCH_LIMIT) => {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     trpc.key.update.rbac.roles.query.useInfiniteQuery(
       {

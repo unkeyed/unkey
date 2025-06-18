@@ -1,6 +1,4 @@
-import { StatusBadge } from "@/app/(app)/apis/[apiId]/settings/components/status-badge";
-import { Badge } from "@/components/ui/badge";
-import { HandHoldingKey, Lock } from "@unkey/icons";
+import { HandHoldingKey } from "@unkey/icons";
 import { Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 
 type Permission = {
@@ -8,17 +6,12 @@ type Permission = {
   name: string;
   description: string | null;
   slug: string;
-  roles: {
-    id: string;
-    name: string;
-  }[];
 };
 
 type PermissionSelectorProps = {
   permissions: Permission[];
   hasNextPage?: boolean;
   isFetchingNextPage: boolean;
-  roleId?: string;
   loadMore: () => void;
 };
 
@@ -26,7 +19,6 @@ export function createPermissionOptions({
   permissions,
   hasNextPage,
   isFetchingNextPage,
-  roleId,
   loadMore,
 }: PermissionSelectorProps) {
   const options = permissions.map((permission) => ({
@@ -45,13 +37,6 @@ export function createPermissionOptions({
                       <span className="font-medium text-accent-12 text-left truncate">
                         {permission.name}
                       </span>
-                      {permission.roles.find((item) => item.id === roleId) && (
-                        <StatusBadge
-                          variant="locked"
-                          text="Already assigned"
-                          icon={<Lock size="sm-thin" />}
-                        />
-                      )}
                     </div>
                     <span className="text-accent-10 text-xs font-mono truncate">
                       {permission.slug}
@@ -95,18 +80,6 @@ export function createPermissionOptions({
                   <div>
                     <div className="text-xs font-medium text-gray-11 mb-1">Description</div>
                     <div className="text-xs text-gray-12">{permission.description}</div>
-                  </div>
-                )}
-                {permission.roles.length > 0 && (
-                  <div>
-                    <div className="text-xs font-medium text-gray-11 mb-2">Roles</div>
-                    <div className="flex flex-wrap gap-1">
-                      {permission.roles.map((role) => (
-                        <Badge key={role.id} variant="secondary" className="text-xs">
-                          {role.name}
-                        </Badge>
-                      ))}
-                    </div>
                   </div>
                 )}
               </div>

@@ -32,33 +32,37 @@ export const getPermissionSlugs = t.procedure
     const { roleIds, permissionIds } = input;
     const workspaceId = ctx.workspace.id;
 
+    // Early return if no input
+    if (roleIds.length === 0 && permissionIds.length === 0) {
+      return {
+        slugs: [],
+        totalCount: 0,
+        breakdown: { fromRoles: 0, fromDirectPermissions: 0 },
+      };
+    }
+
     try {
-      // Role permissions query
       let rolePermissionsPromise: Promise<PermissionSlug[]> = Promise.resolve([]);
+      let directPermissionsPromise: Promise<PermissionSlug[]> = Promise.resolve([]);
+
+      // Role permissions
       if (roleIds.length > 0) {
         rolePermissionsPromise = db
-          .selectDistinct({
-            slug: permissions.slug,
-          })
+          .selectDistinct({ slug: permissions.slug })
           .from(rolesPermissions)
           .innerJoin(permissions, eq(rolesPermissions.permissionId, permissions.id))
-          .innerJoin(roles, eq(rolesPermissions.roleId, roles.id))
           .where(
             and(
               inArray(rolesPermissions.roleId, roleIds),
               eq(rolesPermissions.workspaceId, workspaceId),
-              eq(roles.workspaceId, workspaceId),
             ),
           );
       }
 
-      // Direct permissions query
-      let directPermissionsPromise: Promise<PermissionSlug[]> = Promise.resolve([]);
+      // Direct permissions
       if (permissionIds.length > 0) {
         directPermissionsPromise = db
-          .select({
-            slug: permissions.slug,
-          })
+          .select({ slug: permissions.slug })
           .from(permissions)
           .where(
             and(inArray(permissions.id, permissionIds), eq(permissions.workspaceId, workspaceId)),
@@ -70,14 +74,16 @@ export const getPermissionSlugs = t.procedure
         directPermissionsPromise,
       ]);
 
-      // Validate that all requested items were found
-      if (roleIds.length > 0) {
-        const roleCheck = await db
+      // Validate inputs by checking if we got expected results
+      if (roleIds.length > 0 && rolePermissions.length === 0) {
+        // Double-check if roles exist in workspace
+        const roleExists = await db
           .select({ id: roles.id })
           .from(roles)
-          .where(and(inArray(roles.id, roleIds), eq(roles.workspaceId, workspaceId)));
+          .where(and(inArray(roles.id, roleIds), eq(roles.workspaceId, workspaceId)))
+          .limit(1);
 
-        if (roleCheck.length !== roleIds.length) {
+        if (roleExists.length === 0) {
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: "One or more roles not found or access denied",
@@ -85,13 +91,14 @@ export const getPermissionSlugs = t.procedure
         }
       }
 
-      if (permissionIds.length > 0 && directPermissions.length !== permissionIds.length) {
+      if (permissionIds.length > 0 && directPermissions.length === 0) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "One or more permissions not found or access denied",
         });
       }
 
+      // Use Set for deduplication
       const slugsSet = new Set<string>();
 
       rolePermissions.forEach(({ slug }) => slugsSet.add(slug));
@@ -113,15 +120,6 @@ export const getPermissionSlugs = t.procedure
         throw error;
       }
 
-      // Handle database connection errors
-      if (error instanceof Error && error.message.includes("connection")) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Database connection failed",
-        });
-      }
-
-      // Handle all other errors
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to resolve permission slugs",

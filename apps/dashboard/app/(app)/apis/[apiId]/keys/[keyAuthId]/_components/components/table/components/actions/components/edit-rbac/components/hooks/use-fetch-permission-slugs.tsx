@@ -13,6 +13,11 @@ export const useFetchPermissionSlugs = (
     },
     {
       enabled,
+      trpc: {
+        context: {
+          skipBatch: true,
+        },
+      },
     },
   );
 

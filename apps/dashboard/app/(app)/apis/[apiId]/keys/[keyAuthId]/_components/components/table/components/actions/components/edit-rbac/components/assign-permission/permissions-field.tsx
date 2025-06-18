@@ -28,7 +28,8 @@ export const PermissionField = ({
   assignedPermsDetails = [],
 }: PermissionFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
-  const { permissions, isFetchingNextPage, hasNextPage, loadMore } = useFetchPermissions();
+  const { permissions, isFetchingNextPage, hasNextPage, loadMore, isLoading } =
+    useFetchPermissions();
   const { searchResults, isSearching } = useSearchPermissions(searchValue);
 
   // Watch roleIds from form context
@@ -183,6 +184,7 @@ export const PermissionField = ({
     onChange([...value, permissionId]);
     setSearchValue("");
   };
+  const isComboboxLoading = isLoading || (isSearching && searchValue.trim().length > 0);
 
   return (
     <div className="space-y-3">
@@ -195,20 +197,40 @@ export const PermissionField = ({
         onSelect={handleAddPermission}
         placeholder={
           <div className="flex w-full text-grayA-8 text-[13px] gap-1.5 items-center py-2">
-            Select permissions
+            {isComboboxLoading ? (
+              <>
+                <div className="animate-spin h-3 w-3 border border-grayA-6 border-t-grayA-11 rounded-full" />
+                {isSearching && searchValue.trim()
+                  ? "Searching permissions..."
+                  : "Loading permissions..."}
+              </>
+            ) : (
+              "Select permissions"
+            )}
           </div>
         }
         searchPlaceholder="Search permissions by name, ID, slug, or description..."
         emptyMessage={
-          isSearching ? (
-            <div className="px-3 py-3 text-gray-10 text-[13px]">Searching...</div>
+          isComboboxLoading ? (
+            <div className="px-3 py-3 text-gray-10 text-[13px] flex items-center gap-2">
+              <div className="animate-spin h-3 w-3 border border-gray-6 border-t-gray-11 rounded-full" />
+              {isSearching ? "Searching..." : "Loading permissions..."}
+            </div>
           ) : (
             <div className="px-3 py-3 text-gray-10 text-[13px]">No permissions found</div>
           )
         }
         variant="default"
         error={error}
-        disabled={disabled}
+        disabled={disabled || isLoading}
+        loading={isComboboxLoading}
+        title={
+          isComboboxLoading
+            ? isSearching && searchValue.trim()
+              ? "Searching for permissions..."
+              : "Loading available permissions..."
+            : undefined
+        }
       />
 
       <SelectedItemsList

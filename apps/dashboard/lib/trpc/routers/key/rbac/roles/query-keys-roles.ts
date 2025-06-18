@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { ratelimit, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import { LIMIT, RolesResponse, rolesQueryPayload, transformRole } from "./schema-with-helpers";
+import { RolesResponse, rolesQueryPayload, transformRole } from "./schema-with-helpers";
 
 export const queryKeysRoles = t.procedure
   .use(requireWorkspace)
@@ -9,7 +9,7 @@ export const queryKeysRoles = t.procedure
   .input(rolesQueryPayload)
   .output(RolesResponse)
   .query(async ({ ctx, input }) => {
-    const { cursor } = input;
+    const { cursor, limit } = input;
     const workspaceId = ctx.workspace.id;
 
     try {
@@ -23,30 +23,8 @@ export const queryKeysRoles = t.procedure
 
           return and(...conditions);
         },
-        limit: LIMIT + 1, // Fetch one extra to determine if there are more results
+        limit: limit + 1, // Fetch one extra to determine if there are more results
         orderBy: (roles, { desc }) => desc(roles.id),
-        with: {
-          keys: {
-            with: {
-              key: {
-                columns: {
-                  id: true,
-                  name: true,
-                },
-              },
-            },
-          },
-          permissions: {
-            with: {
-              permission: {
-                columns: {
-                  id: true,
-                  name: true,
-                },
-              },
-            },
-          },
-        },
         columns: {
           id: true,
           name: true,
@@ -55,9 +33,9 @@ export const queryKeysRoles = t.procedure
       });
 
       // Determine if there are more results
-      const hasMore = rolesQuery.length > LIMIT;
+      const hasMore = rolesQuery.length > limit;
       // Remove the extra item if it exists
-      const roles = hasMore ? rolesQuery.slice(0, LIMIT) : rolesQuery;
+      const roles = hasMore ? rolesQuery.slice(0, limit) : rolesQuery;
       const nextCursor = hasMore && roles.length > 0 ? roles[roles.length - 1].id : undefined;
 
       return {

@@ -25,7 +25,7 @@ export const RoleField = ({
   assignedRoleDetails,
 }: RoleFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
-  const { roles, isFetchingNextPage, hasNextPage, loadMore } = useFetchKeysRoles();
+  const { roles, isFetchingNextPage, hasNextPage, loadMore, isLoading } = useFetchKeysRoles();
   const { searchResults, isSearching } = useSearchKeysRoles(searchValue);
 
   // Combine loaded roles with search results, prioritizing search when available
@@ -115,6 +115,7 @@ export const RoleField = ({
     setSearchValue("");
   };
 
+  const isComboboxLoading = isLoading || (isSearching && searchValue.trim().length > 0);
   return (
     <div className="space-y-3">
       <FormCombobox
@@ -126,20 +127,38 @@ export const RoleField = ({
         onSelect={handleAddRole}
         placeholder={
           <div className="flex w-full text-grayA-8 text-[13px] gap-1.5 items-center py-2">
-            Select roles
+            {isComboboxLoading ? (
+              <>
+                <div className="animate-spin h-3 w-3 border border-grayA-6 border-t-grayA-11 rounded-full" />
+                {isSearching && searchValue.trim() ? "Searching roles..." : "Loading roles..."}
+              </>
+            ) : (
+              "Select roles"
+            )}
           </div>
         }
         searchPlaceholder="Search roles by name or description..."
         emptyMessage={
-          isSearching ? (
-            <div className="px-3 py-3 text-gray-10 text-[13px]">Searching...</div>
+          isComboboxLoading ? (
+            <div className="px-3 py-3 text-gray-10 text-[13px] flex items-center gap-2">
+              <div className="animate-spin h-3 w-3 border border-gray-6 border-t-gray-11 rounded-full" />
+              {isSearching ? "Searching..." : "Loading roles..."}
+            </div>
           ) : (
             <div className="px-3 py-3 text-gray-10 text-[13px]">No roles found</div>
           )
         }
         variant="default"
         error={error}
-        disabled={disabled}
+        disabled={disabled || isLoading}
+        loading={isComboboxLoading}
+        title={
+          isComboboxLoading
+            ? isSearching && searchValue.trim()
+              ? "Searching for roles..."
+              : "Loading available roles..."
+            : undefined
+        }
       />
 
       <SelectedItemsList

@@ -1,9 +1,11 @@
+import type { Role } from "@unkey/db";
 import { z } from "zod";
 
 export const LIMIT = 50;
 
 export const rolesQueryPayload = z.object({
   cursor: z.string().optional(),
+  limit: z.number().default(LIMIT),
 });
 
 export const KeySchema = z.object({
@@ -31,7 +33,7 @@ export const RolesResponse = z.object({
 });
 
 export const rolesSearchPayload = z.object({
-  query: z.string().min(1, "Search query cannot be empty"),
+  query: z.string().trim().min(1, "Search query cannot be empty"),
 });
 
 export const RolesSearchResponse = z.object({
@@ -50,20 +52,28 @@ type RoleWithKeysAndPermissions = {
   }[];
 };
 
-export const transformRole = (role: RoleWithKeysAndPermissions) => ({
+export const transformRole = (
+  role: RoleWithKeysAndPermissions | Pick<Role, "id" | "name" | "description">,
+) => ({
   id: role.id,
   name: role.name,
   description: role.description,
-  keys: role.keys
-    .filter((roleKey) => roleKey.key !== null)
-    .map((roleKey) => ({
-      id: roleKey.key!.id,
-      name: roleKey.key!.name,
-    })),
-  permissions: role.permissions
-    .filter((rolePermission) => rolePermission.permission !== null)
-    .map((rolePermission) => ({
-      id: rolePermission.permission!.id,
-      name: rolePermission.permission!.name,
-    })),
+  keys:
+    "keys" in role
+      ? role.keys
+          .filter((roleKey) => roleKey.key !== null)
+          .map((roleKey) => ({
+            id: roleKey.key!.id,
+            name: roleKey.key!.name,
+          }))
+      : [],
+  permissions:
+    "permissions" in role
+      ? role.permissions
+          .filter((rolePermission) => rolePermission.permission !== null)
+          .map((rolePermission) => ({
+            id: rolePermission.permission!.id,
+            name: rolePermission.permission!.name,
+          }))
+      : [],
 });

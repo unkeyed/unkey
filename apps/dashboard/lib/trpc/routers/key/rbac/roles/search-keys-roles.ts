@@ -25,7 +25,7 @@ export const searchKeysRoles = t.procedure
     }
 
     try {
-      const searchTerm = `%${query.trim()}%`;
+      const searchTerm = `%${query}%`;
 
       const rolesQuery = await db.query.roles.findMany({
         where: (role, { and, eq, or, like }) => {
