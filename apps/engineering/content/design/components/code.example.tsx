@@ -1,5 +1,5 @@
-import { Code } from "@unkey/ui";
 import { RenderComponentWithSnippet } from "@/app/components/render";
+import { Code } from "@unkey/ui";
 
 export function CodeExample() {
   return (
@@ -8,7 +8,9 @@ export function CodeExample() {
         <div>
           <div className="flex flex-wrap items-center gap-4">
             <Code>const greeting = "Hello, World!";</Code>
-            <Code>function add(a, b) {'{'} return a + b; {'}'}</Code>
+            <Code>
+              function add(a, b) {"{"} return a + b; {"}"}
+            </Code>
             <Code>npm install @unkey/ui</Code>
           </div>
         </div>
@@ -30,4 +32,4 @@ export function CodeVariants() {
       </div>
     </RenderComponentWithSnippet>
   );
-} 
+}

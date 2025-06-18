@@ -26,4 +26,6 @@ function Code({ className, variant, ...props }: CodeProps) {
   return <pre className={cn(codeVariants({ variant }), className)} {...props} />;
 }
 
+Code.displayName = "Code";
+
 export { Code, codeVariants };
