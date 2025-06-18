@@ -30,7 +30,7 @@ export const FormCheckbox = React.forwardRef<HTMLButtonElement, FormCheckboxProp
       optional,
       variant = "primary",
       color,
-      size = "sm",
+      size = "md",
       ...props
     },
     ref,
