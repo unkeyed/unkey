@@ -1,4 +1,4 @@
-import { HandHoldingKey } from "@unkey/icons";
+import { Page2 } from "@unkey/icons";
 import { Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 
 type Permission = {
@@ -28,7 +28,7 @@ export function createPermissionOptions({
           <TooltipTrigger asChild>
             <div className="flex w-full text-accent-8 text-xs gap-4 py-0.5 items-center group flex-row">
               <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
-                <HandHoldingKey size="sm-regular" className="text-grayA-11" />
+                <Page2 size="sm-regular" className="text-grayA-11" />
               </div>
               <div className="flex gap-1 flex-col truncate min-w-0 flex-1">
                 <div className="flex gap-2 items-center min-w-0">
@@ -92,7 +92,7 @@ export function createPermissionOptions({
       <div className="flex w-full text-accent-8 text-xs gap-1.5 py-0.5 items-center">
         <div className="flex items-center justify-center gap-2">
           <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
-            <HandHoldingKey size="sm-regular" className="text-grayA-11" />
+            <Page2 size="sm-regular" className="text-grayA-11" />
           </div>
           <span className="text-accent-12 font-medium text-xs w-[120px] truncate text-left">
             {permission.id.length > 15

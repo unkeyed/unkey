@@ -2,7 +2,7 @@ import { StatusBadge } from "@/app/(app)/apis/[apiId]/settings/components/status
 import { SelectedItemsList } from "@/components/selected-item-list";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import type { KeyPermission, KeyRole } from "@/lib/trpc/routers/key/rbac/connected-roles-and-perms";
-import { HandHoldingKey } from "@unkey/icons";
+import { Page2 } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
 import { useMemo, useState } from "react";
 import { useWatch } from "react-hook-form";
@@ -240,7 +240,7 @@ export const PermissionField = ({
         isItemRemovable={(permission) => !permission.isInherited}
         renderIcon={() => (
           <div className="border rounded flex items-center justify-center border-grayA-4 bg-grayA-3 flex-shrink-0 size-5">
-            <HandHoldingKey size="sm-regular" className="text-grayA-11" />
+            <Page2 size="sm-regular" className="text-grayA-11" />
           </div>
         )}
         renderPrimaryText={(permission) => permission.name}

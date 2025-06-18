@@ -1,4 +1,4 @@
-import { HandHoldingKey } from "@unkey/icons";
+import { Page2 } from "@unkey/icons";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 
@@ -45,7 +45,7 @@ export const GrantedAccess = ({
         }}
         className="flex gap-2 items-center bg-grayA-3 rounded-md p-1.5"
       >
-        <HandHoldingKey size="sm-regular" className="text-grayA-11" />
+        <Page2 size="sm-regular" className="text-grayA-11" />
         <span className="text-gray-11 text-xs font-mono">{slug}</span>
       </motion.div>
     ));
