@@ -1,6 +1,7 @@
+import { SelectedItemsList } from "@/components/selected-item-list";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import type { RoleKey } from "@/lib/trpc/routers/authorization/roles/connected-keys-and-perms";
-import { Key2, XMark } from "@unkey/icons";
+import { Key2 } from "@unkey/icons";
 import { useMemo, useState } from "react";
 import { createKeyOptions } from "./create-key-options";
 import { useFetchKeys } from "./hooks/use-fetch-keys";
@@ -154,42 +155,21 @@ export const KeyField = ({
         error={error}
         disabled={disabled}
       />
-
       {/* Selected Keys Display */}
-      {selectedKeys.length > 0 && (
-        <div className="space-y-2">
-          <div className="grid grid-cols-2 gap-2 max-w-[400px]">
-            {selectedKeys.map((key) => (
-              <div
-                key={key.id}
-                className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-black border border-gray-5 rounded-md text-xs h-12 w-full"
-              >
-                <div className="border rounded-full flex items-center justify-center border-grayA-6 size-4 flex-shrink-0">
-                  <Key2 size="sm-regular" className="text-grayA-11" />
-                </div>
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <span className="font-medium text-accent-12 truncate text-xs">
-                    {key.id.length > 15 ? `${key.id.slice(0, 8)}...${key.id.slice(-4)}` : key.id}
-                  </span>
-                  <span className="text-accent-9 text-[11px] font-mono truncate">
-                    {key.name || "Unnamed Key"}
-                  </span>
-                </div>
-                {!disabled && (
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveKey(key.id)}
-                    className="p-0.5 hover:bg-grayA-4 rounded text-grayA-11 hover:text-accent-12 transition-colors flex-shrink-0 ml-auto"
-                    aria-label={`Remove ${key.name || key.id}`}
-                  >
-                    <XMark size="sm-regular" />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <SelectedItemsList
+        items={selectedKeys.map((k) => ({
+          ...k,
+          name: k.name ?? "Unnamed Key",
+        }))}
+        disabled={disabled}
+        onRemoveItem={handleRemoveKey}
+        renderIcon={() => <Key2 size="sm-regular" className="text-grayA-11" />}
+        renderPrimaryText={(key) =>
+          key.id.length > 15 ? `${key.id.slice(0, 8)}...${key.id.slice(-4)}` : key.id
+        }
+        renderSecondaryText={(key) => key.name || "Unnamed Key"}
+        itemHeight="h-12"
+      />
     </div>
   );
 };

@@ -74,7 +74,6 @@ export const getPermissionSlugs = t.procedure
         directPermissionsPromise,
       ]);
 
-      // Validate inputs by checking if we got expected results
       if (roleIds.length > 0 && rolePermissions.length === 0) {
         // Double-check if roles exist in workspace
         const roleExists = await db
@@ -98,7 +97,6 @@ export const getPermissionSlugs = t.procedure
         });
       }
 
-      // Use Set for deduplication
       const slugsSet = new Set<string>();
 
       rolePermissions.forEach(({ slug }) => slugsSet.add(slug));

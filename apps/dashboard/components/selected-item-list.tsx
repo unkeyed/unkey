@@ -58,7 +58,6 @@ export function SelectedItemsList<T extends BaseItem>({
         <AnimatePresence mode="popLayout">
           {items.map((item) => {
             const canRemove = !disabled && (!isItemRemovable || isItemRemovable(item));
-
             const itemProps = enableTransitions
               ? {
                   layout: true,
@@ -83,7 +82,9 @@ export function SelectedItemsList<T extends BaseItem>({
                 )}
                 {...itemProps}
               >
-                {renderIcon(item)}
+                <div className="border rounded flex items-center justify-center border-grayA-4 bg-gray-4 flex-shrink-0 size-5">
+                  {renderIcon(item)}
+                </div>
                 <div className="flex flex-col gap-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span

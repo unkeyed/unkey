@@ -1,4 +1,3 @@
-// update-key-rbac.schema.ts
 import type { KeyPermission } from "@/lib/trpc/routers/key/rbac/connected-roles-and-perms";
 import { z } from "zod";
 

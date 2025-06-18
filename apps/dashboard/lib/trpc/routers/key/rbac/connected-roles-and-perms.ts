@@ -165,14 +165,6 @@ export const getConnectedRolesAndPerms = t.procedure
         throw error;
       }
 
-      // Handle database connection errors
-      if (error instanceof Error && error.message.includes("connection")) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Database connection failed",
-        });
-      }
-
       // Handle all other errors
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",

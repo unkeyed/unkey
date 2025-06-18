@@ -238,11 +238,7 @@ export const PermissionField = ({
         disabled={disabled}
         onRemoveItem={handleRemovePermission}
         isItemRemovable={(permission) => !permission.isInherited}
-        renderIcon={() => (
-          <div className="border rounded flex items-center justify-center border-grayA-4 bg-grayA-3 flex-shrink-0 size-5">
-            <Page2 size="sm-regular" className="text-grayA-11" />
-          </div>
-        )}
+        renderIcon={() => <Page2 size="sm-regular" className="text-grayA-11" />}
         renderPrimaryText={(permission) => permission.name}
         enableTransitions
         renderSecondaryText={(permission) => permission.slug}
@@ -250,7 +246,7 @@ export const PermissionField = ({
           permission.isInherited && (
             <InfoTooltip
               className="z-auto"
-              variant="inverted"
+              variant="primary"
               content={`Inherited from role: ${
                 assignedRoleDetails.find((r) => r.id === permission.roleId)?.name
               }`}
