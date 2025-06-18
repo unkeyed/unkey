@@ -340,7 +340,7 @@ export const registerV1ApisListKeys = (app: App) =>
                 meta: k.identity.meta ?? undefined,
               }
             : undefined,
-             enabled: k.enabled,
+          enabled: k.enabled,
         };
       }),
       total: data.total,
