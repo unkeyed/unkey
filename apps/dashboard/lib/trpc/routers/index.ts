@@ -20,6 +20,10 @@ import { updateApiIpWhitelist } from "./api/updateIpWhitelist";
 import { updateApiName } from "./api/updateName";
 import { fetchAuditLog } from "./audit/fetch";
 import { auditLogsSearch } from "./audit/llm-search";
+import { deletePermissionWithRelations } from "./authorization/permissions/delete";
+import { permissionsLlmSearch } from "./authorization/permissions/llm-search";
+import { queryPermissions } from "./authorization/permissions/query";
+import { upsertPermission } from "./authorization/permissions/upsert";
 import { getConnectedKeysAndPerms } from "./authorization/roles/connected-keys-and-perms";
 import { deleteRoleWithRelations } from "./authorization/roles/delete";
 import { queryKeys } from "./authorization/roles/keys/query-keys";
@@ -85,6 +89,7 @@ import { disconnectRoleFromKey } from "./rbac/disconnectRoleFromKey";
 import { removePermissionFromRootKey } from "./rbac/removePermissionFromRootKey";
 import { updatePermission } from "./rbac/updatePermission";
 import { updateRole } from "./rbac/updateRole";
+import { queryRootKeys } from "./settings/root-keys/query";
 import { cancelSubscription } from "./stripe/cancelSubscription";
 import { createSubscription } from "./stripe/createSubscription";
 import { uncancelSubscription } from "./stripe/uncancelSubscription";
@@ -119,6 +124,11 @@ export const router = t.router({
     delete: deleteRootKeys,
     update: t.router({
       name: updateRootKeyName,
+    }),
+  }),
+  settings: t.router({
+    rootKeys: t.router({
+      query: queryRootKeys,
     }),
   }),
   api: t.router({
@@ -162,6 +172,12 @@ export const router = t.router({
     createIssue: createPlainIssue,
   }),
   authorization: t.router({
+    permissions: t.router({
+      query: queryPermissions,
+      upsert: upsertPermission,
+      delete: deletePermissionWithRelations,
+      llmSearch: permissionsLlmSearch,
+    }),
     roles: t.router({
       query: queryRoles,
       keys: t.router({
