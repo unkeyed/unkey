@@ -106,6 +106,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
                 api: true,
               },
             },
+            ratelimits: true,
           },
         });
         if (!dbRes) {
@@ -124,6 +125,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
                 meta: dbRes.identity.meta,
               }
             : null,
+          ratelimits: dbRes.ratelimits,
         };
       });
 
@@ -165,12 +167,13 @@ export const registerV1KeysGetVerifications = (app: App) =>
                 api: true,
               },
             },
+            ratelimits: true,
           },
         });
         if (!dbRes) {
           return [];
         }
-        return dbRes.map((key) => ({ key, api: key.keyAuth.api }));
+        return dbRes.map((key) => ({ key, api: key.keyAuth.api, ratelimits: key.ratelimits }));
       });
       if (keys.err) {
         throw new UnkeyApiError({
