@@ -43,7 +43,7 @@ func InitProviders(ctx context.Context, cfg *config.Config, version string) (*Pr
 			MeterProvider:  nil,
 			PrometheusHTTP: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusNotFound)
-				w.Write([]byte("OpenTelemetry is disabled"))
+				_, _ = w.Write([]byte("OpenTelemetry is disabled"))
 			}),
 			Shutdown: func(context.Context) error { return nil },
 		}, nil
@@ -70,7 +70,7 @@ func InitProviders(ctx context.Context, cfg *config.Config, version string) (*Pr
 	// Initialize meter provider
 	meterProvider, promHandler, meterShutdown, err := initMeterProvider(ctx, cfg, res)
 	if err != nil {
-		tracerShutdown(ctx)
+		_ = tracerShutdown(ctx)
 		return nil, fmt.Errorf("failed to initialize meter provider: %w", err)
 	}
 
@@ -159,7 +159,7 @@ func initMeterProvider(ctx context.Context, cfg *config.Config, res *resource.Re
 	// Prometheus exporter
 	var promHandler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("Prometheus metrics disabled"))
+		_, _ = w.Write([]byte("Prometheus metrics disabled"))
 	})
 
 	if cfg.OpenTelemetry.PrometheusEnabled {

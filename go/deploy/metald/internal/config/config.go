@@ -18,9 +18,6 @@ type Config struct {
 	// Backend configuration
 	Backend BackendConfig
 
-	// Process management configuration
-	ProcessManager ProcessManagerConfig
-
 	// Billing configuration
 	Billing BillingConfig
 
@@ -35,6 +32,9 @@ type Config struct {
 
 	// Network configuration
 	Network NetworkConfig
+
+	// TLS configuration (optional, defaults to disabled)
+	TLS *TLSConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -48,42 +48,16 @@ type ServerConfig struct {
 
 // BackendConfig holds backend-specific configuration
 type BackendConfig struct {
-	// Type of backend (cloudhypervisor or firecracker)
+	// Type of backend (firecracker only for now)
 	Type types.BackendType
 
-	// CloudHypervisor specific config
-	CloudHypervisor CloudHypervisorConfig
-
-	// Firecracker specific config
-	Firecracker FirecrackerConfig
-}
-
-// CloudHypervisorConfig holds Cloud Hypervisor specific configuration
-type CloudHypervisorConfig struct {
-	// API endpoint (unix:///path/to/socket)
-	Endpoint string
-}
-
-// FirecrackerConfig holds Firecracker specific configuration
-type FirecrackerConfig struct {
-	// API endpoint (unix:///path/to/socket)
-	Endpoint string
-
-	// Jailer configuration for production deployment
+	// Jailer configuration (required for production)
 	Jailer JailerConfig
+
 }
 
 // JailerConfig holds Firecracker jailer configuration
 type JailerConfig struct {
-	// Enabled indicates if jailer should be used (required for production)
-	Enabled bool
-
-	// Path to jailer binary
-	BinaryPath string
-
-	// Path to Firecracker binary (must be statically linked)
-	FirecrackerBinaryPath string
-
 	// UID for jailer process isolation
 	UID uint32
 
@@ -92,40 +66,8 @@ type JailerConfig struct {
 
 	// Chroot directory for jailer isolation
 	ChrootBaseDir string
-
-	// Enable network namespace isolation
-	NetNS bool
-
-	// Enable PID namespace isolation
-	PIDNS bool
-
-	// Resource limits
-	ResourceLimits JailerResourceLimits
 }
 
-// JailerResourceLimits holds resource limits for jailer
-type JailerResourceLimits struct {
-	// Memory limit in bytes
-	MemoryLimitBytes int64
-
-	// CPU quota (percentage, e.g., 100 = 1 CPU core)
-	CPUQuota int64
-
-	// Number of file descriptors
-	FileDescriptorLimit int64
-}
-
-// ProcessManagerConfig holds process manager configuration
-type ProcessManagerConfig struct {
-	// SocketDir is the directory for Unix socket files (secure location)
-	SocketDir string
-
-	// LogDir is the directory for process log files (secure location)
-	LogDir string
-
-	// MaxProcesses is the maximum number of concurrent Firecracker processes
-	MaxProcesses int
-}
 
 // BillingConfig holds billing service configuration
 type BillingConfig struct {
@@ -162,6 +104,11 @@ type OpenTelemetryConfig struct {
 	// PrometheusPort for scraping metrics
 	PrometheusPort string
 
+	// PrometheusInterface controls the binding interface for metrics endpoint
+	// Default "127.0.0.1" for localhost only (secure)
+	// Set to "0.0.0.0" if remote access needed (not recommended)
+	PrometheusInterface string
+
 	// HighCardinalityLabelsEnabled allows high-cardinality labels like vm_id and process_id
 	// Set to false in production to reduce cardinality
 	HighCardinalityLabelsEnabled bool
@@ -191,22 +138,40 @@ type NetworkConfig struct {
 	Enabled bool
 
 	// IPv4 Configuration
-	EnableIPv4   bool
-	BridgeIPv4   string
-	VMSubnetIPv4 string
+	EnableIPv4     bool
+	BridgeIPv4     string
+	VMSubnetIPv4   string
 	DNSServersIPv4 []string
 
 	// IPv6 Configuration
-	EnableIPv6   bool
-	BridgeIPv6   string
-	VMSubnetIPv6 string
+	EnableIPv6     bool
+	BridgeIPv6     string
+	VMSubnetIPv6   string
 	DNSServersIPv6 []string
-	IPv6Mode     string // "dual-stack", "ipv6-only", "ipv4-only"
+	IPv6Mode       string // "dual-stack", "ipv6-only", "ipv4-only"
 
 	// Common Configuration
 	BridgeName      string
 	EnableRateLimit bool
 	RateLimitMbps   int
+}
+
+// TLSConfig holds TLS configuration
+type TLSConfig struct {
+	// Mode can be "disabled", "file", or "spiffe"
+	Mode string `json:"mode,omitempty"`
+
+	// File-based TLS options
+	CertFile string `json:"cert_file,omitempty"`
+	KeyFile  string `json:"-"` // AIDEV-NOTE: Never serialize private key paths
+	CAFile   string `json:"ca_file,omitempty"`
+
+	// SPIFFE options
+	SPIFFESocketPath string `json:"spiffe_socket_path,omitempty"`
+
+	// Performance options
+	EnableCertCaching bool   `json:"enable_cert_caching,omitempty"`
+	CertCacheTTL      string `json:"cert_cache_ttl,omitempty"`
 }
 
 // LoadConfig loads configuration from environment variables
@@ -222,13 +187,8 @@ func LoadConfigWithSocketPath(socketPath string) (*Config, error) {
 
 // LoadConfigWithSocketPathAndLogger loads configuration with optional socket path override and custom logger
 func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (*Config, error) {
-	// Determine endpoints based on socket path or environment
-	chEndpoint := getEnvOrDefault("UNKEY_METALD_CH_ENDPOINT", "unix:///tmp/ch.sock")
-	fcEndpoint := getEnvOrDefault("UNKEY_METALD_FC_ENDPOINT", "unix:///tmp/firecracker.sock")
-	if socketPath != "" {
-		// Only override Cloud Hypervisor endpoint for backward compatibility
-		chEndpoint = formatSocketPath(socketPath)
-	}
+	// AIDEV-NOTE: Socket endpoints are now managed by process manager
+	// No need for endpoint configuration
 
 	// Parse sampling rate
 	samplingRate := 1.0
@@ -282,18 +242,8 @@ func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (
 		}
 	}
 
-	// Parse jailer enabled flag
-	jailerEnabled := false
-	if jailerStr := os.Getenv("UNKEY_METALD_JAILER_ENABLED"); jailerStr != "" {
-		if parsed, err := strconv.ParseBool(jailerStr); err == nil {
-			jailerEnabled = parsed
-		} else {
-			logger.Warn("invalid UNKEY_METALD_JAILER_ENABLED, using default false",
-				slog.String("value", jailerStr),
-				slog.String("error", err.Error()),
-			)
-		}
-	}
+	// AIDEV-BUSINESS_RULE: Jailer is always required for production security
+
 
 	// Parse jailer UID/GID
 	jailerUID := uint32(1000)
@@ -320,50 +270,10 @@ func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (
 		}
 	}
 
-	// Parse jailer namespace flags
-	jailerNetNS := true
-	if netnsStr := os.Getenv("UNKEY_METALD_JAILER_NETNS"); netnsStr != "" {
-		if parsed, err := strconv.ParseBool(netnsStr); err == nil {
-			jailerNetNS = parsed
-		}
-	}
+	// AIDEV-NOTE: Namespace isolation is always enabled for security
 
-	jailerPIDNS := true
-	if pidnsStr := os.Getenv("UNKEY_METALD_JAILER_PIDNS"); pidnsStr != "" {
-		if parsed, err := strconv.ParseBool(pidnsStr); err == nil {
-			jailerPIDNS = parsed
-		}
-	}
+	// AIDEV-NOTE: Resource limits are applied at container/VM level, not jailer level
 
-	// Parse resource limits
-	memLimit := int64(128 * 1024 * 1024) // 128MB default
-	if memStr := os.Getenv("UNKEY_METALD_JAILER_MEMORY_LIMIT"); memStr != "" {
-		if parsed, err := strconv.ParseInt(memStr, 10, 64); err == nil {
-			memLimit = parsed
-		}
-	}
-
-	cpuQuota := int64(100) // 1 CPU core default
-	if cpuStr := os.Getenv("UNKEY_METALD_JAILER_CPU_QUOTA"); cpuStr != "" {
-		if parsed, err := strconv.ParseInt(cpuStr, 10, 64); err == nil {
-			cpuQuota = parsed
-		}
-	}
-
-	fdLimit := int64(1024) // 1024 file descriptors default
-	if fdStr := os.Getenv("UNKEY_METALD_JAILER_FD_LIMIT"); fdStr != "" {
-		if parsed, err := strconv.ParseInt(fdStr, 10, 64); err == nil {
-			fdLimit = parsed
-		}
-	}
-
-	// Parse process manager configuration with secure defaults
-	maxProcesses := 1000 // Default suitable for Firecracker's thousands-of-VMs capability
-	if maxProcStr := os.Getenv("UNKEY_METALD_MAX_PROCESSES"); maxProcStr != "" {
-		if parsed, err := strconv.Atoi(maxProcStr); err == nil && parsed > 0 {
-			maxProcesses = parsed
-		}
-	}
 
 	// Parse billing configuration
 	billingEnabled := true // Default to enabled
@@ -399,33 +309,12 @@ func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (
 			Address: getEnvOrDefault("UNKEY_METALD_ADDRESS", "0.0.0.0"),
 		},
 		Backend: BackendConfig{
-			Type: types.BackendType(getEnvOrDefault("UNKEY_METALD_BACKEND", string(types.BackendTypeCloudHypervisor))),
-			CloudHypervisor: CloudHypervisorConfig{
-				Endpoint: chEndpoint,
+			Type:   types.BackendType(getEnvOrDefault("UNKEY_METALD_BACKEND", string(types.BackendTypeFirecracker))),
+			Jailer: JailerConfig{
+				UID:           jailerUID,
+				GID:           jailerGID,
+				ChrootBaseDir: getEnvOrDefault("UNKEY_METALD_JAILER_CHROOT_DIR", "/srv/jailer"),
 			},
-			Firecracker: FirecrackerConfig{
-				Endpoint: fcEndpoint,
-				Jailer: JailerConfig{
-					Enabled:               jailerEnabled,
-					BinaryPath:            getEnvOrDefault("UNKEY_METALD_JAILER_BINARY", "/usr/bin/jailer"),
-					FirecrackerBinaryPath: getEnvOrDefault("UNKEY_METALD_FIRECRACKER_BINARY", "/usr/bin/firecracker"),
-					UID:                   jailerUID,
-					GID:                   jailerGID,
-					ChrootBaseDir:         getEnvOrDefault("UNKEY_METALD_JAILER_CHROOT_DIR", "/srv/jailer"),
-					NetNS:                 jailerNetNS,
-					PIDNS:                 jailerPIDNS,
-					ResourceLimits: JailerResourceLimits{
-						MemoryLimitBytes:    memLimit,
-						CPUQuota:            cpuQuota,
-						FileDescriptorLimit: fdLimit,
-					},
-				},
-			},
-		},
-		ProcessManager: ProcessManagerConfig{
-			SocketDir:    getEnvOrDefault("UNKEY_METALD_SOCKET_DIR", "/opt/metald/sockets"),
-			LogDir:       getEnvOrDefault("UNKEY_METALD_LOG_DIR", "/opt/metald/logs"),
-			MaxProcesses: maxProcesses,
 		},
 		Billing: BillingConfig{
 			Enabled:  billingEnabled,
@@ -435,11 +324,12 @@ func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (
 		OpenTelemetry: OpenTelemetryConfig{
 			Enabled:                      otelEnabled,
 			ServiceName:                  getEnvOrDefault("UNKEY_METALD_OTEL_SERVICE_NAME", "metald"),
-			ServiceVersion:               getEnvOrDefault("UNKEY_METALD_OTEL_SERVICE_VERSION", "0.0.1"),
+			ServiceVersion:               getEnvOrDefault("UNKEY_METALD_OTEL_SERVICE_VERSION", "0.1.0"),
 			TracingSamplingRate:          samplingRate,
 			OTLPEndpoint:                 getEnvOrDefault("UNKEY_METALD_OTEL_ENDPOINT", "localhost:4318"),
 			PrometheusEnabled:            prometheusEnabled,
 			PrometheusPort:               getEnvOrDefault("UNKEY_METALD_OTEL_PROMETHEUS_PORT", "9464"),
+			PrometheusInterface:          getEnvOrDefault("UNKEY_METALD_OTEL_PROMETHEUS_INTERFACE", "127.0.0.1"),
 			HighCardinalityLabelsEnabled: highCardinalityLabelsEnabled,
 		},
 		Database: DatabaseConfig{
@@ -451,19 +341,29 @@ func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (
 			CacheDir: getEnvOrDefault("UNKEY_METALD_ASSETMANAGER_CACHE_DIR", "/opt/metald/assets"),
 		},
 		Network: NetworkConfig{
-			Enabled:         getEnvBoolOrDefault("UNKEY_METALD_NETWORK_ENABLED", true),
-			EnableIPv4:      getEnvBoolOrDefault("UNKEY_METALD_NETWORK_IPV4_ENABLED", true),
+			Enabled:         getEnvBoolOrDefault("UNKEY_METALD_NETWORK_ENABLED"),
+			EnableIPv4:      getEnvBoolOrDefault("UNKEY_METALD_NETWORK_IPV4_ENABLED"),
 			BridgeIPv4:      getEnvOrDefault("UNKEY_METALD_NETWORK_BRIDGE_IPV4", "10.100.0.1/16"),
 			VMSubnetIPv4:    getEnvOrDefault("UNKEY_METALD_NETWORK_VM_SUBNET_IPV4", "10.100.0.0/16"),
 			DNSServersIPv4:  strings.Split(getEnvOrDefault("UNKEY_METALD_NETWORK_DNS_IPV4", "8.8.8.8,8.8.4.4"), ","),
-			EnableIPv6:      getEnvBoolOrDefault("UNKEY_METALD_NETWORK_IPV6_ENABLED", true),
+			EnableIPv6:      getEnvBoolOrDefault("UNKEY_METALD_NETWORK_IPV6_ENABLED"),
 			BridgeIPv6:      getEnvOrDefault("UNKEY_METALD_NETWORK_BRIDGE_IPV6", "fd00::1/64"),
 			VMSubnetIPv6:    getEnvOrDefault("UNKEY_METALD_NETWORK_VM_SUBNET_IPV6", "fd00::/64"),
 			DNSServersIPv6:  strings.Split(getEnvOrDefault("UNKEY_METALD_NETWORK_DNS_IPV6", "2606:4700:4700::1111,2606:4700:4700::1001"), ","),
 			IPv6Mode:        getEnvOrDefault("UNKEY_METALD_NETWORK_IPV6_MODE", "dual-stack"),
 			BridgeName:      getEnvOrDefault("UNKEY_METALD_NETWORK_BRIDGE", "br-vms"),
-			EnableRateLimit: getEnvBoolOrDefault("UNKEY_METALD_NETWORK_RATE_LIMIT", true),
+			EnableRateLimit: getEnvBoolOrDefault("UNKEY_METALD_NETWORK_RATE_LIMIT"),
 			RateLimitMbps:   getEnvIntOrDefault("UNKEY_METALD_NETWORK_RATE_LIMIT_MBPS", 1000),
+		},
+		TLS: &TLSConfig{
+			// AIDEV-BUSINESS_RULE: mTLS/SPIFFE is required for production security
+			Mode:              getEnvOrDefault("UNKEY_METALD_TLS_MODE", "spiffe"),
+			CertFile:          getEnvOrDefault("UNKEY_METALD_TLS_CERT_FILE", ""),
+			KeyFile:           getEnvOrDefault("UNKEY_METALD_TLS_KEY_FILE", ""),
+			CAFile:            getEnvOrDefault("UNKEY_METALD_TLS_CA_FILE", ""),
+			SPIFFESocketPath:  getEnvOrDefault("UNKEY_METALD_SPIFFE_SOCKET", "/var/lib/spire/agent/agent.sock"),
+			EnableCertCaching: getEnvBoolOrDefault("UNKEY_METALD_TLS_ENABLE_CERT_CACHING"),
+			CertCacheTTL:      getEnvOrDefault("UNKEY_METALD_TLS_CERT_CACHE_TTL", "5s"),
 		},
 	}
 
@@ -477,18 +377,9 @@ func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (
 
 // Validate validates the configuration
 func (c *Config) Validate() error {
-	// AIDEV-BUSINESS_RULE: Backend type must be supported
-	switch c.Backend.Type {
-	case types.BackendTypeCloudHypervisor:
-		if c.Backend.CloudHypervisor.Endpoint == "" {
-			return fmt.Errorf("cloud hypervisor endpoint is required")
-		}
-	case types.BackendTypeFirecracker:
-		if c.Backend.Firecracker.Endpoint == "" {
-			return fmt.Errorf("firecracker endpoint is required")
-		}
-	default:
-		return fmt.Errorf("unsupported backend type: %s", c.Backend.Type)
+	// AIDEV-BUSINESS_RULE: Only Firecracker backend is supported
+	if c.Backend.Type != types.BackendTypeFirecracker {
+		return fmt.Errorf("only firecracker backend is supported, got: %s", c.Backend.Type)
 	}
 
 	// AIDEV-NOTE: Comprehensive unit tests implemented in config_test.go
@@ -516,15 +407,15 @@ func getEnvOrDefault(key, defaultValue string) string {
 	return defaultValue
 }
 
-func getEnvBoolOrDefault(key string, defaultValue bool) bool {
+func getEnvBoolOrDefault(key string) bool {
 	if value := os.Getenv(key); value != "" {
 		boolValue, err := strconv.ParseBool(value)
 		if err != nil {
-			return defaultValue
+			return true
 		}
 		return boolValue
 	}
-	return defaultValue
+	return true
 }
 
 func getEnvIntOrDefault(key string, defaultValue int) int {
@@ -538,13 +429,3 @@ func getEnvIntOrDefault(key string, defaultValue int) int {
 	return defaultValue
 }
 
-// formatSocketPath formats the socket path into a unix:// URL
-func formatSocketPath(socketPath string) string {
-	// AIDEV-NOTE: Cloud Hypervisor only supports Unix sockets
-	if strings.HasPrefix(socketPath, "unix://") {
-		return socketPath
-	}
-
-	// Add unix:// scheme to socket paths
-	return "unix://" + socketPath
-}

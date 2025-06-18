@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
@@ -83,14 +84,19 @@ func NewOTELInterceptor() connect.UnaryInterceptorFunc {
 		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
 			// Extract procedure name
 			procedure := req.Spec().Procedure
+			methodName := extractMethodName(procedure)
+			serviceName := extractServiceName(procedure)
+
+			// AIDEV-NOTE: Using unified span naming convention: service.method
+			spanName := fmt.Sprintf("billaged.%s", methodName)
 
 			// Start span
-			ctx, span := tracer.Start(ctx, procedure,
+			ctx, span := tracer.Start(ctx, spanName,
 				trace.WithSpanKind(trace.SpanKindServer),
 				trace.WithAttributes(
 					attribute.String("rpc.system", "connect_rpc"),
-					attribute.String("rpc.service", req.Spec().Procedure),
-					attribute.String("rpc.method", req.Spec().Procedure),
+					attribute.String("rpc.service", serviceName),
+					attribute.String("rpc.method", methodName),
 				),
 			)
 			// AIDEV-NOTE: Critical panic recovery in OTEL interceptor - preserves existing errors
@@ -148,12 +154,12 @@ func NewOTELInterceptor() connect.UnaryInterceptorFunc {
 
 				// For error sampling: create a new span that's always sampled
 				if span.SpanContext().IsSampled() == false {
-					_, errorSpan := tracer.Start(ctx, procedure+".error",
+					_, errorSpan := tracer.Start(ctx, spanName+".error",
 						trace.WithSpanKind(trace.SpanKindServer),
 						trace.WithAttributes(
 							attribute.String("rpc.system", "connect_rpc"),
-							attribute.String("rpc.service", req.Spec().Procedure),
-							attribute.String("rpc.method", req.Spec().Procedure),
+							attribute.String("rpc.service", serviceName),
+							attribute.String("rpc.method", methodName),
 							attribute.Bool("error.resampled", true),
 						),
 					)
@@ -179,4 +185,22 @@ func NewOTELInterceptor() connect.UnaryInterceptorFunc {
 			return resp, err
 		}
 	}
+}
+
+// extractMethodName extracts the method name from a full procedure path
+func extractMethodName(procedure string) string {
+	parts := strings.Split(procedure, "/")
+	if len(parts) > 0 {
+		return parts[len(parts)-1]
+	}
+	return procedure
+}
+
+// extractServiceName extracts the service name from a full procedure path
+func extractServiceName(procedure string) string {
+	parts := strings.Split(procedure, "/")
+	if len(parts) >= 2 {
+		return parts[1]
+	}
+	return ""
 }

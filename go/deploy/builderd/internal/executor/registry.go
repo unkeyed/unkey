@@ -46,7 +46,7 @@ func (r *Registry) registerBuiltinExecutors(buildMetrics *observability.BuildMet
 	// archiveExecutor := NewArchiveExecutor(r.logger, r.config, buildMetrics)
 	// r.RegisterExecutor("archive", archiveExecutor)
 
-	r.logger.Info("registered built-in executors",
+	r.logger.InfoContext(context.Background(), "registered built-in executors",
 		slog.Int("executor_count", len(r.executors)),
 	)
 }
@@ -57,7 +57,7 @@ func (r *Registry) RegisterExecutor(sourceType string, executor Executor) {
 	defer r.mutex.Unlock()
 
 	r.executors[sourceType] = executor
-	r.logger.Info("registered executor", slog.String("source_type", sourceType))
+	r.logger.InfoContext(context.Background(), "registered executor", slog.String("source_type", sourceType))
 }
 
 // GetExecutor returns the executor for a given source type
@@ -67,7 +67,7 @@ func (r *Registry) GetExecutor(sourceType string) (Executor, error) {
 
 	executor, exists := r.executors[sourceType]
 	if !exists {
-		r.logger.Error("no executor found for source type",
+		r.logger.ErrorContext(context.Background(), "no executor found for source type",
 			slog.String("source_type", sourceType),
 			slog.Any("available_types", r.GetSupportedSources()),
 		)
@@ -91,21 +91,21 @@ func (r *Registry) Execute(ctx context.Context, request *builderv1.CreateBuildRe
 		return nil, fmt.Errorf("failed to get executor: %w", err)
 	}
 
-	r.logger.Info("executing build request",
+	r.logger.InfoContext(ctx, "executing build request",
 		slog.String("source_type", sourceType),
 	)
 
 	// Execute the build
 	result, err := executor.Execute(ctx, request)
 	if err != nil {
-		r.logger.Error("build execution failed",
+		r.logger.ErrorContext(ctx, "build execution failed",
 			slog.String("source_type", sourceType),
 			slog.String("error", err.Error()),
 		)
 		return nil, fmt.Errorf("build execution failed: %w", err)
 	}
 
-	r.logger.Info("build execution completed",
+	r.logger.InfoContext(ctx, "build execution completed",
 		slog.String("source_type", sourceType),
 		slog.String("build_id", result.BuildID),
 		slog.String("status", result.Status),
@@ -117,7 +117,7 @@ func (r *Registry) Execute(ctx context.Context, request *builderv1.CreateBuildRe
 // getSourceTypeFromRequest determines the source type from the build request
 func (r *Registry) getSourceTypeFromRequest(request *builderv1.CreateBuildRequest) (string, error) {
 	if request.Config == nil || request.Config.Source == nil {
-		r.logger.Error("build source is required but missing")
+		r.logger.ErrorContext(context.Background(), "build source is required but missing")
 		return "", fmt.Errorf("build source is required")
 	}
 
@@ -129,7 +129,7 @@ func (r *Registry) getSourceTypeFromRequest(request *builderv1.CreateBuildReques
 	case *builderv1.BuildSource_Archive:
 		return "archive", nil
 	default:
-		r.logger.Error("unsupported source type",
+		r.logger.ErrorContext(context.Background(), "unsupported source type",
 			slog.String("type", fmt.Sprintf("%T", source)),
 		)
 		return "", fmt.Errorf("unsupported source type: %T", source)
@@ -158,7 +158,7 @@ func (r *Registry) Cleanup(ctx context.Context, buildID string) error {
 
 	for sourceType, executor := range r.executors {
 		if err := executor.Cleanup(ctx, buildID); err != nil {
-			r.logger.Warn("executor cleanup failed",
+			r.logger.WarnContext(ctx, "executor cleanup failed",
 				slog.String("source_type", sourceType),
 				slog.String("build_id", buildID),
 				slog.String("error", err.Error()),

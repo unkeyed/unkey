@@ -35,7 +35,7 @@ func NewProcessIsolator(logger *slog.Logger, tenantMgr *Manager) *ProcessIsolato
 	// Check if cgroups v2 is available
 	if _, err := os.Stat("/sys/fs/cgroup/cgroup.controllers"); err != nil {
 		isolator.enableCgroups = false
-		logger.Warn("cgroups v2 not available, disabling cgroup isolation")
+		logger.WarnContext(context.Background(), "cgroups v2 not available, disabling cgroup isolation")
 	}
 
 	return isolator
@@ -70,7 +70,7 @@ func (p *ProcessIsolator) CreateIsolatedCommand(
 		return nil, fmt.Errorf("failed to apply resource limits: %w", err)
 	}
 
-	p.logger.Info("created isolated command",
+	p.logger.InfoContext(ctx, "created isolated command",
 		slog.String("tenant_id", tenantID),
 		slog.String("build_id", buildID),
 		slog.String("command", command),
@@ -147,7 +147,7 @@ func (p *ProcessIsolator) CreateIsolatedDockerCommand(
 		return nil, fmt.Errorf("failed to apply process isolation to docker command: %w", err)
 	}
 
-	p.logger.Info("created isolated docker command",
+	p.logger.InfoContext(ctx, "created isolated docker command",
 		slog.String("tenant_id", tenantID),
 		slog.String("build_id", buildID),
 		slog.Any("docker_args", args),
@@ -271,7 +271,7 @@ func (p *ProcessIsolator) applyResourceLimits(cmd *exec.Cmd, constraints BuildCo
 		defer func() {
 			// Always cleanup cgroup regardless of how we exit
 			if err := os.RemoveAll(cgroupPath); err != nil {
-				p.logger.Warn("failed to cleanup cgroup", 
+				p.logger.Warn("failed to cleanup cgroup",
 					slog.String("error", err.Error()),
 					slog.String("cgroup_path", cgroupPath),
 					slog.String("build_id", buildID),

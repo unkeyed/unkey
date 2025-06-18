@@ -41,7 +41,7 @@ func createHTTPClient(endpoint string) *http.Client {
 	// Create base transport with Unix socket dialer
 	transport := &http.Transport{
 		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-			return (&net.Dialer{}).DialContext(ctx, "unix", socketPath)
+			return (&net.Dialer{}).DialContext(ctx, "unix", socketPath) //nolint:exhaustruct
 		},
 	}
 
@@ -61,8 +61,8 @@ func createHTTPClient(endpoint string) *http.Client {
 // CreateVM creates a new VM instance
 func (c *Client) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (string, error) {
 	c.logger.LogAttrs(ctx, slog.LevelInfo, "creating vm",
-		slog.Int("vcpus", int(config.Cpu.VcpuCount)),
-		slog.Int64("memory_bytes", config.Memory.SizeBytes),
+		slog.Int("vcpus", int(config.GetCpu().GetVcpuCount())),
+		slog.Int64("memory_bytes", config.GetMemory().GetSizeBytes()),
 	)
 
 	// Convert generic config to Cloud Hypervisor API format
@@ -355,6 +355,7 @@ func (c *Client) GetVMInfo(ctx context.Context, vmID string) (*types.VMInfo, err
 	)
 
 	// AIDEV-TODO: Implement config reconstruction from VM info
+	//exhaustruct:ignore
 	return &types.VMInfo{
 		State:  state,
 		Config: nil, // Config reconstruction would require storing original config

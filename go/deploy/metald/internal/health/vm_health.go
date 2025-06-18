@@ -116,6 +116,7 @@ func NewVMHealthChecker(logger *slog.Logger, config *HealthCheckConfig) (*VMHeal
 		return nil, fmt.Errorf("failed to create health check duration histogram: %w", err)
 	}
 
+	//exhaustruct:ignore
 	return &VMHealthChecker{
 		logger:              logger.With("component", "vm_health_checker"),
 		config:              config,
@@ -155,6 +156,7 @@ func (hc *VMHealthChecker) StartMonitoring(vmID, processID, socketPath string, p
 	}
 
 	// Initialize status
+	//exhaustruct:ignore
 	status := &VMHealthStatus{
 		VMId:         vmID,
 		ProcessID:    processID,
@@ -239,7 +241,7 @@ func (hc *VMHealthChecker) monitorVM(ctx context.Context, vmID string) {
 	for {
 		select {
 		case <-ctx.Done():
-			hc.logger.Debug("health monitoring stopped", "vm_id", vmID)
+			hc.logger.DebugContext(ctx, "health monitoring stopped", "vm_id", vmID)
 			return
 		case <-ticker.C:
 			hc.performHealthCheck(ctx, vmID)
@@ -344,7 +346,7 @@ func (hc *VMHealthChecker) checkVMHealth(ctx context.Context, socketPath string,
 		},
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "GET", "http://unix/", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://unix/", nil)
 	if err != nil {
 		return false, fmt.Sprintf("failed to create request: %v", err)
 	}
@@ -380,56 +382,9 @@ func (hc *VMHealthChecker) updateVMHealthStatus(vmID string, isHealthy bool, err
 	status.CheckCount++
 
 	if isHealthy {
-		status.LastHealthy = now
-		status.ErrorMsg = ""
-
-		// Reset failure count on success
-		if status.FailureCount > 0 {
-			hc.logger.Debug("vm health check succeeded after failures",
-				"vm_id", vmID,
-				"previous_failures", status.FailureCount,
-			)
-		}
-		status.FailureCount = 0
-
-		// Check for recovery (unhealthy -> healthy transition)
-		if !wasHealthy {
-			status.IsHealthy = true
-			hc.logger.Info("vm recovered",
-				"vm_id", vmID,
-				"downtime", now.Sub(status.LastHealthy),
-			)
-
-			// Trigger recovery callback
-			if hc.onVMRecovered != nil {
-				go hc.onVMRecovered(vmID, status)
-			}
-		}
+		hc.handleHealthyStatus(status, wasHealthy, vmID, now)
 	} else {
-		status.FailureCount++
-		status.ErrorMsg = errorMsg
-
-		hc.logger.Warn("vm health check failed",
-			"vm_id", vmID,
-			"failure_count", status.FailureCount,
-			"error", errorMsg,
-			"duration", duration,
-		)
-
-		// Check if we should mark as unhealthy
-		if wasHealthy && status.FailureCount >= int64(hc.config.FailureThreshold) {
-			status.IsHealthy = false
-			hc.logger.Error("vm marked as unhealthy",
-				"vm_id", vmID,
-				"consecutive_failures", status.FailureCount,
-				"threshold", hc.config.FailureThreshold,
-			)
-
-			// Trigger unhealthy callback
-			if hc.onVMUnhealthy != nil {
-				go hc.onVMUnhealthy(vmID, status)
-			}
-		}
+		hc.handleUnhealthyStatus(status, wasHealthy, vmID, errorMsg, duration)
 	}
 }
 
@@ -465,4 +420,61 @@ func (hc *VMHealthChecker) Shutdown() {
 	hc.vmStatus = make(map[string]*VMHealthStatus)
 
 	hc.logger.Info("vm health checker shutdown complete")
+}
+
+// handleHealthyStatus updates status when health check succeeds
+func (hc *VMHealthChecker) handleHealthyStatus(status *VMHealthStatus, wasHealthy bool, vmID string, now time.Time) {
+	status.LastHealthy = now
+	status.ErrorMsg = ""
+
+	// Reset failure count on success
+	if status.FailureCount > 0 {
+		hc.logger.Debug("vm health check succeeded after failures",
+			"vm_id", vmID,
+			"previous_failures", status.FailureCount,
+		)
+	}
+	status.FailureCount = 0
+
+	// Check for recovery (unhealthy -> healthy transition)
+	if !wasHealthy {
+		status.IsHealthy = true
+		hc.logger.Info("vm recovered",
+			"vm_id", vmID,
+			"downtime", now.Sub(status.LastHealthy),
+		)
+
+		// Trigger recovery callback
+		if hc.onVMRecovered != nil {
+			go hc.onVMRecovered(vmID, status)
+		}
+	}
+}
+
+// handleUnhealthyStatus updates status when health check fails
+func (hc *VMHealthChecker) handleUnhealthyStatus(status *VMHealthStatus, wasHealthy bool, vmID string, errorMsg string, duration time.Duration) {
+	status.FailureCount++
+	status.ErrorMsg = errorMsg
+
+	hc.logger.Warn("vm health check failed",
+		"vm_id", vmID,
+		"failure_count", status.FailureCount,
+		"error", errorMsg,
+		"duration", duration,
+	)
+
+	// Check if we should mark as unhealthy
+	if wasHealthy && status.FailureCount >= int64(hc.config.FailureThreshold) {
+		status.IsHealthy = false
+		hc.logger.Error("vm marked as unhealthy",
+			"vm_id", vmID,
+			"consecutive_failures", status.FailureCount,
+			"threshold", hc.config.FailureThreshold,
+		)
+
+		// Trigger unhealthy callback
+		if hc.onVMUnhealthy != nil {
+			go hc.onVMUnhealthy(vmID, status)
+		}
+	}
 }

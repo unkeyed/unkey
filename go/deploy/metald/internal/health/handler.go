@@ -10,6 +10,13 @@ import (
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
 )
 
+// Health status constants
+const (
+	StatusHealthy   = "healthy"
+	StatusUnhealthy = "unhealthy"
+	StatusDegraded  = "degraded"
+)
+
 // Handler provides health check endpoints
 type Handler struct {
 	backend   types.Backend
@@ -71,7 +78,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Determine HTTP status code based on overall health
 	statusCode := http.StatusOK
-	if response.Status != "healthy" {
+	if response.Status != StatusHealthy {
 		statusCode = http.StatusServiceUnavailable
 	}
 
@@ -107,27 +114,29 @@ func (h *Handler) performHealthChecks(ctx context.Context) *HealthResponse {
 		h.logger.LogAttrs(ctx, slog.LevelError, "failed to get system info",
 			slog.String("error", err.Error()),
 		)
+		//exhaustruct:ignore
 		checks["system_info"] = Check{
-			Status:    "unhealthy",
+			Status:    StatusUnhealthy,
 			Error:     err.Error(),
 			Timestamp: timestamp,
 		}
 	} else {
+		//exhaustruct:ignore
 		checks["system_info"] = Check{
-			Status:    "healthy",
+			Status:    StatusHealthy,
 			Timestamp: timestamp,
 		}
 	}
 
 	// Determine overall status
-	overallStatus := "healthy"
-	if backendHealth.Status != "healthy" {
-		overallStatus = "unhealthy"
+	overallStatus := StatusHealthy
+	if backendHealth.Status != StatusHealthy {
+		overallStatus = StatusUnhealthy
 	}
 
 	for _, check := range checks {
-		if check.Status != "healthy" {
-			overallStatus = "degraded"
+		if check.Status != StatusHealthy {
+			overallStatus = StatusDegraded
 			break
 		}
 	}
@@ -153,8 +162,8 @@ func (h *Handler) checkBackendHealth(ctx context.Context, checks map[string]Chec
 	err := h.backend.Ping(pingCtx)
 	duration := time.Since(checkStart)
 
-	backendHealth := BackendHealth{
-		Type: "cloudhypervisor", // AIDEV-TODO: Get from backend type
+	backendHealth := BackendHealth{ //exhaustruct:ignore
+		Type: "firecracker", // Only Firecracker is supported
 	}
 
 	if err != nil {
@@ -163,11 +172,11 @@ func (h *Handler) checkBackendHealth(ctx context.Context, checks map[string]Chec
 			slog.Duration("duration", duration),
 		)
 
-		backendHealth.Status = "unhealthy"
+		backendHealth.Status = StatusUnhealthy
 		backendHealth.Error = err.Error()
 
 		checks["backend_ping"] = Check{
-			Status:    "unhealthy",
+			Status:    StatusUnhealthy,
 			Duration:  duration,
 			Error:     err.Error(),
 			Timestamp: time.Now(),
@@ -177,10 +186,10 @@ func (h *Handler) checkBackendHealth(ctx context.Context, checks map[string]Chec
 			slog.Duration("duration", duration),
 		)
 
-		backendHealth.Status = "healthy"
+		backendHealth.Status = StatusHealthy
 
-		checks["backend_ping"] = Check{
-			Status:    "healthy",
+		checks["backend_ping"] = Check{ //exhaustruct:ignore
+			Status:    StatusHealthy,
 			Duration:  duration,
 			Timestamp: time.Now(),
 		}

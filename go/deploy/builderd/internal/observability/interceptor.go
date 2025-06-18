@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -88,14 +89,19 @@ func NewOTELInterceptor() connect.UnaryInterceptorFunc {
 		return func(ctx context.Context, req connect.AnyRequest) (resp connect.AnyResponse, err error) {
 			// Extract procedure name
 			procedure := req.Spec().Procedure
+			methodName := extractMethodName(procedure)
+			serviceName := extractServiceName(procedure)
+
+			// AIDEV-NOTE: Using unified span naming convention: service.method
+			spanName := fmt.Sprintf("builderd.%s", methodName)
 
 			// Start span
-			ctx, span := tracer.Start(ctx, procedure,
+			ctx, span := tracer.Start(ctx, spanName,
 				trace.WithSpanKind(trace.SpanKindServer),
 				trace.WithAttributes(
 					attribute.String("rpc.system", "connect_rpc"),
-					attribute.String("rpc.service", req.Spec().Procedure),
-					attribute.String("rpc.method", req.Spec().Procedure),
+					attribute.String("rpc.service", serviceName),
+					attribute.String("rpc.method", methodName),
 				),
 			)
 			// AIDEV-NOTE: Critical panic recovery in OTEL interceptor - preserves existing errors
@@ -104,7 +110,7 @@ func NewOTELInterceptor() connect.UnaryInterceptorFunc {
 				if r := recover(); r != nil {
 					// Get stack trace
 					stack := debug.Stack()
-					
+
 					// Log detailed panic information
 					slog.Default().Error("panic in OTEL interceptor",
 						slog.String("procedure", procedure),
@@ -165,12 +171,12 @@ func NewOTELInterceptor() connect.UnaryInterceptorFunc {
 				// For error sampling: create a new span that's always sampled
 				// This ensures errors are captured even with low sampling rates
 				if span.SpanContext().IsSampled() == false {
-					_, errorSpan := tracer.Start(ctx, procedure+".error",
+					_, errorSpan := tracer.Start(ctx, spanName+".error",
 						trace.WithSpanKind(trace.SpanKindServer),
 						trace.WithAttributes(
 							attribute.String("rpc.system", "connect_rpc"),
-							attribute.String("rpc.service", req.Spec().Procedure),
-							attribute.String("rpc.method", req.Spec().Procedure),
+							attribute.String("rpc.service", serviceName),
+							attribute.String("rpc.method", methodName),
 							attribute.Bool("error.resampled", true),
 						),
 					)
@@ -207,7 +213,7 @@ func NewLoggingInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc {
 				if r := recover(); r != nil {
 					// Get stack trace
 					stack := debug.Stack()
-					
+
 					logger.Error("panic in logging interceptor",
 						slog.String("procedure", req.Spec().Procedure),
 						slog.Any("panic", r),
@@ -355,4 +361,22 @@ func withTenantContext(ctx context.Context, auth TenantAuthContext) context.Cont
 func TenantFromContext(ctx context.Context) (TenantAuthContext, bool) {
 	auth, ok := ctx.Value(tenantContextKey).(TenantAuthContext)
 	return auth, ok
+}
+
+// extractMethodName extracts the method name from a full procedure path
+func extractMethodName(procedure string) string {
+	parts := strings.Split(procedure, "/")
+	if len(parts) > 0 {
+		return parts[len(parts)-1]
+	}
+	return procedure
+}
+
+// extractServiceName extracts the service name from a full procedure path
+func extractServiceName(procedure string) string {
+	parts := strings.Split(procedure, "/")
+	if len(parts) >= 2 {
+		return parts[1]
+	}
+	return ""
 }

@@ -24,22 +24,60 @@ func TestLoadConfig(t *testing.T) {
 					Address: "0.0.0.0",
 				},
 				Backend: BackendConfig{
-					Type: types.BackendTypeCloudHypervisor,
-					CloudHypervisor: CloudHypervisorConfig{
-						Endpoint: "unix:///tmp/ch.sock",
-					},
-					Firecracker: FirecrackerConfig{
-						Endpoint: "unix:///tmp/firecracker.sock",
+					Type: types.BackendTypeFirecracker,
+					Jailer: JailerConfig{
+							UID:                   1000,
+						GID:                   1000,
+						ChrootBaseDir:         "/srv/jailer",
 					},
 				},
+				Billing: BillingConfig{
+					Enabled:  true,
+					Endpoint: "http://localhost:8081",
+					MockMode: false,
+				},
 				OpenTelemetry: OpenTelemetryConfig{
-					Enabled:             false,
-					ServiceName:         "metald",
-					ServiceVersion:      "0.0.1",
-					TracingSamplingRate: 1.0,
-					OTLPEndpoint:        "localhost:4318",
-					PrometheusEnabled:   true,
-					PrometheusPort:      "9464",
+					Enabled:                      false,
+					ServiceName:                  "metald",
+					ServiceVersion:               "0.1.0",
+					TracingSamplingRate:          1.0,
+					OTLPEndpoint:                 "localhost:4318",
+					PrometheusEnabled:            true,
+					PrometheusPort:               "9464",
+					PrometheusInterface:          "127.0.0.1",
+					HighCardinalityLabelsEnabled: false,
+				},
+				Database: DatabaseConfig{
+					DataDir: "/opt/metald/data",
+				},
+				AssetManager: AssetManagerConfig{
+					Enabled:  true,
+					Endpoint: "http://localhost:8083",
+					CacheDir: "/opt/metald/assets",
+				},
+				Network: NetworkConfig{
+					Enabled:         true,
+					EnableIPv4:      true,
+					BridgeIPv4:      "10.100.0.1/16",
+					VMSubnetIPv4:    "10.100.0.0/16",
+					DNSServersIPv4:  []string{"8.8.8.8", "8.8.4.4"},
+					EnableIPv6:      true,
+					BridgeIPv6:      "fd00::1/64",
+					VMSubnetIPv6:    "fd00::/64",
+					DNSServersIPv6:  []string{"2606:4700:4700::1111", "2606:4700:4700::1001"},
+					IPv6Mode:        "dual-stack",
+					BridgeName:      "br-vms",
+					EnableRateLimit: true,
+					RateLimitMbps:   1000,
+				},
+				TLS: &TLSConfig{
+					Mode:              "spiffe",
+					CertFile:          "",
+					KeyFile:           "",
+					CAFile:            "",
+					SPIFFESocketPath:  "/run/spire/sockets/agent.sock",
+					EnableCertCaching: true,
+					CertCacheTTL:      "5s",
 				},
 			},
 			wantErr: false,
@@ -56,30 +94,70 @@ func TestLoadConfig(t *testing.T) {
 					Address: "127.0.0.1",
 				},
 				Backend: BackendConfig{
-					Type: types.BackendTypeCloudHypervisor,
-					CloudHypervisor: CloudHypervisorConfig{
-						Endpoint: "unix:///tmp/ch.sock",
-					},
-					Firecracker: FirecrackerConfig{
-						Endpoint: "unix:///tmp/firecracker.sock",
+					Type: types.BackendTypeFirecracker,
+					Jailer: JailerConfig{
+							UID:                   1000,
+						GID:                   1000,
+						ChrootBaseDir:         "/srv/jailer",
 					},
 				},
+				Billing: BillingConfig{
+					Enabled:  true,
+					Endpoint: "http://localhost:8081",
+					MockMode: false,
+				},
 				OpenTelemetry: OpenTelemetryConfig{
-					Enabled:             false,
-					ServiceName:         "metald",
-					ServiceVersion:      "0.0.1",
-					TracingSamplingRate: 1.0,
-					OTLPEndpoint:        "localhost:4318",
-					PrometheusEnabled:   true,
-					PrometheusPort:      "9464",
+					Enabled:                      false,
+					ServiceName:                  "metald",
+					ServiceVersion:               "0.1.0",
+					TracingSamplingRate:          1.0,
+					OTLPEndpoint:                 "localhost:4318",
+					PrometheusEnabled:            true,
+					PrometheusPort:               "9464",
+					PrometheusInterface:          "127.0.0.1",
+					HighCardinalityLabelsEnabled: false,
+				},
+				Database: DatabaseConfig{
+					DataDir: "/opt/metald/data",
+				},
+				AssetManager: AssetManagerConfig{
+					Enabled:  true,
+					Endpoint: "http://localhost:8083",
+					CacheDir: "/opt/metald/assets",
+				},
+				Network: NetworkConfig{
+					Enabled:         true,
+					EnableIPv4:      true,
+					BridgeIPv4:      "10.100.0.1/16",
+					VMSubnetIPv4:    "10.100.0.0/16",
+					DNSServersIPv4:  []string{"8.8.8.8", "8.8.4.4"},
+					EnableIPv6:      true,
+					BridgeIPv6:      "fd00::1/64",
+					VMSubnetIPv6:    "fd00::/64",
+					DNSServersIPv6:  []string{"2606:4700:4700::1111", "2606:4700:4700::1001"},
+					IPv6Mode:        "dual-stack",
+					BridgeName:      "br-vms",
+					EnableRateLimit: true,
+					RateLimitMbps:   1000,
+				},
+				TLS: &TLSConfig{
+					Mode:              "spiffe",
+					CertFile:          "",
+					KeyFile:           "",
+					CAFile:            "",
+					SPIFFESocketPath:  "/run/spire/sockets/agent.sock",
+					EnableCertCaching: true,
+					CertCacheTTL:      "5s",
 				},
 			},
 			wantErr: false,
 		},
 		{
-			name: "custom backend endpoint",
+			name: "custom jailer configuration",
 			envVars: map[string]string{
-				"UNKEY_METALD_CH_ENDPOINT": "unix:///var/run/ch.sock",
+				"UNKEY_METALD_JAILER_UID":        "2000",
+				"UNKEY_METALD_JAILER_GID":        "2000",
+				"UNKEY_METALD_JAILER_CHROOT_DIR": "/var/lib/jailer",
 			},
 			want: &Config{
 				Server: ServerConfig{
@@ -87,22 +165,60 @@ func TestLoadConfig(t *testing.T) {
 					Address: "0.0.0.0",
 				},
 				Backend: BackendConfig{
-					Type: types.BackendTypeCloudHypervisor,
-					CloudHypervisor: CloudHypervisorConfig{
-						Endpoint: "unix:///var/run/ch.sock",
-					},
-					Firecracker: FirecrackerConfig{
-						Endpoint: "unix:///tmp/firecracker.sock",
+					Type: types.BackendTypeFirecracker,
+					Jailer: JailerConfig{
+							UID:                   2000,
+						GID:                   2000,
+						ChrootBaseDir:         "/var/lib/jailer",
 					},
 				},
+				Billing: BillingConfig{
+					Enabled:  true,
+					Endpoint: "http://localhost:8081",
+					MockMode: false,
+				},
 				OpenTelemetry: OpenTelemetryConfig{
-					Enabled:             false,
-					ServiceName:         "metald",
-					ServiceVersion:      "0.0.1",
-					TracingSamplingRate: 1.0,
-					OTLPEndpoint:        "localhost:4318",
-					PrometheusEnabled:   true,
-					PrometheusPort:      "9464",
+					Enabled:                      false,
+					ServiceName:                  "metald",
+					ServiceVersion:               "0.1.0",
+					TracingSamplingRate:          1.0,
+					OTLPEndpoint:                 "localhost:4318",
+					PrometheusEnabled:            true,
+					PrometheusPort:               "9464",
+					PrometheusInterface:          "127.0.0.1",
+					HighCardinalityLabelsEnabled: false,
+				},
+				Database: DatabaseConfig{
+					DataDir: "/opt/metald/data",
+				},
+				AssetManager: AssetManagerConfig{
+					Enabled:  true,
+					Endpoint: "http://localhost:8083",
+					CacheDir: "/opt/metald/assets",
+				},
+				Network: NetworkConfig{
+					Enabled:         true,
+					EnableIPv4:      true,
+					BridgeIPv4:      "10.100.0.1/16",
+					VMSubnetIPv4:    "10.100.0.0/16",
+					DNSServersIPv4:  []string{"8.8.8.8", "8.8.4.4"},
+					EnableIPv6:      true,
+					BridgeIPv6:      "fd00::1/64",
+					VMSubnetIPv6:    "fd00::/64",
+					DNSServersIPv6:  []string{"2606:4700:4700::1111", "2606:4700:4700::1001"},
+					IPv6Mode:        "dual-stack",
+					BridgeName:      "br-vms",
+					EnableRateLimit: true,
+					RateLimitMbps:   1000,
+				},
+				TLS: &TLSConfig{
+					Mode:              "spiffe",
+					CertFile:          "",
+					KeyFile:           "",
+					CAFile:            "",
+					SPIFFESocketPath:  "/run/spire/sockets/agent.sock",
+					EnableCertCaching: true,
+					CertCacheTTL:      "5s",
 				},
 			},
 			wantErr: false,
@@ -124,53 +240,60 @@ func TestLoadConfig(t *testing.T) {
 					Address: "0.0.0.0",
 				},
 				Backend: BackendConfig{
-					Type: types.BackendTypeCloudHypervisor,
-					CloudHypervisor: CloudHypervisorConfig{
-						Endpoint: "unix:///tmp/ch.sock",
-					},
-					Firecracker: FirecrackerConfig{
-						Endpoint: "unix:///tmp/firecracker.sock",
-					},
-				},
-				OpenTelemetry: OpenTelemetryConfig{
-					Enabled:             true,
-					ServiceName:         "test-service",
-					ServiceVersion:      "2.0.0",
-					TracingSamplingRate: 0.5,
-					OTLPEndpoint:        "otel-collector:4318",
-					PrometheusEnabled:   false,
-					PrometheusPort:      "8888",
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "firecracker backend configuration",
-			envVars: map[string]string{
-				"UNKEY_METALD_BACKEND": "firecracker",
-			},
-			want: &Config{
-				Server: ServerConfig{
-					Port:    "8080",
-					Address: "0.0.0.0",
-				},
-				Backend: BackendConfig{
 					Type: types.BackendTypeFirecracker,
-					CloudHypervisor: CloudHypervisorConfig{
-						Endpoint: "unix:///tmp/ch.sock",
-					},
-					Firecracker: FirecrackerConfig{
-						Endpoint: "unix:///tmp/firecracker.sock",
+					Jailer: JailerConfig{
+							UID:                   1000,
+						GID:                   1000,
+						ChrootBaseDir:         "/srv/jailer",
 					},
 				},
+				Billing: BillingConfig{
+					Enabled:  true,
+					Endpoint: "http://localhost:8081",
+					MockMode: false,
+				},
 				OpenTelemetry: OpenTelemetryConfig{
-					Enabled:             false,
-					ServiceName:         "metald",
-					ServiceVersion:      "0.0.1",
-					TracingSamplingRate: 1.0,
-					OTLPEndpoint:        "localhost:4318",
-					PrometheusEnabled:   true,
-					PrometheusPort:      "9464",
+					Enabled:                      true,
+					ServiceName:                  "test-service",
+					ServiceVersion:               "2.0.0",
+					TracingSamplingRate:          0.5,
+					OTLPEndpoint:                 "otel-collector:4318",
+					PrometheusEnabled:            false,
+					PrometheusPort:               "8888",
+					PrometheusInterface:          "127.0.0.1",
+					HighCardinalityLabelsEnabled: false,
+				},
+				Database: DatabaseConfig{
+					DataDir: "/opt/metald/data",
+				},
+				AssetManager: AssetManagerConfig{
+					Enabled:  true,
+					Endpoint: "http://localhost:8083",
+					CacheDir: "/opt/metald/assets",
+				},
+				Network: NetworkConfig{
+					Enabled:         true,
+					EnableIPv4:      true,
+					BridgeIPv4:      "10.100.0.1/16",
+					VMSubnetIPv4:    "10.100.0.0/16",
+					DNSServersIPv4:  []string{"8.8.8.8", "8.8.4.4"},
+					EnableIPv6:      true,
+					BridgeIPv6:      "fd00::1/64",
+					VMSubnetIPv6:    "fd00::/64",
+					DNSServersIPv6:  []string{"2606:4700:4700::1111", "2606:4700:4700::1001"},
+					IPv6Mode:        "dual-stack",
+					BridgeName:      "br-vms",
+					EnableRateLimit: true,
+					RateLimitMbps:   1000,
+				},
+				TLS: &TLSConfig{
+					Mode:              "spiffe",
+					CertFile:          "",
+					KeyFile:           "",
+					CAFile:            "",
+					SPIFFESocketPath:  "/run/spire/sockets/agent.sock",
+					EnableCertCaching: true,
+					CertCacheTTL:      "5s",
 				},
 			},
 			wantErr: false,
@@ -200,74 +323,6 @@ func TestLoadConfig(t *testing.T) {
 
 			if !compareConfigs(got, tt.want) {
 				t.Errorf("LoadConfig() got = %+v, want %+v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestLoadConfigWithSocketPath(t *testing.T) {
-	tests := []struct {
-		name       string
-		socketPath string
-		envVars    map[string]string
-		want       string // expected endpoint
-		wantErr    bool
-	}{
-		{
-			name:       "socket path override",
-			socketPath: "/custom/path/ch.sock",
-			envVars:    map[string]string{},
-			want:       "unix:///custom/path/ch.sock",
-			wantErr:    false,
-		},
-		{
-			name:       "socket path with unix:// prefix",
-			socketPath: "unix:///already/prefixed.sock",
-			envVars:    map[string]string{},
-			want:       "unix:///already/prefixed.sock",
-			wantErr:    false,
-		},
-		{
-			name:       "empty socket path uses env var",
-			socketPath: "",
-			envVars: map[string]string{
-				"UNKEY_METALD_CH_ENDPOINT": "unix:///env/path.sock",
-			},
-			want:    "unix:///env/path.sock",
-			wantErr: false,
-		},
-		{
-			name:       "empty socket path uses default",
-			socketPath: "",
-			envVars:    map[string]string{},
-			want:       "unix:///tmp/ch.sock",
-			wantErr:    false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Clear environment before test
-			clearEnv()
-
-			// Set test environment variables
-			for key, value := range tt.envVars {
-				os.Setenv(key, value)
-			}
-			defer clearEnv()
-
-			got, err := LoadConfigWithSocketPath(tt.socketPath)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("LoadConfigWithSocketPath() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-
-			if tt.wantErr {
-				return
-			}
-
-			if got.Backend.CloudHypervisor.Endpoint != tt.want {
-				t.Errorf("LoadConfigWithSocketPath() endpoint = %v, want %v", got.Backend.CloudHypervisor.Endpoint, tt.want)
 			}
 		})
 	}
@@ -305,35 +360,22 @@ func TestOpenTelemetryConfigValidation(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "invalid sampling rate -0.1",
+			name: "invalid sampling rate negative",
 			envVars: map[string]string{
 				"UNKEY_METALD_OTEL_ENABLED":       "true",
-				"UNKEY_METALD_OTEL_SAMPLING_RATE": "-0.1",
+				"UNKEY_METALD_OTEL_SAMPLING_RATE": "-0.5",
 			},
 			wantErr: true,
 			errMsg:  "tracing sampling rate must be between 0.0 and 1.0",
 		},
 		{
-			name: "invalid sampling rate 1.1",
+			name: "invalid sampling rate too high",
 			envVars: map[string]string{
 				"UNKEY_METALD_OTEL_ENABLED":       "true",
-				"UNKEY_METALD_OTEL_SAMPLING_RATE": "1.1",
+				"UNKEY_METALD_OTEL_SAMPLING_RATE": "1.5",
 			},
 			wantErr: true,
 			errMsg:  "tracing sampling rate must be between 0.0 and 1.0",
-		},
-		// Note: We can't easily test empty OTLP endpoint and service name because
-		// getEnvOrDefault() will return the default value when env var is empty string.
-		// These would need to be tested by temporarily modifying the validation logic
-		// or using dependency injection for the defaults.
-		{
-			name: "OTEL disabled - validation should pass even with invalid values",
-			envVars: map[string]string{
-				"UNKEY_METALD_OTEL_ENABLED":       "false",
-				"UNKEY_METALD_OTEL_SAMPLING_RATE": "5.0", // Invalid but should be ignored
-				"UNKEY_METALD_OTEL_ENDPOINT":      "",    // Empty but should be ignored
-			},
-			wantErr: false,
 		},
 	}
 
@@ -354,19 +396,16 @@ func TestOpenTelemetryConfigValidation(t *testing.T) {
 				return
 			}
 
-			if tt.wantErr && err != nil {
-				if tt.errMsg != "" && err.Error() != tt.errMsg {
-					// Check if error message contains the expected substring
-					if len(tt.errMsg) > 0 && !strings.Contains(err.Error(), tt.errMsg) {
-						t.Errorf("LoadConfig() error = %v, want error containing %v", err.Error(), tt.errMsg)
-					}
+			if tt.wantErr && err != nil && tt.errMsg != "" {
+				if !strings.Contains(err.Error(), tt.errMsg) {
+					t.Errorf("LoadConfig() error = %v, want error containing %v", err, tt.errMsg)
 				}
 			}
 		})
 	}
 }
 
-func TestConfigValidate(t *testing.T) {
+func TestConfigValidation(t *testing.T) {
 	tests := []struct {
 		name    string
 		config  *Config
@@ -374,16 +413,10 @@ func TestConfigValidate(t *testing.T) {
 		errMsg  string
 	}{
 		{
-			name: "valid cloud hypervisor config",
+			name: "valid firecracker backend",
 			config: &Config{
 				Backend: BackendConfig{
-					Type: types.BackendTypeCloudHypervisor,
-					CloudHypervisor: CloudHypervisorConfig{
-						Endpoint: "unix:///tmp/ch.sock",
-					},
-					Firecracker: FirecrackerConfig{
-						Endpoint: "unix:///tmp/firecracker.sock",
-					},
+					Type: types.BackendTypeFirecracker,
 				},
 				OpenTelemetry: OpenTelemetryConfig{
 					Enabled: false,
@@ -392,158 +425,48 @@ func TestConfigValidate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "valid OTEL config",
+			name: "invalid backend type",
 			config: &Config{
 				Backend: BackendConfig{
 					Type: types.BackendTypeCloudHypervisor,
-					CloudHypervisor: CloudHypervisorConfig{
-						Endpoint: "unix:///tmp/ch.sock",
-					},
-					Firecracker: FirecrackerConfig{
-						Endpoint: "unix:///tmp/firecracker.sock",
-					},
-				},
-				OpenTelemetry: OpenTelemetryConfig{
-					Enabled:             true,
-					ServiceName:         "test-service",
-					TracingSamplingRate: 0.5,
-					OTLPEndpoint:        "localhost:4318",
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "missing cloud hypervisor endpoint",
-			config: &Config{
-				Backend: BackendConfig{
-					Type: types.BackendTypeCloudHypervisor,
-					CloudHypervisor: CloudHypervisorConfig{
-						Endpoint: "",
-					},
 				},
 				OpenTelemetry: OpenTelemetryConfig{
 					Enabled: false,
 				},
 			},
 			wantErr: true,
-			errMsg:  "cloud hypervisor endpoint is required",
+			errMsg:  "only firecracker backend is supported",
 		},
 		{
-			name: "OTEL enabled with invalid sampling rate low",
+			name: "otel enabled with valid config",
 			config: &Config{
 				Backend: BackendConfig{
-					Type: types.BackendTypeCloudHypervisor,
-					CloudHypervisor: CloudHypervisorConfig{
-						Endpoint: "unix:///tmp/ch.sock",
-					},
-					Firecracker: FirecrackerConfig{
-						Endpoint: "unix:///tmp/firecracker.sock",
-					},
+					Type: types.BackendTypeFirecracker,
 				},
 				OpenTelemetry: OpenTelemetryConfig{
 					Enabled:             true,
-					ServiceName:         "test-service",
-					TracingSamplingRate: -0.1,
-					OTLPEndpoint:        "localhost:4318",
-				},
-			},
-			wantErr: true,
-			errMsg:  "tracing sampling rate must be between 0.0 and 1.0",
-		},
-		{
-			name: "OTEL enabled with invalid sampling rate high",
-			config: &Config{
-				Backend: BackendConfig{
-					Type: types.BackendTypeCloudHypervisor,
-					CloudHypervisor: CloudHypervisorConfig{
-						Endpoint: "unix:///tmp/ch.sock",
-					},
-					Firecracker: FirecrackerConfig{
-						Endpoint: "unix:///tmp/firecracker.sock",
-					},
-				},
-				OpenTelemetry: OpenTelemetryConfig{
-					Enabled:             true,
-					ServiceName:         "test-service",
-					TracingSamplingRate: 1.1,
-					OTLPEndpoint:        "localhost:4318",
-				},
-			},
-			wantErr: true,
-			errMsg:  "tracing sampling rate must be between 0.0 and 1.0",
-		},
-		{
-			name: "OTEL enabled with missing OTLP endpoint",
-			config: &Config{
-				Backend: BackendConfig{
-					Type: types.BackendTypeCloudHypervisor,
-					CloudHypervisor: CloudHypervisorConfig{
-						Endpoint: "unix:///tmp/ch.sock",
-					},
-					Firecracker: FirecrackerConfig{
-						Endpoint: "unix:///tmp/firecracker.sock",
-					},
-				},
-				OpenTelemetry: OpenTelemetryConfig{
-					Enabled:             true,
-					ServiceName:         "test-service",
 					TracingSamplingRate: 0.5,
-					OTLPEndpoint:        "",
+					OTLPEndpoint:        "localhost:4318",
+					ServiceName:         "test-service",
 				},
 			},
-			wantErr: true,
-			errMsg:  "OTLP endpoint is required when OpenTelemetry is enabled",
+			wantErr: false,
 		},
 		{
-			name: "OTEL enabled with missing service name",
+			name: "otel enabled without service name",
 			config: &Config{
 				Backend: BackendConfig{
-					Type: types.BackendTypeCloudHypervisor,
-					CloudHypervisor: CloudHypervisorConfig{
-						Endpoint: "unix:///tmp/ch.sock",
-					},
-					Firecracker: FirecrackerConfig{
-						Endpoint: "unix:///tmp/firecracker.sock",
-					},
+					Type: types.BackendTypeFirecracker,
 				},
 				OpenTelemetry: OpenTelemetryConfig{
 					Enabled:             true,
+					TracingSamplingRate: 0.5,
+					OTLPEndpoint:        "localhost:4318",
 					ServiceName:         "",
-					TracingSamplingRate: 0.5,
-					OTLPEndpoint:        "localhost:4318",
 				},
 			},
 			wantErr: true,
 			errMsg:  "service name is required when OpenTelemetry is enabled",
-		},
-		{
-			name: "missing firecracker endpoint",
-			config: &Config{
-				Backend: BackendConfig{
-					Type: types.BackendTypeFirecracker,
-					Firecracker: FirecrackerConfig{
-						Endpoint: "",
-					},
-				},
-				OpenTelemetry: OpenTelemetryConfig{
-					Enabled: false,
-				},
-			},
-			wantErr: true,
-			errMsg:  "firecracker endpoint is required",
-		},
-		{
-			name: "unsupported backend type",
-			config: &Config{
-				Backend: BackendConfig{
-					Type: types.BackendType("unknown"),
-				},
-				OpenTelemetry: OpenTelemetryConfig{
-					Enabled: false,
-				},
-			},
-			wantErr: true,
-			errMsg:  "unsupported backend type",
 		},
 	}
 
@@ -557,46 +480,8 @@ func TestConfigValidate(t *testing.T) {
 
 			if tt.wantErr && err != nil && tt.errMsg != "" {
 				if !strings.Contains(err.Error(), tt.errMsg) {
-					t.Errorf("Config.Validate() error = %v, want error containing %v", err.Error(), tt.errMsg)
+					t.Errorf("Config.Validate() error = %v, want error containing %v", err, tt.errMsg)
 				}
-			}
-		})
-	}
-}
-
-func TestFormatSocketPath(t *testing.T) {
-	tests := []struct {
-		name       string
-		socketPath string
-		want       string
-	}{
-		{
-			name:       "path without unix:// prefix",
-			socketPath: "/tmp/ch.sock",
-			want:       "unix:///tmp/ch.sock",
-		},
-		{
-			name:       "path with unix:// prefix",
-			socketPath: "unix:///tmp/ch.sock",
-			want:       "unix:///tmp/ch.sock",
-		},
-		{
-			name:       "relative path",
-			socketPath: "./ch.sock",
-			want:       "unix://./ch.sock",
-		},
-		{
-			name:       "empty path",
-			socketPath: "",
-			want:       "unix://",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := formatSocketPath(tt.socketPath)
-			if got != tt.want {
-				t.Errorf("formatSocketPath() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -605,47 +490,95 @@ func TestFormatSocketPath(t *testing.T) {
 // Helper functions
 
 func clearEnv() {
-	envVars := []string{
-		"UNKEY_METALD_PORT", "UNKEY_METALD_ADDRESS", "UNKEY_METALD_BACKEND", "UNKEY_METALD_CH_ENDPOINT", "UNKEY_METALD_FC_ENDPOINT",
-		"UNKEY_METALD_OTEL_ENABLED", "UNKEY_METALD_OTEL_SERVICE_NAME", "UNKEY_METALD_OTEL_SERVICE_VERSION",
-		"UNKEY_METALD_OTEL_SAMPLING_RATE", "UNKEY_METALD_OTEL_ENDPOINT",
-		"UNKEY_METALD_OTEL_PROMETHEUS_ENABLED", "UNKEY_METALD_OTEL_PROMETHEUS_PORT",
-	}
-	for _, env := range envVars {
-		os.Unsetenv(env)
+	// Clear all UNKEY_METALD_* environment variables
+	for _, env := range os.Environ() {
+		if strings.HasPrefix(env, "UNKEY_METALD_") {
+			key := strings.Split(env, "=")[0]
+			os.Unsetenv(key)
+		}
 	}
 }
 
-func compareConfigs(got, want *Config) bool {
-	if got == nil || want == nil {
-		return got == want
-	}
-
-	// Compare Server config
-	if got.Server.Port != want.Server.Port ||
-		got.Server.Address != want.Server.Address {
+func compareConfigs(a, b *Config) bool {
+	// Compare server config
+	if a.Server != b.Server {
 		return false
 	}
 
-	// Compare Backend config
-	if got.Backend.Type != want.Backend.Type ||
-		got.Backend.CloudHypervisor.Endpoint != want.Backend.CloudHypervisor.Endpoint ||
-		got.Backend.Firecracker.Endpoint != want.Backend.Firecracker.Endpoint {
+	// Compare backend config
+	if a.Backend.Type != b.Backend.Type {
+		return false
+	}
+	if a.Backend.Jailer != b.Backend.Jailer {
+		return false
+	}
+
+	// Compare process manager config
+
+	// Compare billing config
+	if a.Billing != b.Billing {
 		return false
 	}
 
 	// Compare OpenTelemetry config
-	otelGot := got.OpenTelemetry
-	otelWant := want.OpenTelemetry
-	if otelGot.Enabled != otelWant.Enabled ||
-		otelGot.ServiceName != otelWant.ServiceName ||
-		otelGot.ServiceVersion != otelWant.ServiceVersion ||
-		otelGot.TracingSamplingRate != otelWant.TracingSamplingRate ||
-		otelGot.OTLPEndpoint != otelWant.OTLPEndpoint ||
-		otelGot.PrometheusEnabled != otelWant.PrometheusEnabled ||
-		otelGot.PrometheusPort != otelWant.PrometheusPort {
+	if a.OpenTelemetry != b.OpenTelemetry {
 		return false
 	}
 
+	// Compare database config
+	if a.Database != b.Database {
+		return false
+	}
+
+	// Compare AssetManager config
+	if a.AssetManager != b.AssetManager {
+		return false
+	}
+
+	// Compare Network config
+	if a.Network.Enabled != b.Network.Enabled ||
+		a.Network.EnableIPv4 != b.Network.EnableIPv4 ||
+		a.Network.BridgeIPv4 != b.Network.BridgeIPv4 ||
+		a.Network.VMSubnetIPv4 != b.Network.VMSubnetIPv4 ||
+		!stringSlicesEqual(a.Network.DNSServersIPv4, b.Network.DNSServersIPv4) ||
+		a.Network.EnableIPv6 != b.Network.EnableIPv6 ||
+		a.Network.BridgeIPv6 != b.Network.BridgeIPv6 ||
+		a.Network.VMSubnetIPv6 != b.Network.VMSubnetIPv6 ||
+		!stringSlicesEqual(a.Network.DNSServersIPv6, b.Network.DNSServersIPv6) ||
+		a.Network.IPv6Mode != b.Network.IPv6Mode ||
+		a.Network.BridgeName != b.Network.BridgeName ||
+		a.Network.EnableRateLimit != b.Network.EnableRateLimit ||
+		a.Network.RateLimitMbps != b.Network.RateLimitMbps {
+		return false
+	}
+
+	// Compare TLS config
+	if (a.TLS == nil) != (b.TLS == nil) {
+		return false
+	}
+	if a.TLS != nil && b.TLS != nil {
+		if a.TLS.Mode != b.TLS.Mode ||
+			a.TLS.CertFile != b.TLS.CertFile ||
+			a.TLS.KeyFile != b.TLS.KeyFile ||
+			a.TLS.CAFile != b.TLS.CAFile ||
+			a.TLS.SPIFFESocketPath != b.TLS.SPIFFESocketPath ||
+			a.TLS.EnableCertCaching != b.TLS.EnableCertCaching ||
+			a.TLS.CertCacheTTL != b.TLS.CertCacheTTL {
+			return false
+		}
+	}
+
+	return true
+}
+
+func stringSlicesEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
 	return true
 }

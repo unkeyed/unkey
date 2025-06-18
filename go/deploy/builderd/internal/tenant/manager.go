@@ -101,14 +101,14 @@ func NewManager(logger *slog.Logger, cfg *config.Config) *Manager {
 		storageUsage:   make(map[string]int64),
 		computeMinutes: make(map[string]map[string]int64),
 		// tenantConfigs is a sync.Map, no initialization needed
-		stopCleanup:    make(chan struct{}),
+		stopCleanup: make(chan struct{}),
 	}
 
 	// Start cleanup ticker for daily counters
 	manager.cleanupTicker = time.NewTicker(1 * time.Hour)
 	go manager.startCleanup()
 
-	logger.Info("tenant manager initialized")
+	logger.InfoContext(context.Background(), "tenant manager initialized")
 	return manager
 }
 
@@ -116,7 +116,8 @@ func NewManager(logger *slog.Logger, cfg *config.Config) *Manager {
 func (m *Manager) GetTenantConfig(ctx context.Context, tenantID string, tier builderv1.TenantTier) (*TenantConfig, error) {
 	// Fast path: check if tenant config exists (lock-free read)
 	if value, exists := m.tenantConfigs.Load(tenantID); exists {
-		return value.(*TenantConfig), nil
+		config, _ := value.(*TenantConfig)
+		return config, nil
 	}
 
 	// Create new tenant config - no manual locking needed with sync.Map
@@ -133,10 +134,11 @@ func (m *Manager) GetTenantConfig(ctx context.Context, tenantID string, tier bui
 	// Use LoadOrStore to handle race conditions atomically
 	if actual, loaded := m.tenantConfigs.LoadOrStore(tenantID, config); loaded {
 		// Another goroutine created the config first, use that one
-		return actual.(*TenantConfig), nil
+		actualConfig, _ := actual.(*TenantConfig)
+		return actualConfig, nil
 	}
 
-	m.logger.Info("created tenant configuration",
+	m.logger.InfoContext(ctx, "created tenant configuration",
 		slog.String("tenant_id", tenantID),
 		slog.String("tier", tier.String()),
 		slog.Int64("max_concurrent_builds", int64(config.Limits.MaxConcurrentBuilds)),
@@ -215,7 +217,7 @@ func (m *Manager) ReserveBuildSlot(ctx context.Context, tenantID string) error {
 	}
 	m.dailyBuilds[tenantID][today]++
 
-	m.logger.Debug("reserved build slot",
+	m.logger.DebugContext(ctx, "reserved build slot",
 		slog.String("tenant_id", tenantID),
 		slog.Int64("active_builds", int64(m.activeBuilds[tenantID])),
 		slog.Int64("daily_builds", int64(m.dailyBuilds[tenantID][today])),
@@ -241,7 +243,7 @@ func (m *Manager) ReleaseBuildSlot(ctx context.Context, tenantID string, buildDu
 	}
 	m.computeMinutes[tenantID][today] += buildDurationMinutes
 
-	m.logger.Debug("released build slot",
+	m.logger.DebugContext(ctx, "released build slot",
 		slog.String("tenant_id", tenantID),
 		slog.Int64("active_builds", int64(m.activeBuilds[tenantID])),
 		slog.Int64("build_duration_minutes", buildDurationMinutes),
@@ -258,7 +260,7 @@ func (m *Manager) UpdateStorageUsage(ctx context.Context, tenantID string, delta
 		m.storageUsage[tenantID] = 0
 	}
 
-	m.logger.Debug("updated storage usage",
+	m.logger.DebugContext(ctx, "updated storage usage",
 		slog.String("tenant_id", tenantID),
 		slog.Int64("delta_bytes", deltaBytes),
 		slog.Int64("total_bytes", m.storageUsage[tenantID]),
@@ -444,7 +446,7 @@ func (m *Manager) cleanupOldData() {
 		}
 	}
 
-	m.logger.Debug("cleaned up old tenant data")
+	m.logger.DebugContext(context.Background(), "cleaned up old tenant data")
 }
 
 // Shutdown gracefully shuts down the tenant manager
@@ -453,5 +455,5 @@ func (m *Manager) Shutdown() {
 		m.cleanupTicker.Stop()
 	}
 	close(m.stopCleanup)
-	m.logger.Info("tenant manager shutdown")
+	m.logger.InfoContext(context.Background(), "tenant manager shutdown")
 }

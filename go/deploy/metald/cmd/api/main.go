@@ -16,33 +16,32 @@ import (
 
 	"github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1/vmprovisionerv1connect"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/assetmanager"
-	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/cloudhypervisor"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/firecracker"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/billing"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/database"
-	"github.com/unkeyed/unkey/go/deploy/metald/internal/health"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/network"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/observability"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/service"
+	healthpkg "github.com/unkeyed/unkey/go/deploy/pkg/health"
+	tlspkg "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 
 	"connectrpc.com/connect"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
 
 // version is set at build time via ldflags
-var version = "0.0.1"
+var version = "0.2.0" // AIDEV-NOTE: Bumped minor version for integrated jailer feature
 
 // AIDEV-NOTE: Enhanced version management with debug.ReadBuildInfo fallback
 // Handles production builds (ldflags), development builds (git commit), and module builds
 // getVersion returns the version string, with fallback to debug.ReadBuildInfo
 func getVersion() string {
 	// If version was set via ldflags (production builds), use it
-	if version != "" && version != "0.0.1" {
+	if version != "" {
 		return version
 	}
 
@@ -74,7 +73,6 @@ func main() {
 
 	// Parse command-line flags
 	var (
-		socketPath  = flag.String("socket", "/tmp/ch.sock", "Path to Cloud Hypervisor Unix socket")
 		showHelp    = flag.Bool("help", false, "Show help information")
 		showVersion = flag.Bool("version", false, "Show version information")
 	)
@@ -92,6 +90,7 @@ func main() {
 	}
 
 	// Initialize structured logger with JSON output
+	//exhaustruct:ignore
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}))
@@ -101,11 +100,10 @@ func main() {
 	logger.Info("starting vmm control plane",
 		slog.String("version", getVersion()),
 		slog.String("go_version", runtime.Version()),
-		slog.String("socket_path", *socketPath),
 	)
 
-	// Load configuration with socket path override
-	cfg, err := config.LoadConfigWithSocketPath(*socketPath)
+	// Load configuration
+	cfg, err := config.LoadConfig()
 	if err != nil {
 		logger.Error("failed to load configuration",
 			slog.String("error", err.Error()),
@@ -122,7 +120,7 @@ func main() {
 
 	// Initialize OpenTelemetry
 	ctx := context.Background()
-	otelProviders, err := observability.InitProviders(ctx, cfg, getVersion())
+	otelProviders, err := observability.InitProviders(ctx, cfg, getVersion(), logger)
 	if err != nil {
 		logger.Error("failed to initialize OpenTelemetry",
 			slog.String("error", err.Error()),
@@ -132,9 +130,9 @@ func main() {
 	defer func() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		if err := otelProviders.Shutdown(shutdownCtx); err != nil {
+		if shutdownErr := otelProviders.Shutdown(shutdownCtx); shutdownErr != nil {
 			logger.Error("failed to shutdown OpenTelemetry",
-				slog.String("error", err.Error()),
+				slog.String("error", shutdownErr.Error()),
 			)
 		}
 	}()
@@ -149,6 +147,40 @@ func main() {
 			slog.Bool("high_cardinality_enabled", cfg.OpenTelemetry.HighCardinalityLabelsEnabled),
 		)
 	}
+
+	// Initialize TLS provider (defaults to disabled)
+	//exhaustruct:ignore
+	tlsConfig := tlspkg.Config{
+		Mode:              tlspkg.Mode(cfg.TLS.Mode),
+		CertFile:          cfg.TLS.CertFile,
+		KeyFile:           cfg.TLS.KeyFile,
+		CAFile:            cfg.TLS.CAFile,
+		SPIFFESocketPath:  cfg.TLS.SPIFFESocketPath,
+		EnableCertCaching: cfg.TLS.EnableCertCaching,
+	}
+	// Parse certificate cache TTL
+	if cfg.TLS.CertCacheTTL != "" {
+		if duration, parseErr := time.ParseDuration(cfg.TLS.CertCacheTTL); parseErr == nil {
+			tlsConfig.CertCacheTTL = duration
+		} else {
+			logger.Warn("invalid TLS certificate cache TTL, using default 5s",
+				"value", cfg.TLS.CertCacheTTL,
+				"error", parseErr)
+		}
+	}
+	tlsProvider, err := tlspkg.NewProvider(ctx, tlsConfig)
+	if err != nil {
+		// AIDEV-BUSINESS_RULE: TLS/SPIFFE is required - fatal error if it fails
+		logger.Error("TLS initialization failed",
+			"error", err,
+			"mode", cfg.TLS.Mode)
+		os.Exit(1)
+	}
+	defer tlsProvider.Close()
+
+	logger.Info("TLS provider initialized",
+		"mode", cfg.TLS.Mode,
+		"spiffe_enabled", cfg.TLS.Mode == "spiffe")
 
 	// Initialize database
 	db, err := database.NewWithLogger(cfg.Database.DataDir, logger)
@@ -171,83 +203,71 @@ func main() {
 	// Initialize backend based on configuration
 	var backend types.Backend
 	switch cfg.Backend.Type {
-	case types.BackendTypeCloudHypervisor:
-		backend = cloudhypervisor.NewClient(cfg.Backend.CloudHypervisor.Endpoint, logger)
-		logger.Info("initialized cloud hypervisor backend",
-			slog.String("endpoint", cfg.Backend.CloudHypervisor.Endpoint),
-		)
 	case types.BackendTypeFirecracker:
-		// Use managed client for automatic process management with application context
-		// AIDEV-NOTE: Pass application context for tracing while keeping processes alive
-		var managedClient *firecracker.ManagedClient
-		if cfg.Backend.Firecracker.Jailer.Enabled {
-			managedClient = firecracker.NewManagedClientWithConfig(logger, ctx, &cfg.ProcessManager, &cfg.Backend.Firecracker.Jailer)
-			logger.Info("initialized managed firecracker backend with jailer",
-				slog.Bool("jailer_enabled", true),
-				slog.String("jailer_binary", cfg.Backend.Firecracker.Jailer.BinaryPath),
-				slog.String("firecracker_binary", cfg.Backend.Firecracker.Jailer.FirecrackerBinaryPath),
-				slog.Uint64("uid", uint64(cfg.Backend.Firecracker.Jailer.UID)),
-				slog.Uint64("gid", uint64(cfg.Backend.Firecracker.Jailer.GID)),
-				slog.String("chroot_base", cfg.Backend.Firecracker.Jailer.ChrootBaseDir),
+		// Use SDK client v4 with integrated jailer - let SDK handle complete lifecycle
+		// AIDEV-NOTE: SDK manages firecracker process, integrated jailer, and networking
+		networkManager, err := network.NewManager(logger, network.DefaultConfig())
+		if err != nil {
+			logger.Error("failed to create network manager",
+				slog.String("error", err.Error()),
 			)
-		} else {
-			managedClient = firecracker.NewManagedClient(logger, ctx, &cfg.ProcessManager)
-			logger.Info("initialized managed firecracker backend without jailer")
+			os.Exit(1)
 		}
 
-		if err := managedClient.Initialize(); err != nil {
-			logger.Error("failed to initialize managed firecracker client",
-				slog.String("error", err.Error()),
-			)
-			os.Exit(1)
-		}
-		backend = managedClient
-		
-		// Initialize AssetManager client for Firecracker backend
-		assetClient, err := assetmanager.NewClient(&cfg.AssetManager, logger)
-		if err != nil {
-			logger.Error("failed to initialize asset manager client",
-				slog.String("error", err.Error()),
-			)
-			os.Exit(1)
-		}
-		
-		// Set the asset client on the managed client's process manager
-		managedClient.SetAssetClient(assetClient)
-		logger.Info("initialized asset manager client",
-			slog.Bool("enabled", cfg.AssetManager.Enabled),
-			slog.String("endpoint", cfg.AssetManager.Endpoint),
-		)
-		
-		// Initialize network manager if enabled
-		if cfg.Network.Enabled {
-			networkCfg := &network.Config{
-				BridgeName:      cfg.Network.BridgeName,
-				BridgeIP:        cfg.Network.BridgeIPv4, // Use IPv4 bridge IP
-				VMSubnet:        cfg.Network.VMSubnetIPv4, // Use IPv4 subnet
-				EnableIPv6:      cfg.Network.EnableIPv6,
-				DNSServers:      cfg.Network.DNSServersIPv4, // Use IPv4 DNS servers for now
-				EnableRateLimit: cfg.Network.EnableRateLimit,
-				RateLimitMbps:   cfg.Network.RateLimitMbps,
-			}
-			
-			networkMgr, err := network.NewManager(logger, networkCfg)
+		// Base directory for VM data
+		baseDir := "/opt/metald/vms"
+
+		// Create AssetManager client for asset preparation
+		var assetClient assetmanager.Client
+		if cfg.AssetManager.Enabled {
+			// Use TLS-enabled HTTP client
+			httpClient := tlsProvider.HTTPClient()
+			assetClient, err = assetmanager.NewClientWithHTTP(&cfg.AssetManager, logger, httpClient)
 			if err != nil {
-				logger.Error("failed to initialize network manager",
+				logger.Error("failed to create assetmanager client",
 					slog.String("error", err.Error()),
 				)
 				os.Exit(1)
 			}
-			
-			// Set the network manager on the managed client's process manager
-			managedClient.SetNetworkManager(networkMgr)
-			logger.Info("initialized network manager",
-				slog.Bool("ipv4_enabled", cfg.Network.EnableIPv4),
-				slog.Bool("ipv6_enabled", cfg.Network.EnableIPv6),
-				slog.String("bridge", cfg.Network.BridgeName),
-				slog.String("ipv6_mode", cfg.Network.IPv6Mode),
+			logger.Info("initialized assetmanager client",
+				slog.String("endpoint", cfg.AssetManager.Endpoint),
 			)
+		} else {
+			// Use noop client if assetmanager is disabled
+			assetClient, _ = assetmanager.NewClient(&cfg.AssetManager, logger)
+			logger.Info("assetmanager disabled, using noop client")
 		}
+
+		// Use SDK v4 with integrated jailer - the only supported backend
+		sdkClient, err := firecracker.NewSDKClientV4(logger, networkManager, assetClient, &cfg.Backend.Jailer, baseDir)
+		if err != nil {
+			logger.Error("failed to create SDK client v4 with integrated jailer",
+				slog.String("error", err.Error()),
+			)
+			os.Exit(1)
+		}
+
+		logger.Info("initialized firecracker SDK v4 backend with integrated jailer",
+			slog.String("firecracker_binary", "/usr/local/bin/firecracker"),
+			slog.Uint64("uid", uint64(cfg.Backend.Jailer.UID)),
+			slog.Uint64("gid", uint64(cfg.Backend.Jailer.GID)),
+			slog.String("chroot_base", cfg.Backend.Jailer.ChrootBaseDir),
+		)
+
+		if err := sdkClient.Initialize(); err != nil {
+			logger.Error("failed to initialize SDK client v4",
+				slog.String("error", err.Error()),
+			)
+			os.Exit(1)
+		}
+		backend = sdkClient
+
+		// Note: Network manager is initialized and managed by SDK v4
+	case types.BackendTypeCloudHypervisor:
+		logger.Error("CloudHypervisor backend not implemented",
+			slog.String("backend", string(cfg.Backend.Type)),
+		)
+		os.Exit(1)
 	default:
 		logger.Error("unsupported backend type",
 			slog.String("backend", string(cfg.Backend.Type)),
@@ -262,9 +282,18 @@ func main() {
 			billingClient = billing.NewMockBillingClient(logger)
 			logger.Info("initialized mock billing client")
 		} else {
-			billingClient = billing.NewConnectRPCBillingClient(cfg.Billing.Endpoint, logger)
+			// Use TLS-enabled HTTP client
+			httpClient := tlsProvider.HTTPClient()
+			// AIDEV-NOTE: Enhanced debug logging for service connection initialization
+			logger.Debug("attempting to initialize billing client",
+				slog.String("endpoint", cfg.Billing.Endpoint),
+				slog.String("tls_mode", cfg.TLS.Mode),
+				slog.Bool("mock_mode", cfg.Billing.MockMode),
+			)
+			billingClient = billing.NewConnectRPCBillingClientWithHTTP(cfg.Billing.Endpoint, logger, httpClient)
 			logger.Info("initialized ConnectRPC billing client",
 				"endpoint", cfg.Billing.Endpoint,
+				"tls_enabled", cfg.TLS.Mode != "disabled",
 			)
 		}
 	} else {
@@ -307,8 +336,8 @@ func main() {
 	// Create VM service
 	vmService := service.NewVMService(backend, logger, metricsCollector, vmMetrics, vmRepo)
 
-	// Create health handler
-	healthHandler := health.NewHandler(backend, logger, startTime)
+	// Create unified health handler
+	healthHandler := healthpkg.Handler("metald", getVersion(), startTime)
 
 	// Create ConnectRPC handler with interceptors
 	interceptors := []connect.Interceptor{
@@ -327,15 +356,6 @@ func main() {
 	)
 	mux.Handle(path, handler)
 
-	// Add comprehensive health check endpoint
-	mux.Handle("/_/health", healthHandler)
-
-	// Add simple health check endpoint for backwards compatibility
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
-	})
-
 	// Add Prometheus metrics endpoint if enabled
 	if cfg.OpenTelemetry.Enabled && cfg.OpenTelemetry.PrometheusEnabled {
 		mux.Handle("/metrics", otelProviders.PrometheusHTTP)
@@ -347,49 +367,78 @@ func main() {
 	// Create HTTP server with H2C support for gRPC
 	addr := fmt.Sprintf("%s:%s", cfg.Server.Address, cfg.Server.Port)
 
-	// Wrap handler with OTEL HTTP middleware if enabled
+	// AIDEV-NOTE: Removed otelhttp.NewHandler to prevent double-span issues
+	// The OTEL interceptor in the ConnectRPC handler already handles tracing
 	var httpHandler http.Handler = mux
-	if cfg.OpenTelemetry.Enabled {
-		httpHandler = otelhttp.NewHandler(mux, "http",
-			otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
-				return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
-			}),
-		)
-	}
 
+	// Configure server with optional TLS and security timeouts
 	server := &http.Server{
 		Addr:    addr,
-		Handler: h2c.NewHandler(httpHandler, &http2.Server{}),
+		Handler: h2c.NewHandler(httpHandler, &http2.Server{}), //nolint:exhaustruct
+		// AIDEV-NOTE: Security timeouts to prevent slowloris attacks
+		ReadTimeout:    30 * time.Second,  // Time to read request headers
+		WriteTimeout:   30 * time.Second,  // Time to write response
+		IdleTimeout:    120 * time.Second, // Keep-alive timeout
+		MaxHeaderBytes: 1 << 20,           // 1MB max header size
+	}
+
+	// Apply TLS configuration if enabled
+	serverTLSConfig, _ := tlsProvider.ServerTLSConfig()
+	if serverTLSConfig != nil {
+		server.TLSConfig = serverTLSConfig
+		// For TLS, we need to use regular handler, not h2c
+		server.Handler = httpHandler
 	}
 
 	// Start main server in goroutine
 	go func() {
-		logger.Info("starting http server",
-			slog.String("address", addr),
-		)
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("server failed",
-				slog.String("error", err.Error()),
+		if serverTLSConfig != nil {
+			logger.Info("starting HTTPS server with TLS",
+				slog.String("address", addr),
+				slog.String("tls_mode", cfg.TLS.Mode),
 			)
-			os.Exit(1)
+			// Empty strings for cert/key paths - SPIFFE provides them in memory
+			if err := server.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
+				logger.Error("server failed",
+					slog.String("error", err.Error()),
+				)
+				os.Exit(1)
+			}
+		} else {
+			logger.Info("starting HTTP server without TLS",
+				slog.String("address", addr),
+			)
+			if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				logger.Error("server failed",
+					slog.String("error", err.Error()),
+				)
+				os.Exit(1)
+			}
 		}
 	}()
 
 	// Start Prometheus server on separate port if enabled
 	var promServer *http.Server
 	if cfg.OpenTelemetry.Enabled && cfg.OpenTelemetry.PrometheusEnabled {
-		promAddr := fmt.Sprintf("0.0.0.0:%s", cfg.OpenTelemetry.PrometheusPort)
+		// AIDEV-NOTE: Use configured interface, defaulting to localhost for security
+		promAddr := fmt.Sprintf("%s:%s", cfg.OpenTelemetry.PrometheusInterface, cfg.OpenTelemetry.PrometheusPort)
 		promMux := http.NewServeMux()
 		promMux.Handle("/metrics", promhttp.Handler())
+		promMux.HandleFunc("/health", healthHandler)
 
 		promServer = &http.Server{
-			Addr:    promAddr,
-			Handler: promMux,
+			Addr:         promAddr,
+			Handler:      promMux,
+			ReadTimeout:  30 * time.Second,
+			WriteTimeout: 30 * time.Second,
+			IdleTimeout:  120 * time.Second,
 		}
 
 		go func() {
+			localhostOnly := cfg.OpenTelemetry.PrometheusInterface == "127.0.0.1" || cfg.OpenTelemetry.PrometheusInterface == "localhost"
 			logger.Info("starting prometheus metrics server",
 				slog.String("address", promAddr),
+				slog.Bool("localhost_only", localhostOnly),
 			)
 			if err := promServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 				logger.Error("prometheus server failed",
@@ -491,34 +540,23 @@ func printUsage() {
 	fmt.Printf("\nEnvironment Variables:\n")
 	fmt.Printf("  UNKEY_METALD_PORT                Server port (default: 8080)\n")
 	fmt.Printf("  UNKEY_METALD_ADDRESS             Bind address (default: 0.0.0.0)\n")
-	fmt.Printf("  UNKEY_METALD_BACKEND             Backend type (cloudhypervisor, firecracker)\n")
-	fmt.Printf("  UNKEY_METALD_CH_ENDPOINT         Cloud Hypervisor endpoint (overridden by -socket flag)\n")
-	fmt.Printf("  UNKEY_METALD_FC_ENDPOINT         Firecracker endpoint\n")
+	fmt.Printf("  UNKEY_METALD_BACKEND             Backend type (default: firecracker)\n")
 	fmt.Printf("\nOpenTelemetry Configuration:\n")
 	fmt.Printf("  UNKEY_METALD_OTEL_ENABLED              Enable OpenTelemetry (default: false)\n")
 	fmt.Printf("  UNKEY_METALD_OTEL_SERVICE_NAME         Service name (default: vmm-controlplane)\n")
-	fmt.Printf("  UNKEY_METALD_OTEL_SERVICE_VERSION      Service version (default: 0.0.1)\n")
+	fmt.Printf("  UNKEY_METALD_OTEL_SERVICE_VERSION      Service version (default: 0.1.0)\n")
 	fmt.Printf("  UNKEY_METALD_OTEL_SAMPLING_RATE        Trace sampling rate 0.0-1.0 (default: 1.0)\n")
 	fmt.Printf("  UNKEY_METALD_OTEL_ENDPOINT             OTLP endpoint (default: localhost:4318)\n")
 	fmt.Printf("  UNKEY_METALD_OTEL_PROMETHEUS_ENABLED   Enable Prometheus metrics (default: true)\n")
 	fmt.Printf("  UNKEY_METALD_OTEL_PROMETHEUS_PORT      Prometheus metrics port on 0.0.0.0 (default: 9464)\n")
 	fmt.Printf("  UNKEY_METALD_OTEL_HIGH_CARDINALITY_ENABLED  Enable high-cardinality labels (default: false)\n")
-	fmt.Printf("\nJailer Configuration (Firecracker production):\n")
-	fmt.Printf("  UNKEY_METALD_JAILER_ENABLED            Enable jailer for production security (default: false)\n")
-	fmt.Printf("  UNKEY_METALD_JAILER_BINARY             Path to jailer binary (default: /usr/bin/jailer)\n")
-	fmt.Printf("  UNKEY_METALD_FIRECRACKER_BINARY        Path to firecracker binary (default: /usr/bin/firecracker)\n")
+	fmt.Printf("\nJailer Configuration (Integrated):\n")
 	fmt.Printf("  UNKEY_METALD_JAILER_UID                User ID for jailer process (default: 1000)\n")
 	fmt.Printf("  UNKEY_METALD_JAILER_GID                Group ID for jailer process (default: 1000)\n")
 	fmt.Printf("  UNKEY_METALD_JAILER_CHROOT_DIR         Chroot base directory (default: /srv/jailer)\n")
-	fmt.Printf("  UNKEY_METALD_JAILER_NETNS              Enable network namespace isolation (default: true)\n")
-	fmt.Printf("  UNKEY_METALD_JAILER_PIDNS              Enable PID namespace isolation (default: true)\n")
-	fmt.Printf("  UNKEY_METALD_JAILER_MEMORY_LIMIT       Memory limit in bytes (default: 134217728)\n")
-	fmt.Printf("  UNKEY_METALD_JAILER_CPU_QUOTA          CPU quota percentage (default: 100)\n")
-	fmt.Printf("  UNKEY_METALD_JAILER_FD_LIMIT           File descriptor limit (default: 1024)\n")
 	fmt.Printf("\nExamples:\n")
-	fmt.Printf("  %s                                    # Use default socket /tmp/ch.sock\n", os.Args[0])
-	fmt.Printf("  %s -socket /var/run/ch.sock          # Use custom Unix socket\n", os.Args[0])
-	fmt.Printf("  %s -socket ./ch.sock                 # Use relative path socket\n", os.Args[0])
+	fmt.Printf("  %s                                    # Start metald with default configuration\n", os.Args[0])
+	fmt.Printf("  sudo %s                               # Start metald as root (required for networking)\n", os.Args[0])
 }
 
 // printVersion displays version information

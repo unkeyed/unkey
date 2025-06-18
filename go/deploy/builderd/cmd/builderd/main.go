@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -17,10 +16,13 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/unkeyed/unkey/go/deploy/builderd/gen/proto/builder/v1/builderv1connect"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/observability"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/service"
+	healthpkg "github.com/unkeyed/unkey/go/deploy/pkg/health"
+	tlspkg "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -29,14 +31,14 @@ import (
 )
 
 // version is set at build time via ldflags
-var version = "0.0.4"
+var version = "0.1.0"
 
 // AIDEV-NOTE: Enhanced version management with debug.ReadBuildInfo fallback
 // Handles production builds (ldflags), development builds (git commit), and module builds
 // getVersion returns the version string, with fallback to debug.ReadBuildInfo
 func getVersion() string {
 	// If version was set via ldflags (production builds), use it
-	if version != "" && version != "0.0.3" {
+	if version != "" {
 		return version
 	}
 
@@ -65,11 +67,11 @@ func getVersion() string {
 func main() {
 	// Track application start time for uptime calculations
 	startTime := time.Now()
-	
+
 	// Create root context for coordinated shutdown
 	rootCtx, rootCancel := context.WithCancel(context.Background())
 	defer rootCancel()
-	
+
 	// Atomic state tracking for shutdown coordination
 	var (
 		shutdownStarted int64
@@ -114,7 +116,7 @@ func main() {
 		)
 		os.Exit(1)
 	}
-	
+
 	// Configuration validation handled in LoadConfig
 
 	logger.Info("configuration loaded",
@@ -125,6 +127,28 @@ func main() {
 		slog.Bool("tenant_isolation", cfg.Tenant.IsolationEnabled),
 		slog.Int("max_concurrent_builds", cfg.Builder.MaxConcurrentBuilds),
 	)
+
+	// Initialize TLS provider (defaults to disabled)
+	tlsConfig := tlspkg.Config{
+		Mode:             tlspkg.Mode(cfg.TLS.Mode),
+		CertFile:         cfg.TLS.CertFile,
+		KeyFile:          cfg.TLS.KeyFile,
+		CAFile:           cfg.TLS.CAFile,
+		SPIFFESocketPath: cfg.TLS.SPIFFESocketPath,
+	}
+	tlsProvider, err := tlspkg.NewProvider(rootCtx, tlsConfig)
+	if err != nil {
+		// AIDEV-NOTE: TLS/SPIFFE is now required - no fallback to disabled mode
+		logger.Error("TLS initialization failed",
+			"error", err,
+			"mode", cfg.TLS.Mode)
+		os.Exit(1)
+	}
+	defer tlsProvider.Close()
+
+	logger.Info("TLS provider initialized",
+		"mode", cfg.TLS.Mode,
+		"spiffe_enabled", cfg.TLS.Mode == "spiffe")
 
 	// Initialize OpenTelemetry with root context
 	providers, err := observability.InitProviders(rootCtx, cfg, getVersion())
@@ -190,23 +214,11 @@ func main() {
 	)
 	mux.Handle(path, handler)
 
-	// Add rate-limited health check endpoint with proper JSON
-	healthHandler := newRateLimitedHandler(createHealthHandler(startTime, logger), cfg.Server.RateLimit)
-	mux.Handle("/health", healthHandler)
 
-	// Stats are available through proper Prometheus metrics at /metrics
-
-	// Add Prometheus metrics endpoint if enabled
-	if cfg.OpenTelemetry.Enabled && cfg.OpenTelemetry.PrometheusEnabled {
-		mux.Handle("/metrics", providers.PrometheusHTTP)
-		logger.Info("Prometheus metrics endpoint enabled",
-			slog.String("path", "/metrics"),
-		)
-	}
 
 	// Create HTTP server address
 	addr := cfg.Server.Address + ":" + cfg.Server.Port
-	
+
 	// Service health validation after initialization
 	if err := validateServiceHealth(logger, cfg, buildMetrics); err != nil {
 		logger.Error("service health validation failed",
@@ -225,26 +237,51 @@ func main() {
 		)
 	}
 
+	// Configure server with optional TLS and security timeouts
 	server := &http.Server{
 		Addr:    addr,
 		Handler: h2c.NewHandler(httpHandler, &http2.Server{}),
+		// AIDEV-NOTE: Security timeouts to prevent slowloris attacks
+		ReadTimeout:    30 * time.Second,  // Time to read request headers
+		WriteTimeout:   30 * time.Second,  // Time to write response
+		IdleTimeout:    120 * time.Second, // Keep-alive timeout
+		MaxHeaderBytes: 1 << 20,           // 1MB max header size
+	}
+
+	// Apply TLS configuration if enabled
+	serverTLSConfig, _ := tlsProvider.ServerTLSConfig()
+	if serverTLSConfig != nil {
+		server.TLSConfig = serverTLSConfig
+		// For TLS, we need to use regular handler, not h2c
+		server.Handler = httpHandler
 	}
 
 	// Use errgroup for coordinated goroutine management
 	g, gCtx := errgroup.WithContext(rootCtx)
-	
+
 	// Start main server with proper error coordination
 	g.Go(func() error {
-		logger.Info("starting http server",
-			slog.String("address", addr),
-		)
-		
 		// Start server in a way that respects context cancellation
 		errCh := make(chan error, 1)
-		go func() {
-			errCh <- server.ListenAndServe()
-		}()
-		
+
+		if serverTLSConfig != nil {
+			logger.Info("starting HTTPS server with TLS",
+				slog.String("address", addr),
+				slog.String("tls_mode", cfg.TLS.Mode),
+			)
+			go func() {
+				// Empty strings for cert/key paths - SPIFFE provides them in memory
+				errCh <- server.ListenAndServeTLS("", "")
+			}()
+		} else {
+			logger.Info("starting HTTP server without TLS",
+				slog.String("address", addr),
+			)
+			go func() {
+				errCh <- server.ListenAndServe()
+			}()
+		}
+
 		select {
 		case err := <-errCh:
 			if err != nil && err != http.ErrServerClosed {
@@ -256,13 +293,42 @@ func main() {
 		}
 	})
 
-	// Note: Prometheus metrics are exposed on the main port at /metrics
-	// No need for a separate Prometheus server
+	// Start Prometheus server on separate port if enabled
+	var promServer *http.Server
+	if cfg.OpenTelemetry.Enabled && cfg.OpenTelemetry.PrometheusEnabled {
+		// AIDEV-NOTE: Use configured interface, defaulting to localhost for security
+		promAddr := fmt.Sprintf("%s:%s", cfg.OpenTelemetry.PrometheusInterface, cfg.OpenTelemetry.PrometheusPort)
+		promMux := http.NewServeMux()
+		promMux.Handle("/metrics", promhttp.Handler())
+		// Add rate-limited health check endpoint with unified handler
+		healthHandler := newRateLimitedHandler(healthpkg.Handler("builderd", getVersion(), startTime), cfg.Server.RateLimit)
+		promMux.Handle("/health", healthHandler)
+
+		promServer = &http.Server{
+			Addr:         promAddr,
+			Handler:      promMux,
+			ReadTimeout:  30 * time.Second,
+			WriteTimeout: 30 * time.Second,
+			IdleTimeout:  120 * time.Second,
+		}
+
+		g.Go(func() error {
+			localhostOnly := cfg.OpenTelemetry.PrometheusInterface == "127.0.0.1" || cfg.OpenTelemetry.PrometheusInterface == "localhost"
+			logger.Info("starting prometheus metrics server",
+				slog.String("address", promAddr),
+				slog.Bool("localhost_only", localhostOnly),
+			)
+			if err := promServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				return fmt.Errorf("prometheus server failed: %w", err)
+			}
+			return nil
+		})
+	}
 
 	// Implement proper signal handling with buffered channel
 	sigChan := make(chan os.Signal, 2) // Buffer for multiple signals
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
-	
+
 	// Handle shutdown coordination
 	g.Go(func() error {
 		select {
@@ -275,16 +341,16 @@ func main() {
 			return gCtx.Err()
 		}
 	})
-	
+
 	// Wait for any goroutine to complete/fail
 	if err := g.Wait(); err != nil {
 		logger.Info("initiating graceful shutdown",
 			slog.String("reason", err.Error()),
 		)
 	}
-	
+
 	// Coordinated shutdown with proper ordering
-	performGracefulShutdown(logger, server, providers, &shutdownStarted, &shutdownMutex, cfg.Server.ShutdownTimeout)
+	performGracefulShutdown(logger, server, promServer, providers, &shutdownStarted, &shutdownMutex, cfg.Server.ShutdownTimeout)
 }
 
 // printUsage displays help information
@@ -310,11 +376,19 @@ func printUsage() {
 	fmt.Printf("\nOpenTelemetry Configuration:\n")
 	fmt.Printf("  UNKEY_BUILDERD_OTEL_ENABLED                 Enable OpenTelemetry (default: false)\n")
 	fmt.Printf("  UNKEY_BUILDERD_OTEL_SERVICE_NAME            Service name (default: builderd)\n")
-	fmt.Printf("  UNKEY_BUILDERD_OTEL_SERVICE_VERSION         Service version (default: 0.0.1)\n")
+	fmt.Printf("  UNKEY_BUILDERD_OTEL_SERVICE_VERSION         Service version (default: 0.1.0)\n")
 	fmt.Printf("  UNKEY_BUILDERD_OTEL_SAMPLING_RATE           Trace sampling rate 0.0-1.0 (default: 1.0)\n")
 	fmt.Printf("  UNKEY_BUILDERD_OTEL_ENDPOINT                OTLP endpoint (default: localhost:4318)\n")
 	fmt.Printf("  UNKEY_BUILDERD_OTEL_PROMETHEUS_ENABLED      Enable Prometheus metrics (default: true)\n")
+	fmt.Printf("  UNKEY_BUILDERD_OTEL_PROMETHEUS_PORT         Prometheus metrics port (default: 9466)\n")
+	fmt.Printf("  UNKEY_BUILDERD_OTEL_PROMETHEUS_INTERFACE    Prometheus binding interface (default: 127.0.0.1)\n")
 	fmt.Printf("  UNKEY_BUILDERD_OTEL_HIGH_CARDINALITY_ENABLED  Enable high-cardinality labels (default: false)\n")
+	fmt.Printf("\nTLS Configuration:\n")
+	fmt.Printf("  UNKEY_BUILDERD_TLS_MODE                     TLS mode: disabled, file, spiffe (default: disabled)\n")
+	fmt.Printf("  UNKEY_BUILDERD_TLS_CERT_FILE                Path to certificate file (file mode)\n")
+	fmt.Printf("  UNKEY_BUILDERD_TLS_KEY_FILE                 Path to private key file (file mode)\n")
+	fmt.Printf("  UNKEY_BUILDERD_TLS_CA_FILE                  Path to CA bundle file (file mode)\n")
+	fmt.Printf("  UNKEY_BUILDERD_SPIFFE_SOCKET                SPIFFE workload API socket (default: /run/spire/sockets/agent.sock)\n")
 	fmt.Printf("\nDescription:\n")
 	fmt.Printf("  Builderd processes various source types (Docker images, Git repositories,\n")
 	fmt.Printf("  archives) and produces optimized rootfs images for microVM execution.\n")
@@ -366,41 +440,13 @@ func (rl *rateLimitedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		w.Header().Set("X-RateLimit-Limit", fmt.Sprintf("%v", rl.limiter.Limit()))
 		w.Header().Set("Retry-After", "1")
 		w.WriteHeader(http.StatusTooManyRequests)
-		w.Write([]byte(`{"error":"rate limit exceeded","status":429}`))
+		_, _ = w.Write([]byte(`{"error":"rate limit exceeded","status":429}`))
 		return
 	}
 	rl.handler.ServeHTTP(w, r)
 }
 
-// Cached health check handler to prevent memory allocation on each request
-func createHealthHandler(startTime time.Time, logger *slog.Logger) http.Handler {
-	type healthResponse struct {
-		Status        string  `json:"status"`
-		Service       string  `json:"service"`
-		Version       string  `json:"version"`
-		UptimeSeconds float64 `json:"uptime_seconds"`
-	}
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Create response struct instead of string formatting
-		response := healthResponse{
-			Status:        "ok",
-			Service:       "builderd",
-			Version:       getVersion(),
-			UptimeSeconds: time.Since(startTime).Seconds(),
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		
-		// Use json.Encoder for better performance
-		if err := json.NewEncoder(w).Encode(response); err != nil {
-			logger.Error("failed to encode health response",
-				slog.String("error", err.Error()),
-			)
-		}
-	})
-}
+// AIDEV-NOTE: Health handler removed - using unified health package instead
 
 // Service health validation function
 func validateServiceHealth(logger *slog.Logger, cfg *config.Config, buildMetrics *observability.BuildMetrics) error {
@@ -408,44 +454,44 @@ func validateServiceHealth(logger *slog.Logger, cfg *config.Config, buildMetrics
 	if cfg.Server.Port == "" {
 		return fmt.Errorf("server port not configured")
 	}
-	
+
 	if cfg.Builder.MaxConcurrentBuilds <= 0 {
 		return fmt.Errorf("invalid max concurrent builds: %d", cfg.Builder.MaxConcurrentBuilds)
 	}
-	
+
 	if cfg.Server.ShutdownTimeout <= 0 {
 		return fmt.Errorf("invalid shutdown timeout: %v", cfg.Server.ShutdownTimeout)
 	}
-	
+
 	if cfg.Server.RateLimit <= 0 {
 		return fmt.Errorf("invalid rate limit: %d", cfg.Server.RateLimit)
 	}
-	
+
 	// Check if required directories are accessible
 	requiredDirs := []string{
 		cfg.Builder.ScratchDir,
 		cfg.Builder.RootfsOutputDir,
 		cfg.Builder.WorkspaceDir,
 	}
-	
+
 	for _, dir := range requiredDirs {
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			return fmt.Errorf("cannot create/access directory %s: %w", dir, err)
 		}
 	}
-	
+
 	logger.Info("service health validation passed",
 		slog.String("status", "healthy"),
 		slog.Bool("metrics_available", buildMetrics != nil),
 		slog.Int("rate_limit", cfg.Server.RateLimit),
 		slog.Duration("shutdown_timeout", cfg.Server.ShutdownTimeout),
 	)
-	
+
 	return nil
 }
 
 // Coordinated graceful shutdown function
-func performGracefulShutdown(logger *slog.Logger, server *http.Server, providers *observability.Providers, shutdownStarted *int64, shutdownMutex *sync.Mutex, shutdownTimeout time.Duration) {
+func performGracefulShutdown(logger *slog.Logger, server *http.Server, promServer *http.Server, providers *observability.Providers, shutdownStarted *int64, shutdownMutex *sync.Mutex, shutdownTimeout time.Duration) {
 	// Ensure shutdown only happens once
 	if !atomic.CompareAndSwapInt64(shutdownStarted, 0, 1) {
 		logger.Warn("shutdown already in progress")
@@ -473,6 +519,18 @@ func performGracefulShutdown(logger *slog.Logger, server *http.Server, providers
 		logger.Info("HTTP server shutdown complete")
 		return nil
 	})
+
+	// Shutdown Prometheus server if running
+	if promServer != nil {
+		g.Go(func() error {
+			logger.Info("shutting down Prometheus server")
+			if err := promServer.Shutdown(gCtx); err != nil {
+				return fmt.Errorf("Prometheus server shutdown failed: %w", err)
+			}
+			logger.Info("Prometheus server shutdown complete")
+			return nil
+		})
+	}
 
 	// Shutdown OpenTelemetry providers
 	if providers != nil {

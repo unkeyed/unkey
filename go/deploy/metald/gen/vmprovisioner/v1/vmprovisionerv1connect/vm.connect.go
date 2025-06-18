@@ -5,12 +5,13 @@
 package vmprovisionerv1connect
 
 import (
-	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
-	v1 "github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
 	http "net/http"
 	strings "strings"
+
+	connect "connectrpc.com/connect"
+	v1 "github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
 )
 
 // This is a compile-time assertion to ensure that this generated file and the connect package are

@@ -61,7 +61,7 @@ graph TB
         BackendManager[Backend Manager<br/>- Backend Selection<br/>- Interface Abstraction<br/>- Configuration]
         
         subgraph "VM Backends"
-            Firecracker[Firecracker Backend<br/>- Production Ready<br/>- Jailer Integration<br/>- FIFO Streaming]
+            Firecracker[Firecracker Backend<br/>- Production Ready<br/>- Integrated Jailer<br/>- FIFO Streaming]
             CloudHypervisor[Cloud Hypervisor Backend<br/>- Development/Testing<br/>- API Client<br/>- Alternative Option]
         end
     end
@@ -179,7 +179,7 @@ graph TB
     end
     
     subgraph "Firecracker Implementation"
-        FCClient[Firecracker Client<br/>- Process Management<br/>- API Communication<br/>- Jailer Integration]
+        FCClient[Firecracker Client<br/>- Process Management<br/>- API Communication<br/>- Integrated Jailer]
         FCProcess[Process Wrapper<br/>- FIFO Streaming<br/>- Lifecycle Management<br/>- Security Isolation]
     end
     
@@ -216,7 +216,7 @@ graph TB
     end
     
     subgraph "Security Features"
-        Jailer[Jailer Integration<br/>- chroot Isolation<br/>- cgroups Limits<br/>- seccomp Filtering]
+        Jailer[Integrated Jailer<br/>- chroot Isolation<br/>- Network Namespace<br/>- TAP Device Control]
         Privileges[Privilege Dropping<br/>- Non-root Execution<br/>- Capability Limits<br/>- User Namespaces]
     end
     
@@ -230,7 +230,7 @@ graph TB
 
 **Process Management Features**:
 - **1:1 Isolation**: Each VM runs in separate process
-- **Security Isolation**: Jailer integration for production security
+- **Security Isolation**: Integrated jailer for production security
 - **Resource Limits**: cgroups v2 for memory/CPU constraints
 - **Failure Isolation**: Process failures don't affect other VMs
 
@@ -413,7 +413,7 @@ type Backend interface {
 | Feature | Firecracker | Cloud Hypervisor |
 |---------|-------------|------------------|
 | **Maturity** | Production Ready | Development/Testing |
-| **Security** | Jailer Integration | Basic Isolation |
+| **Security** | Integrated Jailer | Basic Isolation |
 | **Performance** | Optimized | Good |
 | **Billing** | FIFO Streaming | Polling-based |
 | **Networking** | IPv6 Support | IPv6 Support |
@@ -441,7 +441,7 @@ graph TB
     end
     
     subgraph "Security Context"
-        Jailer[Jailer<br/>- chroot Isolation<br/>- cgroups Limits<br/>- seccomp Filtering]
+        Jailer[Integrated Jailer<br/>- chroot Isolation<br/>- Network Control<br/>- Privilege Dropping]
         User[User Context<br/>- Non-root User<br/>- Dropped Privileges<br/>- Limited Capabilities]
     end
     

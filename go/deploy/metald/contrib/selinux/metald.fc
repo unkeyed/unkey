@@ -1,0 +1,8 @@
+# File contexts for metald
+/usr/local/bin/metald         -- system_u:object_r:metald_exec_t:s0
+/usr/local/bin/jailer         -- system_u:object_r:jailer_exec_t:s0
+/usr/local/bin/firecracker    -- system_u:object_r:firecracker_exec_t:s0
+/srv/jailer(/.*)?                system_u:object_r:metald_chroot_t:s0
+/opt/metald(/.*)?                system_u:object_r:metald_var_run_t:s0
+/var/run/netns(/.*)?             system_u:object_r:metald_var_run_t:s0
+/opt/vm-assets(/.*)?             system_u:object_r:metald_chroot_t:s0

@@ -2,11 +2,15 @@
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build test clean lint generate run dev deps proto-lint fmt vet install uninstall service-install service-start service-stop service-restart service-status service-logs service-logs-full dev-install health stats demo quick-demo install-tools setup
+.PHONY: help build test clean lint lint-proto generate run dev deps proto-lint fmt vet install uninstall service-install service-start service-stop service-restart service-status service-logs service-logs-tail dev-install health install-tools setup test-coverage watch env-example version check
 
 # Variables
 BINARY_NAME=billaged
 BUILD_DIR=build
+VERSION ?= dev
+COMMIT=$(shell git rev-parse --short HEAD || echo "unknown")
+BUILD_TIME=$(shell date -u '+%Y-%m-%d_%H:%M:%S')
+LDFLAGS=-ldflags "-s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.buildTime=$(BUILD_TIME)"
 
 # Help target - automatically generated from target comments
 help: ## Show this help message
@@ -20,7 +24,7 @@ help: ## Show this help message
 build: ## Build the billaged service binary
 	@echo "Building $(BINARY_NAME)..."
 	@mkdir -p $(BUILD_DIR)
-	go build -ldflags "-s -w" -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/billaged
+	go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/billaged
 
 # Development targets
 deps: ## Download and tidy dependencies
@@ -41,7 +45,16 @@ dev: ## Run the service in development mode
 test: ## Run all tests
 	go test ./... -v
 
-lint: ## Run linting tools
+test-coverage: ## Run tests with coverage report
+	go test -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated: coverage.html"
+
+lint-proto: ## Run protobuf linter
+	@echo "Running protobuf linter..."
+	@buf lint
+
+lint: lint-proto ## Run linting tools (includes protobuf linting)
 	@which golangci-lint > /dev/null || (echo "golangci-lint not found, install from https://golangci-lint.run/usage/install/" && exit 1)
 	golangci-lint run
 
@@ -51,28 +64,21 @@ fmt: ## Format Go code
 vet: ## Run go vet
 	go vet ./...
 
+# Checks target
+check: fmt vet lint test ## Run all checks (fmt, vet, lint with proto, test)
+
 # Proto targets
-proto-lint: ## Lint protobuf files
+proto-lint: ## Lint protobuf files (alias for lint-proto)
 	buf lint
 
 # Clean targets
 clean: ## Clean build artifacts
 	rm -rf $(BUILD_DIR)
+	rm -f coverage.out coverage.html
 
 # Clean generated code
-clean-gen:
+clean-gen: ## Clean generated protobuf code
 	rm -rf ./gen
-
-# Demo targets
-demo: build ## Run demo with sample data
-	@echo "Starting billaged demo..."
-	@echo "Will aggregate usage data every 60 seconds"
-	./$(BUILD_DIR)/$(BINARY_NAME) -aggregation-interval 10s
-
-quick-demo: build ## Run demo with 10-second aggregation
-	@echo "Starting billaged quick demo..."
-	@echo "Will aggregate usage data every 10 seconds"
-	./$(BUILD_DIR)/$(BINARY_NAME) -port 8081 -aggregation-interval 10s
 
 # Install development tools
 install-tools: ## Install development tools
@@ -131,11 +137,11 @@ service-restart: ## Restart billaged service
 service-status: ## Show billaged service status
 	sudo systemctl status billaged
 
-service-logs: ## Follow billaged service logs
-	sudo journalctl -u billaged -f
-
-service-logs-full: ## Show all billaged service logs
+service-logs: ## Show all billaged service logs
 	sudo journalctl -u billaged --no-pager
+
+service-logs-tail: ## Follow billaged service logs
+	sudo journalctl -u billaged -f
 
 # Development service management
 dev-install: build ## Install development version (hot deploy)
@@ -150,6 +156,26 @@ health: ## Check service health
 	@echo "Checking service health..."
 	curl -s http://localhost:8081/health | jq . || echo "Health check failed"
 
-stats: ## Check service statistics
-	@echo "Checking service statistics..."
-	curl -s http://localhost:8081/stats | jq . || echo "Stats check failed"
+# Development helpers
+watch: ## Watch for changes and rebuild
+	@echo "Watching for changes..."
+	@while true; do \
+		inotifywait -qr -e modify,create,delete --exclude 'build/' .; \
+		echo "Changes detected, rebuilding..."; \
+		$(MAKE) build; \
+	done
+
+env-example: ## Generate example environment file
+	@echo "Generating .env.example..."
+	@echo "# Billaged Environment Variables" > .env.example
+	@echo "UNKEY_BILLAGED_PORT=8081" >> .env.example
+	@echo "UNKEY_BILLAGED_AGGREGATION_INTERVAL=60s" >> .env.example
+	@echo "UNKEY_BILLAGED_ASSET_MANAGER_ADDR=localhost:50052" >> .env.example
+	@echo "UNKEY_BILLAGED_SPIFFE_ENABLED=false" >> .env.example
+	@echo ".env.example created"
+
+version: ## Show version information
+	@echo "Billaged Version Information:"
+	@echo "  Version:    $(VERSION)"
+	@echo "  Commit:     $(COMMIT)"
+	@echo "  Build Time: $(BUILD_TIME)"

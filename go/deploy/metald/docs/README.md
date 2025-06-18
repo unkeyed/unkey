@@ -1,119 +1,158 @@
-# Metald Documentation
+# Metald Service Documentation
 
-> High-performance VM management platform with multi-tenant billing and IPv6-first networking
+## Service Description
 
-## Quick Navigation
+Metald is a high-performance VM lifecycle management service that orchestrates Firecracker microVMs with integrated security isolation, real-time billing integration, and IPv6-first networking.
 
-### 🏗️ **Architecture & Design**
-- **[System Architecture Overview](architecture/overview.md)** - Complete system design and component interactions
-- **[Data Flow Diagrams](architecture/data-flow.md)** - End-to-end request and billing flows
-- **[Component Architecture](architecture/components/)** - Deep-dive into each system component:
-  - [Gateway](architecture/components/gateway.md) - API gateway and request routing
-  - [Metald](architecture/components/metald.md) - VM lifecycle management core
-  - [Billing System](architecture/components/billing.md) - Real-time metrics and billing
-  - [ClickHouse](architecture/components/clickhouse.md) - Analytics and billing aggregation
-- **[IPv6 Networking](architecture/networking/ipv6.md)** - Production IPv6 implementation
-- **[Security Architecture](architecture/security/overview.md)** - Multi-tenant security and isolation
+### Business Purpose
 
-### 📚 **API Reference**
-- **[API Reference](api/reference.md)** - Complete ConnectRPC API documentation
-- **[Configuration Guide](api/configuration.md)** - VM and system configuration
+Metald enables secure, multi-tenant VM hosting with:
+- Sub-second VM startup times using Firecracker
+- Real-time usage tracking for accurate billing
+- Strong security isolation through integrated jailer
+- Production-grade IPv6 networking with dual-stack support
+- Comprehensive observability and monitoring
 
-### 🚀 **Deployment & Operations**
-- **[Production Deployment](deployment/production.md)** - Complete production setup guide
-- **[Security Hardening](deployment/security-hardening.md)** - Production security configuration
-- **[Monitoring Setup](deployment/monitoring-setup.md)** - Observability and alerting
+## Quick Start
 
-### 🔧 **Operations & Maintenance**
-- **[Operational Runbooks](operations/runbooks/)** - Day-to-day operational procedures:
-  - [Common Procedures](operations/runbooks/common-procedures.md) - Routine maintenance
-  - [Incident Response](operations/runbooks/incident-response.md) - Emergency procedures
-  - [Maintenance Guide](operations/runbooks/maintenance.md) - Planned maintenance
-- **[Reliability Guide](operations/reliability.md)** - Health monitoring and recovery
-- **[Troubleshooting](operations/troubleshooting.md)** - Problem diagnosis and resolution
+### Prerequisites
 
-### 🛠️ **Development**
-- **[Testing Guide](development/testing/stress-testing.md)** - Load testing and validation
-- **[Contribution Guide](development/contribution-guide.md)** - Development setup and guidelines
+- Linux system with KVM support
+- Firecracker binary installed at `/usr/local/bin/firecracker`
+- Go 1.21+ for building from source
+- systemd for production deployment
+- Root access or appropriate capabilities for VM management
 
-### 📋 **Reference**
-- **[Glossary](reference/glossary.md)** - System terminology and concepts
-- **[Error Codes](reference/error-codes.md)** - Complete error reference
-- **[Metrics Reference](reference/metrics-reference.md)** - Monitoring and alerting metrics
+### Basic Setup
 
----
+```bash
+# Clone the repository
+git clone https://github.com/unkeyed/unkey
+cd unkey/go/deploy/metald
 
-## System Overview
+# Build the service
+make build
 
-```mermaid
-graph TB
-    subgraph "External"
-        Client[Client Applications]
-        Monitoring[Monitoring/Alerting]
-    end
-    
-    subgraph "Unkey Platform"
-        Gateway[Gateway Service]
-        
-        subgraph "VM Management"
-            Metald[Metald Core]
-            FC[Firecracker VMs]
-            CH[Cloud Hypervisor VMs]
-        end
-        
-        subgraph "Billing Pipeline"
-            Billing[Billing Service]
-            ClickHouse[(ClickHouse)]
-        end
-        
-        subgraph "Infrastructure"
-            IPv6[IPv6 Networking]
-            Security[Security Layer]
-            Observability[OpenTelemetry]
-        end
-    end
-    
-    Client --> Gateway
-    Gateway --> Metald
-    Metald --> FC
-    Metald --> CH
-    Metald --> Billing
-    Billing --> ClickHouse
-    
-    Metald --> Observability
-    Gateway --> Observability
-    Billing --> Observability
-    
-    Observability --> Monitoring
-    
-    IPv6 -.-> Metald
-    Security -.-> Gateway
-    Security -.-> Metald
+# Install with systemd (sets required capabilities)
+sudo make install
+
+# Start the service
+sudo systemctl start metald
+
+# Check service status
+sudo systemctl status metald
 ```
 
-## Key Features
+### Development Mode
 
-- **🔄 Multi-VMM Support** - Unified API for Firecracker and Cloud Hypervisor
-- **💰 Real-time Billing** - 100ms precision metrics with ClickHouse analytics
-- **🌐 IPv6-First** - Production-hardened IPv6 with security controls
-- **🏢 Multi-tenant** - Customer isolation and authentication
-- **📊 Observability** - OpenTelemetry tracing and Prometheus metrics
-- **⚡ High Performance** - Process-per-VM isolation with FIFO streaming
-- **🔒 Security-First** - Jailer integration and privilege separation
+For local development without systemd:
 
-## Getting Started
+```bash
+# Build and run directly
+make build
+sudo ./build/metald
 
-1. **Understanding the System**: Start with [System Architecture Overview](architecture/overview.md)
-2. **API Exploration**: Review [API Reference](api/reference.md) for available operations
-3. **Local Development**: Follow [Contribution Guide](development/contribution-guide.md)
-4. **Production Deployment**: Use [Production Deployment](deployment/production.md) guide
+# Or with custom configuration
+UNKEY_METALD_PORT=8080 \
+UNKEY_METALD_LOG_LEVEL=debug \
+sudo ./build/metald
+```
 
-## Support
+## Dependencies
 
-- **Documentation Issues**: Found unclear documentation? See [Contribution Guide](development/contribution-guide.md)
-- **Operational Issues**: Check [Troubleshooting Guide](operations/troubleshooting.md)
-- **Security Issues**: Follow [Incident Response](operations/runbooks/incident-response.md) procedures
+### Required Services
 
----
+- **AssetManager** (Optional): Manages VM kernels and root filesystems
+  - Default endpoint: `http://localhost:8083`
+  - Can be disabled for development
 
-*Last updated: $(date +%Y-%m-%d) | Version: 1.0*
+- **Billaged** (Optional): Real-time billing and metrics collection
+  - Default endpoint: `http://localhost:8081`
+  - Can run in mock mode for development
+
+### System Dependencies
+
+- **Firecracker**: MicroVM hypervisor
+- **KVM**: Kernel-based Virtual Machine support
+- **Linux capabilities**: CAP_SYS_ADMIN, CAP_NET_ADMIN, etc.
+
+## Basic Configuration
+
+Key environment variables:
+
+```bash
+# Server configuration
+UNKEY_METALD_PORT=8080
+UNKEY_METALD_ADDRESS=0.0.0.0
+
+# Backend selection (only firecracker supported)
+UNKEY_METALD_BACKEND=firecracker
+
+# Integrated jailer configuration
+UNKEY_METALD_JAILER_UID=977
+UNKEY_METALD_JAILER_GID=976
+UNKEY_METALD_JAILER_CHROOT_DIR=/srv/jailer
+
+# Service integration
+UNKEY_METALD_BILLING_ENABLED=true
+UNKEY_METALD_BILLING_ENDPOINT=http://localhost:8081
+UNKEY_METALD_ASSETMANAGER_ENABLED=true
+UNKEY_METALD_ASSETMANAGER_ENDPOINT=http://localhost:8083
+
+# Observability
+UNKEY_METALD_OTEL_ENABLED=true
+UNKEY_METALD_OTEL_ENDPOINT=localhost:4318
+```
+
+## Documentation Index
+
+### Core Documentation
+
+- **[API Reference](api-reference.md)** - Complete API documentation with endpoints, schemas, and examples
+- **[Architecture](architecture.md)** - System design, components, and technical decisions
+- **[Diagrams](diagrams.md)** - Visual documentation including architecture and flow diagrams
+- **[Operations](operations.md)** - Deployment, monitoring, and troubleshooting procedures
+
+### Specialized Guides
+
+- **[IPv6 Networking](ipv6-networking-implementation.md)** - Comprehensive IPv6 implementation guide
+- **[IPv6 API Reference](ipv6-api-reference.md)** - IPv6-specific API documentation
+- **[IPv6 Deployment](ipv6-deployment-guide.md)** - Production IPv6 deployment procedures
+- **[IPv6 Examples](ipv6-examples-troubleshooting.md)** - Common scenarios and troubleshooting
+
+### Architecture Decisions
+
+- **[ADR-001: Integrated Jailer](adr/001-integrated-jailer.md)** - Why we integrate jailer functionality
+- **[ADR-002: Firecracker Only](adr/002-firecracker-only-backend.md)** - Single backend support rationale
+
+### Development Resources
+
+- **[Authentication Guide](development/authentication.md)** - Development auth and production considerations
+- **[Integrated Jailer Details](../internal/jailer/README.md)** - Technical details of jailer implementation
+
+## Version Information
+
+- **Current Version**: 0.2.0
+- **Last Updated**: 2024-01-18
+- **API Version**: v1 (ConnectRPC)
+
+## Getting Help
+
+### Common Issues
+
+1. **Permission Denied**: Ensure metald has required capabilities (run `make install`)
+2. **VM Creation Failed**: Check firecracker binary exists and KVM is available
+3. **Network Issues**: Verify CAP_NET_ADMIN capability and namespace permissions
+
+### Support Channels
+
+- GitHub Issues: [github.com/unkeyed/unkey/issues](https://github.com/unkeyed/unkey/issues)
+- Documentation: This directory
+- Logs: `journalctl -u metald -f`
+
+## Next Steps
+
+1. Read the [API Reference](api-reference.md) to understand available endpoints
+2. Review the [Architecture](architecture.md) for system design details
+3. Follow [Operations](operations.md) for production deployment
+4. Check [IPv6 guides](ipv6-networking-implementation.md) for networking setup

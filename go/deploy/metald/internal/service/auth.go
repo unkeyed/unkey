@@ -28,7 +28,7 @@ func AuthenticationInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc
 				logger.LogAttrs(ctx, slog.LevelWarn, "missing authorization header",
 					slog.String("procedure", req.Spec().Procedure),
 				)
-				return nil, connect.NewError(connect.CodeUnauthenticated, 
+				return nil, connect.NewError(connect.CodeUnauthenticated,
 					fmt.Errorf("authorization header required"))
 			}
 
@@ -43,7 +43,7 @@ func AuthenticationInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc
 			}
 
 			token := parts[1]
-			
+
 			// Validate token and extract customer context
 			customerCtx, err := validateToken(ctx, token)
 			if err != nil {
@@ -72,16 +72,17 @@ func AuthenticationInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc
 // validateToken validates the API token and returns customer context
 // TODO: Replace with your actual authentication mechanism (JWT, API keys, etc.)
 func validateToken(ctx context.Context, token string) (*CustomerContext, error) {
+	_ = ctx // Will be used for auth service calls in production
 	// DEVELOPMENT MODE: Extract customer_id from token directly
 	// Format: "dev_customer_<customer_id>" for development
 	// Production should validate against your auth service
-	
+
 	if strings.HasPrefix(token, "dev_customer_") {
 		customerID := strings.TrimPrefix(token, "dev_customer_")
 		if customerID == "" {
 			return nil, fmt.Errorf("invalid development token format")
 		}
-		
+
 		return &CustomerContext{
 			CustomerID:  customerID,
 			TenantID:    customerID, // Use customer ID as tenant ID for simplicity
@@ -107,7 +108,7 @@ func addCustomerContextToBaggage(ctx context.Context, customerCtx *CustomerConte
 	))
 	if err != nil {
 		// Log error but continue - baggage is for observability, not security
-		slog.Default().Warn("failed to create baggage",
+		slog.Default().WarnContext(ctx, "failed to create baggage",
 			slog.String("error", err.Error()),
 		)
 		return ctx
@@ -153,7 +154,7 @@ func (s *VMService) validateVMOwnership(ctx context.Context, vmID string) error 
 			slog.String("vm_owner", vm.CustomerID),
 			slog.String("action", "access_denied"),
 		)
-		return connect.NewError(connect.CodePermissionDenied, 
+		return connect.NewError(connect.CodePermissionDenied,
 			fmt.Errorf("access denied: VM not owned by customer"))
 	}
 

@@ -35,7 +35,7 @@ graph TB
             Metald[Metald Core<br/>- VM Lifecycle<br/>- Multi-VMM Support<br/>- Process Management]
             
             subgraph "VM Backends"
-                Firecracker[Firecracker VMs<br/>- Production Ready<br/>- Jailer Security<br/>- FIFO Streaming]
+                Firecracker[Firecracker VMs<br/>- Production Ready<br/>- Integrated Jailer<br/>- FIFO Streaming]
                 CloudHypervisor[Cloud Hypervisor VMs<br/>- Development/Testing<br/>- Alternative Backend]
             end
         end
@@ -165,6 +165,35 @@ sequenceDiagram
         VMM->>Billing: Stream Metrics
         Billing->>ClickHouse: Store Metrics
     end
+```
+
+### Detailed VM Creation with Integrated Jailer
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Metald
+    participant Jailer as Integrated Jailer
+    participant Firecracker
+    participant Network as Network NS
+    
+    Client->>Metald: CreateVM Request
+    Metald->>Metald: Validate Request
+    Metald->>Network: Create Network Namespace
+    
+    Metald->>Jailer: RunInJail(vmId, netns, socket)
+    Note over Jailer: Fork Process
+    Jailer->>Jailer: Create Chroot Environment
+    Jailer->>Network: Enter Network Namespace
+    Jailer->>Network: Create TAP Device
+    Note over Jailer: TAP device created INSIDE namespace
+    Jailer->>Jailer: Chroot to jail directory
+    Jailer->>Jailer: Drop Privileges (setuid/setgid)
+    Jailer->>Firecracker: Exec firecracker binary
+    
+    Firecracker->>Firecracker: Initialize VM
+    Firecracker->>Metald: VM Ready
+    Metald->>Client: VM Created Response
 ```
 
 ### Authentication Flow
@@ -414,7 +443,7 @@ graph TB
     
     subgraph "Runtime Security"
         ProcessSeparation[Process Separation<br/>- 1:1 VM-Process Model<br/>- Privilege Dropping]
-        JailerSecurity[Jailer Security<br/>- chroot Isolation<br/>- cgroups Limits<br/>- seccomp Filtering]
+        JailerSecurity[Integrated Jailer<br/>- chroot Isolation<br/>- Namespace Control<br/>- TAP Device Management]
         NetworkSecurity[Network Security<br/>- IPv6 Controls<br/>- Namespace Isolation]
     end
     

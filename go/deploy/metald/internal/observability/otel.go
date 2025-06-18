@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -24,6 +25,7 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 )
 
 // Providers holds the OpenTelemetry providers
@@ -35,15 +37,15 @@ type Providers struct {
 }
 
 // InitProviders initializes OpenTelemetry providers
-func InitProviders(ctx context.Context, cfg *config.Config, version string) (*Providers, error) {
+func InitProviders(ctx context.Context, cfg *config.Config, version string, logger *slog.Logger) (*Providers, error) {
 	if !cfg.OpenTelemetry.Enabled {
 		// Return no-op providers
 		return &Providers{
-			TracerProvider: trace.NewNoopTracerProvider(),
+			TracerProvider: noop.NewTracerProvider(),
 			MeterProvider:  nil,
 			PrometheusHTTP: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusNotFound)
-				w.Write([]byte("OpenTelemetry is disabled"))
+				_, _ = w.Write([]byte("OpenTelemetry is disabled"))
 			}),
 			Shutdown: func(context.Context) error { return nil },
 		}, nil
@@ -71,7 +73,9 @@ func InitProviders(ctx context.Context, cfg *config.Config, version string) (*Pr
 	// Initialize meter provider
 	meterProvider, promHandler, meterShutdown, err := initMeterProvider(ctx, cfg, res)
 	if err != nil {
-		tracerShutdown(ctx)
+		if shutdownErr := tracerShutdown(ctx); shutdownErr != nil {
+			logger.ErrorContext(ctx, "Failed to shutdown tracer", "error", shutdownErr)
+		}
 		return nil, fmt.Errorf("failed to initialize meter provider: %w", err)
 	}
 
@@ -161,7 +165,7 @@ func initMeterProvider(ctx context.Context, cfg *config.Config, res *resource.Re
 	// Prometheus exporter
 	var promHandler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("Prometheus metrics disabled"))
+		_, _ = w.Write([]byte("Prometheus metrics disabled"))
 	})
 
 	if cfg.OpenTelemetry.PrometheusEnabled {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"math"
 	"time"
 
 	metaldv1 "github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
@@ -14,7 +15,10 @@ import (
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/observability"
 
 	"connectrpc.com/connect"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/baggage"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // VMService implements the VmServiceHandler interface
@@ -24,22 +28,33 @@ type VMService struct {
 	metricsCollector *billing.MetricsCollector
 	vmMetrics        *observability.VMMetrics
 	vmRepo           *database.VMRepository
+	tracer           trace.Tracer
 	vmprovisionerv1connect.UnimplementedVmServiceHandler
 }
 
 // NewVMService creates a new VM service instance
 func NewVMService(backend types.Backend, logger *slog.Logger, metricsCollector *billing.MetricsCollector, vmMetrics *observability.VMMetrics, vmRepo *database.VMRepository) *VMService {
+	tracer := otel.Tracer("metald.service.vm")
 	return &VMService{
 		backend:          backend,
 		logger:           logger.With("service", "vm"),
 		metricsCollector: metricsCollector,
 		vmMetrics:        vmMetrics,
 		vmRepo:           vmRepo,
+		tracer:           tracer,
 	}
 }
 
 // CreateVm creates a new VM instance
 func (s *VMService) CreateVm(ctx context.Context, req *connect.Request[metaldv1.CreateVmRequest]) (*connect.Response[metaldv1.CreateVmResponse], error) {
+	ctx, span := s.tracer.Start(ctx, "VMService.CreateVm",
+		trace.WithAttributes(
+			attribute.String("service.name", "metald"),
+			attribute.String("operation.name", "create_vm"),
+		),
+	)
+	defer span.End()
+
 	s.logger.LogAttrs(ctx, slog.LevelInfo, "creating vm",
 		slog.String("method", "CreateVm"),
 	)
@@ -51,11 +66,13 @@ func (s *VMService) CreateVm(ctx context.Context, req *connect.Request[metaldv1.
 
 	config := req.Msg.GetConfig()
 	if config == nil {
+		err := fmt.Errorf("vm config is required")
+		span.RecordError(err)
 		s.logger.LogAttrs(ctx, slog.LevelError, "missing vm config")
 		if s.vmMetrics != nil {
 			s.vmMetrics.RecordVMCreateFailure(ctx, s.getBackendType(), "missing_config")
 		}
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("vm config is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	// Extract authenticated customer ID from context
@@ -78,21 +95,21 @@ func (s *VMService) CreateVm(ctx context.Context, req *connect.Request[metaldv1.
 	}
 
 	// Validate required fields
-	if err := s.validateVMConfig(config); err != nil {
+	if validateErr := s.validateVMConfig(config); validateErr != nil {
 		s.logger.LogAttrs(ctx, slog.LevelError, "invalid vm config",
-			slog.String("error", err.Error()),
+			slog.String("error", validateErr.Error()),
 		)
 		if s.vmMetrics != nil {
 			s.vmMetrics.RecordVMCreateFailure(ctx, s.getBackendType(), "invalid_config")
 		}
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, validateErr)
 	}
 
 	// Add tenant context to logs for audit trail
 	// AIDEV-NOTE: In multi-tenant systems, all VM operations should be logged with tenant context
 	s.logWithTenantContext(ctx, slog.LevelInfo, "creating vm",
-		slog.Int("vcpus", int(config.Cpu.VcpuCount)),
-		slog.Int64("memory_bytes", config.Memory.SizeBytes),
+		slog.Int("vcpus", int(config.GetCpu().GetVcpuCount())),
+		slog.Int64("memory_bytes", config.GetMemory().GetSizeBytes()),
 	)
 
 	// Create VM using backend (config is already in unified format)
@@ -100,6 +117,11 @@ func (s *VMService) CreateVm(ctx context.Context, req *connect.Request[metaldv1.
 	vmID, err := s.backend.CreateVM(ctx, config)
 	duration := time.Since(start)
 	if err != nil {
+		span.RecordError(err)
+		span.SetAttributes(
+			attribute.String("error.type", "backend_error"),
+			attribute.String("error.message", err.Error()),
+		)
 		s.logWithTenantContext(ctx, slog.LevelError, "failed to create vm",
 			slog.String("error", err.Error()),
 		)
@@ -116,7 +138,7 @@ func (s *VMService) CreateVm(ctx context.Context, req *connect.Request[metaldv1.
 			slog.String("customer_id", customerID),
 			slog.String("error", err.Error()),
 		)
-		
+
 		// Attempt robust cleanup with retries to prevent resource leaks
 		cleanupSuccess := s.performVMCleanup(ctx, vmID, "database_persistence_failure")
 		if !cleanupSuccess {
@@ -127,12 +149,20 @@ func (s *VMService) CreateVm(ctx context.Context, req *connect.Request[metaldv1.
 				slog.String("action_required", "manual_cleanup_needed"),
 			)
 		}
-		
+
 		if s.vmMetrics != nil {
 			s.vmMetrics.RecordVMCreateFailure(ctx, s.getBackendType(), "database_error")
 		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to persist vm: %w", err))
 	}
+
+	// Record success attributes
+	span.SetAttributes(
+		attribute.String("vm_id", vmID),
+		attribute.String("customer_id", customerID),
+		attribute.Int64("duration_ms", duration.Milliseconds()),
+		attribute.Bool("success", true),
+	)
 
 	s.logger.LogAttrs(ctx, slog.LevelInfo, "vm created successfully",
 		slog.String("vm_id", vmID),
@@ -180,6 +210,7 @@ func (s *VMService) DeleteVm(ctx context.Context, req *connect.Request[metaldv1.
 		return nil, err
 	}
 
+	// AIDEV-NOTE: Metrics collection re-enabled - metald now reads from Firecracker stats sockets
 	// Stop metrics collection before deletion
 	if s.metricsCollector != nil {
 		s.metricsCollector.StopCollection(vmID)
@@ -208,12 +239,12 @@ func (s *VMService) DeleteVm(ctx context.Context, req *connect.Request[metaldv1.
 			slog.String("vm_id", vmID),
 			slog.String("error", err.Error()),
 		)
-		
+
 		// Database state consistency is critical - record as partial failure
 		if s.vmMetrics != nil {
 			s.vmMetrics.RecordVMDeleteFailure(ctx, vmID, s.getBackendType(), "database_error")
 		}
-		
+
 		// Log warning about state inconsistency but don't fail the operation
 		// since backend deletion was successful
 		s.logger.LogAttrs(ctx, slog.LevelWarn, "vm delete succeeded in backend but failed in database - state inconsistency detected",
@@ -242,6 +273,15 @@ func (s *VMService) DeleteVm(ctx context.Context, req *connect.Request[metaldv1.
 // BootVm boots a VM instance
 func (s *VMService) BootVm(ctx context.Context, req *connect.Request[metaldv1.BootVmRequest]) (*connect.Response[metaldv1.BootVmResponse], error) {
 	vmID := req.Msg.GetVmId()
+
+	ctx, span := s.tracer.Start(ctx, "VMService.BootVm",
+		trace.WithAttributes(
+			attribute.String("service.name", "metald"),
+			attribute.String("operation.name", "boot_vm"),
+			attribute.String("vm_id", vmID),
+		),
+	)
+	defer span.End()
 
 	s.logger.LogAttrs(ctx, slog.LevelInfo, "booting vm",
 		slog.String("method", "BootVm"),
@@ -273,6 +313,11 @@ func (s *VMService) BootVm(ctx context.Context, req *connect.Request[metaldv1.Bo
 	err := s.backend.BootVM(ctx, vmID)
 	duration := time.Since(start)
 	if err != nil {
+		span.RecordError(err)
+		span.SetAttributes(
+			attribute.String("error.type", "backend_error"),
+			attribute.String("error.message", err.Error()),
+		)
 		s.logger.LogAttrs(ctx, slog.LevelError, "failed to boot vm",
 			slog.String("vm_id", vmID),
 			slog.String("error", err.Error()),
@@ -289,7 +334,7 @@ func (s *VMService) BootVm(ctx context.Context, req *connect.Request[metaldv1.Bo
 			slog.String("vm_id", vmID),
 			slog.String("error", err.Error()),
 		)
-		
+
 		// Log warning about state inconsistency
 		s.logger.LogAttrs(ctx, slog.LevelWarn, "vm boot succeeded in backend but state update failed in database - state inconsistency detected",
 			slog.String("vm_id", vmID),
@@ -299,6 +344,7 @@ func (s *VMService) BootVm(ctx context.Context, req *connect.Request[metaldv1.Bo
 		)
 	}
 
+	// AIDEV-NOTE: Metrics collection re-enabled - metald now reads from Firecracker stats sockets
 	// Start metrics collection for billing
 	if s.metricsCollector != nil {
 		customerID := s.extractCustomerID(ctx, vmID)
@@ -316,6 +362,13 @@ func (s *VMService) BootVm(ctx context.Context, req *connect.Request[metaldv1.Bo
 			)
 		}
 	}
+
+	// Record success attributes
+	span.SetAttributes(
+		attribute.String("vm_id", vmID),
+		attribute.Int64("duration_ms", duration.Milliseconds()),
+		attribute.Bool("success", true),
+	)
 
 	s.logger.LogAttrs(ctx, slog.LevelInfo, "vm booted successfully",
 		slog.String("vm_id", vmID),
@@ -368,6 +421,7 @@ func (s *VMService) ShutdownVm(ctx context.Context, req *connect.Request[metaldv
 		return nil, err
 	}
 
+	// AIDEV-NOTE: Metrics collection re-enabled - metald now reads from Firecracker stats sockets
 	// Stop metrics collection before shutdown
 	if s.metricsCollector != nil {
 		s.metricsCollector.StopCollection(vmID)
@@ -396,7 +450,7 @@ func (s *VMService) ShutdownVm(ctx context.Context, req *connect.Request[metaldv
 			slog.String("vm_id", vmID),
 			slog.String("error", err.Error()),
 		)
-		
+
 		// Log warning about state inconsistency
 		s.logger.LogAttrs(ctx, slog.LevelWarn, "vm shutdown succeeded in backend but state update failed in database - state inconsistency detected",
 			slog.String("vm_id", vmID),
@@ -608,26 +662,33 @@ func (s *VMService) ListVms(ctx context.Context, req *connect.Request[metaldv1.L
 	}
 
 	var vms []*metaldv1.VmInfo
-	totalCount := int32(len(dbVMs))
+	// Check for overflow before conversion
+	if len(dbVMs) > math.MaxInt32 {
+		s.logger.LogAttrs(ctx, slog.LevelError, "too many VMs to list",
+			slog.Int("count", len(dbVMs)),
+		)
+		return nil, connect.NewError(connect.CodeResourceExhausted, fmt.Errorf("too many VMs to list: %d", len(dbVMs)))
+	}
+	totalCount := int32(len(dbVMs)) //nolint:gosec // Overflow check performed above
 
 	// Convert database VMs to protobuf format
 	for _, vm := range dbVMs {
 		vmInfo := &metaldv1.VmInfo{
-			VmId:      vm.ID,
-			State:     vm.State,
+			VmId:       vm.ID,
+			State:      vm.State,
 			CustomerId: vm.CustomerID,
 		}
 
 		// Add CPU and memory info if available
 		if vm.ParsedConfig != nil {
-			if vm.ParsedConfig.Cpu != nil {
-				vmInfo.VcpuCount = vm.ParsedConfig.Cpu.VcpuCount
+			if vm.ParsedConfig.GetCpu() != nil {
+				vmInfo.VcpuCount = vm.ParsedConfig.GetCpu().GetVcpuCount()
 			}
-			if vm.ParsedConfig.Memory != nil {
-				vmInfo.MemorySizeBytes = vm.ParsedConfig.Memory.SizeBytes
+			if vm.ParsedConfig.GetMemory() != nil {
+				vmInfo.MemorySizeBytes = vm.ParsedConfig.GetMemory().GetSizeBytes()
 			}
-			if vm.ParsedConfig.Metadata != nil {
-				vmInfo.Metadata = vm.ParsedConfig.Metadata
+			if vm.ParsedConfig.GetMetadata() != nil {
+				vmInfo.Metadata = vm.ParsedConfig.GetMetadata()
 			}
 		}
 
@@ -751,19 +812,19 @@ func (s *VMService) performVMCleanup(ctx context.Context, vmID, reason string) b
 	const maxRetries = 3
 	const retryDelay = time.Second
 	const cleanupGracePeriod = 30 * time.Second
-	
+
 	// Create a cleanup context with grace period to ensure critical cleanup completes
 	// even if the original context is cancelled
 	cleanupCtx, cancel := context.WithTimeout(context.Background(), cleanupGracePeriod)
 	defer cancel()
-	
+
 	s.logger.LogAttrs(ctx, slog.LevelInfo, "attempting vm cleanup",
 		slog.String("vm_id", vmID),
 		slog.String("reason", reason),
 		slog.Int("max_retries", maxRetries),
 		slog.Duration("grace_period", cleanupGracePeriod),
 	)
-	
+
 	for attempt := 1; attempt <= maxRetries; attempt++ {
 		if attempt > 1 {
 			// Wait before retry using cleanup context
@@ -778,19 +839,19 @@ func (s *VMService) performVMCleanup(ctx context.Context, vmID, reason string) b
 			case <-time.After(retryDelay):
 			}
 		}
-		
+
 		s.logger.LogAttrs(ctx, slog.LevelDebug, "attempting vm cleanup",
 			slog.String("vm_id", vmID),
 			slog.Int("attempt", attempt),
 		)
-		
+
 		if err := s.backend.DeleteVM(cleanupCtx, vmID); err != nil {
 			s.logger.LogAttrs(ctx, slog.LevelWarn, "vm cleanup attempt failed",
 				slog.String("vm_id", vmID),
 				slog.Int("attempt", attempt),
 				slog.String("error", err.Error()),
 			)
-			
+
 			if attempt == maxRetries {
 				s.logger.LogAttrs(ctx, slog.LevelError, "vm cleanup failed after all retries",
 					slog.String("vm_id", vmID),
@@ -800,14 +861,14 @@ func (s *VMService) performVMCleanup(ctx context.Context, vmID, reason string) b
 			}
 			continue
 		}
-		
+
 		s.logger.LogAttrs(ctx, slog.LevelInfo, "vm cleanup successful",
 			slog.String("vm_id", vmID),
 			slog.Int("attempt", attempt),
 		)
 		return true
 	}
-	
+
 	return false
 }
 

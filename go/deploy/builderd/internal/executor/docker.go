@@ -53,7 +53,7 @@ func (d *DockerExecutor) ExtractDockerImage(ctx context.Context, request *builde
 		slog.String("image_uri", request.Config.Source.GetDockerImage().ImageUri),
 	)
 
-	logger.Info("starting Docker image extraction")
+	logger.InfoContext(ctx, "starting Docker image extraction")
 
 	// Record build start metrics
 	if d.buildMetrics != nil {
@@ -62,7 +62,7 @@ func (d *DockerExecutor) ExtractDockerImage(ctx context.Context, request *builde
 
 	defer func() {
 		duration := time.Since(start)
-		logger.Info("Docker image extraction completed", slog.Duration("duration", duration))
+		logger.InfoContext(ctx, "Docker image extraction completed", slog.Duration("duration", duration))
 	}()
 
 	dockerSource := request.Config.Source.GetDockerImage()
@@ -83,12 +83,12 @@ func (d *DockerExecutor) ExtractDockerImage(ctx context.Context, request *builde
 
 	// Create directories
 	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
-		logger.Error("failed to create workspace directory", slog.String("error", err.Error()))
+		logger.ErrorContext(ctx, "failed to create workspace directory", slog.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to create workspace directory: %w", err)
 	}
 
 	if err := os.MkdirAll(rootfsDir, 0755); err != nil {
-		logger.Error("failed to create rootfs directory", slog.String("error", err.Error()))
+		logger.ErrorContext(ctx, "failed to create rootfs directory", slog.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to create rootfs directory: %w", err)
 	}
 
@@ -102,7 +102,7 @@ func (d *DockerExecutor) ExtractDockerImage(ctx context.Context, request *builde
 
 	// Step 1: Pull the Docker image
 	if err := d.pullDockerImage(ctx, logger, fullImageName); err != nil {
-		logger.Error("failed to pull Docker image",
+		logger.ErrorContext(ctx, "failed to pull Docker image",
 			slog.String("error", err.Error()),
 			slog.String("image", fullImageName),
 		)
@@ -115,7 +115,7 @@ func (d *DockerExecutor) ExtractDockerImage(ctx context.Context, request *builde
 	// Step 2: Create container from image (without running)
 	containerID, err := d.createContainer(ctx, logger, fullImageName)
 	if err != nil {
-		logger.Error("failed to create container",
+		logger.ErrorContext(ctx, "failed to create container",
 			slog.String("error", err.Error()),
 			slog.String("image", fullImageName),
 		)
@@ -128,13 +128,13 @@ func (d *DockerExecutor) ExtractDockerImage(ctx context.Context, request *builde
 	// Ensure cleanup of container
 	defer func() {
 		if cleanupErr := d.removeContainer(ctx, logger, containerID); cleanupErr != nil {
-			logger.Warn("failed to cleanup container", slog.String("error", cleanupErr.Error()))
+			logger.WarnContext(ctx, "failed to cleanup container", slog.String("error", cleanupErr.Error()))
 		}
 	}()
 
 	// Step 3: Extract filesystem from container
 	if err := d.extractFilesystem(ctx, logger, containerID, rootfsDir); err != nil {
-		logger.Error("failed to extract filesystem",
+		logger.ErrorContext(ctx, "failed to extract filesystem",
 			slog.String("error", err.Error()),
 			slog.String("container_id", containerID),
 			slog.String("rootfs_dir", rootfsDir),
@@ -147,7 +147,7 @@ func (d *DockerExecutor) ExtractDockerImage(ctx context.Context, request *builde
 
 	// Step 4: Optimize rootfs (remove unnecessary files, etc.)
 	if err := d.optimizeRootfs(ctx, logger, rootfsDir); err != nil {
-		logger.Warn("failed to optimize rootfs", slog.String("error", err.Error()))
+		logger.WarnContext(ctx, "failed to optimize rootfs", slog.String("error", err.Error()))
 		// Don't fail the build for optimization errors
 	}
 
@@ -169,7 +169,7 @@ func (d *DockerExecutor) ExtractDockerImage(ctx context.Context, request *builde
 		d.buildMetrics.RecordBuildComplete(ctx, "docker", "docker", tenantID, time.Since(start), true)
 	}
 
-	logger.Info("Docker image extraction successful",
+	logger.InfoContext(ctx, "Docker image extraction successful",
 		slog.String("rootfs_path", rootfsDir),
 		slog.Duration("total_duration", time.Since(start)),
 	)
@@ -198,7 +198,7 @@ func (d *DockerExecutor) pullDockerImage(ctx context.Context, logger *slog.Logge
 		d.buildMetrics.RecordBuildStepStart(ctx, "pull", "docker")
 	}
 
-	logger.Info("pulling Docker image", slog.String("image", imageName))
+	logger.InfoContext(ctx, "pulling Docker image", slog.String("image", imageName))
 
 	// Create context with timeout for docker pull
 	pullCtx, cancel := context.WithTimeout(ctx, d.config.Docker.PullTimeout)
@@ -225,7 +225,7 @@ func (d *DockerExecutor) pullDockerImage(ctx context.Context, logger *slog.Logge
 			attribute.String("error", err.Error()),
 			attribute.String("output", string(output)),
 		)
-		logger.Error("docker pull failed",
+		logger.ErrorContext(ctx, "docker pull failed",
 			slog.String("error", err.Error()),
 			slog.String("output", string(output)),
 			slog.Duration("duration", stepDuration),
@@ -234,7 +234,7 @@ func (d *DockerExecutor) pullDockerImage(ctx context.Context, logger *slog.Logge
 	}
 
 	span.SetAttributes(attribute.String("status", "success"))
-	logger.Info("docker pull completed",
+	logger.InfoContext(ctx, "docker pull completed",
 		slog.String("image", imageName),
 		slog.Duration("duration", stepDuration),
 	)
@@ -262,7 +262,7 @@ func (d *DockerExecutor) createContainer(ctx context.Context, logger *slog.Logge
 		d.buildMetrics.RecordBuildStepStart(ctx, "create", "docker")
 	}
 
-	logger.Info("creating container from image", slog.String("image", imageName))
+	logger.InfoContext(ctx, "creating container from image", slog.String("image", imageName))
 
 	cmd := exec.CommandContext(ctx, "docker", "create", imageName)
 	output, err := cmd.Output()
@@ -277,7 +277,7 @@ func (d *DockerExecutor) createContainer(ctx context.Context, logger *slog.Logge
 
 	if err != nil {
 		span.SetAttributes(attribute.String("error", err.Error()))
-		logger.Error("docker create failed",
+		logger.ErrorContext(ctx, "docker create failed",
 			slog.String("error", err.Error()),
 			slog.String("image", imageName),
 			slog.Duration("duration", stepDuration),
@@ -290,7 +290,7 @@ func (d *DockerExecutor) createContainer(ctx context.Context, logger *slog.Logge
 		attribute.String("status", "success"),
 		attribute.String("container_id", containerID),
 	)
-	logger.Info("container created",
+	logger.InfoContext(ctx, "container created",
 		slog.String("container_id", containerID),
 		slog.Duration("duration", stepDuration),
 	)
@@ -320,7 +320,7 @@ func (d *DockerExecutor) extractFilesystem(ctx context.Context, logger *slog.Log
 		d.buildMetrics.RecordBuildStepStart(ctx, "extract", "docker")
 	}
 
-	logger.Info("extracting filesystem from container",
+	logger.InfoContext(ctx, "extracting filesystem from container",
 		slog.String("container_id", containerID),
 		slog.String("rootfs_dir", rootfsDir),
 	)
@@ -339,7 +339,7 @@ func (d *DockerExecutor) extractFilesystem(ctx context.Context, logger *slog.Log
 			d.buildMetrics.RecordBuildStepComplete(ctx, "extract", "docker", stepDuration, false)
 		}
 		span.SetAttributes(attribute.String("error", err.Error()))
-		logger.Error("failed to create pipe",
+		logger.ErrorContext(ctx, "failed to create pipe",
 			slog.String("error", err.Error()),
 			slog.Duration("duration", stepDuration),
 		)
@@ -355,7 +355,7 @@ func (d *DockerExecutor) extractFilesystem(ctx context.Context, logger *slog.Log
 			d.buildMetrics.RecordBuildStepComplete(ctx, "extract", "docker", stepDuration, false)
 		}
 		span.SetAttributes(attribute.String("error", err.Error()))
-		logger.Error("failed to start docker export",
+		logger.ErrorContext(ctx, "failed to start docker export",
 			slog.String("error", err.Error()),
 			slog.Duration("duration", stepDuration),
 		)
@@ -363,13 +363,13 @@ func (d *DockerExecutor) extractFilesystem(ctx context.Context, logger *slog.Log
 	}
 
 	if err := tarCmd.Start(); err != nil {
-		cmd.Process.Kill()
+		_ = cmd.Process.Kill()
 		stepDuration := time.Since(stepStart)
 		if d.buildMetrics != nil {
 			d.buildMetrics.RecordBuildStepComplete(ctx, "extract", "docker", stepDuration, false)
 		}
 		span.SetAttributes(attribute.String("error", err.Error()))
-		logger.Error("failed to start tar extraction",
+		logger.ErrorContext(ctx, "failed to start tar extraction",
 			slog.String("error", err.Error()),
 			slog.Duration("duration", stepDuration),
 		)
@@ -378,13 +378,13 @@ func (d *DockerExecutor) extractFilesystem(ctx context.Context, logger *slog.Log
 
 	// Wait for docker export to complete
 	if err := cmd.Wait(); err != nil {
-		tarCmd.Process.Kill()
+		_ = tarCmd.Process.Kill()
 		stepDuration := time.Since(stepStart)
 		if d.buildMetrics != nil {
 			d.buildMetrics.RecordBuildStepComplete(ctx, "extract", "docker", stepDuration, false)
 		}
 		span.SetAttributes(attribute.String("error", err.Error()))
-		logger.Error("docker export failed",
+		logger.ErrorContext(ctx, "docker export failed",
 			slog.String("error", err.Error()),
 			slog.Duration("duration", stepDuration),
 		)
@@ -399,7 +399,7 @@ func (d *DockerExecutor) extractFilesystem(ctx context.Context, logger *slog.Log
 			d.buildMetrics.RecordBuildStepComplete(ctx, "extract", "docker", stepDuration, false)
 		}
 		span.SetAttributes(attribute.String("error", err.Error()))
-		logger.Error("tar extraction failed",
+		logger.ErrorContext(ctx, "tar extraction failed",
 			slog.String("error", err.Error()),
 			slog.Duration("duration", stepDuration),
 		)
@@ -414,7 +414,7 @@ func (d *DockerExecutor) extractFilesystem(ctx context.Context, logger *slog.Log
 	}
 
 	span.SetAttributes(attribute.String("status", "success"))
-	logger.Info("filesystem extraction completed",
+	logger.InfoContext(ctx, "filesystem extraction completed",
 		slog.Duration("duration", stepDuration),
 	)
 	return nil
@@ -422,18 +422,18 @@ func (d *DockerExecutor) extractFilesystem(ctx context.Context, logger *slog.Log
 
 // removeContainer removes the temporary container
 func (d *DockerExecutor) removeContainer(ctx context.Context, logger *slog.Logger, containerID string) error {
-	logger.Debug("removing container", slog.String("container_id", containerID))
+	logger.DebugContext(ctx, "removing container", slog.String("container_id", containerID))
 
 	cmd := exec.CommandContext(ctx, "docker", "rm", containerID)
 	if err := cmd.Run(); err != nil {
-		logger.Error("failed to remove container",
+		logger.ErrorContext(ctx, "failed to remove container",
 			slog.String("error", err.Error()),
 			slog.String("container_id", containerID),
 		)
 		return fmt.Errorf("failed to remove container: %w", err)
 	}
 
-	logger.Debug("container removed", slog.String("container_id", containerID))
+	logger.DebugContext(ctx, "container removed", slog.String("container_id", containerID))
 	return nil
 }
 
@@ -458,7 +458,7 @@ func (d *DockerExecutor) optimizeRootfs(ctx context.Context, logger *slog.Logger
 		d.buildMetrics.RecordBuildStepStart(ctx, "optimize", "docker")
 	}
 
-	logger.Info("optimizing rootfs", slog.String("rootfs_dir", rootfsDir))
+	logger.InfoContext(ctx, "optimizing rootfs", slog.String("rootfs_dir", rootfsDir))
 
 	// List of directories/files to remove for optimization
 	removePatterns := []string{
@@ -481,7 +481,7 @@ func (d *DockerExecutor) optimizeRootfs(ctx context.Context, logger *slog.Logger
 		// Use rm command to remove files matching pattern
 		cmd := exec.CommandContext(ctx, "sh", "-c", fmt.Sprintf("rm -rf %s", fullPattern))
 		if err := cmd.Run(); err != nil {
-			logger.Debug("failed to remove pattern",
+			logger.DebugContext(ctx, "failed to remove pattern",
 				slog.String("pattern", pattern),
 				slog.String("error", err.Error()),
 			)
@@ -500,7 +500,7 @@ func (d *DockerExecutor) optimizeRootfs(ctx context.Context, logger *slog.Logger
 			d.buildMetrics.RecordRootfsSize(ctx, size)
 		}
 	} else {
-		logger.Warn("failed to calculate rootfs size", slog.String("error", err.Error()))
+		logger.WarnContext(ctx, "failed to calculate rootfs size", slog.String("error", err.Error()))
 	}
 
 	// Record step completion
@@ -518,7 +518,7 @@ func (d *DockerExecutor) optimizeRootfs(ctx context.Context, logger *slog.Logger
 			attribute.Int("patterns_removed", removedPatterns),
 			attribute.Int("total_patterns", len(removePatterns)),
 		)
-		logger.Warn("rootfs optimization completed with errors",
+		logger.WarnContext(ctx, "rootfs optimization completed with errors",
 			slog.String("error", lastError.Error()),
 			slog.Int("patterns_removed", removedPatterns),
 			slog.Int("total_patterns", len(removePatterns)),
@@ -530,7 +530,7 @@ func (d *DockerExecutor) optimizeRootfs(ctx context.Context, logger *slog.Logger
 			attribute.String("status", "success"),
 			attribute.Int("patterns_removed", removedPatterns),
 		)
-		logger.Info("rootfs optimization completed",
+		logger.InfoContext(ctx, "rootfs optimization completed",
 			slog.Int64("size_bytes", finalSize),
 			slog.Int("patterns_removed", removedPatterns),
 			slog.Duration("duration", stepDuration),
@@ -585,14 +585,14 @@ func (d *DockerExecutor) Cleanup(ctx context.Context, buildID string) error {
 	// Clean up workspace directory
 	workspaceDir := filepath.Join(d.config.Builder.WorkspaceDir, buildID)
 	if err := os.RemoveAll(workspaceDir); err != nil {
-		logger.Error("failed to cleanup workspace directory",
+		logger.ErrorContext(ctx, "failed to cleanup workspace directory",
 			slog.String("workspace_dir", workspaceDir),
 			slog.String("error", err.Error()),
 		)
 		return fmt.Errorf("failed to cleanup workspace: %w", err)
 	}
 
-	logger.Info("build cleanup completed", slog.String("workspace_dir", workspaceDir))
+	logger.InfoContext(ctx, "build cleanup completed", slog.String("workspace_dir", workspaceDir))
 	return nil
 }
 

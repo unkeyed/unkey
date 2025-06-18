@@ -6,9 +6,14 @@ Wants=network.target
 
 [Service]
 Type=simple
-User=metald
-Group=metald
+# AIDEV-NOTE: metald runs as root to manage network namespaces, interfaces, and iptables.
+# This is acceptable as metald is the sole application on dedicated VM hosts.
+# The jailer still drops privileges to specified UID/GID for VM processes.
+User=root
+Group=root
 WorkingDirectory=/opt/metald
+# Ensure network namespace directory exists (requires root)
+ExecStartPre=+/bin/mkdir -p /run/netns
 ExecStart=/usr/local/bin/metald
 Restart=always
 RestartSec=5
@@ -16,7 +21,7 @@ StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=metald
 
-# Environment variables
+# Core service configuration
 Environment=UNKEY_METALD_BACKEND=firecracker
 Environment=UNKEY_METALD_OTEL_ENABLED=true
 Environment=UNKEY_METALD_PORT=8080
@@ -32,46 +37,36 @@ Environment=UNKEY_METALD_MAX_PROCESSES=1000
 
 # Billing Configuration
 Environment=UNKEY_METALD_BILLING_ENABLED=true
-Environment=UNKEY_METALD_BILLING_ENDPOINT=http://localhost:8081
+Environment=UNKEY_METALD_BILLING_ENDPOINT=https://localhost:8081
 Environment=UNKEY_METALD_BILLING_MOCK_MODE=false
 
 # AssetManager Configuration
 Environment=UNKEY_METALD_ASSETMANAGER_ENABLED=true
-Environment=UNKEY_METALD_ASSETMANAGER_ENDPOINT=http://localhost:8083
+Environment=UNKEY_METALD_ASSETMANAGER_ENDPOINT=https://localhost:8083
 Environment=UNKEY_METALD_ASSETMANAGER_CACHE_DIR=/opt/metald/assets
 
-# Jailer configuration for production
-# Set to false for development without jailer
-Environment=UNKEY_METALD_JAILER_ENABLED=true
-Environment=UNKEY_METALD_JAILER_BINARY=/usr/local/bin/jailer
-Environment=UNKEY_METALD_FIRECRACKER_BINARY=/usr/local/bin/firecracker
+# Jailer configuration (Integrated)
+# AIDEV-BUSINESS_RULE: Integrated jailer provides better control and security
 Environment=UNKEY_METALD_JAILER_UID=977
 Environment=UNKEY_METALD_JAILER_GID=976
 Environment=UNKEY_METALD_JAILER_CHROOT_DIR=/srv/jailer
-Environment=UNKEY_METALD_JAILER_NETNS=true
-Environment=UNKEY_METALD_JAILER_PIDNS=true
+
+# TLS/SPIFFE configuration (REQUIRED)
+# AIDEV-BUSINESS_RULE: mTLS is required for secure inter-service communication
+Environment=UNKEY_METALD_TLS_MODE=spiffe
+Environment=UNKEY_METALD_SPIFFE_SOCKET=/var/lib/spire/agent/agent.sock
 
 # Resource limits
 LimitNOFILE=65536
 LimitNPROC=4096
 
-# Linux capabilities for network namespace management and jailer operations
-# AIDEV-NOTE: CAP_SYS_ADMIN allows metald to spawn jailer processes
-# CAP_NET_ADMIN allows network namespace creation
-# CAP_NET_RAW allows netlink socket operations for network management
-# CAP_DAC_OVERRIDE allows access to jailer chroot directories
-# CAP_MKNOD allows jailer to create device nodes like /dev/net/tun
-AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW CAP_SYS_ADMIN CAP_DAC_OVERRIDE CAP_MKNOD
-CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW CAP_SYS_ADMIN CAP_DAC_OVERRIDE CAP_SETUID CAP_SETGID CAP_CHOWN CAP_MKNOD
+# Linux capabilities - not needed when running as root
+# AIDEV-NOTE: Running as root provides all necessary capabilities for network management
+# AmbientCapabilities removed - root has all capabilities
+# CapabilityBoundingSet removed - root has all capabilities
 
-# Security settings - balanced for jailer spawning
-NoNewPrivileges=false
-PrivateDevices=false
-PrivateNetwork=no
-# RestrictNetworkInterfaces disabled for network management
-ProtectSystem=false
-ProtectHome=true
-ReadWritePaths=/srv/jailer /opt/metald /var/run/netns /tmp /opt/metald/assets /sys
+# Security settings - adjusted for root with VM management requirements
+ReadWritePaths=/srv/jailer /opt/metald /var/run/netns /tmp /opt/metald/assets /sys /proc/sys/net
 
 [Install]
 WantedBy=multi-user.target

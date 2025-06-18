@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"testing"
 
-	assetv1 "github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/proto/asset/v1"
+	assetv1 "github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/asset/v1"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/config"
 )
 
@@ -13,9 +13,9 @@ func TestNewClient(t *testing.T) {
 	logger := slog.Default()
 
 	tests := []struct {
-		name    string
-		config  *config.AssetManagerConfig
-		wantErr bool
+		name     string
+		config   *config.AssetManagerConfig
+		wantErr  bool
 		wantNoop bool
 	}{
 		{

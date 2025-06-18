@@ -1,0 +1,81 @@
+policy_module(metald, 1.0.0)
+
+require {
+    type unconfined_t;
+    type bin_t;
+    type sudo_exec_t;
+    type chroot_exec_t;
+    type admin_home_t;
+    type user_tmp_t;
+    type tmpfs_t;
+    type devpts_t;
+    type sysfs_t;
+    type proc_t;
+    type node_t;
+    class process { setcap setpgid };
+    class capability { sys_admin net_admin chown dac_override setuid setgid mknod };
+    class file { create execute execute_no_trans getattr ioctl open read write unlink map };
+    class dir { add_name create getattr open read remove_name rmdir search write mounton };
+    class chr_file { getattr ioctl open read write };
+    class sock_file { create getattr unlink write };
+    class unix_stream_socket { connectto create };
+    class netlink_route_socket { bind create nlmsg_read };
+    class filesystem { mount unmount };
+}
+
+# Define metald domain
+type metald_t;
+type metald_exec_t;
+init_daemon_domain(metald_t, metald_exec_t)
+
+# Define jailer domain
+type jailer_t;
+type jailer_exec_t;
+application_domain(jailer_t, jailer_exec_t)
+
+# Define firecracker domain
+type firecracker_t;
+type firecracker_exec_t;
+application_domain(firecracker_t, firecracker_exec_t)
+
+# Define file types
+type metald_var_run_t;
+files_pid_file(metald_var_run_t)
+
+type metald_chroot_t;
+files_type(metald_chroot_t)
+
+# Allow metald to execute jailer via sudo
+allow metald_t sudo_exec_t:file { execute execute_no_trans open read map };
+allow metald_t self:capability { setuid setgid };
+allow metald_t self:process setpgid;
+
+# Allow metald to transition to jailer domain
+domain_auto_trans(metald_t, jailer_exec_t, jailer_t)
+
+# Allow jailer to perform chroot operations
+allow jailer_t self:capability { sys_admin chown dac_override setuid setgid mknod };
+allow jailer_t chroot_exec_t:file { execute execute_no_trans open read map };
+allow jailer_t metald_chroot_t:dir { add_name create getattr mounton open read remove_name rmdir search write };
+allow jailer_t metald_chroot_t:file { create execute getattr ioctl open read write unlink };
+
+# Allow jailer to transition to firecracker
+domain_auto_trans(jailer_t, firecracker_exec_t, firecracker_t)
+
+# Allow firecracker to run in chroot
+allow firecracker_t metald_chroot_t:dir { getattr open read search };
+allow firecracker_t metald_chroot_t:file { execute getattr open read map };
+allow firecracker_t metald_chroot_t:sock_file { create getattr write };
+allow firecracker_t self:unix_stream_socket create;
+
+# Allow network operations
+allow metald_t self:capability net_admin;
+allow metald_t self:netlink_route_socket { bind create nlmsg_read };
+
+# File contexts
+/usr/local/bin/metald         -- gen_context(system_u:object_r:metald_exec_t,s0)
+/usr/local/bin/jailer         -- gen_context(system_u:object_r:jailer_exec_t,s0)
+/usr/local/bin/firecracker    -- gen_context(system_u:object_r:firecracker_exec_t,s0)
+/srv/jailer(/.*)?                gen_context(system_u:object_r:metald_chroot_t,s0)
+/opt/metald(/.*)?                gen_context(system_u:object_r:metald_var_run_t,s0)
+/var/run/netns(/.*)?             gen_context(system_u:object_r:metald_var_run_t,s0)

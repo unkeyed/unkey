@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -17,11 +18,13 @@ import (
 
 // Mock backend for cleanup benchmarks
 type mockCleanupBackend struct {
-	deleteLatency    time.Duration
-	failureRate      float64 // 0.0 = never fail, 1.0 = always fail
-	callCount        int64
-	concurrentCalls  int64
-	maxConcurrent    int64
+	deleteLatency   time.Duration
+	failureRate     float64 // 0.0 = never fail, 1.0 = always fail
+	callCount       int64
+	concurrentCalls int64
+	maxConcurrent   int64
+	mu              sync.Mutex
+	rng             *rand.Rand
 }
 
 func (m *mockCleanupBackend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (string, error) {
@@ -32,7 +35,7 @@ func (m *mockCleanupBackend) DeleteVM(ctx context.Context, vmID string) error {
 	// Track concurrent calls
 	current := atomic.AddInt64(&m.concurrentCalls, 1)
 	defer atomic.AddInt64(&m.concurrentCalls, -1)
-	
+
 	// Update max concurrent if needed
 	for {
 		max := atomic.LoadInt64(&m.maxConcurrent)
@@ -40,10 +43,10 @@ func (m *mockCleanupBackend) DeleteVM(ctx context.Context, vmID string) error {
 			break
 		}
 	}
-	
+
 	// Increment total call count
 	atomic.AddInt64(&m.callCount, 1)
-	
+
 	// Simulate latency
 	if m.deleteLatency > 0 {
 		select {
@@ -52,26 +55,42 @@ func (m *mockCleanupBackend) DeleteVM(ctx context.Context, vmID string) error {
 		case <-time.After(m.deleteLatency):
 		}
 	}
-	
-	// Simulate failure rate
+
+	// Simulate failure rate with proper random distribution
 	if m.failureRate > 0 {
-		callNum := atomic.LoadInt64(&m.callCount)
-		if float64(callNum%100) < m.failureRate*100 {
+		m.mu.Lock()
+		// Initialize RNG if not already done
+		if m.rng == nil {
+			m.rng = rand.New(rand.NewSource(time.Now().UnixNano()))
+		}
+		// Generate a random float between 0 and 1
+		randomValue := m.rng.Float64()
+		m.mu.Unlock()
+		
+		if randomValue < m.failureRate {
 			return errors.New("simulated backend failure")
 		}
 	}
-	
+
 	return nil
 }
 
-func (m *mockCleanupBackend) BootVM(ctx context.Context, vmID string) error   { return nil }
+func (m *mockCleanupBackend) BootVM(ctx context.Context, vmID string) error     { return nil }
 func (m *mockCleanupBackend) ShutdownVM(ctx context.Context, vmID string) error { return nil }
-func (m *mockCleanupBackend) ShutdownVMWithOptions(ctx context.Context, vmID string, force bool, timeout int32) error { return nil }
+func (m *mockCleanupBackend) ShutdownVMWithOptions(ctx context.Context, vmID string, force bool, timeout int32) error {
+	return nil
+}
 func (m *mockCleanupBackend) PauseVM(ctx context.Context, vmID string) error  { return nil }
 func (m *mockCleanupBackend) ResumeVM(ctx context.Context, vmID string) error { return nil }
 func (m *mockCleanupBackend) RebootVM(ctx context.Context, vmID string) error { return nil }
-func (m *mockCleanupBackend) GetVMInfo(ctx context.Context, vmID string) (*types.VMInfo, error) { return nil, nil }
-func (m *mockCleanupBackend) GetVMMetrics(ctx context.Context, vmID string) (*types.VMMetrics, error) { return nil, nil }
+func (m *mockCleanupBackend) GetVMInfo(ctx context.Context, vmID string) (*types.VMInfo, error) {
+	// Return empty VMInfo for benchmark testing
+	return &types.VMInfo{}, nil
+}
+func (m *mockCleanupBackend) GetVMMetrics(ctx context.Context, vmID string) (*types.VMMetrics, error) {
+	// Return empty metrics for benchmark testing
+	return &types.VMMetrics{}, nil
+}
 func (m *mockCleanupBackend) Ping(ctx context.Context) error { return nil }
 
 func (m *mockCleanupBackend) GetCallCount() int64     { return atomic.LoadInt64(&m.callCount) }
@@ -88,14 +107,14 @@ func createBenchmarkVMService(backend types.Backend) *VMService {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
 		Level: slog.LevelError, // Only log errors to reduce noise
 	}))
-	
+
 	// Use nil for optional components in benchmarks
 	return &VMService{
 		backend:          backend,
 		logger:           logger,
 		metricsCollector: nil,
 		vmMetrics:        nil,
-		vmRepo:          nil,
+		vmRepo:           nil,
 	}
 }
 
@@ -106,10 +125,10 @@ func BenchmarkCleanupSuccess(b *testing.B) {
 		failureRate:   0.0,                   // No failures
 	}
 	service := createBenchmarkVMService(backend)
-	
+
 	b.ResetTimer()
 	b.ReportAllocs()
-	
+
 	for i := 0; i < b.N; i++ {
 		ctx := context.Background()
 		vmID := fmt.Sprintf("vm-%d", i)
@@ -118,7 +137,7 @@ func BenchmarkCleanupSuccess(b *testing.B) {
 			b.Errorf("cleanup failed unexpectedly for vm %s", vmID)
 		}
 	}
-	
+
 	b.ReportMetric(float64(backend.GetCallCount()), "backend_calls")
 	b.ReportMetric(float64(backend.GetMaxConcurrent()), "max_concurrent")
 }
@@ -130,16 +149,16 @@ func BenchmarkCleanupWithRetries(b *testing.B) {
 		failureRate:   0.4, // 40% failure rate to trigger retries
 	}
 	service := createBenchmarkVMService(backend)
-	
+
 	b.ResetTimer()
 	b.ReportAllocs()
-	
+
 	for i := 0; i < b.N; i++ {
 		ctx := context.Background()
 		vmID := fmt.Sprintf("vm-%d", i)
 		service.performVMCleanup(ctx, vmID, "benchmark_test_retries")
 	}
-	
+
 	b.ReportMetric(float64(backend.GetCallCount()), "backend_calls")
 	b.ReportMetric(float64(backend.GetMaxConcurrent()), "max_concurrent")
 }
@@ -151,16 +170,16 @@ func BenchmarkCleanupConcurrent(b *testing.B) {
 		failureRate:   0.1, // 10% failure rate
 	}
 	service := createBenchmarkVMService(backend)
-	
+
 	concurrencyLevels := []int{1, 10, 50, 100, 200}
-	
+
 	for _, concurrency := range concurrencyLevels {
 		b.Run(fmt.Sprintf("concurrency-%d", concurrency), func(b *testing.B) {
 			backend.Reset()
-			
+
 			b.ResetTimer()
 			b.ReportAllocs()
-			
+
 			b.RunParallel(func(pb *testing.PB) {
 				i := 0
 				for pb.Next() {
@@ -170,7 +189,7 @@ func BenchmarkCleanupConcurrent(b *testing.B) {
 					i++
 				}
 			})
-			
+
 			b.ReportMetric(float64(backend.GetCallCount()), "backend_calls")
 			b.ReportMetric(float64(backend.GetMaxConcurrent()), "max_concurrent")
 		})
@@ -185,7 +204,7 @@ func BenchmarkCleanupSlowBackend(b *testing.B) {
 		500 * time.Millisecond,
 		1 * time.Second,
 	}
-	
+
 	for _, latency := range latencies {
 		b.Run(fmt.Sprintf("latency-%s", latency), func(b *testing.B) {
 			backend := &mockCleanupBackend{
@@ -193,16 +212,16 @@ func BenchmarkCleanupSlowBackend(b *testing.B) {
 				failureRate:   0.0,
 			}
 			service := createBenchmarkVMService(backend)
-			
+
 			b.ResetTimer()
 			b.ReportAllocs()
-			
+
 			for i := 0; i < b.N; i++ {
 				ctx := context.Background()
 				vmID := fmt.Sprintf("vm-%d", i)
 				service.performVMCleanup(ctx, vmID, "benchmark_slow_backend")
 			}
-			
+
 			b.ReportMetric(float64(backend.GetCallCount()), "backend_calls")
 		})
 	}
@@ -215,25 +234,25 @@ func BenchmarkCleanupContextCancellation(b *testing.B) {
 		failureRate:   0.0,
 	}
 	service := createBenchmarkVMService(backend)
-	
+
 	b.ResetTimer()
 	b.ReportAllocs()
-	
+
 	for i := 0; i < b.N; i++ {
 		// Create context that cancels after 50ms (before operation completes)
 		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 		vmID := fmt.Sprintf("vm-%d", i)
-		
+
 		// This should still succeed due to grace period context
 		success := service.performVMCleanup(ctx, vmID, "benchmark_cancellation")
 		cancel()
-		
+
 		// Even with cancelled context, cleanup should succeed due to grace period
 		if !success {
 			b.Errorf("cleanup failed for vm %s with cancelled context", vmID)
 		}
 	}
-	
+
 	b.ReportMetric(float64(backend.GetCallCount()), "backend_calls")
 }
 
@@ -244,16 +263,16 @@ func BenchmarkCleanupMemoryUsage(b *testing.B) {
 		failureRate:   0.2,
 	}
 	service := createBenchmarkVMService(backend)
-	
+
 	// Pre-allocate VM IDs to avoid allocation during benchmark
 	vmIDs := make([]string, b.N)
 	for i := 0; i < b.N; i++ {
 		vmIDs[i] = fmt.Sprintf("vm-%d", i)
 	}
-	
+
 	b.ResetTimer()
 	b.ReportAllocs()
-	
+
 	for i := 0; i < b.N; i++ {
 		ctx := context.Background()
 		service.performVMCleanup(ctx, vmIDs[i], "benchmark_memory")
@@ -267,21 +286,21 @@ func BenchmarkCleanupStressTest(b *testing.B) {
 		failureRate:   0.15, // 15% failure rate
 	}
 	service := createBenchmarkVMService(backend)
-	
+
 	// Simulate burst cleanup scenarios
 	burstSizes := []int{10, 50, 100, 500}
-	
+
 	for _, burstSize := range burstSizes {
 		b.Run(fmt.Sprintf("burst-%d", burstSize), func(b *testing.B) {
 			backend.Reset()
-			
+
 			b.ResetTimer()
 			b.ReportAllocs()
-			
+
 			for i := 0; i < b.N; i++ {
 				var wg sync.WaitGroup
 				startTime := time.Now()
-				
+
 				// Launch burst of concurrent cleanups
 				for j := 0; j < burstSize; j++ {
 					wg.Add(1)
@@ -292,14 +311,14 @@ func BenchmarkCleanupStressTest(b *testing.B) {
 						service.performVMCleanup(ctx, vmID, "benchmark_stress")
 					}(j)
 				}
-				
+
 				wg.Wait()
-				
+
 				// Report burst completion time
 				burstDuration := time.Since(startTime)
 				b.ReportMetric(float64(burstDuration.Nanoseconds()), "burst_duration_ns")
 			}
-			
+
 			b.ReportMetric(float64(backend.GetCallCount()), "backend_calls")
 			b.ReportMetric(float64(backend.GetMaxConcurrent()), "max_concurrent")
 		})
@@ -313,27 +332,27 @@ func BenchmarkCleanupFailureRecovery(b *testing.B) {
 		failureRate:   1.0, // 100% failure rate
 	}
 	service := createBenchmarkVMService(backend)
-	
+
 	b.ResetTimer()
 	b.ReportAllocs()
-	
+
 	for i := 0; i < b.N; i++ {
 		ctx := context.Background()
 		vmID := fmt.Sprintf("vm-%d", i)
 		success := service.performVMCleanup(ctx, vmID, "benchmark_failure")
-		
+
 		// Should fail since backend always fails
 		if success {
 			b.Errorf("cleanup succeeded unexpectedly for vm %s", vmID)
 		}
 	}
-	
+
 	// Should see exactly 3 attempts per VM (3 retries)
 	expectedCalls := int64(b.N * 3)
 	actualCalls := backend.GetCallCount()
 	if actualCalls != expectedCalls {
 		b.Errorf("expected %d backend calls, got %d", expectedCalls, actualCalls)
 	}
-	
+
 	b.ReportMetric(float64(actualCalls), "backend_calls")
 }

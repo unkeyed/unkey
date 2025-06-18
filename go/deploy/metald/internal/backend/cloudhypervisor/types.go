@@ -79,48 +79,52 @@ type consoleConfig struct {
 
 // genericToCloudHypervisorConfig converts generic VM config to Cloud Hypervisor API format
 func (c *Client) genericToCloudHypervisorConfig(config *metaldv1.VmConfig) cloudHypervisorConfig {
-	chConfig := cloudHypervisorConfig{}
+	chConfig := cloudHypervisorConfig{} //exhaustruct:ignore
 
 	// CPU configuration
-	if config.Cpu != nil && config.Cpu.VcpuCount > 0 {
+	if config.GetCpu() != nil && config.GetCpu().GetVcpuCount() > 0 {
+		//exhaustruct:ignore
 		chConfig.Cpus = &cpusConfig{
-			BootVcpus: config.Cpu.VcpuCount,
-			MaxVcpus:  config.Cpu.MaxVcpuCount,
+			BootVcpus: config.GetCpu().GetVcpuCount(),
+			MaxVcpus:  config.GetCpu().GetMaxVcpuCount(),
 		}
-		if config.Cpu.MaxVcpuCount == 0 {
-			chConfig.Cpus.MaxVcpus = config.Cpu.VcpuCount
+		if config.GetCpu().GetMaxVcpuCount() == 0 {
+			chConfig.Cpus.MaxVcpus = config.GetCpu().GetVcpuCount()
 		}
 	}
 
 	// Memory configuration
-	if config.Memory != nil && config.Memory.SizeBytes > 0 {
+	if config.GetMemory() != nil && config.GetMemory().GetSizeBytes() > 0 {
+		//exhaustruct:ignore
 		chConfig.Memory = &memoryConfig{
-			Size: config.Memory.SizeBytes,
+			Size: config.GetMemory().GetSizeBytes(),
 		}
 	}
 
 	// Payload configuration
-	if config.Boot != nil && config.Boot.KernelPath != "" {
+	if config.GetBoot() != nil && config.GetBoot().GetKernelPath() != "" {
 		chConfig.Payload = &payloadConfig{
-			Kernel:    config.Boot.KernelPath,
-			Initramfs: config.Boot.InitrdPath,
-			Cmdline:   config.Boot.KernelArgs,
+			Kernel:    config.GetBoot().GetKernelPath(),
+			Initramfs: config.GetBoot().GetInitrdPath(),
+			Cmdline:   config.GetBoot().GetKernelArgs(),
 		}
 	}
 
 	// Disk configuration
-	for _, disk := range config.Storage {
+	for _, disk := range config.GetStorage() {
+		//exhaustruct:ignore
 		chConfig.Disks = append(chConfig.Disks, diskConfig{
-			Path:     disk.Path,
-			Readonly: disk.ReadOnly,
+			Path:     disk.GetPath(),
+			Readonly: disk.GetReadOnly(),
 		})
 	}
 
 	// Network configuration
-	for _, net := range config.Network {
+	for _, net := range config.GetNetwork() {
+		//exhaustruct:ignore
 		chConfig.Net = append(chConfig.Net, netConfig{
-			Tap: net.TapDevice,
-			Mac: net.MacAddress,
+			Tap: net.GetTapDevice(),
+			Mac: net.GetMacAddress(),
 		})
 	}
 
@@ -130,12 +134,14 @@ func (c *Client) genericToCloudHypervisorConfig(config *metaldv1.VmConfig) cloud
 	}
 
 	// Console configuration
-	if config.Console != nil && config.Console.Enabled {
+	if config.GetConsole() != nil && config.GetConsole().GetEnabled() {
+		//exhaustruct:ignore
 		chConfig.Console = &consoleConfig{
 			Mode: "File",
-			File: config.Console.Output,
+			File: config.GetConsole().GetOutput(),
 		}
 	} else {
+		//exhaustruct:ignore
 		chConfig.Console = &consoleConfig{
 			Mode: "Off",
 		}

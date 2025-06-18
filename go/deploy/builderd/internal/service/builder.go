@@ -35,7 +35,7 @@ func NewBuilderService(
 ) *BuilderService {
 	// Create executor registry
 	executors := executor.NewRegistry(logger, cfg, buildMetrics)
-	
+
 	return &BuilderService{
 		logger:       logger,
 		buildMetrics: buildMetrics,
@@ -56,14 +56,14 @@ func (s *BuilderService) CreateBuild(
 		customerID = req.Msg.Config.Tenant.CustomerId
 	}
 
-	s.logger.Info("create build request received",
+	s.logger.InfoContext(ctx, "create build request received",
 		slog.String("tenant_id", tenantID),
 		slog.String("customer_id", customerID),
 	)
 
 	// Validate build configuration first to prevent nil pointer dereference
 	if err := s.validateBuildConfig(req.Msg.Config); err != nil {
-		s.logger.Warn("invalid build configuration",
+		s.logger.WarnContext(ctx, "invalid build configuration",
 			slog.String("error", err.Error()),
 			slog.String("tenant_id", tenantID),
 		)
@@ -72,21 +72,21 @@ func (s *BuilderService) CreateBuild(
 
 	// TODO: Check tenant quotas
 	// TODO: Store build job in database
-	
+
 	// Execute the build immediately (for now)
 	// In production, this would be queued and executed asynchronously
 	buildResult, err := s.executors.Execute(ctx, req.Msg)
 	if err != nil {
-		s.logger.Error("build execution failed",
+		s.logger.ErrorContext(ctx, "build execution failed",
 			slog.String("error", err.Error()),
 			slog.String("tenant_id", req.Msg.Config.Tenant.TenantId),
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("build execution failed: %w", err))
 	}
-	
+
 	buildID := buildResult.BuildID
 
-	s.logger.Info("build job completed successfully",
+	s.logger.InfoContext(ctx, "build job completed successfully",
 		slog.String("build_id", buildID),
 		slog.String("tenant_id", req.Msg.Config.Tenant.TenantId),
 		slog.String("source_type", buildResult.SourceType),
@@ -115,7 +115,7 @@ func (s *BuilderService) GetBuild(
 	ctx context.Context,
 	req *connect.Request[builderv1.GetBuildRequest],
 ) (*connect.Response[builderv1.GetBuildResponse], error) {
-	s.logger.Info("get build request received",
+	s.logger.InfoContext(ctx, "get build request received",
 		slog.String("build_id", req.Msg.BuildId),
 		slog.String("tenant_id", req.Msg.TenantId),
 	)
@@ -153,7 +153,7 @@ func (s *BuilderService) ListBuilds(
 	ctx context.Context,
 	req *connect.Request[builderv1.ListBuildsRequest],
 ) (*connect.Response[builderv1.ListBuildsResponse], error) {
-	s.logger.Info("list builds request received",
+	s.logger.InfoContext(ctx, "list builds request received",
 		slog.String("tenant_id", req.Msg.TenantId),
 		slog.Int("page_size", int(req.Msg.PageSize)),
 	)
@@ -177,7 +177,7 @@ func (s *BuilderService) CancelBuild(
 	ctx context.Context,
 	req *connect.Request[builderv1.CancelBuildRequest],
 ) (*connect.Response[builderv1.CancelBuildResponse], error) {
-	s.logger.Info("cancel build request received",
+	s.logger.InfoContext(ctx, "cancel build request received",
 		slog.String("build_id", req.Msg.BuildId),
 		slog.String("tenant_id", req.Msg.TenantId),
 	)
@@ -204,7 +204,7 @@ func (s *BuilderService) DeleteBuild(
 	ctx context.Context,
 	req *connect.Request[builderv1.DeleteBuildRequest],
 ) (*connect.Response[builderv1.DeleteBuildResponse], error) {
-	s.logger.Info("delete build request received",
+	s.logger.InfoContext(ctx, "delete build request received",
 		slog.String("build_id", req.Msg.BuildId),
 		slog.String("tenant_id", req.Msg.TenantId),
 		slog.Bool("force", req.Msg.Force),
@@ -228,7 +228,7 @@ func (s *BuilderService) StreamBuildLogs(
 	req *connect.Request[builderv1.StreamBuildLogsRequest],
 	stream *connect.ServerStream[builderv1.BuildLogEntry],
 ) error {
-	s.logger.Info("stream build logs request received",
+	s.logger.InfoContext(ctx, "stream build logs request received",
 		slog.String("build_id", req.Msg.BuildId),
 		slog.String("tenant_id", req.Msg.TenantId),
 		slog.Bool("follow", req.Msg.Follow),
@@ -259,7 +259,7 @@ func (s *BuilderService) GetTenantQuotas(
 	ctx context.Context,
 	req *connect.Request[builderv1.GetTenantQuotasRequest],
 ) (*connect.Response[builderv1.GetTenantQuotasResponse], error) {
-	s.logger.Info("get tenant quotas request received",
+	s.logger.InfoContext(ctx, "get tenant quotas request received",
 		slog.String("tenant_id", req.Msg.TenantId),
 	)
 
@@ -300,7 +300,7 @@ func (s *BuilderService) GetBuildStats(
 	ctx context.Context,
 	req *connect.Request[builderv1.GetBuildStatsRequest],
 ) (*connect.Response[builderv1.GetBuildStatsResponse], error) {
-	s.logger.Info("get build stats request received",
+	s.logger.InfoContext(ctx, "get build stats request received",
 		slog.String("tenant_id", req.Msg.TenantId),
 	)
 

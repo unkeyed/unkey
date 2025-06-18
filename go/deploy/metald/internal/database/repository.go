@@ -37,7 +37,7 @@ type VM struct {
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 	DeletedAt  *time.Time
-	
+
 	// Parsed configuration (populated by ListVMsByCustomerWithContext)
 	ParsedConfig *metaldv1.VmConfig
 }
@@ -49,7 +49,7 @@ func (r *VMRepository) CreateVM(vmID, customerID string, config *metaldv1.VmConf
 
 // CreateVMWithContext inserts a new VM record with context for tracing
 func (r *VMRepository) CreateVMWithContext(ctx context.Context, vmID, customerID string, config *metaldv1.VmConfig, state metaldv1.VmState) error {
-	ctx, span := r.db.tracer.Start(ctx, "vm_repository.create_vm",
+	_, span := r.db.tracer.Start(ctx, "vm_repository.create_vm",
 		trace.WithAttributes(
 			attribute.String("vm.id", vmID),
 			attribute.String("vm.customer_id", customerID),
@@ -58,7 +58,7 @@ func (r *VMRepository) CreateVMWithContext(ctx context.Context, vmID, customerID
 	)
 	defer span.End()
 
-	r.logger.Debug("creating VM record",
+	r.logger.DebugContext(ctx, "creating VM record",
 		slog.String("vm_id", vmID),
 		slog.String("customer_id", customerID),
 		slog.String("state", state.String()),
@@ -66,7 +66,7 @@ func (r *VMRepository) CreateVMWithContext(ctx context.Context, vmID, customerID
 	configBytes, err := proto.Marshal(config)
 	if err != nil {
 		span.RecordError(err)
-		r.logger.Error("failed to marshal VM config",
+		r.logger.ErrorContext(ctx, "failed to marshal VM config",
 			slog.String("vm_id", vmID),
 			slog.String("error", err.Error()),
 		)
@@ -81,7 +81,7 @@ func (r *VMRepository) CreateVMWithContext(ctx context.Context, vmID, customerID
 	_, err = r.db.db.Exec(query, vmID, customerID, configBytes, int32(state))
 	if err != nil {
 		span.RecordError(err)
-		r.logger.Error("failed to insert VM record",
+		r.logger.ErrorContext(ctx, "failed to insert VM record",
 			slog.String("vm_id", vmID),
 			slog.String("customer_id", customerID),
 			slog.String("error", err.Error()),
@@ -89,7 +89,7 @@ func (r *VMRepository) CreateVMWithContext(ctx context.Context, vmID, customerID
 		return fmt.Errorf("failed to create VM: %w", err)
 	}
 
-	r.logger.Info("VM record created successfully",
+	r.logger.InfoContext(ctx, "VM record created successfully",
 		slog.String("vm_id", vmID),
 		slog.String("customer_id", customerID),
 		slog.String("state", state.String()),
@@ -105,14 +105,14 @@ func (r *VMRepository) GetVM(vmID string) (*VM, error) {
 
 // GetVMWithContext retrieves a VM by ID with context for tracing
 func (r *VMRepository) GetVMWithContext(ctx context.Context, vmID string) (*VM, error) {
-	ctx, span := r.db.tracer.Start(ctx, "vm_repository.get_vm",
+	_, span := r.db.tracer.Start(ctx, "vm_repository.get_vm",
 		trace.WithAttributes(
 			attribute.String("vm.id", vmID),
 		),
 	)
 	defer span.End()
 
-	r.logger.Debug("retrieving VM record",
+	r.logger.DebugContext(ctx, "retrieving VM record",
 		slog.String("vm_id", vmID),
 	)
 	query := `
@@ -138,13 +138,13 @@ func (r *VMRepository) GetVMWithContext(ctx context.Context, vmID string) (*VM, 
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			r.logger.Debug("VM not found",
+			r.logger.DebugContext(ctx, "VM not found",
 				slog.String("vm_id", vmID),
 			)
 			return nil, fmt.Errorf("VM not found: %s", vmID)
 		}
 		span.RecordError(err)
-		r.logger.Error("failed to query VM record",
+		r.logger.ErrorContext(ctx, "failed to query VM record",
 			slog.String("vm_id", vmID),
 			slog.String("error", err.Error()),
 		)
@@ -158,7 +158,7 @@ func (r *VMRepository) GetVMWithContext(ctx context.Context, vmID string) (*VM, 
 		vm.DeletedAt = &deletedAt.Time
 	}
 
-	r.logger.Debug("VM record retrieved successfully",
+	r.logger.DebugContext(ctx, "VM record retrieved successfully",
 		slog.String("vm_id", vmID),
 		slog.String("customer_id", vm.CustomerID),
 		slog.String("state", vm.State.String()),
@@ -179,7 +179,7 @@ func (r *VMRepository) UpdateVMState(vmID string, state metaldv1.VmState, proces
 
 // UpdateVMStateWithContext updates the VM state and optionally the process ID with context for tracing
 func (r *VMRepository) UpdateVMStateWithContext(ctx context.Context, vmID string, state metaldv1.VmState, processID *string) error {
-	ctx, span := r.db.tracer.Start(ctx, "vm_repository.update_vm_state",
+	_, span := r.db.tracer.Start(ctx, "vm_repository.update_vm_state",
 		trace.WithAttributes(
 			attribute.String("vm.id", vmID),
 			attribute.String("vm.state", state.String()),
@@ -187,7 +187,7 @@ func (r *VMRepository) UpdateVMStateWithContext(ctx context.Context, vmID string
 	)
 	defer span.End()
 
-	r.logger.Debug("updating VM state",
+	r.logger.DebugContext(ctx, "updating VM state",
 		slog.String("vm_id", vmID),
 		slog.String("state", state.String()),
 		slog.Any("process_id", processID),
@@ -201,7 +201,7 @@ func (r *VMRepository) UpdateVMStateWithContext(ctx context.Context, vmID string
 	result, err := r.db.db.Exec(query, int32(state), processID, vmID)
 	if err != nil {
 		span.RecordError(err)
-		r.logger.Error("failed to update VM state",
+		r.logger.ErrorContext(ctx, "failed to update VM state",
 			slog.String("vm_id", vmID),
 			slog.String("state", state.String()),
 			slog.String("error", err.Error()),
@@ -212,7 +212,7 @@ func (r *VMRepository) UpdateVMStateWithContext(ctx context.Context, vmID string
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		span.RecordError(err)
-		r.logger.Error("failed to get rows affected",
+		r.logger.ErrorContext(ctx, "failed to get rows affected",
 			slog.String("vm_id", vmID),
 			slog.String("error", err.Error()),
 		)
@@ -220,14 +220,14 @@ func (r *VMRepository) UpdateVMStateWithContext(ctx context.Context, vmID string
 	}
 
 	if rowsAffected == 0 {
-		r.logger.Warn("VM not found or already deleted during state update",
+		r.logger.WarnContext(ctx, "VM not found or already deleted during state update",
 			slog.String("vm_id", vmID),
 			slog.String("state", state.String()),
 		)
 		return fmt.Errorf("VM not found or already deleted: %s", vmID)
 	}
 
-	r.logger.Info("VM state updated successfully",
+	r.logger.InfoContext(ctx, "VM state updated successfully",
 		slog.String("vm_id", vmID),
 		slog.String("state", state.String()),
 		slog.Int64("rows_affected", rowsAffected),
@@ -322,14 +322,14 @@ func (r *VMRepository) ListVMs(customerID *string, states []metaldv1.VmState, li
 
 // ListVMsByCustomerWithContext lists all VMs for a specific customer with context for tracing
 func (r *VMRepository) ListVMsByCustomerWithContext(ctx context.Context, customerID string) ([]*VM, error) {
-	ctx, span := r.db.tracer.Start(ctx, "vm_repository.list_vms_by_customer",
+	_, span := r.db.tracer.Start(ctx, "vm_repository.list_vms_by_customer",
 		trace.WithAttributes(
 			attribute.String("customer.id", customerID),
 		),
 	)
 	defer span.End()
 
-	r.logger.Debug("listing VMs for customer",
+	r.logger.DebugContext(ctx, "listing VMs for customer",
 		slog.String("customer_id", customerID),
 	)
 
@@ -345,7 +345,7 @@ func (r *VMRepository) ListVMsByCustomerWithContext(ctx context.Context, custome
 		if len(vm.Config) > 0 {
 			var config metaldv1.VmConfig
 			if err := proto.Unmarshal(vm.Config, &config); err != nil {
-				r.logger.Error("failed to unmarshal VM config",
+				r.logger.ErrorContext(ctx, "failed to unmarshal VM config",
 					slog.String("vm_id", vm.ID),
 					slog.String("error", err.Error()),
 				)
@@ -355,7 +355,7 @@ func (r *VMRepository) ListVMsByCustomerWithContext(ctx context.Context, custome
 		}
 	}
 
-	r.logger.Debug("listed VMs for customer",
+	r.logger.DebugContext(ctx, "listed VMs for customer",
 		slog.String("customer_id", customerID),
 		slog.Int("count", len(vms)),
 	)
@@ -370,14 +370,14 @@ func (r *VMRepository) DeleteVM(vmID string) error {
 
 // DeleteVMWithContext soft deletes a VM by setting deleted_at with context for tracing
 func (r *VMRepository) DeleteVMWithContext(ctx context.Context, vmID string) error {
-	ctx, span := r.db.tracer.Start(ctx, "vm_repository.delete_vm",
+	_, span := r.db.tracer.Start(ctx, "vm_repository.delete_vm",
 		trace.WithAttributes(
 			attribute.String("vm.id", vmID),
 		),
 	)
 	defer span.End()
 
-	r.logger.Debug("deleting VM record",
+	r.logger.DebugContext(ctx, "deleting VM record",
 		slog.String("vm_id", vmID),
 	)
 	query := `
@@ -389,7 +389,7 @@ func (r *VMRepository) DeleteVMWithContext(ctx context.Context, vmID string) err
 	result, err := r.db.db.Exec(query, vmID)
 	if err != nil {
 		span.RecordError(err)
-		r.logger.Error("failed to delete VM record",
+		r.logger.ErrorContext(ctx, "failed to delete VM record",
 			slog.String("vm_id", vmID),
 			slog.String("error", err.Error()),
 		)
@@ -399,7 +399,7 @@ func (r *VMRepository) DeleteVMWithContext(ctx context.Context, vmID string) err
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		span.RecordError(err)
-		r.logger.Error("failed to get rows affected",
+		r.logger.ErrorContext(ctx, "failed to get rows affected",
 			slog.String("vm_id", vmID),
 			slog.String("error", err.Error()),
 		)
@@ -407,13 +407,13 @@ func (r *VMRepository) DeleteVMWithContext(ctx context.Context, vmID string) err
 	}
 
 	if rowsAffected == 0 {
-		r.logger.Warn("VM not found or already deleted during deletion",
+		r.logger.WarnContext(ctx, "VM not found or already deleted during deletion",
 			slog.String("vm_id", vmID),
 		)
 		return fmt.Errorf("VM not found or already deleted: %s", vmID)
 	}
 
-	r.logger.Info("VM record deleted successfully",
+	r.logger.InfoContext(ctx, "VM record deleted successfully",
 		slog.String("vm_id", vmID),
 		slog.Int64("rows_affected", rowsAffected),
 	)

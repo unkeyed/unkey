@@ -14,22 +14,24 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/proto/asset/v1/assetv1connect"
+	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/asset/v1/assetv1connect"
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/internal/observability"
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/internal/registry"
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/internal/service"
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/internal/storage"
+	healthpkg "github.com/unkeyed/unkey/go/deploy/pkg/health"
+	tlspkg "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
-var version = "dev"
+var version = "0.1.0"
 
 // getVersion returns the version, with fallback logic for development builds
 func getVersion() string {
 	// AIDEV-NOTE: Unified version handling pattern across all services
 	// Priority: ldflags > VCS revision > module version > "dev"
-	if version != "dev" {
+	if version != "" {
 		return version
 	}
 
@@ -50,6 +52,9 @@ func getVersion() string {
 }
 
 func main() {
+	// Track application start time for uptime calculations
+	startTime := time.Now()
+
 	var showVersion bool
 	flag.BoolVar(&showVersion, "version", false, "Show version information")
 	flag.Parse()
@@ -87,6 +92,28 @@ func main() {
 	// Handle shutdown gracefully
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+
+	// Initialize TLS provider (defaults to disabled)
+	tlsConfig := tlspkg.Config{
+		Mode:             tlspkg.Mode(cfg.TLSMode),
+		CertFile:         cfg.TLSCertFile,
+		KeyFile:          cfg.TLSKeyFile,
+		CAFile:           cfg.TLSCAFile,
+		SPIFFESocketPath: cfg.TLSSPIFFESocketPath,
+	}
+	tlsProvider, err := tlspkg.NewProvider(ctx, tlsConfig)
+	if err != nil {
+		// AIDEV-NOTE: TLS/SPIFFE is now required - no fallback to disabled mode
+		logger.Error("TLS initialization failed",
+			"error", err,
+			"mode", cfg.TLSMode)
+		os.Exit(1)
+	}
+	defer tlsProvider.Close()
+
+	logger.Info("TLS provider initialized",
+		"mode", cfg.TLSMode,
+		"spiffe_enabled", cfg.TLSMode == "spiffe")
 
 	// Initialize OpenTelemetry
 	var shutdown func(context.Context) error
@@ -140,12 +167,7 @@ func main() {
 	// Create HTTP server with OTEL instrumentation
 	mux := http.NewServeMux()
 	mux.Handle(path, handler)
-	
-	// Health check endpoint
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	})
+
 
 	var httpHandler http.Handler = mux
 	if cfg.OTELEnabled {
@@ -161,12 +183,23 @@ func main() {
 		IdleTimeout:  120 * time.Second,
 	}
 
+	// Apply TLS configuration if enabled
+	serverTLSConfig, _ := tlsProvider.ServerTLSConfig()
+	if serverTLSConfig != nil {
+		server.TLSConfig = serverTLSConfig
+	}
+
 	// Start Prometheus metrics server if enabled
 	if cfg.OTELEnabled && cfg.OTELPrometheusEnabled {
 		go func() {
-			metricsAddr := fmt.Sprintf(":%d", cfg.OTELPrometheusPort)
-			metricsServer := observability.NewMetricsServer(metricsAddr)
-			logger.Info("starting Prometheus metrics server", slog.String("addr", metricsAddr))
+			// AIDEV-NOTE: Use configured interface, defaulting to localhost for security
+			metricsAddr := fmt.Sprintf("%s:%d", cfg.OTELPrometheusInterface, cfg.OTELPrometheusPort)
+			healthHandler := healthpkg.Handler("assetmanagerd", getVersion(), startTime)
+			metricsServer := observability.NewMetricsServer(metricsAddr, healthHandler)
+			localhostOnly := cfg.OTELPrometheusInterface == "127.0.0.1" || cfg.OTELPrometheusInterface == "localhost"
+			logger.Info("starting Prometheus metrics server",
+				slog.String("addr", metricsAddr),
+				slog.Bool("localhost_only", localhostOnly))
 			if err := metricsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 				logger.Error("metrics server error", slog.String("error", err.Error()))
 			}
@@ -175,14 +208,28 @@ func main() {
 
 	// Start server
 	go func() {
-		logger.Info("starting assetmanagerd server",
-			slog.String("addr", addr),
-			slog.String("storage_backend", cfg.StorageBackend),
-			slog.String("database_path", cfg.DatabasePath),
-		)
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("server error", slog.String("error", err.Error()))
-			cancel()
+		if serverTLSConfig != nil {
+			logger.Info("starting HTTPS server with TLS",
+				slog.String("addr", addr),
+				slog.String("tls_mode", cfg.TLSMode),
+				slog.String("storage_backend", cfg.StorageBackend),
+				slog.String("database_path", cfg.DatabasePath),
+			)
+			// Empty strings for cert/key paths - SPIFFE provides them in memory
+			if err := server.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
+				logger.Error("server error", slog.String("error", err.Error()))
+				cancel()
+			}
+		} else {
+			logger.Info("starting HTTP server without TLS",
+				slog.String("addr", addr),
+				slog.String("storage_backend", cfg.StorageBackend),
+				slog.String("database_path", cfg.DatabasePath),
+			)
+			if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				logger.Error("server error", slog.String("error", err.Error()))
+				cancel()
+			}
 		}
 	}()
 

@@ -79,7 +79,7 @@ func (d *Database) migrate() error {
 	defer span.End()
 
 	d.logger.Debug("applying database schema")
-	
+
 	_, err := d.db.Exec(schema)
 	if err != nil {
 		span.RecordError(err)
@@ -88,7 +88,7 @@ func (d *Database) migrate() error {
 		)
 		return fmt.Errorf("failed to apply schema: %w", err)
 	}
-	
+
 	d.logger.Debug("database schema applied successfully")
 	return nil
 }

@@ -17,6 +17,7 @@ type Config struct {
 	Tenant        TenantConfig        `yaml:"tenant"`
 	Database      DatabaseConfig      `yaml:"database"`
 	OpenTelemetry OpenTelemetryConfig `yaml:"opentelemetry"`
+	TLS           *TLSConfig          `yaml:"tls,omitempty"`
 }
 
 // ServerConfig holds HTTP server configuration
@@ -117,7 +118,23 @@ type OpenTelemetryConfig struct {
 	OTLPEndpoint                 string  `yaml:"otlp_endpoint"`
 	PrometheusEnabled            bool    `yaml:"prometheus_enabled"`
 	PrometheusPort               string  `yaml:"prometheus_port"`
+	PrometheusInterface          string  `yaml:"prometheus_interface"`
 	HighCardinalityLabelsEnabled bool    `yaml:"high_cardinality_labels_enabled"`
+}
+
+// TLSConfig holds TLS configuration
+// AIDEV-BUSINESS_RULE: SPIFFE/mTLS is required by default for security - no fallback to disabled mode
+type TLSConfig struct {
+	// Mode can be "disabled", "file", or "spiffe"
+	Mode string `json:"mode,omitempty"`
+
+	// File-based TLS options
+	CertFile string `json:"cert_file,omitempty"`
+	KeyFile  string `json:"-"` // AIDEV-NOTE: Never serialize private key paths
+	CAFile   string `json:"ca_file,omitempty"`
+
+	// SPIFFE options
+	SPIFFESocketPath string `json:"spiffe_socket_path,omitempty"`
 }
 
 // LoadConfig loads configuration from environment variables
@@ -185,12 +202,20 @@ func LoadConfigWithLogger(logger *slog.Logger) (*Config, error) {
 		OpenTelemetry: OpenTelemetryConfig{
 			Enabled:                      getEnvBoolOrDefault("UNKEY_BUILDERD_OTEL_ENABLED", false),
 			ServiceName:                  getEnvOrDefault("UNKEY_BUILDERD_OTEL_SERVICE_NAME", "builderd"),
-			ServiceVersion:               getEnvOrDefault("UNKEY_BUILDERD_OTEL_SERVICE_VERSION", "0.0.1"),
+			ServiceVersion:               getEnvOrDefault("UNKEY_BUILDERD_OTEL_SERVICE_VERSION", "0.1.0"),
 			TracingSamplingRate:          getEnvFloat64OrDefault("UNKEY_BUILDERD_OTEL_SAMPLING_RATE", 1.0),
 			OTLPEndpoint:                 getEnvOrDefault("UNKEY_BUILDERD_OTEL_ENDPOINT", "localhost:4318"),
 			PrometheusEnabled:            getEnvBoolOrDefault("UNKEY_BUILDERD_OTEL_PROMETHEUS_ENABLED", true),
 			PrometheusPort:               getEnvOrDefault("UNKEY_BUILDERD_OTEL_PROMETHEUS_PORT", "9466"),
+			PrometheusInterface:          getEnvOrDefault("UNKEY_BUILDERD_OTEL_PROMETHEUS_INTERFACE", "127.0.0.1"),
 			HighCardinalityLabelsEnabled: getEnvBoolOrDefault("UNKEY_BUILDERD_OTEL_HIGH_CARDINALITY_ENABLED", false),
+		},
+		TLS: &TLSConfig{
+			Mode:             getEnvOrDefault("UNKEY_BUILDERD_TLS_MODE", "spiffe"),
+			CertFile:         getEnvOrDefault("UNKEY_BUILDERD_TLS_CERT_FILE", ""),
+			KeyFile:          getEnvOrDefault("UNKEY_BUILDERD_TLS_KEY_FILE", ""),
+			CAFile:           getEnvOrDefault("UNKEY_BUILDERD_TLS_CA_FILE", ""),
+			SPIFFESocketPath: getEnvOrDefault("UNKEY_BUILDERD_SPIFFE_SOCKET", "/run/spire/sockets/agent.sock"),
 		},
 	}
 

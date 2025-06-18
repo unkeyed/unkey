@@ -40,7 +40,7 @@ func GetSystemInfo(ctx context.Context, startTime time.Time) (*SystemInfo, error
 	}
 
 	// Get CPU information
-	cpu := CPU{
+	cpu := CPU{ //exhaustruct:ignore
 		Architecture: runtime.GOARCH,
 		Cores:        runtime.NumCPU(),
 	}
@@ -109,7 +109,7 @@ func getMemoryInfo() Memory {
 func getSystemMemory() Memory {
 	data, err := os.ReadFile("/proc/meminfo")
 	if err != nil {
-		return Memory{}
+		return Memory{} //exhaustruct:ignore
 	}
 
 	var total, available uint64
@@ -117,16 +117,20 @@ func getSystemMemory() Memory {
 
 	for _, line := range lines {
 		if strings.HasPrefix(line, "MemTotal:") {
-			fmt.Sscanf(line, "MemTotal: %d kB", &total)
+			if _, err := fmt.Sscanf(line, "MemTotal: %d kB", &total); err != nil {
+				continue
+			}
 			total *= 1024 // Convert to bytes
 		} else if strings.HasPrefix(line, "MemAvailable:") {
-			fmt.Sscanf(line, "MemAvailable: %d kB", &available)
+			if _, err := fmt.Sscanf(line, "MemAvailable: %d kB", &available); err != nil {
+				continue
+			}
 			available *= 1024 // Convert to bytes
 		}
 	}
 
 	if total == 0 {
-		return Memory{}
+		return Memory{} //exhaustruct:ignore
 	}
 
 	used := total - available

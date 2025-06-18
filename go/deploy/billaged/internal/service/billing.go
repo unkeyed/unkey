@@ -38,7 +38,7 @@ func (s *BillingService) SendMetricsBatch(
 	customerID := req.Msg.CustomerId
 	metrics := req.Msg.Metrics
 
-	s.logger.Info("received metrics batch",
+	s.logger.InfoContext(ctx, "received metrics batch",
 		"vm_id", vmID,
 		"customer_id", customerID,
 		"metrics_count", len(metrics),
@@ -54,7 +54,7 @@ func (s *BillingService) SendMetricsBatch(
 	// Log first and last metric for debugging
 	first := metrics[0]
 	last := metrics[len(metrics)-1]
-	s.logger.Debug("metrics batch details",
+	s.logger.DebugContext(ctx, "metrics batch details",
 		"vm_id", vmID,
 		"first_timestamp", first.Timestamp.AsTime().Format("15:04:05.000"),
 		"last_timestamp", last.Timestamp.AsTime().Format("15:04:05.000"),
@@ -91,7 +91,7 @@ func (s *BillingService) SendHeartbeat(
 	instanceID := req.Msg.InstanceId
 	activeVMs := req.Msg.ActiveVms
 
-	s.logger.Debug("received heartbeat",
+	s.logger.DebugContext(ctx, "received heartbeat",
 		"instance_id", instanceID,
 		"active_vms_count", len(activeVMs),
 		"active_vms", activeVMs,
@@ -114,7 +114,7 @@ func (s *BillingService) NotifyVmStarted(
 	customerID := req.Msg.CustomerId
 	startTime := req.Msg.StartTime
 
-	s.logger.Info("VM started notification",
+	s.logger.InfoContext(ctx, "VM started notification",
 		"vm_id", vmID,
 		"customer_id", customerID,
 		"start_time", startTime,
@@ -135,7 +135,7 @@ func (s *BillingService) NotifyVmStopped(
 	vmID := req.Msg.VmId
 	stopTime := req.Msg.StopTime
 
-	s.logger.Info("VM stopped notification",
+	s.logger.InfoContext(ctx, "VM stopped notification",
 		"vm_id", vmID,
 		"stop_time", stopTime,
 	)
@@ -158,7 +158,7 @@ func (s *BillingService) NotifyPossibleGap(
 
 	gapDurationMs := (resumeTime - lastSent) / 1_000_000
 
-	s.logger.Warn("possible data gap notification",
+	s.logger.WarnContext(ctx, "possible data gap notification",
 		"vm_id", vmID,
 		"last_sent", lastSent,
 		"resume_time", resumeTime,

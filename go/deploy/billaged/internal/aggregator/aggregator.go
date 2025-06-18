@@ -349,7 +349,7 @@ func (a *Aggregator) StartPeriodicAggregation(ctx context.Context) {
 	ticker := time.NewTicker(a.aggregationInterval)
 	defer ticker.Stop()
 
-	a.logger.Info("started periodic aggregation",
+	a.logger.InfoContext(ctx, "started periodic aggregation",
 		"interval", a.aggregationInterval.String(),
 	)
 
@@ -358,7 +358,7 @@ func (a *Aggregator) StartPeriodicAggregation(ctx context.Context) {
 		case <-ticker.C:
 			a.GeneratePeriodicSummaries()
 		case <-ctx.Done():
-			a.logger.Info("stopping periodic aggregation")
+			a.logger.InfoContext(ctx, "stopping periodic aggregation")
 			return
 		}
 	}

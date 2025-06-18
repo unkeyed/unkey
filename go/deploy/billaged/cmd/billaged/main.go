@@ -20,20 +20,22 @@ import (
 	"github.com/unkeyed/unkey/go/deploy/billaged/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/billaged/internal/observability"
 	"github.com/unkeyed/unkey/go/deploy/billaged/internal/service"
+	healthpkg "github.com/unkeyed/unkey/go/deploy/pkg/health"
+	tlspkg "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
 
 // version is set at build time via ldflags
-var version = "0.0.1"
+var version = "0.1.0"
 
 // AIDEV-NOTE: Enhanced version management with debug.ReadBuildInfo fallback
 // Handles production builds (ldflags), development builds (git commit), and module builds
 // getVersion returns the version string, with fallback to debug.ReadBuildInfo
 func getVersion() string {
 	// If version was set via ldflags (production builds), use it
-	if version != "" && version != "0.0.1" {
+	if version != "" {
 		return version
 	}
 
@@ -60,6 +62,9 @@ func getVersion() string {
 }
 
 func main() {
+	// Track application start time for uptime calculations
+	startTime := time.Now()
+
 	// Parse command-line flags with environment variable fallbacks
 	var (
 		showHelp    = flag.Bool("help", false, "Show help information")
@@ -107,14 +112,36 @@ func main() {
 	logger.Info("starting billaged service",
 		slog.String("version", getVersion()),
 		slog.String("go_version", runtime.Version()),
-		"port", cfg.Server.Port,
-		"address", cfg.Server.Address,
-		"aggregation_interval", aggregationInterval.String(),
-		"otel_enabled", cfg.OpenTelemetry.Enabled,
+		slog.String("port", cfg.Server.Port),
+		slog.String("address", cfg.Server.Address),
+		slog.String("aggregation_interval", aggregationInterval.String()),
+		slog.Bool("otel_enabled", cfg.OpenTelemetry.Enabled),
 	)
 
-	// Initialize OpenTelemetry
+	// Initialize TLS provider (defaults to disabled)
 	ctx := context.Background()
+	tlsConfig := tlspkg.Config{
+		Mode:             tlspkg.Mode(cfg.TLS.Mode),
+		CertFile:         cfg.TLS.CertFile,
+		KeyFile:          cfg.TLS.KeyFile,
+		CAFile:           cfg.TLS.CAFile,
+		SPIFFESocketPath: cfg.TLS.SPIFFESocketPath,
+	}
+	tlsProvider, err := tlspkg.NewProvider(ctx, tlsConfig)
+	if err != nil {
+		// AIDEV-NOTE: TLS/SPIFFE is now required - no fallback to disabled mode
+		logger.Error("TLS initialization failed",
+			"error", err,
+			"mode", cfg.TLS.Mode)
+		os.Exit(1)
+	}
+	defer tlsProvider.Close()
+
+	logger.Info("TLS provider initialized",
+		"mode", cfg.TLS.Mode,
+		"spiffe_enabled", cfg.TLS.Mode == "spiffe")
+
+	// Initialize OpenTelemetry
 	otelProviders, err := observability.InitProviders(ctx, cfg, getVersion())
 	if err != nil {
 		logger.Error("failed to initialize OpenTelemetry",
@@ -186,11 +213,6 @@ func main() {
 	)
 	mux.Handle(path, handler)
 
-	// Add health check endpoint
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok","service":"billaged"}`))
-	})
 
 	// Add stats endpoint
 	mux.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
@@ -203,7 +225,7 @@ func main() {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(response))
+		_, _ = w.Write([]byte(response))
 	})
 
 	// Add Prometheus metrics endpoint if enabled
@@ -227,9 +249,23 @@ func main() {
 		)
 	}
 
+	// Configure server with optional TLS and security timeouts
 	server := &http.Server{
 		Addr:    serverAddr,
 		Handler: h2c.NewHandler(httpHandler, &http2.Server{}),
+		// AIDEV-NOTE: Security timeouts to prevent slowloris attacks
+		ReadTimeout:    30 * time.Second,  // Time to read request headers
+		WriteTimeout:   30 * time.Second,  // Time to write response
+		IdleTimeout:    120 * time.Second, // Keep-alive timeout
+		MaxHeaderBytes: 1 << 20,           // 1MB max header size
+	}
+
+	// Apply TLS configuration if enabled
+	serverTLSConfig, _ := tlsProvider.ServerTLSConfig()
+	if serverTLSConfig != nil {
+		server.TLSConfig = serverTLSConfig
+		// For TLS, we need to use regular handler, not h2c
+		server.Handler = httpHandler
 	}
 
 	// Start periodic aggregation
@@ -241,18 +277,25 @@ func main() {
 	// Start Prometheus server on separate port if enabled
 	var promServer *http.Server
 	if cfg.OpenTelemetry.Enabled && cfg.OpenTelemetry.PrometheusEnabled {
-		promAddr := fmt.Sprintf("0.0.0.0:%s", cfg.OpenTelemetry.PrometheusPort)
+		// AIDEV-NOTE: Use configured interface, defaulting to localhost for security
+		promAddr := fmt.Sprintf("%s:%s", cfg.OpenTelemetry.PrometheusInterface, cfg.OpenTelemetry.PrometheusPort)
 		promMux := http.NewServeMux()
 		promMux.Handle("/metrics", promhttp.Handler())
+		promMux.HandleFunc("/health", healthpkg.Handler("billaged", getVersion(), startTime))
 
 		promServer = &http.Server{
-			Addr:    promAddr,
-			Handler: promMux,
+			Addr:         promAddr,
+			Handler:      promMux,
+			ReadTimeout:  30 * time.Second,
+			WriteTimeout: 30 * time.Second,
+			IdleTimeout:  120 * time.Second,
 		}
 
 		go func() {
+			localhostOnly := cfg.OpenTelemetry.PrometheusInterface == "127.0.0.1" || cfg.OpenTelemetry.PrometheusInterface == "localhost"
 			logger.Info("starting prometheus metrics server",
 				slog.String("address", promAddr),
+				slog.Bool("localhost_only", localhostOnly),
 			)
 			if err := promServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 				logger.Error("prometheus server failed",
@@ -262,16 +305,30 @@ func main() {
 		}()
 	}
 
-	// Start server in goroutine
+	// Start main server in goroutine
 	go func() {
-		logger.Info("billaged service listening",
-			"address", serverAddr,
-		)
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("server failed",
-				"error", err.Error(),
+		if serverTLSConfig != nil {
+			logger.Info("starting HTTPS server with TLS",
+				slog.String("address", serverAddr),
+				slog.String("tls_mode", cfg.TLS.Mode),
 			)
-			os.Exit(1)
+			// Empty strings for cert/key paths - SPIFFE provides them in memory
+			if err := server.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
+				logger.Error("server failed",
+					slog.String("error", err.Error()),
+				)
+				os.Exit(1)
+			}
+		} else {
+			logger.Info("starting HTTP server without TLS",
+				slog.String("address", serverAddr),
+			)
+			if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				logger.Error("server failed",
+					slog.String("error", err.Error()),
+				)
+				os.Exit(1)
+			}
 		}
 	}()
 
@@ -431,8 +488,15 @@ func printUsage() {
 	fmt.Printf("  BILLAGED_OTEL_SAMPLING_RATE           Trace sampling rate 0.0-1.0 (default: 1.0)\n")
 	fmt.Printf("  BILLAGED_OTEL_ENDPOINT                OTLP endpoint (default: localhost:4318)\n")
 	fmt.Printf("  BILLAGED_OTEL_PROMETHEUS_ENABLED      Enable Prometheus metrics (default: true)\n")
-	fmt.Printf("  BILLAGED_OTEL_PROMETHEUS_PORT         Prometheus metrics port on 0.0.0.0 (default: 9465)\n")
+	fmt.Printf("  BILLAGED_OTEL_PROMETHEUS_PORT         Prometheus metrics port (default: 9465)\n")
+	fmt.Printf("  BILLAGED_OTEL_PROMETHEUS_INTERFACE    Prometheus binding interface (default: 127.0.0.1)\n")
 	fmt.Printf("  BILLAGED_OTEL_HIGH_CARDINALITY_ENABLED  Enable high-cardinality labels (default: false)\n")
+	fmt.Printf("\nTLS Configuration:\n")
+	fmt.Printf("  UNKEY_BILLAGED_TLS_MODE               TLS mode: disabled, file, spiffe (default: disabled)\n")
+	fmt.Printf("  UNKEY_BILLAGED_TLS_CERT_FILE          Path to certificate file (file mode)\n")
+	fmt.Printf("  UNKEY_BILLAGED_TLS_KEY_FILE           Path to private key file (file mode)\n")
+	fmt.Printf("  UNKEY_BILLAGED_TLS_CA_FILE            Path to CA bundle file (file mode)\n")
+	fmt.Printf("  UNKEY_BILLAGED_SPIFFE_SOCKET          SPIFFE workload API socket (default: /run/spire/sockets/agent.sock)\n")
 	fmt.Printf("\nDescription:\n")
 	fmt.Printf("  Billaged receives VM usage metrics from metald instances and aggregates\n")
 	fmt.Printf("  them for billing purposes. It calculates usage summaries every 60 seconds\n")

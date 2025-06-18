@@ -17,6 +17,9 @@ type Config struct {
 
 	// Aggregation configuration
 	Aggregation AggregationConfig
+
+	// TLS configuration (optional, defaults to disabled)
+	TLS *TLSConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -60,6 +63,26 @@ type OpenTelemetryConfig struct {
 	// HighCardinalityLabelsEnabled allows high-cardinality labels like vm_id and customer_id
 	// Set to false in production to reduce cardinality
 	HighCardinalityLabelsEnabled bool
+
+	// PrometheusInterface controls the binding interface for metrics endpoint
+	// Default "127.0.0.1" for localhost only (secure)
+	// Set to "0.0.0.0" if remote access needed (not recommended)
+	PrometheusInterface string
+}
+
+// TLSConfig holds TLS configuration
+// AIDEV-BUSINESS_RULE: SPIFFE/mTLS is required by default for security - no fallback to disabled mode
+type TLSConfig struct {
+	// Mode can be "disabled", "file", or "spiffe"
+	Mode string `json:"mode,omitempty"`
+
+	// File-based TLS options
+	CertFile string `json:"cert_file,omitempty"`
+	KeyFile  string `json:"-"` // AIDEV-NOTE: Never serialize private key paths
+	CAFile   string `json:"ca_file,omitempty"`
+
+	// SPIFFE options
+	SPIFFESocketPath string `json:"spiffe_socket_path,omitempty"`
 }
 
 // LoadConfig loads configuration from environment variables
@@ -123,21 +146,29 @@ func LoadConfigWithLogger(logger *slog.Logger) (*Config, error) {
 
 	cfg := &Config{
 		Server: ServerConfig{
-			Port:    getEnvOrDefault("BILLAGED_PORT", "8081"),
-			Address: getEnvOrDefault("BILLAGED_ADDRESS", "0.0.0.0"),
+			Port:    getEnvOrDefault("UNKEY_BILLAGED_PORT", "8081"),
+			Address: getEnvOrDefault("UNKEY_BILLAGED_ADDRESS", "0.0.0.0"),
 		},
 		Aggregation: AggregationConfig{
-			Interval: getEnvOrDefault("BILLAGED_AGGREGATION_INTERVAL", "60s"),
+			Interval: getEnvOrDefault("UNKEY_BILLAGED_AGGREGATION_INTERVAL", "60s"),
 		},
 		OpenTelemetry: OpenTelemetryConfig{
 			Enabled:                      otelEnabled,
-			ServiceName:                  getEnvOrDefault("BILLAGED_OTEL_SERVICE_NAME", "billaged"),
-			ServiceVersion:               getEnvOrDefault("BILLAGED_OTEL_SERVICE_VERSION", "0.0.1"),
+			ServiceName:                  getEnvOrDefault("UNKEY_BILLAGED_OTEL_SERVICE_NAME", "billaged"),
+			ServiceVersion:               getEnvOrDefault("UNKEY_BILLAGED_OTEL_SERVICE_VERSION", "0.1.0"),
 			TracingSamplingRate:          samplingRate,
-			OTLPEndpoint:                 getEnvOrDefault("BILLAGED_OTEL_ENDPOINT", "localhost:4318"),
+			OTLPEndpoint:                 getEnvOrDefault("UNKEY_BILLAGED_OTEL_ENDPOINT", "localhost:4318"),
 			PrometheusEnabled:            prometheusEnabled,
-			PrometheusPort:               getEnvOrDefault("BILLAGED_OTEL_PROMETHEUS_PORT", "9465"),
+			PrometheusPort:               getEnvOrDefault("UNKEY_BILLAGED_OTEL_PROMETHEUS_PORT", "9465"),
+			PrometheusInterface:          getEnvOrDefault("UNKEY_BILLAGED_OTEL_PROMETHEUS_INTERFACE", "127.0.0.1"),
 			HighCardinalityLabelsEnabled: highCardinalityLabelsEnabled,
+		},
+		TLS: &TLSConfig{
+			Mode:             getEnvOrDefault("UNKEY_BILLAGED_TLS_MODE", "spiffe"),
+			CertFile:         getEnvOrDefault("UNKEY_BILLAGED_TLS_CERT_FILE", ""),
+			KeyFile:          getEnvOrDefault("UNKEY_BILLAGED_TLS_KEY_FILE", ""),
+			CAFile:           getEnvOrDefault("UNKEY_BILLAGED_TLS_CA_FILE", ""),
+			SPIFFESocketPath: getEnvOrDefault("UNKEY_BILLAGED_SPIFFE_SOCKET", "/run/spire/sockets/agent.sock"),
 		},
 	}
 

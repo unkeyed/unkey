@@ -1,8 +1,0 @@
-billaged (0.1.0-1) unstable; urgency=medium
-
-  * Initial Debian package for billaged
-  * VM usage billing service with real-time metrics
-  * OpenTelemetry and Prometheus integration
-  * Systemd service configuration
-
- -- Unkey Team <dev@unkey.dev>  Thu, 06 Dec 2025 00:00:00 +0000

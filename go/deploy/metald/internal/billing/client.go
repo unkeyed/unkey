@@ -2,6 +2,7 @@ package billing
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	billingv1 "github.com/unkeyed/unkey/go/deploy/billaged/gen/billing/v1"
 	"github.com/unkeyed/unkey/go/deploy/billaged/gen/billing/v1/billingv1connect"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
+	"github.com/unkeyed/unkey/go/deploy/metald/internal/observability"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -45,7 +47,7 @@ func NewMockBillingClient(logger *slog.Logger) *MockBillingClient {
 }
 
 func (m *MockBillingClient) SendMetricsBatch(ctx context.Context, vmID, customerID string, metrics []*types.VMMetrics) error {
-	m.logger.Info("MOCK: sending metrics batch",
+	m.logger.InfoContext(ctx, "MOCK: sending metrics batch",
 		"vm_id", vmID,
 		"customer_id", customerID,
 		"metrics_count", len(metrics),
@@ -54,7 +56,7 @@ func (m *MockBillingClient) SendMetricsBatch(ctx context.Context, vmID, customer
 	if len(metrics) > 0 {
 		first := metrics[0]
 		last := metrics[len(metrics)-1]
-		m.logger.Debug("MOCK: batch details",
+		m.logger.DebugContext(ctx, "MOCK: batch details",
 			"first_timestamp", first.Timestamp.Format("15:04:05.000"),
 			"last_timestamp", last.Timestamp.Format("15:04:05.000"),
 			"first_cpu_nanos", first.CpuTimeNanos,
@@ -66,7 +68,7 @@ func (m *MockBillingClient) SendMetricsBatch(ctx context.Context, vmID, customer
 }
 
 func (m *MockBillingClient) SendHeartbeat(ctx context.Context, instanceID string, activeVMs []string) error {
-	m.logger.Debug("MOCK: sending heartbeat",
+	m.logger.DebugContext(ctx, "MOCK: sending heartbeat",
 		"instance_id", instanceID,
 		"active_vms_count", len(activeVMs),
 		"active_vms", activeVMs,
@@ -75,7 +77,7 @@ func (m *MockBillingClient) SendHeartbeat(ctx context.Context, instanceID string
 }
 
 func (m *MockBillingClient) NotifyVmStarted(ctx context.Context, vmID, customerID string, startTime int64) error {
-	m.logger.Info("MOCK: VM started notification",
+	m.logger.InfoContext(ctx, "MOCK: VM started notification",
 		"vm_id", vmID,
 		"customer_id", customerID,
 		"start_time", startTime,
@@ -84,7 +86,7 @@ func (m *MockBillingClient) NotifyVmStarted(ctx context.Context, vmID, customerI
 }
 
 func (m *MockBillingClient) NotifyVmStopped(ctx context.Context, vmID string, stopTime int64) error {
-	m.logger.Info("MOCK: VM stopped notification",
+	m.logger.InfoContext(ctx, "MOCK: VM stopped notification",
 		"vm_id", vmID,
 		"stop_time", stopTime,
 	)
@@ -92,7 +94,7 @@ func (m *MockBillingClient) NotifyVmStopped(ctx context.Context, vmID string, st
 }
 
 func (m *MockBillingClient) NotifyPossibleGap(ctx context.Context, vmID string, lastSent, resumeTime int64) error {
-	m.logger.Warn("MOCK: possible data gap notification",
+	m.logger.WarnContext(ctx, "MOCK: possible data gap notification",
 		"vm_id", vmID,
 		"last_sent", lastSent,
 		"resume_time", resumeTime,
@@ -116,7 +118,33 @@ func NewConnectRPCBillingClient(endpoint string, logger *slog.Logger) *ConnectRP
 		Timeout: 30 * time.Second,
 	}
 
-	billingClient := billingv1connect.NewBillingServiceClient(httpClient, endpoint)
+	// AIDEV-NOTE: Using debug interceptor for comprehensive error tracking
+	billingClient := billingv1connect.NewBillingServiceClient(
+		httpClient,
+		endpoint,
+		connect.WithInterceptors(
+			observability.DebugInterceptor(logger, "billaged"),
+		),
+	)
+
+	return &ConnectRPCBillingClient{
+		endpoint: endpoint,
+		logger:   logger.With("component", "connectrpc_billing_client"),
+		client:   billingClient,
+	}
+}
+
+// NewConnectRPCBillingClientWithHTTP creates a billing client with a custom HTTP client (for TLS)
+func NewConnectRPCBillingClientWithHTTP(endpoint string, logger *slog.Logger, httpClient *http.Client) *ConnectRPCBillingClient {
+	// Use provided HTTP client which may have TLS configuration
+	// AIDEV-NOTE: Using debug interceptor for comprehensive error tracking
+	billingClient := billingv1connect.NewBillingServiceClient(
+		httpClient,
+		endpoint,
+		connect.WithInterceptors(
+			observability.DebugInterceptor(logger, "billaged"),
+		),
+	)
 
 	return &ConnectRPCBillingClient{
 		endpoint: endpoint,
@@ -148,18 +176,39 @@ func (c *ConnectRPCBillingClient) SendMetricsBatch(ctx context.Context, vmID, cu
 
 	resp, err := c.client.SendMetricsBatch(ctx, connect.NewRequest(req))
 	if err != nil {
+		// AIDEV-NOTE: Enhanced debug logging for connection errors
+		var connectErr *connect.Error
+		if errors.As(err, &connectErr) {
+			c.logger.ErrorContext(ctx, "billaged connection error",
+				"error", err.Error(),
+				"code", connectErr.Code().String(),
+				"message", connectErr.Message(),
+				"vm_id", vmID,
+				"customer_id", customerID,
+				"metrics_count", len(metrics),
+				"operation", "SendMetricsBatch",
+			)
+		} else {
+			c.logger.ErrorContext(ctx, "failed to send metrics batch",
+				"error", err.Error(),
+				"vm_id", vmID,
+				"customer_id", customerID,
+				"metrics_count", len(metrics),
+				"operation", "SendMetricsBatch",
+			)
+		}
 		return fmt.Errorf("failed to send metrics batch: %w", err)
 	}
 
-	if !resp.Msg.Success {
-		return fmt.Errorf("billaged rejected metrics batch: %s", resp.Msg.Message)
+	if !resp.Msg.GetSuccess() {
+		return fmt.Errorf("billaged rejected metrics batch: %s", resp.Msg.GetMessage())
 	}
 
-	c.logger.Debug("sent metrics batch to billaged",
+	c.logger.DebugContext(ctx, "sent metrics batch to billaged",
 		"vm_id", vmID,
 		"customer_id", customerID,
 		"metrics_count", len(metrics),
-		"message", resp.Msg.Message,
+		"message", resp.Msg.GetMessage(),
 	)
 
 	return nil
@@ -173,10 +222,29 @@ func (c *ConnectRPCBillingClient) SendHeartbeat(ctx context.Context, instanceID 
 
 	resp, err := c.client.SendHeartbeat(ctx, connect.NewRequest(req))
 	if err != nil {
+		// AIDEV-NOTE: Enhanced debug logging for connection errors
+		var connectErr *connect.Error
+		if errors.As(err, &connectErr) {
+			c.logger.ErrorContext(ctx, "billaged connection error",
+				"error", err.Error(),
+				"code", connectErr.Code().String(),
+				"message", connectErr.Message(),
+				"instance_id", instanceID,
+				"active_vms_count", len(activeVMs),
+				"operation", "SendHeartbeat",
+			)
+		} else {
+			c.logger.ErrorContext(ctx, "failed to send heartbeat",
+				"error", err.Error(),
+				"instance_id", instanceID,
+				"active_vms_count", len(activeVMs),
+				"operation", "SendHeartbeat",
+			)
+		}
 		return fmt.Errorf("failed to send heartbeat: %w", err)
 	}
 
-	if !resp.Msg.Success {
+	if !resp.Msg.GetSuccess() {
 		return fmt.Errorf("billaged rejected heartbeat")
 	}
 
@@ -192,10 +260,31 @@ func (c *ConnectRPCBillingClient) NotifyVmStarted(ctx context.Context, vmID, cus
 
 	resp, err := c.client.NotifyVmStarted(ctx, connect.NewRequest(req))
 	if err != nil {
+		// AIDEV-NOTE: Enhanced debug logging for connection errors
+		var connectErr *connect.Error
+		if errors.As(err, &connectErr) {
+			c.logger.ErrorContext(ctx, "billaged connection error",
+				"error", err.Error(),
+				"code", connectErr.Code().String(),
+				"message", connectErr.Message(),
+				"vm_id", vmID,
+				"customer_id", customerID,
+				"start_time", startTime,
+				"operation", "NotifyVmStarted",
+			)
+		} else {
+			c.logger.ErrorContext(ctx, "failed to notify VM started",
+				"error", err.Error(),
+				"vm_id", vmID,
+				"customer_id", customerID,
+				"start_time", startTime,
+				"operation", "NotifyVmStarted",
+			)
+		}
 		return fmt.Errorf("failed to notify VM started: %w", err)
 	}
 
-	if !resp.Msg.Success {
+	if !resp.Msg.GetSuccess() {
 		return fmt.Errorf("billaged rejected VM started notification")
 	}
 
@@ -210,10 +299,29 @@ func (c *ConnectRPCBillingClient) NotifyVmStopped(ctx context.Context, vmID stri
 
 	resp, err := c.client.NotifyVmStopped(ctx, connect.NewRequest(req))
 	if err != nil {
+		// AIDEV-NOTE: Enhanced debug logging for connection errors
+		var connectErr *connect.Error
+		if errors.As(err, &connectErr) {
+			c.logger.ErrorContext(ctx, "billaged connection error",
+				"error", err.Error(),
+				"code", connectErr.Code().String(),
+				"message", connectErr.Message(),
+				"vm_id", vmID,
+				"stop_time", stopTime,
+				"operation", "NotifyVmStopped",
+			)
+		} else {
+			c.logger.ErrorContext(ctx, "failed to notify VM stopped",
+				"error", err.Error(),
+				"vm_id", vmID,
+				"stop_time", stopTime,
+				"operation", "NotifyVmStopped",
+			)
+		}
 		return fmt.Errorf("failed to notify VM stopped: %w", err)
 	}
 
-	if !resp.Msg.Success {
+	if !resp.Msg.GetSuccess() {
 		return fmt.Errorf("billaged rejected VM stopped notification")
 	}
 
@@ -229,10 +337,33 @@ func (c *ConnectRPCBillingClient) NotifyPossibleGap(ctx context.Context, vmID st
 
 	resp, err := c.client.NotifyPossibleGap(ctx, connect.NewRequest(req))
 	if err != nil {
+		// AIDEV-NOTE: Enhanced debug logging for connection errors
+		var connectErr *connect.Error
+		if errors.As(err, &connectErr) {
+			c.logger.ErrorContext(ctx, "billaged connection error",
+				"error", err.Error(),
+				"code", connectErr.Code().String(),
+				"message", connectErr.Message(),
+				"vm_id", vmID,
+				"last_sent", lastSent,
+				"resume_time", resumeTime,
+				"gap_duration_ms", (resumeTime-lastSent)/1_000_000,
+				"operation", "NotifyPossibleGap",
+			)
+		} else {
+			c.logger.ErrorContext(ctx, "failed to notify possible gap",
+				"error", err.Error(),
+				"vm_id", vmID,
+				"last_sent", lastSent,
+				"resume_time", resumeTime,
+				"gap_duration_ms", (resumeTime-lastSent)/1_000_000,
+				"operation", "NotifyPossibleGap",
+			)
+		}
 		return fmt.Errorf("failed to notify possible gap: %w", err)
 	}
 
-	if !resp.Msg.Success {
+	if !resp.Msg.GetSuccess() {
 		return fmt.Errorf("billaged rejected possible gap notification")
 	}
 

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
@@ -70,8 +71,8 @@ func NewMetrics(meter metric.Meter) (*Metrics, error) {
 
 // NewOTELInterceptor creates a new OpenTelemetry interceptor for ConnectRPC
 func NewOTELInterceptor() connect.UnaryInterceptorFunc {
-	tracer := otel.Tracer("cloud-hypervisor-controlplane/rpc")
-	meter := otel.Meter("cloud-hypervisor-controlplane/rpc")
+	tracer := otel.Tracer("metald")
+	meter := otel.Meter("metald")
 
 	// Create metrics
 	metrics, err := NewMetrics(meter)
@@ -86,14 +87,19 @@ func NewOTELInterceptor() connect.UnaryInterceptorFunc {
 		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
 			// Extract procedure name
 			procedure := req.Spec().Procedure
+			methodName := extractMethodName(procedure)
+			serviceName := extractServiceName(procedure)
+
+			// AIDEV-NOTE: Using unified span naming convention: service.method
+			spanName := fmt.Sprintf("metald.%s", methodName)
 
 			// Start span
-			ctx, span := tracer.Start(ctx, procedure,
+			ctx, span := tracer.Start(ctx, spanName,
 				trace.WithSpanKind(trace.SpanKindServer),
 				trace.WithAttributes(
 					attribute.String("rpc.system", "connect_rpc"),
-					attribute.String("rpc.service", req.Spec().Procedure),
-					attribute.String("rpc.method", req.Spec().Procedure),
+					attribute.String("rpc.service", serviceName),
+					attribute.String("rpc.method", methodName),
 				),
 			)
 			// AIDEV-NOTE: Critical panic recovery in OTEL interceptor - preserves existing errors
@@ -131,7 +137,19 @@ func NewOTELInterceptor() connect.UnaryInterceptorFunc {
 			}
 
 			// Call the handler
-			resp, err := next(ctx, req)
+			var resp connect.AnyResponse
+			var err error
+			
+			// AIDEV-NOTE: Ensure proper error handling to prevent nil panics
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						err = connect.NewError(connect.CodeInternal, fmt.Errorf("handler panic: %v", r))
+						span.RecordError(err)
+					}
+				}()
+				resp, err = next(ctx, req)
+			}()
 
 			// Record error and status
 			statusCode := "ok"
@@ -151,13 +169,13 @@ func NewOTELInterceptor() connect.UnaryInterceptorFunc {
 
 				// For error sampling: create a new span that's always sampled
 				// This ensures errors are captured even with low sampling rates
-				if span.SpanContext().IsSampled() == false {
-					_, errorSpan := tracer.Start(ctx, procedure+".error",
+				if !span.SpanContext().IsSampled() {
+					_, errorSpan := tracer.Start(ctx, spanName+".error",
 						trace.WithSpanKind(trace.SpanKindServer),
 						trace.WithAttributes(
 							attribute.String("rpc.system", "connect_rpc"),
-							attribute.String("rpc.service", req.Spec().Procedure),
-							attribute.String("rpc.method", req.Spec().Procedure),
+							attribute.String("rpc.service", serviceName),
+							attribute.String("rpc.method", methodName),
 							attribute.Bool("error.resampled", true),
 						),
 					)
@@ -186,4 +204,24 @@ func NewOTELInterceptor() connect.UnaryInterceptorFunc {
 			return resp, err
 		}
 	}
+}
+
+// extractMethodName extracts the method name from a full procedure path
+// e.g., "/vmprovisioner.v1.VmService/CreateVm" -> "CreateVm"
+func extractMethodName(procedure string) string {
+	parts := strings.Split(procedure, "/")
+	if len(parts) > 0 {
+		return parts[len(parts)-1]
+	}
+	return procedure
+}
+
+// extractServiceName extracts the service name from a full procedure path
+// e.g., "/vmprovisioner.v1.VmService/CreateVm" -> "vmprovisioner.v1.VmService"
+func extractServiceName(procedure string) string {
+	parts := strings.Split(procedure, "/")
+	if len(parts) >= 2 {
+		return parts[1]
+	}
+	return ""
 }

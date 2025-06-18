@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -84,13 +85,18 @@ func NewMetricsInterceptor() connect.UnaryInterceptorFunc {
 
 			start := time.Now()
 			procedure := req.Spec().Procedure
+			methodName := extractMethodName(procedure)
+			serviceName := extractServiceName(procedure)
+
+			// AIDEV-NOTE: Using unified span naming convention: service.method
+			spanName := fmt.Sprintf("assetmanagerd.%s", methodName)
 
 			// Create span
-			ctx, span := tracer.Start(ctx, procedure,
+			ctx, span := tracer.Start(ctx, spanName,
 				trace.WithSpanKind(trace.SpanKindServer),
 				trace.WithAttributes(
-					semconv.RPCService(req.Spec().Procedure),
-					semconv.RPCMethod(req.Spec().Procedure),
+					semconv.RPCService(serviceName),
+					semconv.RPCMethod(methodName),
 					semconv.RPCSystemKey.String("connectrpc"),
 				),
 			)
@@ -187,4 +193,22 @@ func NewLoggingInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc {
 			return resp, err
 		}
 	}
+}
+
+// extractMethodName extracts the method name from a full procedure path
+func extractMethodName(procedure string) string {
+	parts := strings.Split(procedure, "/")
+	if len(parts) > 0 {
+		return parts[len(parts)-1]
+	}
+	return procedure
+}
+
+// extractServiceName extracts the service name from a full procedure path
+func extractServiceName(procedure string) string {
+	parts := strings.Split(procedure, "/")
+	if len(parts) >= 2 {
+		return parts[1]
+	}
+	return ""
 }

@@ -43,7 +43,7 @@ func InitProviders(ctx context.Context, cfg *config.Config, version string) (fun
 	// Initialize metric provider
 	metricProvider, err := initMetricProvider(ctx, cfg, res)
 	if err != nil {
-		traceProvider.Shutdown(ctx)
+		_ = traceProvider.Shutdown(ctx)
 		return nil, fmt.Errorf("failed to initialize metric provider: %w", err)
 	}
 
@@ -124,7 +124,7 @@ func initMetricProvider(ctx context.Context, cfg *config.Config, res *resource.R
 	for _, reader := range readers {
 		opts = append(opts, sdkmetric.WithReader(reader))
 	}
-	
+
 	provider := sdkmetric.NewMeterProvider(opts...)
 
 	return provider, nil
@@ -142,12 +142,13 @@ func ServiceAttributes(serviceName, version string) []attribute.KeyValue {
 }
 
 // NewMetricsServer creates a new HTTP server for Prometheus metrics
-func NewMetricsServer(addr string) *http.Server {
+func NewMetricsServer(addr string, healthHandler http.HandlerFunc) *http.Server {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// The prometheus handler is registered globally
 		http.DefaultServeMux.ServeHTTP(w, r)
 	}))
+	mux.HandleFunc("/health", healthHandler)
 
 	return &http.Server{
 		Addr:         addr,

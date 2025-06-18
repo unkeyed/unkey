@@ -49,14 +49,15 @@ type VMMetricsTracker struct {
 
 // NewMetricsCollector creates a new metrics collector instance
 func NewMetricsCollector(backend types.Backend, billingClient BillingClient, logger *slog.Logger, instanceID string, billingMetrics *observability.BillingMetrics) *MetricsCollector {
+	//exhaustruct:ignore
 	return &MetricsCollector{
 		backend:            backend,
 		billingClient:      billingClient,
 		logger:             logger.With("component", "metrics_collector"),
 		billingMetrics:     billingMetrics,
 		activeVMs:          make(map[string]*VMMetricsTracker),
-		collectionInterval: 100 * time.Millisecond,
-		batchSize:          600, // 1 minute worth at 100ms intervals
+		collectionInterval: 5 * time.Minute,
+		batchSize:          1, // Very small batch size for 5min intervals
 		instanceID:         instanceID,
 	}
 }
@@ -71,6 +72,7 @@ func (mc *MetricsCollector) StartCollection(vmID, customerID string) error {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
+	//exhaustruct:ignore
 	tracker := &VMMetricsTracker{
 		vmID:       vmID,
 		customerID: customerID,

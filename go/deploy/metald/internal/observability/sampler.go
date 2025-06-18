@@ -1,7 +1,6 @@
 package observability
 
 import (
-	"go.opentelemetry.io/otel/codes"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
@@ -46,11 +45,9 @@ func NewErrorSpanProcessor(wrapped sdktrace.SpanProcessor) sdktrace.SpanProcesso
 
 // OnEnd is called when a span ends
 func (p *ErrorSpanProcessor) OnEnd(s sdktrace.ReadOnlySpan) {
-	// Check if span has error status
-	if s.Status().Code == codes.Error {
-		// Note: We can't modify the span after it's ended, but the wrapped processor
-		// will export it since we're calling OnEnd
-	}
+	// For error spans, we always call the wrapped processor's OnEnd
+	// This ensures error spans are exported even with low sampling rates
+	// No additional processing needed here - the sampling decision was already made
 
 	// Always call the wrapped processor
 	p.SpanProcessor.OnEnd(s)

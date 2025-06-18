@@ -1,0 +1,15 @@
+# Sudoers configuration for metald service
+# This file should be installed to /etc/sudoers.d/metald
+#
+# AIDEV-NOTE: This configuration allows the metald user to run ONLY the jailer
+# binary as root without a password. The jailer will drop privileges to the
+# specified UID/GID after setting up the chroot environment.
+#
+# Security considerations:
+# - The jailer binary path is hardcoded to prevent PATH manipulation
+# - NOPASSWD is required for automated service operation
+# - No shell escapes or wildcards are allowed
+# - Environment is reset to prevent variable injection
+
+# Allow metald user to run jailer as root without password
+metald ALL=(root) NOPASSWD: /usr/local/bin/jailer

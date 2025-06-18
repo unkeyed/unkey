@@ -35,12 +35,10 @@ sudo curl -L https://github.com/firecracker-microvm/firecracker/releases/latest/
     -o /tmp/firecracker.tgz
 sudo tar -xzf /tmp/firecracker.tgz -C /tmp
 sudo cp /tmp/release-v1.5.1-x86_64/firecracker-v1.5.1-x86_64 /usr/bin/firecracker
-sudo cp /tmp/release-v1.5.1-x86_64/jailer-v1.5.1-x86_64 /usr/bin/jailer
-sudo chmod +x /usr/bin/firecracker /usr/bin/jailer
+sudo chmod +x /usr/bin/firecracker
 
 # Verify Firecracker installation
 firecracker --version
-jailer --version
 ```
 
 ## Security Setup
@@ -171,15 +169,11 @@ UNKEY_METALD_OTEL_SERVICE_NAME=metald
 UNKEY_METALD_OTEL_ENDPOINT=localhost:4318
 UNKEY_METALD_OTEL_PROMETHEUS_PORT=9464
 
-# Jailer Configuration (Production)
-UNKEY_METALD_JAILER_ENABLED=false
-UNKEY_METALD_JAILER_BINARY=/usr/bin/jailer
-UNKEY_METALD_FIRECRACKER_BINARY=/usr/bin/firecracker
+# Integrated Jailer Configuration (Production)
+# Note: Metald now includes an integrated jailer implementation
 UNKEY_METALD_JAILER_UID=1000
 UNKEY_METALD_JAILER_GID=1000
 UNKEY_METALD_JAILER_CHROOT_DIR=/srv/jailer
-UNKEY_METALD_JAILER_NETNS=true
-UNKEY_METALD_JAILER_PIDNS=true
 UNKEY_METALD_JAILER_MEMORY_LIMIT=134217728
 UNKEY_METALD_JAILER_CPU_QUOTA=100
 UNKEY_METALD_JAILER_FD_LIMIT=1024
@@ -270,9 +264,9 @@ sudo mkdir -p /srv/jailer
 sudo chown jailer:jailer /srv/jailer
 sudo chmod 755 /srv/jailer
 
-# Verify jailer binary permissions
-sudo chown root:root /usr/bin/jailer /usr/bin/firecracker
-sudo chmod 755 /usr/bin/jailer /usr/bin/firecracker
+# Verify firecracker binary permissions
+sudo chown root:root /usr/bin/firecracker
+sudo chmod 755 /usr/bin/firecracker
 
 # Restart service with jailer enabled
 sudo systemctl restart metald
@@ -364,14 +358,14 @@ curl -s http://localhost:8080/_/health | jq .
 
 4. **Jailer Issues**
    ```bash
-   # Check jailer permissions
-   ls -la /usr/bin/jailer /usr/bin/firecracker
+   # Check firecracker permissions
+   ls -la /usr/bin/firecracker
    
    # Verify chroot directory
    ls -la /srv/jailer
    
-   # Test jailer directly
-   sudo jailer --help
+   # Check metald capabilities
+   getcap /usr/local/bin/metald
    ```
 
 ### Log Analysis
