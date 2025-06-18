@@ -91,10 +91,6 @@ export const KeysOverviewLogDetails = ({
       log.key_details.remaining_requests !== null
         ? log.key_details.remaining_requests
         : "Unlimited",
-    "Rate Limit": log.key_details.ratelimit_limit
-      ? `${log.key_details.ratelimit_limit} per ${log.key_details.ratelimit_duration || "N/A"}ms`
-      : "No limit",
-    Async: log.key_details.ratelimit_async ? "Yes" : "No",
   };
 
   const identity = log.key_details.identity

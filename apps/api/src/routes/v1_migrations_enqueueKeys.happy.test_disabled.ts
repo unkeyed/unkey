@@ -545,11 +545,14 @@ test("creates a key with ratelimit", async (t) => {
     async () => {
       const key = await h.db.primary.query.keys.findFirst({
         where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
+        with: {
+          ratelimits: true,
+        },
       });
       expect(key).toBeDefined();
-      expect(key!.ratelimitAsync).toBe(ratelimit.async);
-      expect(key!.ratelimitLimit).toBe(ratelimit.limit);
-      expect(key!.ratelimitDuration).toBe(ratelimit.duration);
+      expect(key!.ratelimits.length).toBe(1);
+      expect(key!.ratelimits[0].limit).toBe(ratelimit.limit);
+      expect(key!.ratelimits[0].duration).toBe(ratelimit.duration);
     },
     { timeout: 20000, interval: 500 },
   );
