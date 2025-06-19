@@ -10,10 +10,10 @@
 // Basic usage:
 //
 //	if err := assert.NotNil(user); err != nil {
-//	    return fault.Wrap(err, fault.WithDesc("user cannot be nil", "Invalid user"))
+//	    return fault.Wrap(err, fault.Internal("user cannot be nil"), fault.Public("Invalid user"))
 //	}
 //
 //	if err := assert.Equal(count, expected); err != nil {
-//	    return fault.Wrap(err, fault.WithDesc("count mismatch", "Unexpected count"))
+//	    return fault.Wrap(err, fault.Internal("count mismatch"), fault.Public("Unexpected count"))
 //	}
 package assert

@@ -24,19 +24,19 @@ func Bearer(s *Session) (string, error) {
 
 	header := s.r.Header.Get("Authorization")
 	if header == "" {
-		return "", fault.New("empty authorization header", fault.WithCode(codes.Auth.Authentication.Missing.URN()))
+		return "", fault.New("empty authorization header", fault.Code(codes.Auth.Authentication.Missing.URN()))
 	}
 
 	header = strings.TrimSpace(header)
 	if !strings.HasPrefix(header, "Bearer ") {
-		return "", fault.New("invalid format", fault.WithCode(codes.Auth.Authentication.Malformed.URN()),
-			fault.WithDesc("missing bearer prefix", "Your authorization header is missing the 'Bearer ' prefix."))
+		return "", fault.New("invalid format", fault.Code(codes.Auth.Authentication.Malformed.URN()),
+			fault.Internal("missing bearer prefix"), fault.Public("Your authorization header is missing the 'Bearer ' prefix."))
 	}
 
 	bearer := strings.TrimPrefix(header, "Bearer ")
 	bearer = strings.TrimSpace(bearer)
 	if bearer == "" {
-		return "", fault.New("invalid token", fault.WithCode(codes.Auth.Authentication.Malformed.URN()))
+		return "", fault.New("invalid token", fault.Code(codes.Auth.Authentication.Malformed.URN()))
 	}
 
 	return bearer, nil

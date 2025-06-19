@@ -91,17 +91,17 @@ func Parse(urnStr string) (URN, error) {
 
 	// Validate basic structure
 	if err := assert.Equal(len(parts), 6, "URN must have exactly 6 components separated by ':'"); err != nil {
-		return URN{}, fault.Wrap(err, fault.WithDesc("invalid URN format", urnStr))
+		return URN{}, fault.Wrap(err, fault.Internal("invalid URN format"), fault.Public(urnStr))
 	}
 
 	if err := assert.Equal(parts[0], "urn", "URN must start with 'urn:'"); err != nil {
-		return URN{}, fault.Wrap(err, fault.WithDesc("invalid URN prefix", urnStr))
+		return URN{}, fault.Wrap(err, fault.Internal("invalid URN prefix"), fault.Public(urnStr))
 	}
 
 	// Extract and validate resource type and ID
 	resourcePath := strings.Split(parts[5], "/")
 	if err := assert.Equal(len(resourcePath), 2, "resource path must be in format 'type/id'"); err != nil {
-		return URN{}, fault.Wrap(err, fault.WithDesc("invalid resource path format", parts[5]))
+		return URN{}, fault.Wrap(err, fault.Internal("invalid resource path format"), fault.Public(parts[5]))
 	}
 
 	// Create URN components
@@ -123,7 +123,7 @@ func Parse(urnStr string) (URN, error) {
 	)
 
 	if err != nil {
-		return URN{}, fault.Wrap(err, fault.WithDesc("invalid URN component", urnStr))
+		return URN{}, fault.Wrap(err, fault.Internal("invalid URN component"), fault.Public(urnStr))
 	}
 
 	// All validations passed, return the URN
@@ -150,7 +150,7 @@ func New(service Service, workspaceID, environment string, resourceType Resource
 	)
 
 	if err != nil {
-		return URN{}, fault.Wrap(err, fault.WithDesc("invalid URN component", ""))
+		return URN{}, fault.Wrap(err, fault.Internal("invalid URN component"))
 	}
 
 	// All validations passed

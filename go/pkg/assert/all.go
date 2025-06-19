@@ -14,7 +14,7 @@ package assert
 //	    assert.True(user.IsActive, "user must be active"),
 //	)
 //	if err != nil {
-//	    return fault.Wrap(err, fault.WithDesc("invalid user", "User validation failed"))
+//	    return fault.Wrap(err, fault.Internal("invalid user"), fault.Public("User validation failed"))
 //	}
 func All(errs ...error) error {
 	for _, err := range errs {
