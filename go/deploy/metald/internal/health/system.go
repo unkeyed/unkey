@@ -40,7 +40,7 @@ func GetSystemInfo(ctx context.Context, startTime time.Time) (*SystemInfo, error
 	}
 
 	// Get CPU information
-	cpu := CPU{ //exhaustruct:ignore
+	cpu := CPU{ //nolint:exhaustruct // Model field is populated conditionally below if available
 		Architecture: runtime.GOARCH,
 		Cores:        runtime.NumCPU(),
 	}

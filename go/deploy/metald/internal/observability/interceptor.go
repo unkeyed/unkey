@@ -139,7 +139,7 @@ func NewOTELInterceptor() connect.UnaryInterceptorFunc {
 			// Call the handler
 			var resp connect.AnyResponse
 			var err error
-			
+
 			// AIDEV-NOTE: Ensure proper error handling to prevent nil panics
 			func() {
 				defer func() {

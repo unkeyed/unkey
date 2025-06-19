@@ -7,13 +7,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/config"
-	"golang.org/x/sys/unix"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/sys/unix"
 )
 
 // AIDEV-NOTE: This package implements jailer functionality directly in metald
@@ -41,16 +42,16 @@ func NewJailer(logger *slog.Logger, config *config.JailerConfig) *Jailer {
 type ExecOptions struct {
 	// VMId is the unique identifier for this VM
 	VMId string
-	
+
 	// NetworkNamespace is the path to the network namespace (e.g., /run/netns/vm-xxx)
 	NetworkNamespace string
-	
+
 	// SocketPath is the path to the firecracker API socket
 	SocketPath string
-	
+
 	// FirecrackerArgs are additional arguments to pass to firecracker
 	FirecrackerArgs []string
-	
+
 	// Stdin, Stdout, Stderr for the firecracker process
 	Stdin  *os.File
 	Stdout *os.File
@@ -119,8 +120,13 @@ func (j *Jailer) Exec(ctx context.Context, opts *ExecOptions) error {
 		slog.Any("args", args),
 	)
 
-	// Step 6: Exec into firecracker
+	// Step 6: Validate and exec into firecracker
+	if err := validateFirecrackerPath(firecrackerPath); err != nil {
+		return fmt.Errorf("firecracker path validation failed: %w", err)
+	}
+	
 	// This replaces the current process with firecracker
+	//nolint:gosec // Path validation performed above
 	return syscall.Exec(firecrackerPath, args, os.Environ())
 }
 
@@ -151,24 +157,32 @@ func (j *Jailer) RunInJail(ctx context.Context, opts *ExecOptions) (*os.Process,
 	// Build firecracker command
 	// AIDEV-NOTE: Firecracker binary path is now hardcoded to standard location
 	firecrackerPath := "/usr/local/bin/firecracker"
+	
+	// Validate firecracker path for security
+	if err := validateFirecrackerPath(firecrackerPath); err != nil {
+		span.RecordError(err)
+		return nil, fmt.Errorf("firecracker path validation failed: %w", err)
+	}
+	
 	args := []string{firecrackerPath, "--api-sock", opts.SocketPath}
 	args = append(args, opts.FirecrackerArgs...)
 
 	// Create the command
+	//nolint:gosec // Path validation performed above
 	cmd := exec.CommandContext(ctx, firecrackerPath, args[1:]...)
-	
+
 	// Set up file descriptors
 	cmd.Stdin = opts.Stdin
 	cmd.Stdout = opts.Stdout
 	cmd.Stderr = opts.Stderr
-	
+
 	// Set working directory to chroot
 	cmd.Dir = chrootPath
-	
+
 	// For now, run without full isolation to test
 	// In production, we'd fork and do the chroot/namespace/privilege dropping
 	// AIDEV-TODO: Implement proper forking with isolation
-	
+
 	// Start the process
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start firecracker: %w", err)
@@ -200,15 +214,23 @@ func (j *Jailer) setupChroot(ctx context.Context, chrootPath string) error {
 
 	// Create /dev/net/tun
 	tunPath := filepath.Join(chrootPath, "dev/net/tun")
-	if err := unix.Mknod(tunPath, unix.S_IFCHR|0666, int(unix.Mkdev(10, 200))); err != nil {
-		if !os.IsExist(err) {
-			return fmt.Errorf("failed to create /dev/net/tun: %w", err)
+	tunDev, err := safeUint64ToInt(unix.Mkdev(10, 200))
+	if err != nil {
+		return fmt.Errorf("failed to convert tun device number: %w", err)
+	}
+	if mkErr := unix.Mknod(tunPath, unix.S_IFCHR|0666, tunDev); mkErr != nil {
+		if !os.IsExist(mkErr) {
+			return fmt.Errorf("failed to create /dev/net/tun: %w", mkErr)
 		}
 	}
 
 	// Create /dev/kvm
 	kvmPath := filepath.Join(chrootPath, "dev/kvm")
-	if err := unix.Mknod(kvmPath, unix.S_IFCHR|0666, int(unix.Mkdev(10, 232))); err != nil {
+	kvmDev, err := safeUint64ToInt(unix.Mkdev(10, 232))
+	if err != nil {
+		return fmt.Errorf("failed to convert kvm device number: %w", err)
+	}
+	if err := unix.Mknod(kvmPath, unix.S_IFCHR|0666, kvmDev); err != nil {
 		if !os.IsExist(err) {
 			return fmt.Errorf("failed to create /dev/kvm: %w", err)
 		}
@@ -221,7 +243,7 @@ func (j *Jailer) setupChroot(ctx context.Context, chrootPath string) error {
 		return fmt.Errorf("failed to create metrics FIFO: %w", err)
 	}
 	span.SetAttributes(attribute.String("metrics_fifo_path", metricsPath))
-	j.logger.InfoContext(ctx, "created metrics FIFO for billaged", 
+	j.logger.InfoContext(ctx, "created metrics FIFO for billaged",
 		slog.String("path", metricsPath))
 
 	// Set ownership
@@ -278,6 +300,53 @@ func (j *Jailer) dropPrivileges(ctx context.Context) error {
 		slog.Uint64("gid", uint64(j.config.GID)),
 	)
 
+	return nil
+}
+
+// safeUint64ToInt safely converts uint64 to int, checking for overflow
+func safeUint64ToInt(value uint64) (int, error) {
+	const maxInt = int(^uint(0) >> 1)
+	if value > uint64(maxInt) {
+		return 0, fmt.Errorf("value %d exceeds maximum int value %d", value, maxInt)
+	}
+	return int(value), nil
+}
+
+// validateFirecrackerPath validates the firecracker binary path for security
+func validateFirecrackerPath(path string) error {
+	// Clean the path to resolve any . or .. components
+	cleanPath := filepath.Clean(path)
+	
+	// Check for path traversal attempts
+	if strings.Contains(cleanPath, "..") {
+		return fmt.Errorf("path traversal attempt detected: %s", path)
+	}
+	
+	// Ensure path is absolute and starts with expected directories
+	if !filepath.IsAbs(cleanPath) {
+		return fmt.Errorf("firecracker path must be absolute: %s", path)
+	}
+	
+	// Check for dangerous characters
+	if strings.ContainsAny(cleanPath, ";&|$`\\") {
+		return fmt.Errorf("dangerous characters detected in path: %s", path)
+	}
+	
+	// Verify file exists and is executable
+	info, err := os.Stat(cleanPath)
+	if err != nil {
+		return fmt.Errorf("firecracker binary not found: %w", err)
+	}
+	
+	if info.IsDir() {
+		return fmt.Errorf("firecracker path is a directory: %s", cleanPath)
+	}
+	
+	// Check if file is executable
+	if info.Mode()&0111 == 0 {
+		return fmt.Errorf("firecracker binary is not executable: %s", cleanPath)
+	}
+	
 	return nil
 }
 

@@ -18,6 +18,7 @@ type Config struct {
 	Database      DatabaseConfig      `yaml:"database"`
 	OpenTelemetry OpenTelemetryConfig `yaml:"opentelemetry"`
 	TLS           *TLSConfig          `yaml:"tls,omitempty"`
+	AssetManager  AssetManagerConfig  `yaml:"assetmanager"`
 }
 
 // ServerConfig holds HTTP server configuration
@@ -122,6 +123,12 @@ type OpenTelemetryConfig struct {
 	HighCardinalityLabelsEnabled bool    `yaml:"high_cardinality_labels_enabled"`
 }
 
+// AssetManagerConfig holds assetmanagerd client configuration
+type AssetManagerConfig struct {
+	Enabled  bool   `yaml:"enabled"`
+	Endpoint string `yaml:"endpoint"`
+}
+
 // TLSConfig holds TLS configuration
 // AIDEV-BUSINESS_RULE: SPIFFE/mTLS is required by default for security - no fallback to disabled mode
 type TLSConfig struct {
@@ -159,7 +166,7 @@ func LoadConfigWithLogger(logger *slog.Logger) (*Config, error) {
 			WorkspaceDir:        getEnvOrDefault("UNKEY_BUILDERD_WORKSPACE_DIR", "/opt/builderd/workspace"),
 			CleanupInterval:     getEnvDurationOrDefault("UNKEY_BUILDERD_CLEANUP_INTERVAL", 1*time.Hour),
 		},
-		Storage: StorageConfig{
+		Storage: StorageConfig{ //nolint:exhaustruct // S3Config and GCSConfig are optional backend-specific configs
 			Backend:        getEnvOrDefault("UNKEY_BUILDERD_STORAGE_BACKEND", "local"),
 			RetentionDays:  getEnvIntOrDefault("UNKEY_BUILDERD_STORAGE_RETENTION_DAYS", 30),
 			MaxSizeGB:      getEnvIntOrDefault("UNKEY_BUILDERD_STORAGE_MAX_SIZE_GB", 100),
@@ -210,12 +217,16 @@ func LoadConfigWithLogger(logger *slog.Logger) (*Config, error) {
 			PrometheusInterface:          getEnvOrDefault("UNKEY_BUILDERD_OTEL_PROMETHEUS_INTERFACE", "127.0.0.1"),
 			HighCardinalityLabelsEnabled: getEnvBoolOrDefault("UNKEY_BUILDERD_OTEL_HIGH_CARDINALITY_ENABLED", false),
 		},
+		AssetManager: AssetManagerConfig{
+			Enabled:  getEnvBoolOrDefault("UNKEY_BUILDERD_ASSETMANAGER_ENABLED", true),
+			Endpoint: getEnvOrDefault("UNKEY_BUILDERD_ASSETMANAGER_ENDPOINT", "https://localhost:8083"),
+		},
 		TLS: &TLSConfig{
 			Mode:             getEnvOrDefault("UNKEY_BUILDERD_TLS_MODE", "spiffe"),
 			CertFile:         getEnvOrDefault("UNKEY_BUILDERD_TLS_CERT_FILE", ""),
 			KeyFile:          getEnvOrDefault("UNKEY_BUILDERD_TLS_KEY_FILE", ""),
 			CAFile:           getEnvOrDefault("UNKEY_BUILDERD_TLS_CA_FILE", ""),
-			SPIFFESocketPath: getEnvOrDefault("UNKEY_BUILDERD_SPIFFE_SOCKET", "/run/spire/sockets/agent.sock"),
+			SPIFFESocketPath: getEnvOrDefault("UNKEY_BUILDERD_SPIFFE_SOCKET", "/var/lib/spire/agent/agent.sock"),
 		},
 	}
 

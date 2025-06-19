@@ -1,158 +1,197 @@
-# Metald Service Documentation
+# Metald - VM Lifecycle Management Service
 
-## Service Description
+Metald is the central control plane for virtual machine lifecycle management in the Unkey Deploy platform. It provides a unified API for creating, managing, and monitoring microVMs using Firecracker or Cloud Hypervisor backends.
 
-Metald is a high-performance VM lifecycle management service that orchestrates Firecracker microVMs with integrated security isolation, real-time billing integration, and IPv6-first networking.
+## Quick Links
 
-### Business Purpose
+- [API Documentation](./api/README.md) - Complete API reference with examples
+- [Architecture & Dependencies](./architecture/README.md) - Service interactions and system design
+- [Operations Guide](./operations/README.md) - Metrics, monitoring, and production deployment
+- [Development Setup](./development/README.md) - Build, test, and local development
 
-Metald enables secure, multi-tenant VM hosting with:
-- Sub-second VM startup times using Firecracker
-- Real-time usage tracking for accurate billing
-- Strong security isolation through integrated jailer
-- Production-grade IPv6 networking with dual-stack support
-- Comprehensive observability and monitoring
+## Service Overview
+
+**Purpose**: Centralized virtual machine lifecycle management with integrated security isolation and multi-tenant resource control.
+
+### Key Features
+
+- **Unified VM Management**: Single API for VM lifecycle operations across hypervisor backends
+- **Security Isolation**: Integrated jailer with chroot, cgroups, and network namespace isolation
+- **Multi-tenant Support**: Customer-level isolation and resource quotas
+- **Dual-stack Networking**: IPv4/IPv6 support with TAP device management
+- **Usage Tracking**: Integration with billing service for resource accounting
+- **Asset Management**: Dynamic VM image distribution (kernels, rootfs)
+- **High Observability**: OpenTelemetry tracing, Prometheus metrics, structured logging
+
+### Dependencies
+
+- [assetmanagerd](../../assetmanagerd/docs/README.md) - VM image storage and distribution
+- [billaged](../../billaged/docs/README.md) - Usage tracking and billing integration
 
 ## Quick Start
 
-### Prerequisites
-
-- Linux system with KVM support
-- Firecracker binary installed at `/usr/local/bin/firecracker`
-- Go 1.21+ for building from source
-- systemd for production deployment
-- Root access or appropriate capabilities for VM management
-
-### Basic Setup
+### Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/unkeyed/unkey
-cd unkey/go/deploy/metald
-
-# Build the service
+# Build from source
+cd metald
 make build
 
-# Install with systemd (sets required capabilities)
+# Install with systemd
 sudo make install
-
-# Start the service
-sudo systemctl start metald
-
-# Check service status
-sudo systemctl status metald
 ```
 
-### Development Mode
-
-For local development without systemd:
+### Basic Configuration
 
 ```bash
-# Build and run directly
+# Minimal configuration for development
+export UNKEY_METALD_SERVER_PORT=8080
+export UNKEY_METALD_BILLING_MOCK_MODE=true
+export UNKEY_METALD_ASSETMANAGER_ENABLED=false
+export UNKEY_METALD_JAILER_UID=$(id -u)
+export UNKEY_METALD_JAILER_GID=$(id -g)
+
+./metald
+```
+
+### Create Your First VM
+
+```bash
+# Using the example client
+cd contrib/example-client
+go run main.go -action create-and-boot
+
+# Or via direct API call
+curl -X POST http://localhost:8080/vmprovisioner.v1.VmService/CreateVm \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer dev_customer_test123" \
+  -d '{
+    "config": {
+      "cpu": {"vcpu_count": 2},
+      "memory": {"size_bytes": 1073741824},
+      "boot": {
+        "kernel_path": "/opt/vm-assets/vmlinux",
+        "kernel_args": "console=ttyS0 reboot=k panic=1"
+      },
+      "storage": [{
+        "id": "rootfs",
+        "path": "/opt/vm-assets/rootfs.ext4",
+        "is_root_device": true
+      }]
+    }
+  }'
+```
+
+## Architecture Overview
+
+```mermaid
+graph TB
+    subgraph "API Layer"
+        API[ConnectRPC API<br/>:8080]
+        AUTH[Auth Middleware]
+    end
+    
+    subgraph "Core Services"
+        SVC[VM Service]
+        DB[(SQLite DB)]
+        METRICS[Metrics Collector]
+    end
+    
+    subgraph "Backends"
+        FC[Firecracker Backend]
+        CH[Cloud Hypervisor<br/>Backend]
+    end
+    
+    subgraph "External Services"
+        ASSET[AssetManagerd]
+        BILL[Billaged]
+    end
+    
+    API --> AUTH --> SVC
+    SVC --> DB
+    SVC --> METRICS
+    SVC --> FC
+    SVC --> CH
+    SVC -.-> ASSET
+    METRICS --> BILL
+```
+
+## Production Deployment
+
+### System Requirements
+
+- **OS**: Linux with KVM support
+- **CPU**: 4+ cores recommended
+- **Memory**: 8GB+ for running multiple VMs
+- **Storage**: SSD with 100GB+ free space
+- **Network**: CAP_NET_ADMIN capability for TAP devices
+
+### Security Considerations
+
+1. **Jailer Configuration**: Always run with jailer enabled in production
+2. **TLS/mTLS**: Enable SPIFFE for service-to-service authentication
+3. **Customer Isolation**: Enforced at API and resource levels
+4. **Resource Limits**: Configure appropriate VM quotas per customer
+
+### High Availability
+
+While metald itself is stateless (using SQLite for persistence), consider:
+- Running multiple instances behind a load balancer
+- Regular SQLite backups
+- Monitoring backend health and failover
+
+## API Highlights
+
+The service exposes a ConnectRPC API with the following main operations:
+
+- `CreateVm` - Create a new VM with specified configuration
+- `BootVm` - Start a created VM
+- `ShutdownVm` - Gracefully stop a running VM
+- `DeleteVm` - Remove a VM and cleanup resources
+- `GetVmInfo` - Get VM status and metrics
+- `ListVms` - List VMs with filtering and pagination
+
+See [API Documentation](./api/README.md) for complete reference.
+
+## Monitoring
+
+Key metrics to monitor in production:
+
+- `vm_operation_duration_seconds` - Operation latency
+- `vm_create_total` - VM creation rate and failures
+- `billing_metrics_sent_total` - Billing integration health
+- `firecracker_vm_error_total` - Backend failures
+
+See [Operations Guide](./operations/README.md) for complete monitoring setup.
+
+## Development
+
+### Building from Source
+
+```bash
+git clone https://github.com/unkeyed/unkey
+cd go/deploy/metald
+make test
 make build
-sudo ./build/metald
-
-# Or with custom configuration
-UNKEY_METALD_PORT=8080 \
-UNKEY_METALD_LOG_LEVEL=debug \
-sudo ./build/metald
 ```
 
-## Dependencies
-
-### Required Services
-
-- **AssetManager** (Optional): Manages VM kernels and root filesystems
-  - Default endpoint: `http://localhost:8083`
-  - Can be disabled for development
-
-- **Billaged** (Optional): Real-time billing and metrics collection
-  - Default endpoint: `http://localhost:8081`
-  - Can run in mock mode for development
-
-### System Dependencies
-
-- **Firecracker**: MicroVM hypervisor
-- **KVM**: Kernel-based Virtual Machine support
-- **Linux capabilities**: CAP_SYS_ADMIN, CAP_NET_ADMIN, etc.
-
-## Basic Configuration
-
-Key environment variables:
+### Running Tests
 
 ```bash
-# Server configuration
-UNKEY_METALD_PORT=8080
-UNKEY_METALD_ADDRESS=0.0.0.0
+# Unit tests
+make test
 
-# Backend selection (only firecracker supported)
-UNKEY_METALD_BACKEND=firecracker
+# Integration tests (requires Docker)
+make test-integration
 
-# Integrated jailer configuration
-UNKEY_METALD_JAILER_UID=977
-UNKEY_METALD_JAILER_GID=976
-UNKEY_METALD_JAILER_CHROOT_DIR=/srv/jailer
-
-# Service integration
-UNKEY_METALD_BILLING_ENABLED=true
-UNKEY_METALD_BILLING_ENDPOINT=http://localhost:8081
-UNKEY_METALD_ASSETMANAGER_ENABLED=true
-UNKEY_METALD_ASSETMANAGER_ENDPOINT=http://localhost:8083
-
-# Observability
-UNKEY_METALD_OTEL_ENABLED=true
-UNKEY_METALD_OTEL_ENDPOINT=localhost:4318
+# Benchmark tests
+make bench
 ```
 
-## Documentation Index
+See [Development Setup](./development/README.md) for detailed instructions.
 
-### Core Documentation
+## Support
 
-- **[API Reference](api-reference.md)** - Complete API documentation with endpoints, schemas, and examples
-- **[Architecture](architecture.md)** - System design, components, and technical decisions
-- **[Diagrams](diagrams.md)** - Visual documentation including architecture and flow diagrams
-- **[Operations](operations.md)** - Deployment, monitoring, and troubleshooting procedures
-
-### Specialized Guides
-
-- **[IPv6 Networking](ipv6-networking-implementation.md)** - Comprehensive IPv6 implementation guide
-- **[IPv6 API Reference](ipv6-api-reference.md)** - IPv6-specific API documentation
-- **[IPv6 Deployment](ipv6-deployment-guide.md)** - Production IPv6 deployment procedures
-- **[IPv6 Examples](ipv6-examples-troubleshooting.md)** - Common scenarios and troubleshooting
-
-### Architecture Decisions
-
-- **[ADR-001: Integrated Jailer](adr/001-integrated-jailer.md)** - Why we integrate jailer functionality
-- **[ADR-002: Firecracker Only](adr/002-firecracker-only-backend.md)** - Single backend support rationale
-
-### Development Resources
-
-- **[Authentication Guide](development/authentication.md)** - Development auth and production considerations
-- **[Integrated Jailer Details](../internal/jailer/README.md)** - Technical details of jailer implementation
-
-## Version Information
-
-- **Current Version**: 0.2.0
-- **Last Updated**: 2024-01-18
-- **API Version**: v1 (ConnectRPC)
-
-## Getting Help
-
-### Common Issues
-
-1. **Permission Denied**: Ensure metald has required capabilities (run `make install`)
-2. **VM Creation Failed**: Check firecracker binary exists and KVM is available
-3. **Network Issues**: Verify CAP_NET_ADMIN capability and namespace permissions
-
-### Support Channels
-
-- GitHub Issues: [github.com/unkeyed/unkey/issues](https://github.com/unkeyed/unkey/issues)
-- Documentation: This directory
-- Logs: `journalctl -u metald -f`
-
-## Next Steps
-
-1. Read the [API Reference](api-reference.md) to understand available endpoints
-2. Review the [Architecture](architecture.md) for system design details
-3. Follow [Operations](operations.md) for production deployment
-4. Check [IPv6 guides](ipv6-networking-implementation.md) for networking setup
+- **Issues**: [GitHub Issues](https://github.com/unkeyed/unkey/issues)
+- **Documentation**: [Full Documentation](./README.md)
+- **Version**: v0.2.0 (Integrated Jailer)

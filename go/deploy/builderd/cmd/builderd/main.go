@@ -17,7 +17,8 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/unkeyed/unkey/go/deploy/builderd/gen/proto/builder/v1/builderv1connect"
+	"github.com/unkeyed/unkey/go/deploy/builderd/gen/builder/v1/builderv1connect"
+	"github.com/unkeyed/unkey/go/deploy/builderd/internal/assetmanager"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/observability"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/service"
@@ -97,6 +98,7 @@ func main() {
 	}
 
 	// Initialize structured logger with JSON output
+	//nolint:exhaustruct // Only Level field is needed for handler options
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}))
@@ -129,6 +131,7 @@ func main() {
 	)
 
 	// Initialize TLS provider (defaults to disabled)
+	//nolint:exhaustruct // Only specified TLS fields are needed for this configuration
 	tlsConfig := tlspkg.Config{
 		Mode:             tlspkg.Mode(cfg.TLS.Mode),
 		CertFile:         cfg.TLS.CertFile,
@@ -174,7 +177,6 @@ func main() {
 	// Initialize build metrics if OpenTelemetry is enabled
 	var buildMetrics *observability.BuildMetrics
 	if cfg.OpenTelemetry.Enabled {
-		var err error
 		buildMetrics, err = observability.NewBuildMetrics(logger, cfg.OpenTelemetry.HighCardinalityLabelsEnabled)
 		if err != nil {
 			logger.Warn("failed to initialize build metrics, entering degraded mode",
@@ -194,8 +196,17 @@ func main() {
 	// TODO: Initialize tenant manager
 	// TODO: Initialize build executor registry
 
+	// Initialize assetmanagerd client
+	assetClient, err := assetmanager.NewClient(cfg, logger, tlsProvider)
+	if err != nil {
+		logger.Error("failed to initialize assetmanagerd client",
+			slog.String("error", err.Error()),
+		)
+		os.Exit(1)
+	}
+
 	// Create builder service
-	builderService := service.NewBuilderService(logger, buildMetrics, cfg)
+	builderService := service.NewBuilderService(logger, buildMetrics, cfg, assetClient)
 
 	// Create ConnectRPC handler with interceptors
 	interceptors := []connect.Interceptor{
@@ -213,8 +224,6 @@ func main() {
 		connect.WithInterceptors(interceptors...),
 	)
 	mux.Handle(path, handler)
-
-
 
 	// Create HTTP server address
 	addr := cfg.Server.Address + ":" + cfg.Server.Port
@@ -239,7 +248,8 @@ func main() {
 
 	// Configure server with optional TLS and security timeouts
 	server := &http.Server{
-		Addr:    addr,
+		Addr: addr,
+		//nolint:exhaustruct // Default http2.Server configuration is sufficient
 		Handler: h2c.NewHandler(httpHandler, &http2.Server{}),
 		// AIDEV-NOTE: Security timeouts to prevent slowloris attacks
 		ReadTimeout:    30 * time.Second,  // Time to read request headers
@@ -411,18 +421,10 @@ func printVersion() {
 	fmt.Printf("Built with: %s\n", runtime.Version())
 }
 
-// Additional configuration validation (beyond config package)
-func validateConfiguration(cfg *config.Config) error {
-	// Additional runtime-specific validations can be added here
-	// Core validations are handled in the config package
-	return nil
-}
-
 // Rate-limited handler using token bucket algorithm for better efficiency
 type rateLimitedHandler struct {
 	handler http.Handler
 	limiter *rate.Limiter
-	logger  *slog.Logger
 }
 
 func newRateLimitedHandler(handler http.Handler, rateLimit int) *rateLimitedHandler {
@@ -475,7 +477,7 @@ func validateServiceHealth(logger *slog.Logger, cfg *config.Config, buildMetrics
 	}
 
 	for _, dir := range requiredDirs {
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return fmt.Errorf("cannot create/access directory %s: %w", dir, err)
 		}
 	}
@@ -525,7 +527,7 @@ func performGracefulShutdown(logger *slog.Logger, server *http.Server, promServe
 		g.Go(func() error {
 			logger.Info("shutting down Prometheus server")
 			if err := promServer.Shutdown(gCtx); err != nil {
-				return fmt.Errorf("Prometheus server shutdown failed: %w", err)
+				return fmt.Errorf("prometheus server shutdown failed: %w", err)
 			}
 			logger.Info("Prometheus server shutdown complete")
 			return nil

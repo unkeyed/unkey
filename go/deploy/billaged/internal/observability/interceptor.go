@@ -153,7 +153,7 @@ func NewOTELInterceptor() connect.UnaryInterceptorFunc {
 				span.SetStatus(codes.Error, err.Error())
 
 				// For error sampling: create a new span that's always sampled
-				if span.SpanContext().IsSampled() == false {
+				if !span.SpanContext().IsSampled() {
 					_, errorSpan := tracer.Start(ctx, spanName+".error",
 						trace.WithSpanKind(trace.SpanKindServer),
 						trace.WithAttributes(

@@ -45,15 +45,15 @@ type sdkV4VM struct {
 // The integrated jailer solves tap device permission issues and provides better
 // control over the isolation process.
 type SDKClientV4 struct {
-	logger         *slog.Logger
-	networkManager *network.Manager
-	assetClient    assetmanager.Client
-	vmRegistry     map[string]*sdkV4VM
-	jailer         *jailer.Jailer
-	jailerConfig   *config.JailerConfig
-	baseDir        string
-	tracer         trace.Tracer
-	meter          metric.Meter
+	logger          *slog.Logger
+	networkManager  *network.Manager
+	assetClient     assetmanager.Client
+	vmRegistry      map[string]*sdkV4VM
+	jailer          *jailer.Jailer
+	jailerConfig    *config.JailerConfig
+	baseDir         string
+	tracer          trace.Tracer
+	meter           metric.Meter
 	vmCreateCounter metric.Int64Counter
 	vmDeleteCounter metric.Int64Counter
 	vmBootCounter   metric.Int64Counter
@@ -269,7 +269,7 @@ func (c *SDKClientV4) BootVM(ctx context.Context, vmID string) error {
 	// For integrated jailer, we use the SDK directly without external jailer
 	// The network namespace is already set up and tap device created
 	// We'll let the SDK manage firecracker but in our network namespace
-	
+
 	// Set the network namespace for the SDK to use
 	if vm.NetworkInfo != nil && vm.NetworkInfo.Namespace != "" {
 		fcConfig.NetNS = filepath.Join("/run/netns", vm.NetworkInfo.Namespace)
@@ -324,20 +324,20 @@ func (c *SDKClientV4) buildFirecrackerConfig(vmID string, config *metaldv1.VmCon
 		vmID,
 		"root",
 	)
-	
+
 	socketPath := "/firecracker.sock"
 	kernelPath := filepath.Join(jailerRoot, "vmlinux")
 	// Use host path since Firecracker is running outside chroot in "jailerless" mode
 	metricsPath := filepath.Join(jailerRoot, "metrics.fifo")
-	
+
 	// AIDEV-NOTE: Create metrics FIFO for billaged to read Firecracker stats
 	// billaged should read from: {jailerRoot}/metrics.fifo
 	// e.g., /srv/jailer/firecracker/{vmID}/root/metrics.fifo
 	hostMetricsPath := filepath.Join(jailerRoot, "metrics.fifo")
-	
+
 	// Create the metrics FIFO in the host filesystem
 	if err := unix.Mkfifo(hostMetricsPath, 0644); err != nil && !os.IsExist(err) {
-		c.logger.Error("failed to create metrics FIFO", 
+		c.logger.Error("failed to create metrics FIFO",
 			slog.String("vm_id", vmID),
 			slog.String("path", hostMetricsPath),
 			slog.String("error", err.Error()),
@@ -349,15 +349,15 @@ func (c *SDKClientV4) buildFirecrackerConfig(vmID string, config *metaldv1.VmCon
 			slog.String("chroot_path", metricsPath),
 		)
 	}
-	
-	cfg := sdk.Config{
+
+	cfg := sdk.Config{ //nolint:exhaustruct // Optional fields are not needed for basic VM configuration
 		SocketPath:      socketPath,
 		LogPath:         "", // Logging handled externally
 		LogLevel:        "Info",
 		MetricsPath:     metricsPath, // Configure stats socket for billaged
 		KernelImagePath: kernelPath,
 		KernelArgs:      config.GetBoot().GetKernelArgs(),
-		MachineCfg: models.MachineConfiguration{
+		MachineCfg: models.MachineConfiguration{ //nolint:exhaustruct // Only setting required fields for basic VM configuration
 			VcpuCount:  sdk.Int64(int64(config.GetCpu().GetVcpuCount())),
 			MemSizeMib: sdk.Int64(config.GetMemory().GetSizeBytes() / (1024 * 1024)),
 			Smt:        sdk.Bool(false),
@@ -378,7 +378,7 @@ func (c *SDKClientV4) buildFirecrackerConfig(vmID string, config *metaldv1.VmCon
 		}
 
 		// Use absolute paths for integrated jailer
-		drive := models.Drive{
+		drive := models.Drive{ //nolint:exhaustruct // Only setting required drive fields
 			DriveID:      &driveID,
 			PathOnHost:   sdk.String(filepath.Join(jailerRoot, filepath.Base(disk.GetPath()))),
 			IsRootDevice: sdk.Bool(disk.GetIsRootDevice() || i == 0),
@@ -389,8 +389,8 @@ func (c *SDKClientV4) buildFirecrackerConfig(vmID string, config *metaldv1.VmCon
 
 	// Add network interface
 	if networkInfo != nil {
-		iface := sdk.NetworkInterface{
-			StaticConfiguration: &sdk.StaticNetworkConfiguration{
+		iface := sdk.NetworkInterface{ //nolint:exhaustruct // Only setting required network interface fields
+			StaticConfiguration: &sdk.StaticNetworkConfiguration{ //nolint:exhaustruct // Only setting required network configuration fields
 				HostDevName: networkInfo.TapDevice,
 				MacAddress:  networkInfo.MacAddress,
 			},
@@ -449,7 +449,6 @@ func (c *SDKClientV4) prepareVMAssets(ctx context.Context, vmID string, config *
 
 	return nil
 }
-
 
 // DeleteVM deletes a VM and cleans up its resources
 func (c *SDKClientV4) DeleteVM(ctx context.Context, vmID string) error {
@@ -568,7 +567,7 @@ func (c *SDKClientV4) ShutdownVMWithOptions(ctx context.Context, vmID string, fo
 	shutdownCtx, cancel := context.WithTimeout(ctx, time.Duration(timeoutSeconds)*time.Second)
 	defer cancel()
 
-	if force {
+	if force { //nolint:nestif // Complex shutdown logic requires nested conditions for force vs graceful shutdown
 		// Force shutdown by stopping the VMM immediately
 		if err := vm.Machine.StopVMM(); err != nil {
 			span.RecordError(err)
@@ -714,7 +713,7 @@ func (c *SDKClientV4) RebootVM(ctx context.Context, vmID string) error {
 
 // GetVMInfo returns information about a VM
 func (c *SDKClientV4) GetVMInfo(ctx context.Context, vmID string) (*types.VMInfo, error) {
-	ctx, span := c.tracer.Start(ctx, "SDKClientV4.GetVMInfo",
+	_, span := c.tracer.Start(ctx, "SDKClientV4.GetVMInfo",
 		trace.WithAttributes(attribute.String("vm_id", vmID)),
 	)
 	defer span.End()
@@ -726,14 +725,14 @@ func (c *SDKClientV4) GetVMInfo(ctx context.Context, vmID string) (*types.VMInfo
 		return nil, err
 	}
 
-	info := &types.VMInfo{
+	info := &types.VMInfo{ //nolint:exhaustruct // NetworkInfo is populated conditionally below
 		Config: vm.Config,
 		State:  vm.State,
 	}
 
 	// Add network info if available
 	if vm.NetworkInfo != nil {
-		info.NetworkInfo = &metaldv1.VmNetworkInfo{
+		info.NetworkInfo = &metaldv1.VmNetworkInfo{ //nolint:exhaustruct // Optional fields are not needed for basic network info
 			IpAddress:  vm.NetworkInfo.IPAddress.String(),
 			MacAddress: vm.NetworkInfo.MacAddress,
 			TapDevice:  vm.NetworkInfo.TapDevice,
@@ -794,7 +793,7 @@ func (c *SDKClientV4) readFirecrackerMetrics(ctx context.Context, vmID string) (
 
 	// Construct FIFO path
 	fifoPath := filepath.Join(c.jailerConfig.ChrootBaseDir, "firecracker", vmID, "root", "metrics.fifo")
-	
+
 	// Try to read from FIFO (with timeout for blocking read)
 	file, err := os.OpenFile(fifoPath, os.O_RDONLY, 0)
 	if err != nil {
@@ -823,11 +822,11 @@ func (c *SDKClientV4) readFirecrackerMetrics(ctx context.Context, vmID string) (
 		err     error
 	}
 	resultCh := make(chan result, 1)
-	
+
 	go func() {
 		decoder := json.NewDecoder(file)
 		var fcMetrics FirecrackerMetrics
-		
+
 		// AIDEV-NOTE: Firecracker writes periodic JSON objects to the FIFO
 		// We might start reading in the middle of a JSON object, so we need to
 		// keep trying until we get a complete, valid JSON object
@@ -842,7 +841,7 @@ func (c *SDKClientV4) readFirecrackerMetrics(ctx context.Context, vmID string) (
 				resultCh <- result{metrics: nil, err: err}
 				return
 			}
-			
+
 			// Successfully decoded a complete JSON object
 			resultCh <- result{metrics: &fcMetrics, err: nil}
 			return
@@ -869,7 +868,7 @@ func (c *SDKClientV4) readFirecrackerMetrics(ctx context.Context, vmID string) (
 			}, nil
 		}
 		fcMetrics = res.metrics
-		
+
 	case <-time.After(2 * time.Second):
 		// Timeout - no metrics available within timeout
 		c.logger.DebugContext(ctx, "timeout reading metrics FIFO",
@@ -973,18 +972,18 @@ func copyFileWithOwnership(src, dst string, uid, gid int) error {
 	if output, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("cp command failed: %w, output: %s", err, output)
 	}
-	
+
 	// Set permissions
 	if err := os.Chmod(dst, 0644); err != nil {
 		return fmt.Errorf("failed to set permissions on %s: %w", dst, err)
 	}
-	
+
 	// Set ownership
 	if err := os.Chown(dst, uid, gid); err != nil {
 		// Log but don't fail - might work anyway
 		return nil
 	}
-	
+
 	return nil
 }
 

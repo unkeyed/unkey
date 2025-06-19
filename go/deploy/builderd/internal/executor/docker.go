@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -14,7 +15,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
-	builderv1 "github.com/unkeyed/unkey/go/deploy/builderd/gen/proto/builder/v1"
+	builderv1 "github.com/unkeyed/unkey/go/deploy/builderd/gen/builder/v1"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/observability"
 )
@@ -50,7 +51,7 @@ func (d *DockerExecutor) ExtractDockerImage(ctx context.Context, request *builde
 
 	logger := d.logger.With(
 		slog.String("tenant_id", tenantID),
-		slog.String("image_uri", request.Config.Source.GetDockerImage().ImageUri),
+		slog.String("image_uri", request.GetConfig().GetSource().GetDockerImage().GetImageUri()),
 	)
 
 	logger.InfoContext(ctx, "starting Docker image extraction")
@@ -65,7 +66,7 @@ func (d *DockerExecutor) ExtractDockerImage(ctx context.Context, request *builde
 		logger.InfoContext(ctx, "Docker image extraction completed", slog.Duration("duration", duration))
 	}()
 
-	dockerSource := request.Config.Source.GetDockerImage()
+	dockerSource := request.GetConfig().GetSource().GetDockerImage()
 	if dockerSource == nil {
 		return nil, fmt.Errorf("docker image source is required")
 	}
@@ -93,7 +94,7 @@ func (d *DockerExecutor) ExtractDockerImage(ctx context.Context, request *builde
 	}
 
 	// Use the full image URI directly
-	fullImageName := dockerSource.ImageUri
+	fullImageName := dockerSource.GetImageUri()
 	if fullImageName == "" {
 		return nil, fmt.Errorf("docker image URI is required")
 	}
@@ -152,7 +153,7 @@ func (d *DockerExecutor) ExtractDockerImage(ctx context.Context, request *builde
 	}
 
 	// Create build result
-	result := &BuildResult{
+	result := &BuildResult{ //nolint:exhaustruct // Error, Metadata, and Metrics fields are set after successful build
 		BuildID:      buildID,
 		SourceType:   "docker",
 		SourceImage:  fullImageName,
@@ -478,7 +479,18 @@ func (d *DockerExecutor) optimizeRootfs(ctx context.Context, logger *slog.Logger
 	for _, pattern := range removePatterns {
 		fullPattern := filepath.Join(rootfsDir, pattern)
 
+		// Validate and sanitize the path before executing
+		if err := validateAndSanitizePath(rootfsDir, fullPattern); err != nil {
+			logger.WarnContext(ctx, "skipping unsafe pattern",
+				slog.String("pattern", pattern),
+				slog.String("error", err.Error()),
+			)
+			continue
+		}
+
 		// Use rm command to remove files matching pattern
+		// Note: fullPattern is now validated and sanitized
+		//nolint:gosec // G204: Path is validated and sanitized above to prevent injection
 		cmd := exec.CommandContext(ctx, "sh", "-c", fmt.Sprintf("rm -rf %s", fullPattern))
 		if err := cmd.Run(); err != nil {
 			logger.DebugContext(ctx, "failed to remove pattern",
@@ -599,4 +611,43 @@ func (d *DockerExecutor) Cleanup(ctx context.Context, buildID string) error {
 // generateBuildID generates a unique build ID
 func generateBuildID() string {
 	return fmt.Sprintf("build-%d", time.Now().UnixNano())
+}
+
+// validateAndSanitizePath validates that the target path is within the rootfs directory
+// and doesn't contain dangerous characters or path traversal attempts
+func validateAndSanitizePath(rootfsDir, targetPath string) error {
+	// Clean and resolve paths to prevent directory traversal
+	cleanRootfs := filepath.Clean(rootfsDir)
+	cleanTarget := filepath.Clean(targetPath)
+
+	// Ensure rootfs directory exists and is a directory
+	if info, err := os.Stat(cleanRootfs); err != nil {
+		return fmt.Errorf("rootfs directory does not exist: %w", err)
+	} else if !info.IsDir() {
+		return fmt.Errorf("rootfs path is not a directory: %s", cleanRootfs)
+	}
+
+	// Check that target path is within rootfs directory (prevent path traversal)
+	relPath, err := filepath.Rel(cleanRootfs, cleanTarget)
+	if err != nil {
+		return fmt.Errorf("invalid path relationship: %w", err)
+	}
+
+	// Ensure the relative path doesn't start with ".." (path traversal attempt)
+	if strings.HasPrefix(relPath, "..") || strings.Contains(relPath, "../") {
+		return fmt.Errorf("path traversal attempt detected: %s", relPath)
+	}
+
+	// Additional security: check for dangerous characters and sequences
+	dangerousPattern := regexp.MustCompile(`[;&|$\x60\\]|&&|\|\||>>|<<`)
+	if dangerousPattern.MatchString(cleanTarget) {
+		return fmt.Errorf("dangerous characters detected in path: %s", cleanTarget)
+	}
+
+	// Ensure path length is reasonable (prevent buffer overflow attacks)
+	if len(cleanTarget) > 4096 {
+		return fmt.Errorf("path too long: %d characters", len(cleanTarget))
+	}
+
+	return nil
 }

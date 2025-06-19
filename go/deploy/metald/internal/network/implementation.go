@@ -30,7 +30,7 @@ type Config struct {
 
 // DefaultConfig returns default network configuration
 func DefaultConfig() *Config {
-	return &Config{
+	return &Config{ //nolint:exhaustruct // EnableIPv6 field uses zero value (false) which is appropriate for default config
 		BridgeName:      "br-vms",
 		BridgeIP:        "10.100.0.1/16",
 		VMSubnet:        "10.100.0.0/16",
@@ -72,7 +72,7 @@ func NewManager(logger *slog.Logger, config *Config) (*Manager, error) {
 		return nil, fmt.Errorf("invalid subnet: %w", err)
 	}
 
-	m := &Manager{
+	m := &Manager{ //nolint:exhaustruct // mu, bridgeCreated, and iptablesRules fields use appropriate zero values
 		logger:     logger,
 		config:     config,
 		allocator:  NewIPAllocator(subnet),
@@ -101,7 +101,7 @@ func NewManager(logger *slog.Logger, config *Config) (*Manager, error) {
 // initializeHost sets up the host networking infrastructure
 func (m *Manager) initializeHost() error {
 	m.logger.Info("starting host network initialization")
-	
+
 	// Enable IP forwarding using sysctl (now running as root)
 	m.logger.Info("enabling IP forwarding")
 	cmd := exec.Command("sysctl", "-w", "net.ipv4.ip_forward=1")
@@ -112,20 +112,20 @@ func (m *Manager) initializeHost() error {
 		)
 		return fmt.Errorf("failed to enable IP forwarding: %w", err)
 	}
-	
+
 	// Make it persistent across reboots
 	// AIDEV-NOTE: Creates sysctl config to persist IP forwarding
 	sysctlConfig := []byte("# Enable IP forwarding for metald VM networking\nnet.ipv4.ip_forward = 1\n")
 	sysctlPath := "/etc/sysctl.d/99-metald.conf"
-	
-	if err := os.WriteFile(sysctlPath, sysctlConfig, 0644); err != nil {
+
+	if err := os.WriteFile(sysctlPath, sysctlConfig, 0600); err != nil {
 		m.logger.Warn("failed to create persistent sysctl config",
 			slog.String("path", sysctlPath),
 			slog.String("error", err.Error()),
 		)
 		// Not fatal - IP forwarding is enabled for this session
 	}
-	
+
 	m.logger.Info("IP forwarding enabled successfully")
 
 	// Create bridge if it doesn't exist
@@ -158,7 +158,7 @@ func (m *Manager) ensureBridge() error {
 	m.logger.Info("checking if bridge exists",
 		slog.String("bridge", m.config.BridgeName),
 	)
-	
+
 	// Check if bridge exists
 	if link, err := netlink.LinkByName(m.config.BridgeName); err == nil {
 		m.bridgeCreated = true
@@ -179,9 +179,9 @@ func (m *Manager) ensureBridge() error {
 	m.logger.Info("creating new bridge",
 		slog.String("bridge", m.config.BridgeName),
 	)
-	
-	bridge := &netlink.Bridge{
-		LinkAttrs: netlink.LinkAttrs{
+
+	bridge := &netlink.Bridge{ //nolint:exhaustruct // Only setting Name field, other bridge fields use appropriate defaults
+		LinkAttrs: netlink.LinkAttrs{ //nolint:exhaustruct // Only setting Name field, other link attributes use appropriate defaults
 			Name: m.config.BridgeName,
 		},
 	}
@@ -189,7 +189,7 @@ func (m *Manager) ensureBridge() error {
 	m.logger.Info("CRITICAL: About to create bridge - network may be affected",
 		slog.String("bridge", m.config.BridgeName),
 	)
-	
+
 	if err := netlink.LinkAdd(bridge); err != nil {
 		m.logger.Error("failed to create bridge",
 			slog.String("bridge", m.config.BridgeName),
@@ -254,7 +254,7 @@ func (m *Manager) ensureBridge() error {
 // setupNAT configures iptables NAT rules
 func (m *Manager) setupNAT() error {
 	m.logger.Info("setting up NAT rules")
-	
+
 	// Get the default route interface
 	m.logger.Info("listing routes to find default interface")
 	routes, err := netlink.RouteList(nil, netlink.FAMILY_V4)
@@ -320,7 +320,7 @@ func (m *Manager) setupNAT() error {
 			slog.Int("rule_number", i+1),
 			slog.String("rule", ruleStr),
 		)
-		
+
 		cmd := exec.Command("iptables", rule...)
 		if output, err := cmd.CombinedOutput(); err != nil {
 			m.logger.Error("failed to add iptables rule",
@@ -355,7 +355,7 @@ func (m *Manager) CreateVMNetworkWithNamespace(ctx context.Context, vmID, nsName
 		slog.String("namespace", nsName),
 	)
 	m.logNetworkState("before VM network creation")
-	
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -416,7 +416,7 @@ func (m *Manager) CreateVMNetworkWithNamespace(ctx context.Context, vmID, nsName
 	copy(gateway, subnet.IP)
 	gateway[len(gateway)-1] = 1
 
-	vmNet := &VMNetwork{
+	vmNet := &VMNetwork{ //nolint:exhaustruct // VLANID, IPv6Address, and Routes fields use appropriate zero values
 		VMID:       vmID,
 		NetworkID:  networkID,
 		Namespace:  actualNsName,
@@ -452,8 +452,8 @@ func (m *Manager) setupVMNetworking(nsName string, deviceNames *NetworkDeviceNam
 	vethNS := deviceNames.VethNS
 
 	// Create veth pair using netlink (preferred when running as root)
-	veth := &netlink.Veth{
-		LinkAttrs: netlink.LinkAttrs{Name: vethHost},
+	veth := &netlink.Veth{ //nolint:exhaustruct // Only setting required fields, other veth fields use appropriate defaults
+		LinkAttrs: netlink.LinkAttrs{Name: vethHost}, //nolint:exhaustruct // Only setting Name field, other link attributes use appropriate defaults
 		PeerName:  vethNS,
 	}
 
@@ -689,8 +689,8 @@ func (m *Manager) setupVMNetworking(nsName string, deviceNames *NetworkDeviceNam
 // createTAPDevice creates a TAP device in the host namespace
 func (m *Manager) createTAPDevice(tapName, mac string) error {
 	// Create TAP device
-	tap := &netlink.Tuntap{
-		LinkAttrs: netlink.LinkAttrs{
+	tap := &netlink.Tuntap{ //nolint:exhaustruct // Only setting required fields, other tap fields use appropriate defaults
+		LinkAttrs: netlink.LinkAttrs{ //nolint:exhaustruct // Only setting Name field, other link attributes use appropriate defaults
 			Name: tapName,
 		},
 		Mode: netlink.TUNTAP_MODE_TAP,
@@ -795,7 +795,7 @@ func (m *Manager) configureNamespace(ns netns.NsHandle, vethName string, ip net.
 	// AIDEV-NOTE: Simplified networking - no bridge needed inside namespace
 	// The veth device will handle routing between host and VM
 	// The TAP device is created in the host namespace for firecracker access
-	
+
 	// Bring up veth interface
 	if err := netlink.LinkSetUp(vethLink); err != nil {
 		return fmt.Errorf("failed to bring up veth: %w", err)
@@ -804,7 +804,7 @@ func (m *Manager) configureNamespace(ns netns.NsHandle, vethName string, ip net.
 	// Add IP directly to veth interface
 	// AIDEV-NOTE: The veth acts as the default gateway for the VM
 	// Using /16 to match the host bridge subnet
-	addr := &netlink.Addr{
+	addr := &netlink.Addr{ //nolint:exhaustruct // Only setting IPNet field, other address fields use appropriate defaults
 		IPNet: &net.IPNet{
 			IP:   ip,
 			Mask: net.CIDRMask(16, 32), // Use /16 to match the bridge subnet
@@ -817,7 +817,7 @@ func (m *Manager) configureNamespace(ns netns.NsHandle, vethName string, ip net.
 	// Enable proxy ARP on veth so it responds to ARP requests for the VM
 	// AIDEV-NOTE: This is necessary when not using a bridge
 	proxyARPPath := fmt.Sprintf("/proc/sys/net/ipv4/conf/%s/proxy_arp", vethName)
-	if err := os.WriteFile(proxyARPPath, []byte("1\n"), 0644); err != nil {
+	if err := os.WriteFile(proxyARPPath, []byte("1\n"), 0600); err != nil {
 		m.logger.Warn("failed to enable proxy ARP on veth",
 			slog.String("veth", vethName),
 			slog.String("error", err.Error()),
@@ -831,7 +831,7 @@ func (m *Manager) configureNamespace(ns netns.NsHandle, vethName string, ip net.
 	copy(gateway, subnet.IP)
 	gateway[len(gateway)-1] = 1
 
-	route := &netlink.Route{
+	route := &netlink.Route{ //nolint:exhaustruct // Only setting Dst and Gw fields for default route, other route fields use appropriate defaults
 		Dst: nil, // default route
 		Gw:  gateway,
 	}
@@ -843,6 +843,7 @@ func (m *Manager) configureNamespace(ns netns.NsHandle, vethName string, ip net.
 }
 
 // applyRateLimit applies traffic shaping to the interface
+//nolint:unused // Reserved for future rate limiting implementation
 func (m *Manager) applyRateLimit(link netlink.Link, mbps int) {
 	// Use tc (traffic control) to limit bandwidth
 	// This is a simplified example - production would use netlink directly
@@ -886,7 +887,7 @@ func (m *Manager) DeleteVMNetwork(ctx context.Context, vmID string) error {
 	m.logger.InfoContext(ctx, "deleting VM network",
 		slog.String("vm_id", vmID),
 	)
-	
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -997,7 +998,7 @@ func (m *Manager) createNamespace(name string) error {
 	defer origNS.Close()
 
 	m.logger.Info("creating network namespace", slog.String("namespace", name))
-	
+
 	// Create new namespace
 	newNS, err := netns.NewNamed(name)
 	if err != nil {
@@ -1053,7 +1054,7 @@ func (m *Manager) cleanupIPTables() {
 	m.logger.Info("starting iptables cleanup",
 		slog.Int("rules_to_remove", len(m.iptablesRules)),
 	)
-	
+
 	// Remove our iptables rules in reverse order
 	for i := len(m.iptablesRules) - 1; i >= 0; i-- {
 		rule := m.iptablesRules[i]
@@ -1140,6 +1141,7 @@ func (m *Manager) GetNetworkStats(vmID string) (*NetworkStats, error) {
 }
 
 // isValidInterfaceName validates that an interface name is safe to use in commands
+//nolint:unused // Used by applyRateLimit function which is reserved for future implementation
 func isValidInterfaceName(name string) bool {
 	// Linux interface names must be 1-15 characters
 	if len(name) == 0 || len(name) > 15 {

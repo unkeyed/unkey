@@ -35,7 +35,7 @@ type VMService struct {
 // NewVMService creates a new VM service instance
 func NewVMService(backend types.Backend, logger *slog.Logger, metricsCollector *billing.MetricsCollector, vmMetrics *observability.VMMetrics, vmRepo *database.VMRepository) *VMService {
 	tracer := otel.Tracer("metald.service.vm")
-	return &VMService{
+	return &VMService{ //nolint:exhaustruct // UnimplementedVmServiceHandler is embedded and provides default implementations
 		backend:          backend,
 		logger:           logger.With("service", "vm"),
 		metricsCollector: metricsCollector,
@@ -625,7 +625,7 @@ func (s *VMService) GetVmInfo(ctx context.Context, req *connect.Request[metaldv1
 		slog.String("state", info.State.String()),
 	)
 
-	return connect.NewResponse(&metaldv1.GetVmInfoResponse{
+	return connect.NewResponse(&metaldv1.GetVmInfoResponse{ //nolint:exhaustruct // Metrics and BackendInfo fields are optional and not populated in this response
 		VmId:        vmID,
 		Config:      info.Config,
 		State:       info.State,
@@ -673,7 +673,7 @@ func (s *VMService) ListVms(ctx context.Context, req *connect.Request[metaldv1.L
 
 	// Convert database VMs to protobuf format
 	for _, vm := range dbVMs {
-		vmInfo := &metaldv1.VmInfo{
+		vmInfo := &metaldv1.VmInfo{ //nolint:exhaustruct // Optional fields are populated conditionally below based on available data
 			VmId:       vm.ID,
 			State:      vm.State,
 			CustomerId: vm.CustomerID,
@@ -703,7 +703,7 @@ func (s *VMService) ListVms(ctx context.Context, req *connect.Request[metaldv1.L
 		slog.Int("count", int(totalCount)),
 	)
 
-	return connect.NewResponse(&metaldv1.ListVmsResponse{
+	return connect.NewResponse(&metaldv1.ListVmsResponse{ //nolint:exhaustruct // NextPageToken field not used as pagination is not implemented yet
 		Vms:        vms,
 		TotalCount: totalCount,
 	}), nil

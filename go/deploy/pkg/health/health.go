@@ -1,4 +1,4 @@
-// Package health provides a unified health check implementation for all services
+// Package health provides HTTP health check handlers.
 package health
 
 import (
@@ -7,15 +7,24 @@ import (
 	"time"
 )
 
-// Response represents a standardized health check response
+// Response represents a health check response.
 type Response struct {
-	Status  string  `json:"status"`
-	Service string  `json:"service"`
-	Version string  `json:"version"`
-	Uptime  float64 `json:"uptime_seconds"`
+	// Status is the health status, typically "ok".
+	Status string `json:"status"`
+
+	// Service is the service name.
+	Service string `json:"service"`
+
+	// Version is the service version.
+	Version string `json:"version"`
+
+	// Uptime is the service uptime in seconds.
+	Uptime float64 `json:"uptime_seconds"`
 }
 
-// Handler creates a standard health check handler
+// Handler returns an HTTP handler that responds with JSON health status.
+// The handler calculates uptime from startTime and always returns 200 OK.
+// If JSON encoding fails, it returns "OK" as plain text.
 func Handler(serviceName, version string, startTime time.Time) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		response := Response{
@@ -36,8 +45,8 @@ func Handler(serviceName, version string, startTime time.Time) http.HandlerFunc 
 	}
 }
 
-// SimpleHandler creates a basic health check that just returns OK
-// This is useful for load balancers that don't need JSON
+// SimpleHandler returns an HTTP handler that responds with "OK" as plain text.
+// The handler always returns 200 OK with no JSON overhead.
 func SimpleHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

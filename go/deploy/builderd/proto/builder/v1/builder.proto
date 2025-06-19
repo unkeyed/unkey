@@ -4,7 +4,7 @@ package builder.v1;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/unkeyed/unkey/go/deploy/builderd/gen/proto/builder/v1;builderv1";
+option go_package = "github.com/unkeyed/unkey/go/deploy/builderd/gen/builder/v1;builderv1";
 
 // BuilderService provides multi-tenant build execution for various source types
 service BuilderService {

@@ -124,7 +124,7 @@ if systemctl is-active --quiet spire-agent; then
 
     # Show agent info
     echo -e "\n${YELLOW}Agent Health Check:${NC}"
-    curl -sv http://localhost:8084/live && echo || echo "Health check endpoint not ready yet"
+    curl -sv http://localhost:9991/live && echo || echo "Health check endpoint not ready yet"
 
     echo -e "\n${YELLOW}Next steps:${NC}"
     echo "1. Register services: make register-services"

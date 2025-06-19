@@ -57,11 +57,12 @@ type Config struct {
 	TLSCertFile         string `env:"UNKEY_ASSETMANAGERD_TLS_CERT_FILE"`
 	TLSKeyFile          string `env:"UNKEY_ASSETMANAGERD_TLS_KEY_FILE"`
 	TLSCAFile           string `env:"UNKEY_ASSETMANAGERD_TLS_CA_FILE"`
-	TLSSPIFFESocketPath string `env:"UNKEY_ASSETMANAGERD_SPIFFE_SOCKET" envDefault:"/run/spire/sockets/agent.sock"`
+	TLSSPIFFESocketPath string `env:"UNKEY_ASSETMANAGERD_SPIFFE_SOCKET" envDefault:"/var/lib/spire/agent/agent.sock"`
 }
 
 // Load loads configuration from environment variables
 func Load() (*Config, error) {
+	//nolint:exhaustruct // Config fields will be populated by environment variables
 	cfg := &Config{}
 	if err := env.Parse(cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse config: %w", err)

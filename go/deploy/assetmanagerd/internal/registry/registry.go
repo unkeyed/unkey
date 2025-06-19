@@ -117,7 +117,7 @@ func (r *Registry) initSchema() error {
 // CreateAsset creates a new asset record
 func (r *Registry) CreateAsset(asset *assetv1.Asset) error {
 	// Generate ID if not provided
-	if asset.Id == "" {
+	if asset.GetId() == "" {
 		asset.Id = ulid.Make().String()
 	}
 
@@ -137,20 +137,20 @@ func (r *Registry) CreateAsset(asset *assetv1.Asset) error {
 	`
 
 	_, err = tx.Exec(query,
-		asset.Id, asset.Name, asset.Type, asset.Status, asset.Backend,
-		asset.Location, asset.SizeBytes, asset.Checksum,
-		asset.CreatedBy, asset.CreatedAt, asset.LastAccessedAt, asset.ReferenceCount,
-		asset.BuildId, asset.SourceImage,
+		asset.GetId(), asset.GetName(), asset.GetType(), asset.GetStatus(), asset.GetBackend(),
+		asset.GetLocation(), asset.GetSizeBytes(), asset.GetChecksum(),
+		asset.GetCreatedBy(), asset.GetCreatedAt(), asset.GetLastAccessedAt(), asset.GetReferenceCount(),
+		asset.GetBuildId(), asset.GetSourceImage(),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to insert asset: %w", err)
 	}
 
 	// Insert labels
-	for key, value := range asset.Labels {
+	for key, value := range asset.GetLabels() {
 		_, err = tx.Exec(
 			"INSERT INTO asset_labels (asset_id, key, value) VALUES (?, ?, ?)",
-			asset.Id, key, value,
+			asset.GetId(), key, value,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to insert label %s=%s: %w", key, value, err)
@@ -162,9 +162,9 @@ func (r *Registry) CreateAsset(asset *assetv1.Asset) error {
 	}
 
 	r.logger.Info("created asset",
-		slog.String("id", asset.Id),
-		slog.String("name", asset.Name),
-		slog.String("type", asset.Type.String()),
+		slog.String("id", asset.GetId()),
+		slog.String("name", asset.GetName()),
+		slog.String("type", asset.GetType().String()),
 	)
 
 	return nil
@@ -172,6 +172,7 @@ func (r *Registry) CreateAsset(asset *assetv1.Asset) error {
 
 // GetAsset retrieves an asset by ID
 func (r *Registry) GetAsset(id string) (*assetv1.Asset, error) {
+	//nolint:exhaustruct // Asset fields will be populated from database
 	asset := &assetv1.Asset{
 		Labels: make(map[string]string),
 	}
@@ -241,27 +242,27 @@ func (r *Registry) UpdateAsset(asset *assetv1.Asset) error {
 	`
 
 	_, err = tx.Exec(query,
-		asset.Name, asset.Type, asset.Status, asset.Backend, asset.Location,
-		asset.SizeBytes, asset.Checksum, asset.LastAccessedAt,
-		asset.ReferenceCount, asset.BuildId, asset.SourceImage,
-		asset.Id,
+		asset.GetName(), asset.GetType(), asset.GetStatus(), asset.GetBackend(), asset.GetLocation(),
+		asset.GetSizeBytes(), asset.GetChecksum(), asset.GetLastAccessedAt(),
+		asset.GetReferenceCount(), asset.GetBuildId(), asset.GetSourceImage(),
+		asset.GetId(),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update asset: %w", err)
 	}
 
 	// Update labels (delete and re-insert)
-	if _, err := tx.Exec("DELETE FROM asset_labels WHERE asset_id = ?", asset.Id); err != nil {
+	if _, err := tx.Exec("DELETE FROM asset_labels WHERE asset_id = ?", asset.GetId()); err != nil {
 		return fmt.Errorf("failed to delete labels: %w", err)
 	}
 
-	for key, value := range asset.Labels {
-		_, err = tx.Exec(
+	for key, value := range asset.GetLabels() {
+		_, labelErr := tx.Exec(
 			"INSERT INTO asset_labels (asset_id, key, value) VALUES (?, ?, ?)",
-			asset.Id, key, value,
+			asset.GetId(), key, value,
 		)
-		if err != nil {
-			return fmt.Errorf("failed to insert label %s=%s: %w", key, value, err)
+		if labelErr != nil {
+			return fmt.Errorf("failed to insert label %s=%s: %w", key, value, labelErr)
 		}
 	}
 

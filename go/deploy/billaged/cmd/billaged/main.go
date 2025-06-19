@@ -84,7 +84,7 @@ func main() {
 	}
 
 	// Initialize structured logger
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{ //nolint:exhaustruct // AddSource and ReplaceAttr use appropriate default values
 		Level: slog.LevelInfo,
 	}))
 	slog.SetDefault(logger)
@@ -120,7 +120,7 @@ func main() {
 
 	// Initialize TLS provider (defaults to disabled)
 	ctx := context.Background()
-	tlsConfig := tlspkg.Config{
+	tlsConfig := tlspkg.Config{ //nolint:exhaustruct // Optional TLS fields use appropriate default values
 		Mode:             tlspkg.Mode(cfg.TLS.Mode),
 		CertFile:         cfg.TLS.CertFile,
 		KeyFile:          cfg.TLS.KeyFile,
@@ -213,7 +213,6 @@ func main() {
 	)
 	mux.Handle(path, handler)
 
-
 	// Add stats endpoint
 	mux.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
 		activeVMs := agg.GetActiveVMCount()
@@ -252,7 +251,7 @@ func main() {
 	// Configure server with optional TLS and security timeouts
 	server := &http.Server{
 		Addr:    serverAddr,
-		Handler: h2c.NewHandler(httpHandler, &http2.Server{}),
+		Handler: h2c.NewHandler(httpHandler, &http2.Server{}), //nolint:exhaustruct // Using default HTTP/2 server configuration
 		// AIDEV-NOTE: Security timeouts to prevent slowloris attacks
 		ReadTimeout:    30 * time.Second,  // Time to read request headers
 		WriteTimeout:   30 * time.Second,  // Time to write response
@@ -478,19 +477,19 @@ func printUsage() {
 	fmt.Printf("Options:\n")
 	flag.PrintDefaults()
 	fmt.Printf("\nEnvironment Variables:\n")
-	fmt.Printf("  BILLAGED_PORT                         Server port (default: 8081)\n")
-	fmt.Printf("  BILLAGED_ADDRESS                      Bind address (default: 0.0.0.0)\n")
-	fmt.Printf("  BILLAGED_AGGREGATION_INTERVAL         Aggregation interval (default: 60s)\n")
+	fmt.Printf("  UNKEY_BILLAGED_PORT                         Server port (default: 8081)\n")
+	fmt.Printf("  UNKEY_BILLAGED_ADDRESS                      Bind address (default: 0.0.0.0)\n")
+	fmt.Printf("  UNKEY_BILLAGED_AGGREGATION_INTERVAL         Aggregation interval (default: 60s)\n")
 	fmt.Printf("\nOpenTelemetry Configuration:\n")
-	fmt.Printf("  BILLAGED_OTEL_ENABLED                 Enable OpenTelemetry (default: false)\n")
-	fmt.Printf("  BILLAGED_OTEL_SERVICE_NAME            Service name (default: billaged)\n")
-	fmt.Printf("  BILLAGED_OTEL_SERVICE_VERSION         Service version (default: 0.0.1)\n")
-	fmt.Printf("  BILLAGED_OTEL_SAMPLING_RATE           Trace sampling rate 0.0-1.0 (default: 1.0)\n")
-	fmt.Printf("  BILLAGED_OTEL_ENDPOINT                OTLP endpoint (default: localhost:4318)\n")
-	fmt.Printf("  BILLAGED_OTEL_PROMETHEUS_ENABLED      Enable Prometheus metrics (default: true)\n")
-	fmt.Printf("  BILLAGED_OTEL_PROMETHEUS_PORT         Prometheus metrics port (default: 9465)\n")
-	fmt.Printf("  BILLAGED_OTEL_PROMETHEUS_INTERFACE    Prometheus binding interface (default: 127.0.0.1)\n")
-	fmt.Printf("  BILLAGED_OTEL_HIGH_CARDINALITY_ENABLED  Enable high-cardinality labels (default: false)\n")
+	fmt.Printf("  UNKEY_BILLAGED_OTEL_ENABLED                 Enable OpenTelemetry (default: false)\n")
+	fmt.Printf("  UNKEY_BILLAGED_OTEL_SERVICE_NAME            Service name (default: billaged)\n")
+	fmt.Printf("  UNKEY_BILLAGED_OTEL_SERVICE_VERSION         Service version (default: 0.0.1)\n")
+	fmt.Printf("  UNKEY_BILLAGED_OTEL_SAMPLING_RATE           Trace sampling rate 0.0-1.0 (default: 1.0)\n")
+	fmt.Printf("  UNKEY_BILLAGED_OTEL_ENDPOINT                OTLP endpoint (default: localhost:4318)\n")
+	fmt.Printf("  UNKEY_BILLAGED_OTEL_PROMETHEUS_ENABLED      Enable Prometheus metrics (default: true)\n")
+	fmt.Printf("  UNKEY_BILLAGED_OTEL_PROMETHEUS_PORT         Prometheus metrics port (default: 9465)\n")
+	fmt.Printf("  UNKEY_BILLAGED_OTEL_PROMETHEUS_INTERFACE    Prometheus binding interface (default: 127.0.0.1)\n")
+	fmt.Printf("  UNKEY_BILLAGED_OTEL_HIGH_CARDINALITY_ENABLED  Enable high-cardinality labels (default: false)\n")
 	fmt.Printf("\nTLS Configuration:\n")
 	fmt.Printf("  UNKEY_BILLAGED_TLS_MODE               TLS mode: disabled, file, spiffe (default: disabled)\n")
 	fmt.Printf("  UNKEY_BILLAGED_TLS_CERT_FILE          Path to certificate file (file mode)\n")
@@ -508,6 +507,6 @@ func printUsage() {
 	fmt.Printf("  /metrics                      - Prometheus metrics (if enabled)\n\n")
 	fmt.Printf("Examples:\n")
 	fmt.Printf("  %s                                    # Default settings (port 8081)\n", os.Args[0])
-	fmt.Printf("  BILLAGED_OTEL_ENABLED=true %s        # Enable telemetry\n", os.Args[0])
-	fmt.Printf("  BILLAGED_AGGREGATION_INTERVAL=30s %s # 30-second summaries\n", os.Args[0])
+	fmt.Printf("  UNKEY_BILLAGED_OTEL_ENABLED=true %s        # Enable telemetry\n", os.Args[0])
+	fmt.Printf("  UNKEY_BILLAGED_AGGREGATION_INTERVAL=30s %s # 30-second summaries\n", os.Args[0])
 }

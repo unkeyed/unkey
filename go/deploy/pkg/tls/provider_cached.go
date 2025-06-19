@@ -9,31 +9,27 @@ import (
 	"time"
 )
 
-// AIDEV-NOTE: Cached certificate provider for performance optimization
-// Balances security (frequent rotation checks) with performance (avoiding disk I/O on every connection)
-
-// cachedCert holds a certificate with expiration time
+// cachedCert holds a certificate with expiration time for caching.
 type cachedCert struct {
 	cert     *tls.Certificate
 	loadedAt time.Time
 	cacheTTL time.Duration
 }
 
-// isExpired checks if the cached certificate should be reloaded
+// isExpired reports whether the cached certificate should be reloaded.
 func (c *cachedCert) isExpired() bool {
 	return time.Since(c.loadedAt) > c.cacheTTL
 }
 
-// cachedFileProvider wraps fileProvider with caching
+// cachedFileProvider wraps fileProvider with certificate caching for performance.
 type cachedFileProvider struct {
 	*fileProvider
-	mu    sync.RWMutex
-	cache *cachedCert
-	// Configuration
+	mu       sync.RWMutex
+	cache    *cachedCert
 	cacheTTL time.Duration
 }
 
-// newCachedFileProvider creates a file provider with certificate caching
+// newCachedFileProvider creates a file provider with certificate caching enabled.
 func newCachedFileProvider(cfg Config, cacheTTL time.Duration) (Provider, error) {
 	base, err := newFileProvider(cfg)
 	if err != nil {
@@ -51,7 +47,7 @@ func newCachedFileProvider(cfg Config, cacheTTL time.Duration) (Provider, error)
 	}, nil
 }
 
-// loadTLSConfigCached returns cached config or loads fresh one
+// loadTLSConfigCached returns cached TLS configuration or loads fresh certificates.
 func (p *cachedFileProvider) loadTLSConfigCached() (*tls.Config, error) {
 	if p.certFile == "" || p.keyFile == "" {
 		return nil, nil
@@ -60,7 +56,6 @@ func (p *cachedFileProvider) loadTLSConfigCached() (*tls.Config, error) {
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS13,
 		GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
-			// Fast path - check cache with read lock
 			p.mu.RLock()
 			if p.cache != nil && !p.cache.isExpired() {
 				cert := p.cache.cert
@@ -69,29 +64,21 @@ func (p *cachedFileProvider) loadTLSConfigCached() (*tls.Config, error) {
 			}
 			p.mu.RUnlock()
 
-			// Slow path - load certificate with write lock
 			p.mu.Lock()
 			defer p.mu.Unlock()
 
-			// Double-check after acquiring write lock
 			if p.cache != nil && !p.cache.isExpired() {
 				return p.cache.cert, nil
 			}
 
-			// Load fresh certificate
 			cert, err := tls.LoadX509KeyPair(p.certFile, p.keyFile)
 			if err != nil {
-				// AIDEV-NOTE: If cert loading fails but we have cached cert, use it
-				// This provides resilience during brief filesystem issues
 				if p.cache != nil && p.cache.cert != nil {
-					// Log warning but continue with stale cert
-					// In production, this should trigger an alert
 					return p.cache.cert, nil
 				}
 				return nil, fmt.Errorf("load cert/key: %w", err)
 			}
 
-			// Update cache
 			p.cache = &cachedCert{
 				cert:     &cert,
 				loadedAt: time.Now(),
@@ -107,9 +94,7 @@ func (p *cachedFileProvider) loadTLSConfigCached() (*tls.Config, error) {
 		},
 	}
 
-	// Handle CA and mutual TLS same as before
 	if p.caFile != "" {
-		// This part doesn't change frequently, so we can load it once
 		caCert, err := os.ReadFile(p.caFile)
 		if err != nil {
 			return nil, fmt.Errorf("read CA file: %w", err)
@@ -136,14 +121,13 @@ func (p *cachedFileProvider) ClientTLSConfig() (*tls.Config, error) {
 	return p.loadTLSConfigCached()
 }
 
-// Optional: Add metrics for cache hit/miss ratio
+// cacheMetrics tracks cache performance statistics.
 type cacheMetrics struct {
 	hits   uint64
 	misses uint64
 }
 
-// GetCacheMetrics returns cache performance metrics
+// GetCacheMetrics returns cache hit and miss counts for monitoring.
 func (p *cachedFileProvider) GetCacheMetrics() (hits, misses uint64) {
-	// Implementation would track hits/misses in GetCertificate
 	return 0, 0
 }

@@ -12,8 +12,14 @@ Type=simple
 User=root
 Group=root
 WorkingDirectory=/opt/metald
-# Ensure network namespace directory exists (requires root)
+# Create required directories (requires root)
 ExecStartPre=+/bin/mkdir -p /run/netns
+ExecStartPre=+/bin/mkdir -p /opt/metald/sockets
+ExecStartPre=+/bin/mkdir -p /opt/metald/logs
+ExecStartPre=+/bin/mkdir -p /opt/metald/assets
+ExecStartPre=+/bin/mkdir -p /srv/jailer
+ExecStartPre=+/bin/mkdir -p /var/log/metald
+ExecStartPre=+/bin/mkdir -p /opt/vm-assets
 ExecStart=/usr/local/bin/metald
 Restart=always
 RestartSec=5

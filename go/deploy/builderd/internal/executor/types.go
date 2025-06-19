@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	builderv1 "github.com/unkeyed/unkey/go/deploy/builderd/gen/proto/builder/v1"
+	builderv1 "github.com/unkeyed/unkey/go/deploy/builderd/gen/builder/v1"
 )
 
 // Executor defines the interface for build executors
@@ -110,7 +110,7 @@ const (
 
 // NewBuildError creates a new build error
 func NewBuildError(errorType, message string) *BuildError {
-	return &BuildError{
+	return &BuildError{ //nolint:exhaustruct // Details field is optional and can be added via WithDetails() method
 		Type:    errorType,
 		Message: message,
 	}

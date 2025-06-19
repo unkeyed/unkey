@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	builderv1 "github.com/unkeyed/unkey/go/deploy/builderd/gen/proto/builder/v1"
+	builderv1 "github.com/unkeyed/unkey/go/deploy/builderd/gen/builder/v1"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/config"
 )
 
@@ -93,7 +93,7 @@ type StorageConfig struct {
 
 // NewManager creates a new tenant manager
 func NewManager(logger *slog.Logger, cfg *config.Config) *Manager {
-	manager := &Manager{
+	manager := &Manager{ //nolint:exhaustruct // tenantConfigs is sync.Map (zero-value), mutex is sync.RWMutex (zero-value), cleanupTicker set below
 		logger:         logger,
 		config:         cfg,
 		activeBuilds:   make(map[string]int32),
@@ -122,7 +122,7 @@ func (m *Manager) GetTenantConfig(ctx context.Context, tenantID string, tier bui
 
 	// Create new tenant config - no manual locking needed with sync.Map
 
-	config := &TenantConfig{
+	config := &TenantConfig{ //nolint:exhaustruct // CustomerID is optional and not required for basic tenant configuration
 		TenantID:  tenantID,
 		Tier:      tier,
 		Limits:    m.getTierLimits(tier),
@@ -274,7 +274,7 @@ func (m *Manager) GetUsageStats(ctx context.Context, tenantID string) *UsageStat
 
 	today := time.Now().Format("2006-01-02")
 
-	stats := &UsageStats{
+	stats := &UsageStats{ //nolint:exhaustruct // DailyBuildsUsed and ComputeMinutesUsed are populated conditionally below based on existence
 		TenantID:         tenantID,
 		ActiveBuilds:     m.activeBuilds[tenantID],
 		StorageBytesUsed: m.storageUsage[tenantID],
@@ -295,6 +295,9 @@ func (m *Manager) GetUsageStats(ctx context.Context, tenantID string) *UsageStat
 // getTierLimits returns resource limits based on tenant tier
 func (m *Manager) getTierLimits(tier builderv1.TenantTier) TenantLimits {
 	switch tier {
+	case builderv1.TenantTier_TENANT_TIER_UNSPECIFIED:
+		// Default to free tier limits for unspecified
+		return m.getTierLimits(builderv1.TenantTier_TENANT_TIER_FREE)
 	case builderv1.TenantTier_TENANT_TIER_FREE:
 		return TenantLimits{
 			MaxConcurrentBuilds:  1,
@@ -360,6 +363,9 @@ func (m *Manager) getTierLimits(tier builderv1.TenantTier) TenantLimits {
 // getNetworkPolicy returns network policy based on tenant tier
 func (m *Manager) getNetworkPolicy(tier builderv1.TenantTier) NetworkPolicy {
 	switch tier {
+	case builderv1.TenantTier_TENANT_TIER_UNSPECIFIED:
+		// Default to free tier policy for unspecified
+		return m.getNetworkPolicy(builderv1.TenantTier_TENANT_TIER_FREE)
 	case builderv1.TenantTier_TENANT_TIER_FREE:
 		return NetworkPolicy{
 			AllowExternalNetwork: false,
@@ -384,6 +390,9 @@ func (m *Manager) getNetworkPolicy(tier builderv1.TenantTier) NetworkPolicy {
 // getStorageConfig returns storage configuration based on tenant tier
 func (m *Manager) getStorageConfig(tier builderv1.TenantTier) StorageConfig {
 	switch tier {
+	case builderv1.TenantTier_TENANT_TIER_UNSPECIFIED:
+		// Default to free tier storage config for unspecified
+		return m.getStorageConfig(builderv1.TenantTier_TENANT_TIER_FREE)
 	case builderv1.TenantTier_TENANT_TIER_FREE, builderv1.TenantTier_TENANT_TIER_PRO:
 		return StorageConfig{
 			IsolationEnabled:   true,

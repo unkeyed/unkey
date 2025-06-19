@@ -9,6 +9,14 @@ Type=simple
 User=assetmanagerd
 Group=assetmanagerd
 WorkingDirectory=/opt/assetmanagerd
+# Create required directories (+ prefix runs as root)
+ExecStartPre=+/bin/mkdir -p /opt/assetmanagerd/cache
+ExecStartPre=+/bin/mkdir -p /opt/vm-assets
+ExecStartPre=+/bin/mkdir -p /var/log/assetmanagerd
+# Set ownership for service directories
+ExecStartPre=+/bin/chown -R assetmanagerd:assetmanagerd /opt/assetmanagerd
+ExecStartPre=+/bin/chown -R assetmanagerd:assetmanagerd /opt/vm-assets
+ExecStartPre=+/bin/chown -R assetmanagerd:assetmanagerd /var/log/assetmanagerd
 ExecStart=/usr/local/bin/assetmanagerd
 Restart=always
 RestartSec=5

@@ -12,7 +12,12 @@ import (
 	"syscall"
 	"time"
 
-	builderv1 "github.com/unkeyed/unkey/go/deploy/builderd/gen/proto/builder/v1"
+	builderv1 "github.com/unkeyed/unkey/go/deploy/builderd/gen/builder/v1"
+)
+
+const (
+	// NetworkModeNone disables all network access
+	NetworkModeNone = "none"
 )
 
 // ProcessIsolator handles process-level isolation for builds
@@ -117,8 +122,8 @@ func (p *ProcessIsolator) CreateIsolatedDockerCommand(
 
 	// Network isolation
 	switch constraints.NetworkMode {
-	case "none":
-		args = append(args, "--network", "none")
+	case NetworkModeNone:
+		args = append(args, "--network", NetworkModeNone)
 	case "isolated":
 		args = append(args, "--network", fmt.Sprintf("builderd-tenant-%s", tenantID))
 	default:
@@ -170,7 +175,7 @@ func (p *ProcessIsolator) buildConstraints(config *TenantConfig, buildID string)
 	}
 
 	// Determine network mode based on tier
-	networkMode := "none"
+	networkMode := NetworkModeNone
 	if config.Limits.AllowExternalNetwork {
 		networkMode = "isolated"
 	}
@@ -181,7 +186,7 @@ func (p *ProcessIsolator) buildConstraints(config *TenantConfig, buildID string)
 		maxTempSize = 100 * 1024 * 1024
 	}
 
-	return BuildConstraints{
+	return BuildConstraints{ //nolint:exhaustruct // BlockedDomains is optional and not configured via environment defaults
 		MaxMemoryBytes:      config.Limits.MaxMemoryBytes,
 		MaxCPUCores:         config.Limits.MaxCPUCores,
 		MaxDiskBytes:        config.Limits.MaxDiskBytes,
@@ -202,12 +207,23 @@ func (p *ProcessIsolator) buildConstraints(config *TenantConfig, buildID string)
 }
 
 // applyProcessIsolation applies process-level isolation
+//
+//nolint:unparam // error return reserved for future enhancements
 func (p *ProcessIsolator) applyProcessIsolation(cmd *exec.Cmd, constraints BuildConstraints) error {
-	// Set process credentials
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Credential: &syscall.Credential{
-			Uid: uint32(constraints.RunAsUser),
-			Gid: uint32(constraints.RunAsGroup),
+	// Set process credentials with safe conversion
+	uid, err := safeInt32ToUint32(constraints.RunAsUser)
+	if err != nil {
+		return fmt.Errorf("invalid RunAsUser value %d: %w", constraints.RunAsUser, err)
+	}
+	gid, err := safeInt32ToUint32(constraints.RunAsGroup)
+	if err != nil {
+		return fmt.Errorf("invalid RunAsGroup value %d: %w", constraints.RunAsGroup, err)
+	}
+
+	cmd.SysProcAttr = &syscall.SysProcAttr{ //nolint:exhaustruct // Only setting necessary fields for process isolation
+		Credential: &syscall.Credential{ //nolint:exhaustruct // Groups and NoSetGroups are not needed for basic user/group isolation
+			Uid: uid,
+			Gid: gid,
 		},
 		// Create new process group
 		Setpgid: true,
@@ -229,6 +245,8 @@ func (p *ProcessIsolator) applyProcessIsolation(cmd *exec.Cmd, constraints Build
 }
 
 // applyResourceLimits applies resource limits using cgroups
+//
+//nolint:unparam // error return reserved for future cgroup v2 implementation
 func (p *ProcessIsolator) applyResourceLimits(cmd *exec.Cmd, constraints BuildConstraints, buildID string) error {
 	if !p.enableCgroups {
 		p.logger.Debug("cgroups disabled, skipping resource limits")
@@ -245,14 +263,14 @@ func (p *ProcessIsolator) applyResourceLimits(cmd *exec.Cmd, constraints BuildCo
 
 	// Set memory limit
 	memoryMax := filepath.Join(cgroupPath, "memory.max")
-	if err := os.WriteFile(memoryMax, []byte(strconv.FormatInt(constraints.MaxMemoryBytes, 10)), 0644); err != nil {
+	if err := os.WriteFile(memoryMax, []byte(strconv.FormatInt(constraints.MaxMemoryBytes, 10)), 0600); err != nil {
 		p.logger.Warn("failed to set memory limit", slog.String("error", err.Error()))
 	}
 
 	// Set CPU limit (cgroups v2)
 	cpuMax := filepath.Join(cgroupPath, "cpu.max")
 	cpuQuota := fmt.Sprintf("%d 100000", constraints.MaxCPUCores*100000) // 100ms period
-	if err := os.WriteFile(cpuMax, []byte(cpuQuota), 0644); err != nil {
+	if err := os.WriteFile(cpuMax, []byte(cpuQuota), 0600); err != nil {
 		p.logger.Warn("failed to set CPU limit", slog.String("error", err.Error()))
 	}
 
@@ -262,7 +280,7 @@ func (p *ProcessIsolator) applyResourceLimits(cmd *exec.Cmd, constraints BuildCo
 	// We'll set a conservative limit for now
 	maxBps := constraints.MaxDiskBytes / 300 // Spread over 5 minutes
 	ioLimit := fmt.Sprintf("8:0 rbps=%d wbps=%d", maxBps, maxBps)
-	if err := os.WriteFile(ioMax, []byte(ioLimit), 0644); err != nil {
+	if err := os.WriteFile(ioMax, []byte(ioLimit), 0600); err != nil {
 		p.logger.Debug("failed to set IO limit", slog.String("error", err.Error()))
 	}
 
@@ -329,7 +347,7 @@ func (p *ProcessIsolator) MonitorProcess(
 	buildID string,
 	constraints BuildConstraints,
 ) *ResourceUsage {
-	usage := &ResourceUsage{
+	usage := &ResourceUsage{ //nolint:exhaustruct // Other fields are populated during monitoring or represent peak/final values
 		BuildID:   buildID,
 		TenantID:  tenantID,
 		StartTime: time.Now(),
@@ -383,6 +401,7 @@ func (p *ProcessIsolator) updateResourceUsage(pid int, usage *ResourceUsage, con
 
 	// Read memory info from /proc/PID/status
 	statusPath := fmt.Sprintf("/proc/%d/status", pid)
+	//nolint:nestif // Complex but logical flow for resource monitoring
 	if statusData, err := os.ReadFile(statusPath); err == nil {
 		lines := strings.Split(string(statusData), "\n")
 		for _, line := range lines {
@@ -488,4 +507,12 @@ func (p *ProcessIsolator) isHostAllowed(host string, allowedHosts []string) bool
 		}
 	}
 	return false
+}
+
+// safeInt32ToUint32 safely converts int32 to uint32, checking for negative values
+func safeInt32ToUint32(value int32) (uint32, error) {
+	if value < 0 {
+		return 0, fmt.Errorf("negative value %d cannot be converted to uint32", value)
+	}
+	return uint32(value), nil
 }

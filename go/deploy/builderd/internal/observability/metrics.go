@@ -54,7 +54,7 @@ type BuildMetrics struct {
 func NewBuildMetrics(logger *slog.Logger, highCardinalityEnabled bool) (*BuildMetrics, error) {
 	meter := otel.Meter("builderd")
 
-	metrics := &BuildMetrics{
+	metrics := &BuildMetrics{ //nolint:exhaustruct // Metric fields are initialized individually below after error checking
 		highCardinalityEnabled: highCardinalityEnabled,
 		logger:                 logger,
 	}

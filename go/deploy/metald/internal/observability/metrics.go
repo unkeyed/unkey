@@ -69,7 +69,7 @@ type VMMetrics struct {
 func NewVMMetrics(logger *slog.Logger, highCardinalityEnabled bool) (*VMMetrics, error) {
 	meter := otel.Meter("unkey.metald.vm.operations")
 
-	vm := &VMMetrics{
+	vm := &VMMetrics{ //nolint:exhaustruct // Metric fields are initialized below with error handling
 		logger:                 logger.With("component", "vm_metrics"),
 		meter:                  meter,
 		highCardinalityEnabled: highCardinalityEnabled,

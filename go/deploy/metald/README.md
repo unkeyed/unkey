@@ -1,89 +1,94 @@
-# Metald - VM Management Service
+# Metald - VM Lifecycle Management Service
 
 High-performance VM lifecycle management with integrated security isolation and real-time billing.
 
 ## Overview
 
-Metald manages Firecracker microVMs with:
+Metald is the central control plane for virtual machine lifecycle management in the Unkey Deploy platform. It provides a unified API for creating, managing, and monitoring microVMs using Firecracker.
+
+**Key Features:**
 - **Integrated jailer** for security isolation (no external jailer binary needed)
-- **Real-time billing** integration with 100ms precision
-- **IPv6-first networking** with multi-tenant isolation
-- **Production-ready** process management and observability
+- **Real-time billing** integration with 100ms precision  
+- **Dual-stack networking** with IPv4/IPv6 support and multi-tenant isolation
+- **Asset management** integration for dynamic VM image distribution
+- **Production-ready** with comprehensive observability and monitoring
+
+## Documentation
+
+For comprehensive documentation, see [**📚 Full Documentation**](./docs/README.md)
+
+**Quick Links:**
+- [API Reference](./docs/api/README.md) - Complete API documentation with examples
+- [Architecture Guide](./docs/architecture/README.md) - System design and service interactions  
+- [Operations Manual](./docs/operations/README.md) - Production deployment and monitoring
+- [Development Setup](./docs/development/README.md) - Build instructions and contributing guide
 
 ## Quick Start
 
 ```bash
-# Build
+# Build from source
 make build
 
 # Install with systemd
-make install
+sudo make install
 
 # Run development server
+export UNKEY_METALD_BILLING_MOCK_MODE=true
+export UNKEY_METALD_ASSETMANAGER_ENABLED=false
 ./build/metald
 ```
 
-## Documentation
-
-- 📖 **[Development Guide](DEVELOPMENT.md)** - Start here for local development
-- 🏗️ **[Architecture Overview](docs/architecture/overview.md)** - System design and components
-- 🔒 **[Integrated Jailer](internal/jailer/README.md)** - Security isolation implementation
-- 🔑 **[Authentication Guide](docs/development/authentication.md)** - Auth system overview
-- 📋 **[Architecture Decisions](docs/adr/)** - Key design decisions
-
-## Key Features
-
-### Integrated Jailer
-Unlike standard Firecracker deployments, metald includes jailer functionality directly in the binary. This solves network namespace issues and provides better control. See [ADR-001](docs/adr/001-integrated-jailer.md).
-
-### Single Backend Support
-Only Firecracker is supported. CloudHypervisor code exists but is incomplete. See [ADR-002](docs/adr/002-firecracker-only-backend.md).
-
-### Development Authentication
-Uses mock tokens (`Bearer dev_customer_123`) for development. Must be replaced in production. See the [Authentication Guide](docs/development/authentication.md).
-
-## API Example
+### Create Your First VM
 
 ```bash
-# Create a VM
-curl -X POST http://localhost:8080/v1/vms \
-  -H "Authorization: Bearer dev_customer_test" \
+# Using the example client
+cd contrib/example-client
+go run main.go -action create-and-boot
+
+# Or via direct API call
+curl -X POST http://localhost:8080/vmprovisioner.v1.VmService/CreateVm \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer dev_customer_test123" \
   -d '{
     "config": {
       "cpu": {"vcpu_count": 2},
       "memory": {"size_bytes": 1073741824},
-      "kernel": {"image_id": "vmlinux-5.10"},
-      "rootfs": {"image_id": "alpine-rootfs"}
+      "boot": {
+        "kernel_path": "/opt/vm-assets/vmlinux",
+        "kernel_args": "console=ttyS0 reboot=k panic=1"
+      }
     }
   }'
-
-# List VMs
-curl http://localhost:8080/v1/vms \
-  -H "Authorization: Bearer dev_customer_test"
 ```
+
+## Service Dependencies
+
+Metald integrates with other Unkey Deploy services:
+- **[assetmanagerd](../assetmanagerd/docs/README.md)** - VM asset preparation and distribution
+- **[billaged](../billaged/docs/README.md)** - Usage tracking and billing
+- **builderd** - Indirect integration through assetmanagerd
 
 ## Requirements
 
 - Linux with KVM support
 - Firecracker binary installed
-- Go 1.21+ (for building)
+- Go 1.24+ (for building)
 - systemd (for production deployment)
 
 ## Security
 
-Metald requires specific capabilities instead of running as root:
+Metald uses an integrated jailer approach with specific capabilities:
 - `CAP_SYS_ADMIN` - Namespace operations
-- `CAP_NET_ADMIN` - Network device creation
+- `CAP_NET_ADMIN` - Network device creation  
 - `CAP_SYS_CHROOT` - Jail creation
 - Additional capabilities for privilege dropping
 
-The `make install` command sets these automatically.
+The `make install` command configures these automatically.
 
 ## Contributing
 
-See [DEVELOPMENT.md](DEVELOPMENT.md) for development setup and guidelines.
+See [Development Setup](./docs/development/README.md) for contribution guidelines.
 
-## License
+## Version
 
-[Your License Here]
+v0.2.0 (Integrated Jailer)

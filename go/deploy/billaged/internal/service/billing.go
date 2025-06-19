@@ -34,9 +34,9 @@ func (s *BillingService) SendMetricsBatch(
 	ctx context.Context,
 	req *connect.Request[billingv1.SendMetricsBatchRequest],
 ) (*connect.Response[billingv1.SendMetricsBatchResponse], error) {
-	vmID := req.Msg.VmId
-	customerID := req.Msg.CustomerId
-	metrics := req.Msg.Metrics
+	vmID := req.Msg.GetVmId()
+	customerID := req.Msg.GetCustomerId()
+	metrics := req.Msg.GetMetrics()
 
 	s.logger.InfoContext(ctx, "received metrics batch",
 		"vm_id", vmID,
@@ -56,11 +56,11 @@ func (s *BillingService) SendMetricsBatch(
 	last := metrics[len(metrics)-1]
 	s.logger.DebugContext(ctx, "metrics batch details",
 		"vm_id", vmID,
-		"first_timestamp", first.Timestamp.AsTime().Format("15:04:05.000"),
-		"last_timestamp", last.Timestamp.AsTime().Format("15:04:05.000"),
-		"first_cpu_nanos", first.CpuTimeNanos,
-		"last_cpu_nanos", last.CpuTimeNanos,
-		"timespan_ms", last.Timestamp.AsTime().Sub(first.Timestamp.AsTime()).Milliseconds(),
+		"first_timestamp", first.GetTimestamp().AsTime().Format("15:04:05.000"),
+		"last_timestamp", last.GetTimestamp().AsTime().Format("15:04:05.000"),
+		"first_cpu_nanos", first.GetCpuTimeNanos(),
+		"last_cpu_nanos", last.GetCpuTimeNanos(),
+		"timespan_ms", last.GetTimestamp().AsTime().Sub(first.GetTimestamp().AsTime()).Milliseconds(),
 	)
 
 	// Record metrics
@@ -88,8 +88,8 @@ func (s *BillingService) SendHeartbeat(
 	ctx context.Context,
 	req *connect.Request[billingv1.SendHeartbeatRequest],
 ) (*connect.Response[billingv1.SendHeartbeatResponse], error) {
-	instanceID := req.Msg.InstanceId
-	activeVMs := req.Msg.ActiveVms
+	instanceID := req.Msg.GetInstanceId()
+	activeVMs := req.Msg.GetActiveVms()
 
 	s.logger.DebugContext(ctx, "received heartbeat",
 		"instance_id", instanceID,
@@ -110,9 +110,9 @@ func (s *BillingService) NotifyVmStarted(
 	ctx context.Context,
 	req *connect.Request[billingv1.NotifyVmStartedRequest],
 ) (*connect.Response[billingv1.NotifyVmStartedResponse], error) {
-	vmID := req.Msg.VmId
-	customerID := req.Msg.CustomerId
-	startTime := req.Msg.StartTime
+	vmID := req.Msg.GetVmId()
+	customerID := req.Msg.GetCustomerId()
+	startTime := req.Msg.GetStartTime()
 
 	s.logger.InfoContext(ctx, "VM started notification",
 		"vm_id", vmID,
@@ -132,8 +132,8 @@ func (s *BillingService) NotifyVmStopped(
 	ctx context.Context,
 	req *connect.Request[billingv1.NotifyVmStoppedRequest],
 ) (*connect.Response[billingv1.NotifyVmStoppedResponse], error) {
-	vmID := req.Msg.VmId
-	stopTime := req.Msg.StopTime
+	vmID := req.Msg.GetVmId()
+	stopTime := req.Msg.GetStopTime()
 
 	s.logger.InfoContext(ctx, "VM stopped notification",
 		"vm_id", vmID,
@@ -152,9 +152,9 @@ func (s *BillingService) NotifyPossibleGap(
 	ctx context.Context,
 	req *connect.Request[billingv1.NotifyPossibleGapRequest],
 ) (*connect.Response[billingv1.NotifyPossibleGapResponse], error) {
-	vmID := req.Msg.VmId
-	lastSent := req.Msg.LastSent
-	resumeTime := req.Msg.ResumeTime
+	vmID := req.Msg.GetVmId()
+	lastSent := req.Msg.GetLastSent()
+	resumeTime := req.Msg.GetResumeTime()
 
 	gapDurationMs := (resumeTime - lastSent) / 1_000_000
 

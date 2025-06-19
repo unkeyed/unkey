@@ -9,6 +9,12 @@ Type=simple
 User=billaged
 Group=billaged
 WorkingDirectory=/opt/billaged
+# Create required directories (+ prefix runs as root)
+ExecStartPre=+/bin/mkdir -p /opt/billaged
+ExecStartPre=+/bin/mkdir -p /var/log/billaged
+# Set ownership for service directories
+ExecStartPre=+/bin/chown -R billaged:billaged /opt/billaged
+ExecStartPre=+/bin/chown -R billaged:billaged /var/log/billaged
 ExecStart=/usr/local/bin/billaged
 Restart=always
 RestartSec=5
@@ -17,18 +23,18 @@ StandardError=journal
 SyslogIdentifier=billaged
 
 # Environment variables
-Environment=BILLAGED_PORT=8081
-Environment=BILLAGED_ADDRESS=0.0.0.0
-Environment=BILLAGED_AGGREGATION_INTERVAL=60s
+Environment=UNKEY_BILLAGED_PORT=8081
+Environment=UNKEY_BILLAGED_ADDRESS=0.0.0.0
+Environment=UNKEY_BILLAGED_AGGREGATION_INTERVAL=60s
 
 # OpenTelemetry Configuration (enabled for production)
-Environment=BILLAGED_OTEL_ENABLED=true
-Environment=BILLAGED_OTEL_SERVICE_NAME=billaged
-Environment=BILLAGED_OTEL_SERVICE_VERSION=0.0.1
-Environment=BILLAGED_OTEL_SAMPLING_RATE=1.0
-Environment=BILLAGED_OTEL_ENDPOINT=localhost:4318
-Environment=BILLAGED_OTEL_PROMETHEUS_ENABLED=true
-Environment=BILLAGED_OTEL_PROMETHEUS_PORT=9465
+Environment=UNKEY_BILLAGED_OTEL_ENABLED=true
+Environment=UNKEY_BILLAGED_OTEL_SERVICE_NAME=billaged
+Environment=UNKEY_BILLAGED_OTEL_SERVICE_VERSION=0.0.1
+Environment=UNKEY_BILLAGED_OTEL_SAMPLING_RATE=1.0
+Environment=UNKEY_BILLAGED_OTEL_ENDPOINT=localhost:4318
+Environment=UNKEY_BILLAGED_OTEL_PROMETHEUS_ENABLED=true
+Environment=UNKEY_BILLAGED_OTEL_PROMETHEUS_PORT=9465
 
 # TLS/SPIFFE configuration (REQUIRED)
 # AIDEV-BUSINESS_RULE: mTLS is required for secure inter-service communication

@@ -9,12 +9,13 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
-	builderv1 "github.com/unkeyed/unkey/go/deploy/builderd/gen/proto/builder/v1"
+	builderv1 "github.com/unkeyed/unkey/go/deploy/builderd/gen/builder/v1"
 )
 
 // StorageIsolator handles storage isolation and encryption for tenants
@@ -162,6 +163,8 @@ func (s *StorageIsolator) createDirectories(dirs *TenantDirectories) error {
 }
 
 // applySecuritySettings applies security configurations to directories
+//
+//nolint:unparam // config parameter reserved for future security enhancements
 func (s *StorageIsolator) applySecuritySettings(dirs *TenantDirectories, config *TenantConfig) error {
 	// Set extended attributes for isolation
 	if dirs.IsolationEnabled {
@@ -188,7 +191,7 @@ This directory contains build artifacts for:
 - Encryption: %v
 - Compression: %v
 
-WARNING: This directory is managed by builderd. 
+WARNING: This directory is managed by builderd.
 Do not modify files directly.
 `, dirs.TenantID, dirs.BuildID, time.Now().Format(time.RFC3339),
 		dirs.EncryptionEnabled, dirs.CompressionEnabled)
@@ -202,6 +205,8 @@ Do not modify files directly.
 }
 
 // setupQuotaMonitoring sets up directory quotas if supported
+//
+//nolint:unparam // error return reserved for future quota implementation
 func (s *StorageIsolator) setupQuotaMonitoring(dirs *TenantDirectories, config *TenantConfig) error {
 	// This is a placeholder for quota setup
 	// In production, you might use:
@@ -347,6 +352,8 @@ func (s *StorageIsolator) decryptData(data []byte) ([]byte, error) {
 }
 
 // setSecurityLabel sets security labels on directories (placeholder)
+//
+//nolint:unparam // error return reserved for future SELinux/AppArmor implementation
 func (s *StorageIsolator) setSecurityLabel(path, label string) error {
 	// This would integrate with SELinux or AppArmor
 	// For now, we'll use extended attributes as a placeholder
@@ -451,6 +458,8 @@ func (s *StorageIsolator) CleanupDirectories(
 }
 
 // archiveBuild creates an archive of the build artifacts
+//
+//nolint:unparam // error return reserved for future archive implementation
 func (s *StorageIsolator) archiveBuild(dirs *TenantDirectories) error {
 	// This is a placeholder for build archiving
 	// In production, you might:
@@ -485,7 +494,7 @@ func (s *StorageIsolator) GetStorageStats(
 	// Count builds
 	buildsDir := filepath.Join(tenantDir, "builds")
 	buildCount := 0
-	if entries, err := os.ReadDir(buildsDir); err == nil {
+	if entries, readErr := os.ReadDir(buildsDir); readErr == nil {
 		buildCount = len(entries)
 	}
 
@@ -493,11 +502,17 @@ func (s *StorageIsolator) GetStorageStats(
 	cacheDir := filepath.Join(tenantDir, "cache")
 	cacheSize, _ := s.GetDirectorySize(cacheDir)
 
+	// Safe conversion of buildCount from int to int32
+	buildCountInt32, err := safeIntToInt32(buildCount)
+	if err != nil {
+		return nil, fmt.Errorf("invalid build count %d: %w", buildCount, err)
+	}
+
 	stats := &StorageStats{
 		TenantID:    tenantID,
 		TotalBytes:  totalSize,
 		CacheBytes:  cacheSize,
-		BuildCount:  int32(buildCount),
+		BuildCount:  buildCountInt32,
 		LastUpdated: time.Now(),
 	}
 
@@ -511,4 +526,15 @@ type StorageStats struct {
 	CacheBytes  int64     `json:"cache_bytes"`
 	BuildCount  int32     `json:"build_count"`
 	LastUpdated time.Time `json:"last_updated"`
+}
+
+// safeIntToInt32 safely converts int to int32, checking for overflow
+func safeIntToInt32(value int) (int32, error) {
+	if value > math.MaxInt32 {
+		return 0, fmt.Errorf("value %d exceeds maximum int32 value %d", value, math.MaxInt32)
+	}
+	if value < math.MinInt32 {
+		return 0, fmt.Errorf("value %d is below minimum int32 value %d", value, math.MinInt32)
+	}
+	return int32(value), nil
 }

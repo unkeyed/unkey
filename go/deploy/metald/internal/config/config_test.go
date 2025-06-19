@@ -26,9 +26,9 @@ func TestLoadConfig(t *testing.T) {
 				Backend: BackendConfig{
 					Type: types.BackendTypeFirecracker,
 					Jailer: JailerConfig{
-							UID:                   1000,
-						GID:                   1000,
-						ChrootBaseDir:         "/srv/jailer",
+						UID:           1000,
+						GID:           1000,
+						ChrootBaseDir: "/srv/jailer",
 					},
 				},
 				Billing: BillingConfig{
@@ -75,7 +75,7 @@ func TestLoadConfig(t *testing.T) {
 					CertFile:          "",
 					KeyFile:           "",
 					CAFile:            "",
-					SPIFFESocketPath:  "/run/spire/sockets/agent.sock",
+					SPIFFESocketPath:  "/var/lib/spire/agent/agent.sock",
 					EnableCertCaching: true,
 					CertCacheTTL:      "5s",
 				},
@@ -96,9 +96,9 @@ func TestLoadConfig(t *testing.T) {
 				Backend: BackendConfig{
 					Type: types.BackendTypeFirecracker,
 					Jailer: JailerConfig{
-							UID:                   1000,
-						GID:                   1000,
-						ChrootBaseDir:         "/srv/jailer",
+						UID:           1000,
+						GID:           1000,
+						ChrootBaseDir: "/srv/jailer",
 					},
 				},
 				Billing: BillingConfig{
@@ -145,7 +145,7 @@ func TestLoadConfig(t *testing.T) {
 					CertFile:          "",
 					KeyFile:           "",
 					CAFile:            "",
-					SPIFFESocketPath:  "/run/spire/sockets/agent.sock",
+					SPIFFESocketPath:  "/var/lib/spire/agent/agent.sock",
 					EnableCertCaching: true,
 					CertCacheTTL:      "5s",
 				},
@@ -167,9 +167,9 @@ func TestLoadConfig(t *testing.T) {
 				Backend: BackendConfig{
 					Type: types.BackendTypeFirecracker,
 					Jailer: JailerConfig{
-							UID:                   2000,
-						GID:                   2000,
-						ChrootBaseDir:         "/var/lib/jailer",
+						UID:           2000,
+						GID:           2000,
+						ChrootBaseDir: "/var/lib/jailer",
 					},
 				},
 				Billing: BillingConfig{
@@ -216,7 +216,7 @@ func TestLoadConfig(t *testing.T) {
 					CertFile:          "",
 					KeyFile:           "",
 					CAFile:            "",
-					SPIFFESocketPath:  "/run/spire/sockets/agent.sock",
+					SPIFFESocketPath:  "/var/lib/spire/agent/agent.sock",
 					EnableCertCaching: true,
 					CertCacheTTL:      "5s",
 				},
@@ -242,9 +242,9 @@ func TestLoadConfig(t *testing.T) {
 				Backend: BackendConfig{
 					Type: types.BackendTypeFirecracker,
 					Jailer: JailerConfig{
-							UID:                   1000,
-						GID:                   1000,
-						ChrootBaseDir:         "/srv/jailer",
+						UID:           1000,
+						GID:           1000,
+						ChrootBaseDir: "/srv/jailer",
 					},
 				},
 				Billing: BillingConfig{
@@ -291,7 +291,7 @@ func TestLoadConfig(t *testing.T) {
 					CertFile:          "",
 					KeyFile:           "",
 					CAFile:            "",
-					SPIFFESocketPath:  "/run/spire/sockets/agent.sock",
+					SPIFFESocketPath:  "/var/lib/spire/agent/agent.sock",
 					EnableCertCaching: true,
 					CertCacheTTL:      "5s",
 				},

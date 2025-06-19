@@ -1,3 +1,4 @@
+// Package spiffe provides SPIFFE-based mTLS configuration for gRPC and HTTP clients.
 package spiffe
 
 import (
@@ -16,36 +17,33 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-// AIDEV-NOTE: SPIFFE integration for automatic mTLS in Unkey services
-// Replaces manual certificate management with dynamic identity
-
-// Client provides SPIFFE-based mTLS configuration
+// Client provides SPIFFE-based mTLS configuration using X.509 SVIDs.
 type Client struct {
 	source *workloadapi.X509Source
 	id     spiffeid.ID
 }
 
-// New creates a SPIFFE client for the service
+// Options configures SPIFFE client creation.
+type Options struct {
+	// SocketPath is the SPIRE agent socket path.
+	SocketPath string
+}
+
+// New creates a SPIFFE client using the default SPIRE agent socket.
+// It connects to unix:///var/lib/spire/agent/agent.sock with a 30-second timeout.
 func New(ctx context.Context) (*Client, error) {
 	return NewWithOptions(ctx, Options{
-		SocketPath: "unix:///run/spire/sockets/agent.sock",
+		SocketPath: "unix:///var/lib/spire/agent/agent.sock",
 	})
 }
 
-// Options for SPIFFE client creation
-type Options struct {
-	SocketPath string
-	// Add more options as needed
-}
-
-// NewWithOptions creates a SPIFFE client with custom options
+// NewWithOptions creates a SPIFFE client with custom options.
+// It establishes a connection to the SPIRE agent and retrieves the workload SVID.
+// NewWithOptions returns an error if the agent is unreachable or SVID retrieval fails.
 func NewWithOptions(ctx context.Context, opts Options) (*Client, error) {
-	// AIDEV-NOTE: Use context with timeout to prevent hanging on unresponsive agent
-	// Create a timeout context for initial connection
 	connectCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	// Connect to SPIRE agent via Unix socket
 	source, err := workloadapi.NewX509Source(
 		connectCtx,
 		workloadapi.WithClientOptions(
@@ -56,7 +54,6 @@ func NewWithOptions(ctx context.Context, opts Options) (*Client, error) {
 		return nil, fmt.Errorf("create X509 source: %w", err)
 	}
 
-	// Get our SPIFFE ID with timeout
 	svidCtx, svidCancel := context.WithTimeout(ctx, 5*time.Second)
 	defer svidCancel()
 
@@ -65,7 +62,7 @@ func NewWithOptions(ctx context.Context, opts Options) (*Client, error) {
 		source.Close()
 		return nil, fmt.Errorf("get SVID: %w", err)
 	}
-	_ = svidCtx // Context is for future use when API supports it
+	_ = svidCtx
 
 	return &Client{
 		source: source,
@@ -73,10 +70,10 @@ func NewWithOptions(ctx context.Context, opts Options) (*Client, error) {
 	}, nil
 }
 
-// ServiceName returns the service name from SPIFFE ID
-// e.g., spiffe://unkey.prod/service/metald -> metald
+// ServiceName returns the service name extracted from the SPIFFE ID path.
+// For SPIFFE IDs with path "/service/name", it returns "name".
+// ServiceName returns "unknown" if the path format is unexpected.
 func (c *Client) ServiceName() string {
-	// Parse the path to extract service name
 	path := c.id.Path()
 	segments := strings.Split(strings.TrimPrefix(path, "/"), "/")
 	if len(segments) >= 2 && segments[0] == "service" {
@@ -85,27 +82,24 @@ func (c *Client) ServiceName() string {
 	return "unknown"
 }
 
-// TLSConfig returns TLS configuration for servers
+// TLSConfig returns a TLS configuration for mTLS servers.
+// The configuration validates client certificates from the same trust domain.
 func (c *Client) TLSConfig() *tls.Config {
-	// AIDEV-NOTE: Use AuthorizeMemberOf to only accept SVIDs from our trust domain
-	// This prevents accepting certificates from other SPIFFE deployments
 	return tlsconfig.MTLSServerConfig(c.source, c.source, tlsconfig.AuthorizeMemberOf(c.id.TrustDomain()))
 }
 
-// ClientTLSConfig returns TLS configuration for clients
+// ClientTLSConfig returns a TLS configuration for mTLS clients.
+// The configuration validates server certificates from the same trust domain.
 func (c *Client) ClientTLSConfig() *tls.Config {
-	// AIDEV-NOTE: Client also validates server is in same trust domain
 	return tlsconfig.MTLSClientConfig(c.source, c.source, tlsconfig.AuthorizeMemberOf(c.id.TrustDomain()))
 }
 
-// HTTPClient returns an HTTP client with mTLS
+// HTTPClient returns an HTTP client configured with mTLS and security timeouts.
 func (c *Client) HTTPClient() *http.Client {
-	// AIDEV-NOTE: Configure transport with security timeouts
 	transport := &http.Transport{
 		TLSClientConfig: c.ClientTLSConfig(),
-		// Security timeouts to prevent hanging connections
 		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second, // Connection timeout
+			Timeout:   30 * time.Second,
 			KeepAlive: 30 * time.Second,
 		}).DialContext,
 		TLSHandshakeTimeout:   10 * time.Second,
@@ -117,23 +111,24 @@ func (c *Client) HTTPClient() *http.Client {
 
 	return &http.Client{
 		Transport: transport,
-		Timeout:   30 * time.Second, // Overall request timeout
+		Timeout:   30 * time.Second,
 	}
 }
 
-// GRPCDialOption returns gRPC dial options with mTLS
+// GRPCDialOption returns a gRPC dial option configured with mTLS.
 func (c *Client) GRPCDialOption() grpc.DialOption {
 	return grpc.WithTransportCredentials(
 		credentials.NewTLS(c.ClientTLSConfig()),
 	)
 }
 
-// AuthorizeService creates an authorizer for specific services
+// AuthorizeService returns an authorizer that validates certificates from the same trust domain.
+// The allowedServices parameter is currently unused but reserved for future authorization logic.
 func (c *Client) AuthorizeService(allowedServices ...string) tlsconfig.Authorizer {
 	return tlsconfig.AuthorizeMemberOf(c.id.TrustDomain())
 }
 
-// Close cleans up resources
+// Close closes the underlying X509Source and releases associated resources.
 func (c *Client) Close() error {
 	return c.source.Close()
 }

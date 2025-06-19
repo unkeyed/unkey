@@ -14,15 +14,15 @@ SPIRE_DATA_DIR = /var/lib/spire
 SPIRE_CONFIG_DIR = /etc/spire
 
 # Environment selection (default to development)
-SPIRE_ENVIRONMENT ?= dev
+SPIRE_ENVIRONMENT ?= development
 
 # Validate environment
-ifeq ($(filter $(SPIRE_ENVIRONMENT),dev canary prod),)
-$(error Invalid SPIRE_ENVIRONMENT: $(SPIRE_ENVIRONMENT). Must be one of: dev, canary, prod)
+ifeq ($(filter $(SPIRE_ENVIRONMENT),development canary prod),)
+$(error Invalid SPIRE_ENVIRONMENT: $(SPIRE_ENVIRONMENT). Must be one of: development, canary, prod)
 endif
 
 # Trust domain mapping
-ifeq ($(SPIRE_ENVIRONMENT),dev)
+ifeq ($(SPIRE_ENVIRONMENT),development)
 TRUST_DOMAIN = development.unkey.app
 else ifeq ($(SPIRE_ENVIRONMENT),canary)
 TRUST_DOMAIN = canary.unkey.app
@@ -38,7 +38,7 @@ help: ## Show this help message
 	@echo ""
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 	@echo ""
-	@echo "Available environments: dev, canary, prod"
+	@echo "Available environments: development, canary, prod"
 
 download-spire: ## Download SPIRE binaries
 	@echo "Downloading SPIRE $(SPIRE_VERSION)..."
@@ -51,10 +51,8 @@ download-spire: ## Download SPIRE binaries
 		echo "SPIRE $(SPIRE_VERSION) already downloaded"; \
 	fi
 
-create-users: ## Create SPIRE system users
-	@echo "Creating SPIRE users..."
-	@sudo useradd -r -s /bin/false -d $(SPIRE_DATA_DIR)/server -m spire-server || true
-	@sudo useradd -r -s /bin/false -d $(SPIRE_DATA_DIR)/agent -m spire-agent || true
+create-users: ## Create SPIRE directories (users no longer needed - runs as root)
+	@echo "SPIRE runs as root - no user creation needed"
 
 setup-directories: ## Create SPIRE directories
 	@echo "Setting up SPIRE directories..."
@@ -65,7 +63,6 @@ setup-directories: ## Create SPIRE directories
 	@sudo mkdir -p $(SPIRE_DATA_DIR)/server
 	@sudo mkdir -p $(SPIRE_DATA_DIR)/agent
 	@sudo mkdir -p $(SPIRE_DATA_DIR)/agent/keys
-	@sudo mkdir -p /run/spire/sockets
 
 install: install-server install-agent ## Install both SPIRE server and agent
 
@@ -197,19 +194,19 @@ bootstrap-agent: ## Bootstrap agent with server bundle
 	fi
 	@echo "Waiting for SPIRE server socket to be ready..."
 	@for i in 1 2 3 4 5 6 7 8 9 10; do \
-		if [ -S /run/spire/server.sock ]; then \
+		if [ -S /var/lib/spire/server/server.sock ]; then \
 			echo "Server socket is ready"; \
 			break; \
 		fi; \
 		echo "Waiting for server socket... ($$i/10)"; \
 		sleep 2; \
 	done
-	@if [ ! -S /run/spire/server.sock ]; then \
+	@if [ ! -S /var/lib/spire/server/server.sock ]; then \
 		echo "Error: Server socket not available after 20 seconds"; \
 		exit 1; \
 	fi
 	@sudo bash -c '$(SPIRE_INSTALL_DIR)/bin/spire-server bundle show \
-		-socketPath /run/spire/server.sock \
+		-socketPath /var/lib/spire/server/server.sock \
 		-format pem > /tmp/bootstrap.crt' || \
 		(echo "Error: Failed to get bundle from server. Check server logs with 'make service-logs-server'" && exit 1)
 	@sudo mv /tmp/bootstrap.crt $(SPIRE_CONFIG_DIR)/agent/bootstrap.crt
@@ -232,49 +229,12 @@ register-services: ## Register all Unkey services with SPIRE
 create-join-token: ## Create join token for agent
 	@echo "Creating join token for trust domain: $(TRUST_DOMAIN)..."
 	@sudo $(SPIRE_INSTALL_DIR)/bin/spire-server token generate \
-		-socketPath /run/spire/server.sock \
+		-socketPath /var/lib/spire/server/server.sock \
 		-spiffeID spiffe://$(TRUST_DOMAIN)/agent/node1
-
-
-register-metald: ## Register metald service
-	@echo "Registering metald in trust domain: $(TRUST_DOMAIN)..."
-	@sudo $(SPIRE_INSTALL_DIR)/bin/spire-server entry create \
-		-socketPath /var/lib/spire/server/server.sock \
-		-parentID spiffe://$(TRUST_DOMAIN)/agent/node1 \
-		-spiffeID spiffe://$(TRUST_DOMAIN)/service/metald \
-		-selector unix:user:metald \
-		-selector systemd:service:metald
-
-register-billaged: ## Register billaged service
-	@echo "Registering billaged in trust domain: $(TRUST_DOMAIN)..."
-	@sudo $(SPIRE_INSTALL_DIR)/bin/spire-server entry create \
-		-socketPath /var/lib/spire/server/server.sock \
-		-parentID spiffe://$(TRUST_DOMAIN)/agent/node1 \
-		-spiffeID spiffe://$(TRUST_DOMAIN)/service/billaged \
-		-selector unix:user:billaged \
-		-selector systemd:service:billaged
-
-register-builderd: ## Register builderd service
-	@echo "Registering builderd in trust domain: $(TRUST_DOMAIN)..."
-	@sudo $(SPIRE_INSTALL_DIR)/bin/spire-server entry create \
-		-socketPath /var/lib/spire/server/server.sock \
-		-parentID spiffe://$(TRUST_DOMAIN)/agent/node1 \
-		-spiffeID spiffe://$(TRUST_DOMAIN)/service/builderd \
-		-selector unix:user:builderd \
-		-selector systemd:service:builderd
-
-register-assetmanagerd: ## Register assetmanagerd service
-	@echo "Registering assetmanagerd in trust domain: $(TRUST_DOMAIN)..."
-	@sudo $(SPIRE_INSTALL_DIR)/bin/spire-server entry create \
-		-socketPath /var/lib/spire/server/server.sock \
-		-parentID spiffe://$(TRUST_DOMAIN)/agent/node1 \
-		-spiffeID spiffe://$(TRUST_DOMAIN)/service/assetmanagerd \
-		-selector unix:user:assetmanagerd \
-		-selector systemd:service:assetmanagerd
 
 list-entries: ## List all registered entries
 	@sudo $(SPIRE_INSTALL_DIR)/bin/spire-server entry show \
-		-socketPath /run/spire/server.sock
+		-socketPath /var/lib/spire/server/server.sock
 
 clean: ## Clean up temporary files
 	@rm -rf /tmp/spire-install
@@ -293,8 +253,6 @@ clean-all: ## Completely remove SPIRE (data, configs, users)
 	@echo "Removing SPIRE data and configs..."
 	@sudo rm -rf $(SPIRE_DATA_DIR)
 	@sudo rm -rf $(SPIRE_CONFIG_DIR)
-	@sudo rm -rf /run/spire
-	@sudo rm -rf /var/run/spire
 	@echo "Removing SPIRE users..."
 	@sudo userdel -r spire-server 2>/dev/null || true
 	@sudo userdel -r spire-agent 2>/dev/null || true

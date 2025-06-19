@@ -68,6 +68,7 @@ func main() {
 	}
 
 	// Create root logger
+	//nolint:exhaustruct // Only Level field is needed for handler options
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}))
@@ -94,6 +95,7 @@ func main() {
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
 	// Initialize TLS provider (defaults to disabled)
+	//nolint:exhaustruct // Only specified TLS fields are needed for this configuration
 	tlsConfig := tlspkg.Config{
 		Mode:             tlspkg.Mode(cfg.TLSMode),
 		CertFile:         cfg.TLSCertFile,
@@ -126,8 +128,8 @@ func main() {
 		defer func() {
 			shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer shutdownCancel()
-			if err := shutdown(shutdownCtx); err != nil {
-				logger.Error("failed to shutdown observability", slog.String("error", err.Error()))
+			if shutdownErr := shutdown(shutdownCtx); shutdownErr != nil {
+				logger.Error("failed to shutdown observability", slog.String("error", shutdownErr.Error()))
 			}
 		}()
 	}
@@ -167,7 +169,6 @@ func main() {
 	// Create HTTP server with OTEL instrumentation
 	mux := http.NewServeMux()
 	mux.Handle(path, handler)
-
 
 	var httpHandler http.Handler = mux
 	if cfg.OTELEnabled {

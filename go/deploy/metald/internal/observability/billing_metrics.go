@@ -31,7 +31,7 @@ type BillingMetrics struct {
 func NewBillingMetrics(logger *slog.Logger, highCardinalityEnabled bool) (*BillingMetrics, error) {
 	meter := otel.Meter("unkey.metald.billing")
 
-	bm := &BillingMetrics{
+	bm := &BillingMetrics{ //nolint:exhaustruct // Metric fields are initialized below with error handling
 		logger:                 logger.With("component", "billing_metrics"),
 		meter:                  meter,
 		highCardinalityEnabled: highCardinalityEnabled,

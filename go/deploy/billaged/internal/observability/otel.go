@@ -24,6 +24,7 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 )
 
 // Providers holds the OpenTelemetry providers
@@ -39,7 +40,7 @@ func InitProviders(ctx context.Context, cfg *config.Config, version string) (*Pr
 	if !cfg.OpenTelemetry.Enabled {
 		// Return no-op providers
 		return &Providers{
-			TracerProvider: trace.NewNoopTracerProvider(),
+			TracerProvider: noop.NewTracerProvider(),
 			MeterProvider:  nil,
 			PrometheusHTTP: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusNotFound)

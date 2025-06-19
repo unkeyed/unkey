@@ -53,7 +53,6 @@ type BackendConfig struct {
 
 	// Jailer configuration (required for production)
 	Jailer JailerConfig
-
 }
 
 // JailerConfig holds Firecracker jailer configuration
@@ -67,7 +66,6 @@ type JailerConfig struct {
 	// Chroot directory for jailer isolation
 	ChrootBaseDir string
 }
-
 
 // BillingConfig holds billing service configuration
 type BillingConfig struct {
@@ -244,7 +242,6 @@ func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (
 
 	// AIDEV-BUSINESS_RULE: Jailer is always required for production security
 
-
 	// Parse jailer UID/GID
 	jailerUID := uint32(1000)
 	if uidStr := os.Getenv("UNKEY_METALD_JAILER_UID"); uidStr != "" {
@@ -273,7 +270,6 @@ func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (
 	// AIDEV-NOTE: Namespace isolation is always enabled for security
 
 	// AIDEV-NOTE: Resource limits are applied at container/VM level, not jailer level
-
 
 	// Parse billing configuration
 	billingEnabled := true // Default to enabled
@@ -309,7 +305,7 @@ func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (
 			Address: getEnvOrDefault("UNKEY_METALD_ADDRESS", "0.0.0.0"),
 		},
 		Backend: BackendConfig{
-			Type:   types.BackendType(getEnvOrDefault("UNKEY_METALD_BACKEND", string(types.BackendTypeFirecracker))),
+			Type: types.BackendType(getEnvOrDefault("UNKEY_METALD_BACKEND", string(types.BackendTypeFirecracker))),
 			Jailer: JailerConfig{
 				UID:           jailerUID,
 				GID:           jailerGID,
@@ -428,4 +424,3 @@ func getEnvIntOrDefault(key string, defaultValue int) int {
 	}
 	return defaultValue
 }
-

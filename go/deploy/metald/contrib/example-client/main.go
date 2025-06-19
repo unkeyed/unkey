@@ -8,10 +8,11 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
+	vmprovisionerv1 "github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
 	"github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1/vmprovisionerv1connect"
 	"github.com/unkeyed/unkey/go/deploy/pkg/tls"
 )
@@ -21,16 +22,17 @@ import (
 
 func main() {
 	var (
-		metaldAddr      = flag.String("addr", "https://localhost:8080", "metald server address")
-		customerID      = flag.String("customer", "example-customer", "customer ID for tenant isolation")
-		vmID            = flag.String("vm-id", "", "VM ID (optional, will be generated if empty)")
-		tlsMode         = flag.String("tls-mode", "disabled", "TLS mode: disabled, file, or spiffe")
-		tlsCert         = flag.String("tls-cert", "", "TLS certificate file (for file mode)")
-		tlsKey          = flag.String("tls-key", "", "TLS key file (for file mode)")
-		tlsCA           = flag.String("tls-ca", "", "TLS CA file (for file mode)")
-		spiffeSocket    = flag.String("spiffe-socket", "/run/spire/sockets/agent.sock", "SPIFFE agent socket path")
-		enableCaching   = flag.Bool("enable-cert-caching", true, "Enable certificate caching for file mode")
-		action          = flag.String("action", "create-and-boot", "Action: create, boot, list, info, create-and-boot")
+		metaldAddr    = flag.String("addr", "https://localhost:8080", "metald server address")
+		customerID    = flag.String("customer", "example-customer", "customer ID for tenant isolation")
+		vmID          = flag.String("vm-id", "", "VM ID (optional, will be generated if empty)")
+		tlsMode       = flag.String("tls-mode", "disabled", "TLS mode: disabled, file, or spiffe")
+		tlsCert       = flag.String("tls-cert", "", "TLS certificate file (for file mode)")
+		tlsKey        = flag.String("tls-key", "", "TLS key file (for file mode)")
+		tlsCA         = flag.String("tls-ca", "", "TLS CA file (for file mode)")
+		spiffeSocket  = flag.String("spiffe-socket", "/run/spire/sockets/agent.sock", "SPIFFE agent socket path")
+		enableCaching = flag.Bool("enable-cert-caching", true, "Enable certificate caching for file mode")
+		action        = flag.String("action", "create-and-boot", "Action: create, boot, list, info, create-and-boot, create-custom")
+		dockerImage   = flag.String("docker-image", "nginx:alpine", "Docker image to use for create-custom action")
 	)
 	flag.Parse()
 
@@ -95,6 +97,12 @@ func main() {
 		time.Sleep(2 * time.Second) // Give the VM time to be fully created
 		bootVM(ctx, client, vmID)
 		getVMInfo(ctx, client, vmID)
+	case "create-custom":
+		// Create VM with custom Docker image
+		vmID := createCustomVM(ctx, client, *vmID, *dockerImage)
+		time.Sleep(2 * time.Second) // Give the VM time to be fully created
+		bootVM(ctx, client, vmID)
+		getVMInfo(ctx, client, vmID)
 	default:
 		log.Fatalf("Unknown action: %s", *action)
 	}
@@ -112,11 +120,11 @@ func (t *customerIDTransport) RoundTrip(req *http.Request) (*http.Response, erro
 	if req2.Header == nil {
 		req2.Header = make(http.Header)
 	}
-	
+
 	// Set Authorization header with development token format
 	// In production, this would use a real JWT or API key
 	req2.Header.Set("Authorization", fmt.Sprintf("Bearer dev_customer_%s", t.CustomerID))
-	
+
 	// Debug: Log the headers being sent
 	if debug := os.Getenv("DEBUG"); debug != "" {
 		fmt.Printf("DEBUG: Sending request to %s with headers:\n", req2.URL)
@@ -124,7 +132,7 @@ func (t *customerIDTransport) RoundTrip(req *http.Request) (*http.Response, erro
 			fmt.Printf("  %s: %v\n", k, v)
 		}
 	}
-	
+
 	// Use the base transport, or default if nil
 	base := t.Base
 	if base == nil {
@@ -173,9 +181,9 @@ func createVM(ctx context.Context, client vmprovisionerv1connect.VmServiceClient
 			MaxVcpuCount: 4,
 		},
 		Memory: &vmprovisionerv1.MemoryConfig{
-			SizeBytes:       1 * 1024 * 1024 * 1024, // 1GB
-			HotplugEnabled:  true,
-			MaxSizeBytes:    4 * 1024 * 1024 * 1024, // 4GB max
+			SizeBytes:      1 * 1024 * 1024 * 1024, // 1GB
+			HotplugEnabled: true,
+			MaxSizeBytes:   4 * 1024 * 1024 * 1024, // 4GB max
 		},
 		Boot: &vmprovisionerv1.BootConfig{
 			KernelPath: "/opt/vm-assets/vmlinux",
@@ -305,4 +313,97 @@ func getVMInfo(ctx context.Context, client vmprovisionerv1connect.VmServiceClien
 		fmt.Printf("    MAC: %s\n", resp.Msg.NetworkInfo.MacAddress)
 		fmt.Printf("    TAP: %s\n", resp.Msg.NetworkInfo.TapDevice)
 	}
+}
+
+func createCustomVM(ctx context.Context, client vmprovisionerv1connect.VmServiceClient, vmID string, dockerImage string) string {
+	// Create VM configuration for a custom Docker image
+	// Note: In the current architecture, metald expects pre-built rootfs files.
+	// This example shows how you would specify metadata that could be used
+	// to select the appropriate rootfs that was built from the Docker image.
+
+	config := &vmprovisionerv1.VmConfig{
+		Cpu: &vmprovisionerv1.CpuConfig{
+			VcpuCount:    2,
+			MaxVcpuCount: 4,
+		},
+		Memory: &vmprovisionerv1.MemoryConfig{
+			SizeBytes:      1 * 1024 * 1024 * 1024, // 1GB
+			HotplugEnabled: true,
+			MaxSizeBytes:   4 * 1024 * 1024 * 1024, // 4GB max
+		},
+		Boot: &vmprovisionerv1.BootConfig{
+			KernelPath: "/opt/vm-assets/vmlinux",
+			// For nginx, we might want to expose port 80
+			KernelArgs: "console=ttyS0 reboot=k panic=1 pci=off init=/sbin/init",
+		},
+		Storage: []*vmprovisionerv1.StorageDevice{
+			{
+				Id: "rootfs",
+				// AIDEV-NOTE: This assumes the rootfs for the Docker image exists.
+				// In a full implementation, metald would coordinate with builderd
+				// to build this rootfs from the Docker image if it doesn't exist.
+				Path:          fmt.Sprintf("/opt/vm-assets/%s-rootfs.ext4", sanitizeImageName(dockerImage)),
+				ReadOnly:      false,
+				IsRootDevice:  true,
+				InterfaceType: "virtio-blk",
+				Options: map[string]string{
+					"docker_image": dockerImage,
+				},
+			},
+		},
+		Network: []*vmprovisionerv1.NetworkInterface{
+			{
+				Id:            "eth0",
+				InterfaceType: "virtio-net",
+				Mode:          vmprovisionerv1.NetworkMode_NETWORK_MODE_DUAL_STACK,
+				Ipv4Config: &vmprovisionerv1.IPv4Config{
+					Dhcp: true,
+				},
+				Ipv6Config: &vmprovisionerv1.IPv6Config{
+					Slaac:             true,
+					PrivacyExtensions: true,
+				},
+			},
+		},
+		Console: &vmprovisionerv1.ConsoleConfig{
+			Enabled:     true,
+			Output:      "/tmp/vm-console.log",
+			ConsoleType: "serial",
+		},
+		Metadata: map[string]string{
+			"purpose":      "custom-docker",
+			"docker_image": dockerImage,
+			"environment":  "development",
+		},
+	}
+
+	req := &vmprovisionerv1.CreateVmRequest{
+		VmId:   vmID,
+		Config: config,
+	}
+
+	resp, err := client.CreateVm(ctx, connect.NewRequest(req))
+	if err != nil {
+		log.Fatalf("Failed to create custom VM: %v", err)
+	}
+
+	fmt.Printf("Custom VM created successfully:\n")
+	fmt.Printf("  VM ID: %s\n", resp.Msg.VmId)
+	fmt.Printf("  State: %s\n", resp.Msg.State.String())
+	fmt.Printf("  Docker Image: %s\n", dockerImage)
+	fmt.Printf("\nNOTE: This example assumes the rootfs has been pre-built from the Docker image.\n")
+	fmt.Printf("      In a full implementation, metald would coordinate with builderd to build\n")
+	fmt.Printf("      the rootfs from '%s' if it doesn't exist.\n", dockerImage)
+
+	return resp.Msg.VmId
+}
+
+// sanitizeImageName converts a Docker image name to a safe filename
+func sanitizeImageName(imageName string) string {
+	// Replace special characters with underscores
+	safe := imageName
+	safe = strings.ReplaceAll(safe, "/", "_")
+	safe = strings.ReplaceAll(safe, ":", "_")
+	safe = strings.ReplaceAll(safe, "@", "_")
+	return safe
 }

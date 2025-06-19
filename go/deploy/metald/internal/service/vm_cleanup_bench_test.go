@@ -38,8 +38,8 @@ func (m *mockCleanupBackend) DeleteVM(ctx context.Context, vmID string) error {
 
 	// Update max concurrent if needed
 	for {
-		max := atomic.LoadInt64(&m.maxConcurrent)
-		if current <= max || atomic.CompareAndSwapInt64(&m.maxConcurrent, max, current) {
+		maxConcurrent := atomic.LoadInt64(&m.maxConcurrent)
+		if current <= maxConcurrent || atomic.CompareAndSwapInt64(&m.maxConcurrent, maxConcurrent, current) {
 			break
 		}
 	}
@@ -66,7 +66,7 @@ func (m *mockCleanupBackend) DeleteVM(ctx context.Context, vmID string) error {
 		// Generate a random float between 0 and 1
 		randomValue := m.rng.Float64()
 		m.mu.Unlock()
-		
+
 		if randomValue < m.failureRate {
 			return errors.New("simulated backend failure")
 		}

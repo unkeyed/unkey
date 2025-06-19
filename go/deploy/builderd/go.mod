@@ -5,6 +5,7 @@ go 1.24.3
 require (
 	connectrpc.com/connect v1.18.1
 	github.com/prometheus/client_golang v1.22.0
+	github.com/unkeyed/unkey/go/deploy/assetmanagerd v0.0.0-00010101000000-000000000000
 	github.com/unkeyed/unkey/go/deploy/pkg/health v0.0.0-00010101000000-000000000000
 	github.com/unkeyed/unkey/go/deploy/pkg/tls v0.0.0-00010101000000-000000000000
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.61.0
@@ -56,3 +57,5 @@ replace github.com/unkeyed/unkey/go/deploy/pkg/tls => ../pkg/tls
 replace github.com/unkeyed/unkey/go/deploy/pkg/spiffe => ../pkg/spiffe
 
 replace github.com/unkeyed/unkey/go/deploy/pkg/health => ../pkg/health
+
+replace github.com/unkeyed/unkey/go/deploy/assetmanagerd => ../assetmanagerd

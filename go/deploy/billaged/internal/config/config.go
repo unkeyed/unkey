@@ -94,11 +94,11 @@ func LoadConfig() (*Config, error) {
 func LoadConfigWithLogger(logger *slog.Logger) (*Config, error) {
 	// Parse sampling rate
 	samplingRate := 1.0
-	if samplingStr := os.Getenv("BILLAGED_OTEL_SAMPLING_RATE"); samplingStr != "" {
+	if samplingStr := os.Getenv("UNKEY_BILLAGED_OTEL_SAMPLING_RATE"); samplingStr != "" {
 		if parsed, err := strconv.ParseFloat(samplingStr, 64); err == nil {
 			samplingRate = parsed
 		} else {
-			logger.Warn("invalid BILLAGED_OTEL_SAMPLING_RATE, using default 1.0",
+			logger.Warn("invalid UNKEY_BILLAGED_OTEL_SAMPLING_RATE, using default 1.0",
 				slog.String("value", samplingStr),
 				slog.String("error", err.Error()),
 			)
@@ -107,11 +107,11 @@ func LoadConfigWithLogger(logger *slog.Logger) (*Config, error) {
 
 	// Parse enabled flag
 	otelEnabled := false
-	if enabledStr := os.Getenv("BILLAGED_OTEL_ENABLED"); enabledStr != "" {
+	if enabledStr := os.Getenv("UNKEY_BILLAGED_OTEL_ENABLED"); enabledStr != "" {
 		if parsed, err := strconv.ParseBool(enabledStr); err == nil {
 			otelEnabled = parsed
 		} else {
-			logger.Warn("invalid BILLAGED_OTEL_ENABLED, using default false",
+			logger.Warn("invalid UNKEY_BILLAGED_OTEL_ENABLED, using default false",
 				slog.String("value", enabledStr),
 				slog.String("error", err.Error()),
 			)
@@ -120,11 +120,11 @@ func LoadConfigWithLogger(logger *slog.Logger) (*Config, error) {
 
 	// Parse Prometheus enabled flag
 	prometheusEnabled := true // Default to true when OTEL is enabled
-	if promStr := os.Getenv("BILLAGED_OTEL_PROMETHEUS_ENABLED"); promStr != "" {
+	if promStr := os.Getenv("UNKEY_BILLAGED_OTEL_PROMETHEUS_ENABLED"); promStr != "" {
 		if parsed, err := strconv.ParseBool(promStr); err == nil {
 			prometheusEnabled = parsed
 		} else {
-			logger.Warn("invalid BILLAGED_OTEL_PROMETHEUS_ENABLED, using default true",
+			logger.Warn("invalid UNKEY_BILLAGED_OTEL_PROMETHEUS_ENABLED, using default true",
 				slog.String("value", promStr),
 				slog.String("error", err.Error()),
 			)
@@ -133,11 +133,11 @@ func LoadConfigWithLogger(logger *slog.Logger) (*Config, error) {
 
 	// Parse high cardinality labels flag
 	highCardinalityLabelsEnabled := false // Default to false for production safety
-	if highCardStr := os.Getenv("BILLAGED_OTEL_HIGH_CARDINALITY_ENABLED"); highCardStr != "" {
+	if highCardStr := os.Getenv("UNKEY_BILLAGED_OTEL_HIGH_CARDINALITY_ENABLED"); highCardStr != "" {
 		if parsed, err := strconv.ParseBool(highCardStr); err == nil {
 			highCardinalityLabelsEnabled = parsed
 		} else {
-			logger.Warn("invalid BILLAGED_OTEL_HIGH_CARDINALITY_ENABLED, using default false",
+			logger.Warn("invalid UNKEY_BILLAGED_OTEL_HIGH_CARDINALITY_ENABLED, using default false",
 				slog.String("value", highCardStr),
 				slog.String("error", err.Error()),
 			)
@@ -168,7 +168,7 @@ func LoadConfigWithLogger(logger *slog.Logger) (*Config, error) {
 			CertFile:         getEnvOrDefault("UNKEY_BILLAGED_TLS_CERT_FILE", ""),
 			KeyFile:          getEnvOrDefault("UNKEY_BILLAGED_TLS_KEY_FILE", ""),
 			CAFile:           getEnvOrDefault("UNKEY_BILLAGED_TLS_CA_FILE", ""),
-			SPIFFESocketPath: getEnvOrDefault("UNKEY_BILLAGED_SPIFFE_SOCKET", "/run/spire/sockets/agent.sock"),
+			SPIFFESocketPath: getEnvOrDefault("UNKEY_BILLAGED_SPIFFE_SOCKET", "/var/lib/spire/agent/agent.sock"),
 		},
 	}
 

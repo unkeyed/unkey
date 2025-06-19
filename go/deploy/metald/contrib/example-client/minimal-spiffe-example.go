@@ -1,3 +1,4 @@
+//go:build ignore
 // +build ignore
 
 package main
@@ -8,7 +9,7 @@ import (
 	"log"
 
 	"connectrpc.com/connect"
-	"github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
+	vmprovisionerv1 "github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
 	"github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1/vmprovisionerv1connect"
 	"github.com/unkeyed/unkey/go/deploy/pkg/spiffe"
 )

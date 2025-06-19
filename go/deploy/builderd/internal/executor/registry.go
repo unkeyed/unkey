@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"sync"
 
-	builderv1 "github.com/unkeyed/unkey/go/deploy/builderd/gen/proto/builder/v1"
+	builderv1 "github.com/unkeyed/unkey/go/deploy/builderd/gen/builder/v1"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/observability"
 )
@@ -21,7 +21,7 @@ type Registry struct {
 
 // NewRegistry creates a new executor registry
 func NewRegistry(logger *slog.Logger, cfg *config.Config, buildMetrics *observability.BuildMetrics) *Registry {
-	registry := &Registry{
+	registry := &Registry{ //nolint:exhaustruct // mutex is zero-value initialized and doesn't need explicit initialization
 		logger:    logger,
 		config:    cfg,
 		executors: make(map[string]Executor),
@@ -116,12 +116,12 @@ func (r *Registry) Execute(ctx context.Context, request *builderv1.CreateBuildRe
 
 // getSourceTypeFromRequest determines the source type from the build request
 func (r *Registry) getSourceTypeFromRequest(request *builderv1.CreateBuildRequest) (string, error) {
-	if request.Config == nil || request.Config.Source == nil {
+	if request.GetConfig() == nil || request.GetConfig().GetSource() == nil {
 		r.logger.ErrorContext(context.Background(), "build source is required but missing")
 		return "", fmt.Errorf("build source is required")
 	}
 
-	switch source := request.Config.Source.SourceType.(type) {
+	switch source := request.GetConfig().GetSource().GetSourceType().(type) {
 	case *builderv1.BuildSource_DockerImage:
 		return "docker", nil
 	case *builderv1.BuildSource_GitRepository:

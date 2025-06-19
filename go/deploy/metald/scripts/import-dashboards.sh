@@ -1,9 +1,8 @@
 #!/bin/bash
+set -euo pipefail
 
 # Import Grafana dashboards for metald monitoring
 # Requires the LGTM stack to be running (use: make o11y)
-
-set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DASHBOARD_DIR="$(dirname "$SCRIPT_DIR")/grafana-dashboards"

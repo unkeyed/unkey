@@ -80,7 +80,7 @@ type Aggregator struct {
 
 // NewAggregator creates a new billing aggregator
 func NewAggregator(logger *slog.Logger, aggregationInterval time.Duration) *Aggregator {
-	return &Aggregator{
+	return &Aggregator{ //nolint:exhaustruct // mu and onUsageSummary fields use appropriate zero values and are set later
 		logger:              logger.With("component", "billing_aggregator"),
 		vmData:              make(map[string]*VMUsageData),
 		customers:           make(map[string][]string),
@@ -105,10 +105,10 @@ func (a *Aggregator) ProcessMetricsBatch(vmID, customerID string, metrics []*bil
 	// Get or create VM usage data
 	vmUsage, exists := a.vmData[vmID]
 	if !exists {
-		vmUsage = &VMUsageData{
+		vmUsage = &VMUsageData{ //nolint:exhaustruct // Other usage tracking fields are initialized during metric processing
 			VMID:       vmID,
 			CustomerID: customerID,
-			StartTime:  metrics[0].Timestamp.AsTime(),
+			StartTime:  metrics[0].GetTimestamp().AsTime(),
 		}
 		a.vmData[vmID] = vmUsage
 
@@ -135,11 +135,11 @@ func (a *Aggregator) ProcessMetricsBatch(vmID, customerID string, metrics []*bil
 // processMetric processes a single metric and updates usage data
 func (a *Aggregator) processMetric(vmUsage *VMUsageData, metric *billingv1.VMMetrics) {
 	// Calculate deltas (incremental usage)
-	cpuDelta := metric.CpuTimeNanos - vmUsage.LastCPUNanos
-	diskReadDelta := metric.DiskReadBytes - vmUsage.LastDiskReadBytes
-	diskWriteDelta := metric.DiskWriteBytes - vmUsage.LastDiskWriteBytes
-	netRxDelta := metric.NetworkRxBytes - vmUsage.LastNetworkRxBytes
-	netTxDelta := metric.NetworkTxBytes - vmUsage.LastNetworkTxBytes
+	cpuDelta := metric.GetCpuTimeNanos() - vmUsage.LastCPUNanos
+	diskReadDelta := metric.GetDiskReadBytes() - vmUsage.LastDiskReadBytes
+	diskWriteDelta := metric.GetDiskWriteBytes() - vmUsage.LastDiskWriteBytes
+	netRxDelta := metric.GetNetworkRxBytes() - vmUsage.LastNetworkRxBytes
+	netTxDelta := metric.GetNetworkTxBytes() - vmUsage.LastNetworkTxBytes
 
 	// Only add positive deltas (handle counter resets gracefully)
 	if cpuDelta > 0 {
@@ -159,17 +159,17 @@ func (a *Aggregator) processMetric(vmUsage *VMUsageData, metric *billingv1.VMMet
 	}
 
 	// Memory is a point-in-time value, track max and average
-	if metric.MemoryUsageBytes > vmUsage.TotalMemoryBytes {
-		vmUsage.TotalMemoryBytes = metric.MemoryUsageBytes
+	if metric.GetMemoryUsageBytes() > vmUsage.TotalMemoryBytes {
+		vmUsage.TotalMemoryBytes = metric.GetMemoryUsageBytes()
 	}
 
 	// Update last values for next delta calculation
-	vmUsage.LastCPUNanos = metric.CpuTimeNanos
-	vmUsage.LastMemoryBytes = metric.MemoryUsageBytes
-	vmUsage.LastDiskReadBytes = metric.DiskReadBytes
-	vmUsage.LastDiskWriteBytes = metric.DiskWriteBytes
-	vmUsage.LastNetworkRxBytes = metric.NetworkRxBytes
-	vmUsage.LastNetworkTxBytes = metric.NetworkTxBytes
+	vmUsage.LastCPUNanos = metric.GetCpuTimeNanos()
+	vmUsage.LastMemoryBytes = metric.GetMemoryUsageBytes()
+	vmUsage.LastDiskReadBytes = metric.GetDiskReadBytes()
+	vmUsage.LastDiskWriteBytes = metric.GetDiskWriteBytes()
+	vmUsage.LastNetworkRxBytes = metric.GetNetworkRxBytes()
+	vmUsage.LastNetworkTxBytes = metric.GetNetworkTxBytes()
 }
 
 // NotifyVMStarted handles VM start notifications
@@ -178,7 +178,7 @@ func (a *Aggregator) NotifyVMStarted(vmID, customerID string, startTime int64) {
 	defer a.mu.Unlock()
 
 	// Initialize or reset VM usage data
-	vmUsage := &VMUsageData{
+	vmUsage := &VMUsageData{ //nolint:exhaustruct // Usage tracking fields are initialized as metrics are received
 		VMID:       vmID,
 		CustomerID: customerID,
 		StartTime:  time.Unix(0, startTime),

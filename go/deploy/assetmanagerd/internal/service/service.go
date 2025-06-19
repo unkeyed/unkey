@@ -44,47 +44,47 @@ func (s *Service) RegisterAsset(
 	// This allows builderd to upload directly to storage then register
 
 	// Validate request
-	if req.Msg.Name == "" {
+	if req.Msg.GetName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("name is required"))
 	}
 
-	if req.Msg.Location == "" {
+	if req.Msg.GetLocation() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("location is required"))
 	}
 
 	// Verify asset exists in storage
-	exists, err := s.storage.Exists(ctx, req.Msg.Location)
+	exists, err := s.storage.Exists(ctx, req.Msg.GetLocation())
 	if err != nil {
 		s.logger.LogAttrs(ctx, slog.LevelError, "failed to check asset existence",
-			slog.String("location", req.Msg.Location),
+			slog.String("location", req.Msg.GetLocation()),
 			slog.String("error", err.Error()),
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to verify asset"))
 	}
 
 	if !exists {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("asset not found at location: %s", req.Msg.Location))
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("asset not found at location: %s", req.Msg.GetLocation()))
 	}
 
 	// Get actual size and checksum from storage
-	size := req.Msg.SizeBytes
+	size := req.Msg.GetSizeBytes()
 	if size == 0 {
-		size, err = s.storage.GetSize(ctx, req.Msg.Location)
+		size, err = s.storage.GetSize(ctx, req.Msg.GetLocation())
 		if err != nil {
 			s.logger.LogAttrs(ctx, slog.LevelError, "failed to get asset size",
-				slog.String("location", req.Msg.Location),
+				slog.String("location", req.Msg.GetLocation()),
 				slog.String("error", err.Error()),
 			)
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get asset size"))
 		}
 	}
 
-	checksum := req.Msg.Checksum
+	checksum := req.Msg.GetChecksum()
 	if checksum == "" {
-		checksum, err = s.storage.GetChecksum(ctx, req.Msg.Location)
+		checksum, err = s.storage.GetChecksum(ctx, req.Msg.GetLocation())
 		if err != nil {
 			s.logger.LogAttrs(ctx, slog.LevelError, "failed to get asset checksum",
-				slog.String("location", req.Msg.Location),
+				slog.String("location", req.Msg.GetLocation()),
 				slog.String("error", err.Error()),
 			)
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get asset checksum"))
@@ -92,37 +92,38 @@ func (s *Service) RegisterAsset(
 	}
 
 	// Create asset record
+	//nolint:exhaustruct // Id field will be auto-generated
 	asset := &assetv1.Asset{
-		Name:           req.Msg.Name,
-		Type:           req.Msg.Type,
+		Name:           req.Msg.GetName(),
+		Type:           req.Msg.GetType(),
 		Status:         assetv1.AssetStatus_ASSET_STATUS_AVAILABLE,
-		Backend:        req.Msg.Backend,
-		Location:       req.Msg.Location,
+		Backend:        req.Msg.GetBackend(),
+		Location:       req.Msg.GetLocation(),
 		SizeBytes:      size,
 		Checksum:       checksum,
-		Labels:         req.Msg.Labels,
-		CreatedBy:      req.Msg.CreatedBy,
+		Labels:         req.Msg.GetLabels(),
+		CreatedBy:      req.Msg.GetCreatedBy(),
 		CreatedAt:      time.Now().Unix(),
 		LastAccessedAt: time.Now().Unix(),
 		ReferenceCount: 0,
-		BuildId:        req.Msg.BuildId,
-		SourceImage:    req.Msg.SourceImage,
+		BuildId:        req.Msg.GetBuildId(),
+		SourceImage:    req.Msg.GetSourceImage(),
 	}
 
 	// Save to registry
 	if err := s.registry.CreateAsset(asset); err != nil {
 		s.logger.LogAttrs(ctx, slog.LevelError, "failed to create asset record",
-			slog.String("name", req.Msg.Name),
+			slog.String("name", req.Msg.GetName()),
 			slog.String("error", err.Error()),
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to register asset"))
 	}
 
 	s.logger.LogAttrs(ctx, slog.LevelInfo, "registered asset",
-		slog.String("id", asset.Id),
-		slog.String("name", asset.Name),
-		slog.String("type", asset.Type.String()),
-		slog.Int64("size", asset.SizeBytes),
+		slog.String("id", asset.GetId()),
+		slog.String("name", asset.GetName()),
+		slog.String("type", asset.GetType().String()),
+		slog.Int64("size", asset.GetSizeBytes()),
 	)
 
 	return connect.NewResponse(&assetv1.RegisterAssetResponse{
@@ -135,34 +136,35 @@ func (s *Service) GetAsset(
 	ctx context.Context,
 	req *connect.Request[assetv1.GetAssetRequest],
 ) (*connect.Response[assetv1.GetAssetResponse], error) {
-	if req.Msg.Id == "" {
+	if req.Msg.GetId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("id is required"))
 	}
 
 	// Get asset from registry
-	asset, err := s.registry.GetAsset(req.Msg.Id)
+	asset, err := s.registry.GetAsset(req.Msg.GetId())
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			return nil, connect.NewError(connect.CodeNotFound, err)
 		}
 		s.logger.LogAttrs(ctx, slog.LevelError, "failed to get asset",
-			slog.String("id", req.Msg.Id),
+			slog.String("id", req.Msg.GetId()),
 			slog.String("error", err.Error()),
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get asset"))
 	}
 
+	//nolint:exhaustruct // LocalPath field is optional and set below if needed
 	resp := &assetv1.GetAssetResponse{
 		Asset: asset,
 	}
 
 	// Ensure local if requested
-	if req.Msg.EnsureLocal {
-		localPath, err := s.storage.EnsureLocal(ctx, asset.Location, s.cfg.CacheDir)
+	if req.Msg.GetEnsureLocal() {
+		localPath, err := s.storage.EnsureLocal(ctx, asset.GetLocation(), s.cfg.CacheDir)
 		if err != nil {
 			s.logger.LogAttrs(ctx, slog.LevelError, "failed to ensure asset is local",
-				slog.String("id", req.Msg.Id),
-				slog.String("location", asset.Location),
+				slog.String("id", req.Msg.GetId()),
+				slog.String("location", asset.GetLocation()),
 				slog.String("error", err.Error()),
 			)
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to ensure asset is local"))
@@ -179,14 +181,15 @@ func (s *Service) ListAssets(
 	req *connect.Request[assetv1.ListAssetsRequest],
 ) (*connect.Response[assetv1.ListAssetsResponse], error) {
 	// Convert request to registry filters
+	//nolint:exhaustruct // Limit and Offset are set below
 	filters := registry.ListFilters{
-		Type:   req.Msg.Type,
-		Status: req.Msg.Status,
-		Labels: req.Msg.LabelSelector,
+		Type:   req.Msg.GetType(),
+		Status: req.Msg.GetStatus(),
+		Labels: req.Msg.GetLabelSelector(),
 	}
 
 	// Handle pagination
-	pageSize := int(req.Msg.PageSize)
+	pageSize := int(req.Msg.GetPageSize())
 	if pageSize == 0 {
 		pageSize = 100
 	}
@@ -196,9 +199,9 @@ func (s *Service) ListAssets(
 	filters.Limit = pageSize
 
 	// Parse page token (simple offset-based pagination)
-	if req.Msg.PageToken != "" {
+	if req.Msg.GetPageToken() != "" {
 		var offset int
-		if _, err := fmt.Sscanf(req.Msg.PageToken, "offset:%d", &offset); err == nil {
+		if _, err := fmt.Sscanf(req.Msg.GetPageToken(), "offset:%d", &offset); err == nil {
 			filters.Offset = offset
 		}
 	}
@@ -212,6 +215,7 @@ func (s *Service) ListAssets(
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list assets"))
 	}
 
+	//nolint:exhaustruct // NextPageToken is optional and set below if needed
 	resp := &assetv1.ListAssetsResponse{
 		Assets: assets,
 	}
@@ -229,16 +233,16 @@ func (s *Service) AcquireAsset(
 	ctx context.Context,
 	req *connect.Request[assetv1.AcquireAssetRequest],
 ) (*connect.Response[assetv1.AcquireAssetResponse], error) {
-	if req.Msg.AssetId == "" {
+	if req.Msg.GetAssetId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("asset_id is required"))
 	}
 
-	if req.Msg.AcquiredBy == "" {
+	if req.Msg.GetAcquiredBy() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("acquired_by is required"))
 	}
 
 	// Verify asset exists
-	asset, err := s.registry.GetAsset(req.Msg.AssetId)
+	_, err := s.registry.GetAsset(req.Msg.GetAssetId())
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			return nil, connect.NewError(connect.CodeNotFound, err)
@@ -247,24 +251,24 @@ func (s *Service) AcquireAsset(
 	}
 
 	// Create lease
-	ttl := time.Duration(req.Msg.TtlSeconds) * time.Second
-	leaseID, err := s.registry.CreateLease(req.Msg.AssetId, req.Msg.AcquiredBy, ttl)
+	ttl := time.Duration(req.Msg.GetTtlSeconds()) * time.Second
+	leaseID, err := s.registry.CreateLease(req.Msg.GetAssetId(), req.Msg.GetAcquiredBy(), ttl)
 	if err != nil {
 		s.logger.LogAttrs(ctx, slog.LevelError, "failed to create lease",
-			slog.String("asset_id", req.Msg.AssetId),
+			slog.String("asset_id", req.Msg.GetAssetId()),
 			slog.String("error", err.Error()),
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to acquire asset"))
 	}
 
 	// Get updated asset with incremented ref count
-	asset, _ = s.registry.GetAsset(req.Msg.AssetId)
+	asset, _ := s.registry.GetAsset(req.Msg.GetAssetId())
 
 	s.logger.LogAttrs(ctx, slog.LevelInfo, "acquired asset",
-		slog.String("asset_id", req.Msg.AssetId),
+		slog.String("asset_id", req.Msg.GetAssetId()),
 		slog.String("lease_id", leaseID),
-		slog.String("acquired_by", req.Msg.AcquiredBy),
-		slog.Int("ref_count", int(asset.ReferenceCount)),
+		slog.String("acquired_by", req.Msg.GetAcquiredBy()),
+		slog.Int("ref_count", int(asset.GetReferenceCount())),
 	)
 
 	return connect.NewResponse(&assetv1.AcquireAssetResponse{
@@ -278,28 +282,29 @@ func (s *Service) ReleaseAsset(
 	ctx context.Context,
 	req *connect.Request[assetv1.ReleaseAssetRequest],
 ) (*connect.Response[assetv1.ReleaseAssetResponse], error) {
-	if req.Msg.LeaseId == "" {
+	if req.Msg.GetLeaseId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("lease_id is required"))
 	}
 
 	// Release lease
-	if err := s.registry.ReleaseLease(req.Msg.LeaseId); err != nil {
+	if err := s.registry.ReleaseLease(req.Msg.GetLeaseId()); err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			return nil, connect.NewError(connect.CodeNotFound, err)
 		}
 		s.logger.LogAttrs(ctx, slog.LevelError, "failed to release lease",
-			slog.String("lease_id", req.Msg.LeaseId),
+			slog.String("lease_id", req.Msg.GetLeaseId()),
 			slog.String("error", err.Error()),
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to release asset"))
 	}
 
 	s.logger.LogAttrs(ctx, slog.LevelInfo, "released asset",
-		slog.String("lease_id", req.Msg.LeaseId),
+		slog.String("lease_id", req.Msg.GetLeaseId()),
 	)
 
 	// Return empty asset for now (could fetch if needed)
 	return connect.NewResponse(&assetv1.ReleaseAssetResponse{
+		//nolint:exhaustruct // Empty asset is intentional - could fetch if needed in future
 		Asset: &assetv1.Asset{},
 	}), nil
 }
@@ -309,12 +314,12 @@ func (s *Service) DeleteAsset(
 	ctx context.Context,
 	req *connect.Request[assetv1.DeleteAssetRequest],
 ) (*connect.Response[assetv1.DeleteAssetResponse], error) {
-	if req.Msg.Id == "" {
+	if req.Msg.GetId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("id is required"))
 	}
 
 	// Get asset
-	asset, err := s.registry.GetAsset(req.Msg.Id)
+	asset, err := s.registry.GetAsset(req.Msg.GetId())
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			return nil, connect.NewError(connect.CodeNotFound, err)
@@ -323,35 +328,35 @@ func (s *Service) DeleteAsset(
 	}
 
 	// Check reference count
-	if asset.ReferenceCount > 0 && !req.Msg.Force {
+	if asset.GetReferenceCount() > 0 && !req.Msg.GetForce() {
 		return connect.NewResponse(&assetv1.DeleteAssetResponse{
 			Deleted: false,
-			Message: fmt.Sprintf("asset has %d active references", asset.ReferenceCount),
+			Message: fmt.Sprintf("asset has %d active references", asset.GetReferenceCount()),
 		}), nil
 	}
 
 	// Delete from storage
-	if err := s.storage.Delete(ctx, asset.Location); err != nil {
+	if err := s.storage.Delete(ctx, asset.GetLocation()); err != nil {
 		s.logger.LogAttrs(ctx, slog.LevelError, "failed to delete from storage",
-			slog.String("id", req.Msg.Id),
-			slog.String("location", asset.Location),
+			slog.String("id", req.Msg.GetId()),
+			slog.String("location", asset.GetLocation()),
 			slog.String("error", err.Error()),
 		)
 		// Continue with registry deletion even if storage deletion fails
 	}
 
 	// Delete from registry
-	if err := s.registry.DeleteAsset(req.Msg.Id); err != nil {
+	if err := s.registry.DeleteAsset(req.Msg.GetId()); err != nil {
 		s.logger.LogAttrs(ctx, slog.LevelError, "failed to delete from registry",
-			slog.String("id", req.Msg.Id),
+			slog.String("id", req.Msg.GetId()),
 			slog.String("error", err.Error()),
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete asset"))
 	}
 
 	s.logger.LogAttrs(ctx, slog.LevelInfo, "deleted asset",
-		slog.String("id", req.Msg.Id),
-		slog.String("name", asset.Name),
+		slog.String("id", req.Msg.GetId()),
+		slog.String("name", asset.GetName()),
 	)
 
 	return connect.NewResponse(&assetv1.DeleteAssetResponse{
@@ -392,8 +397,9 @@ func (s *Service) GarbageCollect(
 	}
 
 	// Get unreferenced assets
-	if req.Msg.DeleteUnreferenced {
-		maxAge := time.Duration(req.Msg.MaxAgeSeconds) * time.Second
+	//nolint:nestif // Nested conditions are clear and logical for GC operation
+	if req.Msg.GetDeleteUnreferenced() {
+		maxAge := time.Duration(req.Msg.GetMaxAgeSeconds()) * time.Second
 		if maxAge == 0 {
 			maxAge = s.cfg.GCMaxAge
 		}
@@ -407,38 +413,38 @@ func (s *Service) GarbageCollect(
 		}
 
 		for _, asset := range unreferencedAssets {
-			if req.Msg.DryRun {
+			if req.Msg.GetDryRun() {
 				deletedAssets = append(deletedAssets, asset)
-				bytesFreed += asset.SizeBytes
+				bytesFreed += asset.GetSizeBytes()
 				continue
 			}
 
 			// Delete from storage
-			if err := s.storage.Delete(ctx, asset.Location); err != nil {
+			if err := s.storage.Delete(ctx, asset.GetLocation()); err != nil {
 				s.logger.LogAttrs(ctx, slog.LevelWarn, "failed to delete asset from storage",
-					slog.String("id", asset.Id),
-					slog.String("location", asset.Location),
+					slog.String("id", asset.GetId()),
+					slog.String("location", asset.GetLocation()),
 					slog.String("error", err.Error()),
 				)
 				continue
 			}
 
 			// Delete from registry
-			if err := s.registry.DeleteAsset(asset.Id); err != nil {
+			if err := s.registry.DeleteAsset(asset.GetId()); err != nil {
 				s.logger.LogAttrs(ctx, slog.LevelWarn, "failed to delete asset from registry",
-					slog.String("id", asset.Id),
+					slog.String("id", asset.GetId()),
 					slog.String("error", err.Error()),
 				)
 				continue
 			}
 
 			deletedAssets = append(deletedAssets, asset)
-			bytesFreed += asset.SizeBytes
+			bytesFreed += asset.GetSizeBytes()
 		}
 	}
 
 	s.logger.LogAttrs(ctx, slog.LevelInfo, "garbage collection completed",
-		slog.Bool("dry_run", req.Msg.DryRun),
+		slog.Bool("dry_run", req.Msg.GetDryRun()),
 		slog.Int("deleted_count", len(deletedAssets)),
 		slog.Int64("bytes_freed", bytesFreed),
 	)
@@ -454,17 +460,17 @@ func (s *Service) PrepareAssets(
 	ctx context.Context,
 	req *connect.Request[assetv1.PrepareAssetsRequest],
 ) (*connect.Response[assetv1.PrepareAssetsResponse], error) {
-	if len(req.Msg.AssetIds) == 0 {
+	if len(req.Msg.GetAssetIds()) == 0 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("asset_ids is required"))
 	}
 
-	if req.Msg.TargetPath == "" {
+	if req.Msg.GetTargetPath() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("target_path is required"))
 	}
 
 	assetPaths := make(map[string]string)
 
-	for _, assetID := range req.Msg.AssetIds {
+	for _, assetID := range req.Msg.GetAssetIds() {
 		// Get asset
 		asset, err := s.registry.GetAsset(assetID)
 		if err != nil {
@@ -475,23 +481,23 @@ func (s *Service) PrepareAssets(
 		}
 
 		// Ensure asset is available locally
-		localPath, err := s.storage.EnsureLocal(ctx, asset.Location, s.cfg.CacheDir)
+		localPath, err := s.storage.EnsureLocal(ctx, asset.GetLocation(), s.cfg.CacheDir)
 		if err != nil {
 			s.logger.LogAttrs(ctx, slog.LevelError, "failed to ensure asset is local",
 				slog.String("id", assetID),
-				slog.String("location", asset.Location),
+				slog.String("location", asset.GetLocation()),
 				slog.String("error", err.Error()),
 			)
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to prepare asset %s", assetID))
 		}
 
 		// Prepare the target file path
-		targetFile := filepath.Join(req.Msg.TargetPath, filepath.Base(localPath))
+		targetFile := filepath.Join(req.Msg.GetTargetPath(), filepath.Base(localPath))
 
 		// Create the target directory if it doesn't exist
-		if err := os.MkdirAll(req.Msg.TargetPath, 0755); err != nil {
+		if err := os.MkdirAll(req.Msg.GetTargetPath(), 0755); err != nil {
 			s.logger.LogAttrs(ctx, slog.LevelError, "failed to create target directory",
-				slog.String("path", req.Msg.TargetPath),
+				slog.String("path", req.Msg.GetTargetPath()),
 				slog.String("error", err.Error()),
 			)
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create target directory: %w", err))
@@ -522,8 +528,8 @@ func (s *Service) PrepareAssets(
 
 	s.logger.LogAttrs(ctx, slog.LevelInfo, "prepared assets",
 		slog.Int("count", len(assetPaths)),
-		slog.String("target_path", req.Msg.TargetPath),
-		slog.String("prepared_for", req.Msg.PreparedFor),
+		slog.String("target_path", req.Msg.GetTargetPath()),
+		slog.String("prepared_for", req.Msg.GetPreparedFor()),
 	)
 
 	return connect.NewResponse(&assetv1.PrepareAssetsResponse{
@@ -560,10 +566,10 @@ func (s *Service) StartGarbageCollector(ctx context.Context) {
 					slog.String("error", err.Error()),
 				)
 			} else {
-				if len(resp.Msg.DeletedAssets) > 0 {
+				if len(resp.Msg.GetDeletedAssets()) > 0 {
 					s.logger.InfoContext(ctx, "garbage collection completed",
-						slog.Int("deleted_count", len(resp.Msg.DeletedAssets)),
-						slog.Int64("bytes_freed", resp.Msg.BytesFreed),
+						slog.Int("deleted_count", len(resp.Msg.GetDeletedAssets())),
+						slog.Int64("bytes_freed", resp.Msg.GetBytesFreed()),
 					)
 				}
 			}
@@ -593,6 +599,7 @@ func (s *Service) UploadAsset(ctx context.Context, name string, assetType assetv
 	}
 
 	// Register asset
+	//nolint:exhaustruct // Optional fields not needed for manual upload
 	req := &assetv1.RegisterAssetRequest{
 		Name:      name,
 		Type:      assetType,
@@ -610,7 +617,7 @@ func (s *Service) UploadAsset(ctx context.Context, name string, assetType assetv
 		return nil, err
 	}
 
-	return resp.Msg.Asset, nil
+	return resp.Msg.GetAsset(), nil
 }
 
 // copyFile copies a file from source to destination
@@ -628,13 +635,13 @@ func copyFile(src, dst string) error {
 	defer destFile.Close()
 
 	// Copy the file contents
-	if _, err := io.Copy(destFile, sourceFile); err != nil {
-		return fmt.Errorf("failed to copy file contents: %w", err)
+	if _, copyErr := io.Copy(destFile, sourceFile); copyErr != nil {
+		return fmt.Errorf("failed to copy file contents: %w", copyErr)
 	}
 
 	// Sync to ensure all data is written to disk
-	if err := destFile.Sync(); err != nil {
-		return fmt.Errorf("failed to sync destination file: %w", err)
+	if syncErr := destFile.Sync(); syncErr != nil {
+		return fmt.Errorf("failed to sync destination file: %w", syncErr)
 	}
 
 	// Copy file permissions
@@ -643,8 +650,8 @@ func copyFile(src, dst string) error {
 		return fmt.Errorf("failed to stat source file: %w", err)
 	}
 
-	if err := os.Chmod(dst, sourceInfo.Mode()); err != nil {
-		return fmt.Errorf("failed to set destination file permissions: %w", err)
+	if chmodErr := os.Chmod(dst, sourceInfo.Mode()); chmodErr != nil {
+		return fmt.Errorf("failed to set destination file permissions: %w", chmodErr)
 	}
 
 	return nil

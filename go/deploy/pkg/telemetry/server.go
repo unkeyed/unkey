@@ -9,17 +9,28 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-// MetricsServerConfig holds configuration for the metrics server
+// MetricsServerConfig holds configuration for the Prometheus metrics HTTP server.
+//
+// The metrics server runs separately from the main application server to provide
+// monitoring endpoints without requiring authentication or TLS.
 type MetricsServerConfig struct {
-	Interface      string
-	Port           string
-	HealthHandler  http.HandlerFunc
+	// Interface specifies the network interface to bind to (e.g., "127.0.0.1", "0.0.0.0").
+	Interface string
+	// Port specifies the TCP port for the metrics server.
+	Port string
+	// HealthHandler provides the /health endpoint handler. Optional.
+	HealthHandler http.HandlerFunc
+	// MetricsHandler provides the /metrics endpoint handler. Defaults to promhttp.Handler().
 	MetricsHandler http.Handler
-	Logger         *slog.Logger
+	// Logger is used for server lifecycle and error logging.
+	Logger *slog.Logger
 }
 
-// NewMetricsServer creates a new HTTP server for Prometheus metrics and health checks
-// This server runs on a separate port without TLS for monitoring purposes
+// NewMetricsServer creates a new HTTP server for Prometheus metrics and health checks.
+//
+// The server exposes /metrics for Prometheus scraping and optionally /health for
+// health checks. It runs without TLS and uses conservative timeout settings
+// suitable for monitoring workloads.
 func NewMetricsServer(cfg *MetricsServerConfig) *http.Server {
 	mux := http.NewServeMux()
 	
@@ -46,7 +57,11 @@ func NewMetricsServer(cfg *MetricsServerConfig) *http.Server {
 	}
 }
 
-// StartMetricsServer starts the metrics server in a goroutine
+// StartMetricsServer starts the metrics server in a background goroutine.
+//
+// The server begins listening immediately and logs startup information including
+// the bound address and whether it's restricted to localhost. Server errors
+// are logged but do not cause the function to return an error.
 func StartMetricsServer(cfg *MetricsServerConfig) {
 	server := NewMetricsServer(cfg)
 	

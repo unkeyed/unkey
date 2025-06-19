@@ -170,7 +170,7 @@ func NewOTELInterceptor() connect.UnaryInterceptorFunc {
 
 				// For error sampling: create a new span that's always sampled
 				// This ensures errors are captured even with low sampling rates
-				if span.SpanContext().IsSampled() == false {
+				if !span.SpanContext().IsSampled() {
 					_, errorSpan := tracer.Start(ctx, spanName+".error",
 						trace.WithSpanKind(trace.SpanKindServer),
 						trace.WithAttributes(
@@ -260,6 +260,13 @@ func NewLoggingInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc {
 						logLevel = slog.LevelWarn
 					case connect.CodeUnauthenticated, connect.CodePermissionDenied:
 						logLevel = slog.LevelWarn
+					case connect.CodeCanceled, connect.CodeDeadlineExceeded:
+						logLevel = slog.LevelWarn
+					case connect.CodeResourceExhausted, connect.CodeAborted, connect.CodeOutOfRange:
+						logLevel = slog.LevelWarn
+					case connect.CodeUnknown, connect.CodeUnimplemented, connect.CodeInternal,
+						connect.CodeUnavailable, connect.CodeDataLoss:
+						logLevel = slog.LevelError
 					}
 				}
 

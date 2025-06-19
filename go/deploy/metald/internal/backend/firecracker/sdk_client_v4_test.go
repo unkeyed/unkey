@@ -1,6 +1,8 @@
 package firecracker
 
 import (
+	"log/slog"
+	"os"
 	"testing"
 
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/config"
@@ -9,14 +11,17 @@ import (
 func TestNewSDKClientV4(t *testing.T) {
 	// Test that we can create a new SDK client
 	jailerConfig := &config.JailerConfig{
-			ChrootBaseDir:         "/tmp/test-jailer",
-		UID:                   1000,
-		GID:                   1000,
+		ChrootBaseDir: "/tmp/test-jailer",
+		UID:           1000,
+		GID:           1000,
 	}
 
+	// Create a test logger
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	
 	// This is a basic smoke test to ensure the constructor works
 	// More comprehensive testing is done through integration tests
-	client, err := NewSDKClientV4(nil, nil, nil, jailerConfig, "/tmp")
+	client, err := NewSDKClientV4(logger, nil, nil, jailerConfig, "/tmp")
 	if err != nil {
 		t.Fatalf("Expected to create SDK client, got error: %v", err)
 	}
@@ -37,11 +42,10 @@ func TestNewSDKClientV4(t *testing.T) {
 
 func TestCreateTestConfig(t *testing.T) {
 	config := &config.JailerConfig{
-			ChrootBaseDir:         "/tmp/test-jailer",
-		UID:                   1000,
-		GID:                   1000,
+		ChrootBaseDir: "/tmp/test-jailer",
+		UID:           1000,
+		GID:           1000,
 	}
-
 
 	if config.ChrootBaseDir != "/tmp/test-jailer" {
 		t.Error("Expected chroot base dir to match")

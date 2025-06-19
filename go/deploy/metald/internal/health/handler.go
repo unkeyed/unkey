@@ -162,7 +162,7 @@ func (h *Handler) checkBackendHealth(ctx context.Context, checks map[string]Chec
 	err := h.backend.Ping(pingCtx)
 	duration := time.Since(checkStart)
 
-	backendHealth := BackendHealth{ //exhaustruct:ignore
+	backendHealth := BackendHealth{ //nolint:exhaustruct // Status and Error fields are set conditionally based on backend response
 		Type: "firecracker", // Only Firecracker is supported
 	}
 
@@ -188,7 +188,7 @@ func (h *Handler) checkBackendHealth(ctx context.Context, checks map[string]Chec
 
 		backendHealth.Status = StatusHealthy
 
-		checks["backend_ping"] = Check{ //exhaustruct:ignore
+		checks["backend_ping"] = Check{ //nolint:exhaustruct // Error field is set conditionally based on check result
 			Status:    StatusHealthy,
 			Duration:  duration,
 			Timestamp: time.Now(),

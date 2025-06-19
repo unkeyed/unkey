@@ -26,7 +26,9 @@ This script verifies:
 
 If the readiness check reports missing dependencies:
 
-**For Fedora:**
+<details>
+<summary><b>For Fedora</b></summary>
+
 ```bash
 # Install development tools
 sudo dnf groupinstall -y "Development Tools"
@@ -34,13 +36,46 @@ sudo dnf install -y git make golang curl wget
 
 # Install buf for protobuf generation
 sudo ./scripts/install-buf.sh
+```
 
-# Install Docker
-sudo dnf install -y docker docker-compose-plugin
+#### Install Docker (Official Method)
+
+Follow the official Docker installation for Fedora:
+
+```bash
+# Remove old versions
+sudo dnf remove docker \
+                docker-client \
+                docker-client-latest \
+                docker-common \
+                docker-latest \
+                docker-latest-logrotate \
+                docker-logrotate \
+                docker-selinux \
+                docker-engine-selinux \
+                docker-engine
+
+# Set up the Docker repository
+sudo dnf -y install dnf-plugins-core
+sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+
+# Install Docker Engine
+sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# Start and enable Docker
 sudo systemctl start docker
 sudo systemctl enable docker
+
+# Add your user to the docker group
 sudo usermod -aG docker $USER
 
+# Verify installation
+sudo docker run hello-world
+```
+
+#### Complete Setup
+
+```bash
 # Install KVM support
 sudo dnf install -y qemu-kvm
 sudo usermod -aG kvm $USER
@@ -51,33 +86,24 @@ sudo ./scripts/install-firecracker.sh
 # Log out and back in for group changes to take effect
 ```
 
+</details>
+
 ### 3. Firecracker Jailer Setup (REQUIRED)
 
 The Firecracker jailer provides defense-in-depth security by isolating VMs. Complete these setup steps:
 
 ```bash
-# Create the jailer user and group
-sudo ./scripts/configure-jailer-user.sh --create
-
-# Set up cgroups for Firecracker (prefers cgroup v2)
-sudo ./scripts/setup-firecracker-cgroups.sh
-# Or force cgroup v2 on hybrid systems:
-# sudo CGROUP_VERSION=2 ./scripts/setup-firecracker-cgroups.sh
-
-# Install sudoers configuration and set jailer capabilities
-# Note: Run from the metald directory
-sudo ./metald/scripts/install-sudoers.sh
-
-# Verify jailer setup
-getcap /usr/local/bin/jailer  # Should show: cap_mknod,cap_sys_admin=ep
+# Note: Firecracker user and cgroups are now automatically configured by metald
+# No manual setup required for jailer user or cgroups
 ```
 
-**Notes**: 
-- Jailer is REQUIRED for all deployments - the system will not function without it
+**Notes**:
 - The setup script automatically detects and prefers cgroup v2 for better performance and security
 - On systems with hybrid cgroup setups, you may need to force cgroup v2 using the CGROUP_VERSION environment variable
 
-**For Ubuntu:**
+<details>
+<summary><b>For Ubuntu</b></summary>
+
 ```bash
 # Install development tools
 sudo apt update
@@ -85,13 +111,51 @@ sudo apt install -y build-essential git make golang curl wget
 
 # Install buf for protobuf generation
 sudo ./scripts/install-buf.sh
+```
 
-# Install Docker
-sudo apt install -y docker.io docker-compose-v2
-sudo systemctl start docker
-sudo systemctl enable docker
+#### Install Docker (Official Method)
+
+Follow the official Docker installation for Ubuntu:
+
+```bash
+# Remove old versions
+for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do 
+  sudo apt-get remove $pkg; 
+done
+
+# Update package index and install prerequisites
+sudo apt-get update
+sudo apt-get install -y \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release
+
+# Add Docker's official GPG key
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+# Set up the repository
+echo \
+  "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Install Docker Engine
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# Add your user to the docker group
 sudo usermod -aG docker $USER
 
+# Verify installation
+sudo docker run hello-world
+```
+
+#### Complete Setup
+
+```bash
 # Install KVM support
 sudo apt install -y qemu-kvm
 sudo usermod -aG kvm $USER
@@ -102,33 +166,7 @@ sudo ./scripts/install-firecracker.sh
 # Log out and back in for group changes to take effect
 ```
 
-### 3. Firecracker Jailer Setup (REQUIRED)
-
-The Firecracker jailer provides defense-in-depth security by isolating VMs. Complete these setup steps:
-
-```bash
-# Create the jailer user and group
-sudo ./scripts/configure-jailer-user.sh --create
-
-# Set up cgroups for Firecracker (prefers cgroup v2)
-sudo ./scripts/setup-firecracker-cgroups.sh
-# Or force cgroup v2 on hybrid systems:
-# sudo CGROUP_VERSION=2 ./scripts/setup-firecracker-cgroups.sh
-
-# Install sudoers configuration and set jailer capabilities
-# Note: Run from the metald directory
-sudo ./metald/scripts/install-sudoers.sh
-
-# Verify jailer setup
-getcap /usr/local/bin/jailer  # Should show: cap_mknod,cap_sys_admin=ep
-```
-
-**Notes**: 
-- Jailer is REQUIRED for all deployments - the system will not function without it
-- The setup script automatically detects and prefers cgroup v2 for better performance and security
-- On systems with hybrid cgroup setups, you may need to force cgroup v2 using the CGROUP_VERSION environment variable
-
-**Note on Firecracker**: The package manager versions of Firecracker often don't include the `jailer` binary, which is required for production deployments. The `install-firecracker.sh` script downloads the official release that includes both `firecracker` and `jailer` binaries.
+</details>
 
 ## Service Installation Order
 
@@ -141,19 +179,11 @@ Services must be installed in this specific order due to dependencies:
 5. **builderd** - Container build service
 6. **metald** - VM management service (depends on assetmanagerd and billaged)
 
-### Recent Updates
-
-- **Unified Health Endpoints**: All services now expose a standardized health endpoint at `/health` with a consistent JSON response format
-- **Service Version**: All services are now at version `0.1.0`
-- **Automated SPIRE Registration**: Agent registration is now fully automated with the `register-agent` command
-- **Environment-based SPIRE Configuration**: Support for dev, canary, and prod environments
-- **Port Changes**: SPIRE Server moved to port 8085 (from 8081) to avoid conflicts
-
 ## Complete Installation Process
 
 All commands should be run from the `/path/to/unkey/go/deploy` directory unless otherwise specified.
 
-### Step 1: Observability Stack (Optional but Recommended)
+### Step 1: Observability Stack
 
 The OTEL-LGTM stack provides comprehensive monitoring with Grafana, Loki (logs), Tempo (traces), and Mimir (metrics).
 
@@ -322,10 +352,10 @@ for service in assetmanagerd billaged builderd metald; do
 done
 
 # Check SPIFFE workload API
-sudo /opt/spire/bin/spire-agent healthcheck -socketPath /run/spire/sockets/agent.sock
+sudo /opt/spire/bin/spire-agent healthcheck -socketPath /var/lib/spire/agent/agent.sock
 
 # Verify SPIFFE SVIDs are being issued
-sudo /opt/spire/bin/spire-server entry list -socketPath /run/spire/server.sock
+sudo /opt/spire/bin/spire-server entry list -socketPath /var/lib/spire/server/server.sock
 ```
 
 ## Verification and Testing
@@ -379,7 +409,7 @@ sudo /opt/spire/bin/spire-server entry list -socketPath /run/spire/server.sock
 
 # Test agent can fetch SVIDs
 sudo /opt/spire/bin/spire-agent api fetch x509 \
-  -socketPath /run/spire/sockets/agent.sock \
+  -socketPath /var/lib/spire/agent/agent.sock \
   -write /tmp/
 
 # View the fetched certificates
@@ -480,17 +510,8 @@ make clean-all-force
 For more control over what gets removed:
 
 ```bash
-# Basic cleanup - preserves data and users
-./scripts/cleanup-system.sh
-
-# Remove data but preserve users
-./scripts/cleanup-system.sh --remove-data
-
-# Remove users but preserve data
-./scripts/cleanup-system.sh --remove-users
-
-# Complete cleanup without confirmation
-./scripts/cleanup-system.sh --remove-data --remove-users --force
+# Manual cleanup using individual service uninstall commands
+# (cleanup-system.sh script not available - use manual commands below)
 ```
 
 ### Manual Step-by-Step Uninstallation
@@ -525,7 +546,7 @@ sudo userdel spire-agent
 # 4. Optional: Remove data
 sudo rm -rf /opt/metald /opt/billaged /opt/builderd
 sudo rm -rf /opt/assetmanagerd /opt/vm-assets
-sudo rm -rf /opt/spire /var/lib/spire /etc/spire /run/spire
+sudo rm -rf /opt/spire /var/lib/spire /etc/spire
 
 # 5. Reload systemd
 sudo systemctl daemon-reload
@@ -548,7 +569,7 @@ ss -tlnp | grep :8085
 sudo journalctl -u spire-server -n 50 --no-pager
 
 # Verify socket permissions
-ls -la /run/spire/
+ls -la /var/lib/spire/
 
 # Restart with debug logging
 sudo systemctl stop spire-server
@@ -561,11 +582,10 @@ sudo /opt/spire/bin/spire-server run -config /etc/spire/server/server.conf
 
 **Solution**:
 ```bash
-# Use the automated registration script
-cd spire
-./scripts/register-agent.sh
+# Use the automated registration via make
+make -C spire register-agent
 
-# The script will:
+# The command will:
 # - Detect if agent is already running
 # - Generate a new join token if needed
 # - Configure systemd with the token
@@ -580,12 +600,12 @@ cd spire
 sudo journalctl -u spire-agent -n 50 --no-pager
 
 # Verify server has the node entry
-sudo /opt/spire/bin/spire-server entry show -socketPath /run/spire/server.sock | grep node1
+sudo /opt/spire/bin/spire-server entry show -socketPath /var/lib/spire/server/server.sock | grep node1
 
 # Clear agent data and retry
 sudo systemctl stop spire-agent
 sudo rm -rf /var/lib/spire/agent/data/*
-./scripts/register-agent.sh
+make -C spire register-agent
 ```
 
 #### 3. Service Port Conflicts
@@ -611,7 +631,7 @@ sudo systemctl restart <service>
 **Solutions**:
 ```bash
 # Verify SPIFFE socket exists
-ls -la /run/spire/sockets/agent.sock
+ls -la /var/lib/spire/agent/agent.sock
 
 # Check if services have SPIFFE IDs
 sudo /opt/spire/bin/spire-server entry list -socketPath /run/spire/server.sock
@@ -648,31 +668,24 @@ go mod tidy
 **Common Solutions**:
 
 ```bash
-# Check jailer binary has correct capabilities
-getcap /usr/local/bin/jailer
-# Should show: /usr/local/bin/jailer cap_mknod,cap_sys_admin=ep
+# Check jailer binary exists
+which jailer
 
-# Verify cgroups are set up correctly
-ls -la /sys/fs/cgroup/cpu/firecracker/  # For cgroup v1
-ls -la /sys/fs/cgroup/firecracker/       # For cgroup v2
-
-# Check if metald user exists and matches configuration
+# Check if metald user exists
 id metald
-grep JAILER /etc/systemd/system/metald.service.d/jailer.conf
 
-# Re-run setup scripts if needed
-sudo ./scripts/configure-jailer-user.sh
-sudo ./scripts/setup-firecracker-cgroups.sh
-sudo ./scripts/install-sudoers.sh
+# Check metald service configuration
+sudo systemctl status metald
 
-# Check sudoers configuration
-sudo -l -U metald | grep jailer
+# Re-install metald if jailer issues persist
+make -C metald uninstall
+make -C metald install
 ```
 
 **Specific Error Solutions**:
 
 - **"Failed to chmod api.socket"**: UID/GID mismatch - ensure jailer UID/GID match the metald user
-- **"Cannot create cgroups"**: Run `setup-firecracker-cgroups.sh` as root
+- **"Cannot create cgroups"**: Ensure metald is running as root (check systemd service)
 - **"operation not permitted"**: Jailer missing capabilities - run `install-sudoers.sh`
 
 ### Debug Commands Reference
@@ -711,7 +724,7 @@ sudo /opt/spire/bin/spire-agent healthcheck -socketPath /run/spire/sockets/agent
 
 **TLS/SPIFFE Configuration**:
 - `UNKEY_<SERVICE>_TLS_MODE`: `disabled`, `file`, or `spiffe`
-- `UNKEY_<SERVICE>_SPIFFE_SOCKET`: Path to SPIFFE socket (default: `/run/spire/sockets/agent.sock`)
+- `UNKEY_<SERVICE>_SPIFFE_SOCKET`: Path to SPIFFE socket (default: `/var/lib/spire/agent/agent.sock`)
 
 **Service Configuration**:
 - `UNKEY_<SERVICE>_PORT`: API listen port
@@ -728,14 +741,10 @@ sudo /opt/spire/bin/spire-agent healthcheck -socketPath /run/spire/sockets/agent
 5. **Documentation**: Read service-specific docs in each service directory
 
 For production deployment, refer to:
-- `spire/DEPLOYMENT_PLAN.md` - Production SPIRE setup
-- `spire/AUTOMATED_REGISTRATION.md` - Automated SPIRE registration details
-- `spire/OPT_IN_ROLLOUT.md` - SPIFFE opt-in migration strategy
 - `pkg/tls/PERFORMANCE.md` - TLS performance tuning
 - `PORTS.md` - Complete port allocation reference
-- `metald/docs/jailer-requirements.md` - Complete Firecracker jailer setup
-- `metald/docs/jailer-integration.md` - Production jailer configuration
-- Individual service CLAUDE.md files for service-specific guidance
+- `spire/docs/README.md` - SPIRE architecture and deployment guide
+- Individual service README.md files for service-specific guidance
 
 ### Production Security Requirements
 

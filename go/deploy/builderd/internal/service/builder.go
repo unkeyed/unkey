@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"connectrpc.com/connect"
-	builderv1 "github.com/unkeyed/unkey/go/deploy/builderd/gen/proto/builder/v1"
+	assetv1 "github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/asset/v1"
+	builderv1 "github.com/unkeyed/unkey/go/deploy/builderd/gen/builder/v1"
+	"github.com/unkeyed/unkey/go/deploy/builderd/internal/assetmanager"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/executor"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/observability"
@@ -19,6 +22,7 @@ type BuilderService struct {
 	buildMetrics *observability.BuildMetrics
 	config       *config.Config
 	executors    *executor.Registry
+	assetClient  *assetmanager.Client
 
 	// TODO: Add these when implemented
 	// db           *database.DB
@@ -32,6 +36,7 @@ func NewBuilderService(
 	logger *slog.Logger,
 	buildMetrics *observability.BuildMetrics,
 	cfg *config.Config,
+	assetClient *assetmanager.Client,
 ) *BuilderService {
 	// Create executor registry
 	executors := executor.NewRegistry(logger, cfg, buildMetrics)
@@ -41,6 +46,7 @@ func NewBuilderService(
 		buildMetrics: buildMetrics,
 		config:       cfg,
 		executors:    executors,
+		assetClient:  assetClient,
 	}
 }
 
@@ -51,9 +57,9 @@ func (s *BuilderService) CreateBuild(
 ) (*connect.Response[builderv1.CreateBuildResponse], error) {
 	// Extract tenant info safely
 	var tenantID, customerID string
-	if req.Msg != nil && req.Msg.Config != nil && req.Msg.Config.Tenant != nil {
-		tenantID = req.Msg.Config.Tenant.TenantId
-		customerID = req.Msg.Config.Tenant.CustomerId
+	if req.Msg != nil && req.Msg.GetConfig() != nil && req.Msg.GetConfig().GetTenant() != nil {
+		tenantID = req.Msg.GetConfig().GetTenant().GetTenantId()
+		customerID = req.Msg.GetConfig().GetTenant().GetCustomerId()
 	}
 
 	s.logger.InfoContext(ctx, "create build request received",
@@ -62,7 +68,7 @@ func (s *BuilderService) CreateBuild(
 	)
 
 	// Validate build configuration first to prevent nil pointer dereference
-	if err := s.validateBuildConfig(req.Msg.Config); err != nil {
+	if err := s.validateBuildConfig(req.Msg.GetConfig()); err != nil {
 		s.logger.WarnContext(ctx, "invalid build configuration",
 			slog.String("error", err.Error()),
 			slog.String("tenant_id", tenantID),
@@ -79,7 +85,7 @@ func (s *BuilderService) CreateBuild(
 	if err != nil {
 		s.logger.ErrorContext(ctx, "build execution failed",
 			slog.String("error", err.Error()),
-			slog.String("tenant_id", req.Msg.Config.Tenant.TenantId),
+			slog.String("tenant_id", req.Msg.GetConfig().GetTenant().GetTenantId()),
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("build execution failed: %w", err))
 	}
@@ -88,7 +94,7 @@ func (s *BuilderService) CreateBuild(
 
 	s.logger.InfoContext(ctx, "build job completed successfully",
 		slog.String("build_id", buildID),
-		slog.String("tenant_id", req.Msg.Config.Tenant.TenantId),
+		slog.String("tenant_id", req.Msg.GetConfig().GetTenant().GetTenantId()),
 		slog.String("source_type", buildResult.SourceType),
 		slog.String("rootfs_path", buildResult.RootfsPath),
 		slog.Duration("duration", buildResult.EndTime.Sub(buildResult.StartTime)),
@@ -100,11 +106,50 @@ func (s *BuilderService) CreateBuild(
 		buildState = builderv1.BuildState_BUILD_STATE_FAILED
 	}
 
+	// Register the build artifact with assetmanagerd if build succeeded
+	// AIDEV-NOTE: This enables the built rootfs to be used for VM creation
+	var assetID string
+	if buildState == builderv1.BuildState_BUILD_STATE_COMPLETED && s.assetClient.IsEnabled() {
+		labels := map[string]string{
+			"tenant_id":    tenantID,
+			"customer_id":  customerID,
+			"source_type":  buildResult.SourceType,
+		}
+		
+		// Add source image if it's a Docker source
+		if dockerSource := req.Msg.GetConfig().GetSource().GetDockerImage(); dockerSource != nil {
+			labels["source_image"] = dockerSource.GetImageUri()
+		}
+
+		// Determine asset type based on target
+		assetType := assetv1.AssetType_ASSET_TYPE_ROOTFS
+		if req.Msg.GetConfig().GetTarget().GetMicrovmRootfs() != nil {
+			assetType = assetv1.AssetType_ASSET_TYPE_ROOTFS
+		}
+
+		var err error
+		assetID, err = s.assetClient.RegisterBuildArtifact(ctx, buildID, buildResult.RootfsPath, assetType, labels)
+		if err != nil {
+			// Log error but don't fail the build response
+			s.logger.ErrorContext(ctx, "failed to register build artifact with assetmanagerd",
+				slog.String("error", err.Error()),
+				slog.String("build_id", buildID),
+				slog.String("rootfs_path", buildResult.RootfsPath),
+			)
+		} else {
+			s.logger.InfoContext(ctx, "registered build artifact with assetmanagerd",
+				slog.String("asset_id", assetID),
+				slog.String("build_id", buildID),
+			)
+		}
+	}
+
 	resp := &builderv1.CreateBuildResponse{
 		BuildId:    buildID,
 		State:      buildState,
 		CreatedAt:  timestamppb.New(buildResult.StartTime),
 		RootfsPath: buildResult.RootfsPath,
+		// AIDEV-TODO: Add AssetId field to CreateBuildResponse proto to return registered asset ID
 	}
 
 	return connect.NewResponse(resp), nil
@@ -116,19 +161,22 @@ func (s *BuilderService) GetBuild(
 	req *connect.Request[builderv1.GetBuildRequest],
 ) (*connect.Response[builderv1.GetBuildResponse], error) {
 	s.logger.InfoContext(ctx, "get build request received",
-		slog.String("build_id", req.Msg.BuildId),
-		slog.String("tenant_id", req.Msg.TenantId),
+		slog.String("build_id", req.Msg.GetBuildId()),
+		slog.String("tenant_id", req.Msg.GetTenantId()),
 	)
 
 	// TODO: Validate tenant has access to this build
 	// TODO: Retrieve build from database
 
 	// For now, return a placeholder response
+	//nolint:exhaustruct // Placeholder response with only required fields
 	build := &builderv1.BuildJob{
-		BuildId: req.Msg.BuildId,
+		BuildId: req.Msg.GetBuildId(),
+		//nolint:exhaustruct // Config fields will be populated later
 		Config: &builderv1.BuildConfig{
+			//nolint:exhaustruct // Tenant context fields will be populated from actual data
 			Tenant: &builderv1.TenantContext{
-				TenantId:   req.Msg.TenantId,
+				TenantId:   req.Msg.GetTenantId(),
 				CustomerId: "placeholder",
 				Tier:       builderv1.TenantTier_TENANT_TIER_FREE,
 			},
@@ -154,8 +202,8 @@ func (s *BuilderService) ListBuilds(
 	req *connect.Request[builderv1.ListBuildsRequest],
 ) (*connect.Response[builderv1.ListBuildsResponse], error) {
 	s.logger.InfoContext(ctx, "list builds request received",
-		slog.String("tenant_id", req.Msg.TenantId),
-		slog.Int("page_size", int(req.Msg.PageSize)),
+		slog.String("tenant_id", req.Msg.GetTenantId()),
+		slog.Int("page_size", int(req.Msg.GetPageSize())),
 	)
 
 	// TODO: Retrieve builds from database with tenant filtering
@@ -178,8 +226,8 @@ func (s *BuilderService) CancelBuild(
 	req *connect.Request[builderv1.CancelBuildRequest],
 ) (*connect.Response[builderv1.CancelBuildResponse], error) {
 	s.logger.InfoContext(ctx, "cancel build request received",
-		slog.String("build_id", req.Msg.BuildId),
-		slog.String("tenant_id", req.Msg.TenantId),
+		slog.String("build_id", req.Msg.GetBuildId()),
+		slog.String("tenant_id", req.Msg.GetTenantId()),
 	)
 
 	// TODO: Validate tenant has access to this build
@@ -205,9 +253,9 @@ func (s *BuilderService) DeleteBuild(
 	req *connect.Request[builderv1.DeleteBuildRequest],
 ) (*connect.Response[builderv1.DeleteBuildResponse], error) {
 	s.logger.InfoContext(ctx, "delete build request received",
-		slog.String("build_id", req.Msg.BuildId),
-		slog.String("tenant_id", req.Msg.TenantId),
-		slog.Bool("force", req.Msg.Force),
+		slog.String("build_id", req.Msg.GetBuildId()),
+		slog.String("tenant_id", req.Msg.GetTenantId()),
+		slog.Bool("force", req.Msg.GetForce()),
 	)
 
 	// TODO: Validate tenant has access to this build
@@ -226,12 +274,12 @@ func (s *BuilderService) DeleteBuild(
 func (s *BuilderService) StreamBuildLogs(
 	ctx context.Context,
 	req *connect.Request[builderv1.StreamBuildLogsRequest],
-	stream *connect.ServerStream[builderv1.BuildLogEntry],
+	stream *connect.ServerStream[builderv1.StreamBuildLogsResponse],
 ) error {
 	s.logger.InfoContext(ctx, "stream build logs request received",
-		slog.String("build_id", req.Msg.BuildId),
-		slog.String("tenant_id", req.Msg.TenantId),
-		slog.Bool("follow", req.Msg.Follow),
+		slog.String("build_id", req.Msg.GetBuildId()),
+		slog.String("tenant_id", req.Msg.GetTenantId()),
+		slog.Bool("follow", req.Msg.GetFollow()),
 	)
 
 	// TODO: Validate tenant has access to this build
@@ -239,12 +287,12 @@ func (s *BuilderService) StreamBuildLogs(
 	// TODO: If follow=true, stream new logs as they arrive
 
 	// For now, send a placeholder log entry
-	logEntry := &builderv1.BuildLogEntry{
-		Timestamp: timestamppb.Now(),
+	logEntry := &builderv1.StreamBuildLogsResponse{
+		Timestamp: timestamppb.New(time.Now()),
 		Level:     "info",
-		Message:   "Build log streaming not yet implemented",
-		Component: "builderd",
-		Metadata:  map[string]string{"build_id": req.Msg.BuildId},
+		Message:   "Build logs streaming started",
+		Component: "builder",
+		Metadata:  make(map[string]string),
 	}
 
 	if err := stream.Send(logEntry); err != nil {
@@ -260,7 +308,7 @@ func (s *BuilderService) GetTenantQuotas(
 	req *connect.Request[builderv1.GetTenantQuotasRequest],
 ) (*connect.Response[builderv1.GetTenantQuotasResponse], error) {
 	s.logger.InfoContext(ctx, "get tenant quotas request received",
-		slog.String("tenant_id", req.Msg.TenantId),
+		slog.String("tenant_id", req.Msg.GetTenantId()),
 	)
 
 	// TODO: Retrieve tenant configuration
@@ -269,7 +317,7 @@ func (s *BuilderService) GetTenantQuotas(
 
 	// Return default quotas for now
 	resp := &builderv1.GetTenantQuotasResponse{
-		CurrentLimits: &builderv1.TenantResourceLimits{
+		CurrentLimits: &builderv1.TenantResourceLimits{ //nolint:exhaustruct // AllowedRegistries, AllowedGitHosts, AllowPrivilegedBuilds, BlockedCommands, SandboxLevel are tenant-specific overrides not set in defaults
 			MaxMemoryBytes:       s.config.Tenant.DefaultResourceLimits.MaxMemoryBytes,
 			MaxCpuCores:          s.config.Tenant.DefaultResourceLimits.MaxCPUCores,
 			MaxDiskBytes:         s.config.Tenant.DefaultResourceLimits.MaxDiskBytes,
@@ -301,7 +349,7 @@ func (s *BuilderService) GetBuildStats(
 	req *connect.Request[builderv1.GetBuildStatsRequest],
 ) (*connect.Response[builderv1.GetBuildStatsResponse], error) {
 	s.logger.InfoContext(ctx, "get build stats request received",
-		slog.String("tenant_id", req.Msg.TenantId),
+		slog.String("tenant_id", req.Msg.GetTenantId()),
 	)
 
 	// TODO: Calculate actual statistics from database
@@ -325,77 +373,43 @@ func (s *BuilderService) validateBuildConfig(config *builderv1.BuildConfig) erro
 		return fmt.Errorf("build config is required")
 	}
 
-	if config.Tenant == nil {
+	if config.GetTenant() == nil {
 		return fmt.Errorf("tenant context is required")
 	}
 
-	if config.Tenant.TenantId == "" {
+	if config.GetTenant().GetTenantId() == "" {
 		return fmt.Errorf("tenant ID is required")
 	}
 
-	if config.Source == nil {
+	if config.GetSource() == nil {
 		return fmt.Errorf("build source is required")
 	}
 
-	if config.Target == nil {
+	if config.GetTarget() == nil {
 		return fmt.Errorf("build target is required")
 	}
 
-	if config.Strategy == nil {
+	if config.GetStrategy() == nil {
 		return fmt.Errorf("build strategy is required")
 	}
 
 	// Validate source-specific requirements
-	switch source := config.Source.SourceType.(type) {
+	switch source := config.GetSource().GetSourceType().(type) {
 	case *builderv1.BuildSource_DockerImage:
-		if source.DockerImage.ImageUri == "" {
-			return fmt.Errorf("Docker image URI is required")
+		if source.DockerImage.GetImageUri() == "" {
+			return fmt.Errorf("docker image URI is required")
 		}
 	case *builderv1.BuildSource_GitRepository:
-		if source.GitRepository.RepositoryUrl == "" {
-			return fmt.Errorf("Git repository URL is required")
+		if source.GitRepository.GetRepositoryUrl() == "" {
+			return fmt.Errorf("git repository URL is required")
 		}
 	case *builderv1.BuildSource_Archive:
-		if source.Archive.ArchiveUrl == "" {
-			return fmt.Errorf("Archive URL is required")
+		if source.Archive.GetArchiveUrl() == "" {
+			return fmt.Errorf("archive URL is required")
 		}
 	default:
 		return fmt.Errorf("unsupported source type")
 	}
 
 	return nil
-}
-
-// getSourceType extracts the source type for metrics
-func (s *BuilderService) getSourceType(source *builderv1.BuildSource) string {
-	if source == nil {
-		return "unknown"
-	}
-
-	switch source.SourceType.(type) {
-	case *builderv1.BuildSource_DockerImage:
-		return "docker_image"
-	case *builderv1.BuildSource_GitRepository:
-		return "git_repository"
-	case *builderv1.BuildSource_Archive:
-		return "archive"
-	default:
-		return "unknown"
-	}
-}
-
-// getBuildType extracts the build type for metrics
-func (s *BuilderService) getBuildType(target *builderv1.BuildTarget) string {
-	if target == nil {
-		return "unknown"
-	}
-
-	switch target.TargetType.(type) {
-	case *builderv1.BuildTarget_MicrovmRootfs:
-		return "microvm_rootfs"
-	case *builderv1.BuildTarget_ContainerImage:
-		return "container_image"
-	default:
-		return "unknown"
-	}
 }

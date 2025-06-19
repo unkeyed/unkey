@@ -2,7 +2,6 @@ package jailer
 
 import (
 	"context"
-	"io/ioutil"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -32,7 +31,7 @@ func TestSetupChroot(t *testing.T) {
 		t.Skip("Test requires root privileges")
 	}
 
-	tmpDir, err := ioutil.TempDir("", "jailer-test-*")
+	tmpDir, err := os.MkdirTemp("", "jailer-test-*")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
@@ -58,7 +57,7 @@ func TestSetupChroot(t *testing.T) {
 	// Verify device nodes exist
 	tunPath := filepath.Join(chrootPath, "dev/net/tun")
 	kvmPath := filepath.Join(chrootPath, "dev/kvm")
-	
+
 	tunInfo, err := os.Stat(tunPath)
 	assert.NoError(t, err)
 	assert.True(t, tunInfo.Mode()&os.ModeDevice != 0, "tun should be a device")
@@ -69,14 +68,11 @@ func TestSetupChroot(t *testing.T) {
 }
 
 func TestExecOptions(t *testing.T) {
-	opts := &ExecOptions{
+	opts := &ExecOptions{ //nolint:exhaustruct // Test only sets required fields for validation
 		VMId:             "test-vm",
 		NetworkNamespace: "/run/netns/test-vm",
 		SocketPath:       "/firecracker.sock",
 		FirecrackerArgs:  []string{"--config-file", "config.json"},
-		Stdin:            os.Stdin,
-		Stdout:           os.Stdout,
-		Stderr:           os.Stderr,
 	}
 
 	assert.Equal(t, "test-vm", opts.VMId)
@@ -93,7 +89,7 @@ func TestJoinNetworkNamespace(t *testing.T) {
 	}
 
 	// Create a test network namespace
-	tmpDir, err := ioutil.TempDir("", "netns-test-*")
+	tmpDir, err := os.MkdirTemp("", "netns-test-*")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
@@ -111,7 +107,7 @@ func TestDropPrivileges(t *testing.T) {
 // Integration test placeholder
 func TestIntegratedJailerWorkflow(t *testing.T) {
 	t.Skip("Integration test requires full environment setup")
-	
+
 	// This would test:
 	// 1. Setting up chroot
 	// 2. Joining network namespace

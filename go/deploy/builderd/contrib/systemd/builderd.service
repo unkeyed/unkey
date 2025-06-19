@@ -9,6 +9,15 @@ Type=simple
 User=builderd
 Group=builderd
 WorkingDirectory=/opt/builderd
+# Create required directories (+ prefix runs as root)
+ExecStartPre=+/bin/mkdir -p /opt/builderd/scratch
+ExecStartPre=+/bin/mkdir -p /opt/builderd/rootfs
+ExecStartPre=+/bin/mkdir -p /opt/builderd/workspace
+ExecStartPre=+/bin/mkdir -p /opt/builderd/data
+ExecStartPre=+/bin/mkdir -p /var/log/builderd
+# Set ownership for service directories
+ExecStartPre=+/bin/chown -R builderd:builderd /opt/builderd
+ExecStartPre=+/bin/chown -R builderd:builderd /var/log/builderd
 ExecStart=/usr/local/bin/builderd
 Restart=always
 RestartSec=5
@@ -40,6 +49,10 @@ Environment=UNKEY_BUILDERD_DOCKER_MAX_IMAGE_SIZE_GB=5
 
 # Tenant isolation
 Environment=UNKEY_BUILDERD_TENANT_ISOLATION_ENABLED=true
+
+# AssetManagerd integration
+Environment=UNKEY_BUILDERD_ASSETMANAGER_ENABLED=true
+Environment=UNKEY_BUILDERD_ASSETMANAGER_ENDPOINT=https://localhost:8083
 
 # OpenTelemetry Configuration (enabled for production)
 Environment=UNKEY_BUILDERD_OTEL_ENABLED=true

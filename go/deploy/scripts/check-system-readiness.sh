@@ -31,7 +31,7 @@ check_result() {
     local check_name=$1
     local result=$2
     local message=$3
-    
+
     if [ "$result" -eq 0 ]; then
         echo -e "${GREEN}✓${NC} $check_name: $message"
     else
@@ -71,7 +71,7 @@ check_go() {
     if command -v go &> /dev/null; then
         GO_VERSION=$(go version | awk '{print $3}' | sed 's/go//')
         REQUIRED_VERSION="1.24"
-        
+
         if [ "$(printf '%s\n' "$REQUIRED_VERSION" "$GO_VERSION" | sort -V | head -n1)" = "$REQUIRED_VERSION" ]; then
             check_result "Go Version" 0 "Go $GO_VERSION installed (requires >= $REQUIRED_VERSION)"
         else
@@ -104,7 +104,7 @@ check_git() {
 check_container_runtime() {
     local docker_found=false
     local podman_found=false
-    
+
     if command -v docker &> /dev/null; then
         docker_found=true
         if docker info &> /dev/null; then
@@ -119,7 +119,7 @@ check_container_runtime() {
             check_warning "Docker" "Docker is installed but not running or accessible"
         fi
     fi
-    
+
     if command -v podman &> /dev/null; then
         podman_found=true
         if podman info &> /dev/null; then
@@ -128,7 +128,7 @@ check_container_runtime() {
             check_warning "Podman" "Podman is installed but not running or accessible"
         fi
     fi
-    
+
     if [ "$docker_found" = false ] && [ "$podman_found" = false ]; then
         check_warning "Container Runtime" "Neither Docker nor Podman found (required for builderd service and observability stack)"
     fi
@@ -138,25 +138,10 @@ check_container_runtime() {
 check_firecracker() {
     local fc_found=false
     local jailer_found=false
-    
+
     if command -v firecracker &> /dev/null; then
         fc_found=true
         check_result "Firecracker" 0 "Firecracker is installed"
-    fi
-    
-    if command -v jailer &> /dev/null; then
-        jailer_found=true
-        check_result "Jailer" 0 "Firecracker jailer is installed"
-    else
-        check_warning "Jailer" "Firecracker jailer not found (required for production metald deployments)"
-    fi
-    
-    if [ "$fc_found" = false ]; then
-        if command -v cloud-hypervisor &> /dev/null; then
-            check_warning "Firecracker" "Firecracker not found but Cloud Hypervisor is available (alternative for metald)"
-        else
-            check_warning "Firecracker" "Neither Firecracker nor Cloud Hypervisor found (required for metald service)"
-        fi
     fi
 }
 
@@ -177,13 +162,13 @@ check_kvm() {
 check_build_tools() {
     local tools=("curl" "wget" "tar" "gzip")
     local missing=()
-    
+
     for tool in "${tools[@]}"; do
         if ! command -v "$tool" &> /dev/null; then
             missing+=("$tool")
         fi
     done
-    
+
     if [ ${#missing[@]} -eq 0 ]; then
         check_result "Build Tools" 0 "All build tools are installed"
     else
@@ -230,13 +215,13 @@ check_network() {
 check_port_availability() {
     local ports=("8080" "8081" "8082" "8083" "9464" "9465" "9466")
     local conflicts=()
-    
+
     for port in "${ports[@]}"; do
         if ss -tlnp 2>/dev/null | grep -q ":$port "; then
             conflicts+=("$port")
         fi
     done
-    
+
     if [ ${#conflicts[@]} -eq 0 ]; then
         check_result "Port Availability" 0 "All required ports are available"
     else
@@ -262,11 +247,11 @@ main() {
     echo "Unkey Services System Readiness Check"
     echo "==================================="
     echo
-    
+
     detect_os
     echo "Detected OS: $OS $VER"
     echo
-    
+
     # Verify supported OS
     case "$OS" in
         "Fedora Linux")
@@ -287,11 +272,11 @@ main() {
             check_warning "OS Version" "$OS is not officially tested. Fedora 42 or Ubuntu 22.04+ recommended"
             ;;
     esac
-    
+
     echo
     echo "Checking system requirements..."
     echo "--------------------------------"
-    
+
     # Core requirements
     check_sudo
     check_systemd
@@ -302,23 +287,23 @@ main() {
     check_build_tools
     check_disk_space
     check_network
-    
+
     echo
     echo "Checking service-specific requirements..."
     echo "-----------------------------------------"
-    
+
     # Service-specific requirements
     check_container_runtime
     check_firecracker
     check_kvm
     check_cgroup_version
     check_port_availability
-    
+
     echo
     echo "==================================="
     echo "Summary:"
     echo "-----------------------------------"
-    
+
     if [ $ERRORS -eq 0 ]; then
         if [ $WARNINGS -eq 0 ]; then
             echo -e "${GREEN}✓ System is ready for deployment!${NC}"
