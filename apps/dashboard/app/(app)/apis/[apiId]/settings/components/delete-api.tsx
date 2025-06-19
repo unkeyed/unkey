@@ -1,8 +1,5 @@
 "use client";
-import { toast } from "@/components/ui/toaster";
-import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Lock } from "@unkey/icons";
 import { Button, DialogContainer, Input, SettingCard } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -10,7 +7,7 @@ import type React from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { revalidate } from "../actions";
+import { createApiFormConfig, createMutationHandlers } from "./key-settings-form-helper";
 import { StatusBadge } from "./status-badge";
 
 type Props = {
@@ -24,7 +21,9 @@ type Props = {
 };
 
 export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
+  const { onDeleteSuccess, onError } = createMutationHandlers();
   const [open, setOpen] = useState(false);
+  const router = useRouter();
 
   const intent =
     keys > 0 ? `delete this api and ${keys} key${keys > 1 ? "s" : ""}` : "delete this api";
@@ -42,29 +41,22 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
     watch,
     formState: { isSubmitting },
   } = useForm<FormValues>({
+    ...createApiFormConfig(formSchema),
     mode: "onChange",
-    resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
+      intent: "",
     },
   });
+
   const isValid = watch("name") === api.name && watch("intent") === intent;
-  const router = useRouter();
 
   const deleteApi = trpc.api.delete.useMutation({
     async onSuccess() {
-      toast.message("API Deleted", {
-        description: `Your API and ${formatNumber(keys)} keys have been deleted.`,
-      });
-
-      await revalidate();
-
+      onDeleteSuccess(keys)();
       router.push("/apis");
     },
-    onError(err) {
-      console.error(err);
-      toast.error(err.message);
-    },
+    onError,
   });
 
   async function onSubmit(_values: z.infer<typeof formSchema>) {
@@ -90,12 +82,8 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
             </div>
           ) : (
             <div className="font-normal text-[13px] max-w-[380px]">
-              <div className="font-normal text-[13px] max-w-[380px]">
-                <div className="font-normal text-[13px] max-w-[380px]">
-                  Permanently deletes this API, including all keys and data. This action cannot be
-                  undone.
-                </div>
-              </div>
+              Permanently deletes this API, including all keys and data. This action cannot be
+              undone.
             </div>
           )
         }
@@ -106,6 +94,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
           <Button
             variant="outline"
             color="danger"
+            className="h-full px-3.5"
             size="lg"
             disabled={api.deleteProtection === true}
             onClick={() => setOpen(true)}
@@ -122,12 +111,12 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
           <div className="w-full flex flex-col gap-2 items-center justify-center">
             <Button
               type="submit"
-              form="delete-api-form" // Connect to form ID
+              form="delete-api-form"
               variant="primary"
               color="danger"
               size="xlg"
-              disabled={api.deleteProtection || !isValid || deleteApi.isLoading || isSubmitting}
-              loading={deleteApi.isLoading || isSubmitting}
+              disabled={api.deleteProtection || !isValid || isSubmitting}
+              loading={isSubmitting}
               className="w-full"
             >
               Delete API
