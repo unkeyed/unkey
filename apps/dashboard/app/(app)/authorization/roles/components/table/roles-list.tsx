@@ -105,19 +105,19 @@ export const RolesList = () => {
           <AssignedItemsCell
             roleId={role.roleId}
             isSelected={role.roleId === selectedRole?.roleId}
-            type="keys"
+            kind="keys"
           />
         ),
       },
       {
         key: "permissions",
-        header: "Permissions",
+        header: "Assigned Permissions",
         width: "20%",
         render: (role) => (
           <AssignedItemsCell
             roleId={role.roleId}
             isSelected={role.roleId === selectedRole?.roleId}
-            type="permissions"
+            kind="permissions"
           />
         ),
       },
