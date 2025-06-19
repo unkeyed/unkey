@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
-import { BookBookmark, HandHoldingKey } from "@unkey/icons";
+import { BookBookmark, Page2 } from "@unkey/icons";
 import { Button, Checkbox, Empty } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useCallback, useMemo, useState } from "react";
@@ -62,9 +62,7 @@ export const PermissionsList = () => {
               onMouseEnter={() => setHoveredPermissionName(permission.name)}
               onMouseLeave={() => setHoveredPermissionName(null)}
             >
-              {!isSelected && !isHovered && (
-                <HandHoldingKey size="sm-regular" className="text-gray-12" />
-              )}
+              {!isSelected && !isHovered && <Page2 size="sm-regular" className="text-gray-12" />}
               {(isSelected || isHovered) && (
                 <Checkbox
                   checked={isSelected}

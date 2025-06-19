@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { HandHoldingKey, Tag } from "@unkey/icons";
+import { Page2, Tag } from "@unkey/icons";
 
 export const AssignedItemsCell = ({
   items,
@@ -14,11 +14,7 @@ export const AssignedItemsCell = ({
 }) => {
   const hasMore = totalCount && totalCount > items.length;
   const icon =
-    type === "roles" ? (
-      <Tag size="md-regular" />
-    ) : (
-      <HandHoldingKey className="size-3" size="md-regular" />
-    );
+    type === "roles" ? <Tag size="md-regular" /> : <Page2 className="size-3" size="md-regular" />;
 
   const itemClassName = cn(
     "font-mono rounded-md py-[2px] px-1.5 items-center w-fit flex gap-2 transition-all duration-100 border border-dashed text-grayA-12",

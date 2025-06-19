@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { ratelimit, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import { KeysResponse, LIMIT, keysQueryPayload, transformKey } from "./schema-with-helpers";
+import { KeysResponse, keysQueryPayload, transformKey } from "./schema-with-helpers";
 
 export const queryKeys = t.procedure
   .use(requireWorkspace)
@@ -9,7 +9,7 @@ export const queryKeys = t.procedure
   .input(keysQueryPayload)
   .output(KeysResponse)
   .query(async ({ ctx, input }) => {
-    const { cursor } = input;
+    const { cursor, limit } = input;
     const workspaceId = ctx.workspace.id;
 
     try {
@@ -26,7 +26,7 @@ export const queryKeys = t.procedure
 
           return and(...conditions);
         },
-        limit: LIMIT + 1, // Fetch one extra to determine if there are more results
+        limit: limit + 1, // Fetch one extra to determine if there are more results
         orderBy: (keys, { desc }) => desc(keys.id),
         with: {
           roles: {
@@ -47,10 +47,10 @@ export const queryKeys = t.procedure
       });
 
       // Determine if there are more results
-      const hasMore = keysQuery.length > LIMIT;
+      const hasMore = keysQuery.length > limit;
 
       // Remove the extra item if it exists
-      const keys = hasMore ? keysQuery.slice(0, LIMIT) : keysQuery;
+      const keys = hasMore ? keysQuery.slice(0, limit) : keysQuery;
       const nextCursor = hasMore && keys.length > 0 ? keys[keys.length - 1].id : undefined;
 
       return {

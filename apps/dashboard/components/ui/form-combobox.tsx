@@ -28,6 +28,14 @@ export type DocumentedFormComboboxProps = {
    * Error message to display
    */
   error?: string;
+  /**
+   * Whether to show indicator for loading
+   */
+  loading?: boolean;
+  /**
+   * Tooltip text displayed on hover
+   */
+  title?: string;
 };
 
 // Props type combining Combobox props with form props

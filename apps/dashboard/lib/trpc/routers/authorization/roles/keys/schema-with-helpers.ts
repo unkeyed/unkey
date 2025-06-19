@@ -1,8 +1,10 @@
 import { z } from "zod";
 
 export const LIMIT = 50;
+
 export const keysQueryPayload = z.object({
   cursor: z.string().optional(),
+  limit: z.number().default(LIMIT),
 });
 
 export const RoleSchema = z.object({

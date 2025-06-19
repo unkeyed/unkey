@@ -1,7 +1,11 @@
 import { z } from "zod";
-import { RoleSchema } from "../keys/schema-with-helpers";
 
 export const LIMIT = 50;
+
+const RoleSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+});
 
 const PermissionSchema = z.object({
   id: z.string(),
@@ -17,6 +21,7 @@ export const permissionsSearchPayload = z.object({
 
 export const permissionsQueryPayload = z.object({
   cursor: z.string().optional(),
+  limit: z.number().default(LIMIT),
 });
 
 export const PermissionsSearchResponse = z.object({
@@ -45,12 +50,7 @@ export const transformPermission = (permission: PermissionWithRoles) => ({
   description: permission.description,
   slug: permission.slug,
   roles: permission.roles
-    .filter(
-      (rolePermission) =>
-        rolePermission.role !== null &&
-        rolePermission.role.id !== undefined &&
-        rolePermission.role.name !== undefined,
-    )
+    .filter((rolePermission) => Boolean(rolePermission.role))
     .map((rolePermission) => ({
       id: rolePermission.role.id,
       name: rolePermission.role.name,

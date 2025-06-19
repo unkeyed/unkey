@@ -1,8 +1,11 @@
-import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { Key2 } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
 
-export const KeyInfo = ({ keyDetails }: { keyDetails: KeyDetails }) => {
+export const KeyInfo = ({
+  keyDetails,
+}: {
+  keyDetails: { name?: string | null; id: string };
+}) => {
   return (
     <div className="flex gap-5 items-center bg-white dark:bg-black border border-grayA-5 rounded-xl py-5 pl-[18px] pr-[26px]">
       <div className="bg-grayA-5 text-gray-12 size-5 flex items-center justify-center rounded ">
