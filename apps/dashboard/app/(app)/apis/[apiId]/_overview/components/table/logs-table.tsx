@@ -34,7 +34,7 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
         key: "key_id",
         header: "ID",
         width: "15%",
-        headerClassName: "pl-11",
+        headerClassName: "pl-12",
         render: (log) => (
           <KeyIdentifierColumn log={log} apiId={apiId} onNavigate={() => setSelectedLog(null)} />
         ),
