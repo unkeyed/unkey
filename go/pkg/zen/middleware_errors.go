@@ -50,11 +50,10 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 						RequestId: s.RequestID(),
 					},
 					Error: openapi.BaseError{
-						Title:    "Not Found",
-						Type:     code.DocsURL(),
-						Detail:   fault.UserFacingMessage(err),
-						Status:   http.StatusNotFound,
-						Instance: nil,
+						Title:  "Not Found",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusNotFound,
 					},
 				})
 
@@ -67,12 +66,11 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 						RequestId: s.RequestID(),
 					},
 					Error: openapi.BadRequestErrorDetails{
-						Title:    "Bad Request",
-						Type:     code.DocsURL(),
-						Detail:   fault.UserFacingMessage(err),
-						Status:   http.StatusBadRequest,
-						Instance: nil,
-						Errors:   []openapi.ValidationError{},
+						Title:  "Bad Request",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusBadRequest,
+						Errors: []openapi.ValidationError{},
 					},
 				})
 
@@ -84,11 +82,10 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 						RequestId: s.RequestID(),
 					},
 					Error: openapi.BaseError{
-						Title:    "Unauthorized",
-						Type:     code.DocsURL(),
-						Detail:   fault.UserFacingMessage(err),
-						Status:   http.StatusUnauthorized,
-						Instance: nil,
+						Title:  "Unauthorized",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusUnauthorized,
 					},
 				})
 
@@ -99,11 +96,10 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 						RequestId: s.RequestID(),
 					},
 					Error: openapi.BaseError{
-						Title:    "Forbidden",
-						Type:     code.DocsURL(),
-						Detail:   fault.UserFacingMessage(err),
-						Status:   http.StatusForbidden,
-						Instance: nil,
+						Title:  "Forbidden",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusForbidden,
 					},
 				})
 
@@ -114,11 +110,10 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 						RequestId: s.RequestID(),
 					},
 					Error: openapi.BaseError{
-						Title:    "Insufficient Permissions",
-						Type:     code.DocsURL(),
-						Detail:   fault.UserFacingMessage(err),
-						Status:   http.StatusForbidden,
-						Instance: nil,
+						Title:  "Insufficient Permissions",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusForbidden,
 					},
 				})
 			case codes.UnkeyDataErrorsIdentityDuplicate:
@@ -127,11 +122,10 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 						RequestId: s.RequestID(),
 					},
 					Error: openapi.BaseError{
-						Title:    "Duplicate Identity",
-						Type:     code.DocsURL(),
-						Detail:   fault.UserFacingMessage(err),
-						Status:   http.StatusConflict,
-						Instance: nil,
+						Title:  "Duplicate Identity",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusConflict,
 					},
 				})
 			// Protected Resource
@@ -141,11 +135,24 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 						RequestId: s.RequestID(),
 					},
 					Error: openapi.BaseError{
-						Title:    "Resource is protected",
-						Type:     code.DocsURL(),
-						Detail:   fault.UserFacingMessage(err),
-						Status:   http.StatusPreconditionFailed,
-						Instance: nil,
+						Title:  "Resource is protected",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusPreconditionFailed,
+					},
+				})
+
+			// Precondition Failed
+			case codes.UnkeyAppErrorsPreconditionPreconditionFailed:
+				return s.JSON(http.StatusPreconditionFailed, openapi.PreconditionFailedErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+						Title:  "Precondition Failed",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusPreconditionFailed,
 					},
 				})
 
@@ -156,11 +163,10 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 						RequestId: s.RequestID(),
 					},
 					Error: openapi.BaseError{
-						Title:    "Key is disabled",
-						Type:     code.DocsURL(),
-						Detail:   fault.UserFacingMessage(err),
-						Status:   http.StatusForbidden,
-						Instance: nil,
+						Title:  "Key is disabled",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusForbidden,
 					},
 				})
 
@@ -171,11 +177,10 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 						RequestId: s.RequestID(),
 					},
 					Error: openapi.BaseError{
-						Title:    "Workspace is disabled",
-						Type:     code.DocsURL(),
-						Detail:   fault.UserFacingMessage(err),
-						Status:   http.StatusForbidden,
-						Instance: nil,
+						Title:  "Workspace is disabled",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusForbidden,
 					},
 				})
 
@@ -196,11 +201,10 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 					RequestId: s.RequestID(),
 				},
 				Error: openapi.BaseError{
-					Title:    "Internal Server Error",
-					Type:     code.DocsURL(),
-					Detail:   fault.UserFacingMessage(err),
-					Status:   http.StatusInternalServerError,
-					Instance: nil,
+					Title:  "Internal Server Error",
+					Type:   code.DocsURL(),
+					Detail: fault.UserFacingMessage(err),
+					Status: http.StatusInternalServerError,
 				},
 			})
 		}

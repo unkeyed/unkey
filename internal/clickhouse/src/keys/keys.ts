@@ -89,9 +89,6 @@ export const keyDetailsResponseSchema = z.object({
   meta: z.string().nullable(),
   enabled: z.boolean(),
   remaining_requests: z.number().nullable(),
-  ratelimit_async: z.boolean().nullable(),
-  ratelimit_limit: z.number().nullable(),
-  ratelimit_duration: z.number().nullable(),
   environment: z.string().nullable(),
   workspace_id: z.string(),
   identity: identitySchema.nullable(),
@@ -234,7 +231,7 @@ export function getKeysOverviewLogs(ch: Querier) {
     const extendedParamsSchema = keysOverviewLogsParams.extend(paramSchemaExtension);
     const query = ch.query({
       query: `
-WITH 
+WITH
     -- First CTE: Filter raw verification records based on conditions from client
     filtered_keys AS (
       SELECT
@@ -256,7 +253,7 @@ WITH
     -- Second CTE: Calculate per-key aggregated metrics
     -- This groups all verifications by key_id to get summary counts and most recent activity
     aggregated_data AS (
-      SELECT 
+      SELECT
           key_id,
           -- Find the timestamp of the latest verification for this key
           max(time) as last_request_time,
@@ -281,7 +278,7 @@ WITH
       GROUP BY key_id, outcome
     )
     -- Main query: Join the aggregated data with detailed outcome counts
-    SELECT 
+    SELECT
       a.key_id,
       a.last_request_time as time,
       a.last_request_id as request_id,
@@ -293,7 +290,7 @@ WITH
     FROM aggregated_data a
     LEFT JOIN outcome_counts o ON a.key_id = o.key_id
     -- Group by all non-aggregated fields to allow the groupArray operation
-    GROUP BY 
+    GROUP BY
       a.key_id,
       a.last_request_time,
       a.last_request_id,

@@ -46,16 +46,16 @@ func TestListOverridesSuccessfully(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	route := handler.New(handler.Services{
+	route := &handler.Handler{
 		DB:          h.DB,
 		Keys:        h.Keys,
 		Logger:      h.Logger,
 		Permissions: h.Permissions,
-	})
+	}
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.read_override", namespaceID))
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "ratelimit.*.read_override")
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -69,7 +69,7 @@ func TestListOverridesSuccessfully(t *testing.T) {
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status, "expected 200, received: %v", res.Body)
+		require.Equal(t, 200, res.Status, "expected 200, received: %v", res.RawBody)
 		require.NotNil(t, res.Body)
 		require.Len(t, res.Body.Data, 1)
 		require.Equal(t, overrideID, res.Body.Data[0].OverrideId)
@@ -94,5 +94,31 @@ func TestListOverridesSuccessfully(t *testing.T) {
 		require.Equal(t, identifier, res.Body.Data[0].Identifier)
 		require.Equal(t, int64(limit), res.Body.Data[0].Limit)
 		require.Equal(t, int64(duration), res.Body.Data[0].Duration)
+	})
+
+	// Test getting empty list when no overrides exist
+	t.Run("get empty list for namespace without overrides", func(t *testing.T) {
+		// Create a namespace without any overrides
+		emptyNamespaceID := uid.New("empty_ns")
+		emptyNamespaceName := "empty_namespace"
+		err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
+			ID:          emptyNamespaceID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Name:        emptyNamespaceName,
+			CreatedAt:   time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		req := handler.Request{
+			NamespaceId: &emptyNamespaceID,
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %v", res.RawBody)
+		require.NotNil(t, res.Body)
+		require.Empty(t, res.Body.Data, "expected empty array when no overrides exist")
+		require.NotNil(t, res.Body.Pagination)
+		require.False(t, res.Body.Pagination.HasMore)
+		require.Nil(t, res.Body.Pagination.Cursor)
 	})
 }

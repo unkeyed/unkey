@@ -1,5 +1,11 @@
 # @unkey/hono
 
+## 1.5.0
+
+### Minor Changes
+
+- c528107: feat: allow setting tags to pass through on verification
+
 ## 1.4.16
 
 ### Patch Changes

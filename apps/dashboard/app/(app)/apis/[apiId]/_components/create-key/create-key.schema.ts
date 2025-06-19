@@ -60,6 +60,12 @@ export const generalSchema = z.object({
     .max(256, { message: "External ID cannot exceed 256 characters" })
     .optional()
     .nullish(),
+  identityId: z
+    .string()
+    .trim()
+    .max(256, { message: "Identity ID cannot exceed 256 characters" })
+    .optional()
+    .nullish(),
   name: nameSchema,
   environment: z
     .string()
@@ -131,6 +137,7 @@ export const ratelimitItemSchema = z.object({
       }),
     })
     .positive({ message: "Limit must be greater than 0" }),
+  autoApply: z.boolean(),
 });
 
 export const metadataValidationSchema = z.object({
@@ -252,6 +259,7 @@ export const ratelimitSchema = z.object({
         name: "default",
         limit: 10,
         refillInterval: 1000,
+        autoApply: true,
       },
     ],
   }),
@@ -313,6 +321,10 @@ export const createKeyInputSchema = z.object({
   externalId: z
     .string()
     .max(256, { message: "External ID cannot exceed 256 characters" })
+    .nullish(),
+  identityId: z
+    .string()
+    .max(256, { message: "Identity ID cannot exceed 256 characters" })
     .nullish(),
   meta: z.record(z.unknown()).optional(),
   remaining: z.number().int().positive().optional(),

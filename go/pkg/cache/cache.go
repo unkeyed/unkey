@@ -181,7 +181,7 @@ func (c *cache[K, V]) Dump(ctx context.Context) ([]byte, error) {
 	b, err := json.Marshal(data)
 
 	if err != nil {
-		return nil, fault.Wrap(err, fault.WithDesc("failed to marshal cache data", ""))
+		return nil, fault.Wrap(err, fault.Internal("failed to marshal cache data"))
 	}
 	return b, nil
 

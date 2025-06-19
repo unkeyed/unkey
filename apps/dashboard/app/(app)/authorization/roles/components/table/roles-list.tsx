@@ -124,7 +124,7 @@ export const RolesList = () => {
       {
         key: "last_updated",
         header: "Last Updated",
-        width: "20%",
+        width: "12%",
         render: (role) => {
           return (
             <LastUpdated

@@ -5,7 +5,6 @@ type AuditLog struct {
 	Event       AuditLogEvent
 	WorkspaceID string
 	Display     string
-	Bucket      string
 
 	ActorID   string
 	ActorType AuditLogActor

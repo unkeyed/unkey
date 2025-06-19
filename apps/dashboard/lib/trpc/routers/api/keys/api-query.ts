@@ -20,9 +20,6 @@ type DatabaseKey = Pick<
   | "meta"
   | "enabled"
   | "remaining"
-  | "ratelimitAsync"
-  | "ratelimitLimit"
-  | "ratelimitDuration"
   | "environment"
   | "workspaceId"
 > & {
@@ -46,9 +43,6 @@ type KeyDetails = {
   meta: DatabaseKey["meta"];
   enabled: DatabaseKey["enabled"];
   remaining_requests: DatabaseKey["remaining"];
-  ratelimit_async: DatabaseKey["ratelimitAsync"];
-  ratelimit_limit: DatabaseKey["ratelimitLimit"];
-  ratelimit_duration: DatabaseKey["ratelimitDuration"];
   environment: DatabaseKey["environment"];
   workspace_id: DatabaseKey["workspaceId"];
   identity: { external_id: string } | null;
@@ -229,7 +223,7 @@ export async function queryApiKeys({
 
                     allIdentityConditions.push(sql`
         EXISTS (
-          SELECT 1 FROM ${identities} 
+          SELECT 1 FROM ${identities}
           WHERE ${identities.id} = ${key.identityId}
           AND ${condition}
         )`);
@@ -271,9 +265,6 @@ export async function queryApiKeys({
                 meta: true,
                 enabled: true,
                 remaining: true,
-                ratelimitAsync: true,
-                ratelimitLimit: true,
-                ratelimitDuration: true,
                 environment: true,
                 workspaceId: true,
               },
@@ -360,9 +351,6 @@ export function createKeyDetailsMap(keys: DatabaseKey[]): Map<string, KeyDetails
       meta: key.meta,
       enabled: key.enabled,
       remaining_requests: key.remaining,
-      ratelimit_async: key.ratelimitAsync,
-      ratelimit_limit: key.ratelimitLimit,
-      ratelimit_duration: key.ratelimitDuration,
       environment: key.environment,
       workspace_id: key.workspaceId,
       identity: identityData,
