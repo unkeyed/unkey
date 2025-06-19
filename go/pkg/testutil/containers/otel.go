@@ -1,29 +1,18 @@
 package containers
 
 import (
-	"time"
-
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 
 	"github.com/stretchr/testify/require"
 )
 
-func (c *Containers) RunOtel(preventPurge ...bool) {
+func (c *Containers) RunOtel() {
 	c.t.Helper()
-	defer func(start time.Time) {
-		c.t.Logf("starting Otel took %s", time.Since(start))
-	}(time.Now())
 
-	resource, ok := c.pool.ContainerByName("otel")
-	if ok {
-		err := resource.ConnectToNetwork(c.network)
-		require.NoError(c.t, err)
-		return
-	}
-	// nolint:exhaustruct
-	resource, err := c.pool.RunWithOptions(&dockertest.RunOptions{
-		Name:       "otel",
+	_, _, err := c.getOrCreateContainer(containerNameOtel, &dockertest.RunOptions{
+
+		Name:       containerNameOtel,
 		Hostname:   "otel",
 		Repository: "grafana/otel-lgtm",
 		Tag:        "latest",
@@ -43,11 +32,5 @@ func (c *Containers) RunOtel(preventPurge ...bool) {
 		},
 	})
 	require.NoError(c.t, err)
-
-	if len(preventPurge) == 0 || !preventPurge[0] {
-		c.t.Cleanup(func() {
-			require.NoError(c.t, c.pool.Purge(resource))
-		})
-	}
 
 }

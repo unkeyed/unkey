@@ -18,7 +18,7 @@ func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, er
 
 	err := assert.NotEmpty(rawKey)
 	if err != nil {
-		return VerifyResponse{}, fault.Wrap(err, fault.WithDesc("rawKey is empty", ""))
+		return VerifyResponse{}, fault.Wrap(err, fault.Internal("rawKey is empty"))
 	}
 	h := hash.Sha256(rawKey)
 
@@ -29,8 +29,9 @@ func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, er
 	if db.IsNotFound(err) {
 		return VerifyResponse{}, fault.Wrap(
 			err,
-			fault.WithCode(codes.Auth.Authentication.KeyNotFound.URN()),
-			fault.WithDesc("key does not exist", "We could not find the requested key."),
+			fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
+			fault.Internal("key does not exist"),
+			fault.Public("We could not find the requested key."),
 		)
 	}
 
@@ -38,7 +39,8 @@ func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, er
 
 		return VerifyResponse{}, fault.Wrap(
 			err,
-			fault.WithDesc("unable to load key", "We could not load the requested key."),
+			fault.Internal("unable to load key"),
+			fault.Public("We could not load the requested key."),
 		)
 	}
 
@@ -55,16 +57,18 @@ func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, er
 	if key.DeletedAtM.Valid {
 		return VerifyResponse{}, fault.New(
 			"key is deleted",
-			fault.WithCode(codes.Data.Key.NotFound.URN()),
-			fault.WithDesc("deleted_at is non-zero", "The key has been deleted."),
+			fault.Code(codes.Data.Key.NotFound.URN()),
+			fault.Internal("deleted_at is non-zero"),
+			fault.Public("The key has been deleted."),
 		)
 	}
 	if !key.Enabled {
 
 		return VerifyResponse{}, fault.New(
 			"key is disabled",
-			fault.WithCode(codes.Auth.Authorization.KeyDisabled.URN()),
-			fault.WithDesc("disabled", "The key is disabled."),
+			fault.Code(codes.Auth.Authorization.KeyDisabled.URN()),
+			fault.Internal("disabled"),
+			fault.Public("The key is disabled."),
 		)
 	}
 
@@ -80,8 +84,9 @@ func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, er
 	if db.IsNotFound(err) {
 		return VerifyResponse{}, fault.New(
 			"workspace not found",
-			fault.WithCode(codes.Data.Workspace.NotFound.URN()),
-			fault.WithDesc("workspace not found", "The requested workspace does not exist."),
+			fault.Code(codes.Data.Workspace.NotFound.URN()),
+			fault.Internal("workspace not found"),
+			fault.Public("The requested workspace does not exist."),
 		)
 	}
 	if err != nil {
@@ -89,16 +94,18 @@ func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, er
 			"error", err.Error())
 		return VerifyResponse{}, fault.Wrap(
 			err,
-			fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.WithDesc("unable to load workspace", "We could not load the requested workspace."),
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("unable to load workspace"),
+			fault.Public("We could not load the requested workspace."),
 		)
 	}
 
 	if !ws.Enabled {
 		return VerifyResponse{}, fault.New(
 			"workspace is disabled",
-			fault.WithCode(codes.Auth.Authorization.WorkspaceDisabled.URN()),
-			fault.WithDesc("workspace disabled", "The workspace is disabled."),
+			fault.Code(codes.Auth.Authorization.WorkspaceDisabled.URN()),
+			fault.Internal("workspace disabled"),
+			fault.Public("The workspace is disabled."),
 		)
 	}
 
