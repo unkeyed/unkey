@@ -12,7 +12,18 @@ export const useUpsertRole = (
 
   const role = trpc.authorization.roles.upsert.useMutation({
     onSuccess(data) {
-      trpcUtils.authorization.roles.invalidate();
+      trpcUtils.authorization.roles.query.invalidate();
+      trpcUtils.authorization.roles.connectedKeysAndPerms.invalidate({
+        roleId: data.roleId,
+      });
+      trpcUtils.authorization.roles.connectedKeys.invalidate({
+        roleId: data.roleId,
+        limit: 3,
+      });
+      trpcUtils.authorization.roles.connectedPerms.invalidate({
+        roleId: data.roleId,
+        limit: 3,
+      });
 
       // Show success toast
       toast.success(data.isUpdate ? "Role Updated" : "Role Created", {

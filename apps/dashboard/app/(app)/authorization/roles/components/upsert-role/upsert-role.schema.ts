@@ -18,25 +18,17 @@ export const roleDescriptionSchema = z
   .max(30, { message: "Role description cannot exceed 30 characters" })
   .optional();
 
-export const keyIdsSchema = z
-  .array(z.string())
-  .default([])
-  .transform((ids) => [...new Set(ids)])
-  .optional();
+export const keyIdsSchema = z.array(z.string()).transform((ids) => [...new Set(ids)]);
 
-export const permissionIdsSchema = z
-  .array(z.string())
-  .default([])
-  .transform((ids) => [...new Set(ids)])
-  .optional();
+export const permissionIdsSchema = z.array(z.string()).transform((ids) => [...new Set(ids)]);
 
 export const rbacRoleSchema = z
   .object({
     roleId: z.string().startsWith("role_").optional(),
     roleName: roleNameSchema,
     roleDescription: roleDescriptionSchema,
-    keyIds: keyIdsSchema,
-    permissionIds: permissionIdsSchema,
+    keyIds: keyIdsSchema.optional(),
+    permissionIds: permissionIdsSchema.optional(),
   })
   .strict({ message: "Unknown fields are not allowed in role definition" });
 
