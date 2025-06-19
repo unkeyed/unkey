@@ -20,6 +20,19 @@ import { updateApiIpWhitelist } from "./api/updateIpWhitelist";
 import { updateApiName } from "./api/updateName";
 import { fetchAuditLog } from "./audit/fetch";
 import { auditLogsSearch } from "./audit/llm-search";
+import { deletePermissionWithRelations } from "./authorization/permissions/delete";
+import { permissionsLlmSearch } from "./authorization/permissions/llm-search";
+import { queryPermissions } from "./authorization/permissions/query";
+import { upsertPermission } from "./authorization/permissions/upsert";
+import { getConnectedKeysAndPerms } from "./authorization/roles/connected-keys-and-perms";
+import { deleteRoleWithRelations } from "./authorization/roles/delete";
+import { queryKeys } from "./authorization/roles/keys/query-keys";
+import { searchKeys } from "./authorization/roles/keys/search-key";
+import { rolesLlmSearch } from "./authorization/roles/llm-search";
+import { queryRolesPermissions } from "./authorization/roles/permissions/query-permissions";
+import { searchRolesPermissions } from "./authorization/roles/permissions/search-permissions";
+import { queryRoles } from "./authorization/roles/query";
+import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
 import { createIdentity } from "./identity/create";
 import { queryIdentities } from "./identity/query";
@@ -77,6 +90,7 @@ import { disconnectRoleFromKey } from "./rbac/disconnectRoleFromKey";
 import { removePermissionFromRootKey } from "./rbac/removePermissionFromRootKey";
 import { updatePermission } from "./rbac/updatePermission";
 import { updateRole } from "./rbac/updateRole";
+import { queryRootKeys } from "./settings/root-keys/query";
 import { cancelSubscription } from "./stripe/cancelSubscription";
 import { createSubscription } from "./stripe/createSubscription";
 import { uncancelSubscription } from "./stripe/uncancelSubscription";
@@ -111,6 +125,11 @@ export const router = t.router({
     delete: deleteRootKeys,
     update: t.router({
       name: updateRootKeyName,
+    }),
+  }),
+  settings: t.router({
+    rootKeys: t.router({
+      query: queryRootKeys,
     }),
   }),
   api: t.router({
@@ -152,6 +171,29 @@ export const router = t.router({
   vercel: vercelRouter,
   plain: t.router({
     createIssue: createPlainIssue,
+  }),
+  authorization: t.router({
+    permissions: t.router({
+      query: queryPermissions,
+      upsert: upsertPermission,
+      delete: deletePermissionWithRelations,
+      llmSearch: permissionsLlmSearch,
+    }),
+    roles: t.router({
+      query: queryRoles,
+      keys: t.router({
+        search: searchKeys,
+        query: queryKeys,
+      }),
+      permissions: t.router({
+        search: searchRolesPermissions,
+        query: queryRolesPermissions,
+      }),
+      upsert: upsertRole,
+      delete: deleteRoleWithRelations,
+      llmSearch: rolesLlmSearch,
+      connectedKeysAndPerms: getConnectedKeysAndPerms,
+    }),
   }),
   rbac: t.router({
     addPermissionToRootKey: addPermissionToRootKey,

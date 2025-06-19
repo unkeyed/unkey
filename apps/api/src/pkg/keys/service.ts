@@ -287,19 +287,10 @@ export class KeyService {
      * Merge ratelimits from the identity and the key
      * Key limits take pecedence
      */
-    const ratelimits: { [name: string]: Pick<Ratelimit, "name" | "limit" | "duration"> } = {};
+    const ratelimits: {
+      [name: string]: Pick<Ratelimit, "name" | "limit" | "duration" | "autoApply">;
+    } = {};
 
-    if (
-      dbRes.ratelimitAsync !== null &&
-      dbRes.ratelimitDuration !== null &&
-      dbRes.ratelimitLimit !== null
-    ) {
-      ratelimits.default = {
-        name: "default",
-        limit: dbRes.ratelimitLimit,
-        duration: dbRes.ratelimitDuration,
-      };
-    }
     for (const rl of dbRes.identity?.ratelimits ?? []) {
       ratelimits[rl.name] = rl;
     }
@@ -553,16 +544,19 @@ export class KeyService {
      */
 
     const ratelimits: {
-      [name: string | "default"]: Required<RatelimitRequest>;
+      [name: string]: Required<RatelimitRequest>;
     } = {};
-    if (data.ratelimits && "default" in data.ratelimits && typeof req.ratelimits === "undefined") {
-      ratelimits.default = {
-        identity: data.key.id,
-        name: data.ratelimits.default.name,
-        cost: req.ratelimit?.cost ?? DEFAULT_RATELIMIT_COST,
-        limit: data.ratelimits.default.limit,
-        duration: data.ratelimits.default.duration,
-      };
+
+    for (const rl of Object.values(data.ratelimits)) {
+      if (rl.autoApply) {
+        ratelimits[rl.name] = {
+          identity: data.identity?.id ?? data.key.id,
+          name: rl.name,
+          cost: DEFAULT_RATELIMIT_COST,
+          limit: rl.limit,
+          duration: rl.duration,
+        };
+      }
     }
 
     for (const r of req.ratelimits ?? []) {
@@ -614,12 +608,27 @@ export class KeyService {
       });
     }
 
+    console.warn("ABC");
     let remaining: number | undefined = undefined;
     if (data.key.remaining !== null) {
+      const t0 = performance.now();
+      const cost = req.remaining?.cost ?? DEFAULT_REMAINING_COST;
       const limited = await this.usageLimiter.limit({
         keyId: data.key.id,
-        cost: req.remaining?.cost ?? DEFAULT_REMAINING_COST,
+        cost,
       });
+
+      this.metrics.emit({
+        metric: "metric.credits.spent",
+        workspaceId: data.key.workspaceId,
+        deducted: limited.valid,
+        cost: cost,
+        keyId: data.key.id,
+        identityId: data.identity?.id ?? null,
+        latency: performance.now() - t0,
+        time: Date.now(),
+      });
+
       remaining = limited.remaining;
       if (!limited.valid) {
         return Ok({
@@ -666,7 +675,7 @@ export class KeyService {
   private async ratelimit(
     c: Context,
     key: Key,
-    ratelimits: { [name: string | "default"]: Required<RatelimitRequest> },
+    ratelimits: { [name: string]: Required<RatelimitRequest> },
   ): Promise<[boolean, VerifyKeyResult["ratelimit"]]> {
     if (Object.keys(ratelimits).length === 0) {
       return [true, undefined];
@@ -680,7 +689,7 @@ export class KeyService {
       c,
       Object.values(ratelimits).map((r) => ({
         name: r.name,
-        async: !!key.ratelimitAsync,
+        async: false,
         workspaceId: key.workspaceId,
         identifier: r.identity,
         cost: r.cost,

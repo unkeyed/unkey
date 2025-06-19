@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/dashboard/page-header";
-import { Separator } from "@/components/ui/separator";
 import { getAuth } from "@/lib/auth/get-auth";
 import { db } from "@/lib/db";
+import { Separator } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { ArrowRight, GlobeLock, KeySquare } from "lucide-react";
 import Link from "next/link";

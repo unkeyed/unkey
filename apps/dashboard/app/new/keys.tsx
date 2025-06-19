@@ -1,19 +1,21 @@
 "use client";
 
-import { VisibleButton } from "@/components/dashboard/visible-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Code } from "@/components/ui/code";
+import { trpc } from "@/lib/trpc/client";
 import {
+  Button,
   Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Code } from "@/components/ui/code";
-import { Separator } from "@/components/ui/separator";
-import { trpc } from "@/lib/trpc/client";
-import { Button, CopyButton, Empty } from "@unkey/ui";
+  CopyButton,
+  Empty,
+  Separator,
+  VisibleButton,
+} from "@unkey/ui";
 import { AlertCircle, KeyRound, Lock } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -75,7 +77,6 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
     "apiId": "${apiId}"
   }'
   `;
-
   function maskKey(key: string): string {
     if (key.length === 0) {
       return "";
@@ -148,7 +149,12 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
               <Code className="my-8 flex w-full items-center justify-between gap-4 max-sm:overflow-hidden max-sm:text-[9px]">
                 {showKey ? step.rootKey : maskKey(step.rootKey)}
                 <div className="flex items-start justify-between max-sm:absolute max-sm:right-16 md:gap-4">
-                  <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
+                  <VisibleButton
+                    isVisible={showKey}
+                    setIsVisible={setShowKey}
+                    variant="ghost"
+                    className="focus:ring-0"
+                  />
                   <CopyButton value={step.rootKey} />
                 </div>
               </Code>
@@ -166,7 +172,12 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
                     : createKeySnippet.replace(step.rootKey, maskKey(step.rootKey))}
                 </div>
                 <div className="flex items-start justify-between max-sm:absolute max-sm:right-16 md:gap-4">
-                  <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
+                  <VisibleButton
+                    isVisible={showKeyInSnippet}
+                    setIsVisible={setShowKeyInSnippet}
+                    variant="ghost"
+                    className="focus:ring-0"
+                  />
                   <CopyButton value={createKeySnippet} />
                 </div>
               </Code>
@@ -201,7 +212,12 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
                 <Code className="my-8 flex w-full items-center justify-between gap-4 max-sm:text-[9px]">
                   {showKey ? step.key : maskKey(step.key)}
                   <div className="flex items-start justify-between gap-4">
-                    <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
+                    <VisibleButton
+                      isVisible={showKey}
+                      setIsVisible={setShowKey}
+                      variant="ghost"
+                      className="focus:ring-0"
+                    />
                     <CopyButton value={step.key} />
                   </div>
                 </Code>
@@ -220,6 +236,8 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
                     <VisibleButton
                       isVisible={showKeyInSnippet}
                       setIsVisible={setShowKeyInSnippet}
+                      variant="ghost"
+                      className="focus:ring-0"
                     />
                   ) : null}
                   <CopyButton value={verifyKeySnippet} />

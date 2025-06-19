@@ -1,7 +1,6 @@
 "use client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc/client";
-import { Checkbox } from "@unkey/ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, Checkbox } from "@unkey/ui";
 import { toast } from "sonner";
 
 export type Role = {
@@ -55,7 +54,7 @@ export function PermissionList({ roles, keyId }: PermissionTreeProps) {
   });
 
   return (
-    <Card className="h-full">
+    <Card className="flex flex-col flex-grow h-full min-h-[250px]">
       <CardHeader className="pb-0">
         <div className="mb-2">
           <CardTitle>Roles</CardTitle>

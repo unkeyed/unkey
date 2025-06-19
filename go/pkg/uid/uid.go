@@ -5,8 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"time"
-
-	"github.com/btcsuite/btcutil/base58"
 )
 
 // Prefix defines the standard resource type prefixes used throughout the system.
@@ -32,6 +30,8 @@ const (
 	AuditLogBucketPrefix     Prefix = "buk"
 	AuditLogPrefix           Prefix = "log"
 	InstancePrefix           Prefix = "ins"
+	KeyEncryptionKeyPrefix   Prefix = "kek"
+	OrgPrefix                Prefix = "org"
 )
 
 // epoch starts more recently so that the 32-bit number space gives a
@@ -104,5 +104,67 @@ func New(prefix Prefix, byteSize ...int) string {
 		binary.BigEndian.PutUint32(buf[:4], t)
 	}
 
-	return fmt.Sprintf("%s_%s", prefix, base58.Encode(buf))
+	id := encodeBase58(buf)
+	if prefix != "" {
+		id = fmt.Sprintf("%s_%s", prefix, id)
+	}
+	return id
+
+}
+
+// base58Alphabet is the Bitcoin base58 alphabet
+const base58Alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+// encodeBase58 encodes a byte slice to base58 string using Bitcoin alphabet
+func encodeBase58(input []byte) string {
+	if len(input) == 0 {
+		return ""
+	}
+
+	// Count leading zeros
+	var zeros int
+	for _, b := range input {
+		if b != 0 {
+			break
+		}
+		zeros++
+	}
+
+	// Convert to big integer and encode
+	var result []byte
+	inputCopy := make([]byte, len(input))
+	copy(inputCopy, input)
+
+	for len(inputCopy) > 0 {
+		// Find first non-zero byte
+		start := 0
+		for start < len(inputCopy) && inputCopy[start] == 0 {
+			start++
+		}
+		if start == len(inputCopy) {
+			break
+		}
+
+		// Divide by 58
+		remainder := 0
+		for i := start; i < len(inputCopy); i++ {
+			temp := remainder*256 + int(inputCopy[i])
+			inputCopy[i] = byte(temp / 58)
+			remainder = temp % 58
+		}
+
+		result = append(result, base58Alphabet[remainder])
+	}
+
+	// Add leading '1's for leading zeros
+	for i := 0; i < zeros; i++ {
+		result = append(result, '1')
+	}
+
+	// Reverse result
+	for i, j := 0, len(result)-1; i < j; i, j = i+1, j-1 {
+		result[i], result[j] = result[j], result[i]
+	}
+
+	return string(result)
 }

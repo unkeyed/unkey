@@ -1,10 +1,17 @@
 import { createKeyInputSchema } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.schema";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
+import { env } from "@/lib/env";
+import { Vault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { requireUser, requireWorkspace, t } from "../../trpc";
+
+const vault = new Vault({
+  baseUrl: env().AGENT_URL,
+  token: env().AGENT_TOKEN,
+});
 
 export const createKey = t.procedure
   .use(requireUser)
@@ -63,6 +70,22 @@ export const createKey = t.procedure
           environment: input.environment,
         });
 
+        if (keyAuth.storeEncryptedKeys) {
+          const { encrypted, keyId: encryptionKeyId } = await vault.encrypt({
+            keyring: ctx.workspace.id,
+            data: key,
+          });
+
+          await tx.insert(schema.encryptedKeys).values({
+            encrypted,
+            encryptionKeyId,
+            keyId,
+            workspaceId: ctx.workspace.id,
+            createdAt: Date.now(),
+            updatedAt: null,
+          });
+        }
+
         if (input.ratelimit?.length) {
           await tx.insert(schema.ratelimits).values(
             input.ratelimit.map((ratelimit) => ({
@@ -74,6 +97,7 @@ export const createKey = t.procedure
               workspaceId: ctx.workspace.id,
               createdAt: Date.now(),
               updatedAt: null,
+              autoApply: ratelimit.autoApply,
             })),
           );
         }

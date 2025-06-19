@@ -11,51 +11,59 @@ import (
 )
 
 const insertPermission = `-- name: InsertPermission :exec
-INSERT INTO ` + "`" + `permissions` + "`" + ` (
-    id,
-    workspace_id,
-    name,
-    description,
-    created_at_m
-) VALUES (
-    ?,
-    ?,
-    ?,
-    ?,
-    ?
+INSERT INTO permissions (
+  id,
+  workspace_id,
+  name,
+  slug,
+  description,
+  created_at_m
+)
+VALUES (
+  ?,
+  ?,
+  ?,
+  ?,
+  ?,
+  ?
 )
 `
 
 type InsertPermissionParams struct {
-	ID          string         `db:"id"`
-	WorkspaceID string         `db:"workspace_id"`
-	Name        string         `db:"name"`
-	Description sql.NullString `db:"description"`
-	CreatedAt   int64          `db:"created_at"`
+	PermissionID string         `db:"permission_id"`
+	WorkspaceID  string         `db:"workspace_id"`
+	Name         string         `db:"name"`
+	Slug         string         `db:"slug"`
+	Description  sql.NullString `db:"description"`
+	CreatedAtM   int64          `db:"created_at_m"`
 }
 
 // InsertPermission
 //
-//	INSERT INTO `permissions` (
-//	    id,
-//	    workspace_id,
-//	    name,
-//	    description,
-//	    created_at_m
-//	) VALUES (
-//	    ?,
-//	    ?,
-//	    ?,
-//	    ?,
-//	    ?
+//	INSERT INTO permissions (
+//	  id,
+//	  workspace_id,
+//	  name,
+//	  slug,
+//	  description,
+//	  created_at_m
+//	)
+//	VALUES (
+//	  ?,
+//	  ?,
+//	  ?,
+//	  ?,
+//	  ?,
+//	  ?
 //	)
 func (q *Queries) InsertPermission(ctx context.Context, db DBTX, arg InsertPermissionParams) error {
 	_, err := db.ExecContext(ctx, insertPermission,
-		arg.ID,
+		arg.PermissionID,
 		arg.WorkspaceID,
 		arg.Name,
+		arg.Slug,
 		arg.Description,
-		arg.CreatedAt,
+		arg.CreatedAtM,
 	)
 	return err
 }
