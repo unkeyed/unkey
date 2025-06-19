@@ -1,124 +1,219 @@
-# AssetManagerd
+# AssetManagerd - Centralized VM Asset Management Service
 
-**Purpose**: Centralized asset management system for VM-related resources across the Unkey Deploy infrastructure.
-
-**Architecture**: Service component providing asset registry, lifecycle management, and distribution for VM kernels, rootfs images, initrd, and disk images.
-
-**Dependencies**: 
-- [metald](../docs/metald/) - Primary consumer for VM asset preparation
-- [builderd](../docs/builderd/) // AIDEV: builderd documentation needed for complete interaction description
-- [SPIFFE/SPIRE](https://spiffe.io/) - mTLS authentication
-
-**Deployment**: Deployed as a systemd service on VM host nodes, uses local SQLite for metadata and pluggable storage backends for assets.
+AssetManagerd is a centralized asset repository and lifecycle management service for virtual machine resources in the Unkey Deploy platform. It provides efficient storage, versioning, and distribution of VM assets like kernels, rootfs images, initrd, and disk images.
 
 ## Quick Links
 
-- [**API Documentation**](docs/api/) - Complete RPC reference with examples
-- [**Architecture Guide**](docs/architecture/) - Service design and interactions  
-- [**Operations Manual**](docs/operations/) - Metrics, monitoring, and deployment
-- [**Development Setup**](docs/development/) - Build instructions and local development
+- [API Documentation](./docs/api/README.md) - Complete API reference with examples
+- [Architecture & Dependencies](./docs/architecture/README.md) - Service design and integrations
+- [Operations Guide](./docs/operations/README.md) - Production deployment and monitoring
+- [Development Setup](./docs/development/README.md) - Build, test, and local development
 
-## Overview
+## Service Overview
 
-AssetManagerd is one of the four pillar services in Unkey Deploy, responsible for managing VM-related assets throughout their lifecycle. It provides:
+**Purpose**: Centralized management and distribution of VM assets with reference counting, lease management, and garbage collection.
 
-- **Asset Registry**: Centralized tracking of kernels, rootfs images, initrd, and disk images
-- **Lifecycle Management**: Reference counting, leasing, and automated garbage collection
-- **Storage Abstraction**: Pluggable backend support (local, S3, HTTP, NFS)
-- **Asset Distribution**: Efficient preparation and staging for VM deployment
+### Key Features
 
-## Key Features
+- **Asset Registry**: Centralized metadata store for all VM assets with SQLite backend
+- **Pluggable Storage**: Support for local filesystem, S3, NFS, and HTTP backends
+- **Reference Counting**: Track asset usage with lease management for safe lifecycle control
+- **Garbage Collection**: Automatic cleanup of expired leases and unreferenced assets
+- **Asset Preparation**: Efficient asset deployment to VM jailer paths via hard links or copies
+- **Label-based Discovery**: Flexible asset filtering using key-value labels
+- **Checksum Verification**: SHA256 integrity verification for all assets
+- **High Observability**: OpenTelemetry tracing, Prometheus metrics, structured logging
 
-### Asset Types
-- `KERNEL` - Linux kernel images
-- `ROOTFS` - Root filesystem images  
-- `INITRD` - Initial ramdisk images
-- `DISK_IMAGE` - Persistent disk images
+### Dependencies
 
-### Core Capabilities
-- **Reference Counting**: Track asset usage across VMs
-- **Lease Management**: Time-based acquisition with automatic expiration
-- **Garbage Collection**: Automated cleanup of unused assets
-- **Content Deduplication**: SHA256-based duplicate detection
-- **Multi-tenant Support**: Label-based asset filtering and isolation
+- [builderd](../builderd/docs/README.md) - Registers built VM images as assets
+- [metald](../metald/docs/README.md) - Consumes assets for VM provisioning
 
-## Service Endpoints
+## Quick Start
 
-- **ConnectRPC API**: Port 8083 (configurable via `UNKEY_ASSETMANAGERD_PORT`)
-- **Metrics**: Port 9467 (Prometheus format)
-- **Health Check**: `/grpc.health.v1.Health/Check`
-
-## Configuration
-
-Key environment variables:
+### Installation
 
 ```bash
-# Service configuration
-UNKEY_ASSETMANAGERD_PORT=8083
-UNKEY_ASSETMANAGERD_STORAGE_BACKEND=local
-UNKEY_ASSETMANAGERD_LOCAL_STORAGE_PATH=/opt/vm-assets
-UNKEY_ASSETMANAGERD_DATABASE_PATH=/opt/assetmanagerd/assets.db
+# Build from source
+cd assetmanagerd
+make build
 
-# Garbage collection
-UNKEY_ASSETMANAGERD_GC_ENABLED=true
-UNKEY_ASSETMANAGERD_GC_INTERVAL=3600s
-UNKEY_ASSETMANAGERD_GC_AGE_THRESHOLD=7d
-
-# Security
-UNKEY_ASSETMANAGERD_TLS_MODE=spiffe
+# Install with systemd
+sudo make install
 ```
 
-## Integration Examples
+### Basic Configuration
 
-### Registering an Asset (builderd)
+```bash
+# Minimal configuration for development
+export UNKEY_ASSETMANAGERD_PORT=8083
+export UNKEY_ASSETMANAGERD_STORAGE_TYPE=local
+export UNKEY_ASSETMANAGERD_LOCAL_PATH=/opt/vm-assets
+export UNKEY_ASSETMANAGERD_DATABASE_PATH=/opt/assetmanagerd/assets.db
+export UNKEY_ASSETMANAGERD_TLS_MODE=disabled
 
-```go
-client := assetv1connect.NewAssetServiceClient(httpClient, "https://assetmanagerd:8083")
-
-resp, err := client.RegisterAsset(ctx, &assetv1.RegisterAssetRequest{
-    Name: "ubuntu-24.04-kernel",
-    Type: assetv1.AssetType_ASSET_TYPE_KERNEL,
-    Location: "/builds/kernels/ubuntu-24.04.kernel",
-    SizeBytes: 12345678,
-    Checksum: "sha256:abcdef...",
-    Labels: map[string]string{
-        "os": "ubuntu",
-        "version": "24.04",
-    },
-})
+./assetmanagerd
 ```
 
-### Preparing Assets for VM (metald)
+### Register Your First Asset
 
-```go
-resp, err := client.PrepareAssets(ctx, &assetv1.PrepareAssetsRequest{
-    Assets: []*assetv1.AssetReference{
-        {AssetId: "kernel-123", TargetPath: "/jailer/vm-456/kernel"},
-        {AssetId: "rootfs-789", TargetPath: "/jailer/vm-456/rootfs.ext4"},
-    },
-})
+```bash
+# Register a kernel asset
+curl -X POST http://localhost:8083/asset.v1.AssetManagerService/RegisterAsset \
+  -H "Content-Type: application/json" \
+  -d '{
+    "asset": {
+      "id": "kernel-v5.10",
+      "type": "ASSET_TYPE_KERNEL",
+      "name": "Linux Kernel 5.10",
+      "version": "5.10.0",
+      "path": "/opt/vm-assets/vmlinux-5.10",
+      "size_bytes": 10485760,
+      "checksum": "sha256:abcd1234...",
+      "labels": {
+        "arch": "x86_64",
+        "kernel_version": "5.10.0"
+      }
+    }
+  }'
 ```
 
-## Storage Architecture
+## Architecture Overview
 
-Assets are stored using a sharded directory structure to prevent filesystem performance degradation:
-
+```mermaid
+graph TB
+    subgraph "API Layer"
+        API[ConnectRPC API<br/>:8083]
+        AUTH[Auth Middleware]
+    end
+    
+    subgraph "Core Services"
+        SVC[Asset Service]
+        REG[Asset Registry]
+        GC[Garbage Collector]
+    end
+    
+    subgraph "Storage Layer"
+        STORE[Storage Interface]
+        LOCAL[Local FS]
+        S3[S3 Backend]
+        NFS[NFS Backend]
+    end
+    
+    subgraph "Data Layer"
+        DB[(SQLite DB)]
+        FS[File Storage]
+    end
+    
+    subgraph "External Services"
+        BUILD[Builderd]
+        METAL[Metald]
+    end
+    
+    BUILD -->|RegisterAsset| API
+    METAL -->|PrepareAssets| API
+    
+    API --> AUTH --> SVC
+    SVC --> REG
+    SVC --> GC
+    REG --> DB
+    
+    SVC --> STORE
+    STORE --> LOCAL
+    STORE -.-> S3
+    STORE -.-> NFS
+    
+    LOCAL --> FS
 ```
-/opt/vm-assets/
-├── ab/
-│   └── abcdef123456.kernel
-├── cd/
-│   └── cdef567890ab.rootfs
-└── ef/
-    └── ef1234567890.initrd
+
+## Asset Types
+
+AssetManagerd supports the following asset types:
+
+- **KERNEL**: Linux kernel images for VM boot
+- **ROOTFS**: Root filesystem images (ext4, squashfs)
+- **INITRD**: Initial ramdisk images
+- **DISK_IMAGE**: Additional disk images for data volumes
+
+## Production Deployment
+
+### System Requirements
+
+- **OS**: Linux (any modern distribution)
+- **CPU**: 2+ cores recommended
+- **Memory**: 4GB+ for metadata and caching
+- **Storage**: Depends on asset volume (100GB+ recommended)
+- **Network**: Low latency to metald instances
+
+### Security Considerations
+
+1. **TLS/mTLS**: Enable SPIFFE for service-to-service authentication
+2. **Storage Permissions**: Secure asset storage directories
+3. **Database Security**: Protect SQLite database file
+4. **Access Control**: Implement proper authorization for asset operations
+
+### High Availability
+
+- **Metadata**: Regular SQLite backups
+- **Storage**: Use distributed storage backends (S3, NFS)
+- **Service**: Multiple instances with shared storage
+- **Caching**: Local cache for frequently accessed assets
+
+## API Highlights
+
+The service exposes a ConnectRPC API with the following main operations:
+
+- `RegisterAsset` - Register new asset metadata
+- `GetAsset` - Retrieve asset information
+- `ListAssets` - List assets with filtering and pagination
+- `AcquireAsset` - Acquire lease on an asset
+- `ReleaseAsset` - Release asset lease
+- `PrepareAssets` - Prepare assets for VM deployment
+- `DeleteAsset` - Mark asset for deletion
+- `GarbageCollect` - Manually trigger garbage collection
+
+See [API Documentation](./docs/api/README.md) for complete reference.
+
+## Monitoring
+
+Key metrics to monitor in production:
+
+- `assetmanager_assets_total` - Total assets by type and status
+- `assetmanager_leases_active` - Active leases per asset
+- `assetmanager_storage_bytes_used` - Storage usage by type
+- `assetmanager_gc_duration_seconds` - Garbage collection performance
+- `assetmanager_prepare_duration_seconds` - Asset preparation latency
+
+See [Operations Guide](./docs/operations/README.md) for complete monitoring setup.
+
+## Development
+
+### Building from Source
+
+```bash
+git clone https://github.com/unkeyed/unkey
+cd go/deploy/assetmanagerd
+make test
+make build
 ```
 
-## Version
+### Running Tests
 
-Current version: v0.1.0 ([cmd/assetmanagerd/main.go:21](../assetmanagerd/cmd/assetmanagerd/main.go:21))
+```bash
+# Unit tests
+make test
 
-## Related Documentation
+# Integration tests
+make test-integration
 
-- [Unkey Deploy Architecture](../docs/architecture-overview.md)
-- [Pillar Services Overview](../docs/PILLAR_SERVICES.md)
-- [Service Interactions](../docs/service-interactions-detailed.md)
+# Benchmark tests
+make bench
+```
+
+See [Development Setup](./docs/development/README.md) for detailed instructions.
+
+## Support
+
+- **Issues**: [GitHub Issues](https://github.com/unkeyed/unkey/issues)
+- **Documentation**: [Full Documentation](./docs/README.md)
+- **Version**: v0.3.0

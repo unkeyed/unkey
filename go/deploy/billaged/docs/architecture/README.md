@@ -1,325 +1,354 @@
 # Billaged Architecture & Dependencies
 
-## Service Architecture
+This document describes the architecture, design decisions, and service interactions of the billaged service.
 
-Billaged follows a modular architecture designed for high-performance metric processing and reliable billing data aggregation.
+## Table of Contents
 
-### Component Overview
+- [System Architecture](#system-architecture)
+- [Component Overview](#component-overview)
+- [Service Dependencies](#service-dependencies)
+- [Data Flow](#data-flow)
+- [Aggregation Design](#aggregation-design)
+- [Security Architecture](#security-architecture)
+- [Performance Considerations](#performance-considerations)
+
+## System Architecture
 
 ```mermaid
 graph TB
-    subgraph "API Layer"
-        GRPC[ConnectRPC Handler]
-        HTTP[HTTP Endpoints]
-        INT[Interceptors]
+    subgraph "Metald Fleet"
+        M1[Metald Instance 1]
+        M2[Metald Instance 2]
+        MN[Metald Instance N]
     end
     
-    subgraph "Core Components"
+    subgraph "Billaged Service"
+        API[ConnectRPC Server<br/>:8081]
         SVC[Billing Service]
-        AGG[Aggregator]
-        CALC[Score Calculator]
+        AGG[Aggregator Engine]
+        MEM[(In-Memory Store)]
+        INT[Interceptor]
     end
     
     subgraph "Observability"
-        OTEL[OpenTelemetry]
-        PROM[Prometheus]
-        LOG[Structured Logging]
+        PROM[Prometheus<br/>:9465]
+        OTLP[OTLP Collector<br/>:4318]
+        LOGS[Structured Logs<br/>(stdout)]
     end
     
-    subgraph "Infrastructure"
-        TLS[TLS Provider]
-        CONFIG[Configuration]
-        HEALTH[Health Checks]
-    end
+    M1 -->|mTLS| API
+    M2 -->|mTLS| API
+    MN -->|mTLS| API
     
-    GRPC --> INT --> SVC
-    HTTP --> SVC
+    API --> INT
+    INT --> SVC
     SVC --> AGG
-    AGG --> CALC
-    SVC --> OTEL
-    OTEL --> PROM
-    TLS --> GRPC
-    CONFIG --> ALL[All Components]
+    AGG --> MEM
+    
+    AGG -->|Metrics| PROM
+    AGG -->|Traces| OTLP
+    AGG -->|Summaries| LOGS
 ```
 
-### Core Components
+## Component Overview
 
-#### 1. Billing Service
-**Location**: [`internal/service/billing.go`](../../internal/service/billing.go:17-180)
+### ConnectRPC Server
 
-The main service implementation that:
-- Implements the ConnectRPC BillingService interface
-- Routes incoming metrics to the aggregator
-- Handles VM lifecycle events
-- Integrates with observability metrics
+**Location**: [`cmd/billaged/main.go:267-298`](../../cmd/billaged/main.go:267-298)
 
-#### 2. Aggregator
-**Location**: [`internal/aggregator/aggregator.go`](../../internal/aggregator/aggregator.go:68-366)
+The server component handles:
+- HTTP/2 with h2c support for cleartext connections
+- TLS/mTLS configuration via SPIFFE
+- Request compression and decompression
+- Protocol transcoding (gRPC ↔ HTTP/JSON)
 
-The heart of the billing system that:
-- Maintains in-memory VM usage state
-- Calculates usage deltas from cumulative metrics
-- Generates periodic usage summaries
-- Handles VM lifecycle tracking
+### Billing Service
 
-Key data structures:
+**Location**: [`internal/service/billing.go:18-31`](../../internal/service/billing.go:18-31)
+
 ```go
-type VMUsageData struct {
-    VMID                string
-    CustomerID          string
-    StartTime           time.Time
-    LastUpdate          time.Time
-    TotalCPUNanos       int64
-    TotalMemoryBytes    int64
-    TotalDiskReadBytes  int64
-    TotalDiskWriteBytes int64
-    TotalNetworkRxBytes int64
-    TotalNetworkTxBytes int64
-    SampleCount         int64
+type BillingServiceServer struct {
+    aggregator *aggregator.Aggregator
+    logger     *slog.Logger
+    metrics    *observability.BillingMetrics
 }
 ```
 
-#### 3. Resource Score Calculator
-**Location**: [`internal/aggregator/aggregator.go:282-305`](../../internal/aggregator/aggregator.go:282-305)
+Responsibilities:
+- Request validation
+- Metric batching
+- Lifecycle event handling
+- Error response generation
 
-Implements the billing score formula:
+### Aggregator Engine
+
+**Location**: [`internal/aggregator/aggregator.go:26-42`](../../internal/aggregator/aggregator.go:26-42)
+
+The aggregator is the core processing engine:
 
 ```go
-// AIDEV-BUSINESS_RULE: Resource Score Calculation
-resourceScore = (cpuSeconds * 1.0) + (memoryGB * 0.5) + (diskMB * 0.3)
+type Aggregator struct {
+    interval          time.Duration
+    vmUsageData       map[string]*VMUsageData
+    mu                sync.RWMutex
+    logger            *slog.Logger
+    onSummaryCallback func(summary UsageSummary)
+}
 ```
 
-Weights reflect relative infrastructure costs:
-- **CPU (1.0)**: Direct compute cost correlation
-- **Memory (0.5)**: Moderate cost impact
-- **I/O (0.3)**: Lower direct cost impact
+Key features:
+- Thread-safe in-memory storage
+- Configurable aggregation intervals
+- Delta calculation for cumulative metrics
+- Automatic counter reset detection
+
+### Observability Layer
+
+**Interceptor**: [`internal/observability/interceptor.go:15-58`](../../internal/observability/interceptor.go:15-58)
+
+Provides:
+- Request/response logging
+- Latency tracking
+- Error rate monitoring
+- OpenTelemetry trace injection
 
 ## Service Dependencies
 
-### Internal Dependencies
+### Primary Dependency: Metald
 
-#### 1. metald
-**Documentation**: [metald README](../../../metald/docs/README.md)
+Billaged has a single service dependency on [metald](../../../metald/docs/README.md) for VM metrics:
+
 **Integration Points**:
-- Primary data source for VM usage metrics
-- Sends metrics via `SendMetricsBatch` RPC
-- Provides VM lifecycle notifications
-- Sends periodic heartbeats with active VM lists
 
-**Data Flow**:
-```mermaid
-sequenceDiagram
-    participant M as metald
-    participant B as billaged
-    participant A as Aggregator
-    
-    M->>B: NotifyVmStarted(vm_id, customer_id)
-    B->>A: Initialize VM tracking
-    
-    loop Every 10s
-        M->>B: SendMetricsBatch(metrics[])
-        B->>A: Process metrics
-        A->>A: Calculate deltas
-        A->>A: Update usage totals
-    end
-    
-    M->>B: NotifyVmStopped(vm_id)
-    B->>A: Generate final summary
-    A->>B: Usage summary callback
-```
+1. **Metrics Collection** ([`metald/internal/billing/collector.go:65-100`](../../../metald/internal/billing/collector.go:65-100))
+   - Metald collects metrics every 5 minutes
+   - Sends batches via `SendMetricsBatch` RPC
+   - Includes CPU, memory, disk, and network metrics
 
-#### 2. pkg/tls
-**Location**: [`../pkg/tls`](../../cmd/billaged/main.go:24)
-**Purpose**: Shared TLS/SPIFFE provider for secure communication
+2. **Lifecycle Events** ([`metald/internal/billing/collector.go:92-100`](../../../metald/internal/billing/collector.go:92-100))
+   - VM start notifications with customer ID
+   - VM stop notifications with final metrics
+   - Gap detection for billing accuracy
 
-Features:
-- SPIFFE workload identity support
-- File-based TLS certificates
-- Automatic certificate rotation
-- mTLS for service-to-service auth
+3. **Heartbeats**
+   - Periodic active VM list updates
+   - Instance health monitoring
 
-#### 3. pkg/health
-**Location**: [`../pkg/health`](../../cmd/billaged/main.go:23)
-**Purpose**: Standardized health check implementation
+### No External Dependencies
 
-Provides:
-- Service name and version
-- Uptime tracking
-- Readiness/liveness probes
+Billaged is designed to be lightweight with no dependencies on:
+- ❌ Databases (PostgreSQL, MySQL, Redis)
+- ❌ Message queues (Kafka, RabbitMQ)
+- ❌ Object storage (S3, MinIO)
+- ❌ External APIs or services
 
-### External Dependencies
-
-#### 1. OpenTelemetry
-**Configuration**: [`internal/observability/otel.go`](../../internal/observability/otel.go)
-
-Components:
-- **Tracing**: Distributed request tracing
-- **Metrics**: Custom billing metrics
-- **Exporters**: OTLP HTTP exporters
-
-#### 2. Prometheus
-**Metrics**: [`internal/observability/metrics.go`](../../internal/observability/metrics.go:14-119)
-
-Key metrics:
-- `billaged_usage_records_processed_total`
-- `billaged_aggregation_duration_seconds`
-- `billaged_active_vms`
-- `billaged_billing_errors_total`
+This design choice ensures:
+- Simple deployment and operations
+- No persistent state management
+- Fast startup and shutdown
+- Minimal resource requirements
 
 ## Data Flow
 
-### Metric Processing Pipeline
+### Metric Ingestion Flow
+
+```mermaid
+sequenceDiagram
+    participant VM as VM Process
+    participant MC as Metald Collector
+    participant BA as Billaged API
+    participant AGG as Aggregator
+    participant MEM as Memory Store
+    
+    VM->>MC: Resource metrics (100ms)
+    MC->>MC: Buffer metrics
+    
+    loop Every 5 minutes
+        MC->>BA: SendMetricsBatch
+        BA->>AGG: ProcessBatch
+        AGG->>MEM: Store/Update
+        AGG->>AGG: Calculate deltas
+        BA-->>MC: Response
+    end
+```
+
+### Aggregation Flow
 
 ```mermaid
 graph LR
-    subgraph "Input"
-        M1[metald-1]
-        M2[metald-2]
-        M3[metald-n]
-    end
-    
-    subgraph "Processing"
-        RPC[RPC Handler]
-        VAL[Validation]
-        AGG[Aggregator]
-        DELTA[Delta Calc]
-    end
-    
-    subgraph "Output"
-        SUM[Usage Summary]
-        MET[Metrics]
-        LOG[Logs]
-    end
-    
-    M1 --> RPC
-    M2 --> RPC
-    M3 --> RPC
-    
-    RPC --> VAL
-    VAL --> AGG
-    AGG --> DELTA
-    DELTA --> SUM
-    DELTA --> MET
-    RPC --> LOG
+    RAW[Raw Metrics] --> DELTA[Delta Calculator]
+    DELTA --> WEIGHT[Weight Calculator]
+    WEIGHT --> SCORE[Billing Score]
+    SCORE --> SUMMARY[Usage Summary]
+    SUMMARY --> LOG[JSON Log Output]
 ```
 
-### Aggregation Process
+## Aggregation Design
 
-1. **Metric Reception**: [`internal/service/billing.go:33-84`](../../internal/service/billing.go:33-84)
-   - Validates incoming batch
-   - Records processing metrics
-   - Forwards to aggregator
+### Metric Processing
 
-2. **Delta Calculation**: [`internal/aggregator/aggregator.go:136-173`](../../internal/aggregator/aggregator.go:136-173)
-   - Computes incremental usage from cumulative values
-   - Handles counter resets gracefully
-   - Updates running totals
+**Delta Calculation**: [`internal/aggregator/aggregator.go:110-133`](../../internal/aggregator/aggregator.go:110-133)
 
-3. **Periodic Aggregation**: [`internal/aggregator/aggregator.go:250-276`](../../internal/aggregator/aggregator.go:250-276)
-   - Runs every configurable interval (default 60s)
-   - Generates usage summaries for active VMs
-   - Triggers callback functions
-
-4. **Summary Generation**: [`internal/aggregator/aggregator.go:279-326`](../../internal/aggregator/aggregator.go:279-326)
-   - Calculates resource scores
-   - Prepares billing-ready data
-   - Includes all resource metrics
-
-## Concurrency Model
-
-The service uses Go's concurrency primitives for safe multi-threaded operation:
-
-### Mutex Protection
 ```go
-type Aggregator struct {
-    mu        sync.RWMutex
-    vmData    map[string]*VMUsageData
-    customers map[string][]string
+// Calculate deltas for cumulative metrics
+cpuDelta := metric.CpuTimeNanos - usage.LastCpuTimeNanos
+if cpuDelta < 0 {
+    // Handle counter reset
+    cpuDelta = metric.CpuTimeNanos
 }
 ```
 
-- Read locks for queries (stats, summaries)
-- Write locks for updates (metrics, lifecycle)
-- Fine-grained locking for performance
+### Billing Score Formula
 
-### Goroutine Management
-1. **Main Server**: HTTP/gRPC server goroutine
-2. **Prometheus Server**: Separate metrics endpoint
-3. **Aggregation Timer**: Periodic summary generation
-4. **Graceful Shutdown**: Coordinated via context
-
-## Error Handling
-
-### Error Categories
-
-1. **Configuration Errors**: Fatal, exit on startup
-2. **Processing Errors**: Logged, metrics updated, continue
-3. **Network Errors**: Handled by ConnectRPC framework
-4. **Panic Recovery**: Interceptor-level recovery
-
-### Error Propagation
+**Implementation**: [`internal/aggregator/aggregator.go:198-207`](../../internal/aggregator/aggregator.go:198-207)
 
 ```go
-// Logging interceptor with panic recovery
-defer func() {
-    if r := recover(); r != nil {
-        logger.Error("panic in interceptor",
-            slog.String("procedure", req.Spec().Procedure),
-            slog.Any("panic", r),
-        )
-        err = connect.NewError(connect.CodeInternal, 
-            fmt.Errorf("internal server error: %v", r))
-    }
-}()
+resourceScore := (cpuSeconds * cpuWeight) + 
+                 (memoryGB * memoryWeight) + 
+                 (diskMB * diskWeight)
 ```
+
+Default weights:
+- CPU: 1.0 (highest priority)
+- Memory: 0.5 (medium priority)
+- Disk I/O: 0.3 (lower priority)
+
+### Summary Generation
+
+**Triggered by**:
+1. Timer expiration (default: 60s)
+2. VM stop events
+3. Manual flush requests
+
+**Output Format**:
+```json
+{
+  "vm_id": "vm-123",
+  "customer_id": "customer-456",
+  "period_start": "2024-01-01T12:00:00Z",
+  "period_end": "2024-01-01T12:01:00Z",
+  "cpu_seconds_used": 45.2,
+  "memory_gb_seconds": 30.5,
+  "disk_mb_transferred": 150.8,
+  "network_mb_transferred": 25.3,
+  "resource_score": 78.5
+}
+```
+
+## Security Architecture
+
+### Service Authentication
+
+**TLS Configuration**: [`internal/config/config.go:61-73`](../../internal/config/config.go:61-73)
+
+Supports three modes:
+1. **SPIFFE** (default): Automatic mTLS via SPIRE agent
+2. **File**: Manual certificate management
+3. **Disabled**: Development only
+
+### SPIFFE Integration
+
+**Implementation**: [`pkg/spiffe`](../../pkg/spiffe) and [`pkg/tls`](../../pkg/tls)
+
+```go
+// Default SPIFFE socket path
+socketPath := "/var/lib/spire/agent/agent.sock"
+
+// Automatic certificate rotation
+// Trust domain validation
+// Service identity verification
+```
+
+### Data Privacy
+
+- No persistent storage of sensitive data
+- Metrics aggregated and anonymized
+- Customer isolation at aggregation level
+- No PII in logs or metrics
 
 ## Performance Considerations
 
-### Memory Usage
-- In-memory VM tracking: O(n) where n = active VMs
-- Bounded by VM lifecycle (cleared on stop)
-- No persistent storage requirements
+### Memory Management
 
-### CPU Usage
-- Delta calculations: O(m) where m = metrics per batch
-- Aggregation: O(n) every interval
-- Minimal computational overhead
+**VM Tracking**: [`internal/aggregator/aggregator.go:44-57`](../../internal/aggregator/aggregator.go:44-57)
 
-### Network
-- Batch processing reduces RPC overhead
-- ConnectRPC compression support
-- HTTP/2 multiplexing
+```go
+type VMUsageData struct {
+    VMID              string
+    CustomerID        string
+    StartTime         time.Time
+    LastMetricTime    time.Time
+    // Cumulative counters
+    LastCpuTimeNanos  int64
+    LastDiskReadBytes int64
+    // ... more fields
+}
+```
 
-## Security Model
+Memory usage scales with:
+- Number of active VMs (O(n))
+- Metric retention window
+- Aggregation interval
 
-### Authentication
-- SPIFFE/mTLS for service identity
-- No user authentication (service-to-service only)
-- Customer isolation at data level
+Typical memory footprint:
+- 1,000 VMs: ~10MB
+- 10,000 VMs: ~100MB
+- 100,000 VMs: ~1GB
 
-### Authorization
-- No fine-grained permissions
-- Relies on network segmentation
-- Service mesh policies recommended
+### Concurrency Design
 
-### Data Privacy
-- No PII storage
-- VM IDs and customer IDs only
-- Metrics data retention in memory only
+1. **Read-Write Mutex**: Protects shared VM data
+2. **Goroutine per Summary**: Parallel summary generation
+3. **Non-blocking Callbacks**: Async log writing
+4. **Buffered Channels**: Smooth metric flow
 
-## Deployment Considerations
+### Optimization Strategies
 
-### High Availability
-- Stateless design (no persistent state)
-- Multiple instances behind load balancer
-- Metric aggregation per instance
+1. **Batch Processing**: Reduces lock contention
+2. **Pre-allocated Buffers**: Minimizes allocations
+3. **Counter Reset Detection**: Handles VM restarts
+4. **Lazy Initialization**: On-demand VM tracking
 
-### Scaling
-- Horizontal scaling supported
-- Partition by customer or VM range
-- Aggregation coordination required
+## Failure Handling
 
-### Monitoring
-- Prometheus metrics for observability
-- Structured logging for debugging
-- OpenTelemetry for distributed tracing
+### Metric Loss Scenarios
+
+1. **Billaged Restart**:
+   - In-memory data lost
+   - Metald retries with buffered metrics
+   - Gap detection ensures accuracy
+
+2. **Network Partition**:
+   - Metald buffers locally
+   - Exponential backoff retry
+   - Gap notification on recovery
+
+3. **Overload Protection**:
+   - Request timeout enforcement
+   - Metric drop with error logging
+   - Prometheus alerts on drops
+
+### Monitoring Integration
+
+Key metrics for operations:
+- `billaged_aggregation_lag_seconds`: Processing delay
+- `billaged_memory_usage_bytes`: Memory consumption
+- `billaged_active_vms`: Capacity planning
+- `billaged_rpc_duration_seconds`: API latency
+
+## Future Considerations
+
+### Scalability Options
+
+1. **Horizontal Sharding**: Partition VMs by ID
+2. **Write-Through Cache**: Redis for persistence
+3. **Streaming Aggregation**: Apache Flink integration
+4. **Multi-Region**: Geographic distribution
+
+### Feature Roadmap
+
+- [ ] Configurable metric weights
+- [ ] Custom aggregation windows
+- [ ] Real-time alerting
+- [ ] Historical data export
+- [ ] Cost prediction models

@@ -1,37 +1,129 @@
-# Billaged Development Guide
+# Billaged Development Setup
 
-## Development Setup
+This guide covers building, testing, and contributing to the billaged service.
 
-### Prerequisites
+## Table of Contents
 
-- Go 1.24.3 or later
-- Make
-- Protocol Buffers compiler (for regenerating protos)
-- Docker (for integration tests)
-- Access to SPIFFE workload API (optional)
+- [Prerequisites](#prerequisites)
+- [Development Environment](#development-environment)
+- [Building from Source](#building-from-source)
+- [Testing](#testing)
+- [Code Generation](#code-generation)
+- [Contributing](#contributing)
+- [Debugging](#debugging)
 
-### Initial Setup
+## Prerequisites
+
+### Required Tools
+
+- **Go**: 1.22.0 or higher ([go.mod:3](../../go.mod:3))
+- **Make**: For build automation
+- **protoc**: Protocol buffer compiler (v3.19+)
+- **buf**: For protobuf management
+- **golangci-lint**: For code linting
+
+### Optional Tools
+
+- **Docker**: For containerized builds
+- **SPIRE**: For testing mTLS locally
+- **Prometheus**: For metrics testing
+- **grpcurl**: For API testing
+
+### Tool Installation
+
+```bash
+# Install Go (via official installer or package manager)
+# https://golang.org/dl/
+
+# Install protoc
+brew install protobuf  # macOS
+apt install protobuf-compiler  # Ubuntu/Debian
+
+# Install buf
+curl -sSL https://github.com/bufbuild/buf/releases/download/v1.28.1/buf-Linux-x86_64 \
+  -o /usr/local/bin/buf && chmod +x /usr/local/bin/buf
+
+# Install golangci-lint
+curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
+  | sh -s -- -b $(go env GOPATH)/bin v1.54.2
+
+# Install grpcurl
+go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest
+```
+
+## Development Environment
+
+### Project Structure
+
+```
+billaged/
+├── cmd/
+│   └── billaged/
+│       └── main.go              # Application entry point
+├── internal/
+│   ├── aggregator/              # Core aggregation logic
+│   │   └── aggregator.go
+│   ├── config/                  # Configuration management
+│   │   └── config.go
+│   ├── observability/           # Metrics and tracing
+│   │   ├── interceptor.go
+│   │   ├── metrics.go
+│   │   └── otel.go
+│   └── service/                 # Service implementation
+│       └── billing.go
+├── proto/
+│   └── billing/v1/              # Protocol buffer definitions
+│       └── billing.proto
+├── gen/                         # Generated code (do not edit)
+│   └── billing/v1/
+├── contrib/
+│   ├── systemd/                 # Systemd unit files
+│   └── grafana-dashboards/      # Monitoring dashboards
+├── Makefile                     # Build automation
+├── go.mod                       # Go module definition
+└── go.sum                       # Dependency checksums
+```
+
+### Environment Setup
 
 ```bash
 # Clone the repository
 git clone https://github.com/unkeyed/unkey
 cd go/deploy/billaged
 
-# Install dependencies
+# Download dependencies
 go mod download
 
-# Build the service
-make build
-
-# Run tests
-make test
+# Verify setup
+go mod verify
 ```
 
-## Build Instructions
+### IDE Configuration
 
-### Makefile Targets
+#### VS Code
 
-**Makefile**: [`Makefile`](../../Makefile)
+`.vscode/settings.json`:
+```json
+{
+  "go.lintTool": "golangci-lint",
+  "go.lintFlags": ["--fast"],
+  "go.testFlags": ["-v"],
+  "go.buildTags": "",
+  "go.generateTestsFlags": ["-exported"]
+}
+```
+
+#### GoLand
+
+1. Enable Go modules support
+2. Set GOPATH to module mode
+3. Configure golangci-lint as external tool
+
+## Building from Source
+
+### Make Targets
+
+**Makefile**: [`Makefile:1-63`](../../Makefile:1-63)
 
 ```bash
 # Build binary
@@ -40,382 +132,426 @@ make build
 # Run tests
 make test
 
-# Run integration tests
-make test-integration
+# Run linter
+make lint
 
-# Run benchmarks
-make bench
+# Generate code
+make generate
 
-# Install with systemd
+# Install systemd service
 make install
 
 # Clean build artifacts
 make clean
 
-# Regenerate protobuf code
-make proto
+# Run all CI checks
+make ci
 ```
 
-### Build Tags
-
-The service supports build tags for different configurations:
+### Manual Build
 
 ```bash
-# Build with specific features
-go build -tags "debug,profiling" ./cmd/billaged
+# Build for current platform
+go build -o billaged ./cmd/billaged
+
+# Build with version info
+go build -ldflags "-X main.version=v0.1.0" -o billaged ./cmd/billaged
+
+# Cross-compile for Linux
+GOOS=linux GOARCH=amd64 go build -o billaged-linux-amd64 ./cmd/billaged
+
+# Build with race detector (development only)
+go build -race -o billaged-race ./cmd/billaged
+```
+
+### Docker Build
+
+```dockerfile
+# Dockerfile example
+FROM golang:1.22-alpine AS builder
+WORKDIR /app
+COPY . .
+RUN go mod download
+RUN go build -o billaged ./cmd/billaged
+
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
+COPY --from=builder /app/billaged /billaged
+ENTRYPOINT ["/billaged"]
+```
+
+```bash
+# Build Docker image
+docker build -t billaged:dev .
+
+# Run with environment variables
+docker run -e UNKEY_BILLAGED_TLS_MODE=disabled billaged:dev
 ```
 
 ## Testing
 
 ### Unit Tests
 
-Located alongside source files with `_test.go` suffix.
+**Test files**: [`*_test.go` pattern](../../internal/)
 
 ```bash
 # Run all tests
-go test ./...
+make test
 
 # Run with coverage
-go test -cover ./...
+go test -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out
 
 # Run specific package tests
-go test ./internal/aggregator
+go test -v ./internal/aggregator
 
-# Verbose output
-go test -v ./...
-```
+# Run with race detector
+go test -race ./...
 
-### Writing Tests
-
-Example test structure:
-
-```go
-func TestAggregator_ProcessMetricsBatch(t *testing.T) {
-    // Setup
-    logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-    agg := aggregator.NewAggregator(logger, 60*time.Second)
-    
-    // Test data
-    metrics := []*billingv1.VMMetrics{
-        {
-            Timestamp:        timestamppb.Now(),
-            CpuTimeNanos:     1000000000,
-            MemoryUsageBytes: 1073741824,
-        },
-    }
-    
-    // Execute
-    agg.ProcessMetricsBatch("vm-123", "customer-456", metrics)
-    
-    // Assert
-    assert.Equal(t, 1, agg.GetActiveVMCount())
-}
+# Run specific test
+go test -run TestAggregator_ProcessMetricsBatch ./internal/aggregator
 ```
 
 ### Integration Tests
 
-Test the service with real dependencies:
-
 ```bash
-# Start dependencies
+# Start test dependencies
 docker-compose -f test/docker-compose.yml up -d
 
 # Run integration tests
-go test -tags integration ./test/integration
+go test -tags=integration ./test/integration
 
 # Cleanup
 docker-compose -f test/docker-compose.yml down
 ```
 
-### Benchmark Tests
+### Test Patterns
 
-Performance testing for critical paths:
+#### Table-Driven Tests
 
 ```go
-func BenchmarkAggregator_ProcessMetrics(b *testing.B) {
-    agg := aggregator.NewAggregator(logger, 60*time.Second)
-    metrics := generateTestMetrics(100)
+func TestAggregator_CalculateDelta(t *testing.T) {
+    tests := []struct {
+        name     string
+        current  int64
+        previous int64
+        want     int64
+    }{
+        {"normal increment", 100, 50, 50},
+        {"counter reset", 10, 100, 10},
+        {"first value", 100, 0, 100},
+    }
     
-    b.ResetTimer()
-    for i := 0; i < b.N; i++ {
-        agg.ProcessMetricsBatch("vm-123", "customer-456", metrics)
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            got := calculateDelta(tt.current, tt.previous)
+            if got != tt.want {
+                t.Errorf("got %d, want %d", got, tt.want)
+            }
+        })
     }
 }
 ```
 
-Run benchmarks:
+#### Mock Testing
+
+```go
+// Mock billing client for testing
+type mockBillingClient struct {
+    recordedMetrics []VMMetrics
+}
+
+func (m *mockBillingClient) SendMetricsBatch(ctx context.Context, batch []VMMetrics) error {
+    m.recordedMetrics = append(m.recordedMetrics, batch...)
+    return nil
+}
+```
+
+### Benchmarks
+
 ```bash
+# Run benchmarks
 go test -bench=. ./internal/aggregator
+
+# Run with memory profiling
+go test -bench=. -benchmem ./internal/aggregator
+
+# Compare benchmarks
+go test -bench=. ./internal/aggregator > old.txt
+# make changes
+go test -bench=. ./internal/aggregator > new.txt
+benchstat old.txt new.txt
 ```
 
-## Local Development
+## Code Generation
 
-### Running Locally
+### Protocol Buffers
 
-Basic development setup:
+**Proto files**: [`proto/billing/v1/`](../../proto/billing/v1/)
 
 ```bash
-# Set minimal configuration
-export UNKEY_BILLAGED_PORT=8081
-export UNKEY_BILLAGED_TLS_MODE=disabled
-export UNKEY_BILLAGED_OTEL_ENABLED=false
+# Generate Go code from proto files
+make generate
 
-# Run the service
-go run ./cmd/billaged
+# Manual generation
+buf generate
+
+# Verify generated code is up to date
+git diff --exit-code gen/
 ```
 
-### With Mock Dependencies
+### buf Configuration
 
-For testing without metald:
-
-```bash
-# Use the example client to send test data
-cd contrib/example-client
-go run main.go -action send-metrics
-```
-
-### With Docker Compose
-
-Complete local environment:
-
+`buf.gen.yaml`:
 ```yaml
-# docker-compose.yml
-version: '3.8'
-services:
-  billaged:
-    build: .
-    ports:
-      - "8081:8081"
-      - "9465:9465"
-    environment:
-      - UNKEY_BILLAGED_OTEL_ENABLED=true
-      - UNKEY_BILLAGED_OTEL_ENDPOINT=otel-collector:4318
-    
-  otel-collector:
-    image: otel/opentelemetry-collector:latest
-    ports:
-      - "4318:4318"
+version: v1
+plugins:
+  - plugin: buf.build/protocolbuffers/go
+    out: gen
+    opt: paths=source_relative
+  - plugin: buf.build/connectrpc/go
+    out: gen
+    opt: paths=source_relative
 ```
 
-## Debugging
-
-### Enable Debug Logging
-
-Add to [`cmd/billaged/main.go`](../../cmd/billaged/main.go:87-90):
-
-```go
-logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-    Level: slog.LevelDebug,
-    AddSource: true,
-}))
-```
-
-### Using Delve
-
-```bash
-# Build with debug symbols
-go build -gcflags="all=-N -l" -o billaged ./cmd/billaged
-
-# Start with delve
-dlv exec ./billaged
-
-# Set breakpoints
-(dlv) break internal/service/billing.go:42
-(dlv) continue
-```
-
-### Profiling
-
-Enable pprof endpoint:
-
-```go
-import _ "net/http/pprof"
-
-// In main()
-go func() {
-    log.Println(http.ListenAndServe("localhost:6060", nil))
-}()
-```
-
-Profile CPU usage:
-```bash
-go tool pprof http://localhost:6060/debug/pprof/profile?seconds=30
-```
-
-## Code Organization
-
-### Directory Structure
-
-```
-billaged/
-├── cmd/
-│   └── billaged/
-│       └── main.go           # Entry point
-├── internal/
-│   ├── aggregator/
-│   │   └── aggregator.go     # Core aggregation logic
-│   ├── config/
-│   │   └── config.go         # Configuration management
-│   ├── observability/
-│   │   ├── interceptor.go    # OTEL interceptor
-│   │   ├── metrics.go        # Prometheus metrics
-│   │   └── otel.go          # OTEL setup
-│   └── service/
-│       └── billing.go        # Service implementation
-├── proto/
-│   └── billing/v1/
-│       └── billing.proto     # API definitions
-├── gen/                      # Generated code
-├── contrib/
-│   ├── systemd/             # Systemd units
-│   └── grafana-dashboards/  # Monitoring
-└── Makefile
-```
+## Contributing
 
 ### Code Style
 
-Follow standard Go conventions:
+The project uses standard Go formatting and conventions:
 
 ```bash
 # Format code
-go fmt ./...
+gofmt -w .
 
 # Run linter
 golangci-lint run
 
-# Check for issues
-go vet ./...
+# Fix linter issues
+golangci-lint run --fix
 ```
 
-## API Development
+### Commit Guidelines
 
-### Modifying the API
+Follow conventional commits:
 
-1. Edit [`proto/billing/v1/billing.proto`](../../proto/billing/v1/billing.proto)
-2. Regenerate code:
-   ```bash
-   make proto
+```
+feat: add new aggregation algorithm
+fix: handle counter resets properly
+docs: update API documentation
+test: add benchmarks for aggregator
+refactor: simplify metric processing
+```
+
+### Pull Request Process
+
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature/my-feature`
+3. Make changes and add tests
+4. Run CI checks: `make ci`
+5. Commit with clear message
+6. Push branch and create PR
+
+### Code Review Checklist
+
+- [ ] Tests pass (`make test`)
+- [ ] Linter passes (`make lint`)
+- [ ] Documentation updated
+- [ ] Benchmarks if performance-critical
+- [ ] No sensitive data in logs
+- [ ] Error handling follows patterns
+
+## Debugging
+
+### Local Development
+
+```bash
+# Run with debug logging
+go run ./cmd/billaged
+
+# Run with specific config
+UNKEY_BILLAGED_TLS_MODE=disabled \
+UNKEY_BILLAGED_AGGREGATION_INTERVAL=10s \
+go run ./cmd/billaged
+```
+
+### Delve Debugger
+
+```bash
+# Install delve
+go install github.com/go-delve/delve/cmd/dlv@latest
+
+# Debug the application
+dlv debug ./cmd/billaged
+
+# Debug with arguments
+dlv debug ./cmd/billaged -- --config=debug.yaml
+
+# Attach to running process
+dlv attach $(pgrep billaged)
+```
+
+### VS Code Debug Configuration
+
+`.vscode/launch.json`:
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug billaged",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}/cmd/billaged",
+      "env": {
+        "UNKEY_BILLAGED_TLS_MODE": "disabled",
+        "UNKEY_BILLAGED_LOG_LEVEL": "debug"
+      }
+    }
+  ]
+}
+```
+
+### Performance Profiling
+
+```bash
+# CPU profiling
+go run -cpuprofile=cpu.prof ./cmd/billaged
+
+# Memory profiling
+go run -memprofile=mem.prof ./cmd/billaged
+
+# Analyze profiles
+go tool pprof cpu.prof
+go tool pprof mem.prof
+
+# Generate flame graph
+go tool pprof -http=:8080 cpu.prof
+```
+
+### Testing with grpcurl
+
+```bash
+# List services
+grpcurl -plaintext localhost:8081 list
+
+# Describe service
+grpcurl -plaintext localhost:8081 describe billing.v1.BillingService
+
+# Send test request
+grpcurl -plaintext -d '{
+  "vm_id": "test-vm",
+  "customer_id": "test-customer",
+  "metrics": [{
+    "timestamp": "2024-01-01T12:00:00Z",
+    "cpu_time_nanos": 1000000000,
+    "memory_usage_bytes": 1073741824
+  }]
+}' localhost:8081 billing.v1.BillingService/SendMetricsBatch
+```
+
+## Common Development Tasks
+
+### Adding a New RPC Method
+
+1. Update proto file:
+   ```protobuf
+   service BillingService {
+     // Existing methods...
+     rpc NewMethod(NewMethodRequest) returns (NewMethodResponse);
+   }
    ```
-3. Implement new methods in [`internal/service/billing.go`](../../internal/service/billing.go)
 
-### Adding New Metrics
+2. Generate code:
+   ```bash
+   make generate
+   ```
+
+3. Implement handler in [`internal/service/billing.go`](../../internal/service/billing.go):
+   ```go
+   func (s *BillingServiceServer) NewMethod(
+       ctx context.Context,
+       req *connect.Request[billingv1.NewMethodRequest],
+   ) (*connect.Response[billingv1.NewMethodResponse], error) {
+       // Implementation
+   }
+   ```
+
+4. Add tests:
+   ```go
+   func TestBillingService_NewMethod(t *testing.T) {
+       // Test implementation
+   }
+   ```
+
+### Adding Metrics
 
 1. Define metric in [`internal/observability/metrics.go`](../../internal/observability/metrics.go):
    ```go
-   vmLifecycleDuration, err := meter.Float64Histogram(
-       "billaged_vm_lifecycle_duration_seconds",
-       metric.WithDescription("VM lifetime duration"),
+   newMetric, err := meter.Float64Counter(
+       "billaged_new_metric_total",
+       metric.WithDescription("Description"),
    )
    ```
 
 2. Record metric in service:
    ```go
-   m.vmLifecycleDuration.Record(ctx, duration.Seconds(),
+   s.metrics.NewMetric.Add(ctx, 1, 
        metric.WithAttributes(
-           attribute.String("customer_id", customerID),
+           attribute.String("key", "value"),
        ),
    )
    ```
 
-## Dependency Management
-
-### Adding Dependencies
-
-```bash
-# Add a new dependency
-go get github.com/some/package@latest
-
-# Update go.mod and go.sum
-go mod tidy
-
-# Verify dependencies
-go mod verify
-```
-
 ### Updating Dependencies
 
 ```bash
+# Update specific dependency
+go get -u github.com/connectrpc/connect-go
+
 # Update all dependencies
 go get -u ./...
 
-# Update specific dependency
-go get -u github.com/prometheus/client_golang
-
-# Clean up
+# Tidy module
 go mod tidy
-```
 
-## Contributing
-
-### Pre-commit Checks
-
-Run before committing:
-
-```bash
-# Format code
-go fmt ./...
-
-# Run tests
-go test ./...
-
-# Check for common issues
-golangci-lint run
-
-# Verify build
-make build
-```
-
-### Commit Message Format
-
-Follow conventional commits:
-
-```
-feat: add VM lifecycle duration metric
-fix: handle counter reset in aggregator
-docs: update API documentation
-test: add aggregator benchmark tests
-refactor: extract score calculation logic
+# Verify
+go mod verify
 ```
 
 ## Troubleshooting Development Issues
 
-### Module Issues
+### Common Problems
 
-```bash
-# Clear module cache
-go clean -modcache
+1. **Generated code out of sync**
+   ```bash
+   make generate
+   git add gen/
+   ```
 
-# Download dependencies again
-go mod download
+2. **Import errors**
+   ```bash
+   go mod tidy
+   go mod download
+   ```
 
-# Verify module integrity
-go mod verify
-```
+3. **Linter failures**
+   ```bash
+   golangci-lint run --fix
+   ```
 
-### Proto Generation Issues
+4. **Test failures**
+   ```bash
+   go test -v ./... -short
+   ```
 
-```bash
-# Install protoc
-brew install protobuf  # macOS
-apt install protobuf-compiler  # Ubuntu
+### Getting Help
 
-# Install Go plugins
-go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest
-```
-
-### Build Issues
-
-```bash
-# Clean build cache
-go clean -cache
-
-# Verbose build
-go build -v ./cmd/billaged
-
-# Check for errors
-go build -x ./cmd/billaged 2>&1 | grep -i error
-```
+- Check existing issues on GitHub
+- Review AIDEV comments in code
+- Consult Go documentation
+- Ask in project discussions
 
 ## Performance Optimization
 
@@ -456,13 +592,13 @@ go build -x ./cmd/billaged 2>&1 | grep -i error
 ### Version Management
 
 Update version in:
-1. [`cmd/billaged/main.go`](../../cmd/billaged/main.go:31) - `version` variable
-2. [`internal/config/config.go`](../../internal/config/config.go:158) - Default service version
+1. [`cmd/billaged/main.go:31`](../../cmd/billaged/main.go:31) - `version` variable
+2. [`internal/config/config.go:25`](../../internal/config/config.go:25) - Default service version
 3. [`Makefile`](../../Makefile) - VERSION variable
 
 ### Release Checklist
 
-1. Run all tests
+1. Run all tests: `make ci`
 2. Update CHANGELOG.md
 3. Tag release: `git tag -a v0.1.1 -m "Release v0.1.1"`
 4. Build release binaries

@@ -1,33 +1,31 @@
 # Billaged - VM Usage Billing Aggregation Service
 
-Billaged is a high-performance usage metrics aggregation service for the Unkey Deploy platform. It collects VM resource usage data from metald instances and aggregates it for billing purposes.
+Billaged is a lightweight, stateless service that collects and aggregates virtual machine usage metrics from [metald](../metald/docs/README.md) instances for billing purposes in the Unkey Deploy platform.
 
 ## Quick Links
 
 - [API Documentation](./docs/api/README.md) - Complete API reference with examples
-- [Architecture & Dependencies](./docs/architecture/README.md) - Service interactions and system design
-- [Operations Guide](./docs/operations/README.md) - Metrics, monitoring, and production deployment
-- [Development Setup](./docs/development/README.md) - Build, test, and local development
+- [Architecture & Dependencies](./docs/architecture/README.md) - Service interactions and data flow
+- [Operations Guide](./docs/operations/README.md) - Production deployment and monitoring
+- [Development Setup](./docs/development/README.md) - Build and test instructions
 
 ## Service Overview
 
-**Purpose**: Real-time VM usage metrics aggregation for accurate resource-based billing.
+**Purpose**: Real-time aggregation of VM resource usage metrics for billing calculations.
 
 ### Key Features
 
-- **Real-time Aggregation**: Processes usage metrics in configurable intervals (default 60s)
-- **Resource Tracking**: CPU time, memory usage, disk I/O, and network I/O monitoring
-- **Billing Score Calculation**: Weighted resource usage scoring for billing
-- **High-Performance**: Batch processing with concurrent metric handling
-- **Gap Detection**: Handles data gaps and VM lifecycle events
-- **Production Ready**: OpenTelemetry tracing, Prometheus metrics, structured logging
-- **Security**: SPIFFE/mTLS support for secure service communication
+- **High-frequency Ingestion**: Processes metrics batches from multiple metald instances
+- **In-memory Aggregation**: Configurable aggregation intervals (default: 60s)
+- **Composite Billing Score**: Weighted resource usage calculation
+- **Stateless Design**: No database dependencies, all data in-memory
+- **Gap Detection**: Handles metric collection interruptions gracefully
+- **Observable**: OpenTelemetry tracing, Prometheus metrics, structured logging
+- **Secure Communication**: SPIFFE/mTLS support for service authentication
 
 ### Dependencies
 
-- [metald](../metald/docs/README.md) - Primary data source for VM usage metrics
-- [pkg/tls](../pkg/tls) - Shared TLS/SPIFFE provider
-- [pkg/health](../pkg/health) - Health check utilities
+- [metald](../metald/docs/README.md) - Sends VM usage metrics and lifecycle events
 
 ## Quick Start
 
@@ -47,101 +45,120 @@ sudo make install
 ```bash
 # Minimal configuration for development
 export UNKEY_BILLAGED_PORT=8081
+export UNKEY_BILLAGED_ADDRESS=0.0.0.0
 export UNKEY_BILLAGED_AGGREGATION_INTERVAL=60s
 export UNKEY_BILLAGED_TLS_MODE=disabled
 
-./build/billaged
+./billaged
 ```
 
-### Production Configuration
+### Testing the Service
 
 ```bash
-# Production configuration with observability
-export UNKEY_BILLAGED_PORT=8081
-export UNKEY_BILLAGED_ADDRESS=0.0.0.0
-export UNKEY_BILLAGED_AGGREGATION_INTERVAL=60s
-export UNKEY_BILLAGED_OTEL_ENABLED=true
-export UNKEY_BILLAGED_OTEL_ENDPOINT=otel-collector:4318
-export UNKEY_BILLAGED_TLS_MODE=spiffe
-export UNKEY_BILLAGED_SPIFFE_SOCKET=/run/spire/sockets/agent.sock
+# Check health
+curl http://localhost:8081/health
 
-./build/billaged
+# View aggregation stats
+curl http://localhost:8081/stats
+
+# Send test metrics (see API docs for full examples)
+curl -X POST http://localhost:8081/billing.v1.BillingService/SendMetricsBatch \
+  -H "Content-Type: application/json" \
+  -d '{
+    "vm_id": "test-vm-123",
+    "customer_id": "customer-456",
+    "metrics": [{
+      "timestamp": "2024-01-01T12:00:00Z",
+      "cpu_time_nanos": 1000000000,
+      "memory_usage_bytes": 1073741824
+    }]
+  }'
 ```
 
 ## Architecture Overview
 
 ```mermaid
 graph TB
-    subgraph "Billaged Service"
-        API[ConnectRPC API<br/>:8081]
-        AGG[Aggregator<br/>60s intervals]
-        METRICS[Metrics Collector]
+    subgraph "Metald Instances"
+        M1[Metald 1]
+        M2[Metald 2]
+        MN[Metald N]
     end
     
-    subgraph "Data Sources"
-        M1[metald-1]
-        M2[metald-2]
-        M3[metald-n]
+    subgraph "Billaged Service"
+        API[ConnectRPC API<br/>:8081]
+        AGG[Aggregator]
+        MEM[(In-Memory Store)]
     end
     
     subgraph "Outputs"
+        LOGS[JSON Logs]
         PROM[Prometheus<br/>:9465]
-        LOGS[Structured Logs]
-        USAGE[Usage Summaries]
+        OTLP[OTLP Collector<br/>:4318]
     end
     
-    M1 -->|SendMetricsBatch| API
-    M2 -->|SendMetricsBatch| API
-    M3 -->|SendMetricsBatch| API
+    M1 -->|Metrics Batch| API
+    M2 -->|Lifecycle Events| API
+    MN -->|Heartbeats| API
     
     API --> AGG
-    AGG --> METRICS
-    AGG --> USAGE
-    METRICS --> PROM
-    API --> LOGS
+    AGG --> MEM
+    
+    AGG -->|Summaries| LOGS
+    AGG -->|Metrics| PROM
+    AGG -->|Traces| OTLP
 ```
 
-## Resource Score Calculation
+## Billing Score Calculation
 
-Billaged calculates a composite billing score based on weighted resource usage:
+The service calculates a composite billing score based on weighted resource usage:
 
-```
+```go
 resourceScore = (cpuSeconds * 1.0) + (memoryGB * 0.5) + (diskMB * 0.3)
 ```
 
-- **CPU Weight (1.0)**: Highest weight as CPU time directly correlates with compute costs
-- **Memory Weight (0.5)**: Medium weight for allocated memory resources
-- **I/O Weight (0.3)**: Lower weight for disk I/O operations
-
-See [Architecture Documentation](./docs/architecture/README.md) for detailed calculation logic.
+[View implementation](internal/aggregator/aggregator.go:198-207)
 
 ## API Highlights
 
-The service exposes a ConnectRPC API with the following operations:
+The service exposes a ConnectRPC API with five main operations:
 
-- `SendMetricsBatch` - Receive VM usage metrics from metald
-- `SendHeartbeat` - Process heartbeats with active VM lists
+- `SendMetricsBatch` - Ingest VM usage metrics from metald
+- `SendHeartbeat` - Receive active VM lists from metald instances
 - `NotifyVmStarted` - Handle VM lifecycle start events
 - `NotifyVmStopped` - Handle VM lifecycle stop events
 - `NotifyPossibleGap` - Handle data gap notifications
 
-Additional HTTP endpoints:
-- `/stats` - Current aggregation statistics
-- `/metrics` - Prometheus metrics (when enabled)
-- `/health` - Health check endpoint
-
 See [API Documentation](./docs/api/README.md) for complete reference.
+
+## Production Deployment
+
+### System Requirements
+
+- **OS**: Linux (any distribution)
+- **CPU**: 2+ cores recommended
+- **Memory**: 2GB+ for typical workloads
+- **Network**: Low latency connection to metald instances
+
+### Configuration
+
+Key environment variables:
+
+- `UNKEY_BILLAGED_PORT` - Service port (default: 8081)
+- `UNKEY_BILLAGED_AGGREGATION_INTERVAL` - Summary interval (default: 60s)
+- `UNKEY_BILLAGED_TLS_MODE` - TLS mode: disabled/file/spiffe (default: spiffe)
+- `UNKEY_BILLAGED_ENABLE_OTEL` - Enable OpenTelemetry (default: false)
+
+See [Operations Guide](./docs/operations/README.md) for complete configuration.
 
 ## Monitoring
 
-Key metrics to monitor in production:
+Key metrics to monitor:
 
-- `billaged_usage_records_processed_total` - Usage record processing rate
-- `billaged_aggregation_duration_seconds` - Aggregation performance
-- `billaged_active_vms` - Number of VMs being tracked
-- `billaged_billing_errors_total` - Processing error rate
-
-See [Operations Guide](./docs/operations/README.md) for complete monitoring setup.
+- `billaged_usage_records_processed_total` - Usage records processed
+- `billaged_aggregation_duration_seconds` - Aggregation latency
+- `billaged_active_vms` - Currently tracked VMs
+- `billaged_billing_errors_total` - Processing errors
 
 ## Development
 
@@ -160,11 +177,11 @@ make build
 # Unit tests
 make test
 
-# Integration tests
-make test-integration
+# Lint checks
+make lint
 
-# Benchmark tests
-make bench
+# All checks
+make ci
 ```
 
 See [Development Setup](./docs/development/README.md) for detailed instructions.

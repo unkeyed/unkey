@@ -1,12 +1,112 @@
 # Billaged Operations Guide
 
+This guide covers production deployment, monitoring, troubleshooting, and operational best practices for the billaged service.
+
+## Table of Contents
+
+- [Deployment](#deployment)
+- [Configuration](#configuration)
+- [Monitoring](#monitoring)
+- [Health Checks](#health-checks)
+- [Troubleshooting](#troubleshooting)
+- [Performance Tuning](#performance-tuning)
+- [Security Operations](#security-operations)
+
+## Deployment
+
+### System Requirements
+
+- **OS**: Linux (any modern distribution)
+- **CPU**: 2+ cores recommended
+- **Memory**: 2GB minimum, 4GB+ recommended
+- **Network**: Low latency to metald instances
+- **Disk**: Minimal (logs only)
+
+### Installation Methods
+
+#### 1. Systemd Service
+
+**Installation**: [`Makefile:14-24`](../../Makefile:14-24)
+
+```bash
+# Build and install with systemd
+cd billaged
+make install
+
+# Start the service
+sudo systemctl start billaged
+sudo systemctl enable billaged
+
+# Check status
+sudo systemctl status billaged
+```
+
+**Unit File**: [`contrib/systemd/billaged.service`](../../contrib/systemd/billaged.service)
+
+#### 2. Docker Container
+
+```bash
+# Build Docker image
+docker build -t billaged:latest .
+
+# Run with environment variables
+docker run -d \
+  --name billaged \
+  -p 8081:8081 \
+  -p 9465:9465 \
+  -e UNKEY_BILLAGED_TLS_MODE=disabled \
+  -e UNKEY_BILLAGED_AGGREGATION_INTERVAL=60s \
+  billaged:latest
+```
+
+#### 3. Kubernetes Deployment
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: billaged
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: billaged
+  template:
+    metadata:
+      labels:
+        app: billaged
+    spec:
+      containers:
+      - name: billaged
+        image: billaged:latest
+        ports:
+        - containerPort: 8081
+          name: grpc
+        - containerPort: 9465
+          name: metrics
+        env:
+        - name: UNKEY_BILLAGED_TLS_MODE
+          value: "spiffe"
+        - name: UNKEY_BILLAGED_SPIFFE_SOCKET
+          value: "/run/spire/sockets/agent.sock"
+        volumeMounts:
+        - name: spire-agent-socket
+          mountPath: /run/spire/sockets
+          readOnly: true
+      volumes:
+      - name: spire-agent-socket
+        hostPath:
+          path: /run/spire/sockets
+          type: DirectoryOrCreate
+```
+
 ## Configuration
 
 Billaged uses environment variables for configuration. All variables follow the `UNKEY_BILLAGED_*` naming convention.
 
 ### Configuration Reference
 
-**Implementation**: [`internal/config/config.go`](../../internal/config/config.go:91-207)
+**Implementation**: [`internal/config/config.go:15-34`](../../internal/config/config.go:15-34)
 
 #### Server Configuration
 
@@ -20,7 +120,7 @@ Billaged uses environment variables for configuration. All variables follow the 
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `UNKEY_BILLAGED_OTEL_ENABLED` | `false` | Enable OpenTelemetry |
+| `UNKEY_BILLAGED_ENABLE_OTEL` | `false` | Enable OpenTelemetry |
 | `UNKEY_BILLAGED_OTEL_SERVICE_NAME` | `billaged` | Service name for traces |
 | `UNKEY_BILLAGED_OTEL_SERVICE_VERSION` | `0.1.0` | Service version |
 | `UNKEY_BILLAGED_OTEL_SAMPLING_RATE` | `1.0` | Trace sampling rate (0.0-1.0) |
@@ -38,7 +138,7 @@ Billaged uses environment variables for configuration. All variables follow the 
 | `UNKEY_BILLAGED_TLS_CERT_FILE` | - | Certificate file path (file mode) |
 | `UNKEY_BILLAGED_TLS_KEY_FILE` | - | Private key file path (file mode) |
 | `UNKEY_BILLAGED_TLS_CA_FILE` | - | CA bundle file path (file mode) |
-| `UNKEY_BILLAGED_SPIFFE_SOCKET` | `/run/spire/sockets/agent.sock` | SPIFFE workload API socket |
+| `UNKEY_BILLAGED_SPIFFE_SOCKET` | `/var/lib/spire/agent/agent.sock` | SPIFFE workload API socket |
 
 ### Production Configuration Example
 
@@ -48,18 +148,19 @@ Billaged uses environment variables for configuration. All variables follow the 
 Environment="UNKEY_BILLAGED_PORT=8081"
 Environment="UNKEY_BILLAGED_ADDRESS=0.0.0.0"
 Environment="UNKEY_BILLAGED_AGGREGATION_INTERVAL=60s"
-Environment="UNKEY_BILLAGED_OTEL_ENABLED=true"
+Environment="UNKEY_BILLAGED_ENABLE_OTEL=true"
 Environment="UNKEY_BILLAGED_OTEL_ENDPOINT=otel-collector.monitoring:4318"
 Environment="UNKEY_BILLAGED_OTEL_SAMPLING_RATE=0.1"
 Environment="UNKEY_BILLAGED_OTEL_HIGH_CARDINALITY_ENABLED=false"
 Environment="UNKEY_BILLAGED_TLS_MODE=spiffe"
 ```
 
-## Metrics
+## Monitoring
 
 ### Prometheus Metrics
 
-**Implementation**: [`internal/observability/metrics.go`](../../internal/observability/metrics.go:14-119)
+**Endpoint**: `http://localhost:9465/metrics`  
+**Implementation**: [`internal/observability/metrics.go:35-55`](../../internal/observability/metrics.go:35-55)
 
 #### Core Metrics
 
@@ -76,7 +177,7 @@ Environment="UNKEY_BILLAGED_TLS_MODE=spiffe"
 - **Use Case**: Monitor aggregation performance
 
 ##### billaged_active_vms
-- **Type**: UpDownCounter
+- **Type**: Gauge
 - **Labels**: None
 - **Description**: Number of active VMs being tracked
 - **Use Case**: Capacity planning and load monitoring
@@ -87,116 +188,92 @@ Environment="UNKEY_BILLAGED_TLS_MODE=spiffe"
 - **Description**: Total number of billing processing errors
 - **Use Case**: Error rate monitoring and alerting
 
-### Grafana Dashboard
-
-Example queries for monitoring:
+### Sample Queries
 
 ```promql
-# Ingestion rate (per second)
-rate(billaged_usage_records_processed_total[5m])
+# VMs per customer
+sum by (customer_id) (
+  increase(billaged_usage_records_processed_total[5m])
+)
 
-# Active VMs over time
-billaged_active_vms
-
-# Aggregation performance (p95)
-histogram_quantile(0.95, rate(billaged_aggregation_duration_seconds_bucket[5m]))
+# Aggregation latency P99
+histogram_quantile(0.99, 
+  rate(billaged_aggregation_duration_seconds_bucket[5m])
+)
 
 # Error rate
 rate(billaged_billing_errors_total[5m])
+
+# Memory usage estimation (1KB per VM)
+billaged_active_vms * 1024
 ```
 
-### High Cardinality Considerations
+### Grafana Dashboard
 
-When `UNKEY_BILLAGED_OTEL_HIGH_CARDINALITY_ENABLED=true`:
-- Metrics include `vm_id` and `customer_id` labels
-- Significantly increases metric cardinality
-- Use only in development or with cardinality limits
+**Location**: [`contrib/grafana-dashboards/billaged-overview.json`](../../contrib/grafana-dashboards/billaged-overview.json)
 
-Production recommendation: Keep disabled and use logs for detailed tracking.
+Dashboard panels:
+- Active VMs by customer
+- Processing rate and latency
+- Error rates by type
+- Resource usage trends
+- Aggregation interval distribution
 
-## Logging
+### Logging
 
-### Log Format
-
-Structured JSON logging with slog:
+**Format**: Structured JSON ([`cmd/billaged/main.go:92-104`](../../cmd/billaged/main.go:92-104))
 
 ```json
 {
   "time": "2024-01-01T12:00:00Z",
   "level": "INFO",
-  "msg": "received metrics batch",
+  "msg": "usage summary generated",
   "vm_id": "vm-123",
   "customer_id": "customer-456",
-  "metrics_count": 6,
-  "component": "billing_service"
+  "cpu_seconds": 45.2,
+  "memory_gb_seconds": 30.5,
+  "resource_score": 78.5
 }
 ```
 
-### Log Levels
+#### Log Levels
 
-Configure via slog handler options in [`cmd/billaged/main.go:87-90`](../../cmd/billaged/main.go:87-90)
-
-- **INFO**: Normal operations, lifecycle events
-- **WARN**: Recoverable issues, gaps detected
-- **ERROR**: Processing failures, invalid data
-- **DEBUG**: Detailed metric processing (verbose)
-
-### Key Log Messages
-
-#### Startup
-```json
-{
-  "msg": "starting billaged service",
-  "version": "0.1.0",
-  "go_version": "go1.24.3",
-  "port": "8081",
-  "aggregation_interval": "60s"
-}
-```
-
-#### Usage Summary
-```json
-{
-  "msg": "=== BILLAGED USAGE SUMMARY ===",
-  "vm_id": "vm-123",
-  "customer_id": "customer-456",
-  "cpu_time_used_seconds": 3600.5,
-  "avg_memory_usage_mb": 1024,
-  "total_disk_io_mb": 500,
-  "resource_score": 3625.15
-}
-```
-
-#### Errors
-```json
-{
-  "level": "ERROR",
-  "msg": "rpc error",
-  "procedure": "/billing.v1.BillingService/SendMetricsBatch",
-  "duration": "15ms",
-  "error": "invalid metrics batch"
-}
-```
+- **DEBUG**: Detailed processing information
+- **INFO**: Normal operations, summaries
+- **WARN**: Recoverable issues
+- **ERROR**: Processing failures
 
 ## Health Checks
 
-### /health Endpoint
+### Health Endpoint
 
-Provided by [`pkg/health`](../../cmd/billaged/main.go:284)
+**URL**: `http://localhost:8081/health`  
+**Implementation**: [`pkg/health`](../../cmd/billaged/main.go:284)
 
-```bash
-curl http://localhost:8081/health
-```
+#### Response Format
 
-Response:
 ```json
 {
   "status": "healthy",
   "service": "billaged",
   "version": "0.1.0",
-  "uptime": "1h30m45s"
+  "uptime": "72h15m30s",
+  "checks": {
+    "memory": "ok",
+    "goroutines": 42
+  }
 }
 ```
+
+### Readiness vs Liveness
+
+**Readiness**: Service ready to accept traffic
+- Check: `/health` returns 200
+- Indicates: Service initialized
+
+**Liveness**: Service is running
+- Check: `/health` returns any response
+- Indicates: Process not deadlocked
 
 ### Kubernetes Probes
 
@@ -216,33 +293,63 @@ readinessProbe:
   periodSeconds: 10
 ```
 
-## Debugging
-
-### Enable Debug Logging
-
-```go
-// Temporary debug logging
-logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-    Level: slog.LevelDebug,
-}))
-```
+## Troubleshooting
 
 ### Common Issues
 
-#### 1. No Metrics Received
-- Check metald connectivity
-- Verify TLS/SPIFFE configuration
-- Check network policies
+#### 1. High Memory Usage
 
-#### 2. High Memory Usage
-- Monitor active VM count
-- Check for VM lifecycle issues
-- Verify aggregation interval
+**Symptoms**: Growing memory consumption
 
-#### 3. Missing Usage Summaries
-- Check aggregation callback
-- Verify timer goroutine
-- Look for panic recovery logs
+**Diagnosis**:
+```bash
+# Check active VMs
+curl http://localhost:8081/stats
+
+# Monitor Prometheus metrics
+curl http://localhost:9465/metrics | grep billaged_active_vms
+```
+
+**Solutions**:
+- Reduce aggregation interval
+- Scale horizontally
+- Check for VM lifecycle event delivery
+
+#### 2. Missing Metrics
+
+**Symptoms**: No usage summaries generated
+
+**Diagnosis**:
+```bash
+# Check RPC errors
+journalctl -u billaged | grep "rpc error"
+
+# Verify metald connectivity
+nc -zv metald-host 8080
+```
+
+**Solutions**:
+- Verify network connectivity
+- Check TLS/mTLS configuration
+- Confirm metald is sending metrics
+
+#### 3. SPIFFE Authentication Failures
+
+**Symptoms**: Connection refused errors
+
+**Diagnosis**:
+```bash
+# Check SPIFFE agent
+spire-agent api fetch x509
+
+# Verify socket permissions
+ls -la /var/lib/spire/agent/agent.sock
+```
+
+**Solutions**:
+- Ensure SPIRE agent is running
+- Check socket path configuration
+- Verify workload registration
 
 ### Debug Commands
 
@@ -257,25 +364,47 @@ curl -s http://localhost:9465/metrics | grep billaged_usage_records_processed_to
 watch -n 5 'curl -s http://localhost:9465/metrics | grep billaged_aggregation_duration'
 ```
 
+### Debug Mode
+
+Enable detailed logging:
+
+```bash
+# Set log level to debug
+export UNKEY_BILLAGED_LOG_LEVEL=debug
+
+# Run with verbose output
+./billaged 2>&1 | jq '.'
+```
+
 ## Performance Tuning
 
-### Aggregation Interval
+### Memory Optimization
 
-Adjust `UNKEY_BILLAGED_AGGREGATION_INTERVAL` based on:
-- Number of VMs
-- Billing granularity requirements
-- System resources
+1. **Aggregation Interval**: Shorter intervals = less memory
+   ```bash
+   export UNKEY_BILLAGED_AGGREGATION_INTERVAL=30s
+   ```
 
-Recommendations:
-- Development: `30s` for faster feedback
-- Production: `60s` for balance
-- High-scale: `300s` to reduce overhead
+2. **Batch Size**: Control in metald configuration
+   - Smaller batches = more frequent processing
+   - Larger batches = better throughput
 
-### Batch Size
+### CPU Optimization
 
-Configure metald to send appropriate batch sizes:
-- Small batches: Lower latency, higher overhead
-- Large batches: Better throughput, higher memory
+1. **GOMAXPROCS**: Set based on CPU cores
+   ```bash
+   export GOMAXPROCS=4
+   ```
+
+2. **Concurrency**: Tune based on workload
+   - More VMs = higher concurrency needed
+   - Monitor goroutine count
+
+### Network Optimization
+
+1. **HTTP/2 Settings**: Already optimized by default
+2. **Compression**: Enabled for all RPCs
+3. **Keep-alive**: Configured for long-lived connections
 
 ### Resource Limits
 
@@ -290,6 +419,90 @@ CPUQuota=200%
 Restart=on-failure
 RestartSec=5s
 ```
+
+## Security Operations
+
+### TLS/mTLS Operations
+
+#### Certificate Rotation (File Mode)
+
+```bash
+# Update certificates
+cp new-cert.pem /etc/billaged/cert.pem
+cp new-key.pem /etc/billaged/key.pem
+
+# Reload service
+systemctl reload billaged
+```
+
+#### SPIFFE Operations
+
+```bash
+# List workload entries
+spire-server entry list
+
+# Update workload registration
+spire-server entry update \
+  -entryID <id> \
+  -selector unix:uid:1000 \
+  -spiffeID spiffe://example.org/billaged
+```
+
+### Security Checklist
+
+- [ ] TLS enabled for production
+- [ ] SPIFFE workload registered
+- [ ] Network policies configured
+- [ ] Prometheus endpoint secured
+- [ ] Logs sanitized (no sensitive data)
+- [ ] Regular security updates
+
+### Incident Response
+
+1. **Metric Data Leak**: No persistent storage, restart clears all
+2. **Authentication Bypass**: Check TLS configuration immediately
+3. **DoS Attack**: Implement rate limiting at proxy level
+
+## Backup and Recovery
+
+### State Recovery
+
+Billaged is stateless, but consider:
+
+1. **Configuration Backup**: Version control environment files
+2. **Metric Continuity**: Metald will retry on recovery
+3. **Gap Detection**: Automatic via NotifyPossibleGap
+
+### Disaster Recovery
+
+1. **Multi-region**: Deploy in multiple regions
+2. **Load Balancing**: Use anycast or GeoDNS
+3. **Failover**: Automatic with health checks
+
+## Capacity Planning
+
+### Sizing Guidelines
+
+| VMs | CPU | Memory | Network |
+|-----|-----|--------|---------|
+| 1K | 1 core | 512MB | 10 Mbps |
+| 10K | 2 cores | 2GB | 100 Mbps |
+| 100K | 4 cores | 8GB | 1 Gbps |
+
+### Scaling Triggers
+
+Monitor these metrics for scaling decisions:
+- `billaged_active_vms` > 10,000
+- `billaged_aggregation_duration_seconds` > 5s
+- CPU usage > 80%
+- Memory usage > 80%
+
+### Horizontal Scaling
+
+1. **Stateless Design**: Each instance independent
+2. **Load Distribution**: Round-robin or least-connections
+3. **Session Affinity**: Not required
+4. **Shared State**: None (design advantage)
 
 ## Monitoring Alerts
 
@@ -316,70 +529,10 @@ groups:
         for: 15m
         annotations:
           summary: "Slow aggregation performance"
+          
+      - alert: BillagedHighMemory
+        expr: billaged_active_vms > 50000
+        for: 30m
+        annotations:
+          summary: "High number of active VMs"
 ```
-
-## Backup and Recovery
-
-Billaged is stateless and doesn't require backup. However:
-
-1. **Metric Data**: Ensure Prometheus retention
-2. **Configuration**: Version control systemd overrides
-3. **Logs**: Configure log rotation and archival
-
-## Security Operations
-
-### TLS Certificate Rotation
-
-For file-based TLS:
-```bash
-# Reload systemd after cert update
-systemctl reload billaged
-```
-
-For SPIFFE:
-- Automatic rotation via workload API
-- Monitor SPIFFE agent health
-
-### Access Control
-
-1. **Network Policies**: Restrict ingress to metald instances
-2. **Firewall Rules**: Limit Prometheus endpoint access
-3. **Service Mesh**: Use Istio/Linkerd policies
-
-## Capacity Planning
-
-### Resource Requirements
-
-Per 1000 active VMs:
-- **Memory**: ~100MB
-- **CPU**: ~0.5 cores
-- **Network**: ~10 Mbps
-
-### Scaling Strategies
-
-1. **Vertical**: Increase resources for single instance
-2. **Horizontal**: Multiple instances with LB
-3. **Sharding**: Partition by customer/VM range
-
-## Troubleshooting Playbook
-
-### Service Won't Start
-
-1. Check configuration validation
-2. Verify TLS/SPIFFE setup
-3. Check port availability
-4. Review systemd logs: `journalctl -u billaged -f`
-
-### Metrics Not Updating
-
-1. Verify metald connectivity
-2. Check for errors in logs
-3. Confirm aggregation timer running
-4. Test with manual RPC call
-
-### High Resource Usage
-
-1. Check active VM count
-2. Monitor metric batch sizes
-3. Profile with pprof
-4. Review aggregation interval

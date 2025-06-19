@@ -1,416 +1,482 @@
-# AssetManagerd API Reference
+# AssetManagerd API Documentation
 
-The AssetManagerd service exposes a ConnectRPC/gRPC API for managing VM-related assets. All RPCs require mTLS authentication via SPIFFE/SPIRE.
+The AssetManagerd service exposes a ConnectRPC API for managing VM assets. All API endpoints use Protocol Buffers for message serialization and support both gRPC and HTTP/JSON protocols.
 
-**Service Definition**: [proto/asset/v1/asset.proto](../../proto/asset/v1/asset.proto)  
-**Generated Client**: [gen/asset/v1/assetv1connect/asset.connect.go](../../gen/asset/v1/assetv1connect/asset.connect.go)  
-**Service Implementation**: [internal/service/service.go](../../internal/service/service.go)
+## Service Definition
 
-## Service: AssetService
+**Proto Definition**: [`asset/v1/asset.proto`](../../proto/asset/v1/asset.proto)  
+**Service Implementation**: [`internal/service/service.go`](../../internal/service/service.go)
+
+```protobuf
+service AssetManagerService {
+  rpc RegisterAsset(RegisterAssetRequest) returns (RegisterAssetResponse);
+  rpc GetAsset(GetAssetRequest) returns (GetAssetResponse);
+  rpc ListAssets(ListAssetsRequest) returns (ListAssetsResponse);
+  rpc AcquireAsset(AcquireAssetRequest) returns (AcquireAssetResponse);
+  rpc ReleaseAsset(ReleaseAssetRequest) returns (ReleaseAssetResponse);
+  rpc PrepareAssets(PrepareAssetsRequest) returns (PrepareAssetsResponse);
+  rpc DeleteAsset(DeleteAssetRequest) returns (DeleteAssetResponse);
+  rpc GarbageCollect(GarbageCollectRequest) returns (GarbageCollectResponse);
+}
+```
+
+## RPC Methods
 
 ### RegisterAsset
 
-Registers a new asset in the system. Typically called by builderd after creating VM images.
+Registers a new asset in the system. The asset file must already exist in storage before registration. This is typically called by builderd after uploading an asset.
 
-**Implementation**: [internal/service/service.go:103](../../internal/service/service.go:103)
-
-```protobuf
-rpc RegisterAsset(RegisterAssetRequest) returns (RegisterAssetResponse);
-```
+**Implementation**: [`internal/service/service.go:103`](../../internal/service/service.go:103)
 
 #### Request
-```go
-type RegisterAssetRequest struct {
-    Name      string            // Human-readable asset name
-    Type      AssetType         // KERNEL, ROOTFS, INITRD, or DISK_IMAGE
-    Backend   StorageBackend    // Storage backend (default: LOCAL)
-    Location  string            // Backend-specific location
-    SizeBytes int64             // Asset size in bytes
-    Checksum  string            // SHA256 checksum
-    Labels    map[string]string // Metadata labels
-    BuildId   string            // Optional builderd build ID
-    SourceImage string          // Optional source image reference
+
+```protobuf
+message RegisterAssetRequest {
+  Asset asset = 1;
+}
+
+message Asset {
+  string id = 1;                    // Unique identifier (ULID)
+  AssetType type = 2;              // KERNEL, ROOTFS, INITRD, DISK_IMAGE
+  string name = 3;                 // Human-readable name
+  string version = 4;              // Version string
+  string path = 5;                 // Storage path
+  int64 size_bytes = 6;           // File size
+  string checksum = 7;            // SHA256 checksum
+  map<string, string> labels = 8; // Metadata labels
+  string description = 9;         // Optional description
+  string source_url = 10;         // Original source URL
+  string build_id = 11;           // Build identifier from builderd
+  string source_image = 12;       // Source image reference
 }
 ```
 
 #### Response
-```go
-type RegisterAssetResponse struct {
-    Asset *Asset // Complete asset object with generated ID
+
+```protobuf
+message RegisterAssetResponse {
+  Asset asset = 1;  // Complete asset with generated metadata
 }
 ```
 
 #### Example
-```go
-resp, err := client.RegisterAsset(ctx, &assetv1.RegisterAssetRequest{
-    Name: "ubuntu-24.04-kernel",
-    Type: assetv1.AssetType_ASSET_TYPE_KERNEL,
-    Location: "/builds/kernels/ubuntu-24.04.kernel",
-    SizeBytes: 12345678,
-    Checksum: "sha256:abcdef0123456789",
-    Labels: map[string]string{
+
+```bash
+curl -X POST http://localhost:8083/asset.v1.AssetManagerService/RegisterAsset \
+  -H "Content-Type: application/json" \
+  -d '{
+    "asset": {
+      "id": "01HQXYZABC123456789DEFGHJ",
+      "type": "ASSET_TYPE_ROOTFS",
+      "name": "Ubuntu 22.04 Base",
+      "version": "22.04.3",
+      "path": "/opt/vm-assets/ubuntu-22.04.3-rootfs.ext4",
+      "size_bytes": 2147483648,
+      "checksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "labels": {
         "os": "ubuntu",
-        "version": "24.04",
-        "arch": "amd64",
-    },
-    BuildId: "build-xyz123",
-})
+        "arch": "x86_64",
+        "variant": "minimal"
+      },
+      "build_id": "build-123",
+      "source_image": "docker.io/library/ubuntu:22.04"
+    }
+  }'
 ```
 
 #### Downstream Calls
-- Writes to local SQLite database
-- Creates asset record with `UPLOADING` status
-- No external service calls
+
+- Validates asset doesn't already exist in SQLite database
+- Verifies file exists at specified path in storage backend
+- Stores metadata in database with `ACTIVE` status
+- Updates asset registry for quick lookups
 
 ### GetAsset
 
-Retrieves asset metadata and optionally ensures the asset is available locally.
+Retrieves information about a specific asset and optionally ensures it's available locally.
 
-**Implementation**: [internal/service/service.go:161](../../internal/service/service.go:161)
-
-```protobuf
-rpc GetAsset(GetAssetRequest) returns (GetAssetResponse);
-```
+**Implementation**: [`internal/service/service.go:161`](../../internal/service/service.go:161)
 
 #### Request
-```go
-type GetAssetRequest struct {
-    AssetId      string // Asset UUID
-    EnsureLocal  bool   // Download if not locally cached
+
+```protobuf
+message GetAssetRequest {
+  string id = 1;         // Asset ID
+  bool ensure_local = 2; // Download from remote storage if needed
 }
 ```
 
 #### Response
-```go
-type GetAssetResponse struct {
-    Asset *Asset // Complete asset metadata
+
+```protobuf
+message GetAssetResponse {
+  Asset asset = 1;
 }
 ```
 
 #### Example
-```go
-resp, err := client.GetAsset(ctx, &assetv1.GetAssetRequest{
-    AssetId: "550e8400-e29b-41d4-a716-446655440000",
-    EnsureLocal: true, // Will download from S3 if not local
-})
+
+```bash
+curl -X POST http://localhost:8083/asset.v1.AssetManagerService/GetAsset \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "01HQXYZABC123456789DEFGHJ",
+    "ensure_local": true
+  }'
 ```
 
-#### Downstream Calls
+#### Downstream Behavior
+
 - Reads from SQLite database
-- If `EnsureLocal=true` and asset not local:
-  - Downloads from configured storage backend
+- If `ensure_local=true` and asset not in local cache:
+  - Downloads from configured storage backend (S3, HTTP, etc.)
+  - Verifies checksum
   - Updates local cache
 
 ### ListAssets
 
 Lists assets with optional filtering by type, status, and labels.
 
-**Implementation**: [internal/service/service.go:184](../../internal/service/service.go:184)
-
-```protobuf
-rpc ListAssets(ListAssetsRequest) returns (ListAssetsResponse);
-```
+**Implementation**: [`internal/service/service.go:184`](../../internal/service/service.go:184)
 
 #### Request
-```go
-type ListAssetsRequest struct {
-    Type   AssetType         // Filter by asset type (optional)
-    Status AssetStatus       // Filter by status (optional)
-    Labels map[string]string // Filter by labels (AND logic)
+
+```protobuf
+message ListAssetsRequest {
+  AssetType type = 1;              // Optional: filter by type
+  AssetStatus status = 2;          // Optional: filter by status
+  map<string, string> labels = 3;  // Optional: filter by labels (AND logic)
+  int32 page_size = 4;            // Max results per page (default: 50)
+  string page_token = 5;          // Pagination token
 }
 ```
 
 #### Response
-```go
-type ListAssetsResponse struct {
-    Assets []*Asset // Matching assets
+
+```protobuf
+message ListAssetsResponse {
+  repeated Asset assets = 1;
+  string next_page_token = 2;
 }
 ```
 
 #### Example
-```go
-// List all available kernel images for Ubuntu 24.04
-resp, err := client.ListAssets(ctx, &assetv1.ListAssetsRequest{
-    Type: assetv1.AssetType_ASSET_TYPE_KERNEL,
-    Status: assetv1.AssetStatus_ASSET_STATUS_AVAILABLE,
-    Labels: map[string]string{
-        "os": "ubuntu",
-        "version": "24.04",
-    },
-})
+
+```bash
+# List all active rootfs assets for x86_64
+curl -X POST http://localhost:8083/asset.v1.AssetManagerService/ListAssets \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "ASSET_TYPE_ROOTFS",
+    "status": "ASSET_STATUS_ACTIVE",
+    "labels": {"arch": "x86_64"},
+    "page_size": 20
+  }'
 ```
 
 ### AcquireAsset
 
-Creates a lease on an asset, incrementing its reference count. Used by metald when creating VMs.
+Acquires a lease on an asset, preventing it from being garbage collected. Used by metald when creating VMs.
 
-**Implementation**: [internal/service/service.go:218](../../internal/service/service.go:218)
-
-```protobuf
-rpc AcquireAsset(AcquireAssetRequest) returns (AcquireAssetResponse);
-```
+**Implementation**: [`internal/service/service.go:218`](../../internal/service/service.go:218)
 
 #### Request
-```go
-type AcquireAssetRequest struct {
-    AssetId    string               // Asset to acquire
-    AcquiredBy string               // Service/VM acquiring the asset
-    TtlSeconds int64                // Optional lease duration (0 = infinite)
+
+```protobuf
+message AcquireAssetRequest {
+  string asset_id = 1;      // Asset to lease
+  string holder_id = 2;     // VM or service acquiring the lease
+  int64 ttl_seconds = 3;    // Lease duration (0 = default from config)
 }
 ```
 
 #### Response
-```go
-type AcquireAssetResponse struct {
-    LeaseId string // Unique lease identifier
+
+```protobuf
+message AcquireAssetResponse {
+  Lease lease = 1;
+}
+
+message Lease {
+  string id = 1;            // Lease ID (ULID)
+  string asset_id = 2;      // Associated asset
+  string holder_id = 3;     // Lease holder
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp expires_at = 5;
 }
 ```
 
 #### Example
-```go
-resp, err := client.AcquireAsset(ctx, &assetv1.AcquireAssetRequest{
-    AssetId: "kernel-550e8400",
-    AcquiredBy: "vm-123",
-    TtlSeconds: 3600, // 1 hour lease
-})
-// Store resp.LeaseId for later release
+
+```bash
+curl -X POST http://localhost:8083/asset.v1.AssetManagerService/AcquireAsset \
+  -H "Content-Type: application/json" \
+  -d '{
+    "asset_id": "01HQXYZABC123456789DEFGHJ",
+    "holder_id": "vm-123",
+    "ttl_seconds": 3600
+  }'
 ```
 
-#### Downstream Calls
-- Updates asset reference count in SQLite (atomic increment)
-- Creates lease record with expiration time
+#### Downstream Behavior
+
+- Increments asset reference count atomically
+- Creates lease record in database
+- Sets expiration based on TTL or default (24 hours)
 
 ### ReleaseAsset
 
-Releases an asset lease, decrementing its reference count.
+Releases a previously acquired lease, decrementing the asset's reference count.
 
-**Implementation**: [internal/service/service.go:256](../../internal/service/service.go:256)
-
-```protobuf
-rpc ReleaseAsset(ReleaseAssetRequest) returns (ReleaseAssetResponse);
-```
+**Implementation**: [`internal/service/service.go:256`](../../internal/service/service.go:256)
 
 #### Request
-```go
-type ReleaseAssetRequest struct {
-    LeaseId string // Lease ID from AcquireAsset
+
+```protobuf
+message ReleaseAssetRequest {
+  string lease_id = 1;  // Lease ID from AcquireAsset
 }
 ```
 
 #### Response
-```go
-type ReleaseAssetResponse struct {
-    // Empty response
-}
-```
-
-#### Example
-```go
-_, err := client.ReleaseAsset(ctx, &assetv1.ReleaseAssetRequest{
-    LeaseId: "lease-abc123",
-})
-```
-
-### DeleteAsset
-
-Deletes an asset from the system. Fails if the asset has active references unless forced.
-
-**Implementation**: [internal/service/service.go:275](../../internal/service/service.go:275)
 
 ```protobuf
-rpc DeleteAsset(DeleteAssetRequest) returns (DeleteAssetResponse);
-```
-
-#### Request
-```go
-type DeleteAssetRequest struct {
-    AssetId string // Asset to delete
-    Force   bool   // Force deletion even with active references
-}
-```
-
-#### Response
-```go
-type DeleteAssetResponse struct {
-    // Empty response
+message ReleaseAssetResponse {
+  bool success = 1;
 }
 ```
 
 #### Example
-```go
-_, err := client.DeleteAsset(ctx, &assetv1.DeleteAssetRequest{
-    AssetId: "old-kernel-123",
-    Force: false, // Fail if in use
-})
-```
 
-### GarbageCollect
-
-Triggers garbage collection to clean up unreferenced assets older than the threshold.
-
-**Implementation**: [internal/service/service.go:309](../../internal/service/service.go:309)
-
-```protobuf
-rpc GarbageCollect(GarbageCollectRequest) returns (GarbageCollectResponse);
-```
-
-#### Request
-```go
-type GarbageCollectRequest struct {
-    AgeThresholdSeconds int64 // Assets older than this are eligible
-    DryRun              bool  // Preview without deleting
-}
-```
-
-#### Response
-```go
-type GarbageCollectResponse struct {
-    DeletedAssets []*Asset // Assets that were/would be deleted
-}
-```
-
-#### Example
-```go
-resp, err := client.GarbageCollect(ctx, &assetv1.GarbageCollectRequest{
-    AgeThresholdSeconds: 7 * 24 * 3600, // 7 days
-    DryRun: true, // Preview first
-})
-fmt.Printf("Would delete %d assets\n", len(resp.DeletedAssets))
+```bash
+curl -X POST http://localhost:8083/asset.v1.AssetManagerService/ReleaseAsset \
+  -H "Content-Type: application/json" \
+  -d '{"lease_id": "01HQXYZDEF456789ABCGHIJKL"}'
 ```
 
 ### PrepareAssets
 
-Stages assets in specified locations, typically for VM jailer preparation. Primary RPC used by metald.
+Prepares multiple assets for use by copying or linking them to target locations. This is the primary RPC used by metald to prepare assets in VM jailer chroot paths.
 
-**Implementation**: [internal/service/service.go:343](../../internal/service/service.go:343)
-
-```protobuf
-rpc PrepareAssets(PrepareAssetsRequest) returns (PrepareAssetsResponse);
-```
+**Implementation**: [`internal/service/service.go:343`](../../internal/service/service.go:343)
 
 #### Request
-```go
-type PrepareAssetsRequest struct {
-    Assets []*AssetReference // Assets to prepare
-}
 
-type AssetReference struct {
-    AssetId    string // Asset UUID
-    TargetPath string // Where to stage the asset
+```protobuf
+message PrepareAssetsRequest {
+  repeated string asset_ids = 1;   // Assets to prepare
+  string target_path = 2;          // Target directory
+  string holder_id = 3;            // VM or service ID
 }
 ```
 
 #### Response
-```go
-type PrepareAssetsResponse struct {
-    // Empty - success means all assets prepared
+
+```protobuf
+message PrepareAssetsResponse {
+  map<string, PreparedAsset> prepared_assets = 1;
+}
+
+message PreparedAsset {
+  string local_path = 1;   // Path where asset is prepared
+  string lease_id = 2;     // Associated lease
 }
 ```
 
 #### Example
-```go
-// Metald preparing assets for a new VM
-resp, err := client.PrepareAssets(ctx, &assetv1.PrepareAssetsRequest{
-    Assets: []*assetv1.AssetReference{
-        {
-            AssetId: "kernel-550e8400",
-            TargetPath: "/srv/jailer/firecracker/vm-123/root/kernel",
-        },
-        {
-            AssetId: "rootfs-660f9400", 
-            TargetPath: "/srv/jailer/firecracker/vm-123/root/rootfs.ext4",
-        },
-    },
-})
+
+```bash
+# Metald preparing assets for a new VM
+curl -X POST http://localhost:8083/asset.v1.AssetManagerService/PrepareAssets \
+  -H "Content-Type: application/json" \
+  -d '{
+    "asset_ids": ["kernel-123", "rootfs-456"],
+    "target_path": "/var/lib/firecracker/vm-789/chroot",
+    "holder_id": "vm-789"
+  }'
 ```
 
-#### Downstream Calls
-- Checks asset availability in local storage
-- Creates hard links if on same filesystem (optimization)
-- Falls back to copying if cross-filesystem
-- Downloads from remote storage if needed
+#### Downstream Behavior
+
+- Acquires leases on all requested assets
+- Creates target directory if it doesn't exist
+- For each asset:
+  - Attempts hard link first (same filesystem optimization)
+  - Falls back to copy if cross-filesystem
+  - Downloads from remote storage if not cached locally
+- Returns mapping of asset IDs to prepared paths
+
+### DeleteAsset
+
+Marks an asset for deletion. The asset will be removed during the next garbage collection cycle if it has no active leases.
+
+**Implementation**: [`internal/service/service.go:275`](../../internal/service/service.go:275)
+
+#### Request
+
+```protobuf
+message DeleteAssetRequest {
+  string id = 1;     // Asset to delete
+  bool force = 2;    // Force deletion even with active leases
+}
+```
+
+#### Response
+
+```protobuf
+message DeleteAssetResponse {
+  bool success = 1;
+}
+```
+
+#### Example
+
+```bash
+curl -X POST http://localhost:8083/asset.v1.AssetManagerService/DeleteAsset \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "01HQXYZABC123456789DEFGHJ",
+    "force": false
+  }'
+```
+
+### GarbageCollect
+
+Manually triggers garbage collection to clean up expired leases and deleted assets.
+
+**Implementation**: [`internal/service/service.go:309`](../../internal/service/service.go:309)
+
+#### Request
+
+```protobuf
+message GarbageCollectRequest {
+  bool dry_run = 1;  // If true, only report what would be deleted
+}
+```
+
+#### Response
+
+```protobuf
+message GarbageCollectResponse {
+  int32 expired_leases_removed = 1;
+  int32 assets_removed = 2;
+  repeated string removed_asset_ids = 3;
+}
+```
+
+#### Example
+
+```bash
+# Dry run to see what would be cleaned up
+curl -X POST http://localhost:8083/asset.v1.AssetManagerService/GarbageCollect \
+  -H "Content-Type: application/json" \
+  -d '{"dry_run": true}'
+```
+
+#### Garbage Collection Process
+
+1. Removes expired leases
+2. Identifies assets with:
+   - Status = DELETED
+   - Reference count = 0
+   - Last accessed > max_age
+3. Removes files from storage
+4. Deletes database records
 
 ## Data Types
 
-### AssetType
+### AssetType Enum
+
 ```protobuf
 enum AssetType {
-    ASSET_TYPE_UNSPECIFIED = 0;
-    ASSET_TYPE_KERNEL = 1;      // Linux kernel image
-    ASSET_TYPE_ROOTFS = 2;      // Root filesystem image
-    ASSET_TYPE_INITRD = 3;      // Initial ramdisk
-    ASSET_TYPE_DISK_IMAGE = 4;  // Persistent disk image
+  ASSET_TYPE_UNSPECIFIED = 0;
+  ASSET_TYPE_KERNEL = 1;      // Linux kernel image
+  ASSET_TYPE_ROOTFS = 2;      // Root filesystem
+  ASSET_TYPE_INITRD = 3;      // Initial ramdisk
+  ASSET_TYPE_DISK_IMAGE = 4;  // Additional disk image
 }
 ```
 
-### AssetStatus
+### AssetStatus Enum
+
 ```protobuf
 enum AssetStatus {
-    ASSET_STATUS_UNSPECIFIED = 0;
-    ASSET_STATUS_UPLOADING = 1;   // Being uploaded/registered
-    ASSET_STATUS_AVAILABLE = 2;   // Ready for use
-    ASSET_STATUS_DELETING = 3;    // Being deleted
-    ASSET_STATUS_ERROR = 4;       // Error state
+  ASSET_STATUS_UNSPECIFIED = 0;
+  ASSET_STATUS_ACTIVE = 1;     // Available for use
+  ASSET_STATUS_DEPRECATED = 2; // Still usable but not recommended
+  ASSET_STATUS_DELETED = 3;    // Marked for deletion
 }
 ```
 
-### StorageBackend
-```protobuf
-enum StorageBackend {
-    STORAGE_BACKEND_UNSPECIFIED = 0;
-    STORAGE_BACKEND_LOCAL = 1;    // Local filesystem
-    STORAGE_BACKEND_S3 = 2;       // S3/Object storage
-    STORAGE_BACKEND_HTTP = 3;     // HTTP/HTTPS URL
-    STORAGE_BACKEND_NFS = 4;      // Network filesystem
+## HTTP Endpoints
+
+### GET /health
+
+Health check endpoint provided by the health package.
+
+**Implementation**: [`cmd/assetmanagerd/main.go`](../../cmd/assetmanagerd/main.go)
+
+#### Response
+
+```json
+{
+  "status": "healthy",
+  "service": "assetmanagerd",
+  "version": "0.3.0",
+  "uptime": "24h30m15s"
 }
 ```
 
-### Asset
-```protobuf
-message Asset {
-    string id = 1;                      // UUID
-    string name = 2;                    // Human-readable name
-    AssetType type = 3;                 // Asset type
-    AssetStatus status = 4;             // Current status
-    StorageBackend backend = 5;         // Storage backend
-    string location = 6;                // Backend-specific location
-    int64 size_bytes = 7;               // Size in bytes
-    string checksum = 8;                // SHA256 checksum
-    map<string, string> labels = 9;    // Metadata labels
-    string created_by = 10;             // Creator identity
-    google.protobuf.Timestamp created_at = 11;
-    google.protobuf.Timestamp last_accessed_at = 12;
-    int64 reference_count = 13;         // Active references
-    string build_id = 14;               // Optional builderd ID
-    string source_image = 15;           // Optional source reference
-}
-```
+### GET /metrics
+
+Prometheus metrics endpoint (when OpenTelemetry is enabled).
+
+**Port**: 9467 (configurable)
+
+#### Available Metrics
+
+- `assetmanager_assets_total{type,status}` - Total assets by type and status
+- `assetmanager_leases_active{asset_id}` - Active leases per asset
+- `assetmanager_storage_bytes_used{type}` - Storage usage by asset type
+- `assetmanager_gc_duration_seconds` - Garbage collection duration
+- `assetmanager_prepare_duration_seconds` - Asset preparation latency
+- `assetmanager_rpc_duration_seconds{method}` - RPC method latencies
 
 ## Error Handling
 
-All RPCs return standard gRPC status codes:
+The API uses standard ConnectRPC error codes:
 
-- `NOT_FOUND` - Asset or lease not found
-- `ALREADY_EXISTS` - Asset with same checksum already exists
-- `FAILED_PRECONDITION` - Operation not allowed (e.g., delete with active refs)
-- `INVALID_ARGUMENT` - Invalid request parameters
-- `INTERNAL` - Internal service error
+| Code | Name | Usage |
+|------|------|-------|
+| 3 | InvalidArgument | Invalid request parameters |
+| 5 | NotFound | Asset or lease not found |
+| 6 | AlreadyExists | Asset ID already registered |
+| 7 | PermissionDenied | Authorization failure |
+| 9 | FailedPrecondition | Invalid state for operation |
+| 13 | Internal | Unexpected server error |
+| 16 | Unauthenticated | Missing authentication |
 
-Example error handling:
-```go
-resp, err := client.DeleteAsset(ctx, req)
-if err != nil {
-    if status.Code(err) == codes.FailedPrecondition {
-        // Asset has active references
-        log.Printf("Cannot delete asset: %v", err)
-    }
-    return err
+### Error Response Format
+
+```json
+{
+  "code": "not_found",
+  "message": "asset not found: 01HQXYZABC123456789DEFGHJ",
+  "details": []
 }
 ```
 
 ## Authentication
 
-All requests must include SPIFFE mTLS credentials:
+The service supports three authentication modes via TLS configuration:
+
+1. **SPIFFE** (default): Automatic mTLS via SPIRE agent
+2. **File**: Manual certificate management
+3. **Disabled**: No authentication (development only)
+
+Production deployments should use SPIFFE mode for service-to-service authentication.
+
+### Client Setup Example
 
 ```go
 // Client setup with SPIFFE
@@ -423,7 +489,7 @@ httpClient := &http.Client{
     },
 }
 
-client := assetv1connect.NewAssetServiceClient(
+client := assetv1connect.NewAssetManagerServiceClient(
     httpClient,
     "https://assetmanagerd:8083",
 )
@@ -431,14 +497,8 @@ client := assetv1connect.NewAssetServiceClient(
 
 ## Rate Limiting
 
-Currently, no rate limiting is implemented. Future versions may add per-client rate limits.
+Currently, no rate limiting is implemented at the API level. Consider implementing rate limits at the proxy/load balancer level for production deployments.
 
-## Metrics
+## API Versioning
 
-All RPCs export Prometheus metrics via the observability interceptor:
-
-- `assetmanagerd_rpc_duration_seconds` - RPC latency histogram
-- `assetmanagerd_rpc_requests_total` - RPC request counter
-- `assetmanagerd_rpc_errors_total` - RPC error counter
-
-See [Operations Guide](../operations/) for complete metrics reference.
+The API uses protobuf package versioning (`asset.v1`). Breaking changes will result in a new major version (`v2`).

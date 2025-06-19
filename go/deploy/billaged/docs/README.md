@@ -1,89 +1,40 @@
 # Billaged Documentation
 
-Welcome to the comprehensive documentation for Billaged, the VM usage billing aggregation service.
+Welcome to the billaged service documentation. Billaged is the VM usage billing aggregation service that collects metrics from metald instances and provides real-time usage summaries for the Unkey Deploy platform.
 
-## Documentation Structure
+## Documentation Index
 
-### [API Reference](./api/README.md)
-Complete API documentation including:
-- ConnectRPC service definitions
-- Request/response schemas
-- Example usage for each RPC method
-- HTTP endpoints (/stats, /metrics, /health)
-- Error handling patterns
+### [Service Overview](../README.md)
+Quick start guide and high-level service description.
+
+### [API Documentation](./api/README.md)
+Complete API reference with request/response examples for all RPC methods.
 
 ### [Architecture & Dependencies](./architecture/README.md)
-Detailed architectural documentation covering:
-- Component architecture and design
-- Service dependencies (metald, pkg/tls, pkg/health)
-- Data flow and processing pipeline
-- Concurrency model and performance
-- Security considerations
+System design, service interactions, data flow, and integration patterns.
 
 ### [Operations Guide](./operations/README.md)
-Production operations documentation including:
-- Configuration reference
-- Metrics and monitoring setup
-- Logging and debugging
-- Health checks and probes
-- Performance tuning
-- Troubleshooting playbook
+Production deployment, monitoring, metrics, health checks, and troubleshooting.
 
 ### [Development Setup](./development/README.md)
-Developer documentation with:
-- Build instructions and setup
-- Testing strategies and examples
-- Local development environment
-- Code organization and style
-- Contributing guidelines
+Build instructions, testing, local development environment, and contribution guidelines.
 
 ## Quick Navigation
 
-- **Getting Started**: See the [main README](../README.md)
-- **API Endpoints**: [API Documentation](./api/README.md)
-- **Configuration**: [Operations Guide - Configuration](./operations/README.md#configuration)
-- **Metrics**: [Operations Guide - Metrics](./operations/README.md#metrics)
-- **Troubleshooting**: [Operations Guide - Troubleshooting](./operations/README.md#troubleshooting-playbook)
+- **Getting Started**: See the [main README](../README.md) for quick start instructions
+- **API Integration**: Check the [API documentation](./api/README.md) for RPC methods
+- **System Design**: Review [architecture docs](./architecture/README.md) for data flow
+- **Production Deploy**: Follow the [operations guide](./operations/README.md)
+- **Contributing**: Read the [development guide](./development/README.md)
 
-## Service Overview
+## Service Highlights
 
-Billaged is a critical component in the Unkey Deploy platform that:
+- **Real-time Aggregation**: Processes VM metrics with configurable intervals
+- **Stateless Design**: All data stored in-memory, no database dependencies
+- **High Performance**: Optimized for high-frequency metric ingestion
+- **Observable**: Rich metrics, tracing, and structured logging
+- **Secure**: SPIFFE/mTLS support for service authentication
 
-1. **Collects** VM usage metrics from multiple metald instances
-2. **Aggregates** resource usage data in configurable intervals
-3. **Calculates** billing scores based on weighted resource consumption
-4. **Provides** usage summaries for billing systems
+## Version
 
-## Key Features
-
-- Real-time metric processing with batch support
-- Configurable aggregation intervals
-- Resource-based billing score calculation
-- High-cardinality metric support (optional)
-- SPIFFE/mTLS security
-- OpenTelemetry observability
-- Prometheus metrics export
-- Structured JSON logging
-
-## Integration Points
-
-```mermaid
-graph LR
-    M[metald] -->|Metrics| B[billaged]
-    B -->|Summaries| BS[Billing System]
-    B -->|Metrics| P[Prometheus]
-    B -->|Traces| O[OpenTelemetry]
-```
-
-## Version History
-
-- **v0.1.0** - Initial release with core aggregation functionality
-- **v0.2.0** - Added SPIFFE/mTLS support (planned)
-- **v0.3.0** - Enhanced observability features (planned)
-
-## Support
-
-For issues, questions, or contributions:
-- [GitHub Issues](https://github.com/unkeyed/unkey/issues)
-- [Contributing Guide](./development/README.md#contributing)
-- Service Owner: Platform Team
+Current version: **v0.1.0**
