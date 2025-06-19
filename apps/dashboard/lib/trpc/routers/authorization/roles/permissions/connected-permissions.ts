@@ -4,7 +4,7 @@ import { rolesPermissions } from "@unkey/db/src/schema";
 import { z } from "zod";
 
 const permissionsResponse = z.object({
-  totalCount: z.number().optional(),
+  totalCount: z.number(),
 });
 
 export const queryRolePermissions = t.procedure
@@ -14,7 +14,6 @@ export const queryRolePermissions = t.procedure
   .input(
     z.object({
       roleId: z.string(),
-      limit: z.number().default(3),
     }),
   )
   .output(permissionsResponse)
@@ -29,5 +28,5 @@ export const queryRolePermissions = t.procedure
         and(eq(rolesPermissions.workspaceId, workspaceId), eq(rolesPermissions.roleId, roleId)),
       );
 
-    return { totalCount: result[0].count };
+    return { totalCount: result?.[0]?.count ?? 0 };
   });
