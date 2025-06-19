@@ -14,7 +14,6 @@ vi.mock("nuqs", () => {
   return {
     useQueryStates: vi.fn(() => [
       {
-        requestIds: null,
         identifiers: null,
         startTime: null,
         endTime: null,
@@ -134,7 +133,6 @@ describe("useFilters hook", () => {
     vi.clearAllMocks();
     mockUseQueryStates.mockImplementation(() => [
       {
-        requestIds: null,
         identifiers: null,
         startTime: null,
         endTime: null,
@@ -150,34 +148,9 @@ describe("useFilters hook", () => {
     expect(result.current.filters).toEqual([]);
   });
 
-  it("should initialize with existing filters", () => {
-    mockUseQueryStates.mockImplementation(() => [
-      {
-        requestIds: [{ operator: "is", value: "123" }],
-        identifiers: null,
-        startTime: null,
-        endTime: null,
-        status: null,
-        since: null,
-      },
-      mockSetSearchParams,
-    ]);
-
-    const { result } = renderHook(() => useFilters());
-    expect(result.current.filters).toEqual([
-      {
-        id: "test-uuid",
-        field: "requestIds",
-        operator: "is",
-        value: "123",
-      },
-    ]);
-  });
-
   it("should handle multiple filter types", () => {
     mockUseQueryStates.mockImplementation(() => [
       {
-        requestIds: [{ operator: "is", value: "123" }],
         identifiers: [{ operator: "contains", value: "api" }],
         startTime: 1609459200000,
         endTime: null,
@@ -189,12 +162,6 @@ describe("useFilters hook", () => {
 
     const { result } = renderHook(() => useFilters());
     expect(result.current.filters).toEqual([
-      {
-        id: "test-uuid",
-        field: "requestIds",
-        operator: "is",
-        value: "123",
-      },
       {
         id: "test-uuid",
         field: "identifiers",
@@ -236,7 +203,6 @@ describe("useFilters hook", () => {
     });
 
     expect(mockSetSearchParams).toHaveBeenCalledWith({
-      requestIds: null,
       identifiers: null,
       startTime: null,
       endTime: null,
@@ -248,7 +214,6 @@ describe("useFilters hook", () => {
   it("should handle clearing all filters", () => {
     mockUseQueryStates.mockImplementation(() => [
       {
-        requestIds: [{ operator: "is", value: "123" }],
         identifiers: [{ operator: "contains", value: "api" }],
         startTime: 1609459200000,
         endTime: null,
@@ -265,7 +230,6 @@ describe("useFilters hook", () => {
     });
 
     expect(mockSetSearchParams).toHaveBeenCalledWith({
-      requestIds: null,
       identifiers: null,
       startTime: null,
       endTime: null,
@@ -289,7 +253,6 @@ describe("useFilters hook", () => {
     });
 
     expect(mockSetSearchParams).toHaveBeenCalledWith({
-      requestIds: null,
       identifiers: [{ operator: "contains", value: "api" }],
       startTime: null,
       endTime: null,

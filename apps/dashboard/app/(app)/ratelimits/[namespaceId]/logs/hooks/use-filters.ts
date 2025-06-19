@@ -15,7 +15,6 @@ import {
 
 const parseAsFilterValArray = parseAsFilterValueArray<RatelimitFilterOperator>(["is", "contains"]);
 export const queryParamsPayload = {
-  requestIds: parseAsFilterValArray,
   identifiers: parseAsFilterValArray,
   startTime: parseAsInteger,
   endTime: parseAsInteger,
