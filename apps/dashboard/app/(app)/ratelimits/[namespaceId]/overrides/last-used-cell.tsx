@@ -50,7 +50,7 @@ export const LastUsedCell = ({ namespaceId, identifier }: LastUsedCellProps) => 
         ) : data?.lastUsed ? (
           <TimestampInfo
             displayType="relative"
-            value={1750173512264}
+            value={data.lastUsed}
             className="truncate"
             triggerRef={badgeRef}
             open={showTooltip}

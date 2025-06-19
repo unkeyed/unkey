@@ -20,7 +20,12 @@ const EXAMPLE_SNIPPET = `curl -XPOST 'https://api.unkey.dev/v1/ratelimits.limit'
   }'`;
 
 export const RatelimitClient = () => {
-  const { data: namespacesData, isLoading } = trpc.ratelimit.namespace.query.useInfiniteQuery(
+  const {
+    data: namespacesData,
+    isLoading,
+    error,
+    isError,
+  } = trpc.ratelimit.namespace.query.useInfiniteQuery(
     { limit: 10 },
     {
       getNextPageParam: (lastPage) => lastPage.nextCursor,
@@ -45,7 +50,15 @@ export const RatelimitClient = () => {
       <RatelimitListControls setNamespaces={setNamespaces} initialNamespaces={allNamespaces} />
       <RatelimitListControlCloud />
 
-      {isLoading ? (
+      {isError ? (
+        <EmptyComponentSpacer>
+          <Empty>
+            <Empty.Icon />
+            <Empty.Title>Failed to load namespaces</Empty.Title>
+            <Empty.Description>{error?.message ?? "Unknown error"}</Empty.Description>
+          </Empty>
+        </EmptyComponentSpacer>
+      ) : isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-5 w-full p-5">
           {Array.from({ length: 10 }).map((_, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: it's okay to use index here

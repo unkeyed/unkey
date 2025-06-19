@@ -1,13 +1,10 @@
 "use client";
 
-import { revalidateTag } from "@/app/actions";
 import { toast } from "@/components/ui/toaster";
-import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
 import { Clone } from "@unkey/icons";
 import { Button, Input, SettingCard } from "@unkey/ui";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DeleteNamespaceDialog } from "../../_components/namespace-delete-dialog";
 import { SettingsClientSkeleton } from "./skeleton";
 
@@ -16,9 +13,9 @@ type Props = {
 };
 
 export const SettingsClient = ({ namespaceId }: Props) => {
+  const trpcUtils = trpc.useUtils();
   const [isNamespaceNameDeleteModalOpen, setIsNamespaceNameDeleteModalOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const router = useRouter();
 
   const { data, isLoading } = trpc.ratelimit.namespace.queryDetails.useQuery({
     namespaceId,
@@ -27,16 +24,17 @@ export const SettingsClient = ({ namespaceId }: Props) => {
 
   const [namespaceName, setNamespaceName] = useState(data?.namespace.name || "");
 
-  // Update local state when data loads
-  if (data?.namespace.name && namespaceName !== data.namespace.name && !isUpdating) {
-    setNamespaceName(data.namespace.name);
-  }
+  useEffect(() => {
+    if (data?.namespace.name && namespaceName === "") {
+      setNamespaceName(data.namespace.name);
+    }
+  }, [data?.namespace.name, namespaceName]);
 
   const updateNameMutation = trpc.ratelimit.namespace.update.name.useMutation({
     onSuccess() {
       toast.success("Your namespace name has been renamed!");
-      revalidateTag(tags.namespace(namespaceId));
-      router.refresh();
+      trpcUtils.ratelimit.namespace.query.invalidate();
+      trpcUtils.ratelimit.namespace.queryDetails.invalidate();
       setIsUpdating(false);
     },
     onError(err) {
@@ -90,7 +88,13 @@ export const SettingsClient = ({ namespaceId }: Props) => {
                 className="border-b-1"
                 contentWidth="w-full lg:w-[420px] h-full justify-end items-end"
               >
-                <div className="flex flex-row justify-end items-center gap-x-2 mt-2 h-9">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleUpdateName();
+                  }}
+                  className="flex flex-row justify-end items-center gap-x-2 mt-2 h-9"
+                >
                   <Input
                     placeholder="Namespace name"
                     value={namespaceName}
@@ -98,16 +102,16 @@ export const SettingsClient = ({ namespaceId }: Props) => {
                     onChange={(e) => setNamespaceName(e.target.value)}
                   />
                   <Button
+                    type="submit"
                     className="h-full px-3.5 rounded-lg"
                     size="lg"
                     variant="primary"
-                    onClick={handleUpdateName}
                     loading={isUpdating}
                     disabled={isUpdating || namespaceName === namespace.name || !namespaceName}
                   >
                     Save
                   </Button>
-                </div>
+                </form>
               </SettingCard>
               <SettingCard
                 title="Namespace ID"
