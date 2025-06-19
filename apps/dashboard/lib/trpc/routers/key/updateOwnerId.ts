@@ -195,7 +195,7 @@ const updateOwnerV2 = async (
         .update(schema.keys)
         .set({
           identityId: input.identity.id ?? null,
-          ownerId: input.identity.externalId,
+          ownerId: input.identity.externalId ?? null,
         })
         .where(
           and(

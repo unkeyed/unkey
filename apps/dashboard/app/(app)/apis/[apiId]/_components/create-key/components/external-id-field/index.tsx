@@ -2,6 +2,7 @@ import { useCreateIdentity } from "@/app/(app)/apis/[apiId]/_components/create-k
 import { useFetchIdentities } from "@/app/(app)/apis/[apiId]/_components/create-key/hooks/use-fetch-identities";
 import { createIdentityOptions } from "@/app/(app)/apis/[apiId]/_components/create-key/hooks/use-fetch-identities/create-identity-options";
 import { FormCombobox } from "@/components/ui/form-combobox";
+import type { Identity } from "@unkey/db";
 import { TriangleWarning2 } from "@unkey/icons";
 import { Button, Loading } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
@@ -13,13 +14,18 @@ type ExternalIdFieldProps = {
   onChange: (identityId: string | null, externalId: string | null) => void;
   error?: string;
   disabled?: boolean;
+  currentIdentity?: {
+    id: string;
+    externalId: string;
+    meta?: Identity["meta"];
+  };
 };
-
 export const ExternalIdField = ({
   value,
   onChange,
   error,
   disabled = false,
+  currentIdentity,
 }: ExternalIdFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -47,6 +53,33 @@ export const ExternalIdField = ({
     return identities;
   }, [identities, searchResults, searchValue, isSearching]);
 
+  // Ensure current identity is always available in the options
+  const allIdentitiesWithCurrent = useMemo(() => {
+    if (!currentIdentity || !value) {
+      return allIdentities;
+    }
+
+    // Check if current identity is already in the list
+    const currentExists = allIdentities.some((identity) => identity.id === currentIdentity.id);
+
+    if (currentExists) {
+      return allIdentities;
+    }
+
+    return [
+      {
+        id: currentIdentity.id,
+        externalId: currentIdentity.externalId,
+        meta: currentIdentity.meta || {},
+        workspaceId: "",
+        environment: "",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+      ...allIdentities,
+    ];
+  }, [allIdentities, currentIdentity, value]);
+
   const handleCreateIdentity = () => {
     if (searchValue.trim()) {
       createIdentity.mutate({
@@ -56,15 +89,15 @@ export const ExternalIdField = ({
     }
   };
 
-  const exactMatch = allIdentities.some(
+  const exactMatch = allIdentitiesWithCurrent.some(
     (id) => id.externalId.toLowerCase() === searchValue.toLowerCase().trim(),
   );
 
   const filteredIdentities = searchValue.trim()
-    ? allIdentities.filter((identity) =>
+    ? allIdentitiesWithCurrent.filter((identity) =>
         identity.externalId.toLowerCase().includes(searchValue.toLowerCase().trim()),
       )
-    : allIdentities;
+    : allIdentitiesWithCurrent;
 
   const hasPartialMatches = filteredIdentities.length > 0;
 
@@ -127,7 +160,7 @@ export const ExternalIdField = ({
           handleCreateIdentity();
           return;
         }
-        const identity = allIdentities.find((id) => id.id === val);
+        const identity = allIdentitiesWithCurrent.find((id) => id.id === val);
         onChange(identity?.id || null, identity?.externalId || null);
       }}
       placeholder={
