@@ -4,9 +4,9 @@ import { createIdentityOptions } from "@/app/(app)/apis/[apiId]/_components/crea
 import { FormCombobox } from "@/components/ui/form-combobox";
 import type { Identity } from "@unkey/db";
 import { TriangleWarning2 } from "@unkey/icons";
-import { Button, Loading } from "@unkey/ui";
+import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { useSearchIdentities } from "./use-search-identities";
 
 type ExternalIdFieldProps = {
@@ -20,6 +20,7 @@ type ExternalIdFieldProps = {
     meta?: Identity["meta"];
   };
 };
+
 export const ExternalIdField = ({
   value,
   onChange,
@@ -28,8 +29,8 @@ export const ExternalIdField = ({
   currentIdentity,
 }: ExternalIdFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
-  const [isPending, startTransition] = useTransition();
-  const { identities, isFetchingNextPage, hasNextPage, loadMore } = useFetchIdentities();
+
+  const { identities, isFetchingNextPage, hasNextPage, loadMore, isLoading } = useFetchIdentities();
   const { searchResults, isSearching } = useSearchIdentities(searchValue);
 
   const createIdentity = useCreateIdentity((data) => {
@@ -138,8 +139,7 @@ export const ExternalIdField = ({
 
   const options = createOption ? [createOption, ...baseOptions] : baseOptions;
 
-  // Determine if we're in a transitional state
-  const isTransitioning = isSearching || isPending;
+  const isComboboxLoading = isLoading || (isSearching && searchValue.trim().length > 0);
 
   return (
     <FormCombobox
@@ -150,10 +150,7 @@ export const ExternalIdField = ({
       key={value}
       value={value || ""}
       onChange={(e) => {
-        const newValue = e.currentTarget.value;
-        startTransition(() => {
-          setSearchValue(newValue);
-        });
+        setSearchValue(e.currentTarget.value);
       }}
       onSelect={(val) => {
         if (val === "__create_new__") {
@@ -164,25 +161,7 @@ export const ExternalIdField = ({
         onChange(identity?.id || null, identity?.externalId || null);
       }}
       placeholder={
-        <div className="relative flex w-full text-grayA-8 text-xs items-center py-2">
-          <div
-            className={cn(
-              "absolute inset-0 flex items-center gap-1.5 transition-opacity duration-200 ease-in-out",
-              isTransitioning ? "opacity-100" : "opacity-0",
-            )}
-          >
-            <Loading />
-            <span>Searching...</span>
-          </div>
-          <div
-            className={cn(
-              "flex items-center transition-opacity duration-200 ease-in-out",
-              isTransitioning ? "opacity-0" : "opacity-100",
-            )}
-          >
-            Select External ID
-          </div>
-        </div>
+        <div className="flex w-full text-grayA-8 text-xs items-center py-2">Select External ID</div>
       }
       searchPlaceholder="Search External ID..."
       emptyMessage={
@@ -236,6 +215,11 @@ export const ExternalIdField = ({
               </Button>
             </div>
           </div>
+        ) : isComboboxLoading ? (
+          <div className="px-3 py-3 text-gray-10 text-[13px] flex items-center gap-2">
+            <div className="animate-spin h-3 w-3 border border-gray-6 border-t-gray-11 rounded-full" />
+            {isSearching ? "Searching..." : "Loading identities..."}
+          </div>
         ) : (
           <div
             className={cn(
@@ -250,7 +234,16 @@ export const ExternalIdField = ({
       }
       variant="default"
       error={error}
-      disabled={disabled}
+      disabled={disabled || isLoading}
+      //@ts-expect-error this will be fixed in the following PRs
+      loading={isComboboxLoading}
+      title={
+        isComboboxLoading
+          ? isSearching && searchValue.trim()
+            ? "Searching for identities..."
+            : "Loading available identities..."
+          : undefined
+      }
     />
   );
 };

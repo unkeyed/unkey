@@ -4,7 +4,8 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { useMemo } from "react";
 
-export const useFetchIdentities = (limit = 10) => {
+const MAX_IDENTITY_FETCH_LIMIT = 10;
+export const useFetchIdentities = (limit = MAX_IDENTITY_FETCH_LIMIT) => {
   const trpcUtils = trpc.useUtils();
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
