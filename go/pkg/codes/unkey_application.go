@@ -25,6 +25,11 @@ type appProtection struct {
 	ProtectedResource Code
 }
 
+type appPrecondition struct {
+	// PreconditionFailed indicates a precondition check failed.
+	PreconditionFailed Code
+}
+
 // UnkeyAppErrors defines all application-level errors in the Unkey system.
 // These errors generally relate to the application's operation rather than
 // specific domain entities.
@@ -37,6 +42,9 @@ type UnkeyAppErrors struct {
 
 	// Protection contains errors related to resource protection.
 	Protection appProtection
+
+	// Precondition contains errors related to resource preconditions.
+	Precondition appPrecondition
 }
 
 // App contains all predefined application-level error codes.
@@ -55,5 +63,9 @@ var App = UnkeyAppErrors{
 
 	Protection: appProtection{
 		ProtectedResource: Code{SystemUnkey, CategoryUnkeyApplication, "protected_resource"},
+	},
+
+	Precondition: appPrecondition{
+		PreconditionFailed: Code{SystemUnkey, CategoryUnkeyApplication, "precondition_failed"},
 	},
 }

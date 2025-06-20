@@ -3,9 +3,11 @@ import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table";
 import type { Column } from "@/components/virtual-table/types";
 import { formatNumber } from "@/lib/fmt";
+import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { Empty } from "@unkey/ui";
 import ms from "ms";
+import { LastUsedCell } from "./last-used-cell";
 import { OverridesTableAction } from "./logs-actions";
 
 type Override = {
@@ -18,8 +20,6 @@ type Override = {
 
 type Props = {
   namespaceId: string;
-  ratelimits: Override[];
-  lastUsedTimes: Record<string, number | null>;
 };
 
 const STATUS_STYLES = {
@@ -37,7 +37,6 @@ const STATUS_STYLES = {
 
 const getRowClassName = () => {
   const style = STATUS_STYLES.default;
-
   return cn(
     style.base,
     style.hover,
@@ -47,7 +46,13 @@ const getRowClassName = () => {
   );
 };
 
-export const OverridesTable = ({ namespaceId, ratelimits, lastUsedTimes }: Props) => {
+export const OverridesTable = ({ namespaceId }: Props) => {
+  const { data, isLoading } = trpc.ratelimit.namespace.queryDetails.useQuery({
+    namespaceId,
+    includeOverrides: true,
+  });
+
+  const overrides = data?.namespace?.overrides ?? [];
   const columns: Column<Override>[] = [
     {
       key: "identifier",
@@ -115,17 +120,9 @@ export const OverridesTable = ({ namespaceId, ratelimits, lastUsedTimes }: Props
       key: "lastUsed",
       header: "Last used",
       width: "20%",
-      render: (override) => {
-        const lastUsed = lastUsedTimes[override.identifier];
-        if (lastUsed) {
-          return (
-            <span className="font-mono text-xs text-content-subtle">
-              {ms(Date.now() - lastUsed)} ago
-            </span>
-          );
-        }
-        return <div className="w-4 h-4 text-content-subtle">─</div>;
-      },
+      render: (override) => (
+        <LastUsedCell namespaceId={namespaceId} identifier={override.identifier} />
+      ),
     },
     {
       key: "actions",
@@ -148,7 +145,8 @@ export const OverridesTable = ({ namespaceId, ratelimits, lastUsedTimes }: Props
 
   return (
     <VirtualTable
-      data={ratelimits}
+      data={overrides}
+      isLoading={isLoading}
       columns={columns}
       keyExtractor={(override) => override.id}
       rowClassName={getRowClassName}
