@@ -1,11 +1,10 @@
 "use client";
-import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
+import { cn } from "@/lib/utils";
 import { BookBookmark, HandHoldingKey } from "@unkey/icons";
-import { Button, Checkbox, Empty } from "@unkey/ui";
-import { cn } from "@unkey/ui/src/lib/utils";
+import { Badge, Button, Checkbox, Empty } from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
 import { PermissionsTableActions } from "./components/actions/keys-table-action.popover.constants";
 import { AssignedItemsCell } from "./components/assigned-items-cell";

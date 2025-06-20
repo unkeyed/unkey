@@ -1,11 +1,10 @@
 "use client";
-import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table";
 import type { Column } from "@/components/virtual-table/types";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
-import { Empty } from "@unkey/ui";
+import { Badge, Empty } from "@unkey/ui";
 import ms from "ms";
 import { LastUsedCell } from "./last-used-cell";
 import { OverridesTableAction } from "./logs-actions";
