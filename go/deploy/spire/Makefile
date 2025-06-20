@@ -206,7 +206,6 @@ bootstrap-agent: ## Bootstrap agent with server bundle
 		-format pem > /tmp/bootstrap.crt' || \
 		(echo "Error: Failed to get bundle from server. Check server logs with 'make service-logs-server'" && exit 1)
 	@sudo mv /tmp/bootstrap.crt $(SPIRE_CONFIG_DIR)/agent/bootstrap.crt
-	@sudo chown spire-agent:spire-agent $(SPIRE_CONFIG_DIR)/agent/bootstrap.crt
 	@sudo chmod 600 $(SPIRE_CONFIG_DIR)/agent/bootstrap.crt
 	@echo "Agent bootstrap bundle created."
 
