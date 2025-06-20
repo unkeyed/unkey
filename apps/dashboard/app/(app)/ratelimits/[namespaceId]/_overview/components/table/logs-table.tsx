@@ -34,8 +34,8 @@ export const RatelimitOverviewLogsTable = ({
       {
         key: "identifier",
         header: "Identifier",
-        width: "7.5%",
-        headerClassName: "pl-11",
+        width: "20%",
+        headerClassName: "pl-12",
         render: (log) => {
           return (
             <div className="flex gap-3 items-center group/identifier">
@@ -51,7 +51,7 @@ export const RatelimitOverviewLogsTable = ({
       {
         key: "passed",
         header: "Passed",
-        width: "7.5%",
+        width: "20%",
         sort: {
           direction: getSortDirection("passed"),
           sortable: true,
@@ -84,7 +84,7 @@ export const RatelimitOverviewLogsTable = ({
       {
         key: "blocked",
         header: "Blocked",
-        width: "7.5%",
+        width: "20%",
         sort: {
           direction: getSortDirection("blocked"),
           sortable: true,
@@ -167,7 +167,7 @@ export const RatelimitOverviewLogsTable = ({
       {
         key: "lastRequest",
         header: "Last Request",
-        width: "7.5%",
+        width: "20%",
         sort: {
           direction: getSortDirection("time"),
           sortable: true,
@@ -188,15 +188,13 @@ export const RatelimitOverviewLogsTable = ({
       {
         key: "actions",
         header: "",
-        width: "7.5%",
+        width: "auto",
         render: (log) => (
-          <div className="text-end">
-            <LogsTableAction
-              overrideDetails={log.override}
-              identifier={log.identifier}
-              namespaceId={namespaceId}
-            />
-          </div>
+          <LogsTableAction
+            overrideDetails={log.override}
+            identifier={log.identifier}
+            namespaceId={namespaceId}
+          />
         ),
       },
     ];

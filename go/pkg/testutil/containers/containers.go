@@ -2,10 +2,11 @@ package containers
 
 import (
 	"testing"
+	"time"
 
 	"github.com/ory/dockertest/v3"
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/go/pkg/uid"
+	"github.com/unkeyed/unkey/go/pkg/fault"
 )
 
 // Containers represents a container manager for running containerized services during tests.
@@ -52,12 +53,20 @@ func New(t *testing.T) *Containers {
 	err = pool.Client.Ping()
 	require.NoError(t, err)
 
-	network, err := pool.CreateNetwork(uid.New("network"))
+	networks, err := pool.NetworksByName(networkName)
 	require.NoError(t, err)
 
-	t.Cleanup(func() {
-		require.NoError(t, pool.RemoveNetwork(network))
-	})
+	var network *dockertest.Network
+	for _, found := range networks {
+		if found.Network.Name == networkName {
+			network = &found
+			break
+		}
+	}
+	if network == nil {
+		network, err = pool.CreateNetwork(networkName)
+		require.NoError(t, err)
+	}
 
 	c := &Containers{
 		t:       t,
@@ -66,4 +75,33 @@ func New(t *testing.T) *Containers {
 	}
 
 	return c
+}
+
+// getOrCreateContainer safely gets an existing container or creates a new one,
+// handling race conditions when multiple tests try to create the same container.
+//
+// This function protects against the race condition where:
+// 1. Test A checks if container exists → false
+// 2. Test B checks if container exists → false
+// 3. Test A starts creating container
+// 4. Test B tries to create container → fails with "already exists"
+//
+// Returns the container resource and whether it was newly created.
+func (c *Containers) getOrCreateContainer(containerName string, runOpts *dockertest.RunOptions) (*dockertest.Resource, bool, error) {
+
+	var err error
+	for i := range 10 {
+		resource, exists := c.pool.ContainerByName(containerName)
+		if exists {
+			return resource, false, nil
+		}
+		resource, err = c.pool.RunWithOptions(runOpts)
+		if err == nil {
+			return resource, true, nil
+		}
+		time.Sleep(time.Duration(i) * time.Second)
+
+	}
+	return nil, false, fault.Wrap(err, fault.Internal("exceeded retries already"))
+
 }
