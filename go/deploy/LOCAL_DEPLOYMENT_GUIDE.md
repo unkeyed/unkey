@@ -31,8 +31,8 @@ If the readiness check reports missing dependencies:
 
 ```bash
 # Install development tools
-sudo dnf groupinstall -y "Development Tools"
-sudo dnf install -y git make golang curl wget
+sudo dnf group install -y development-tools
+sudo dnf install -y git make golang curl wget iptables-legacy
 
 # Install buf for protobuf generation
 sudo ./scripts/install-buf.sh
@@ -57,7 +57,7 @@ sudo dnf remove docker \
 
 # Set up the Docker repository
 sudo dnf -y install dnf-plugins-core
-sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+sudo dnf config-manager addrepo --from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo
 
 # Install Docker Engine
 sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
@@ -119,8 +119,8 @@ Follow the official Docker installation for Ubuntu:
 
 ```bash
 # Remove old versions
-for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do 
-  sudo apt-get remove $pkg; 
+for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do
+  sudo apt-get remove $pkg;
 done
 
 # Update package index and install prerequisites

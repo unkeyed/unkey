@@ -76,8 +76,6 @@ install-server: download-spire create-users setup-directories ## Install SPIRE s
 	@echo "Installing server configuration for environment: $(SPIRE_ENVIRONMENT)..."
 	@echo "Trust domain: $(TRUST_DOMAIN)"
 	@sudo cp environments/$(SPIRE_ENVIRONMENT)/server.conf $(SPIRE_CONFIG_DIR)/server/server.conf
-	@sudo chown -R spire-server:spire-server $(SPIRE_DATA_DIR)/server
-	@sudo chown -R spire-server:spire-server $(SPIRE_CONFIG_DIR)/server
 	@echo "Installing systemd service..."
 	@sudo cp contrib/systemd/spire-server.service /etc/systemd/system/
 	@sudo systemctl daemon-reload
@@ -94,8 +92,6 @@ install-agent: download-spire create-users setup-directories ## Install SPIRE ag
 	@echo "Installing agent configuration for environment: $(SPIRE_ENVIRONMENT)..."
 	@echo "Trust domain: $(TRUST_DOMAIN)"
 	@sudo cp environments/$(SPIRE_ENVIRONMENT)/agent.conf $(SPIRE_CONFIG_DIR)/agent/agent.conf
-	@sudo chown -R spire-agent:spire-agent $(SPIRE_DATA_DIR)/agent
-	@sudo chown -R spire-agent:spire-agent $(SPIRE_CONFIG_DIR)/agent
 	@sudo chmod 700 $(SPIRE_DATA_DIR)/agent/keys
 	@echo "Installing systemd service..."
 	@sudo cp contrib/systemd/spire-agent.service /etc/systemd/system/
