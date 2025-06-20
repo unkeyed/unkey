@@ -54,19 +54,28 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
 
   const changeWorkspace = trpc.user.switchOrg.useMutation({
     async onSuccess(sessionData) {
-      const { token, expiresAt } = sessionData;
-      await setSessionCookie({
-        token: token!,
-        expiresAt: expiresAt!,
-      });
+      if (!sessionData.token || !sessionData.expiresAt) {
+        toast.error("Failed to switch workspace. Invalid session data.");
+        return;
+      }
 
-      // refresh the check mark by invalidating the current user's org data
-      utils.user.getCurrentUser.invalidate();
-      utils.api.overview.query.invalidate();
-      utils.ratelimit.namespace.query.invalidate();
+      try {
+        await setSessionCookie({
+          token: sessionData.token,
+          expiresAt: sessionData.expiresAt,
+        });
 
-      // reload data
-      router.replace("/");
+        // refresh the check mark by invalidating the current user's org data
+        utils.user.getCurrentUser.invalidate();
+        utils.api.overview.query.invalidate();
+        utils.ratelimit.namespace.query.invalidate();
+
+        // reload data
+        router.replace("/");
+      } catch (error) {
+        console.error("Failed to set session cookie:", error);
+        toast.error("Failed to complete workspace switch. Please try again.");
+      }
     },
     onError(error) {
       console.error("Failed to switch workspace: ", error);
@@ -85,7 +94,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
     return userMemberships.filter((m) =>
       m.organization.name.toLowerCase().includes(search.toLowerCase()),
     );
-  }, [search, userMemberships])!;
+  }, [search, userMemberships]);
 
   return (
     <DropdownMenu>

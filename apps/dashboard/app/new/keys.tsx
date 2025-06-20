@@ -81,11 +81,25 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
     if (key.length === 0) {
       return "";
     }
+
     const split = key.split("_");
+
     if (split.length === 1) {
-      return "*".repeat(split.at(0)!.length);
+      const firstPart = split[0];
+      if (!firstPart) {
+        return "";
+      }
+      return "*".repeat(firstPart.length);
     }
-    return `${split.at(0)}_${"*".repeat(split.at(1)!.length)}`;
+
+    const prefix = split[0];
+    const suffix = split[1];
+
+    if (!prefix || !suffix) {
+      return "*".repeat(key.length);
+    }
+
+    return `${prefix}_${"*".repeat(suffix.length)}`;
   }
   function AsideContent() {
     return (

@@ -211,6 +211,7 @@ export const registerLegacyKeysCreate = (app: App) =>
     await db.primary.transaction(async (tx) => {
       await tx.insert(schema.keys).values({
         id: keyId,
+        // biome-ignore lint/style/noNonNullAssertion: This is legacy already no need for change
         keyAuthId: api.keyAuthId!,
         name: req.name,
         hash,
@@ -247,6 +248,7 @@ export const registerLegacyKeysCreate = (app: App) =>
           },
           {
             type: "keyAuth",
+            // biome-ignore lint/style/noNonNullAssertion: This is legacy already no need for change
             id: api.keyAuthId!,
           },
           { type: "api", id: api.id },

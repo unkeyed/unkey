@@ -57,7 +57,7 @@ export function createConnection(opts: ConnectionOptions): Database {
         }
 
         opts.logger.error("fetching from planetscale failed", {
-          message: lastError!.message,
+          message: lastError?.message,
           retries: "exhausted",
         });
         throw lastError;
