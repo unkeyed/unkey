@@ -1,9 +1,8 @@
 "use client";
-import { Badge } from "@/components/ui/badge";
 import { VirtualTable, type VirtualTableRef } from "@/components/virtual-table";
 import type { Column } from "@/components/virtual-table/types";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
-import { TimestampInfo } from "@unkey/ui";
+import { Badge, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { FunctionSquare, KeySquare } from "lucide-react";
 import { useEffect, useRef } from "react";
