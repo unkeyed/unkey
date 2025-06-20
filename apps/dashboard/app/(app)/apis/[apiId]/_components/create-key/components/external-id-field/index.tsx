@@ -2,16 +2,23 @@ import { useCreateIdentity } from "@/app/(app)/apis/[apiId]/_components/create-k
 import { useFetchIdentities } from "@/app/(app)/apis/[apiId]/_components/create-key/hooks/use-fetch-identities";
 import { createIdentityOptions } from "@/app/(app)/apis/[apiId]/_components/create-key/hooks/use-fetch-identities/create-identity-options";
 import { FormCombobox } from "@/components/ui/form-combobox";
+import type { Identity } from "@unkey/db";
 import { TriangleWarning2 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useSearchIdentities } from "./use-search-identities";
 
 type ExternalIdFieldProps = {
   value: string | null;
   onChange: (identityId: string | null, externalId: string | null) => void;
   error?: string;
   disabled?: boolean;
+  currentIdentity?: {
+    id: string;
+    externalId: string;
+    meta?: Identity["meta"];
+  };
 };
 
 export const ExternalIdField = ({
@@ -19,13 +26,60 @@ export const ExternalIdField = ({
   onChange,
   error,
   disabled = false,
+  currentIdentity,
 }: ExternalIdFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
-  const { identities, isFetchingNextPage, hasNextPage, loadMore } = useFetchIdentities();
+
+  const { identities, isFetchingNextPage, hasNextPage, loadMore, isLoading } = useFetchIdentities();
+  const { searchResults, isSearching } = useSearchIdentities(searchValue);
 
   const createIdentity = useCreateIdentity((data) => {
     onChange(data.identityId, data.externalId);
   });
+
+  // Combine loaded identities with search results, prioritizing search when available
+  const allIdentities = useMemo(() => {
+    if (searchValue.trim() && searchResults.length > 0) {
+      // When searching, use search results
+      return searchResults;
+    }
+    if (searchValue.trim() && searchResults.length === 0 && !isSearching) {
+      // No search results found, filter from loaded identities as fallback
+      const searchTerm = searchValue.toLowerCase().trim();
+      return identities.filter((identity) =>
+        identity.externalId.toLowerCase().includes(searchTerm),
+      );
+    }
+    // No search query, use all loaded identities
+    return identities;
+  }, [identities, searchResults, searchValue, isSearching]);
+
+  // Ensure current identity is always available in the options
+  const allIdentitiesWithCurrent = useMemo(() => {
+    if (!currentIdentity || !value) {
+      return allIdentities;
+    }
+
+    // Check if current identity is already in the list
+    const currentExists = allIdentities.some((identity) => identity.id === currentIdentity.id);
+
+    if (currentExists) {
+      return allIdentities;
+    }
+
+    return [
+      {
+        id: currentIdentity.id,
+        externalId: currentIdentity.externalId,
+        meta: currentIdentity.meta || {},
+        workspaceId: "",
+        environment: "",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+      ...allIdentities,
+    ];
+  }, [allIdentities, currentIdentity, value]);
 
   const handleCreateIdentity = () => {
     if (searchValue.trim()) {
@@ -36,27 +90,30 @@ export const ExternalIdField = ({
     }
   };
 
-  const exactMatch = identities.some(
+  const exactMatch = allIdentitiesWithCurrent.some(
     (id) => id.externalId.toLowerCase() === searchValue.toLowerCase().trim(),
   );
 
   const filteredIdentities = searchValue.trim()
-    ? identities.filter((identity) =>
+    ? allIdentitiesWithCurrent.filter((identity) =>
         identity.externalId.toLowerCase().includes(searchValue.toLowerCase().trim()),
       )
-    : identities;
+    : allIdentitiesWithCurrent;
 
   const hasPartialMatches = filteredIdentities.length > 0;
 
+  // Don't show load more when actively searching
+  const showLoadMore = !searchValue.trim() && hasNextPage;
+
   const baseOptions = createIdentityOptions({
     identities: filteredIdentities,
-    hasNextPage,
+    hasNextPage: showLoadMore,
     isFetchingNextPage,
     loadMore,
   });
 
   const createOption =
-    searchValue.trim() && !exactMatch && hasPartialMatches
+    searchValue.trim() && !exactMatch && hasPartialMatches && !isSearching
       ? {
           label: (
             <div className="flex items-center gap-2 w-full">
@@ -82,6 +139,8 @@ export const ExternalIdField = ({
 
   const options = createOption ? [createOption, ...baseOptions] : baseOptions;
 
+  const isComboboxLoading = isLoading || (isSearching && searchValue.trim().length > 0);
+
   return (
     <FormCombobox
       optional
@@ -90,24 +149,29 @@ export const ExternalIdField = ({
       options={options}
       key={value}
       value={value || ""}
-      onChange={(e) => setSearchValue(e.currentTarget.value)}
+      onChange={(e) => {
+        setSearchValue(e.currentTarget.value);
+      }}
       onSelect={(val) => {
         if (val === "__create_new__") {
           handleCreateIdentity();
           return;
         }
-        const identity = identities.find((id) => id.id === val);
+        const identity = allIdentitiesWithCurrent.find((id) => id.id === val);
         onChange(identity?.id || null, identity?.externalId || null);
       }}
       placeholder={
-        <div className="flex w-full text-grayA-8 text-xs gap-1.5 items-center py-2">
-          Select External ID
-        </div>
+        <div className="flex w-full text-grayA-8 text-xs items-center py-2">Select External ID</div>
       }
       searchPlaceholder="Search External ID..."
       emptyMessage={
         searchValue.trim() && !exactMatch ? (
-          <div className="p-0 max-w-[600px]">
+          <div
+            className={cn(
+              "p-0 w-full transition-all duration-300 ease-in-out",
+              "animate-in fade-in-0 slide-in-from-top-2",
+            )}
+          >
             <div className="px-3 py-3 w-full">
               <div className="flex gap-2 items-center justify-start">
                 <div
@@ -115,6 +179,7 @@ export const ExternalIdField = ({
                     "flex items-center rounded size-5 justify-center",
                     "bg-warningA-4",
                     "text-warning-11",
+                    "transition-colors duration-200",
                   )}
                 >
                   <TriangleWarning2 size="sm-regular" />
@@ -137,7 +202,11 @@ export const ExternalIdField = ({
                 type="button"
                 variant="primary"
                 size="xlg"
-                className="rounded-lg w-full"
+                className={cn(
+                  "rounded-lg w-full",
+                  "transition-all duration-200 ease-in-out",
+                  "hover:scale-[1.02] active:scale-[0.98]",
+                )}
                 onClick={handleCreateIdentity}
                 loading={createIdentity.isLoading}
                 disabled={!searchValue.trim() || createIdentity.isLoading || disabled}
@@ -146,13 +215,35 @@ export const ExternalIdField = ({
               </Button>
             </div>
           </div>
+        ) : isComboboxLoading ? (
+          <div className="px-3 py-3 text-gray-10 text-[13px] flex items-center gap-2">
+            <div className="animate-spin h-3 w-3 border border-gray-6 border-t-gray-11 rounded-full" />
+            {isSearching ? "Searching..." : "Loading identities..."}
+          </div>
         ) : (
-          <div className="px-3 py-3 text-gray-10 text-[13px]">No results found</div>
+          <div
+            className={cn(
+              "px-3 mt-2 text-gray-10 text-[13px]",
+              "transition-all duration-200 ease-in-out",
+              "animate-in fade-in-0",
+            )}
+          >
+            No results found
+          </div>
         )
       }
       variant="default"
       error={error}
-      disabled={disabled}
+      disabled={disabled || isLoading}
+      //@ts-expect-error this will be fixed in the following PRs
+      loading={isComboboxLoading}
+      title={
+        isComboboxLoading
+          ? isSearching && searchValue.trim()
+            ? "Searching for identities..."
+            : "Loading available identities..."
+          : undefined
+      }
     />
   );
 };

@@ -14,6 +14,7 @@ export const useCreateIdentity = (
       });
 
       trpcUtils.identity.query.invalidate();
+      trpcUtils.identity.search.invalidate();
 
       if (onSuccess) {
         onSuccess(data);

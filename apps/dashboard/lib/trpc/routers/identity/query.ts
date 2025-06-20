@@ -8,7 +8,7 @@ const identitiesQueryPayload = z.object({
   limit: z.number().optional().default(50),
 });
 
-const IdentityResponseSchema = z.object({
+export const IdentityResponseSchema = z.object({
   id: z.string(),
   externalId: z.string(),
   workspaceId: z.string(),
