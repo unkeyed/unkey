@@ -84,7 +84,7 @@ export const NavigableDialogExample = memo(() => {
             subTitle="A simple demonstration"
           />
 
-          <NavigableDialogBody>
+          <NavigableDialogBody className="flex text-warning-5">
             <NavigableDialogNav items={NAV_ITEMS} />
             <NavigableDialogContent items={CONTENT_ITEMS} />
           </NavigableDialogBody>
