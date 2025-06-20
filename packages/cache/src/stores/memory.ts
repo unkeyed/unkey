@@ -85,7 +85,7 @@ export class MemoryStore<TNamespace extends string, TValue = unknown>
        * If that's not enough, we delete oldest first
        */
       for (const [k] of this.state) {
-        if (this.state.size <= this.unstableEvictOnSet!.maxItems) {
+        if (this.state.size <= this.unstableEvictOnSet.maxItems) {
           break;
         }
 

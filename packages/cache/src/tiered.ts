@@ -49,11 +49,12 @@ export class TieredStore<TNamespace extends string, TValue> implements Store<TNa
       if (res.err) {
         return res;
       }
-      if (typeof res.val !== "undefined") {
+      const val = res.val;
+      if (typeof val !== "undefined") {
         // Fill all lower caches
         this.ctx.waitUntil(
           Promise.all(
-            this.tiers.filter((_, j) => j < i).map((t) => () => t.set(namespace, key, res.val!)),
+            this.tiers.filter((_, j) => j < i).map((t) => () => t.set(namespace, key, val)),
           ).catch((err) => {
             return Err(
               new CacheError({

@@ -29,10 +29,16 @@ export const vercelRouter = t.router({
         where: (table, { eq }) => eq(table.id, env().UNKEY_API_ID),
       });
       if (!unkeyApi) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "unkey api not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "unkey api not found",
+        });
       }
       if (!unkeyApi.keyAuthId) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "unkey api not setup to handle keys" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "unkey api not setup to handle keys",
+        });
       }
 
       const integration = await db.query.vercelIntegrations.findFirst({
@@ -42,11 +48,26 @@ export const vercelRouter = t.router({
         },
       });
       if (!integration) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "integration not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "integration not found",
+        });
       }
       if (!integration.workspace || integration.workspace.orgId !== ctx.tenant.id) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
       }
+
+      const keyAuthId = unkeyApi.keyAuthId;
+      if (!keyAuthId) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "unkey api not setup to handle keys",
+        });
+      }
+
       const vercel = new Vercel({
         accessToken: integration.accessToken,
         teamId: integration.vercelTeamId ?? undefined,
@@ -57,11 +78,14 @@ export const vercelRouter = t.router({
         }
 
         const keyId = newId("key");
-        const { key, hash, start } = await newKey({ prefix: "unkey", byteLength: 16 });
+        const { key, hash, start } = await newKey({
+          prefix: "unkey",
+          byteLength: 16,
+        });
         await db.transaction(async (tx) => {
           await tx.insert(schema.keys).values({
             id: keyId,
-            keyAuthId: unkeyApi.keyAuthId!,
+            keyAuthId,
             name: `Vercel Integration - ${environment}`,
             hash,
             start,
@@ -217,7 +241,10 @@ export const vercelRouter = t.router({
         },
       });
       if (!integration) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "integration not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "integration not found",
+        });
       }
 
       if (integration.workspace.orgId !== ctx.tenant.id) {
@@ -236,7 +263,10 @@ export const vercelRouter = t.router({
         input.apiId,
       );
       if (res.err) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: res.err.message });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: res.err.message,
+        });
       }
       const existingBinding = integration.vercelBindings.find(
         (b) =>
@@ -336,7 +366,10 @@ export const vercelRouter = t.router({
         },
       });
       if (!integration) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "integration not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "integration not found",
+        });
       }
 
       if (integration.workspace.orgId !== ctx.tenant.id) {
@@ -347,10 +380,17 @@ export const vercelRouter = t.router({
         where: (table, { eq }) => eq(table.id, env().UNKEY_API_ID),
       });
       if (!unkeyApi) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "unkey api not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "unkey api not found",
+        });
       }
-      if (!unkeyApi.keyAuthId) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "unkey api not setup to handle keys" });
+      const keyAuthId = unkeyApi.keyAuthId;
+      if (!keyAuthId) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "unkey api not setup to handle keys",
+        });
       }
 
       const vercel = new Vercel({
@@ -359,11 +399,14 @@ export const vercelRouter = t.router({
       });
 
       const keyId = newId("key");
-      const { key, hash, start } = await newKey({ prefix: "unkey", byteLength: 16 });
+      const { key, hash, start } = await newKey({
+        prefix: "unkey",
+        byteLength: 16,
+      });
       await db.transaction(async (tx) => {
         await tx.insert(schema.keys).values({
           id: keyId,
-          keyAuthId: unkeyApi.keyAuthId!,
+          keyAuthId,
           name: `Vercel Integration - ${input.environment}`,
           hash,
           start,
@@ -401,7 +444,10 @@ export const vercelRouter = t.router({
         true,
       );
       if (res.err) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: res.err.message });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: res.err.message,
+        });
       }
       const existingBinding = integration.vercelBindings.find(
         (b) =>
@@ -511,7 +557,10 @@ export const vercelRouter = t.router({
         },
       });
       if (!binding) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "integration not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "integration not found",
+        });
       }
 
       if (binding.vercelIntegrations.workspace.orgId !== ctx.tenant.id) {
@@ -563,7 +612,10 @@ export const vercelRouter = t.router({
         },
       });
       if (!integration) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "integration not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "integration not found",
+        });
       }
 
       if (integration.workspace.orgId !== ctx.tenant.id) {

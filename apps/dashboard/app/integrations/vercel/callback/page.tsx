@@ -30,6 +30,10 @@ export default async function Page(props: Props) {
     return <div>no code</div>;
   }
 
+  if (!props.searchParams.next) {
+    return <div>no next</div>;
+  }
+
   const { orgId } = await getAuth();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
@@ -106,7 +110,7 @@ export default async function Page(props: Props) {
     <Client
       projects={projects.val}
       apis={workspace.apis}
-      returnUrl={props.searchParams.next!}
+      returnUrl={props.searchParams.next}
       integrationId={integration.id}
       accessToken={integration.accessToken}
       vercelTeamId={integration.vercelTeamId}

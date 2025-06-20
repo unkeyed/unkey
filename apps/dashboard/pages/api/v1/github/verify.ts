@@ -115,9 +115,21 @@ export default async function handler(request: NextApiRequest, response: NextApi
       console.error("Workspace not found");
       return response.status(201).json({});
     }
-    const users = await getUsers(ws.orgId!);
+
+    if (!ws.orgId) {
+      console.error("Workspace orgId not found");
+      return response.status(201).json({});
+    }
+
+    const users = await getUsers(ws.orgId);
     const date = new Date().toDateString();
-    foundKeys.push({ token, source: item.source, url: item.url, type: item.type, isFound: true });
+    foundKeys.push({
+      token,
+      source: item.source,
+      url: item.url,
+      type: item.type,
+      isFound: true,
+    });
     for await (const user of users) {
       await resend.sendLeakedKeyEmail({
         email: user.email,
@@ -133,15 +145,23 @@ export default async function handler(request: NextApiRequest, response: NextApi
       date,
       keyId: keyFound.id,
       wsName: ws.name,
-      orgId: ws.orgId!,
+      orgId: ws.orgId,
       email: users[0].email,
     });
   }
   const githubResponse = foundKeys.map((key) => {
     if (!key.isFound) {
-      return { token_hash: key.token, token_type: key.type, label: "false_positive" };
+      return {
+        token_hash: key.token,
+        token_type: key.type,
+        label: "false_positive",
+      };
     }
-    return { token_raw: key.token, token_type: key.type, label: "true_positive" };
+    return {
+      token_raw: key.token,
+      token_type: key.type,
+      label: "true_positive",
+    };
   });
   return response.status(201).json([...githubResponse]);
 }
@@ -208,22 +228,24 @@ async function alertSlack({
 }
 
 async function getUsers(orgId: string): Promise<{ id: string; email: string; name: string }[]> {
-  const userIds: string[] = [];
   const members = await auth.getOrganizationMemberList(orgId);
-  for (const m of members.data) {
-    userIds.push(m.user.id);
-  }
 
-  return await Promise.all(
-    userIds.map(async (userId) => {
-      const user = await auth.getUser(userId);
-      const email = user!.email;
-
-      return {
-        id: user!.id,
-        name: user!.firstName ?? "",
-        email: email ?? "",
-      };
+  const users = await Promise.all(
+    members.data.map(async (member) => {
+      try {
+        const user = await auth.getUser(member.user.id);
+        return user;
+      } catch {
+        return null;
+      }
     }),
   );
+
+  return users
+    .filter((user): user is NonNullable<typeof user> => user !== null)
+    .map((user) => ({
+      id: user.id,
+      name: user.firstName ?? "",
+      email: user.email ?? "",
+    }));
 }

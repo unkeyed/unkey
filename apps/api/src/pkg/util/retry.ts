@@ -36,6 +36,7 @@ export class Retry {
       });
       await new Promise((r) => setTimeout(r, backoff));
     }
+    // biome-ignore lint/style/noNonNullAssertion: Safe to leave
     return result!;
   }
 }

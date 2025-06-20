@@ -53,7 +53,7 @@ export async function getAuth(req?: NextRequest): Promise<GetAuthResult> {
 export async function getCurrentUser(): Promise<AuthenticatedUser> {
   const { userId, orgId, impersonator, role } = await getAuth();
 
-  const user = await auth.getUser(userId!); // getAuth will redirect if there's no userId
+  const user = await auth.getUser(userId); // getAuth will redirect if there's no userId
   if (!user) {
     redirect("/auth/sign-in");
   }

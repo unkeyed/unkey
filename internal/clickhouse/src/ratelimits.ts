@@ -111,7 +111,11 @@ function createTimeseriesQuery(interval: TimeInterval, whereClause: string) {
     MONTH: 2592000_000, // approximate milliseconds in a month (30 days)
   }[interval.step];
 
-  const stepMs = intervalUnit! * interval.stepSize;
+  if (!intervalUnit) {
+    throw new Error("Unknown interval in 'createTimeseriesQuery'");
+  }
+
+  const stepMs = intervalUnit * interval.stepSize;
 
   return `
     SELECT

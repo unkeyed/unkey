@@ -24,7 +24,7 @@ type Props = {
 
 export default async function Page(props: Props) {
   const search = parseAsString.withDefault("").parse(props.searchParams.search ?? "");
-  const limit = parseAsInteger.withDefault(100).parse(props.searchParams.limit ?? "100")!;
+  const limit = parseAsInteger.withDefault(100).parse(props.searchParams.limit ?? "100");
 
   const { orgId } = await getAuth();
   const workspace = await db.query.workspaces.findFirst({
@@ -54,7 +54,7 @@ export default async function Page(props: Props) {
               </Empty>
             }
           >
-            <Results search={search ?? ""} limit={limit} />
+            <Results search={search ?? ""} limit={limit ?? 0} />
           </Suspense>
         </div>
       </PageContent>
