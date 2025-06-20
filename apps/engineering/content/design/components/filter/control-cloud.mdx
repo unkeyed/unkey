@@ -1,0 +1,198 @@
+---
+title: ControlCloud
+description: A dynamic filter display component that shows active filters as interactive pills with keyboard navigation and removal capabilities.
+---
+import { 
+  BasicControlCloud, 
+  TimeBasedFilters, 
+  MultipleFilterTypes, 
+  EmptyState, 
+  InteractiveExample 
+} from "./control-cloud.examples";
+
+## Usage
+
+```tsx
+import { ControlCloud } from "@unkey/ui";
+
+export default function MyComponent() {
+  const [filters, setFilters] = useState<FilterValue[]>([]);
+  
+  const removeFilter = (id: string) => {
+    setFilters(filters.filter(f => f.id !== id));
+  };
+  
+  const updateFilters = (newFilters: FilterValue[]) => {
+    setFilters(newFilters);
+  };
+  
+  const formatFieldName = (field: string): string => {
+    return field.charAt(0).toUpperCase() + field.slice(1);
+  };
+  
+  return (
+    <ControlCloud
+      filters={filters}
+      removeFilter={removeFilter}
+      updateFilters={updateFilters}
+      formatFieldName={formatFieldName}
+    />
+  );
+}
+```
+
+## Examples
+
+### Basic ControlCloud
+A simple example showing basic filter pills for status and method.
+
+<BasicControlCloud />
+
+### Time-Based Filters
+Example with time range filters that use the TimestampInfo component for display.
+
+<TimeBasedFilters />
+
+### Multiple Filter Types
+Demonstrates different filter types including status, method, path, and duration with custom value formatting.
+
+<MultipleFilterTypes />
+
+### Empty State
+When no filters are applied, the component is hidden entirely.
+
+<EmptyState />
+
+### Interactive Example
+Add filters dynamically and test keyboard navigation.
+
+<InteractiveExample />
+
+## Features
+
+- **Interactive Filter Pills**: Each filter is displayed as a removable pill with field name, operator, and value
+- **Keyboard Navigation**: Full keyboard support with arrow keys and vim-style navigation (h,j,k,l)
+- **Keyboard Shortcuts**: 
+  - `⌥+⇧+D` to clear all filters and set default time range
+  - `⌥+⇧+C` to focus the first filter pill
+- **Time Display**: Automatic timestamp formatting for time-based filters
+- **Custom Formatting**: Configurable field name and value formatting
+- **Accessibility**: Proper ARIA attributes and screen reader support
+- **Responsive Design**: Adapts to different screen sizes
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `filters` | `FilterValue[]` | `[]` | Array of active filters to display |
+| `removeFilter` | `(id: string) => void` | - | Function to remove a filter by ID |
+| `updateFilters` | `(filters: FilterValue[]) => void` | - | Function to update the entire filter array |
+| `formatFieldName` | `(field: string) => string` | - | Function to format field names for display |
+| `formatValue` | `(value: string \| number, field: string) => string` | `defaultFormatValue` | Function to format values for display |
+| `historicalWindow` | `number` | `12 * 60 * 60 * 1000` | Default time window in milliseconds for time-based shortcuts |
+
+## FilterValue Type
+
+```tsx
+type FilterValue = {
+  id: string;
+  field: string;
+  operator: "is" | "contains" | "gt" | "lt" | "gte" | "lte" | "startsWith" | "endsWith";
+  value: string | number;
+  metadata?: {
+    colorClass?: string;
+    icon?: React.ReactNode;
+  };
+};
+```
+
+## Keyboard Navigation
+
+The ControlCloud component provides comprehensive keyboard navigation:
+
+- **Arrow Keys**: Navigate between filter pills
+- **Vim Keys**: 
+  - `h` / `←`: Move left
+  - `l` / `→`: Move right  
+  - `j` / `↓`: Move down
+  - `k` / `↑`: Move up
+- **Delete/Backspace**: Remove focused filter pill
+- **Tab**: Standard tab navigation
+- **Escape**: Clear focus
+
+## Keyboard Shortcuts
+
+- **`⌥+⇧+D`**: Clear all filters and set a default time range (endTime = now, startTime = now - historicalWindow)
+- **`⌥+⇧+C`**: Focus the first filter pill for keyboard navigation
+
+## Customization
+
+### Field Name Formatting
+
+Customize how field names are displayed:
+
+```tsx
+const formatFieldName = (field: string): string => {
+  switch (field) {
+    case "startTime":
+      return "Start time";
+    case "endTime":
+      return "End time";
+    case "status":
+      return "Status";
+    default:
+      return field.charAt(0).toUpperCase() + field.slice(1);
+  }
+};
+```
+
+### Value Formatting
+
+Customize how values are displayed:
+
+```tsx
+const formatValue = (value: string | number, field: string): string => {
+  if (field === "duration") {
+    return `${value}ms`;
+  }
+  if (field === "status") {
+    return `HTTP ${value}`;
+  }
+  return String(value);
+};
+```
+
+## Accessibility
+
+The ControlCloud component is built with accessibility in mind:
+
+- **Keyboard Navigation**: Full keyboard support for all interactions
+- **Screen Reader Support**: Proper ARIA labels and announcements
+- **Focus Management**: Clear focus indicators and logical tab order
+- **High Contrast**: Maintains proper contrast ratios
+- **Semantic HTML**: Uses appropriate HTML elements and roles
+
+## Best Practices
+
+- **Consistent Field Names**: Use consistent field name formatting across your application
+- **Clear Value Display**: Format values in a user-friendly way
+- **Keyboard Shortcuts**: Document keyboard shortcuts for power users
+- **Empty State**: Handle the empty state gracefully (component is hidden when no filters)
+- **Filter Management**: Implement proper filter state management in your application
+- **Time Windows**: Set appropriate historical windows for time-based shortcuts
+- **Performance**: Consider memoizing format functions for large filter arrays
+
+## Integration
+
+The ControlCloud component is commonly used with:
+
+- **Data Tables**: Display active filters above table content
+- **Log Viewers**: Show applied log filters
+- **Analytics Dashboards**: Display metric filters
+- **Search Interfaces**: Show active search criteria
+
+## Related Components
+
+- **ControlPill**: Individual filter pill component (internal)
+- **TimestampInfo**: Time display component for time-based filters
+- **KeyboardButton**: Keyboard shortcut display component 
