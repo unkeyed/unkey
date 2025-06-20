@@ -41,9 +41,9 @@ const checkboxVariants = cva(
       },
       size: {
         sm: "h-3 w-3",
-        md: "h-4 w-4",
-        lg: "h-5 w-5",
-        xlg: "h-6 w-6",
+        md: "h-3.5 w-3.5",
+        lg: "h-4 w-4",
+        xlg: "h-5 w-5",
       },
     },
     defaultVariants: {
@@ -192,13 +192,13 @@ const getIconSize = (size: CheckboxSize | undefined): IconProps["size"] => {
     case "sm":
       return "sm-regular";
     case "md":
-      return "md-regular";
+      return "sm-regular";
     case "lg":
-      return "lg-regular";
-    case "xlg":
-      return "xl-regular";
-    default:
       return "md-regular";
+    case "xlg":
+      return "lg-regular";
+    default:
+      return "sm-regular";
   }
 };
 
