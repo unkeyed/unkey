@@ -1,8 +1,7 @@
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { ChartActivity2 } from "@unkey/icons";
-import { Badge } from "@unkey/ui";
-import { TimestampInfo } from "@unkey/ui";
+import { Badge, TimestampInfo } from "@unkey/ui";
 import { useRef, useState } from "react";
 import { STATUS_STYLES } from "../_overview/components/table/utils/get-row-class";
 
