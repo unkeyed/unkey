@@ -1,6 +1,5 @@
 "use client";
 
-import { Code } from "@/components/ui/code";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dialog,
@@ -22,6 +21,7 @@ import {
   CardHeader,
   CardTitle,
   Checkbox,
+  Code,
   CopyButton,
   Input,
   VisibleButton,

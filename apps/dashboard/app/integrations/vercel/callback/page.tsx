@@ -3,11 +3,10 @@
  * Hiding for now until we decide if we want to fix it up or toss it
  */
 
-import { Code } from "@/components/ui/code";
 import { getAuth } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { vercelIntegrationEnv } from "@/lib/env";
-import { Empty } from "@unkey/ui";
+import { Code, Empty } from "@unkey/ui";
 import { Vercel } from "@unkey/vercel";
 import { Client } from "./client";
 import { exchangeCode } from "./exchange-code";

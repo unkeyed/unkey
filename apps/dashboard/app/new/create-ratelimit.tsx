@@ -1,9 +1,8 @@
-import { Code } from "@/components/ui/code";
 import { getCurrentUser } from "@/lib/auth";
 import { router } from "@/lib/trpc/routers";
 import { createCallerFactory } from "@trpc/server";
 import type { Workspace } from "@unkey/db";
-import { Button, CopyButton } from "@unkey/ui";
+import { Button, Code, CopyButton } from "@unkey/ui";
 import { GlobeLock } from "lucide-react";
 import Link from "next/link";
 
