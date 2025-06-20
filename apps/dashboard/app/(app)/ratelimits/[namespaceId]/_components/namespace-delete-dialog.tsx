@@ -1,8 +1,6 @@
 "use client";
 
-import { revalidateTag } from "@/app/actions";
 import { toast } from "@/components/ui/toaster";
-import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer, Input } from "@unkey/ui";
@@ -46,7 +44,7 @@ export const DeleteNamespaceDialog = ({
       name: "",
     },
   });
-
+  const trpcUtils = trpc.useUtils();
   const isValid = watch("name") === namespace.name;
 
   const deleteNamespace = trpc.ratelimit.namespace.delete.useMutation({
@@ -54,7 +52,7 @@ export const DeleteNamespaceDialog = ({
       toast.success("Namespace Deleted", {
         description: "Your namespace and all its overridden identifiers have been deleted.",
       });
-      revalidateTag(tags.namespace(namespace.id));
+      trpcUtils.ratelimit.namespace.query.invalidate();
       router.push("/ratelimits");
       onOpenChange(false);
     },

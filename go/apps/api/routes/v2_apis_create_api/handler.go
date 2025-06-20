@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -25,7 +24,7 @@ import (
 type Request = openapi.V2ApisCreateApiRequestBody
 type Response = openapi.V2ApisCreateApiResponseBody
 
-type Services struct {
+type Handler struct {
 	Logger      logging.Logger
 	DB          db.Database
 	Keys        keys.KeyService
@@ -33,61 +32,45 @@ type Services struct {
 	Auditlogs   auditlogs.AuditLogService
 }
 
-func New(svc Services) zen.Route {
-	return zen.NewRoute("POST", "/v2/apis.createApi", func(ctx context.Context, s *zen.Session) error {
-		auth, err := svc.Keys.VerifyRootKey(ctx, s)
-		if err != nil {
-			return err
-		}
+func (h *Handler) Method() string {
+	return "POST"
+}
 
-		var req Request
-		err = s.BindBody(&req)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.WithDesc("invalid request body", "The request body is invalid."),
-			)
-		}
+func (h *Handler) Path() string {
+	return "/v2/apis.createApi"
+}
 
-		permissions, err := svc.Permissions.Check(
-			ctx,
-			auth.KeyID,
-			rbac.Or(
+func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
+	auth, err := h.Keys.VerifyRootKey(ctx, s)
+	if err != nil {
+		return err
+	}
 
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   "*",
-					Action:       rbac.CreateAPI,
-				}),
-			),
+	var req Request
+	err = s.BindBody(&req)
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
 		)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.WithDesc("unable to check permissions", "We're unable to check the permissions of your key."),
-			)
-		}
+	}
 
-		if !permissions.Valid {
-			return fault.New("insufficient permissions",
-				fault.WithCode(codes.Auth.Authorization.InsufficientPermissions.URN()),
-				fault.WithDesc(permissions.Message, permissions.Message),
-			)
-		}
+	err = h.Permissions.Check(
+		ctx,
+		auth.KeyID,
+		rbac.Or(
 
-		tx, err := svc.DB.RW().Begin(ctx)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to create transaction", "Unable to start database transaction."),
-			)
-		}
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   "*",
+				Action:       rbac.CreateAPI,
+			}),
+		),
+	)
+	if err != nil {
+		return err
+	}
 
-		defer func() {
-			rollbackErr := tx.Rollback()
-			if rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
-				svc.Logger.Error("rollback failed", "requestId", s.RequestID(), "error", rollbackErr)
-			}
-		}()
-
+	apiId, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
 		keyAuthId := uid.New(uid.KeyAuthPrefix)
 		err = db.Query.InsertKeyring(ctx, tx, db.InsertKeyringParams{
 			ID:                 keyAuthId,
@@ -98,9 +81,9 @@ func New(svc Services) zen.Route {
 			StoreEncryptedKeys: false,
 		})
 		if err != nil {
-			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("unable to create key auth", "We're unable to create key authentication for the API."),
+			return "", fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("unable to create key auth"), fault.Public("We're unable to create key authentication for the API."),
 			)
 		}
 
@@ -114,21 +97,20 @@ func New(svc Services) zen.Route {
 			CreatedAtM:  time.Now().UnixMilli(),
 		})
 		if err != nil {
-			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("unable to create api", "We're unable to create the API."),
+			return "", fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("unable to create api"), fault.Public("We're unable to create the API."),
 			)
 		}
 
-		err = svc.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
+		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.APICreateEvent,
 				Display:     fmt.Sprintf("Created API %s", apiId),
 				ActorID:     auth.KeyID,
 				ActorName:   "root key",
-				ActorMeta:   nil,
-				Bucket:      auditlogs.DEFAULT_BUCKET,
+				ActorMeta:   map[string]any{},
 				ActorType:   auditlog.RootKeyActor,
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
@@ -144,28 +126,24 @@ func New(svc Services) zen.Route {
 			},
 		})
 		if err != nil {
-			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to insert audit logs", "Failed to insert audit logs"),
+			return "", fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to insert audit logs"), fault.Public("Failed to insert audit logs"),
 			)
 		}
 
-		err = tx.Commit()
-		if err != nil {
-			return fault.Wrap(err,
-				fault.WithCode(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.WithDesc("database failed to commit transaction", "Failed to commit changes."),
-			)
-		}
+		return apiId, nil
+	})
+	if err != nil {
+		return err
+	}
 
-		return s.JSON(http.StatusOK, Response{
-			Meta: openapi.Meta{
-				RequestId: s.RequestID(),
-			},
-			Data: openapi.ApisCreateApiResponseData{
-				ApiId: apiId,
-				Name:  req.Name,
-			},
-		})
+	return s.JSON(http.StatusOK, Response{
+		Meta: openapi.Meta{
+			RequestId: s.RequestID(),
+		},
+		Data: openapi.ApisCreateApiResponseData{
+			ApiId: apiId,
+		},
 	})
 }
