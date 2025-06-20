@@ -9,6 +9,7 @@ type UseKeysListQueryParams = {
   keyAuthId: string;
 };
 
+const CURSOR_LIMIT = 50;
 export function useKeysListQuery({ keyAuthId }: UseKeysListQueryParams) {
   const [totalCount, setTotalCount] = useState(0);
   const [keysMap, setKeysMap] = useState(() => new Map<string, KeyDetails>());
@@ -19,6 +20,7 @@ export function useKeysListQuery({ keyAuthId }: UseKeysListQueryParams) {
 
   const queryParams = useMemo(() => {
     const params: KeysQueryListPayload = {
+      limit: CURSOR_LIMIT,
       ...Object.fromEntries(keysListFilterFieldNames.map((field) => [field, []])),
       keyAuthId,
     };

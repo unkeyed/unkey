@@ -1,15 +1,12 @@
 "use client";
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowUpRight, TriangleWarning2 } from "@unkey/icons";
 import { Button, DialogContainer, InlineLink, Input, SettingCard } from "@unkey/ui";
-import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { revalidate } from "../actions";
+import { createApiFormConfig, createMutationHandlers } from "./key-settings-form-helper";
 import { StatusBadge } from "./status-badge";
 
 type Props = {
@@ -22,6 +19,7 @@ type Props = {
 };
 
 export const DeleteProtection: React.FC<Props> = ({ api }) => {
+  const { onDeleteProtectionSuccess, onError } = createMutationHandlers();
   const [open, setOpen] = useState(false);
 
   const formSchema = z.object({
@@ -37,32 +35,22 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
     reset,
     formState: { isSubmitting },
   } = useForm<FormValues>({
+    ...createApiFormConfig(formSchema),
     mode: "onChange",
-    resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
     },
   });
 
-  const router = useRouter();
   const isValid = watch("name") === api.name;
 
   const updateDeleteProtection = trpc.api.updateDeleteProtection.useMutation({
     async onSuccess(_, { enabled }) {
-      toast.message(
-        `Delete protection for ${api.name} has been ${enabled ? "enabled" : "disabled"}`,
-        {},
-      );
+      onDeleteProtectionSuccess(api.name, enabled)();
       setOpen(false);
-      await revalidate();
       reset();
-
-      router.refresh();
     },
-    onError(err) {
-      console.error(err);
-      toast.error(err.message);
-    },
+    onError,
   });
 
   async function onSubmit(_values: z.infer<typeof formSchema>) {
@@ -100,6 +88,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
             type="button"
             variant="outline"
             color="warning"
+            className="h-full px-3.5 "
             size="xlg"
             onClick={() => setOpen(true)}
           >
@@ -108,6 +97,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
         ) : (
           <Button
             type="button"
+            className="h-full px-3.5 "
             variant="outline"
             color="success"
             size="xlg"
@@ -125,12 +115,12 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
           <div className="flex flex-col gap-2 items-center justify-center w-full">
             <Button
               type="submit"
-              form="delete-protection-form" // Connect to form ID
+              form="delete-protection-form"
               variant="primary"
               color={api.deleteProtection ? "warning" : "success"}
               size="xlg"
-              disabled={!isValid || updateDeleteProtection.isLoading || isSubmitting}
-              loading={updateDeleteProtection.isLoading || isSubmitting}
+              disabled={!isValid || isSubmitting}
+              loading={isSubmitting}
               className="w-full"
             >
               {api.deleteProtection

@@ -1,13 +1,14 @@
 "use client";
-
-import { toast } from "@/components/ui/toaster";
-import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, FormInput, SettingCard } from "@unkey/ui";
+import { Button, Input, SettingCard } from "@unkey/ui";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
-import { revalidateTag } from "../../../../../actions";
+import {
+  createApiFormConfig,
+  createMutationHandlers,
+  getStandardButtonProps,
+  validateFormChange,
+} from "./key-settings-form-helper";
 
 export const dynamic = "force-dynamic";
 
@@ -26,17 +27,14 @@ type Props = {
 };
 
 export const UpdateApiName: React.FC<Props> = ({ api }) => {
-  const utils = trpc.useUtils();
+  const { onUpdateSuccess, onError } = createMutationHandlers();
 
   const {
     control,
     handleSubmit,
     formState: { isValid, isSubmitting, isDirty },
   } = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    mode: "all",
-    shouldFocusError: true,
-    delayError: 100,
+    ...createApiFormConfig(formSchema),
     defaultValues: {
       apiName: api.name,
       apiId: api.id,
@@ -45,22 +43,15 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
   });
 
   const updateName = trpc.api.updateName.useMutation({
-    onSuccess() {
-      toast.success("Your API name has been renamed!");
-      revalidateTag(tags.api(api.id));
-      // Invalidate only the API overview query to update the sidebar
-      utils.api.overview.query.invalidate();
-      // No need for a full page reload
-    },
-    onError(err) {
-      console.error(err);
-      toast.error(err.message);
-    },
+    onSuccess: onUpdateSuccess("API name updated successfully"),
+    onError,
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (values.apiName === api.name || !values.apiName) {
-      return toast.error("Please provide a valid name before saving.");
+    if (
+      !validateFormChange(api.name, values.apiName, "Please provide a valid name before saving.")
+    ) {
+      return;
     }
 
     await updateName.mutateAsync({
@@ -71,47 +62,40 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      <SettingCard
-        title="Name"
-        description="Change the name of your API. This is only visible to you and your team."
-        border="top"
-        className="border-b-1"
-        contentWidth="w-full lg:w-[420px]"
+    <SettingCard
+      title="Name"
+      description="Change the name of your API. This is only visible to you and your team."
+      border="top"
+      className="border-b-1"
+      contentWidth="w-full lg:w-[420px] h-full justify-end items-end"
+    >
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="flex flex-row justify-end items-center gap-x-2 h-9"
       >
-        <div className="flex flex-row items-center w-full gap-x-2 justify-end">
-          <input type="hidden" name="apiId" value={api.id} />
-          <input type="hidden" name="workspaceId" value={api.workspaceId} />
+        <input type="hidden" name="apiId" value={api.id} />
+        <input type="hidden" name="workspaceId" value={api.workspaceId} />
 
-          <Controller
-            control={control}
-            name="apiName"
-            render={({ field }) => (
-              <FormInput
-                {...field}
-                placeholder="my-api"
-                className="w-[16.5rem]"
-                onChange={(e) => {
-                  if (e.target.value === "") {
-                    return;
-                  }
-                  field.onChange(e);
-                }}
-              />
-            )}
-          />
+        <Controller
+          control={control}
+          name="apiName"
+          render={({ field }) => (
+            <Input
+              {...field}
+              placeholder="my-api"
+              className="min-w-[16rem] items-end h-9"
+              onChange={(e) => {
+                if (e.target.value === "") {
+                  return;
+                }
+                field.onChange(e);
+              }}
+            />
+          )}
+        />
 
-          <Button
-            size="lg"
-            variant="primary"
-            disabled={!isValid || isSubmitting || updateName.isLoading || !isDirty}
-            type="submit"
-            loading={isSubmitting || updateName.isLoading}
-          >
-            Save
-          </Button>
-        </div>
-      </SettingCard>
-    </form>
+        <Button {...getStandardButtonProps(isValid, isSubmitting, isDirty)}>Save</Button>
+      </form>
+    </SettingCard>
   );
 };

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { keysListFilterOperatorEnum } from "../../filters.schema";
 
+const PAGINATION_LIMIT = 50;
 const filterItemSchema = z.object({
   operator: keysListFilterOperatorEnum,
   value: z.string(),
@@ -16,6 +17,7 @@ const baseKeysSchema = z.object({
 
 export const keysQueryListPayload = baseKeysSchema.extend({
   cursor: z.string().nullish(),
+  limit: z.number().default(PAGINATION_LIMIT),
 });
 
 export type KeysQueryListPayload = z.infer<typeof keysQueryListPayload>;

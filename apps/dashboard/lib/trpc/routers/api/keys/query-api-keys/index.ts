@@ -13,7 +13,6 @@ const KeysListResponse = z.object({
 
 type KeysListResponse = z.infer<typeof KeysListResponse>;
 
-const PAGINATION_LIMIT = 50;
 export const queryKeysList = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
@@ -29,7 +28,7 @@ export const queryKeysList = t.procedure
         names: input.names,
         identities: input.identities,
       },
-      limit: PAGINATION_LIMIT,
+      limit: input.limit,
       cursorKeyId: input.cursor ?? null,
     });
 
