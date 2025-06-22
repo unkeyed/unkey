@@ -20,27 +20,19 @@ export const SlugColumnSkeleton = () => (
 );
 
 export const AssignedKeysColumnSkeleton = () => (
-  <div className="flex flex-col gap-1 py-2 max-w-[200px]">
+  <div className="flex flex-col gap-1 py-2 max-w-[200px] animate-in fade-in duration-300">
     <div className="rounded-md py-[2px] px-1.5 items-center w-fit flex gap-2 border border-dashed bg-grayA-3 border-grayA-6 animate-pulse h-[22px]">
       <Key2 size="md-regular" className="opacity-50" />
-      <div className="h-2 w-16 bg-grayA-3 rounded animate-pulse" />
-    </div>
-    <div className="rounded-md py-[2px] px-1.5 items-center w-fit flex gap-2 border border-dashed bg-grayA-3 border-grayA-6 animate-pulse h-[22px]">
-      <Key2 size="md-regular" className="opacity-50" />
-      <div className="h-2 w-12 bg-grayA-3 rounded animate-pulse" />
+      <div className="h-2 w-20 bg-grayA-3 rounded animate-pulse" />
     </div>
   </div>
 );
 
 export const PermissionsColumnSkeleton = () => (
-  <div className="flex flex-col gap-1 py-2 max-w-[200px]">
+  <div className="flex flex-col gap-1 py-2 max-w-[200px] animate-in fade-in duration-300">
     <div className="rounded-md py-[2px] px-1.5 items-center w-fit flex gap-2 border border-dashed bg-grayA-3 border-grayA-6 animate-pulse h-[22px]">
-      <HandHoldingKey className="size-3 opacity-50" size="md-regular" />
+      <HandHoldingKey size="md-regular" className="opacity-50" />
       <div className="h-2 w-20 bg-grayA-3 rounded animate-pulse" />
-    </div>
-    <div className="rounded-md py-[2px] px-1.5 items-center w-fit flex gap-2 border border-dashed bg-grayA-3 border-grayA-6 animate-pulse h-[22px]">
-      <HandHoldingKey className="size-3 opacity-50" size="md-regular" />
-      <div className="h-2 w-16 bg-grayA-3 rounded animate-pulse" />
     </div>
   </div>
 );
