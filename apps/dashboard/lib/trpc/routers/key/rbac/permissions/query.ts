@@ -7,7 +7,7 @@ import {
   transformPermission,
 } from "./schema-with-helpers";
 
-export const queryRolesPermissions = t.procedure
+export const queryKeysPermissions = t.procedure
   .use(requireWorkspace)
   .use(withRatelimit(ratelimit.read))
   .input(permissionsQueryPayload)
@@ -27,18 +27,6 @@ export const queryRolesPermissions = t.procedure
         },
         limit: limit + 1,
         orderBy: (permissions, { desc }) => desc(permissions.id),
-        with: {
-          roles: {
-            with: {
-              role: {
-                columns: {
-                  id: true,
-                  name: true,
-                },
-              },
-            },
-          },
-        },
         columns: {
           id: true,
           name: true,
