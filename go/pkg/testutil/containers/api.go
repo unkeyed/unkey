@@ -12,6 +12,7 @@ import (
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/uid"
+	"github.com/unkeyed/unkey/go/pkg/vault/keys"
 )
 
 type Cluster struct {
@@ -53,6 +54,10 @@ func (c *Containers) RunAPI(config ApiConfig) Cluster {
 		Instances: []*dockertest.Resource{},
 		Addrs:     []string{},
 	}
+
+	_, vaultMasterKey, err := keys.GenerateMasterKey()
+	require.NoError(c.t, err)
+
 	for i := 0; i < config.Nodes; i++ {
 		instanceId := uid.New(uid.InstancePrefix)
 		// Define run options
@@ -73,6 +78,7 @@ func (c *Containers) RunAPI(config ApiConfig) Cluster {
 				fmt.Sprintf("UNKEY_CLICKHOUSE_URL=%s", config.ClickhouseDSN),
 				fmt.Sprintf("UNKEY_REDIS_URL=%s", redisUrl),
 				fmt.Sprintf("UNKEY_DATABASE_PRIMARY=%s", config.MysqlDSN),
+				fmt.Sprintf("UNKEY_VAULT_MASTER_KEYS=%s", vaultMasterKey),
 			},
 		}
 

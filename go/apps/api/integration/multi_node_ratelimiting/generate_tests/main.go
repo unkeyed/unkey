@@ -21,22 +21,22 @@ type TestCase struct {
 }
 
 func (tc TestCase) PackageName() string {
-	return fmt.Sprintf("ratelimit_nodes%d_limit%d_duration%d_load%s_windows%d",
+	return fmt.Sprintf("ratelimit_nodes%02d_limit%04d_duration%09d_load%s_windows%03d",
 		tc.NodeCount,
 		tc.Limit,
 		tc.Duration,
-		strings.ReplaceAll(fmt.Sprintf("%.2f", tc.LoadFactor), ".", "_"),
+		strings.ReplaceAll(fmt.Sprintf("%05.2f", tc.LoadFactor), ".", "_"),
 		tc.WindowCount,
 	)
 
 }
 
 func (tc TestCase) TestName() string {
-	return fmt.Sprintf("TestIntegration_RateLimit_Nodes%d_Limit%d_Duration%d_Load%s_Windows%d",
+	return fmt.Sprintf("TestIntegration_RateLimit_Nodes%02d_Limit%04d_Duration%09d_Load%s_Windows%03d",
 		tc.NodeCount,
 		tc.Limit,
 		tc.Duration,
-		strings.ReplaceAll(fmt.Sprintf("%.2f", tc.LoadFactor), ".", "_"),
+		strings.ReplaceAll(fmt.Sprintf("%05.2f", tc.LoadFactor), ".", "_"),
 		tc.WindowCount,
 	)
 

@@ -45,7 +45,7 @@ func New(config Config) (*database, error) {
 	// Open primary database connection
 	write, err := sql.Open("mysql", config.PrimaryDSN)
 	if err != nil {
-		return nil, fault.Wrap(err, fault.WithDesc("cannot open primary replica", ""))
+		return nil, fault.Wrap(err, fault.Internal("cannot open primary replica"))
 	}
 
 	// Initialize primary replica
@@ -67,7 +67,7 @@ func New(config Config) (*database, error) {
 		}
 		read, err := sql.Open("mysql", config.ReadOnlyDSN)
 		if err != nil {
-			return nil, fault.Wrap(err, fault.WithDesc("cannot open read replica", ""))
+			return nil, fault.Wrap(err, fault.Internal("cannot open read replica"))
 
 		}
 		readReplica = &Replica{

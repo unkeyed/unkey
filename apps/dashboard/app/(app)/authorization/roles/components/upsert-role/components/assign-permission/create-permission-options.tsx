@@ -1,7 +1,6 @@
 import { StatusBadge } from "@/app/(app)/apis/[apiId]/settings/components/status-badge";
-import { Badge } from "@/components/ui/badge";
 import { Lock, Page2 } from "@unkey/icons";
-import { Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+import { Badge, Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 
 type Permission = {
   id: string;

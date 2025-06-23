@@ -1,8 +1,7 @@
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { XMark } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Badge, Button } from "@unkey/ui";
 
 export const LogHeader = ({
   onClose,
