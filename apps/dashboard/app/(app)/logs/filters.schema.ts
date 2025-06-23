@@ -1,114 +1,86 @@
 import { METHODS } from "./constants";
+import {
+  type BaseFieldConfig,
+  COMMON_STRING_OPERATORS,
+  createFilterSchema,
+} from "@/lib/filter-builders";
+import type { z } from "zod";
 
-import type {
-  FilterValue,
-  NumberConfig,
-  StringConfig,
-} from "@/components/logs/validation/filter.types";
-import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
-import { z } from "zod";
+const LOGS_OPERATORS = ["is", "contains", "startsWith", "endsWith"] as const;
 
-// Configuration
-export const logsFilterFieldConfig: FilterFieldConfigs = {
+const LOGS_FIELDS = [
+  "status",
+  "methods",
+  "paths",
+  "host",
+  "requestId",
+  "startTime",
+  "endTime",
+  "since",
+] as const;
+
+const LOGS_FIELD_CONFIGS = {
   status: {
-    type: "number",
-    operators: ["is"],
-    getColorClass: (value) => {
-      if (value >= 500) {
+    type: "string" as const,
+    operators: ["is"] as const,
+    getColorClass: (value: unknown) => {
+      const numValue = value as number;
+      if (numValue >= 500) {
         return "bg-error-9";
       }
-      if (value >= 400) {
+      if (numValue >= 400) {
         return "bg-warning-8";
       }
       return "bg-success-9";
     },
-    validate: (value) => value >= 200 && value <= 599,
   },
   methods: {
-    type: "string",
-    operators: ["is"],
+    type: "string" as const,
+    operators: ["is"] as const,
     validValues: METHODS,
   },
   paths: {
-    type: "string",
-    operators: ["is", "contains", "startsWith", "endsWith"],
+    type: "string" as const,
+    operators: COMMON_STRING_OPERATORS,
   },
   host: {
-    type: "string",
-    operators: ["is"],
+    type: "string" as const,
+    operators: ["is"] as const,
   },
   requestId: {
-    type: "string",
-    operators: ["is"],
+    type: "string" as const,
+    operators: ["is"] as const,
   },
   startTime: {
-    type: "number",
-    operators: ["is"],
+    type: "number" as const,
+    operators: ["is"] as const,
   },
   endTime: {
-    type: "number",
-    operators: ["is"],
+    type: "number" as const,
+    operators: ["is"] as const,
   },
   since: {
-    type: "string",
-    operators: ["is"],
+    type: "string" as const,
+    operators: ["is"] as const,
   },
-} as const;
+} as const satisfies Record<
+  (typeof LOGS_FIELDS)[number],
+  BaseFieldConfig<readonly string[]>
+>;
 
-export interface StatusConfig extends NumberConfig {
-  type: "number";
-  operators: ["is"];
-  validate: (value: number) => boolean;
-}
-
-// Schemas
-export const logsFilterOperatorEnum = z.enum(["is", "contains", "startsWith", "endsWith"]);
-
-export const logsFilterFieldEnum = z.enum([
-  "host",
-  "requestId",
-  "methods",
-  "paths",
-  "status",
-  "startTime",
-  "endTime",
-  "since",
-]);
-
-export const filterOutputSchema = createFilterOutputSchema(
-  logsFilterFieldEnum,
-  logsFilterOperatorEnum,
-  logsFilterFieldConfig,
+export const logsFilter = createFilterSchema(
+  LOGS_OPERATORS,
+  LOGS_FIELDS,
+  LOGS_FIELD_CONFIGS
 );
 
-// Types
+export const logsFilterFieldConfig = logsFilter.filterFieldConfig;
+export const logsFilterOperatorEnum = logsFilter.operatorEnum;
+export const logsFilterFieldEnum = logsFilter.fieldEnum;
+export const filterOutputSchema = logsFilter.filterOutputSchema;
+
 export type LogsFilterOperator = z.infer<typeof logsFilterOperatorEnum>;
 export type LogsFilterField = z.infer<typeof logsFilterFieldEnum>;
-
-export type FilterFieldConfigs = {
-  status: StatusConfig;
-  methods: StringConfig<LogsFilterOperator>;
-  paths: StringConfig<LogsFilterOperator>;
-  host: StringConfig<LogsFilterOperator>;
-  requestId: StringConfig<LogsFilterOperator>;
-  startTime: NumberConfig<LogsFilterOperator>;
-  endTime: NumberConfig<LogsFilterOperator>;
-  since: StringConfig<LogsFilterOperator>;
-};
-
-export type LogsFilterUrlValue = Pick<
-  FilterValue<LogsFilterField, LogsFilterOperator>,
-  "value" | "operator"
->;
-export type LogsFilterValue = FilterValue<LogsFilterField, LogsFilterOperator>;
-
-export type QuerySearchParams = {
-  methods: LogsFilterUrlValue[] | null;
-  paths: LogsFilterUrlValue[] | null;
-  status: LogsFilterUrlValue[] | null;
-  startTime?: number | null;
-  endTime?: number | null;
-  since?: string | null;
-  host: LogsFilterUrlValue[] | null;
-  requestId: LogsFilterUrlValue[] | null;
-};
+export type LogsFilterValue = typeof logsFilter.types.FilterValue;
+export type LogsFilterUrlValue = typeof logsFilter.types.UrlValue;
+export type QuerySearchParams = typeof logsFilter.types.QuerySearchParams;

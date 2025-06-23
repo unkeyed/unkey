@@ -1,74 +1,50 @@
-import type { FilterValue, StringConfig } from "@/components/logs/validation/filter.types";
-import { parseAsFilterValueArray } from "@/components/logs/validation/utils/nuqs-parsers";
-import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
-import { z } from "zod";
+import {
+  type BaseFieldConfig,
+  COMMON_STRING_OPERATORS,
+  createFilterSchema,
+} from "@/lib/filter-builders";
+import type { z } from "zod";
 
-const commonStringOperators = ["is", "contains", "startsWith", "endsWith"] as const;
-export const permissionsFilterOperatorEnum = z.enum(commonStringOperators);
-export type PermissionsFilterOperator = z.infer<typeof permissionsFilterOperatorEnum>;
+const PERMISSIONS_FIELDS = [
+  "name",
+  "description",
+  "slug",
+  "roleId",
+  "roleName",
+] as const;
 
-export type FilterFieldConfigs = {
-  description: StringConfig<PermissionsFilterOperator>;
-  name: StringConfig<PermissionsFilterOperator>;
-  slug: StringConfig<PermissionsFilterOperator>;
-  roleId: StringConfig<PermissionsFilterOperator>;
-  roleName: StringConfig<PermissionsFilterOperator>;
-};
+const PERMISSIONS_FIELD_CONFIGS = Object.fromEntries(
+  PERMISSIONS_FIELDS.map((field) => [
+    field,
+    { type: "string", operators: COMMON_STRING_OPERATORS },
+  ])
+) as unknown as Record<
+  (typeof PERMISSIONS_FIELDS)[number],
+  BaseFieldConfig<readonly (typeof COMMON_STRING_OPERATORS)[number][]>
+>;
 
-export const permissionsFilterFieldConfig: FilterFieldConfigs = {
-  name: {
-    type: "string",
-    operators: [...commonStringOperators],
-  },
-  description: {
-    type: "string",
-    operators: [...commonStringOperators],
-  },
-  slug: {
-    type: "string",
-    operators: [...commonStringOperators],
-  },
-  roleId: {
-    type: "string",
-    operators: [...commonStringOperators],
-  },
-  roleName: {
-    type: "string",
-    operators: [...commonStringOperators],
-  },
-};
-
-const allFilterFieldNames = Object.keys(
-  permissionsFilterFieldConfig,
-) as (keyof FilterFieldConfigs)[];
-
-if (allFilterFieldNames.length === 0) {
-  throw new Error("permissionsFilterFieldConfig must contain at least one field definition.");
-}
-
-const [firstFieldName, ...restFieldNames] = allFilterFieldNames;
-
-export const permissionsFilterFieldEnum = z.enum([firstFieldName, ...restFieldNames]);
-export const permissionsListFilterFieldNames = allFilterFieldNames;
-export type PermissionsFilterField = z.infer<typeof permissionsFilterFieldEnum>;
-
-export const filterOutputSchema = createFilterOutputSchema(
-  permissionsFilterFieldEnum,
-  permissionsFilterOperatorEnum,
-  permissionsFilterFieldConfig,
+export const permissionsFilter = createFilterSchema(
+  COMMON_STRING_OPERATORS,
+  PERMISSIONS_FIELDS,
+  PERMISSIONS_FIELD_CONFIGS
 );
 
-export type AllOperatorsUrlValue = {
-  value: string;
-  operator: PermissionsFilterOperator;
-};
+// Direct exports - no destructuring needed
+export const permissionsFilterFieldConfig = permissionsFilter.filterFieldConfig;
+export const permissionsListFilterFieldNames = permissionsFilter.fieldNames;
+export const filterOutputSchema = permissionsFilter.filterOutputSchema;
+export const parseAsAllOperatorsFilterArray =
+  permissionsFilter.parseAsFilterArray;
+export const queryParamsPayload = permissionsFilter.queryParamsPayload;
 
-export type PermissionsFilterValue = FilterValue<PermissionsFilterField, PermissionsFilterOperator>;
-
-export type PermissionsQuerySearchParams = {
-  [K in PermissionsFilterField]?: AllOperatorsUrlValue[] | null;
-};
-
-export const parseAsAllOperatorsFilterArray = parseAsFilterValueArray<PermissionsFilterOperator>([
-  ...commonStringOperators,
-]);
+// Type exports
+export type PermissionsFilterOperator = z.infer<
+  typeof permissionsFilter.operatorEnum
+>;
+export type PermissionsFilterField = z.infer<
+  typeof permissionsFilter.fieldEnum
+>;
+export type PermissionsFilterValue = typeof permissionsFilter.types.FilterValue;
+export type AllOperatorsUrlValue = typeof permissionsFilter.types.UrlValue;
+export type PermissionsQuerySearchParams =
+  typeof permissionsFilter.types.QuerySearchParams;

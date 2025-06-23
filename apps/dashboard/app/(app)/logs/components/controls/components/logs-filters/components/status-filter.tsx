@@ -14,7 +14,7 @@ type StatusOption = {
 const options: StatusOption[] = [
   {
     id: 1,
-    status: 200,
+    status: "200",
     display: "2xx",
     label: "Success",
     color: "bg-success-9",
@@ -22,7 +22,7 @@ const options: StatusOption[] = [
   },
   {
     id: 2,
-    status: 400,
+    status: "400",
     display: "4xx",
     label: "Warning",
     color: "bg-warning-8",
@@ -30,7 +30,7 @@ const options: StatusOption[] = [
   },
   {
     id: 3,
-    status: 500,
+    status: "500",
     display: "5xx",
     label: "Error",
     color: "bg-error-9",
@@ -56,11 +56,11 @@ export const StatusFilter = () => {
         value: option.status,
         metadata: {
           colorClass:
-            option.status >= 500
+            Number(option.status) >= 500
               ? "bg-error-9"
-              : option.status >= 400
-                ? "bg-warning-8"
-                : "bg-success-9",
+              : Number(option.status) >= 400
+              ? "bg-warning-8"
+              : "bg-success-9",
         },
       })}
       filters={filters}
