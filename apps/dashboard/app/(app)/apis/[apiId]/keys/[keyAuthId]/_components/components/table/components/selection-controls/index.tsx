@@ -3,7 +3,7 @@ import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/sche
 import { ArrowOppositeDirectionY, Ban, CircleCheck, Trash, XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useDeleteKey } from "../actions/components/hooks/use-delete-key";
 import { useBatchUpdateKeyStatus } from "../actions/components/hooks/use-update-key-status";
 import { BatchEditExternalId } from "./components/batch-edit-external-id";
@@ -24,8 +24,6 @@ export const SelectionControls = ({
   const [isBatchEditExternalIdOpen, setIsBatchEditExternalIdOpen] = useState(false);
   const [isDisableConfirmOpen, setIsDisableConfirmOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-  const [shouldRender, setShouldRender] = useState(false);
 
   const disableButtonRef = useRef<HTMLButtonElement>(null);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
@@ -34,24 +32,6 @@ export const SelectionControls = ({
   const deleteKey = useDeleteKey(() => {
     setSelectedKeys(new Set());
   });
-
-  // Handle show/hide animations
-  useEffect(() => {
-    if (selectedKeys.size > 0) {
-      setShouldRender(true);
-      // Trigger animation after render
-      requestAnimationFrame(() => {
-        setIsVisible(true);
-      });
-    } else {
-      setIsVisible(false);
-      // Clean up after exit animation
-      const timer = setTimeout(() => {
-        setShouldRender(false);
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [selectedKeys.size]);
 
   const handleDisableButtonClick = () => {
     setIsDisableConfirmOpen(true);
@@ -78,7 +58,7 @@ export const SelectionControls = ({
     (key) => selectedKeys.has(key.id) && key.identity_id,
   ).length;
 
-  if (!shouldRender) {
+  if (selectedKeys.size === 0) {
     return null;
   }
 
@@ -86,12 +66,10 @@ export const SelectionControls = ({
     <>
       <div
         className={cn(
-          "border-b border-grayA-3 transition-all duration-300 ease-out",
-          isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2",
+          "border-b border-grayA-3",
+          "animate-slideInFromTop opacity-0 translate-y-2",
+          "animation-fill-mode-forwards",
         )}
-        style={{
-          animation: isVisible ? "slideInFromTop 0.3s ease-out" : undefined,
-        }}
       >
         <div className="flex justify-between items-center w-full p-[18px]">
           <div className="items-center flex gap-2">
@@ -211,14 +189,10 @@ export const SelectionControls = ({
         @keyframes bounceIn {
           0% {
             opacity: 0;
-            transform: scale(0.3) translateY(-20px);
+            transform: scale(0.5);
           }
           50% {
-            opacity: 1;
-            transform: scale(1.05) translateY(0);
-          }
-          70% {
-            transform: scale(0.95);
+            transform: scale(1.1);
           }
           100% {
             opacity: 1;
@@ -226,15 +200,16 @@ export const SelectionControls = ({
           }
         }
 
-        @keyframes digitSlideIn {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+        .animate-slideInFromTop {
+          animation: slideInFromTop 0.3s ease-out;
+        }
+
+        .animate-bounceIn {
+          animation: bounceIn 0.4s ease-out;
+        }
+
+        .animation-fill-mode-forwards {
+          animation-fill-mode: forwards;
         }
       `}</style>
     </>
@@ -242,41 +217,15 @@ export const SelectionControls = ({
 };
 
 export const AnimatedCounter = ({ value }: { value: number }) => {
-  const [prevValue, setPrevValue] = useState(value);
-  const [shouldAnimate, setShouldAnimate] = useState(false);
-
-  useEffect(() => {
-    if (value !== prevValue) {
-      setShouldAnimate(true);
-      setPrevValue(value);
-
-      const timer = setTimeout(() => {
-        setShouldAnimate(false);
-      }, 600);
-
-      return () => clearTimeout(timer);
-    }
-  }, [value, prevValue]);
-
   return (
     <div
+      key={`counter-${value}`}
       className={cn(
-        "size-[18px] text-[11px] leading-6 ring-2 ring-gray-6 flex items-center justify-center font-medium overflow-hidden p-2 text-white dark:text-black bg-accent-12 hover:bg-accent-12/90 focus:hover:bg-accent-12 rounded-md border border-grayA-4  transition-all duration-200",
-        shouldAnimate ? "scale-110" : "scale-100",
+        "size-[18px] text-[11px] leading-6 ring-2 ring-gray-6 flex items-center justify-center font-medium overflow-hidden p-2 text-white dark:text-black bg-accent-12 hover:bg-accent-12/90 focus:hover:bg-accent-12 rounded-md border border-grayA-4",
+        "animate-bounceIn",
       )}
-      style={{
-        animation: shouldAnimate ? "bounceIn 0.6s ease-out" : undefined,
-      }}
     >
-      <span
-        key={value}
-        className="flex items-center justify-center"
-        style={{
-          animation: shouldAnimate ? "digitSlideIn 0.3s ease-out" : undefined,
-        }}
-      >
-        {value}
-      </span>
+      <span className="flex items-center justify-center">{value}</span>
     </div>
   );
 };
