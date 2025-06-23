@@ -2,6 +2,7 @@ import { ConfirmPopover } from "@/components/confirmation-popover";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { ArrowOppositeDirectionY, Ban, CircleCheck, Trash, XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { cn } from "@unkey/ui/src/lib/utils";
 import { useEffect, useRef, useState } from "react";
 import { useDeleteKey } from "../actions/components/hooks/use-delete-key";
 import { useBatchUpdateKeyStatus } from "../actions/components/hooks/use-update-key-status";
@@ -84,9 +85,10 @@ export const SelectionControls = ({
   return (
     <>
       <div
-        className={`border-b border-grayA-3 transition-all duration-300 ease-out ${
-          isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
-        }`}
+        className={cn(
+          "border-b border-grayA-3 transition-all duration-300 ease-out",
+          isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2",
+        )}
         style={{
           animation: isVisible ? "slideInFromTop 0.3s ease-out" : undefined,
         }}
@@ -258,9 +260,10 @@ export const AnimatedCounter = ({ value }: { value: number }) => {
 
   return (
     <div
-      className={`size-[18px] text-[11px] leading-6 ring-2 ring-gray-6 flex items-center justify-center font-medium overflow-hidden
-p-2 text-white dark:text-black bg-accent-12 hover:bg-accent-12/90 focus:hover:bg-accent-12 rounded-md border border-grayA-4 
-transition-all duration-200 ${shouldAnimate ? "scale-110" : "scale-100"}`}
+      className={cn(
+        "size-[18px] text-[11px] leading-6 ring-2 ring-gray-6 flex items-center justify-center font-medium overflow-hidden p-2 text-white dark:text-black bg-accent-12 hover:bg-accent-12/90 focus:hover:bg-accent-12 rounded-md border border-grayA-4  transition-all duration-200",
+        shouldAnimate ? "scale-110" : "scale-100",
+      )}
       style={{
         animation: shouldAnimate ? "bounceIn 0.6s ease-out" : undefined,
       }}
