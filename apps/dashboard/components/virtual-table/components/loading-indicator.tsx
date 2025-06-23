@@ -81,7 +81,6 @@ export const LoadMoreFooter = ({
     );
   }
 
-  // Original full state with enhanced transitions
   return (
     <div
       className="fixed bottom-0 left-0 right-0 w-full items-center justify-center flex z-10 transition-all duration-300 ease-out"
@@ -93,7 +92,7 @@ export const LoadMoreFooter = ({
     >
       <div className="w-[740px] border bg-gray-1 dark:bg-black border-gray-6 min-h-[60px] flex items-center justify-center rounded-[10px] drop-shadow-lg shadow-sm mb-5 transition-all duration-200 hover:shadow-lg">
         <div className="flex flex-col w-full">
-          {/* Header content with staggered animation */}
+          {/* Header content */}
           {headerContent && (
             <div
               className="transition-all duration-200"
@@ -105,7 +104,6 @@ export const LoadMoreFooter = ({
             </div>
           )}
 
-          {/* Original content with smooth entrance */}
           <div
             className="flex w-full justify-between items-center text-[13px] text-accent-9 p-[18px] transition-all duration-200"
             style={{
