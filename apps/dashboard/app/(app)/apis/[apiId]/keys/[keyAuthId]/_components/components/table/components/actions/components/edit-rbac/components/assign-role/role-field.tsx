@@ -25,16 +25,17 @@ export const RoleField = ({
   assignedRoleDetails,
 }: RoleFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
+  const trimmedSearchVal = searchValue.trim();
   const { roles, isFetchingNextPage, hasNextPage, loadMore, isLoading } = useFetchKeysRoles();
   const { searchResults, isSearching } = useSearchKeysRoles(searchValue);
 
   // Combine loaded roles with search results, prioritizing search when available
   const allRoles = useMemo(() => {
-    if (searchValue.trim() && searchResults.length > 0) {
+    if (trimmedSearchVal && searchResults.length > 0) {
       return searchResults;
     }
-    if (searchValue.trim() && searchResults.length === 0 && !isSearching) {
-      const searchTerm = searchValue.toLowerCase().trim();
+    if (trimmedSearchVal && searchResults.length === 0 && !isSearching) {
+      const searchTerm = trimmedSearchVal.toLowerCase();
       return roles.filter(
         (role) =>
           role.id.toLowerCase().includes(searchTerm) ||
@@ -43,9 +44,9 @@ export const RoleField = ({
       );
     }
     return roles;
-  }, [roles, searchResults, searchValue, isSearching]);
+  }, [roles, searchResults, trimmedSearchVal, isSearching]);
 
-  const showLoadMore = !searchValue.trim() && hasNextPage;
+  const showLoadMore = !trimmedSearchVal && hasNextPage;
 
   const baseOptions = createRoleOptions({
     roles: allRoles,
@@ -115,7 +116,7 @@ export const RoleField = ({
     setSearchValue("");
   };
 
-  const isComboboxLoading = isLoading || (isSearching && searchValue.trim().length > 0);
+  const isComboboxLoading = isLoading || (isSearching && trimmedSearchVal.length > 0);
   return (
     <div className="space-y-3">
       <FormCombobox
@@ -147,7 +148,7 @@ export const RoleField = ({
         loading={isComboboxLoading}
         title={
           isComboboxLoading
-            ? isSearching && searchValue.trim()
+            ? isSearching && trimmedSearchVal
               ? "Searching for roles..."
               : "Loading available roles..."
             : undefined

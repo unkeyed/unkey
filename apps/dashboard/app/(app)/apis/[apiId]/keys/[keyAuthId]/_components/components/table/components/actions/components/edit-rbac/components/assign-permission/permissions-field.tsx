@@ -28,6 +28,7 @@ export const PermissionField = ({
   assignedPermsDetails = [],
 }: PermissionFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
+  const trimmedSearchVal = searchValue.trim();
   const { permissions, isFetchingNextPage, hasNextPage, loadMore, isLoading } =
     useFetchPermissions();
   const { searchResults, isSearching } = useSearchPermissions(searchValue);
@@ -59,11 +60,11 @@ export const PermissionField = ({
 
   // Combine loaded permissions with search results
   const allPermissions = useMemo(() => {
-    if (searchValue.trim() && searchResults.length > 0) {
+    if (trimmedSearchVal && searchResults.length > 0) {
       return searchResults;
     }
-    if (searchValue.trim() && searchResults.length === 0 && !isSearching) {
-      const searchTerm = searchValue.toLowerCase().trim();
+    if (trimmedSearchVal && searchResults.length === 0 && !isSearching) {
+      const searchTerm = trimmedSearchVal.toLowerCase();
       return permissions.filter(
         (permission) =>
           permission.id.toLowerCase().includes(searchTerm) ||
@@ -73,9 +74,9 @@ export const PermissionField = ({
       );
     }
     return permissions;
-  }, [permissions, searchResults, searchValue, isSearching]);
+  }, [permissions, searchResults, trimmedSearchVal, isSearching]);
 
-  const showLoadMore = !searchValue.trim() && hasNextPage;
+  const showLoadMore = !trimmedSearchVal && hasNextPage;
 
   const baseOptions = createPermissionOptions({
     permissions: allPermissions,
@@ -184,7 +185,7 @@ export const PermissionField = ({
     onChange([...value, permissionId]);
     setSearchValue("");
   };
-  const isComboboxLoading = isLoading || (isSearching && searchValue.trim().length > 0);
+  const isComboboxLoading = isLoading || (isSearching && trimmedSearchVal.length > 0);
 
   return (
     <div className="space-y-3">
@@ -217,7 +218,7 @@ export const PermissionField = ({
         loading={isComboboxLoading}
         title={
           isComboboxLoading
-            ? isSearching && searchValue.trim()
+            ? isSearching && trimmedSearchVal
               ? "Searching for permissions..."
               : "Loading available permissions..."
             : undefined
