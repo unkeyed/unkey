@@ -76,22 +76,10 @@ export const KeysTableActionPopover = ({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger onClick={(e) => e.stopPropagation()}>
-        {children ? (
-          children
-        ) : (
-          <button
-            type="button"
-            className={cn(
-              "group-data-[state=open]:bg-gray-6 group-hover:bg-gray-6 group size-5 p-0 rounded m-0 items-center flex justify-center",
-              "border border-gray-6 group-hover:border-gray-8 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-7",
-            )}
-          >
-            <Dots className="group-hover:text-gray-12 text-gray-11" size="sm-regular" />
-          </button>
-        )}
+        {children ? children : <KeysTableActionPopoverDefaultTrigger />}
       </PopoverTrigger>
       <PopoverContent
-        className="w-60 bg-gray-1 dark:bg-black drop-shadow-2xl border-gray-6 rounded-lg p-0"
+        className="min-w-60 max-w-full bg-gray-1 dark:bg-black drop-shadow-2xl border-gray-6 rounded-lg p-0"
         align={align}
         onOpenAutoFocus={(e) => {
           e.preventDefault();
@@ -160,5 +148,19 @@ export const KeysTableActionPopover = ({
         </div>
       </PopoverContent>
     </Popover>
+  );
+};
+
+export const KeysTableActionPopoverDefaultTrigger = () => {
+  return (
+    <button
+      type="button"
+      className={cn(
+        "group-data-[state=open]:bg-gray-6 group-hover:bg-gray-6 group size-5 p-0 rounded m-0 items-center flex justify-center",
+        "border border-gray-6 group-hover:border-gray-8 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-7",
+      )}
+    >
+      <Dots className="group-hover:text-gray-12 text-gray-11" size="sm-regular" />
+    </button>
   );
 };
