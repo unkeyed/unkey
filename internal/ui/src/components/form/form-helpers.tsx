@@ -28,7 +28,11 @@ export const FormDescription = ({
     <div className="text-[13px] leading-5">
       {error ? (
         <div id={errorId} role="alert" className="text-error-11 flex gap-2 items-center">
-          <TriangleWarning2 size="md-regular" className="flex-shrink-0" aria-hidden="true" />
+          <TriangleWarning2
+            size="md-regular"
+            className="flex-shrink-0 ml-[-1px] mr-[1px]"
+            aria-hidden="true"
+          />
           <span className="flex-1">{error}</span>
         </div>
       ) : description ? (

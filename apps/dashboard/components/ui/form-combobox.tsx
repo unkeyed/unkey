@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { CircleInfo, TriangleWarning2 } from "@unkey/icons";
+import { FormDescription } from "@unkey/ui/src/components/form/form-helpers";
 import { OptionalTag, RequiredTag } from "@unkey/ui/src/components/form/form-tags";
 import * as React from "react";
 import { Combobox } from "./combobox";
@@ -28,8 +28,14 @@ export type DocumentedFormComboboxProps = {
    * Error message to display
    */
   error?: string;
-  title?: string;
+  /**
+   * Whether to show indicator for loading
+   */
   loading?: boolean;
+  /**
+   * Tooltip text displayed on hover
+   */
+  title?: string;
 };
 
 // Props type combining Combobox props with form props
@@ -81,43 +87,12 @@ export const FormCombobox = React.forwardRef<HTMLDivElement, FormComboboxProps>(
           />
         </div>
         {(description || error) && (
-          <div className="text-[13px] leading-5">
-            {error ? (
-              <div id={errorId} role="alert" className="text-error-11 flex gap-2 items-center">
-                <TriangleWarning2 className="flex-shrink-0" aria-hidden="true" />
-                <span className="flex-1">{error}</span>
-              </div>
-            ) : description ? (
-              <output
-                id={descriptionId}
-                className={cn(
-                  "text-gray-9 flex gap-2 items-start",
-                  inputVariant === "success"
-                    ? "text-success-11"
-                    : inputVariant === "warning"
-                      ? "text-warning-11"
-                      : "",
-                )}
-              >
-                <div className="size-[14px]">
-                  {inputVariant === "warning" ? (
-                    <TriangleWarning2
-                      size="md-regular"
-                      className="flex-shrink-0 mt-[3px]"
-                      aria-hidden="true"
-                    />
-                  ) : (
-                    <CircleInfo
-                      size="md-regular"
-                      className="flex-shrink-0 mt-[3px]"
-                      aria-hidden="true"
-                    />
-                  )}
-                </div>
-                <span className="flex-1">{description}</span>
-              </output>
-            ) : null}
-          </div>
+          <FormDescription
+            description={description}
+            error={error}
+            descriptionId={descriptionId}
+            errorId={errorId}
+          />
         )}
       </fieldset>
     );

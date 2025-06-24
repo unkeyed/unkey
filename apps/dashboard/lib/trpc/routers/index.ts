@@ -44,6 +44,12 @@ import { deleteRootKeys } from "./key/deleteRootKey";
 import { fetchKeyPermissions } from "./key/fetch-key-permissions";
 import { queryKeyDetailsLogs } from "./key/query-logs";
 import { keyDetailsVerificationsTimeseries } from "./key/query-timeseries";
+import { getConnectedRolesAndPerms } from "./key/rbac/connected-roles-and-perms";
+import { getPermissionSlugs } from "./key/rbac/get-permission-slugs";
+import { queryKeysPermissions } from "./key/rbac/permissions/query";
+import { queryKeysRoles } from "./key/rbac/roles/query-keys-roles";
+import { searchKeysRoles } from "./key/rbac/roles/search-keys-roles";
+import { updateKeyRbac } from "./key/rbac/update-rbac";
 import { updateKeysEnabled } from "./key/updateEnabled";
 import { updateKeyExpiration } from "./key/updateExpiration";
 import { updateKeyMetadata } from "./key/updateMetadata";
@@ -72,8 +78,10 @@ import { deleteOverride } from "./ratelimit/deleteOverride";
 import { ratelimitLlmSearch } from "./ratelimit/llm-search";
 import { searchNamespace } from "./ratelimit/namespace-search";
 import { queryRatelimitNamespaces } from "./ratelimit/query-keys";
+import { queryRatelimitLastUsed } from "./ratelimit/query-last-used-times";
 import { queryRatelimitLatencyTimeseries } from "./ratelimit/query-latency-timeseries";
 import { queryRatelimitLogs } from "./ratelimit/query-logs";
+import { queryRatelimitWorkspaceDetails } from "./ratelimit/query-namespace-details";
 import { queryRatelimitOverviewLogs } from "./ratelimit/query-overview-logs";
 import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
@@ -118,7 +126,20 @@ export const router = t.router({
       ownerId: updateKeyOwner,
       ratelimit: updateKeyRatelimit,
       remaining: updateKeyRemaining,
+      rbac: t.router({
+        update: updateKeyRbac,
+        roles: t.router({
+          search: searchKeysRoles,
+          query: queryKeysRoles,
+        }),
+        permissions: t.router({
+          search: searchRolesPermissions,
+          query: queryKeysPermissions,
+        }),
+      }),
     }),
+    queryPermissionSlugs: getPermissionSlugs,
+    connectedRolesAndPerms: getConnectedRolesAndPerms,
   }),
   rootKey: t.router({
     create: createRootKey,
@@ -222,7 +243,9 @@ export const router = t.router({
       }),
     }),
     namespace: t.router({
+      queryRatelimitLastUsed,
       query: queryRatelimitNamespaces,
+      queryDetails: queryRatelimitWorkspaceDetails,
       search: searchNamespace,
       create: createNamespace,
       update: t.router({
