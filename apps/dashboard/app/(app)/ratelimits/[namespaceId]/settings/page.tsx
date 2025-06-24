@@ -1,8 +1,7 @@
-import { NamespaceNavbar } from "../namespace-navbar";
-import { getWorkspaceDetails } from "../namespace.actions";
-import { SettingsClient } from "./components/settings-client";
+"use client";
 
-export const dynamic = "force-dynamic";
+import { NamespaceNavbar } from "../namespace-navbar";
+import { SettingsClient } from "./components/settings-client";
 
 type Props = {
   params: {
@@ -10,20 +9,18 @@ type Props = {
   };
 };
 
-export default async function SettingsPage(props: Props) {
-  const { namespace, ratelimitNamespaces } = await getWorkspaceDetails(props.params.namespaceId);
-
+export default function SettingsPage(props: Props) {
+  const namespaceId = props.params.namespaceId;
   return (
     <div>
       <NamespaceNavbar
+        namespaceId={namespaceId}
         activePage={{
-          href: `/ratelimits/${namespace.id}/settings`,
+          href: `/ratelimits/${namespaceId}/settings`,
           text: "Settings",
         }}
-        namespace={namespace}
-        ratelimitNamespaces={ratelimitNamespaces}
       />
-      <SettingsClient namespace={namespace} />
+      <SettingsClient namespaceId={namespaceId} />
     </div>
   );
 }

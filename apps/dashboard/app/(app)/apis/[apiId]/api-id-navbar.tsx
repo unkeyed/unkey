@@ -5,29 +5,32 @@ import { NavbarActionButton } from "@/components/navigation/action-button";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { trpc } from "@/lib/trpc/client";
-import { ChevronExpandY, Gear, Nodes, ShieldKey, TaskUnchecked } from "@unkey/icons";
+import { ChevronExpandY, Gear, Nodes, Plus, TaskUnchecked } from "@unkey/icons";
 import dynamic from "next/dynamic";
-import { useState } from "react";
-import { CreateKeyDialog } from "./_components/create-key";
 import { getKeysTableActionItems } from "./keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover.constants";
+import { trpc } from "@/lib/trpc/client";
 
-const DialogContainer = dynamic(() => import("@unkey/ui").then((mod) => mod.DialogContainer), {
-  ssr: false,
-});
+const CreateKeyDialog = dynamic(
+  () =>
+    import("./_components/create-key").then((mod) => ({
+      default: mod.CreateKeyDialog,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <NavbarActionButton disabled>
+        <Plus />
+        Create new key
+      </NavbarActionButton>
+    ),
+  },
+);
 
 const KeysTableActionPopover = dynamic(
   () =>
     import(
       "./keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover"
-    ).then((mod) => ({ default: mod.KeysTableActionPopover })),
-  {
-    ssr: false,
-  },
-);
-
-const RBACDialogContent = dynamic(
-  () => import("./_components/rbac-dialog-content").then((mod) => mod.RBACDialogContent),
+    ).then((mod) => mod.KeysTableActionPopover),
   {
     ssr: false,
   },
@@ -48,8 +51,7 @@ export const ApisNavbar = ({
   };
 }) => {
   const isMobile = useIsMobile();
-  const [showRBAC, setShowRBAC] = useState(false);
-
+  const trpcUtils = trpc.useUtils();
   const { data: layoutData, isLoading } = trpc.api.queryApiKeyDetails.useQuery({
     apiId,
   });
@@ -118,8 +120,6 @@ export const ApisNavbar = ({
   }
 
   const { currentApi, workspaceApis } = layoutData;
-  const currentKeyId = specificKey?.id || "";
-  const currentKeyspaceId = currentApi.keyAuthId || "";
 
   return (
     <>
@@ -194,16 +194,7 @@ export const ApisNavbar = ({
           {specificKey?.id ? (
             <div className="flex gap-3 items-center">
               <Navbar.Actions>
-                <NavbarActionButton
-                  onClick={() => setShowRBAC(true)}
-                  disabled={!(currentKeyId && currentKeyspaceId)}
-                >
-                  <ShieldKey size="sm-regular" />
-                  Permissions
-                </NavbarActionButton>
-              </Navbar.Actions>
-              <Navbar.Actions>
-                <KeysTableActionPopover items={getKeysTableActionItems(specificKey)}>
+                <KeysTableActionPopover items={getKeysTableActionItems(specificKey,trpcUtils)}>
                   <NavbarActionButton>
                     <Gear size="sm-regular" />
                     Settings
@@ -223,17 +214,6 @@ export const ApisNavbar = ({
           )}
         </Navbar>
       </div>
-      {showRBAC && (
-        <DialogContainer
-          isOpen={showRBAC}
-          onOpenChange={() => setShowRBAC(false)}
-          title="Key Permissions & Roles"
-          subTitle="Manage access control for this API key with role-based permissions"
-          className="max-w-[800px] max-h-[90vh] overflow-y-auto"
-        >
-          <RBACDialogContent keyId={currentKeyId} keyspaceId={currentKeyspaceId} />
-        </DialogContainer>
-      )}
     </>
   );
 };

@@ -28,7 +28,7 @@ func TestNew(t *testing.T) {
 			name:    "with single wrapper",
 			message: "base error",
 			wrappers: []Wrapper{
-				WithDesc("internal message", "public message"),
+				Internal("internal message"),
 			},
 			expected: "internal message: base error",
 		},
@@ -36,8 +36,10 @@ func TestNew(t *testing.T) {
 			name:    "with multiple wrappers",
 			message: "base error",
 			wrappers: []Wrapper{
-				WithDesc("internal 1", "public 1"),
-				WithDesc("internal 2", "public 2"),
+				Internal("internal 1"),
+				Public("public 1"),
+				Internal("internal 2"),
+				Public("public 2"),
 			},
 			expected: "internal 2: internal 1: base error",
 		},
@@ -72,7 +74,8 @@ func TestWrappedError(t *testing.T) {
 			setup: func() error {
 				return Wrap(
 					New("base error"),
-					WithDesc("", "public"),
+					Internal(""),
+					Public("public"),
 				)
 			},
 			expected: "base error",
@@ -82,7 +85,8 @@ func TestWrappedError(t *testing.T) {
 			setup: func() error {
 				return Wrap(
 					New(""),
-					WithDesc("internal", "public"),
+					Internal("internal"),
+					Public("public"),
 				)
 			},
 			expected: "internal",
@@ -91,8 +95,8 @@ func TestWrappedError(t *testing.T) {
 			name: "deeply nested",
 			setup: func() error {
 				base := New("base")
-				wrapped1 := Wrap(base, WithDesc("level 1", ""))
-				wrapped2 := Wrap(wrapped1, WithDesc("level 2", ""))
+				wrapped1 := Wrap(base, Internal("level 1"))
+				wrapped2 := Wrap(wrapped1, Internal("level 2"))
 				return wrapped2
 			},
 			expected: "level 2: level 1: base",
@@ -102,7 +106,7 @@ func TestWrappedError(t *testing.T) {
 			setup: func() error {
 				return Wrap(
 					errors.New("standard error"),
-					WithDesc("wrapped layer", ""),
+					Internal("wrapped layer"),
 				)
 			},
 			expected: "wrapped layer: standard error",
@@ -134,8 +138,8 @@ func TestGetLocation(t *testing.T) {
 
 func TestErrorChainUnwrapping(t *testing.T) {
 	baseErr := errors.New("base error")
-	wrapped1 := Wrap(baseErr, WithDesc("level 1", ""))
-	wrapped2 := Wrap(wrapped1, WithDesc("level 2", ""))
+	wrapped1 := Wrap(baseErr, Internal("level 1"))
+	wrapped2 := Wrap(wrapped1, Internal("level 2"))
 
 	// Test unwrapping at each level
 	unwrapped := errors.Unwrap(wrapped2)
@@ -144,13 +148,8 @@ func TestErrorChainUnwrapping(t *testing.T) {
 
 	unwrapped = errors.Unwrap(unwrapped)
 	require.NotNil(t, unwrapped)
-	require.Equal(t, "level 1: base error", unwrapped.Error())
-
-	unwrapped = errors.Unwrap(unwrapped)
-	require.NotNil(t, unwrapped)
 	require.Equal(t, "base error", unwrapped.Error())
 
-	unwrapped = errors.Unwrap(unwrapped)
 	unwrapped = errors.Unwrap(unwrapped)
 	require.Nil(t, unwrapped)
 }
@@ -158,8 +157,10 @@ func TestUserFacingMessage(t *testing.T) {
 
 	t.Run("basic error chain", func(t *testing.T) {
 		err := New("internal error",
-			WithDesc("retry failed", "Please try again later."),
-			WithDesc("db connection failed", "Service unavailable."),
+			Internal("retry failed"),
+			Public("Please try again later."),
+			Internal("db connection failed"),
+			Public("Service unavailable."),
 		)
 		msg := UserFacingMessage(err)
 		expected := "Service unavailable. Please try again later."
@@ -169,10 +170,11 @@ func TestUserFacingMessage(t *testing.T) {
 	t.Run("mixed public and internal messages", func(t *testing.T) {
 		err := New("base error")
 		err = Wrap(err,
-			WithDesc("internal detail 1", "Public message 1"),
-			WithCode(codes.Auth.Authentication.KeyNotFound.URN()),
+			Internal("internal detail 1"),
+			Public("Public message 1"),
+			Code(codes.Auth.Authentication.KeyNotFound.URN()),
 		)
-		err = Wrap(err, WithDesc("internal detail 2", "Public message 2"))
+		err = Wrap(err, Internal("internal detail 2"), Public("Public message 2"))
 
 		msg := UserFacingMessage(err)
 		require.Equal(t, "Public message 2 Public message 1", msg)
@@ -201,7 +203,7 @@ func TestUserFacingMessage(t *testing.T) {
 			},
 			{
 				name:     "empty public message",
-				err:      New("internal", WithDesc("internal detail", "")),
+				err:      New("internal", Internal("internal detail"), Public("")),
 				expected: "",
 			},
 		}

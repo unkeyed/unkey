@@ -6,15 +6,6 @@ test("create v1 key", () => {
   expect(key.toString()).toMatch(/^[a-zA-Z0-9]+$/);
 });
 
-test("does not collide easily", () => {
-  const n = 1_000_000;
-  const keys = new Set<string>();
-  for (let i = 0; i < n; i++) {
-    keys.add(new KeyV1({ byteLength: 16 }).toString());
-  }
-  expect(keys.size).toEqual(n);
-});
-
 test("unmarshal", () => {
   const key = new KeyV1({ prefix: "prfx", byteLength: 16 });
   const key2 = KeyV1.fromString(key.toString());

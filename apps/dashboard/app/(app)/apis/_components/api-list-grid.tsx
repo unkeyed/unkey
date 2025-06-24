@@ -1,28 +1,24 @@
 import { EmptyComponentSpacer } from "@/components/empty-component-spacer";
-
-import type {
-  ApiOverview,
-  ApisOverviewResponse,
-} from "@/lib/trpc/routers/api/overview/query-overview/schemas";
+import type { ApiOverview } from "@/lib/trpc/routers/api/overview/query-overview/schemas";
 import { ChevronDown } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
-import type { Dispatch, SetStateAction } from "react";
 import { ApiListCard } from "./api-list-card";
-import { useFetchApiOverview } from "./hooks/use-fetch-api-overview";
 
 export const ApiListGrid = ({
-  initialData,
-  setApiList,
   apiList,
   isSearching,
+  onLoadMore,
+  hasMore,
+  isLoadingMore,
+  total,
 }: {
-  initialData: ApisOverviewResponse;
   apiList: ApiOverview[];
-  setApiList: Dispatch<SetStateAction<ApiOverview[]>>;
   isSearching?: boolean;
+  onLoadMore: () => void;
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  total: number;
 }) => {
-  const { total, loadMore, isLoading, hasMore } = useFetchApiOverview(initialData, setApiList);
-
   if (apiList.length === 0) {
     return (
       <EmptyComponentSpacer>
@@ -44,13 +40,15 @@ export const ApiListGrid = ({
           <ApiListCard api={api} key={api.id} />
         ))}
       </div>
+
       <div className="flex flex-col items-center justify-center mt-8 space-y-4 pb-8">
         <div className="text-center text-sm text-accent-11">
           Showing {apiList.length} of {total} APIs
         </div>
+
         {!isSearching && hasMore && (
-          <Button onClick={loadMore} disabled={isLoading} size="md">
-            {isLoading ? (
+          <Button onClick={onLoadMore} disabled={isLoadingMore} size="md">
+            {isLoadingMore ? (
               <div className="flex items-center space-x-2">
                 <div className="animate-spin h-4 w-4 border-2 border-gray-7 border-t-transparent rounded-full" />
                 <span>Loading...</span>
