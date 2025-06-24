@@ -120,6 +120,14 @@ export const EditExternalId = ({
             setSelectedIdentityId(identityId);
             setSelectedExternalId(externalId);
           }}
+          currentIdentity={
+            keyDetails.identity_id
+              ? {
+                  id: keyDetails.identity_id,
+                  externalId: keyDetails.owner_id || "",
+                }
+              : undefined
+          }
           disabled={updateKeyOwner.isLoading || Boolean(originalIdentityId)}
         />
       </DialogContainer>
