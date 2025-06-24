@@ -1,107 +1,11 @@
 import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
-import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
-import { useMemo } from "react";
-import type { QueryLogsPayload } from "../../../filters.schema";
-import { useFilters } from "../../../hooks/use-filters";
+import { buildQueryParams } from "../../../filters.query-params";
 
 export const useFetchTimeseries = () => {
-  const { filters } = useFilters();
-
   const { queryTime: timestamp } = useQueryTime();
-  const queryParams = useMemo(() => {
-    const params: Omit<QueryLogsPayload, "limit" | "cursor"> = {
-      startTime: timestamp - HISTORICAL_DATA_WINDOW,
-      endTime: timestamp,
-      host: { filters: [] },
-      requestId: { filters: [] },
-      methods: { filters: [] },
-      paths: { filters: [] },
-      status: { filters: [] },
-      since: "",
-    };
-
-    filters.forEach((filter) => {
-      switch (filter.field) {
-        case "status": {
-          params.status?.filters.push({
-            operator: "is",
-            value: Number.parseInt(filter.value as string),
-          });
-          break;
-        }
-
-        case "methods": {
-          if (typeof filter.value !== "string") {
-            console.error("Method filter value type has to be 'string'");
-            return;
-          }
-          params.methods?.filters.push({
-            operator: "is",
-            value: filter.value,
-          });
-          break;
-        }
-
-        case "paths": {
-          if (typeof filter.value !== "string") {
-            console.error("Path filter value type has to be 'string'");
-            return;
-          }
-          params.paths?.filters.push({
-            operator: filter.operator,
-            value: filter.value,
-          });
-          break;
-        }
-
-        case "host": {
-          if (typeof filter.value !== "string") {
-            console.error("Host filter value type has to be 'string'");
-            return;
-          }
-          params.host?.filters.push({
-            operator: "is",
-            value: filter.value,
-          });
-          break;
-        }
-
-        case "requestId": {
-          if (typeof filter.value !== "string") {
-            console.error("Request ID filter value type has to be 'string'");
-            return;
-          }
-          params.requestId?.filters.push({
-            operator: "is",
-            value: filter.value,
-          });
-          break;
-        }
-
-        case "startTime":
-        case "endTime": {
-          if (typeof filter.value !== "number") {
-            console.error(`${filter.field} filter value type has to be 'string'`);
-            return;
-          }
-          params[filter.field] = filter.value;
-          break;
-        }
-        case "since": {
-          if (typeof filter.value !== "string") {
-            console.error("Since filter value type has to be 'string'");
-            return;
-          }
-          params.since = filter.value;
-          break;
-        }
-      }
-    });
-
-    return params;
-  }, [filters, timestamp]);
+  const queryParams = buildQueryParams({ timestamp });
 
   const { data, isLoading, isError } = trpc.logs.queryTimeseries.useQuery(queryParams, {
     refetchInterval: queryParams.endTime ? false : 10_000,

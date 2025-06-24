@@ -1,10 +1,8 @@
-import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { QueryLogsPayload } from "../../../filters.schema";
-import { useFilters } from "../../../hooks/use-filters";
+import { buildQueryParams } from "../../../filters.query-params";
 
 // Duration in milliseconds for historical data fetch window (12 hours)
 type UseLogsQueryParams = {
@@ -24,7 +22,6 @@ export function useLogsQuery({
   const [realtimeLogsMap, setRealtimeLogsMap] = useState(() => new Map<string, Log>());
   const [totalCount, setTotalCount] = useState(0);
 
-  const { filters } = useFilters();
   const queryClient = trpc.useUtils();
   const { queryTime: timestamp } = useQueryTime();
 
@@ -34,100 +31,7 @@ export function useLogsQuery({
 
   const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
 
-  //Required for preventing double trpc call during initial render
-  const queryParams = useMemo(() => {
-    const params: QueryLogsPayload = {
-      limit,
-      startTime: timestamp - HISTORICAL_DATA_WINDOW,
-      endTime: timestamp,
-      host: { filters: [] },
-      requestId: { filters: [] },
-      methods: { filters: [] },
-      paths: { filters: [] },
-      status: { filters: [] },
-      since: "",
-    };
-
-    filters.forEach((filter) => {
-      switch (filter.field) {
-        case "status": {
-          params.status?.filters.push({
-            operator: "is",
-            value: Number.parseInt(filter.value as string),
-          });
-          break;
-        }
-
-        case "methods": {
-          if (typeof filter.value !== "string") {
-            console.error("Method filter value type has to be 'string'");
-            return;
-          }
-          params.methods?.filters.push({
-            operator: "is",
-            value: filter.value,
-          });
-          break;
-        }
-
-        case "paths": {
-          if (typeof filter.value !== "string") {
-            console.error("Path filter value type has to be 'string'");
-            return;
-          }
-          params.paths?.filters.push({
-            operator: filter.operator,
-            value: filter.value,
-          });
-          break;
-        }
-
-        case "host": {
-          if (typeof filter.value !== "string") {
-            console.error("Host filter value type has to be 'string'");
-            return;
-          }
-          params.host?.filters.push({
-            operator: "is",
-            value: filter.value,
-          });
-          break;
-        }
-
-        case "requestId": {
-          if (typeof filter.value !== "string") {
-            console.error("Request ID filter value type has to be 'string'");
-            return;
-          }
-          params.requestId?.filters.push({
-            operator: "is",
-            value: filter.value,
-          });
-          break;
-        }
-
-        case "startTime":
-        case "endTime": {
-          if (typeof filter.value !== "number") {
-            console.error(`${filter.field} filter value type has to be 'string'`);
-            return;
-          }
-          params[filter.field] = filter.value;
-          break;
-        }
-        case "since": {
-          if (typeof filter.value !== "string") {
-            console.error("Since filter value type has to be 'string'");
-            return;
-          }
-          params.since = filter.value;
-          break;
-        }
-      }
-    });
-
-    return params;
-  }, [filters, limit, timestamp]);
+  const queryParams = buildQueryParams({ timestamp, limit });
 
   // Main query for historical data
   const {
