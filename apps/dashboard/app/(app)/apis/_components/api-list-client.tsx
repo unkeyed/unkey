@@ -66,7 +66,7 @@ export const ApiListClient = () => {
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-5 w-full p-5">
-          {Array.from({ length: 8 }).map((_, i) => (
+          {Array.from({ length: DEFAULT_LIMIT }).map((_, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: It's okay to use index
             <ApiCardSkeleton key={i} />
           ))}
