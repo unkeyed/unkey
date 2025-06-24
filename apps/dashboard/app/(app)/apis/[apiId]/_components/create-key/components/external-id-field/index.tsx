@@ -30,6 +30,8 @@ export const ExternalIdField = ({
 }: ExternalIdFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
 
+  const trimmedSearchValue = searchValue.trim();
+
   const { identities, isFetchingNextPage, hasNextPage, loadMore, isLoading } = useFetchIdentities();
   const { searchResults, isSearching } = useSearchIdentities(searchValue);
 
@@ -39,20 +41,20 @@ export const ExternalIdField = ({
 
   // Combine loaded identities with search results, prioritizing search when available
   const allIdentities = useMemo(() => {
-    if (searchValue.trim() && searchResults.length > 0) {
+    if (trimmedSearchValue && searchResults.length > 0) {
       // When searching, use search results
       return searchResults;
     }
-    if (searchValue.trim() && searchResults.length === 0 && !isSearching) {
+    if (trimmedSearchValue && searchResults.length === 0 && !isSearching) {
       // No search results found, filter from loaded identities as fallback
-      const searchTerm = searchValue.toLowerCase().trim();
+      const searchTerm = trimmedSearchValue.toLowerCase();
       return identities.filter((identity) =>
         identity.externalId.toLowerCase().includes(searchTerm),
       );
     }
     // No search query, use all loaded identities
     return identities;
-  }, [identities, searchResults, searchValue, isSearching]);
+  }, [identities, searchResults, trimmedSearchValue, isSearching]);
 
   // Ensure current identity is always available in the options
   const allIdentitiesWithCurrent = useMemo(() => {
@@ -82,28 +84,28 @@ export const ExternalIdField = ({
   }, [allIdentities, currentIdentity, value]);
 
   const handleCreateIdentity = () => {
-    if (searchValue.trim()) {
+    if (trimmedSearchValue) {
       createIdentity.mutate({
-        externalId: searchValue.trim(),
+        externalId: trimmedSearchValue,
         meta: null,
       });
     }
   };
 
   const exactMatch = allIdentitiesWithCurrent.some(
-    (id) => id.externalId.toLowerCase() === searchValue.toLowerCase().trim(),
+    (id) => id.externalId.toLowerCase() === trimmedSearchValue.toLowerCase(),
   );
 
-  const filteredIdentities = searchValue.trim()
+  const filteredIdentities = trimmedSearchValue
     ? allIdentitiesWithCurrent.filter((identity) =>
-        identity.externalId.toLowerCase().includes(searchValue.toLowerCase().trim()),
+        identity.externalId.toLowerCase().includes(trimmedSearchValue.toLowerCase()),
       )
     : allIdentitiesWithCurrent;
 
   const hasPartialMatches = filteredIdentities.length > 0;
 
   // Don't show load more when actively searching
-  const showLoadMore = !searchValue.trim() && hasNextPage;
+  const showLoadMore = !trimmedSearchValue && hasNextPage;
 
   const baseOptions = createIdentityOptions({
     identities: filteredIdentities,
@@ -113,7 +115,7 @@ export const ExternalIdField = ({
   });
 
   const createOption =
-    searchValue.trim() && !exactMatch && hasPartialMatches && !isSearching
+    trimmedSearchValue && !exactMatch && hasPartialMatches && !isSearching
       ? {
           label: (
             <div className="flex items-center gap-2 w-full">
@@ -127,19 +129,19 @@ export const ExternalIdField = ({
                 <TriangleWarning2 size="sm-regular" />
               </div>
               <span className="text-[13px] text-gray-12 ">
-                <span className="text-accent-10 font-normal">Create</span> "{searchValue.trim()}"
+                <span className="text-accent-10 font-normal">Create</span> "{trimmedSearchValue}"
               </span>
             </div>
           ),
           value: "__create_new__",
           selectedLabel: <></>,
-          searchValue: searchValue.trim(),
+          searchValue: trimmedSearchValue,
         }
       : null;
 
   const options = createOption ? [createOption, ...baseOptions] : baseOptions;
 
-  const isComboboxLoading = isLoading || (isSearching && searchValue.trim().length > 0);
+  const isComboboxLoading = isLoading || (isSearching && trimmedSearchValue.length > 0);
 
   return (
     <FormCombobox
@@ -165,7 +167,7 @@ export const ExternalIdField = ({
       }
       searchPlaceholder="Search External ID..."
       emptyMessage={
-        searchValue.trim() && !exactMatch ? (
+        trimmedSearchValue && !exactMatch ? (
           <div
             className={cn(
               "p-0 w-full transition-all duration-300 ease-in-out",
@@ -209,7 +211,7 @@ export const ExternalIdField = ({
                 )}
                 onClick={handleCreateIdentity}
                 loading={createIdentity.isLoading}
-                disabled={!searchValue.trim() || createIdentity.isLoading || disabled}
+                disabled={!trimmedSearchValue || createIdentity.isLoading || disabled}
               >
                 Create
               </Button>
@@ -239,7 +241,7 @@ export const ExternalIdField = ({
       loading={isComboboxLoading}
       title={
         isComboboxLoading
-          ? isSearching && searchValue.trim()
+          ? isSearching && trimmedSearchValue
             ? "Searching for identities..."
             : "Loading available identities..."
           : undefined
