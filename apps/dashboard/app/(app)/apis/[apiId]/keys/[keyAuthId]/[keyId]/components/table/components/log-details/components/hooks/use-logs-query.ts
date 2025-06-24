@@ -13,8 +13,8 @@ export function useFetchRequestDetails({ requestId }: useFetchRequestDetails) {
       startTime: 0,
       endTime: timestamp,
       host: { filters: [] },
-      method: { filters: [] },
-      path: { filters: [] },
+      methods: { filters: [] },
+      paths: { filters: [] },
       status: { filters: [] },
       requestId: requestId
         ? {
@@ -32,7 +32,7 @@ export function useFetchRequestDetails({ requestId }: useFetchRequestDetails) {
       enabled: Boolean(requestId),
       refetchOnWindowFocus: false,
       refetchOnMount: false,
-    },
+    }
   );
 
   return {

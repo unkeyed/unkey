@@ -3,9 +3,8 @@ import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { z } from "zod";
 import { useFilters } from "../../../hooks/use-filters";
-import type { queryLogsPayload } from "../query-logs.schema";
+import type { QueryLogsPayload } from "../../../filters.schema";
 
 // Duration in milliseconds for historical data fetch window (12 hours)
 type UseLogsQueryParams = {
@@ -21,8 +20,12 @@ export function useLogsQuery({
   pollIntervalMs = 5000,
   startPolling = false,
 }: UseLogsQueryParams = {}) {
-  const [historicalLogsMap, setHistoricalLogsMap] = useState(() => new Map<string, Log>());
-  const [realtimeLogsMap, setRealtimeLogsMap] = useState(() => new Map<string, Log>());
+  const [historicalLogsMap, setHistoricalLogsMap] = useState(
+    () => new Map<string, Log>()
+  );
+  const [realtimeLogsMap, setRealtimeLogsMap] = useState(
+    () => new Map<string, Log>()
+  );
   const [totalCount, setTotalCount] = useState(0);
 
   const { filters } = useFilters();
@@ -33,18 +36,21 @@ export function useLogsQuery({
     return sortLogs(Array.from(realtimeLogsMap.values()));
   }, [realtimeLogsMap]);
 
-  const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
+  const historicalLogs = useMemo(
+    () => Array.from(historicalLogsMap.values()),
+    [historicalLogsMap]
+  );
 
   //Required for preventing double trpc call during initial render
   const queryParams = useMemo(() => {
-    const params: z.infer<typeof queryLogsPayload> = {
+    const params: QueryLogsPayload = {
       limit,
       startTime: timestamp - HISTORICAL_DATA_WINDOW,
       endTime: timestamp,
       host: { filters: [] },
       requestId: { filters: [] },
-      method: { filters: [] },
-      path: { filters: [] },
+      methods: { filters: [] },
+      paths: { filters: [] },
       status: { filters: [] },
       since: "",
     };
@@ -64,7 +70,7 @@ export function useLogsQuery({
             console.error("Method filter value type has to be 'string'");
             return;
           }
-          params.method?.filters.push({
+          params.methods?.filters.push({
             operator: "is",
             value: filter.value,
           });
@@ -76,7 +82,7 @@ export function useLogsQuery({
             console.error("Path filter value type has to be 'string'");
             return;
           }
-          params.path?.filters.push({
+          params.paths?.filters.push({
             operator: filter.operator,
             value: filter.value,
           });
@@ -110,7 +116,9 @@ export function useLogsQuery({
         case "startTime":
         case "endTime": {
           if (typeof filter.value !== "number") {
-            console.error(`${filter.field} filter value type has to be 'string'`);
+            console.error(
+              `${filter.field} filter value type has to be 'string'`
+            );
             return;
           }
           params[filter.field] = filter.value;
@@ -164,7 +172,10 @@ export function useLogsQuery({
 
         for (const log of result.logs) {
           // Skip if exists in either map
-          if (newMap.has(log.request_id) || historicalLogsMap.has(log.request_id)) {
+          if (
+            newMap.has(log.request_id) ||
+            historicalLogsMap.has(log.request_id)
+          ) {
             continue;
           }
 

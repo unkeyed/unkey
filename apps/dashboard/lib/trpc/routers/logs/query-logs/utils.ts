@@ -1,14 +1,13 @@
-import type { queryLogsPayload } from "@/app/(app)/logs/components/table/query-logs.schema";
+import type { QueryLogsPayload } from "@/app/(app)/logs/filters.schema";
 import { getTimestampFromRelative } from "@/lib/utils";
 import type { GetLogsClickhousePayload } from "@unkey/clickhouse/src/logs";
-import type { z } from "zod";
 
 export function transformFilters(
-  params: z.infer<typeof queryLogsPayload>,
+  params: QueryLogsPayload
 ): Omit<GetLogsClickhousePayload, "workspaceId"> {
   // Transform path filters to include operators
   const paths =
-    params.path?.filters.map((f) => ({
+    params.paths?.filters.map((f) => ({
       operator: f.operator,
       value: f.value,
     })) || [];
@@ -16,7 +15,7 @@ export function transformFilters(
   // Extract other filters as before
   const requestIds = params.requestId?.filters.map((f) => f.value) || [];
   const hosts = params.host?.filters.map((f) => f.value) || [];
-  const methods = params.method?.filters.map((f) => f.value) || [];
+  const methods = params.methods?.filters.map((f) => f.value) || [];
   const statusCodes = params.status?.filters.map((f) => f.value) || [];
 
   let startTime = params.startTime;

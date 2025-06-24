@@ -1,11 +1,17 @@
-import { queryLogsPayload } from "@/app/(app)/logs/components/table/query-logs.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import {
+  ratelimit,
+  requireUser,
+  requireWorkspace,
+  t,
+  withRatelimit,
+} from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { log } from "@unkey/clickhouse/src/logs";
 import { z } from "zod";
 import { transformFilters } from "./utils";
+import { queryLogsPayload } from "@/app/(app)/logs/filters.schema";
 
 const LogsResponse = z.object({
   logs: z.array(log),
@@ -40,7 +46,8 @@ export const queryLogs = t.procedure
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Workspace not found, please contact support using support@unkey.dev.",
+        message:
+          "Workspace not found, please contact support using support@unkey.dev.",
       });
     }
 
@@ -51,7 +58,10 @@ export const queryLogs = t.procedure
       workspaceId: workspace.id,
     });
 
-    const [countResult, logsResult] = await Promise.all([totalQuery, logsQuery]);
+    const [countResult, logsResult] = await Promise.all([
+      totalQuery,
+      logsQuery,
+    ]);
 
     if (countResult.err || logsResult.err) {
       throw new TRPCError({

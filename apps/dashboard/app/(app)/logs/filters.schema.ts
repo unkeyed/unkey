@@ -1,89 +1,94 @@
-import { METHODS } from "./constants";
+// ============================================================================
+// LOGS FILTER CONFIGURATION
+// ============================================================================
 
 import type {
-  FilterValue,
   NumberConfig,
   StringConfig,
 } from "@/components/logs/validation/filter.types";
-import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
-import { z } from "zod";
+import {
+  COMMON_NUMBER_OPERATORS,
+  COMMON_STRING_OPERATORS,
+  createFilterSchema,
+} from "@/lib/filter-builder-1";
+import type { z } from "zod";
 
-// Configuration
-export const logsFilterFieldConfig: FilterFieldConfigs = {
+/**
+ * Logs filter configuration - includes special time fields
+ */
+
+const logsFilterConfigs = {
   status: {
-    type: "number",
-    operators: ["is"],
-    getColorClass: (value) => {
-      if (value >= 500) {
+    type: "number" as const,
+    operators: COMMON_NUMBER_OPERATORS,
+    getColorClass: (value: unknown) => {
+      const numValue = value as number;
+      if (numValue >= 500) {
         return "bg-error-9";
       }
-      if (value >= 400) {
+      if (numValue >= 400) {
         return "bg-warning-8";
       }
       return "bg-success-9";
     },
-    validate: (value) => value >= 200 && value <= 599,
   },
   methods: {
-    type: "string",
-    operators: ["is"],
-    validValues: METHODS,
+    type: "string" as const,
+    operators: COMMON_STRING_OPERATORS,
   },
   paths: {
-    type: "string",
-    operators: ["is", "contains", "startsWith", "endsWith"],
+    type: "string" as const,
+    operators: COMMON_STRING_OPERATORS,
   },
   host: {
-    type: "string",
-    operators: ["is"],
+    type: "string" as const,
+    operators: COMMON_STRING_OPERATORS,
   },
   requestId: {
-    type: "string",
-    operators: ["is"],
+    type: "string" as const,
+    operators: COMMON_STRING_OPERATORS,
   },
   startTime: {
-    type: "number",
-    operators: ["is"],
+    type: "number" as const,
+    operators: COMMON_NUMBER_OPERATORS,
+    isTimeField: true as const,
   },
   endTime: {
-    type: "number",
-    operators: ["is"],
+    type: "number" as const,
+    operators: COMMON_NUMBER_OPERATORS,
+    isTimeField: true as const,
   },
   since: {
-    type: "string",
-    operators: ["is"],
+    type: "string" as const,
+    operators: COMMON_STRING_OPERATORS,
+    isRelativeTimeField: true as const,
   },
 } as const;
 
-export interface StatusConfig extends NumberConfig {
+// Generate logs filter schema
+const logsSchema = createFilterSchema("logs", logsFilterConfigs);
+
+export const logsFilterFieldConfig = logsFilterConfigs;
+export const logsFilterOperatorEnum = logsSchema.operatorEnum;
+export const logsFilterFieldEnum = logsSchema.fieldEnum;
+export const filterOutputSchema = logsSchema.filterOutputSchema;
+export const queryLogsPayload = logsSchema.apiQuerySchema;
+export const queryParamsPayload = logsSchema.queryParamsPayload;
+
+export type LogsFilterOperator = typeof logsSchema.types.Operator;
+export type LogsFilterField = keyof typeof logsFilterConfigs;
+export type LogsFilterValue = typeof logsSchema.types.FilterValue;
+export type LogsFilterUrlValue = typeof logsSchema.types.AllOperatorsUrlValue;
+export type QuerySearchParams = typeof logsSchema.types.QuerySearchParams;
+
+export type QueryLogsPayload = z.infer<typeof logsSchema.apiQuerySchema>;
+
+// Backwards compatibility
+export interface StatusConfig extends NumberConfig<"is"> {
   type: "number";
   operators: ["is"];
   validate: (value: number) => boolean;
 }
-
-// Schemas
-export const logsFilterOperatorEnum = z.enum(["is", "contains", "startsWith", "endsWith"]);
-
-export const logsFilterFieldEnum = z.enum([
-  "host",
-  "requestId",
-  "methods",
-  "paths",
-  "status",
-  "startTime",
-  "endTime",
-  "since",
-]);
-
-export const filterOutputSchema = createFilterOutputSchema(
-  logsFilterFieldEnum,
-  logsFilterOperatorEnum,
-  logsFilterFieldConfig,
-);
-
-// Types
-export type LogsFilterOperator = z.infer<typeof logsFilterOperatorEnum>;
-export type LogsFilterField = z.infer<typeof logsFilterFieldEnum>;
 
 export type FilterFieldConfigs = {
   status: StatusConfig;
@@ -94,21 +99,4 @@ export type FilterFieldConfigs = {
   startTime: NumberConfig<LogsFilterOperator>;
   endTime: NumberConfig<LogsFilterOperator>;
   since: StringConfig<LogsFilterOperator>;
-};
-
-export type LogsFilterUrlValue = Pick<
-  FilterValue<LogsFilterField, LogsFilterOperator>,
-  "value" | "operator"
->;
-export type LogsFilterValue = FilterValue<LogsFilterField, LogsFilterOperator>;
-
-export type QuerySearchParams = {
-  methods: LogsFilterUrlValue[] | null;
-  paths: LogsFilterUrlValue[] | null;
-  status: LogsFilterUrlValue[] | null;
-  startTime?: number | null;
-  endTime?: number | null;
-  since?: string | null;
-  host: LogsFilterUrlValue[] | null;
-  requestId: LogsFilterUrlValue[] | null;
 };
