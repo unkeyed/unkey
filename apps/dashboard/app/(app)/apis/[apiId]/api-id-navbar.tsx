@@ -17,12 +17,6 @@ const CreateKeyDialog = dynamic(
     })),
   {
     ssr: false,
-    loading: () => (
-      <NavbarActionButton disabled>
-        <Plus />
-        Create new key
-      </NavbarActionButton>
-    ),
   },
 );
 
@@ -102,9 +96,19 @@ export const ApisNavbar = ({
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
-          <div className="h-7 w-[152px] bg-grayA-3 rounded-md animate-pulse border border-grayA-4 transition-all " />
-          <div className="h-7 bg-grayA-2 border border-gray-6 rounded-md animate-pulse px-3 flex gap-2 items-center justify-center w-[200px] transition-all ">
-            <div className="h-3 w-[200px] bg-grayA-3 rounded" />
+          {specificKey?.id ? (
+            <NavbarActionButton disabled>
+              <Gear size="sm-regular" />
+              Settings
+            </NavbarActionButton>
+          ) : (
+            <NavbarActionButton disabled>
+              <Plus />
+              Create new key
+            </NavbarActionButton>
+          )}
+          <div className="h-7 bg-grayA-2 border border-gray-6 rounded-md animate-pulse px-3 flex gap-2 items-center justify-center w-[190px] transition-all ">
+            <div className="h-3 w-[190px] bg-grayA-3 rounded" />
             <div>
               <TaskUnchecked size="md-regular" className="!size-4" />
             </div>
