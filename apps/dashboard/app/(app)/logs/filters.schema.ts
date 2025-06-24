@@ -1,14 +1,6 @@
-// ============================================================================
-// LOGS FILTER CONFIGURATION
-// ============================================================================
-
 import type { NumberConfig, StringConfig } from "@/components/logs/validation/filter.types";
-import { COMMON_STRING_OPERATORS, createFilterSchema } from "@/lib/filter-builder-1";
+import { COMMON_STRING_OPERATORS, createFilterSchema } from "@/lib/filters/filter-builder";
 import type { z } from "zod";
-
-/**
- * Logs filter configuration - includes special time fields
- */
 
 const logsFilterConfigs = {
   status: {
@@ -58,8 +50,7 @@ const logsFilterConfigs = {
   },
 } as const;
 
-// Generate logs filter schema
-const logsSchema = createFilterSchema("logs", logsFilterConfigs, {
+export const logsSchema = createFilterSchema("logs", logsFilterConfigs, {
   pagination: true,
 });
 

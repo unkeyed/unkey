@@ -13,10 +13,6 @@ import { z } from "zod";
 
 export const COMMON_STRING_OPERATORS = ["is", "contains", "startsWith", "endsWith"] as const;
 
-// ============================================================================
-// FIELD CONFIGURATION TYPES
-// ============================================================================
-
 /**
  * Base configuration for any field type
  */
@@ -157,23 +153,15 @@ type CreateFilterSchemaOptions = {
 
 /**
  * Creates a complete filter schema from field configurations
- * This is the main factory function that generates everything
+ * This is the factory function that generates everything
  */
 export function createFilterSchema<
   TPrefix extends string,
   TConfigs extends Record<string, FieldConfig<readonly string[]>>,
   TOptions extends CreateFilterSchemaOptions = CreateFilterSchemaOptions,
 >(prefix: TPrefix, fieldConfigs: TConfigs, options: TOptions = {} as TOptions) {
-  // ============================================================================
-  // TYPE ALIASES FOR CLEANER CODE
-  // ============================================================================
-
   type AllOperators = ExtractAllOperators<TConfigs>;
   type FilterValueForField<TField extends keyof TConfigs> = FilterUrlValue<TConfigs, TField>;
-
-  // ============================================================================
-  // VALIDATION AND SETUP
-  // ============================================================================
 
   const fieldNames = Object.keys(fieldConfigs) as (keyof TConfigs)[];
 
@@ -186,10 +174,6 @@ export function createFilterSchema<
     new Set(Object.values(fieldConfigs).flatMap((config) => config.operators)),
   ) as AllOperators[];
 
-  // ============================================================================
-  // ZOD ENUMS
-  // ============================================================================
-
   const operatorEnum = z.enum(allOperators as [AllOperators, ...AllOperators[]]);
 
   const [firstFieldName, ...restFieldNames] = fieldNames;
@@ -199,10 +183,6 @@ export function createFilterSchema<
     keyof TConfigs,
     ...(keyof TConfigs)[],
   ]);
-
-  // ============================================================================
-  // QUERY PARAMS PAYLOAD GENERATION
-  // ============================================================================
 
   const queryParamsPayload = Object.fromEntries(
     fieldNames.map((fieldName) => {
@@ -221,10 +201,6 @@ export function createFilterSchema<
       return [fieldName, parseAsFilterValueArray(config.operators)];
     }),
   );
-
-  // ============================================================================
-  // API QUERY SCHEMA GENERATION WITH CONDITIONAL PAGINATION
-  // ============================================================================
 
   function createApiQuerySchema() {
     const schemaDefinition = {} as Record<string, z.ZodTypeAny>;
@@ -273,24 +249,12 @@ export function createFilterSchema<
     return z.object(schemaDefinition);
   }
 
-  // ============================================================================
-  // GENERATED SCHEMAS
-  // ============================================================================
-
   const filterOutputSchema = createFilterOutputSchema(fieldEnum, operatorEnum, fieldConfigs);
 
   const apiQuerySchema = createApiQuerySchema();
 
-  // ============================================================================
-  // PARSER GENERATION
-  // ============================================================================
-
   //@ts-expect-error safe to ignore
   const parseAsAllOperatorsFilterArray = parseAsFilterValueArray(allOperators);
-
-  // ============================================================================
-  // TYPE DEFINITIONS
-  // ============================================================================
 
   type OperatorType = z.infer<typeof operatorEnum>;
   type FieldType = z.infer<typeof fieldEnum>;
@@ -298,10 +262,6 @@ export function createFilterSchema<
   //@ts-expect-error safe to ignore
   type FilterValueType = FilterValue<FieldType, OperatorType>;
   type AllOperatorsUrlValueType = FilterValueForField<keyof TConfigs>;
-
-  // ============================================================================
-  // RETURN OBJECT
-  // ============================================================================
 
   return {
     // Configuration
@@ -322,7 +282,6 @@ export function createFilterSchema<
     queryParamsPayload,
     parseAsAllOperatorsFilterArray,
 
-    // Type helpers (for export)
     types: {} as {
       Operator: OperatorType;
       Field: FieldType;
