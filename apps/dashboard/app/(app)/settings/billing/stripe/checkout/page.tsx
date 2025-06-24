@@ -1,8 +1,7 @@
 import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
-import { Code } from "@unkey/ui";
-import { Empty } from "@unkey/ui";
+import { Code, Empty } from "@unkey/ui";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
 

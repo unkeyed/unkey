@@ -83,7 +83,7 @@ export default async function Page(props: Props) {
           </div>
           <h2 className="text-2xl font-semibold tracking-tight">Meta</h2>
           {identity.meta ? (
-            <Code>{JSON.stringify(identity.meta, null, 2)}</Code>
+            <Code variant="legacy">{JSON.stringify(identity.meta, null, 2)}</Code>
           ) : (
             <Alert>
               <AlertTitle>No metadata</AlertTitle>

@@ -1,17 +1,18 @@
 ---
 title: Code
-description: A versatile code component for displaying inline and block code snippets with customizable styling.
+description: A versatile code component for displaying inline and block code snippets with customizable styling and integrated buttons.
 ---
 
 import { CodeExample, CodeVariants } from "./code.example";
 
 # Code
 
-The Code component provides a consistent way to display code snippets within your application. It supports both inline and block code display with customizable styling options.
+The Code component provides a consistent way to display code snippets within your application. It supports both inline and block code display with customizable styling options and integrated button functionality.
 
 ## Features
 
-- Multiple variants (default, outline)
+- Multiple variants (default, ghost, legacy)
+- Integrated copy and visibility buttons
 - Consistent monospace font
 - Customizable styling
 - Accessible by default
@@ -21,18 +22,25 @@ The Code component provides a consistent way to display code snippets within you
 ## Usage
 
 ```tsx
-import { Code } from "@unkey/ui";
+import { Code, CopyButton, VisibleButton } from "@unkey/ui";
 
 function MyComponent() {
-  return <Code>const hello = "world";</Code>;
+  return (
+    <Code
+      copyButton={<CopyButton value="const hello = 'world';" />}
+      visibleButton={<VisibleButton isVisible={true} setIsVisible={() => {}} />}
+    >
+      const hello = "world";
+    </Code>
+  );
 }
 ```
 
 ## Examples
 
-### Default Variant
+### Default Variant with Buttons
 
-The default variant provides a subtle background with a border.
+The default variant provides a subtle background with a border and integrated buttons.
 
 <CodeExample />
 
@@ -46,10 +54,32 @@ The Code component supports different visual styles.
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `variant` | `"default" \| "outline"` | `"default"` | The visual style of the code component |
-| `className` | `string` | `undefined` | Additional CSS classes to customize the component |
+| `variant` | `"default" \| "ghost" \| "legacy"` | `"default"` | The visual style of the code component |
+| `className` | `string` | `undefined` | Additional CSS classes for the wrapper div |
+| `buttonsClassName` | `string` | `undefined` | Additional CSS classes for the buttons container |
+| `preClassName` | `string` | `undefined` | Additional CSS classes for the pre element |
+| `copyButton` | `React.ReactNode` | `undefined` | Copy button component to display |
+| `visibleButton` | `React.ReactNode` | `undefined` | Visibility toggle button component |
 
 The component also accepts all standard HTML pre element props.
+
+## Variants
+
+### Default
+- Subtle background with border
+- White background in light mode, black in dark mode
+- Gray border for visual separation
+
+### Ghost
+- Transparent background
+- No border
+- Minimal visual impact
+
+### Legacy
+- Primary text color
+- Subtle background
+- Hover effects with primary border
+- Rounded corners
 
 ## Styling
 
@@ -61,15 +91,18 @@ The Code component includes:
 - Hover effects for better interaction
 - Dark mode support
 - Responsive design
+- Flexible button positioning
 
 ## Best Practices
 
-- Use the default variant for inline code snippets
-- Use the outline variant when you need more visual separation
+- Use the default variant for code snippets with buttons
+- Use the ghost variant when you need minimal visual impact
+- Use the legacy variant for backward compatibility
 - Add appropriate padding around the code component
 - Consider using syntax highlighting for complex code blocks
 - Ensure sufficient contrast between code and background
 - Use semantic HTML structure for better accessibility
+- Position buttons appropriately using the buttonsClassName prop
 
 ## Accessibility
 
@@ -79,4 +112,5 @@ The Code component is built with accessibility in mind:
 - Keyboard focus management
 - High contrast text
 - Semantic HTML structure
-- Screen reader support 
+- Screen reader support
+- Focus states for interactive elements 

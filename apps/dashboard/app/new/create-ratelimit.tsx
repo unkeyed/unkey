@@ -83,9 +83,11 @@ export const CreateRatelimit: React.FC<Props> = async (props) => {
             The following request will limit the user to 10 requests per 10 seconds.
           </p>
 
-          <Code className="flex items-start justify-between gap-8 p-4 mt-4 text-xs text-left">
+          <Code
+            className="flex items-start justify-between gap-8 p-4 mt-4 text-xs text-left"
+            copyButton={<CopyButton value={snippet} variant="ghost" />}
+          >
             {snippet}
-            <CopyButton value={snippet} />
           </Code>
         </div>
 

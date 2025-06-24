@@ -69,6 +69,7 @@ export const CopyableIDButton = ({ value, className = "" }: CopyableIDButtonProp
           {value}
         </div>
         <CopyButton
+          variant="ghost"
           value={value}
           ref={copyButtonRef}
           className="pointer-events-none" // Make the button non-interactive directly
