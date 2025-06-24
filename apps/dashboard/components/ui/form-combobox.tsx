@@ -28,6 +28,8 @@ export type DocumentedFormComboboxProps = {
    * Error message to display
    */
   error?: string;
+  title?: string;
+  loading?: boolean;
 };
 
 // Props type combining Combobox props with form props

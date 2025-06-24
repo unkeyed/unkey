@@ -231,7 +231,6 @@ export const ExternalIdField = ({
       variant="default"
       error={error}
       disabled={disabled || isLoading}
-      //@ts-expect-error this will be fixed in the following PRs
       loading={isComboboxLoading}
       title={
         isComboboxLoading
