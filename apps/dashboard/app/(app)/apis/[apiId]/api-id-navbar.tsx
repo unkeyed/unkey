@@ -5,10 +5,10 @@ import { NavbarActionButton } from "@/components/navigation/action-button";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { trpc } from "@/lib/trpc/client";
 import { ChevronExpandY, Gear, Nodes, Plus, TaskUnchecked } from "@unkey/icons";
 import dynamic from "next/dynamic";
 import { getKeysTableActionItems } from "./keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover.constants";
-import { trpc } from "@/lib/trpc/client";
 
 const CreateKeyDialog = dynamic(
   () =>
@@ -194,7 +194,7 @@ export const ApisNavbar = ({
           {specificKey?.id ? (
             <div className="flex gap-3 items-center">
               <Navbar.Actions>
-                <KeysTableActionPopover items={getKeysTableActionItems(specificKey,trpcUtils)}>
+                <KeysTableActionPopover items={getKeysTableActionItems(specificKey, trpcUtils)}>
                   <NavbarActionButton>
                     <Gear size="sm-regular" />
                     Settings
