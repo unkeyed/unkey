@@ -96,19 +96,13 @@ export const ExternalIdField = ({
     (id) => id.externalId.toLowerCase() === trimmedSearchValue.toLowerCase(),
   );
 
-  const filteredIdentities = trimmedSearchValue
-    ? allIdentitiesWithCurrent.filter((identity) =>
-        identity.externalId.toLowerCase().includes(trimmedSearchValue.toLowerCase()),
-      )
-    : allIdentitiesWithCurrent;
-
-  const hasPartialMatches = filteredIdentities.length > 0;
+  const hasPartialMatches = allIdentitiesWithCurrent.length > 0;
 
   // Don't show load more when actively searching
   const showLoadMore = !trimmedSearchValue && hasNextPage;
 
   const baseOptions = createIdentityOptions({
-    identities: filteredIdentities,
+    identities: allIdentitiesWithCurrent,
     hasNextPage: showLoadMore,
     isFetchingNextPage,
     loadMore,

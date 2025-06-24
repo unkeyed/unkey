@@ -17,23 +17,15 @@ export const searchIdentities = t.procedure
     z.object({
       query: z
         .string()
-        .min(1, "Search query is required")
-        .max(255, "Search query is too long")
         .trim()
-        .refine((query) => !/^\s+$/.test(query), "Search query cannot be only whitespace"),
+        .min(1, "Search query is required")
+        .max(255, "Search query is too long"),
     }),
   )
   .output(SearchIdentitiesResponse)
   .query(async ({ ctx, input }) => {
     const { query } = input;
     const workspaceId = ctx.workspace.id;
-
-    if (!query.trim()) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Search query cannot be empty",
-      });
-    }
 
     try {
       const identitiesQuery = await db.query.identities.findMany({
