@@ -3,8 +3,8 @@ import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useFilters } from "../../../hooks/use-filters";
 import type { QueryLogsPayload } from "../../../filters.schema";
+import { useFilters } from "../../../hooks/use-filters";
 
 // Duration in milliseconds for historical data fetch window (12 hours)
 type UseLogsQueryParams = {
@@ -20,12 +20,8 @@ export function useLogsQuery({
   pollIntervalMs = 5000,
   startPolling = false,
 }: UseLogsQueryParams = {}) {
-  const [historicalLogsMap, setHistoricalLogsMap] = useState(
-    () => new Map<string, Log>()
-  );
-  const [realtimeLogsMap, setRealtimeLogsMap] = useState(
-    () => new Map<string, Log>()
-  );
+  const [historicalLogsMap, setHistoricalLogsMap] = useState(() => new Map<string, Log>());
+  const [realtimeLogsMap, setRealtimeLogsMap] = useState(() => new Map<string, Log>());
   const [totalCount, setTotalCount] = useState(0);
 
   const { filters } = useFilters();
@@ -36,10 +32,7 @@ export function useLogsQuery({
     return sortLogs(Array.from(realtimeLogsMap.values()));
   }, [realtimeLogsMap]);
 
-  const historicalLogs = useMemo(
-    () => Array.from(historicalLogsMap.values()),
-    [historicalLogsMap]
-  );
+  const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
 
   //Required for preventing double trpc call during initial render
   const queryParams = useMemo(() => {
@@ -116,9 +109,7 @@ export function useLogsQuery({
         case "startTime":
         case "endTime": {
           if (typeof filter.value !== "number") {
-            console.error(
-              `${filter.field} filter value type has to be 'string'`
-            );
+            console.error(`${filter.field} filter value type has to be 'string'`);
             return;
           }
           params[filter.field] = filter.value;
@@ -172,10 +163,7 @@ export function useLogsQuery({
 
         for (const log of result.logs) {
           // Skip if exists in either map
-          if (
-            newMap.has(log.request_id) ||
-            historicalLogsMap.has(log.request_id)
-          ) {
+          if (newMap.has(log.request_id) || historicalLogsMap.has(log.request_id)) {
             continue;
           }
 

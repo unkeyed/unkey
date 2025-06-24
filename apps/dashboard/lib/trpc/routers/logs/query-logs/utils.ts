@@ -3,7 +3,7 @@ import { getTimestampFromRelative } from "@/lib/utils";
 import type { GetLogsClickhousePayload } from "@unkey/clickhouse/src/logs";
 
 export function transformFilters(
-  params: QueryLogsPayload
+  params: QueryLogsPayload,
 ): Omit<GetLogsClickhousePayload, "workspaceId"> {
   // Transform path filters to include operators
   const paths =

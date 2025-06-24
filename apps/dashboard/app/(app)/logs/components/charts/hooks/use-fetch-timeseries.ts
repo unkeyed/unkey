@@ -3,21 +3,21 @@ import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { useMemo } from "react";
-import type { z } from "zod";
+import type { QueryLogsPayload } from "../../../filters.schema";
 import { useFilters } from "../../../hooks/use-filters";
-import type { queryTimeseriesPayload } from "../query-timeseries.schema";
 
 export const useFetchTimeseries = () => {
   const { filters } = useFilters();
 
   const { queryTime: timestamp } = useQueryTime();
   const queryParams = useMemo(() => {
-    const params: z.infer<typeof queryTimeseriesPayload> = {
+    const params: Omit<QueryLogsPayload, "limit" | "cursor"> = {
       startTime: timestamp - HISTORICAL_DATA_WINDOW,
       endTime: timestamp,
       host: { filters: [] },
-      method: { filters: [] },
-      path: { filters: [] },
+      requestId: { filters: [] },
+      methods: { filters: [] },
+      paths: { filters: [] },
       status: { filters: [] },
       since: "",
     };
@@ -37,7 +37,7 @@ export const useFetchTimeseries = () => {
             console.error("Method filter value type has to be 'string'");
             return;
           }
-          params.method?.filters.push({
+          params.methods?.filters.push({
             operator: "is",
             value: filter.value,
           });
@@ -49,7 +49,7 @@ export const useFetchTimeseries = () => {
             console.error("Path filter value type has to be 'string'");
             return;
           }
-          params.path?.filters.push({
+          params.paths?.filters.push({
             operator: filter.operator,
             value: filter.value,
           });
@@ -68,10 +68,22 @@ export const useFetchTimeseries = () => {
           break;
         }
 
+        case "requestId": {
+          if (typeof filter.value !== "string") {
+            console.error("Request ID filter value type has to be 'string'");
+            return;
+          }
+          params.requestId?.filters.push({
+            operator: "is",
+            value: filter.value,
+          });
+          break;
+        }
+
         case "startTime":
         case "endTime": {
           if (typeof filter.value !== "number") {
-            console.error(`${filter.field} filter value type has to be 'number'`);
+            console.error(`${filter.field} filter value type has to be 'string'`);
             return;
           }
           params[filter.field] = filter.value;

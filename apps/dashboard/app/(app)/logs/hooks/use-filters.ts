@@ -74,8 +74,10 @@ export const useFilters = () => {
       Object.keys(logsFilterFieldConfig).forEach((field) => {
         newParams[field as LogsFilterField] = null;
       });
-      const filterGroups: Record<LogsFilterField, LogsFilterValue[]> =
-        {} as Record<LogsFilterField, LogsFilterValue[]>;
+      const filterGroups: Record<LogsFilterField, LogsFilterValue[]> = {} as Record<
+        LogsFilterField,
+        LogsFilterValue[]
+      >;
 
       newFilters.forEach((filter) => {
         const field = filter.field as LogsFilterField;
@@ -85,38 +87,38 @@ export const useFilters = () => {
         filterGroups[field].push(filter);
       });
 
-      (
-        Object.entries(filterGroups) as [LogsFilterField, LogsFilterValue[]][]
-      ).forEach(([field, filters]) => {
-        const config = logsFilterFieldConfig[field];
+      (Object.entries(filterGroups) as [LogsFilterField, LogsFilterValue[]][]).forEach(
+        ([field, filters]) => {
+          const config = logsFilterFieldConfig[field];
 
-        if ("isTimeField" in config && config.isTimeField) {
-          const timeFilter = filters[0];
-          if (timeFilter) {
-            newParams[field] = timeFilter.value as number;
+          if ("isTimeField" in config && config.isTimeField) {
+            const timeFilter = filters[0];
+            if (timeFilter) {
+              newParams[field] = timeFilter.value as number;
+            }
+            return;
           }
-          return;
-        }
 
-        if ("isRelativeTimeField" in config && config.isRelativeTimeField) {
-          const relativeTimeFilter = filters[0];
-          if (relativeTimeFilter) {
-            newParams[field] = relativeTimeFilter.value as string;
+          if ("isRelativeTimeField" in config && config.isRelativeTimeField) {
+            const relativeTimeFilter = filters[0];
+            if (relativeTimeFilter) {
+              newParams[field] = relativeTimeFilter.value as string;
+            }
+            return;
           }
-          return;
-        }
 
-        const filterArray = filters.map((filter) => ({
-          operator: filter.operator,
-          value: filter.value,
-        }));
+          const filterArray = filters.map((filter) => ({
+            operator: filter.operator,
+            value: filter.value,
+          }));
 
-        newParams[field] = filterArray.length > 0 ? filterArray : null;
-      });
+          newParams[field] = filterArray.length > 0 ? filterArray : null;
+        },
+      );
 
       setSearchParams(newParams as Partial<QuerySearchParams>);
     },
-    [setSearchParams]
+    [setSearchParams],
   );
 
   const removeFilter = useCallback(
@@ -124,7 +126,7 @@ export const useFilters = () => {
       const newFilters = filters.filter((f) => f.id !== id);
       updateFilters(newFilters);
     },
-    [filters, updateFilters]
+    [filters, updateFilters],
   );
 
   const addFilter = useCallback(
@@ -135,7 +137,7 @@ export const useFilters = () => {
       };
       updateFilters([...filters, newFilter]);
     },
-    [filters, updateFilters]
+    [filters, updateFilters],
   );
 
   const clearAllFilters = useCallback(() => {

@@ -11,13 +11,7 @@ import { z } from "zod";
 // COMMON OPERATOR DEFINITIONS
 // ============================================================================
 
-export const COMMON_STRING_OPERATORS = [
-  "is",
-  "contains",
-  "startsWith",
-  "endsWith",
-] as const;
-export const COMMON_NUMBER_OPERATORS = ["is"] as const;
+export const COMMON_STRING_OPERATORS = ["is", "contains", "startsWith", "endsWith"] as const;
 
 // ============================================================================
 // FIELD CONFIGURATION TYPES
@@ -29,9 +23,6 @@ export const COMMON_NUMBER_OPERATORS = ["is"] as const;
 export interface BaseFieldConfig<TOperators extends readonly string[]> {
   type: "string" | "number";
   operators: TOperators;
-  validValues?: readonly string[];
-  getColorClass?: (value: unknown) => string;
-  validate?: (value: unknown) => boolean;
 }
 
 interface TimeField {
@@ -60,9 +51,7 @@ type FieldConfig<TOperators extends readonly string[]> =
 /**
  * Extract all operators from field configurations
  */
-type ExtractAllOperators<
-  TConfigs extends Record<string, FieldConfig<readonly string[]>>
-> = {
+type ExtractAllOperators<TConfigs extends Record<string, FieldConfig<readonly string[]>>> = {
   [K in keyof TConfigs]: TConfigs[K]["operators"][number];
 }[keyof TConfigs];
 
@@ -74,16 +63,14 @@ type IsTimeField<T> = T extends { isTimeField: true } ? true : false;
 /**
  * Check if field is a relative time field
  */
-type IsRelativeTimeField<T> = T extends { isRelativeTimeField: true }
-  ? true
-  : false;
+type IsRelativeTimeField<T> = T extends { isRelativeTimeField: true } ? true : false;
 
 /**
  * Get operators for a specific field
  */
 type GetFieldOperators<
   TConfigs extends Record<string, FieldConfig<readonly string[]>>,
-  TField extends keyof TConfigs
+  TField extends keyof TConfigs,
 > = TConfigs[TField]["operators"][number];
 
 /**
@@ -91,7 +78,7 @@ type GetFieldOperators<
  */
 type FilterUrlValue<
   TConfigs extends Record<string, FieldConfig<readonly string[]>>,
-  TField extends keyof TConfigs
+  TField extends keyof TConfigs,
 > = {
   operator: GetFieldOperators<TConfigs, TField>;
   value: TConfigs[TField]["type"] extends "number" ? number : string;
@@ -102,54 +89,70 @@ type FilterUrlValue<
  */
 type FieldUrlValueType<
   TConfigs extends Record<string, FieldConfig<readonly string[]>>,
-  TField extends keyof TConfigs
+  TField extends keyof TConfigs,
 > = IsTimeField<TConfigs[TField]> extends true
   ? TConfigs[TField]["type"] extends "number"
     ? number | null
     : string | null
   : IsRelativeTimeField<TConfigs[TField]> extends true
-  ? string | null
-  : FilterUrlValue<TConfigs, TField>[] | null;
+    ? string | null
+    : FilterUrlValue<TConfigs, TField>[] | null;
 
 /**
  * Query search params type
  */
-type QuerySearchParamsType<
-  TConfigs extends Record<string, FieldConfig<readonly string[]>>
-> = {
+type QuerySearchParamsType<TConfigs extends Record<string, FieldConfig<readonly string[]>>> = {
   [K in keyof TConfigs]: FieldUrlValueType<TConfigs, K>;
 };
 
 /**
- * Compile-time API Schema Shape type - builds exact Zod types
+ * Base schema shape for field configurations
  */
-type BuildApiSchemaShape<
-  TConfigs extends Record<string, FieldConfig<readonly string[]>>
-> = {
-  limit: z.ZodNumber;
-  cursor: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
-} & {
+type BaseSchemaShape<TConfigs extends Record<string, FieldConfig<readonly string[]>>> = {
   [K in keyof TConfigs]: IsTimeField<TConfigs[K]> extends true
     ? TConfigs[K]["type"] extends "number"
       ? z.ZodNumber
       : z.ZodString
     : IsRelativeTimeField<TConfigs[K]> extends true
-    ? z.ZodString
-    : z.ZodNullable<
-        z.ZodObject<{
-          filters: z.ZodArray<
-            z.ZodObject<{
-              operator: TConfigs[K]["operators"]["length"] extends 1
-                ? z.ZodLiteral<TConfigs[K]["operators"][0]>
-                : //@ts-expect-error safe to ignore
-                  z.ZodEnum<TConfigs[K]["operators"]>;
-              value: TConfigs[K]["type"] extends "number"
-                ? z.ZodNumber
-                : z.ZodString;
-            }>
-          >;
-        }>
-      >;
+      ? z.ZodString
+      : z.ZodNullable<
+          z.ZodObject<{
+            filters: z.ZodArray<
+              z.ZodObject<{
+                operator: TConfigs[K]["operators"]["length"] extends 1
+                  ? z.ZodLiteral<TConfigs[K]["operators"][0]>
+                  : //@ts-expect-error safe to ignore
+                    z.ZodEnum<TConfigs[K]["operators"]>;
+                value: TConfigs[K]["type"] extends "number" ? z.ZodNumber : z.ZodString;
+              }>
+            >;
+          }>
+        >;
+};
+
+/**
+ * Pagination schema shape
+ */
+type PaginationSchemaShape = {
+  limit: z.ZodNumber;
+  cursor: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+};
+
+/**
+ * Compile-time API Schema Shape type - conditionally includes pagination
+ */
+type BuildApiSchemaShape<
+  TConfigs extends Record<string, FieldConfig<readonly string[]>>,
+  TPagination extends boolean = false,
+> = TPagination extends true
+  ? PaginationSchemaShape & BaseSchemaShape<TConfigs>
+  : BaseSchemaShape<TConfigs>;
+
+/**
+ * Options for createFilterSchema
+ */
+type CreateFilterSchemaOptions = {
+  pagination?: boolean;
 };
 
 /**
@@ -158,17 +161,15 @@ type BuildApiSchemaShape<
  */
 export function createFilterSchema<
   TPrefix extends string,
-  TConfigs extends Record<string, FieldConfig<readonly string[]>>
->(prefix: TPrefix, fieldConfigs: TConfigs) {
+  TConfigs extends Record<string, FieldConfig<readonly string[]>>,
+  TOptions extends CreateFilterSchemaOptions = CreateFilterSchemaOptions,
+>(prefix: TPrefix, fieldConfigs: TConfigs, options: TOptions = {} as TOptions) {
   // ============================================================================
   // TYPE ALIASES FOR CLEANER CODE
   // ============================================================================
 
   type AllOperators = ExtractAllOperators<TConfigs>;
-  type FilterValueForField<TField extends keyof TConfigs> = FilterUrlValue<
-    TConfigs,
-    TField
-  >;
+  type FilterValueForField<TField extends keyof TConfigs> = FilterUrlValue<TConfigs, TField>;
 
   // ============================================================================
   // VALIDATION AND SETUP
@@ -177,30 +178,26 @@ export function createFilterSchema<
   const fieldNames = Object.keys(fieldConfigs) as (keyof TConfigs)[];
 
   if (fieldNames.length === 0) {
-    throw new Error(
-      `${prefix}FilterFieldConfig must contain at least one field definition.`
-    );
+    throw new Error(`${prefix}FilterFieldConfig must contain at least one field definition.`);
   }
 
   // Extract all unique operators
   const allOperators = Array.from(
-    new Set(Object.values(fieldConfigs).flatMap((config) => config.operators))
+    new Set(Object.values(fieldConfigs).flatMap((config) => config.operators)),
   ) as AllOperators[];
 
   // ============================================================================
   // ZOD ENUMS
   // ============================================================================
 
-  const operatorEnum = z.enum(
-    allOperators as [AllOperators, ...AllOperators[]]
-  );
+  const operatorEnum = z.enum(allOperators as [AllOperators, ...AllOperators[]]);
 
   const [firstFieldName, ...restFieldNames] = fieldNames;
 
   //@ts-expect-error safe to ignore
   const fieldEnum = z.enum([firstFieldName, ...restFieldNames] as [
     keyof TConfigs,
-    ...(keyof TConfigs)[]
+    ...(keyof TConfigs)[],
   ]);
 
   // ============================================================================
@@ -222,32 +219,28 @@ export function createFilterSchema<
       // Regular fields use parseAsFilterValueArray
       //@ts-expect-error safe to ignore
       return [fieldName, parseAsFilterValueArray(config.operators)];
-    })
+    }),
   );
 
   // ============================================================================
-  // API QUERY SCHEMA GENERATION WITH COMPILE-TIME TYPE PRESERVATION
+  // API QUERY SCHEMA GENERATION WITH CONDITIONAL PAGINATION
   // ============================================================================
 
-  function createApiQuerySchema(): z.ZodObject<BuildApiSchemaShape<TConfigs>> {
-    // Build the schema shape at compile time
-    type SchemaShape = BuildApiSchemaShape<TConfigs>;
-
-    // Create the actual schema object that matches our compile-time type
+  function createApiQuerySchema() {
     const schemaDefinition = {} as Record<string, z.ZodTypeAny>;
 
-    // Base fields
-    schemaDefinition.limit = z.number().int();
-    schemaDefinition.cursor = z.number().nullable().optional();
+    // Add pagination fields only if requested
+    if (options.pagination) {
+      schemaDefinition.limit = z.number().int();
+      schemaDefinition.cursor = z.number().nullable().optional();
+    }
 
     // Process each field with exact type matching
     fieldNames.forEach((fieldName) => {
       const config = fieldConfigs[fieldName];
 
-      // FIXED: Check for isTimeField, not isSpecialTimeField
       if ("isTimeField" in config && config.isTimeField) {
-        const fieldSchema =
-          config.type === "number" ? z.number().int() : z.string();
+        const fieldSchema = config.type === "number" ? z.number().int() : z.string();
         schemaDefinition[fieldName as string] = fieldSchema;
         return;
       }
@@ -271,25 +264,20 @@ export function createFilterSchema<
             z.object({
               operator: operatorSchema,
               value: valueSchema,
-            })
+            }),
           ),
         })
         .nullable();
     });
 
-    // Cast to our exact type - this preserves the compile-time type information
-    return z.object(schemaDefinition as SchemaShape);
+    return z.object(schemaDefinition);
   }
 
   // ============================================================================
   // GENERATED SCHEMAS
   // ============================================================================
 
-  const filterOutputSchema = createFilterOutputSchema(
-    fieldEnum,
-    operatorEnum,
-    fieldConfigs
-  );
+  const filterOutputSchema = createFilterOutputSchema(fieldEnum, operatorEnum, fieldConfigs);
 
   const apiQuerySchema = createApiQuerySchema();
 
@@ -326,7 +314,9 @@ export function createFilterSchema<
 
     // Schemas
     filterOutputSchema,
-    apiQuerySchema,
+    apiQuerySchema: apiQuerySchema as TOptions["pagination"] extends true
+      ? z.ZodObject<BuildApiSchemaShape<TConfigs, true>>
+      : z.ZodObject<BuildApiSchemaShape<TConfigs, false>>,
 
     // Parsers
     queryParamsPayload,

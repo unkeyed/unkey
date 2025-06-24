@@ -2,15 +2,8 @@
 // LOGS FILTER CONFIGURATION
 // ============================================================================
 
-import type {
-  NumberConfig,
-  StringConfig,
-} from "@/components/logs/validation/filter.types";
-import {
-  COMMON_NUMBER_OPERATORS,
-  COMMON_STRING_OPERATORS,
-  createFilterSchema,
-} from "@/lib/filter-builder-1";
+import type { NumberConfig, StringConfig } from "@/components/logs/validation/filter.types";
+import { COMMON_STRING_OPERATORS, createFilterSchema } from "@/lib/filter-builder-1";
 import type { z } from "zod";
 
 /**
@@ -20,7 +13,7 @@ import type { z } from "zod";
 const logsFilterConfigs = {
   status: {
     type: "number" as const,
-    operators: COMMON_NUMBER_OPERATORS,
+    operators: ["is"],
     getColorClass: (value: unknown) => {
       const numValue = value as number;
       if (numValue >= 500) {
@@ -50,12 +43,12 @@ const logsFilterConfigs = {
   },
   startTime: {
     type: "number" as const,
-    operators: COMMON_NUMBER_OPERATORS,
+    operators: ["is"],
     isTimeField: true as const,
   },
   endTime: {
     type: "number" as const,
-    operators: COMMON_NUMBER_OPERATORS,
+    operators: ["is"],
     isTimeField: true as const,
   },
   since: {
@@ -66,7 +59,9 @@ const logsFilterConfigs = {
 } as const;
 
 // Generate logs filter schema
-const logsSchema = createFilterSchema("logs", logsFilterConfigs);
+const logsSchema = createFilterSchema("logs", logsFilterConfigs, {
+  pagination: true,
+});
 
 export const logsFilterFieldConfig = logsFilterConfigs;
 export const logsFilterOperatorEnum = logsSchema.operatorEnum;
@@ -83,15 +78,8 @@ export type QuerySearchParams = typeof logsSchema.types.QuerySearchParams;
 
 export type QueryLogsPayload = z.infer<typeof logsSchema.apiQuerySchema>;
 
-// Backwards compatibility
-export interface StatusConfig extends NumberConfig<"is"> {
-  type: "number";
-  operators: ["is"];
-  validate: (value: number) => boolean;
-}
-
 export type FilterFieldConfigs = {
-  status: StatusConfig;
+  status: NumberConfig<LogsFilterOperator>;
   methods: StringConfig<LogsFilterOperator>;
   paths: StringConfig<LogsFilterOperator>;
   host: StringConfig<LogsFilterOperator>;

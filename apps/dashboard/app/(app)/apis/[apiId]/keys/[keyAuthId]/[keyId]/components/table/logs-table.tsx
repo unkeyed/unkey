@@ -15,14 +15,7 @@ import {
   TimeClock,
   TriangleWarning2,
 } from "@unkey/icons";
-import {
-  Badge,
-  Button,
-  CopyButton,
-  Empty,
-  InfoTooltip,
-  TimestampInfo,
-} from "@unkey/ui";
+import { Badge, Button, CopyButton, Empty, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import { useCallback, useState } from "react";
 import { useKeyDetailsLogsContext } from "../../context/logs";
 import { StatusBadge } from "./components/status-badge";
@@ -155,9 +148,7 @@ const getStatusType = (outcome: LogOutcomeType): keyof typeof STATUS_STYLES => {
   }
 };
 
-export const categorizeSeverity = (
-  outcome: string
-): keyof typeof STATUS_STYLES => {
+export const categorizeSeverity = (outcome: string): keyof typeof STATUS_STYLES => {
   switch (outcome) {
     case "VALID":
       return "success";
@@ -187,32 +178,17 @@ type Props = {
   onLogSelect: (log: KeyDetailsLog | null) => void;
 };
 
-export const KeyDetailsLogsTable = ({
-  keyspaceId,
-  keyId,
-  selectedLog,
-  onLogSelect,
-}: Props) => {
+export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelect }: Props) => {
   const { isLive } = useKeyDetailsLogsContext();
-  const {
-    realtimeLogs,
-    historicalLogs,
-    isLoading,
-    isLoadingMore,
-    loadMore,
-    hasMore,
-    totalCount,
-  } = useKeyDetailsLogsQuery({
-    keyId,
-    keyspaceId,
-    startPolling: isLive,
-    pollIntervalMs: 2000,
-  });
+  const { realtimeLogs, historicalLogs, isLoading, isLoadingMore, loadMore, hasMore, totalCount } =
+    useKeyDetailsLogsQuery({
+      keyId,
+      keyspaceId,
+      startPolling: isLive,
+      pollIntervalMs: 2000,
+    });
 
-  const getRowClassName = (
-    log: KeyDetailsLog,
-    selected: KeyDetailsLog | null
-  ) => {
+  const getRowClassName = (log: KeyDetailsLog, selected: KeyDetailsLog | null) => {
     const style = getStatusStyle(log);
     const isSelected = selected?.request_id === log.request_id;
 
@@ -222,7 +198,7 @@ export const KeyDetailsLogsTable = ({
       "group rounded-md cursor-pointer transition-colors",
       "focus:outline-none focus:ring-1 focus:ring-opacity-40",
       style.focusRing,
-      isSelected && style.selected
+      isSelected && style.selected,
     );
   };
 
@@ -255,7 +231,7 @@ export const KeyDetailsLogsTable = ({
         });
       }
     },
-    [hoveredLogId, utils.logs.queryLogs, timestamp]
+    [hoveredLogId, utils.logs.queryLogs, timestamp],
   );
 
   const handleRowMouseLeave = useCallback(() => {
@@ -274,9 +250,7 @@ export const KeyDetailsLogsTable = ({
             value={log.time}
             className={cn(
               "font-mono group-hover:underline decoration-dotted pl-2",
-              selectedLog &&
-                selectedLog.request_id !== log.request_id &&
-                "pointer-events-none"
+              selectedLog && selectedLog.request_id !== log.request_id && "pointer-events-none",
             )}
           />
         ),
@@ -304,10 +278,8 @@ export const KeyDetailsLogsTable = ({
                   primary={{
                     label: outcomeInfo.label,
                     color: isSelected
-                      ? STATUS_STYLES[getStatusType(outcomeInfo.type)].badge
-                          .selected
-                      : STATUS_STYLES[getStatusType(outcomeInfo.type)].badge
-                          .default,
+                      ? STATUS_STYLES[getStatusType(outcomeInfo.type)].badge.selected
+                      : STATUS_STYLES[getStatusType(outcomeInfo.type)].badge.default,
                     icon: outcomeInfo.icon,
                   }}
                 />
@@ -344,13 +316,9 @@ export const KeyDetailsLogsTable = ({
                       <div className="max-w-xs">
                         {tag.length > 60 ? (
                           <div>
-                            <div className="break-all max-w-[300px] truncate">
-                              {tag}
-                            </div>
+                            <div className="break-all max-w-[300px] truncate">{tag}</div>
                             <div className="flex items-center justify-between mt-1.5">
-                              <div className="text-xs opacity-60">
-                                ({tag.length} characters)
-                              </div>
+                              <div className="text-xs opacity-60">({tag.length} characters)</div>
                               {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
                               <div
                                 className="pointer-events-auto"
@@ -362,9 +330,7 @@ export const KeyDetailsLogsTable = ({
                           </div>
                         ) : (
                           <div className="flex justify-between items-start gap-1.5">
-                            <div className="break-all max-w-[300px] truncate">
-                              {tag}
-                            </div>
+                            <div className="break-all max-w-[300px] truncate">{tag}</div>
                             {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
                             <div
                               className="pointer-events-auto flex-shrink-0"
@@ -384,7 +350,7 @@ export const KeyDetailsLogsTable = ({
                         "whitespace-nowrap max-w-[150px] truncate",
                         selectedLog?.request_id === log.request_id
                           ? STATUS_STYLES.success.badge.selected
-                          : ""
+                          : "",
                       )}
                     >
                       {tag.length > 15 ? `${tag.substring(0, 12)}...` : tag}
@@ -406,13 +372,9 @@ export const KeyDetailsLogsTable = ({
                         <div key={idx + tag} className="text-xs">
                           {tag.length > 60 ? (
                             <div>
-                              <div className="break-all max-w-[300px] truncate">
-                                {tag}
-                              </div>
+                              <div className="break-all max-w-[300px] truncate">{tag}</div>
                               <div className="flex items-center justify-between mt-1.5">
-                                <div className="text-xs opacity-60">
-                                  ({tag.length} characters)
-                                </div>
+                                <div className="text-xs opacity-60">({tag.length} characters)</div>
                                 {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
                                 <div
                                   className="pointer-events-auto"
@@ -424,9 +386,7 @@ export const KeyDetailsLogsTable = ({
                             </div>
                           ) : (
                             <div className="flex justify-between items-start gap-1.5">
-                              <div className="break-all max-w-[300px] truncate">
-                                {tag}
-                              </div>
+                              <div className="break-all max-w-[300px] truncate">{tag}</div>
                               {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
                               <div
                                 className="pointer-events-auto flex-shrink-0"
@@ -448,7 +408,7 @@ export const KeyDetailsLogsTable = ({
                       "whitespace-nowrap",
                       selectedLog?.request_id === log.request_id
                         ? STATUS_STYLES.success.badge.selected
-                        : ""
+                        : "",
                     )}
                   >
                     +{log.tags.length - 3}
@@ -483,8 +443,7 @@ export const KeyDetailsLogsTable = ({
           hide: isLoading,
           countInfoText: (
             <div className="flex gap-2">
-              <span>Showing</span>{" "}
-              <span className="text-accent-12">{historicalLogs.length}</span>
+              <span>Showing</span> <span className="text-accent-12">{historicalLogs.length}</span>
               <span>of</span>
               {totalCount}
               <span>requests</span>
@@ -497,8 +456,8 @@ export const KeyDetailsLogsTable = ({
               <Empty.Icon className="w-auto" />
               <Empty.Title>Key Verification Logs</Empty.Title>
               <Empty.Description className="text-left">
-                No verification logs found for this key. When this API key is
-                used, details about each verification attempt will appear here.
+                No verification logs found for this key. When this API key is used, details about
+                each verification attempt will appear here.
               </Empty.Description>
               <Empty.Actions className="mt-4 justify-center md:justify-start">
                 <a
