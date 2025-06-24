@@ -1,14 +1,12 @@
 import { type UseQueryStatesKeysMap, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
 
-// Import the actual types from the filter system
 type FilterConfig = {
   type: "string" | "number";
   operators: readonly string[];
   isTimeField?: boolean;
   isRelativeTimeField?: boolean;
   getColorClass?: (value: unknown) => string;
-  validValues?: readonly string[];
 };
 
 type FilterConfigs = Record<string, FilterConfig>;
