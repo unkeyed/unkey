@@ -6,9 +6,8 @@ import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { ChevronExpandY, Gauge, Gear, Plus, ShieldKey } from "@unkey/icons";
+import { ChevronExpandY, Gauge, Gear, Plus } from "@unkey/icons";
 import dynamic from "next/dynamic";
-import { useState } from "react";
 import { getKeysTableActionItems } from "./keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover.constants";
 
 const CreateKeyDialog = dynamic(
@@ -27,10 +26,6 @@ const CreateKeyDialog = dynamic(
   },
 );
 
-const DialogContainer = dynamic(() => import("@unkey/ui").then((mod) => mod.DialogContainer), {
-  ssr: false,
-});
-
 const KeysTableActionPopover = dynamic(
   () =>
     import(
@@ -42,19 +37,6 @@ const KeysTableActionPopover = dynamic(
       <NavbarActionButton disabled>
         <Gear size="sm-regular" />
         Settings
-      </NavbarActionButton>
-    ),
-  },
-);
-
-const RBACDialogContent = dynamic(
-  () => import("./_components/rbac-dialog-content").then((mod) => mod.RBACDialogContent),
-  {
-    ssr: false,
-    loading: () => (
-      <NavbarActionButton disabled>
-        <ShieldKey size="sm-regular" />
-        Permissions
       </NavbarActionButton>
     ),
   },
@@ -86,10 +68,6 @@ export const ApisNavbar = ({
   keyData?: KeyDetails | null;
 }) => {
   const isMobile = useIsMobile();
-  const [showRBAC, setShowRBAC] = useState(false);
-
-  const keyId = keyData?.id || "";
-  const keyspaceId = api.keyAuthId || "";
 
   return (
     <>
@@ -164,15 +142,6 @@ export const ApisNavbar = ({
           {keyData?.id ? (
             <div className="flex gap-3 items-center">
               <Navbar.Actions>
-                <NavbarActionButton
-                  onClick={() => setShowRBAC(true)}
-                  disabled={!(keyId && keyspaceId)}
-                >
-                  <ShieldKey size="sm-regular" />
-                  Permissions
-                </NavbarActionButton>
-              </Navbar.Actions>
-              <Navbar.Actions>
                 <KeysTableActionPopover items={getKeysTableActionItems(keyData)}>
                   <NavbarActionButton>
                     <Gear size="sm-regular" />
@@ -193,17 +162,6 @@ export const ApisNavbar = ({
           )}
         </Navbar>
       </div>
-      {showRBAC && (
-        <DialogContainer
-          isOpen={showRBAC}
-          onOpenChange={() => setShowRBAC(false)}
-          title="Key Permissions & Roles"
-          subTitle="Manage access control for this API key with role-based permissions"
-          className="max-w-[800px] max-h-[90vh] overflow-y-auto"
-        >
-          <RBACDialogContent keyId={keyId} keyspaceId={keyspaceId} />
-        </DialogContainer>
-      )}
     </>
   );
 };

@@ -1,5 +1,5 @@
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { Badge } from "@unkey/ui";
 import { useRef } from "react";
 import { STATUS_STYLES } from "../../../utils/get-row-class";
 

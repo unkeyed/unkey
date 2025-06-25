@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { HandHoldingKey } from "@unkey/icons";
+import { Page2 } from "@unkey/icons";
 
 export const AssignedItemsCell = ({
   permissionSummary,
@@ -27,7 +27,7 @@ export const AssignedItemsCell = ({
     return (
       <div className="flex flex-col gap-1 py-1 max-w-[300px]">
         <div className={emptyClassName}>
-          <HandHoldingKey className="size-3" />
+          <Page2 className="size-3" />
           <span className="text-grayA-9 text-xs">None assigned</span>
         </div>
       </div>
@@ -37,7 +37,7 @@ export const AssignedItemsCell = ({
   return (
     <div className="flex flex-wrap gap-1 py-2 max-w-[300px]">
       <div className={itemClassName}>
-        <HandHoldingKey className="size-3" />
+        <Page2 className="size-3" />
         <span className="text-grayA-11 text-xs max-w-[150px] truncate">{total} Permissions</span>
       </div>
     </div>

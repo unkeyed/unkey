@@ -2,7 +2,6 @@ import { db } from "@/lib/db";
 import { ratelimit, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import {
-  LIMIT,
   PermissionsQueryResponse,
   permissionsQueryPayload,
   transformPermission,
@@ -14,7 +13,7 @@ export const queryRolesPermissions = t.procedure
   .input(permissionsQueryPayload)
   .output(PermissionsQueryResponse)
   .query(async ({ ctx, input }) => {
-    const { cursor } = input;
+    const { cursor, limit } = input;
     const workspaceId = ctx.workspace.id;
 
     try {
@@ -26,7 +25,7 @@ export const queryRolesPermissions = t.procedure
           }
           return and(...conditions);
         },
-        limit: LIMIT + 1,
+        limit: limit + 1,
         orderBy: (permissions, { desc }) => desc(permissions.id),
         with: {
           roles: {
@@ -48,8 +47,8 @@ export const queryRolesPermissions = t.procedure
         },
       });
 
-      const hasMore = permissionsQuery.length > LIMIT;
-      const permissions = hasMore ? permissionsQuery.slice(0, LIMIT) : permissionsQuery;
+      const hasMore = permissionsQuery.length > limit;
+      const permissions = hasMore ? permissionsQuery.slice(0, limit) : permissionsQuery;
       const nextCursor =
         hasMore && permissions.length > 0 ? permissions[permissions.length - 1].id : undefined;
 

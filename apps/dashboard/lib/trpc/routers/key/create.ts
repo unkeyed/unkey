@@ -6,6 +6,11 @@ import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { requireUser, requireWorkspace, t } from "../../trpc";
 
+// const vault = new Vault({
+//   baseUrl: env().AGENT_URL,
+//   token: env().AGENT_TOKEN,
+// });
+
 export const createKey = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
@@ -47,7 +52,8 @@ export const createKey = t.procedure
           name: input.name,
           hash,
           start,
-          identityId: input.externalId,
+          identityId: input.identityId,
+          ownerId: input.externalId,
           meta: JSON.stringify(input.meta ?? {}),
           workspaceId: ctx.workspace.id,
           forWorkspaceId: null,
@@ -62,6 +68,23 @@ export const createKey = t.procedure
           environment: input.environment,
         });
 
+        //INFO: I'm PR contribution farming, I guess
+        // if (keyAuth.storeEncryptedKeys) {
+        //   const { encrypted, keyId: encryptionKeyId } = await vault.encrypt({
+        //     keyring: ctx.workspace.id,
+        //     data: key,
+        //   });
+        //
+        //   await tx.insert(schema.encryptedKeys).values({
+        //     encrypted,
+        //     encryptionKeyId,
+        //     keyId,
+        //     workspaceId: ctx.workspace.id,
+        //     createdAt: Date.now(),
+        //     updatedAt: null,
+        //   });
+        // }
+
         if (input.ratelimit?.length) {
           await tx.insert(schema.ratelimits).values(
             input.ratelimit.map((ratelimit) => ({
@@ -73,6 +96,7 @@ export const createKey = t.procedure
               workspaceId: ctx.workspace.id,
               createdAt: Date.now(),
               updatedAt: null,
+              autoApply: ratelimit.autoApply,
             })),
           );
         }

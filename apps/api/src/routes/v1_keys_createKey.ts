@@ -373,9 +373,6 @@ export const registerV1KeysCreateKey = (app: App) =>
         expires: req.expires ? new Date(req.expires) : null,
         createdAtM: Date.now(),
         updatedAtM: null,
-        ratelimitAsync: req.ratelimit?.async ?? req.ratelimit?.type === "fast",
-        ratelimitLimit: req.ratelimit?.limit ?? req.ratelimit?.refillRate,
-        ratelimitDuration: req.ratelimit?.duration ?? req.ratelimit?.refillInterval,
         remaining: req.remaining,
         refillDay: req.refill?.interval === "daily" ? null : (req?.refill?.refillDay ?? 1),
         refillAmount: req.refill?.amount,
@@ -384,6 +381,19 @@ export const registerV1KeysCreateKey = (app: App) =>
         environment: req.environment ?? null,
         identityId: identity?.id,
       });
+      if (req.ratelimit) {
+        await db.primary.insert(schema.ratelimits).values({
+          id: newId("ratelimit"),
+          keyId: kId,
+          limit: req.ratelimit.limit ?? req.ratelimit.refillRate!,
+          duration: req.ratelimit.duration ?? req.ratelimit.refillInterval!,
+          workspaceId: authorizedWorkspaceId,
+          name: "default",
+          autoApply: true,
+          identityId: null,
+          createdAt: Date.now(),
+        });
+      }
 
       if (req.recoverable && api.keyAuth?.storeEncryptedKeys) {
         const perm = rbac.evaluatePermissions(

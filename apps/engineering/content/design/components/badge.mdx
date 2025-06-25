@@ -1,0 +1,73 @@
+---
+title: Badge
+description: A versatile badge component for displaying status, categories, or labels with multiple variants and styling options.
+---
+import { DefaultVariants, SizeVariants, MonoFont, StatusBadges, InteractiveBadges } from "./badge.example";
+
+## Usage
+
+```tsx
+import { Badge } from "@unkey/ui";
+
+export default function MyComponent() {
+  return (
+    <div>
+      <Badge variant="primary">Default</Badge>
+      <Badge variant="success">Success</Badge>
+      <Badge variant="error">Error</Badge>
+    </div>
+  );
+}
+```
+
+## Examples
+
+### Default Variants
+<DefaultVariants />
+
+### Size Variants
+<SizeVariants />
+
+### Monospace Font
+<MonoFont />
+
+### Status Badges
+<StatusBadges />
+
+### Interactive Badges
+<InteractiveBadges />
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `variant` | `"primary" \| "secondary" \| "success" \| "warning" \| "blocked" \| "error"` | `"primary"` | The visual variant of the badge. |
+| `size` | `"DEFAULT" \| "sm"` | `"DEFAULT"` | The size of the badge. |
+| `font` | `"mono"` | - | Use monospace font for the badge text. |
+| `className` | `string` | - | Additional CSS classes to apply to the badge. |
+
+## Variants
+
+- **primary**: Default neutral appearance with gray background
+- **secondary**: Subtle border style with lighter background
+- **success**: Green styling for positive states
+- **warning**: Yellow/orange styling for warnings
+- **blocked**: Orange styling for blocked or restricted states
+- **error**: Red styling for errors or negative states
+
+## Accessibility
+
+The Badge component follows accessibility best practices:
+
+- Uses semantic HTML with proper color contrast ratios
+- Text is readable and meets WCAG guidelines
+- Can be used with screen readers without issues
+- Hover states provide visual feedback for interactive elements
+
+## Best Practices
+
+- Use badges to provide quick visual context about status or categories
+- Choose appropriate variants that match the semantic meaning
+- Keep badge text concise and descriptive
+- Use consistent badge styling across your application
+- Consider using the monospace font for technical content like IDs or codes 

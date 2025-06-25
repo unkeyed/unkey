@@ -1,0 +1,73 @@
+---
+title: VisibleButton
+description: A toggle button that switches between visible and hidden states, commonly used for showing/hiding sensitive information.
+---
+import { VisibleButtonDemo } from "./visual-button.examples"
+
+## Features
+
+- Toggle between visible/hidden states.
+- Accessible with screen readers.
+- Dark mode support.
+- Customizable styling through `className` prop.
+- Configurable button `variant`.
+
+## Usage
+
+```tsx
+import { useState } from 'react';
+import { VisibleButton } from '@unkey/ui';
+
+function Example() {
+  const [isVisible, setIsVisible] = useState(false);
+  
+  return (
+    <div>
+      <VisibleButton 
+        isVisible={isVisible} 
+        setIsVisible={setIsVisible}
+        title="password" // Used for accessibility labels
+        variant="outline" // Optional: defaults to "outline"
+      />
+      {isVisible ? "Sensitive content" : "•••••••"}
+    </div>
+  );
+}
+```
+
+## Examples
+
+<VisibleButtonDemo />
+
+## Props
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `isVisible` | `boolean` | Current visibility state |
+| `setIsVisible` | `(visible: boolean) => void` | Function to update visibility state |
+| `className` | `string` | Optional CSS classes to apply to the button |
+| `title` | `string` | Text used for accessibility labels and tooltip |
+| `variant` | `ButtonProps["variant"]` | Optional button variant (defaults to "outline") |
+
+Additional props are forwarded to the underlying `Button` component. See [Button component](/design/components/buttons/button) for more details. 
+
+## Behavior
+
+1. Clicking the button toggles between visible (Eye icon) and hidden (EyeSlash icon) states.
+2. The button's aria-label and title attributes update based on the current state and provided title prop.
+
+## Accessibility
+
+- Includes dynamic aria-labels based on the title prop.
+- Uses semantic button element with proper ARIA attributes.
+- Maintains focus states for keyboard navigation.
+- Shows tooltip on hover with current action.
+
+## Design
+
+The button features:
+- A minimal, circular design.
+- Icon-based state indication (Eye/EyeSlash).
+- Hover and focus states.
+- Dark mode support.
+- Responsive sizing (inherits from Button component).
