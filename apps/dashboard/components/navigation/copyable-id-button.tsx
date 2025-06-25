@@ -58,21 +58,21 @@ export const CopyableIDButton = ({ value, className = "" }: CopyableIDButtonProp
     <Button
       variant="outline"
       size="md"
-      className={`text-xs font-mono font-medium ph-no-capture h-7 bg-grayA-2 hover:bg-grayA-3 ${className}`}
+      className={`text-xs font-mono font-medium ph-no-capture h-7 bg-grayA-2 hover:bg-grayA-3 w-[190px] ${className}`}
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
     >
-      <div className="flex gap-2 items-center justify-center">
-        <div ref={textRef} className="select-text">
+      <div className="flex gap-2 items-center justify-between w-full min-w-0">
+        <div ref={textRef} className="select-text truncate min-w-0 flex-1">
           {value}
         </div>
         <CopyButton
           variant="ghost"
           value={value}
           ref={copyButtonRef}
-          className="pointer-events-none" // Make the button non-interactive directly
+          className="pointer-events-none flex-shrink-0"
         />
       </div>
     </Button>
