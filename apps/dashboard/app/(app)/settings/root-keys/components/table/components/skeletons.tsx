@@ -30,10 +30,6 @@ export const PermissionsColumnSkeleton = () => (
       <Page2 className="size-3 opacity-50" size="md-regular" />
       <div className="h-2 w-20 bg-grayA-3 rounded animate-pulse" />
     </div>
-    <div className="rounded-md py-[2px] px-1.5 items-center w-fit flex gap-2 border border-dashed bg-grayA-3 border-grayA-6 animate-pulse h-[22px]">
-      <Page2 className="size-3 opacity-50" size="md-regular" />
-      <div className="h-2 w-16 bg-grayA-3 rounded animate-pulse" />
-    </div>
   </div>
 );
 
