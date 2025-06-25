@@ -2,7 +2,7 @@
 import { RenderComponentWithSnippet } from "@/app/components/render";
 import { ControlCloud } from "@unkey/ui";
 import type { FilterOperator } from "@unkey/ui/src/validation/filter.types";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // Define FilterValue type locally for examples
 type FilterValue = {
@@ -201,6 +201,12 @@ export function EmptyState() {
 
 export function InteractiveExample() {
   const [filters, setFilters] = useState<FilterValue[]>([]);
+  const [isMac, setIsMac] = useState(false);
+
+  // Client-side platform detection
+  useEffect(() => {
+    setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform));
+  }, []);
 
   const removeFilter = (id: string) => {
     setFilters(filters.filter((f) => f.id !== id));
@@ -263,7 +269,7 @@ export function InteractiveExample() {
           />
           <div className="p-4 text-sm text-gray-11">
             Click buttons above to add filters, then use keyboard navigation (
-            {/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform) ? "⌥+⇧+C" : "Alt+Shift+C"} to focus)
+            {isMac ? "⌥+⇧+C" : "Alt+Shift+C"} to focus)
           </div>
         </div>
       </div>
