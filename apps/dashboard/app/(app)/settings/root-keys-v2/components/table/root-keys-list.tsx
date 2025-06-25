@@ -12,10 +12,10 @@ import { CriticalPermissionIndicator } from "./components/critical-perm-warning"
 import { LastUpdated } from "./components/last-updated";
 import {
   ActionColumnSkeleton,
-  AssignedKeysColumnSkeleton,
   CreatedAtColumnSkeleton,
   KeyColumnSkeleton,
   LastUpdatedColumnSkeleton,
+  PermissionsColumnSkeleton,
   RootKeyColumnSkeleton,
 } from "./components/skeletons";
 import { useRootKeysListQuery } from "./hooks/use-root-keys-list-query";
@@ -30,7 +30,7 @@ export const RootKeysList = () => {
     () => [
       {
         key: "root_key",
-        header: "Key",
+        header: "Name",
         width: "15%",
         headerClassName: "pl-[18px]",
         render: (rootKey) => {
@@ -158,7 +158,7 @@ export const RootKeysList = () => {
       columns={columns}
       onRowClick={setSelectedRootKey}
       selectedItem={selectedRootKey}
-      keyExtractor={(rootKey) => rootKey.roleId}
+      keyExtractor={(rootKey) => rootKey.id}
       rowClassName={(rootKey) => getRowClassName(rootKey, selectedRootKey)}
       loadMoreFooterProps={{
         hide: isLoading,
@@ -216,7 +216,7 @@ export const RootKeysList = () => {
             {column.key === "root_key" && <RootKeyColumnSkeleton />}
             {column.key === "key" && <KeyColumnSkeleton />}
             {column.key === "created_at" && <CreatedAtColumnSkeleton />}
-            {column.key === "permissions" && <AssignedKeysColumnSkeleton />}
+            {column.key === "permissions" && <PermissionsColumnSkeleton />}
             {column.key === "last_updated" && <LastUpdatedColumnSkeleton />}
             {column.key === "action" && <ActionColumnSkeleton />}
           </td>
