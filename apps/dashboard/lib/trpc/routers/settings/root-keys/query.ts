@@ -231,8 +231,8 @@ function categorizePermissions(permissions: PermissionResponse[]) {
       console.warn(`Invalid permission format: ${permission.name}`);
       continue;
     }
-
-    const [identifier, , action] = parts;
+    // Skip the second element
+    const [identifier, _, action] = parts;
     let category: string;
 
     switch (identifier) {
