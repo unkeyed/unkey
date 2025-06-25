@@ -1,6 +1,5 @@
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { Key2 } from "@unkey/icons";
-import { InfoTooltip } from "@unkey/ui";
 
 export const RootKeyInfo = ({
   rootKeyDetails,
@@ -16,16 +15,9 @@ export const RootKeyInfo = ({
         <div className="text-accent-12 text-[13px] font-medium">
           {rootKeyDetails.name ?? "Unnamed Root Key"}
         </div>
-        <InfoTooltip
-          variant="inverted"
-          content={rootKeyDetails.name}
-          position={{ side: "bottom", align: "center" }}
-          asChild
-        >
-          <div className="text-accent-9 text-xs max-w-[160px] truncate">
-            {rootKeyDetails.start}...
-          </div>
-        </InfoTooltip>
+        <div className="text-accent-9 text-xs max-w-[160px] truncate">
+          {rootKeyDetails.start}...
+        </div>
       </div>
     </div>
   );

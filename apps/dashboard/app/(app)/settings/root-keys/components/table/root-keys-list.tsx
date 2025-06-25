@@ -22,7 +22,7 @@ import {
 import { useRootKeysListQuery } from "./hooks/use-root-keys-list-query";
 import { getRowClassName } from "./utils/get-row-class";
 
-const RolesTableActions = dynamic(
+const RootKeysTableActions = dynamic(
   () =>
     import("./components/actions/root-keys-table-action.popover.constants").then(
       (mod) => mod.RootKeysTableActions,
@@ -150,7 +150,7 @@ export const RootKeysList = () => {
         header: "",
         width: "auto",
         render: (rootKey) => {
-          return <RolesTableActions rootKey={rootKey} />;
+          return <RootKeysTableActions rootKey={rootKey} />;
         },
       },
     ],

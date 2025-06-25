@@ -48,6 +48,7 @@ const parseAsUnkeyPermission = createParser({
 });
 
 export const Client: React.FC<Props> = ({ apis }) => {
+  const trpcUtils = trpc.useUtils();
   const router = useRouter();
   const [name, setName] = useState<string | undefined>(undefined);
 
@@ -61,6 +62,9 @@ export const Client: React.FC<Props> = ({ apis }) => {
   );
 
   const key = trpc.rootKey.create.useMutation({
+    onSuccess() {
+      trpcUtils.settings.rootKeys.query.invalidate();
+    },
     onError(err: { message: string }) {
       console.error(err);
       toast.error(err.message);
