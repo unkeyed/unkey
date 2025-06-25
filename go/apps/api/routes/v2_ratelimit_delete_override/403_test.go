@@ -44,18 +44,19 @@ func TestWorkspacePermissions(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	route := handler.New(handler.Services{
+	route := &handler.Handler{
 		DB:          h.DB,
 		Keys:        h.Keys,
 		Logger:      h.Logger,
 		Permissions: h.Permissions,
 		Auditlogs:   h.Auditlogs,
-	})
+	}
 
 	h.Register(route)
 
-	// Create a key for a different workspace
-	differentWorkspaceKey := h.CreateRootKey(h.Resources().DifferentWorkspace.ID)
+	// Create a different workspace and key for testing cross-workspace access
+	differentWorkspace := h.CreateWorkspace()
+	differentWorkspaceKey := h.CreateRootKey(differentWorkspace.ID)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -76,7 +77,7 @@ func TestWorkspacePermissions(t *testing.T) {
 	require.NotNil(t, res.Body)
 
 	// Verify the override was NOT deleted
-	override, err := db.Query.FindRatelimitOverrideById(ctx, h.DB.RO(), db.FindRatelimitOverrideByIdParams{
+	override, err := db.Query.FindRatelimitOverrideByID(ctx, h.DB.RO(), db.FindRatelimitOverrideByIDParams{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 		OverrideID:  overrideID,
 	})

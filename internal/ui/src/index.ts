@@ -19,3 +19,5 @@ export * from "./components/timestamp-info";
 export * from "./components/tooltip";
 export * from "./components/keyboard-button";
 export * from "./components/separator";
+export * from "./components/visible-button";
+export * from "./components/badge";

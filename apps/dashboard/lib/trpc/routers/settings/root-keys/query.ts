@@ -66,7 +66,10 @@ export const queryRootKeys = t.procedure
         if (filter.operator === "contains") {
           return like(schema.keys.name, `%${filter.value}%`);
         }
-        throw new Error(`Unsupported name operator: ${filter.operator}`);
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Unsupported name operator: ${filter.operator}`,
+        });
       });
 
       if (nameConditions.length === 1) {
@@ -85,7 +88,10 @@ export const queryRootKeys = t.procedure
         if (filter.operator === "contains") {
           return like(schema.keys.start, `%${filter.value}%`);
         }
-        throw new Error(`Unsupported start operator: ${filter.operator}`);
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Unsupported key operator: ${filter.operator}`,
+        });
       });
 
       if (startConditions.length === 1) {
@@ -115,7 +121,10 @@ export const queryRootKeys = t.procedure
               ),
           );
         }
-        throw new Error(`Unsupported permission operator: ${filter.operator}`);
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Unsupported permission operator: ${filter.operator}`,
+        });
       });
 
       if (permissionConditions.length === 1) {
@@ -231,8 +240,8 @@ function categorizePermissions(permissions: PermissionResponse[]) {
       console.warn(`Invalid permission format: ${permission.name}`);
       continue;
     }
-
-    const [identifier, , action] = parts;
+    // Skip the second element
+    const [identifier, _, action] = parts;
     let category: string;
 
     switch (identifier) {

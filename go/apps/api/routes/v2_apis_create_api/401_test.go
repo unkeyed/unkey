@@ -9,20 +9,26 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 )
 
+// TestCreateApi_Unauthorized verifies that API creation requests are properly
+// rejected when authentication fails. This test ensures that invalid or missing
+// authorization tokens result in 401 Unauthorized responses, preventing
+// unauthorized access to the API creation endpoint.
 func TestCreateApi_Unauthorized(t *testing.T) {
 	h := testutil.NewHarness(t)
 
-	route := handler.New(handler.Services{
+	route := &handler.Handler{
+		Logger:      h.Logger,
 		DB:          h.DB,
 		Keys:        h.Keys,
-		Logger:      h.Logger,
 		Permissions: h.Permissions,
 		Auditlogs:   h.Auditlogs,
-	})
+	}
 
 	h.Register(route)
 
-	// Invalid authorization token
+	// This test validates that requests with malformed or invalid authorization
+	// tokens are rejected with a 401 status code, ensuring proper security
+	// boundaries for the API creation endpoint.
 	t.Run("invalid auth token", func(t *testing.T) {
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -36,4 +42,5 @@ func TestCreateApi_Unauthorized(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, sent: %+v, received: %s", req, res.RawBody)
 	})
+
 }

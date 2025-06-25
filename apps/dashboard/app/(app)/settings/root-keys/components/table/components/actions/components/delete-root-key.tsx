@@ -133,7 +133,7 @@ export const DeleteRootKey = ({ rootKeyDetails, isOpen, onClose }: DeleteRootKey
                   size="md"
                   checked={field.value}
                   onCheckedChange={field.onChange}
-                  label="I understand this will permanently delete the root key and disable its ability to create resources"
+                  label="I understand this will permanently delete the root key."
                   error={errors.confirmDeletion?.message}
                 />
               )}

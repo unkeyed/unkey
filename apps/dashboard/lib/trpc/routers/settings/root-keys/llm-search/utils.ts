@@ -55,7 +55,7 @@ export async function getStructuredSearchFromLLM(openai: OpenAI | null, userSear
     console.error(
       `Something went wrong when querying OpenAI. Input: ${JSON.stringify(
         userSearchMsg,
-      )}\n Output ${(error as Error).message}}`,
+      )}\n Output ${(error as Error).message}`,
     );
 
     if (error instanceof TRPCError) {

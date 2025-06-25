@@ -132,7 +132,7 @@ export const DeleteRole = ({ roleDetails, isOpen, onClose }: DeleteRoleProps) =>
                   id="confirm-deletion"
                   className="mt-2"
                   color="danger"
-                  size="md"
+                  size="lg"
                   checked={field.value}
                   onCheckedChange={field.onChange}
                   label="I understand this will permanently delete the role and detach it from all assigned keys and permissions"

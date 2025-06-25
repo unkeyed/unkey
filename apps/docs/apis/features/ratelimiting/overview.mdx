@@ -3,26 +3,170 @@ title: Overview
 description: "How rate limiting works in unkey"
 ---
 
+Unkey's ratelimiting system controls the number of requests a key can make within a given timeframe. This prevents abuse, protects your API from being overwhelmed, and enables usage-based billing models.
 
-Ratelimits are a way to control the amount of requests a key can make in a given timeframe. This is useful to prevent abuse and to protect your API from being overwhelmed.
+## Multi-Ratelimit System
 
+Unkey supports multiple named ratelimits per key, providing fine-grained control over different aspects of your API usage. You can define separate limits for different operations, time windows, and use cases within a single key.
 
-<Note>
-The field `ratelimit` is deprecated. Please use `ratelimits` instead.
-</Note>
+The system offers two types of ratelimits: auto-apply ratelimits that check automatically during verification, and manual ratelimits that require explicit specification in requests.
 
-Ratelimits are configured on a per-key or per-identity basis and can be managed through the dashboard or the API. In order to use a ratelimiting when verifying a key, you need to specify at least the name.
-```json
-{
-  // ...
-  "ratelimits": [
-    {
-      "name": "my-ratelimit",
-    }
-  ]
+## Auto-Apply vs Manual Ratelimits
+
+Auto-apply ratelimits (`autoApply: true`) are checked automatically during every key verification without needing explicit specification. These work well for general usage limits that should always be enforced.
+
+```bash
+# Create a key with auto-apply ratelimit
+curl -X POST https://api.unkey.dev/v1/keys.createKey \
+  -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_123",
+    "ratelimits": [
+      {
+        "name": "general-requests",
+        "limit": 100,
+        "duration": 60000,
+        "autoApply": true
+      }
+    ]
+  }'
 ```
 
+```bash
+# Verify key - auto-apply ratelimits are checked automatically
+curl -X POST https://api.unkey.dev/v1/keys.verifyKey \
+  -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_123",
+    "key": "your_api_key_here"
+  }'
+```
 
-If you do not specify at least one ratelimit, the request will not get ratelimited.
+Manual ratelimits (`autoApply: false`) must be explicitly specified in verification requests. Use these for operation-specific limits that only apply to certain endpoints.
 
-As part of the migration towards the new ratelimiting system, there is a magic ratelimit called `default` that will be applied to all requests automatically. The default ratelimit is the one you have previously configured on the key itself. If you want to disable this, please got to the key's settings and delete the limit or use the [updateKey endpoint](https://www.unkey.com/docs/api-reference/keys/update)
+```bash
+# Create a key with manual ratelimit
+curl -X POST https://api.unkey.dev/v1/keys.createKey \
+  -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_123",
+    "ratelimits": [
+      {
+        "name": "expensive-operations"
+      }
+    ]
+  }'
+```
+
+```bash
+# Verify key - override cost explicitly
+curl -X POST https://api.unkey.dev/v1/keys.verifyKey \
+  -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_123",
+    "key": "your_api_key_here",
+    "ratelimits": [
+      {
+        "name": "expensive-operations",
+        "cost": 2
+      }
+    ]
+  }'
+```
+
+## Configuration
+
+Configure ratelimits on a per-key or per-identity basis through the dashboard or API. Each ratelimit requires a unique name, limit count, and duration in milliseconds.
+
+```bash
+curl -X POST https://api.unkey.dev/v1/keys.createKey \
+  -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_123",
+    "ratelimits": [
+      {
+        "name": "requests",
+        "limit": 100,
+        "duration": 60000,
+        "autoApply": true
+      },
+      {
+        "name": "daily-quota",
+        "limit": 1000,
+        "duration": 86400000,
+        "autoApply": true
+      }
+    ]
+  }'
+```
+
+You can apply different costs to operations by specifying a cost parameter during verification. This allows resource-intensive operations to consume more of the rate limit than simple operations.
+
+## Migration from Legacy System
+
+<Note>
+The legacy `ratelimit` field is deprecated. Use the `ratelimits` array instead.
+</Note>
+
+Existing keys with the legacy `ratelimit` field are automatically migrated to use a special "default" ratelimit with `autoApply: true`. This maintains backward compatibility without requiring code changes.
+
+The legacy format converts automatically:
+
+```bash
+# Legacy format (deprecated)
+curl -X POST https://api.unkey.dev/v1/keys.createKey \
+  -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_123",
+    "ratelimit": {
+      "limit": 100,
+      "duration": 60000
+    }
+  }'
+
+# Automatically becomes
+curl -X POST https://api.unkey.dev/v1/keys.createKey \
+  -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_123",
+    "ratelimits": [
+      {
+        "name": "default",
+        "limit": 100,
+        "duration": 60000,
+        "autoApply": true
+      }
+    ]
+  }'
+```
+
+Remove the automatically migrated "default" ratelimit through the key settings in the dashboard or via the updateKey API endpoint if you no longer need it.
+
+## Identity-Level Ratelimits
+
+Configure ratelimits at the identity level to share limits across multiple keys. Identity ratelimits work alongside key-level ratelimits, with key-level settings taking precedence for naming conflicts.
+
+```bash
+curl -X POST https://api.unkey.dev/v1/identities.createIdentity \
+  -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "externalId": "user_123",
+    "ratelimits": [
+      {
+        "name": "user-requests",
+        "limit": 1000,
+        "duration": 3600000
+      }
+    ]
+  }'
+```
+
+This approach works well for user-based quotas where multiple API keys should share the same usage limits.

@@ -45,12 +45,10 @@ export const RootKeysSearch = () => {
   return (
     <LogsLLMSearch
       exampleQueries={[
-        "Find admin and moderator roles",
-        "Show roles with api.read permissions",
-        "Find roles assigned to user keys",
-        "Show roles containing database permissions",
-        "Find roles named exactly 'super_admin'",
-        "Show roles with write permissions and user keys",
+        "Show keys with api.read permissions",
+        "Show keys containing database permissions",
+        "Find keys named exactly 'super_admin'",
+        "Show keys with write permissions and user keys",
       ]}
       isLoading={queryLLMForStructuredOutput.isLoading}
       searchMode="manual"
