@@ -103,13 +103,8 @@ export const TableActionPopover = ({
           {items.map((item, index) => (
             <div key={item.id}>
               <div className="px-2">
-                {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
-                <div
-                  ref={(el) => {
-                    if (el) {
-                      menuItems.current[index] = el;
-                    }
-                  }}
+                <button
+                  type="button"
                   role="menuitem"
                   aria-disabled={item.disabled}
                   tabIndex={!item.disabled && focusIndex === index ? 0 : -1}
@@ -137,7 +132,7 @@ export const TableActionPopover = ({
                     {item.icon}
                   </div>
                   <span className="text-[13px] font-medium">{item.label}</span>
-                </div>
+                </button>
               </div>
               {item.divider && <div className="h-[1px] bg-grayA-3 w-full my-2" />}
               {item.ActionComponent && enabledItem === item.id && (
