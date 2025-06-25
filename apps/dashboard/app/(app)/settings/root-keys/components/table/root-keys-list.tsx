@@ -6,6 +6,7 @@ import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { BookBookmark, Dots, Key2 } from "@unkey/icons";
 import { Button, Empty, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { AssignedItemsCell } from "./components/assigned-items-cell";
 import { CriticalPermissionIndicator } from "./components/critical-perm-warning";
@@ -20,6 +21,26 @@ import {
 } from "./components/skeletons";
 import { useRootKeysListQuery } from "./hooks/use-root-keys-list-query";
 import { getRowClassName } from "./utils/get-row-class";
+
+const RootKeysTableActions = dynamic(
+  () =>
+    import("./components/actions/root-keys-table-action.popover.constants").then(
+      (mod) => mod.RootKeysTableActions,
+    ),
+  {
+    loading: () => (
+      <button
+        type="button"
+        className={cn(
+          "group-data-[state=open]:bg-gray-6 group-hover:bg-gray-6 group size-5 p-0 rounded m-0 items-center flex justify-center",
+          "border border-gray-6 group-hover:border-gray-8 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-7",
+        )}
+      >
+        <Dots className="group-hover:text-gray-12 text-gray-11" size="sm-regular" />
+      </button>
+    ),
+  },
+);
 
 export const RootKeysList = () => {
   const { rootKeys, isLoading, isLoadingMore, loadMore, totalCount, hasMore } =
@@ -88,31 +109,28 @@ export const RootKeysList = () => {
         ),
       },
       {
-        key: "created_at",
-        header: "Created At",
-        width: "15%",
-        render: (rootKey) => {
-          return (
-            <TimestampInfo
-              value={rootKey.createdAt}
-              className={cn(
-                "font-mono group-hover:underline decoration-dotted",
-                selectedRootKey?.id !== rootKey.id && "pointer-events-none",
-              )}
-            />
-          );
-        },
-      },
-      {
         key: "permissions",
         header: "Permissions",
-        width: "20%",
+        width: "15%",
         render: (rootKey) => (
           <AssignedItemsCell
             isSelected={rootKey.id === selectedRootKey?.id}
             permissionSummary={rootKey.permissionSummary}
           />
         ),
+      },
+      {
+        key: "created_at",
+        header: "Created At",
+        width: "20%",
+        render: (rootKey) => {
+          return (
+            <TimestampInfo
+              value={rootKey.createdAt}
+              className={cn("font-mono group-hover:underline decoration-dotted")}
+            />
+          );
+        },
       },
       {
         key: "last_updated",
@@ -131,18 +149,8 @@ export const RootKeysList = () => {
         key: "action",
         header: "",
         width: "auto",
-        render: () => {
-          return (
-            <button
-              type="button"
-              className={cn(
-                "group-data-[state=open]:bg-gray-6 group-hover:bg-gray-6 group size-5 p-0 rounded m-0 items-center flex justify-center",
-                "border border-gray-6 group-hover:border-gray-8 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-7",
-              )}
-            >
-              <Dots className="group-hover:text-gray-12 text-gray-11" size="sm-regular" />
-            </button>
-          );
+        render: (rootKey) => {
+          return <RootKeysTableActions rootKey={rootKey} />;
         },
       },
     ],
@@ -209,7 +217,7 @@ export const RootKeysList = () => {
             key={column.key}
             className={cn(
               "text-xs align-middle whitespace-nowrap",
-              column.key === "role" ? "py-[6px]" : "py-1",
+              column.key === "root_key" ? "py-[6px]" : "py-1",
             )}
             style={{ height: `${rowHeight}px` }}
           >

@@ -38,7 +38,9 @@ export const AssignedItemsCell = ({
     <div className="flex flex-wrap gap-1 py-2 max-w-[300px]">
       <div className={itemClassName}>
         <Page2 className="size-3" />
-        <span className="text-grayA-11 text-xs max-w-[150px] truncate">{total} Permissions</span>
+        <span className="text-grayA-11 text-xs max-w-[150px] truncate">
+          {total} Permission{total === 1 ? "" : "s"}
+        </span>
       </div>
     </div>
   );
