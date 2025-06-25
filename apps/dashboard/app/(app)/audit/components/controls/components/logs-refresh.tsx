@@ -1,4 +1,4 @@
-import { RefreshButton } from "@/components/logs/refresh-button";
+import { RefreshButton } from "@unkey/ui";
 import { trpc } from "@/lib/trpc/client";
 import { useFilters } from "../../../hooks/use-filters";
 
