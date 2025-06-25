@@ -28,9 +28,10 @@ import { MAX_PERMS_FETCH_LIMIT } from "./components/edit-rbac/components/assign-
 import { MAX_ROLES_FETCH_LIMIT } from "./components/edit-rbac/components/assign-role/hooks/use-fetch-keys-roles";
 import { KeysTableActionPopover, type MenuItem } from "./keys-table-action.popover";
 
-export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
-  const trpcUtils = trpc.useUtils();
-
+export const getKeysTableActionItems = (
+  key: KeyDetails,
+  trpcUtils: ReturnType<typeof trpc.useUtils>,
+): MenuItem[] => {
   return [
     {
       id: "override",
@@ -192,6 +193,7 @@ type KeysTableActionsProps = {
 };
 
 export const KeysTableActions = ({ keyData }: KeysTableActionsProps) => {
-  const items = getKeysTableActionItems(keyData);
+  const trpcUtils = trpc.useUtils();
+  const items = getKeysTableActionItems(keyData, trpcUtils);
   return <KeysTableActionPopover items={items} />;
 };
