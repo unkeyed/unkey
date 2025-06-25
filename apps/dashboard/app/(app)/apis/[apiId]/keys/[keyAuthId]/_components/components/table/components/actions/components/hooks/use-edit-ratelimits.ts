@@ -9,33 +9,21 @@ export const useEditRatelimits = (onSuccess?: () => void) => {
     onSuccess(data, variables) {
       let description = "";
 
-      // Handle both V1 and V2 ratelimit types
-      if (variables.ratelimitType === "v2") {
-        if (variables.ratelimit?.enabled) {
-          const rulesCount = variables.ratelimit.data.length;
+      if (variables.ratelimit?.enabled) {
+        const rulesCount = variables.ratelimit.data.length;
 
-          if (rulesCount === 1) {
-            // If there's just one rule, show its limit directly
-            const rule = variables.ratelimit.data[0];
-            description = `Your key ${data.keyId} has been updated with a limit of ${
-              rule.limit
-            } requests per ${formatInterval(rule.refillInterval)}`;
-          } else {
-            // If there are multiple rules, show the count
-            description = `Your key ${data.keyId} has been updated with ${rulesCount} rate limit rules`;
-          }
+        if (rulesCount === 1) {
+          // If there's just one rule, show its limit directly
+          const rule = variables.ratelimit.data[0];
+          description = `Your key ${data.keyId} has been updated with a limit of ${
+            rule.limit
+          } requests per ${formatInterval(rule.refillInterval)}`;
         } else {
-          description = `Your key ${data.keyId} has been updated with rate limits disabled`;
+          // If there are multiple rules, show the count
+          description = `Your key ${data.keyId} has been updated with ${rulesCount} rate limit rules`;
         }
       } else {
-        // V1 ratelimits
-        if (variables.enabled) {
-          description = `Your key ${data.keyId} has been updated with a limit of ${
-            variables.ratelimitLimit
-          } requests per ${formatInterval(variables.ratelimitDuration || 0)}`;
-        } else {
-          description = `Your key ${data.keyId} has been updated with rate limits disabled`;
-        }
+        description = `Your key ${data.keyId} has been updated with rate limits disabled`;
       }
 
       toast.success("Key Ratelimits Updated", {

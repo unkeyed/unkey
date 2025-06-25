@@ -15,54 +15,187 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestWorkspacePermissions(t *testing.T) {
+func TestDeleteIdentityForbidden(t *testing.T) {
 	h := testutil.NewHarness(t)
 
-	route := handler.New(handler.Services{
+	route := &handler.Handler{
+		Logger:      h.Logger,
 		DB:          h.DB,
 		Keys:        h.Keys,
-		Logger:      h.Logger,
 		Permissions: h.Permissions,
 		Auditlogs:   h.Auditlogs,
-	})
+	}
 
 	h.Register(route)
 
-	t.Run("insufficient permissions", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID)
+	t.Run("insufficient permissions - no permissions", func(t *testing.T) {
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID) // No permissions
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
 		req := handler.Request{ExternalId: ptr.P(uid.New("test"))}
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusForbidden, res.Status, "got: %s", res.RawBody)
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
+
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Contains(t, res.Body.Error.Detail, "permission")
+		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
+		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 
-	t.Run("delete identity from other workspace", func(t *testing.T) {
-		identityId := uid.New(uid.IdentityPrefix)
+	t.Run("insufficient permissions - wrong permission", func(t *testing.T) {
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.create_identity") // Wrong permission
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
 
+		req := handler.Request{ExternalId: ptr.P(uid.New("test"))}
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
+		require.NotNil(t, res.Body)
+
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Contains(t, res.Body.Error.Detail, "permission")
+		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
+		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+	})
+
+	t.Run("insufficient permissions - different resource permission", func(t *testing.T) {
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "key.*.delete_key") // Different resource type
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		req := handler.Request{ExternalId: ptr.P(uid.New("test"))}
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
+		require.NotNil(t, res.Body)
+
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Contains(t, res.Body.Error.Detail, "permission")
+		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
+		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+	})
+
+	t.Run("specific identity permission for wrong identity", func(t *testing.T) {
+		// Create a test identity
+		identityId := uid.New(uid.IdentityPrefix)
 		err := db.Query.InsertIdentity(t.Context(), h.DB.RW(), db.InsertIdentityParams{
 			ID:          identityId,
 			ExternalID:  "ext_" + identityId,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Environment: "default",
-			CreatedAt:   time.Now().Unix(),
+			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        nil,
 		})
 		require.NoError(t, err)
 
-		rootKey := h.CreateRootKey(h.Resources().DifferentWorkspace.ID, "identity.*.delete_identity")
+		// Create a different identity ID
+		differentIdentityId := uid.New(uid.IdentityPrefix)
+
+		// Create root key with permission for the different identity
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("identity.%s.delete_identity", differentIdentityId))
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
 		req := handler.Request{IdentityId: ptr.P(identityId)}
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
+
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Contains(t, res.Body.Error.Detail, "permission")
+		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
+		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+	})
+
+	t.Run("read-only permission", func(t *testing.T) {
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.read_identity") // Read permission instead of delete
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		req := handler.Request{ExternalId: ptr.P(uid.New("test"))}
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
+		require.NotNil(t, res.Body)
+
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Contains(t, res.Body.Error.Detail, "permission")
+		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
+		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+	})
+
+	t.Run("partial permission match", func(t *testing.T) {
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.create_identity") // Missing wildcard/specific ID
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		req := handler.Request{ExternalId: ptr.P(uid.New("test"))}
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
+		require.NotNil(t, res.Body)
+
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Contains(t, res.Body.Error.Detail, "permission")
+		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
+		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+	})
+
+	t.Run("multiple permissions but none matching", func(t *testing.T) {
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
+			"key.*.delete_key",
+			"api.*.delete_api",
+			"workspace.*.read_workspace") // Multiple permissions but none for identity deletion
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		req := handler.Request{ExternalId: ptr.P(uid.New("test"))}
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
+		require.NotNil(t, res.Body)
+
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Contains(t, res.Body.Error.Detail, "permission")
+		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
+		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+	})
+
+	t.Run("case sensitivity test", func(t *testing.T) {
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "IDENTITY.*.DELETE_IDENTITY") // Wrong case
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		req := handler.Request{ExternalId: ptr.P(uid.New("test"))}
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
+		require.NotNil(t, res.Body)
+
+		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Contains(t, res.Body.Error.Detail, "permission")
+		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
+		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 }

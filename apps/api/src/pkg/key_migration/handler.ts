@@ -83,11 +83,18 @@ export async function migrateKey(
         refillDay: message.refill?.refillDay,
         enabled: message.enabled,
         remaining: message.remaining,
-        ratelimitAsync: message.ratelimit?.async,
-        ratelimitLimit: message.ratelimit?.limit,
-        ratelimitDuration: message.ratelimit?.duration,
         environment: message.environment,
       });
+      if (message.ratelimit) {
+        await tx.insert(schema.ratelimits).values({
+          id: newId("ratelimit"),
+          workspaceId: message.workspaceId,
+          keyId: keyId,
+          limit: message.ratelimit.limit,
+          duration: message.ratelimit.duration,
+          name: "default",
+        });
+      }
 
       if (message.encrypted) {
         await tx.insert(schema.encryptedKeys).values({

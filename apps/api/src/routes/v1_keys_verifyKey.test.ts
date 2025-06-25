@@ -358,8 +358,9 @@ describe("when ratelimited", () => {
       workspaceId: h.resources.userWorkspace.id,
     });
 
+    const keyId = newId("test");
     await h.db.primary.insert(schema.keys).values({
-      id: newId("test"),
+      id: keyId,
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),
       identityId,
@@ -367,9 +368,17 @@ describe("when ratelimited", () => {
       start: key.slice(0, 8),
       workspaceId: h.resources.userWorkspace.id,
       createdAtM: Date.now(),
-      ratelimitAsync: false,
-      ratelimitLimit: 0,
-      ratelimitDuration: 60_000,
+    });
+
+    await h.db.primary.insert(schema.ratelimits).values({
+      id: newId("test"),
+      workspaceId: h.resources.userWorkspace.id,
+      keyId: keyId,
+      limit: 0,
+      duration: 60_000,
+      autoApply: true,
+      identityId: null,
+      name: "default",
     });
 
     const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -396,16 +405,24 @@ describe("with ratelimit override", () => {
   test("deducts the correct number of tokens", { timeout: 20000 }, async (t) => {
     const h = await IntegrationHarness.init(t);
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    const keyId = newId("test");
     await h.db.primary.insert(schema.keys).values({
-      id: newId("test"),
+      id: keyId,
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),
       start: key.slice(0, 8),
       workspaceId: h.resources.userWorkspace.id,
       createdAtM: Date.now(),
-      ratelimitLimit: 10,
-      ratelimitDuration: 60_000,
-      ratelimitAsync: false,
+    });
+    await h.db.primary.insert(schema.ratelimits).values({
+      id: newId("test"),
+      workspaceId: h.resources.userWorkspace.id,
+      keyId: keyId,
+      limit: 10,
+      duration: 60_000,
+      autoApply: true,
+      identityId: null,
+      name: "default",
     });
 
     const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -431,16 +448,24 @@ describe("with default ratelimit", () => {
   test("uses the on-key defined settings", { timeout: 20000 }, async (t) => {
     const h = await IntegrationHarness.init(t);
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    const keyId = newId("test");
     await h.db.primary.insert(schema.keys).values({
-      id: newId("test"),
+      id: keyId,
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),
       start: key.slice(0, 8),
       workspaceId: h.resources.userWorkspace.id,
       createdAtM: Date.now(),
-      ratelimitLimit: 10,
-      ratelimitDuration: 60_000,
-      ratelimitAsync: false,
+    });
+    await h.db.primary.insert(schema.ratelimits).values({
+      id: newId("test"),
+      workspaceId: h.resources.userWorkspace.id,
+      keyId: keyId,
+      limit: 10,
+      duration: 60_000,
+      autoApply: true,
+      identityId: null,
+      name: "default",
     });
 
     const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -539,9 +564,6 @@ describe("with ratelimit", () => {
           start: key.slice(0, 8),
           workspaceId: h.resources.userWorkspace.id,
           createdAtM: Date.now(),
-          ratelimitLimit: 10,
-          ratelimitDuration: 60_000,
-          ratelimitAsync: false,
         });
 
         const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -570,17 +592,26 @@ describe("with ratelimit", () => {
       async (t) => {
         const h = await IntegrationHarness.init(t);
         const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+        const keyId = newId("test");
         await h.db.primary.insert(schema.keys).values({
-          id: newId("test"),
+          id: keyId,
           keyAuthId: h.resources.userKeyAuth.id,
           hash: await sha256(key),
           start: key.slice(0, 8),
           workspaceId: h.resources.userWorkspace.id,
           createdAtM: Date.now(),
           remaining: 0,
-          ratelimitLimit: 10,
-          ratelimitDuration: 60_000,
-          ratelimitAsync: false,
+        });
+
+        await h.db.primary.insert(schema.ratelimits).values({
+          id: newId("test"),
+          workspaceId: h.resources.userWorkspace.id,
+          keyId: keyId,
+          limit: 10,
+          duration: 60_000,
+          autoApply: true,
+          identityId: null,
+          name: "default",
         });
 
         const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({

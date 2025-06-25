@@ -20,6 +20,7 @@ export const formValuesToApiInput = (formValues: FormValues, keyAuthId: string):
     prefix: formValues.prefix === "" ? undefined : formValues.prefix,
     bytes: formValues.bytes,
     externalId: formValues.externalId || null,
+    identityId: formValues.identityId || null,
     name: formValues.name === "" ? undefined : formValues.name,
     enabled: true,
     environment: formValues.environment === "" ? undefined : formValues.name,
@@ -76,7 +77,10 @@ export const getFieldsFromSchema = (schema: unknown, prefix = ""): string[] => {
     return [];
   }
 
-  const schemaObj = schema as { shape: Record<string, unknown>; _def?: { typeName: string } };
+  const schemaObj = schema as {
+    shape: Record<string, unknown>;
+    _def?: { typeName: string };
+  };
 
   return Object.keys(schemaObj.shape).flatMap((key) => {
     const fullPath = prefix ? `${prefix}.${key}` : key;
@@ -121,6 +125,7 @@ export const getDefaultValues = (
           name: "Default",
           limit: 10,
           refillInterval: 1000,
+          autoApply: true,
         },
       ],
     },

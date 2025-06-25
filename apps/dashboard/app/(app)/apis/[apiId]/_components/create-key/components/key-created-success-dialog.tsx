@@ -3,8 +3,8 @@
 import { ConfirmPopover } from "@/components/confirmation-popover";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toaster";
-import { ArrowRight, Check, CircleInfo, Eye, EyeSlash, Key2, Plus } from "@unkey/icons";
-import { Button, CopyButton, InfoTooltip } from "@unkey/ui";
+import { ArrowRight, Check, CircleInfo, Key2, Plus } from "@unkey/icons";
+import { Button, CopyButton, InfoTooltip, VisibleButton } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { UNNAMED_KEY } from "../create-key.constants";
@@ -228,14 +228,11 @@ export const KeyCreatedSuccessDialog = ({
                     </pre>
                   </div>
                   <div className="flex items-center justify-between gap-2 mt-1 flex-shrink-0">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="bg-grayA-3 transition-all"
-                      onClick={() => setShowKeyInSnippet(!showKeyInSnippet)}
-                    >
-                      {showKeyInSnippet ? <EyeSlash /> : <Eye />}
-                    </Button>
+                    <VisibleButton
+                      isVisible={showKeyInSnippet}
+                      setIsVisible={(visible) => setShowKeyInSnippet(visible)}
+                      title="Key Snippet"
+                    />
                     <Button variant="outline" size="icon" className="bg-grayA-3">
                       <div className="flex items-center justify-center">
                         <CopyButton value={snippet} />

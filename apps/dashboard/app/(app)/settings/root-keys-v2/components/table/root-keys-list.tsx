@@ -95,7 +95,10 @@ export const RootKeysList = () => {
           return (
             <TimestampInfo
               value={rootKey.createdAt}
-              className={cn("font-mono group-hover:underline decoration-dotted")}
+              className={cn(
+                "font-mono group-hover:underline decoration-dotted",
+                selectedRootKey?.id !== rootKey.id && "pointer-events-none",
+              )}
             />
           );
         },

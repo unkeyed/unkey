@@ -1,4 +1,4 @@
--- name: ListRatelimitOverrides :many
+-- name: ListRatelimitOverridesByNamespaceID :many
 SELECT * FROM ratelimit_overrides
 WHERE
     workspace_id = sqlc.arg(workspace_id)

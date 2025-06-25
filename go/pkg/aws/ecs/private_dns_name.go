@@ -38,13 +38,13 @@ func GetPrivateDnsName() (string, error) {
 	url := os.Getenv("ECS_CONTAINER_METADATA_URI_V4")
 	err := assert.NotEmpty(url)
 	if err != nil {
-		return "", fault.Wrap(err, fault.WithDesc("ECS_CONTAINER_METADATA_URI_V4 is empty", ""))
+		return "", fault.Wrap(err, fault.Internal("ECS_CONTAINER_METADATA_URI_V4 is empty"))
 	}
 
 	// Query the task metadata endpoint
 	metaRes, err := http.Get(fmt.Sprintf("%s/task", url))
 	if err != nil {
-		return "", fault.Wrap(err, fault.WithDesc("failed to get task metadata", ""))
+		return "", fault.Wrap(err, fault.Internal("failed to get task metadata"))
 	}
 	defer metaRes.Body.Close()
 
@@ -60,25 +60,25 @@ func GetPrivateDnsName() (string, error) {
 
 	b, err := io.ReadAll(metaRes.Body)
 	if err != nil {
-		return "", fault.Wrap(err, fault.WithDesc("failed to read task metadata body", ""))
+		return "", fault.Wrap(err, fault.Internal("failed to read task metadata body"))
 	}
 
 	body := ecsTaskMetadataV2Response{} // nolint:exhaustruct
 
 	err = json.Unmarshal(b, &body)
 	if err != nil {
-		return "", fault.Wrap(err, fault.WithDesc("failed to parse task metadata", ""))
+		return "", fault.Wrap(err, fault.Internal("failed to parse task metadata"))
 	}
 
 	// Validate the response structure
 	err = assert.True(len(body.Containers) > 0)
 	if err != nil {
-		return "", fault.Wrap(err, fault.WithDesc("no containers found", ""))
+		return "", fault.Wrap(err, fault.Internal("no containers found"))
 	}
 
 	err = assert.True(len(body.Containers[0].Networks) > 0)
 	if err != nil {
-		return "", fault.Wrap(err, fault.WithDesc("no networks found", ""))
+		return "", fault.Wrap(err, fault.Internal("no networks found"))
 	}
 
 	// Extract the private DNS name
@@ -86,7 +86,7 @@ func GetPrivateDnsName() (string, error) {
 
 	err = assert.NotEmpty(addr)
 	if err != nil {
-		return "", fault.Wrap(err, fault.WithDesc("PrivateDNSName is empty", ""))
+		return "", fault.Wrap(err, fault.Internal("PrivateDNSName is empty"))
 	}
 	return addr, nil
 }

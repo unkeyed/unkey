@@ -10,6 +10,7 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
+	"github.com/ory/dockertest/v3"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 )
@@ -73,23 +74,19 @@ import (
 //   - [RunRedis] for starting a Redis container.
 func (c *Containers) RunClickHouse() (hostDsn, dockerDsn string) {
 	c.t.Helper()
-	defer func(start time.Time) {
-		c.t.Logf("starting ClickHouse took %s", time.Since(start))
-	}(time.Now())
-	// Start ClickHouse container
-	resource, err := c.pool.Run("bitnami/clickhouse", "latest", []string{
-		"CLICKHOUSE_ADMIN_USER=default",
-		"CLICKHOUSE_ADMIN_PASSWORD=password",
-	})
-	require.NoError(c.t, err)
+	runOpts := &dockertest.RunOptions{
+		Name:       containerNameClickHouse,
+		Repository: "bitnami/clickhouse",
+		Tag:        "latest",
+		Networks:   []*dockertest.Network{c.network},
+		Env: []string{
+			"CLICKHOUSE_ADMIN_USER=default",
+			"CLICKHOUSE_ADMIN_PASSWORD=password",
+		},
+	}
 
-	err = resource.ConnectToNetwork(c.network)
+	resource, isNew, err := c.getOrCreateContainer(containerNameClickHouse, runOpts)
 	require.NoError(c.t, err)
-	c.t.Cleanup(func() {
-		if !c.t.Failed() {
-			require.NoError(c.t, c.pool.Purge(resource))
-		}
-	})
 
 	// Construct DSN
 	port := resource.GetPort("9000/tcp")
@@ -121,8 +118,11 @@ func (c *Containers) RunClickHouse() (hostDsn, dockerDsn string) {
 		return conn.Ping(ctx)
 	}))
 
-	err = runClickHouseMigrations(conn)
-	require.NoError(c.t, err)
+	// Only run migrations for new containers
+	if isNew {
+		err = runClickHouseMigrations(conn)
+		require.NoError(c.t, err)
+	}
 
 	require.NoError(c.t, conn.Close())
 	return hostDsn, dockerDsn
