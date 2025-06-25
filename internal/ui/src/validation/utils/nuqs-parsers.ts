@@ -64,12 +64,10 @@ export type SortUrlValue<TColumn extends string> = {
   direction: SortDirection;
 };
 
-export const parseAsSortArray = <TColumn extends string>(): Parser<
-  SortUrlValue<TColumn>[] | null
-> => ({
+export const parseAsSortArray = <TColumn extends string>(): Parser<SortUrlValue<TColumn>[]> => ({
   parse: (str: string | null) => {
     if (!str) {
-      return null;
+      return [];
     }
     try {
       return str.split(",").map((item) => {
@@ -86,10 +84,10 @@ export const parseAsSortArray = <TColumn extends string>(): Parser<
         };
       });
     } catch {
-      return null;
+      return [];
     }
   },
-  serialize: (value: SortUrlValue<TColumn>[] | null) => {
+  serialize: (value: SortUrlValue<TColumn>[]) => {
     if (!value?.length) {
       return "";
     }

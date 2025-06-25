@@ -160,11 +160,12 @@ export const getTimestampFromRelative = (relativeTime: string): number => {
 
 export const processTimeFilters = (date?: Date, newTime?: TimeUnit) => {
   if (date) {
+    const newDate = new Date(date);
     const hours = newTime?.HH ? Number.parseInt(newTime.HH) : 0;
     const minutes = newTime?.mm ? Number.parseInt(newTime.mm) : 0;
     const seconds = newTime?.ss ? Number.parseInt(newTime.ss) : 0;
-    date.setHours(hours, minutes, seconds, 0);
-    return date;
+    newDate.setHours(hours, minutes, seconds, 0);
+    return newDate;
   }
   const now = new Date();
   return now;

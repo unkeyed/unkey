@@ -56,5 +56,5 @@ export function validateFieldValue<TConfig extends Record<string, FieldConfig>>(
     return config.validate ? config.validate(value) : true;
   }
 
-  return true;
+  return false;
 }

@@ -1,13 +1,14 @@
 "use client";
 import { RenderComponentWithSnippet } from "@/app/components/render";
 import { ControlCloud } from "@unkey/ui";
+import type { FilterOperator } from "@unkey/ui/src/validation/filter.types";
 import { useState } from "react";
 
 // Define FilterValue type locally for examples
 type FilterValue = {
   id: string;
   field: string;
-  operator: "is" | "contains" | "startsWith" | "endsWith";
+  operator: FilterOperator;
   value: string | number;
   metadata?: {
     colorClass?: string;
@@ -18,13 +19,13 @@ type FilterValue = {
 // Mock filter data for examples
 const createMockFilter = (
   field: string,
-  operator: string,
+  operator: FilterOperator,
   value: string | number,
   id?: string,
 ): FilterValue => ({
   id: id || crypto.randomUUID(),
   field,
-  operator: operator as FilterValue["operator"],
+  operator,
   value,
 });
 
@@ -115,7 +116,7 @@ export function MultipleFilterTypes() {
     createMockFilter("status", "is", "404"),
     createMockFilter("method", "is", "POST"),
     createMockFilter("path", "contains", "/api/users"),
-    createMockFilter("duration", "gt", 1000),
+    createMockFilter("duration", "is", 1000),
   ]);
 
   const removeFilter = (id: string) => {
@@ -261,7 +262,8 @@ export function InteractiveExample() {
             formatFieldName={formatFieldName}
           />
           <div className="p-4 text-sm text-gray-11">
-            Click buttons above to add filters, then use keyboard navigation (⌥+⇧+C to focus)
+            Click buttons above to add filters, then use keyboard navigation (
+            {/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform) ? "⌥+⇧+C" : "Alt+Shift+C"} to focus)
           </div>
         </div>
       </div>

@@ -30,6 +30,64 @@ const defaultOptions: Required<KeyboardShortcutOptions> = {
   disabled: false,
 };
 
+// Map for O(1) key lookups
+const KEY_NAME_TO_CODE_MAP = new Map([
+  // Common Control/Whitespace Keys
+  ["enter", "Enter"],
+  ["tab", "Tab"],
+  ["space", "Space"],
+  ["esc", "Escape"],
+  ["escape", "Escape"],
+  ["backspace", "Backspace"],
+  ["delete", "Delete"],
+
+  // Arrow Keys
+  ["up", "ArrowUp"],
+  ["arrowup", "ArrowUp"],
+  ["down", "ArrowDown"],
+  ["arrowdown", "ArrowDown"],
+  ["left", "ArrowLeft"],
+  ["arrowleft", "ArrowLeft"],
+  ["right", "ArrowRight"],
+  ["arrowright", "ArrowRight"],
+
+  // Punctuation and Symbols
+  [",", "Comma"],
+  ["comma", "Comma"],
+  [".", "Period"],
+  ["period", "Period"],
+  ["/", "Slash"],
+  ["slash", "Slash"],
+  [";", "Semicolon"],
+  ["semicolon", "Semicolon"],
+  ["'", "Quote"],
+  ["quote", "Quote"],
+  ["[", "BracketLeft"],
+  ["bracketleft", "BracketLeft"],
+  ["]", "BracketRight"],
+  ["bracketright", "BracketRight"],
+  ["\\", "Backslash"],
+  ["backslash", "Backslash"],
+  ["`", "Backquote"],
+  ["backquote", "Backquote"],
+  ["-", "Minus"],
+  ["minus", "Minus"],
+  ["=", "Equal"],
+  ["equal", "Equal"],
+]);
+
+// Map for O(1) modifier key lookups
+const MODIFIER_KEY_MAP = new Map([
+  ["ctrl", "ctrl"],
+  ["control", "ctrl"],
+  ["shift", "shift"],
+  ["meta", "meta"],
+  ["cmd", "meta"],
+  ["win", "meta"],
+  ["alt", "alt"],
+  ["option", "alt"],
+]);
+
 /**
  * Maps common key names (like 'a', 'enter', 'f1', 'comma') to their
  * corresponding KeyboardEvent.code values (like 'KeyA', 'Enter', 'F1', 'Comma').
@@ -39,6 +97,12 @@ const defaultOptions: Required<KeyboardShortcutOptions> = {
  */
 export const getKeyNameToCode = (keyName: string): string | null => {
   const lowerKey = keyName.toLowerCase();
+
+  // Check Map first for O(1) lookup
+  const mappedCode = KEY_NAME_TO_CODE_MAP.get(lowerKey);
+  if (mappedCode) {
+    return mappedCode;
+  }
 
   // Basic Letters (A-Z)
   if (lowerKey.length === 1 && lowerKey >= "a" && lowerKey <= "z") {
@@ -50,81 +114,12 @@ export const getKeyNameToCode = (keyName: string): string | null => {
     return `Digit${lowerKey}`; // '1' -> 'Digit1'
   }
 
-  // Common Control/Whitespace Keys
-  switch (lowerKey) {
-    case "enter":
-      return "Enter";
-    case "tab":
-      return "Tab";
-    case "space":
-      return "Space"; // Use 'space' keyword
-    case "esc":
-    case "escape":
-      return "Escape";
-    case "backspace":
-      return "Backspace";
-    case "delete":
-      return "Delete";
-    // Add more common keys as needed (e.g., Home, End, PageUp, PageDown)
-  }
-
-  // Arrow Keys
-  switch (lowerKey) {
-    case "up":
-    case "arrowup":
-      return "ArrowUp";
-    case "down":
-    case "arrowdown":
-      return "ArrowDown";
-    case "left":
-    case "arrowleft":
-      return "ArrowLeft";
-    case "right":
-    case "arrowright":
-      return "ArrowRight";
-  }
-
+  // Function Keys (F1-F12)
   if (lowerKey.startsWith("f") && !Number.isNaN(Number.parseInt(lowerKey.substring(1), 10))) {
     const fNum = Number.parseInt(lowerKey.substring(1), 10);
     if (fNum >= 1 && fNum <= 12) {
       return `F${fNum}`;
     }
-  }
-
-  switch (lowerKey) {
-    case ",":
-    case "comma":
-      return "Comma";
-    case ".":
-    case "period":
-      return "Period";
-    case "/":
-    case "slash":
-      return "Slash";
-    case ";":
-    case "semicolon":
-      return "Semicolon";
-    case "'":
-    case "quote":
-      return "Quote";
-    case "[":
-    case "bracketleft":
-      return "BracketLeft";
-    case "]":
-    case "bracketright":
-      return "BracketRight";
-    case "\\":
-    case "backslash":
-      return "Backslash";
-    case "`":
-    case "backquote":
-      return "Backquote";
-    case "-":
-    case "minus":
-      return "Minus";
-    case "=":
-    case "equal":
-      return "Equal";
   }
 
   console.warn(
@@ -153,46 +148,46 @@ export const parseShortcutString = (shortcut: string): KeyCombo | null => {
   let keyAssigned = false;
 
   for (const part of parts) {
-    switch (part) {
-      case "ctrl":
-      case "control":
-        combo.ctrl = true;
-        break;
-      case "shift":
-        combo.shift = true;
-        break;
-      case "meta":
-      case "cmd":
-      case "win":
-        combo.meta = true;
-        break;
-      case "alt":
-      case "option":
-        combo.alt = true;
-        break;
-      default:
-        if (part.length > 0) {
-          if (keyAssigned) {
-            console.warn(
-              `[useKeyboardShortcut] Multiple non-modifier keys detected in shortcut: "${shortcut}"`,
-            );
-            return null;
-          }
-          combo.key = part; // Store original key name
-          combo.code = getKeyNameToCode(part); // Attempt to get the code
-          if (!combo.code) {
-            console.warn(
-              `[useKeyboardShortcut] Failed to map key "${part}" to code for shortcut: "${shortcut}". Please check spelling or expand getKeyNameToCode mapping.`,
-            );
-            return null; // Fail parsing if code cannot be determined
-          }
-          keyAssigned = true;
-        } else {
+    // Check if this is a modifier key using O(1) Map lookup
+    const modifierKey = MODIFIER_KEY_MAP.get(part);
+    if (modifierKey) {
+      // Set the corresponding modifier flag
+      switch (modifierKey) {
+        case "ctrl":
+          combo.ctrl = true;
+          break;
+        case "shift":
+          combo.shift = true;
+          break;
+        case "meta":
+          combo.meta = true;
+          break;
+        case "alt":
+          combo.alt = true;
+          break;
+      }
+    } else {
+      // This is not a modifier key, treat as the main key
+      if (part.length > 0) {
+        if (keyAssigned) {
           console.warn(
-            `[useKeyboardShortcut] Empty part detected in shortcut string: "${shortcut}"`,
+            `[useKeyboardShortcut] Multiple non-modifier keys detected in shortcut: "${shortcut}"`,
           );
           return null;
         }
+        combo.key = part; // Store original key name
+        combo.code = getKeyNameToCode(part); // Attempt to get the code
+        if (!combo.code) {
+          console.warn(
+            `[useKeyboardShortcut] Failed to map key "${part}" to code for shortcut: "${shortcut}". Please check spelling or expand getKeyNameToCode mapping.`,
+          );
+          return null; // Fail parsing if code cannot be determined
+        }
+        keyAssigned = true;
+      } else {
+        console.warn(`[useKeyboardShortcut] Empty part detected in shortcut string: "${shortcut}"`);
+        return null;
+      }
     }
   }
 
@@ -233,7 +228,7 @@ export function useKeyboardShortcut(
   const { preventDefault, ignoreInputs, ignoreContentEditable, disabled } = mergedOptions;
 
   // Memoize callback for stability in the useEffect dependency array
-  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+  // biome-ignore lint/correctness/useExhaustiveDependencies: callback is intentionally excluded to prevent infinite re-renders
   const memoizedCallback = useCallback(callback, [callback]);
 
   useEffect(() => {
