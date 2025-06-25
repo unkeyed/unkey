@@ -11,7 +11,7 @@ type RootKeysTableActionsProps = {
   rootKey: RootKey;
 };
 
-export const RolesTableActions = ({ rootKey }: RootKeysTableActionsProps) => {
+export const RootKeysTableActions = ({ rootKey }: RootKeysTableActionsProps) => {
   const router = useRouter();
   const menuItems = getRootKeyTableActionItems(rootKey, router);
   return <KeysTableActionPopover items={menuItems} />;

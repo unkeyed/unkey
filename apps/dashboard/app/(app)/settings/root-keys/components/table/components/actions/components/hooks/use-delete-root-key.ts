@@ -7,7 +7,7 @@ export const useDeleteRootKey = (
   const trpcUtils = trpc.useUtils();
   const deleteRootKey = trpc.settings.rootKeys.delete.useMutation({
     onSuccess(_, variables) {
-      trpcUtils.settings.rootKeys.invalidate();
+      trpcUtils.settings.rootKeys.query.invalidate();
       toast.success("Root Key Deleted", {
         description:
           "The root key has been permanently deleted and can no longer create resources.",

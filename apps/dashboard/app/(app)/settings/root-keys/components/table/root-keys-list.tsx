@@ -25,7 +25,7 @@ import { getRowClassName } from "./utils/get-row-class";
 const RolesTableActions = dynamic(
   () =>
     import("./components/actions/root-keys-table-action.popover.constants").then(
-      (mod) => mod.RolesTableActions,
+      (mod) => mod.RootKeysTableActions,
     ),
   {
     loading: () => (
@@ -166,7 +166,7 @@ export const RootKeysList = () => {
       columns={columns}
       onRowClick={setSelectedRootKey}
       selectedItem={selectedRootKey}
-      keyExtractor={(rootKey) => rootKey.roleId}
+      keyExtractor={(rootKey) => rootKey.id}
       rowClassName={(rootKey) => getRowClassName(rootKey, selectedRootKey)}
       loadMoreFooterProps={{
         hide: isLoading,
@@ -217,7 +217,7 @@ export const RootKeysList = () => {
             key={column.key}
             className={cn(
               "text-xs align-middle whitespace-nowrap",
-              column.key === "role" ? "py-[6px]" : "py-1",
+              column.key === "root_key" ? "py-[6px]" : "py-1",
             )}
             style={{ height: `${rowHeight}px` }}
           >
