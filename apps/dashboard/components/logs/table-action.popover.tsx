@@ -25,7 +25,7 @@ type BaseTableActionPopoverProps = PropsWithChildren<{
   align?: "start" | "end";
 }>;
 
-export const KeysTableActionPopover = ({
+export const TableActionPopover = ({
   items,
   align = "end",
   children,
@@ -76,7 +76,7 @@ export const KeysTableActionPopover = ({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger onClick={(e) => e.stopPropagation()}>
-        {children ? children : <KeysTableActionPopoverDefaultTrigger />}
+        {children ? children : <TableActionPopoverDefaultTrigger />}
       </PopoverTrigger>
       <PopoverContent
         className="min-w-60 max-w-full bg-gray-1 dark:bg-black drop-shadow-2xl border-gray-6 rounded-lg p-0"
@@ -151,7 +151,7 @@ export const KeysTableActionPopover = ({
   );
 };
 
-export const KeysTableActionPopoverDefaultTrigger = () => {
+export const TableActionPopoverDefaultTrigger = () => {
   return (
     <button
       type="button"
