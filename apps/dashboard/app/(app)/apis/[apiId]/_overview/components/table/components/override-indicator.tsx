@@ -1,4 +1,5 @@
 "use client";
+import { shortenId } from "@/lib/shorten-id";
 import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { TriangleWarning2 } from "@unkey/icons";
@@ -86,8 +87,7 @@ export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierCol
         onClick={handleLinkClick}
       >
         <div className="font-mono font-medium truncate flex items-center">
-          {log.key_id.substring(0, 8)}...
-          {log.key_id.substring(log.key_id.length - 4)}
+          {shortenId(log.key_id)}
         </div>
       </Link>
     </div>

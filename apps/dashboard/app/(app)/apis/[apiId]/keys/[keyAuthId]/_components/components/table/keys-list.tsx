@@ -1,6 +1,7 @@
 "use client";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
+import { shortenId } from "@/lib/shorten-id";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { BookBookmark, Dots, Focus, Key } from "@unkey/icons";
 import { Button, Checkbox, Empty, InfoTooltip, Loading } from "@unkey/ui";
@@ -182,8 +183,7 @@ export const KeysList = ({
                     }}
                   >
                     <div className="font-mono font-medium truncate text-brand-12">
-                      {key.id.substring(0, 8)}...
-                      {key.id.substring(key.id.length - 4)}
+                      {shortenId(key.id)}
                     </div>
                   </Link>
                   {key.name && (
