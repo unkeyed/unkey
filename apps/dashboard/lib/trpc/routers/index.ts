@@ -13,6 +13,7 @@ import { enableKey } from "./api/keys/toggle-key-enabled";
 import { overviewApiSearch } from "./api/overview-api-search";
 import { queryApisOverview } from "./api/overview/query-overview";
 import { queryVerificationTimeseries } from "./api/overview/query-timeseries";
+import { queryApiKeyDetails } from "./api/query-api-key-details";
 import { setDefaultApiBytes } from "./api/setDefaultBytes";
 import { setDefaultApiPrefix } from "./api/setDefaultPrefix";
 import { updateAPIDeleteProtection } from "./api/updateDeleteProtection";
@@ -161,6 +162,7 @@ export const router = t.router({
     setDefaultBytes: setDefaultApiBytes,
     updateIpWhitelist: updateApiIpWhitelist,
     updateDeleteProtection: updateAPIDeleteProtection,
+    queryApiKeyDetails,
     keys: t.router({
       timeseries: keyVerificationsTimeseries,
       activeKeysTimeseries: activeKeysTimeseries,
