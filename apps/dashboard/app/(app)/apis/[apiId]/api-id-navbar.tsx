@@ -5,6 +5,7 @@ import { NavbarActionButton } from "@/components/navigation/action-button";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { shortenId } from "@/lib/shorten-id";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { ChevronExpandY, Gauge, Gear, Plus } from "@unkey/icons";
 import dynamic from "next/dynamic";
@@ -134,8 +135,7 @@ export const ApisNavbar = ({
                 isIdentifier
                 active
               >
-                {keyData.id?.substring(0, 8)}...
-                {keyData.id?.substring(keyData.id?.length - 4)}
+                {shortenId(keyData.id)}
               </Navbar.Breadcrumbs.Link>
             )}
           </Navbar.Breadcrumbs>
