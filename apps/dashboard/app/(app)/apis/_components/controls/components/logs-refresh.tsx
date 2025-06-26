@@ -1,5 +1,5 @@
-import { RefreshButton } from "@/components/logs/refresh-button";
 import { trpc } from "@/lib/trpc/client";
+import { RefreshButton } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useFilters } from "../../hooks/use-filters";
 
