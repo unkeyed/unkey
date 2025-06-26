@@ -1,5 +1,5 @@
-import { rootKeysQueryPayload } from "@/app/(app)/settings/root-keys-v2/components/table/query-logs.schema";
-import { and, count, db, desc, eq, isNull, lt, schema } from "@/lib/db";
+import { rootKeysQueryPayload } from "@/app/(app)/settings/root-keys/components/table/query-logs.schema";
+import { and, count, db, desc, eq, exists, isNull, like, lt, or, schema } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -54,14 +54,98 @@ export const queryRootKeys = t.procedure
       baseConditions.push(lt(schema.keys.createdAtM, input.cursor));
     }
 
+    // Build filter conditions
+    const filterConditions = [];
+
+    // Name filter
+    if (input.name && input.name.length > 0) {
+      const nameConditions = input.name.map((filter) => {
+        if (filter.operator === "is") {
+          return eq(schema.keys.name, filter.value);
+        }
+        if (filter.operator === "contains") {
+          return like(schema.keys.name, `%${filter.value}%`);
+        }
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Unsupported name operator: ${filter.operator}`,
+        });
+      });
+
+      if (nameConditions.length === 1) {
+        filterConditions.push(nameConditions[0]);
+      } else {
+        filterConditions.push(or(...nameConditions));
+      }
+    }
+
+    // Start filter
+    if (input.start && input.start.length > 0) {
+      const startConditions = input.start.map((filter) => {
+        if (filter.operator === "is") {
+          return eq(schema.keys.start, filter.value);
+        }
+        if (filter.operator === "contains") {
+          return like(schema.keys.start, `%${filter.value}%`);
+        }
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Unsupported key operator: ${filter.operator}`,
+        });
+      });
+
+      if (startConditions.length === 1) {
+        filterConditions.push(startConditions[0]);
+      } else {
+        filterConditions.push(or(...startConditions));
+      }
+    }
+
+    // Permission filter
+    if (input.permission && input.permission.length > 0) {
+      const permissionConditions = input.permission.map((filter) => {
+        if (filter.operator === "contains") {
+          return exists(
+            db
+              .select()
+              .from(schema.keysPermissions)
+              .innerJoin(
+                schema.permissions,
+                eq(schema.keysPermissions.permissionId, schema.permissions.id),
+              )
+              .where(
+                and(
+                  eq(schema.keysPermissions.keyId, schema.keys.id),
+                  like(schema.permissions.name, `%${filter.value}%`),
+                ),
+              ),
+          );
+        }
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Unsupported permission operator: ${filter.operator}`,
+        });
+      });
+
+      if (permissionConditions.length === 1) {
+        filterConditions.push(permissionConditions[0]);
+      } else {
+        filterConditions.push(or(...permissionConditions));
+      }
+    }
+
+    // Combine all conditions
+    const allConditions =
+      filterConditions.length > 0 ? [...baseConditions, ...filterConditions] : baseConditions;
+
     try {
       const [totalResult, keysResult] = await Promise.all([
         db
           .select({ count: count() })
           .from(schema.keys)
-          .where(and(...baseConditions)),
+          .where(and(...allConditions)),
         db.query.keys.findMany({
-          where: and(...baseConditions),
+          where: and(...allConditions),
           orderBy: [desc(schema.keys.createdAtM)],
           limit: LIMIT + 1, // Get one extra to check if there are more
           columns: {
@@ -156,8 +240,8 @@ function categorizePermissions(permissions: PermissionResponse[]) {
       console.warn(`Invalid permission format: ${permission.name}`);
       continue;
     }
-
-    const [identifier, , action] = parts;
+    // Skip the second element
+    const [identifier, _, action] = parts;
     let category: string;
 
     switch (identifier) {

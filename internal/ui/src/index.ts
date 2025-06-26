@@ -1,5 +1,6 @@
 export * from "./components/button";
 export * from "./components/card";
+export * from "./components/code";
 export * from "./components/copy-button";
 export * from "./components/logs/control-cloud";
 export * from "./validation/utils/transform-structured-output-filter-format";

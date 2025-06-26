@@ -324,7 +324,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
                                 className="pointer-events-auto"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <CopyButton value={tag} />
+                                <CopyButton variant="ghost" value={tag} />
                               </div>
                             </div>
                           </div>
@@ -336,7 +336,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
                               className="pointer-events-auto flex-shrink-0"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <CopyButton value={tag} />
+                              <CopyButton variant="ghost" value={tag} />
                             </div>
                           </div>
                         )}
@@ -380,7 +380,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
                                   className="pointer-events-auto"
                                   onClick={(e) => e.stopPropagation()}
                                 >
-                                  <CopyButton value={tag} />
+                                  <CopyButton variant="ghost" value={tag} />
                                 </div>
                               </div>
                             </div>
@@ -392,7 +392,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
                                 className="pointer-events-auto flex-shrink-0"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <CopyButton value={tag} />
+                                <CopyButton variant="ghost" value={tag} />
                               </div>
                             </div>
                           )}

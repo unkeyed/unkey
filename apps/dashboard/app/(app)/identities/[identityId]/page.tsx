@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 
 import { PageContent } from "@/components/page-content";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Code } from "@/components/ui/code";
 import {
   Table,
   TableBody,
@@ -15,7 +14,7 @@ import { getAuth } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
-import { Badge, Button, CopyButton } from "@unkey/ui";
+import { Badge, Button, Code, CopyButton } from "@unkey/ui";
 import { ChevronRight, Minus } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
@@ -84,7 +83,7 @@ export default async function Page(props: Props) {
           </div>
           <h2 className="text-2xl font-semibold tracking-tight">Meta</h2>
           {identity.meta ? (
-            <Code>{JSON.stringify(identity.meta, null, 2)}</Code>
+            <Code variant="legacy">{JSON.stringify(identity.meta, null, 2)}</Code>
           ) : (
             <Alert>
               <AlertTitle>No metadata</AlertTitle>
