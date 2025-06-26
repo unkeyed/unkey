@@ -26,14 +26,22 @@ export default async function (props: Props) {
   // ensure we have an authenticated user
   // we don't actually need any user data though
   await getAuth();
+  const apiId = props.searchParams.apiId;
 
-  if (props.searchParams.apiId) {
+  if (apiId) {
     const api = await db.query.apis.findFirst({
-      where: (table, { eq }) => eq(table.id, props.searchParams.apiId!),
+      where: (table, { eq }) => eq(table.id, apiId),
     });
+
     if (!api) {
       return notFound();
     }
+
+    if (!api.keyAuthId) {
+      console.error(`API ${api.id} is missing keyAuthId`);
+      return notFound(); // or redirect to error page
+    }
+
     return (
       <div className="container m-16 mx-auto">
         <PageHeader
@@ -49,21 +57,23 @@ export default async function (props: Props) {
             </Link>,
           ]}
         />
-
         <Separator className="my-8" />
-
-        <Keys keyAuthId={api.keyAuthId!} apiId={api.id} />
+        <Keys keyAuthId={api.keyAuthId} apiId={api.id} />
       </div>
     );
   }
-  if (props.searchParams.workspaceId && !props.searchParams.product) {
+
+  const workspaceId = props.searchParams.workspaceId;
+  if (workspaceId && !props.searchParams.product) {
     const workspace = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, props.searchParams.workspaceId!), isNull(table.deletedAtM)),
+        and(eq(table.id, workspaceId), isNull(table.deletedAtM)),
     });
+
     if (!workspace) {
       return redirect("/new");
     }
+
     return (
       <div className="container m-16 mx-auto">
         <PageHeader
@@ -129,10 +139,10 @@ export default async function (props: Props) {
     );
   }
 
-  if (props.searchParams.product === "keys") {
+  if (props.searchParams.product === "keys" && workspaceId) {
     const workspace = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, props.searchParams.workspaceId!), isNull(table.deletedAtM)),
+        and(eq(table.id, workspaceId), isNull(table.deletedAtM)),
     });
     if (!workspace) {
       return redirect("/new");
@@ -159,10 +169,10 @@ export default async function (props: Props) {
       </div>
     );
   }
-  if (props.searchParams.product === "ratelimit") {
+  if (props.searchParams.product === "ratelimit" && workspaceId) {
     const workspace = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, props.searchParams.workspaceId!), isNull(table.deletedAtM)),
+        and(eq(table.id, workspaceId), isNull(table.deletedAtM)),
     });
     if (!workspace) {
       return redirect("/new");

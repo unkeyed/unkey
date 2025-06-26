@@ -7,6 +7,7 @@ import { PostHogProvider } from "posthog-js/react";
 import { useEffect } from "react";
 
 if (typeof window !== "undefined") {
+  // biome-ignore lint/style/noNonNullAssertion: Safe to leave
   posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
     api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://app.posthog.com",
     capture_pageview: false,
@@ -52,7 +53,10 @@ export const PostHogIdentify = ({ user }: { user: User }) => {
 export const PostHogEvent = ({
   name,
   properties,
-}: { name: string; properties?: Record<string, unknown> }) => {
+}: {
+  name: string;
+  properties?: Record<string, unknown>;
+}) => {
   posthog.capture(name, properties);
 };
 

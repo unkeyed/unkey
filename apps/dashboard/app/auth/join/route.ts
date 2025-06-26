@@ -34,12 +34,13 @@ export async function GET(request: NextRequest) {
   if (user) {
     if (user.email !== invitationEmail) {
       console.error("User email does not match invitation");
-    } else {
+    } else if (organizationId) {
       auth.acceptInvitation(invitationId).then(() => {
-        return switchOrg(organizationId!);
+        return switchOrg(organizationId);
       });
+    } else {
+      console.error("Missing organizationId for invitation acceptance");
     }
-
     return NextResponse.redirect(DASHBOARD_URL);
   }
 

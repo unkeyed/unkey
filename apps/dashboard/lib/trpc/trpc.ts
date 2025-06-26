@@ -36,7 +36,7 @@ export const requireWorkspace = t.middleware(({ next, ctx }) => {
 });
 
 export const requireSelf = t.middleware(({ next, ctx, rawInput: userId }) => {
-  if (ctx.user!.id !== userId) {
+  if (ctx.user?.id !== userId) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "You can only access your own data",
@@ -112,10 +112,11 @@ export const ratelimit = env().UNKEY_ROOT_KEY
 
 export const withRatelimit = (ratelimit: Ratelimit | undefined) =>
   t.middleware(async ({ next, ctx }) => {
-    if (!ratelimit) {
+    const userId = ctx.user?.id;
+    if (!ratelimit || !userId) {
       return next();
     }
-    const response = await ratelimit.limit(ctx.user!.id);
+    const response = await ratelimit.limit(userId);
 
     if (!response.success) {
       throw new TRPCError({
@@ -154,8 +155,9 @@ const llmQuerySchema = z.object({
 
 export const withLlmAccess = () =>
   t.middleware(async ({ next, ctx, rawInput }) => {
-    if (llmRatelimit) {
-      const response = await llmRatelimit.limit(ctx.user!.id);
+    const userId = ctx.user?.id;
+    if (llmRatelimit && userId) {
+      const response = await llmRatelimit.limit(userId);
       if (!response.success) {
         throw new TRPCError({
           code: "TOO_MANY_REQUESTS",

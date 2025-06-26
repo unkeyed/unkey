@@ -151,7 +151,7 @@ async function getWorkspaceId(c: Context<HonoEnv>): Promise<string> {
     if (!key) {
       return null;
     }
-    return key.forWorkspaceId!;
+    return key.forWorkspaceId;
   });
 
   if (err) {

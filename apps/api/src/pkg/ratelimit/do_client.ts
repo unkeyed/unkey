@@ -64,6 +64,7 @@ export class DurableRateLimiter implements RateLimiter {
       }
     }
     if (res.length > 0) {
+      // biome-ignore lint/style/noNonNullAssertion: Safe to leave
       return Ok(res[0].val!);
     }
 
@@ -199,7 +200,11 @@ export class DurableRateLimiter implements RateLimiter {
         .fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ reset: req.reset, cost: req.cost, limit: req.limit }),
+          body: JSON.stringify({
+            reset: req.reset,
+            cost: req.cost,
+            limit: req.limit,
+          }),
         })
         .catch(async (e) => {
           this.logger.warn("calling the ratelimit DO failed, retrying ...", {
@@ -210,7 +215,11 @@ export class DurableRateLimiter implements RateLimiter {
           return this.getStub(req.objectName).fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ reset: req.reset, cost: req.cost, limit: req.limit }),
+            body: JSON.stringify({
+              reset: req.reset,
+              cost: req.cost,
+              limit: req.limit,
+            }),
           });
         });
 

@@ -98,9 +98,9 @@ export function TeamPageClient({ team }: { team: boolean }) {
       {isLoading ? (
         <Loading />
       ) : tab === "members" ? (
-        <Members organization={organization!} user={user} userMembership={currentOrgMembership} />
+        <Members organization={organization} user={user} userMembership={currentOrgMembership} />
       ) : (
-        <Invitations organization={organization!} user={user} />
+        <Invitations organization={organization} user={user} />
       )}
     </>
   );

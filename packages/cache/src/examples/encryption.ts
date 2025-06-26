@@ -24,7 +24,9 @@ async function main() {
    */
   const cloudflare = new CloudflareStore({
     domain: "cache.unkey.dev",
+    // biome-ignore lint/style/noNonNullAssertion: Safe to leave
     zoneId: process.env.CLOUDFLARE_ZONE_ID!,
+    // biome-ignore lint/style/noNonNullAssertion: Safe to leave
     cloudflareApiKey: process.env.CLOUDFLARE_API_KEY!,
   });
 
@@ -33,6 +35,8 @@ async function main() {
    * All data is now encrypted before writing to the underlying data store and decrypted before
    * getting returned.
    */
+
+  // biome-ignore lint/style/noNonNullAssertion: Safe to leave
   const middleware = await withEncryption(process.env.CACHE_ENCRYPTION_KEY!);
   const encryptedCloudflare = middleware.wrap(cloudflare);
 

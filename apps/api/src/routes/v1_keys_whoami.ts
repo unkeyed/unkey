@@ -124,7 +124,6 @@ export const registerV1KeysWhoAmI = (app: App) =>
         },
         api: dbRes.keyAuth.api,
         identity: dbRes.identity,
-        // biome-ignore lint/suspicious/noExplicitAny: Safe to leave
       } as any; // this was necessary so that we don't need to return the workspace and other types defined in keyByHash
     });
 
