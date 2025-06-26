@@ -5,6 +5,7 @@ export * from "./components/buttons/keyboard-button";
 export * from "./components/buttons/refresh-button";
 export * from "./components/buttons/visible-button";
 export * from "./components/card";
+export * from "./components/code";
 export * from "./components/checkbox";
 export * from "./components/date-time/date-time";
 export * from "./components/dialog/dialog-container";

@@ -2,18 +2,25 @@
 import { TaskChecked, TaskUnchecked } from "@unkey/icons";
 import * as React from "react";
 import { cn } from "../../lib/utils";
+import { Button, type ButtonProps } from "./button";
 
-interface CopyButtonProps extends React.HTMLAttributes<HTMLButtonElement> {
+type CopyButtonProps = ButtonProps & {
+  /**
+   * The value to copy to clipboard
+   */
   value: string;
+  /**
+   * Source component for analytics
+   */
   src?: string;
-}
+};
 
 async function copyToClipboardWithMeta(value: string, _meta?: Record<string, unknown>) {
   navigator.clipboard.writeText(value);
 }
 
 export const CopyButton = React.forwardRef<HTMLButtonElement, CopyButtonProps>(
-  ({ value, className, src, ...props }, ref) => {
+  ({ value, src, variant = "outline", className, onClick, ...props }, ref) => {
     const [copied, setCopied] = React.useState(false);
 
     React.useEffect(() => {
@@ -27,18 +34,24 @@ export const CopyButton = React.forwardRef<HTMLButtonElement, CopyButtonProps>(
     }, [copied]);
 
     return (
-      <button
-        type="button"
-        ref={ref}
-        className={cn("relative p-1 focus:outline-none h-6 w-6 ", className)}
-        onClick={(e) => {
-          e.stopPropagation(); // Prevent triggering parent button click
-          copyToClipboardWithMeta(value, {
-            component: src,
-          });
-          setCopied(true);
-        }}
+      <Button
         {...props}
+        ref={ref}
+        type="button"
+        variant={variant}
+        title="Copy to clipboard"
+        size="icon"
+        className={cn("focus:ring-0 focus:border-grayA-6", className)}
+        onClick={(e) => {
+          if (!e.defaultPrevented) {
+            e.stopPropagation(); // Prevent triggering parent button click
+            copyToClipboardWithMeta(value, {
+              component: src,
+            });
+            setCopied(true);
+          }
+        }}
+        aria-label="Copy to clipboard"
       >
         <span className="sr-only">Copy</span>
         {copied ? (
@@ -46,7 +59,7 @@ export const CopyButton = React.forwardRef<HTMLButtonElement, CopyButtonProps>(
         ) : (
           <TaskUnchecked className="w-full h-full" />
         )}
-      </button>
+      </Button>
     );
   },
 );
