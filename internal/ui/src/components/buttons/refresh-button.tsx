@@ -1,12 +1,12 @@
 "use client";
+import { Refresh3 } from "@unkey/icons";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import * as React from "react";
-import { useKeyboardShortcut } from "../../hooks/use-keyboard-shortcut";
-import { Refresh3 } from "@unkey/icons";
-import { Button } from "./button";
-import { InfoTooltip } from "../info-tooltip";
-import { KeyboardButton } from "./keyboard-button";
 import { useState } from "react";
+import { useKeyboardShortcut } from "../../hooks/use-keyboard-shortcut";
+import { InfoTooltip } from "../info-tooltip";
+import { Button } from "./button";
+import { KeyboardButton } from "./keyboard-button";
 
 type RefreshButtonProps = {
   onRefresh: () => void;

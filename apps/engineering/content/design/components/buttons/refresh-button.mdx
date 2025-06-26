@@ -1,0 +1,145 @@
+---
+title: "RefreshButton"
+description: "A button component for refreshing data with keyboard shortcuts and live mode support"
+---
+import { Default, WithLiveMode, DisabledState } from "./refresh-button.examples";
+
+## Features
+
+- **Keyboard Shortcut**: Built-in support for ⌥+⇧+R (Option+Shift+R) shortcut
+- **Loading States**: Visual feedback during refresh operations with a 1-second timeout
+- **Live Mode Integration**: Automatic handling of live mode toggling during refresh
+- **Accessibility**: Full keyboard navigation and screen reader support
+- **Tooltip Integration**: Contextual help when refresh is unavailable
+- **Visual Feedback**: Clear indication of refresh status and availability
+
+## Basic Usage
+
+The most common use case is a simple refresh button that calls a refresh function when clicked or when the keyboard shortcut is pressed.
+
+<Default />
+
+## With Live Mode
+
+When used in contexts with live data streaming, the RefreshButton can automatically manage live mode state during refresh operations.
+
+<WithLiveMode />
+
+## Disabled State
+
+The button can be disabled when refresh is not available, typically when no relative time filter is selected.
+
+<DisabledState />
+
+## Props
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `onRefresh` | `() => void` | Function called when refresh is triggered |
+| `isEnabled` | `boolean` | Whether the refresh functionality is available |
+| `isLive` | `boolean?` | Current live mode state (optional) |
+| `toggleLive` | `(value: boolean) => void?` | Function to toggle live mode (optional) |
+
+## Keyboard Shortcuts
+
+The RefreshButton automatically registers the following keyboard shortcut:
+
+- **⌥+⇧+R** (Option+Shift+R): Triggers the refresh operation
+
+The shortcut is only active when `isEnabled` is true and the button is not in a loading state.
+
+## Behavior
+
+### Refresh Flow
+
+1. **Click or Shortcut**: User clicks the button or presses ⌥+⇧+R
+2. **Live Mode Handling**: If live mode is enabled, it's temporarily disabled
+3. **Loading State**: Button shows loading indicator for 1 second
+4. **Refresh Execution**: The `onRefresh` function is called
+5. **State Restoration**: After timeout, live mode is restored if it was previously enabled
+
+### Disabled State
+
+When `isEnabled` is false:
+- Button appears disabled
+- Tooltip shows "Refresh unavailable - please select a relative time filter in the 'Since' dropdown"
+- Keyboard shortcut is disabled
+- No refresh operations can be triggered
+
+### Loading State
+
+During refresh operations:
+- Button shows a loading spinner
+- Text remains visible but button is non-interactive
+- Keyboard shortcut is disabled
+- Live mode is temporarily disabled if enabled
+
+## Accessibility
+
+The RefreshButton includes comprehensive accessibility features:
+
+- **Screen Reader Support**: Proper ARIA labels and descriptions
+- **Keyboard Navigation**: Full keyboard support with visible focus states
+- **Tooltip Integration**: Contextual help for disabled states
+- **Visual Feedback**: Clear loading and disabled states
+- **Shortcut Display**: Keyboard shortcut is visually indicated
+
+## Usage Guidelines
+
+When implementing the RefreshButton:
+
+- **Enable/Disable Logic**: Set `isEnabled` based on whether refresh is currently possible
+- **Live Mode Integration**: Provide `isLive` and `toggleLive` props when working with live data
+- **Refresh Function**: Ensure `onRefresh` is idempotent and handles errors gracefully
+- **User Feedback**: Consider additional toast notifications for successful/failed refreshes
+- **Performance**: Keep refresh operations lightweight to maintain responsive UI
+
+## Examples
+
+### Basic Implementation
+
+```tsx
+const [data, setData] = useState([]);
+const [isEnabled, setIsEnabled] = useState(true);
+
+const handleRefresh = async () => {
+  const newData = await fetchData();
+  setData(newData);
+};
+
+<RefreshButton 
+  onRefresh={handleRefresh}
+  isEnabled={isEnabled}
+/>
+```
+
+### With Live Mode
+
+```tsx
+const [isLive, setIsLive] = useState(false);
+const [isEnabled, setIsEnabled] = useState(true);
+
+const handleRefresh = async () => {
+  const newData = await fetchData();
+  setData(newData);
+};
+
+<RefreshButton 
+  onRefresh={handleRefresh}
+  isEnabled={isEnabled}
+  isLive={isLive}
+  toggleLive={setIsLive}
+/>
+```
+
+### Conditional Enablement
+
+```tsx
+const [timeFilter, setTimeFilter] = useState('1h');
+const isEnabled = timeFilter !== 'all'; // Disable for "all time" filter
+
+<RefreshButton 
+  onRefresh={handleRefresh}
+  isEnabled={isEnabled}
+/>
+``` 

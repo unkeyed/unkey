@@ -1,6 +1,6 @@
-import { RefreshButton } from "@unkey/ui";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
+import { RefreshButton } from "@unkey/ui";
 import { useLogsContext } from "../../../context/logs";
 import { useFilters } from "../../../hooks/use-filters";
 
