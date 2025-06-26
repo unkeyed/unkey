@@ -1,4 +1,5 @@
 import { ConfirmPopover } from "@/components/confirmation-popover";
+import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TriangleWarning2 } from "@unkey/icons";
@@ -6,7 +7,6 @@ import { Button, DialogContainer, FormCheckbox } from "@unkey/ui";
 import { useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
-import type { ActionComponentProps } from "../keys-table-action.popover";
 import { useDeleteKey } from "./hooks/use-delete-key";
 import { KeyInfo } from "./key-info";
 
