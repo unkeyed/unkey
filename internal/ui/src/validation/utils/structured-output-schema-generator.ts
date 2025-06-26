@@ -22,17 +22,52 @@ export function createFilterOutputSchema<
         .refine(
           (data) => {
             const config = filterFieldConfig[data.field as keyof TConfig];
-            return data.filters.every((filter) => {
+            return !data.filters.find((filter) => {
               const isOperatorValid = config.operators.includes(
                 filter.operator as z.infer<TOperatorEnum>,
               );
-              return (
-                isOperatorValid &&
-                validateFieldValue(data.field as keyof TConfig, filter.value, filterFieldConfig)
+
+              if (!isOperatorValid) {
+                return true;
+              }
+
+              return !validateFieldValue(
+                data.field as keyof TConfig,
+                filter.value,
+                filterFieldConfig,
               );
             });
           },
-          { message: "Invalid field/operator/value combination" },
+          (data) => {
+            const config = filterFieldConfig[data.field as keyof TConfig];
+            const invalidFilter = data.filters.find((filter) => {
+              const isOperatorValid = config.operators.includes(
+                filter.operator as z.infer<TOperatorEnum>,
+              );
+              if (!isOperatorValid) {
+                return true;
+              }
+              return !validateFieldValue(
+                data.field as keyof TConfig,
+                filter.value,
+                filterFieldConfig,
+              );
+            });
+            if (invalidFilter) {
+              const isOperatorValid = config.operators.includes(
+                invalidFilter.operator as z.infer<TOperatorEnum>,
+              );
+              if (!isOperatorValid) {
+                return {
+                  message: `Invalid operator "${invalidFilter.operator}" for field "${data.field}"`,
+                };
+              }
+              return {
+                message: `Invalid value "${invalidFilter.value}" for field "${data.field}"`,
+              };
+            }
+            return { message: "Invalid field/operator/value combination" };
+          },
         ),
     ),
   });

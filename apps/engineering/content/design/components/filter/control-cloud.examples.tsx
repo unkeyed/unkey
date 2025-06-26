@@ -4,6 +4,16 @@ import { ControlCloud } from "@unkey/ui";
 import type { FilterOperator } from "@unkey/ui/src/validation/filter.types";
 import { useEffect, useState } from "react";
 
+// Type declarations for modern User-Agent Client Hints API
+declare global {
+  interface Navigator {
+    userAgentData?: {
+      platform: string;
+      getHighEntropyValues(hints: string[]): Promise<{ platform: string }>;
+    };
+  }
+}
+
 // Define FilterValue type locally for examples
 type FilterValue = {
   id: string;
@@ -16,6 +26,20 @@ type FilterValue = {
   };
 };
 
+// Shared field name formatter
+const defaultFormatFieldName = (field: string): string => {
+  const fieldMap: Record<string, string> = {
+    status: "Status",
+    method: "Method",
+    path: "Path",
+    startTime: "Start time",
+    endTime: "End time",
+    duration: "Duration",
+  };
+
+  return fieldMap[field] ?? field.charAt(0).toUpperCase() + field.slice(1);
+};
+
 // Mock filter data for examples
 const createMockFilter = (
   field: string,
@@ -23,7 +47,7 @@ const createMockFilter = (
   value: string | number,
   id?: string,
 ): FilterValue => ({
-  id: id || crypto.randomUUID(),
+  id: id || (crypto.randomUUID?.() ?? `filter-${Math.random().toString(36).substr(2, 9)}`),
   field,
   operator,
   value,
@@ -43,18 +67,7 @@ export function BasicControlCloud() {
     setFilters(newFilters);
   };
 
-  const formatFieldName = (field: string): string => {
-    switch (field) {
-      case "status":
-        return "Status";
-      case "method":
-        return "Method";
-      case "path":
-        return "Path";
-      default:
-        return field.charAt(0).toUpperCase() + field.slice(1);
-    }
-  };
+  const formatFieldName = defaultFormatFieldName;
 
   return (
     <RenderComponentWithSnippet>
@@ -85,16 +98,7 @@ export function TimeBasedFilters() {
     setFilters(newFilters);
   };
 
-  const formatFieldName = (field: string): string => {
-    switch (field) {
-      case "startTime":
-        return "Start time";
-      case "endTime":
-        return "End time";
-      default:
-        return field.charAt(0).toUpperCase() + field.slice(1);
-    }
-  };
+  const formatFieldName = defaultFormatFieldName;
 
   return (
     <RenderComponentWithSnippet>
@@ -127,20 +131,7 @@ export function MultipleFilterTypes() {
     setFilters(newFilters);
   };
 
-  const formatFieldName = (field: string): string => {
-    switch (field) {
-      case "status":
-        return "Status";
-      case "method":
-        return "Method";
-      case "path":
-        return "Path";
-      case "duration":
-        return "Duration";
-      default:
-        return field.charAt(0).toUpperCase() + field.slice(1);
-    }
-  };
+  const formatFieldName = defaultFormatFieldName;
 
   const formatValue = (value: string | number, field: string): string => {
     if (field === "duration") {
@@ -178,9 +169,7 @@ export function EmptyState() {
     setFilters(newFilters);
   };
 
-  const formatFieldName = (field: string): string => {
-    return field.charAt(0).toUpperCase() + field.slice(1);
-  };
+  const formatFieldName = defaultFormatFieldName;
 
   return (
     <RenderComponentWithSnippet>
@@ -205,7 +194,14 @@ export function InteractiveExample() {
 
   // Client-side platform detection
   useEffect(() => {
-    setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform));
+    if (navigator.userAgentData) {
+      navigator.userAgentData.getHighEntropyValues(["platform"]).then((ua) => {
+        setIsMac(ua.platform === "macOS");
+      });
+    } else {
+      // Fallback for browsers without userAgentData support
+      setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform));
+    }
   }, []);
 
   const removeFilter = (id: string) => {
@@ -221,18 +217,7 @@ export function InteractiveExample() {
     setFilters([...filters, newFilter]);
   };
 
-  const formatFieldName = (field: string): string => {
-    switch (field) {
-      case "status":
-        return "Status";
-      case "method":
-        return "Method";
-      case "path":
-        return "Path";
-      default:
-        return field.charAt(0).toUpperCase() + field.slice(1);
-    }
-  };
+  const formatFieldName = defaultFormatFieldName;
 
   return (
     <RenderComponentWithSnippet>

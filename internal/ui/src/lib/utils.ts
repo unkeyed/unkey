@@ -192,6 +192,11 @@ export const deepMerge = <T extends DeepMergeInput>(target: T, source: T): T => 
   const result = { ...target } as T;
 
   for (const key in source) {
+    // Protect against prototype pollution
+    if (key === "__proto__" || key === "constructor" || key === "prototype") {
+      continue;
+    }
+
     const sourceValue = source[key];
     const targetValue = result[key];
 

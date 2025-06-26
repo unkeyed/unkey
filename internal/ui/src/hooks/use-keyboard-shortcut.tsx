@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useEffect } from "react";
 
 /**
  * Represents the parsed details of a keyboard shortcut.
@@ -227,9 +227,8 @@ export function useKeyboardShortcut(
 
   const { preventDefault, ignoreInputs, ignoreContentEditable, disabled } = mergedOptions;
 
-  // Memoize callback for stability in the useEffect dependency array
-  // biome-ignore lint/correctness/useExhaustiveDependencies: callback is intentionally excluded to prevent infinite re-renders
-  const memoizedCallback = useCallback(callback, [callback]);
+  // Use the callback directly - memoization with [callback] dependency provides no benefit
+  const stableCallback = callback;
 
   useEffect(() => {
     // Parse the shortcut definition inside the effect.
@@ -286,7 +285,7 @@ export function useKeyboardShortcut(
         if (preventDefault) {
           e.preventDefault(); // Prevent default browser action if configured
         }
-        memoizedCallback();
+        stableCallback();
       }
     };
 
@@ -295,5 +294,5 @@ export function useKeyboardShortcut(
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [shortcut, memoizedCallback, preventDefault, ignoreInputs, ignoreContentEditable, disabled]);
+  }, [shortcut, stableCallback, preventDefault, ignoreInputs, ignoreContentEditable, disabled]);
 }
