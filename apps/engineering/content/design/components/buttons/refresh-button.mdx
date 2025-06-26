@@ -70,21 +70,11 @@ When `isEnabled` is false:
 
 During refresh operations:
 - Button shows a loading spinner
-- Text remains visible but button is non-interactive
+- Text remains visible, but the button is non-interactive
 - Keyboard shortcut is disabled
 - Live mode is temporarily disabled if enabled
 
-## Accessibility
-
-The RefreshButton includes comprehensive accessibility features:
-
-- **Screen Reader Support**: Proper ARIA labels and descriptions
-- **Keyboard Navigation**: Full keyboard support with visible focus states
-- **Tooltip Integration**: Contextual help for disabled states
-- **Visual Feedback**: Clear loading and disabled states
-- **Shortcut Display**: Keyboard shortcut is visually indicated
-
-## Usage Guidelines
+## Best Practices
 
 When implementing the RefreshButton:
 
@@ -93,53 +83,3 @@ When implementing the RefreshButton:
 - **Refresh Function**: Ensure `onRefresh` is idempotent and handles errors gracefully
 - **User Feedback**: Consider additional toast notifications for successful/failed refreshes
 - **Performance**: Keep refresh operations lightweight to maintain responsive UI
-
-## Examples
-
-### Basic Implementation
-
-```tsx
-const [data, setData] = useState([]);
-const [isEnabled, setIsEnabled] = useState(true);
-
-const handleRefresh = async () => {
-  const newData = await fetchData();
-  setData(newData);
-};
-
-<RefreshButton 
-  onRefresh={handleRefresh}
-  isEnabled={isEnabled}
-/>
-```
-
-### With Live Mode
-
-```tsx
-const [isLive, setIsLive] = useState(false);
-const [isEnabled, setIsEnabled] = useState(true);
-
-const handleRefresh = async () => {
-  const newData = await fetchData();
-  setData(newData);
-};
-
-<RefreshButton 
-  onRefresh={handleRefresh}
-  isEnabled={isEnabled}
-  isLive={isLive}
-  toggleLive={setIsLive}
-/>
-```
-
-### Conditional Enablement
-
-```tsx
-const [timeFilter, setTimeFilter] = useState('1h');
-const isEnabled = timeFilter !== 'all'; // Disable for "all time" filter
-
-<RefreshButton 
-  onRefresh={handleRefresh}
-  isEnabled={isEnabled}
-/>
-``` 
