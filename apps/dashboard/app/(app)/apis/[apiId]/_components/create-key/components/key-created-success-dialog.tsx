@@ -4,7 +4,7 @@ import { ConfirmPopover } from "@/components/confirmation-popover";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toaster";
 import { ArrowRight, Check, CircleInfo, Key2, Plus } from "@unkey/icons";
-import { Button, CopyButton, InfoTooltip, VisibleButton } from "@unkey/ui";
+import { Button, Code, CopyButton, InfoTooltip, VisibleButton } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { UNNAMED_KEY } from "../create-key.constants";
@@ -220,27 +220,15 @@ export const KeyCreatedSuccessDialog = ({
             </div>
             <div className="flex flex-col gap-2 items-start w-full mt-8">
               <div className="text-gray-12 text-sm font-semibold">Try It Out</div>
-              <div className="w-full px-4 py-2 bg-white dark:bg-black border rounded-xl border-grayA-5">
-                <div className="flex items-start justify-between w-full gap-4 bg-transparent">
-                  <div className="mt-2 overflow-x-auto w-full min-w-0">
-                    <pre className="ph-no-capture whitespace-pre-wrap break-all text-[11px] pr-2">
-                      {showKeyInSnippet ? snippet : snippet.replace(keyData.key, maskedKey)}
-                    </pre>
-                  </div>
-                  <div className="flex items-center justify-between gap-2 mt-1 flex-shrink-0">
-                    <VisibleButton
-                      isVisible={showKeyInSnippet}
-                      setIsVisible={(visible) => setShowKeyInSnippet(visible)}
-                      title="Key Snippet"
-                    />
-                    <Button variant="outline" size="icon" className="bg-grayA-3">
-                      <div className="flex items-center justify-center">
-                        <CopyButton value={snippet} />
-                      </div>
-                    </Button>
-                  </div>
-                </div>
-              </div>
+
+              <Code
+                visibleButton={
+                  <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
+                }
+                copyButton={<CopyButton value={snippet} />}
+              >
+                {showKeyInSnippet ? snippet : snippet.replace(keyData.key, maskedKey)}
+              </Code>
             </div>
             <div className="mt-6">
               <div className="mt-4 text-center text-gray-10 text-xs leading-6">

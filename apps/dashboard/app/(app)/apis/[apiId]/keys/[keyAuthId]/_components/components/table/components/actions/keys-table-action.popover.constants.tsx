@@ -28,9 +28,10 @@ import { KeyRbacDialog } from "./components/edit-rbac";
 import { MAX_PERMS_FETCH_LIMIT } from "./components/edit-rbac/components/assign-permission/hooks/use-fetch-keys-permissions";
 import { MAX_ROLES_FETCH_LIMIT } from "./components/edit-rbac/components/assign-role/hooks/use-fetch-keys-roles";
 
-export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
-  const trpcUtils = trpc.useUtils();
-
+export const getKeysTableActionItems = (
+  key: KeyDetails,
+  trpcUtils: ReturnType<typeof trpc.useUtils>,
+): MenuItem[] => {
   return [
     {
       id: "override",

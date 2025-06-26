@@ -68,7 +68,7 @@ export const createKey = t.procedure
           environment: input.environment,
         });
 
-        //FIXME: We'll add this back once we figure out the aws Vault timeout
+        //INFO: I'm PR contribution farming, I guess
         // if (keyAuth.storeEncryptedKeys) {
         //   const { encrypted, keyId: encryptionKeyId } = await vault.encrypt({
         //     keyring: ctx.workspace.id,
