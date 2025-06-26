@@ -57,6 +57,9 @@ const (
 	// AssetManagerServicePrepareAssetsProcedure is the fully-qualified name of the
 	// AssetManagerService's PrepareAssets RPC.
 	AssetManagerServicePrepareAssetsProcedure = "/asset.v1.AssetManagerService/PrepareAssets"
+	// AssetManagerServiceQueryAssetsProcedure is the fully-qualified name of the AssetManagerService's
+	// QueryAssets RPC.
+	AssetManagerServiceQueryAssetsProcedure = "/asset.v1.AssetManagerService/QueryAssets"
 )
 
 // AssetManagerServiceClient is a client for the asset.v1.AssetManagerService service.
@@ -77,6 +80,9 @@ type AssetManagerServiceClient interface {
 	GarbageCollect(context.Context, *connect.Request[v1.GarbageCollectRequest]) (*connect.Response[v1.GarbageCollectResponse], error)
 	// Pre-stage assets for a specific host/jailer
 	PrepareAssets(context.Context, *connect.Request[v1.PrepareAssetsRequest]) (*connect.Response[v1.PrepareAssetsResponse], error)
+	// Query assets with automatic build triggering if not found
+	// This is the enhanced version of ListAssets that supports automatic asset creation
+	QueryAssets(context.Context, *connect.Request[v1.QueryAssetsRequest]) (*connect.Response[v1.QueryAssetsResponse], error)
 }
 
 // NewAssetManagerServiceClient constructs a client for the asset.v1.AssetManagerService service. By
@@ -138,6 +144,12 @@ func NewAssetManagerServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(assetManagerServiceMethods.ByName("PrepareAssets")),
 			connect.WithClientOptions(opts...),
 		),
+		queryAssets: connect.NewClient[v1.QueryAssetsRequest, v1.QueryAssetsResponse](
+			httpClient,
+			baseURL+AssetManagerServiceQueryAssetsProcedure,
+			connect.WithSchema(assetManagerServiceMethods.ByName("QueryAssets")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -151,6 +163,7 @@ type assetManagerServiceClient struct {
 	deleteAsset    *connect.Client[v1.DeleteAssetRequest, v1.DeleteAssetResponse]
 	garbageCollect *connect.Client[v1.GarbageCollectRequest, v1.GarbageCollectResponse]
 	prepareAssets  *connect.Client[v1.PrepareAssetsRequest, v1.PrepareAssetsResponse]
+	queryAssets    *connect.Client[v1.QueryAssetsRequest, v1.QueryAssetsResponse]
 }
 
 // RegisterAsset calls asset.v1.AssetManagerService.RegisterAsset.
@@ -193,6 +206,11 @@ func (c *assetManagerServiceClient) PrepareAssets(ctx context.Context, req *conn
 	return c.prepareAssets.CallUnary(ctx, req)
 }
 
+// QueryAssets calls asset.v1.AssetManagerService.QueryAssets.
+func (c *assetManagerServiceClient) QueryAssets(ctx context.Context, req *connect.Request[v1.QueryAssetsRequest]) (*connect.Response[v1.QueryAssetsResponse], error) {
+	return c.queryAssets.CallUnary(ctx, req)
+}
+
 // AssetManagerServiceHandler is an implementation of the asset.v1.AssetManagerService service.
 type AssetManagerServiceHandler interface {
 	// Register a new asset (called by builderd after creating images)
@@ -211,6 +229,9 @@ type AssetManagerServiceHandler interface {
 	GarbageCollect(context.Context, *connect.Request[v1.GarbageCollectRequest]) (*connect.Response[v1.GarbageCollectResponse], error)
 	// Pre-stage assets for a specific host/jailer
 	PrepareAssets(context.Context, *connect.Request[v1.PrepareAssetsRequest]) (*connect.Response[v1.PrepareAssetsResponse], error)
+	// Query assets with automatic build triggering if not found
+	// This is the enhanced version of ListAssets that supports automatic asset creation
+	QueryAssets(context.Context, *connect.Request[v1.QueryAssetsRequest]) (*connect.Response[v1.QueryAssetsResponse], error)
 }
 
 // NewAssetManagerServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -268,6 +289,12 @@ func NewAssetManagerServiceHandler(svc AssetManagerServiceHandler, opts ...conne
 		connect.WithSchema(assetManagerServiceMethods.ByName("PrepareAssets")),
 		connect.WithHandlerOptions(opts...),
 	)
+	assetManagerServiceQueryAssetsHandler := connect.NewUnaryHandler(
+		AssetManagerServiceQueryAssetsProcedure,
+		svc.QueryAssets,
+		connect.WithSchema(assetManagerServiceMethods.ByName("QueryAssets")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/asset.v1.AssetManagerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AssetManagerServiceRegisterAssetProcedure:
@@ -286,6 +313,8 @@ func NewAssetManagerServiceHandler(svc AssetManagerServiceHandler, opts ...conne
 			assetManagerServiceGarbageCollectHandler.ServeHTTP(w, r)
 		case AssetManagerServicePrepareAssetsProcedure:
 			assetManagerServicePrepareAssetsHandler.ServeHTTP(w, r)
+		case AssetManagerServiceQueryAssetsProcedure:
+			assetManagerServiceQueryAssetsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -325,4 +354,8 @@ func (UnimplementedAssetManagerServiceHandler) GarbageCollect(context.Context, *
 
 func (UnimplementedAssetManagerServiceHandler) PrepareAssets(context.Context, *connect.Request[v1.PrepareAssetsRequest]) (*connect.Response[v1.PrepareAssetsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("asset.v1.AssetManagerService.PrepareAssets is not implemented"))
+}
+
+func (UnimplementedAssetManagerServiceHandler) QueryAssets(context.Context, *connect.Request[v1.QueryAssetsRequest]) (*connect.Response[v1.QueryAssetsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("asset.v1.AssetManagerService.QueryAssets is not implemented"))
 }

@@ -248,6 +248,10 @@ message BuildConfig {
   // Build metadata
   string build_name = 6;          // Human-readable name
   map<string, string> labels = 7; // Custom labels
+  
+  // Suggested asset ID to use when registering the built artifact
+  // This allows the caller to pre-generate the asset ID
+  string suggested_asset_id = 8;
 }
 
 // Build isolation metadata

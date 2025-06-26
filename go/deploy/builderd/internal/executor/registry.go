@@ -114,6 +114,45 @@ func (r *Registry) Execute(ctx context.Context, request *builderv1.CreateBuildRe
 	return result, nil
 }
 
+// ExecuteWithID processes a build request with a pre-assigned build ID
+func (r *Registry) ExecuteWithID(ctx context.Context, request *builderv1.CreateBuildRequest, buildID string) (*BuildResult, error) {
+	// Determine source type from request
+	sourceType, err := r.getSourceTypeFromRequest(request)
+	if err != nil {
+		return nil, fmt.Errorf("failed to determine source type: %w", err)
+	}
+
+	// Get appropriate executor
+	executor, err := r.GetExecutor(sourceType)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get executor: %w", err)
+	}
+
+	r.logger.InfoContext(ctx, "executing build request with ID",
+		slog.String("source_type", sourceType),
+		slog.String("build_id", buildID),
+	)
+
+	// Execute the build with the provided ID
+	result, err := executor.ExecuteWithID(ctx, request, buildID)
+	if err != nil {
+		r.logger.ErrorContext(ctx, "build execution failed",
+			slog.String("source_type", sourceType),
+			slog.String("build_id", buildID),
+			slog.String("error", err.Error()),
+		)
+		return nil, fmt.Errorf("build execution failed: %w", err)
+	}
+
+	r.logger.InfoContext(ctx, "build execution completed",
+		slog.String("source_type", sourceType),
+		slog.String("build_id", result.BuildID),
+		slog.String("status", result.Status),
+	)
+
+	return result, nil
+}
+
 // getSourceTypeFromRequest determines the source type from the build request
 func (r *Registry) getSourceTypeFromRequest(request *builderv1.CreateBuildRequest) (string, error) {
 	if request.GetConfig() == nil || request.GetConfig().GetSource() == nil {

@@ -30,6 +30,10 @@ service AssetManagerService {
 
   // Pre-stage assets for a specific host/jailer
   rpc PrepareAssets(PrepareAssetsRequest) returns (PrepareAssetsResponse);
+
+  // Query assets with automatic build triggering if not found
+  // This is the enhanced version of ListAssets that supports automatic asset creation
+  rpc QueryAssets(QueryAssetsRequest) returns (QueryAssetsResponse);
 }
 
 enum AssetType {
@@ -95,6 +99,9 @@ message RegisterAssetRequest {
   // Optional build information
   string build_id = 9;
   string source_image = 10;
+  
+  // Optional: specific asset ID to use (if not provided, one will be generated)
+  string id = 11;
 }
 
 message RegisterAssetResponse { Asset asset = 1; }
@@ -182,4 +189,63 @@ message PrepareAssetsRequest {
 
 message PrepareAssetsResponse {
   map<string, string> asset_paths = 1; // asset_id -> local path
+}
+
+// QueryAssetsRequest is similar to ListAssetsRequest but with build options
+message QueryAssetsRequest {
+  // Filter by type
+  AssetType type = 1;
+
+  // Filter by status
+  AssetStatus status = 2;
+
+  // Filter by labels (all must match)
+  map<string, string> label_selector = 3;
+
+  // Pagination
+  int32 page_size = 4;
+  string page_token = 5;
+
+  // Build options - if asset not found and these are set, trigger build
+  BuildOptions build_options = 6;
+}
+
+// BuildOptions controls automatic asset creation
+message BuildOptions {
+  // Enable automatic building if assets don't exist
+  bool enable_auto_build = 1;
+
+  // Wait for build completion before returning
+  bool wait_for_completion = 2;
+
+  // Timeout for build operation (seconds)
+  int32 build_timeout_seconds = 3;
+
+  // Additional labels to add to the built asset
+  map<string, string> build_labels = 4;
+
+  // Tenant context for build authorization
+  string tenant_id = 5;
+  
+  // Suggested asset ID to use when registering the built asset
+  // This allows the caller to know the asset ID before it's built
+  string suggested_asset_id = 6;
+}
+
+// QueryAssetsResponse includes build information if builds were triggered
+message QueryAssetsResponse {
+  repeated Asset assets = 1;
+  string next_page_token = 2;
+
+  // Information about any builds that were triggered
+  repeated BuildInfo triggered_builds = 3;
+}
+
+// BuildInfo provides information about triggered builds
+message BuildInfo {
+  string build_id = 1;
+  string docker_image = 2;
+  string status = 3; // "pending", "building", "completed", "failed"
+  string error_message = 4;
+  string asset_id = 5; // Asset ID if build completed and asset was registered
 }

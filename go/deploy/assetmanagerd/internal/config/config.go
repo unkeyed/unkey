@@ -44,7 +44,7 @@ type Config struct {
 	// OpenTelemetry configuration
 	OTELEnabled             bool    `env:"UNKEY_ASSETMANAGERD_OTEL_ENABLED" envDefault:"true"`
 	OTELServiceName         string  `env:"UNKEY_ASSETMANAGERD_OTEL_SERVICE_NAME" envDefault:"assetmanagerd"`
-	OTELServiceVersion      string  `env:"UNKEY_ASSETMANAGERD_OTEL_SERVICE_VERSION" envDefault:"0.1.0"`
+	OTELServiceVersion      string  `env:"UNKEY_ASSETMANAGERD_OTEL_SERVICE_VERSION" envDefault:"0.2.0"`
 	OTELEndpoint            string  `env:"UNKEY_ASSETMANAGERD_OTEL_ENDPOINT" envDefault:"localhost:4318"`
 	OTELSamplingRate        float64 `env:"UNKEY_ASSETMANAGERD_OTEL_SAMPLING_RATE" envDefault:"1.0"`
 	OTELPrometheusPort      int     `env:"UNKEY_ASSETMANAGERD_OTEL_PROMETHEUS_PORT" envDefault:"9467"`
@@ -58,6 +58,15 @@ type Config struct {
 	TLSKeyFile          string `env:"UNKEY_ASSETMANAGERD_TLS_KEY_FILE"`
 	TLSCAFile           string `env:"UNKEY_ASSETMANAGERD_TLS_CA_FILE"`
 	TLSSPIFFESocketPath string `env:"UNKEY_ASSETMANAGERD_SPIFFE_SOCKET" envDefault:"/var/lib/spire/agent/agent.sock"`
+
+	// Builderd integration configuration
+	// AIDEV-NOTE: When enabled, assetmanagerd will automatically trigger builderd to create missing assets
+	BuilderdEnabled         bool          `env:"UNKEY_ASSETMANAGERD_BUILDERD_ENABLED" envDefault:"true"`
+	BuilderdEndpoint        string        `env:"UNKEY_ASSETMANAGERD_BUILDERD_ENDPOINT" envDefault:"https://localhost:8082"`
+	BuilderdTimeout         time.Duration `env:"UNKEY_ASSETMANAGERD_BUILDERD_TIMEOUT" envDefault:"30m"`
+	BuilderdAutoRegister    bool          `env:"UNKEY_ASSETMANAGERD_BUILDERD_AUTO_REGISTER" envDefault:"true"`
+	BuilderdMaxRetries      int           `env:"UNKEY_ASSETMANAGERD_BUILDERD_MAX_RETRIES" envDefault:"3"`
+	BuilderdRetryDelay      time.Duration `env:"UNKEY_ASSETMANAGERD_BUILDERD_RETRY_DELAY" envDefault:"5s"`
 }
 
 // Load loads configuration from environment variables
@@ -124,6 +133,19 @@ func (c *Config) Validate() error {
 	// Validate OTEL settings
 	if c.OTELEnabled && c.OTELSamplingRate < 0 || c.OTELSamplingRate > 1 {
 		return fmt.Errorf("OTEL sampling rate must be between 0 and 1")
+	}
+
+	// Validate builderd configuration
+	if c.BuilderdEnabled {
+		if c.BuilderdEndpoint == "" {
+			return fmt.Errorf("builderd endpoint is required when builderd integration is enabled")
+		}
+		if c.BuilderdTimeout < time.Minute {
+			return fmt.Errorf("builderd timeout must be at least 1 minute")
+		}
+		if c.BuilderdMaxRetries < 0 {
+			return fmt.Errorf("builderd max retries must be non-negative")
+		}
 	}
 
 	return nil

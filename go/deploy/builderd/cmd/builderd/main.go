@@ -23,6 +23,7 @@ import (
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/observability"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/service"
 	healthpkg "github.com/unkeyed/unkey/go/deploy/pkg/health"
+	"github.com/unkeyed/unkey/go/deploy/pkg/telemetry"
 	tlspkg "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"golang.org/x/net/http2"

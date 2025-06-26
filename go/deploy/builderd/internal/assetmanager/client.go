@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/asset/v1/assetv1connect"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/pkg/tls"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 // Client provides access to the assetmanagerd service
@@ -39,6 +40,9 @@ func NewClient(cfg *config.Config, logger *slog.Logger, tlsProvider tls.Provider
 	// Get HTTP client with TLS configuration
 	httpClient := tlsProvider.HTTPClient()
 
+	// Wrap with OpenTelemetry instrumentation for trace propagation
+	httpClient.Transport = otelhttp.NewTransport(httpClient.Transport)
+
 	// Create Connect client
 	client := assetv1connect.NewAssetManagerServiceClient(
 		httpClient,
@@ -61,6 +65,11 @@ func NewClient(cfg *config.Config, logger *slog.Logger, tlsProvider tls.Provider
 // RegisterBuildArtifact registers a successfully built artifact with assetmanagerd
 // AIDEV-NOTE: This is called after a successful build to make the artifact available for VM creation
 func (c *Client) RegisterBuildArtifact(ctx context.Context, buildID, artifactPath string, assetType assetv1.AssetType, labels map[string]string) (string, error) {
+	return c.RegisterBuildArtifactWithID(ctx, buildID, artifactPath, assetType, labels, "")
+}
+
+// RegisterBuildArtifactWithID registers a successfully built artifact with a specific asset ID
+func (c *Client) RegisterBuildArtifactWithID(ctx context.Context, buildID, artifactPath string, assetType assetv1.AssetType, labels map[string]string, assetID string) (string, error) {
 	if !c.enabled {
 		c.logger.DebugContext(ctx, "assetmanagerd integration disabled, skipping artifact registration")
 		return "", nil
@@ -86,17 +95,19 @@ func (c *Client) RegisterBuildArtifact(ctx context.Context, buildID, artifactPat
 	labels["created_by"] = "builderd"
 
 	// Create register request
+	// AIDEV-NOTE: Location should be relative to storage backend's base path
 	req := &assetv1.RegisterAssetRequest{
 		Name:         filepath.Base(artifactPath),
 		Type:         assetType,
 		Backend:      assetv1.StorageBackend_STORAGE_BACKEND_LOCAL,
-		Location:     artifactPath,
+		Location:     filepath.Base(artifactPath), // Just the filename, not full path
 		SizeBytes:    fileInfo.Size(),
 		Checksum:     checksum,
 		Labels:       labels,
 		CreatedBy:    "builderd",
 		BuildId:      buildID,
-		SourceImage:  labels["source_image"], // Optional, from build metadata
+		SourceImage:  labels["docker_image"], // Optional, from build metadata
+		Id:           assetID, // Optional, use pre-generated ID if provided
 	}
 
 	// Register with assetmanagerd

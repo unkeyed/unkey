@@ -29,12 +29,13 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
 
 // version is set at build time via ldflags
-var version = "0.2.0" // AIDEV-NOTE: Bumped minor version for integrated jailer feature
+var version = "0.3.0" // AIDEV-NOTE: Bumped minor version for automatic asset building feature
 
 // AIDEV-NOTE: Enhanced version management with debug.ReadBuildInfo fallback
 // Handles production builds (ldflags), development builds (git commit), and module builds
@@ -502,27 +503,34 @@ func loggingInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc {
 
 			start := time.Now()
 
-			// Log request
+			// Extract trace ID from OpenTelemetry context
+			span := trace.SpanFromContext(ctx)
+			traceID := span.SpanContext().TraceID().String()
+
+			// Log request with trace ID
 			logger.LogAttrs(ctx, slog.LevelInfo, "rpc request",
 				slog.String("procedure", req.Spec().Procedure),
 				slog.String("protocol", req.Peer().Protocol),
+				slog.String("trace_id", traceID),
 			)
 
 			// Execute request
 			resp, err = next(ctx, req)
 
-			// Log response
+			// Log response with trace ID
 			duration := time.Since(start)
 			if err != nil {
 				logger.LogAttrs(ctx, slog.LevelError, "rpc error",
 					slog.String("procedure", req.Spec().Procedure),
 					slog.Duration("duration", duration),
 					slog.String("error", err.Error()),
+					slog.String("trace_id", traceID),
 				)
 			} else {
 				logger.LogAttrs(ctx, slog.LevelInfo, "rpc success",
 					slog.String("procedure", req.Spec().Procedure),
 					slog.Duration("duration", duration),
+					slog.String("trace_id", traceID),
 				)
 			}
 

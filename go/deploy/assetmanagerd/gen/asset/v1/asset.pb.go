@@ -357,8 +357,10 @@ type RegisterAssetRequest struct {
 	Labels    map[string]string      `protobuf:"bytes,7,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	CreatedBy string                 `protobuf:"bytes,8,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
 	// Optional build information
-	BuildId       string `protobuf:"bytes,9,opt,name=build_id,json=buildId,proto3" json:"build_id,omitempty"`
-	SourceImage   string `protobuf:"bytes,10,opt,name=source_image,json=sourceImage,proto3" json:"source_image,omitempty"`
+	BuildId     string `protobuf:"bytes,9,opt,name=build_id,json=buildId,proto3" json:"build_id,omitempty"`
+	SourceImage string `protobuf:"bytes,10,opt,name=source_image,json=sourceImage,proto3" json:"source_image,omitempty"`
+	// Optional: specific asset ID to use (if not provided, one will be generated)
+	Id            string `protobuf:"bytes,11,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -459,6 +461,13 @@ func (x *RegisterAssetRequest) GetBuildId() string {
 func (x *RegisterAssetRequest) GetSourceImage() string {
 	if x != nil {
 		return x.SourceImage
+	}
+	return ""
+}
+
+func (x *RegisterAssetRequest) GetId() string {
+	if x != nil {
+		return x.Id
 	}
 	return ""
 }
@@ -1268,6 +1277,327 @@ func (x *PrepareAssetsResponse) GetAssetPaths() map[string]string {
 	return nil
 }
 
+// QueryAssetsRequest is similar to ListAssetsRequest but with build options
+type QueryAssetsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Filter by type
+	Type AssetType `protobuf:"varint,1,opt,name=type,proto3,enum=asset.v1.AssetType" json:"type,omitempty"`
+	// Filter by status
+	Status AssetStatus `protobuf:"varint,2,opt,name=status,proto3,enum=asset.v1.AssetStatus" json:"status,omitempty"`
+	// Filter by labels (all must match)
+	LabelSelector map[string]string `protobuf:"bytes,3,rep,name=label_selector,json=labelSelector,proto3" json:"label_selector,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Pagination
+	PageSize  int32  `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken string `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Build options - if asset not found and these are set, trigger build
+	BuildOptions  *BuildOptions `protobuf:"bytes,6,opt,name=build_options,json=buildOptions,proto3" json:"build_options,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *QueryAssetsRequest) Reset() {
+	*x = QueryAssetsRequest{}
+	mi := &file_asset_v1_asset_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *QueryAssetsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QueryAssetsRequest) ProtoMessage() {}
+
+func (x *QueryAssetsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_asset_v1_asset_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use QueryAssetsRequest.ProtoReflect.Descriptor instead.
+func (*QueryAssetsRequest) Descriptor() ([]byte, []int) {
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *QueryAssetsRequest) GetType() AssetType {
+	if x != nil {
+		return x.Type
+	}
+	return AssetType_ASSET_TYPE_UNSPECIFIED
+}
+
+func (x *QueryAssetsRequest) GetStatus() AssetStatus {
+	if x != nil {
+		return x.Status
+	}
+	return AssetStatus_ASSET_STATUS_UNSPECIFIED
+}
+
+func (x *QueryAssetsRequest) GetLabelSelector() map[string]string {
+	if x != nil {
+		return x.LabelSelector
+	}
+	return nil
+}
+
+func (x *QueryAssetsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *QueryAssetsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+func (x *QueryAssetsRequest) GetBuildOptions() *BuildOptions {
+	if x != nil {
+		return x.BuildOptions
+	}
+	return nil
+}
+
+// BuildOptions controls automatic asset creation
+type BuildOptions struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Enable automatic building if assets don't exist
+	EnableAutoBuild bool `protobuf:"varint,1,opt,name=enable_auto_build,json=enableAutoBuild,proto3" json:"enable_auto_build,omitempty"`
+	// Wait for build completion before returning
+	WaitForCompletion bool `protobuf:"varint,2,opt,name=wait_for_completion,json=waitForCompletion,proto3" json:"wait_for_completion,omitempty"`
+	// Timeout for build operation (seconds)
+	BuildTimeoutSeconds int32 `protobuf:"varint,3,opt,name=build_timeout_seconds,json=buildTimeoutSeconds,proto3" json:"build_timeout_seconds,omitempty"`
+	// Additional labels to add to the built asset
+	BuildLabels map[string]string `protobuf:"bytes,4,rep,name=build_labels,json=buildLabels,proto3" json:"build_labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Tenant context for build authorization
+	TenantId string `protobuf:"bytes,5,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	// Suggested asset ID to use when registering the built asset
+	// This allows the caller to know the asset ID before it's built
+	SuggestedAssetId string `protobuf:"bytes,6,opt,name=suggested_asset_id,json=suggestedAssetId,proto3" json:"suggested_asset_id,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *BuildOptions) Reset() {
+	*x = BuildOptions{}
+	mi := &file_asset_v1_asset_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BuildOptions) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BuildOptions) ProtoMessage() {}
+
+func (x *BuildOptions) ProtoReflect() protoreflect.Message {
+	mi := &file_asset_v1_asset_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BuildOptions.ProtoReflect.Descriptor instead.
+func (*BuildOptions) Descriptor() ([]byte, []int) {
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *BuildOptions) GetEnableAutoBuild() bool {
+	if x != nil {
+		return x.EnableAutoBuild
+	}
+	return false
+}
+
+func (x *BuildOptions) GetWaitForCompletion() bool {
+	if x != nil {
+		return x.WaitForCompletion
+	}
+	return false
+}
+
+func (x *BuildOptions) GetBuildTimeoutSeconds() int32 {
+	if x != nil {
+		return x.BuildTimeoutSeconds
+	}
+	return 0
+}
+
+func (x *BuildOptions) GetBuildLabels() map[string]string {
+	if x != nil {
+		return x.BuildLabels
+	}
+	return nil
+}
+
+func (x *BuildOptions) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *BuildOptions) GetSuggestedAssetId() string {
+	if x != nil {
+		return x.SuggestedAssetId
+	}
+	return ""
+}
+
+// QueryAssetsResponse includes build information if builds were triggered
+type QueryAssetsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Assets        []*Asset               `protobuf:"bytes,1,rep,name=assets,proto3" json:"assets,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	// Information about any builds that were triggered
+	TriggeredBuilds []*BuildInfo `protobuf:"bytes,3,rep,name=triggered_builds,json=triggeredBuilds,proto3" json:"triggered_builds,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *QueryAssetsResponse) Reset() {
+	*x = QueryAssetsResponse{}
+	mi := &file_asset_v1_asset_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *QueryAssetsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QueryAssetsResponse) ProtoMessage() {}
+
+func (x *QueryAssetsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_asset_v1_asset_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use QueryAssetsResponse.ProtoReflect.Descriptor instead.
+func (*QueryAssetsResponse) Descriptor() ([]byte, []int) {
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *QueryAssetsResponse) GetAssets() []*Asset {
+	if x != nil {
+		return x.Assets
+	}
+	return nil
+}
+
+func (x *QueryAssetsResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+func (x *QueryAssetsResponse) GetTriggeredBuilds() []*BuildInfo {
+	if x != nil {
+		return x.TriggeredBuilds
+	}
+	return nil
+}
+
+// BuildInfo provides information about triggered builds
+type BuildInfo struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BuildId       string                 `protobuf:"bytes,1,opt,name=build_id,json=buildId,proto3" json:"build_id,omitempty"`
+	DockerImage   string                 `protobuf:"bytes,2,opt,name=docker_image,json=dockerImage,proto3" json:"docker_image,omitempty"`
+	Status        string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"` // "pending", "building", "completed", "failed"
+	ErrorMessage  string                 `protobuf:"bytes,4,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	AssetId       string                 `protobuf:"bytes,5,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"` // Asset ID if build completed and asset was registered
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BuildInfo) Reset() {
+	*x = BuildInfo{}
+	mi := &file_asset_v1_asset_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BuildInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BuildInfo) ProtoMessage() {}
+
+func (x *BuildInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_asset_v1_asset_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BuildInfo.ProtoReflect.Descriptor instead.
+func (*BuildInfo) Descriptor() ([]byte, []int) {
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *BuildInfo) GetBuildId() string {
+	if x != nil {
+		return x.BuildId
+	}
+	return ""
+}
+
+func (x *BuildInfo) GetDockerImage() string {
+	if x != nil {
+		return x.DockerImage
+	}
+	return ""
+}
+
+func (x *BuildInfo) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *BuildInfo) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
+func (x *BuildInfo) GetAssetId() string {
+	if x != nil {
+		return x.AssetId
+	}
+	return ""
+}
+
 var File_asset_v1_asset_proto protoreflect.FileDescriptor
 
 const file_asset_v1_asset_proto_rawDesc = "" +
@@ -1295,7 +1625,7 @@ const file_asset_v1_asset_proto_rawDesc = "" +
 	"\fsource_image\x18\x0f \x01(\tR\vsourceImage\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xba\x03\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xca\x03\n" +
 	"\x14RegisterAssetRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12'\n" +
 	"\x04type\x18\x02 \x01(\x0e2\x13.asset.v1.AssetTypeR\x04type\x122\n" +
@@ -1309,7 +1639,8 @@ const file_asset_v1_asset_proto_rawDesc = "" +
 	"created_by\x18\b \x01(\tR\tcreatedBy\x12\x19\n" +
 	"\bbuild_id\x18\t \x01(\tR\abuildId\x12!\n" +
 	"\fsource_image\x18\n" +
-	" \x01(\tR\vsourceImage\x1a9\n" +
+	" \x01(\tR\vsourceImage\x12\x0e\n" +
+	"\x02id\x18\v \x01(\tR\x02id\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\">\n" +
@@ -1372,7 +1703,38 @@ const file_asset_v1_asset_proto_rawDesc = "" +
 	"assetPaths\x1a=\n" +
 	"\x0fAssetPathsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01*\x87\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xff\x02\n" +
+	"\x12QueryAssetsRequest\x12'\n" +
+	"\x04type\x18\x01 \x01(\x0e2\x13.asset.v1.AssetTypeR\x04type\x12-\n" +
+	"\x06status\x18\x02 \x01(\x0e2\x15.asset.v1.AssetStatusR\x06status\x12V\n" +
+	"\x0elabel_selector\x18\x03 \x03(\v2/.asset.v1.QueryAssetsRequest.LabelSelectorEntryR\rlabelSelector\x12\x1b\n" +
+	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x05 \x01(\tR\tpageToken\x12;\n" +
+	"\rbuild_options\x18\x06 \x01(\v2\x16.asset.v1.BuildOptionsR\fbuildOptions\x1a@\n" +
+	"\x12LabelSelectorEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xf5\x02\n" +
+	"\fBuildOptions\x12*\n" +
+	"\x11enable_auto_build\x18\x01 \x01(\bR\x0fenableAutoBuild\x12.\n" +
+	"\x13wait_for_completion\x18\x02 \x01(\bR\x11waitForCompletion\x122\n" +
+	"\x15build_timeout_seconds\x18\x03 \x01(\x05R\x13buildTimeoutSeconds\x12J\n" +
+	"\fbuild_labels\x18\x04 \x03(\v2'.asset.v1.BuildOptions.BuildLabelsEntryR\vbuildLabels\x12\x1b\n" +
+	"\ttenant_id\x18\x05 \x01(\tR\btenantId\x12,\n" +
+	"\x12suggested_asset_id\x18\x06 \x01(\tR\x10suggestedAssetId\x1a>\n" +
+	"\x10BuildLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa6\x01\n" +
+	"\x13QueryAssetsResponse\x12'\n" +
+	"\x06assets\x18\x01 \x03(\v2\x0f.asset.v1.AssetR\x06assets\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12>\n" +
+	"\x10triggered_builds\x18\x03 \x03(\v2\x13.asset.v1.BuildInfoR\x0ftriggeredBuilds\"\xa1\x01\n" +
+	"\tBuildInfo\x12\x19\n" +
+	"\bbuild_id\x18\x01 \x01(\tR\abuildId\x12!\n" +
+	"\fdocker_image\x18\x02 \x01(\tR\vdockerImage\x12\x16\n" +
+	"\x06status\x18\x03 \x01(\tR\x06status\x12#\n" +
+	"\rerror_message\x18\x04 \x01(\tR\ferrorMessage\x12\x19\n" +
+	"\basset_id\x18\x05 \x01(\tR\aassetId*\x87\x01\n" +
 	"\tAssetType\x12\x1a\n" +
 	"\x16ASSET_TYPE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11ASSET_TYPE_KERNEL\x10\x01\x12\x15\n" +
@@ -1390,7 +1752,7 @@ const file_asset_v1_asset_proto_rawDesc = "" +
 	"\x15STORAGE_BACKEND_LOCAL\x10\x01\x12\x16\n" +
 	"\x12STORAGE_BACKEND_S3\x10\x02\x12\x18\n" +
 	"\x14STORAGE_BACKEND_HTTP\x10\x03\x12\x17\n" +
-	"\x13STORAGE_BACKEND_NFS\x10\x042\x84\x05\n" +
+	"\x13STORAGE_BACKEND_NFS\x10\x042\xd0\x05\n" +
 	"\x13AssetManagerService\x12P\n" +
 	"\rRegisterAsset\x12\x1e.asset.v1.RegisterAssetRequest\x1a\x1f.asset.v1.RegisterAssetResponse\x12A\n" +
 	"\bGetAsset\x12\x19.asset.v1.GetAssetRequest\x1a\x1a.asset.v1.GetAssetResponse\x12G\n" +
@@ -1400,7 +1762,8 @@ const file_asset_v1_asset_proto_rawDesc = "" +
 	"\fReleaseAsset\x12\x1d.asset.v1.ReleaseAssetRequest\x1a\x1e.asset.v1.ReleaseAssetResponse\x12J\n" +
 	"\vDeleteAsset\x12\x1c.asset.v1.DeleteAssetRequest\x1a\x1d.asset.v1.DeleteAssetResponse\x12S\n" +
 	"\x0eGarbageCollect\x12\x1f.asset.v1.GarbageCollectRequest\x1a .asset.v1.GarbageCollectResponse\x12P\n" +
-	"\rPrepareAssets\x12\x1e.asset.v1.PrepareAssetsRequest\x1a\x1f.asset.v1.PrepareAssetsResponseB\xa2\x01\n" +
+	"\rPrepareAssets\x12\x1e.asset.v1.PrepareAssetsRequest\x1a\x1f.asset.v1.PrepareAssetsResponse\x12J\n" +
+	"\vQueryAssets\x12\x1c.asset.v1.QueryAssetsRequest\x1a\x1d.asset.v1.QueryAssetsResponseB\xa2\x01\n" +
 	"\fcom.asset.v1B\n" +
 	"AssetProtoP\x01ZEgithub.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/asset/v1;assetv1\xa2\x02\x03AXX\xaa\x02\bAsset.V1\xca\x02\bAsset\\V1\xe2\x02\x14Asset\\V1\\GPBMetadata\xea\x02\tAsset::V1b\x06proto3"
 
@@ -1417,7 +1780,7 @@ func file_asset_v1_asset_proto_rawDescGZIP() []byte {
 }
 
 var file_asset_v1_asset_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_asset_v1_asset_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_asset_v1_asset_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
 var file_asset_v1_asset_proto_goTypes = []any{
 	(AssetType)(0),                 // 0: asset.v1.AssetType
 	(AssetStatus)(0),               // 1: asset.v1.AssetStatus
@@ -1439,50 +1802,65 @@ var file_asset_v1_asset_proto_goTypes = []any{
 	(*GarbageCollectResponse)(nil), // 17: asset.v1.GarbageCollectResponse
 	(*PrepareAssetsRequest)(nil),   // 18: asset.v1.PrepareAssetsRequest
 	(*PrepareAssetsResponse)(nil),  // 19: asset.v1.PrepareAssetsResponse
-	nil,                            // 20: asset.v1.Asset.LabelsEntry
-	nil,                            // 21: asset.v1.RegisterAssetRequest.LabelsEntry
-	nil,                            // 22: asset.v1.ListAssetsRequest.LabelSelectorEntry
-	nil,                            // 23: asset.v1.PrepareAssetsResponse.AssetPathsEntry
+	(*QueryAssetsRequest)(nil),     // 20: asset.v1.QueryAssetsRequest
+	(*BuildOptions)(nil),           // 21: asset.v1.BuildOptions
+	(*QueryAssetsResponse)(nil),    // 22: asset.v1.QueryAssetsResponse
+	(*BuildInfo)(nil),              // 23: asset.v1.BuildInfo
+	nil,                            // 24: asset.v1.Asset.LabelsEntry
+	nil,                            // 25: asset.v1.RegisterAssetRequest.LabelsEntry
+	nil,                            // 26: asset.v1.ListAssetsRequest.LabelSelectorEntry
+	nil,                            // 27: asset.v1.PrepareAssetsResponse.AssetPathsEntry
+	nil,                            // 28: asset.v1.QueryAssetsRequest.LabelSelectorEntry
+	nil,                            // 29: asset.v1.BuildOptions.BuildLabelsEntry
 }
 var file_asset_v1_asset_proto_depIdxs = []int32{
 	0,  // 0: asset.v1.Asset.type:type_name -> asset.v1.AssetType
 	1,  // 1: asset.v1.Asset.status:type_name -> asset.v1.AssetStatus
 	2,  // 2: asset.v1.Asset.backend:type_name -> asset.v1.StorageBackend
-	20, // 3: asset.v1.Asset.labels:type_name -> asset.v1.Asset.LabelsEntry
+	24, // 3: asset.v1.Asset.labels:type_name -> asset.v1.Asset.LabelsEntry
 	0,  // 4: asset.v1.RegisterAssetRequest.type:type_name -> asset.v1.AssetType
 	2,  // 5: asset.v1.RegisterAssetRequest.backend:type_name -> asset.v1.StorageBackend
-	21, // 6: asset.v1.RegisterAssetRequest.labels:type_name -> asset.v1.RegisterAssetRequest.LabelsEntry
+	25, // 6: asset.v1.RegisterAssetRequest.labels:type_name -> asset.v1.RegisterAssetRequest.LabelsEntry
 	3,  // 7: asset.v1.RegisterAssetResponse.asset:type_name -> asset.v1.Asset
 	3,  // 8: asset.v1.GetAssetResponse.asset:type_name -> asset.v1.Asset
 	0,  // 9: asset.v1.ListAssetsRequest.type:type_name -> asset.v1.AssetType
 	1,  // 10: asset.v1.ListAssetsRequest.status:type_name -> asset.v1.AssetStatus
-	22, // 11: asset.v1.ListAssetsRequest.label_selector:type_name -> asset.v1.ListAssetsRequest.LabelSelectorEntry
+	26, // 11: asset.v1.ListAssetsRequest.label_selector:type_name -> asset.v1.ListAssetsRequest.LabelSelectorEntry
 	3,  // 12: asset.v1.ListAssetsResponse.assets:type_name -> asset.v1.Asset
 	3,  // 13: asset.v1.AcquireAssetResponse.asset:type_name -> asset.v1.Asset
 	3,  // 14: asset.v1.ReleaseAssetResponse.asset:type_name -> asset.v1.Asset
 	3,  // 15: asset.v1.GarbageCollectResponse.deleted_assets:type_name -> asset.v1.Asset
-	23, // 16: asset.v1.PrepareAssetsResponse.asset_paths:type_name -> asset.v1.PrepareAssetsResponse.AssetPathsEntry
-	4,  // 17: asset.v1.AssetManagerService.RegisterAsset:input_type -> asset.v1.RegisterAssetRequest
-	6,  // 18: asset.v1.AssetManagerService.GetAsset:input_type -> asset.v1.GetAssetRequest
-	8,  // 19: asset.v1.AssetManagerService.ListAssets:input_type -> asset.v1.ListAssetsRequest
-	10, // 20: asset.v1.AssetManagerService.AcquireAsset:input_type -> asset.v1.AcquireAssetRequest
-	12, // 21: asset.v1.AssetManagerService.ReleaseAsset:input_type -> asset.v1.ReleaseAssetRequest
-	14, // 22: asset.v1.AssetManagerService.DeleteAsset:input_type -> asset.v1.DeleteAssetRequest
-	16, // 23: asset.v1.AssetManagerService.GarbageCollect:input_type -> asset.v1.GarbageCollectRequest
-	18, // 24: asset.v1.AssetManagerService.PrepareAssets:input_type -> asset.v1.PrepareAssetsRequest
-	5,  // 25: asset.v1.AssetManagerService.RegisterAsset:output_type -> asset.v1.RegisterAssetResponse
-	7,  // 26: asset.v1.AssetManagerService.GetAsset:output_type -> asset.v1.GetAssetResponse
-	9,  // 27: asset.v1.AssetManagerService.ListAssets:output_type -> asset.v1.ListAssetsResponse
-	11, // 28: asset.v1.AssetManagerService.AcquireAsset:output_type -> asset.v1.AcquireAssetResponse
-	13, // 29: asset.v1.AssetManagerService.ReleaseAsset:output_type -> asset.v1.ReleaseAssetResponse
-	15, // 30: asset.v1.AssetManagerService.DeleteAsset:output_type -> asset.v1.DeleteAssetResponse
-	17, // 31: asset.v1.AssetManagerService.GarbageCollect:output_type -> asset.v1.GarbageCollectResponse
-	19, // 32: asset.v1.AssetManagerService.PrepareAssets:output_type -> asset.v1.PrepareAssetsResponse
-	25, // [25:33] is the sub-list for method output_type
-	17, // [17:25] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	27, // 16: asset.v1.PrepareAssetsResponse.asset_paths:type_name -> asset.v1.PrepareAssetsResponse.AssetPathsEntry
+	0,  // 17: asset.v1.QueryAssetsRequest.type:type_name -> asset.v1.AssetType
+	1,  // 18: asset.v1.QueryAssetsRequest.status:type_name -> asset.v1.AssetStatus
+	28, // 19: asset.v1.QueryAssetsRequest.label_selector:type_name -> asset.v1.QueryAssetsRequest.LabelSelectorEntry
+	21, // 20: asset.v1.QueryAssetsRequest.build_options:type_name -> asset.v1.BuildOptions
+	29, // 21: asset.v1.BuildOptions.build_labels:type_name -> asset.v1.BuildOptions.BuildLabelsEntry
+	3,  // 22: asset.v1.QueryAssetsResponse.assets:type_name -> asset.v1.Asset
+	23, // 23: asset.v1.QueryAssetsResponse.triggered_builds:type_name -> asset.v1.BuildInfo
+	4,  // 24: asset.v1.AssetManagerService.RegisterAsset:input_type -> asset.v1.RegisterAssetRequest
+	6,  // 25: asset.v1.AssetManagerService.GetAsset:input_type -> asset.v1.GetAssetRequest
+	8,  // 26: asset.v1.AssetManagerService.ListAssets:input_type -> asset.v1.ListAssetsRequest
+	10, // 27: asset.v1.AssetManagerService.AcquireAsset:input_type -> asset.v1.AcquireAssetRequest
+	12, // 28: asset.v1.AssetManagerService.ReleaseAsset:input_type -> asset.v1.ReleaseAssetRequest
+	14, // 29: asset.v1.AssetManagerService.DeleteAsset:input_type -> asset.v1.DeleteAssetRequest
+	16, // 30: asset.v1.AssetManagerService.GarbageCollect:input_type -> asset.v1.GarbageCollectRequest
+	18, // 31: asset.v1.AssetManagerService.PrepareAssets:input_type -> asset.v1.PrepareAssetsRequest
+	20, // 32: asset.v1.AssetManagerService.QueryAssets:input_type -> asset.v1.QueryAssetsRequest
+	5,  // 33: asset.v1.AssetManagerService.RegisterAsset:output_type -> asset.v1.RegisterAssetResponse
+	7,  // 34: asset.v1.AssetManagerService.GetAsset:output_type -> asset.v1.GetAssetResponse
+	9,  // 35: asset.v1.AssetManagerService.ListAssets:output_type -> asset.v1.ListAssetsResponse
+	11, // 36: asset.v1.AssetManagerService.AcquireAsset:output_type -> asset.v1.AcquireAssetResponse
+	13, // 37: asset.v1.AssetManagerService.ReleaseAsset:output_type -> asset.v1.ReleaseAssetResponse
+	15, // 38: asset.v1.AssetManagerService.DeleteAsset:output_type -> asset.v1.DeleteAssetResponse
+	17, // 39: asset.v1.AssetManagerService.GarbageCollect:output_type -> asset.v1.GarbageCollectResponse
+	19, // 40: asset.v1.AssetManagerService.PrepareAssets:output_type -> asset.v1.PrepareAssetsResponse
+	22, // 41: asset.v1.AssetManagerService.QueryAssets:output_type -> asset.v1.QueryAssetsResponse
+	33, // [33:42] is the sub-list for method output_type
+	24, // [24:33] is the sub-list for method input_type
+	24, // [24:24] is the sub-list for extension type_name
+	24, // [24:24] is the sub-list for extension extendee
+	0,  // [0:24] is the sub-list for field type_name
 }
 
 func init() { file_asset_v1_asset_proto_init() }
@@ -1496,7 +1874,7 @@ func file_asset_v1_asset_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_asset_v1_asset_proto_rawDesc), len(file_asset_v1_asset_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   21,
+			NumMessages:   27,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

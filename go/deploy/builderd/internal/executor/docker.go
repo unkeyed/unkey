@@ -41,6 +41,12 @@ func NewDockerExecutor(logger *slog.Logger, cfg *config.Config, metrics *observa
 
 // ExtractDockerImage pulls a Docker image and extracts it to a rootfs directory
 func (d *DockerExecutor) ExtractDockerImage(ctx context.Context, request *builderv1.CreateBuildRequest) (*BuildResult, error) {
+	// Generate build ID for backward compatibility
+	return d.ExtractDockerImageWithID(ctx, request, generateBuildID())
+}
+
+// ExtractDockerImageWithID pulls a Docker image and extracts it with a pre-assigned build ID
+func (d *DockerExecutor) ExtractDockerImageWithID(ctx context.Context, request *builderv1.CreateBuildRequest, buildID string) (*BuildResult, error) {
 	start := time.Now()
 
 	// Get tenant context for logging and metrics
@@ -71,8 +77,7 @@ func (d *DockerExecutor) ExtractDockerImage(ctx context.Context, request *builde
 		return nil, fmt.Errorf("docker image source is required")
 	}
 
-	// Create build workspace
-	buildID := generateBuildID()
+	// Use the provided build ID
 	workspaceDir := filepath.Join(d.config.Builder.WorkspaceDir, buildID)
 	rootfsDir := filepath.Join(d.config.Builder.RootfsOutputDir, buildID)
 
@@ -152,12 +157,22 @@ func (d *DockerExecutor) ExtractDockerImage(ctx context.Context, request *builde
 		// Don't fail the build for optimization errors
 	}
 
+	// Step 5: Create ext4 filesystem image
+	ext4Path := filepath.Join(d.config.Builder.RootfsOutputDir, buildID+".ext4")
+	if err := d.createExt4Image(ctx, logger, rootfsDir, ext4Path); err != nil {
+		logger.ErrorContext(ctx, "failed to create ext4 image",
+			slog.String("error", err.Error()),
+			slog.String("build_id", buildID),
+		)
+		return nil, fmt.Errorf("failed to create ext4 image: %w", err)
+	}
+
 	// Create build result
 	result := &BuildResult{ //nolint:exhaustruct // Error, Metadata, and Metrics fields are set after successful build
 		BuildID:      buildID,
 		SourceType:   "docker",
 		SourceImage:  fullImageName,
-		RootfsPath:   rootfsDir,
+		RootfsPath:   ext4Path, // Use the ext4 image path instead of directory
 		WorkspaceDir: workspaceDir,
 		TenantID:     tenantID,
 		StartTime:    start,
@@ -185,7 +200,7 @@ func (d *DockerExecutor) pullDockerImage(ctx context.Context, logger *slog.Logge
 	stepStart := time.Now()
 
 	// Start OpenTelemetry span for this build step
-	ctx, span := tracer.Start(ctx, "docker.pull",
+	ctx, span := tracer.Start(ctx, "builderd.docker.pull_image",
 		trace.WithAttributes(
 			attribute.String("step", "pull"),
 			attribute.String("image", imageName),
@@ -249,7 +264,7 @@ func (d *DockerExecutor) createContainer(ctx context.Context, logger *slog.Logge
 	stepStart := time.Now()
 
 	// Start OpenTelemetry span for this build step
-	ctx, span := tracer.Start(ctx, "docker.create",
+	ctx, span := tracer.Start(ctx, "builderd.docker.create_container",
 		trace.WithAttributes(
 			attribute.String("step", "create"),
 			attribute.String("image", imageName),
@@ -306,7 +321,7 @@ func (d *DockerExecutor) extractFilesystem(ctx context.Context, logger *slog.Log
 	stepStart := time.Now()
 
 	// Start OpenTelemetry span for this build step
-	ctx, span := tracer.Start(ctx, "docker.extract",
+	ctx, span := tracer.Start(ctx, "builderd.docker.extract_filesystem",
 		trace.WithAttributes(
 			attribute.String("step", "extract"),
 			attribute.String("container_id", containerID),
@@ -445,7 +460,7 @@ func (d *DockerExecutor) optimizeRootfs(ctx context.Context, logger *slog.Logger
 	stepStart := time.Now()
 
 	// Start OpenTelemetry span for this build step
-	ctx, span := tracer.Start(ctx, "docker.optimize",
+	ctx, span := tracer.Start(ctx, "builderd.docker.optimize_rootfs",
 		trace.WithAttributes(
 			attribute.String("step", "optimize"),
 			attribute.String("rootfs_dir", rootfsDir),
@@ -580,9 +595,120 @@ func (d *DockerExecutor) getRootfsSize(rootfsDir string) (int64, error) {
 	return totalSize, err
 }
 
+// createExt4Image creates an ext4 filesystem image from the rootfs directory
+func (d *DockerExecutor) createExt4Image(ctx context.Context, logger *slog.Logger, rootfsDir, outputPath string) error {
+	// AIDEV-NOTE: Create ext4 filesystem image for Firecracker VMs
+	tracer := otel.Tracer("builderd/docker")
+	stepStart := time.Now()
+
+	// Start OpenTelemetry span for this build step
+	ctx, span := tracer.Start(ctx, "builderd.docker.create_ext4_image",
+		trace.WithAttributes(
+			attribute.String("step", "create_ext4"),
+			attribute.String("rootfs_dir", rootfsDir),
+			attribute.String("output_path", outputPath),
+		),
+	)
+	defer span.End()
+
+	logger.InfoContext(ctx, "creating ext4 filesystem image",
+		slog.String("rootfs_dir", rootfsDir),
+		slog.String("output_path", outputPath),
+	)
+
+	// Calculate size needed (rootfs size + 20% overhead)
+	rootfsSize, err := d.getRootfsSize(rootfsDir)
+	if err != nil {
+		return fmt.Errorf("failed to calculate rootfs size: %w", err)
+	}
+	
+	// Add 20% overhead for filesystem metadata and future growth
+	imageSize := int64(float64(rootfsSize) * 1.2)
+	// Minimum 100MB, round up to nearest MB
+	minSize := int64(100 * 1024 * 1024)
+	if imageSize < minSize {
+		imageSize = minSize
+	}
+	imageSize = (imageSize + 1024*1024 - 1) / (1024 * 1024) * (1024 * 1024) // Round up to MB
+	
+	logger.InfoContext(ctx, "calculated image size",
+		slog.Int64("rootfs_bytes", rootfsSize),
+		slog.Int64("image_bytes", imageSize),
+	)
+
+	// Step 1: Create sparse file
+	createCmd := exec.CommandContext(ctx, "truncate", "-s", fmt.Sprintf("%d", imageSize), outputPath)
+	if output, err := createCmd.CombinedOutput(); err != nil {
+		logger.ErrorContext(ctx, "failed to create sparse file",
+			slog.String("error", err.Error()),
+			slog.String("output", string(output)),
+		)
+		return fmt.Errorf("failed to create sparse file: %w", err)
+	}
+
+	// Step 2: Create ext4 filesystem
+	mkfsCmd := exec.CommandContext(ctx, "mkfs.ext4", "-F", "-d", rootfsDir, outputPath)
+	if output, err := mkfsCmd.CombinedOutput(); err != nil {
+		logger.ErrorContext(ctx, "failed to create ext4 filesystem",
+			slog.String("error", err.Error()),
+			slog.String("output", string(output)),
+		)
+		// Clean up the sparse file
+		_ = os.Remove(outputPath)
+		return fmt.Errorf("failed to create ext4 filesystem: %w", err)
+	}
+
+	// Step 3: Optimize the filesystem (optional)
+	e2fsckCmd := exec.CommandContext(ctx, "e2fsck", "-f", "-y", outputPath)
+	if output, err := e2fsckCmd.CombinedOutput(); err != nil {
+		// Log but don't fail - e2fsck returns non-zero for fixes
+		logger.WarnContext(ctx, "e2fsck completed with warnings",
+			slog.String("output", string(output)),
+		)
+	}
+
+	// Get final file size
+	fileInfo, err := os.Stat(outputPath)
+	if err != nil {
+		logger.ErrorContext(ctx, "failed to stat ext4 image",
+			slog.String("error", err.Error()),
+		)
+		return fmt.Errorf("failed to stat ext4 image: %w", err)
+	}
+
+	// Set file permissions to be world-readable for other services
+	// AIDEV-NOTE: Running as root, make files readable by other services
+	if err := os.Chmod(outputPath, 0644); err != nil {
+		logger.ErrorContext(ctx, "failed to set file permissions",
+			slog.String("error", err.Error()),
+		)
+		return fmt.Errorf("failed to set file permissions: %w", err)
+	}
+
+	stepDuration := time.Since(stepStart)
+	span.SetAttributes(
+		attribute.String("status", "success"),
+		attribute.Int64("final_size", fileInfo.Size()),
+	)
+
+	logger.InfoContext(ctx, "ext4 filesystem image created successfully",
+		slog.String("path", outputPath),
+		slog.Int64("size_bytes", fileInfo.Size()),
+		slog.Duration("duration", stepDuration),
+	)
+
+	return nil
+}
+
 // Execute implements the Executor interface
 func (d *DockerExecutor) Execute(ctx context.Context, request *builderv1.CreateBuildRequest) (*BuildResult, error) {
-	return d.ExtractDockerImage(ctx, request)
+	// Generate a new build ID for backward compatibility
+	return d.ExecuteWithID(ctx, request, generateBuildID())
+}
+
+// ExecuteWithID implements the Executor interface for Docker builds with a pre-assigned ID
+func (d *DockerExecutor) ExecuteWithID(ctx context.Context, request *builderv1.CreateBuildRequest, buildID string) (*BuildResult, error) {
+	return d.ExtractDockerImageWithID(ctx, request, buildID)
 }
 
 // GetSupportedSources implements the Executor interface

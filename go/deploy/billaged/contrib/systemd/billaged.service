@@ -8,13 +8,13 @@ Wants=network.target
 Type=simple
 User=billaged
 Group=billaged
-WorkingDirectory=/opt/billaged
+# AIDEV-NOTE: WorkingDirectory removed - not needed for billaged
 # Create required directories (+ prefix runs as root)
-ExecStartPre=+/bin/mkdir -p /opt/billaged
-ExecStartPre=+/bin/mkdir -p /var/log/billaged
+ExecStartPre=+/usr/bin/mkdir -p /opt/billaged
+ExecStartPre=+/usr/bin/mkdir -p /var/log/billaged
 # Set ownership for service directories
-ExecStartPre=+/bin/chown -R billaged:billaged /opt/billaged
-ExecStartPre=+/bin/chown -R billaged:billaged /var/log/billaged
+ExecStartPre=+/usr/bin/chown -R billaged:billaged /opt/billaged
+ExecStartPre=+/usr/bin/chown -R billaged:billaged /var/log/billaged
 ExecStart=/usr/local/bin/billaged
 Restart=always
 RestartSec=5

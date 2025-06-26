@@ -24,7 +24,6 @@ type Metrics struct {
 
 var (
 	globalMetrics *Metrics
-	tracer        = GetTracer("assetmanagerd")
 )
 
 func init() {
@@ -92,6 +91,7 @@ func NewMetricsInterceptor() connect.UnaryInterceptorFunc {
 			spanName := fmt.Sprintf("assetmanagerd.%s", methodName)
 
 			// Create span
+			tracer := GetTracer("assetmanagerd")
 			ctx, span := tracer.Start(ctx, spanName,
 				trace.WithSpanKind(trace.SpanKindServer),
 				trace.WithAttributes(
@@ -165,28 +165,35 @@ func NewLoggingInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc {
 			start := time.Now()
 			procedure := req.Spec().Procedure
 
-			// Log request
+			// Extract trace ID from OpenTelemetry context
+			span := trace.SpanFromContext(ctx)
+			traceID := span.SpanContext().TraceID().String()
+
+			// Log request with trace ID
 			logger.LogAttrs(ctx, slog.LevelInfo, "RPC request started",
 				slog.String("procedure", procedure),
 				slog.String("peer", req.Peer().Addr),
+				slog.String("trace_id", traceID),
 			)
 
 			// Call the handler
 			resp, err = next(ctx, req)
 			duration := time.Since(start)
 
-			// Log response
+			// Log response with trace ID
 			if err != nil {
 				logger.LogAttrs(ctx, slog.LevelError, "RPC request failed",
 					slog.String("procedure", procedure),
 					slog.Duration("duration", duration),
 					slog.String("error", err.Error()),
 					slog.String("code", connect.CodeOf(err).String()),
+					slog.String("trace_id", traceID),
 				)
 			} else {
 				logger.LogAttrs(ctx, slog.LevelInfo, "RPC request completed",
 					slog.String("procedure", procedure),
 					slog.Duration("duration", duration),
+					slog.String("trace_id", traceID),
 				)
 			}
 

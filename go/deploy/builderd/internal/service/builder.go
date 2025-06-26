@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"connectrpc.com/connect"
@@ -29,6 +30,10 @@ type BuilderService struct {
 	// storage      storage.Backend
 	// docker       *docker.Client
 	// tenantMgr    *tenant.Manager
+
+	// AIDEV-NOTE: Temporary in-memory storage for build jobs until database is implemented
+	builds map[string]*builderv1.BuildJob
+	buildsMutex sync.RWMutex
 }
 
 // NewBuilderService creates a new BuilderService instance
@@ -47,7 +52,13 @@ func NewBuilderService(
 		config:       cfg,
 		executors:    executors,
 		assetClient:  assetClient,
+		builds:       make(map[string]*builderv1.BuildJob),
 	}
+}
+
+// generateBuildID generates a unique build ID
+func generateBuildID() string {
+	return fmt.Sprintf("build-%d", time.Now().UnixNano())
 }
 
 // CreateBuild creates a new build job
@@ -77,78 +88,123 @@ func (s *BuilderService) CreateBuild(
 	}
 
 	// TODO: Check tenant quotas
-	// TODO: Store build job in database
+	
+	// Create build job record
+	buildJob := &builderv1.BuildJob{
+		BuildId:     generateBuildID(),
+		Config:      req.Msg.GetConfig(),
+		State:       builderv1.BuildState_BUILD_STATE_BUILDING,
+		CreatedAt:   timestamppb.Now(),
+		StartedAt:   timestamppb.Now(),
+	}
+	
+	// Store build job in memory
+	s.buildsMutex.Lock()
+	s.builds[buildJob.BuildId] = buildJob
+	s.buildsMutex.Unlock()
 
-	// Execute the build immediately (for now)
-	// In production, this would be queued and executed asynchronously
-	buildResult, err := s.executors.Execute(ctx, req.Msg)
-	if err != nil {
-		s.logger.ErrorContext(ctx, "build execution failed",
-			slog.String("error", err.Error()),
+	// Execute the build asynchronously
+	// AIDEV-NOTE: Launch build in a goroutine to avoid blocking the RPC call
+	go func() {
+		// Create a new context that isn't tied to the RPC context
+		// This prevents the build from being cancelled when the RPC returns
+		buildCtx := context.Background()
+		
+		s.logger.InfoContext(buildCtx, "starting async build execution",
+			slog.String("build_id", buildJob.BuildId),
 			slog.String("tenant_id", req.Msg.GetConfig().GetTenant().GetTenantId()),
 		)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("build execution failed: %w", err))
-	}
-
-	buildID := buildResult.BuildID
-
-	s.logger.InfoContext(ctx, "build job completed successfully",
-		slog.String("build_id", buildID),
-		slog.String("tenant_id", req.Msg.GetConfig().GetTenant().GetTenantId()),
-		slog.String("source_type", buildResult.SourceType),
-		slog.String("rootfs_path", buildResult.RootfsPath),
-		slog.Duration("duration", buildResult.EndTime.Sub(buildResult.StartTime)),
-	)
-
-	// Build state - since we executed immediately, it's either completed or failed
-	buildState := builderv1.BuildState_BUILD_STATE_COMPLETED
-	if buildResult.Status == "failed" {
-		buildState = builderv1.BuildState_BUILD_STATE_FAILED
-	}
-
-	// Register the build artifact with assetmanagerd if build succeeded
-	// AIDEV-NOTE: This enables the built rootfs to be used for VM creation
-	var assetID string
-	if buildState == builderv1.BuildState_BUILD_STATE_COMPLETED && s.assetClient.IsEnabled() {
-		labels := map[string]string{
-			"tenant_id":    tenantID,
-			"customer_id":  customerID,
-			"source_type":  buildResult.SourceType,
-		}
 		
-		// Add source image if it's a Docker source
-		if dockerSource := req.Msg.GetConfig().GetSource().GetDockerImage(); dockerSource != nil {
-			labels["source_image"] = dockerSource.GetImageUri()
-		}
-
-		// Determine asset type based on target
-		assetType := assetv1.AssetType_ASSET_TYPE_ROOTFS
-		if req.Msg.GetConfig().GetTarget().GetMicrovmRootfs() != nil {
-			assetType = assetv1.AssetType_ASSET_TYPE_ROOTFS
-		}
-
-		var err error
-		assetID, err = s.assetClient.RegisterBuildArtifact(ctx, buildID, buildResult.RootfsPath, assetType, labels)
+		buildResult, err := s.executors.ExecuteWithID(buildCtx, req.Msg, buildJob.BuildId)
 		if err != nil {
-			// Log error but don't fail the build response
-			s.logger.ErrorContext(ctx, "failed to register build artifact with assetmanagerd",
+			// Update build job with error state
+			s.buildsMutex.Lock()
+			buildJob.State = builderv1.BuildState_BUILD_STATE_FAILED
+			buildJob.CompletedAt = timestamppb.Now()
+			buildJob.ErrorMessage = err.Error()
+			s.buildsMutex.Unlock()
+			
+			s.logger.ErrorContext(buildCtx, "build execution failed",
 				slog.String("error", err.Error()),
-				slog.String("build_id", buildID),
-				slog.String("rootfs_path", buildResult.RootfsPath),
+				slog.String("build_id", buildJob.BuildId),
+				slog.String("tenant_id", req.Msg.GetConfig().GetTenant().GetTenantId()),
 			)
-		} else {
-			s.logger.InfoContext(ctx, "registered build artifact with assetmanagerd",
-				slog.String("asset_id", assetID),
-				slog.String("build_id", buildID),
-			)
+			return
 		}
-	}
 
+		s.logger.InfoContext(buildCtx, "build job completed successfully",
+			slog.String("build_id", buildJob.BuildId),
+			slog.String("tenant_id", req.Msg.GetConfig().GetTenant().GetTenantId()),
+			slog.String("source_type", buildResult.SourceType),
+			slog.String("rootfs_path", buildResult.RootfsPath),
+			slog.Duration("duration", buildResult.EndTime.Sub(buildResult.StartTime)),
+		)
+
+		// Build state - since we executed immediately, it's either completed or failed
+		buildState := builderv1.BuildState_BUILD_STATE_COMPLETED
+		if buildResult.Status == "failed" {
+			buildState = builderv1.BuildState_BUILD_STATE_FAILED
+		}
+
+		// Update build job with completion info
+		s.buildsMutex.Lock()
+		buildJob.State = buildState
+		buildJob.CompletedAt = timestamppb.Now()
+		buildJob.RootfsPath = buildResult.RootfsPath
+		// TODO: Add checksum and size when available
+		s.buildsMutex.Unlock()
+
+		// Register the build artifact with assetmanagerd if build succeeded
+		// AIDEV-NOTE: This enables the built rootfs to be used for VM creation
+		if buildState == builderv1.BuildState_BUILD_STATE_COMPLETED && s.assetClient.IsEnabled() {
+			labels := map[string]string{
+				"source_type":  buildResult.SourceType,
+			}
+			
+			// Add docker image label if it's a Docker source
+			// AIDEV-NOTE: Must use "docker_image" label to match metald's query expectations
+			if dockerSource := req.Msg.GetConfig().GetSource().GetDockerImage(); dockerSource != nil {
+				labels["docker_image"] = dockerSource.GetImageUri()
+			}
+
+			// Determine asset type based on target
+			assetType := assetv1.AssetType_ASSET_TYPE_ROOTFS
+			if req.Msg.GetConfig().GetTarget().GetMicrovmRootfs() != nil {
+				assetType = assetv1.AssetType_ASSET_TYPE_ROOTFS
+			}
+
+			// Use suggested asset ID if provided in the build config
+			suggestedAssetID := req.Msg.GetConfig().GetSuggestedAssetId()
+			
+			s.logger.InfoContext(buildCtx, "registering build artifact with asset ID",
+				slog.String("suggested_asset_id", suggestedAssetID),
+				slog.String("build_id", buildJob.BuildId),
+				slog.Any("labels", labels),
+			)
+			
+			assetID, err := s.assetClient.RegisterBuildArtifactWithID(buildCtx, buildJob.BuildId, buildResult.RootfsPath, assetType, labels, suggestedAssetID)
+			if err != nil {
+				// Log error but don't fail the build
+				s.logger.ErrorContext(buildCtx, "failed to register build artifact with assetmanagerd",
+					slog.String("error", err.Error()),
+					slog.String("build_id", buildJob.BuildId),
+					slog.String("rootfs_path", buildResult.RootfsPath),
+				)
+			} else {
+				s.logger.InfoContext(buildCtx, "registered build artifact with assetmanagerd",
+					slog.String("asset_id", assetID),
+					slog.String("build_id", buildJob.BuildId),
+				)
+			}
+		}
+	}()
+
+	// Return immediately with the build ID and "building" state
 	resp := &builderv1.CreateBuildResponse{
-		BuildId:    buildID,
-		State:      buildState,
-		CreatedAt:  timestamppb.New(buildResult.StartTime),
-		RootfsPath: buildResult.RootfsPath,
+		BuildId:    buildJob.BuildId,
+		State:      builderv1.BuildState_BUILD_STATE_BUILDING,
+		CreatedAt:  timestamppb.Now(),
+		RootfsPath: "", // Not available yet
 		// AIDEV-TODO: Add AssetId field to CreateBuildResponse proto to return registered asset ID
 	}
 
@@ -166,27 +222,15 @@ func (s *BuilderService) GetBuild(
 	)
 
 	// TODO: Validate tenant has access to this build
-	// TODO: Retrieve build from database
 
-	// For now, return a placeholder response
-	//nolint:exhaustruct // Placeholder response with only required fields
-	build := &builderv1.BuildJob{
-		BuildId: req.Msg.GetBuildId(),
-		//nolint:exhaustruct // Config fields will be populated later
-		Config: &builderv1.BuildConfig{
-			//nolint:exhaustruct // Tenant context fields will be populated from actual data
-			Tenant: &builderv1.TenantContext{
-				TenantId:   req.Msg.GetTenantId(),
-				CustomerId: "placeholder",
-				Tier:       builderv1.TenantTier_TENANT_TIER_FREE,
-			},
-		},
-		State:           builderv1.BuildState_BUILD_STATE_PENDING,
-		CreatedAt:       timestamppb.Now(),
-		StartedAt:       nil,
-		CompletedAt:     nil,
-		ProgressPercent: 0,
-		CurrentStep:     "queued",
+	// Retrieve build from memory storage
+	s.buildsMutex.RLock()
+	build, exists := s.builds[req.Msg.GetBuildId()]
+	s.buildsMutex.RUnlock()
+
+	if !exists {
+		return nil, connect.NewError(connect.CodeNotFound, 
+			fmt.Errorf("build not found: %s", req.Msg.GetBuildId()))
 	}
 
 	resp := &builderv1.GetBuildResponse{

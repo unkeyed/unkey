@@ -73,7 +73,6 @@ func NewMetrics(meter metric.Meter) (*Metrics, error) {
 
 // NewOTELInterceptor creates a ConnectRPC interceptor that adds OpenTelemetry tracing
 func NewOTELInterceptor() connect.UnaryInterceptorFunc {
-	tracer := otel.Tracer("builderd/rpc")
 	meter := otel.Meter("builderd/rpc")
 
 	// Create metrics
@@ -96,6 +95,7 @@ func NewOTELInterceptor() connect.UnaryInterceptorFunc {
 			spanName := fmt.Sprintf("builderd.%s", methodName)
 
 			// Start span
+			tracer := otel.Tracer("builderd/rpc")
 			ctx, span := tracer.Start(ctx, spanName,
 				trace.WithSpanKind(trace.SpanKindServer),
 				trace.WithAttributes(
@@ -310,6 +310,13 @@ func NewTenantAuthInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc 
 			tenantID := req.Header().Get("X-Tenant-ID")
 			customerID := req.Header().Get("X-Customer-ID")
 			authToken := req.Header().Get("Authorization")
+			
+			// Log all headers for debugging
+			logger.LogAttrs(ctx, slog.LevelInfo, "request headers",
+				slog.String("procedure", req.Spec().Procedure),
+				slog.Any("headers", req.Header()),
+				slog.String("x-tenant-id", tenantID),
+			)
 
 			// Add tenant context to the request context
 			ctx = withTenantContext(ctx, TenantAuthContext{

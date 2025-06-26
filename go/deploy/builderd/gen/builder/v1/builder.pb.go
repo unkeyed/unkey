@@ -1628,10 +1628,13 @@ type BuildConfig struct {
 	// Build constraints (tenant-aware)
 	Limits *TenantResourceLimits `protobuf:"bytes,5,opt,name=limits,proto3" json:"limits,omitempty"`
 	// Build metadata
-	BuildName     string            `protobuf:"bytes,6,opt,name=build_name,json=buildName,proto3" json:"build_name,omitempty"`                                                    // Human-readable name
-	Labels        map[string]string `protobuf:"bytes,7,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // Custom labels
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	BuildName string            `protobuf:"bytes,6,opt,name=build_name,json=buildName,proto3" json:"build_name,omitempty"`                                                    // Human-readable name
+	Labels    map[string]string `protobuf:"bytes,7,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // Custom labels
+	// Suggested asset ID to use when registering the built artifact
+	// This allows the caller to pre-generate the asset ID
+	SuggestedAssetId string `protobuf:"bytes,8,opt,name=suggested_asset_id,json=suggestedAssetId,proto3" json:"suggested_asset_id,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *BuildConfig) Reset() {
@@ -1711,6 +1714,13 @@ func (x *BuildConfig) GetLabels() map[string]string {
 		return x.Labels
 	}
 	return nil
+}
+
+func (x *BuildConfig) GetSuggestedAssetId() string {
+	if x != nil {
+		return x.SuggestedAssetId
+	}
+	return ""
 }
 
 // Build isolation metadata
@@ -3437,7 +3447,7 @@ const file_builder_v1_builder_proto_rawDesc = "" +
 	"\x16allow_external_network\x18\v \x01(\bR\x14allowExternalNetwork\x126\n" +
 	"\x17allow_privileged_builds\x18\f \x01(\bR\x15allowPrivilegedBuilds\x12)\n" +
 	"\x10blocked_commands\x18\r \x03(\tR\x0fblockedCommands\x12#\n" +
-	"\rsandbox_level\x18\x0e \x01(\x05R\fsandboxLevel\"\xaa\x03\n" +
+	"\rsandbox_level\x18\x0e \x01(\x05R\fsandboxLevel\"\xd8\x03\n" +
 	"\vBuildConfig\x121\n" +
 	"\x06tenant\x18\x01 \x01(\v2\x19.builder.v1.TenantContextR\x06tenant\x12/\n" +
 	"\x06source\x18\x02 \x01(\v2\x17.builder.v1.BuildSourceR\x06source\x12/\n" +
@@ -3446,7 +3456,8 @@ const file_builder_v1_builder_proto_rawDesc = "" +
 	"\x06limits\x18\x05 \x01(\v2 .builder.v1.TenantResourceLimitsR\x06limits\x12\x1d\n" +
 	"\n" +
 	"build_name\x18\x06 \x01(\tR\tbuildName\x12;\n" +
-	"\x06labels\x18\a \x03(\v2#.builder.v1.BuildConfig.LabelsEntryR\x06labels\x1a9\n" +
+	"\x06labels\x18\a \x03(\v2#.builder.v1.BuildConfig.LabelsEntryR\x06labels\x12,\n" +
+	"\x12suggested_asset_id\x18\b \x01(\tR\x10suggestedAssetId\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xdd\x01\n" +

@@ -47,7 +47,7 @@ func NewVMService(backend types.Backend, logger *slog.Logger, metricsCollector *
 
 // CreateVm creates a new VM instance
 func (s *VMService) CreateVm(ctx context.Context, req *connect.Request[metaldv1.CreateVmRequest]) (*connect.Response[metaldv1.CreateVmResponse], error) {
-	ctx, span := s.tracer.Start(ctx, "VMService.CreateVm",
+	ctx, span := s.tracer.Start(ctx, "metald.vm.create",
 		trace.WithAttributes(
 			attribute.String("service.name", "metald"),
 			attribute.String("operation.name", "create_vm"),
@@ -274,7 +274,7 @@ func (s *VMService) DeleteVm(ctx context.Context, req *connect.Request[metaldv1.
 func (s *VMService) BootVm(ctx context.Context, req *connect.Request[metaldv1.BootVmRequest]) (*connect.Response[metaldv1.BootVmResponse], error) {
 	vmID := req.Msg.GetVmId()
 
-	ctx, span := s.tracer.Start(ctx, "VMService.BootVm",
+	ctx, span := s.tracer.Start(ctx, "metald.vm.boot",
 		trace.WithAttributes(
 			attribute.String("service.name", "metald"),
 			attribute.String("operation.name", "boot_vm"),

@@ -11,15 +11,15 @@ Type=simple
 # The jailer still drops privileges to specified UID/GID for VM processes.
 User=root
 Group=root
-WorkingDirectory=/opt/metald
-# Create required directories (requires root)
-ExecStartPre=+/bin/mkdir -p /run/netns
-ExecStartPre=+/bin/mkdir -p /opt/metald/sockets
-ExecStartPre=+/bin/mkdir -p /opt/metald/logs
-ExecStartPre=+/bin/mkdir -p /opt/metald/assets
-ExecStartPre=+/bin/mkdir -p /srv/jailer
-ExecStartPre=+/bin/mkdir -p /var/log/metald
-ExecStartPre=+/bin/mkdir -p /opt/vm-assets
+# AIDEV-NOTE: WorkingDirectory removed - metald doesn't require a specific working directory
+# Create required directories (no + prefix needed since already running as root)
+ExecStartPre=/usr/bin/mkdir -p /run/netns
+ExecStartPre=/usr/bin/mkdir -p /opt/metald/sockets
+ExecStartPre=/usr/bin/mkdir -p /opt/metald/logs
+ExecStartPre=/usr/bin/mkdir -p /opt/metald/assets
+ExecStartPre=/usr/bin/mkdir -p /srv/jailer
+ExecStartPre=/usr/bin/mkdir -p /var/log/metald
+ExecStartPre=/usr/bin/mkdir -p /opt/vm-assets
 ExecStart=/usr/local/bin/metald
 Restart=always
 RestartSec=5
@@ -70,9 +70,7 @@ LimitNPROC=4096
 # AIDEV-NOTE: Running as root provides all necessary capabilities for network management
 # AmbientCapabilities removed - root has all capabilities
 # CapabilityBoundingSet removed - root has all capabilities
-
-# Security settings - adjusted for root with VM management requirements
-ReadWritePaths=/srv/jailer /opt/metald /var/run/netns /tmp /opt/metald/assets /sys /proc/sys/net
+# ReadWritePaths removed - no namespace protection is used
 
 [Install]
 WantedBy=multi-user.target

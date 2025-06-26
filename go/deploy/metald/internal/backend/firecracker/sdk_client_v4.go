@@ -3,6 +3,7 @@ package firecracker
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -10,10 +11,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
+	"strings"
 	"time"
 
 	sdk "github.com/firecracker-microvm/firecracker-go-sdk"
 	"github.com/firecracker-microvm/firecracker-go-sdk/client/models"
+	assetv1 "github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/asset/v1"
 	metaldv1 "github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/assetmanager"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
@@ -22,6 +26,7 @@ import (
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/network"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sys/unix"
@@ -29,12 +34,14 @@ import (
 
 // sdkV4VM represents a VM managed by the SDK v4
 type sdkV4VM struct {
-	ID          string
-	Config      *metaldv1.VmConfig
-	State       metaldv1.VmState
-	Machine     *sdk.Machine
-	NetworkInfo *network.VMNetwork
-	CancelFunc  context.CancelFunc
+	ID           string
+	Config       *metaldv1.VmConfig
+	State        metaldv1.VmState
+	Machine      *sdk.Machine
+	NetworkInfo  *network.VMNetwork
+	CancelFunc   context.CancelFunc
+	AssetMapping *assetMapping      // Asset mapping for lease acquisition
+	AssetPaths   map[string]string  // Prepared asset paths
 }
 
 // SDKClientV4 implements the Backend interface using firecracker-go-sdk
@@ -49,6 +56,7 @@ type SDKClientV4 struct {
 	networkManager  *network.Manager
 	assetClient     assetmanager.Client
 	vmRegistry      map[string]*sdkV4VM
+	vmAssetLeases   map[string][]string // VM ID -> asset lease IDs
 	jailer          *jailer.Jailer
 	jailerConfig    *config.JailerConfig
 	baseDir         string
@@ -105,6 +113,7 @@ func NewSDKClientV4(logger *slog.Logger, networkManager *network.Manager, assetC
 		networkManager:  networkManager,
 		assetClient:     assetClient,
 		vmRegistry:      make(map[string]*sdkV4VM),
+		vmAssetLeases:   make(map[string][]string),
 		jailer:          integratedJailer,
 		jailerConfig:    jailerConfig,
 		baseDir:         baseDir,
@@ -119,7 +128,7 @@ func NewSDKClientV4(logger *slog.Logger, networkManager *network.Manager, assetC
 
 // Initialize initializes the SDK client
 func (c *SDKClientV4) Initialize() error {
-	ctx, span := c.tracer.Start(context.Background(), "SDKClientV4.Initialize")
+	ctx, span := c.tracer.Start(context.Background(), "metald.firecracker.initialize")
 	defer span.End()
 
 	c.logger.InfoContext(ctx, "initializing firecracker SDK v4 client with integrated jailer")
@@ -129,7 +138,7 @@ func (c *SDKClientV4) Initialize() error {
 
 // CreateVM creates a new VM using the SDK with integrated jailer
 func (c *SDKClientV4) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (string, error) {
-	ctx, span := c.tracer.Start(ctx, "SDKClientV4.CreateVM",
+	ctx, span := c.tracer.Start(ctx, "metald.firecracker.create_vm",
 		trace.WithAttributes(
 			attribute.Int("vcpus", int(config.GetCpu().GetVcpuCount())),
 			attribute.Int64("memory_bytes", config.GetMemory().GetSizeBytes()),
@@ -175,7 +184,8 @@ func (c *SDKClientV4) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (
 	)
 
 	// Prepare assets in the jailer chroot
-	if err := c.prepareVMAssets(ctx, vmID, config); err != nil {
+	assetMapping, preparedPaths, err := c.prepareVMAssets(ctx, vmID, config)
+	if err != nil {
 		span.RecordError(err)
 		c.vmErrorCounter.Add(ctx, 1, metric.WithAttributes(
 			attribute.String("operation", "create"),
@@ -193,7 +203,7 @@ func (c *SDKClientV4) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (
 
 	// Build SDK configuration WITHOUT jailer
 	// The jailer functionality is now integrated
-	_ = c.buildFirecrackerConfig(vmID, config, networkInfo)
+	_ = c.buildFirecrackerConfig(vmID, config, networkInfo, preparedPaths)
 
 	// Create VM directory
 	vmDir := filepath.Join(c.baseDir, vmID)
@@ -203,12 +213,14 @@ func (c *SDKClientV4) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (
 
 	// Register the VM
 	vm := &sdkV4VM{
-		ID:          vmID,
-		Config:      config,
-		State:       metaldv1.VmState_VM_STATE_CREATED,
-		Machine:     nil, // Will be set when we boot
-		NetworkInfo: networkInfo,
-		CancelFunc:  nil, // Will be set when we boot
+		ID:           vmID,
+		Config:       config,
+		State:        metaldv1.VmState_VM_STATE_CREATED,
+		Machine:      nil, // Will be set when we boot
+		NetworkInfo:  networkInfo,
+		CancelFunc:   nil, // Will be set when we boot
+		AssetMapping: assetMapping,
+		AssetPaths:   preparedPaths,
 	}
 
 	c.vmRegistry[vmID] = vm
@@ -226,7 +238,7 @@ func (c *SDKClientV4) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (
 
 // BootVM starts a created VM using our integrated jailer
 func (c *SDKClientV4) BootVM(ctx context.Context, vmID string) error {
-	ctx, span := c.tracer.Start(ctx, "SDKClientV4.BootVM",
+	ctx, span := c.tracer.Start(ctx, "metald.firecracker.boot_vm",
 		trace.WithAttributes(attribute.String("vm_id", vmID)),
 	)
 	defer span.End()
@@ -259,7 +271,7 @@ func (c *SDKClientV4) BootVM(ctx context.Context, vmID string) error {
 	defer logFile.Close()
 
 	// Build firecracker config that will be used by SDK
-	fcConfig := c.buildFirecrackerConfig(vmID, vm.Config, vm.NetworkInfo)
+	fcConfig := c.buildFirecrackerConfig(vmID, vm.Config, vm.NetworkInfo, vm.AssetPaths)
 	fcConfig.SocketPath = socketPath
 
 	// Create a context for this VM
@@ -301,6 +313,52 @@ func (c *SDKClientV4) BootVM(ctx context.Context, vmID string) error {
 	vm.Machine = machine
 	vm.State = metaldv1.VmState_VM_STATE_RUNNING
 
+	// Acquire asset leases after successful boot
+	if vm.AssetMapping != nil && len(vm.AssetMapping.AssetIDs()) > 0 {
+		c.logger.LogAttrs(ctx, slog.LevelInfo, "acquiring asset leases for VM",
+			slog.String("vm_id", vmID),
+			slog.Int("asset_count", len(vm.AssetMapping.AssetIDs())),
+		)
+		
+		leaseIDs := []string{}
+		for _, assetID := range vm.AssetMapping.AssetIDs() {
+			ctx, acquireSpan := c.tracer.Start(ctx, "metald.firecracker.acquire_asset",
+				trace.WithAttributes(
+					attribute.String("vm.id", vmID),
+					attribute.String("asset.id", assetID),
+				),
+			)
+			leaseID, err := c.assetClient.AcquireAsset(ctx, assetID, vmID)
+			if err != nil {
+				acquireSpan.RecordError(err)
+				acquireSpan.SetStatus(codes.Error, err.Error())
+			} else {
+				acquireSpan.SetAttributes(attribute.String("lease.id", leaseID))
+			}
+			acquireSpan.End()
+			if err != nil {
+				c.logger.ErrorContext(ctx, "failed to acquire asset lease",
+					"vm_id", vmID,
+					"asset_id", assetID,
+					"error", err,
+				)
+				// Continue trying to acquire other leases even if one fails
+				// AIDEV-TODO: Consider whether to fail the boot if lease acquisition fails
+			} else {
+				leaseIDs = append(leaseIDs, leaseID)
+			}
+		}
+		
+		// Store lease IDs for cleanup during VM deletion
+		if len(leaseIDs) > 0 {
+			c.vmAssetLeases[vmID] = leaseIDs
+			c.logger.LogAttrs(ctx, slog.LevelInfo, "acquired asset leases",
+				slog.String("vm_id", vmID),
+				slog.Int("lease_count", len(leaseIDs)),
+			)
+		}
+	}
+
 	c.vmBootCounter.Add(ctx, 1, metric.WithAttributes(
 		attribute.String("status", "success"),
 	))
@@ -315,7 +373,7 @@ func (c *SDKClientV4) BootVM(ctx context.Context, vmID string) error {
 // Other methods would be similar to SDKClientV3...
 
 // buildFirecrackerConfig builds the SDK configuration without jailer
-func (c *SDKClientV4) buildFirecrackerConfig(vmID string, config *metaldv1.VmConfig, networkInfo *network.VMNetwork) sdk.Config {
+func (c *SDKClientV4) buildFirecrackerConfig(vmID string, config *metaldv1.VmConfig, networkInfo *network.VMNetwork, preparedPaths map[string]string) sdk.Config {
 	// For integrated jailer, we use absolute paths since we're not running inside chroot
 	// The assets are still in the jailer directory structure for consistency
 	jailerRoot := filepath.Join(
@@ -326,7 +384,20 @@ func (c *SDKClientV4) buildFirecrackerConfig(vmID string, config *metaldv1.VmCon
 	)
 
 	socketPath := "/firecracker.sock"
+	
+	// Determine kernel path - use prepared path if available, otherwise fallback to default
 	kernelPath := filepath.Join(jailerRoot, "vmlinux")
+	if preparedPaths != nil && len(preparedPaths) > 0 {
+		// AIDEV-NOTE: In a more sophisticated implementation, we'd track which asset ID
+		// corresponds to which component (kernel vs rootfs). For now, we rely on the
+		// assetmanager preparing files with standard names in the target directory.
+		// The prepared paths should already be in the jailerRoot directory.
+		c.logger.LogAttrs(context.Background(), slog.LevelDebug, "using prepared asset paths",
+			slog.String("vm_id", vmID),
+			slog.Int("path_count", len(preparedPaths)),
+		)
+	}
+	
 	// Use host path since Firecracker is running outside chroot in "jailerless" mode
 	metricsPath := filepath.Join(jailerRoot, "metrics.fifo")
 
@@ -401,8 +472,127 @@ func (c *SDKClientV4) buildFirecrackerConfig(vmID string, config *metaldv1.VmCon
 	return cfg
 }
 
+// assetRequirement represents a required asset for VM creation
+type assetRequirement struct {
+	Type     assetv1.AssetType
+	Labels   map[string]string
+	Required bool
+}
+
+// assetMapping tracks the mapping between requirements and actual assets
+type assetMapping struct {
+	requirements []assetRequirement
+	assets       map[string]*assetv1.Asset // requirement index -> asset
+	assetIDs     []string
+	leaseIDs     []string
+}
+
+func (am *assetMapping) AssetIDs() []string {
+	return am.assetIDs
+}
+
+func (am *assetMapping) LeaseIDs() []string {
+	return am.leaseIDs
+}
+
+// buildAssetRequirements analyzes VM config to determine required assets
+func (c *SDKClientV4) buildAssetRequirements(config *metaldv1.VmConfig) []assetRequirement {
+	var reqs []assetRequirement
+	
+	// Kernel requirement
+	if config.Boot != nil && config.Boot.KernelPath != "" {
+		reqs = append(reqs, assetRequirement{
+			Type:     assetv1.AssetType_ASSET_TYPE_KERNEL,
+			Required: true,
+		})
+	}
+	
+	// Rootfs requirements from storage devices
+	for _, disk := range config.Storage {
+		if disk.IsRootDevice {
+			labels := make(map[string]string)
+			// Check for docker image in disk options first, then config metadata
+			if dockerImage, ok := disk.Options["docker_image"]; ok {
+				labels["docker_image"] = dockerImage
+			} else if dockerImage, ok := config.Metadata["docker_image"]; ok {
+				labels["docker_image"] = dockerImage
+			}
+			reqs = append(reqs, assetRequirement{
+				Type:     assetv1.AssetType_ASSET_TYPE_ROOTFS,
+				Labels:   labels,
+				Required: true,
+			})
+		}
+	}
+	
+	// Initrd requirement (optional)
+	if config.Boot != nil && config.Boot.InitrdPath != "" {
+		reqs = append(reqs, assetRequirement{
+			Type:     assetv1.AssetType_ASSET_TYPE_INITRD,
+			Required: false,
+		})
+	}
+	
+	return reqs
+}
+
+// matchAssets matches available assets to requirements
+func (c *SDKClientV4) matchAssets(reqs []assetRequirement, availableAssets []*assetv1.Asset) (*assetMapping, error) {
+	mapping := &assetMapping{
+		requirements: reqs,
+		assets:       make(map[string]*assetv1.Asset),
+		assetIDs:     []string{},
+	}
+	
+	for i, req := range reqs {
+		var matched *assetv1.Asset
+		
+		// Find best matching asset
+		for _, asset := range availableAssets {
+			if asset.Type != req.Type {
+				continue
+			}
+			
+			// Check if all required labels match
+			labelMatch := true
+			for k, v := range req.Labels {
+				if assetLabel, ok := asset.Labels[k]; !ok || assetLabel != v {
+					labelMatch = false
+					break
+				}
+			}
+			
+			if labelMatch {
+				matched = asset
+				break
+			}
+		}
+		
+		if matched == nil && req.Required {
+			// Build helpful error message
+			labelStr := ""
+			for k, v := range req.Labels {
+				if labelStr != "" {
+					labelStr += ", "
+				}
+				labelStr += fmt.Sprintf("%s=%s", k, v)
+			}
+			return nil, fmt.Errorf("no matching asset found for type %s with labels {%s}", 
+				req.Type.String(), labelStr)
+		}
+		
+		if matched != nil {
+			mapping.assets[fmt.Sprintf("%d", i)] = matched
+			mapping.assetIDs = append(mapping.assetIDs, matched.Id)
+		}
+	}
+	
+	return mapping, nil
+}
+
 // prepareVMAssets prepares kernel and rootfs assets for the VM in the jailer chroot
-func (c *SDKClientV4) prepareVMAssets(ctx context.Context, vmID string, config *metaldv1.VmConfig) error {
+// Returns the asset mapping for lease acquisition after successful boot
+func (c *SDKClientV4) prepareVMAssets(ctx context.Context, vmID string, config *metaldv1.VmConfig) (*assetMapping, map[string]string, error) {
 	// Calculate the jailer chroot path
 	jailerRoot := filepath.Join(
 		c.jailerConfig.ChrootBaseDir,
@@ -411,16 +601,232 @@ func (c *SDKClientV4) prepareVMAssets(ctx context.Context, vmID string, config *
 		"root",
 	)
 
-	c.logger.LogAttrs(ctx, slog.LevelInfo, "preparing VM assets for jailerless",
+	c.logger.LogAttrs(ctx, slog.LevelInfo, "preparing VM assets using assetmanager",
 		slog.String("vm_id", vmID),
 		slog.String("target_path", jailerRoot),
 	)
 
 	// Ensure the jailer root directory exists
 	if err := os.MkdirAll(jailerRoot, 0755); err != nil {
-		return fmt.Errorf("failed to create jailer root directory: %w", err)
+		return nil, nil, fmt.Errorf("failed to create jailer root directory: %w", err)
 	}
 
+	// Check if assetmanager is enabled
+	// If disabled (using noop client), fall back to static file copying for backward compatibility
+	// AIDEV-NOTE: We check if the QueryAssets call succeeds to determine if assetmanager is available
+	// We don't require assets to exist, as they can be built on demand
+	ctx, checkSpan := c.tracer.Start(ctx, "metald.firecracker.check_assetmanager", 
+		trace.WithAttributes(
+			attribute.String("vm.id", vmID),
+			attribute.String("asset.type", "KERNEL"),
+		),
+	)
+	_, err := c.assetClient.QueryAssets(ctx, assetv1.AssetType_ASSET_TYPE_KERNEL, nil, nil)
+	checkSpan.End()
+	if err != nil {
+		c.logger.LogAttrs(ctx, slog.LevelInfo, "assetmanager disabled or unavailable, using static file copying",
+			slog.String("vm_id", vmID),
+			slog.String("error", err.Error()),
+		)
+		// AIDEV-NOTE: Fallback to old behavior when assetmanager is disabled
+		// This ensures backward compatibility
+		if err := c.prepareVMAssetsStatic(ctx, vmID, config, jailerRoot); err != nil {
+			return nil, nil, err
+		}
+		return nil, nil, nil
+	}
+
+	// Build asset requirements from VM configuration
+	requiredAssets := c.buildAssetRequirements(config)
+	c.logger.LogAttrs(ctx, slog.LevelDebug, "determined asset requirements",
+		slog.String("vm_id", vmID),
+		slog.Int("required_count", len(requiredAssets)),
+	)
+
+	// Query assetmanager for available assets with automatic build support
+	// AIDEV-NOTE: Using QueryAssets instead of ListAssets to enable automatic asset creation
+	allAssets := []*assetv1.Asset{}
+	
+	// Extract tenant_id from VM metadata if available
+	tenantID := ""
+	if tid, ok := config.Metadata["tenant_id"]; ok {
+		tenantID = tid
+	}
+	
+	// Group requirements by type and labels for efficient querying
+	type queryKey struct {
+		assetType assetv1.AssetType
+		labels    string // Serialized labels for grouping
+	}
+	queryGroups := make(map[queryKey][]assetRequirement)
+	
+	for _, req := range requiredAssets {
+		// Serialize labels for grouping
+		labelStr := ""
+		for k, v := range req.Labels {
+			if labelStr != "" {
+				labelStr += ","
+			}
+			labelStr += fmt.Sprintf("%s=%s", k, v)
+		}
+		key := queryKey{assetType: req.Type, labels: labelStr}
+		queryGroups[key] = append(queryGroups[key], req)
+	}
+	
+	// Query each unique combination of type and labels
+	for key, reqs := range queryGroups {
+		// Use the first requirement's labels (they should all be the same in the group)
+		labels := reqs[0].Labels
+		
+		// Generate a deterministic asset ID based on the asset type and labels
+		// This allows us to query for the exact asset later
+		assetID := c.generateAssetID(key.assetType, labels)
+		
+		c.logger.LogAttrs(ctx, slog.LevelInfo, "generated asset ID for query",
+			slog.String("asset_id", assetID),
+			slog.String("asset_type", key.assetType.String()),
+			slog.Any("labels", labels),
+		)
+		
+		// Configure build options for automatic asset creation
+		// AIDEV-NOTE: When WaitForCompletion is true, VM creation will block until the build
+		// completes. This provides a synchronous experience where the VM is ready to boot
+		// immediately after creation, but may cause longer wait times (up to 30 minutes
+		// for large images). The client timeout should be configured accordingly.
+		buildOptions := &assetv1.BuildOptions{
+			EnableAutoBuild:     true,
+			WaitForCompletion:   true,  // Block VM creation until build completes
+			BuildTimeoutSeconds: 1800,  // 30 minutes maximum wait time
+			TenantId:            tenantID,
+			SuggestedAssetId:    assetID,
+		}
+		
+		// Query assets with automatic build support
+		// Create a quick span just to record that we're initiating a query
+		_, initSpan := c.tracer.Start(ctx, "metald.firecracker.query_assets",
+			trace.WithAttributes(
+				attribute.String("vm.id", vmID),
+				attribute.String("asset.type", key.assetType.String()),
+				attribute.StringSlice("asset.labels", func() []string {
+					var labelPairs []string
+					for k, v := range labels {
+						labelPairs = append(labelPairs, fmt.Sprintf("%s=%s", k, v))
+					}
+					return labelPairs
+				}()),
+				attribute.String("tenant.id", tenantID),
+				attribute.Bool("auto_build.enabled", buildOptions.EnableAutoBuild),
+				attribute.Int("build.timeout_seconds", int(buildOptions.BuildTimeoutSeconds)),
+			),
+		)
+		initSpan.End() // End immediately - this just marks the initiation
+		
+		// Make the actual call without wrapping in a span (it has its own internal spans)
+		resp, err := c.assetClient.QueryAssets(ctx, key.assetType, labels, buildOptions)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to query assets of type %s with labels %v: %w", 
+				key.assetType.String(), labels, err)
+		}
+		
+		// Create a quick span to record the results
+		_, resultSpan := c.tracer.Start(ctx, "metald.firecracker.query_assets_complete",
+			trace.WithAttributes(
+				attribute.String("vm.id", vmID),
+				attribute.String("asset.type", key.assetType.String()),
+				attribute.Int("assets.found", len(resp.GetAssets())),
+				attribute.Int("builds.triggered", len(resp.GetTriggeredBuilds())),
+			),
+		)
+		resultSpan.End()
+		
+		// Log any triggered builds
+		for _, build := range resp.GetTriggeredBuilds() {
+			c.logger.LogAttrs(ctx, slog.LevelInfo, "automatic build triggered for missing asset",
+				slog.String("vm_id", vmID),
+				slog.String("build_id", build.GetBuildId()),
+				slog.String("docker_image", build.GetDockerImage()),
+				slog.String("status", build.GetStatus()),
+			)
+			
+			if build.GetStatus() == "failed" {
+				c.logger.LogAttrs(ctx, slog.LevelError, "automatic build failed",
+					slog.String("vm_id", vmID),
+					slog.String("build_id", build.GetBuildId()),
+					slog.String("error", build.GetErrorMessage()),
+				)
+			}
+		}
+		
+		allAssets = append(allAssets, resp.GetAssets()...)
+	}
+
+	c.logger.LogAttrs(ctx, slog.LevelInfo, "retrieved available assets",
+		slog.String("vm_id", vmID),
+		slog.Int("available_count", len(allAssets)),
+	)
+	
+	// Log asset details for debugging
+	for _, asset := range allAssets {
+		c.logger.LogAttrs(ctx, slog.LevelInfo, "available asset",
+			slog.String("asset_id", asset.Id),
+			slog.String("asset_type", asset.Type.String()),
+			slog.Any("labels", asset.Labels),
+		)
+	}
+
+	// Match required assets with available ones
+	assetMapping, err := c.matchAssets(requiredAssets, allAssets)
+	if err != nil {
+		c.logger.LogAttrs(ctx, slog.LevelError, "failed to match assets",
+			slog.String("vm_id", vmID),
+			slog.String("error", err.Error()),
+		)
+		return nil, nil, fmt.Errorf("asset matching failed: %w", err)
+	}
+
+	// Prepare assets in target location
+	ctx, prepareSpan := c.tracer.Start(ctx, "metald.firecracker.prepare_assets",
+		trace.WithAttributes(
+			attribute.String("vm.id", vmID),
+			attribute.StringSlice("asset.ids", assetMapping.AssetIDs()),
+			attribute.String("target.path", jailerRoot),
+		),
+	)
+	preparedPaths, err := c.assetClient.PrepareAssets(
+		ctx,
+		assetMapping.AssetIDs(),
+		jailerRoot,
+		vmID,
+	)
+	if err != nil {
+		prepareSpan.RecordError(err)
+		prepareSpan.SetStatus(codes.Error, err.Error())
+	} else {
+		prepareSpan.SetAttributes(
+			attribute.Int("assets.prepared", len(preparedPaths)),
+		)
+	}
+	prepareSpan.End()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to prepare assets: %w", err)
+	}
+
+	c.logger.LogAttrs(ctx, slog.LevelInfo, "assets prepared successfully",
+		slog.String("vm_id", vmID),
+		slog.Int("asset_count", len(preparedPaths)),
+	)
+
+	// The preparedPaths map contains asset_id -> actual_path mappings
+	// These paths will be used to update the VM configuration before starting
+	// Asset leases will be acquired after successful VM boot in BootVM
+	// to avoid holding leases for VMs that fail to start
+
+	return assetMapping, preparedPaths, nil
+}
+
+// prepareVMAssetsStatic is the fallback implementation for static file copying
+// Used when assetmanager is disabled for backward compatibility
+func (c *SDKClientV4) prepareVMAssetsStatic(ctx context.Context, vmID string, config *metaldv1.VmConfig, jailerRoot string) error {
 	// Copy kernel
 	if kernelPath := config.GetBoot().GetKernelPath(); kernelPath != "" {
 		kernelDst := filepath.Join(jailerRoot, "vmlinux")
@@ -452,7 +858,7 @@ func (c *SDKClientV4) prepareVMAssets(ctx context.Context, vmID string, config *
 
 // DeleteVM deletes a VM and cleans up its resources
 func (c *SDKClientV4) DeleteVM(ctx context.Context, vmID string) error {
-	ctx, span := c.tracer.Start(ctx, "SDKClientV4.DeleteVM",
+	ctx, span := c.tracer.Start(ctx, "metald.firecracker.delete_vm",
 		trace.WithAttributes(attribute.String("vm_id", vmID)),
 	)
 	defer span.End()
@@ -516,6 +922,38 @@ func (c *SDKClientV4) DeleteVM(ctx context.Context, vmID string) error {
 		)
 	}
 
+	// Release asset leases
+	if leaseIDs, ok := c.vmAssetLeases[vmID]; ok {
+		c.logger.LogAttrs(ctx, slog.LevelInfo, "releasing asset leases",
+			slog.String("vm_id", vmID),
+			slog.Int("lease_count", len(leaseIDs)),
+		)
+		
+		for _, leaseID := range leaseIDs {
+			ctx, releaseSpan := c.tracer.Start(ctx, "metald.firecracker.release_asset",
+				trace.WithAttributes(
+					attribute.String("vm.id", vmID),
+					attribute.String("lease.id", leaseID),
+				),
+			)
+			err := c.assetClient.ReleaseAsset(ctx, leaseID)
+			if err != nil {
+				releaseSpan.RecordError(err)
+				releaseSpan.SetStatus(codes.Error, err.Error())
+			}
+			releaseSpan.End()
+			if err != nil {
+				c.logger.ErrorContext(ctx, "failed to release asset lease",
+					"vm_id", vmID,
+					"lease_id", leaseID,
+					"error", err,
+				)
+				// Continue with other leases even if one fails
+			}
+		}
+		delete(c.vmAssetLeases, vmID)
+	}
+
 	// Remove from registry
 	delete(c.vmRegistry, vmID)
 
@@ -537,7 +975,7 @@ func (c *SDKClientV4) ShutdownVM(ctx context.Context, vmID string) error {
 
 // ShutdownVMWithOptions shuts down a VM with configurable options
 func (c *SDKClientV4) ShutdownVMWithOptions(ctx context.Context, vmID string, force bool, timeoutSeconds int32) error {
-	ctx, span := c.tracer.Start(ctx, "SDKClientV4.ShutdownVMWithOptions",
+	ctx, span := c.tracer.Start(ctx, "metald.firecracker.shutdown_vm",
 		trace.WithAttributes(
 			attribute.String("vm_id", vmID),
 			attribute.Bool("force", force),
@@ -608,7 +1046,7 @@ func (c *SDKClientV4) ShutdownVMWithOptions(ctx context.Context, vmID string, fo
 
 // PauseVM pauses a running VM
 func (c *SDKClientV4) PauseVM(ctx context.Context, vmID string) error {
-	ctx, span := c.tracer.Start(ctx, "SDKClientV4.PauseVM",
+	ctx, span := c.tracer.Start(ctx, "metald.firecracker.pause_vm",
 		trace.WithAttributes(attribute.String("vm_id", vmID)),
 	)
 	defer span.End()
@@ -644,7 +1082,7 @@ func (c *SDKClientV4) PauseVM(ctx context.Context, vmID string) error {
 
 // ResumeVM resumes a paused VM
 func (c *SDKClientV4) ResumeVM(ctx context.Context, vmID string) error {
-	ctx, span := c.tracer.Start(ctx, "SDKClientV4.ResumeVM",
+	ctx, span := c.tracer.Start(ctx, "metald.firecracker.resume_vm",
 		trace.WithAttributes(attribute.String("vm_id", vmID)),
 	)
 	defer span.End()
@@ -680,7 +1118,7 @@ func (c *SDKClientV4) ResumeVM(ctx context.Context, vmID string) error {
 
 // RebootVM reboots a running VM
 func (c *SDKClientV4) RebootVM(ctx context.Context, vmID string) error {
-	ctx, span := c.tracer.Start(ctx, "SDKClientV4.RebootVM",
+	ctx, span := c.tracer.Start(ctx, "metald.firecracker.reboot_vm",
 		trace.WithAttributes(attribute.String("vm_id", vmID)),
 	)
 	defer span.End()
@@ -711,9 +1149,35 @@ func (c *SDKClientV4) RebootVM(ctx context.Context, vmID string) error {
 	return nil
 }
 
+// generateAssetID generates a deterministic asset ID based on type and labels
+func (c *SDKClientV4) generateAssetID(assetType assetv1.AssetType, labels map[string]string) string {
+	// Create a deterministic string from sorted labels
+	var parts []string
+	parts = append(parts, fmt.Sprintf("type=%s", assetType.String()))
+	
+	// Sort label keys for deterministic ordering
+	var keys []string
+	for k := range labels {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	
+	// Add sorted labels
+	for _, k := range keys {
+		parts = append(parts, fmt.Sprintf("%s=%s", k, labels[k]))
+	}
+	
+	// Create a hash of the combined string
+	combined := strings.Join(parts, ",")
+	hash := sha256.Sum256([]byte(combined))
+	
+	// Return a readable asset ID
+	return fmt.Sprintf("asset-%x", hash[:8])
+}
+
 // GetVMInfo returns information about a VM
 func (c *SDKClientV4) GetVMInfo(ctx context.Context, vmID string) (*types.VMInfo, error) {
-	_, span := c.tracer.Start(ctx, "SDKClientV4.GetVMInfo",
+	_, span := c.tracer.Start(ctx, "metald.firecracker.get_vm_info",
 		trace.WithAttributes(attribute.String("vm_id", vmID)),
 	)
 	defer span.End()
@@ -744,7 +1208,7 @@ func (c *SDKClientV4) GetVMInfo(ctx context.Context, vmID string) (*types.VMInfo
 
 // GetVMMetrics returns metrics for a VM
 func (c *SDKClientV4) GetVMMetrics(ctx context.Context, vmID string) (*types.VMMetrics, error) {
-	ctx, span := c.tracer.Start(ctx, "SDKClientV4.GetVMMetrics",
+	ctx, span := c.tracer.Start(ctx, "metald.firecracker.get_vm_metrics",
 		trace.WithAttributes(attribute.String("vm_id", vmID)),
 	)
 	defer span.End()
@@ -786,7 +1250,7 @@ type FirecrackerMetrics struct {
 
 // readFirecrackerMetrics reads metrics from the Firecracker stats FIFO
 func (c *SDKClientV4) readFirecrackerMetrics(ctx context.Context, vmID string) (*types.VMMetrics, error) {
-	ctx, span := c.tracer.Start(ctx, "SDKClientV4.readFirecrackerMetrics",
+	ctx, span := c.tracer.Start(ctx, "metald.firecracker.read_metrics",
 		trace.WithAttributes(attribute.String("vm_id", vmID)),
 	)
 	defer span.End()
@@ -925,7 +1389,7 @@ func (c *SDKClientV4) Ping(ctx context.Context) error {
 }
 
 func (c *SDKClientV4) Shutdown(ctx context.Context) error {
-	ctx, span := c.tracer.Start(ctx, "SDKClientV4.Shutdown")
+	ctx, span := c.tracer.Start(ctx, "metald.firecracker.shutdown")
 	defer span.End()
 
 	c.logger.InfoContext(ctx, "shutting down SDK v4 backend")

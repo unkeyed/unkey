@@ -12,26 +12,33 @@ import (
 
 	"connectrpc.com/connect"
 	assetv1 "github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/asset/v1"
+	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/internal/builderd"
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/internal/registry"
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/internal/storage"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Service implements the AssetManagerService
 type Service struct {
-	cfg      *config.Config
-	logger   *slog.Logger
-	registry *registry.Registry
-	storage  storage.Backend
+	cfg            *config.Config
+	logger         *slog.Logger
+	registry       *registry.Registry
+	storage        storage.Backend
+	builderdClient *builderd.Client
 }
 
 // New creates a new asset service
-func New(cfg *config.Config, logger *slog.Logger, registry *registry.Registry, storage storage.Backend) *Service {
+func New(cfg *config.Config, logger *slog.Logger, registry *registry.Registry, storage storage.Backend, builderdClient *builderd.Client) *Service {
 	return &Service{
-		cfg:      cfg,
-		logger:   logger.With("component", "service"),
-		registry: registry,
-		storage:  storage,
+		cfg:            cfg,
+		logger:         logger.With("component", "service"),
+		registry:       registry,
+		storage:        storage,
+		builderdClient: builderdClient,
 	}
 }
 
@@ -92,8 +99,9 @@ func (s *Service) RegisterAsset(
 	}
 
 	// Create asset record
-	//nolint:exhaustruct // Id field will be auto-generated
+	//nolint:exhaustruct // Some fields may be auto-generated
 	asset := &assetv1.Asset{
+		Id:             req.Msg.GetId(), // Use provided ID if available
 		Name:           req.Msg.GetName(),
 		Type:           req.Msg.GetType(),
 		Status:         assetv1.AssetStatus_ASSET_STATUS_AVAILABLE,
@@ -213,6 +221,36 @@ func (s *Service) ListAssets(
 			slog.String("error", err.Error()),
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list assets"))
+	}
+
+	// AIDEV-NOTE: Automatic asset building - if no rootfs found with docker_image label, trigger builderd
+	if len(assets) == 0 && s.cfg.BuilderdEnabled && s.builderdClient != nil {
+		// Check if this is a request for rootfs with docker_image label
+		if req.Msg.GetType() == assetv1.AssetType_ASSET_TYPE_ROOTFS || req.Msg.GetType() == assetv1.AssetType_ASSET_TYPE_UNSPECIFIED {
+			if dockerImage, ok := req.Msg.GetLabelSelector()["docker_image"]; ok && dockerImage != "" {
+				s.logger.InfoContext(ctx, "no rootfs found, triggering automatic build",
+					"docker_image", dockerImage,
+				)
+				
+				// Trigger build and wait for completion
+				if err := s.triggerAndWaitForBuild(ctx, dockerImage, req.Msg.GetLabelSelector()); err != nil {
+					s.logger.ErrorContext(ctx, "failed to build rootfs automatically",
+						"docker_image", dockerImage,
+						"error", err,
+					)
+					// Return empty results but log the build failure
+					// This allows the caller to handle the missing asset gracefully
+				} else {
+					// Re-query for assets after successful build
+					assets, err = s.registry.ListAssets(filters)
+					if err != nil {
+						s.logger.LogAttrs(ctx, slog.LevelError, "failed to list assets after build",
+							slog.String("error", err.Error()),
+						)
+					}
+				}
+			}
+		}
 	}
 
 	//nolint:exhaustruct // NextPageToken is optional and set below if needed
@@ -491,8 +529,18 @@ func (s *Service) PrepareAssets(
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to prepare asset %s", assetID))
 		}
 
-		// Prepare the target file path
-		targetFile := filepath.Join(req.Msg.GetTargetPath(), filepath.Base(localPath))
+		// Prepare the target file path with standardized names
+		// AIDEV-NOTE: Use standardized names that Firecracker expects
+		var filename string
+		switch asset.GetType() {
+		case assetv1.AssetType_ASSET_TYPE_KERNEL:
+			filename = "vmlinux"
+		case assetv1.AssetType_ASSET_TYPE_ROOTFS:
+			filename = "rootfs.ext4"
+		default:
+			filename = filepath.Base(localPath)
+		}
+		targetFile := filepath.Join(req.Msg.GetTargetPath(), filename)
 
 		// Create the target directory if it doesn't exist
 		if err := os.MkdirAll(req.Msg.GetTargetPath(), 0755); err != nil {
@@ -655,4 +703,274 @@ func copyFile(src, dst string) error {
 	}
 
 	return nil
+}
+
+// triggerAndWaitForBuild triggers builderd to create a rootfs and waits for completion
+// AIDEV-NOTE: This implements the automatic asset creation workflow
+func (s *Service) triggerAndWaitForBuild(ctx context.Context, dockerImage string, labels map[string]string) error {
+	tracer := otel.Tracer("assetmanagerd")
+	
+	// Create build request
+	ctx, buildSpan := tracer.Start(ctx, "assetmanagerd.service.trigger_build",
+		trace.WithAttributes(
+			attribute.String("docker.image", dockerImage),
+			attribute.StringSlice("build.labels", func() []string {
+				var labelPairs []string
+				for k, v := range labels {
+					labelPairs = append(labelPairs, fmt.Sprintf("%s=%s", k, v))
+				}
+				return labelPairs
+			}()),
+		),
+	)
+	buildID, err := s.builderdClient.BuildDockerRootfs(ctx, dockerImage, labels)
+	if err != nil {
+		buildSpan.RecordError(err)
+		buildSpan.SetStatus(codes.Error, err.Error())
+		buildSpan.End()
+		return fmt.Errorf("failed to trigger build: %w", err)
+	}
+	buildSpan.SetAttributes(attribute.String("build.id", buildID))
+	buildSpan.End()
+	if err != nil {
+		return fmt.Errorf("failed to trigger build: %w", err)
+	}
+
+	s.logger.InfoContext(ctx, "build triggered",
+		"build_id", buildID,
+		"docker_image", dockerImage,
+	)
+
+	// Wait for build completion with polling
+	pollInterval := 5 * time.Second
+	ctx, waitSpan := tracer.Start(ctx, "assetmanagerd.service.wait_for_build",
+		trace.WithAttributes(
+			attribute.String("build.id", buildID),
+			attribute.String("docker.image", dockerImage),
+			attribute.String("poll.interval", pollInterval.String()),
+		),
+	)
+	completedBuild, err := s.builderdClient.WaitForBuild(ctx, buildID, pollInterval)
+	if err != nil {
+		waitSpan.RecordError(err)
+		waitSpan.SetStatus(codes.Error, err.Error())
+	} else {
+		waitSpan.SetAttributes(
+			attribute.String("build.rootfs_path", completedBuild.Build.RootfsPath),
+			attribute.String("build.status", completedBuild.Build.State.String()),
+		)
+	}
+	waitSpan.End()
+	if err != nil {
+		return fmt.Errorf("build failed or timed out: %w", err)
+	}
+
+	s.logger.InfoContext(ctx, "build completed successfully",
+		"build_id", completedBuild.Build.BuildId,
+		"docker_image", dockerImage,
+		"rootfs_path", completedBuild.Build.RootfsPath,
+	)
+
+	// If auto-register is enabled, the build should have been registered automatically
+	// by builderd's post-build hook. If not, we'd need to register it here.
+	if !s.cfg.BuilderdAutoRegister {
+		// Manual registration would go here if needed
+		// For now, we assume builderd handles registration
+		s.logger.WarnContext(ctx, "auto-registration disabled, asset may need manual registration",
+			"build_id", completedBuild.Build.BuildId,
+		)
+	}
+
+	return nil
+}
+
+// QueryAssets queries assets with automatic build triggering if not found
+// AIDEV-NOTE: This is the enhanced version of ListAssets that implements the complete
+// asset query + automatic build workflow for metald
+func (s *Service) QueryAssets(
+	ctx context.Context,
+	req *connect.Request[assetv1.QueryAssetsRequest],
+) (*connect.Response[assetv1.QueryAssetsResponse], error) {
+	// Convert request to registry filters
+	//nolint:exhaustruct // Limit and Offset are set below
+	filters := registry.ListFilters{
+		Type:   req.Msg.GetType(),
+		Status: req.Msg.GetStatus(),
+		Labels: req.Msg.GetLabelSelector(),
+	}
+
+	// Handle pagination
+	pageSize := int(req.Msg.GetPageSize())
+	if pageSize == 0 {
+		pageSize = 100
+	}
+	if pageSize > 1000 {
+		pageSize = 1000
+	}
+	filters.Limit = pageSize
+
+	// Parse page token (simple offset-based pagination)
+	if req.Msg.GetPageToken() != "" {
+		var offset int
+		if _, err := fmt.Sscanf(req.Msg.GetPageToken(), "offset:%d", &offset); err == nil {
+			filters.Offset = offset
+		}
+	}
+
+	// Get assets
+	assets, err := s.registry.ListAssets(filters)
+	if err != nil {
+		s.logger.LogAttrs(ctx, slog.LevelError, "failed to list assets",
+			slog.String("error", err.Error()),
+		)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list assets"))
+	}
+
+	var triggeredBuilds []*assetv1.BuildInfo
+
+	// Check if we should trigger automatic builds
+	buildOpts := req.Msg.GetBuildOptions()
+	if len(assets) == 0 && buildOpts != nil && buildOpts.GetEnableAutoBuild() && s.cfg.BuilderdEnabled && s.builderdClient != nil {
+		// Check if this is a request for rootfs with docker_image label
+		if req.Msg.GetType() == assetv1.AssetType_ASSET_TYPE_ROOTFS || req.Msg.GetType() == assetv1.AssetType_ASSET_TYPE_UNSPECIFIED {
+			if dockerImage, ok := req.Msg.GetLabelSelector()["docker_image"]; ok && dockerImage != "" {
+				s.logger.InfoContext(ctx, "no rootfs found, triggering automatic build",
+					"docker_image", dockerImage,
+					"tenant_id", buildOpts.GetTenantId(),
+				)
+
+				// Merge labels for the build
+				buildLabels := make(map[string]string)
+				for k, v := range req.Msg.GetLabelSelector() {
+					buildLabels[k] = v
+				}
+				for k, v := range buildOpts.GetBuildLabels() {
+					buildLabels[k] = v
+				}
+				
+				s.logger.InfoContext(ctx, "triggering build with labels and asset ID",
+					"build_labels", buildLabels,
+					"suggested_asset_id", buildOpts.GetSuggestedAssetId(),
+				)
+
+				// Create build info
+				buildInfo := &assetv1.BuildInfo{
+					DockerImage: dockerImage,
+					Status:      "pending",
+				}
+
+				// Set timeout
+				timeout := time.Duration(buildOpts.GetBuildTimeoutSeconds()) * time.Second
+				if timeout == 0 {
+					timeout = 30 * time.Minute // Default timeout
+				}
+
+				// Create context with timeout
+				buildCtx, cancel := context.WithTimeout(ctx, timeout)
+				defer cancel()
+
+				// Trigger build
+				tracer := otel.Tracer("assetmanagerd")
+				buildCtx, buildSpan := tracer.Start(buildCtx, "assetmanagerd.service.trigger_build_with_tenant",
+					trace.WithAttributes(
+						attribute.String("docker.image", dockerImage),
+						attribute.String("tenant.id", buildOpts.GetTenantId()),
+						attribute.StringSlice("build.labels", func() []string {
+							var labelPairs []string
+							for k, v := range buildLabels {
+								labelPairs = append(labelPairs, fmt.Sprintf("%s=%s", k, v))
+							}
+							return labelPairs
+						}()),
+					),
+				)
+				buildID, err := s.builderdClient.BuildDockerRootfsWithOptions(buildCtx, dockerImage, buildLabels, buildOpts.GetTenantId(), buildOpts.GetSuggestedAssetId())
+				if err != nil {
+					buildSpan.RecordError(err)
+					buildSpan.SetStatus(codes.Error, err.Error())
+				} else {
+					buildSpan.SetAttributes(attribute.String("build.id", buildID))
+				}
+				buildSpan.End()
+				if err != nil {
+					s.logger.ErrorContext(ctx, "failed to trigger build",
+						"docker_image", dockerImage,
+						"error", err,
+					)
+					buildInfo.Status = "failed"
+					buildInfo.ErrorMessage = fmt.Sprintf("failed to trigger build: %v", err)
+					triggeredBuilds = append(triggeredBuilds, buildInfo)
+				} else {
+					buildInfo.BuildId = buildID
+					buildInfo.Status = "building"
+
+					// Wait for completion if requested
+					if buildOpts.GetWaitForCompletion() {
+						pollInterval := 5 * time.Second
+						buildCtx, waitSpan := tracer.Start(buildCtx, "assetmanagerd.service.wait_for_build_with_tenant",
+							trace.WithAttributes(
+								attribute.String("build.id", buildID),
+								attribute.String("docker.image", dockerImage),
+								attribute.String("tenant.id", buildOpts.GetTenantId()),
+								attribute.String("poll.interval", pollInterval.String()),
+							),
+						)
+						completedBuild, err := s.builderdClient.WaitForBuildWithTenant(buildCtx, buildID, pollInterval, buildOpts.GetTenantId())
+						if err != nil {
+							waitSpan.RecordError(err)
+							waitSpan.SetStatus(codes.Error, err.Error())
+						} else {
+							waitSpan.SetAttributes(
+								attribute.String("build.rootfs_path", completedBuild.Build.RootfsPath),
+								attribute.String("build.status", completedBuild.Build.State.String()),
+							)
+						}
+						waitSpan.End()
+						if err != nil {
+							s.logger.ErrorContext(ctx, "build failed or timed out",
+								"build_id", buildID,
+								"docker_image", dockerImage,
+								"error", err,
+							)
+							buildInfo.Status = "failed"
+							buildInfo.ErrorMessage = fmt.Sprintf("build failed: %v", err)
+						} else {
+							s.logger.InfoContext(ctx, "build completed successfully",
+								"build_id", buildID,
+								"docker_image", dockerImage,
+								"rootfs_path", completedBuild.Build.RootfsPath,
+							)
+							buildInfo.Status = "completed"
+
+							// Re-query for assets after successful build
+							assets, err = s.registry.ListAssets(filters)
+							if err != nil {
+								s.logger.LogAttrs(ctx, slog.LevelError, "failed to list assets after build",
+									slog.String("error", err.Error()),
+								)
+							} else if len(assets) > 0 {
+								// Find the newly created asset
+								buildInfo.AssetId = assets[0].GetId()
+							}
+						}
+					}
+
+					triggeredBuilds = append(triggeredBuilds, buildInfo)
+				}
+			}
+		}
+	}
+
+	//nolint:exhaustruct // NextPageToken is optional and set below if needed
+	resp := &assetv1.QueryAssetsResponse{
+		Assets:          assets,
+		TriggeredBuilds: triggeredBuilds,
+	}
+
+	// Set next page token if we hit the limit
+	if len(assets) == pageSize {
+		resp.NextPageToken = fmt.Sprintf("offset:%d", filters.Offset+pageSize)
+	}
+
+	return connect.NewResponse(resp), nil
 }

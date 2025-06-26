@@ -71,7 +71,6 @@ func NewMetrics(meter metric.Meter) (*Metrics, error) {
 
 // NewOTELInterceptor creates a new OpenTelemetry interceptor for ConnectRPC
 func NewOTELInterceptor() connect.UnaryInterceptorFunc {
-	tracer := otel.Tracer("metald")
 	meter := otel.Meter("metald")
 
 	// Create metrics
@@ -94,6 +93,7 @@ func NewOTELInterceptor() connect.UnaryInterceptorFunc {
 			spanName := fmt.Sprintf("metald.%s", methodName)
 
 			// Start span
+			tracer := otel.Tracer("metald")
 			ctx, span := tracer.Start(ctx, spanName,
 				trace.WithSpanKind(trace.SpanKindServer),
 				trace.WithAttributes(

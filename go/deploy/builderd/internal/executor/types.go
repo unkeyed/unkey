@@ -12,6 +12,9 @@ type Executor interface {
 	// Execute processes a build request and returns the result
 	Execute(ctx context.Context, request *builderv1.CreateBuildRequest) (*BuildResult, error)
 
+	// ExecuteWithID processes a build request with a pre-assigned build ID
+	ExecuteWithID(ctx context.Context, request *builderv1.CreateBuildRequest, buildID string) (*BuildResult, error)
+
 	// GetSupportedSources returns the source types this executor supports
 	GetSupportedSources() []string
 

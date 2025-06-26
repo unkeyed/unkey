@@ -61,7 +61,7 @@ type ExecOptions struct {
 // Exec executes firecracker in a jailed environment
 // This function does NOT return if successful - it execs into firecracker
 func (j *Jailer) Exec(ctx context.Context, opts *ExecOptions) error {
-	ctx, span := j.tracer.Start(ctx, "Jailer.Exec",
+	ctx, span := j.tracer.Start(ctx, "metald.jailer.exec",
 		trace.WithAttributes(
 			attribute.String("vm_id", opts.VMId),
 			attribute.String("netns", opts.NetworkNamespace),
@@ -133,7 +133,7 @@ func (j *Jailer) Exec(ctx context.Context, opts *ExecOptions) error {
 // RunInJail runs firecracker in a jail by creating a minimal isolation environment
 // This function forks and execs firecracker with dropped privileges
 func (j *Jailer) RunInJail(ctx context.Context, opts *ExecOptions) (*os.Process, error) {
-	ctx, span := j.tracer.Start(ctx, "Jailer.RunInJail",
+	ctx, span := j.tracer.Start(ctx, "metald.jailer.run_in_jail",
 		trace.WithAttributes(
 			attribute.String("vm_id", opts.VMId),
 			attribute.String("netns", opts.NetworkNamespace),
@@ -198,7 +198,7 @@ func (j *Jailer) RunInJail(ctx context.Context, opts *ExecOptions) (*os.Process,
 
 // setupChroot prepares the chroot environment
 func (j *Jailer) setupChroot(ctx context.Context, chrootPath string) error {
-	ctx, span := j.tracer.Start(ctx, "Jailer.setupChroot",
+	ctx, span := j.tracer.Start(ctx, "metald.jailer.setup_chroot",
 		trace.WithAttributes(
 			attribute.String("chroot_path", chrootPath),
 		),
