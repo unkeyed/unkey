@@ -31,9 +31,11 @@ export const CriticalPermissionIndicator = ({
       <div
         className={cn(
           "size-2 rounded-full cursor-pointer ml-auto",
-          isSelected ? "bg-orange-11" : "bg-orange-10 hover:bg-orange-11",
+          isSelected
+            ? "bg-orange-11 focus:outline focus:outline-2 focus:outline-orange-11"
+            : "bg-orange-10 hover:bg-orange-11 focus:outline focus:outline-2 focus:outline-orange-10",
         )}
-      />
+      />{" "}
     </InfoTooltip>
   );
 };

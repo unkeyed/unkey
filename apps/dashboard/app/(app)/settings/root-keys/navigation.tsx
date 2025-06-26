@@ -17,8 +17,8 @@ const settingsNavbar = [
     text: "Team",
   },
   {
-    id: "root-keys-v2",
-    href: "root-keys-v2",
+    id: "root-keys",
+    href: "root-keys",
     text: "Root Keys",
   },
   {
@@ -75,7 +75,7 @@ export const Navigation = ({
               <CopyButton value={workspace.id} />
             </Badge>
           )}
-          {activePage.href === "root-keys-v2" && (
+          {activePage.href === "root-keys" && (
             <Link key="create-root-key" href="/settings/root-keys/new">
               <Button variant="primary">Create New Root Key</Button>
             </Link>
