@@ -2,6 +2,37 @@ import { z } from "zod";
 import type { FieldConfig } from "../filter.types";
 import { isNumberConfig, isStringConfig } from "./type-guards";
 
+// Helper function to validate a single filter and return detailed result
+function validateSingleFilter<
+  TFieldEnum extends z.ZodEnum<[string, ...string[]]>,
+  TOperatorEnum extends z.ZodEnum<[string, ...string[]]>,
+  TConfig extends Record<z.infer<TFieldEnum>, FieldConfig<z.infer<TOperatorEnum>>>,
+>(
+  field: keyof TConfig,
+  filter: { operator: z.infer<TOperatorEnum>; value: string | number },
+  filterFieldConfig: TConfig,
+) {
+  const config = filterFieldConfig[field];
+
+  const isOperatorValid = config.operators.includes(filter.operator);
+  if (!isOperatorValid) {
+    return {
+      valid: false,
+      error: `Invalid operator "${filter.operator}" for field "${String(field)}"`,
+    };
+  }
+
+  const isValueValid = validateFieldValue(field, filter.value, filterFieldConfig);
+  if (!isValueValid) {
+    return {
+      valid: false,
+      error: `Invalid value "${filter.value}" for field "${String(field)}"`,
+    };
+  }
+
+  return { valid: true };
+}
+
 export function createFilterOutputSchema<
   TFieldEnum extends z.ZodEnum<[string, ...string[]]>,
   TOperatorEnum extends z.ZodEnum<[string, ...string[]]>,
@@ -21,51 +52,36 @@ export function createFilterOutputSchema<
         })
         .refine(
           (data) => {
-            const config = filterFieldConfig[data.field as keyof TConfig];
-            return !data.filters.find((filter) => {
-              const isOperatorValid = config.operators.includes(
-                filter.operator as z.infer<TOperatorEnum>,
-              );
-
-              if (!isOperatorValid) {
-                return true;
-              }
-
-              return !validateFieldValue(
-                data.field as keyof TConfig,
-                filter.value,
-                filterFieldConfig,
-              );
-            });
+            // Check if all filters are valid
+            return data.filters.every(
+              (filter) =>
+                validateSingleFilter(
+                  data.field as keyof TConfig,
+                  filter as { operator: string; value: string | number },
+                  filterFieldConfig,
+                ).valid,
+            );
           },
           (data) => {
-            const config = filterFieldConfig[data.field as keyof TConfig];
-            const invalidFilter = data.filters.find((filter) => {
-              const isOperatorValid = config.operators.includes(
-                filter.operator as z.infer<TOperatorEnum>,
-              );
-              if (!isOperatorValid) {
-                return true;
-              }
-              return !validateFieldValue(
+            // Find the first invalid filter and return its error message
+            const invalidFilter = data.filters.find(
+              (filter) =>
+                !validateSingleFilter(
+                  data.field as keyof TConfig,
+                  filter as { operator: string; value: string | number },
+                  filterFieldConfig,
+                ).valid,
+            );
+
+            if (invalidFilter) {
+              const validation = validateSingleFilter(
                 data.field as keyof TConfig,
-                filter.value,
+                invalidFilter as { operator: string; value: string | number },
                 filterFieldConfig,
               );
-            });
-            if (invalidFilter) {
-              const isOperatorValid = config.operators.includes(
-                invalidFilter.operator as z.infer<TOperatorEnum>,
-              );
-              if (!isOperatorValid) {
-                return {
-                  message: `Invalid operator "${invalidFilter.operator}" for field "${data.field}"`,
-                };
-              }
-              return {
-                message: `Invalid value "${invalidFilter.value}" for field "${data.field}"`,
-              };
+              return { message: validation.error || "Invalid field/operator/value combination" };
             }
+
             return { message: "Invalid field/operator/value combination" };
           },
         ),
