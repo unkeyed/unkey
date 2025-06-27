@@ -1,12 +1,13 @@
 module github.com/unkeyed/unkey/go/deploy/builderd
 
-go 1.24.3
+go 1.24.4
 
 require (
 	connectrpc.com/connect v1.18.1
 	github.com/prometheus/client_golang v1.22.0
 	github.com/unkeyed/unkey/go/deploy/assetmanagerd v0.0.0-00010101000000-000000000000
 	github.com/unkeyed/unkey/go/deploy/pkg/health v0.0.0-00010101000000-000000000000
+	github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors v0.0.0-00010101000000-000000000000
 	github.com/unkeyed/unkey/go/deploy/pkg/tls v0.0.0-00010101000000-000000000000
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.61.0
 	go.opentelemetry.io/otel v1.36.0
@@ -41,6 +42,7 @@ require (
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.5.0 // indirect
 	github.com/unkeyed/unkey/go/deploy/pkg/spiffe v0.0.0-00010101000000-000000000000 // indirect
+	github.com/unkeyed/unkey/go/deploy/pkg/tracing v0.0.0-00010101000000-000000000000 // indirect
 	github.com/zeebo/errs v1.4.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.6.0 // indirect
@@ -59,3 +61,7 @@ replace github.com/unkeyed/unkey/go/deploy/pkg/spiffe => ../pkg/spiffe
 replace github.com/unkeyed/unkey/go/deploy/pkg/health => ../pkg/health
 
 replace github.com/unkeyed/unkey/go/deploy/assetmanagerd => ../assetmanagerd
+
+replace github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors => ../pkg/observability/interceptors
+
+replace github.com/unkeyed/unkey/go/deploy/pkg/tracing => ../pkg/tracing

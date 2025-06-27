@@ -23,9 +23,10 @@ import (
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/observability"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/service"
 	healthpkg "github.com/unkeyed/unkey/go/deploy/pkg/health"
-	"github.com/unkeyed/unkey/go/deploy/pkg/telemetry"
+	"github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors"
 	tlspkg "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 	"golang.org/x/sync/errgroup"
@@ -209,20 +210,39 @@ func main() {
 	// Create builder service
 	builderService := service.NewBuilderService(logger, buildMetrics, cfg, assetClient)
 
-	// Create ConnectRPC handler with interceptors
-	interceptors := []connect.Interceptor{
-		observability.NewTenantAuthInterceptor(logger), // Authentication must come first
-		observability.NewLoggingInterceptor(logger),
+	// Configure shared interceptor options
+	interceptorOpts := []interceptors.Option{
+		interceptors.WithServiceName("builderd"),
+		interceptors.WithLogger(logger),
+		interceptors.WithActiveRequestsMetric(true),
+		interceptors.WithRequestDurationMetric(false), // Match existing behavior
+		interceptors.WithErrorResampling(true),
+		interceptors.WithPanicStackTrace(true),
+		interceptors.WithTenantAuth(true,
+			// Exempt health check endpoints from tenant auth
+			"/health.v1.HealthService/Check",
+			// Exempt admin/stats endpoints from tenant auth
+			"/builder.v1.BuilderService/GetBuildStats",
+		),
 	}
 
-	// Add OTEL interceptor if enabled
+	// Add meter if OpenTelemetry is enabled
 	if cfg.OpenTelemetry.Enabled {
-		interceptors = append(interceptors, observability.NewOTELInterceptor())
+		interceptorOpts = append(interceptorOpts, interceptors.WithMeter(otel.Meter("builderd")))
+	}
+
+	// Get default interceptors (tenant auth, metrics, logging)
+	sharedInterceptors := interceptors.NewDefaultInterceptors("builderd", interceptorOpts...)
+
+	// Convert UnaryInterceptorFunc to Interceptor
+	var interceptorList []connect.Interceptor
+	for _, interceptor := range sharedInterceptors {
+		interceptorList = append(interceptorList, connect.Interceptor(interceptor))
 	}
 
 	mux := http.NewServeMux()
 	path, handler := builderv1connect.NewBuilderServiceHandler(builderService,
-		connect.WithInterceptors(interceptors...),
+		connect.WithInterceptors(interceptorList...),
 	)
 	mux.Handle(path, handler)
 

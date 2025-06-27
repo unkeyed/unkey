@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/asset/v1/assetv1connect"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/observability"
+	"github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
@@ -52,15 +53,25 @@ func NewClient(cfg *config.AssetManagerConfig, logger *slog.Logger) (Client, err
 		Transport: otelhttp.NewTransport(http.DefaultTransport),
 	}
 
-	// Create Connect client with logging interceptor
-	// AIDEV-NOTE: Using both debug and logging interceptors for comprehensive error tracking
+	// Create Connect client with default client interceptors plus custom logging
+	// AIDEV-NOTE: Using shared client interceptors for consistency across services
+	clientInterceptors := interceptors.NewDefaultClientInterceptors("metald", logger)
+	// Add custom logging and debug interceptors
+	clientInterceptors = append(clientInterceptors,
+		loggingInterceptor(logger),
+		observability.DebugInterceptor(logger, "assetmanager"),
+	)
+	
+	// Convert UnaryInterceptorFunc to Interceptor
+	var interceptorList []connect.Interceptor
+	for _, interceptor := range clientInterceptors {
+		interceptorList = append(interceptorList, connect.Interceptor(interceptor))
+	}
+	
 	assetClient := assetv1connect.NewAssetManagerServiceClient(
 		httpClient,
 		cfg.Endpoint,
-		connect.WithInterceptors(
-			loggingInterceptor(logger),
-			observability.DebugInterceptor(logger, "assetmanager"),
-		),
+		connect.WithInterceptors(interceptorList...),
 	)
 
 	return &client{
@@ -76,14 +87,24 @@ func NewClientWithHTTP(cfg *config.AssetManagerConfig, logger *slog.Logger, http
 	}
 
 	// Use provided HTTP client which may have TLS configuration
-	// AIDEV-NOTE: Using both debug and logging interceptors for comprehensive error tracking
+	// AIDEV-NOTE: Using shared client interceptors for consistency across services
+	clientInterceptors := interceptors.NewDefaultClientInterceptors("metald", logger)
+	// Add custom logging and debug interceptors
+	clientInterceptors = append(clientInterceptors,
+		loggingInterceptor(logger),
+		observability.DebugInterceptor(logger, "assetmanager"),
+	)
+	
+	// Convert UnaryInterceptorFunc to Interceptor
+	var interceptorList []connect.Interceptor
+	for _, interceptor := range clientInterceptors {
+		interceptorList = append(interceptorList, connect.Interceptor(interceptor))
+	}
+	
 	assetClient := assetv1connect.NewAssetManagerServiceClient(
 		httpClient,
 		cfg.Endpoint,
-		connect.WithInterceptors(
-			loggingInterceptor(logger),
-			observability.DebugInterceptor(logger, "assetmanager"),
-		),
+		connect.WithInterceptors(interceptorList...),
 	)
 
 	return &client{
@@ -383,3 +404,4 @@ func loggingInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc {
 		}
 	}
 }
+

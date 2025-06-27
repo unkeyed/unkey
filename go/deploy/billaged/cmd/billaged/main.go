@@ -21,8 +21,10 @@ import (
 	"github.com/unkeyed/unkey/go/deploy/billaged/internal/observability"
 	"github.com/unkeyed/unkey/go/deploy/billaged/internal/service"
 	healthpkg "github.com/unkeyed/unkey/go/deploy/pkg/health"
+	"github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors"
 	tlspkg "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
@@ -197,19 +199,39 @@ func main() {
 	// Create billing service
 	billingService := service.NewBillingService(logger, agg, billingMetrics)
 
-	// Create ConnectRPC handler with interceptors
-	interceptors := []connect.Interceptor{
-		loggingInterceptor(logger),
+	// Configure shared interceptor options
+	interceptorOpts := []interceptors.Option{
+		interceptors.WithServiceName("billaged"),
+		interceptors.WithLogger(logger),
+		interceptors.WithActiveRequestsMetric(true),
+		interceptors.WithRequestDurationMetric(false), // Match existing behavior
+		interceptors.WithErrorResampling(true),
+		interceptors.WithPanicStackTrace(true),
+		interceptors.WithTenantAuth(true,
+			// Exempt health check endpoints from tenant auth
+			"/health.v1.HealthService/Check",
+			// Exempt heartbeat endpoint from tenant auth
+			"/billing.v1.BillingService/SendHeartbeat",
+		),
 	}
 
-	// Add OTEL interceptor if enabled
+	// Add meter if OpenTelemetry is enabled
 	if cfg.OpenTelemetry.Enabled {
-		interceptors = append(interceptors, observability.NewOTELInterceptor())
+		interceptorOpts = append(interceptorOpts, interceptors.WithMeter(otel.Meter("billaged")))
+	}
+
+	// Get default interceptors (tenant auth, metrics, logging)
+	sharedInterceptors := interceptors.NewDefaultInterceptors("billaged", interceptorOpts...)
+
+	// Convert UnaryInterceptorFunc to Interceptor
+	var interceptorList []connect.Interceptor
+	for _, interceptor := range sharedInterceptors {
+		interceptorList = append(interceptorList, connect.Interceptor(interceptor))
 	}
 
 	mux := http.NewServeMux()
 	path, handler := billingv1connect.NewBillingServiceHandler(billingService,
-		connect.WithInterceptors(interceptors...),
+		connect.WithInterceptors(interceptorList...),
 	)
 	mux.Handle(path, handler)
 
@@ -414,54 +436,6 @@ func printUsageSummary(logger *slog.Logger, summary *aggregator.UsageSummary) {
 	)
 }
 
-// loggingInterceptor logs all RPC calls
-func loggingInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc {
-	return func(next connect.UnaryFunc) connect.UnaryFunc {
-		return func(ctx context.Context, req connect.AnyRequest) (resp connect.AnyResponse, err error) {
-			// Add panic recovery
-			defer func() {
-				if r := recover(); r != nil {
-					logger.Error("panic in logging interceptor",
-						slog.String("procedure", req.Spec().Procedure),
-						slog.Any("panic", r),
-					)
-					// Only override err if it's not already set
-					if err == nil {
-						err = connect.NewError(connect.CodeInternal, fmt.Errorf("internal server error: %v", r))
-					}
-				}
-			}()
-
-			start := time.Now()
-
-			// Log request
-			logger.LogAttrs(ctx, slog.LevelInfo, "rpc request",
-				slog.String("procedure", req.Spec().Procedure),
-				slog.String("protocol", req.Peer().Protocol),
-			)
-
-			// Execute request
-			resp, err = next(ctx, req)
-
-			// Log response
-			duration := time.Since(start)
-			if err != nil {
-				logger.LogAttrs(ctx, slog.LevelError, "rpc error",
-					slog.String("procedure", req.Spec().Procedure),
-					slog.Duration("duration", duration),
-					slog.String("error", err.Error()),
-				)
-			} else {
-				logger.LogAttrs(ctx, slog.LevelDebug, "rpc success",
-					slog.String("procedure", req.Spec().Procedure),
-					slog.Duration("duration", duration),
-				)
-			}
-
-			return resp, err
-		}
-	}
-}
 
 // printVersion displays version information
 func printVersion() {

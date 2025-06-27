@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/go/deploy/billaged/gen/billing/v1/billingv1connect"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/observability"
+	"github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -137,13 +138,23 @@ func NewConnectRPCBillingClient(endpoint string, logger *slog.Logger) *ConnectRP
 // NewConnectRPCBillingClientWithHTTP creates a billing client with a custom HTTP client (for TLS)
 func NewConnectRPCBillingClientWithHTTP(endpoint string, logger *slog.Logger, httpClient *http.Client) *ConnectRPCBillingClient {
 	// Use provided HTTP client which may have TLS configuration
-	// AIDEV-NOTE: Using debug interceptor for comprehensive error tracking
+	// AIDEV-NOTE: Using shared client interceptors for consistency across services
+	clientInterceptors := interceptors.NewDefaultClientInterceptors("metald", logger)
+	// Add debug interceptor for detailed error tracking
+	clientInterceptors = append(clientInterceptors,
+		observability.DebugInterceptor(logger, "billaged"),
+	)
+	
+	// Convert UnaryInterceptorFunc to Interceptor
+	var interceptorList []connect.Interceptor
+	for _, interceptor := range clientInterceptors {
+		interceptorList = append(interceptorList, connect.Interceptor(interceptor))
+	}
+	
 	billingClient := billingv1connect.NewBillingServiceClient(
 		httpClient,
 		endpoint,
-		connect.WithInterceptors(
-			observability.DebugInterceptor(logger, "billaged"),
-		),
+		connect.WithInterceptors(interceptorList...),
 	)
 
 	return &ConnectRPCBillingClient{

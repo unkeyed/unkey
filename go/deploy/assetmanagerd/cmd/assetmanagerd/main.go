@@ -25,6 +25,7 @@ import (
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/internal/service"
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/internal/storage"
 	healthpkg "github.com/unkeyed/unkey/go/deploy/pkg/health"
+	"github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors"
 	tlspkg "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
@@ -193,13 +194,40 @@ func main() {
 		go assetService.StartGarbageCollector(ctx)
 	}
 
-	// Create ConnectRPC handler
+	// Configure shared interceptor options
+	interceptorOpts := []interceptors.Option{
+		interceptors.WithServiceName("assetmanagerd"),
+		interceptors.WithLogger(logger),
+		interceptors.WithActiveRequestsMetric(false), // Match existing behavior (no active requests metric)
+		interceptors.WithRequestDurationMetric(true), // Match existing behavior
+		interceptors.WithErrorResampling(true),
+		interceptors.WithPanicStackTrace(true),
+		interceptors.WithTenantAuth(true,
+			// Exempt health check endpoints from tenant auth
+			"/health.v1.HealthService/Check",
+			// Exempt system maintenance operations from tenant auth
+			"/asset.v1.AssetManagerService/GarbageCollect",
+		),
+	}
+
+	// Add meter if OpenTelemetry is enabled
+	if cfg.OTELEnabled {
+		interceptorOpts = append(interceptorOpts, interceptors.WithMeter(observability.GetMeter("assetmanagerd")))
+	}
+
+	// Get default interceptors (tenant auth, metrics, logging)
+	sharedInterceptors := interceptors.NewDefaultInterceptors("assetmanagerd", interceptorOpts...)
+
+	// Convert UnaryInterceptorFunc to Interceptor
+	var interceptorList []connect.Interceptor
+	for _, interceptor := range sharedInterceptors {
+		interceptorList = append(interceptorList, connect.Interceptor(interceptor))
+	}
+
+	// Create ConnectRPC handler with shared interceptors
 	path, handler := assetv1connect.NewAssetManagerServiceHandler(
 		assetService,
-		connect.WithInterceptors(
-			observability.NewLoggingInterceptor(logger),
-			observability.NewMetricsInterceptor(),
-		),
+		connect.WithInterceptors(interceptorList...),
 	)
 
 	// Create HTTP server with OTEL instrumentation

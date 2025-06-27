@@ -25,11 +25,12 @@ import (
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/observability"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/service"
 	healthpkg "github.com/unkeyed/unkey/go/deploy/pkg/health"
+	"github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors"
 	tlspkg "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 
 	"connectrpc.com/connect"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
@@ -340,20 +341,42 @@ func main() {
 	// Create unified health handler
 	healthHandler := healthpkg.Handler("metald", getVersion(), startTime)
 
-	// Create ConnectRPC handler with interceptors
-	interceptors := []connect.Interceptor{
-		service.AuthenticationInterceptor(logger), // Authentication must come first
-		loggingInterceptor(logger),
+	// Create ConnectRPC handler with shared interceptors
+	var interceptorList []connect.Interceptor
+
+	// Configure shared interceptor options
+	interceptorOpts := []interceptors.Option{
+		interceptors.WithServiceName("metald"),
+		interceptors.WithLogger(logger),
+		interceptors.WithActiveRequestsMetric(true),
+		interceptors.WithRequestDurationMetric(false), // Match existing behavior
+		interceptors.WithErrorResampling(true),
+		interceptors.WithPanicStackTrace(true),
+		interceptors.WithTenantAuth(true,
+			// Exempt health check endpoints from tenant auth
+			"/health.v1.HealthService/Check",
+		),
 	}
 
-	// Add OTEL interceptor if enabled
+	// Add meter if OpenTelemetry is enabled
 	if cfg.OpenTelemetry.Enabled {
-		interceptors = append(interceptors, observability.NewOTELInterceptor())
+		interceptorOpts = append(interceptorOpts, interceptors.WithMeter(otel.Meter("metald")))
+	}
+
+	// Get default interceptors (tenant auth, metrics, logging)
+	sharedInterceptors := interceptors.NewDefaultInterceptors("metald", interceptorOpts...)
+	
+	// Add authentication interceptor first (before tenant auth)
+	interceptorList = append(interceptorList, service.AuthenticationInterceptor(logger))
+	
+	// Add shared interceptors (convert UnaryInterceptorFunc to Interceptor)
+	for _, interceptor := range sharedInterceptors {
+		interceptorList = append(interceptorList, connect.Interceptor(interceptor))
 	}
 
 	mux := http.NewServeMux()
 	path, handler := vmprovisionerv1connect.NewVmServiceHandler(vmService,
-		connect.WithInterceptors(interceptors...),
+		connect.WithInterceptors(interceptorList...),
 	)
 	mux.Handle(path, handler)
 
@@ -483,61 +506,7 @@ func main() {
 	logger.Info("server shutdown complete")
 }
 
-// loggingInterceptor logs all RPC calls
-func loggingInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc {
-	return func(next connect.UnaryFunc) connect.UnaryFunc {
-		return func(ctx context.Context, req connect.AnyRequest) (resp connect.AnyResponse, err error) {
-			// Add panic recovery
-			defer func() {
-				if r := recover(); r != nil {
-					logger.Error("panic in logging interceptor",
-						slog.String("procedure", req.Spec().Procedure),
-						slog.Any("panic", r),
-					)
-					// Only override err if it's not already set
-					if err == nil {
-						err = connect.NewError(connect.CodeInternal, fmt.Errorf("internal server error: %v", r))
-					}
-				}
-			}()
 
-			start := time.Now()
-
-			// Extract trace ID from OpenTelemetry context
-			span := trace.SpanFromContext(ctx)
-			traceID := span.SpanContext().TraceID().String()
-
-			// Log request with trace ID
-			logger.LogAttrs(ctx, slog.LevelInfo, "rpc request",
-				slog.String("procedure", req.Spec().Procedure),
-				slog.String("protocol", req.Peer().Protocol),
-				slog.String("trace_id", traceID),
-			)
-
-			// Execute request
-			resp, err = next(ctx, req)
-
-			// Log response with trace ID
-			duration := time.Since(start)
-			if err != nil {
-				logger.LogAttrs(ctx, slog.LevelError, "rpc error",
-					slog.String("procedure", req.Spec().Procedure),
-					slog.Duration("duration", duration),
-					slog.String("error", err.Error()),
-					slog.String("trace_id", traceID),
-				)
-			} else {
-				logger.LogAttrs(ctx, slog.LevelInfo, "rpc success",
-					slog.String("procedure", req.Spec().Procedure),
-					slog.Duration("duration", duration),
-					slog.String("trace_id", traceID),
-				)
-			}
-
-			return resp, err
-		}
-	}
-}
 
 // printUsage displays help information
 func printUsage() {

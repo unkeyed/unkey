@@ -1,6 +1,6 @@
 module github.com/unkeyed/unkey/go/deploy/metald
 
-go 1.24.3
+go 1.24.4
 
 require (
 	connectrpc.com/connect v1.18.1
@@ -11,6 +11,7 @@ require (
 	github.com/unkeyed/unkey/go/deploy/assetmanagerd v0.0.0-00010101000000-000000000000
 	github.com/unkeyed/unkey/go/deploy/billaged v0.0.0-00010101000000-000000000000
 	github.com/unkeyed/unkey/go/deploy/pkg/health v0.0.0-00010101000000-000000000000
+	github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors v0.0.0-00010101000000-000000000000
 	github.com/unkeyed/unkey/go/deploy/pkg/tls v0.0.0-00010101000000-000000000000
 	github.com/vishvananda/netlink v1.3.1
 	github.com/vishvananda/netns v0.0.5
@@ -75,6 +76,7 @@ require (
 	github.com/spiffe/go-spiffe/v2 v2.5.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/unkeyed/unkey/go/deploy/pkg/spiffe v0.0.0-00010101000000-000000000000 // indirect
+	github.com/unkeyed/unkey/go/deploy/pkg/tracing v0.0.0-00010101000000-000000000000 // indirect
 	github.com/zeebo/errs v1.4.0 // indirect
 	go.mongodb.org/mongo-driver v1.8.3 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
@@ -97,5 +99,9 @@ replace github.com/unkeyed/unkey/go/deploy/pkg/tls => ../pkg/tls
 replace github.com/unkeyed/unkey/go/deploy/pkg/spiffe => ../pkg/spiffe
 
 replace github.com/unkeyed/unkey/go/deploy/pkg/health => ../pkg/health
+
+replace github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors => ../pkg/observability/interceptors
+
+replace github.com/unkeyed/unkey/go/deploy/pkg/tracing => ../pkg/tracing
 
 replace github.com/mitchellh/osext => github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0

@@ -18,6 +18,7 @@ import (
 	builderv1 "github.com/unkeyed/unkey/go/deploy/builderd/gen/builder/v1"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/observability"
+	"github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors"
 )
 
 // DockerExecutor handles Docker image extraction to rootfs
@@ -51,7 +52,7 @@ func (d *DockerExecutor) ExtractDockerImageWithID(ctx context.Context, request *
 
 	// Get tenant context for logging and metrics
 	tenantID := "unknown"
-	if auth, ok := observability.TenantFromContext(ctx); ok {
+	if auth, ok := interceptors.TenantFromContext(ctx); ok {
 		tenantID = auth.TenantID
 	}
 
