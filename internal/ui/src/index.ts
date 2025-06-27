@@ -2,6 +2,8 @@ export * from "./components/button";
 export * from "./components/card";
 export * from "./components/code";
 export * from "./components/copy-button";
+export * from "./components/logs/control-cloud";
+export * from "./validation/utils/transform-structured-output-filter-format";
 export * from "./components/date-time/date-time";
 export * from "./components/dialog/dialog-container";
 export * from "./components/dialog/navigable-dialog";

@@ -1,7 +1,10 @@
-import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
-import { KeyboardButton } from "@unkey/ui";
-import { type KeyboardEvent, useCallback, useState } from "react";
-import type { FilterValue } from "../validation/filter.types";
+"use client";
+// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
+import * as React from "react";
+import { useCallback, useState } from "react";
+import { useKeyboardShortcut } from "../../../hooks/use-keyboard-shortcut";
+import type { FilterValue } from "../../../validation/filter.types";
+import { KeyboardButton } from "../../keyboard-button";
 import { ControlPill } from "./control-pill";
 import { defaultFormatValue } from "./utils";
 
@@ -58,7 +61,7 @@ export const ControlCloud = <TFilter extends FilterValue>({
     [removeFilter, filters.length, focusedIndex],
   );
 
-  const handleKeyDown = (e: KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (filters.length === 0) {
       return;
     }
