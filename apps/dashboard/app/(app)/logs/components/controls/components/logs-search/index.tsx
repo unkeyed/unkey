@@ -1,8 +1,8 @@
 import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
-import { LogsLLMSearch } from "@/components/logs/llm-search";
 import { transformStructuredOutputToFilters } from "@/components/logs/validation/utils/transform-structured-output-filter-format";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { LLMSearch } from "@unkey/ui";
 
 export const LogsSearch = () => {
   const { filters, updateFilters } = useFilters();
@@ -43,7 +43,7 @@ export const LogsSearch = () => {
   });
 
   return (
-    <LogsLLMSearch
+    <LLMSearch
       exampleQueries={[
         "Show failed requests today",
         "Show auth errors in the last 3h",

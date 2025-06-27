@@ -1,7 +1,7 @@
-import { LogsLLMSearch } from "@/components/logs/llm-search";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import type { ApiOverview } from "@/lib/trpc/routers/api/overview/query-overview/schemas";
+import { LLMSearch } from "@unkey/ui";
 import { useRef } from "react";
 type Props = {
   apiList: ApiOverview[];
@@ -45,7 +45,7 @@ export const LogsSearch = ({ onSearch, onApiListChange, apiList }: Props) => {
   };
 
   return (
-    <LogsLLMSearch
+    <LLMSearch
       exampleQueries={[
         "Show rate limited requests today",
         "Show requests that were not rate limited today",

@@ -1,6 +1,6 @@
-import { LogsLLMSearch } from "@/components/logs/llm-search";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { LLMSearch } from "@unkey/ui";
 import { useRef } from "react";
 
 type LogsSearchProps = {
@@ -40,7 +40,7 @@ export const LogsSearch = ({ setNamespaces, initialNamespaces }: LogsSearchProps
   };
 
   return (
-    <LogsLLMSearch
+    <LLMSearch
       exampleQueries={[
         "Show failed requests today",
         "Show passed requests from the last 1 hour",

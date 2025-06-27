@@ -12,6 +12,7 @@ export * from "./components/inline-link";
 export * from "./components/input";
 export * from "./components/info-tooltip";
 export * from "./components/loading";
+export * from "./components/llm-search";
 export * from "./components/select";
 export * from "./components/settings-card";
 export * from "./components/textarea";

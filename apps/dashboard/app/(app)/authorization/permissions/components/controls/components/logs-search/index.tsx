@@ -1,7 +1,7 @@
-import { LogsLLMSearch } from "@/components/logs/llm-search";
 import { transformStructuredOutputToFilters } from "@/components/logs/validation/utils/transform-structured-output-filter-format";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { LLMSearch } from "@unkey/ui";
 import { useFilters } from "../../../../hooks/use-filters";
 
 export const PermissionSearch = () => {
@@ -43,7 +43,7 @@ export const PermissionSearch = () => {
   });
 
   return (
-    <LogsLLMSearch
+    <LLMSearch
       exampleQueries={[
         "find admin permissions",
         "show api.read and api.write permissions",

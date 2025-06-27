@@ -1,7 +1,7 @@
-import { LogsLLMSearch } from "@/components/logs/llm-search";
 import { transformStructuredOutputToFilters } from "@/components/logs/validation/utils/transform-structured-output-filter-format";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { LLMSearch } from "@unkey/ui";
 import type { KeyDetailsFilterValue } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 
@@ -52,7 +52,7 @@ export const LogsSearch = ({ apiId }: { apiId: string }) => {
   });
 
   return (
-    <LogsLLMSearch
+    <LLMSearch
       exampleQueries={["Show rate limited outcomes"]}
       isLoading={queryLLMForStructuredOutput.isLoading}
       searchMode="manual"
