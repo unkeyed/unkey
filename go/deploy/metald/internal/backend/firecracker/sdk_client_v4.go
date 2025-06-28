@@ -18,6 +18,7 @@ import (
 	sdk "github.com/firecracker-microvm/firecracker-go-sdk"
 	"github.com/firecracker-microvm/firecracker-go-sdk/client/models"
 	assetv1 "github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/asset/v1"
+	builderv1 "github.com/unkeyed/unkey/go/deploy/builderd/gen/builder/v1"
 	metaldv1 "github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/assetmanager"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
@@ -42,6 +43,7 @@ type sdkV4VM struct {
 	CancelFunc   context.CancelFunc
 	AssetMapping *assetMapping      // Asset mapping for lease acquisition
 	AssetPaths   map[string]string  // Prepared asset paths
+	PortMappings []PortMapping      // Port forwarding configuration
 }
 
 // SDKClientV4 implements the Backend interface using firecracker-go-sdk
@@ -203,7 +205,7 @@ func (c *SDKClientV4) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (
 
 	// Build SDK configuration WITHOUT jailer
 	// The jailer functionality is now integrated
-	_ = c.buildFirecrackerConfig(vmID, config, networkInfo, preparedPaths)
+	_ = c.buildFirecrackerConfig(ctx, vmID, config, networkInfo, preparedPaths)
 
 	// Create VM directory
 	vmDir := filepath.Join(c.baseDir, vmID)
@@ -270,9 +272,37 @@ func (c *SDKClientV4) BootVM(ctx context.Context, vmID string) error {
 	}
 	defer logFile.Close()
 
+	// Load container metadata and parse port mappings
+	var metadata *builderv1.ImageMetadata
+	var portMappings []PortMapping
+	for _, disk := range vm.Config.GetStorage() {
+		if disk.GetIsRootDevice() {
+			rootfsPath := disk.GetPath()
+			if m, err := c.loadContainerMetadata(ctx, rootfsPath); err != nil {
+				c.logger.WarnContext(ctx, "failed to load container metadata",
+					"error", err,
+					"rootfs_path", rootfsPath,
+				)
+			} else if m != nil {
+				metadata = m
+				portMappings = c.parseExposedPorts(metadata)
+				c.logger.LogAttrs(ctx, slog.LevelInfo, "loaded metadata for VM boot",
+					slog.String("vm_id", vmID),
+					slog.Int("port_count", len(portMappings)),
+				)
+				break
+			}
+		}
+	}
+
 	// Build firecracker config that will be used by SDK
-	fcConfig := c.buildFirecrackerConfig(vmID, vm.Config, vm.NetworkInfo, vm.AssetPaths)
+	fcConfig := c.buildFirecrackerConfig(ctx, vmID, vm.Config, vm.NetworkInfo, vm.AssetPaths)
 	fcConfig.SocketPath = socketPath
+	
+	// Update kernel args with metadata if available
+	if metadata != nil {
+		fcConfig.KernelArgs = c.buildKernelArgsWithMetadata(ctx, fcConfig.KernelArgs, metadata)
+	}
 
 	// Create a context for this VM
 	vmCtx, cancel := context.WithCancel(context.Background())
@@ -312,6 +342,7 @@ func (c *SDKClientV4) BootVM(ctx context.Context, vmID string) error {
 
 	vm.Machine = machine
 	vm.State = metaldv1.VmState_VM_STATE_RUNNING
+	vm.PortMappings = portMappings
 
 	// Acquire asset leases after successful boot
 	if vm.AssetMapping != nil && len(vm.AssetMapping.AssetIDs()) > 0 {
@@ -359,6 +390,17 @@ func (c *SDKClientV4) BootVM(ctx context.Context, vmID string) error {
 		}
 	}
 
+	// Configure port forwarding if we have mappings
+	if vm.NetworkInfo != nil && len(vm.PortMappings) > 0 {
+		if err := c.configurePortForwarding(ctx, vmID, vm.NetworkInfo.IPAddress.String(), vm.PortMappings); err != nil {
+			c.logger.ErrorContext(ctx, "failed to configure port forwarding",
+				"vm_id", vmID,
+				"error", err,
+			)
+			// Don't fail the VM boot, but log the error
+		}
+	}
+
 	c.vmBootCounter.Add(ctx, 1, metric.WithAttributes(
 		attribute.String("status", "success"),
 	))
@@ -373,7 +415,7 @@ func (c *SDKClientV4) BootVM(ctx context.Context, vmID string) error {
 // Other methods would be similar to SDKClientV3...
 
 // buildFirecrackerConfig builds the SDK configuration without jailer
-func (c *SDKClientV4) buildFirecrackerConfig(vmID string, config *metaldv1.VmConfig, networkInfo *network.VMNetwork, preparedPaths map[string]string) sdk.Config {
+func (c *SDKClientV4) buildFirecrackerConfig(ctx context.Context, vmID string, config *metaldv1.VmConfig, networkInfo *network.VMNetwork, preparedPaths map[string]string) sdk.Config {
 	// For integrated jailer, we use absolute paths since we're not running inside chroot
 	// The assets are still in the jailer directory structure for consistency
 	jailerRoot := filepath.Join(
@@ -392,7 +434,7 @@ func (c *SDKClientV4) buildFirecrackerConfig(vmID string, config *metaldv1.VmCon
 		// corresponds to which component (kernel vs rootfs). For now, we rely on the
 		// assetmanager preparing files with standard names in the target directory.
 		// The prepared paths should already be in the jailerRoot directory.
-		c.logger.LogAttrs(context.Background(), slog.LevelDebug, "using prepared asset paths",
+		c.logger.LogAttrs(ctx, slog.LevelDebug, "using prepared asset paths",
 			slog.String("vm_id", vmID),
 			slog.Int("path_count", len(preparedPaths)),
 		)
@@ -421,13 +463,20 @@ func (c *SDKClientV4) buildFirecrackerConfig(vmID string, config *metaldv1.VmCon
 		)
 	}
 
+	// Use the kernel args as provided by the caller
+	// Metadata handling is now done in BootVM
+	kernelArgs := config.GetBoot().GetKernelArgs()
+
+	// Create a console log file for debugging
+	consoleLogPath := filepath.Join(jailerRoot, "console.log")
+	
 	cfg := sdk.Config{ //nolint:exhaustruct // Optional fields are not needed for basic VM configuration
 		SocketPath:      socketPath,
-		LogPath:         "", // Logging handled externally
-		LogLevel:        "Info",
+		LogPath:         consoleLogPath, // Capture console output for debugging
+		LogLevel:        "Debug",
 		MetricsPath:     metricsPath, // Configure stats socket for billaged
 		KernelImagePath: kernelPath,
-		KernelArgs:      config.GetBoot().GetKernelArgs(),
+		KernelArgs:      kernelArgs,
 		MachineCfg: models.MachineConfiguration{ //nolint:exhaustruct // Only setting required fields for basic VM configuration
 			VcpuCount:  sdk.Int64(int64(config.GetCpu().GetVcpuCount())),
 			MemSizeMib: sdk.Int64(config.GetMemory().GetSizeBytes() / (1024 * 1024)),
@@ -850,6 +899,77 @@ func (c *SDKClientV4) prepareVMAssetsStatic(ctx context.Context, vmID string, co
 				slog.String("src", disk.GetPath()),
 				slog.String("dst", diskDst),
 			)
+			
+			// Also copy metadata file if it exists
+			if disk.GetIsRootDevice() {
+				baseName := strings.TrimSuffix(filepath.Base(disk.GetPath()), filepath.Ext(disk.GetPath()))
+				metadataSrc := filepath.Join(filepath.Dir(disk.GetPath()), baseName+".metadata.json")
+				if _, err := os.Stat(metadataSrc); err == nil {
+					metadataDst := filepath.Join(jailerRoot, filepath.Base(metadataSrc))
+					if err := copyFileWithOwnership(metadataSrc, metadataDst, int(c.jailerConfig.UID), int(c.jailerConfig.GID)); err != nil {
+						c.logger.WarnContext(ctx, "failed to copy metadata file",
+							"src", metadataSrc,
+							"dst", metadataDst,
+							"error", err,
+						)
+					} else {
+						c.logger.LogAttrs(ctx, slog.LevelInfo, "copied metadata file to jailer root",
+							slog.String("src", metadataSrc),
+							slog.String("dst", metadataDst),
+						)
+						
+						// Write command file to rootfs by mounting it temporarily
+						// This avoids kernel command line parsing issues
+						metadata, err := c.loadContainerMetadata(ctx, disk.GetPath())
+						if err == nil && metadata != nil {
+							// Build the command array
+							var fullCmd []string
+							fullCmd = append(fullCmd, metadata.Entrypoint...)
+							fullCmd = append(fullCmd, metadata.Command...)
+							
+							if len(fullCmd) > 0 {
+								// Mount the rootfs temporarily to write the command file
+								mountDir := filepath.Join("/tmp", fmt.Sprintf("mount-%s", vmID))
+								if err := os.MkdirAll(mountDir, 0755); err == nil {
+									// Mount the rootfs ext4 image
+									mountCmd := exec.CommandContext(ctx, "mount", "-o", "loop", diskDst, mountDir)
+									if err := mountCmd.Run(); err != nil {
+										c.logger.WarnContext(ctx, "failed to mount rootfs for command file",
+											"error", err,
+											"disk", diskDst,
+										)
+									} else {
+										// Write the command file
+										cmdFile := filepath.Join(mountDir, "container.cmd")
+										cmdData, _ := json.Marshal(fullCmd)
+										if err := os.WriteFile(cmdFile, cmdData, 0644); err != nil {
+											c.logger.WarnContext(ctx, "failed to write command file",
+												"path", cmdFile,
+												"error", err,
+											)
+										} else {
+											c.logger.LogAttrs(ctx, slog.LevelInfo, "wrote container command file to rootfs",
+												slog.String("path", cmdFile),
+												slog.String("command", string(cmdData)),
+											)
+										}
+										
+										// Unmount
+										umountCmd := exec.CommandContext(ctx, "umount", mountDir)
+										if err := umountCmd.Run(); err != nil {
+											c.logger.WarnContext(ctx, "failed to unmount rootfs",
+												"error", err,
+												"mountDir", mountDir,
+											)
+										}
+										os.RemoveAll(mountDir)
+									}
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -890,6 +1010,16 @@ func (c *SDKClientV4) DeleteVM(ctx context.Context, vmID string) error {
 		// Cancel the VM context
 		if vm.CancelFunc != nil {
 			vm.CancelFunc()
+		}
+	}
+
+	// Remove port forwarding rules before deleting network
+	if vm.NetworkInfo != nil && len(vm.PortMappings) > 0 {
+		if err := c.removePortForwarding(ctx, vmID, vm.NetworkInfo.IPAddress.String(), vm.PortMappings); err != nil {
+			c.logger.WarnContext(ctx, "failed to remove port forwarding",
+				"vm_id", vmID,
+				"error", err,
+			)
 		}
 	}
 
@@ -1457,3 +1587,275 @@ func copyFileWithOwnership(src, dst string, uid, gid int) error {
 // 2. Tap devices are created with full capabilities
 // 3. We maintain security isolation via chroot and privilege dropping
 // 4. No external jailer binary needed - everything is integrated
+
+// loadContainerMetadata loads container metadata from the metadata file if it exists
+func (c *SDKClientV4) loadContainerMetadata(ctx context.Context, rootfsPath string) (*builderv1.ImageMetadata, error) {
+	// AIDEV-NOTE: Load container metadata saved by builderd
+	// The metadata file is named {buildID}.metadata.json and should be alongside the rootfs
+	
+	// Extract base name without extension
+	baseName := strings.TrimSuffix(filepath.Base(rootfsPath), filepath.Ext(rootfsPath))
+	metadataPath := filepath.Join(filepath.Dir(rootfsPath), baseName+".metadata.json")
+	
+	c.logger.LogAttrs(ctx, slog.LevelDebug, "looking for container metadata",
+		slog.String("rootfs_path", rootfsPath),
+		slog.String("metadata_path", metadataPath),
+	)
+	
+	// Check if metadata file exists
+	if _, err := os.Stat(metadataPath); os.IsNotExist(err) {
+		c.logger.LogAttrs(ctx, slog.LevelDebug, "no metadata file found",
+			slog.String("metadata_path", metadataPath),
+		)
+		return nil, nil // No metadata is not an error
+	}
+	
+	// Read metadata file
+	data, err := os.ReadFile(metadataPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read metadata file: %w", err)
+	}
+	
+	// Parse metadata
+	var metadata builderv1.ImageMetadata
+	if err := json.Unmarshal(data, &metadata); err != nil {
+		return nil, fmt.Errorf("failed to parse metadata: %w", err)
+	}
+	
+	c.logger.LogAttrs(ctx, slog.LevelInfo, "loaded container metadata",
+		slog.String("image", metadata.OriginalImage),
+		slog.Int("entrypoint_len", len(metadata.Entrypoint)),
+		slog.Int("cmd_len", len(metadata.Command)),
+		slog.Int("env_vars", len(metadata.Env)),
+		slog.Int("exposed_ports", len(metadata.ExposedPorts)),
+	)
+	
+	return &metadata, nil
+}
+
+// buildKernelArgsWithMetadata builds kernel arguments incorporating container metadata
+func (c *SDKClientV4) buildKernelArgsWithMetadata(ctx context.Context, baseArgs string, metadata *builderv1.ImageMetadata) string {
+	// AIDEV-NOTE: Build kernel args that will execute the container's entrypoint/cmd
+	
+	// Parse existing kernel args to preserve important ones
+	var kernelParams []string
+	var hasInit bool
+	
+	if baseArgs != "" {
+		// Split base args and check for existing init
+		parts := strings.Fields(baseArgs)
+		for _, part := range parts {
+			if strings.HasPrefix(part, "init=") {
+				hasInit = true
+			}
+			// Keep important kernel parameters
+			if strings.HasPrefix(part, "console=") || 
+			   strings.HasPrefix(part, "reboot=") ||
+			   strings.HasPrefix(part, "panic=") ||
+			   strings.HasPrefix(part, "pci=") ||
+			   strings.HasPrefix(part, "i8042.") {
+				kernelParams = append(kernelParams, part)
+			}
+		}
+	}
+	
+	// Add default kernel params if not present
+	if len(kernelParams) == 0 {
+		kernelParams = []string{"console=ttyS0", "reboot=k", "panic=1", "pci=off", "i8042.noaux", "i8042.nomux", "i8042.nopnp", "i8042.dumbkbd"}
+	}
+	
+	// If we have metadata and no init specified, use metald-init
+	if metadata != nil && !hasInit {
+		// Add environment variables as kernel parameters
+		// Format: env.KEY=VALUE
+		for key, value := range metadata.Env {
+			// Skip potentially problematic env vars
+			if key == "PATH" || strings.Contains(key, " ") || strings.Contains(value, " ") {
+				continue
+			}
+			kernelParams = append(kernelParams, fmt.Sprintf("env.%s=%s", key, value))
+		}
+		
+		// Add working directory if specified
+		if metadata.WorkingDir != "" {
+			kernelParams = append(kernelParams, fmt.Sprintf("workdir=%s", metadata.WorkingDir))
+		}
+		
+		// Use metald-init as the init process wrapper
+		kernelParams = append(kernelParams, "init=/usr/bin/metald-init")
+		
+		// Build the final kernel args string
+		args := strings.Join(kernelParams, " ")
+		
+		// Don't pass command on kernel command line - metald-init will read from /container.cmd
+		// This avoids all the kernel command line parsing issues with spaces and special characters
+		c.logger.LogAttrs(ctx, slog.LevelInfo, "built kernel args with container metadata",
+			slog.String("init", "/usr/bin/metald-init"),
+			slog.String("final_args", args),
+		)
+		
+		return args
+	}
+	
+	// No metadata or init already specified, return base args
+	return baseArgs
+}
+
+// PortMapping represents a mapping from container port to host port
+type PortMapping struct {
+	ContainerPort int
+	HostPort      int
+	Protocol      string // tcp or udp
+}
+
+// parseExposedPorts parses exposed ports from container metadata
+func (c *SDKClientV4) parseExposedPorts(metadata *builderv1.ImageMetadata) []PortMapping {
+	// AIDEV-NOTE: Parse exposed ports and create port mappings
+	var mappings []PortMapping
+	
+	if metadata == nil || len(metadata.ExposedPorts) == 0 {
+		return mappings
+	}
+	
+	for _, port := range metadata.ExposedPorts {
+		// Parse port format: can be "80", "80/tcp", "80/udp"
+		parts := strings.Split(port, "/")
+		portNum := 0
+		protocol := "tcp" // default
+		
+		if len(parts) > 0 {
+			// Parse port number
+			if n, err := fmt.Sscanf(parts[0], "%d", &portNum); err == nil && n == 1 {
+				if len(parts) > 1 {
+					protocol = strings.ToLower(parts[1])
+				}
+				
+				// For now, map container port to same host port
+				// In production, you'd want to allocate from a pool
+				mapping := PortMapping{
+					ContainerPort: portNum,
+					HostPort:      portNum,
+					Protocol:      protocol,
+				}
+				mappings = append(mappings, mapping)
+				
+				c.logger.LogAttrs(context.Background(), slog.LevelDebug, "parsed port mapping",
+					slog.Int("container_port", portNum),
+					slog.Int("host_port", portNum),
+					slog.String("protocol", protocol),
+				)
+			}
+		}
+	}
+	
+	return mappings
+}
+
+// configurePortForwarding sets up iptables rules for port forwarding
+func (c *SDKClientV4) configurePortForwarding(ctx context.Context, vmID string, vmIP string, mappings []PortMapping) error {
+	// AIDEV-NOTE: Configure iptables rules for port forwarding
+	
+	if len(mappings) == 0 {
+		return nil
+	}
+	
+	c.logger.LogAttrs(ctx, slog.LevelInfo, "configuring port forwarding",
+		slog.String("vm_id", vmID),
+		slog.String("vm_ip", vmIP),
+		slog.Int("port_count", len(mappings)),
+	)
+	
+	for _, mapping := range mappings {
+		// Add DNAT rule to forward host port to VM port
+		// iptables -t nat -A PREROUTING -p tcp --dport HOST_PORT -j DNAT --to-destination VM_IP:CONTAINER_PORT
+		dnatCmd := exec.Command("iptables",
+			"-t", "nat",
+			"-A", "PREROUTING",
+			"-p", mapping.Protocol,
+			"--dport", fmt.Sprintf("%d", mapping.HostPort),
+			"-j", "DNAT",
+			"--to-destination", fmt.Sprintf("%s:%d", vmIP, mapping.ContainerPort),
+		)
+		
+		if output, err := dnatCmd.CombinedOutput(); err != nil {
+			c.logger.ErrorContext(ctx, "failed to add DNAT rule",
+				slog.String("error", err.Error()),
+				slog.String("output", string(output)),
+				slog.Int("host_port", mapping.HostPort),
+				slog.Int("container_port", mapping.ContainerPort),
+			)
+			return fmt.Errorf("failed to add DNAT rule: %w", err)
+		}
+		
+		// Add FORWARD rule to allow traffic
+		// iptables -A FORWARD -p tcp -d VM_IP --dport CONTAINER_PORT -j ACCEPT
+		forwardCmd := exec.Command("iptables",
+			"-A", "FORWARD",
+			"-p", mapping.Protocol,
+			"-d", vmIP,
+			"--dport", fmt.Sprintf("%d", mapping.ContainerPort),
+			"-j", "ACCEPT",
+		)
+		
+		if output, err := forwardCmd.CombinedOutput(); err != nil {
+			c.logger.ErrorContext(ctx, "failed to add FORWARD rule",
+				slog.String("error", err.Error()),
+				slog.String("output", string(output)),
+				slog.Int("container_port", mapping.ContainerPort),
+			)
+			return fmt.Errorf("failed to add FORWARD rule: %w", err)
+		}
+		
+		c.logger.LogAttrs(ctx, slog.LevelInfo, "configured port forwarding",
+			slog.Int("host_port", mapping.HostPort),
+			slog.Int("container_port", mapping.ContainerPort),
+			slog.String("protocol", mapping.Protocol),
+			slog.String("vm_ip", vmIP),
+		)
+	}
+	
+	return nil
+}
+
+// removePortForwarding removes iptables rules for a VM
+func (c *SDKClientV4) removePortForwarding(ctx context.Context, vmID string, vmIP string, mappings []PortMapping) error {
+	// AIDEV-NOTE: Remove iptables rules when VM is deleted
+	
+	for _, mapping := range mappings {
+		// Remove DNAT rule
+		dnatCmd := exec.Command("iptables",
+			"-t", "nat",
+			"-D", "PREROUTING",
+			"-p", mapping.Protocol,
+			"--dport", fmt.Sprintf("%d", mapping.HostPort),
+			"-j", "DNAT",
+			"--to-destination", fmt.Sprintf("%s:%d", vmIP, mapping.ContainerPort),
+		)
+		
+		if output, err := dnatCmd.CombinedOutput(); err != nil {
+			// Log but don't fail - rule might already be gone
+			c.logger.WarnContext(ctx, "failed to remove DNAT rule",
+				"error", err.Error(),
+				"output", string(output),
+			)
+		}
+		
+		// Remove FORWARD rule
+		forwardCmd := exec.Command("iptables",
+			"-D", "FORWARD",
+			"-p", mapping.Protocol,
+			"-d", vmIP,
+			"--dport", fmt.Sprintf("%d", mapping.ContainerPort),
+			"-j", "ACCEPT",
+		)
+		
+		if output, err := forwardCmd.CombinedOutput(); err != nil {
+			c.logger.WarnContext(ctx, "failed to remove FORWARD rule",
+				"error", err.Error(),
+				"output", string(output),
+			)
+		}
+	}
+	
+	return nil
+}

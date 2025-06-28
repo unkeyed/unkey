@@ -1,17 +1,21 @@
 # Builderd API Documentation
 
-## Service Overview
+This document provides comprehensive API reference for the Builderd service ConnectRPC/gRPC interface.
 
-**Purpose**: Multi-tenant build execution service that transforms various source types into optimized rootfs images for Firecracker microVM execution
+## Service Definition
 
-**Architecture**: ConnectRPC service with mTLS authentication, multi-tenant isolation, and comprehensive resource management
+The BuilderService provides multi-tenant build execution for various source types. All operations are tenant-scoped and subject to resource quotas.
 
-**Dependencies**: 
-- [assetmanagerd](../../../assetmanagerd/docs) - For registering built artifacts
-- Docker daemon - For image pulling and extraction (local execution)
-- SPIFFE/SPIRE - For service-to-service authentication
+**Proto Definition**: [`proto/builder/v1/builder.proto`](../../proto/builder/v1/builder.proto)
 
-**Deployment**: Containerized service with configurable storage backends and resource limits
+## Base URL
+
+- **gRPC/ConnectRPC**: `https://localhost:8082/builder.v1.BuilderService/`
+- **Health Check**: `https://localhost:8082/health`
+
+## Authentication
+
+All API calls require tenant authentication via SPIFFE/mTLS or custom tenant context headers.
 
 ## API Documentation
 

@@ -17,6 +17,7 @@ service AssetManagerService {
   rpc PrepareAssets(PrepareAssetsRequest) returns (PrepareAssetsResponse);
   rpc DeleteAsset(DeleteAssetRequest) returns (DeleteAssetResponse);
   rpc GarbageCollect(GarbageCollectRequest) returns (GarbageCollectResponse);
+  rpc QueryAssets(QueryAssetsRequest) returns (QueryAssetsResponse);
 }
 ```
 
@@ -26,28 +27,23 @@ service AssetManagerService {
 
 Registers a new asset in the system. The asset file must already exist in storage before registration. This is typically called by builderd after uploading an asset.
 
-**Implementation**: [`internal/service/service.go:103`](../../internal/service/service.go:103)
+**Implementation**: [`internal/service/service.go:46`](../../internal/service/service.go:46)
 
 #### Request
 
 ```protobuf
 message RegisterAssetRequest {
-  Asset asset = 1;
-}
-
-message Asset {
-  string id = 1;                    // Unique identifier (ULID)
-  AssetType type = 2;              // KERNEL, ROOTFS, INITRD, DISK_IMAGE
-  string name = 3;                 // Human-readable name
-  string version = 4;              // Version string
-  string path = 5;                 // Storage path
-  int64 size_bytes = 6;           // File size
-  string checksum = 7;            // SHA256 checksum
-  map<string, string> labels = 8; // Metadata labels
-  string description = 9;         // Optional description
-  string source_url = 10;         // Original source URL
-  string build_id = 11;           // Build identifier from builderd
-  string source_image = 12;       // Source image reference
+  string name = 1;
+  AssetType type = 2;
+  StorageBackend backend = 3;
+  string location = 4;
+  int64 size_bytes = 5;
+  string checksum = 6;
+  map<string, string> labels = 7;
+  string created_by = 8;
+  string build_id = 9;
+  string source_image = 10;
+  string id = 11;  // Optional: specific asset ID to use
 }
 ```
 
@@ -65,22 +61,20 @@ message RegisterAssetResponse {
 curl -X POST http://localhost:8083/asset.v1.AssetManagerService/RegisterAsset \
   -H "Content-Type: application/json" \
   -d '{
-    "asset": {
-      "id": "01HQXYZABC123456789DEFGHJ",
-      "type": "ASSET_TYPE_ROOTFS",
-      "name": "Ubuntu 22.04 Base",
-      "version": "22.04.3",
-      "path": "/opt/vm-assets/ubuntu-22.04.3-rootfs.ext4",
-      "size_bytes": 2147483648,
-      "checksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "labels": {
-        "os": "ubuntu",
-        "arch": "x86_64",
-        "variant": "minimal"
-      },
-      "build_id": "build-123",
-      "source_image": "docker.io/library/ubuntu:22.04"
-    }
+    "name": "Ubuntu 22.04 Base",
+    "type": "ASSET_TYPE_ROOTFS",
+    "backend": "STORAGE_BACKEND_LOCAL",
+    "location": "e3/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 2147483648,
+    "checksum": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "labels": {
+      "os": "ubuntu",
+      "arch": "x86_64",
+      "docker_image": "docker.io/library/ubuntu:22.04"
+    },
+    "build_id": "build-123",
+    "source_image": "docker.io/library/ubuntu:22.04",
+    "created_by": "builderd"
   }'
 ```
 
@@ -95,7 +89,7 @@ curl -X POST http://localhost:8083/asset.v1.AssetManagerService/RegisterAsset \
 
 Retrieves information about a specific asset and optionally ensures it's available locally.
 
-**Implementation**: [`internal/service/service.go:161`](../../internal/service/service.go:161)
+**Implementation**: [`internal/service/service.go:143`](../../internal/service/service.go:143)
 
 #### Request
 
@@ -111,6 +105,7 @@ message GetAssetRequest {
 ```protobuf
 message GetAssetResponse {
   Asset asset = 1;
+  string local_path = 2;  // Local path if ensure_local was true
 }
 ```
 
@@ -137,17 +132,17 @@ curl -X POST http://localhost:8083/asset.v1.AssetManagerService/GetAsset \
 
 Lists assets with optional filtering by type, status, and labels.
 
-**Implementation**: [`internal/service/service.go:184`](../../internal/service/service.go:184)
+**Implementation**: [`internal/service/service.go:186`](../../internal/service/service.go:186)
 
 #### Request
 
 ```protobuf
 message ListAssetsRequest {
-  AssetType type = 1;              // Optional: filter by type
-  AssetStatus status = 2;          // Optional: filter by status
-  map<string, string> labels = 3;  // Optional: filter by labels (AND logic)
-  int32 page_size = 4;            // Max results per page (default: 50)
-  string page_token = 5;          // Pagination token
+  AssetType type = 1;                    // Optional: filter by type
+  AssetStatus status = 2;                // Optional: filter by status
+  map<string, string> label_selector = 3; // Optional: filter by labels (AND logic)
+  int32 page_size = 4;                  // Max results per page (default: 100)
+  string page_token = 5;                // Pagination token
 }
 ```
 
@@ -169,7 +164,7 @@ curl -X POST http://localhost:8083/asset.v1.AssetManagerService/ListAssets \
   -d '{
     "type": "ASSET_TYPE_ROOTFS",
     "status": "ASSET_STATUS_ACTIVE",
-    "labels": {"arch": "x86_64"},
+    "label_selector": {"arch": "x86_64"},
     "page_size": 20
   }'
 ```
@@ -178,14 +173,14 @@ curl -X POST http://localhost:8083/asset.v1.AssetManagerService/ListAssets \
 
 Acquires a lease on an asset, preventing it from being garbage collected. Used by metald when creating VMs.
 
-**Implementation**: [`internal/service/service.go:218`](../../internal/service/service.go:218)
+**Implementation**: [`internal/service/service.go:270`](../../internal/service/service.go:270)
 
 #### Request
 
 ```protobuf
 message AcquireAssetRequest {
   string asset_id = 1;      // Asset to lease
-  string holder_id = 2;     // VM or service acquiring the lease
+  string acquired_by = 2;   // VM or service acquiring the lease
   int64 ttl_seconds = 3;    // Lease duration (0 = default from config)
 }
 ```
@@ -194,15 +189,8 @@ message AcquireAssetRequest {
 
 ```protobuf
 message AcquireAssetResponse {
-  Lease lease = 1;
-}
-
-message Lease {
-  string id = 1;            // Lease ID (ULID)
-  string asset_id = 2;      // Associated asset
-  string holder_id = 3;     // Lease holder
-  google.protobuf.Timestamp created_at = 4;
-  google.protobuf.Timestamp expires_at = 5;
+  Asset asset = 1;
+  string lease_id = 2;
 }
 ```
 
@@ -213,7 +201,7 @@ curl -X POST http://localhost:8083/asset.v1.AssetManagerService/AcquireAsset \
   -H "Content-Type: application/json" \
   -d '{
     "asset_id": "01HQXYZABC123456789DEFGHJ",
-    "holder_id": "vm-123",
+    "acquired_by": "vm-123",
     "ttl_seconds": 3600
   }'
 ```
@@ -228,7 +216,7 @@ curl -X POST http://localhost:8083/asset.v1.AssetManagerService/AcquireAsset \
 
 Releases a previously acquired lease, decrementing the asset's reference count.
 
-**Implementation**: [`internal/service/service.go:256`](../../internal/service/service.go:256)
+**Implementation**: [`internal/service/service.go:318`](../../internal/service/service.go:318)
 
 #### Request
 
@@ -242,7 +230,7 @@ message ReleaseAssetRequest {
 
 ```protobuf
 message ReleaseAssetResponse {
-  bool success = 1;
+  Asset asset = 1;
 }
 ```
 
@@ -258,7 +246,7 @@ curl -X POST http://localhost:8083/asset.v1.AssetManagerService/ReleaseAsset \
 
 Prepares multiple assets for use by copying or linking them to target locations. This is the primary RPC used by metald to prepare assets in VM jailer chroot paths.
 
-**Implementation**: [`internal/service/service.go:343`](../../internal/service/service.go:343)
+**Implementation**: [`internal/service/service.go:497`](../../internal/service/service.go:497)
 
 #### Request
 
@@ -266,7 +254,7 @@ Prepares multiple assets for use by copying or linking them to target locations.
 message PrepareAssetsRequest {
   repeated string asset_ids = 1;   // Assets to prepare
   string target_path = 2;          // Target directory
-  string holder_id = 3;            // VM or service ID
+  string prepared_for = 3;         // VM or service ID
 }
 ```
 
@@ -274,12 +262,7 @@ message PrepareAssetsRequest {
 
 ```protobuf
 message PrepareAssetsResponse {
-  map<string, PreparedAsset> prepared_assets = 1;
-}
-
-message PreparedAsset {
-  string local_path = 1;   // Path where asset is prepared
-  string lease_id = 2;     // Associated lease
+  map<string, string> asset_paths = 1;  // asset_id -> local path
 }
 ```
 
@@ -292,7 +275,7 @@ curl -X POST http://localhost:8083/asset.v1.AssetManagerService/PrepareAssets \
   -d '{
     "asset_ids": ["kernel-123", "rootfs-456"],
     "target_path": "/var/lib/firecracker/vm-789/chroot",
-    "holder_id": "vm-789"
+    "prepared_for": "vm-789"
   }'
 ```
 
@@ -310,7 +293,7 @@ curl -X POST http://localhost:8083/asset.v1.AssetManagerService/PrepareAssets \
 
 Marks an asset for deletion. The asset will be removed during the next garbage collection cycle if it has no active leases.
 
-**Implementation**: [`internal/service/service.go:275`](../../internal/service/service.go:275)
+**Implementation**: [`internal/service/service.go:350`](../../internal/service/service.go:350)
 
 #### Request
 
@@ -325,7 +308,8 @@ message DeleteAssetRequest {
 
 ```protobuf
 message DeleteAssetResponse {
-  bool success = 1;
+  bool deleted = 1;
+  string message = 2;
 }
 ```
 
@@ -344,13 +328,15 @@ curl -X POST http://localhost:8083/asset.v1.AssetManagerService/DeleteAsset \
 
 Manually triggers garbage collection to clean up expired leases and deleted assets.
 
-**Implementation**: [`internal/service/service.go:309`](../../internal/service/service.go:309)
+**Implementation**: [`internal/service/service.go:407`](../../internal/service/service.go:407)
 
 #### Request
 
 ```protobuf
 message GarbageCollectRequest {
-  bool dry_run = 1;  // If true, only report what would be deleted
+  int64 max_age_seconds = 1;       // Delete assets not accessed in this many seconds
+  bool delete_unreferenced = 2;    // Delete assets with 0 references
+  bool dry_run = 3;               // If true, only report what would be deleted
 }
 ```
 
@@ -358,9 +344,8 @@ message GarbageCollectRequest {
 
 ```protobuf
 message GarbageCollectResponse {
-  int32 expired_leases_removed = 1;
-  int32 assets_removed = 2;
-  repeated string removed_asset_ids = 3;
+  repeated Asset deleted_assets = 1;
+  int64 bytes_freed = 2;
 }
 ```
 
@@ -383,6 +368,83 @@ curl -X POST http://localhost:8083/asset.v1.AssetManagerService/GarbageCollect \
 3. Removes files from storage
 4. Deletes database records
 
+### QueryAssets
+
+Enhanced asset query with automatic build triggering capabilities. This is the primary method used by metald to get assets and automatically trigger builds when assets don't exist.
+
+**Implementation**: [`internal/service/service.go:790`](../../internal/service/service.go:790)
+
+#### Request
+
+```protobuf
+message QueryAssetsRequest {
+  AssetType type = 1;                    // Optional: filter by type
+  AssetStatus status = 2;                // Optional: filter by status
+  map<string, string> label_selector = 3; // Optional: filter by labels (AND logic)
+  int32 page_size = 4;                  // Max results per page (default: 100)
+  string page_token = 5;                // Pagination token
+  BuildOptions build_options = 6;       // Build options for automatic asset creation
+}
+
+message BuildOptions {
+  bool enable_auto_build = 1;           // Enable automatic building if assets don't exist
+  bool wait_for_completion = 2;         // Wait for build completion before returning
+  int32 build_timeout_seconds = 3;      // Timeout for build operation
+  map<string, string> build_labels = 4; // Additional labels for the built asset
+  string tenant_id = 5;                 // Tenant context for build authorization
+  string suggested_asset_id = 6;        // Suggested asset ID for registration
+}
+```
+
+#### Response
+
+```protobuf
+message QueryAssetsResponse {
+  repeated Asset assets = 1;
+  string next_page_token = 2;
+  repeated BuildInfo triggered_builds = 3;
+}
+
+message BuildInfo {
+  string build_id = 1;
+  string docker_image = 2;
+  string status = 3;        // "pending", "building", "completed", "failed"
+  string error_message = 4;
+  string asset_id = 5;      // Asset ID if build completed
+}
+```
+
+#### Example
+
+```bash
+# Query for nginx rootfs with automatic build
+curl -X POST http://localhost:8083/asset.v1.AssetManagerService/QueryAssets \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "ASSET_TYPE_ROOTFS",
+    "label_selector": {
+      "docker_image": "nginx:latest"
+    },
+    "build_options": {
+      "enable_auto_build": true,
+      "wait_for_completion": true,
+      "build_timeout_seconds": 1800,
+      "tenant_id": "tenant-123",
+      "suggested_asset_id": "nginx-rootfs-123"
+    }
+  }'
+```
+
+#### Downstream Behavior
+
+- First queries existing assets like ListAssets
+- If no assets found and auto-build enabled:
+  - Extracts docker_image from label_selector
+  - Calls builderd to trigger a new build
+  - Optionally waits for completion if wait_for_completion=true
+  - Returns build information in triggered_builds field
+- Integration requires builderd client to be configured and enabled
+
 ## Data Types
 
 ### AssetType Enum
@@ -402,9 +464,22 @@ enum AssetType {
 ```protobuf
 enum AssetStatus {
   ASSET_STATUS_UNSPECIFIED = 0;
-  ASSET_STATUS_ACTIVE = 1;     // Available for use
-  ASSET_STATUS_DEPRECATED = 2; // Still usable but not recommended
-  ASSET_STATUS_DELETED = 3;    // Marked for deletion
+  ASSET_STATUS_UPLOADING = 1;   // Being uploaded
+  ASSET_STATUS_AVAILABLE = 2;   // Available for use
+  ASSET_STATUS_DELETING = 3;    // Being deleted
+  ASSET_STATUS_ERROR = 4;       // Error state
+}
+```
+
+### StorageBackend Enum
+
+```protobuf
+enum StorageBackend {
+  STORAGE_BACKEND_UNSPECIFIED = 0;
+  STORAGE_BACKEND_LOCAL = 1;    // Local filesystem storage
+  STORAGE_BACKEND_S3 = 2;       // Amazon S3 or compatible
+  STORAGE_BACKEND_HTTP = 3;     // HTTP URL-based storage
+  STORAGE_BACKEND_NFS = 4;      // Network File System
 }
 ```
 

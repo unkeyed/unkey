@@ -1,35 +1,90 @@
-# builderd
+# Builderd - Multi-Tenant Build Service
 
-Multi-tenant build service that transforms various source types (Docker images, Git repositories, archives) into optimized rootfs images for microVM execution.
-
-## Architecture
-
-builderd provides a high-performance, tenant-isolated build pipeline with comprehensive resource management and observability. It accepts build requests through a ConnectRPC API and produces optimized rootfs images suitable for Firecracker microVM deployment.
-
-## Dependencies
-
-- **Storage Backend**: Local filesystem, S3-compatible, or Google Cloud Storage for artifact persistence
-- **Docker Registry**: Access to container registries for pulling base images
-- **[assetmanagerd](../assetmanagerd/README.md)** - Registers built rootfs images for VM provisioning (IMPLEMENTED)
-- **[metald](../metald/README.md)** - Consumes rootfs output for VM provisioning via assetmanagerd
-- **[billaged](../billaged/README.md)** // AIDEV: billaged documentation needed for complete interaction description - Future integration for resource usage billing
-
-## Deployment
-
-- **Binary**: `builderd`
-- **Default Port**: 8082
-- **Systemd Unit**: [`contrib/systemd/builderd.service`](contrib/systemd/builderd.service)
-- **Resource Requirements**:
-  - CPU: 2-4 cores (scales with concurrent builds)
-  - Memory: 4-8GB (depends on build workloads)
-  - Disk: 50-100GB (for build workspace and artifact storage)
+Builderd transforms various source types into optimized rootfs images for Firecracker microVM execution with comprehensive multi-tenant isolation and resource management.
 
 ## Quick Links
 
-- [API Reference](docs/api/README.md) - Complete RPC API documentation
-- [Architecture Guide](docs/architecture/README.md) - System design and components
-- [Operations Guide](docs/operations/README.md) - Deployment and monitoring
-- [Development Guide](docs/development/README.md) - Building and testing
+- [API Documentation](./docs/api/README.md) - Complete API reference with examples
+- [Architecture & Dependencies](./docs/architecture/README.md) - Service design and integrations
+- [Operations Guide](./docs/operations/README.md) - Production deployment and monitoring
+- [Development Setup](./docs/development/README.md) - Build, test, and local development
+
+## Service Overview
+
+**Purpose**: Multi-tenant build execution service that processes Docker images, Git repositories, and archives to produce optimized ext4 rootfs images for microVM deployment.
+
+### Key Features
+
+- **Multi-Tenant Isolation**: Linux namespaces, cgroups, and tenant-specific resource limits
+- **Docker Image Processing**: Pull, extract, and optimize Docker images to rootfs
+- **Asset Registration**: Automatic registration with [assetmanagerd](../assetmanagerd/README.md) for VM deployment
+- **Real-time Monitoring**: OpenTelemetry tracing, build metrics, and streaming logs
+- **Resource Management**: Per-tenant quotas for CPU, memory, disk, and concurrent builds
+- **Optimization**: Rootfs size reduction through layer flattening and cleanup
+- **Security**: SPIFFE/mTLS authentication and sandboxed build execution
+
+### Dependencies
+
+- [assetmanagerd](../assetmanagerd/README.md) - Registers built artifacts for VM provisioning
+- [metald](../metald/README.md) - Consumes registered assets for VM creation
+- SPIFFE/Spire - Service authentication and mTLS
+- Docker Engine - Image pulling and container operations
+- OpenTelemetry - Observability and metrics collection
+
+## Quick Start
+
+### Installation
+
+```bash
+# Build from source
+cd builderd
+make build
+
+# Install with systemd
+sudo make install
+```
+
+### Basic Configuration
+
+```bash
+# Minimal configuration for development
+export UNKEY_BUILDERD_PORT=8082
+export UNKEY_BUILDERD_STORAGE_BACKEND=local
+export UNKEY_BUILDERD_ROOTFS_OUTPUT_DIR=/opt/builderd/rootfs
+export UNKEY_BUILDERD_TLS_MODE=spiffe
+export UNKEY_BUILDERD_ASSETMANAGER_ENABLED=true
+
+./builderd
+```
+
+### Create Your First Build
+
+```bash
+# Submit a Docker image build
+curl -X POST http://localhost:8082/builder.v1.BuilderService/CreateBuild \
+  -H "Content-Type: application/json" \
+  -d '{
+    "config": {
+      "tenant": {
+        "tenant_id": "test-tenant",
+        "tier": "TENANT_TIER_FREE"
+      },
+      "source": {
+        "docker_image": {
+          "image_uri": "nginx:1.21-alpine"
+        }
+      },
+      "target": {
+        "microvm_rootfs": {
+          "init_strategy": "INIT_STRATEGY_TINI"
+        }
+      },
+      "strategy": {
+        "docker_extract": {}
+      }
+    }
+  }'
+```
 
 ## Overview
 

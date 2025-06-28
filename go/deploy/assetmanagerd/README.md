@@ -50,7 +50,7 @@ export UNKEY_ASSETMANAGERD_PORT=8083
 export UNKEY_ASSETMANAGERD_STORAGE_TYPE=local
 export UNKEY_ASSETMANAGERD_LOCAL_PATH=/opt/vm-assets
 export UNKEY_ASSETMANAGERD_DATABASE_PATH=/opt/assetmanagerd/assets.db
-export UNKEY_ASSETMANAGERD_TLS_MODE=disabled
+export UNKEY_ASSETMANAGERD_TLS_MODE=spiffe
 
 ./assetmanagerd
 ```
@@ -62,19 +62,18 @@ export UNKEY_ASSETMANAGERD_TLS_MODE=disabled
 curl -X POST http://localhost:8083/asset.v1.AssetManagerService/RegisterAsset \
   -H "Content-Type: application/json" \
   -d '{
-    "asset": {
-      "id": "kernel-v5.10",
-      "type": "ASSET_TYPE_KERNEL",
-      "name": "Linux Kernel 5.10",
-      "version": "5.10.0",
-      "path": "/opt/vm-assets/vmlinux-5.10",
-      "size_bytes": 10485760,
-      "checksum": "sha256:abcd1234...",
-      "labels": {
-        "arch": "x86_64",
-        "kernel_version": "5.10.0"
-      }
-    }
+    "name": "vmlinux",
+    "type": "ASSET_TYPE_KERNEL",
+    "backend": "STORAGE_BACKEND_LOCAL",
+    "location": "ab/abcd1234...",
+    "size_bytes": 10485760,
+    "checksum": "abcd1234...",
+    "labels": {
+      "arch": "x86_64",
+      "version": "5.10",
+      "default": "true"
+    },
+    "created_by": "manual"
   }'
 ```
 
@@ -171,6 +170,7 @@ The service exposes a ConnectRPC API with the following main operations:
 - `PrepareAssets` - Prepare assets for VM deployment
 - `DeleteAsset` - Mark asset for deletion
 - `GarbageCollect` - Manually trigger garbage collection
+- `QueryAssets` - Enhanced asset query with automatic build triggering
 
 See [API Documentation](./docs/api/README.md) for complete reference.
 
@@ -217,3 +217,30 @@ See [Development Setup](./docs/development/README.md) for detailed instructions.
 - **Issues**: [GitHub Issues](https://github.com/unkeyed/unkey/issues)
 - **Documentation**: [Full Documentation](./docs/README.md)
 - **Version**: v0.3.0
+
+## Automatic Asset Building
+
+AssetManagerd integrates with builderd to automatically create missing assets. When QueryAssets is called with:
+- `enable_auto_build: true`
+- A docker_image label in the query
+- No matching assets found
+
+The service will automatically trigger builderd to create the rootfs and register it upon completion.
+
+```bash
+# Query with auto-build enabled
+curl -X POST http://localhost:8083/asset.v1.AssetManagerService/QueryAssets \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "ASSET_TYPE_ROOTFS",
+    "label_selector": {
+      "docker_image": "nginx:latest"
+    },
+    "build_options": {
+      "enable_auto_build": true,
+      "wait_for_completion": true,
+      "build_timeout_seconds": 1800,
+      "tenant_id": "tenant-123"
+    }
+  }'
+```

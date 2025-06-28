@@ -138,7 +138,7 @@ Generate documentation following this structure, enriching each section with dis
 ### 4. Completeness Checklist
 - [ ] All public APIs documented with examples
 - [ ] All discovered dependencies documented or marked with AIDEV
-- [ ] Service interaction patterns clearly described
+- [ ] Service interaction patterns clearly described w/SPIFFE & Spire
 - [ ] Configuration options explained with validation rules
 - [ ] Error scenarios documented with response codes
 - [ ] Monitoring and observability fully covered
@@ -158,6 +158,8 @@ A: ...
 For each `Q:,A:` pair, Read `Q:` question. Analyze if `Q:` is a question. If `Q:` **IS** a question, provide a summary answer `A:` in the place of `...`. If it is not a question, the answer `A:` should be, `A: // AIDEV-WAKARIMASEN`.
 
 ## Quality Standards
+
+**Accuracy**: Documentation should **ALWAYS** reference source code. When there is no suitable reference, an example file may be created to provide reference. As a last resort you may use code blocks with the chunk of code required.
 
 **Ecosystem Awareness**: Documentation should reflect the service's role in the larger system architecture based on discovered dependencies.
 
@@ -187,3 +189,4 @@ For each `Q:,A:` pair, Read `Q:` question. Analyze if `Q:` is a question. If `Q:
      - Each subdirectory should contain focused markdown files
 6. Save the documentation to the appropriate location based on the discovered documentation structure pattern
 7. Answer `${SERVICE_NAME}/QUESTIONS.md` appropriately.
+8. Do not copy bits of code (e.g. proto defs, function signatures, etc), link to the relevant source with line number.
