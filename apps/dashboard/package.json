@@ -76,7 +76,7 @@
     "next": "^14.2.25",
     "next-themes": "^0.3.0",
     "nuqs": "^1.17.6",
-    "openai": "^4.78.1",
+    "openai": "^5.5.1",
     "postcss": "8.4.38",
     "postcss-focus-visible": "^9.0.1",
     "posthog-js": "^1.179.0",
