@@ -1,4 +1,4 @@
-// Package spiffe provides SPIFFE-based mTLS configuration for gRPC and HTTP clients.
+// Package spiffe provides SPIFFE-based mTLS configuration for HTTP clients.
 package spiffe
 
 import (
@@ -13,8 +13,6 @@ import (
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
 	"github.com/spiffe/go-spiffe/v2/workloadapi"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 // Client provides SPIFFE-based mTLS configuration using X.509 SVIDs.
@@ -113,13 +111,6 @@ func (c *Client) HTTPClient() *http.Client {
 		Transport: transport,
 		Timeout:   30 * time.Second,
 	}
-}
-
-// GRPCDialOption returns a gRPC dial option configured with mTLS.
-func (c *Client) GRPCDialOption() grpc.DialOption {
-	return grpc.WithTransportCredentials(
-		credentials.NewTLS(c.ClientTLSConfig()),
-	)
 }
 
 // AuthorizeService returns an authorizer that validates certificates from the same trust domain.

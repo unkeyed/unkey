@@ -344,6 +344,7 @@ func (s *VMService) BootVm(ctx context.Context, req *connect.Request[metaldv1.Bo
 		)
 	}
 
+
 	// AIDEV-NOTE: Metrics collection re-enabled - metald now reads from Firecracker stats sockets
 	// Start metrics collection for billing
 	if s.metricsCollector != nil {

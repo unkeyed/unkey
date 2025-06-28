@@ -24,7 +24,6 @@
 //
 //	// Wrap HTTP handlers for automatic instrumentation
 //	handler := provider.WrapHandler(myHandler, "operation-name")
-//
 package telemetry
 
 import (
@@ -42,8 +41,8 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/exporters/prometheus"
 	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/resource"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
@@ -87,10 +86,10 @@ type Provider struct {
 	// PrometheusHTTP serves Prometheus metrics when metrics are enabled.
 	PrometheusHTTP http.Handler
 	// Resource contains service identification attributes used by all providers.
-	Resource *resource.Resource
-	promExporter   *prometheus.Exporter
-	shutdownFuncs  []func(context.Context) error
-	mu             sync.Mutex
+	Resource      *resource.Resource
+	promExporter  *prometheus.Exporter
+	shutdownFuncs []func(context.Context) error
+	mu            sync.Mutex
 }
 
 // Initialize sets up OpenTelemetry providers for tracing and metrics collection.
@@ -199,7 +198,7 @@ func (p *Provider) initMetrics(ctx context.Context, cfg *Config, logger *slog.Lo
 	otel.SetMeterProvider(mp)
 	p.MeterProvider = mp
 	p.addShutdownFunc(mp.Shutdown)
-	
+
 	// Set up Prometheus HTTP handler if enabled
 	if cfg.PrometheusEnabled {
 		// The prometheus exporter automatically registers collectors with the default registry

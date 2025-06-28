@@ -25,7 +25,7 @@ func NewClientTracePropagationInterceptor(logger *slog.Logger) connect.UnaryInte
 			// Use the global propagator to inject trace context into headers
 			propagator := otel.GetTextMapPropagator()
 			propagator.Inject(ctx, propagation.HeaderCarrier(req.Header()))
-			
+
 			// Log trace propagation for debugging
 			if span := trace.SpanFromContext(ctx); span.SpanContext().IsValid() {
 				logger.LogAttrs(ctx, slog.LevelDebug, "propagating trace context",
@@ -35,7 +35,7 @@ func NewClientTracePropagationInterceptor(logger *slog.Logger) connect.UnaryInte
 					slog.Bool("sampled", span.SpanContext().IsSampled()),
 				)
 			}
-			
+
 			return next(ctx, req)
 		}
 	}
@@ -63,14 +63,14 @@ func NewClientTenantForwardingInterceptor(logger *slog.Logger) connect.UnaryInte
 				if tenantCtx.AuthToken != "" {
 					req.Header().Set("Authorization", tenantCtx.AuthToken)
 				}
-				
+
 				logger.LogAttrs(ctx, slog.LevelDebug, "forwarding tenant context",
 					slog.String("tenant_id", tenantCtx.TenantID),
 					slog.String("customer_id", tenantCtx.CustomerID),
 					slog.String("procedure", req.Spec().Procedure),
 				)
 			}
-			
+
 			return next(ctx, req)
 		}
 	}
@@ -84,12 +84,12 @@ func NewClientTenantForwardingInterceptor(logger *slog.Logger) connect.UnaryInte
 // the parent trace.
 func NewClientMetricsInterceptor(serviceName string, logger *slog.Logger) connect.UnaryInterceptorFunc {
 	tracer := otel.Tracer(serviceName)
-	
+
 	return func(next connect.UnaryFunc) connect.UnaryFunc {
 		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
 			// Extract procedure info
 			procedure := req.Spec().Procedure
-			
+
 			// Create a client span
 			ctx, span := tracer.Start(ctx, procedure,
 				trace.WithSpanKind(trace.SpanKindClient),
@@ -100,7 +100,7 @@ func NewClientMetricsInterceptor(serviceName string, logger *slog.Logger) connec
 				),
 			)
 			defer span.End()
-			
+
 			// Add tenant info to span if available
 			if tenantCtx, ok := TenantFromContext(ctx); ok && tenantCtx.TenantID != "" {
 				span.SetAttributes(
@@ -108,10 +108,10 @@ func NewClientMetricsInterceptor(serviceName string, logger *slog.Logger) connec
 					attribute.String("tenant.customer_id", tenantCtx.CustomerID),
 				)
 			}
-			
+
 			// Execute the RPC call
 			resp, err := next(ctx, req)
-			
+
 			// Record the result
 			if err != nil {
 				span.RecordError(err)
@@ -119,7 +119,7 @@ func NewClientMetricsInterceptor(serviceName string, logger *slog.Logger) connec
 			} else {
 				span.SetStatus(codes.Ok, "")
 			}
-			
+
 			return resp, err
 		}
 	}

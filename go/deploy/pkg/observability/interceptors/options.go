@@ -104,12 +104,12 @@ func WithErrorResampling(enabled bool) Option {
 // applyOptions creates an Options struct from the provided options.
 func applyOptions(opts []Option) *Options {
 	options := &Options{
-		ServiceName:                "unknown",
-		EnableActiveRequestsMetric: true,
+		ServiceName:                 "unknown",
+		EnableActiveRequestsMetric:  true,
 		EnableRequestDurationMetric: false,
-		TenantAuthRequired:         true,
-		EnablePanicStackTrace:      true,
-		EnableErrorResampling:      true,
+		TenantAuthRequired:          true,
+		EnablePanicStackTrace:       true,
+		EnableErrorResampling:       true,
 	}
 
 	for _, opt := range opts {

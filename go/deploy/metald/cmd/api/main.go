@@ -241,7 +241,7 @@ func main() {
 		}
 
 		// Use SDK v4 with integrated jailer - the only supported backend
-		sdkClient, err := firecracker.NewSDKClientV4(logger, networkManager, assetClient, &cfg.Backend.Jailer, baseDir)
+		sdkClient, err := firecracker.NewSDKClientV4(logger, networkManager, assetClient, vmRepo, &cfg.Backend.Jailer, baseDir)
 		if err != nil {
 			logger.Error("failed to create SDK client v4 with integrated jailer",
 				slog.String("error", err.Error()),

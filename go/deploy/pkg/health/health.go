@@ -36,7 +36,7 @@ func Handler(serviceName, version string, startTime time.Time) http.HandlerFunc 
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		
+
 		if err := json.NewEncoder(w).Encode(response); err != nil {
 			// If we can't encode the response, return a simple text response
 			w.Header().Set("Content-Type", "text/plain")

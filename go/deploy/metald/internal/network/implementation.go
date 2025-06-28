@@ -26,6 +26,10 @@ type Config struct {
 	DNSServers      []string // Default: ["8.8.8.8", "8.8.4.4"]
 	EnableRateLimit bool
 	RateLimitMbps   int // Per VM rate limit in Mbps
+	
+	// Port allocation configuration
+	PortRangeMin int // Default: 32768
+	PortRangeMax int // Default: 65535
 }
 
 // DefaultConfig returns default network configuration
@@ -37,17 +41,20 @@ func DefaultConfig() *Config {
 		DNSServers:      []string{"8.8.8.8", "8.8.4.4"},
 		EnableRateLimit: true,
 		RateLimitMbps:   100, // 100 Mbps default
+		PortRangeMin:    32768, // Ephemeral port range start
+		PortRangeMax:    65535, // Ephemeral port range end
 	}
 }
 
 // Manager handles VM networking
 type Manager struct {
-	logger     *slog.Logger
-	config     *Config
-	allocator  *IPAllocator
-	idGen      *IDGenerator
-	mu         sync.RWMutex
-	vmNetworks map[string]*VMNetwork
+	logger        *slog.Logger
+	config        *Config
+	allocator     *IPAllocator
+	portAllocator *PortAllocator
+	idGen         *IDGenerator
+	mu            sync.RWMutex
+	vmNetworks    map[string]*VMNetwork
 
 	// Runtime state
 	bridgeCreated bool
@@ -73,11 +80,12 @@ func NewManager(logger *slog.Logger, config *Config) (*Manager, error) {
 	}
 
 	m := &Manager{ //nolint:exhaustruct // mu, bridgeCreated, and iptablesRules fields use appropriate zero values
-		logger:     logger,
-		config:     config,
-		allocator:  NewIPAllocator(subnet),
-		idGen:      NewIDGenerator(),
-		vmNetworks: make(map[string]*VMNetwork),
+		logger:        logger,
+		config:        config,
+		allocator:     NewIPAllocator(subnet),
+		portAllocator: NewPortAllocator(config.PortRangeMin, config.PortRangeMax),
+		idGen:         NewIDGenerator(),
+		vmNetworks:    make(map[string]*VMNetwork),
 	}
 
 	// Log current network state before initialization
@@ -1213,4 +1221,118 @@ func (m *Manager) logNetworkState(context string) {
 			}
 		}
 	}
+}
+
+// AIDEV-NOTE: Port management methods for container-like networking
+
+// AllocatePortsForVM allocates host ports for container ports based on metadata
+func (m *Manager) AllocatePortsForVM(vmID string, exposedPorts []string) ([]PortMapping, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	
+	var mappings []PortMapping
+	
+	for _, portSpec := range exposedPorts {
+		// Parse port format: can be "80", "80/tcp", "80/udp"
+		parts := strings.Split(portSpec, "/")
+		if len(parts) == 0 {
+			continue
+		}
+		
+		var containerPort int
+		protocol := "tcp" // default
+		
+		if _, err := fmt.Sscanf(parts[0], "%d", &containerPort); err != nil {
+			m.logger.Warn("invalid port format", 
+				slog.String("port_spec", portSpec),
+				slog.String("error", err.Error()),
+			)
+			continue
+		}
+		
+		if len(parts) > 1 {
+			protocol = strings.ToLower(parts[1])
+		}
+		
+		// Allocate host port
+		hostPort, err := m.portAllocator.AllocatePort(vmID, containerPort, protocol)
+		if err != nil {
+			// Clean up any already allocated ports
+			m.releaseVMPortsLocked(vmID)
+			return nil, fmt.Errorf("failed to allocate port %s for VM %s: %w", portSpec, vmID, err)
+		}
+		
+		mapping := PortMapping{
+			ContainerPort: containerPort,
+			HostPort:      hostPort,
+			Protocol:      protocol,
+			VMID:          vmID,
+		}
+		mappings = append(mappings, mapping)
+		
+		m.logger.Info("allocated port mapping",
+			slog.String("vm_id", vmID),
+			slog.Int("container_port", containerPort),
+			slog.Int("host_port", hostPort),
+			slog.String("protocol", protocol),
+		)
+	}
+	
+	return mappings, nil
+}
+
+// ReleaseVMPorts releases all ports allocated to a VM
+func (m *Manager) ReleaseVMPorts(vmID string) []PortMapping {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	
+	return m.releaseVMPortsLocked(vmID)
+}
+
+// releaseVMPortsLocked releases VM ports with lock already held
+func (m *Manager) releaseVMPortsLocked(vmID string) []PortMapping {
+	mappings := m.portAllocator.ReleaseVMPorts(vmID)
+	
+	for _, mapping := range mappings {
+		m.logger.Info("released port mapping",
+			slog.String("vm_id", vmID),
+			slog.Int("container_port", mapping.ContainerPort),
+			slog.Int("host_port", mapping.HostPort),
+			slog.String("protocol", mapping.Protocol),
+		)
+	}
+	
+	return mappings
+}
+
+// GetVMPorts returns all port mappings for a VM
+func (m *Manager) GetVMPorts(vmID string) []PortMapping {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	
+	return m.portAllocator.GetVMPorts(vmID)
+}
+
+// GetPortVM returns the VM ID that has allocated the given host port
+func (m *Manager) GetPortVM(hostPort int) (string, bool) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	
+	return m.portAllocator.GetPortVM(hostPort)
+}
+
+// IsPortAllocated checks if a host port is allocated
+func (m *Manager) IsPortAllocated(hostPort int) bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	
+	return m.portAllocator.IsPortAllocated(hostPort)
+}
+
+// GetPortAllocationStats returns port allocation statistics
+func (m *Manager) GetPortAllocationStats() (allocated, available int) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	
+	return m.portAllocator.GetAllocatedCount(), m.portAllocator.GetAvailableCount()
 }

@@ -34,9 +34,6 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/deploy/pkg/spiffe"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 // Provider abstracts TLS configuration source across different backends.
@@ -51,9 +48,6 @@ type Provider interface {
 
 	// HTTPClient returns an HTTP client configured with appropriate TLS settings.
 	HTTPClient() *http.Client
-
-	// GRPCDialOption returns gRPC dial option with appropriate credentials.
-	GRPCDialOption() grpc.DialOption
 
 	// Close releases any resources held by the provider.
 	Close() error
@@ -135,10 +129,6 @@ func (p *disabledProvider) ClientTLSConfig() (*tls.Config, error) {
 
 func (p *disabledProvider) HTTPClient() *http.Client {
 	return &http.Client{}
-}
-
-func (p *disabledProvider) GRPCDialOption() grpc.DialOption {
-	return grpc.WithTransportCredentials(insecure.NewCredentials())
 }
 
 func (p *disabledProvider) Close() error {
@@ -278,14 +268,6 @@ func (p *fileProvider) HTTPClient() *http.Client {
 	}
 }
 
-func (p *fileProvider) GRPCDialOption() grpc.DialOption {
-	tlsConfig, _ := p.loadTLSConfig()
-	if tlsConfig != nil {
-		return grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig))
-	}
-	return grpc.WithTransportCredentials(insecure.NewCredentials())
-}
-
 func (p *fileProvider) Close() error {
 	return nil
 }
@@ -325,10 +307,6 @@ func (p *spiffeProvider) ClientTLSConfig() (*tls.Config, error) {
 
 func (p *spiffeProvider) HTTPClient() *http.Client {
 	return p.client.HTTPClient()
-}
-
-func (p *spiffeProvider) GRPCDialOption() grpc.DialOption {
-	return p.client.GRPCDialOption()
 }
 
 func (p *spiffeProvider) Close() error {

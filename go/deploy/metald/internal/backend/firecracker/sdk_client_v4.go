@@ -43,7 +43,7 @@ type sdkV4VM struct {
 	CancelFunc   context.CancelFunc
 	AssetMapping *assetMapping      // Asset mapping for lease acquisition
 	AssetPaths   map[string]string  // Prepared asset paths
-	PortMappings []PortMapping      // Port forwarding configuration
+	PortMappings []network.PortMapping // Port forwarding configuration
 }
 
 // SDKClientV4 implements the Backend interface using firecracker-go-sdk
@@ -57,6 +57,7 @@ type SDKClientV4 struct {
 	logger          *slog.Logger
 	networkManager  *network.Manager
 	assetClient     assetmanager.Client
+	vmRepo          VMRepository // For port mapping persistence
 	vmRegistry      map[string]*sdkV4VM
 	vmAssetLeases   map[string][]string // VM ID -> asset lease IDs
 	jailer          *jailer.Jailer
@@ -70,8 +71,13 @@ type SDKClientV4 struct {
 	vmErrorCounter  metric.Int64Counter
 }
 
+// VMRepository defines the interface for VM database operations needed by the backend
+type VMRepository interface {
+	UpdateVMPortMappingsWithContext(ctx context.Context, vmID string, portMappingsJSON string) error
+}
+
 // NewSDKClientV4 creates a new SDK-based Firecracker backend client with integrated jailer
-func NewSDKClientV4(logger *slog.Logger, networkManager *network.Manager, assetClient assetmanager.Client, jailerConfig *config.JailerConfig, baseDir string) (*SDKClientV4, error) {
+func NewSDKClientV4(logger *slog.Logger, networkManager *network.Manager, assetClient assetmanager.Client, vmRepo VMRepository, jailerConfig *config.JailerConfig, baseDir string) (*SDKClientV4, error) {
 	tracer := otel.Tracer("metald.firecracker.sdk.v4")
 	meter := otel.Meter("metald.firecracker.sdk.v4")
 
@@ -114,6 +120,7 @@ func NewSDKClientV4(logger *slog.Logger, networkManager *network.Manager, assetC
 		logger:          logger.With("backend", "firecracker-sdk-v4"),
 		networkManager:  networkManager,
 		assetClient:     assetClient,
+		vmRepo:          vmRepo,
 		vmRegistry:      make(map[string]*sdkV4VM),
 		vmAssetLeases:   make(map[string][]string),
 		jailer:          integratedJailer,
@@ -274,7 +281,7 @@ func (c *SDKClientV4) BootVM(ctx context.Context, vmID string) error {
 
 	// Load container metadata and parse port mappings
 	var metadata *builderv1.ImageMetadata
-	var portMappings []PortMapping
+	var portMappings []network.PortMapping
 	for _, disk := range vm.Config.GetStorage() {
 		if disk.GetIsRootDevice() {
 			rootfsPath := disk.GetPath()
@@ -285,7 +292,15 @@ func (c *SDKClientV4) BootVM(ctx context.Context, vmID string) error {
 				)
 			} else if m != nil {
 				metadata = m
-				portMappings = c.parseExposedPorts(metadata)
+				if mappings, err := c.parseExposedPorts(ctx, vmID, metadata); err != nil {
+					c.logger.ErrorContext(ctx, "failed to parse exposed ports",
+						slog.String("vm_id", vmID),
+						slog.String("error", err.Error()),
+					)
+					// Continue without port mappings rather than failing the boot
+				} else {
+					portMappings = mappings
+				}
 				c.logger.LogAttrs(ctx, slog.LevelInfo, "loaded metadata for VM boot",
 					slog.String("vm_id", vmID),
 					slog.Int("port_count", len(portMappings)),
@@ -343,6 +358,29 @@ func (c *SDKClientV4) BootVM(ctx context.Context, vmID string) error {
 	vm.Machine = machine
 	vm.State = metaldv1.VmState_VM_STATE_RUNNING
 	vm.PortMappings = portMappings
+
+	// AIDEV-NOTE: Persist port mappings to database for state recovery
+	if c.vmRepo != nil && len(portMappings) > 0 {
+		portMappingsJSON, err := json.Marshal(portMappings)
+		if err != nil {
+			c.logger.WarnContext(ctx, "failed to marshal port mappings for persistence",
+				slog.String("vm_id", vmID),
+				slog.String("error", err.Error()),
+			)
+		} else {
+			if err := c.vmRepo.UpdateVMPortMappingsWithContext(ctx, vmID, string(portMappingsJSON)); err != nil {
+				c.logger.WarnContext(ctx, "failed to persist port mappings to database",
+					slog.String("vm_id", vmID),
+					slog.String("error", err.Error()),
+				)
+			} else {
+				c.logger.InfoContext(ctx, "persisted port mappings to database",
+					slog.String("vm_id", vmID),
+					slog.Int("port_count", len(portMappings)),
+				)
+			}
+		}
+	}
 
 	// Acquire asset leases after successful boot
 	if vm.AssetMapping != nil && len(vm.AssetMapping.AssetIDs()) > 0 {
@@ -870,6 +908,16 @@ func (c *SDKClientV4) prepareVMAssets(ctx context.Context, vmID string, config *
 	// Asset leases will be acquired after successful VM boot in BootVM
 	// to avoid holding leases for VMs that fail to start
 
+	// AIDEV-NOTE: Copy metadata files alongside rootfs assets if they exist
+	// Asset manager only handles the rootfs, but we need metadata for container execution
+	if err := c.copyMetadataFilesForAssets(ctx, vmID, config, preparedPaths, jailerRoot); err != nil {
+		c.logger.WarnContext(ctx, "failed to copy metadata files",
+			slog.String("vm_id", vmID),
+			slog.String("error", err.Error()),
+		)
+		// Don't fail asset preparation for metadata issues - VM can still run without metadata
+	}
+
 	return assetMapping, preparedPaths, nil
 }
 
@@ -1021,6 +1069,13 @@ func (c *SDKClientV4) DeleteVM(ctx context.Context, vmID string) error {
 				"error", err,
 			)
 		}
+		
+		// Release allocated ports in network manager
+		releasedMappings := c.networkManager.ReleaseVMPorts(vmID)
+		c.logger.InfoContext(ctx, "released VM port allocations",
+			slog.String("vm_id", vmID),
+			slog.Int("port_count", len(releasedMappings)),
+		)
 	}
 
 	// Delete network resources
@@ -1701,58 +1756,34 @@ func (c *SDKClientV4) buildKernelArgsWithMetadata(ctx context.Context, baseArgs 
 	return baseArgs
 }
 
-// PortMapping represents a mapping from container port to host port
-type PortMapping struct {
-	ContainerPort int
-	HostPort      int
-	Protocol      string // tcp or udp
-}
 
-// parseExposedPorts parses exposed ports from container metadata
-func (c *SDKClientV4) parseExposedPorts(metadata *builderv1.ImageMetadata) []PortMapping {
-	// AIDEV-NOTE: Parse exposed ports and create port mappings
-	var mappings []PortMapping
-	
+// parseExposedPorts parses exposed ports from container metadata and allocates host ports
+func (c *SDKClientV4) parseExposedPorts(ctx context.Context, vmID string, metadata *builderv1.ImageMetadata) ([]network.PortMapping, error) {
+	// AIDEV-NOTE: Parse exposed ports and allocate host ports using network manager
 	if metadata == nil || len(metadata.ExposedPorts) == 0 {
-		return mappings
+		return nil, nil
 	}
 	
-	for _, port := range metadata.ExposedPorts {
-		// Parse port format: can be "80", "80/tcp", "80/udp"
-		parts := strings.Split(port, "/")
-		portNum := 0
-		protocol := "tcp" // default
-		
-		if len(parts) > 0 {
-			// Parse port number
-			if n, err := fmt.Sscanf(parts[0], "%d", &portNum); err == nil && n == 1 {
-				if len(parts) > 1 {
-					protocol = strings.ToLower(parts[1])
-				}
-				
-				// For now, map container port to same host port
-				// In production, you'd want to allocate from a pool
-				mapping := PortMapping{
-					ContainerPort: portNum,
-					HostPort:      portNum,
-					Protocol:      protocol,
-				}
-				mappings = append(mappings, mapping)
-				
-				c.logger.LogAttrs(context.Background(), slog.LevelDebug, "parsed port mapping",
-					slog.Int("container_port", portNum),
-					slog.Int("host_port", portNum),
-					slog.String("protocol", protocol),
-				)
-			}
-		}
+	// Use network manager to allocate ports
+	mappings, err := c.networkManager.AllocatePortsForVM(vmID, metadata.ExposedPorts)
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to allocate ports for VM",
+			slog.String("vm_id", vmID),
+			slog.String("error", err.Error()),
+		)
+		return nil, fmt.Errorf("failed to allocate ports for VM %s: %w", vmID, err)
 	}
 	
-	return mappings
+	c.logger.InfoContext(ctx, "allocated ports for VM",
+		slog.String("vm_id", vmID),
+		slog.Int("port_count", len(mappings)),
+	)
+	
+	return mappings, nil
 }
 
 // configurePortForwarding sets up iptables rules for port forwarding
-func (c *SDKClientV4) configurePortForwarding(ctx context.Context, vmID string, vmIP string, mappings []PortMapping) error {
+func (c *SDKClientV4) configurePortForwarding(ctx context.Context, vmID string, vmIP string, mappings []network.PortMapping) error {
 	// AIDEV-NOTE: Configure iptables rules for port forwarding
 	
 	if len(mappings) == 0 {
@@ -1818,7 +1849,7 @@ func (c *SDKClientV4) configurePortForwarding(ctx context.Context, vmID string, 
 }
 
 // removePortForwarding removes iptables rules for a VM
-func (c *SDKClientV4) removePortForwarding(ctx context.Context, vmID string, vmIP string, mappings []PortMapping) error {
+func (c *SDKClientV4) removePortForwarding(ctx context.Context, vmID string, vmIP string, mappings []network.PortMapping) error {
 	// AIDEV-NOTE: Remove iptables rules when VM is deleted
 	
 	for _, mapping := range mappings {
@@ -1855,6 +1886,72 @@ func (c *SDKClientV4) removePortForwarding(ctx context.Context, vmID string, vmI
 				"output", string(output),
 			)
 		}
+	}
+	
+	return nil
+}
+
+// copyMetadataFilesForAssets copies metadata files alongside rootfs assets when using asset manager
+func (c *SDKClientV4) copyMetadataFilesForAssets(ctx context.Context, vmID string, config *metaldv1.VmConfig, preparedPaths map[string]string, jailerRoot string) error {
+	// AIDEV-NOTE: When using asset manager, only rootfs files are copied, but we need metadata files too
+	// This function finds the original metadata files and copies them to the jailer root
+	
+	for _, disk := range config.GetStorage() {
+		if !disk.GetIsRootDevice() || disk.GetPath() == "" {
+			continue
+		}
+		
+		// Find the original rootfs path before asset preparation
+		originalRootfsPath := disk.GetPath()
+		
+		// Check if this disk was replaced by an asset
+		var preparedRootfsPath string
+		for _, path := range preparedPaths {
+			if strings.HasSuffix(path, ".ext4") || strings.HasSuffix(path, ".img") {
+				preparedRootfsPath = path
+				break
+			}
+		}
+		
+		if preparedRootfsPath == "" {
+			// No rootfs asset found, skip metadata copying
+			continue
+		}
+		
+		// Look for metadata file alongside the original rootfs
+		originalDir := filepath.Dir(originalRootfsPath)
+		originalBaseName := strings.TrimSuffix(filepath.Base(originalRootfsPath), filepath.Ext(originalRootfsPath))
+		metadataSrcPath := filepath.Join(originalDir, originalBaseName+".metadata.json")
+		
+		// Check if metadata file exists
+		if _, err := os.Stat(metadataSrcPath); os.IsNotExist(err) {
+			c.logger.LogAttrs(ctx, slog.LevelDebug, "no metadata file found for asset",
+				slog.String("vm_id", vmID),
+				slog.String("original_rootfs", originalRootfsPath),
+				slog.String("expected_metadata", metadataSrcPath),
+			)
+			continue
+		}
+		
+		// Copy metadata file to jailer root with the same base name as the prepared rootfs
+		preparedBaseName := strings.TrimSuffix(filepath.Base(preparedRootfsPath), filepath.Ext(preparedRootfsPath))
+		metadataDstPath := filepath.Join(jailerRoot, preparedBaseName+".metadata.json")
+		
+		if err := copyFileWithOwnership(metadataSrcPath, metadataDstPath, int(c.jailerConfig.UID), int(c.jailerConfig.GID)); err != nil {
+			c.logger.WarnContext(ctx, "failed to copy metadata file",
+				slog.String("vm_id", vmID),
+				slog.String("src", metadataSrcPath),
+				slog.String("dst", metadataDstPath),
+				slog.String("error", err.Error()),
+			)
+			return fmt.Errorf("failed to copy metadata file %s: %w", metadataSrcPath, err)
+		}
+		
+		c.logger.InfoContext(ctx, "copied metadata file for asset",
+			slog.String("vm_id", vmID),
+			slog.String("src", metadataSrcPath),
+			slog.String("dst", metadataDstPath),
+		)
 	}
 	
 	return nil

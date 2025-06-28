@@ -57,6 +57,9 @@ type BuildResult struct {
 	// Metadata contains additional build information
 	Metadata map[string]string
 
+	// ImageMetadata contains container runtime configuration
+	ImageMetadata *builderv1.ImageMetadata
+
 	// Metrics contains build performance metrics
 	Metrics BuildMetrics
 }

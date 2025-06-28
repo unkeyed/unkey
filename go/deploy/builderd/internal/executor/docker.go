@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -139,7 +140,20 @@ func (d *DockerExecutor) ExtractDockerImageWithID(ctx context.Context, request *
 		}
 	}()
 
-	// Step 3: Extract filesystem from container
+	// Step 3: Extract container metadata (entrypoint, cmd, env, etc.)
+	metadata, err := d.extractContainerMetadata(ctx, logger, fullImageName)
+	if err != nil {
+		logger.ErrorContext(ctx, "failed to extract container metadata",
+			slog.String("error", err.Error()),
+			slog.String("image", fullImageName),
+		)
+		if d.buildMetrics != nil {
+			d.buildMetrics.RecordBuildComplete(ctx, "docker", "docker", tenantID, time.Since(start), false)
+		}
+		return nil, fmt.Errorf("failed to extract container metadata: %w", err)
+	}
+
+	// Step 4: Extract filesystem from container
 	if err := d.extractFilesystem(ctx, logger, containerID, rootfsDir); err != nil {
 		logger.ErrorContext(ctx, "failed to extract filesystem",
 			slog.String("error", err.Error()),
@@ -152,13 +166,13 @@ func (d *DockerExecutor) ExtractDockerImageWithID(ctx context.Context, request *
 		return nil, fmt.Errorf("failed to extract filesystem: %w", err)
 	}
 
-	// Step 4: Optimize rootfs (remove unnecessary files, etc.)
+	// Step 5: Optimize rootfs (remove unnecessary files, etc.)
 	if err := d.optimizeRootfs(ctx, logger, rootfsDir); err != nil {
 		logger.WarnContext(ctx, "failed to optimize rootfs", slog.String("error", err.Error()))
 		// Don't fail the build for optimization errors
 	}
 
-	// Step 5: Create ext4 filesystem image
+	// Step 6: Create ext4 filesystem image
 	ext4Path := filepath.Join(d.config.Builder.RootfsOutputDir, buildID+".ext4")
 	if err := d.createExt4Image(ctx, logger, rootfsDir, ext4Path); err != nil {
 		logger.ErrorContext(ctx, "failed to create ext4 image",
@@ -166,6 +180,16 @@ func (d *DockerExecutor) ExtractDockerImageWithID(ctx context.Context, request *
 			slog.String("build_id", buildID),
 		)
 		return nil, fmt.Errorf("failed to create ext4 image: %w", err)
+	}
+
+	// Step 7: Save container metadata alongside the rootfs
+	metadataPath := filepath.Join(d.config.Builder.RootfsOutputDir, buildID+".metadata.json")
+	if err := d.saveContainerMetadata(ctx, logger, metadata, metadataPath); err != nil {
+		logger.ErrorContext(ctx, "failed to save container metadata",
+			slog.String("error", err.Error()),
+			slog.String("metadata_path", metadataPath),
+		)
+		return nil, fmt.Errorf("failed to save container metadata: %w", err)
 	}
 
 	// Create build result
@@ -179,6 +203,7 @@ func (d *DockerExecutor) ExtractDockerImageWithID(ctx context.Context, request *
 		StartTime:    start,
 		EndTime:      time.Now(),
 		Status:       "completed",
+		ImageMetadata: metadata, // Include the extracted metadata
 	}
 
 	// Record successful build
@@ -775,6 +800,134 @@ func validateAndSanitizePath(rootfsDir, targetPath string) error {
 	if len(cleanTarget) > 4096 {
 		return fmt.Errorf("path too long: %d characters", len(cleanTarget))
 	}
+
+	return nil
+}
+
+// extractContainerMetadata extracts runtime configuration from a Docker image
+func (d *DockerExecutor) extractContainerMetadata(ctx context.Context, logger *slog.Logger, imageName string) (*builderv1.ImageMetadata, error) {
+	// AIDEV-NOTE: Extract container metadata for microvm execution
+	logger.InfoContext(ctx, "extracting container metadata", slog.String("image", imageName))
+
+	// Use docker inspect to get image configuration
+	cmd := exec.CommandContext(ctx, "docker", "inspect", "--type=image", imageName)
+	output, err := cmd.Output()
+	if err != nil {
+		logger.ErrorContext(ctx, "docker inspect failed",
+			slog.String("error", err.Error()),
+			slog.String("image", imageName),
+		)
+		return nil, fmt.Errorf("docker inspect failed: %w", err)
+	}
+
+	// Parse the JSON output
+	var inspectResults []map[string]interface{}
+	if err := json.Unmarshal(output, &inspectResults); err != nil {
+		logger.ErrorContext(ctx, "failed to parse docker inspect output",
+			slog.String("error", err.Error()),
+		)
+		return nil, fmt.Errorf("failed to parse docker inspect output: %w", err)
+	}
+
+	if len(inspectResults) == 0 {
+		return nil, fmt.Errorf("no image data returned from docker inspect")
+	}
+
+	imageData := inspectResults[0]
+	config, ok := imageData["Config"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("missing Config in docker inspect output")
+	}
+
+	// Extract runtime configuration
+	metadata := &builderv1.ImageMetadata{
+		OriginalImage: imageName,
+	}
+
+	// Extract entrypoint
+	if entrypoint, ok := config["Entrypoint"].([]interface{}); ok {
+		for _, e := range entrypoint {
+			if str, ok := e.(string); ok {
+				metadata.Entrypoint = append(metadata.Entrypoint, str)
+			}
+		}
+	}
+
+	// Extract command
+	if cmd, ok := config["Cmd"].([]interface{}); ok {
+		for _, c := range cmd {
+			if str, ok := c.(string); ok {
+				metadata.Command = append(metadata.Command, str)
+			}
+		}
+	}
+
+	// Extract working directory
+	if workingDir, ok := config["WorkingDir"].(string); ok {
+		metadata.WorkingDir = workingDir
+	}
+
+	// Extract environment variables
+	if env, ok := config["Env"].([]interface{}); ok {
+		metadata.Env = make(map[string]string)
+		for _, e := range env {
+			if str, ok := e.(string); ok {
+				parts := strings.SplitN(str, "=", 2)
+				if len(parts) == 2 {
+					metadata.Env[parts[0]] = parts[1]
+				}
+			}
+		}
+	}
+
+	// Extract exposed ports
+	if exposedPorts, ok := config["ExposedPorts"].(map[string]interface{}); ok {
+		for port := range exposedPorts {
+			// Docker format is "port/protocol", extract just the port number
+			parts := strings.Split(port, "/")
+			if len(parts) > 0 {
+				metadata.ExposedPorts = append(metadata.ExposedPorts, parts[0])
+			}
+		}
+	}
+
+	// Extract user
+	if user, ok := config["User"].(string); ok {
+		metadata.User = user
+	}
+
+	logger.InfoContext(ctx, "extracted container metadata",
+		slog.Int("entrypoint_len", len(metadata.Entrypoint)),
+		slog.Int("cmd_len", len(metadata.Command)),
+		slog.String("working_dir", metadata.WorkingDir),
+		slog.Int("env_vars", len(metadata.Env)),
+		slog.Int("exposed_ports", len(metadata.ExposedPorts)),
+		slog.String("user", metadata.User),
+	)
+
+	return metadata, nil
+}
+
+// saveContainerMetadata saves the container metadata to a JSON file
+func (d *DockerExecutor) saveContainerMetadata(ctx context.Context, logger *slog.Logger, metadata *builderv1.ImageMetadata, path string) error {
+	// AIDEV-NOTE: Save metadata for metald to use when configuring microvm
+	logger.InfoContext(ctx, "saving container metadata", slog.String("path", path))
+
+	// Marshal metadata to JSON
+	data, err := json.MarshalIndent(metadata, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal metadata: %w", err)
+	}
+
+	// Write to file
+	if err := os.WriteFile(path, data, 0644); err != nil {
+		return fmt.Errorf("failed to write metadata file: %w", err)
+	}
+
+	logger.InfoContext(ctx, "container metadata saved",
+		slog.String("path", path),
+		slog.Int("size", len(data)),
+	)
 
 	return nil
 }

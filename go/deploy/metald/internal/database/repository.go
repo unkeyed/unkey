@@ -29,14 +29,15 @@ func NewVMRepository(db *Database) *VMRepository {
 
 // VM represents the database model for a VM
 type VM struct {
-	ID         string
-	CustomerID string
-	Config     []byte // serialized protobuf
-	State      metaldv1.VmState
-	ProcessID  *string
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-	DeletedAt  *time.Time
+	ID           string
+	CustomerID   string
+	Config       []byte // serialized protobuf
+	State        metaldv1.VmState
+	ProcessID    *string
+	PortMappings string // JSON serialized port mappings
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	DeletedAt    *time.Time
 
 	// Parsed configuration (populated by ListVMsByCustomerWithContext)
 	ParsedConfig *metaldv1.VmConfig
@@ -74,11 +75,11 @@ func (r *VMRepository) CreateVMWithContext(ctx context.Context, vmID, customerID
 	}
 
 	query := `
-		INSERT INTO vms (id, customer_id, config, state, created_at, updated_at)
-		VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		INSERT INTO vms (id, customer_id, config, state, port_mappings, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 	`
 
-	_, err = r.db.db.Exec(query, vmID, customerID, configBytes, int32(state))
+	_, err = r.db.db.Exec(query, vmID, customerID, configBytes, int32(state), "[]")
 	if err != nil {
 		span.RecordError(err)
 		r.logger.ErrorContext(ctx, "failed to insert VM record",
@@ -116,13 +117,14 @@ func (r *VMRepository) GetVMWithContext(ctx context.Context, vmID string) (*VM, 
 		slog.String("vm_id", vmID),
 	)
 	query := `
-		SELECT id, customer_id, config, state, process_id, created_at, updated_at, deleted_at
+		SELECT id, customer_id, config, state, process_id, port_mappings, created_at, updated_at, deleted_at
 		FROM vms
 		WHERE id = ? AND deleted_at IS NULL
 	`
 
 	var vm VM
 	var processID sql.NullString
+	var portMappings sql.NullString
 	var deletedAt sql.NullTime
 
 	err := r.db.db.QueryRow(query, vmID).Scan(
@@ -131,6 +133,7 @@ func (r *VMRepository) GetVMWithContext(ctx context.Context, vmID string) (*VM, 
 		&vm.Config,
 		&vm.State,
 		&processID,
+		&portMappings,
 		&vm.CreatedAt,
 		&vm.UpdatedAt,
 		&deletedAt,
@@ -153,6 +156,11 @@ func (r *VMRepository) GetVMWithContext(ctx context.Context, vmID string) (*VM, 
 
 	if processID.Valid {
 		vm.ProcessID = &processID.String
+	}
+	if portMappings.Valid {
+		vm.PortMappings = portMappings.String
+	} else {
+		vm.PortMappings = "[]" // Default empty array
 	}
 	if deletedAt.Valid {
 		vm.DeletedAt = &deletedAt.Time
@@ -241,7 +249,7 @@ func (r *VMRepository) UpdateVMStateWithContext(ctx context.Context, vmID string
 // ListVMs retrieves VMs with optional filters
 func (r *VMRepository) ListVMs(customerID *string, states []metaldv1.VmState, limit, offset int) ([]*VM, error) {
 	baseQuery := `
-		SELECT id, customer_id, config, state, process_id, created_at, updated_at, deleted_at
+		SELECT id, customer_id, config, state, process_id, port_mappings, created_at, updated_at, deleted_at
 		FROM vms
 		WHERE deleted_at IS NULL
 	`
@@ -287,6 +295,7 @@ func (r *VMRepository) ListVMs(customerID *string, states []metaldv1.VmState, li
 	for rows.Next() {
 		var vm VM
 		var processID sql.NullString
+		var portMappings sql.NullString
 		var deletedAt sql.NullTime
 
 		err := rows.Scan(
@@ -295,6 +304,7 @@ func (r *VMRepository) ListVMs(customerID *string, states []metaldv1.VmState, li
 			&vm.Config,
 			&vm.State,
 			&processID,
+			&portMappings,
 			&vm.CreatedAt,
 			&vm.UpdatedAt,
 			&deletedAt,
@@ -305,6 +315,11 @@ func (r *VMRepository) ListVMs(customerID *string, states []metaldv1.VmState, li
 
 		if processID.Valid {
 			vm.ProcessID = &processID.String
+		}
+		if portMappings.Valid {
+			vm.PortMappings = portMappings.String
+		} else {
+			vm.PortMappings = "[]" // Default empty array
 		}
 		if deletedAt.Valid {
 			vm.DeletedAt = &deletedAt.Time
@@ -463,4 +478,66 @@ func (r *VMRepository) CountVMs(customerID *string, states []metaldv1.VmState) (
 	}
 
 	return count, nil
+}
+
+// UpdateVMPortMappings updates the port mappings for a VM
+func (r *VMRepository) UpdateVMPortMappings(vmID string, portMappingsJSON string) error {
+	return r.UpdateVMPortMappingsWithContext(context.Background(), vmID, portMappingsJSON)
+}
+
+// UpdateVMPortMappingsWithContext updates the port mappings for a VM with context for tracing
+func (r *VMRepository) UpdateVMPortMappingsWithContext(ctx context.Context, vmID string, portMappingsJSON string) error {
+	_, span := r.db.tracer.Start(ctx, "vm_repository.update_vm_port_mappings",
+		trace.WithAttributes(
+			attribute.String("vm.id", vmID),
+		),
+	)
+	defer span.End()
+
+	r.logger.DebugContext(ctx, "updating VM port mappings",
+		slog.String("vm_id", vmID),
+		slog.String("port_mappings", portMappingsJSON),
+	)
+
+	query := `
+		UPDATE vms 
+		SET port_mappings = ?, updated_at = CURRENT_TIMESTAMP
+		WHERE id = ? AND deleted_at IS NULL
+	`
+
+	result, err := r.db.db.Exec(query, portMappingsJSON, vmID)
+	if err != nil {
+		span.RecordError(err)
+		r.logger.ErrorContext(ctx, "failed to update VM port mappings",
+			slog.String("vm_id", vmID),
+			slog.String("error", err.Error()),
+		)
+		return fmt.Errorf("failed to update VM port mappings: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		span.RecordError(err)
+		r.logger.ErrorContext(ctx, "failed to get rows affected",
+			slog.String("vm_id", vmID),
+			slog.String("error", err.Error()),
+		)
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		r.logger.WarnContext(ctx, "VM not found or already deleted during port mappings update",
+			slog.String("vm_id", vmID),
+		)
+		return fmt.Errorf("VM not found or already deleted: %s", vmID)
+	}
+
+	r.logger.InfoContext(ctx, "VM port mappings updated successfully",
+		slog.String("vm_id", vmID),
+		slog.Int64("rows_affected", rowsAffected),
+	)
+
+	span.SetAttributes(attribute.Int64("db.rows_affected", rowsAffected))
+
+	return nil
 }

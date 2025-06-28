@@ -151,6 +151,7 @@ func (s *BuilderService) CreateBuild(
 		buildJob.State = buildState
 		buildJob.CompletedAt = timestamppb.Now()
 		buildJob.RootfsPath = buildResult.RootfsPath
+		buildJob.ImageMetadata = buildResult.ImageMetadata
 		// TODO: Add checksum and size when available
 		s.buildsMutex.Unlock()
 
