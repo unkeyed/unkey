@@ -59,7 +59,7 @@ func TestLoadConfig(t *testing.T) {
 			{"ListenerPort", config.ListenerPort, "7123"},
 			{"LogDebug", config.LogDebug, false},
 			{"ServiceName", config.ServiceName, "chproxy"},
-			{"ServiceVersion", config.ServiceVersion, "1.3.1"},
+			{"ServiceVersion", config.ServiceVersion, "1.3.3"},
 			{"TraceMaxBatchSize", config.TraceMaxBatchSize, 512},
 			{"TraceSampleRate", config.TraceSampleRate, 0.25},
 			{"ClickhouseURL", config.ClickhouseURL, "http://localhost:8123"},
