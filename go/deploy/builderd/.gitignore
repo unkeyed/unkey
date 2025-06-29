@@ -1,6 +1,5 @@
 # Compiled binaries (SECURITY: Never commit compiled binaries)
 build/
-/builderd
 *.exe
 *.dll
 *.so
@@ -61,25 +60,12 @@ coverage.html
 coverage.out
 profile.out
 
-# Documentation build artifacts
-docs/_build/
-docs/.doctrees/
-
-# Local configuration overrides
-config.local.yaml
-config.local.json
-
 # Backup files
 *.bak
 *.backup
 
 # Docker build context (if using dockerignore isn't sufficient)
 .dockerignore
-
-# Terraform state files (if any infrastructure as code)
-*.tfstate
-*.tfstate.backup
-.terraform/
 
 # Certificate files (never commit certificates or keys)
 *.pem

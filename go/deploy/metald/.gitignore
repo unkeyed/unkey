@@ -1,61 +1,87 @@
-# Go binaries
+# Compiled binaries (SECURITY: Never commit compiled binaries)
+build/
 *.exe
-*.exe~
 *.dll
 *.so
 *.dylib
 
-# Test binary, built with `go test -c`
+# Test binaries, built with `go test -c`
 *.test
 
 # Output of the go coverage tool
 *.out
-coverage.html
 
-# Dependency directories
+# Dependency directories (remove the comment below to include it)
 vendor/
 
 # Go workspace file
 go.work
-
-# Build artifacts
-build/
-dist/
-
-# Environment files
-.env
-.env.local
-.env.development
-.env.test
-.env.production
-
-# Log files
-*.log
-logs/
+go.work.sum
 
 # IDE files
-.idea/
 .vscode/
+.idea/
 *.swp
 *.swo
 *~
 
 # OS files
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
+
+# Local development files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
 
 # Temporary files
 tmp/
 temp/
-stress*.json
+*.tmp
 
-# Air live reload
-tmp/
+# Logs
+*.log
+logs/
 
-# Generated protobuf files (optional - remove if you want to commit generated files)
-# gen/
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Build artifacts and cache
+dist/
+cache/
+.cache/
+
+# Coverage reports
+coverage.html
+coverage.out
+profile.out
+
+# Backup files
+*.bak
+*.backup
+
+# Docker build context (if using dockerignore isn't sufficient)
+.dockerignore
+
+# Certificate files (never commit certificates or keys)
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Secret files
+secrets.yaml
+secrets.json
+.secrets
+
+# Local storage directories for development
+data/
+storage/
+scratch/
+rootfs/
+workspace/

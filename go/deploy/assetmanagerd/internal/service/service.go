@@ -231,7 +231,7 @@ func (s *Service) ListAssets(
 				s.logger.InfoContext(ctx, "no rootfs found, triggering automatic build",
 					"docker_image", dockerImage,
 				)
-				
+
 				// Trigger build and wait for completion
 				if err := s.triggerAndWaitForBuild(ctx, dockerImage, req.Msg.GetLabelSelector()); err != nil {
 					s.logger.ErrorContext(ctx, "failed to build rootfs automatically",
@@ -709,7 +709,7 @@ func copyFile(src, dst string) error {
 // AIDEV-NOTE: This implements the automatic asset creation workflow
 func (s *Service) triggerAndWaitForBuild(ctx context.Context, dockerImage string, labels map[string]string) error {
 	tracer := otel.Tracer("assetmanagerd")
-	
+
 	// Create build request
 	ctx, buildSpan := tracer.Start(ctx, "assetmanagerd.service.trigger_build",
 		trace.WithAttributes(
@@ -732,9 +732,6 @@ func (s *Service) triggerAndWaitForBuild(ctx context.Context, dockerImage string
 	}
 	buildSpan.SetAttributes(attribute.String("build.id", buildID))
 	buildSpan.End()
-	if err != nil {
-		return fmt.Errorf("failed to trigger build: %w", err)
-	}
 
 	s.logger.InfoContext(ctx, "build triggered",
 		"build_id", buildID,
@@ -847,7 +844,7 @@ func (s *Service) QueryAssets(
 				for k, v := range buildOpts.GetBuildLabels() {
 					buildLabels[k] = v
 				}
-				
+
 				s.logger.InfoContext(ctx, "triggering build with labels and asset ID",
 					"build_labels", buildLabels,
 					"suggested_asset_id", buildOpts.GetSuggestedAssetId(),

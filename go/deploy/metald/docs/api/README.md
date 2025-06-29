@@ -26,15 +26,50 @@ Metald exposes a ConnectRPC API for virtual machine lifecycle management. This d
 **Default Port**: 8080  
 **Content-Type**: `application/json` or `application/proto`
 
-## Authentication
+## Authentication and Tenant Isolation
 
-All API requests require customer authentication via the Authorization header:
+Metald uses a two-header authentication system that separates user identity from tenant data scoping:
+
+### Authentication Header
+Identifies and authorizes the user making the request:
 
 ```
-Authorization: Bearer dev_customer_{customer_id}
+Authorization: Bearer <secure_token>
 ```
 
-The customer ID is extracted and validated in [auth.go:73-95](../../../metald/internal/service/auth.go#L73-L95).
+**Purpose**: Validates WHO you are and WHAT you're allowed to do
+- In production: JWT tokens, API keys, or OAuth tokens
+- In development: `dev_customer_{user_id}` format for simplicity
+
+### Tenant Isolation Header
+Specifies which tenant's data to access:
+
+```
+X-Tenant-ID: <tenant_identifier>
+```
+
+**Purpose**: Scopes all operations to a specific tenant's resources
+- Enables multi-tenant applications where one user can access multiple tenants
+- Provides clear data isolation and audit trails
+- Keeps tenant information separate from secure authentication credentials
+
+### Security Model
+
+1. **Authentication**: Bearer token validates user identity and permissions
+2. **Authorization**: System checks if authenticated user can access specified tenant
+3. **Data Scoping**: All operations are scoped to the specified tenant's resources
+
+### Example Request
+
+```bash
+curl -X POST https://metald:8080/vmprovisioner.v1.VmService/CreateVm \
+  -H "Authorization: Bearer <secure_token>" \
+  -H "X-Tenant-ID: tenant-123" \
+  -H "Content-Type: application/json" \
+  -d '{"config": {...}}'
+```
+
+The separation ensures security (tokens don't leak tenant info) and flexibility (one user can manage multiple tenants).
 
 ## API Reference
 
@@ -51,7 +86,7 @@ Creates a new virtual machine instance with the specified configuration.
 message CreateVmRequest {
   string vm_id = 1;        // Optional, auto-generated if empty
   VmConfig config = 2;     // Required VM configuration
-  string customer_id = 3;  // Optional, must match auth context
+  string tenant_id = 3;    // Optional, must match X-Tenant-ID header
 }
 ```
 
@@ -69,7 +104,8 @@ message CreateVmResponse {
 ```bash
 curl -X POST http://localhost:8080/vmprovisioner.v1.VmService/CreateVm \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer dev_customer_test123" \
+  -H "Authorization: Bearer <secure_token>" \
+  -H "X-Tenant-ID: test123" \
   -d '{
     "config": {
       "cpu": {

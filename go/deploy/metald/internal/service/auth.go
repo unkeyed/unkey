@@ -54,6 +54,32 @@ func AuthenticationInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc
 				return nil, connect.NewError(connect.CodeUnauthenticated, err)
 			}
 
+			// Extract requested tenant ID from header and validate access
+			requestedTenantID := req.Header().Get("X-Tenant-ID")
+			logger.LogAttrs(ctx, slog.LevelInfo, "checking tenant access",
+				slog.String("procedure", req.Spec().Procedure),
+				slog.String("user_id", customerCtx.CustomerID),
+				slog.String("requested_tenant", requestedTenantID),
+			)
+			
+			if requestedTenantID != "" {
+				// Validate that authenticated user can access the requested tenant
+				if err := validateTenantAccess(ctx, customerCtx, requestedTenantID); err != nil {
+					logger.LogAttrs(ctx, slog.LevelWarn, "tenant access denied",
+						slog.String("procedure", req.Spec().Procedure),
+						slog.String("user_id", customerCtx.CustomerID),
+						slog.String("requested_tenant", requestedTenantID),
+						slog.String("error", err.Error()),
+					)
+					return nil, connect.NewError(connect.CodePermissionDenied, err)
+				}
+				logger.LogAttrs(ctx, slog.LevelInfo, "tenant access granted",
+					slog.String("procedure", req.Spec().Procedure),
+					slog.String("user_id", customerCtx.CustomerID),
+					slog.String("requested_tenant", requestedTenantID),
+				)
+			}
+
 			// Add customer context to baggage for downstream services
 			ctx = addCustomerContextToBaggage(ctx, customerCtx)
 
@@ -77,6 +103,22 @@ func validateToken(ctx context.Context, token string) (*CustomerContext, error) 
 	// Format: "dev_customer_<customer_id>" for development
 	// Production should validate against your auth service
 
+	// Development mode: Accept simple bearer tokens
+	if strings.HasPrefix(token, "dev_user_") {
+		userID := strings.TrimPrefix(token, "dev_user_")
+		if userID == "" {
+			return nil, fmt.Errorf("invalid development token format")
+		}
+
+		return &CustomerContext{
+			CustomerID:  userID,
+			TenantID:    "", // Tenant determined by X-Tenant-ID header
+			UserID:      userID,
+			WorkspaceID: "dev_workspace",
+		}, nil
+	}
+
+	// Legacy support for old dev_customer_ format
 	if strings.HasPrefix(token, "dev_customer_") {
 		customerID := strings.TrimPrefix(token, "dev_customer_")
 		if customerID == "" {
@@ -85,15 +127,15 @@ func validateToken(ctx context.Context, token string) (*CustomerContext, error) 
 
 		return &CustomerContext{
 			CustomerID:  customerID,
-			TenantID:    customerID, // Use customer ID as tenant ID for simplicity
-			UserID:      "dev_user",
+			TenantID:    customerID, // Use customer ID as tenant ID for legacy
+			UserID:      customerID,
 			WorkspaceID: "dev_workspace",
 		}, nil
 	}
 
 	// Production token validation would go here
 	// Example: JWT validation, API key lookup, etc.
-	return nil, fmt.Errorf("invalid token format - use 'dev_customer_<customer_id>' for development")
+	return nil, fmt.Errorf("invalid token format - use 'dev_user_<user_id>' for development")
 }
 
 // addCustomerContextToBaggage adds customer context to OpenTelemetry baggage
@@ -126,6 +168,37 @@ func ExtractCustomerID(ctx context.Context) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("customer_id not found in context")
+}
+
+// validateTenantAccess validates that the authenticated user can access the requested tenant
+func validateTenantAccess(ctx context.Context, customerCtx *CustomerContext, requestedTenantID string) error {
+	// AIDEV-BUSINESS_RULE: Tenant access validation for multi-tenant security
+	
+	// In development mode, allow any authenticated user to access any tenant
+	// TODO: In production, implement proper tenant-user relationship checks
+	// This should query a tenant membership service or database
+	
+	// For now, basic validation that tenant ID is not empty
+	if requestedTenantID == "" {
+		return fmt.Errorf("tenant ID cannot be empty")
+	}
+	
+	// Development: Simple access control for demonstration
+	// Block access to "restricted-tenant" unless user is "admin-user"
+	if requestedTenantID == "restricted-tenant" && customerCtx.CustomerID != "admin-user" {
+		return fmt.Errorf("access denied: user %s cannot access restricted tenant", customerCtx.CustomerID)
+	}
+	
+	// In production, this would check:
+	// 1. User has permission to access the tenant  
+	// 2. User's role within the tenant (admin, user, etc.)
+	// 3. Specific resource permissions if needed
+	
+	// Example future implementation:
+	// tenantService := GetTenantServiceFromContext(ctx)
+	// return tenantService.ValidateUserAccess(customerCtx.CustomerID, requestedTenantID)
+	
+	return nil // Allow all other access in development
 }
 
 // validateVMOwnership validates that the customer owns the specified VM
