@@ -284,14 +284,28 @@ func (c *SDKClientV4) BootVM(ctx context.Context, vmID string) error {
 	var portMappings []network.PortMapping
 	for _, disk := range vm.Config.GetStorage() {
 		if disk.GetIsRootDevice() {
-			rootfsPath := disk.GetPath()
-			if m, err := c.loadContainerMetadata(ctx, rootfsPath); err != nil {
+			// AIDEV-NOTE: Use chroot path for metadata loading since assets are copied there
+			// The original disk path points to asset manager, but metadata.json is in chroot
+			jailerRoot := filepath.Join(c.jailerConfig.ChrootBaseDir, "firecracker", vmID, "root")
+			chrootRootfsPath := filepath.Join(jailerRoot, "rootfs.ext4")
+			
+			if m, err := c.loadContainerMetadata(ctx, chrootRootfsPath); err != nil {
 				c.logger.WarnContext(ctx, "failed to load container metadata",
 					"error", err,
-					"rootfs_path", rootfsPath,
+					"chroot_rootfs_path", chrootRootfsPath,
 				)
 			} else if m != nil {
 				metadata = m
+				
+				// AIDEV-NOTE: Create /container.cmd file for metald-init
+				// Combine entrypoint and command into a single JSON array
+				if err := c.createContainerCmdFile(ctx, vmID, metadata); err != nil {
+					c.logger.WarnContext(ctx, "failed to create container.cmd file",
+						"error", err,
+						"vm_id", vmID,
+					)
+				}
+				
 				if mappings, err := c.parseExposedPorts(ctx, vmID, metadata); err != nil {
 					c.logger.ErrorContext(ctx, "failed to parse exposed ports",
 						slog.String("vm_id", vmID),
@@ -505,22 +519,55 @@ func (c *SDKClientV4) buildFirecrackerConfig(ctx context.Context, vmID string, c
 	// Metadata handling is now done in BootVM
 	kernelArgs := config.GetBoot().GetKernelArgs()
 
-	// Create a console log file for debugging
+	// AIDEV-NOTE: Guest console logging configuration
+	// LogPath captures Firecracker's own logs, but LogFifo+FifoLogWriter captures guest OS console output
+	// This includes Linux kernel boot messages from console=ttyS0 kernel parameter
 	consoleLogPath := filepath.Join(jailerRoot, "console.log")
+	consoleFifoPath := filepath.Join(jailerRoot, "console.fifo")
 	
-	cfg := sdk.Config{ //nolint:exhaustruct // Optional fields are not needed for basic VM configuration
-		SocketPath:      socketPath,
-		LogPath:         consoleLogPath, // Capture console output for debugging
-		LogLevel:        "Debug",
-		MetricsPath:     metricsPath, // Configure stats socket for billaged
-		KernelImagePath: kernelPath,
-		KernelArgs:      kernelArgs,
-		MachineCfg: models.MachineConfiguration{ //nolint:exhaustruct // Only setting required fields for basic VM configuration
-			VcpuCount:  sdk.Int64(int64(config.GetCpu().GetVcpuCount())),
-			MemSizeMib: sdk.Int64(config.GetMemory().GetSizeBytes() / (1024 * 1024)),
-			Smt:        sdk.Bool(false),
-		},
-		// No JailerCfg - we handle jailing ourselves
+	// Create the console log file to capture guest output
+	consoleLogFile, err := os.OpenFile(consoleLogPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	
+	var cfg sdk.Config
+	if err != nil {
+		// Fall back to LogPath only (original behavior) if console log file creation fails
+		c.logger.WarnContext(ctx, "failed to create console log file, falling back to LogPath only",
+			slog.String("error", err.Error()),
+			slog.String("console_log_path", consoleLogPath),
+		)
+		cfg = sdk.Config{ //nolint:exhaustruct // Optional fields are not needed for basic VM configuration
+			SocketPath:      socketPath,
+			LogPath:         consoleLogPath, // Original behavior - captures Firecracker logs only
+			LogLevel:        "Debug",
+			MetricsPath:     metricsPath, // Configure stats socket for billaged
+			KernelImagePath: kernelPath,
+			KernelArgs:      kernelArgs,
+			MachineCfg: models.MachineConfiguration{ //nolint:exhaustruct // Only setting required fields for basic VM configuration
+				VcpuCount:  sdk.Int64(int64(config.GetCpu().GetVcpuCount())),
+				MemSizeMib: sdk.Int64(config.GetMemory().GetSizeBytes() / (1024 * 1024)),
+				Smt:        sdk.Bool(false),
+			},
+			// No JailerCfg - we handle jailing ourselves
+		}
+	} else {
+		// Successful case - capture guest console output via FIFO
+		// Note: consoleLogFile will be closed when the VM shuts down via FifoLogWriter
+		cfg = sdk.Config{ //nolint:exhaustruct // Optional fields are not needed for basic VM configuration
+			SocketPath:      socketPath,
+			LogPath:         filepath.Join(jailerRoot, "firecracker.log"), // Firecracker's own logs
+			LogFifo:         consoleFifoPath, // FIFO for guest console output
+			FifoLogWriter:   consoleLogFile,  // Writer to capture guest console to file
+			LogLevel:        "Debug",
+			MetricsPath:     metricsPath, // Configure stats socket for billaged
+			KernelImagePath: kernelPath,
+			KernelArgs:      kernelArgs,
+			MachineCfg: models.MachineConfiguration{ //nolint:exhaustruct // Only setting required fields for basic VM configuration
+				VcpuCount:  sdk.Int64(int64(config.GetCpu().GetVcpuCount())),
+				MemSizeMib: sdk.Int64(config.GetMemory().GetSizeBytes() / (1024 * 1024)),
+				Smt:        sdk.Bool(false),
+			},
+			// No JailerCfg - we handle jailing ourselves
+		}
 	}
 
 	// Add drives
@@ -536,9 +583,17 @@ func (c *SDKClientV4) buildFirecrackerConfig(ctx context.Context, vmID string, c
 		}
 
 		// Use absolute paths for integrated jailer
+		// AIDEV-NOTE: Use standardized filename instead of the original config path
+		// to match what asset preparation creates (rootfs.ext4, not Docker-specific names)
+		diskFilename := filepath.Base(disk.GetPath())
+		if disk.GetIsRootDevice() || i == 0 {
+			// For root devices, always use the standardized name that assetmanager creates
+			diskFilename = "rootfs.ext4"
+		}
+		
 		drive := models.Drive{ //nolint:exhaustruct // Only setting required drive fields
 			DriveID:      &driveID,
-			PathOnHost:   sdk.String(filepath.Join(jailerRoot, filepath.Base(disk.GetPath()))),
+			PathOnHost:   sdk.String(filepath.Join(jailerRoot, diskFilename)),
 			IsRootDevice: sdk.Bool(disk.GetIsRootDevice() || i == 0),
 			IsReadOnly:   sdk.Bool(disk.GetReadOnly()),
 		}
@@ -734,8 +789,8 @@ func (c *SDKClientV4) prepareVMAssets(ctx context.Context, vmID string, config *
 	// AIDEV-NOTE: Using QueryAssets instead of ListAssets to enable automatic asset creation
 	allAssets := []*assetv1.Asset{}
 	
-	// Extract tenant_id from VM metadata if available
-	tenantID := ""
+	// Extract tenant_id from VM metadata if available, with fallback to default
+	tenantID := "cli-tenant" // AIDEV-NOTE: Default tenant for CLI operations
 	if tid, ok := config.Metadata["tenant_id"]; ok {
 		tenantID = tid
 	}
@@ -1652,17 +1707,28 @@ func (c *SDKClientV4) loadContainerMetadata(ctx context.Context, rootfsPath stri
 	baseName := strings.TrimSuffix(filepath.Base(rootfsPath), filepath.Ext(rootfsPath))
 	metadataPath := filepath.Join(filepath.Dir(rootfsPath), baseName+".metadata.json")
 	
-	c.logger.LogAttrs(ctx, slog.LevelDebug, "looking for container metadata",
+	c.logger.LogAttrs(ctx, slog.LevelInfo, "AIDEV-DEBUG: looking for container metadata",
 		slog.String("rootfs_path", rootfsPath),
 		slog.String("metadata_path", metadataPath),
 	)
 	
 	// Check if metadata file exists
 	if _, err := os.Stat(metadataPath); os.IsNotExist(err) {
-		c.logger.LogAttrs(ctx, slog.LevelDebug, "no metadata file found",
-			slog.String("metadata_path", metadataPath),
+		// AIDEV-NOTE: Fallback to check for metadata.json in VM chroot directory
+		// When assets are copied to VM chroot by assetmanagerd, metadata file is renamed to metadata.json
+		fallbackPath := filepath.Join(filepath.Dir(rootfsPath), "metadata.json")
+		if _, err := os.Stat(fallbackPath); os.IsNotExist(err) {
+			c.logger.LogAttrs(ctx, slog.LevelDebug, "no metadata file found in either location",
+				slog.String("primary_path", metadataPath),
+				slog.String("fallback_path", fallbackPath),
+			)
+			return nil, nil // No metadata is not an error
+		}
+		// Use fallback path
+		metadataPath = fallbackPath
+		c.logger.LogAttrs(ctx, slog.LevelInfo, "AIDEV-DEBUG: using fallback metadata path",
+			slog.String("fallback_path", fallbackPath),
 		)
-		return nil, nil // No metadata is not an error
 	}
 	
 	// Read metadata file
@@ -1716,8 +1782,43 @@ func (c *SDKClientV4) buildKernelArgsWithMetadata(ctx context.Context, baseArgs 
 	
 	// Add default kernel params if not present
 	if len(kernelParams) == 0 {
-		kernelParams = []string{"console=ttyS0", "reboot=k", "panic=1", "pci=off", "i8042.noaux", "i8042.nomux", "i8042.nopnp", "i8042.dumbkbd"}
+		kernelParams = []string{
+			"console=ttyS0,115200", 
+			"reboot=k", 
+			"panic=1", 
+			"pci=off", 
+			"i8042.noaux", 
+			"i8042.nomux", 
+			"i8042.nopnp", 
+			"i8042.dumbkbd",
+			"root=/dev/vda",
+			"rw",
+		}
 	}
+	
+	// AIDEV-NOTE: Always add verbose logging for debugging
+	// Check if we already have these parameters to avoid duplicates
+	hasEarlyPrintk := false
+	hasLogLevel := false
+	for _, param := range kernelParams {
+		if strings.HasPrefix(param, "earlyprintk=") {
+			hasEarlyPrintk = true
+		}
+		if strings.HasPrefix(param, "loglevel=") {
+			hasLogLevel = true
+		}
+	}
+	if !hasEarlyPrintk {
+		kernelParams = append(kernelParams, "earlyprintk=serial,ttyS0,115200")
+	}
+	if !hasLogLevel {
+		kernelParams = append(kernelParams, "loglevel=8")
+	}
+	
+	// AIDEV-NOTE: Add aggressive debugging parameters
+	kernelParams = append(kernelParams, "debug")
+	kernelParams = append(kernelParams, "ignore_loglevel")
+	kernelParams = append(kernelParams, "printk.devkmsg=on")
 	
 	// If we have metadata and no init specified, use metald-init
 	if metadata != nil && !hasInit {
@@ -1953,6 +2054,67 @@ func (c *SDKClientV4) copyMetadataFilesForAssets(ctx context.Context, vmID strin
 			slog.String("dst", metadataDstPath),
 		)
 	}
+	
+	return nil
+}
+
+// createContainerCmdFile creates /container.cmd file in VM chroot for metald-init
+func (c *SDKClientV4) createContainerCmdFile(ctx context.Context, vmID string, metadata *builderv1.ImageMetadata) error {
+	// AIDEV-NOTE: Create container.cmd file containing the full command for metald-init
+	// Combines entrypoint and command from container metadata into JSON array
+	
+	if metadata == nil {
+		return fmt.Errorf("metadata is required")
+	}
+	
+	// Build full command array: entrypoint + command
+	var fullCmd []string
+	fullCmd = append(fullCmd, metadata.Entrypoint...)
+	fullCmd = append(fullCmd, metadata.Command...)
+	
+	if len(fullCmd) == 0 {
+		return fmt.Errorf("no entrypoint or command found in metadata")
+	}
+	
+	// Convert to JSON
+	cmdJSON, err := json.Marshal(fullCmd)
+	if err != nil {
+		return fmt.Errorf("failed to marshal command to JSON: %w", err)
+	}
+	
+	// AIDEV-NOTE: Write container.cmd into the rootfs.ext4 filesystem, not just chroot
+	// Mount the rootfs.ext4 temporarily to inject the container.cmd file
+	jailerRoot := filepath.Join(c.jailerConfig.ChrootBaseDir, "firecracker", vmID, "root")
+	rootfsPath := filepath.Join(jailerRoot, "rootfs.ext4")
+	
+	// Create temporary mount point
+	tmpMount := filepath.Join("/tmp", "rootfs-mount-"+vmID)
+	if err := os.MkdirAll(tmpMount, 0755); err != nil {
+		return fmt.Errorf("failed to create temp mount dir: %w", err)
+	}
+	defer os.RemoveAll(tmpMount)
+	
+	// Mount the rootfs.ext4
+	mountCmd := exec.Command("mount", "-o", "loop", rootfsPath, tmpMount)
+	if err := mountCmd.Run(); err != nil {
+		return fmt.Errorf("failed to mount rootfs: %w", err)
+	}
+	defer func() {
+		umountCmd := exec.Command("umount", tmpMount)
+		umountCmd.Run()
+	}()
+	
+	// Write container.cmd into the mounted filesystem
+	containerCmdPath := filepath.Join(tmpMount, "container.cmd")
+	if err := os.WriteFile(containerCmdPath, cmdJSON, 0644); err != nil {
+		return fmt.Errorf("failed to write container.cmd to rootfs: %w", err)
+	}
+	
+	c.logger.LogAttrs(ctx, slog.LevelInfo, "created container.cmd file",
+		slog.String("vm_id", vmID),
+		slog.String("path", containerCmdPath),
+		slog.String("command", string(cmdJSON)),
+	)
 	
 	return nil
 }

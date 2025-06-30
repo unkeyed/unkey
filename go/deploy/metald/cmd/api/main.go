@@ -23,6 +23,7 @@ import (
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/database"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/network"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/observability"
+	"github.com/unkeyed/unkey/go/deploy/metald/internal/reconciler"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/service"
 	healthpkg "github.com/unkeyed/unkey/go/deploy/pkg/health"
 	"github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors"
@@ -208,7 +209,21 @@ func main() {
 	case types.BackendTypeFirecracker:
 		// Use SDK client v4 with integrated jailer - let SDK handle complete lifecycle
 		// AIDEV-NOTE: SDK manages firecracker process, integrated jailer, and networking
-		networkManager, err := network.NewManager(logger, network.DefaultConfig())
+		
+		// Convert main config to network config
+		networkConfig := &network.Config{
+			BridgeName:      cfg.Network.BridgeName,
+			BridgeIP:        cfg.Network.BridgeIPv4,
+			VMSubnet:        cfg.Network.VMSubnetIPv4,
+			EnableIPv6:      cfg.Network.EnableIPv6,
+			DNSServers:      cfg.Network.DNSServersIPv4,
+			EnableRateLimit: cfg.Network.EnableRateLimit,
+			RateLimitMbps:   cfg.Network.RateLimitMbps,
+			PortRangeMin:    32768, // Default
+			PortRangeMax:    65535, // Default
+		}
+		
+		networkManager, err := network.NewManager(logger, networkConfig, &cfg.Network)
 		if err != nil {
 			logger.Error("failed to create network manager",
 				slog.String("error", err.Error()),
@@ -337,6 +352,19 @@ func main() {
 
 	// Create VM service
 	vmService := service.NewVMService(backend, logger, metricsCollector, vmMetrics, vmRepo)
+
+	// Initialize VM reconciler to fix stale VM state issues
+	// AIDEV-NOTE: Critical fix for state inconsistency where database shows VMs but no processes exist
+	vmReconciler := reconciler.NewVMReconciler(logger, backend, vmRepo, 5*time.Minute)
+	
+	// Start VM reconciler in background
+	reconcilerCtx, cancelReconciler := context.WithCancel(ctx)
+	defer cancelReconciler()
+	
+	go vmReconciler.Start(reconcilerCtx)
+	logger.Info("VM reconciler started",
+		slog.Duration("interval", 5*time.Minute),
+	)
 
 	// Create unified health handler
 	healthHandler := healthpkg.Handler("metald", getVersion(), startTime)

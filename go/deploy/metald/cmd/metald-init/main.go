@@ -41,10 +41,10 @@ var validEnvKeyPattern = regexp.MustCompile(`^[A-Z][A-Z0-9_]*$`)
 func main() {
 	// Set up logging to stderr (stdout might be used by the child process)
 	log.SetOutput(os.Stderr)
-	log.SetPrefix("[metald-init] ")
+	log.SetPrefix("[init] ")
 	
 	// AIDEV-NOTE: Write debug file with secure permissions
-	os.WriteFile("/metald-init.started", []byte(fmt.Sprintf("Started at %s\n", time.Now())), 0600)
+	os.WriteFile("/init.started", []byte(fmt.Sprintf("Started at %s\n", time.Now())), 0600)
 	
 	// Parse command line arguments
 	if len(os.Args) < 2 {
@@ -113,7 +113,7 @@ func main() {
 	// AIDEV-NOTE: Write debug info with secure permissions
 	debugInfo := fmt.Sprintf("Command: %s\nArgs: %v\nEnv count: %d\nWorking dir: %s\n", 
 		command, commandArgs, len(os.Environ()), os.Getenv("PWD"))
-	os.WriteFile("/metald-init.command", []byte(debugInfo), 0600)
+	os.WriteFile("/init.command", []byte(debugInfo), 0600)
 	
 	// Parse kernel command line for our parameters
 	kernelParams := parseKernelCmdline()
@@ -406,15 +406,13 @@ func changeWorkingDirectory(params map[string]string) error {
 	return nil
 }
 
-// createCommonDirectories creates directories commonly expected by containers
+// createCommonDirectories creates directories commonly expected by applications
 func createCommonDirectories() {
-	// List of directories that containers commonly expect to exist
+	// List of directories that applications commonly expect to exist in a microvm
 	commonDirs := []string{
 		"/var/log",
-		"/var/log/nginx",
 		"/var/run",
 		"/var/cache",
-		"/var/cache/nginx",
 		"/tmp",
 	}
 	
@@ -498,10 +496,11 @@ func handleSignalsAndReaping(cmd *exec.Cmd, sigChan chan os.Signal) {
 
 // printHelp prints usage information
 func printHelp() {
-	help := `metald-init - Container init process for Unkey Deploy microvms
+	binaryName := filepath.Base(os.Args[0])
+	help := fmt.Sprintf(`%s - Generic init process for microvms
 
 Usage:
-  metald-init [options] -- command [args...]
+  %s [options] -- command [args...]
 
 Options:
   --version    Show version information
@@ -514,9 +513,9 @@ Environment:
   workdir=/path    Change working directory to /path
   
 Example:
-  metald-init -- nginx -g "daemon off;"
+  %s -- nginx -g "daemon off;"
   
   With kernel cmdline: env.NGINX_PORT=8080 workdir=/app
-`
+`, binaryName, binaryName, binaryName)
 	fmt.Print(help)
 }

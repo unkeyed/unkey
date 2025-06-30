@@ -152,6 +152,15 @@ type NetworkConfig struct {
 	BridgeName      string
 	EnableRateLimit bool
 	RateLimitMbps   int
+	
+	// Production Scalability Configuration
+	MaxVMsPerBridge    int    // Maximum VMs per bridge before creating new bridge
+	EnableMultiBridge  bool   // Enable multiple bridges for scalability  
+	BridgePrefix       string // Prefix for multiple bridges (e.g., "metald-br")
+	
+	// Host Protection Configuration
+	EnableHostProtection bool // Enable host network route protection
+	PrimaryInterface     string // Primary host interface to protect (auto-detected if empty)
 }
 
 // TLSConfig holds TLS configuration
@@ -339,8 +348,8 @@ func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (
 		Network: NetworkConfig{
 			Enabled:         getEnvBoolOrDefault("UNKEY_METALD_NETWORK_ENABLED"),
 			EnableIPv4:      getEnvBoolOrDefault("UNKEY_METALD_NETWORK_IPV4_ENABLED"),
-			BridgeIPv4:      getEnvOrDefault("UNKEY_METALD_NETWORK_BRIDGE_IPV4", "10.100.0.1/16"),
-			VMSubnetIPv4:    getEnvOrDefault("UNKEY_METALD_NETWORK_VM_SUBNET_IPV4", "10.100.0.0/16"),
+			BridgeIPv4:      getEnvOrDefault("UNKEY_METALD_NETWORK_BRIDGE_IPV4", "172.31.0.1/19"),
+			VMSubnetIPv4:    getEnvOrDefault("UNKEY_METALD_NETWORK_VM_SUBNET_IPV4", "172.31.0.0/19"),
 			DNSServersIPv4:  strings.Split(getEnvOrDefault("UNKEY_METALD_NETWORK_DNS_IPV4", "8.8.8.8,8.8.4.4"), ","),
 			EnableIPv6:      getEnvBoolOrDefault("UNKEY_METALD_NETWORK_IPV6_ENABLED"),
 			BridgeIPv6:      getEnvOrDefault("UNKEY_METALD_NETWORK_BRIDGE_IPV6", "fd00::1/64"),
@@ -350,6 +359,15 @@ func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (
 			BridgeName:      getEnvOrDefault("UNKEY_METALD_NETWORK_BRIDGE", "br-vms"),
 			EnableRateLimit: getEnvBoolOrDefault("UNKEY_METALD_NETWORK_RATE_LIMIT"),
 			RateLimitMbps:   getEnvIntOrDefault("UNKEY_METALD_NETWORK_RATE_LIMIT_MBPS", 1000),
+			
+			// Production Scalability Defaults
+			MaxVMsPerBridge:    getEnvIntOrDefault("UNKEY_METALD_NETWORK_MAX_VMS_PER_BRIDGE", 1000),
+			EnableMultiBridge:  getEnvBoolOrDefault("UNKEY_METALD_NETWORK_MULTI_BRIDGE"),
+			BridgePrefix:       getEnvOrDefault("UNKEY_METALD_NETWORK_BRIDGE_PREFIX", "metald-br"),
+			
+			// Host Protection Defaults  
+			EnableHostProtection: getEnvBoolOrDefault("UNKEY_METALD_NETWORK_HOST_PROTECTION"),
+			PrimaryInterface:     getEnvOrDefault("UNKEY_METALD_NETWORK_PRIMARY_INTERFACE", ""),
 		},
 		TLS: &TLSConfig{
 			// AIDEV-BUSINESS_RULE: mTLS/SPIFFE is required for production security

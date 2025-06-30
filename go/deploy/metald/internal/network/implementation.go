@@ -15,6 +15,7 @@ import (
 
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
+	"github.com/unkeyed/unkey/go/deploy/metald/internal/config"
 )
 
 // Config holds network configuration
@@ -57,36 +58,50 @@ type Manager struct {
 	vmNetworks    map[string]*VMNetwork
 
 	// Runtime state
-	bridgeCreated bool
-	iptablesRules []string
+	hostProtection *HostProtection
+	metrics        *NetworkMetrics
+	bridgeCreated  bool
+	iptablesRules  []string
 }
 
 // NewManager creates a new network manager
-func NewManager(logger *slog.Logger, config *Config) (*Manager, error) {
-	if config == nil {
-		config = DefaultConfig()
+func NewManager(logger *slog.Logger, netConfig *Config, mainConfig *config.NetworkConfig) (*Manager, error) {
+	if netConfig == nil {
+		netConfig = DefaultConfig()
 	}
 
 	logger = logger.With("component", "network-manager")
 	logger.Info("creating network manager",
-		slog.String("bridge_name", config.BridgeName),
-		slog.String("bridge_ip", config.BridgeIP),
-		slog.String("vm_subnet", config.VMSubnet),
+		slog.String("bridge_name", netConfig.BridgeName),
+		slog.String("bridge_ip", netConfig.BridgeIP),
+		slog.String("vm_subnet", netConfig.VMSubnet),
+		slog.Bool("host_protection", mainConfig.EnableHostProtection),
 	)
 
-	_, subnet, err := net.ParseCIDR(config.VMSubnet)
+	_, subnet, err := net.ParseCIDR(netConfig.VMSubnet)
 	if err != nil {
 		return nil, fmt.Errorf("invalid subnet: %w", err)
 	}
 
-	m := &Manager{ //nolint:exhaustruct // mu, bridgeCreated, and iptablesRules fields use appropriate zero values
-		logger:        logger,
-		config:        config,
-		allocator:     NewIPAllocator(subnet),
-		portAllocator: NewPortAllocator(config.PortRangeMin, config.PortRangeMax),
-		idGen:         NewIDGenerator(),
-		vmNetworks:    make(map[string]*VMNetwork),
+	// Initialize network metrics
+	networkMetrics, err := NewNetworkMetrics(logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create network metrics: %w", err)
 	}
+
+	m := &Manager{ //nolint:exhaustruct // mu, bridgeCreated, and iptablesRules fields use appropriate zero values
+		logger:         logger,
+		config:         netConfig,
+		allocator:      NewIPAllocator(subnet),
+		portAllocator:  NewPortAllocator(netConfig.PortRangeMin, netConfig.PortRangeMax),
+		idGen:          NewIDGenerator(),
+		hostProtection: NewHostProtection(logger, mainConfig),
+		metrics:        networkMetrics,
+		vmNetworks:     make(map[string]*VMNetwork),
+	}
+
+	// Set bridge max VMs based on configuration
+	m.metrics.SetBridgeMaxVMs(netConfig.BridgeName, int64(mainConfig.MaxVMsPerBridge))
 
 	// Log current network state before initialization
 	m.logNetworkState("before initialization")
@@ -98,6 +113,15 @@ func NewManager(logger *slog.Logger, config *Config) (*Manager, error) {
 		)
 		m.logNetworkState("after failed initialization")
 		return nil, fmt.Errorf("failed to initialize host networking: %w", err)
+	}
+
+	// Start host protection system
+	ctx := context.Background() // Use background context for initialization
+	if err := m.hostProtection.Start(ctx); err != nil {
+		m.logger.Warn("failed to start host protection",
+			slog.String("error", err.Error()),
+		)
+		// Don't fail completely - host protection is optional
 	}
 
 	// Log network state after initialization
@@ -351,13 +375,15 @@ func (m *Manager) setupNAT() error {
 
 // CreateVMNetwork sets up networking for a VM
 func (m *Manager) CreateVMNetwork(ctx context.Context, vmID string) (*VMNetwork, error) {
-	// Default namespace name
-	nsName := fmt.Sprintf("vm-%s", vmID)
-	return m.CreateVMNetworkWithNamespace(ctx, vmID, nsName)
+	// Default namespace name - will be overridden in CreateVMNetworkWithNamespace
+	// if empty to use consistent device naming
+	return m.CreateVMNetworkWithNamespace(ctx, vmID, "")
 }
 
 // CreateVMNetworkWithNamespace sets up networking for a VM with a specific namespace name
 func (m *Manager) CreateVMNetworkWithNamespace(ctx context.Context, vmID, nsName string) (*VMNetwork, error) {
+	startTime := time.Now()
+	
 	m.logger.InfoContext(ctx, "creating VM network",
 		slog.String("vm_id", vmID),
 		slog.String("namespace", nsName),
@@ -380,6 +406,8 @@ func (m *Manager) CreateVMNetworkWithNamespace(ctx context.Context, vmID, nsName
 	// AIDEV-NOTE: This ensures consistent naming across all network devices
 	networkID, err := m.idGen.GenerateNetworkID()
 	if err != nil {
+		m.metrics.RecordVMNetworkCreate(ctx, m.config.BridgeName, false)
+		m.metrics.RecordNetworkSetupDuration(ctx, time.Since(startTime), m.config.BridgeName, false)
 		return nil, fmt.Errorf("failed to generate network ID: %w", err)
 	}
 
@@ -390,6 +418,8 @@ func (m *Manager) CreateVMNetworkWithNamespace(ctx context.Context, vmID, nsName
 	ip, err := m.allocator.AllocateIP()
 	if err != nil {
 		m.idGen.ReleaseID(networkID)
+		m.metrics.RecordVMNetworkCreate(ctx, m.config.BridgeName, false)
+		m.metrics.RecordNetworkSetupDuration(ctx, time.Since(startTime), m.config.BridgeName, false)
 		return nil, fmt.Errorf("failed to allocate IP: %w", err)
 	}
 
@@ -397,6 +427,9 @@ func (m *Manager) CreateVMNetworkWithNamespace(ctx context.Context, vmID, nsName
 	mac := m.generateMAC(vmID)
 
 	// Override namespace name if provided (e.g., by jailer)
+	// AIDEV-NOTE: CRITICAL FIX - Use deviceNames.Namespace when nsName is empty to ensure
+	// namespace name matches the veth device names (vn_{networkID}). This prevents
+	// "no such device" errors when configuring veth inside the namespace.
 	actualNsName := nsName
 	if actualNsName == "" {
 		actualNsName = deviceNames.Namespace
@@ -439,6 +472,11 @@ func (m *Manager) CreateVMNetworkWithNamespace(ctx context.Context, vmID, nsName
 
 	m.vmNetworks[vmID] = vmNet
 
+	// Record successful network creation metrics
+	duration := time.Since(startTime)
+	m.metrics.RecordVMNetworkCreate(ctx, m.config.BridgeName, true)
+	m.metrics.RecordNetworkSetupDuration(ctx, duration, m.config.BridgeName, true)
+
 	m.logger.InfoContext(ctx, "created VM network",
 		slog.String("vm_id", vmID),
 		slog.String("ip", ip.String()),
@@ -446,6 +484,7 @@ func (m *Manager) CreateVMNetworkWithNamespace(ctx context.Context, vmID, nsName
 		slog.String("tap", deviceNames.TAP),
 		slog.String("namespace", actualNsName),
 		slog.String("network_id", networkID),
+		slog.Duration("setup_duration", duration),
 	)
 
 	return vmNet, nil
@@ -892,6 +931,8 @@ func (m *Manager) applyRateLimit(link netlink.Link, mbps int) {
 
 // DeleteVMNetwork removes networking for a VM
 func (m *Manager) DeleteVMNetwork(ctx context.Context, vmID string) error {
+	startTime := time.Now()
+	
 	m.logger.InfoContext(ctx, "deleting VM network",
 		slog.String("vm_id", vmID),
 	)
@@ -921,7 +962,26 @@ func (m *Manager) DeleteVMNetwork(ctx context.Context, vmID string) error {
 	if link, err := netlink.LinkByName(deviceNames.VethHost); err == nil {
 		if delErr := netlink.LinkDel(link); delErr != nil {
 			m.logger.WarnContext(ctx, "Failed to delete veth pair", "device", deviceNames.VethHost, "error", delErr)
+		} else {
+			m.logger.InfoContext(ctx, "Deleted veth pair", "device", deviceNames.VethHost)
 		}
+	}
+
+	// AIDEV-NOTE: Delete TAP device (CRITICAL FIX - this was missing!)
+	// TAP devices are created in host namespace for Firecracker access and must be explicitly cleaned up
+	if link, err := netlink.LinkByName(deviceNames.TAP); err == nil {
+		if delErr := netlink.LinkDel(link); delErr != nil {
+			m.logger.WarnContext(ctx, "Failed to delete TAP device", 
+				"device", deviceNames.TAP, "error", delErr)
+		} else {
+			m.logger.InfoContext(ctx, "Deleted TAP device", "device", deviceNames.TAP)
+		}
+	}
+
+	// Verify cleanup completed successfully
+	if err := m.verifyNetworkCleanup(ctx, vmID, deviceNames); err != nil {
+		m.logger.WarnContext(ctx, "Network cleanup verification failed", 
+			"vm_id", vmID, "error", err)
 	}
 
 	// Release the network ID for reuse
@@ -929,13 +989,59 @@ func (m *Manager) DeleteVMNetwork(ctx context.Context, vmID string) error {
 
 	delete(m.vmNetworks, vmID)
 
+	// Record successful network deletion metrics
+	duration := time.Since(startTime)
+	m.metrics.RecordVMNetworkDelete(ctx, m.config.BridgeName, true)
+	m.metrics.RecordNetworkCleanupDuration(ctx, duration, m.config.BridgeName, true)
+
 	m.logger.InfoContext(ctx, "deleted VM network",
 		slog.String("vm_id", vmID),
 		slog.String("network_id", vmNet.NetworkID),
 		slog.String("ip", vmNet.IPAddress.String()),
+		slog.Duration("cleanup_duration", duration),
 	)
 
 	return nil
+}
+
+// verifyNetworkCleanup verifies that all network resources for a VM have been properly cleaned up
+func (m *Manager) verifyNetworkCleanup(ctx context.Context, vmID string, deviceNames *NetworkDeviceNames) error {
+	var remainingResources []string
+
+	// Check if TAP device still exists
+	if _, err := netlink.LinkByName(deviceNames.TAP); err == nil {
+		remainingResources = append(remainingResources, fmt.Sprintf("TAP device: %s", deviceNames.TAP))
+	}
+
+	// Check if veth host device still exists  
+	if _, err := netlink.LinkByName(deviceNames.VethHost); err == nil {
+		remainingResources = append(remainingResources, fmt.Sprintf("veth device: %s", deviceNames.VethHost))
+	}
+
+	// Check if namespace still exists
+	if m.namespaceExists(deviceNames.Namespace) {
+		remainingResources = append(remainingResources, fmt.Sprintf("namespace: %s", deviceNames.Namespace))
+	}
+
+	if len(remainingResources) > 0 {
+		m.logger.WarnContext(ctx, "Cleanup verification detected remaining resources",
+			"vm_id", vmID,
+			"remaining_resources", remainingResources,
+		)
+		return fmt.Errorf("cleanup incomplete: %d resources remain: %v", len(remainingResources), remainingResources)
+	}
+
+	m.logger.InfoContext(ctx, "Network cleanup verification passed", "vm_id", vmID)
+	return nil
+}
+
+// namespaceExists checks if a network namespace exists
+func (m *Manager) namespaceExists(namespace string) bool {
+	// Try to get the namespace - if it exists, this won't error
+	if _, err := netns.GetFromName(namespace); err != nil {
+		return false
+	}
+	return true
 }
 
 // GetVMNetwork returns network information for a VM
@@ -955,6 +1061,13 @@ func (m *Manager) GetVMNetwork(vmID string) (*VMNetwork, error) {
 func (m *Manager) Shutdown(ctx context.Context) error {
 	m.logger.InfoContext(ctx, "shutting down network manager")
 	m.logNetworkState("before shutdown")
+
+	// Stop host protection first
+	if err := m.hostProtection.Stop(ctx); err != nil {
+		m.logger.WarnContext(ctx, "failed to stop host protection",
+			slog.String("error", err.Error()),
+		)
+	}
 
 	// Delete all VM networks
 	vmCount := len(m.vmNetworks)
@@ -1335,4 +1448,177 @@ func (m *Manager) GetPortAllocationStats() (allocated, available int) {
 	defer m.mu.RUnlock()
 	
 	return m.portAllocator.GetAllocatedCount(), m.portAllocator.GetAvailableCount()
+}
+
+// CleanupOrphanedResources performs administrative cleanup of orphaned network resources
+// This function scans for and removes network interfaces that are no longer associated with active VMs
+func (m *Manager) CleanupOrphanedResources(ctx context.Context, dryRun bool) (*CleanupReport, error) {
+	m.logger.InfoContext(ctx, "starting orphaned resource cleanup",
+		slog.Bool("dry_run", dryRun),
+	)
+
+	report := &CleanupReport{
+		DryRun: dryRun,
+	}
+
+	// Get all network links
+	links, err := netlink.LinkList()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list network interfaces: %w", err)
+	}
+
+	// Find orphaned TAP devices
+	for _, link := range links {
+		name := link.Attrs().Name
+		if strings.HasPrefix(name, "tap_") && len(name) == 12 { // tap_<8-char-id>
+			networkID := name[4:] // Extract the 8-char ID
+			if !m.isNetworkIDActive(networkID) {
+				report.OrphanedTAPs = append(report.OrphanedTAPs, name)
+				if !dryRun {
+					if delErr := netlink.LinkDel(link); delErr != nil {
+						report.Errors = append(report.Errors, fmt.Sprintf("Failed to delete TAP %s: %v", name, delErr))
+					} else {
+						report.CleanedTAPs = append(report.CleanedTAPs, name)
+					}
+				}
+			}
+		}
+	}
+
+	// Find orphaned veth pairs
+	for _, link := range links {
+		name := link.Attrs().Name
+		if strings.HasPrefix(name, "vh_") && len(name) == 11 { // vh_<8-char-id>
+			networkID := name[3:] // Extract the 8-char ID
+			if !m.isNetworkIDActive(networkID) {
+				report.OrphanedVeths = append(report.OrphanedVeths, name)
+				if !dryRun {
+					if delErr := netlink.LinkDel(link); delErr != nil {
+						report.Errors = append(report.Errors, fmt.Sprintf("Failed to delete veth %s: %v", name, delErr))
+					} else {
+						report.CleanedVeths = append(report.CleanedVeths, name)
+					}
+				}
+			}
+		}
+	}
+
+	// Find orphaned namespaces
+	// Note: This is a simplified check - in practice you'd scan /var/run/netns or use netns.ListNamed()
+	for vmID := range m.vmNetworks {
+		expectedNS := fmt.Sprintf("vm-%s", vmID)
+		if m.namespaceExists(expectedNS) {
+			// This namespace should exist, it's not orphaned
+			continue
+		}
+	}
+
+	m.logger.InfoContext(ctx, "orphaned resource cleanup completed",
+		slog.Bool("dry_run", dryRun),
+		slog.Int("orphaned_taps", len(report.OrphanedTAPs)),
+		slog.Int("orphaned_veths", len(report.OrphanedVeths)),
+		slog.Int("cleaned_taps", len(report.CleanedTAPs)),
+		slog.Int("cleaned_veths", len(report.CleanedVeths)),
+		slog.Int("errors", len(report.Errors)),
+	)
+
+	return report, nil
+}
+
+// isNetworkIDActive checks if a network ID is currently associated with an active VM
+func (m *Manager) isNetworkIDActive(networkID string) bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	for _, vmNet := range m.vmNetworks {
+		if vmNet.NetworkID == networkID {
+			return true
+		}
+	}
+	return false
+}
+
+// CleanupReport contains the results of orphaned resource cleanup
+type CleanupReport struct {
+	DryRun         bool
+	OrphanedTAPs   []string
+	OrphanedVeths  []string
+	OrphanedNS     []string
+	CleanedTAPs    []string
+	CleanedVeths   []string
+	CleanedNS      []string
+	Errors         []string
+}
+
+// GetBridgeCapacityStatus returns current bridge capacity and utilization
+func (m *Manager) GetBridgeCapacityStatus() *BridgeCapacityStatus {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	bridgeStats := m.metrics.GetBridgeStats()
+	alerts := m.metrics.GetBridgeCapacityAlerts()
+
+	// Calculate overall statistics
+	totalVMs := int64(0)
+	totalCapacity := int64(0)
+	bridgeCount := len(bridgeStats)
+
+	bridgeDetails := make([]BridgeDetails, 0, bridgeCount)
+	for _, stats := range bridgeStats {
+		totalVMs += stats.VMCount
+		totalCapacity += stats.MaxVMs
+
+		utilization := float64(stats.VMCount) / float64(stats.MaxVMs)
+		bridgeDetails = append(bridgeDetails, BridgeDetails{
+			Name:         stats.BridgeName,
+			VMCount:      stats.VMCount,
+			MaxVMs:       stats.MaxVMs,
+			Utilization:  utilization,
+			IsHealthy:    stats.IsHealthy,
+			CreatedAt:    stats.CreatedAt,
+			LastActivity: stats.LastActivity,
+		})
+	}
+
+	overallUtilization := float64(0)
+	if totalCapacity > 0 {
+		overallUtilization = float64(totalVMs) / float64(totalCapacity)
+	}
+
+	return &BridgeCapacityStatus{
+		TotalVMs:           totalVMs,
+		TotalCapacity:      totalCapacity,
+		OverallUtilization: overallUtilization,
+		BridgeCount:        int64(bridgeCount),
+		Bridges:            bridgeDetails,
+		Alerts:             alerts,
+		Timestamp:          time.Now(),
+	}
+}
+
+// GetNetworkMetrics returns the network metrics instance for external access
+func (m *Manager) GetNetworkMetrics() *NetworkMetrics {
+	return m.metrics
+}
+
+// BridgeCapacityStatus provides comprehensive bridge capacity information
+type BridgeCapacityStatus struct {
+	TotalVMs           int64                 `json:"total_vms"`
+	TotalCapacity      int64                 `json:"total_capacity"`
+	OverallUtilization float64               `json:"overall_utilization"`
+	BridgeCount        int64                 `json:"bridge_count"`
+	Bridges            []BridgeDetails       `json:"bridges"`
+	Alerts             []BridgeCapacityAlert `json:"alerts"`
+	Timestamp          time.Time             `json:"timestamp"`
+}
+
+// BridgeDetails provides detailed information about a specific bridge
+type BridgeDetails struct {
+	Name         string    `json:"name"`
+	VMCount      int64     `json:"vm_count"`
+	MaxVMs       int64     `json:"max_vms"`
+	Utilization  float64   `json:"utilization"`
+	IsHealthy    bool      `json:"is_healthy"`
+	CreatedAt    time.Time `json:"created_at"`
+	LastActivity time.Time `json:"last_activity"`
 }

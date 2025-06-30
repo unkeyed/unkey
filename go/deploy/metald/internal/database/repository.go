@@ -541,3 +541,90 @@ func (r *VMRepository) UpdateVMPortMappingsWithContext(ctx context.Context, vmID
 
 	return nil
 }
+
+// ListAllVMsWithContext retrieves all VMs from the database with context for tracing
+func (r *VMRepository) ListAllVMsWithContext(ctx context.Context) ([]*VM, error) {
+	_, span := r.db.tracer.Start(ctx, "vm_repository.list_all_vms")
+	defer span.End()
+
+	r.logger.DebugContext(ctx, "listing all VMs from database")
+
+	query := `
+		SELECT id, customer_id, config, state, process_id, port_mappings, created_at, updated_at, deleted_at
+		FROM vms
+		WHERE deleted_at IS NULL
+		ORDER BY created_at DESC
+	`
+
+	rows, err := r.db.db.QueryContext(ctx, query)
+	if err != nil {
+		span.RecordError(err)
+		r.logger.ErrorContext(ctx, "failed to query all VMs",
+			slog.String("error", err.Error()),
+		)
+		return nil, fmt.Errorf("failed to list all VMs: %w", err)
+	}
+	defer rows.Close()
+
+	var vms []*VM
+	for rows.Next() {
+		var vm VM
+		var processID sql.NullString
+		var portMappings sql.NullString
+		var deletedAt sql.NullTime
+
+		err := rows.Scan(
+			&vm.ID,
+			&vm.CustomerID,
+			&vm.Config,
+			&vm.State,
+			&processID,
+			&portMappings,
+			&vm.CreatedAt,
+			&vm.UpdatedAt,
+			&deletedAt,
+		)
+		if err != nil {
+			span.RecordError(err)
+			r.logger.ErrorContext(ctx, "failed to scan VM row",
+				slog.String("error", err.Error()),
+			)
+			return nil, fmt.Errorf("failed to scan VM row: %w", err)
+		}
+
+		if processID.Valid {
+			vm.ProcessID = &processID.String
+		}
+		if portMappings.Valid {
+			vm.PortMappings = portMappings.String
+		} else {
+			vm.PortMappings = "[]" // Default empty array
+		}
+		if deletedAt.Valid {
+			vm.DeletedAt = &deletedAt.Time
+		}
+
+		vms = append(vms, &vm)
+	}
+
+	if err := rows.Err(); err != nil {
+		span.RecordError(err)
+		r.logger.ErrorContext(ctx, "error iterating VM rows",
+			slog.String("error", err.Error()),
+		)
+		return nil, fmt.Errorf("error iterating VM rows: %w", err)
+	}
+
+	r.logger.InfoContext(ctx, "successfully listed all VMs from database",
+		slog.Int("count", len(vms)),
+	)
+
+	span.SetAttributes(attribute.Int("vm.count", len(vms)))
+
+	return vms, nil
+}
+
+// UpdateVMStateWithContextInt updates VM state with an integer state parameter (used by reconciler)
+func (r *VMRepository) UpdateVMStateWithContextInt(ctx context.Context, vmID string, state int) error {
+	return r.UpdateVMStateWithContext(ctx, vmID, metaldv1.VmState(state), nil)
+}

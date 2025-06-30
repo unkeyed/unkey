@@ -406,10 +406,9 @@ func (b *VMConfigBuilder) ForDockerImage(imageName string) *VMConfigBuilder {
 	b.AddMetadata("docker_image", imageName).
 		AddMetadata("runtime", "docker")
 	
-	// Configure storage with Docker image metadata
-	// Note: In practice, this would coordinate with builderd to ensure the rootfs exists
-	sanitizedName := sanitizeImageName(imageName)
-	rootfsPath := fmt.Sprintf("/opt/vm-assets/%s-rootfs.ext4", sanitizedName)
+	// AIDEV-NOTE: Use standardized rootfs path instead of Docker image-specific naming
+	// This aligns with assetmanagerd's PrepareAssets method which uses "rootfs.ext4"
+	rootfsPath := "/opt/vm-assets/rootfs.ext4"
 	
 	// Replace any existing root storage with Docker-specific one
 	newStorage := []*vmprovisionerv1.StorageDevice{}
@@ -420,7 +419,7 @@ func (b *VMConfigBuilder) ForDockerImage(imageName string) *VMConfigBuilder {
 	}
 	b.config.Storage = newStorage
 	
-	// Add Docker rootfs with metadata
+	// Add Docker rootfs with metadata for automatic build system
 	b.AddStorageWithOptions("rootfs", rootfsPath, false, true, "virtio-blk", 
 		map[string]string{
 			"docker_image": imageName,
