@@ -52,34 +52,41 @@ export function createFilterOutputSchema<
         })
         .refine(
           (data) => {
-            // Check if all filters are valid
-            return data.filters.every(
-              (filter) =>
-                validateSingleFilter(
-                  data.field as keyof TConfig,
-                  filter as { operator: string; value: string | number },
-                  filterFieldConfig,
-                ).valid,
-            );
-          },
-          (data) => {
-            // Find the first invalid filter and return its error message
-            const invalidFilter = data.filters.find(
-              (filter) =>
-                !validateSingleFilter(
-                  data.field as keyof TConfig,
-                  filter as { operator: string; value: string | number },
-                  filterFieldConfig,
-                ).valid,
-            );
+            // Validate all filters and cache results
+            const validationResults = data.filters.map((filter) => {
+              if (
+                typeof filter.operator !== "string" ||
+                (typeof filter.value !== "string" && typeof filter.value !== "number")
+              ) {
+                throw new Error("Invalid filter structure");
+              }
 
-            if (invalidFilter) {
-              const validation = validateSingleFilter(
+              return validateSingleFilter(
                 data.field as keyof TConfig,
-                invalidFilter as { operator: string; value: string | number },
+                filter as { operator: string; value: string | number },
                 filterFieldConfig,
               );
-              return { message: validation.error || "Invalid field/operator/value combination" };
+            });
+
+            // Store results for error handling
+            (data as Record<string, unknown>)._validationResults = validationResults;
+            return validationResults.every((result) => result.valid);
+          },
+          (data) => {
+            // Use cached validation results
+            const validationResults =
+              ((data as Record<string, unknown>)._validationResults as Array<{
+                valid: boolean;
+                error?: string;
+              }>) || [];
+            const firstInvalidResult = validationResults.find(
+              (result: { valid: boolean; error?: string }) => !result.valid,
+            );
+
+            if (firstInvalidResult) {
+              return {
+                message: firstInvalidResult.error || "Invalid field/operator/value combination",
+              };
             }
 
             return { message: "Invalid field/operator/value combination" };
