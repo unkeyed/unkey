@@ -114,7 +114,7 @@ export function ToastWithCustomDuration() {
           <Button
             onClick={() =>
               toast("Persistent Message", {
-                duration: Infinity, // Never auto-dismiss
+                duration: Number.POSITIVE_INFINITY, // Never auto-dismiss
                 closeButton: true,
               })
             }
