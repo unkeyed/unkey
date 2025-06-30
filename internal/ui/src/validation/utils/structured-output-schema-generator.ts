@@ -2,6 +2,11 @@ import { z } from "zod";
 import type { FieldConfig } from "../filter.types";
 import { isNumberConfig, isStringConfig } from "./type-guards";
 
+// Interface for data with validation results
+type DataWithValidationResults = {
+  _validationResults?: Array<{ valid: boolean; error?: string }>;
+}
+
 // Helper function to validate a single filter and return detailed result
 function validateSingleFilter<
   TFieldEnum extends z.ZodEnum<[string, ...string[]]>,
@@ -69,16 +74,12 @@ export function createFilterOutputSchema<
             });
 
             // Store results for error handling
-            (data as Record<string, unknown>)._validationResults = validationResults;
+            (data as DataWithValidationResults)._validationResults = validationResults;
             return validationResults.every((result) => result.valid);
           },
           (data) => {
             // Use cached validation results
-            const validationResults =
-              ((data as Record<string, unknown>)._validationResults as Array<{
-                valid: boolean;
-                error?: string;
-              }>) || [];
+            const validationResults = (data as DataWithValidationResults)._validationResults || [];
             const firstInvalidResult = validationResults.find(
               (result: { valid: boolean; error?: string }) => !result.valid,
             );
