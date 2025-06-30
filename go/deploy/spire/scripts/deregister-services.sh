@@ -42,7 +42,7 @@ deregister_service() {
     # Find entry ID for the service
     local entry_id=$(sudo ${SPIRE_DIR}/bin/spire-server entry show \
         -socketPath "$SOCKET_PATH" \
-        -spiffeID "$spiffe_id" 2>/dev/null | grep "Entry ID" | awk '{print $3}')
+        -spiffeID "$spiffe_id" 2>/dev/null | grep "Entry ID" | awk '{print $NF}')
 
     if [ -z "$entry_id" ]; then
         echo -e "${YELLOW}✓ ${service_name} not registered${NC}"
@@ -69,6 +69,7 @@ deregister_service "billaged"
 deregister_service "builderd"
 deregister_service "assetmanagerd"
 deregister_service "metald-cli"
+deregister_service "metald-client"
 
 # List remaining registered entries
 echo -e "\n${YELLOW}=== Remaining Registered Services ===${NC}"
