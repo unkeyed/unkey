@@ -113,26 +113,8 @@ export function ToastWithCustomDuration() {
         <div className="flex flex-wrap gap-2">
           <Button
             onClick={() =>
-              toast("Quick Message", {
-                duration: 2000, // 2 seconds
-              })
-            }
-          >
-            Short Duration (2s)
-          </Button>
-          <Button
-            onClick={() =>
-              toast("Important Message", {
-                duration: 10000, // 10 seconds
-              })
-            }
-          >
-            Long Duration (10s)
-          </Button>
-          <Button
-            onClick={() =>
               toast("Persistent Message", {
-                duration: Number.POSITIVE_INFINITY, // Never auto-dismiss
+                duration: Infinity, // Never auto-dismiss
                 closeButton: true,
               })
             }

@@ -81,51 +81,6 @@ The `<Toaster />` component accepts all props from [Sonner's Toaster component](
 
 The `toast` function is used to trigger toast notifications with various options.
 
-#### Basic Usage
-
-```tsx
-toast("Your message here");
-```
-
-#### With Options
-
-```tsx
-toast("Title", {
-  description: "Optional description",
-  duration: 5000, // milliseconds
-  action: {
-    label: "Action",
-    onClick: () => console.log("Action clicked"),
-  },
-  cancel: {
-    label: "Cancel",
-    onClick: () => console.log("Cancel clicked"),
-  },
-});
-```
-
-#### Toast Variants
-
-```tsx
-toast.success("Success message");
-toast.error("Error message");
-toast.warning("Warning message");
-toast.info("Info message");
-```
-
-#### Promise Toast
-
-```tsx
-toast.promise(
-  asyncOperation(),
-  {
-    loading: "Loading...",
-    success: "Success!",
-    error: "Error occurred",
-  }
-);
-```
-
 ## Toast Options
 
 | Option | Type | Default | Description |
