@@ -22,32 +22,14 @@ export function ToastVariants() {
     <RenderComponentWithSnippet>
       <div className="space-y-4">
         <div className="flex flex-wrap gap-2">
-          <Button
-            onClick={() => toast.success("Success! Your action was completed.")}
-            variant="default"
-            className="bg-green-600 hover:bg-green-700"
-          >
+          <Button onClick={() => toast.success("Success! Your action was completed.")}>
             Success Toast
           </Button>
-          <Button
-            onClick={() => toast.error("Error! Something went wrong.")}
-            variant="default"
-            className="bg-red-600 hover:bg-red-700"
-          >
-            Error Toast
-          </Button>
-          <Button
-            onClick={() => toast.warning("Warning! Please check your input.")}
-            variant="default"
-            className="bg-yellow-600 hover:bg-yellow-700"
-          >
+          <Button onClick={() => toast.error("Error! Something went wrong.")}>Error Toast</Button>
+          <Button onClick={() => toast.warning("Warning! Please check your input.")}>
             Warning Toast
           </Button>
-          <Button
-            onClick={() => toast.info("Info: Here's some helpful information.")}
-            variant="default"
-            className="bg-blue-600 hover:bg-blue-700"
-          >
+          <Button onClick={() => toast.info("Info: Here's some helpful information.")}>
             Info Toast
           </Button>
         </div>
@@ -83,37 +65,39 @@ export function ToastWithActions() {
   return (
     <RenderComponentWithSnippet>
       <div className="space-y-4">
-        <Button
-          onClick={() =>
-            toast("Undo Changes", {
-              description: "Your changes have been saved.",
-              action: {
-                label: "Undo",
-                onClick: () => console.log("Undo clicked"),
-              },
-            })
-          }
-        >
-          Toast with Action
-        </Button>
-        <Button
-          onClick={() =>
-            toast("Confirm Deletion", {
-              description: "Are you sure you want to delete this item?",
-              action: {
-                label: "Delete",
-                onClick: () => console.log("Delete confirmed"),
-              },
-              cancel: {
-                label: "Cancel",
-                onClick: () => console.log("Delete cancelled"),
-              },
-            })
-          }
-          variant="destructive"
-        >
-          Toast with Action & Cancel
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={() =>
+              toast("Undo Changes", {
+                description: "Your changes have been saved.",
+                action: {
+                  label: "Undo",
+                  onClick: () => console.log("Undo clicked"),
+                },
+              })
+            }
+          >
+            Toast with Action
+          </Button>
+          <Button
+            onClick={() =>
+              toast("Confirm Deletion", {
+                description: "Are you sure you want to delete this item?",
+                action: {
+                  label: "Delete",
+                  onClick: () => console.log("Delete confirmed"),
+                },
+                cancel: {
+                  label: "Cancel",
+                  onClick: () => console.log("Delete cancelled"),
+                },
+              })
+            }
+            variant="destructive"
+          >
+            Toast with Action & Cancel
+          </Button>
+        </div>
         <p className="text-sm text-gray-600">
           Toasts can include action buttons for user interaction
         </p>
@@ -133,8 +117,6 @@ export function ToastWithCustomDuration() {
                 duration: 2000, // 2 seconds
               })
             }
-            variant="default"
-            className="bg-blue-600 hover:bg-blue-700"
           >
             Short Duration (2s)
           </Button>
@@ -144,8 +126,6 @@ export function ToastWithCustomDuration() {
                 duration: 10000, // 10 seconds
               })
             }
-            variant="default"
-            className="bg-orange-600 hover:bg-orange-700"
           >
             Long Duration (10s)
           </Button>
@@ -156,8 +136,6 @@ export function ToastWithCustomDuration() {
                 closeButton: true,
               })
             }
-            variant="default"
-            className="bg-purple-600 hover:bg-purple-700"
           >
             Persistent Toast
           </Button>
