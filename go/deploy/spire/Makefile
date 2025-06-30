@@ -4,6 +4,11 @@
 .PHONY: help install install-server install-agent uninstall uninstall-server uninstall-agent
 .PHONY: service-start service-stop service-restart service-status service-logs
 .PHONY: download-spire setup-directories create-users
+.PHONY: bootstrap-agent clean clean-all create-join-token deregister-services
+.PHONY: list-entries register-agent register-services setup-agent
+.PHONY: service-logs-agent service-logs-server service-restart-agent service-restart-server
+.PHONY: service-start-agent service-start-server service-status-agent service-status-server
+.PHONY: service-stop-agent service-stop-server
 
 # Variables
 SPIRE_VERSION ?= 1.12.2
@@ -226,6 +231,10 @@ create-join-token: ## Create join token for agent
 	@sudo $(SPIRE_INSTALL_DIR)/bin/spire-server token generate \
 		-socketPath /var/lib/spire/server/server.sock \
 		-spiffeID spiffe://$(TRUST_DOMAIN)/agent/node1
+
+deregister-services: ## Deregister all Unkey services from SPIRE
+	@echo "Deregistering services from SPIRE..."
+	@TRUST_DOMAIN=$(TRUST_DOMAIN) ./scripts/deregister-services.sh
 
 list-entries: ## List all registered entries
 	@sudo $(SPIRE_INSTALL_DIR)/bin/spire-server entry show \

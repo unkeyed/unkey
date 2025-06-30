@@ -39,9 +39,9 @@ register_service() {
     local service_user=$3
     local parent_id="spiffe://${TRUST_DOMAIN}/agent/node1"
     local spiffe_id="spiffe://${TRUST_DOMAIN}/service/${service_name}"
-    
+
     echo -e "\n${BLUE}Registering ${service_name}...${NC}"
-    
+
     # Check if entry already exists
     if sudo ${SPIRE_DIR}/bin/spire-server entry show \
         -socketPath "$SOCKET_PATH" \
@@ -49,7 +49,7 @@ register_service() {
         echo -e "${YELLOW}✓ ${service_name} already registered${NC}"
         return 0
     fi
-    
+
     # Create registration entry
     sudo ${SPIRE_DIR}/bin/spire-server entry create \
         -socketPath "$SOCKET_PATH" \
@@ -62,7 +62,7 @@ register_service() {
             echo -e "${RED}✗ Failed to register ${service_name}${NC}"
             return 1
         }
-    
+
     echo -e "${GREEN}✓ ${service_name} registered${NC}"
 }
 
@@ -71,12 +71,12 @@ register_service() {
 # All services run as their own dedicated user
 register_service "metald" "/usr/local/bin/metald" "root"
 register_service "billaged" "/usr/local/bin/billaged" "billaged"
-register_service "builderd" "/usr/local/bin/builderd" "builderd"
-register_service "assetmanagerd" "/usr/local/bin/assetmanagerd" "assetmanagerd"
+register_service "builderd" "/usr/local/bin/builderd" "root"
+register_service "assetmanagerd" "/usr/local/bin/assetmanagerd" "root"
 
 # Register the metald client for testing
 # AIDEV-NOTE: The example client runs as the current user
-register_service "metald-client" "/home/imeyer/code/github.com/unkeyed/unkey/go/deploy/metald/contrib/example-client/metald-client" "$USER"
+register_service "metald-cli" "/usr/local/bin/metald-cli" "$USER"
 
 # List all registered entries
 echo -e "\n${YELLOW}=== Registered Services ===${NC}"
