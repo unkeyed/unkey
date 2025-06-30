@@ -63,19 +63,19 @@ export default function MyComponent() {
 ### Promise Toast
 <ToastWithPromise />
 
-## API
+## Props
 
 ### Toaster Component
 
 The `<Toaster />` component accepts all props from [Sonner's Toaster component](https://sonner.emilkowal.ski/toaster).
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `theme` | `"light" \| "dark" \| "system"` | `"system"` | The theme for the toaster (automatically set from next-themes). |
-| `position` | `"top-left" \| "top-center" \| "top-right" \| "bottom-left" \| "bottom-center" \| "bottom-right"` | `"top-right"` | The position where toasts appear. |
-| `expand` | `boolean` | `false` | Whether to expand the toaster when there are multiple toasts. |
-| `richColors` | `boolean` | `false` | Whether to use rich colors for different toast types. |
-| `closeButton` | `boolean` | `false` | Whether to show a close button on toasts. |
+| Prop         | Type                                                                                   | Default       | Description                                                      |
+|--------------|----------------------------------------------------------------------------------------|---------------|------------------------------------------------------------------|
+| `theme`      | `"light" \| "dark" \| "system"`                                                        | `"system"`    | The theme for the toaster (automatically set from next-themes). |
+| `position`   | `"top-left" \| "top-center" \| "top-right" \| "bottom-left" \| "bottom-center" \| "bottom-right"` | `"top-right"` | The position where toasts appear.                                |
+| `expand`     | `boolean`                                                                              | `false`       | Whether to expand the toaster when there are multiple toasts.   |
+| `richColors` | `boolean`                                                                              | `false`       | Whether to use rich colors for different toast types.            |
+| `closeButton`| `boolean`                                                                              | `false`       | Whether to show a close button on toasts.                       |
 
 ### Toast Function
 
@@ -148,26 +148,6 @@ The Toaster component uses CSS custom properties and Tailwind classes for stylin
 - **Action buttons**: Use `bg-primary` and `text-primary-foreground`
 - **Cancel buttons**: Use `bg-secondary` and `text-content-subtle`
 
-## Accessibility
-
-The Toaster component is built on top of [Sonner](https://sonner.emilkowal.ski/) and follows accessibility best practices:
-
-- Proper ARIA labels and roles
-- Keyboard navigation support
-- Screen reader compatibility
-- Focus management
-- High contrast support
-- Respects user's motion preferences
-
-## Best Practices
-
-- **Keep messages concise**: Toast messages should be brief and actionable
-- **Use appropriate variants**: Choose success, error, warning, or info based on the message type
-- **Provide actions when needed**: Use action buttons for undo operations or confirmations
-- **Set appropriate durations**: Use shorter durations for success messages and longer for important warnings
-- **Avoid overuse**: Don't show toasts for every minor action
-- **Use promise toasts for async operations**: Show loading states for better UX
-- **Consider positioning**: Place toasts where they won't interfere with important UI elements
 
 ## Integration with Next.js
 
