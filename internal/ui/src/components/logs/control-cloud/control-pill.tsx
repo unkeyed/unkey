@@ -1,10 +1,12 @@
-import { cn } from "@/lib/utils";
+// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
+import * as React from "react";
+import { cn } from "../../../lib/utils";
 import { XMark } from "@unkey/icons";
-import { TimestampInfo } from "@unkey/ui";
-import { Button } from "@unkey/ui";
-import { type KeyboardEvent, useEffect, useRef } from "react";
-import type { FilterValue } from "../validation/filter.types";
+import { TimestampInfo } from "../../timestamp-info";
+import { Button } from "../../button";
+import type { FilterValue } from "../../../validation/filter.types";
 import { formatOperator } from "./utils";
+import { useEffect, useRef } from "react";
 
 type ControlPillProps<T extends FilterValue> = {
   filter: T;
@@ -35,7 +37,7 @@ export const ControlPill = <TFilter extends FilterValue>({
     }
   }, [isFocused]);
 
-  const handleKeyDown = (e: KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
     if (e.key === "Backspace" || e.key === "Delete") {
       e.preventDefault();
       onRemove(filter.id);
