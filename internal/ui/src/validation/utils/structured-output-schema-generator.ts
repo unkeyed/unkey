@@ -5,7 +5,7 @@ import { isNumberConfig, isStringConfig } from "./type-guards";
 // Interface for data with validation results
 type DataWithValidationResults = {
   _validationResults?: Array<{ valid: boolean; error?: string }>;
-}
+};
 
 // Helper function to validate a single filter and return detailed result
 function validateSingleFilter<
