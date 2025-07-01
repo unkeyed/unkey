@@ -69,8 +69,8 @@ func TestStepIdempotencyDuringWorkerFailure(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 
 		// Check if workflow has been picked up
-		currentStatus, err := engine.store.GetWorkflow(ctx, engine.GetNamespace(), executionID)
-		require.NoError(t, err)
+		currentStatus, getErr := engine.store.GetWorkflow(ctx, engine.GetNamespace(), executionID)
+		require.NoError(t, getErr)
 		if currentStatus.Status != WorkflowStatusPending {
 			break
 		}

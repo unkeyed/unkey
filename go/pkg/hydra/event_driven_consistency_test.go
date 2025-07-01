@@ -53,8 +53,8 @@ func TestEventDrivenConsistency(t *testing.T) {
 	workflowIDs := make([]string, numWorkflows)
 
 	for i := 0; i < numWorkflows; i++ {
-		workflowID, err := workflow.Start(ctx, fmt.Sprintf("payload-%d", i))
-		require.NoError(t, err)
+		workflowID, startErr := workflow.Start(ctx, fmt.Sprintf("payload-%d", i))
+		require.NoError(t, startErr)
 		workflowIDs[i] = workflowID
 	}
 

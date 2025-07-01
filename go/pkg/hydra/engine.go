@@ -47,8 +47,11 @@ type Config struct {
 // - All other fields will be set to their defaults when passed to New()
 func NewConfig() Config {
 	return Config{
-		Namespace: "default",
-		Clock:     clock.New(),
+		Store:      nil,
+		Namespace:  "default",
+		Clock:      clock.New(),
+		Logger:     nil,
+		Marshaller: nil,
 	}
 }
 
@@ -129,9 +132,11 @@ func New(config Config) *Engine {
 // Deprecated: Use New(Config{...}) for more explicit configuration.
 func NewWithStore(st store.Store, namespace string, clk clock.Clock) *Engine {
 	return New(Config{
-		Store:     st,
-		Namespace: namespace,
-		Clock:     clk,
+		Store:      st,
+		Namespace:  namespace,
+		Clock:      clk,
+		Logger:     nil,
+		Marshaller: nil,
 	})
 }
 
@@ -172,6 +177,7 @@ func (e *Engine) RegisterCron(cronSpec, name string, handler CronHandler) error 
 		Enabled:      true,
 		CreatedAt:    e.clock.Now().UnixMilli(),
 		UpdatedAt:    e.clock.Now().UnixMilli(),
+		LastRunAt:    nil,
 		NextRunAt:    calculateNextRun(cronSpec, e.clock.Now()),
 	}
 
@@ -218,6 +224,7 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowName string, payload
 		TimeoutDuration: 1 * time.Hour,
 		RetryBackoff:    1 * time.Second,
 		TriggerType:     TriggerTypeAPI, // Default trigger type
+		TriggerSource:   nil,
 	}
 	for _, opt := range opts {
 		opt(config)
@@ -237,12 +244,19 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowName string, payload
 		WorkflowName:      workflowName,
 		Status:            store.WorkflowStatusPending,
 		InputData:         data,
+		OutputData:        nil,
+		ErrorMessage:      "",
 		Namespace:         e.namespace,
 		MaxAttempts:       config.MaxAttempts,
 		RemainingAttempts: config.MaxAttempts, // Start with full attempts available
 		CreatedAt:         e.clock.Now().UnixMilli(),
-		TriggerType:       store.TriggerType(config.TriggerType),
+		StartedAt:         nil,
+		CompletedAt:       nil,
+		NextRetryAt:       nil,
+		SleepUntil:        nil,
+		TriggerType:       config.TriggerType,
 		TriggerSource:     config.TriggerSource,
+		TraceID:           "",
 	}
 
 	err = e.store.CreateWorkflow(ctx, workflow)
@@ -262,9 +276,4 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowName string, payload
 // GetStore returns the underlying store (for testing purposes)
 func (e *Engine) GetStore() store.Store {
 	return e.store
-}
-
-// generateWorkerID generates a unique worker ID using the uid package
-func generateWorkerID() string {
-	return uid.New(uid.WorkerPrefix)
 }

@@ -72,13 +72,17 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 	if err == nil && existing != nil {
 		// Record cached step hit
 		metrics.StepsCachedTotal.WithLabelValues(wctx.namespace, wctx.workflowName, stepName).Inc()
-		
+
 		responseType := reflect.TypeOf((*TResponse)(nil)).Elem()
 		var response TResponse
 
 		if responseType.Kind() == reflect.Ptr {
 			responseValue := reflect.New(responseType.Elem())
-			response = responseValue.Interface().(TResponse)
+			var ok bool
+			response, ok = responseValue.Interface().(TResponse)
+			if !ok {
+				return zero, fmt.Errorf("failed to convert response to expected type")
+			}
 		}
 
 		if len(existing.OutputData) > 0 {
@@ -94,7 +98,7 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 
 	existingStep, err := wctx.getAnyStep(stepName)
 	var stepToUse *WorkflowStep
-	var shouldCreateNewStep bool = true
+	shouldCreateNewStep := true
 
 	if err == nil && existingStep != nil {
 		stepToUse = existingStep
@@ -102,17 +106,21 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 	}
 
 	stepStartTime := time.Now()
-	
+
 	if shouldCreateNewStep {
 		stepToUse = &WorkflowStep{
+			ID:                "",
 			ExecutionID:       wctx.ExecutionID(),
 			StepName:          stepName,
 			StepOrder:         wctx.getNextStepOrder(),
 			Status:            StepStatusRunning,
 			Namespace:         wctx.namespace,
 			StartedAt:         ptr.P(stepStartTime.UnixMilli()),
+			OutputData:        nil,
+			ErrorMessage:      "",
 			MaxAttempts:       wctx.stepMaxAttempts,
 			RemainingAttempts: wctx.stepMaxAttempts,
+			CompletedAt:       nil,
 		}
 
 		err = wctx.store.CreateStep(wctx.ctx, stepToUse)
@@ -131,7 +139,7 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 			metrics.RecordError(wctx.namespace, "step", "update_step_failed")
 			return zero, fmt.Errorf("failed to update step: %w", err)
 		}
-		
+
 		// Record step retry
 		if stepToUse.RemainingAttempts < stepToUse.MaxAttempts {
 			metrics.StepsRetriedTotal.WithLabelValues(wctx.namespace, wctx.workflowName, stepName).Inc()
@@ -140,7 +148,9 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 
 	response, err := fn(wctx.ctx)
 	if err != nil {
-		wctx.markStepFailed(stepName, err.Error())
+		if markErr := wctx.markStepFailed(stepName, err.Error()); markErr != nil {
+			metrics.RecordError(wctx.namespace, "step", "mark_step_failed_error")
+		}
 		metrics.ObserveStepDuration(wctx.namespace, wctx.workflowName, stepName, "failed", stepStartTime)
 		metrics.StepsExecutedTotal.WithLabelValues(wctx.namespace, wctx.workflowName, stepName, "failed").Inc()
 		return zero, fmt.Errorf("step execution failed: %w", err)
@@ -148,7 +158,9 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 
 	respData, err := wctx.marshaller.Marshal(response)
 	if err != nil {
-		wctx.markStepFailed(stepName, err.Error())
+		if markErr := wctx.markStepFailed(stepName, err.Error()); markErr != nil {
+			metrics.RecordError(wctx.namespace, "step", "mark_step_failed_error")
+		}
 		metrics.ObserveStepDuration(wctx.namespace, wctx.workflowName, stepName, "failed", stepStartTime)
 		metrics.StepsExecutedTotal.WithLabelValues(wctx.namespace, wctx.workflowName, stepName, "failed").Inc()
 		metrics.RecordError(wctx.namespace, "step", "marshal_response_failed")

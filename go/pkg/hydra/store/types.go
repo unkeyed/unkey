@@ -1,14 +1,14 @@
 package store
 
 type WorkflowExecution struct {
-	ID           string `gorm:"primaryKey"`
-	WorkflowName string `gorm:"index:idx_workflow_namespace_name"`
+	ID           string         `gorm:"primaryKey"`
+	WorkflowName string         `gorm:"index:idx_workflow_namespace_name"`
 	Status       WorkflowStatus `gorm:"index:idx_workflow_namespace_status;index:idx_workflow_status_retry;index:idx_workflow_status_sleep"`
 	InputData    []byte
 	OutputData   []byte
 	ErrorMessage string
 
-	CreatedAt         int64  `gorm:"index:idx_workflow_namespace_status"`
+	CreatedAt         int64 `gorm:"index:idx_workflow_namespace_status"`
 	StartedAt         *int64
 	CompletedAt       *int64
 	MaxAttempts       int32

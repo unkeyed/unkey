@@ -143,7 +143,9 @@ func NewWorker(e *Engine, config WorkerConfig) (Worker, error) {
 		clock:               e.clock,
 		shutdownC:           make(chan struct{}),
 		doneC:               make(chan struct{}),
+		wg:                  sync.WaitGroup{},
 		activeLeases:        make(map[string]bool),
+		activeLeasesM:       sync.RWMutex{},
 		queryCircuitBreaker: queryCircuitBreaker,
 		leaseCircuitBreaker: leaseCircuitBreaker,
 		workflowQueue:       make(chan store.WorkflowExecution, queueSize),
@@ -212,7 +214,7 @@ func (w *worker) pollOnce(ctx context.Context) {
 	workflows, err := w.queryCircuitBreaker.Do(ctx, func(ctx context.Context) ([]store.WorkflowExecution, error) {
 		return w.engine.store.GetPendingWorkflows(ctx, w.engine.namespace, fetchLimit, workflowNames)
 	})
-	
+
 	// Record polling metrics
 	if err != nil {
 		metrics.WorkerPollsTotal.WithLabelValues(w.config.WorkerID, w.engine.namespace, "error").Inc()
@@ -248,10 +250,10 @@ func (w *worker) processWorkflows(ctx context.Context) {
 
 			// Record successful lease acquisition
 			metrics.LeaseAcquisitionsTotal.WithLabelValues(w.config.WorkerID, "workflow", "success").Inc()
-			
+
 			// Track this lease for heartbeats
 			w.addActiveLease(workflow.ID)
-			
+
 			// Update active workflows gauge
 			metrics.WorkflowsActive.WithLabelValues(w.engine.namespace, w.config.WorkerID).Inc()
 
@@ -259,9 +261,15 @@ func (w *worker) processWorkflows(ctx context.Context) {
 			w.executeWorkflow(ctx, &workflow)
 
 			// Release the lease and stop tracking it
-			w.engine.store.ReleaseLease(ctx, workflow.ID, w.config.WorkerID)
+			if err := w.engine.store.ReleaseLease(ctx, workflow.ID, w.config.WorkerID); err != nil {
+				w.engine.logger.Error("Failed to release workflow lease",
+					"workflow_id", workflow.ID,
+					"worker_id", w.config.WorkerID,
+					"error", err.Error(),
+				)
+			}
 			w.removeActiveLease(workflow.ID)
-			
+
 			// Update active workflows gauge
 			metrics.WorkflowsActive.WithLabelValues(w.engine.namespace, w.config.WorkerID).Dec()
 
@@ -275,7 +283,7 @@ func (w *worker) processWorkflows(ctx context.Context) {
 
 func (w *worker) executeWorkflow(ctx context.Context, e *WorkflowExecution) {
 	startTime := w.clock.Now()
-	
+
 	// Calculate queue time (time from creation to execution start)
 	queueTime := time.Duration(startTime.UnixMilli()-e.CreatedAt) * time.Millisecond
 	metrics.WorkflowQueueTimeSeconds.WithLabelValues(e.Namespace, e.WorkflowName).Observe(queueTime.Seconds())
@@ -288,8 +296,15 @@ func (w *worker) executeWorkflow(ctx context.Context, e *WorkflowExecution) {
 
 	wf, exists := w.workflows[e.WorkflowName]
 	if !exists {
-		err := fmt.Errorf("no handler registered for workflow %s", e.WorkflowName)
-		w.engine.store.FailWorkflow(ctx, e.Namespace, e.ID, err.Error(), true)
+		noHandlerErr := fmt.Errorf("no handler registered for workflow %s", e.WorkflowName)
+		if failErr := w.engine.store.FailWorkflow(ctx, e.Namespace, e.ID, noHandlerErr.Error(), true); failErr != nil {
+			w.engine.logger.Error("Failed to mark workflow as failed",
+				"workflow_id", e.ID,
+				"workflow_name", e.WorkflowName,
+				"namespace", e.Namespace,
+				"error", failErr.Error(),
+			)
+		}
 		metrics.ObserveWorkflowDuration(e.Namespace, e.WorkflowName, "failed", startTime)
 		metrics.WorkflowsCompletedTotal.WithLabelValues(e.Namespace, e.WorkflowName, "failed").Inc()
 		metrics.RecordError(e.Namespace, "worker", "no_handler_registered")
@@ -315,24 +330,48 @@ func (w *worker) executeWorkflow(ctx context.Context, e *WorkflowExecution) {
 
 	if err != nil {
 		if suspendErr, ok := err.(*WorkflowSuspendedError); ok {
-			w.engine.store.SleepWorkflow(ctx, e.Namespace, e.ID, suspendErr.ResumeTime)
+			if sleepErr := w.engine.store.SleepWorkflow(ctx, e.Namespace, e.ID, suspendErr.ResumeTime); sleepErr != nil {
+				w.engine.logger.Error("Failed to suspend workflow",
+					"workflow_id", e.ID,
+					"workflow_name", e.WorkflowName,
+					"namespace", e.Namespace,
+					"resume_time", suspendErr.ResumeTime,
+					"error", sleepErr.Error(),
+				)
+			}
 			metrics.SleepsStartedTotal.WithLabelValues(e.Namespace, e.WorkflowName).Inc()
 			return
 		}
 
 		isFinal := e.RemainingAttempts <= 1
-		w.engine.store.FailWorkflow(ctx, e.Namespace, e.ID, err.Error(), isFinal)
-		
+		if failErr := w.engine.store.FailWorkflow(ctx, e.Namespace, e.ID, err.Error(), isFinal); failErr != nil {
+			w.engine.logger.Error("Failed to mark workflow as failed",
+				"workflow_id", e.ID,
+				"workflow_name", e.WorkflowName,
+				"namespace", e.Namespace,
+				"is_final", isFinal,
+				"original_error", err.Error(),
+				"fail_error", failErr.Error(),
+			)
+		}
+
 		if !isFinal {
 			metrics.WorkflowsRetriedTotal.WithLabelValues(e.Namespace, e.WorkflowName, fmt.Sprintf("%d", e.MaxAttempts-e.RemainingAttempts+1)).Inc()
 		}
-		
+
 		metrics.ObserveWorkflowDuration(e.Namespace, e.WorkflowName, "failed", startTime)
 		metrics.WorkflowsCompletedTotal.WithLabelValues(e.Namespace, e.WorkflowName, "failed").Inc()
 		return
 	}
 
-	w.engine.store.CompleteWorkflow(ctx, e.Namespace, e.ID, nil) // No output data for now
+	if err := w.engine.store.CompleteWorkflow(ctx, e.Namespace, e.ID, nil); err != nil { // No output data for now
+		w.engine.logger.Error("Failed to mark workflow as completed",
+			"workflow_id", e.ID,
+			"workflow_name", e.WorkflowName,
+			"namespace", e.Namespace,
+			"error", err.Error(),
+		)
+	}
 	metrics.ObserveWorkflowDuration(e.Namespace, e.WorkflowName, "completed", startTime)
 	metrics.WorkflowsCompletedTotal.WithLabelValues(e.Namespace, e.WorkflowName, "completed").Inc()
 }
@@ -395,7 +434,7 @@ func (w *worker) sendHeartbeatsForActiveLeases(ctx context.Context) {
 			metrics.WorkerHeartbeatsTotal.WithLabelValues(w.config.WorkerID, w.engine.namespace, "failed").Inc()
 			continue
 		}
-		
+
 		// Record successful heartbeat
 		metrics.WorkerHeartbeatsTotal.WithLabelValues(w.config.WorkerID, w.engine.namespace, "success").Inc()
 	}
@@ -414,13 +453,13 @@ func (w *worker) cleanupExpiredLeases(ctx context.Context) {
 			// Clean up expired leases first
 			err := w.engine.store.CleanupExpiredLeases(ctx, w.engine.namespace)
 			if err != nil {
-				// Log error if needed
+				w.engine.logger.Warn("Failed to cleanup expired leases", "error", err.Error())
 			}
 
 			// Then reset orphaned workflows back to pending so they can be picked up again
 			err = w.engine.store.ResetOrphanedWorkflows(ctx, w.engine.namespace)
 			if err != nil {
-				// Log error if needed
+				w.engine.logger.Warn("Failed to reset orphaned workflows", "error", err.Error())
 			}
 
 		case <-w.shutdownC:
@@ -493,7 +532,14 @@ func (w *worker) processDueCronJobs(ctx context.Context) {
 
 		w.executeCronJob(ctx, cronJob)
 
-		w.engine.store.ReleaseLease(ctx, cronJob.ID, w.config.WorkerID)
+		if err := w.engine.store.ReleaseLease(ctx, cronJob.ID, w.config.WorkerID); err != nil {
+			w.engine.logger.Error("Failed to release cron job lease",
+				"cron_job_id", cronJob.ID,
+				"cron_name", cronJob.Name,
+				"worker_id", w.config.WorkerID,
+				"error", err.Error(),
+			)
+		}
 	}
 }
 
@@ -514,10 +560,37 @@ func (w *worker) executeCronJob(ctx context.Context, cronJob CronJob) {
 		return
 	}
 
-	handler(ctx, *payload)
+	// Execute cron handler with panic recovery
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				w.engine.logger.Error("Cron handler panicked",
+					"cron_job_id", cronJob.ID,
+					"cron_name", cronJob.Name,
+					"panic", r,
+				)
+			}
+		}()
+		if err := handler(ctx, *payload); err != nil {
+			w.engine.logger.Error("Cron handler execution failed",
+				"cron_job_id", cronJob.ID,
+				"cron_name", cronJob.Name,
+				"error", err.Error(),
+			)
+		}
+	}()
 
 	nextRun := calculateNextRun(cronJob.CronSpec, w.engine.clock.Now())
-	w.engine.store.UpdateCronJobLastRun(ctx, w.engine.namespace, cronJob.ID, now, nextRun)
+	if err := w.engine.store.UpdateCronJobLastRun(ctx, w.engine.namespace, cronJob.ID, now, nextRun); err != nil {
+		w.engine.logger.Error("Failed to update cron job last run time",
+			"cron_job_id", cronJob.ID,
+			"cron_name", cronJob.Name,
+			"namespace", w.engine.namespace,
+			"last_run", now,
+			"next_run", nextRun,
+			"error", err.Error(),
+		)
+	}
 
 }
 

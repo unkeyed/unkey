@@ -39,10 +39,25 @@ func newTestEngineWithClock(t *testing.T, clk clock.Clock) *Engine {
 
 	// Auto-migrate the hydra schema
 	err = db.AutoMigrate(
-		&store.WorkflowExecution{},
-		&store.WorkflowStep{},
-		&store.CronJob{},
-		&store.Lease{},
+		&store.WorkflowExecution{
+			ID: "", WorkflowName: "", Status: "", InputData: nil, OutputData: nil,
+			ErrorMessage: "", CreatedAt: 0, StartedAt: nil, CompletedAt: nil,
+			MaxAttempts: 0, RemainingAttempts: 0, NextRetryAt: nil, Namespace: "",
+			TriggerType: "", TriggerSource: nil, SleepUntil: nil, TraceID: "",
+		},
+		&store.WorkflowStep{
+			ID: "", ExecutionID: "", StepName: "", StepOrder: 0, Status: "",
+			OutputData: nil, ErrorMessage: "", StartedAt: nil, CompletedAt: nil,
+			MaxAttempts: 0, RemainingAttempts: 0, Namespace: "",
+		},
+		&store.CronJob{
+			ID: "", Name: "", CronSpec: "", Namespace: "", WorkflowName: "",
+			Enabled: false, CreatedAt: 0, UpdatedAt: 0, LastRunAt: nil, NextRunAt: 0,
+		},
+		&store.Lease{
+			ResourceID: "", Kind: "", Namespace: "", WorkerID: "",
+			AcquiredAt: 0, ExpiresAt: 0, HeartbeatAt: 0,
+		},
 	)
 	require.NoError(t, err)
 
@@ -51,11 +66,13 @@ func newTestEngineWithClock(t *testing.T, clk clock.Clock) *Engine {
 
 	// Create engine with unique namespace for test isolation
 	testNamespace := uid.New(uid.TestPrefix)
-	
+
 	engine := New(Config{
-		Store:     gormStore,
-		Namespace: testNamespace,
-		Clock:     clk,
+		Store:      gormStore,
+		Namespace:  testNamespace,
+		Clock:      clk,
+		Logger:     nil,
+		Marshaller: nil,
 	})
 
 	return engine
@@ -84,26 +101,6 @@ func waitForWorkflowCompletion(t *testing.T, e *Engine, executionID string, time
 
 		return isComplete
 	}, timeout, 100*time.Millisecond, "Workflow should complete within timeout")
-
-	return workflow
-}
-
-// waitForWorkflowSuccess waits until a workflow completes successfully
-func waitForWorkflowSuccess(t *testing.T, e *Engine, executionID string, timeout time.Duration) *store.WorkflowExecution {
-	t.Helper()
-
-	workflow := waitForWorkflowCompletion(t, e, executionID, timeout)
-	require.Equal(t, store.WorkflowStatusCompleted, workflow.Status, "Workflow should complete successfully")
-
-	return workflow
-}
-
-// waitForWorkflowFailure waits until a workflow fails
-func waitForWorkflowFailure(t *testing.T, e *Engine, executionID string, timeout time.Duration) *store.WorkflowExecution {
-	t.Helper()
-
-	workflow := waitForWorkflowCompletion(t, e, executionID, timeout)
-	require.Equal(t, store.WorkflowStatusFailed, workflow.Status, "Workflow should fail")
 
 	return workflow
 }

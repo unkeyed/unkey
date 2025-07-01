@@ -14,6 +14,33 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+var (
+	ErrStepNotFound    = errors.New("step not found")
+	ErrLeaseNotFound   = errors.New("lease not found")
+	ErrCronJobNotFound = errors.New("cron job not found")
+
+	// Empty structs for GORM Model() calls
+	emptyWorkflowExecution = &store.WorkflowExecution{
+		ID: "", WorkflowName: "", Status: "", InputData: nil, OutputData: nil,
+		ErrorMessage: "", CreatedAt: 0, StartedAt: nil, CompletedAt: nil,
+		MaxAttempts: 0, RemainingAttempts: 0, NextRetryAt: nil, Namespace: "",
+		TriggerType: "", TriggerSource: nil, SleepUntil: nil, TraceID: "",
+	}
+	emptyWorkflowStep = &store.WorkflowStep{
+		ID: "", ExecutionID: "", StepName: "", StepOrder: 0, Status: "",
+		OutputData: nil, ErrorMessage: "", StartedAt: nil, CompletedAt: nil,
+		MaxAttempts: 0, RemainingAttempts: 0, Namespace: "",
+	}
+	emptyCronJob = &store.CronJob{
+		ID: "", Name: "", CronSpec: "", Namespace: "", WorkflowName: "",
+		Enabled: false, CreatedAt: 0, UpdatedAt: 0, LastRunAt: nil, NextRunAt: 0,
+	}
+	emptyLease = &store.Lease{
+		ResourceID: "", Kind: "", Namespace: "", WorkerID: "",
+		AcquiredAt: 0, ExpiresAt: 0, HeartbeatAt: 0,
+	}
+)
+
 type gormStore struct {
 	db    *gorm.DB
 	clock clock.Clock
@@ -39,7 +66,7 @@ func NewSQLiteStore(dsn string, clk clock.Clock) (store.Store, error) {
 	}
 
 	// Auto-migrate the schema
-	if err := db.AutoMigrate(&store.WorkflowExecution{}, &store.WorkflowStep{}, &store.CronJob{}, &store.Lease{}); err != nil {
+	if err := db.AutoMigrate(emptyWorkflowExecution, emptyWorkflowStep, emptyCronJob, emptyLease); err != nil {
 		return nil, err
 	}
 
@@ -59,7 +86,7 @@ func NewMySQLStore(dsn string, clk clock.Clock) (store.Store, error) {
 	}
 
 	// Auto-migrate the schema
-	if err := db.AutoMigrate(&store.WorkflowExecution{}, &store.WorkflowStep{}, &store.CronJob{}, &store.Lease{}); err != nil {
+	if err := db.AutoMigrate(emptyWorkflowExecution, emptyWorkflowStep, emptyCronJob, emptyLease); err != nil {
 		return nil, err
 	}
 
@@ -132,9 +159,9 @@ func (s *gormStore) AcquireWorkflowLease(ctx context.Context, workflowID, namesp
 		}
 
 		// Check if workflow is in a leasable state
-		if workflow.Status != store.WorkflowStatusPending && 
-		   workflow.Status != store.WorkflowStatusFailed && 
-		   workflow.Status != store.WorkflowStatusSleeping {
+		if workflow.Status != store.WorkflowStatusPending &&
+			workflow.Status != store.WorkflowStatusFailed &&
+			workflow.Status != store.WorkflowStatusSleeping {
 			return errors.New("workflow not available for acquisition")
 		}
 
@@ -152,7 +179,8 @@ func (s *gormStore) AcquireWorkflowLease(ctx context.Context, workflowID, namesp
 		var existingLease store.Lease
 		err = tx.Where("resource_id = ? AND kind = ?", workflowID, "workflow").First(&existingLease).Error
 
-		if err == nil {
+		switch {
+		case err == nil:
 			if existingLease.ExpiresAt > now {
 				if existingLease.WorkerID != workerID {
 					return errors.New("workflow already leased by another worker")
@@ -176,7 +204,7 @@ func (s *gormStore) AcquireWorkflowLease(ctx context.Context, workflowID, namesp
 					return err
 				}
 			}
-		} else if err == gorm.ErrRecordNotFound {
+		case errors.Is(err, gorm.ErrRecordNotFound):
 			// Create new lease
 			lease := &store.Lease{
 				ResourceID:  workflowID,
@@ -188,19 +216,19 @@ func (s *gormStore) AcquireWorkflowLease(ctx context.Context, workflowID, namesp
 				HeartbeatAt: now,
 			}
 
-			err := tx.Create(lease).Error
-			if err != nil {
-				if isDuplicateKeyError(err) {
+			createErr := tx.Create(lease).Error
+			if createErr != nil {
+				if isDuplicateKeyError(createErr) {
 					return errors.New("workflow already leased by another worker")
 				}
-				return err
+				return createErr
 			}
-		} else {
+		default:
 			return err
 		}
 
 		// Update workflow status to running
-		result := tx.Model(&store.WorkflowExecution{}).
+		result := tx.Model(emptyWorkflowExecution).
 			Where("id = ? AND namespace = ?", workflowID, namespace).
 			Updates(map[string]any{
 				"status":      store.WorkflowStatusRunning,
@@ -226,7 +254,7 @@ func (s *gormStore) UpdateWorkflowStatus(ctx context.Context, namespace, id stri
 	}
 
 	return s.db.WithContext(ctx).
-		Model(&store.WorkflowExecution{}).
+		Model(emptyWorkflowExecution).
 		Where("id = ? AND namespace = ?", id, namespace).
 		Updates(updates).Error
 }
@@ -243,7 +271,7 @@ func (s *gormStore) CompleteWorkflow(ctx context.Context, namespace, id string, 
 	}
 
 	return s.db.WithContext(ctx).
-		Model(&store.WorkflowExecution{}).
+		Model(emptyWorkflowExecution).
 		Where("id = ? AND namespace = ?", id, namespace).
 		Updates(updates).Error
 }
@@ -279,7 +307,7 @@ func (s *gormStore) FailWorkflow(ctx context.Context, namespace, id string, erro
 	}
 
 	return s.db.WithContext(ctx).
-		Model(&store.WorkflowExecution{}).
+		Model(emptyWorkflowExecution).
 		Where("id = ? AND namespace = ?", id, namespace).
 		Updates(updates).Error
 }
@@ -291,7 +319,7 @@ func (s *gormStore) SleepWorkflow(ctx context.Context, namespace, id string, sle
 	}
 
 	return s.db.WithContext(ctx).
-		Model(&store.WorkflowExecution{}).
+		Model(emptyWorkflowExecution).
 		Where("id = ? AND namespace = ?", id, namespace).
 		Updates(updates).Error
 }
@@ -326,7 +354,7 @@ func (s *gormStore) GetStep(ctx context.Context, namespace, executionID, stepNam
 		First(&step).Error
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil // Step not found is not an error
+		return nil, ErrStepNotFound
 	}
 	return &step, err
 }
@@ -339,7 +367,7 @@ func (s *gormStore) GetCompletedStep(ctx context.Context, namespace, executionID
 		First(&step).Error
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil // Step not found is not an error for checkpointing
+		return nil, ErrStepNotFound
 	}
 	return &step, err
 }
@@ -369,7 +397,7 @@ func (s *gormStore) UpdateStepStatus(ctx context.Context, namespace, executionID
 	}
 
 	return s.db.WithContext(ctx).
-		Model(&store.WorkflowStep{}).
+		Model(emptyWorkflowStep).
 		Where("namespace = ? AND execution_id = ? AND step_name = ?", namespace, executionID, stepName).
 		Updates(updates).Error
 }
@@ -389,7 +417,7 @@ func (s *gormStore) HeartbeatLease(ctx context.Context, resourceID, workerID str
 	now := time.Now().UnixMilli()
 
 	result := s.db.WithContext(ctx).
-		Model(&store.Lease{}).
+		Model(emptyLease).
 		Where("resource_id = ? AND worker_id = ?", resourceID, workerID).
 		Updates(map[string]any{
 			"heartbeat_at": now,
@@ -410,7 +438,7 @@ func (s *gormStore) HeartbeatLease(ctx context.Context, resourceID, workerID str
 func (s *gormStore) ReleaseLease(ctx context.Context, resourceID, workerID string) error {
 	result := s.db.WithContext(ctx).
 		Where("resource_id = ? AND worker_id = ?", resourceID, workerID).
-		Delete(&store.Lease{})
+		Delete(emptyLease)
 
 	if result.Error != nil {
 		return result.Error
@@ -430,7 +458,7 @@ func (s *gormStore) GetLease(ctx context.Context, resourceID string) (*store.Lea
 		First(&lease).Error
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil // No lease exists
+		return nil, ErrLeaseNotFound
 	}
 
 	return &lease, err
@@ -441,7 +469,7 @@ func (s *gormStore) CleanupExpiredLeases(ctx context.Context, namespace string) 
 
 	return s.db.WithContext(ctx).
 		Where("namespace = ? AND expires_at < ?", namespace, now).
-		Delete(&store.Lease{}).Error
+		Delete(emptyLease).Error
 }
 
 func (s *gormStore) GetExpiredLeases(ctx context.Context, namespace string) ([]store.Lease, error) {
@@ -494,7 +522,7 @@ func (s *gormStore) GetCronJob(ctx context.Context, namespace, name string) (*st
 		First(&cronJob).Error
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil
+		return nil, ErrCronJobNotFound
 	}
 
 	return &cronJob, err
@@ -520,7 +548,7 @@ func (s *gormStore) GetDueCronJobs(ctx context.Context, namespace string, before
 
 func (s *gormStore) UpdateCronJobLastRun(ctx context.Context, namespace, cronJobID string, lastRunAt, nextRunAt int64) error {
 	return s.db.WithContext(ctx).
-		Model(&store.CronJob{}).
+		Model(emptyCronJob).
 		Where("id = ? AND namespace = ?", cronJobID, namespace).
 		Updates(map[string]any{
 			"last_run_at": lastRunAt,

@@ -21,7 +21,7 @@ func TestConcurrentWorkflowAccess(t *testing.T) {
 
 	const (
 		numWorkers   = 5
-		numWorkflows = 25  // Back to full test
+		numWorkflows = 25 // Back to full test
 	)
 
 	// Track execution attempts per workflow
@@ -85,7 +85,7 @@ func TestConcurrentWorkflowAccess(t *testing.T) {
 				completedCount++
 			}
 		}
-		
+
 		t.Logf("Completed workflows: %d/%d", completedCount, numWorkflows)
 		return completedCount == numWorkflows
 	}, 20*time.Second, 200*time.Millisecond,

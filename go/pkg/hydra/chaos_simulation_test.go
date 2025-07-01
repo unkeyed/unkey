@@ -28,12 +28,9 @@ type ChaosSimulator struct {
 	slowQueryRate        atomic.Value // float64
 
 	// Tracking
-	workerCrashes      atomic.Int64
-	databaseFailures   atomic.Int64
-	networkPartitions  atomic.Int64
-	workflowsStarted   atomic.Int64
-	workflowsCompleted atomic.Int64
-	workflowsFailed    atomic.Int64
+	workerCrashes    atomic.Int64
+	databaseFailures atomic.Int64
+	workflowsStarted atomic.Int64
 }
 
 func NewChaosSimulator(engine *Engine) *ChaosSimulator {
@@ -253,6 +250,8 @@ func TestChaosSimulation(t *testing.T) {
 			completedWorkflows++
 		case store.WorkflowStatusFailed:
 			failedWorkflows++
+		case store.WorkflowStatusSleeping:
+			// Sleeping workflows count as pending for our metrics
 		}
 	}
 
@@ -432,7 +431,6 @@ func TestDatabaseFailureScenarios(t *testing.T) {
 type FailureInjectingStore struct {
 	store.Store
 	failureRate atomic.Value // float64
-	mu          sync.Mutex
 }
 
 func (f *FailureInjectingStore) shouldFail() bool {

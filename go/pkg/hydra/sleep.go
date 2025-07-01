@@ -31,7 +31,7 @@ import (
 //	if err != nil {
 //	    return err
 //	}
-//	
+//
 //	// Continue with post-approval processing
 //	result, err := hydra.Step(ctx, "post-approval", func(stepCtx context.Context) (string, error) {
 //	    return processApprovedRequest(stepCtx)
@@ -70,14 +70,18 @@ func Sleep(ctx WorkflowContext, duration time.Duration) error {
 	sleepUntil := now + duration.Milliseconds()
 
 	step := &WorkflowStep{
+		ID:                "",
 		ExecutionID:       wctx.ExecutionID(),
 		StepName:          stepName,
 		StepOrder:         wctx.getNextStepOrder(),
 		Status:            StepStatusRunning,
 		Namespace:         wctx.namespace,
 		StartedAt:         ptr.P(now),
+		OutputData:        nil,
+		ErrorMessage:      "",
 		MaxAttempts:       1, // Sleep doesn't need retries
 		RemainingAttempts: 1,
+		CompletedAt:       nil,
 	}
 
 	err = wctx.store.CreateStep(wctx.ctx, step)

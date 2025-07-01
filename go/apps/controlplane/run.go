@@ -42,6 +42,7 @@ func Run(ctx context.Context, cfg Config) error {
 			Version:         version.Version,
 			InstanceID:      cfg.InstanceID,
 			TraceSampleRate: cfg.OtelTraceSamplingRate,
+			CloudRegion:     "",
 		}, shutdowns)
 		if grafanaErr != nil {
 			return fmt.Errorf("unable to init grafana: %w", grafanaErr)
@@ -76,15 +77,17 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize hydra engine
 	engine := hydra.New(hydra.Config{
-		Store:     store,
-		Clock:     clk,
-		Logger:    logger,
-		Namespace: "controlplane",
+		Store:      store,
+		Clock:      clk,
+		Logger:     logger,
+		Namespace:  "controlplane",
+		Marshaller: nil,
 	})
 
 	database, err := db.New(db.Config{
-		PrimaryDSN: cfg.UnkeyDatabaseDSN,
-		Logger:     logger,
+		PrimaryDSN:  cfg.UnkeyDatabaseDSN,
+		ReadOnlyDSN: "",
+		Logger:      logger,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to connect to business database: %w", err)
@@ -100,10 +103,12 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create hydra worker
 	worker, err := hydra.NewWorker(engine, hydra.WorkerConfig{
+		WorkerID:          "",
 		Concurrency:       10,
 		PollInterval:      time.Second,
 		HeartbeatInterval: time.Second,
 		ClaimTimeout:      5 * time.Second,
+		CronInterval:      time.Minute,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create hydra worker: %w", err)
@@ -117,19 +122,25 @@ func Run(ctx context.Context, cfg Config) error {
 		SlackWebhook: cfg.SlackWebhookURL,
 	}
 
-	hydra.RegisterWorkflow(worker, quotaChecks)
+	err = hydra.RegisterWorkflow(worker, quotaChecks)
+	if err != nil {
+		return fmt.Errorf("unable to register workflow: %w", err)
+	}
 
-	engine.RegisterCron("* * * * *", "run-quota-checks", func(ctx context.Context, p hydra.CronPayload) error {
+	err = engine.RegisterCron("* * * * *", "run-quota-checks", func(ctx context.Context, p hydra.CronPayload) error {
 
 		year, month, _ := time.UnixMilli(p.ScheduledAt).Date()
 
-		id, err := quotaChecks.Start(ctx, engine, year, int(month))
-		if err != nil {
-			return err
+		id, startErr := quotaChecks.Start(ctx, engine, year, int(month))
+		if startErr != nil {
+			return startErr
 		}
 		logger.Info("enqueued quota check", "id", id)
 		return nil
 	})
+	if err != nil {
+		return fmt.Errorf("unable to register cron: %w", err)
+	}
 
 	// Start the worker
 	err = worker.Start(ctx)

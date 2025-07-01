@@ -52,14 +52,14 @@
 //	    return err
 //	}
 //	store := gorm.NewGORMStore(db, clock.New())
-//	
+//
 //	// Create the engine
 //	engine := hydra.New(hydra.Config{
 //	    Store:     store,
 //	    Namespace: "production",
 //	    Logger:    logger,
 //	})
-//	
+//
 //	// Create and configure a worker
 //	worker, err := hydra.NewWorker(engine, hydra.WorkerConfig{
 //	    WorkerID:          "worker-1",
@@ -74,11 +74,11 @@
 //	type OrderWorkflow struct {
 //	    engine *hydra.Engine
 //	}
-//	
+//
 //	func (w *OrderWorkflow) Name() string {
 //	    return "order-processing"
 //	}
-//	
+//
 //	func (w *OrderWorkflow) Run(ctx hydra.WorkflowContext, req *OrderRequest) error {
 //	    // Step 1: Validate payment
 //	    payment, err := hydra.Step(ctx, "validate-payment", func(stepCtx context.Context) (*Payment, error) {
@@ -87,7 +87,7 @@
 //	    if err != nil {
 //	        return err
 //	    }
-//	    
+//
 //	    // Step 2: Reserve inventory
 //	    reservation, err := hydra.Step(ctx, "reserve-inventory", func(stepCtx context.Context) (*Reservation, error) {
 //	        return reserveInventory(stepCtx, req.Items)
@@ -95,12 +95,12 @@
 //	    if err != nil {
 //	        return err
 //	    }
-//	    
+//
 //	    // Step 3: Process order
 //	    _, err = hydra.Step(ctx, "process-order", func(stepCtx context.Context) (*Order, error) {
 //	        return processOrder(stepCtx, payment, reservation)
 //	    })
-//	    
+//
 //	    return err
 //	}
 //
@@ -112,7 +112,7 @@
 //	if err != nil {
 //	    return err
 //	}
-//	
+//
 //	// Start the worker
 //	ctx := context.Background()
 //	err = worker.Start(ctx)
@@ -120,19 +120,19 @@
 //	    return err
 //	}
 //	defer worker.Shutdown(ctx)
-//	
+//
 //	// Submit a workflow for execution
 //	request := &OrderRequest{
 //	    CustomerID: "cust_123",
 //	    Items:      []Item{{SKU: "item_456", Quantity: 2}},
 //	    PaymentID:  "pay_789",
 //	}
-//	
+//
 //	executionID, err := engine.StartWorkflow(ctx, "order-processing", request)
 //	if err != nil {
 //	    return err
 //	}
-//	
+//
 //	fmt.Printf("Started workflow execution: %s\n", executionID)
 //
 // # Advanced Features

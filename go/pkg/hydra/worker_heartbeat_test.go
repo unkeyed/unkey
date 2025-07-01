@@ -59,8 +59,8 @@ func TestWorkerHeartbeatFunctionality(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 
 		// Check if workflow has been picked up
-		currentStatus, err := engine.store.GetWorkflow(ctx, engine.GetNamespace(), executionID)
-		if err != nil {
+		currentStatus, getErr := engine.store.GetWorkflow(ctx, engine.GetNamespace(), executionID)
+		if getErr != nil {
 			return false
 		}
 		return currentStatus.Status != WorkflowStatusPending

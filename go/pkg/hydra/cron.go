@@ -29,7 +29,6 @@ func (p *CronPayload) Unmarshal(data []byte) error {
 	return json.Unmarshal(data, p)
 }
 
-
 func calculateNextRun(cronSpec string, from time.Time) int64 {
 	schedule, err := parseCronSpec(cronSpec)
 	if err != nil {
@@ -88,10 +87,10 @@ func parseCronSpec(spec string) (*cronSchedule, error) {
 	}, nil
 }
 
-func parseField(field string, min, max int) (uint64, error) {
+func parseField(field string, minimum, maximum int) (uint64, error) {
 	if field == "*" {
 		var mask uint64
-		for i := min; i <= max; i++ {
+		for i := minimum; i <= maximum; i++ {
 			mask |= 1 << i
 		}
 		return mask, nil
@@ -101,6 +100,7 @@ func parseField(field string, min, max int) (uint64, error) {
 	var mask uint64
 
 	for _, part := range parts {
+		// nolint:nestif
 		if strings.Contains(part, "/") {
 			stepParts := strings.Split(part, "/")
 			if len(stepParts) != 2 {
@@ -112,8 +112,8 @@ func parseField(field string, min, max int) (uint64, error) {
 				return 0, errors.New("invalid step value")
 			}
 
-			rangeStart := min
-			rangeEnd := max
+			rangeStart := minimum
+			rangeEnd := maximum
 
 			if stepParts[0] != "*" {
 				if strings.Contains(stepParts[0], "-") {
@@ -122,16 +122,16 @@ func parseField(field string, min, max int) (uint64, error) {
 						return 0, errors.New("invalid range syntax")
 					}
 					rangeStart, err = strconv.Atoi(rangeParts[0])
-					if err != nil || rangeStart < min || rangeStart > max {
+					if err != nil || rangeStart < minimum || rangeStart > maximum {
 						return 0, errors.New("invalid range start")
 					}
 					rangeEnd, err = strconv.Atoi(rangeParts[1])
-					if err != nil || rangeEnd < min || rangeEnd > max {
+					if err != nil || rangeEnd < minimum || rangeEnd > maximum {
 						return 0, errors.New("invalid range end")
 					}
 				} else {
 					rangeStart, err = strconv.Atoi(stepParts[0])
-					if err != nil || rangeStart < min || rangeStart > max {
+					if err != nil || rangeStart < minimum || rangeStart > maximum {
 						return 0, errors.New("invalid step start value")
 					}
 					rangeEnd = rangeStart
@@ -149,12 +149,12 @@ func parseField(field string, min, max int) (uint64, error) {
 			}
 
 			start, err := strconv.Atoi(rangeParts[0])
-			if err != nil || start < min || start > max {
+			if err != nil || start < minimum || start > maximum {
 				return 0, errors.New("invalid range start")
 			}
 
 			end, err := strconv.Atoi(rangeParts[1])
-			if err != nil || end < min || end > max {
+			if err != nil || end < minimum || end > maximum {
 				return 0, errors.New("invalid range end")
 			}
 
@@ -164,7 +164,7 @@ func parseField(field string, min, max int) (uint64, error) {
 
 		} else {
 			val, err := strconv.Atoi(part)
-			if err != nil || val < min || val > max {
+			if err != nil || val < minimum || val > maximum {
 				return 0, errors.New("invalid single value")
 			}
 			mask |= 1 << val
@@ -220,9 +220,9 @@ func (s *cronSchedule) matches(t time.Time) bool {
 	}
 }
 
-func (s *cronSchedule) allBits(min, max int) uint64 {
+func (s *cronSchedule) allBits(minimum, maximum int) uint64 {
 	var mask uint64
-	for i := min; i <= max; i++ {
+	for i := minimum; i <= maximum; i++ {
 		mask |= 1 << i
 	}
 	return mask

@@ -40,6 +40,7 @@ type EventCollector struct {
 // NewEventCollector creates a new event collector
 func NewEventCollector() *EventCollector {
 	return &EventCollector{
+		mu:     sync.RWMutex{},
 		events: make([]EventRecord, 0),
 	}
 }

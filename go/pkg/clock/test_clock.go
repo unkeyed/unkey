@@ -30,7 +30,7 @@ func NewTestClock(now ...time.Time) *TestClock {
 	if len(now) == 0 {
 		now = append(now, time.Now())
 	}
-	return &TestClock{mu: sync.RWMutex{}, now: now[0]}
+	return &TestClock{mu: sync.RWMutex{}, now: now[0], tickers: []*testTicker{}}
 }
 
 // Ensure TestClock implements the Clock interface
@@ -106,6 +106,7 @@ func (c *TestClock) NewTicker(d time.Duration) Ticker {
 
 	ch := make(chan time.Time, 1) // Buffered to prevent blocking
 	ticker := &testTicker{
+		mu:       sync.Mutex{},
 		clock:    c,
 		interval: d,
 		lastTick: c.now,

@@ -34,7 +34,7 @@ type StoreFactory = store.StoreFactory
 //	if err != nil {
 //	    return err
 //	}
-//	
+//
 //	store := hydra.NewGORMStore(db, clock.New())
 //	engine := hydra.New(hydra.Config{
 //	    Store: store,

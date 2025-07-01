@@ -4,8 +4,10 @@ import (
 	"time"
 )
 
+const exampleNamespace = "production"
+
 func ExampleWorkflowMetrics() {
-	namespace := "production"
+	namespace := exampleNamespace
 	workflowName := "user-onboarding"
 
 	WorkflowsStartedTotal.WithLabelValues(namespace, workflowName, "manual").Inc()
@@ -19,7 +21,7 @@ func ExampleWorkflowMetrics() {
 }
 
 func ExampleStepMetrics() {
-	namespace := "production"
+	namespace := exampleNamespace
 	workflowName := "order-processing"
 	stepName := "charge-payment"
 
@@ -38,7 +40,7 @@ func ExampleDatabaseMetrics() {
 }
 
 func ExampleSleepMetrics() {
-	namespace := "production"
+	namespace := exampleNamespace
 	workflowName := "user-onboarding"
 
 	SleepsStartedTotal.WithLabelValues(namespace, workflowName).Inc()
@@ -51,7 +53,7 @@ func ExampleSleepMetrics() {
 }
 
 func ExampleErrorMetrics() {
-	namespace := "production"
+	namespace := exampleNamespace
 
 	RecordError(namespace, "step", "timeout")
 	RecordError(namespace, "client", "serialization")
@@ -63,7 +65,7 @@ func ExampleErrorMetrics() {
 }
 
 func ExamplePayloadMetrics() {
-	namespace := "production"
+	namespace := exampleNamespace
 	workflowName := "image-processing"
 
 	inputSize := 1024 * 50 // 50KB input
@@ -77,7 +79,7 @@ func ExamplePayloadMetrics() {
 
 func ExampleWorkerMetrics() {
 	workerID := "worker-1"
-	namespace := "production"
+	namespace := exampleNamespace
 
 	WorkerHeartbeatsTotal.WithLabelValues(workerID, namespace, "success").Inc()
 	WorkerPollsTotal.WithLabelValues(workerID, namespace, "found_work").Inc()

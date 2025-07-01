@@ -96,7 +96,8 @@ func (w *ComplexBillingWorkflow) Run(ctx WorkflowContext, req any) error {
 	// Calculate invoice in parallel
 	go func() {
 		defer wg.Done()
-		amountStr, err := Step(ctx, "calculate-invoice", func(stepCtx context.Context) (string, error) {
+		var amountStr string
+		amountStr, calcErr = Step(ctx, "calculate-invoice", func(stepCtx context.Context) (string, error) {
 			w.metrics.StepsExecuted.Add(1)
 
 			if w.shouldFail("calculate-invoice") {
@@ -110,16 +111,16 @@ func (w *ComplexBillingWorkflow) Run(ctx WorkflowContext, req any) error {
 			return fmt.Sprintf("%.2f", amount), nil
 		})
 
-		if err == nil {
+		if calcErr == nil {
 			fmt.Sscanf(amountStr, "%f", &invoiceAmount)
 		}
-		calcErr = err
+		err = calcErr
 	}()
 
 	// Fetch usage data in parallel
 	go func() {
 		defer wg.Done()
-		_, err := Step(ctx, "fetch-usage-data", func(stepCtx context.Context) (string, error) {
+		_, fetchErr := Step(ctx, "fetch-usage-data", func(stepCtx context.Context) (string, error) {
 			w.metrics.StepsExecuted.Add(1)
 
 			if w.shouldFail("fetch-usage-data") {
@@ -132,7 +133,7 @@ func (w *ComplexBillingWorkflow) Run(ctx WorkflowContext, req any) error {
 			return fmt.Sprintf("usage-%d-units", rand.Intn(1000)), nil
 		})
 
-		usageErr = err
+		usageErr = fetchErr
 	}()
 
 	wg.Wait()
@@ -144,7 +145,7 @@ func (w *ComplexBillingWorkflow) Run(ctx WorkflowContext, req any) error {
 
 	// Step 3: Apply discounts (conditional)
 	if invoiceAmount > 100 {
-		discountedAmount, err := Step(ctx, "apply-discounts", func(stepCtx context.Context) (string, error) {
+		discountedAmount, discountErr := Step(ctx, "apply-discounts", func(stepCtx context.Context) (string, error) {
 			w.metrics.StepsExecuted.Add(1)
 
 			if w.shouldFail("apply-discounts") {
@@ -158,7 +159,7 @@ func (w *ComplexBillingWorkflow) Run(ctx WorkflowContext, req any) error {
 			return fmt.Sprintf("%.2f", invoiceAmount-discount), nil
 		})
 
-		if err == nil {
+		if discountErr == nil {
 			fmt.Sscanf(discountedAmount, "%f", &invoiceAmount)
 		}
 	}
@@ -180,6 +181,7 @@ func (w *ComplexBillingWorkflow) Run(ctx WorkflowContext, req any) error {
 	if err != nil {
 		// Non-critical failure, continue
 		// PDF generation is optional
+		_ = err // Intentionally ignored
 	}
 
 	// Step 5: Send invoice email
@@ -300,7 +302,7 @@ func (w *ComplexDataPipelineWorkflow) Run(ctx WorkflowContext, req any) error {
 	for i, source := range sources {
 		stepName := fmt.Sprintf("process-source-%d", i)
 
-		_, err := Step(ctx, stepName, func(stepCtx context.Context) (string, error) {
+		_, stepErr := Step(ctx, stepName, func(stepCtx context.Context) (string, error) {
 			w.metrics.StepsExecuted.Add(1)
 
 			// Simulate processing with variable duration
@@ -316,7 +318,7 @@ func (w *ComplexDataPipelineWorkflow) Run(ctx WorkflowContext, req any) error {
 			return fmt.Sprintf("processed-%s", source), nil
 		})
 
-		if err != nil {
+		if stepErr != nil {
 			// Continue processing other sources
 			continue
 		}
@@ -435,7 +437,7 @@ func (w *ComplexStateMachineWorkflow) Run(ctx WorkflowContext, req any) error {
 	maxTransitions := 10
 
 	for transitions < maxTransitions {
-		nextState, err := Step(ctx, fmt.Sprintf("transition-%d-from-%s", transitions, currentState),
+		nextState, transitionErr := Step(ctx, fmt.Sprintf("transition-%d-from-%s", transitions, currentState),
 			func(stepCtx context.Context) (string, error) {
 				w.metrics.StepsExecuted.Add(1)
 
@@ -474,7 +476,7 @@ func (w *ComplexStateMachineWorkflow) Run(ctx WorkflowContext, req any) error {
 				}
 			})
 
-		if err != nil {
+		if transitionErr != nil {
 			// Handle transition failure
 			_, recoveryErr := Step(ctx, fmt.Sprintf("recover-transition-%d", transitions),
 				func(stepCtx context.Context) (string, error) {

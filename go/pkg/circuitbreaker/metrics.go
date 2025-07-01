@@ -9,6 +9,7 @@ var (
 	requests = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "agent",
 		Subsystem: "circuitbreaker",
-		Name:      "requests",
+		Name:      "requests_total",
+		Help:      "Total number of requests processed by circuit breaker",
 	}, []string{"name", "state"})
 )

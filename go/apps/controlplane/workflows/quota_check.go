@@ -71,8 +71,14 @@ func (w *QuotaCheckWorkflow) Run(ctx hydra.WorkflowContext, req QuotaCheckReques
 
 	// Step 3: Send summary notification if there were violations
 	_, err = hydra.Step(ctx, "send-summary", func(stepCtx context.Context) (string, error) {
-		violationsCount := processResult["violations_count"].(int)
-		totalWorkspaces := processResult["total_workspaces"].(int)
+		violationsCount, ok := processResult["violations_count"].(int)
+		if !ok {
+			return "", fmt.Errorf("violations_count not found or not an int")
+		}
+		totalWorkspaces, ok := processResult["total_workspaces"].(int)
+		if !ok {
+			return "", fmt.Errorf("total_workspaces not found or not an int")
+		}
 
 		w.Logger.Info("quota check completed",
 			"total_workspaces", totalWorkspaces,
@@ -233,7 +239,7 @@ func (w *QuotaCheckWorkflow) sendWorkspaceViolationNotification(ctx context.Cont
 					},
 					{
 						"type": "mrkdwn",
-						"text": fmt.Sprintf("*Quota Type:*\nRequests Per Month"),
+						"text": "*Quota Type:*\nRequests Per Month",
 					},
 				},
 			},

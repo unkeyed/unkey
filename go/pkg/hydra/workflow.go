@@ -23,11 +23,11 @@ import (
 // Example implementation:
 //
 //	type OrderWorkflow struct{}
-//	
+//
 //	func (w *OrderWorkflow) Name() string {
 //	    return "order-processing"
 //	}
-//	
+//
 //	func (w *OrderWorkflow) Run(ctx hydra.WorkflowContext, req *OrderRequest) error {
 //	    // Execute steps using hydra.Step()
 //	    payment, err := hydra.Step(ctx, "validate-payment", func(stepCtx context.Context) (*Payment, error) {
@@ -36,7 +36,7 @@ import (
 //	    if err != nil {
 //	        return err
 //	    }
-//	    
+//
 //	    // Additional steps...
 //	    return nil
 //	}
@@ -114,7 +114,7 @@ func (w *workflowContext) WorkflowName() string {
 
 func (w *workflowContext) getNextStepOrder() int32 {
 	w.stepOrder++
-	return int32(w.stepOrder)
+	return int32(w.stepOrder) // nolint:gosec // Overflow is extremely unlikely in practice
 }
 
 func (w *workflowContext) getCompletedStep(stepName string) (*store.WorkflowStep, error) {
@@ -153,13 +153,13 @@ func (w *workflowContext) suspendWorkflowForSleep(sleepUntil int64) error {
 // Example:
 //
 //	type OrderWorkflow struct{}
-//	
+//
 //	func (w *OrderWorkflow) Name() string { return "order-processing" }
 //	func (w *OrderWorkflow) Run(ctx hydra.WorkflowContext, req *OrderRequest) error {
 //	    // workflow implementation
 //	    return nil
 //	}
-//	
+//
 //	orderWorkflow := &OrderWorkflow{}
 //	err := hydra.RegisterWorkflow(worker, orderWorkflow)
 //	if err != nil {
@@ -210,7 +210,10 @@ func (w *workflowWrapper[TReq]) Run(ctx WorkflowContext, req any) error {
 	}
 
 	var typedReq TReq
-	wctx := ctx.(*workflowContext)
+	wctx, ok := ctx.(*workflowContext)
+	if !ok {
+		return fmt.Errorf("invalid context type, expected *workflowContext")
+	}
 	if err := wctx.marshaller.Unmarshal(rawPayload.Data, &typedReq); err != nil {
 		return fmt.Errorf("failed to unmarshal workflow request: %w", err)
 	}

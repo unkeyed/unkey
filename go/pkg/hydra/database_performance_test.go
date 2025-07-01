@@ -85,7 +85,7 @@ func TestDatabaseQueryPerformanceUnderLoad(t *testing.T) {
 	// Start concurrent workers that stress GetPendingWorkflows query
 	for i := 0; i < numConcurrentWorkers; i++ {
 		wg.Add(1)
-		go func(workerID int) {
+		go func() {
 			defer wg.Done()
 
 			for {
@@ -105,6 +105,7 @@ func TestDatabaseQueryPerformanceUnderLoad(t *testing.T) {
 						errors.Add(1)
 						// Don't spam error logs during load test
 						if errors.Load() <= 10 {
+							t.Logf("Error #%d: %v", errors.Load(), err)
 						}
 					}
 
@@ -112,6 +113,7 @@ func TestDatabaseQueryPerformanceUnderLoad(t *testing.T) {
 					if queryDuration > 100*time.Millisecond {
 						slowQueries.Add(1)
 						if slowQueries.Load() <= 10 {
+							t.Logf("Slow query #%d: %v", slowQueries.Load(), queryDuration)
 						}
 					}
 
@@ -119,7 +121,7 @@ func TestDatabaseQueryPerformanceUnderLoad(t *testing.T) {
 					time.Sleep(10 * time.Millisecond)
 				}
 			}
-		}(i)
+		}()
 	}
 
 	// Let the load test run

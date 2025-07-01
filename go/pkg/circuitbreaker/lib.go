@@ -128,17 +128,35 @@ func New[Res any](name string, applyConfigs ...applyConfig) *CB[Res] {
 	}
 
 	cb := &CB[Res]{
-		config:          cfg,
-		logger:          cfg.logger,
-		state:           Closed,
-		resetCountersAt: cfg.clock.Now().Add(cfg.cyclicPeriod),
-		resetStateAt:    cfg.clock.Now().Add(cfg.timeout),
+		Mutex:                sync.Mutex{},
+		config:               cfg,
+		logger:               cfg.logger,
+		state:                Closed,
+		resetCountersAt:      cfg.clock.Now().Add(cfg.cyclicPeriod),
+		resetStateAt:         cfg.clock.Now().Add(cfg.timeout),
+		requests:             0,
+		successes:            0,
+		failures:             0,
+		consecutiveSuccesses: 0,
+		consecutiveFailures:  0,
 	}
 
 	return cb
 }
 
-var _ CircuitBreaker[any] = &CB[any]{}
+var _ CircuitBreaker[any] = &CB[any]{
+	Mutex:                sync.Mutex{},
+	config:               nil,
+	logger:               nil,
+	state:                Closed,
+	resetCountersAt:      time.Time{},
+	resetStateAt:         time.Time{},
+	requests:             0,
+	successes:            0,
+	failures:             0,
+	consecutiveSuccesses: 0,
+	consecutiveFailures:  0,
+}
 
 func (cb *CB[Res]) Do(ctx context.Context, fn func(context.Context) (Res, error)) (res Res, err error) {
 	ctx, span := tracing.Start(ctx, tracing.NewSpanName(fmt.Sprintf("circuitbreaker.%s", cb.config.name), "Do"))
@@ -161,7 +179,7 @@ func (cb *CB[Res]) Do(ctx context.Context, fn func(context.Context) (Res, error)
 
 // preflight checks if the circuit is ready to accept a request
 func (cb *CB[Res]) preflight(ctx context.Context) error {
-	ctx, span := tracing.Start(ctx, tracing.NewSpanName(fmt.Sprintf("circuitbreaker.%s", cb.config.name), "preflight"))
+	_, span := tracing.Start(ctx, tracing.NewSpanName(fmt.Sprintf("circuitbreaker.%s", cb.config.name), "preflight")) // nolint:ineffassign // Context is used by tracing
 	defer span.End()
 	cb.Lock()
 	defer cb.Unlock()
@@ -196,7 +214,7 @@ func (cb *CB[Res]) preflight(ctx context.Context) error {
 
 // postflight updates the circuit breaker state based on the result of the request
 func (cb *CB[Res]) postflight(ctx context.Context, err error) {
-	ctx, span := tracing.Start(ctx, tracing.NewSpanName(fmt.Sprintf("circuitbreaker.%s", cb.config.name), "postflight"))
+	_, span := tracing.Start(ctx, tracing.NewSpanName(fmt.Sprintf("circuitbreaker.%s", cb.config.name), "postflight")) // nolint:ineffassign // Context is used by tracing
 	defer span.End()
 	cb.Lock()
 	defer cb.Unlock()

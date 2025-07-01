@@ -73,7 +73,7 @@ func TestWorkerPollingEfficiency(t *testing.T) {
 	// Wait for completion or timeout
 	require.Eventually(t, func() bool {
 		return completedWorkflows.Load() >= int64(numWorkflows)
-	}, testDuration, 100*time.Millisecond, 
+	}, testDuration, 100*time.Millisecond,
 		"Should complete %d workflows within %v", numWorkflows, testDuration)
 
 	wg.Wait()
@@ -246,7 +246,7 @@ func TestThunderingHerdPrevention(t *testing.T) {
 	}
 
 	// Check for clustering (thundering herd indicator)
-	clustering := analyzePollingClustering(t, pollTimes, pollInterval)
+	clustering := analyzePollingClustering(pollTimes, pollInterval)
 
 	// Performance assertion
 	require.Less(t, clustering, 0.5,
@@ -282,43 +282,8 @@ func (w *pollingTestWorkflow) Start(ctx context.Context, payload any) (string, e
 	return w.engine.StartWorkflow(ctx, w.Name(), payload)
 }
 
-// Helper function to analyze polling time distribution across workers
-func analyzePollingDistribution(t *testing.T, pollTimes *sync.Map, numWorkers int, startTime time.Time) time.Duration {
-	// Collect all first poll times (to check for thundering herd at startup)
-	firstPolls := make([]time.Time, 0, numWorkers)
-
-	pollTimes.Range(func(key, value interface{}) bool {
-		times := value.([]time.Time)
-		if len(times) > 0 {
-			firstPolls = append(firstPolls, times[0])
-		}
-		return true
-	})
-
-	if len(firstPolls) < 2 {
-		return 0
-	}
-
-	// Find min and max poll times
-	minTime := firstPolls[0]
-	maxTime := firstPolls[0]
-
-	for _, pollTime := range firstPolls {
-		if pollTime.Before(minTime) {
-			minTime = pollTime
-		}
-		if pollTime.After(maxTime) {
-			maxTime = pollTime
-		}
-	}
-
-	spread := maxTime.Sub(minTime)
-
-	return spread
-}
-
 // Helper function to analyze polling clustering (thundering herd detection)
-func analyzePollingClustering(t *testing.T, pollTimes []time.Time, pollInterval time.Duration) float64 {
+func analyzePollingClustering(pollTimes []time.Time, pollInterval time.Duration) float64 {
 	if len(pollTimes) < 2 {
 		return 0
 	}
