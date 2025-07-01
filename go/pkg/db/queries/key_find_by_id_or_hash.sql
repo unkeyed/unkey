@@ -7,6 +7,7 @@ FROM `keys` k
 JOIN apis USING(key_auth_id)
 LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
 WHERE CASE
-    WHEN sqlc.arg(id) IS NOT NULL THEN k.id = sqlc.arg(id)
-    WHEN sqlc.arg(hash) IS NOT NULL THEN k.hash = sqlc.arg(hash)
+    WHEN sqlc.narg(id) IS NOT NULL THEN k.id = sqlc.narg(id)
+    WHEN sqlc.narg(hash) IS NOT NULL THEN k.hash = sqlc.narg(hash)
+    ELSE FALSE
 END;

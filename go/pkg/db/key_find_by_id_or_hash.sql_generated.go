@@ -21,12 +21,13 @@ LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
 WHERE CASE
     WHEN ? IS NOT NULL THEN k.id = ?
     WHEN ? IS NOT NULL THEN k.hash = ?
+    ELSE FALSE
 END
 `
 
 type FindKeyByIdOrHashParams struct {
-	ID   string `db:"id"`
-	Hash string `db:"hash"`
+	ID   sql.NullString `db:"id"`
+	Hash sql.NullString `db:"hash"`
 }
 
 type FindKeyByIdOrHashRow struct {
@@ -70,6 +71,7 @@ type FindKeyByIdOrHashRow struct {
 //	WHERE CASE
 //	    WHEN ? IS NOT NULL THEN k.id = ?
 //	    WHEN ? IS NOT NULL THEN k.hash = ?
+//	    ELSE FALSE
 //	END
 func (q *Queries) FindKeyByIdOrHash(ctx context.Context, db DBTX, arg FindKeyByIdOrHashParams) (FindKeyByIdOrHashRow, error) {
 	row := db.QueryRowContext(ctx, findKeyByIdOrHash,

@@ -240,7 +240,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					KeyID:       sql.NullString{String: keyID, Valid: true},
 					Name:        ratelimit.Name,
 					Limit:       int32(ratelimit.Limit), // nolint:gosec
-					Duration:    int64(ratelimit.Duration),
+					Duration:    ratelimit.Duration,
 					CreatedAt:   now,
 					AutoApply:   ratelimit.AutoApply,
 				})

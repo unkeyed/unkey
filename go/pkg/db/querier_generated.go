@@ -114,6 +114,7 @@ type Querier interface {
 	//  WHERE CASE
 	//      WHEN ? IS NOT NULL THEN k.id = ?
 	//      WHEN ? IS NOT NULL THEN k.hash = ?
+	//      ELSE FALSE
 	//  END
 	FindKeyByIdOrHash(ctx context.Context, db DBTX, arg FindKeyByIdOrHashParams) (FindKeyByIdOrHashRow, error)
 	//FindKeyForVerification

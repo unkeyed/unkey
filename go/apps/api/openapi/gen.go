@@ -1758,6 +1758,12 @@ type V2KeysVerifyKeyRequestBody struct {
 	// Essential for implementing fine-grained authorization in multi-tenant or privilege-separated APIs.
 	Permissions *V2KeysVerifyKeyRequestBody_Permissions `json:"permissions,omitempty"`
 
+	// Ratelimits Enforces time-based rate limiting during verification to prevent abuse and ensure fair usage.
+	// Omitting this field skips rate limit checks entirely, relying only on configured key rate limits.
+	// Multiple rate limits can be checked simultaneously, each with different costs and temporary overrides.
+	// Rate limit checks are optimized for performance but may allow brief bursts during high concurrency.
+	Ratelimits *[]RatelimitRequest `json:"ratelimits,omitempty"`
+
 	// Tags Attaches metadata tags for analytics and monitoring without affecting verification outcomes.
 	// Enables segmentation of API usage in dashboards by endpoint, client version, region, or custom dimensions.
 	// Use 'key=value' format for compatibility with most analytics tools and clear categorization.

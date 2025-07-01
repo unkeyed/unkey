@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
@@ -60,11 +61,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	// nolint:exhaustruct
 	args := db.FindKeyByIdOrHashParams{}
 	if req.KeyId != nil {
-		args.ID = *req.KeyId
+		args.ID = sql.NullString{String: *req.KeyId, Valid: true}
 	} else if req.Key != nil {
-		args.Hash = *req.Key
+		args.Hash = sql.NullString{String: hash.Sha256(*req.Key), Valid: true}
 	}
 
 	key, err := db.Query.FindKeyByIdOrHash(ctx, h.DB.RO(), args)
@@ -273,14 +275,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	ratelimitsResponse := make([]openapi.RatelimitResponse, len(ratelimits))
-	for _, ratelimit := range ratelimits {
-		ratelimitsResponse = append(ratelimitsResponse, openapi.RatelimitResponse{
+	for idx, ratelimit := range ratelimits {
+		ratelimitsResponse[idx] = openapi.RatelimitResponse{
 			Id:        ratelimit.ID,
 			Duration:  ratelimit.Duration,
 			Limit:     int64(ratelimit.Limit),
 			Name:      ratelimit.Name,
 			AutoApply: ratelimit.AutoApply,
-		})
+		}
 	}
 
 	k.Ratelimits = ptr.P(ratelimitsResponse)
