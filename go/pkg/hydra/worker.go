@@ -8,6 +8,7 @@ import (
 
 	"github.com/unkeyed/unkey/go/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/hydra/metrics"
 	"github.com/unkeyed/unkey/go/pkg/hydra/store"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -154,10 +155,19 @@ func (w *worker) pollOnce(ctx context.Context) {
 	workflows, err := w.queryCircuitBreaker.Do(ctx, func(ctx context.Context) ([]store.WorkflowExecution, error) {
 		return w.engine.store.GetPendingWorkflows(ctx, w.engine.namespace, fetchLimit, workflowNames)
 	})
+	
+	// Record polling metrics
 	if err != nil {
-		// Circuit breaker is open or database error - skip this poll cycle
+		metrics.WorkerPollsTotal.WithLabelValues(w.config.WorkerID, w.engine.namespace, "error").Inc()
 		return
 	}
+
+	// Record successful poll with found work status
+	status := "no_work"
+	if len(workflows) > 0 {
+		status = "found_work"
+	}
+	metrics.WorkerPollsTotal.WithLabelValues(w.config.WorkerID, w.engine.namespace, status).Inc()
 
 	// Queue workflows - let polling goroutine block if needed
 	for _, workflow := range workflows {
@@ -175,11 +185,18 @@ func (w *worker) processWorkflows(ctx context.Context) {
 			err := w.engine.store.AcquireWorkflowLease(ctx, workflow.ID, w.engine.namespace, w.config.WorkerID, w.config.ClaimTimeout)
 			if err != nil {
 				// Another worker got it or error, skip this workflow
+				metrics.LeaseAcquisitionsTotal.WithLabelValues(w.config.WorkerID, "workflow", "failed").Inc()
 				continue
 			}
 
+			// Record successful lease acquisition
+			metrics.LeaseAcquisitionsTotal.WithLabelValues(w.config.WorkerID, "workflow", "success").Inc()
+			
 			// Track this lease for heartbeats
 			w.addActiveLease(workflow.ID)
+			
+			// Update active workflows gauge
+			metrics.WorkflowsActive.WithLabelValues(w.engine.namespace, w.config.WorkerID).Inc()
 
 			// Execute the workflow
 			w.executeWorkflow(ctx, &workflow)
@@ -187,6 +204,9 @@ func (w *worker) processWorkflows(ctx context.Context) {
 			// Release the lease and stop tracking it
 			w.engine.store.ReleaseLease(ctx, workflow.ID, w.config.WorkerID)
 			w.removeActiveLease(workflow.ID)
+			
+			// Update active workflows gauge
+			metrics.WorkflowsActive.WithLabelValues(w.engine.namespace, w.config.WorkerID).Dec()
 
 		case <-w.shutdownC:
 			return
@@ -197,17 +217,25 @@ func (w *worker) processWorkflows(ctx context.Context) {
 }
 
 func (w *worker) executeWorkflow(ctx context.Context, e *WorkflowExecution) {
+	startTime := w.clock.Now()
+	
+	// Calculate queue time (time from creation to execution start)
+	queueTime := time.Duration(startTime.UnixMilli()-e.CreatedAt) * time.Millisecond
+	metrics.WorkflowQueueTimeSeconds.WithLabelValues(e.Namespace, e.WorkflowName).Observe(queueTime.Seconds())
 
 	err := w.engine.store.UpdateWorkflowStatus(ctx, e.Namespace, e.ID, WorkflowStatusRunning, "")
 	if err != nil {
+		metrics.RecordError(e.Namespace, "worker", "status_update_failed")
 		return
 	}
 
 	wf, exists := w.workflows[e.WorkflowName]
 	if !exists {
 		err := fmt.Errorf("no handler registered for workflow %s", e.WorkflowName)
-
 		w.engine.store.FailWorkflow(ctx, e.Namespace, e.ID, err.Error(), true)
+		metrics.ObserveWorkflowDuration(e.Namespace, e.WorkflowName, "failed", startTime)
+		metrics.WorkflowsCompletedTotal.WithLabelValues(e.Namespace, e.WorkflowName, "failed").Inc()
+		metrics.RecordError(e.Namespace, "worker", "no_handler_registered")
 		return
 	}
 
@@ -231,15 +259,25 @@ func (w *worker) executeWorkflow(ctx context.Context, e *WorkflowExecution) {
 	if err != nil {
 		if suspendErr, ok := err.(*WorkflowSuspendedError); ok {
 			w.engine.store.SleepWorkflow(ctx, e.Namespace, e.ID, suspendErr.ResumeTime)
+			metrics.SleepsStartedTotal.WithLabelValues(e.Namespace, e.WorkflowName).Inc()
 			return
 		}
 
 		isFinal := e.RemainingAttempts <= 1
 		w.engine.store.FailWorkflow(ctx, e.Namespace, e.ID, err.Error(), isFinal)
+		
+		if !isFinal {
+			metrics.WorkflowsRetriedTotal.WithLabelValues(e.Namespace, e.WorkflowName, fmt.Sprintf("%d", e.MaxAttempts-e.RemainingAttempts+1)).Inc()
+		}
+		
+		metrics.ObserveWorkflowDuration(e.Namespace, e.WorkflowName, "failed", startTime)
+		metrics.WorkflowsCompletedTotal.WithLabelValues(e.Namespace, e.WorkflowName, "failed").Inc()
 		return
 	}
 
 	w.engine.store.CompleteWorkflow(ctx, e.Namespace, e.ID, nil) // No output data for now
+	metrics.ObserveWorkflowDuration(e.Namespace, e.WorkflowName, "completed", startTime)
+	metrics.WorkflowsCompletedTotal.WithLabelValues(e.Namespace, e.WorkflowName, "completed").Inc()
 }
 
 func (w *worker) sendHeartbeats(ctx context.Context) {
@@ -296,10 +334,13 @@ func (w *worker) sendHeartbeatsForActiveLeases(ctx context.Context) {
 			return nil, w.engine.store.HeartbeatLease(ctx, workflowID, w.config.WorkerID, newExpiresAt)
 		})
 		if err != nil {
-			// Log error but continue with other heartbeats
-			// Circuit breaker might be open or database error
+			// Record failed heartbeat
+			metrics.WorkerHeartbeatsTotal.WithLabelValues(w.config.WorkerID, w.engine.namespace, "failed").Inc()
 			continue
 		}
+		
+		// Record successful heartbeat
+		metrics.WorkerHeartbeatsTotal.WithLabelValues(w.config.WorkerID, w.engine.namespace, "success").Inc()
 	}
 }
 

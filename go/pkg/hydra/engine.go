@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/hydra/metrics"
 	"github.com/unkeyed/unkey/go/pkg/hydra/store"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -132,8 +133,12 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowName string, payload
 
 	data, err := e.marshaller.Marshal(payload)
 	if err != nil {
+		metrics.SerializationErrorsTotal.WithLabelValues(e.namespace, workflowName, "input").Inc()
 		return "", fmt.Errorf("failed to marshal payload: %w", err)
 	}
+
+	// Record payload size
+	metrics.RecordPayloadSize(e.namespace, workflowName, "input", len(data))
 
 	workflow := &store.WorkflowExecution{
 		ID:                executionID,
@@ -150,8 +155,14 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowName string, payload
 
 	err = e.store.CreateWorkflow(ctx, workflow)
 	if err != nil {
+		metrics.RecordError(e.namespace, "engine", "workflow_creation_failed")
 		return "", fmt.Errorf("failed to create workflow: %w", err)
 	}
+
+	// Record workflow started
+	triggerTypeStr := string(config.TriggerType)
+	metrics.WorkflowsStartedTotal.WithLabelValues(e.namespace, workflowName, triggerTypeStr).Inc()
+	metrics.WorkflowsQueued.WithLabelValues(e.namespace, "pending").Inc()
 
 	return workflow.ID, nil
 }
