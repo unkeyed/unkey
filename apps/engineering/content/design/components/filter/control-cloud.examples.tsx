@@ -79,7 +79,8 @@ export function BasicControlCloud() {
     formatFieldName={formatFieldName}
   />
   <div className="p-4 text-sm text-gray-11">Active filters: {filters.length}</div>
-</div>`}>
+</div>`}
+    >
       <div className="w-full max-w-2xl border border-gray-6 rounded-lg">
         <ControlCloud
           filters={filters}
@@ -119,7 +120,8 @@ export function TimeBasedFilters() {
     formatFieldName={formatFieldName}
   />
   <div className="p-4 text-sm text-gray-11">Time range filters applied</div>
-</div>`}>
+</div>`}
+    >
       <div className="w-full max-w-2xl border border-gray-6 rounded-lg">
         <ControlCloud
           filters={filters}
@@ -159,7 +161,8 @@ export function MultipleFilterTypes() {
   };
 
   return (
-    <RenderComponentWithSnippet customCodeSnippet={`<div className="w-full max-w-2xl border border-gray-6 rounded-lg">
+    <RenderComponentWithSnippet
+      customCodeSnippet={`<div className="w-full max-w-2xl border border-gray-6 rounded-lg">
   <ControlCloud
     filters={filters}
     removeFilter={removeFilter}
@@ -170,7 +173,8 @@ export function MultipleFilterTypes() {
   <div className="p-4 text-sm text-gray-11">
     Mixed filter types: status, method, path, and duration
   </div>
-</div>`}>
+</div>`}
+    >
       <div className="w-full max-w-2xl border border-gray-6 rounded-lg">
         <ControlCloud
           filters={filters}
@@ -212,7 +216,8 @@ export function EmptyState() {
   <div className="p-4 text-sm text-gray-11">
     No filters applied (component is hidden when empty)
   </div>
-</div>`}>
+</div>`}
+    >
       <div className="w-full max-w-2xl border border-gray-6 rounded-lg">
         <ControlCloud
           filters={filters}
@@ -260,7 +265,8 @@ export function InteractiveExample() {
   const formatFieldName = defaultFormatFieldName;
 
   return (
-    <RenderComponentWithSnippet customCodeSnippet={`<div className="w-full max-w-2xl space-y-4">
+    <RenderComponentWithSnippet
+      customCodeSnippet={`<div className="w-full max-w-2xl space-y-4">
   <div className="flex gap-2">
     <button
       type="button"
@@ -296,7 +302,8 @@ export function InteractiveExample() {
       {isMac ? "⌥+⇧+C" : "Alt+Shift+C"} to focus)
     </div>
   </div>
-</div>`}>
+</div>`}
+    >
       <div className="w-full max-w-2xl space-y-4">
         <div className="flex gap-2">
           <button

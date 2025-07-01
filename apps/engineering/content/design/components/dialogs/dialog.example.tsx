@@ -164,7 +164,8 @@ export const DialogExample: React.FC = () => {
       </DialogContent>
     </Dialog>
   </div>
-</div>`}>
+</div>`}
+    >
       <Row>
         <div className="flex flex-col gap-4 w-full max-w-md mx-auto">
           {/* Basic Dialog */}
