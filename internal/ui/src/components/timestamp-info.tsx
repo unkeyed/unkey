@@ -38,7 +38,7 @@ const timestampRelativeFormatter = (value: string | number): string => {
 
 type DisplayType = "local" | "utc" | "relative";
 
-export const TimestampInfo: React.FC<{
+const TimestampInfo: React.FC<{
   value: string | number;
   className?: string;
   displayType?: DisplayType;
@@ -154,3 +154,5 @@ export const TimestampInfo: React.FC<{
     </Tooltip>
   );
 };
+TimestampInfo.displayName = "TimestampInfo";
+export { TimestampInfo };
