@@ -21,7 +21,6 @@ export const LogsSearch = ({ setNamespaces, initialNamespaces }: LogsSearchProps
     onError(error) {
       toast.error(error.message, {
         duration: 8000,
-        important: true,
         position: "top-right",
         style: {
           whiteSpace: "pre-line",
