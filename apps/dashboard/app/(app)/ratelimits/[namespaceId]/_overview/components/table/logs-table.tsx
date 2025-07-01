@@ -1,14 +1,13 @@
 "use client";
 
 import { useSort } from "@/components/logs/hooks/use-sort";
-import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { Ban, BookBookmark } from "@unkey/icons";
-import { Button, Empty, TimestampInfo } from "@unkey/ui";
+import { Badge, Button, Empty, TimestampInfo } from "@unkey/ui";
 import { useState } from "react";
 import { InlineFilter } from "./components/inline-filter";
 import { LogsTableAction } from "./components/logs-actions";
@@ -35,8 +34,8 @@ export const RatelimitOverviewLogsTable = ({
       {
         key: "identifier",
         header: "Identifier",
-        width: "7.5%",
-        headerClassName: "pl-11",
+        width: "20%",
+        headerClassName: "pl-12",
         render: (log) => {
           return (
             <div className="flex gap-3 items-center group/identifier">
@@ -52,7 +51,7 @@ export const RatelimitOverviewLogsTable = ({
       {
         key: "passed",
         header: "Passed",
-        width: "7.5%",
+        width: "20%",
         sort: {
           direction: getSortDirection("passed"),
           sortable: true,
@@ -85,7 +84,7 @@ export const RatelimitOverviewLogsTable = ({
       {
         key: "blocked",
         header: "Blocked",
-        width: "7.5%",
+        width: "20%",
         sort: {
           direction: getSortDirection("blocked"),
           sortable: true,
@@ -168,7 +167,7 @@ export const RatelimitOverviewLogsTable = ({
       {
         key: "lastRequest",
         header: "Last Request",
-        width: "7.5%",
+        width: "20%",
         sort: {
           direction: getSortDirection("time"),
           sortable: true,
@@ -189,15 +188,13 @@ export const RatelimitOverviewLogsTable = ({
       {
         key: "actions",
         header: "",
-        width: "7.5%",
+        width: "auto",
         render: (log) => (
-          <div className="text-end">
-            <LogsTableAction
-              overrideDetails={log.override}
-              identifier={log.identifier}
-              namespaceId={namespaceId}
-            />
-          </div>
+          <LogsTableAction
+            overrideDetails={log.override}
+            identifier={log.identifier}
+            namespaceId={namespaceId}
+          />
         ),
       },
     ];

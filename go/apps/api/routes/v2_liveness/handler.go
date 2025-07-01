@@ -10,18 +10,30 @@ import (
 
 type Response = openapi.V2LivenessResponseBody
 
-func New() zen.Route {
-	return zen.NewRoute("GET", "/v2/liveness", func(ctx context.Context, s *zen.Session) error {
+// Handler implements zen.Route interface for the v2 liveness endpoint
+type Handler struct {
+	// No services needed for liveness check
+}
 
-		res := Response{
-			Meta: openapi.Meta{
-				RequestId: s.RequestID(),
-			},
-			Data: openapi.LivenessResponseData{
+// Method returns the HTTP method this route responds to
+func (h *Handler) Method() string {
+	return "GET"
+}
 
-				Message: "we're cooking",
-			},
-		}
-		return s.JSON(http.StatusOK, res)
-	})
+// Path returns the URL path pattern this route matches
+func (h *Handler) Path() string {
+	return "/v2/liveness"
+}
+
+// Handle processes the HTTP request
+func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
+	res := Response{
+		Meta: openapi.Meta{
+			RequestId: s.RequestID(),
+		},
+		Data: openapi.LivenessResponseData{
+			Message: "we're cooking",
+		},
+	}
+	return s.JSON(http.StatusOK, res)
 }

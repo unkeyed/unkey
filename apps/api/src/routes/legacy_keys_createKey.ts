@@ -221,12 +221,20 @@ export const registerLegacyKeysCreate = (app: App) =>
         forWorkspaceId: null,
         expires: req.expires ? new Date(req.expires) : null,
         createdAtM: Date.now(),
-        ratelimitLimit: req.ratelimit?.limit,
-        ratelimitDuration: req.ratelimit?.refillRate,
-        ratelimitAsync: req.ratelimit?.type === "fast",
         remaining: req.remaining,
         deletedAtM: null,
       });
+      if (req.ratelimit) {
+        await tx.insert(schema.ratelimits).values({
+          id: newId("ratelimit"),
+          workspaceId: authorizedWorkspaceId,
+          name: "default",
+          limit: req.ratelimit.limit,
+          duration: req.ratelimit.refillRate,
+          keyId: keyId,
+        });
+      }
+
       await insertUnkeyAuditLog(c, tx, {
         workspaceId: authorizedWorkspaceId,
         actor: { type: "key", id: rootKeyId },

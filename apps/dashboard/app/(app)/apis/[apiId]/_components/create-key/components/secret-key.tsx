@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { CircleLock } from "@unkey/icons";
-import { Button, CopyButton, VisibleButton } from "@unkey/ui";
+import { CopyButton, VisibleButton } from "@unkey/ui";
 import { useState } from "react";
 
 const maskKey = (key: string): string => {
@@ -45,17 +45,8 @@ export const SecretKey = ({
             setIsVisible={(visible) => setIsVisible(visible)}
             title={title}
           />
-          <Button
-            variant="outline"
-            size="icon"
-            className="bg-grayA-3"
-            aria-label={`Copy ${title}`}
-            title={`Copy ${title}`}
-          >
-            <div className="flex items-center justify-center">
-              <CopyButton value={value} />
-            </div>
-          </Button>
+
+          <CopyButton value={value} title={title} />
         </div>
       </div>
     </div>

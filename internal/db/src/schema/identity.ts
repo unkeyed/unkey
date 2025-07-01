@@ -71,10 +71,18 @@ export const ratelimits = mysqlTable(
     limit: int("limit").notNull(),
     // milliseconds
     duration: bigint("duration", { mode: "number" }).notNull(),
+
+    // if enabled we will use this limit when verifying a key, whether they
+    // specified the name in the request or not
+    autoApply: boolean("auto_apply").notNull().default(false),
   },
   (table) => ({
     nameIdx: index("name_idx").on(table.name),
-    uniqueName: uniqueIndex("unique_name_idx").on(table.name, table.keyId, table.identityId),
+    uniqueNamePerKey: uniqueIndex("unique_name_per_key_idx").on(table.name, table.keyId),
+    uniqueNamePerIdentity: uniqueIndex("unique_name_per_identity_idx").on(
+      table.name,
+      table.identityId,
+    ),
     identityId: index("identity_id_idx").on(table.identityId),
     keyId: index("key_id_idx").on(table.keyId),
   }),

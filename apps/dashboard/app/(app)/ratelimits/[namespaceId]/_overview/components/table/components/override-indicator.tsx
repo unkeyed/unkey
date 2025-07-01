@@ -40,8 +40,8 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
           </div>
         }
       >
-        <div className={cn(hasMoreBlocked ? "block" : "invisible")}>
-          <TriangleWarning2 />
+        <div className={cn(hasMoreBlocked ? "flex items-center flex-shrink-0" : "invisible")}>
+          <TriangleWarning2 size="md-regular" />
         </div>
       </InfoTooltip>
       <div className="flex gap-3 items-center">

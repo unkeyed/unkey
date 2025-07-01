@@ -93,6 +93,7 @@ const updateRatelimitV2 = async (
                 limit: ratelimit.limit,
                 name: ratelimit.name,
                 updatedAt: Date.now(),
+                autoApply: ratelimit.autoApply,
               })
               .where(eq(schema.ratelimits.id, ratelimit.id));
           } else {

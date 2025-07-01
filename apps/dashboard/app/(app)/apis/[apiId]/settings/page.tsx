@@ -1,9 +1,7 @@
-import { getAuth } from "@/lib/auth";
-import { db, eq, schema } from "@/lib/db";
-import { notFound, redirect } from "next/navigation";
+"use client";
+
 import { ApisNavbar } from "../api-id-navbar";
 import { SettingsClient } from "./components/settings-client";
-export const dynamic = "force-dynamic";
 
 type Props = {
   params: {
@@ -11,56 +9,18 @@ type Props = {
   };
 };
 
-export default async function SettingsPage(props: Props) {
-  const { orgId } = await getAuth();
-
-  const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
-    with: {
-      apis: {
-        where: eq(schema.apis.id, props.params.apiId),
-        with: {
-          keyAuth: true,
-        },
-      },
-    },
-  });
-  if (!workspace || workspace.orgId !== orgId) {
-    return redirect("/new");
-  }
-
-  const api = workspace.apis.find((api) => api.id === props.params.apiId);
-  if (!api) {
-    return notFound();
-  }
-
-  const keyAuth = api.keyAuth;
-  if (!keyAuth) {
-    return notFound();
-  }
-
-  const currentApi = {
-    id: api.id,
-    name: api.name,
-    workspaceId: api.workspaceId,
-    keyAuthId: api.keyAuthId,
-    keyspaceDefaults: {
-      prefix: keyAuth.defaultPrefix || undefined,
-      bytes: keyAuth.defaultBytes || undefined,
-    },
-  };
-
+export default function SettingsPage(props: Props) {
+  const { apiId } = props.params;
   return (
     <div>
       <ApisNavbar
-        api={currentApi}
+        apiId={apiId}
         activePage={{
-          href: `/apis/${api.id}/settings`,
+          href: `/apis/${apiId}/settings`,
           text: "Settings",
         }}
-        apis={workspace.apis}
       />
-      <SettingsClient api={api} workspace={workspace} keyAuth={keyAuth} />
+      <SettingsClient apiId={apiId} />
     </div>
   );
 }
