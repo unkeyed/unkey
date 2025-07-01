@@ -4,7 +4,7 @@ import { cn } from "../lib/utils";
 import { Ufo } from "@unkey/icons";
 
 interface EmptyRootProps extends React.HTMLAttributes<HTMLDivElement> {}
-export function Empty({ className, children, ...props }: EmptyRootProps) {
+function Empty({ className, children, ...props }: EmptyRootProps) {
   return (
     <div
       className={cn(
@@ -17,6 +17,7 @@ export function Empty({ className, children, ...props }: EmptyRootProps) {
     </div>
   );
 }
+Empty.displayName = "Empty";
 
 type EmptyIconProps = React.HTMLAttributes<HTMLDivElement> & {
   children?: React.ReactNode;
@@ -69,3 +70,5 @@ Empty.Actions = function EmptyActions({ className, children, ...props }: EmptyAc
     </div>
   );
 };
+
+export { Empty };

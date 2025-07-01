@@ -11,7 +11,7 @@ type SettingCardProps = {
   contentWidth?: string;
 };
 
-export function SettingCard({
+function SettingCard({
   title,
   description,
   children,
@@ -51,3 +51,7 @@ export function SettingCard({
     </div>
   );
 }
+
+SettingCard.displayName = "SettingCard";
+
+export { SettingCard };

@@ -10,7 +10,17 @@ import { LoadingExample, CustomSizeAndDuration, DotsLineExample } from "./loadin
 import { Loading, Button } from "@unkey/ui";
 
 function MyComponent() {
-  return <Loading />;
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+  }, []);
+  return <div>
+    {isLoading && <Loading />}
+    {!isLoading && <p>Loading complete</p>}
+  </div>;
 }
 ```
 
