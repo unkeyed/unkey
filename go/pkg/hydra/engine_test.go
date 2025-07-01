@@ -117,7 +117,7 @@ func TestStepExecutesExactlyOnce(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 
 		// Check if workflow has been picked up
-		currentStatus, err := e.store.GetWorkflow(context.Background(), "default", executionID)
+		currentStatus, err := e.store.GetWorkflow(context.Background(), e.GetNamespace(), executionID)
 		require.NoError(t, err)
 		if currentStatus.Status != WorkflowStatusPending {
 			break

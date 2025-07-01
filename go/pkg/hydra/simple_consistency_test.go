@@ -84,7 +84,7 @@ func TestSimpleDataConsistency(t *testing.T) {
 	}
 
 	// Verify database consistency
-	allWorkflows, err := engine.store.GetAllWorkflows(context.Background(), "default")
+	allWorkflows, err := engine.store.GetAllWorkflows(context.Background(), engine.GetNamespace())
 	require.NoError(t, err)
 
 	completedInDB := 0
@@ -197,7 +197,7 @@ func TestConcurrentWorkerConsistency(t *testing.T) {
 	require.Equal(t, 0, duplicateCompletions, "Should have zero duplicate workflow completions")
 
 	// Verify database consistency
-	allWorkflows, err := engine.store.GetAllWorkflows(context.Background(), "default")
+	allWorkflows, err := engine.store.GetAllWorkflows(context.Background(), engine.GetNamespace())
 	require.NoError(t, err)
 
 	completedInDB := 0

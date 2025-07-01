@@ -16,6 +16,8 @@ type StepStatus = store.StepStatus
 
 type LeaseKind = store.LeaseKind
 
+type TriggerType = store.TriggerType
+
 const (
 	WorkflowStatusPending   = store.WorkflowStatusPending
 	WorkflowStatusRunning   = store.WorkflowStatusRunning
@@ -31,6 +33,11 @@ const (
 	LeaseKindWorkflow = store.LeaseKindWorkflow
 	LeaseKindStep     = store.LeaseKindStep
 	LeaseKindCronJob  = store.LeaseKindCronJob
+
+	TriggerTypeManual = store.TriggerTypeManual
+	TriggerTypeCron   = store.TriggerTypeCron
+	TriggerTypeEvent  = store.TriggerTypeEvent
+	TriggerTypeAPI    = store.TriggerTypeAPI
 )
 
 type RawPayload struct {

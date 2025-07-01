@@ -59,7 +59,7 @@ func TestWorkerHeartbeatFunctionality(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 
 		// Check if workflow has been picked up
-		currentStatus, err := engine.store.GetWorkflow(ctx, "default", executionID)
+		currentStatus, err := engine.store.GetWorkflow(ctx, engine.GetNamespace(), executionID)
 		if err != nil {
 			return false
 		}
@@ -67,7 +67,7 @@ func TestWorkerHeartbeatFunctionality(t *testing.T) {
 	}, 3*time.Second, 50*time.Millisecond, "Worker should pick up workflow within timeout")
 
 	// Verify workflow is being processed
-	workflowStatus, err := engine.store.GetWorkflow(ctx, "default", executionID)
+	workflowStatus, err := engine.store.GetWorkflow(ctx, engine.GetNamespace(), executionID)
 	require.NoError(t, err)
 	require.Equal(t, WorkflowStatusRunning, workflowStatus.Status, "Workflow should be running")
 

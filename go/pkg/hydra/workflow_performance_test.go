@@ -141,7 +141,7 @@ func TestWorkflowPickupLatencyConcurrent(t *testing.T) {
 	workers := make([]Worker, numWorkers)
 	for i := 0; i < numWorkers; i++ {
 		worker, err := NewWorker(engine, WorkerConfig{
-			Concurrency:       numWorkflows,          // Process all workflows concurrently within single worker
+			Concurrency:       10,                    // Reasonable concurrency per worker
 			PollInterval:      50 * time.Millisecond, // Fast polling for concurrent load
 			HeartbeatInterval: 5 * time.Second,
 			ClaimTimeout:      30 * time.Second,

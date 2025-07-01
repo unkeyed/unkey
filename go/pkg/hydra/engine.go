@@ -87,6 +87,11 @@ func NewWithStore(st store.Store, namespace string, clk clock.Clock) *Engine {
 	})
 }
 
+// GetNamespace returns the namespace for this engine instance
+func (e *Engine) GetNamespace() string {
+	return e.namespace
+}
+
 // RegisterCron registers a cron job with the given schedule and handler
 func (e *Engine) RegisterCron(cronSpec, name string, handler CronHandler) error {
 	if _, exists := e.cronHandlers[name]; exists {
@@ -119,6 +124,7 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowName string, payload
 		MaxAttempts:     3, // Default to 3 attempts total (1 initial + 2 retries)
 		TimeoutDuration: 1 * time.Hour,
 		RetryBackoff:    1 * time.Second,
+		TriggerType:     TriggerTypeAPI, // Default trigger type
 	}
 	for _, opt := range opts {
 		opt(config)
@@ -138,6 +144,8 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowName string, payload
 		MaxAttempts:       config.MaxAttempts,
 		RemainingAttempts: config.MaxAttempts, // Start with full attempts available
 		CreatedAt:         e.clock.Now().UnixMilli(),
+		TriggerType:       store.TriggerType(config.TriggerType),
+		TriggerSource:     config.TriggerSource,
 	}
 
 	err = e.store.CreateWorkflow(ctx, workflow)

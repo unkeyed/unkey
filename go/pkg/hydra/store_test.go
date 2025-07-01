@@ -32,6 +32,7 @@ func TestGetPendingWorkflows(t *testing.T) {
 		InputData:         []byte(`{}`),
 		MaxAttempts:       3,
 		RemainingAttempts: 3,
+		TriggerType:       TriggerTypeManual,
 	}
 
 	err := store.CreateWorkflow(ctx, workflow)
@@ -62,6 +63,7 @@ func TestGetPendingWorkflows_FiltersByWorkflowName(t *testing.T) {
 		InputData:         []byte(`{}`),
 		MaxAttempts:       3,
 		RemainingAttempts: 3,
+		TriggerType:       TriggerTypeManual,
 	}
 
 	workflow2 := &WorkflowExecution{
@@ -73,6 +75,7 @@ func TestGetPendingWorkflows_FiltersByWorkflowName(t *testing.T) {
 		InputData:         []byte(`{}`),
 		MaxAttempts:       3,
 		RemainingAttempts: 3,
+		TriggerType:       TriggerTypeManual,
 	}
 
 	require.NoError(t, store.CreateWorkflow(ctx, workflow1))
@@ -101,6 +104,7 @@ func TestGetPendingWorkflows_ExcludesNonPendingWorkflows(t *testing.T) {
 		InputData:         []byte(`{}`),
 		MaxAttempts:       3,
 		RemainingAttempts: 3,
+		TriggerType:       TriggerTypeManual,
 	}
 
 	completedWorkflow := &WorkflowExecution{
@@ -112,6 +116,7 @@ func TestGetPendingWorkflows_ExcludesNonPendingWorkflows(t *testing.T) {
 		InputData:         []byte(`{}`),
 		MaxAttempts:       3,
 		RemainingAttempts: 3,
+		TriggerType:       TriggerTypeManual,
 	}
 
 	require.NoError(t, store.CreateWorkflow(ctx, pendingWorkflow))
@@ -145,6 +150,7 @@ func TestAcquireWorkflowLease_NewLease(t *testing.T) {
 		InputData:         []byte(`{}`),
 		MaxAttempts:       3,
 		RemainingAttempts: 3,
+		TriggerType:       TriggerTypeManual,
 	}
 	err := store.CreateWorkflow(ctx, workflow)
 	require.NoError(t, err)
@@ -183,6 +189,7 @@ func TestAcquireWorkflowLease_ExistingExpiredLease(t *testing.T) {
 		InputData:         []byte(`{}`),
 		MaxAttempts:       3,
 		RemainingAttempts: 3,
+		TriggerType:       TriggerTypeManual,
 	}
 	err := store.CreateWorkflow(ctx, workflow)
 	require.NoError(t, err)
@@ -232,6 +239,7 @@ func TestAcquireWorkflowLease_ExistingActiveLease(t *testing.T) {
 		InputData:         []byte(`{}`),
 		MaxAttempts:       3,
 		RemainingAttempts: 3,
+		TriggerType:       TriggerTypeManual,
 	}
 	err := store.CreateWorkflow(ctx, workflow)
 	require.NoError(t, err)
@@ -245,5 +253,5 @@ func TestAcquireWorkflowLease_ExistingActiveLease(t *testing.T) {
 
 	// Then: Should fail
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "already leased")
+	require.Contains(t, err.Error(), "not available for acquisition")
 }

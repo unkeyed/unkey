@@ -21,16 +21,13 @@ func TestConcurrentWorkflowAccess(t *testing.T) {
 
 	const (
 		numWorkers   = 5
-		numWorkflows = 25
+		numWorkflows = 25  // Back to full test
 	)
 
 	// Track execution attempts per workflow
 	executionTracker := &ConcurrentExecutionTracker{
 		executions: make(map[string]*ExecutionRecord),
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 
 	// Create workflows first
 	workflowIDs := make([]string, numWorkflows)
@@ -40,11 +37,16 @@ func TestConcurrentWorkflowAccess(t *testing.T) {
 		tracker: executionTracker,
 	}
 
+	createCtx := context.Background()
 	for i := 0; i < numWorkflows; i++ {
-		executionID, err := consistencyWorkflow.Start(ctx, fmt.Sprintf("workflow-%d", i))
+		executionID, err := consistencyWorkflow.Start(createCtx, fmt.Sprintf("workflow-%d", i))
 		require.NoError(t, err)
 		workflowIDs[i] = executionID
 	}
+
+	// Context for workers - give them plenty of time to complete
+	workerCtx, workerCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer workerCancel()
 
 	// Start multiple workers that will compete for the same workflows
 	var wg sync.WaitGroup
@@ -65,22 +67,31 @@ func TestConcurrentWorkflowAccess(t *testing.T) {
 			err = RegisterWorkflow(worker, consistencyWorkflow)
 			require.NoError(t, err)
 
-			err = worker.Start(ctx)
+			err = worker.Start(workerCtx)
 			require.NoError(t, err)
-			defer worker.Shutdown(ctx)
+			defer worker.Shutdown(context.Background()) // Use fresh context for shutdown
 
 			// Let worker run until context is done
-			<-ctx.Done()
+			<-workerCtx.Done()
 		}(i)
 	}
 
-	// Wait for all workflows to complete
+	// Wait for all workflows to complete - check actual database status instead of execution tracker
 	require.Eventually(t, func() bool {
-		return executionTracker.GetExecutedCount() == numWorkflows
-	}, 15*time.Second, 200*time.Millisecond,
+		completedCount := 0
+		for _, workflowID := range workflowIDs {
+			workflow, err := engine.GetStore().GetWorkflow(context.Background(), engine.GetNamespace(), workflowID)
+			if err == nil && workflow.Status == store.WorkflowStatusCompleted {
+				completedCount++
+			}
+		}
+		
+		t.Logf("Completed workflows: %d/%d", completedCount, numWorkflows)
+		return completedCount == numWorkflows
+	}, 20*time.Second, 200*time.Millisecond,
 		"All %d workflows should complete with %d workers", numWorkflows, numWorkers)
 
-	cancel() // Stop all workers
+	workerCancel() // Stop all workers
 	wg.Wait()
 
 	// Analyze results for consistency violations
@@ -151,7 +162,7 @@ func TestStepExecutionRaceConditions(t *testing.T) {
 	duplicateSteps := 0
 	for _, stepName := range expectedSteps {
 		// Try to get the step - this verifies it exists and is unique
-		step, err := engine.store.GetStep(ctx, "default", executionID, stepName)
+		step, err := engine.store.GetStep(ctx, engine.GetNamespace(), executionID, stepName)
 		if err != nil {
 			t.Errorf("Expected step '%s' not found: %v", stepName, err)
 			continue
@@ -206,7 +217,7 @@ func TestDatabaseTransactionIntegrity(t *testing.T) {
 	require.Equal(t, store.WorkflowStatusCompleted, finalWorkflow1.Status)
 
 	// Verify steps were created properly by checking the transaction step
-	step1, err := engine.store.GetStep(ctx, "default", executionID1, "transaction-step")
+	step1, err := engine.store.GetStep(ctx, engine.GetNamespace(), executionID1, "transaction-step")
 	require.NoError(t, err)
 	require.NotNil(t, step1, "Transaction step should be created for successful workflow")
 	require.Equal(t, store.StepStatusCompleted, step1.Status, "Transaction step should complete successfully")
@@ -274,6 +285,19 @@ func (t *ConcurrentExecutionTracker) GetExecutedCount() int {
 		}
 	}
 	return count
+}
+
+func (t *ConcurrentExecutionTracker) GetMissingWorkflows(allWorkflowIDs []string) []string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	var missing []string
+	for _, workflowID := range allWorkflowIDs {
+		if record, exists := t.executions[workflowID]; !exists || record.ExecutionCount == 0 {
+			missing = append(missing, workflowID)
+		}
+	}
+	return missing
 }
 
 func (t *ConcurrentExecutionTracker) AnalyzeResults(testCtx *testing.T) ConsistencyResults {

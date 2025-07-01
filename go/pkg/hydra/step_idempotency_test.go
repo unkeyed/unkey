@@ -69,7 +69,7 @@ func TestStepIdempotencyDuringWorkerFailure(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 
 		// Check if workflow has been picked up
-		currentStatus, err := engine.store.GetWorkflow(ctx, "default", executionID)
+		currentStatus, err := engine.store.GetWorkflow(ctx, engine.GetNamespace(), executionID)
 		require.NoError(t, err)
 		if currentStatus.Status != WorkflowStatusPending {
 			break
@@ -77,7 +77,7 @@ func TestStepIdempotencyDuringWorkerFailure(t *testing.T) {
 	}
 
 	// Check that workflow is being processed
-	_, err = engine.store.GetWorkflow(ctx, "default", executionID)
+	_, err = engine.store.GetWorkflow(ctx, engine.GetNamespace(), executionID)
 	require.NoError(t, err)
 
 	// Simulate worker1 crash by shutting it down
@@ -113,7 +113,7 @@ func TestStepIdempotencyDuringWorkerFailure(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 
 		// Check if workflow has been picked up
-		currentStatus, err := engine.store.GetWorkflow(ctx, "default", executionID)
+		currentStatus, err := engine.store.GetWorkflow(ctx, engine.GetNamespace(), executionID)
 		require.NoError(t, err)
 		if currentStatus.Status != WorkflowStatusPending {
 			break

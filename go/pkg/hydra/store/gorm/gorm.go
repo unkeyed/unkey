@@ -86,6 +86,10 @@ func (s *gormStore) GetWorkflow(ctx context.Context, namespace, id string) (*sto
 }
 
 func (s *gormStore) GetPendingWorkflows(ctx context.Context, namespace string, limit int, workflowNames []string) ([]store.WorkflowExecution, error) {
+	return s.GetPendingWorkflowsWithOffset(ctx, namespace, limit, 0, workflowNames)
+}
+
+func (s *gormStore) GetPendingWorkflowsWithOffset(ctx context.Context, namespace string, limit int, offset int, workflowNames []string) ([]store.WorkflowExecution, error) {
 	now := time.Now().UnixMilli()
 	var workflows []store.WorkflowExecution
 
@@ -105,6 +109,7 @@ func (s *gormStore) GetPendingWorkflows(ctx context.Context, namespace string, l
 
 	err := query.
 		Order("created_at ASC").
+		Offset(offset).
 		Limit(limit).
 		Find(&workflows).Error
 
@@ -116,14 +121,43 @@ func (s *gormStore) AcquireWorkflowLease(ctx context.Context, workflowID, namesp
 	expiresAt := now + leaseDuration.Milliseconds()
 
 	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// First, check if workflow is still available for leasing
+		var workflow store.WorkflowExecution
+		err := tx.Where("id = ? AND namespace = ?", workflowID, namespace).First(&workflow).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return errors.New("workflow not found")
+			}
+			return err
+		}
+
+		// Check if workflow is in a leasable state
+		if workflow.Status != store.WorkflowStatusPending && 
+		   workflow.Status != store.WorkflowStatusFailed && 
+		   workflow.Status != store.WorkflowStatusSleeping {
+			return errors.New("workflow not available for acquisition")
+		}
+
+		// For failed workflows, check if retry time has passed
+		if workflow.Status == store.WorkflowStatusFailed && workflow.NextRetryAt != nil && *workflow.NextRetryAt > now {
+			return errors.New("workflow not ready for retry yet")
+		}
+
+		// For sleeping workflows, check if sleep time has passed
+		if workflow.Status == store.WorkflowStatusSleeping && workflow.SleepUntil != nil && *workflow.SleepUntil > now {
+			return errors.New("workflow still sleeping")
+		}
+
+		// Now check for existing lease
 		var existingLease store.Lease
-		err := tx.Where("resource_id = ? AND kind = ?", workflowID, "workflow").First(&existingLease).Error
+		err = tx.Where("resource_id = ? AND kind = ?", workflowID, "workflow").First(&existingLease).Error
 
 		if err == nil {
 			if existingLease.ExpiresAt > now {
 				if existingLease.WorkerID != workerID {
 					return errors.New("workflow already leased by another worker")
 				}
+				// Renew existing lease
 				existingLease.AcquiredAt = now
 				existingLease.ExpiresAt = expiresAt
 				existingLease.HeartbeatAt = now
@@ -132,6 +166,7 @@ func (s *gormStore) AcquireWorkflowLease(ctx context.Context, workflowID, namesp
 					return err
 				}
 			} else {
+				// Take over expired lease
 				existingLease.WorkerID = workerID
 				existingLease.AcquiredAt = now
 				existingLease.ExpiresAt = expiresAt
@@ -142,6 +177,7 @@ func (s *gormStore) AcquireWorkflowLease(ctx context.Context, workflowID, namesp
 				}
 			}
 		} else if err == gorm.ErrRecordNotFound {
+			// Create new lease
 			lease := &store.Lease{
 				ResourceID:  workflowID,
 				Kind:        "workflow",
@@ -163,9 +199,9 @@ func (s *gormStore) AcquireWorkflowLease(ctx context.Context, workflowID, namesp
 			return err
 		}
 
+		// Update workflow status to running
 		result := tx.Model(&store.WorkflowExecution{}).
-			Where("id = ? AND namespace = ? AND status IN ?",
-				workflowID, namespace, []string{string(store.WorkflowStatusPending), string(store.WorkflowStatusFailed), string(store.WorkflowStatusSleeping)}).
+			Where("id = ? AND namespace = ?", workflowID, namespace).
 			Updates(map[string]any{
 				"status":      store.WorkflowStatusRunning,
 				"started_at":  gorm.Expr("CASE WHEN started_at IS NULL THEN ? ELSE started_at END", now),
@@ -174,10 +210,6 @@ func (s *gormStore) AcquireWorkflowLease(ctx context.Context, workflowID, namesp
 
 		if result.Error != nil {
 			return result.Error
-		}
-
-		if result.RowsAffected == 0 {
-			return errors.New("workflow not available for acquisition")
 		}
 
 		return nil
@@ -326,11 +358,6 @@ func (s *gormStore) UpdateStepStatus(ctx context.Context, namespace, executionID
 	updates := map[string]any{
 		"status":       status,
 		"completed_at": now,
-	}
-
-	if step.StartedAt != nil {
-		duration := int32(now - *step.StartedAt)
-		updates["duration_ms"] = duration
 	}
 
 	if outputData != nil {

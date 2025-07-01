@@ -29,13 +29,6 @@ func (p *CronPayload) Unmarshal(data []byte) error {
 	return json.Unmarshal(data, p)
 }
 
-type TriggerType string
-
-const (
-	TriggerTypeManual TriggerType = "manual"
-
-	TriggerTypeCron TriggerType = "cron"
-)
 
 func calculateNextRun(cronSpec string, from time.Time) int64 {
 	schedule, err := parseCronSpec(cronSpec)

@@ -45,6 +45,7 @@ type worker struct {
 	activeLeasesM       sync.RWMutex                                             // Protect the activeLeases map
 	queryCircuitBreaker circuitbreaker.CircuitBreaker[[]store.WorkflowExecution] // Protect query operations
 	leaseCircuitBreaker circuitbreaker.CircuitBreaker[any]                       // Protect lease operations
+	workflowQueue       chan store.WorkflowExecution                             // Queue of workflows to process
 }
 
 func NewWorker(e *Engine, config WorkerConfig) (Worker, error) {
@@ -71,6 +72,12 @@ func NewWorker(e *Engine, config WorkerConfig) (Worker, error) {
 	queryCircuitBreaker := circuitbreaker.New[[]store.WorkflowExecution]("hydra-query")
 	leaseCircuitBreaker := circuitbreaker.New[any]("hydra-lease")
 
+	// Create workflow queue with capacity based on concurrency
+	queueSize := config.Concurrency * 10
+	if queueSize < 50 {
+		queueSize = 50 // Minimum queue size
+	}
+
 	worker := &worker{
 		engine:              e,
 		config:              config,
@@ -81,6 +88,7 @@ func NewWorker(e *Engine, config WorkerConfig) (Worker, error) {
 		activeLeases:        make(map[string]bool),
 		queryCircuitBreaker: queryCircuitBreaker,
 		leaseCircuitBreaker: leaseCircuitBreaker,
+		workflowQueue:       make(chan store.WorkflowExecution, queueSize),
 	}
 
 	return worker, nil
@@ -88,6 +96,12 @@ func NewWorker(e *Engine, config WorkerConfig) (Worker, error) {
 
 func (w *worker) run(ctx context.Context) {
 	defer close(w.doneC)
+
+	// Start workflow processors
+	for i := 0; i < w.config.Concurrency; i++ {
+		w.wg.Add(1)
+		go w.processWorkflows(ctx)
+	}
 
 	w.wg.Add(4)
 	go w.pollForWorkflows(ctx)
@@ -100,6 +114,7 @@ func (w *worker) run(ctx context.Context) {
 	case <-ctx.Done():
 	}
 
+	// Don't close the queue immediately - let processors drain it first
 	w.wg.Wait()
 }
 
@@ -110,29 +125,12 @@ func (w *worker) pollForWorkflows(ctx context.Context) {
 	defer ticker.Stop()
 	tickerC := ticker.C()
 
-	activeWorkflows := make(map[string]context.CancelFunc)
-	var mu sync.Mutex
-
 	for {
 		select {
 		case <-tickerC:
-			mu.Lock()
-			activeCount := len(activeWorkflows)
-			mu.Unlock()
-
-			if activeCount >= w.config.Concurrency {
-				continue
-			}
-
-			w.pollOnce(ctx, &mu, activeWorkflows)
+			w.pollOnce(ctx)
 
 		case <-w.shutdownC:
-			mu.Lock()
-			for executionID, cancel := range activeWorkflows {
-				cancel()
-				delete(activeWorkflows, executionID)
-			}
-			mu.Unlock()
 			return
 
 		case <-ctx.Done():
@@ -141,66 +139,60 @@ func (w *worker) pollForWorkflows(ctx context.Context) {
 	}
 }
 
-func (w *worker) pollOnce(ctx context.Context, mu *sync.Mutex, activeWorkflows map[string]context.CancelFunc) {
-
+func (w *worker) pollOnce(ctx context.Context) {
 	workflowNames := make([]string, 0, len(w.workflows))
 	for name := range w.workflows {
 		workflowNames = append(workflowNames, name)
 	}
 
-	// Protect database query with circuit breaker
+	// Use a more conservative fetch limit to reduce contention
+	fetchLimit := w.config.Concurrency * 2 // Fetch less to reduce contention
+	if fetchLimit < 10 {
+		fetchLimit = 10 // Minimum fetch size
+	}
+
 	workflows, err := w.queryCircuitBreaker.Do(ctx, func(ctx context.Context) ([]store.WorkflowExecution, error) {
-		return w.engine.store.GetPendingWorkflows(ctx, w.engine.namespace, w.config.Concurrency, workflowNames)
+		return w.engine.store.GetPendingWorkflows(ctx, w.engine.namespace, fetchLimit, workflowNames)
 	})
 	if err != nil {
 		// Circuit breaker is open or database error - skip this poll cycle
 		return
 	}
 
-	if len(workflows) == 0 {
-		return
-	}
-
+	// Queue workflows - let polling goroutine block if needed
 	for _, workflow := range workflows {
+		w.workflowQueue <- workflow
+	}
+}
 
-		mu.Lock()
-		if len(activeWorkflows) >= w.config.Concurrency {
-			mu.Unlock()
-			break
+func (w *worker) processWorkflows(ctx context.Context) {
+	defer w.wg.Done()
+
+	for {
+		select {
+		case workflow := <-w.workflowQueue:
+			// Try to acquire lease with direct store call (no circuit breaker to avoid blocking)
+			err := w.engine.store.AcquireWorkflowLease(ctx, workflow.ID, w.engine.namespace, w.config.WorkerID, w.config.ClaimTimeout)
+			if err != nil {
+				// Another worker got it or error, skip this workflow
+				continue
+			}
+
+			// Track this lease for heartbeats
+			w.addActiveLease(workflow.ID)
+
+			// Execute the workflow
+			w.executeWorkflow(ctx, &workflow)
+
+			// Release the lease and stop tracking it
+			w.engine.store.ReleaseLease(ctx, workflow.ID, w.config.WorkerID)
+			w.removeActiveLease(workflow.ID)
+
+		case <-w.shutdownC:
+			return
+		case <-ctx.Done():
+			return
 		}
-
-		// Protect lease acquisition with circuit breaker
-		_, err := w.leaseCircuitBreaker.Do(ctx, func(ctx context.Context) (any, error) {
-			return nil, w.engine.store.AcquireWorkflowLease(ctx, workflow.ID, w.engine.namespace, w.config.WorkerID, w.config.ClaimTimeout)
-		})
-		if err != nil {
-			mu.Unlock()
-			continue
-		}
-
-		// Track this lease for heartbeats
-		w.addActiveLease(workflow.ID)
-
-		workflowCtx, cancel := context.WithCancel(ctx)
-		activeWorkflows[workflow.ID] = cancel
-		mu.Unlock()
-
-		w.wg.Add(1)
-		go func(wf WorkflowExecution) {
-			defer w.wg.Done()
-
-			defer func() {
-				mu.Lock()
-				delete(activeWorkflows, wf.ID)
-				mu.Unlock()
-
-				// Stop tracking this lease
-				w.removeActiveLease(wf.ID)
-			}()
-
-			w.executeWorkflow(workflowCtx, &wf)
-		}(workflow)
-
 	}
 }
 

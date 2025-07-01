@@ -12,6 +12,8 @@ type Store interface {
 
 	GetPendingWorkflows(ctx context.Context, namespace string, limit int, workflowNames []string) ([]WorkflowExecution, error)
 
+	GetPendingWorkflowsWithOffset(ctx context.Context, namespace string, limit int, offset int, workflowNames []string) ([]WorkflowExecution, error)
+
 	AcquireWorkflowLease(ctx context.Context, workflowID, namespace, workerID string, leaseDuration time.Duration) error
 
 	UpdateWorkflowStatus(ctx context.Context, namespace, id string, status WorkflowStatus, errorMsg string) error

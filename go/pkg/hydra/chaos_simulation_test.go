@@ -242,7 +242,7 @@ func TestChaosSimulation(t *testing.T) {
 	completedWorkflows := 0
 	failedWorkflows := 0
 
-	workflows, err := engine.store.GetAllWorkflows(ctx, "default")
+	workflows, err := engine.store.GetAllWorkflows(ctx, engine.GetNamespace())
 	require.NoError(t, err)
 
 	for _, wf := range workflows {
@@ -267,7 +267,7 @@ func TestChaosSimulation(t *testing.T) {
 
 	// Check for data consistency
 	stepExecutions := make(map[string]int)
-	steps, err := engine.store.GetAllSteps(ctx, "default")
+	steps, err := engine.store.GetAllSteps(ctx, engine.GetNamespace())
 	require.NoError(t, err)
 
 	for _, step := range steps {
@@ -388,7 +388,7 @@ func TestDatabaseFailureScenarios(t *testing.T) {
 	// Verify workflows completed
 	completedCount := 0
 	for _, workflowID := range recoveryWorkflows {
-		wf, err := engine.store.GetWorkflow(ctx, "default", workflowID)
+		wf, err := engine.store.GetWorkflow(ctx, engine.GetNamespace(), workflowID)
 		require.NoError(t, err)
 		if wf.Status == store.WorkflowStatusCompleted {
 			completedCount++
@@ -422,7 +422,7 @@ func TestDatabaseFailureScenarios(t *testing.T) {
 
 	// Check final state
 	for _, workflowID := range processingWorkflows {
-		_, err := engine.store.GetWorkflow(ctx, "default", workflowID)
+		_, err := engine.store.GetWorkflow(ctx, engine.GetNamespace(), workflowID)
 		require.NoError(t, err)
 	}
 

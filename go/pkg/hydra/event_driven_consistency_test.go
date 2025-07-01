@@ -101,7 +101,7 @@ func TestEventDrivenConsistency(t *testing.T) {
 	}
 
 	// Verify database consistency matches events
-	allWorkflows, err := engine.store.GetAllWorkflows(ctx, "default")
+	allWorkflows, err := engine.store.GetAllWorkflows(ctx, engine.GetNamespace())
 	require.NoError(t, err)
 
 	workflowStatusCounts := make(map[store.WorkflowStatus]int)
@@ -122,7 +122,7 @@ func TestEventDrivenConsistency(t *testing.T) {
 		"Failed workflows in DB should match failed events")
 
 	// Verify step consistency
-	allSteps, err := engine.store.GetAllSteps(ctx, "default")
+	allSteps, err := engine.store.GetAllSteps(ctx, engine.GetNamespace())
 	require.NoError(t, err)
 
 	stepStatusCounts := make(map[store.StepStatus]int)

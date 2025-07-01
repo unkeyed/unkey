@@ -130,6 +130,9 @@ type WorkflowConfig struct {
 	TimeoutDuration time.Duration
 
 	RetryBackoff time.Duration
+
+	TriggerType   TriggerType
+	TriggerSource *string
 }
 
 // WithMaxAttempts sets the maximum number of retry attempts for a workflow
@@ -150,6 +153,14 @@ func WithTimeout(timeout time.Duration) WorkflowOption {
 func WithRetryBackoff(backoff time.Duration) WorkflowOption {
 	return func(c *WorkflowConfig) {
 		c.RetryBackoff = backoff
+	}
+}
+
+// WithTrigger sets the trigger type and source for a workflow
+func WithTrigger(triggerType TriggerType, triggerSource *string) WorkflowOption {
+	return func(c *WorkflowConfig) {
+		c.TriggerType = triggerType
+		c.TriggerSource = triggerSource
 	}
 }
 
