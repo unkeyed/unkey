@@ -204,7 +204,7 @@ func TestSuccess(t *testing.T) {
 		require.Len(t, *res.Body.Data.Ratelimits, 2)
 
 		// Check ratelimit values
-		var apiCallsLimit, newFeatureLimit *openapi.Ratelimit
+		var apiCallsLimit, newFeatureLimit *openapi.RatelimitResponse
 		for i := range *res.Body.Data.Ratelimits {
 			switch (*res.Body.Data.Ratelimits)[i].Name {
 			case "api_calls":

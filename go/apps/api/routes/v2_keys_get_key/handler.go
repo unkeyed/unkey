@@ -1,0 +1,273 @@
+package handler
+
+import (
+	"context"
+	"database/sql"
+	"encoding/json"
+	"net/http"
+
+	"github.com/unkeyed/unkey/go/apps/api/openapi"
+	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/go/internal/services/keys"
+	"github.com/unkeyed/unkey/go/internal/services/permissions"
+	"github.com/unkeyed/unkey/go/pkg/codes"
+	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
+	"github.com/unkeyed/unkey/go/pkg/rbac"
+	"github.com/unkeyed/unkey/go/pkg/zen"
+)
+
+type Request = openapi.V2KeysGetKeyRequestBody
+type Response = openapi.V2KeysGetKeyResponseBody
+
+// Handler implements zen.Route interface for the v2 keys whoami endpoint
+type Handler struct {
+	// Services as public fields
+	Logger      logging.Logger
+	DB          db.Database
+	Keys        keys.KeyService
+	Permissions permissions.PermissionService
+	Auditlogs   auditlogs.AuditLogService
+}
+
+// Method returns the HTTP method this route responds to
+func (h *Handler) Method() string {
+	return "POST"
+}
+
+// Path returns the URL path pattern this route matches
+func (h *Handler) Path() string {
+	return "/v2/keys.getKey"
+}
+
+func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
+	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.getKey")
+
+	// Authentication
+	auth, err := h.Keys.VerifyRootKey(ctx, s)
+	if err != nil {
+		return err
+	}
+
+	// Request validation
+	req, err := zen.BindBody[Request](s)
+	if err != nil {
+		return err
+	}
+
+	args := db.FindKeyByIdOrHashParams{}
+	if req.KeyId != nil {
+		args.ID = *req.KeyId
+	} else if req.Key != nil {
+		args.Hash = *req.Key
+	}
+
+	key, err := db.Query.FindKeyByIdOrHash(ctx, h.DB.RO(), args)
+	if err != nil {
+		// Validate key exists
+		if db.IsNotFound(err) {
+			return fault.Wrap(
+				err,
+				fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
+				fault.Internal("key does not exist"),
+				fault.Public("We could not find the requested key."),
+			)
+		}
+
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve Key information."),
+		)
+	}
+
+	// Permission check
+	err = h.Permissions.Check(
+		ctx,
+		auth.KeyID,
+		rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   "*",
+				Action:       rbac.ReadKey,
+			}),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   key.Api.ID,
+				Action:       rbac.ReadKey,
+			}),
+		),
+	)
+	if err != nil {
+		return err
+	}
+
+	// Validate key belongs to authorized workspace
+	if key.WorkspaceID != auth.AuthorizedWorkspaceID {
+		return fault.New("key not found",
+			fault.Code(codes.Data.Key.NotFound.URN()),
+			fault.Internal("key belongs to different workspace"),
+			fault.Public("The specified key was not found."),
+		)
+	}
+
+	k := openapi.KeyResponse{
+		CreatedAt: key.CreatedAtM,
+		Enabled:   key.Enabled,
+		KeyId:     key.ID,
+		Name:      nil,
+		Meta:      nil,
+		Identity:  nil,
+	}
+
+	if key.Name.Valid {
+		k.Name = ptr.P(key.Name.String)
+	}
+
+	if key.UpdatedAtM.Valid {
+		k.UpdatedAt = ptr.P(key.UpdatedAtM.Int64)
+	}
+
+	if key.Expires.Valid {
+		k.Expires = ptr.P(key.Expires.Time.UnixMilli())
+	}
+
+	if key.RemainingRequests.Valid {
+		k.Credits = &openapi.KeyCredits{
+			Remaining: int64(key.RemainingRequests.Int32),
+			Refill:    nil,
+		}
+
+		if key.RefillAmount.Valid {
+			interval := openapi.KeyCreditsRefillIntervalDaily
+			if key.RefillDay.Valid {
+				interval = openapi.KeyCreditsRefillIntervalMonthly
+			}
+
+			k.Credits.Refill = &openapi.KeyCreditsRefill{
+				Amount:       int64(key.RefillAmount.Int32),
+				Interval:     interval,
+				RefillDay:    ptr.P(int(key.RefillDay.Int16)),
+				LastRefillAt: nil,
+			}
+			if key.LastRefillAt.Valid {
+				k.Credits.Refill.LastRefillAt = ptr.P(key.LastRefillAt.Time.UnixMilli())
+			}
+		}
+	}
+
+	if key.IdentityID.Valid {
+		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{ID: key.IdentityID.String, Deleted: false})
+		if err != nil {
+			if db.IsNotFound(err) {
+				return fault.New("identity not found for key",
+					fault.Code(codes.Data.Identity.NotFound.URN()),
+					fault.Internal("identity not found"),
+					fault.Public("The requested identity does not exist or has been deleted."),
+				)
+			}
+
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("Failed to retrieve Identity information."),
+			)
+		}
+
+		k.Identity = &openapi.Identity{
+			ExternalId: identity.ExternalID,
+			Id:         identity.ID,
+			Meta:       nil,
+			Ratelimits: nil,
+		}
+
+		if len(identity.Meta) > 0 {
+			err = json.Unmarshal(identity.Meta, &k.Identity.Meta)
+			if err != nil {
+				return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
+					fault.Internal("unable to unmarshal identity meta"),
+					fault.Public("We encountered an error while trying to unmarshal the identity meta data."),
+				)
+			}
+		}
+
+		ratelimits, err := db.Query.ListIdentityRatelimitsByID(ctx, h.DB.RO(), sql.NullString{Valid: true, String: identity.ID})
+		if err != nil && !db.IsNotFound(err) {
+			return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
+				fault.Internal("unable to retrieve identity ratelimits"),
+				fault.Public("We encountered an error while trying to retrieve the identity ratelimits."),
+			)
+		}
+
+		for _, ratelimit := range ratelimits {
+			k.Identity.Ratelimits = append(k.Identity.Ratelimits, openapi.RatelimitResponse{
+				Id:       ratelimit.ID,
+				Duration: ratelimit.Duration,
+				Limit:    int64(ratelimit.Limit),
+				Name:     ratelimit.Name,
+			})
+		}
+	}
+
+	ratelimits, err := db.Query.ListRatelimitsByKeyID(ctx, h.DB.RO(), sql.NullString{String: key.ID, Valid: true})
+	if err != nil && !db.IsNotFound(err) {
+		return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Internal("unable to retrieve key ratelimits"),
+			fault.Public("We encountered an error while trying to retrieve the key ratelimits."),
+		)
+	}
+
+	ratelimitsResponse := make([]openapi.RatelimitResponse, len(ratelimits))
+	for _, ratelimit := range ratelimits {
+		ratelimitsResponse = append(ratelimitsResponse, openapi.RatelimitResponse{
+			Id:       ratelimit.ID,
+			Duration: ratelimit.Duration,
+			Limit:    int64(ratelimit.Limit),
+			Name:     ratelimit.Name,
+		})
+	}
+
+	k.Ratelimits = ptr.P(ratelimitsResponse)
+
+	if key.Meta.Valid {
+		err = json.Unmarshal([]byte(key.Meta.String), &k.Meta)
+		if err != nil {
+			return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
+				fault.Internal("unable to unmarshal key meta"),
+				fault.Public("We encountered an error while trying to unmarshal the key meta data."),
+			)
+		}
+	}
+
+	permissionSlugs, err := db.Query.ListPermissionsByKeyID(ctx, h.DB.RO(), db.ListPermissionsByKeyIDParams{
+		KeyID: k.KeyId,
+	})
+	if err != nil {
+		return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Internal("unable to find permissions for key"), fault.Public("Could not load permissions for key."))
+	}
+	k.Permissions = ptr.P(permissionSlugs)
+
+	// Get roles for the key
+	roles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), k.KeyId)
+	if err != nil {
+		return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Internal("unable to find roles for key"), fault.Public("Could not load roles for key."))
+	}
+
+	roleNames := make([]string, len(roles))
+	for i, role := range roles {
+		roleNames[i] = role.Name
+	}
+
+	k.Roles = ptr.P(roleNames)
+
+	return s.JSON(http.StatusOK, Response{
+		Meta: openapi.Meta{
+			RequestId: s.RequestID(),
+		},
+		Data: k,
+	})
+}

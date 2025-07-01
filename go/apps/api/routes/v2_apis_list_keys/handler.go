@@ -279,8 +279,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			KeyId:       key.Key.ID,
 			Start:       key.Key.Start,
 			CreatedAt:   key.Key.CreatedAtM,
+			Enabled:     key.Key.Enabled,
 			Credits:     nil,
-			Environment: nil,
 			Expires:     nil,
 			Identity:    nil,
 			Meta:        nil,
@@ -339,7 +339,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		// Add identity information if available
 		if key.IdentityID.Valid {
-
 			k.Identity = &openapi.Identity{
 				ExternalId: key.ExternalID.String,
 				Id:         key.IdentityID.String,

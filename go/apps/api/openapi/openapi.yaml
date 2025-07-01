@@ -376,8 +376,6 @@ components:
           "$ref": "#/components/schemas/KeysDeleteKeyResponseData"
     V2KeysGetKeyRequestBody:
       type: object
-      required:
-        - keyId
       properties:
         keyId:
           type: string
@@ -401,231 +399,23 @@ components:
             Use only for legitimate recovery scenarios like user password resets or emergency access.
             Most applications should keep this false to maintain security best practices and avoid accidental key exposure.
             Decryption requests are audited and may trigger security alerts in enterprise environments.
+        key:
+          type: string
+          minLength: 1
+          maxLength: 512 # Reasonable upper bound for API key strings
+          description: |
+            The complete API key string provided by you, including any prefix.
+            Never log, cache, or store API keys in your system as they provide full access to user resources.
+            Include the full key exactly as provided - even minor modifications will cause a not found error.
+          example: prefix_f4cc2d765275c206b7d76ff0e92e583067c4e33603fb4055d7ba3031cd7ce36a
+
       additionalProperties: false
-    KeysGetKeyResponseData:
-      type: object
-      required:
-        - id
-        - start
-        - createdAt
-        - enabled
-      properties:
-        id:
-          type: string
-          description: The unique identifier of the key in Unkey's system.
-          example: key_2cGKbMxRyIzhCxo1Idjz8q
-        start:
-          type: string
-          description:
-            The first few characters of the key to visually identify it
-            without exposing the full key. Used in dashboards and logs to help users
-            recognize which key is being used without revealing sensitive information.
-            Typically includes the prefix if one was specified.
-          example: prod_5j1
-        apiId:
-          type: string
-          description: The ID of the API this key belongs to.
-          example: api_2cGKbMxRjIzhCxo1IdjH3a
-        name:
-          type: string
-          description:
-            A descriptive name for the key for internal reference. Shown
-            in dashboards and logs but never exposed to end users.
-          example: Payment Service Production Key
-        externalId:
-          type: string
-          description:
-            Your user's unique identifier, creating a link between Unkey
-            and your system. This ID is returned during verification so you can identify
-            which customer/entity is making the request without performing additional
-            database lookups. Use consistent identifiers that match your primary user/tenant
-            identifiers for seamless integration.
-          example: user_912a841d
-        meta:
-          type: object
-          additionalProperties: true
-          description:
-            Arbitrary JSON metadata associated with this key. This can
-            include additional context like subscription plans, feature flags, or
-            any custom data. Metadata is stored as-is and returned during verification,
-            allowing you to access important information without additional database
-            queries. Consider including data relevant to authorization decisions,
-            usage tracking, and user context.
-          example:
-            plan: enterprise
-            limits:
-              storage: 500GB
-              compute: 1000 minutes/month
-            contactInfo:
-              primaryEmail: admin@example.com
-              technicalContact: tech@example.com
-            integrations:
-              slack: true
-              github:
-                enabled: true
-                repositories: 10
-            lastActivityTimestamp: 1671048264000
-        createdAt:
-          type: integer
-          format: int64
-          description: Unix timestamp (in milliseconds) when the key was created.
-          example: 1671048264000
-        updatedAt:
-          type: integer
-          format: int64
-          description: Unix timestamp (in milliseconds) when the key was last updated.
-          example: 1671135600000
-        expires:
-          type: integer
-          format: int64
-          description:
-            Unix timestamp (in milliseconds) when this key will automatically
-            expire. If null, the key has no expiration.
-          example: 1704067200000
-        credits:
-          type: object
-          properties:
-            remaining:
-              type: integer
-              format: int32
-              description:
-                The number of times this key can still be used before becoming
-                invalid.
-              example: 753
-            refill:
-              type: object
-              required:
-                - interval
-                - amount
-              properties:
-                interval:
-                  type: string
-                  enum:
-                    - daily
-                    - monthly
-                  description: How often the credits are automatically refilled.
-                amount:
-                  type: integer
-                  minimum: 1
-                  description: Number of credits added during each refill.
-                refillDay:
-                  type: integer
-                  minimum: 1
-                  maximum: 31
-                  description:
-                    For monthly refills, the day of month when refills
-                    occur.
-                lastRefillAt:
-                  type: integer
-                  format: int64
-                  description:
-                    Unix timestamp (in milliseconds) when credits were
-                    last refilled.
-              description: Configuration for automatic credit refills.
-          description:
-            Usage limits configuration for this key. Credits provide a
-            way to limit the number of times a key can be used before becoming invalid.
-            Unlike ratelimits, credits are globally consistent (using database transactions)
-            providing 100% accuracy at the cost of slightly higher latency. Ideal
-            for monetization, usage quotas, or strict limits that must not be exceeded.
-            See the 'refill' field for automatic replenishment options.
-        ratelimits:
-          type: array
-          items:
-            type: object
-            required:
-              - name
-              - limit
-              - duration
-            properties:
-              name:
-                type: string
-                description: Identifier for this ratelimit.
-                example: requests
-              limit:
-                type: integer
-                format: int32
-                description:
-                  Maximum number of operations allowed within the time
-                  window.
-                example: 100
-              duration:
-                type: integer
-                format: int32
-                description: Duration of the ratelimit window in milliseconds.
-                example: 60000
-              async:
-                type: boolean
-                description:
-                  Whether this ratelimit uses fast (async=true) or consistent
-                  (async=false) mode. Fast mode has lower latency but less accuracy.
-                default: true
-          description:
-            Array of ratelimits applied to this key. Multiple named ratelimits
-            can control different aspects of key usage. For example, a 'requests'
-            ratelimit might control overall API calls while a separate 'computations'
-            limit manages access to resource-intensive operations. Ratelimits are
-            optimized for performance and typically add minimal latency to verifications.
-            They can be shared across keys through identities.
-        roles:
-          type: array
-          items:
-            type: string
-          description:
-            List of role names assigned to this key. Roles are collections
-            of permissions.
-          example:
-            - api_admin
-            - billing_reader
-        permissions:
-          type: array
-          items:
-            type: string
-          description: List of permission names directly assigned to this key.
-          example:
-            - documents.read
-            - documents.write
-            - settings.view
-        enabled:
-          type: boolean
-          description:
-            Whether the key is currently active. Disabled keys will fail
-            verification with `code=DISABLED`. Toggling this allows you to temporarily
-            suspend access without deleting the key, which is useful for maintenance,
-            account freezing, or debugging. Can be updated using the `keys.updateKey` endpoint.
-          example: true
-        plaintext:
-          type: string
-          description:
-            "The full `API key` in plaintext. Only included when `decrypt`
-            is `true` and the key was created with `recoverable: true`. SECURITY RISK:
-            This field contains the actual secret key which should never be logged,
-            stored in databases, or exposed in any frontend code. It should only be
-            displayed directly to users through secure channels. Most applications
-            should avoid setting decrypt=true unless absolutely necessary."
-        identity:
-          type: object
-          properties:
-            id:
-              type: string
-              description: The unique ID of the identity in Unkey's system.
-            externalId:
-              type: string
-              description: Your identifier for this identity in your system.
-            meta:
-              type: object
-              additionalProperties: true
-              description: Additional metadata associated with this identity.
-          required:
-            - id
-            - externalId
-          description:
-            The identity associated with this key, if any. Identities allow
-            resource sharing (like ratelimits) across multiple keys belonging to the
-            same user/entity. This enables scenarios like issuing separate keys for
-            different devices/services while maintaining global usage limits for the
-            user. An identity's externalId typically matches your user ID or tenant
-            ID.
+      oneOf:
+        - required:
+            - keyId
+            - decrypt
+        - required:
+            - key
     V2KeysGetKeyResponseBody:
       type: object
       required:
@@ -635,7 +425,7 @@ components:
         meta:
           "$ref": "#/components/schemas/Meta"
         data:
-          "$ref": "#/components/schemas/KeysGetKeyResponseData"
+          "$ref": "#/components/schemas/KeyResponse"
     V2KeysVerifyKeyResponseBody:
       type: object
       required:
@@ -2027,7 +1817,7 @@ components:
         ratelimits:
           type: array
           items:
-            "$ref": "#/components/schemas/Ratelimit"
+            "$ref": "#/components/schemas/RatelimitResponse"
           description: Identity ratelimits
       required:
         - id
@@ -2099,6 +1889,10 @@ components:
           maxLength: 50
           description: First few characters of the key for identification.
           example: sk_test_abc123
+        enabled:
+          type: boolean
+          description: Whether the key is enabled or disabled.
+          example: true
         name:
           type: string
           maxLength: 255
@@ -2175,6 +1969,7 @@ components:
         - keyId
         - start
         - createdAt
+        - enabled
       additionalProperties: false
     LivenessResponseData:
       type: object
@@ -2225,6 +2020,10 @@ components:
           maximum: 2592000000
           description: Rate limit window duration in milliseconds.
           example: 3600000
+        autoApply:
+          type: boolean
+          description: Whether to automatically apply this rate limit when verifying.
+          example: true
       required:
         - id
         - name
@@ -2833,7 +2632,7 @@ components:
         ratelimits:
           type: array
           items:
-            "$ref": "#/components/schemas/Ratelimit"
+            "$ref": "#/components/schemas/RatelimitResponse"
           description:
             Rate limits associated with this identity. These limits are
             shared across all API keys linked to this identity, providing consistent
@@ -3758,96 +3557,6 @@ components:
         - duration
         - identifier
         - limit
-    V2KeysWhoamiRequestBody:
-      type: object
-      required:
-        - key
-      properties:
-        key:
-          type: string
-          description: The API key to identify and retrieve information about
-          example: sk_1234567890abcdef
-          minLength: 1
-      additionalProperties: false
-    KeyWhoamiData:
-      type: object
-      properties:
-        id:
-          type: string
-          description: The unique identifier of the key
-          example: key_1234567890abcdef
-        name:
-          type: string
-          nullable: true
-          description: The human-readable name of the key (optional)
-          example: Production API Key
-        remaining:
-          type: integer
-          nullable: true
-          format: int64
-          description: The remaining number of requests for the key (null means unlimited)
-          example: 1000
-        identity:
-          type: object
-          nullable: true
-          properties:
-            id:
-              type: string
-              description: The unique identity ID associated with the key
-              example: id_1234567890abcdef
-            externalId:
-              type: string
-              description:
-                The external identity ID associated with the key (e.g.,
-                user ID in your system)
-              example: user_12345
-          required:
-            - id
-            - externalId
-          description:
-            The identity object associated with the key (null if no identity
-            is associated)
-        meta:
-          type: object
-          nullable: true
-          additionalProperties: true
-          description:
-            Custom metadata associated with the key (null if no metadata
-            is present)
-          example:
-            role: admin
-            plan: premium
-            teamId: team_12345
-        createdAt:
-          type: integer
-          format: int64
-          description: The timestamp in milliseconds when the key was created
-          example: 1620000000000
-        enabled:
-          type: boolean
-          description: Whether the key is enabled and can be used
-          example: true
-        environment:
-          type: string
-          nullable: true
-          description:
-            The environment the key is associated with (e.g., production,
-            staging, development)
-          example: production
-      required:
-        - id
-        - createdAt
-        - enabled
-    V2KeysWhoamiResponse:
-      type: object
-      required:
-        - meta
-        - data
-      properties:
-        meta:
-          "$ref": "#/components/schemas/Meta"
-        data:
-          "$ref": "#/components/schemas/KeyWhoamiData"
     V2KeysVerifyKeyRequestBody:
       type: object
       required:
@@ -4252,7 +3961,7 @@ components:
         ratelimits:
           type: array
           items:
-            "$ref": "#/components/schemas/Ratelimit"
+            "$ref": "#/components/schemas/RatelimitResponse"
           description: Rate limits associated with this identity after the update.
           example:
             - name: requests
@@ -4269,124 +3978,6 @@ components:
         meta:
           "$ref": "#/components/schemas/Meta"
 paths:
-  "/v2/keys.whoami":
-    post:
-      tags:
-        - keys
-      summary: Get information about an API key
-      description: |-
-        Identifies the owner and details of an API key without triggering billing or usage tracking. This endpoint is designed for scenarios where users provide API keys to your application and you need to determine key ownership and basic information without performing a billed verification.
-
-        Common use cases:
-        - User onboarding flows where customers enter their API keys and you need to identify the account owner
-        - Admin dashboards displaying which user or organization owns specific keys
-        - Key validation during setup without consuming credits or affecting usage metrics
-        - Support tools for troubleshooting key ownership and configuration issues
-
-        The response includes key metadata, identity information (if associated), permissions, and current status. When a key has an associated identity, you can use the `externalId` to map it back to your user system without storing the raw API key.
-
-        This endpoint provides an alternative to verification when you only need identification rather than access control. Unlike verification, it does not consume credits, increment usage counters, or affect rate limits associated with the key.
-
-        Since the response may contain sensitive business data in metadata fields, restrict usage to secure contexts and consider implementing rate limiting to prevent abuse.
-      operationId: whoami
-      x-speakeasy-name-override: whoami
-      security:
-        - rootKey: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/V2KeysWhoamiRequestBody"
-            examples:
-              basic:
-                summary: Basic key lookup
-                value:
-                  key: sk_1234567890abcdef
-      responses:
-        "200":
-          description: Key information successfully retrieved
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/V2KeysWhoamiResponse"
-              examples:
-                full:
-                  summary: Complete key information
-                  value:
-                    meta:
-                      requestId: req_1234567890abcdef
-                    data:
-                      id: key_1234567890abcdef
-                      name: Production API Key
-                      remaining: 1000
-                      identity:
-                        id: id_1234567890abcdef
-                        externalId: user_12345
-                      meta:
-                        role: admin
-                        plan: premium
-                        teamId: team_12345
-                      createdAt: 1620000000000
-                      enabled: true
-                      environment: production
-                minimal:
-                  summary: Key with minimal information
-                  value:
-                    meta:
-                      requestId: req_1234567890abcdef
-                    data:
-                      id: key_1234567890abcdef
-                      createdAt: 1620000000000
-                      enabled: true
-        "400":
-          description: Bad request - Missing required parameters or invalid format
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/BadRequestErrorResponse"
-              examples:
-                missingApiId:
-                  summary: Missing apiId
-                  value:
-                    meta:
-                      requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
-                    error:
-                      title: Bad Request
-                      detail: apiId is required
-                      status: 400
-                      type: https://unkey.dev/errors/bad-request
-                      errors:
-                        - message: apiId is required
-                          location: body.apiId
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/UnauthorizedErrorResponse"
-        "403":
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/ForbiddenErrorResponse"
-        "404":
-          description: Not found - Specified API ID doesn't exist
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/NotFoundErrorResponse"
-        "500":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/InternalServerErrorResponse"
-          description:
-            Internal server error. This may occur if there are connection
-            issues with the database or if the verification service is experiencing
-            problems. Implement proper retry logic with backoff in your clients to
-            handle these situations.
   "/v2/keys.setPermissions":
     post:
       tags:

@@ -22,12 +22,6 @@ const (
 	KeyCreditsRefillIntervalMonthly KeyCreditsRefillInterval = "monthly"
 )
 
-// Defines values for KeysGetKeyResponseDataCreditsRefillInterval.
-const (
-	KeysGetKeyResponseDataCreditsRefillIntervalDaily   KeysGetKeyResponseDataCreditsRefillInterval = "daily"
-	KeysGetKeyResponseDataCreditsRefillIntervalMonthly KeysGetKeyResponseDataCreditsRefillInterval = "monthly"
-)
-
 // Defines values for KeysUpdateRemainingResponseDataRefillSettingsInterval.
 const (
 	KeysUpdateRemainingResponseDataRefillSettingsIntervalDaily   KeysUpdateRemainingResponseDataRefillSettingsInterval = "daily"
@@ -57,8 +51,8 @@ const (
 
 // Defines values for V2KeysUpdateKeyRequestBodyCreditsRefillInterval.
 const (
-	Daily   V2KeysUpdateKeyRequestBodyCreditsRefillInterval = "daily"
-	Monthly V2KeysUpdateKeyRequestBodyCreditsRefillInterval = "monthly"
+	V2KeysUpdateKeyRequestBodyCreditsRefillIntervalDaily   V2KeysUpdateKeyRequestBodyCreditsRefillInterval = "daily"
+	V2KeysUpdateKeyRequestBodyCreditsRefillIntervalMonthly V2KeysUpdateKeyRequestBodyCreditsRefillInterval = "monthly"
 )
 
 // Defines values for V2KeysVerifyKeyRequestBodyPermissions1Type.
@@ -211,7 +205,7 @@ type IdentitiesGetIdentityResponseData struct {
 	Meta *map[string]interface{} `json:"meta,omitempty"`
 
 	// Ratelimits Rate limits associated with this identity. These limits are shared across all API keys linked to this identity, providing consistent rate limiting regardless of which key is used.
-	Ratelimits *[]Ratelimit `json:"ratelimits,omitempty"`
+	Ratelimits *[]RatelimitResponse `json:"ratelimits,omitempty"`
 }
 
 // IdentitiesListIdentitiesResponseData List of identities matching the specified criteria.
@@ -229,7 +223,7 @@ type IdentitiesUpdateIdentityResponseData struct {
 	Meta *map[string]interface{} `json:"meta,omitempty"`
 
 	// Ratelimits Rate limits associated with this identity after the update.
-	Ratelimits *[]Ratelimit `json:"ratelimits,omitempty"`
+	Ratelimits *[]RatelimitResponse `json:"ratelimits,omitempty"`
 }
 
 // Identity defines model for Identity.
@@ -244,7 +238,7 @@ type Identity struct {
 	Meta *map[string]interface{} `json:"meta,omitempty"`
 
 	// Ratelimits Identity ratelimits
-	Ratelimits []Ratelimit `json:"ratelimits"`
+	Ratelimits []RatelimitResponse `json:"ratelimits"`
 }
 
 // InternalServerErrorResponse Error response for unexpected server-side issues that prevented the request from being processed correctly. This is typically caused by problems with the service infrastructure, database connectivity issues, unexpected exceptions, or service failures. When receiving this error, clients should implement appropriate retry strategies with backoff and report the issue if it persists. The `requestId` in the `meta` object is essential for troubleshooting and should be included in any support inquiries.
@@ -290,6 +284,9 @@ type KeyResponse struct {
 	// Credits Credit configuration and remaining balance for this key.
 	Credits *KeyCredits `json:"credits,omitempty"`
 
+	// Enabled Whether the key is enabled or disabled.
+	Enabled bool `json:"enabled"`
+
 	// Environment Environment tag for this key.
 	Environment *string `json:"environment,omitempty"`
 
@@ -325,39 +322,6 @@ type KeyResponse struct {
 	UpdatedAt *int64 `json:"updatedAt,omitempty"`
 }
 
-// KeyWhoamiData defines model for KeyWhoamiData.
-type KeyWhoamiData struct {
-	// CreatedAt The timestamp in milliseconds when the key was created
-	CreatedAt int64 `json:"createdAt"`
-
-	// Enabled Whether the key is enabled and can be used
-	Enabled bool `json:"enabled"`
-
-	// Environment The environment the key is associated with (e.g., production, staging, development)
-	Environment nullable.Nullable[string] `json:"environment,omitempty"`
-
-	// Id The unique identifier of the key
-	Id string `json:"id"`
-
-	// Identity The identity object associated with the key (null if no identity is associated)
-	Identity nullable.Nullable[struct {
-		// ExternalId The external identity ID associated with the key (e.g., user ID in your system)
-		ExternalId string `json:"externalId"`
-
-		// Id The unique identity ID associated with the key
-		Id string `json:"id"`
-	}] `json:"identity,omitempty"`
-
-	// Meta Custom metadata associated with the key (null if no metadata is present)
-	Meta nullable.Nullable[map[string]interface{}] `json:"meta,omitempty"`
-
-	// Name The human-readable name of the key (optional)
-	Name nullable.Nullable[string] `json:"name,omitempty"`
-
-	// Remaining The remaining number of requests for the key (null means unlimited)
-	Remaining nullable.Nullable[int64] `json:"remaining,omitempty"`
-}
-
 // KeysCreateKeyResponseData defines model for KeysCreateKeyResponseData.
 type KeysCreateKeyResponseData struct {
 	// Key The full generated API key that should be securely provided to your user. SECURITY WARNING: This is the only time you'll receive the complete key - Unkey only stores a securely hashed version. Never log or store this value in your own systems; provide it directly to your end user via secure channels. After this API call completes, this value cannot be retrieved again (unless created with `recoverable=true`).
@@ -372,99 +336,6 @@ type KeysCreateKeyResponseData struct {
 // During this propagation window, some verification attempts might still succeed in certain regions due to eventual consistency.
 // Monitor your application logs during the propagation period to ensure no unexpected authentication successes occur.
 type KeysDeleteKeyResponseData = map[string]interface{}
-
-// KeysGetKeyResponseData defines model for KeysGetKeyResponseData.
-type KeysGetKeyResponseData struct {
-	// ApiId The ID of the API this key belongs to.
-	ApiId *string `json:"apiId,omitempty"`
-
-	// CreatedAt Unix timestamp (in milliseconds) when the key was created.
-	CreatedAt int64 `json:"createdAt"`
-
-	// Credits Usage limits configuration for this key. Credits provide a way to limit the number of times a key can be used before becoming invalid. Unlike ratelimits, credits are globally consistent (using database transactions) providing 100% accuracy at the cost of slightly higher latency. Ideal for monetization, usage quotas, or strict limits that must not be exceeded. See the 'refill' field for automatic replenishment options.
-	Credits *struct {
-		// Refill Configuration for automatic credit refills.
-		Refill *struct {
-			// Amount Number of credits added during each refill.
-			Amount int `json:"amount"`
-
-			// Interval How often the credits are automatically refilled.
-			Interval KeysGetKeyResponseDataCreditsRefillInterval `json:"interval"`
-
-			// LastRefillAt Unix timestamp (in milliseconds) when credits were last refilled.
-			LastRefillAt *int64 `json:"lastRefillAt,omitempty"`
-
-			// RefillDay For monthly refills, the day of month when refills occur.
-			RefillDay *int `json:"refillDay,omitempty"`
-		} `json:"refill,omitempty"`
-
-		// Remaining The number of times this key can still be used before becoming invalid.
-		Remaining *int32 `json:"remaining,omitempty"`
-	} `json:"credits,omitempty"`
-
-	// Enabled Whether the key is currently active. Disabled keys will fail verification with `code=DISABLED`. Toggling this allows you to temporarily suspend access without deleting the key, which is useful for maintenance, account freezing, or debugging. Can be updated using the `keys.updateKey` endpoint.
-	Enabled bool `json:"enabled"`
-
-	// Expires Unix timestamp (in milliseconds) when this key will automatically expire. If null, the key has no expiration.
-	Expires *int64 `json:"expires,omitempty"`
-
-	// ExternalId Your user's unique identifier, creating a link between Unkey and your system. This ID is returned during verification so you can identify which customer/entity is making the request without performing additional database lookups. Use consistent identifiers that match your primary user/tenant identifiers for seamless integration.
-	ExternalId *string `json:"externalId,omitempty"`
-
-	// Id The unique identifier of the key in Unkey's system.
-	Id string `json:"id"`
-
-	// Identity The identity associated with this key, if any. Identities allow resource sharing (like ratelimits) across multiple keys belonging to the same user/entity. This enables scenarios like issuing separate keys for different devices/services while maintaining global usage limits for the user. An identity's externalId typically matches your user ID or tenant ID.
-	Identity *struct {
-		// ExternalId Your identifier for this identity in your system.
-		ExternalId string `json:"externalId"`
-
-		// Id The unique ID of the identity in Unkey's system.
-		Id string `json:"id"`
-
-		// Meta Additional metadata associated with this identity.
-		Meta *map[string]interface{} `json:"meta,omitempty"`
-	} `json:"identity,omitempty"`
-
-	// Meta Arbitrary JSON metadata associated with this key. This can include additional context like subscription plans, feature flags, or any custom data. Metadata is stored as-is and returned during verification, allowing you to access important information without additional database queries. Consider including data relevant to authorization decisions, usage tracking, and user context.
-	Meta *map[string]interface{} `json:"meta,omitempty"`
-
-	// Name A descriptive name for the key for internal reference. Shown in dashboards and logs but never exposed to end users.
-	Name *string `json:"name,omitempty"`
-
-	// Permissions List of permission names directly assigned to this key.
-	Permissions *[]string `json:"permissions,omitempty"`
-
-	// Plaintext The full `API key` in plaintext. Only included when `decrypt` is `true` and the key was created with `recoverable: true`. SECURITY RISK: This field contains the actual secret key which should never be logged, stored in databases, or exposed in any frontend code. It should only be displayed directly to users through secure channels. Most applications should avoid setting decrypt=true unless absolutely necessary.
-	Plaintext *string `json:"plaintext,omitempty"`
-
-	// Ratelimits Array of ratelimits applied to this key. Multiple named ratelimits can control different aspects of key usage. For example, a 'requests' ratelimit might control overall API calls while a separate 'computations' limit manages access to resource-intensive operations. Ratelimits are optimized for performance and typically add minimal latency to verifications. They can be shared across keys through identities.
-	Ratelimits *[]struct {
-		// Async Whether this ratelimit uses fast (async=true) or consistent (async=false) mode. Fast mode has lower latency but less accuracy.
-		Async *bool `json:"async,omitempty"`
-
-		// Duration Duration of the ratelimit window in milliseconds.
-		Duration int32 `json:"duration"`
-
-		// Limit Maximum number of operations allowed within the time window.
-		Limit int32 `json:"limit"`
-
-		// Name Identifier for this ratelimit.
-		Name string `json:"name"`
-	} `json:"ratelimits,omitempty"`
-
-	// Roles List of role names assigned to this key. Roles are collections of permissions.
-	Roles *[]string `json:"roles,omitempty"`
-
-	// Start The first few characters of the key to visually identify it without exposing the full key. Used in dashboards and logs to help users recognize which key is being used without revealing sensitive information. Typically includes the prefix if one was specified.
-	Start string `json:"start"`
-
-	// UpdatedAt Unix timestamp (in milliseconds) when the key was last updated.
-	UpdatedAt *int64 `json:"updatedAt,omitempty"`
-}
-
-// KeysGetKeyResponseDataCreditsRefillInterval How often the credits are automatically refilled.
-type KeysGetKeyResponseDataCreditsRefillInterval string
 
 // KeysUpdateKeyResponseData Empty response object by design. A successful response indicates the key was updated successfully. The endpoint doesn't return the updated key to reduce response size and avoid exposing sensitive information. Changes may take up to 30 seconds to propagate to all regions due to cache invalidation delays. If you need the updated key state, use a subsequent call to `keys.getKey`.
 type KeysUpdateKeyResponseData = map[string]interface{}
@@ -1468,16 +1339,28 @@ type V2KeysGetKeyRequestBody struct {
 	// Decryption requests are audited and may trigger security alerts in enterprise environments.
 	Decrypt *bool `json:"decrypt,omitempty"`
 
+	// Key The complete API key string provided by you, including any prefix.
+	// Never log, cache, or store API keys in your system as they provide full access to user resources.
+	// Include the full key exactly as provided - even minor modifications will cause a not found error.
+	Key *string `json:"key,omitempty"`
+
 	// KeyId Specifies which key to retrieve using the database identifier returned from `keys.createKey`.
 	// Do not confuse this with the actual API key string that users include in requests.
 	// Key data includes metadata, permissions, usage statistics, and configuration but never the plaintext key value unless `decrypt=true`.
 	// Find this ID in creation responses, key listings, dashboard, or verification responses.
-	KeyId string `json:"keyId"`
+	KeyId *string `json:"keyId,omitempty"`
+	union json.RawMessage
 }
+
+// V2KeysGetKeyRequestBody0 defines model for .
+type V2KeysGetKeyRequestBody0 = interface{}
+
+// V2KeysGetKeyRequestBody1 defines model for .
+type V2KeysGetKeyRequestBody1 = interface{}
 
 // V2KeysGetKeyResponseBody defines model for V2KeysGetKeyResponseBody.
 type V2KeysGetKeyResponseBody struct {
-	Data KeysGetKeyResponseData `json:"data"`
+	Data KeyResponse `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
@@ -2038,20 +1921,6 @@ type V2KeysVerifyKeyResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
-// V2KeysWhoamiRequestBody defines model for V2KeysWhoamiRequestBody.
-type V2KeysWhoamiRequestBody struct {
-	// Key The API key to identify and retrieve information about
-	Key string `json:"key"`
-}
-
-// V2KeysWhoamiResponse defines model for V2KeysWhoamiResponse.
-type V2KeysWhoamiResponse struct {
-	Data KeyWhoamiData `json:"data"`
-
-	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
-	Meta Meta `json:"meta"`
-}
-
 // V2LivenessResponseBody defines model for V2LivenessResponseBody.
 type V2LivenessResponseBody struct {
 	// Data Response data for the liveness check endpoint. This provides a simple indication of whether the Unkey API service is running and able to process requests. Monitoring systems can use this endpoint to track service availability and trigger alerts if the service becomes unhealthy.
@@ -2556,9 +2425,6 @@ type UpdateRemainingJSONRequestBody = V2KeysUpdateRemainingRequestBody
 // VerifyKeyJSONRequestBody defines body for VerifyKey for application/json ContentType.
 type VerifyKeyJSONRequestBody = V2KeysVerifyKeyRequestBody
 
-// WhoamiJSONRequestBody defines body for Whoami for application/json ContentType.
-type WhoamiJSONRequestBody = V2KeysWhoamiRequestBody
-
 // CreatePermissionJSONRequestBody defines body for CreatePermission for application/json ContentType.
 type CreatePermissionJSONRequestBody = V2PermissionsCreatePermissionRequestBody
 
@@ -2950,6 +2816,130 @@ func (t *V2IdentitiesUpdateIdentityRequestBody) UnmarshalJSON(b []byte) error {
 		err = json.Unmarshal(raw, &t.Ratelimits)
 		if err != nil {
 			return fmt.Errorf("error reading 'ratelimits': %w", err)
+		}
+	}
+
+	return err
+}
+
+// AsV2KeysGetKeyRequestBody0 returns the union data inside the V2KeysGetKeyRequestBody as a V2KeysGetKeyRequestBody0
+func (t V2KeysGetKeyRequestBody) AsV2KeysGetKeyRequestBody0() (V2KeysGetKeyRequestBody0, error) {
+	var body V2KeysGetKeyRequestBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2KeysGetKeyRequestBody0 overwrites any union data inside the V2KeysGetKeyRequestBody as the provided V2KeysGetKeyRequestBody0
+func (t *V2KeysGetKeyRequestBody) FromV2KeysGetKeyRequestBody0(v V2KeysGetKeyRequestBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2KeysGetKeyRequestBody0 performs a merge with any union data inside the V2KeysGetKeyRequestBody, using the provided V2KeysGetKeyRequestBody0
+func (t *V2KeysGetKeyRequestBody) MergeV2KeysGetKeyRequestBody0(v V2KeysGetKeyRequestBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsV2KeysGetKeyRequestBody1 returns the union data inside the V2KeysGetKeyRequestBody as a V2KeysGetKeyRequestBody1
+func (t V2KeysGetKeyRequestBody) AsV2KeysGetKeyRequestBody1() (V2KeysGetKeyRequestBody1, error) {
+	var body V2KeysGetKeyRequestBody1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2KeysGetKeyRequestBody1 overwrites any union data inside the V2KeysGetKeyRequestBody as the provided V2KeysGetKeyRequestBody1
+func (t *V2KeysGetKeyRequestBody) FromV2KeysGetKeyRequestBody1(v V2KeysGetKeyRequestBody1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2KeysGetKeyRequestBody1 performs a merge with any union data inside the V2KeysGetKeyRequestBody, using the provided V2KeysGetKeyRequestBody1
+func (t *V2KeysGetKeyRequestBody) MergeV2KeysGetKeyRequestBody1(v V2KeysGetKeyRequestBody1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t V2KeysGetKeyRequestBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if t.Decrypt != nil {
+		object["decrypt"], err = json.Marshal(t.Decrypt)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'decrypt': %w", err)
+		}
+	}
+
+	if t.Key != nil {
+		object["key"], err = json.Marshal(t.Key)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'key': %w", err)
+		}
+	}
+
+	if t.KeyId != nil {
+		object["keyId"], err = json.Marshal(t.KeyId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'keyId': %w", err)
+		}
+	}
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *V2KeysGetKeyRequestBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["decrypt"]; found {
+		err = json.Unmarshal(raw, &t.Decrypt)
+		if err != nil {
+			return fmt.Errorf("error reading 'decrypt': %w", err)
+		}
+	}
+
+	if raw, found := object["key"]; found {
+		err = json.Unmarshal(raw, &t.Key)
+		if err != nil {
+			return fmt.Errorf("error reading 'key': %w", err)
+		}
+	}
+
+	if raw, found := object["keyId"]; found {
+		err = json.Unmarshal(raw, &t.KeyId)
+		if err != nil {
+			return fmt.Errorf("error reading 'keyId': %w", err)
 		}
 	}
 
