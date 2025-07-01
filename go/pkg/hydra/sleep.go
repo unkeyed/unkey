@@ -7,7 +7,42 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 )
 
-// Sleep suspends workflow execution for the specified duration
+// Sleep suspends workflow execution for the specified duration.
+//
+// This function allows workflows to pause execution and resume after
+// a specified time period. The workflow will be marked as sleeping
+// and workers will not attempt to execute it until the sleep duration
+// has elapsed.
+//
+// Sleep is useful for:
+// - Time-based coordination (e.g., waiting for settlement periods)
+// - Human approval workflows (e.g., waiting for manual intervention)
+// - Rate limiting and backoff strategies
+// - Scheduled processing windows
+//
+// The sleep duration is durable - if the worker crashes or restarts
+// during the sleep period, the workflow will still resume at the
+// correct time.
+//
+// Example usage:
+//
+//	// Sleep for 24 hours for manual approval
+//	err = hydra.Sleep(ctx, 24*time.Hour)
+//	if err != nil {
+//	    return err
+//	}
+//	
+//	// Continue with post-approval processing
+//	result, err := hydra.Step(ctx, "post-approval", func(stepCtx context.Context) (string, error) {
+//	    return processApprovedRequest(stepCtx)
+//	})
+//
+// Note: Sleep creates an internal step to track the sleep state.
+// The step name is generated automatically based on the duration.
+//
+// Metrics recorded:
+// - hydra_sleeps_started_total (counter)
+// - hydra_workflows_sleeping (gauge)
 func Sleep(ctx WorkflowContext, duration time.Duration) error {
 	wctx, ok := ctx.(*workflowContext)
 	if !ok {

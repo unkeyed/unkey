@@ -10,6 +10,56 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 )
 
+// Step executes a named step within a workflow with automatic checkpointing and retry logic.
+//
+// Steps are the fundamental units of work in Hydra workflows. They provide:
+// - Exactly-once execution guarantees
+// - Automatic result caching (checkpointing)
+// - Built-in retry logic for transient failures
+// - Comprehensive metrics and observability
+//
+// Parameters:
+// - ctx: The workflow context from the workflow's Run() method
+// - stepName: A unique name for this step within the workflow
+// - fn: The function to execute, which should be idempotent
+//
+// The stepName must be unique within the workflow and should remain stable
+// across deployments. If a step has already completed successfully, its
+// cached result will be returned without re-executing the function.
+//
+// The function fn receives a standard Go context and should:
+// - Be idempotent (safe to run multiple times)
+// - Handle context cancellation gracefully
+// - Return consistent results for the same inputs
+// - Use the provided context for any I/O operations
+//
+// Example usage:
+//
+//	// Simple step with string result
+//	result, err := hydra.Step(ctx, "fetch-user", func(stepCtx context.Context) (string, error) {
+//	    user, err := userService.GetUser(stepCtx, userID)
+//	    if err != nil {
+//	        return "", err
+//	    }
+//	    return user.Name, nil
+//	})
+//
+//	// Step with complex result type
+//	order, err := hydra.Step(ctx, "create-order", func(stepCtx context.Context) (*Order, error) {
+//	    return orderService.CreateOrder(stepCtx, &CreateOrderRequest{
+//	        CustomerID: customerID,
+//	        Items:      items,
+//	    })
+//	})
+//
+// Metrics recorded:
+// - hydra_steps_executed_total (counter with status)
+// - hydra_step_duration_seconds (histogram)
+// - hydra_steps_cached_total (counter for cache hits)
+// - hydra_steps_retried_total (counter for retry attempts)
+//
+// Returns the result of the function execution or the cached result if the
+// step has already completed successfully.
 func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.Context) (TResponse, error)) (TResponse, error) {
 	var zero TResponse
 

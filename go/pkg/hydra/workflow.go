@@ -8,19 +8,81 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/hydra/store"
 )
 
-// Workflow defines the interface for typed workflows
+// Workflow defines the interface for typed workflows.
+//
+// Workflows are the core business logic containers in Hydra. They define
+// a series of steps to be executed reliably with exactly-once guarantees.
+//
+// Workflows must be stateless and deterministic - they can be executed
+// multiple times with the same input and produce the same result. State
+// is managed by the workflow engine and persisted automatically.
+//
+// Type parameter TReq defines the input payload type for the workflow.
+// Use 'any' for workflows that accept different payload types.
+//
+// Example implementation:
+//
+//	type OrderWorkflow struct{}
+//	
+//	func (w *OrderWorkflow) Name() string {
+//	    return "order-processing"
+//	}
+//	
+//	func (w *OrderWorkflow) Run(ctx hydra.WorkflowContext, req *OrderRequest) error {
+//	    // Execute steps using hydra.Step()
+//	    payment, err := hydra.Step(ctx, "validate-payment", func(stepCtx context.Context) (*Payment, error) {
+//	        return validatePayment(stepCtx, req.PaymentID)
+//	    })
+//	    if err != nil {
+//	        return err
+//	    }
+//	    
+//	    // Additional steps...
+//	    return nil
+//	}
 type Workflow[TReq any] interface {
+	// Name returns a unique identifier for this workflow type.
+	// The name is used to route workflow executions to the correct handler
+	// and must be consistent across deployments.
 	Name() string
+
+	// Run executes the workflow logic with the provided context and request.
+	// This method should be deterministic and idempotent.
+	//
+	// The context provides access to workflow execution metadata and
+	// the Step() function for creating durable execution units.
+	//
+	// Returning an error will mark the workflow as failed and trigger
+	// retry logic if configured. Use hydra.Sleep() to suspend the
+	// workflow for time-based coordination.
 	Run(ctx WorkflowContext, req TReq) error
 }
 
-// GenericWorkflow is a type alias for workflows that accept any request type
+// GenericWorkflow is a type alias for workflows that accept any request type.
+// This is useful when registering workflows that handle different payload types
+// or when the payload type is not known at compile time.
 type GenericWorkflow = Workflow[any]
 
-// WorkflowContext provides access to workflow execution context and utilities
+// WorkflowContext provides access to workflow execution context and utilities.
+//
+// The context is passed to workflow Run() methods and provides access to:
+// - The underlying Go context for cancellation and timeouts
+// - Workflow execution metadata like execution ID and name
+// - Step execution utilities through the Step() function
+//
+// Workflow contexts are created and managed by the workflow engine and
+// should not be created manually.
 type WorkflowContext interface {
+	// Context returns the underlying Go context for this workflow execution.
+	// This context will be cancelled if the workflow is cancelled or times out.
 	Context() context.Context
+
+	// ExecutionID returns the unique identifier for this workflow execution.
+	// This ID can be used for logging, tracking, and debugging purposes.
 	ExecutionID() string
+
+	// WorkflowName returns the name of the workflow being executed.
+	// This matches the value returned by the workflow's Name() method.
 	WorkflowName() string
 }
 
@@ -75,7 +137,43 @@ func (w *workflowContext) suspendWorkflowForSleep(sleepUntil int64) error {
 	return w.store.SleepWorkflow(w.ctx, w.namespace, w.executionID, sleepUntil)
 }
 
-// RegisterWorkflow registers a typed workflow with a worker, handling the type conversion transparently
+// RegisterWorkflow registers a typed workflow with a worker.
+//
+// This function associates a workflow implementation with a worker so that
+// the worker can execute workflows of this type. The workflow's Name() method
+// is used as the unique identifier for routing workflow executions.
+//
+// The function handles type conversion transparently, allowing strongly-typed
+// workflow implementations to be registered with the generic worker interface.
+//
+// Parameters:
+// - w: The worker that will execute this workflow type
+// - workflow: The workflow implementation to register
+//
+// Example:
+//
+//	type OrderWorkflow struct{}
+//	
+//	func (w *OrderWorkflow) Name() string { return "order-processing" }
+//	func (w *OrderWorkflow) Run(ctx hydra.WorkflowContext, req *OrderRequest) error {
+//	    // workflow implementation
+//	    return nil
+//	}
+//	
+//	orderWorkflow := &OrderWorkflow{}
+//	err := hydra.RegisterWorkflow(worker, orderWorkflow)
+//	if err != nil {
+//	    return err
+//	}
+//
+// Requirements:
+// - The workflow name must be unique within the worker
+// - The workflow must implement the Workflow[TReq] interface
+// - The worker must be started with Start() after registration
+//
+// Returns an error if:
+// - A workflow with the same name is already registered
+// - The worker type is invalid
 func RegisterWorkflow[TReq any](w Worker, workflow Workflow[TReq]) error {
 	worker, ok := w.(*worker)
 	if !ok {

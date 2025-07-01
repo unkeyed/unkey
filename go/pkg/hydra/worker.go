@@ -13,24 +13,57 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-// Worker represents a workflow worker that can start, run, and shutdown
+// Worker represents a workflow worker that can start, run, and shutdown.
+//
+// Workers are responsible for:
+// - Polling the database for pending workflows
+// - Acquiring exclusive leases on workflows to prevent duplicate execution
+// - Executing workflow logic by calling registered workflow handlers
+// - Sending periodic heartbeats to maintain lease ownership
+// - Processing scheduled cron jobs
+// - Recording metrics for observability
+//
+// Workers are designed to be run as long-lived processes and can safely
+// handle network failures, database outages, and graceful shutdowns.
 type Worker interface {
+	// Start begins the worker's main execution loop.
+	// This method blocks until the context is cancelled or an error occurs.
 	Start(ctx context.Context) error
+
+	// Shutdown gracefully stops the worker and waits for active workflows to complete.
+	// This method should be called during application shutdown to ensure clean termination.
 	Shutdown(ctx context.Context) error
 }
 
-// WorkerConfig holds the configuration for a worker
+// WorkerConfig holds the configuration for a worker instance.
+//
+// All fields are optional and will use sensible defaults if not specified.
 type WorkerConfig struct {
+	// WorkerID uniquely identifies this worker instance.
+	// If not provided, a random ID will be generated.
 	WorkerID string
 
+	// Concurrency controls how many workflows can execute simultaneously.
+	// Defaults to 10 if not specified.
 	Concurrency int
 
+	// PollInterval controls how frequently the worker checks for new workflows.
+	// Shorter intervals provide lower latency but increase database load.
+	// Defaults to 5 seconds if not specified.
 	PollInterval time.Duration
 
+	// HeartbeatInterval controls how frequently the worker sends lease heartbeats.
+	// This should be significantly shorter than ClaimTimeout to prevent lease expiration.
+	// Defaults to 30 seconds if not specified.
 	HeartbeatInterval time.Duration
 
+	// ClaimTimeout controls how long a worker can hold a workflow lease.
+	// Expired leases are automatically released, allowing other workers to take over.
+	// Defaults to 5 minutes if not specified.
 	ClaimTimeout time.Duration
 
+	// CronInterval controls how frequently the worker checks for due cron jobs.
+	// Defaults to 1 minute if not specified.
 	CronInterval time.Duration
 }
 
@@ -49,6 +82,30 @@ type worker struct {
 	workflowQueue       chan store.WorkflowExecution                             // Queue of workflows to process
 }
 
+// NewWorker creates a new worker instance with the provided configuration.
+//
+// The worker will be associated with the given engine and inherit its
+// namespace and storage configuration. Missing configuration values
+// will be populated with sensible defaults.
+//
+// The worker must have workflows registered using RegisterWorkflow()
+// before calling Start().
+//
+// Example:
+//
+//	worker, err := hydra.NewWorker(engine, hydra.WorkerConfig{
+//	    WorkerID:          "worker-1",
+//	    Concurrency:       20,
+//	    PollInterval:      100 * time.Millisecond,
+//	    HeartbeatInterval: 30 * time.Second,
+//	    ClaimTimeout:      5 * time.Minute,
+//	})
+//	if err != nil {
+//	    return err
+//	}
+//
+// The worker includes built-in circuit breakers to protect against
+// database overload and automatic retry logic for transient failures.
 func NewWorker(e *Engine, config WorkerConfig) (Worker, error) {
 	if config.WorkerID == "" {
 		config.WorkerID = uid.New(uid.WorkerPrefix)

@@ -1,27 +1,19 @@
-# Hydra Workflow Engine
+# Hydra 🌊
 
-A powerful, distributed workflow orchestration engine for Go applications. Hydra enables you to build reliable, long-running business processes with automatic checkpointing, fault tolerance, and horizontal scaling.
+> **Distributed workflow orchestration engine for Go**
+
+Hydra is a robust, scalable workflow orchestration engine designed for reliable execution of multi-step business processes. Built with exactly-once execution guarantees, automatic retries, and comprehensive observability.
 
 ## Features
 
-✅ **Type-safe workflow steps** with Go generics  
-✅ **Automatic checkpointing** - resume workflows after failures  
-✅ **Distributed execution** with worker coordination  
-✅ **Durable sleep operations** that don't block workers  
-✅ **Cron scheduling** for time-based workflows  
-✅ **Database agnostic** with pluggable storage backends  
-✅ **Comprehensive observability** with Prometheus metrics  
-✅ **Namespace isolation** for multi-tenancy  
-✅ **Unique input/output capture** for complete audit trails  
-
-## What Makes Hydra Different
-
-Unlike other workflow engines, Hydra captures **both step inputs AND outputs** for complete visibility and debugging. This enables:
-
-- **Complete audit trails** - see exactly what data was processed
-- **Enhanced debugging** - inspect step inputs/outputs for failed workflows  
-- **Replay capabilities** - rerun workflows with identical data
-- **Data lineage tracking** - trace data flow through complex processes
+🚀 **Exactly-Once Execution** - Workflows and steps execute exactly once, even with failures  
+⚡ **Durable State** - All state persisted to database, survives crashes and restarts  
+🔄 **Automatic Retries** - Configurable retry policies with exponential backoff  
+📊 **Rich Observability** - Built-in Prometheus metrics and structured logging  
+⏰ **Flexible Scheduling** - Immediate execution, cron schedules, and sleep states  
+🏗️ **Distributed Coordination** - Multiple workers with lease-based coordination  
+🎯 **Type Safety** - Strongly-typed workflows with compile-time guarantees  
+🔧 **Checkpointing** - Automatic step result caching for fault tolerance
 
 ## Quick Start
 
@@ -40,418 +32,488 @@ import (
     "context"
     "fmt"
     "time"
-    
+
+    "github.com/unkeyed/unkey/go/pkg/clock"
     "github.com/unkeyed/unkey/go/pkg/hydra"
-    "gorm.io/driver/postgres"
-    "gorm.io/gorm"
+    "github.com/unkeyed/unkey/go/pkg/hydra/store/gorm"
+    "gorm.io/driver/mysql"
+    gormDriver "gorm.io/gorm"
 )
 
-// Define your payload types
-type UserRegistrationPayload struct {
-    UserID string `json:"user_id"`
-    Email  string `json:"email"`
-    Name   string `json:"name"`
-}
-
-func (u UserRegistrationPayload) Marshal() ([]byte, error) {
-    return json.Marshal(u)
-}
-
-func (u *UserRegistrationPayload) Unmarshal(data []byte) error {
-    return json.Unmarshal(data, u)
-}
-
-type EmailRequest struct {
-    To      string `json:"to"`
-    Subject string `json:"subject"`
-    Body    string `json:"body"`
-}
-
-func (e EmailRequest) Marshal() ([]byte, error) {
-    return json.Marshal(e)
-}
-
-func (e *EmailRequest) Unmarshal(data []byte) error {
-    return json.Unmarshal(data, e)
-}
-
-type EmailResponse struct {
-    MessageID string `json:"message_id"`
-    Status    string `json:"status"`
-}
-
-func (e EmailResponse) Marshal() ([]byte, error) {
-    return json.Marshal(e)
-}
-
-func (e *EmailResponse) Unmarshal(data []byte) error {
-    return json.Unmarshal(data, e)
-}
-
 // Define your workflow
-func UserOnboardingWorkflow(ctx hydra.WorkflowContext, payload hydra.Payload) error {
-    user := payload.(*UserRegistrationPayload)
-    
-    // Step 1: Send welcome email
-    emailResp, err := hydra.Step(ctx, "send-welcome-email", &EmailRequest{
-        To:      user.Email,
-        Subject: "Welcome to our platform!",
-        Body:    fmt.Sprintf("Hello %s, welcome aboard!", user.Name),
-    }, func(ctx context.Context, req *EmailRequest) (*EmailResponse, error) {
-        // Your email sending logic here
-        return &EmailResponse{
-            MessageID: "msg-123",
-            Status:    "sent",
-        }, nil
+type OrderWorkflow struct{}
+
+func (w *OrderWorkflow) Name() string {
+    return "order-processing"
+}
+
+func (w *OrderWorkflow) Run(ctx hydra.WorkflowContext, req *OrderRequest) error {
+    // Step 1: Validate payment
+    payment, err := hydra.Step(ctx, "validate-payment", func(stepCtx context.Context) (*Payment, error) {
+        return validatePayment(stepCtx, req.PaymentID)
     })
     if err != nil {
-        return fmt.Errorf("failed to send welcome email: %w", err)
+        return err
     }
-    
-    // Step 2: Wait 24 hours for user activation
-    err = hydra.Sleep(ctx, 24*time.Hour)
-    if err != nil {
-        return fmt.Errorf("sleep failed: %w", err)
-    }
-    
-    // Step 3: Send follow-up email
-    _, err = hydra.Step(ctx, "send-followup-email", &EmailRequest{
-        To:      user.Email,
-        Subject: "Getting started guide",
-        Body:    "Here's how to get the most out of our platform...",
-    }, func(ctx context.Context, req *EmailRequest) (*EmailResponse, error) {
-        // Follow-up email logic
-        return &EmailResponse{
-            MessageID: "msg-124", 
-            Status:    "sent",
-        }, nil
+
+    // Step 2: Reserve inventory
+    _, err = hydra.Step(ctx, "reserve-inventory", func(stepCtx context.Context) (*Reservation, error) {
+        return reserveInventory(stepCtx, req.Items)
     })
-    
+    if err != nil {
+        return err
+    }
+
+    // Step 3: Process order
+    _, err = hydra.Step(ctx, "process-order", func(stepCtx context.Context) (*Order, error) {
+        return processOrder(stepCtx, payment, req.Items)
+    })
+
     return err
 }
 
 func main() {
-    // Setup database
-    db, err := gorm.Open(postgres.Open("your-database-url"), &gorm.Config{})
+    // Set up database
+    db, err := gormDriver.Open(mysql.Open("dsn"), &gormDriver.Config{})
     if err != nil {
         panic(err)
     }
-    
-    // Create Hydra store and instance
-    store := hydra.NewGORMStore(db)
-    config := &hydra.Config{
+
+    // Create store
+    store := hydra.NewGORMStore(db, clock.New())
+
+    // Create engine
+    engine := hydra.New(hydra.Config{
         Store:     store,
         Namespace: "production",
-    }
-    
-    h := hydra.New(config)
-    
-    // Register workflow
-    err = h.RegisterWorkflow("user-onboarding", UserOnboardingWorkflow)
-    if err != nil {
-        panic(err)
-    }
-    
-    // Start worker in background
-    ctx := context.Background()
-    worker, err := h.StartWorker(ctx, hydra.WorkerConfig{
-        WorkerID:     "worker-1",
-        Concurrency:  20,
-        PollInterval: 5 * time.Second,
+    })
+
+    // Create worker
+    worker, err := hydra.NewWorker(engine, hydra.WorkerConfig{
+        WorkerID:    "worker-1",
+        Concurrency: 10,
     })
     if err != nil {
         panic(err)
     }
-    defer worker.Shutdown(ctx)
-    
-    // Start workflow
-    payload := &UserRegistrationPayload{
-        UserID: "user-123",
-        Email:  "john@example.com", 
-        Name:   "John Doe",
-    }
-    
-    workflowID, err := h.StartWorkflow(ctx, "user-onboarding", payload)
+
+    // Register workflow
+    err = hydra.RegisterWorkflow(worker, &OrderWorkflow{})
     if err != nil {
         panic(err)
     }
-    
-    fmt.Printf("Started workflow: %s\n", workflowID)
+
+    // Start worker
+    ctx := context.Background()
+    err = worker.Start(ctx)
+    if err != nil {
+        panic(err)
+    }
+    defer worker.Shutdown(ctx)
+
+    // Submit workflow
+    executionID, err := engine.StartWorkflow(ctx, "order-processing", &OrderRequest{
+        CustomerID: "cust_123",
+        Items:      []Item{{SKU: "item_456", Quantity: 2}},
+        PaymentID:  "pay_789",
+    })
+    if err != nil {
+        panic(err)
+    }
+
+    fmt.Printf("Started workflow: %s\n", executionID)
 }
 ```
 
 ## Core Concepts
 
-### Workflows
-Workflows are deterministic functions that orchestrate business processes. They're composed of Steps and can Sleep between operations.
-
-### Steps
-Steps are the atomic units of work within workflows. They're automatically checkpointed, meaning if a workflow fails and retries, completed steps are skipped.
-
-### Workers
-Workers are the execution engines that process workflows. Multiple workers can run concurrently for horizontal scaling.
-
-### Payloads
-All data in Hydra must implement the `Payload` interface for serialization. This ensures type safety and proper persistence.
-
-### Sleep Operations
-Unlike blocking sleeps, Hydra's `Sleep` function durably suspends workflows without tying up worker resources.
-
-## Advanced Usage
-
-### Error Handling
+### Engine
+The central orchestration component that manages workflow lifecycle and coordinates execution across workers.
 
 ```go
-func RobustWorkflow(ctx hydra.WorkflowContext, payload hydra.Payload) error {
-    result, err := hydra.Step(ctx, "api-call", request, func(ctx context.Context, req *APIRequest) (*APIResponse, error) {
-        resp, err := apiClient.Call(req)
-        if err != nil {
-            // Wrap errors for better debugging
-            return nil, fmt.Errorf("API call failed: %w", err)
-        }
-        
-        if resp.StatusCode >= 400 {
-            return nil, fmt.Errorf("API returned error: %d", resp.StatusCode)
-        }
-        
-        return resp, nil
-    })
-    
-    if err != nil {
-        return fmt.Errorf("workflow failed at API step: %w", err)
-    }
-    
-    return nil
-}
-```
-
-### Conditional Logic
-
-```go
-func ConditionalWorkflow(ctx hydra.WorkflowContext, payload hydra.Payload) error {
-    // Decision step
-    decision, err := hydra.Step(ctx, "evaluate-condition", input, decisionFunction)
-    if err != nil {
-        return err
-    }
-    
-    // Conditional execution
-    if decision.ShouldProcessA {
-        _, err = hydra.Step(ctx, "process-a", decision, processA)
-    } else {
-        _, err = hydra.Step(ctx, "process-b", decision, processB)
-    }
-    
-    return err
-}
-```
-
-### Cron Scheduling
-
-```go
-// Schedule a workflow to run daily at 9 AM
-err := h.CreateCronJob(
-    "0 9 * * *",           // cron expression
-    "daily-report",        // job name
-    "GenerateReport",      // workflow name
-)
-```
-
-## Configuration
-
-### Hydra Configuration
-
-```go
-config := &hydra.Config{
+engine := hydra.New(hydra.Config{
     Store:     store,
     Namespace: "production",
-}
+    Logger:    logger,
+})
+```
 
-h := hydra.New(config)
+### Workers
+Distributed processing units that poll for workflows, acquire leases, and execute workflow logic.
 
-// Start workers with custom settings
-worker, err := h.StartWorker(ctx, hydra.WorkerConfig{
+```go
+worker, err := hydra.NewWorker(engine, hydra.WorkerConfig{
     WorkerID:          "worker-1",
-    Concurrency:       50,              // Max concurrent workflows
-    PollInterval:      5 * time.Second, // How often to check for work
+    Concurrency:       20,
+    PollInterval:      100 * time.Millisecond,
     HeartbeatInterval: 30 * time.Second,
     ClaimTimeout:      5 * time.Minute,
 })
 ```
 
-### Workflow Options
+### Workflows
+Business logic containers that define a series of steps with exactly-once execution guarantees.
 
 ```go
-// Start workflow with custom settings
-workflowID, err := h.StartWorkflow(
-    ctx,
-    "my-workflow", 
-    payload,
+type MyWorkflow struct{}
+
+func (w *MyWorkflow) Name() string { return "my-workflow" }
+
+func (w *MyWorkflow) Run(ctx hydra.WorkflowContext, req *MyRequest) error {
+    // Implement your business logic using hydra.Step()
+    return nil
+}
+```
+
+### Steps
+Individual units of work with automatic checkpointing and retry logic.
+
+```go
+result, err := hydra.Step(ctx, "api-call", func(stepCtx context.Context) (*APIResponse, error) {
+    return apiClient.Call(stepCtx, request)
+})
+```
+
+## Advanced Features
+
+### Sleep States
+Suspend workflows for time-based coordination:
+
+```go
+// Sleep for 24 hours for manual approval
+err = hydra.Sleep(ctx, 24*time.Hour)
+if err != nil {
+    return err
+}
+
+// Continue after sleep
+result, err := hydra.Step(ctx, "post-approval", func(stepCtx context.Context) (string, error) {
+    return processApprovedRequest(stepCtx)
+})
+```
+
+### Cron Scheduling
+Schedule workflows to run automatically:
+
+```go
+err = engine.RegisterCron("0 0 * * *", "daily-report", func(ctx context.Context) error {
+    // Generate daily report
+    return generateDailyReport(ctx)
+})
+```
+
+### Error Handling & Retries
+Configure retry behavior per workflow:
+
+```go
+executionID, err := engine.StartWorkflow(ctx, "order-processing", request,
     hydra.WithMaxAttempts(5),
-    hydra.WithTimeout(2*time.Hour),
-    hydra.WithRetryBackoff(1*time.Minute),
+    hydra.WithRetryBackoff(2*time.Second),
+    hydra.WithTimeout(10*time.Minute),
 )
 ```
 
-## Production Deployment
-
-### Database Setup
-
-Hydra supports PostgreSQL and MySQL. Run database migrations:
+### Custom Marshallers
+Use custom serialization formats:
 
 ```go
-// Auto-migrate schema
-store := hydra.NewGORMStore(db)
-err := db.AutoMigrate(
-    &hydra.WorkflowExecution{},
-    &hydra.WorkflowStep{}, 
-    &hydra.CronJob{},
-    &hydra.Lease{},
-)
+type ProtobufMarshaller struct{}
+
+func (p *ProtobufMarshaller) Marshal(v any) ([]byte, error) {
+    // Implement protobuf marshalling
+}
+
+func (p *ProtobufMarshaller) Unmarshal(data []byte, v any) error {
+    // Implement protobuf unmarshalling
+}
+
+engine := hydra.New(hydra.Config{
+    Store:      store,
+    Marshaller: &ProtobufMarshaller{},
+})
 ```
 
-### Multi-Worker Deployment
-
-```yaml
-# docker-compose.yml
-version: '3.8'
-services:
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: workflows
-      POSTGRES_USER: hydra
-      POSTGRES_PASSWORD: secure-password
-    ports:
-      - "5432:5432"
-
-  hydra-worker-1:
-    build: .
-    environment:
-      DATABASE_URL: "postgres://hydra:secure-password@postgres:5432/workflows"
-      WORKER_ID: "worker-1"
-      NAMESPACE: "production"
-      MAX_CONCURRENCY: "20"
-    depends_on:
-      - postgres
-
-  hydra-worker-2:
-    build: .
-    environment:
-      DATABASE_URL: "postgres://hydra:secure-password@postgres:5432/workflows"
-      WORKER_ID: "worker-2" 
-      NAMESPACE: "production"
-      MAX_CONCURRENCY: "20"
-    depends_on:
-      - postgres
-```
-
-### Kubernetes Deployment
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: hydra-workers
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: hydra-worker
-  template:
-    metadata:
-      labels:
-        app: hydra-worker
-    spec:
-      containers:
-      - name: hydra-worker
-        image: your-registry/hydra-worker:latest
-        env:
-        - name: WORKER_ID
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        - name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: hydra-secrets
-              key: database-url
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "100m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
-```
-
-## Monitoring
+## Observability
 
 ### Prometheus Metrics
 
-Hydra exposes comprehensive metrics:
+Hydra provides comprehensive metrics out of the box:
 
-- `hydra_workflows_total` - Total workflows processed
-- `hydra_workflow_duration_seconds` - Workflow completion time
-- `hydra_active_workflows` - Currently running workflows
-- `hydra_step_duration_seconds` - Step execution time
-- `hydra_database_operations_total` - Database operation counts
+**Workflow Metrics:**
+- `hydra_workflows_started_total` - Total workflows started
+- `hydra_workflows_completed_total` - Total workflows completed/failed
+- `hydra_workflow_duration_seconds` - Workflow execution time
+- `hydra_workflow_queue_time_seconds` - Time spent waiting for execution
+- `hydra_workflows_active` - Currently running workflows per worker
 
-### Health Checks
+**Step Metrics:**
+- `hydra_steps_executed_total` - Total steps executed with status
+- `hydra_step_duration_seconds` - Individual step execution time
+- `hydra_steps_cached_total` - Steps served from checkpoint cache
+- `hydra_steps_retried_total` - Step retry attempts
 
-```go
-// Built-in health check endpoints
-http.HandleFunc("/health", healthCheck)     // Liveness probe
-http.HandleFunc("/ready", readinessCheck)   // Readiness probe  
-http.HandleFunc("/metrics", promhttp.Handler()) // Prometheus metrics
+**Worker Metrics:**
+- `hydra_worker_polls_total` - Worker polling operations
+- `hydra_worker_heartbeats_total` - Worker heartbeat operations
+- `hydra_lease_acquisitions_total` - Workflow lease acquisitions
+- `hydra_worker_concurrency_current` - Current workflow concurrency per worker
+
+### Example Grafana Queries
+
+```promql
+# Workflow throughput
+rate(hydra_workflows_completed_total[5m])
+
+# Average workflow duration
+rate(hydra_workflow_duration_seconds_sum[5m]) / rate(hydra_workflow_duration_seconds_count[5m])
+
+# Step cache hit rate
+rate(hydra_steps_cached_total[5m]) / rate(hydra_steps_executed_total[5m])
+
+# Worker utilization
+hydra_workflows_active / hydra_worker_concurrency_current
+```
+
+## Architecture
+
+Hydra uses a lease-based coordination model for distributed execution:
+
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│   Worker 1  │    │   Worker 2  │    │   Worker N  │
+│             │    │             │    │             │
+│ ┌─────────┐ │    │ ┌─────────┐ │    │ ┌─────────┐ │
+│ │ Poll    │ │    │ │ Poll    │ │    │ │ Poll    │ │
+│ │ Execute │ │    │ │ Execute │ │    │ │ Execute │ │
+│ │ Heartbeat│ │    │ │ Heartbeat│ │    │ │ Heartbeat│ │
+│ └─────────┘ │    │ └─────────┘ │    │ └─────────┘ │
+└─────────────┘    └─────────────┘    └─────────────┘
+       │                   │                   │
+       └───────────────────┼───────────────────┘
+                           │
+                  ┌─────────────────┐
+                  │    Database     │
+                  │                 │
+                  │ • Workflows     │
+                  │ • Steps         │
+                  │ • Leases        │
+                  │ • Cron Jobs     │
+                  └─────────────────┘
+```
+
+1. **Workers poll** the database for pending workflows
+2. **Workers acquire leases** on available workflows for exclusive execution
+3. **Workers execute** workflow logic with step-by-step checkpointing
+4. **Workers send heartbeats** to maintain lease ownership
+5. **Completed workflows** update status and release leases
+
+## Database Schema
+
+Hydra requires the following tables (auto-migrated with GORM):
+
+```sql
+-- Workflow executions
+CREATE TABLE workflow_executions (
+    id VARCHAR(255) PRIMARY KEY,
+    workflow_name VARCHAR(255) NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    namespace VARCHAR(255) NOT NULL,
+    input_data LONGBLOB,
+    output_data LONGBLOB,
+    error_message TEXT,
+    max_attempts INT NOT NULL,
+    remaining_attempts INT NOT NULL,
+    created_at BIGINT NOT NULL,
+    started_at BIGINT,
+    completed_at BIGINT,
+    trigger_type VARCHAR(50),
+    trigger_source VARCHAR(255),
+    INDEX idx_workflow_executions_status_namespace (status, namespace),
+    INDEX idx_workflow_executions_workflow_name (workflow_name)
+);
+
+-- Workflow steps
+CREATE TABLE workflow_steps (
+    id VARCHAR(255) PRIMARY KEY,
+    execution_id VARCHAR(255) NOT NULL,
+    step_name VARCHAR(255) NOT NULL,
+    step_order INT NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    namespace VARCHAR(255) NOT NULL,
+    input_data LONGBLOB,
+    output_data LONGBLOB,
+    error_message TEXT,
+    max_attempts INT NOT NULL,
+    remaining_attempts INT NOT NULL,
+    started_at BIGINT,
+    completed_at BIGINT,
+    UNIQUE KEY unique_execution_step (execution_id, step_name),
+    INDEX idx_workflow_steps_execution_id (execution_id)
+);
+
+-- Leases for coordination
+CREATE TABLE leases (
+    resource_id VARCHAR(255) PRIMARY KEY,
+    kind VARCHAR(50) NOT NULL,
+    namespace VARCHAR(255) NOT NULL,
+    worker_id VARCHAR(255) NOT NULL,
+    acquired_at BIGINT NOT NULL,
+    expires_at BIGINT NOT NULL,
+    heartbeat_at BIGINT NOT NULL,
+    INDEX idx_leases_expires_at (expires_at),
+    INDEX idx_leases_worker_id (worker_id)
+);
+
+-- Cron jobs
+CREATE TABLE cron_jobs (
+    id VARCHAR(255) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    cron_spec VARCHAR(255) NOT NULL,
+    namespace VARCHAR(255) NOT NULL,
+    workflow_name VARCHAR(255),
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL,
+    next_run_at BIGINT NOT NULL,
+    UNIQUE KEY unique_namespace_name (namespace, name),
+    INDEX idx_cron_jobs_next_run_at (next_run_at, enabled)
+);
+```
+
+## Performance Considerations
+
+### Scaling Workers
+- **Horizontal scaling**: Add more worker instances
+- **Vertical scaling**: Increase concurrency per worker
+- **Database optimization**: Ensure proper indexing and connection pooling
+
+### Optimizing Workflows
+- **Idempotent steps**: Ensure steps can be safely retried
+- **Minimize step payload size**: Reduce serialization overhead
+- **Batch operations**: Combine multiple operations in single steps
+- **Use appropriate timeouts**: Balance responsiveness vs. reliability
+
+### Database Tuning
+```sql
+-- Recommended indexes for performance
+CREATE INDEX idx_workflow_executions_polling 
+ON workflow_executions (status, namespace, created_at);
+
+CREATE INDEX idx_leases_cleanup 
+ON leases (expires_at);
+
+CREATE INDEX idx_workflow_steps_execution_order 
+ON workflow_steps (execution_id, step_order);
 ```
 
 ## Best Practices
 
-### Step Design
-- Keep steps idempotent - they may be retried
-- Use descriptive step names for debugging
-- Handle errors gracefully with proper context
+### Workflow Design
+- ✅ **Keep workflows stateless** - Store state in steps, not workflow instances
+- ✅ **Make steps idempotent** - Steps should be safe to retry
+- ✅ **Use descriptive step names** - Names should be stable across deployments
+- ✅ **Handle errors gracefully** - Distinguish between retryable and permanent errors
+- ✅ **Minimize external dependencies** - Use timeouts and circuit breakers
 
-### Payload Design
-- Use versioned payloads for schema evolution
-- Keep payloads small - they're stored in the database
-- Consider encryption for sensitive data
-
-### Performance
-- Monitor queue depth and worker utilization
-- Scale workers horizontally for increased throughput
-- Optimize database indexes for your access patterns
-
-### Error Handling
-- Distinguish between retryable and non-retryable errors
-- Use structured logging for workflow events
-- Set appropriate retry policies per workflow type
-
-## API Reference
-
-See the [complete API documentation](https://docs.unkey.com/architecture/hydra/api-reference) for detailed function signatures and examples.
+### Production Deployment
+- ✅ **Monitor metrics** - Set up alerts for error rates and latency
+- ✅ **Configure retries** - Set appropriate retry policies for your use case
+- ✅ **Database backup** - Ensure workflow state is backed up
+- ✅ **Graceful shutdown** - Handle SIGTERM to finish active workflows
+- ✅ **Resource limits** - Set memory and CPU limits for workers
 
 ## Examples
 
-Explore real-world examples:
+### Order Processing Workflow
+```go
+type OrderWorkflow struct {
+    paymentService   PaymentService
+    inventoryService InventoryService
+    shippingService  ShippingService
+}
 
-- [E-commerce Order Processing](https://docs.unkey.com/architecture/hydra/examples#e-commerce-order-processing)
-- [User Onboarding Flow](https://docs.unkey.com/architecture/hydra/examples#user-onboarding-workflow)
-- [Data Processing Pipeline](https://docs.unkey.com/architecture/hydra/examples#data-processing-pipeline)
-- [Billing and Subscription Management](https://docs.unkey.com/architecture/hydra/examples#billing-workflow)
+func (w *OrderWorkflow) Run(ctx hydra.WorkflowContext, req *OrderRequest) error {
+    // Validate and charge payment
+    payment, err := hydra.Step(ctx, "process-payment", func(stepCtx context.Context) (*Payment, error) {
+        return w.paymentService.ProcessPayment(stepCtx, &PaymentRequest{
+            Amount:   req.TotalAmount,
+            Method:   req.PaymentMethod,
+            Customer: req.CustomerID,
+        })
+    })
+    if err != nil {
+        return err
+    }
+
+    // Reserve inventory
+    reservation, err := hydra.Step(ctx, "reserve-inventory", func(stepCtx context.Context) (*Reservation, error) {
+        return w.inventoryService.ReserveItems(stepCtx, req.Items)
+    })
+    if err != nil {
+        // Refund payment on inventory failure
+        hydra.Step(ctx, "refund-payment", func(stepCtx context.Context) (any, error) {
+            return nil, w.paymentService.RefundPayment(stepCtx, payment.ID)
+        })
+        return err
+    }
+
+    // Create shipping label
+    _, err = hydra.Step(ctx, "create-shipping", func(stepCtx context.Context) (*ShippingLabel, error) {
+        return w.shippingService.CreateLabel(stepCtx, &ShippingRequest{
+            Address:     req.ShippingAddress,
+            Items:       req.Items,
+            Reservation: reservation.ID,
+        })
+    })
+
+    return err
+}
+```
+
+### Approval Workflow with Sleep
+```go
+func (w *ApprovalWorkflow) Run(ctx hydra.WorkflowContext, req *ApprovalRequest) error {
+    // Submit for review
+    _, err := hydra.Step(ctx, "submit-review", func(stepCtx context.Context) (*Review, error) {
+        return w.reviewService.SubmitForReview(stepCtx, req)
+    })
+    if err != nil {
+        return err
+    }
+
+    // Sleep for 48 hours to allow manual review
+    err = hydra.Sleep(ctx, 48*time.Hour)
+    if err != nil {
+        return err
+    }
+
+    // Check approval status
+    approval, err := hydra.Step(ctx, "check-approval", func(stepCtx context.Context) (*Approval, error) {
+        return w.reviewService.GetApprovalStatus(stepCtx, req.ID)
+    })
+    if err != nil {
+        return err
+    }
+
+    if approval.Status == "approved" {
+        // Process approved request
+        _, err = hydra.Step(ctx, "process-approved", func(stepCtx context.Context) (any, error) {
+            return nil, w.processApprovedRequest(stepCtx, req)
+        })
+    }
+
+    return err
+}
+```
 
 ## Contributing
 
-Hydra is part of the [Unkey](https://github.com/unkeyed/unkey) project. Contributions are welcome!
+We welcome contributions! Please see our [Contributing Guide](../../CONTRIBUTING.md) for details.
 
 ## License
 
-Apache 2.0 - see [LICENSE](https://github.com/unkeyed/unkey/blob/main/LICENSE) for details.
+This project is licensed under the MIT License - see the [LICENSE](../../LICENSE) file for details.
 
-## Support
+---
 
-- 📖 [Documentation](https://docs.unkey.com/architecture/hydra)
-- 💬 [Discord Community](https://discord.gg/unkey)
-- 🐛 [Issue Tracker](https://github.com/unkeyed/unkey/issues)
-- 📧 [Email Support](mailto:support@unkey.com)
+**Need help?** Check out our [documentation](https://docs.unkey.com) or join our [Discord community](https://discord.gg/unkey).
