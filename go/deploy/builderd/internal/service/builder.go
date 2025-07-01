@@ -106,9 +106,13 @@ func (s *BuilderService) CreateBuild(
 	// Execute the build asynchronously
 	// AIDEV-NOTE: Launch build in a goroutine to avoid blocking the RPC call
 	go func() {
-		// Create a new context that isn't tied to the RPC context
+		// Create a new context that isn't tied to the RPC context but preserves tenant info
 		// This prevents the build from being cancelled when the RPC returns
 		buildCtx := context.Background()
+		
+		// AIDEV-NOTE: Preserve tenant context for asset registration
+		tenantID := req.Msg.GetConfig().GetTenant().GetTenantId()
+		customerID := req.Msg.GetConfig().GetTenant().GetCustomerId()
 		
 		s.logger.InfoContext(buildCtx, "starting async build execution",
 			slog.String("build_id", buildJob.BuildId),
@@ -160,6 +164,8 @@ func (s *BuilderService) CreateBuild(
 		if buildState == builderv1.BuildState_BUILD_STATE_COMPLETED && s.assetClient.IsEnabled() {
 			labels := map[string]string{
 				"source_type":  buildResult.SourceType,
+				"tenant_id":    tenantID,    // AIDEV-NOTE: Include tenant info for asset registration
+				"customer_id":  customerID,  // AIDEV-NOTE: Include customer info for asset registration
 			}
 			
 			// Add docker image label if it's a Docker source

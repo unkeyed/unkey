@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/internal/registry"
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/internal/storage"
+	"github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -571,6 +572,45 @@ func (s *Service) PrepareAssets(
 			}
 		}
 
+		// AIDEV-NOTE: For rootfs assets, also copy associated metadata file if it exists
+		// This is needed for container initialization in microVMs
+		if asset.GetType() == assetv1.AssetType_ASSET_TYPE_ROOTFS {
+			// Look for metadata file alongside the rootfs asset
+			metadataFileName := strings.TrimSuffix(filepath.Base(localPath), filepath.Ext(localPath)) + ".metadata.json"
+			metadataSourcePath := filepath.Join(filepath.Dir(localPath), metadataFileName)
+			
+			if _, err := os.Stat(metadataSourcePath); err == nil {
+				// Metadata file exists, copy it
+				metadataTargetPath := filepath.Join(req.Msg.GetTargetPath(), "metadata.json")
+				
+				if err := os.Link(metadataSourcePath, metadataTargetPath); err != nil {
+					// If hard link fails, copy the file
+					if err := copyFile(metadataSourcePath, metadataTargetPath); err != nil {
+						s.logger.LogAttrs(ctx, slog.LevelWarn, "failed to copy metadata file",
+							slog.String("source", metadataSourcePath),
+							slog.String("target", metadataTargetPath),
+							slog.String("error", err.Error()),
+						)
+					} else {
+						s.logger.LogAttrs(ctx, slog.LevelDebug, "copied metadata file for rootfs asset",
+							slog.String("metadata_file", metadataTargetPath),
+							slog.String("asset_id", assetID),
+						)
+					}
+				} else {
+					s.logger.LogAttrs(ctx, slog.LevelDebug, "linked metadata file for rootfs asset",
+						slog.String("metadata_file", metadataTargetPath),
+						slog.String("asset_id", assetID),
+					)
+				}
+			} else {
+				s.logger.LogAttrs(ctx, slog.LevelDebug, "no metadata file found for rootfs asset",
+					slog.String("expected_path", metadataSourcePath),
+					slog.String("asset_id", assetID),
+				)
+			}
+		}
+
 		assetPaths[assetID] = targetFile
 	}
 
@@ -881,7 +921,16 @@ func (s *Service) QueryAssets(
 						}()),
 					),
 				)
-				buildID, err := s.builderdClient.BuildDockerRootfsWithOptions(buildCtx, dockerImage, buildLabels, buildOpts.GetTenantId(), buildOpts.GetSuggestedAssetId())
+				// AIDEV-NOTE: Extract proper customer ID from tenant context instead of using asset ID
+				tenantID := buildOpts.GetTenantId()
+				customerID := "cli-user" // Default fallback
+				
+				// Try to extract tenant context for proper customer ID
+				if tenantCtx, ok := interceptors.TenantFromContext(ctx); ok && tenantCtx.CustomerID != "" {
+					customerID = tenantCtx.CustomerID
+				}
+				
+				buildID, err := s.builderdClient.BuildDockerRootfsWithOptions(buildCtx, dockerImage, buildLabels, tenantID, customerID)
 				if err != nil {
 					buildSpan.RecordError(err)
 					buildSpan.SetStatus(codes.Error, err.Error())
@@ -903,16 +952,21 @@ func (s *Service) QueryAssets(
 
 					// Wait for completion if requested
 					if buildOpts.GetWaitForCompletion() {
-						pollInterval := 5 * time.Second
+						// AIDEV-NOTE: Use proper build timeout instead of poll interval
+						buildTimeout := time.Duration(buildOpts.GetBuildTimeoutSeconds()) * time.Second
+						if buildTimeout == 0 {
+							buildTimeout = 30 * time.Minute // Default timeout
+						}
+						
 						buildCtx, waitSpan := tracer.Start(buildCtx, "assetmanagerd.service.wait_for_build_with_tenant",
 							trace.WithAttributes(
 								attribute.String("build.id", buildID),
 								attribute.String("docker.image", dockerImage),
 								attribute.String("tenant.id", buildOpts.GetTenantId()),
-								attribute.String("poll.interval", pollInterval.String()),
+								attribute.String("build.timeout", buildTimeout.String()),
 							),
 						)
-						completedBuild, err := s.builderdClient.WaitForBuildWithTenant(buildCtx, buildID, pollInterval, buildOpts.GetTenantId())
+						completedBuild, err := s.builderdClient.WaitForBuildWithTenant(buildCtx, buildID, buildTimeout, buildOpts.GetTenantId())
 						if err != nil {
 							waitSpan.RecordError(err)
 							waitSpan.SetStatus(codes.Error, err.Error())

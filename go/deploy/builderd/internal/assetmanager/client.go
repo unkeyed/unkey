@@ -111,7 +111,22 @@ func (c *Client) RegisterBuildArtifactWithID(ctx context.Context, buildID, artif
 	}
 
 	// Register with assetmanagerd
-	resp, err := c.client.RegisterAsset(ctx, connect.NewRequest(req))
+	// AIDEV-NOTE: Set tenant headers required by tenant authentication interceptor
+	connectReq := connect.NewRequest(req)
+	
+	// Try to extract tenant info from labels first (builderd sets these)
+	tenantID := labels["tenant_id"]
+	customerID := labels["customer_id"]
+	
+	// Set tenant headers if available
+	if tenantID != "" {
+		connectReq.Header().Set("X-Tenant-ID", tenantID)
+	}
+	if customerID != "" {
+		connectReq.Header().Set("X-Customer-ID", customerID)
+	}
+	
+	resp, err := c.client.RegisterAsset(ctx, connectReq)
 	if err != nil {
 		return "", fmt.Errorf("failed to register asset: %w", err)
 	}

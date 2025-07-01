@@ -459,6 +459,17 @@ func (d *DockerExecutor) extractFilesystem(ctx context.Context, logger *slog.Log
 	logger.InfoContext(ctx, "filesystem extraction completed",
 		slog.Duration("duration", stepDuration),
 	)
+	
+	// AIDEV-NOTE: CRITICAL FIX - Inject metald-init into rootfs after extraction
+	// This ensures every container has the required init process for VM execution
+	if err := d.injectMetaldInit(ctx, logger, rootfsDir); err != nil {
+		logger.WarnContext(ctx, "failed to inject metald-init (non-fatal)",
+			slog.String("error", err.Error()),
+			slog.String("rootfs_dir", rootfsDir),
+		)
+		// Continue anyway - this is not fatal, VM might still work with container's original init
+	}
+	
 	return nil
 }
 
@@ -929,5 +940,63 @@ func (d *DockerExecutor) saveContainerMetadata(ctx context.Context, logger *slog
 		slog.Int("size", len(data)),
 	)
 
+	return nil
+}
+
+// injectMetaldInit copies the metald-init binary into the rootfs
+// AIDEV-NOTE: This function ensures every container rootfs has metald-init available at /usr/bin/metald-init
+// This is critical for VM boot as the kernel expects init=/usr/bin/metald-init
+func (d *DockerExecutor) injectMetaldInit(ctx context.Context, logger *slog.Logger, rootfsDir string) error {
+	logger.InfoContext(ctx, "injecting metald-init into rootfs",
+		slog.String("rootfs_dir", rootfsDir),
+	)
+	
+	// Source path for metald-init binary
+	// Try multiple possible locations for metald-init
+	var srcPaths = []string{
+		"/usr/bin/metald-init",                           // Installed location
+		"/usr/local/bin/metald-init",                     // Alternative install location  
+		"./cmd/metald-init/metald-init",                  // Local build
+		"../metald/cmd/metald-init/metald-init",          // Relative from builderd
+		"/opt/metald/bin/metald-init",                    // Custom location
+	}
+	
+	var srcPath string
+	for _, path := range srcPaths {
+		if _, err := os.Stat(path); err == nil {
+			srcPath = path
+			break
+		}
+	}
+	
+	if srcPath == "" {
+		return fmt.Errorf("metald-init binary not found in any expected location: %v", srcPaths)
+	}
+	
+	// Destination paths in rootfs
+	usrBinDir := filepath.Join(rootfsDir, "usr", "bin")
+	dstPath := filepath.Join(usrBinDir, "metald-init")
+	
+	// Create /usr/bin directory if it doesn't exist
+	if err := os.MkdirAll(usrBinDir, 0755); err != nil {
+		return fmt.Errorf("failed to create /usr/bin directory: %w", err)
+	}
+	
+	// Copy metald-init binary
+	srcData, err := os.ReadFile(srcPath)
+	if err != nil {
+		return fmt.Errorf("failed to read metald-init source: %w", err)
+	}
+	
+	if err := os.WriteFile(dstPath, srcData, 0755); err != nil {
+		return fmt.Errorf("failed to write metald-init to rootfs: %w", err)
+	}
+	
+	logger.InfoContext(ctx, "metald-init injection completed",
+		slog.String("src_path", srcPath),
+		slog.String("dst_path", dstPath),
+		slog.Int("size_bytes", len(srcData)),
+	)
+	
 	return nil
 }

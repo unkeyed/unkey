@@ -75,7 +75,6 @@ install: build create-user ## Install billaged binary and systemd service
 	sudo systemctl start billaged 2>/dev/null || true
 	@echo "Installation complete. Service started."
 
-
 lint: lint-proto ## Run linting tools (includes protobuf linting)
 	@which golangci-lint > /dev/null || (echo "golangci-lint not found, install from https://golangci-lint.run/usage/install/" && exit 1)
 	golangci-lint run --disable=godox
