@@ -5,7 +5,19 @@ import { Checkbox } from "@unkey/ui";
 
 export function CheckboxBasicVariants() {
   return (
-    <RenderComponentWithSnippet>
+    <RenderComponentWithSnippet customCodeSnippet={`
+<div className="flex flex-col gap-6">
+    <div>
+      <h4 className="text-sm font-medium mb-2">Light</h4>
+      <div className="flex flex-wrap items-center gap-4">
+        <Checkbox id="primary-default" />
+        <Checkbox id="primary-checked" checked />
+        <Checkbox id="primary-focus" className="!ring-4 !ring-gray-6" />
+        <Checkbox id="primary-disabled" disabled />
+        <Checkbox id="primary-disabled-checked" disabled checked />
+      </div>
+    </div>
+  </div>`}>
       <div className="flex flex-col gap-6">
         <div>
           <h4 className="text-sm font-medium mb-2">Light</h4>
@@ -35,7 +47,39 @@ export function CheckboxBasicVariants() {
 
 export function CheckboxOutlineVariants() {
   return (
-    <RenderComponentWithSnippet>
+    <RenderComponentWithSnippet customCodeSnippet={`
+<div className="flex flex-col gap-6">
+    <div>
+      <h4 className="text-sm font-medium mb-2">Light</h4>
+      <div className="flex flex-wrap items-center gap-4">
+        <Checkbox id="outline-default" variant="outline" />
+        <Checkbox id="outline-checked" variant="outline" checked />
+        <Checkbox
+          id="outline-focus"
+          variant="outline"
+          className="!ring-4 !ring-gray-6 !border-grayA-12"
+        />
+        <Checkbox id="outline-disabled" variant="outline" disabled />
+        <Checkbox id="outline-disabled-checked" variant="outline" disabled checked />
+      </div>
+    </div>
+
+    <div>
+      <h4 className="text-sm font-medium mb-2">Dark</h4>
+      <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
+        <Checkbox id="outline-dark-default" variant="outline" />
+        <Checkbox id="outline-dark-checked" variant="outline" checked />
+        <Checkbox
+          id="outline-dark-focus"
+          variant="outline"
+          className="!ring-4 !ring-gray-6 !border-grayA-12"
+        />
+        <Checkbox id="outline-dark-disabled" variant="outline" disabled />
+        <Checkbox id="outline-dark-disabled-checked" variant="outline" disabled checked />
+      </div>
+    </div>
+  </div>
+    `}>
       <div className="flex flex-col gap-6">
         <div>
           <h4 className="text-sm font-medium mb-2">Light</h4>
@@ -73,7 +117,41 @@ export function CheckboxOutlineVariants() {
 
 export function CheckboxGhostVariants() {
   return (
-    <RenderComponentWithSnippet>
+    <RenderComponentWithSnippet customCodeSnippet={`
+<div className="flex flex-col gap-6">
+  <div>
+    <h4 className="text-sm font-medium mb-2">Light</h4>
+    <div className="flex flex-wrap items-center gap-4">
+      <Checkbox id="ghost-default" variant="ghost" />
+      <Checkbox id="ghost-checked" variant="ghost" checked />
+      <Checkbox id="ghost-hover" variant="ghost" className="!bg-grayA-2" />
+      <Checkbox
+        id="ghost-focus"
+        variant="ghost"
+        className="!ring-4 !ring-gray-6 !border-grayA-12"
+      />
+      <Checkbox id="ghost-disabled" variant="ghost" disabled />
+      <Checkbox id="ghost-disabled-checked" variant="ghost" disabled checked />
+    </div>
+  </div>
+
+  <div>
+    <h4 className="text-sm font-medium mb-2">Dark</h4>
+    <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
+      <Checkbox id="ghost-dark-default" variant="ghost" />
+      <Checkbox id="ghost-dark-checked" variant="ghost" checked />
+      <Checkbox id="ghost-dark-hover" variant="ghost" className="!bg-grayA-2" />
+      <Checkbox
+        id="ghost-dark-focus"
+        variant="ghost"
+        className="!ring-4 !ring-gray-6 !border-grayA-12"
+      />
+      <Checkbox id="ghost-dark-disabled" variant="ghost" disabled />
+      <Checkbox id="ghost-dark-disabled-checked" variant="ghost" disabled checked />
+    </div>
+  </div>
+</div>
+    `}>
       <div className="flex flex-col gap-6">
         <div>
           <h4 className="text-sm font-medium mb-2">Light</h4>
@@ -113,7 +191,51 @@ export function CheckboxGhostVariants() {
 
 export function CheckboxDangerPrimary() {
   return (
-    <RenderComponentWithSnippet>
+    <RenderComponentWithSnippet customCodeSnippet={`<div className="flex flex-col gap-6">
+  <div>
+    <h4 className="text-sm font-medium mb-2">Light</h4>
+    <div className="flex flex-wrap items-center gap-4">
+      <Checkbox id="danger-primary-default" variant="primary" color="danger" />
+      <Checkbox id="danger-primary-checked" variant="primary" color="danger" checked />
+      <Checkbox
+        id="danger-primary-focus"
+        variant="primary"
+        color="danger"
+        className="!ring-4 !ring-error-6"
+      />
+      <Checkbox id="danger-primary-disabled" variant="primary" color="danger" disabled />
+      <Checkbox
+        id="danger-primary-disabled-checked"
+        variant="primary"
+        color="danger"
+        disabled
+        checked
+      />
+    </div>
+  </div>
+
+  <div>
+    <h4 className="text-sm font-medium mb-2">Dark</h4>
+    <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
+      <Checkbox id="danger-primary-dark-default" variant="primary" color="danger" />
+      <Checkbox id="danger-primary-dark-checked" variant="primary" color="danger" checked />
+      <Checkbox
+        id="danger-primary-dark-focus"
+        variant="primary"
+        color="danger"
+        className="!ring-4 !ring-error-6"
+      />
+      <Checkbox id="danger-primary-dark-disabled" variant="primary" color="danger" disabled />
+      <Checkbox
+        id="danger-primary-dark-disabled-checked"
+        variant="primary"
+        color="danger"
+        disabled
+        checked
+      />
+    </div>
+  </div>
+</div>`}>
       <div className="flex flex-col gap-6">
         <div>
           <h4 className="text-sm font-medium mb-2">Light</h4>
