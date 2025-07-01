@@ -642,14 +642,14 @@ type Querier interface {
 	ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]Identity, error)
 	//ListIdentityRatelimits
 	//
-	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration
+	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply
 	//  FROM ratelimits
 	//  WHERE identity_id = ?
 	//  ORDER BY id ASC
 	ListIdentityRatelimits(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error)
 	//ListIdentityRatelimitsByID
 	//
-	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration FROM ratelimits WHERE identity_id = ?
+	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply FROM ratelimits WHERE identity_id = ?
 	ListIdentityRatelimitsByID(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error)
 	//ListKeysByKeyAuthID
 	//
@@ -735,7 +735,8 @@ type Querier interface {
 	//    id,
 	//    name,
 	//    `limit`,
-	//    duration
+	//    duration,
+	//    auto_apply
 	//  FROM ratelimits
 	//  WHERE key_id = ?
 	ListRatelimitsByKeyID(ctx context.Context, db DBTX, keyID sql.NullString) ([]ListRatelimitsByKeyIDRow, error)
@@ -746,7 +747,8 @@ type Querier interface {
 	//    key_id,
 	//    name,
 	//    `limit`,
-	//    duration
+	//    duration,
+	//    auto_apply
 	//  FROM ratelimits
 	//  WHERE key_id IN (/*SLICE:key_ids*/?)
 	//  ORDER BY key_id, id

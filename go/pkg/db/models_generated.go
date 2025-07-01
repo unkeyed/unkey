@@ -389,6 +389,7 @@ type Ratelimit struct {
 	IdentityID  sql.NullString `db:"identity_id"`
 	Limit       int32          `db:"limit"`
 	Duration    int64          `db:"duration"`
+	AutoApply   bool           `db:"auto_apply"`
 }
 
 type RatelimitNamespace struct {

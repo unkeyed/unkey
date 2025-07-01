@@ -15,16 +15,18 @@ SELECT
   id,
   name,
   ` + "`" + `limit` + "`" + `,
-  duration
+  duration,
+  auto_apply
 FROM ratelimits
 WHERE key_id = ?
 `
 
 type ListRatelimitsByKeyIDRow struct {
-	ID       string `db:"id"`
-	Name     string `db:"name"`
-	Limit    int32  `db:"limit"`
-	Duration int64  `db:"duration"`
+	ID        string `db:"id"`
+	Name      string `db:"name"`
+	Limit     int32  `db:"limit"`
+	Duration  int64  `db:"duration"`
+	AutoApply bool   `db:"auto_apply"`
 }
 
 // ListRatelimitsByKeyID
@@ -33,7 +35,8 @@ type ListRatelimitsByKeyIDRow struct {
 //	  id,
 //	  name,
 //	  `limit`,
-//	  duration
+//	  duration,
+//	  auto_apply
 //	FROM ratelimits
 //	WHERE key_id = ?
 func (q *Queries) ListRatelimitsByKeyID(ctx context.Context, db DBTX, keyID sql.NullString) ([]ListRatelimitsByKeyIDRow, error) {
@@ -50,6 +53,7 @@ func (q *Queries) ListRatelimitsByKeyID(ctx context.Context, db DBTX, keyID sql.
 			&i.Name,
 			&i.Limit,
 			&i.Duration,
+			&i.AutoApply,
 		); err != nil {
 			return nil, err
 		}

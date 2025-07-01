@@ -120,6 +120,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Name:      nil,
 		Meta:      nil,
 		Identity:  nil,
+		Credits:   nil,
 	}
 
 	if key.Name.Valid {

@@ -3,6 +3,7 @@ SELECT
   id,
   name,
   `limit`,
-  duration
+  duration,
+  auto_apply
 FROM ratelimits
 WHERE key_id = ?;

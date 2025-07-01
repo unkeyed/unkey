@@ -287,9 +287,6 @@ type KeyResponse struct {
 	// Enabled Whether the key is enabled or disabled.
 	Enabled bool `json:"enabled"`
 
-	// Environment Environment tag for this key.
-	Environment *string `json:"environment,omitempty"`
-
 	// Expires Unix timestamp in milliseconds when key expires.
 	Expires  *int64    `json:"expires,omitempty"`
 	Identity *Identity `json:"identity,omitempty"`
@@ -374,9 +371,6 @@ type KeysVerifyKeyResponseData struct {
 
 	// Enabled Indicates if the key is currently enabled. Disabled keys will always fail verification with `code=DISABLED`. This is useful for implementing temporary suspensions without deleting the key.
 	Enabled *bool `json:"enabled,omitempty"`
-
-	// Environment The environment tag associated with the key (e.g., 'production', 'staging', 'development'). Use this to further segment keys within an API beyond just the apiId separation.
-	Environment *string `json:"environment,omitempty"`
 
 	// Expires Unix timestamp (in milliseconds) when the key will expire. If null or not present, the key has no expiration. You can use this to warn users about upcoming expirations or to understand the validity period.
 	Expires *int64 `json:"expires,omitempty"`
@@ -646,6 +640,9 @@ type RatelimitOverride struct {
 
 // RatelimitResponse defines model for RatelimitResponse.
 type RatelimitResponse struct {
+	// AutoApply Whether this rate limit should be automatically applied when verifying keys. This is always
+	AutoApply *bool `json:"autoApply,omitempty"`
+
 	// Duration Rate limit window duration in milliseconds.
 	Duration int64 `json:"duration"`
 
