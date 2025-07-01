@@ -42,7 +42,7 @@ func New(t *testing.T, config Config) *Harness {
 
 	containerMgr := containers.New(t)
 
-	containerMgr.RunOtel(true)
+	containerMgr.RunOtel()
 
 	// Start ClickHouse container with migrations
 	clickhouseHostDSN, clickhouseDockerDSN := containerMgr.RunClickHouse()

@@ -1,12 +1,11 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import { BookBookmark, TriangleWarning2 } from "@unkey/icons";
-import { Button, Empty, TimestampInfo } from "@unkey/ui";
+import { Badge, Button, Empty, TimestampInfo } from "@unkey/ui";
 import { useMemo } from "react";
 import { isDisplayProperty, useLogsContext } from "../../context/logs";
 import { extractResponseField } from "../../utils";
@@ -82,6 +81,7 @@ const getSelectedClassName = (log: Log, isSelected: boolean) => {
 
 const WarningIcon = ({ status }: { status: number }) => (
   <TriangleWarning2
+    size="md-regular"
     className={cn(
       WARNING_ICON_STYLES.base,
       status < 300 && "invisible",

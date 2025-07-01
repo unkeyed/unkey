@@ -1,18 +1,12 @@
 "use client";
 
-import { Code } from "@/components/ui/code";
+import { ConfirmPopover } from "@/components/confirmation-popover";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { Check, CircleInfo, Key2 } from "@unkey/icons";
 import { type UnkeyPermission, unkeyPermissionValidation } from "@unkey/rbac";
 import {
   Button,
@@ -22,14 +16,17 @@ import {
   CardHeader,
   CardTitle,
   Checkbox,
+  Code,
   CopyButton,
+  InfoTooltip,
   Input,
   VisibleButton,
 } from "@unkey/ui";
-import { ChevronRight } from "lucide-react";
+import { ArrowRight, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createParser, parseAsArrayOf, useQueryState } from "nuqs";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { SecretKey } from "../../../apis/[apiId]/_components/create-key/components/secret-key";
 import { apiPermissions, workspacePermissions } from "../[keyId]/permissions/permissions";
 
 type Props = {
@@ -37,6 +34,36 @@ type Props = {
     id: string;
     name: string;
   }[];
+};
+
+type PermissionToggleProps = {
+  checked: boolean;
+  setChecked: (checked: boolean) => void;
+  label: string | React.ReactNode;
+  description: string;
+};
+
+const PermissionToggle: React.FC<PermissionToggleProps> = ({
+  checked,
+  setChecked,
+  label,
+  description,
+}) => {
+  return (
+    <div className="flex flex-col sm:items-center gap-1 mb-2 sm:flex-row sm:gap-0 sm:mb-0">
+      <div className="w-1/3 flex items-center gap-2">
+        <Checkbox
+          checked={checked}
+          onCheckedChange={() => {
+            setChecked(!checked);
+          }}
+        />
+        <Label className="text-xs text-content">{label}</Label>
+      </div>
+
+      <p className="w-full md:w-2/3 text-xs text-content-subtle ml-6 md:ml-0">{description}</p>
+    </div>
+  );
 };
 
 const parseAsUnkeyPermission = createParser({
@@ -47,9 +74,18 @@ const parseAsUnkeyPermission = createParser({
   serialize: String,
 });
 
+const UNNAMED_KEY = "Unnamed Key";
+
 export const Client: React.FC<Props> = ({ apis }) => {
+  const trpcUtils = trpc.useUtils();
   const router = useRouter();
   const [name, setName] = useState<string | undefined>(undefined);
+  const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<
+    "close" | "create-another" | "go-to-details" | null
+  >(null);
+  const dividerRef = useRef<HTMLDivElement>(null);
 
   const [selectedPermissions, setSelectedPermissions] = useQueryState(
     "permissions",
@@ -61,6 +97,9 @@ export const Client: React.FC<Props> = ({ apis }) => {
   );
 
   const key = trpc.rootKey.create.useMutation({
+    onSuccess() {
+      trpcUtils.settings.rootKeys.query.invalidate();
+    },
     onError(err: { message: string }) {
       console.error(err);
       toast.error(err.message);
@@ -68,16 +107,18 @@ export const Client: React.FC<Props> = ({ apis }) => {
   });
 
   const snippet = `curl -XPOST '${process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"}/v1/keys.createKey' \\
-  -H 'Authorization: Bearer ${key.data?.key}' \\
-  -H 'Content-Type: application/json' \\
-  -d '{
-    "prefix": "hello",
-    "apiId": "<API_ID>"
-  }'`;
+    -H 'Authorization: Bearer ${key.data?.key}' \\
+    -H 'Content-Type: application/json' \\
+    -d '{
+      "prefix": "hello",
+      "apiId": "<API_ID>"
+    }'`;
 
-  const maskedKey = `unkey_${"*".repeat(key.data?.key.split("_").at(1)?.length ?? 0)}`;
-  const [showKey, setShowKey] = useState(false);
-  const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
+  const split = key.data?.key?.split("_") ?? [];
+  const maskedKey =
+    split.length >= 2
+      ? `${split.at(0)}_${"*".repeat(split.at(1)?.length ?? 0)}`
+      : "*".repeat(split.at(0)?.length ?? 0);
 
   const handleSetChecked = (permission: UnkeyPermission, checked: boolean) => {
     setSelectedPermissions((prevPermissions) => {
@@ -120,6 +161,56 @@ export const Client: React.FC<Props> = ({ apis }) => {
     setCardStatesMap(initialCardStates);
   }, []); // Execute ones on the first load
 
+  const handleCloseAttempt = (action: "close" | "create-another" | "go-to-details" = "close") => {
+    setPendingAction(action);
+    setIsConfirmOpen(true);
+  };
+
+  const handleConfirmClose = () => {
+    if (!pendingAction) {
+      console.error("No pending action when confirming close");
+      return;
+    }
+
+    setIsConfirmOpen(false);
+
+    try {
+      // Always close the dialog first
+      key.reset();
+      setSelectedPermissions([]);
+      setName("");
+
+      // Then execute the specific action
+      switch (pendingAction) {
+        case "create-another":
+          // Reset form for creating another key
+          break;
+
+        case "go-to-details":
+          router.push("/settings/root-keys");
+          break;
+
+        default:
+          // Dialog already closed, nothing more to do
+          router.push("/settings/root-keys");
+          break;
+      }
+    } catch (error) {
+      console.error("Error executing pending action:", error);
+      toast.error("Action Failed", {
+        description: "An unexpected error occurred. Please try again.",
+      });
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      handleCloseAttempt("close");
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <Card>
@@ -159,7 +250,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
                       label={<span className="text-base font-bold">{category}</span>}
                       description={`Select all permissions for ${category} in this workspace`}
                       checked={isAllSelected}
-                      setChecked={(isChecked) => {
+                      setChecked={(isChecked: boolean) => {
                         allPermissionNames.forEach((permission) => {
                           handleSetChecked(permission, isChecked);
                         });
@@ -174,7 +265,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
                         label={action}
                         description={description}
                         checked={selectedPermissions.includes(permission)}
-                        setChecked={(isChecked) => handleSetChecked(permission, isChecked)}
+                        setChecked={(isChecked: boolean) => handleSetChecked(permission, isChecked)}
                       />
                     ))}
                   </div>
@@ -232,7 +323,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
                             }
                             description={`Select all ${category} permissions for this API`}
                             checked={isAllSelected}
-                            setChecked={(isChecked) => {
+                            setChecked={(isChecked: boolean) => {
                               allPermissionNames.forEach((permission) => {
                                 handleSetChecked(permission, isChecked);
                               });
@@ -247,7 +338,9 @@ export const Client: React.FC<Props> = ({ apis }) => {
                               label={action}
                               description={description}
                               checked={selectedPermissions.includes(permission)}
-                              setChecked={(isChecked) => handleSetChecked(permission, isChecked)}
+                              setChecked={(isChecked: boolean) =>
+                                handleSetChecked(permission, isChecked)
+                              }
                             />
                           ))}
                         </div>
@@ -271,93 +364,140 @@ export const Client: React.FC<Props> = ({ apis }) => {
         Create New Key
       </Button>
 
-      <Dialog
-        open={!!key.data?.key}
-        onOpenChange={(v) => {
-          if (!v) {
-            // Remove the key from memory when closing the modal
-            key.reset();
-            setSelectedPermissions([]);
-            setName("");
-            router.push("/settings/root-keys");
-          }
-        }}
-      >
-        <DialogContent className="flex flex-col max-sm:w-full dark:bg-grayA-1 border-gray-4 bg-white">
-          <DialogHeader>
-            <DialogTitle>Your API Key</DialogTitle>
-            <DialogDescription className="w-fit text-accent-10">
-              This key is only shown once and can not be recovered. Please store it somewhere safe.
-            </DialogDescription>
-
-            <Code className="flex items-center justify-between gap-4 my-8 ph-no-capture">
-              {showKey ? key.data?.key : maskedKey}
-              <div className="flex items-center justify-between gap-2">
-                <VisibleButton
-                  isVisible={showKey}
-                  setIsVisible={setShowKey}
-                  variant="ghost"
-                  className="focus:ring-0"
-                />
-                <CopyButton value={key.data?.key ?? ""} />
+      <Dialog open={!!key.data?.key} onOpenChange={handleDialogOpenChange}>
+        <DialogContent
+          className="drop-shadow-2xl border-gray-4 overflow-hidden !rounded-2xl p-0 gap-0 min-w-[760px] max-h-[90vh] overflow-y-auto"
+          showCloseWarning
+          onAttemptClose={() => handleCloseAttempt("close")}
+        >
+          <>
+            <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full px-[120px]">
+              <div className="py-4 mt-[30px]">
+                <div className="flex gap-4">
+                  <div className="border border-grayA-4 rounded-[10px] size-14 opacity-35" />
+                  <div className="border border-grayA-4 rounded-[10px] size-14" />
+                  <div className="border border-grayA-4 rounded-[10px] size-14 flex items-center justify-center relative">
+                    <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute left-0 top-0" />
+                    <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 top-0" />
+                    <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 bottom-0" />
+                    <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute left-0 bottom-0" />
+                    <Key2 size="2xl-thin" />
+                    <div className="flex items-center justify-center border border-grayA-3 rounded-full bg-success-9 text-white size-[22px] absolute right-[-10px] top-[-10px]">
+                      <Check size="sm-bold" />
+                    </div>
+                  </div>
+                  <div className="border border-grayA-4 rounded-[10px] size-14" />
+                  <div className="border border-grayA-4 rounded-[10px] size-14 opacity-35" />
+                </div>
               </div>
-            </Code>
-          </DialogHeader>
-
-          <p className="mt-2 text-sm font-medium text-center text-accent-10">
-            Try creating a new api key for your users:
-          </p>
-          <Code className="flex flex-col items-start gap-2 w-full text-xs">
-            <div className="w-full shrink-0 flex items-center justify-end gap-2">
-              <VisibleButton
-                isVisible={showKeyInSnippet}
-                setIsVisible={setShowKeyInSnippet}
-                variant="ghost"
-                className="focus:ring-0"
-              />
-              <CopyButton value={snippet} />
+              <div className="mt-5 flex flex-col gap-2 items-center">
+                <div className="font-semibold text-gray-12 text-[16px] leading-[24px]">
+                  Root Key Created
+                </div>
+                <div
+                  className="text-gray-10 text-[13px] leading-[24px] text-center"
+                  ref={dividerRef}
+                >
+                  You've successfully generated a new Root key.
+                </div>
+              </div>
+              <div className="p-1 w-full my-8">
+                <div className="h-[1px] bg-grayA-3 w-full" />
+              </div>
+              <div className="flex flex-col gap-2 items-start w-full">
+                <div className="text-gray-12 text-sm font-semibold">Key Details</div>
+                <div className="bg-white dark:bg-black border rounded-xl border-grayA-5 px-6 w-full">
+                  <div className="flex gap-6 items-center">
+                    <div className="bg-grayA-5 text-gray-12 size-5 flex items-center justify-center rounded ">
+                      <Key2 size="sm-regular" />
+                    </div>
+                    <div className="flex flex-col gap-1 py-6">
+                      <div className="text-accent-12 text-xs font-mono">{key.data?.keyId}</div>
+                      <InfoTooltip
+                        content={name ?? UNNAMED_KEY}
+                        position={{ side: "bottom", align: "center" }}
+                        asChild
+                        disabled={!name}
+                        variant="inverted"
+                      >
+                        <div className="text-accent-9 text-xs max-w-[160px] truncate">
+                          {name ?? UNNAMED_KEY}
+                        </div>
+                      </InfoTooltip>
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="ml-auto font-medium text-[13px] text-gray-12"
+                      onClick={() => handleCloseAttempt("go-to-details")}
+                    >
+                      See key details <ArrowRight size="sm-regular" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2 items-start w-full mt-6">
+                <div className="text-gray-12 text-sm font-semibold">Key Secret</div>
+                <SecretKey
+                  value={key.data?.key ?? ""}
+                  title="API Key"
+                  className="bg-white dark:bg-black "
+                />
+                <div className="text-gray-9 text-[13px] flex items-center gap-1.5">
+                  <CircleInfo className="text-accent-9" size="sm-regular" />
+                  <span>
+                    Copy and save this key secret as it won't be shown again.{" "}
+                    <a
+                      href="https://www.unkey.com/docs/security/recovering-keys"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-info-11 hover:underline"
+                    >
+                      Learn more
+                    </a>
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2 items-start w-full mt-8">
+                <div className="text-gray-12 text-sm font-semibold">Try It Out</div>
+                <Code
+                  visibleButton={
+                    <VisibleButton
+                      isVisible={showKeyInSnippet}
+                      setIsVisible={setShowKeyInSnippet}
+                    />
+                  }
+                  copyButton={<CopyButton value={snippet} />}
+                >
+                  {showKeyInSnippet ? snippet : snippet.replace(key.data?.key ?? "", maskedKey)}
+                </Code>
+              </div>
+              <div className="mt-6">
+                <div className="mt-4 text-center text-gray-10 text-xs leading-6">
+                  All set! You can now create another key or explore the docs to learn more
+                </div>
+              </div>
             </div>
-            <div className="text-wrap">
-              {showKeyInSnippet ? snippet : snippet.replace(key.data?.key ?? "", maskedKey)}
-            </div>
-          </Code>
-          <DialogClose asChild>
-            <Button type="button" variant="primary">
-              I have copied the key and want to close this dialog
-            </Button>
-          </DialogClose>
+            <ConfirmPopover
+              isOpen={isConfirmOpen}
+              onOpenChange={setIsConfirmOpen}
+              onConfirm={handleConfirmClose}
+              triggerRef={dividerRef}
+              title="You won't see this secret key again!"
+              description="Make sure to copy your secret key before closing. It cannot be retrieved later."
+              confirmButtonText="Close anyway"
+              cancelButtonText="Dismiss"
+              variant="warning"
+              popoverProps={{
+                side: "right",
+                align: "end",
+                sideOffset: 5,
+                alignOffset: 30,
+                onOpenAutoFocus: (e) => e.preventDefault(),
+              }}
+            />
+          </>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-};
-
-type PermissionToggleProps = {
-  checked: boolean;
-  setChecked: (checked: boolean) => void;
-  label: string | React.ReactNode;
-  description: string;
-};
-
-const PermissionToggle: React.FC<PermissionToggleProps> = ({
-  checked,
-  setChecked,
-  label,
-  description,
-}) => {
-  return (
-    <div className="flex flex-col sm:items-center gap-1 mb-2 sm:flex-row sm:gap-0 sm:mb-0">
-      <div className="w-1/3 flex items-center gap-2">
-        <Checkbox
-          checked={checked}
-          onCheckedChange={() => {
-            setChecked(!checked);
-          }}
-        />
-        <Label className="text-xs text-content">{label}</Label>
-      </div>
-
-      <p className="w-full md:w-2/3 text-xs text-content-subtle ml-6 md:ml-0">{description}</p>
     </div>
   );
 };

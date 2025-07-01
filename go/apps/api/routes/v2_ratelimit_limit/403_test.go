@@ -30,7 +30,7 @@ func TestWorkspacePermissions(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	route := handler.New(handler.Services{
+	route := &handler.Handler{
 		DB:                            h.DB,
 		Keys:                          h.Keys,
 		Logger:                        h.Logger,
@@ -38,12 +38,13 @@ func TestWorkspacePermissions(t *testing.T) {
 		Ratelimit:                     h.Ratelimit,
 		RatelimitNamespaceByNameCache: h.Caches.RatelimitNamespaceByName,
 		RatelimitOverrideMatchesCache: h.Caches.RatelimitOverridesMatch,
-	})
+	}
 
 	h.Register(route)
 
 	// Create a key for a different workspace
-	differentWorkspaceKey := h.CreateRootKey(h.Resources().DifferentWorkspace.ID)
+	differentWorkspace := h.CreateWorkspace()
+	differentWorkspaceKey := h.CreateRootKey(differentWorkspace.ID)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
