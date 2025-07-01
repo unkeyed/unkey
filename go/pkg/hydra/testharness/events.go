@@ -27,7 +27,7 @@ const (
 type EventRecord struct {
 	Type      EventType              `json:"type"`
 	Message   string                 `json:"message"`
-	Timestamp time.Time             `json:"timestamp"`
+	Timestamp time.Time              `json:"timestamp"`
 	Data      map[string]interface{} `json:"data"`
 }
 
@@ -48,13 +48,13 @@ func NewEventCollector() *EventCollector {
 func (e *EventCollector) Emit(ctx WorkflowContext, eventType EventType, message string, extraData ...interface{}) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	
+
 	// Start with context metadata
 	data := map[string]interface{}{
-		"execution_id":   ctx.ExecutionID(),
-		"workflow_name":  ctx.WorkflowName(),
+		"execution_id":  ctx.ExecutionID(),
+		"workflow_name": ctx.WorkflowName(),
 	}
-	
+
 	// Add extra data as key-value pairs
 	for i := 0; i < len(extraData); i += 2 {
 		if i+1 < len(extraData) {
@@ -63,14 +63,14 @@ func (e *EventCollector) Emit(ctx WorkflowContext, eventType EventType, message 
 			}
 		}
 	}
-	
+
 	event := EventRecord{
 		Type:      eventType,
 		Message:   message,
 		Timestamp: time.Now(),
 		Data:      data,
 	}
-	
+
 	e.events = append(e.events, event)
 }
 
@@ -78,7 +78,7 @@ func (e *EventCollector) Emit(ctx WorkflowContext, eventType EventType, message 
 func (e *EventCollector) Events() []EventRecord {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
-	
+
 	// Return a copy to prevent race conditions
 	events := make([]EventRecord, len(e.events))
 	copy(events, e.events)
@@ -89,7 +89,7 @@ func (e *EventCollector) Events() []EventRecord {
 func (e *EventCollector) Filter(eventType EventType) []EventRecord {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
-	
+
 	var filtered []EventRecord
 	for _, event := range e.events {
 		if event.Type == eventType {
@@ -103,7 +103,7 @@ func (e *EventCollector) Filter(eventType EventType) []EventRecord {
 func (e *EventCollector) FilterWithData(eventType EventType, key string, value interface{}) []EventRecord {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
-	
+
 	var filtered []EventRecord
 	for _, event := range e.events {
 		if event.Type == eventType {
@@ -154,11 +154,11 @@ func (e *EventCollector) GetFirst(eventType EventType) *EventRecord {
 func (e *EventCollector) EventsBetween(start, end time.Time) []EventRecord {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
-	
+
 	var filtered []EventRecord
 	for _, event := range e.events {
-		if (event.Timestamp.Equal(start) || event.Timestamp.After(start)) && 
-		   (event.Timestamp.Equal(end) || event.Timestamp.Before(end)) {
+		if (event.Timestamp.Equal(start) || event.Timestamp.After(start)) &&
+			(event.Timestamp.Equal(end) || event.Timestamp.Before(end)) {
 			filtered = append(filtered, event)
 		}
 	}
@@ -169,7 +169,7 @@ func (e *EventCollector) EventsBetween(start, end time.Time) []EventRecord {
 func (e *EventCollector) Summary() map[string]int {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
-	
+
 	summary := make(map[string]int)
 	for _, event := range e.events {
 		summary[string(event.Type)]++

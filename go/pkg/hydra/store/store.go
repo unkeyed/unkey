@@ -6,7 +6,6 @@ import (
 )
 
 type Store interface {
-
 	CreateWorkflow(ctx context.Context, workflow *WorkflowExecution) error
 
 	GetWorkflow(ctx context.Context, namespace, id string) (*WorkflowExecution, error)
@@ -25,15 +24,13 @@ type Store interface {
 
 	GetSleepingWorkflows(ctx context.Context, namespace string, beforeTime int64) ([]WorkflowExecution, error)
 
-
 	CreateStep(ctx context.Context, step *WorkflowStep) error
 
 	GetStep(ctx context.Context, namespace, executionID, stepName string) (*WorkflowStep, error)
 
 	GetCompletedStep(ctx context.Context, namespace, executionID, stepName string) (*WorkflowStep, error)
 
-	UpdateStepStatus(ctx context.Context, namespace, id string, status StepStatus, outputData []byte, errorMsg string) error
-
+	UpdateStepStatus(ctx context.Context, namespace, executionID, stepName string, status StepStatus, outputData []byte, errorMsg string) error
 
 	UpsertCronJob(ctx context.Context, cronJob *CronJob) error
 
@@ -44,7 +41,6 @@ type Store interface {
 	GetDueCronJobs(ctx context.Context, namespace string, beforeTime int64) ([]CronJob, error)
 
 	UpdateCronJobLastRun(ctx context.Context, namespace, cronJobID string, lastRunAt, nextRunAt int64) error
-
 
 	AcquireLease(ctx context.Context, lease *Lease) error
 
@@ -60,8 +56,11 @@ type Store interface {
 
 	ResetOrphanedWorkflows(ctx context.Context, namespace string) error
 
-
 	WithTx(ctx context.Context, fn func(Store) error) error
+
+	// Testing helpers
+	GetAllWorkflows(ctx context.Context, namespace string) ([]WorkflowExecution, error)
+	GetAllSteps(ctx context.Context, namespace string) ([]WorkflowStep, error)
 }
 
 type StoreFactory interface {

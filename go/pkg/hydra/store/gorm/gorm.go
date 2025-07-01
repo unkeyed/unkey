@@ -8,6 +8,7 @@ import (
 
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/hydra/store"
+	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -31,7 +32,27 @@ func NewSQLiteStore(dsn string, clk clock.Clock) (store.Store, error) {
 	}
 
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Warn),
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Auto-migrate the schema
+	if err := db.AutoMigrate(&store.WorkflowExecution{}, &store.WorkflowStep{}, &store.CronJob{}, &store.Lease{}); err != nil {
+		return nil, err
+	}
+
+	return NewGORMStore(db, clk), nil
+}
+
+func NewMySQLStore(dsn string, clk clock.Clock) (store.Store, error) {
+	if dsn == "" {
+		return nil, errors.New("MySQL DSN is required")
+	}
+
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	if err != nil {
 		return nil, err
@@ -291,12 +312,12 @@ func (s *gormStore) GetCompletedStep(ctx context.Context, namespace, executionID
 	return &step, err
 }
 
-func (s *gormStore) UpdateStepStatus(ctx context.Context, namespace, id string, status store.StepStatus, outputData []byte, errorMsg string) error {
+func (s *gormStore) UpdateStepStatus(ctx context.Context, namespace, executionID, stepName string, status store.StepStatus, outputData []byte, errorMsg string) error {
 	now := time.Now().UnixMilli()
 
 	var step store.WorkflowStep
 	err := s.db.WithContext(ctx).
-		Where("id = ? AND namespace = ?", id, namespace).
+		Where("namespace = ? AND execution_id = ? AND step_name = ?", namespace, executionID, stepName).
 		First(&step).Error
 	if err != nil {
 		return err
@@ -322,7 +343,7 @@ func (s *gormStore) UpdateStepStatus(ctx context.Context, namespace, id string, 
 
 	return s.db.WithContext(ctx).
 		Model(&store.WorkflowStep{}).
-		Where("id = ? AND namespace = ?", id, namespace).
+		Where("namespace = ? AND execution_id = ? AND step_name = ?", namespace, executionID, stepName).
 		Updates(updates).Error
 }
 
@@ -493,4 +514,21 @@ func isDuplicateKeyError(err error) bool {
 	return strings.Contains(errStr, "duplicate") ||
 		strings.Contains(errStr, "UNIQUE constraint") ||
 		strings.Contains(errStr, "PRIMARY KEY constraint")
+}
+
+// Testing helpers
+func (s *gormStore) GetAllWorkflows(ctx context.Context, namespace string) ([]store.WorkflowExecution, error) {
+	var workflows []store.WorkflowExecution
+	err := s.db.WithContext(ctx).
+		Where("namespace = ?", namespace).
+		Find(&workflows).Error
+	return workflows, err
+}
+
+func (s *gormStore) GetAllSteps(ctx context.Context, namespace string) ([]store.WorkflowStep, error) {
+	var steps []store.WorkflowStep
+	err := s.db.WithContext(ctx).
+		Where("namespace = ?", namespace).
+		Find(&steps).Error
+	return steps, err
 }

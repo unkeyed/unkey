@@ -25,7 +25,7 @@ func Sleep(ctx WorkflowContext, duration time.Duration) error {
 	existingStep, err := wctx.getAnyStep(stepName)
 	if err == nil && existingStep != nil && existingStep.StartedAt != nil {
 		sleepUntil := *existingStep.StartedAt + duration.Milliseconds()
-		
+
 		if sleepUntil <= now {
 			return wctx.markStepCompleted(existingStep.ID, []byte("{}"))
 		}
@@ -49,6 +49,6 @@ func Sleep(ctx WorkflowContext, duration time.Duration) error {
 	if err != nil {
 		return fmt.Errorf("failed to create sleep step: %w", err)
 	}
-	
+
 	return wctx.suspendWorkflowForSleep(sleepUntil)
 }

@@ -2,7 +2,6 @@ package hydra
 
 import "github.com/unkeyed/unkey/go/pkg/hydra/store"
 
-
 type WorkflowExecution = store.WorkflowExecution
 
 type WorkflowStep = store.WorkflowStep

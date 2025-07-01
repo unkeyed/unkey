@@ -64,11 +64,11 @@ func (w *workflowContext) getAnyStep(stepName string) (*store.WorkflowStep, erro
 }
 
 func (w *workflowContext) markStepCompleted(stepName string, outputData []byte) error {
-	return w.store.UpdateStepStatus(w.ctx, w.namespace, w.executionID+"-"+stepName, store.StepStatusCompleted, outputData, "")
+	return w.store.UpdateStepStatus(w.ctx, w.namespace, w.executionID, stepName, store.StepStatusCompleted, outputData, "")
 }
 
 func (w *workflowContext) markStepFailed(stepName string, errorMsg string) error {
-	return w.store.UpdateStepStatus(w.ctx, w.namespace, w.executionID+"-"+stepName, store.StepStatusFailed, nil, errorMsg)
+	return w.store.UpdateStepStatus(w.ctx, w.namespace, w.executionID, stepName, store.StepStatusFailed, nil, errorMsg)
 }
 
 func (w *workflowContext) suspendWorkflowForSleep(sleepUntil int64) error {
@@ -81,16 +81,16 @@ func RegisterWorkflow[TReq any](w Worker, workflow Workflow[TReq]) error {
 	if !ok {
 		return fmt.Errorf("invalid worker type")
 	}
-	
+
 	if _, exists := worker.workflows[workflow.Name()]; exists {
 		return fmt.Errorf("workflow %q is already registered", workflow.Name())
 	}
-	
+
 	// Create a wrapper that handles the type conversion
 	genericWorkflow := &workflowWrapper[TReq]{
 		wrapped: workflow,
 	}
-	
+
 	worker.workflows[workflow.Name()] = genericWorkflow
 	return nil
 }
@@ -110,13 +110,13 @@ func (w *workflowWrapper[TReq]) Run(ctx WorkflowContext, req any) error {
 	if !ok {
 		return fmt.Errorf("expected RawPayload, got %T", req)
 	}
-	
+
 	var typedReq TReq
 	wctx := ctx.(*workflowContext)
 	if err := wctx.marshaller.Unmarshal(rawPayload.Data, &typedReq); err != nil {
 		return fmt.Errorf("failed to unmarshal workflow request: %w", err)
 	}
-	
+
 	return w.wrapped.Run(ctx, typedReq)
 }
 

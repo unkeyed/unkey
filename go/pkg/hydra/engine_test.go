@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/hydra/testharness"
 )
 
@@ -60,7 +61,7 @@ func TestBasicWorkflowRegistration(t *testing.T) {
 		Concurrency: 1,
 	})
 	require.NoError(t, err)
-	
+
 	err = RegisterWorkflow(worker, workflow)
 	require.NoError(t, err)
 
@@ -75,12 +76,12 @@ func TestBasicWorkflowRegistration(t *testing.T) {
 	executionID, err := e.StartWorkflow(context.Background(), workflow.Name(), struct{}{})
 	require.NoError(t, err)
 	require.NotEmpty(t, executionID)
-	t.Logf("Started workflow with execution ID: %s", executionID)
 }
 
 func TestStepExecutesExactlyOnce(t *testing.T) {
 	// Given: A workflow with a step that increments a counter and emits events
-	e := newTestEngine(t)
+	testClock := clock.NewTestClock()
+	e := newTestEngineWithClock(t, testClock)
 	events := testharness.NewEventCollector()
 	counter := int64(0)
 	workflow := &CountingWorkflow{
@@ -90,11 +91,12 @@ func TestStepExecutesExactlyOnce(t *testing.T) {
 
 	// When: Creating worker, registering workflow, and starting
 	worker, err := NewWorker(e, WorkerConfig{
-		Concurrency: 1,
+		Concurrency:  1,
+		PollInterval: 100 * time.Millisecond, // Fast polling for test
 	})
 	require.NoError(t, err)
 	defer worker.Shutdown(context.Background())
-	
+
 	err = RegisterWorkflow(worker, workflow)
 	require.NoError(t, err)
 
@@ -102,28 +104,28 @@ func TestStepExecutesExactlyOnce(t *testing.T) {
 	require.NoError(t, err)
 
 	// Give worker time to start polling
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 
 	// Start workflow execution
 	executionID, err := e.StartWorkflow(context.Background(), workflow.Name(), struct{}{})
 	require.NoError(t, err)
 	require.NotEmpty(t, executionID)
 
-	// Check workflow was created in store
-	createdWorkflow, err := e.GetStore().GetWorkflow(context.Background(), "default", executionID)
-	require.NoError(t, err)
-	t.Logf("Created workflow status: %s", createdWorkflow.Status)
+	// Trigger worker polling with test clock
+	for i := 0; i < 10; i++ {
+		testClock.Tick(200 * time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 
-	// Debug: Check what GetPendingWorkflows returns
-	pendingWorkflows, err := e.GetStore().GetPendingWorkflows(context.Background(), "default", 10, []string{"counting-workflow"})
-	require.NoError(t, err)
-	t.Logf("Pending workflows found: %d", len(pendingWorkflows))
-	for i, wf := range pendingWorkflows {
-		t.Logf("Pending workflow %d: ID=%s, Name=%s, Status=%s", i, wf.ID, wf.WorkflowName, wf.Status)
+		// Check if workflow has been picked up
+		currentStatus, err := e.store.GetWorkflow(context.Background(), "default", executionID)
+		require.NoError(t, err)
+		if currentStatus.Status != WorkflowStatusPending {
+			break
+		}
 	}
 
 	// Wait for completion
-	completedWorkflow := waitForWorkflowSuccess(t, e, executionID, 5*time.Second)
+	completedWorkflow := waitForWorkflowCompletion(t, e, executionID, 3*time.Second)
 	require.NotNil(t, completedWorkflow)
 
 	// Then: Assert using both counter and events
@@ -133,12 +135,6 @@ func TestStepExecutesExactlyOnce(t *testing.T) {
 	stepExecutions := events.FilterWithData(testharness.StepExecuting, "step_name", "increment")
 	stepCompletions := events.FilterWithData(testharness.StepExecuted, "step_name", "increment")
 	workflowCompletions := events.Filter(testharness.WorkflowCompleted)
-
-	t.Logf("Events summary: %+v", events.Summary())
-	t.Logf("Final counter value: %d", finalCount)
-	t.Logf("Step executions: %d", len(stepExecutions))
-	t.Logf("Step completions: %d", len(stepCompletions))
-	t.Logf("Workflow completions: %d", len(workflowCompletions))
 
 	// The critical assertion: step should execute exactly once
 	assert.Equal(t, int64(1), finalCount, "Counter should be incremented exactly once")
@@ -162,4 +158,3 @@ func TestWorkerCrashRecovery(t *testing.T) {
 func TestNoDuplicateStepExecution(t *testing.T) {
 	t.Skip("TODO: Implement concurrency safety testing")
 }
-

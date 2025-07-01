@@ -1,38 +1,67 @@
 ---
 title: CopyButton
-summary: A button component that copies text to clipboard with visual feedback
+summary: A button component that copies text to clipboard with visual feedback and accessibility features
 ---
 import { Default } from "./copy-button.examples"
 
-The `CopyButton` component provides a simple way to copy text to the clipboard with visual feedback. When clicked, it copies the provided text and shows a checkmark icon to indicate success.
+The `CopyButton` component provides a simple way to copy text to the clipboard with visual feedback. It extends the base Button component and includes built-in copy functionality with proper accessibility support.
 
 ## Features
 
-- Visual feedback with icon change on copy
-- Accessible with screen reader support
+- Visual feedback with icon change on copy (TaskUnchecked → TaskChecked)
+- Accessible with screen reader support and ARIA labels
 - Automatic reset after 2 seconds
-- Customizable through className prop
-- TypeScript support
+- Extends ButtonProps for full button customization
+- Analytics support with optional src prop
+- Prevents event propagation to parent elements
+- TypeScript support with proper typing
 
 ## Props
 
-| Prop | Type | Description |
-|------|------|-------------|
-| `value` | `string` | The text content to be copied to clipboard |
-| `src` | `string?` | Optional source identifier for analytics |
-| `className` | `string?` | Additional CSS classes to apply to the button |
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `value` | `string` | **Required** | The text content to be copied to clipboard |
+| `src` | `string?` | `undefined` | Optional source identifier for analytics tracking |
+| `variant` | `ButtonVariant` | `"outline"` | Button variant (outline, ghost, primary, etc.) |
+| `className` | `string?` | `undefined` | Additional CSS classes to apply to the button |
+
+The component also accepts all standard Button props.
 
 ## Usage
 
 <Default />
 
-## Accessibility
-
-The component includes screen reader support with an appropriate "Copy" label. The visual state change (unchecked to checked icon) provides clear feedback for all users.
-
 ## Behavior
 
-1. On click, the button copies the provided text to the clipboard
-2. The icon changes from an unchecked to checked state
-3. After 2 seconds, the icon reverts to its original state
-4. Parent click events are prevented from triggering (e.stopPropagation)
+1. **Click Handling**: On click, the button copies the provided text to the clipboard
+2. **Visual Feedback**: The icon changes from TaskUnchecked to TaskChecked state
+3. **Auto Reset**: After 2 seconds, the icon reverts to its original state
+4. **Event Prevention**: Parent click events are prevented from triggering (`e.stopPropagation`)
+5. **Analytics**: If provided, the `src` prop is passed to analytics for tracking
+
+## Accessibility
+
+The component includes comprehensive accessibility features:
+
+- **ARIA Label**: `aria-label="Copy to clipboard"` for screen readers
+- **Screen Reader Text**: Hidden "Copy" text for additional context
+- **Title Attribute**: `title="Copy to clipboard"` for tooltip on hover
+- **Focus Management**: Proper focus states with `focus:ring-0 focus:border-grayA-6`
+- **Keyboard Support**: Full keyboard navigation support inherited from Button component
+
+## Styling
+
+The component includes default styling:
+
+- Fixed dimensions: `w-6 h-6` (24x24px)
+- Focus states: `focus:ring-0 focus:border-grayA-6`
+- Icons: Full-size icons with `w-full h-full`
+- Default variant: `outline` for subtle appearance
+
+## Best Practices
+
+- Use the `src` prop for analytics tracking when copying sensitive data
+- Provide meaningful `value` content for better user experience
+- Consider the button's context when choosing variants
+- Ensure sufficient contrast for the button in your design
+- Test with screen readers to verify accessibility

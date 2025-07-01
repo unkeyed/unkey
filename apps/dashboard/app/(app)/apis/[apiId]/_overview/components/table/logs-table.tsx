@@ -1,11 +1,10 @@
 "use client";
-import { Badge } from "@/components/ui/badge";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { Ban, BookBookmark } from "@unkey/icons";
-import { Button, Empty, TimestampInfo } from "@unkey/ui";
+import { Badge, Button, Empty, TimestampInfo } from "@unkey/ui";
 
 import { useSort } from "@/components/logs/hooks/use-sort";
 import { formatNumber } from "@/lib/fmt";
@@ -34,7 +33,7 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
         key: "key_id",
         header: "ID",
         width: "15%",
-        headerClassName: "pl-11",
+        headerClassName: "pl-12",
         render: (log) => (
           <KeyIdentifierColumn log={log} apiId={apiId} onNavigate={() => setSelectedLog(null)} />
         ),

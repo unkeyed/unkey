@@ -6,6 +6,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/unkeyed/unkey/go/pkg/circuitbreaker"
+	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/hydra/store"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -31,12 +34,17 @@ type WorkerConfig struct {
 }
 
 type worker struct {
-	engine    *Engine
-	config    WorkerConfig
-	workflows map[string]Workflow[any]
-	shutdownC chan struct{}
-	doneC     chan struct{}
-	wg        sync.WaitGroup
+	engine              *Engine
+	config              WorkerConfig
+	workflows           map[string]Workflow[any]
+	clock               clock.Clock
+	shutdownC           chan struct{}
+	doneC               chan struct{}
+	wg                  sync.WaitGroup
+	activeLeases        map[string]bool                                          // Track workflow IDs we have leases for
+	activeLeasesM       sync.RWMutex                                             // Protect the activeLeases map
+	queryCircuitBreaker circuitbreaker.CircuitBreaker[[]store.WorkflowExecution] // Protect query operations
+	leaseCircuitBreaker circuitbreaker.CircuitBreaker[any]                       // Protect lease operations
 }
 
 func NewWorker(e *Engine, config WorkerConfig) (Worker, error) {
@@ -59,12 +67,20 @@ func NewWorker(e *Engine, config WorkerConfig) (Worker, error) {
 		config.CronInterval = 1 * time.Minute
 	}
 
+	// Initialize circuit breakers for different database operations
+	queryCircuitBreaker := circuitbreaker.New[[]store.WorkflowExecution]("hydra-query")
+	leaseCircuitBreaker := circuitbreaker.New[any]("hydra-lease")
+
 	worker := &worker{
-		engine:    e,
-		config:    config,
-		workflows: make(map[string]Workflow[any]),
-		shutdownC: make(chan struct{}),
-		doneC:     make(chan struct{}),
+		engine:              e,
+		config:              config,
+		workflows:           make(map[string]Workflow[any]),
+		clock:               e.clock,
+		shutdownC:           make(chan struct{}),
+		doneC:               make(chan struct{}),
+		activeLeases:        make(map[string]bool),
+		queryCircuitBreaker: queryCircuitBreaker,
+		leaseCircuitBreaker: leaseCircuitBreaker,
 	}
 
 	return worker, nil
@@ -90,15 +106,16 @@ func (w *worker) run(ctx context.Context) {
 func (w *worker) pollForWorkflows(ctx context.Context) {
 	defer w.wg.Done()
 
-	ticker := time.NewTicker(w.config.PollInterval)
+	ticker := w.clock.NewTicker(w.config.PollInterval)
 	defer ticker.Stop()
+	tickerC := ticker.C()
 
 	activeWorkflows := make(map[string]context.CancelFunc)
 	var mu sync.Mutex
 
 	for {
 		select {
-		case <-ticker.C:
+		case <-tickerC:
 			mu.Lock()
 			activeCount := len(activeWorkflows)
 			mu.Unlock()
@@ -131,8 +148,12 @@ func (w *worker) pollOnce(ctx context.Context, mu *sync.Mutex, activeWorkflows m
 		workflowNames = append(workflowNames, name)
 	}
 
-	workflows, err := w.engine.store.GetPendingWorkflows(ctx, w.engine.namespace, w.config.Concurrency, workflowNames)
+	// Protect database query with circuit breaker
+	workflows, err := w.queryCircuitBreaker.Do(ctx, func(ctx context.Context) ([]store.WorkflowExecution, error) {
+		return w.engine.store.GetPendingWorkflows(ctx, w.engine.namespace, w.config.Concurrency, workflowNames)
+	})
 	if err != nil {
+		// Circuit breaker is open or database error - skip this poll cycle
 		return
 	}
 
@@ -148,11 +169,17 @@ func (w *worker) pollOnce(ctx context.Context, mu *sync.Mutex, activeWorkflows m
 			break
 		}
 
-		err := w.engine.store.AcquireWorkflowLease(ctx, workflow.ID, w.engine.namespace, w.config.WorkerID, w.config.ClaimTimeout)
+		// Protect lease acquisition with circuit breaker
+		_, err := w.leaseCircuitBreaker.Do(ctx, func(ctx context.Context) (any, error) {
+			return nil, w.engine.store.AcquireWorkflowLease(ctx, workflow.ID, w.engine.namespace, w.config.WorkerID, w.config.ClaimTimeout)
+		})
 		if err != nil {
 			mu.Unlock()
 			continue
 		}
+
+		// Track this lease for heartbeats
+		w.addActiveLease(workflow.ID)
 
 		workflowCtx, cancel := context.WithCancel(ctx)
 		activeWorkflows[workflow.ID] = cancel
@@ -166,6 +193,9 @@ func (w *worker) pollOnce(ctx context.Context, mu *sync.Mutex, activeWorkflows m
 				mu.Lock()
 				delete(activeWorkflows, wf.ID)
 				mu.Unlock()
+
+				// Stop tracking this lease
+				w.removeActiveLease(wf.ID)
 			}()
 
 			w.executeWorkflow(workflowCtx, &wf)
@@ -223,12 +253,14 @@ func (w *worker) executeWorkflow(ctx context.Context, e *WorkflowExecution) {
 func (w *worker) sendHeartbeats(ctx context.Context) {
 	defer w.wg.Done()
 
-	ticker := time.NewTicker(w.config.HeartbeatInterval)
+	ticker := w.clock.NewTicker(w.config.HeartbeatInterval)
 	defer ticker.Stop()
+	tickerC := ticker.C()
 
 	for {
 		select {
-		case <-ticker.C:
+		case <-tickerC:
+			w.sendHeartbeatsForActiveLeases(ctx)
 
 		case <-w.shutdownC:
 			return
@@ -238,16 +270,65 @@ func (w *worker) sendHeartbeats(ctx context.Context) {
 	}
 }
 
+// addActiveLease tracks a workflow lease for heartbeat sending
+func (w *worker) addActiveLease(workflowID string) {
+	w.activeLeasesM.Lock()
+	defer w.activeLeasesM.Unlock()
+	w.activeLeases[workflowID] = true
+}
+
+// removeActiveLease stops tracking a workflow lease
+func (w *worker) removeActiveLease(workflowID string) {
+	w.activeLeasesM.Lock()
+	defer w.activeLeasesM.Unlock()
+	delete(w.activeLeases, workflowID)
+}
+
+// sendHeartbeatsForActiveLeases sends heartbeats for all workflows this worker has leases for
+func (w *worker) sendHeartbeatsForActiveLeases(ctx context.Context) {
+	w.activeLeasesM.RLock()
+	// Copy the map to avoid holding the lock while sending heartbeats
+	leaseIDs := make([]string, 0, len(w.activeLeases))
+	for workflowID := range w.activeLeases {
+		leaseIDs = append(leaseIDs, workflowID)
+	}
+	w.activeLeasesM.RUnlock()
+
+	// Send heartbeats for each active lease
+	now := w.clock.Now().UnixMilli()
+	newExpiresAt := now + w.config.ClaimTimeout.Milliseconds()
+
+	for _, workflowID := range leaseIDs {
+		// Protect heartbeat with circuit breaker
+		_, err := w.leaseCircuitBreaker.Do(ctx, func(ctx context.Context) (any, error) {
+			return nil, w.engine.store.HeartbeatLease(ctx, workflowID, w.config.WorkerID, newExpiresAt)
+		})
+		if err != nil {
+			// Log error but continue with other heartbeats
+			// Circuit breaker might be open or database error
+			continue
+		}
+	}
+}
+
 func (w *worker) cleanupExpiredLeases(ctx context.Context) {
 	defer w.wg.Done()
 
-	ticker := time.NewTicker(w.config.HeartbeatInterval * 2) // Clean up less frequently than heartbeats
+	ticker := w.clock.NewTicker(w.config.HeartbeatInterval * 2) // Clean up less frequently than heartbeats
 	defer ticker.Stop()
+	tickerC := ticker.C()
 
 	for {
 		select {
-		case <-ticker.C:
+		case <-tickerC:
+			// Clean up expired leases first
 			err := w.engine.store.CleanupExpiredLeases(ctx, w.engine.namespace)
+			if err != nil {
+				// Log error if needed
+			}
+
+			// Then reset orphaned workflows back to pending so they can be picked up again
+			err = w.engine.store.ResetOrphanedWorkflows(ctx, w.engine.namespace)
 			if err != nil {
 				// Log error if needed
 			}
@@ -263,12 +344,13 @@ func (w *worker) cleanupExpiredLeases(ctx context.Context) {
 func (w *worker) processCronJobs(ctx context.Context) {
 	defer w.wg.Done()
 
-	ticker := time.NewTicker(w.config.CronInterval)
+	ticker := w.clock.NewTicker(w.config.CronInterval)
 	defer ticker.Stop()
+	tickerC := ticker.C()
 
 	for {
 		select {
-		case <-ticker.C:
+		case <-tickerC:
 			w.processDueCronJobs(ctx)
 
 		case <-w.shutdownC:

@@ -1,7 +1,6 @@
 import { StatusBadge } from "@/app/(app)/apis/[apiId]/settings/components/status-badge";
-import { Badge } from "@/components/ui/badge";
 import { Key2, Lock } from "@unkey/icons";
-import { Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+import { Badge, Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 
 type Key = {
   id: string;

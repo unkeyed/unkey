@@ -18,13 +18,13 @@ type KeyIdentifierColumnProps = {
 const getWarningIcon = (severity: string) => {
   switch (severity) {
     case "high":
-      return <TriangleWarning2 className="text-error-11" />;
+      return <TriangleWarning2 className="text-error-11" size="md-regular" />;
     case "moderate":
-      return <TriangleWarning2 className="text-orange-11" />;
+      return <TriangleWarning2 className="text-orange-11" size="md-regular" />;
     case "low":
-      return <TriangleWarning2 className="text-warning-11" />;
+      return <TriangleWarning2 className="text-warning-11" size="md-regular" />;
     default:
-      return <TriangleWarning2 className="invisible" />;
+      return <TriangleWarning2 className="invisible" size="md-regular" />;
   }
 };
 

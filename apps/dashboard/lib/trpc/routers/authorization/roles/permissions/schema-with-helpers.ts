@@ -21,6 +21,7 @@ export const permissionsSearchPayload = z.object({
 
 export const permissionsQueryPayload = z.object({
   cursor: z.string().optional(),
+  limit: z.number().default(LIMIT),
 });
 
 export const PermissionsSearchResponse = z.object({
@@ -49,9 +50,9 @@ export const transformPermission = (permission: PermissionWithRoles) => ({
   description: permission.description,
   slug: permission.slug,
   roles: permission.roles
-    .filter((rolePermission) => rolePermission.role !== null)
+    .filter((rolePermission) => Boolean(rolePermission.role))
     .map((rolePermission) => ({
-      id: rolePermission.role!.id,
-      name: rolePermission.role!.name,
+      id: rolePermission.role.id,
+      name: rolePermission.role.name,
     })),
 });

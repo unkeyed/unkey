@@ -15,20 +15,19 @@ var constLabels = prometheus.Labels{
 }
 
 var workflowLatencyBuckets = []float64{
-	0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 
+	0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0,
 	10.0, 30.0, 60.0, 120.0, 300.0, 600.0,
 }
 
 var stepLatencyBuckets = []float64{
-	0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 
+	0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5,
 	1.0, 2.5, 5.0, 10.0, 30.0, 60.0,
 }
 
 var dbLatencyBuckets = []float64{
-	0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 
+	0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1,
 	0.2, 0.5, 1.0, 2.0, 5.0,
 }
-
 
 var WorkflowsStartedTotal = promauto.NewCounterVec(
 	prometheus.CounterOpts{
@@ -53,7 +52,7 @@ var WorkflowsCompletedTotal = promauto.NewCounterVec(
 var WorkflowsRetriedTotal = promauto.NewCounterVec(
 	prometheus.CounterOpts{
 		Subsystem:   "hydra",
-		Name:        "workflows_retried_total", 
+		Name:        "workflows_retried_total",
 		Help:        "Total number of workflow retry attempts",
 		ConstLabels: constLabels,
 	},
@@ -73,7 +72,7 @@ var WorkflowDurationSeconds = promauto.NewHistogramVec(
 
 var WorkflowQueueTimeSeconds = promauto.NewHistogramVec(
 	prometheus.HistogramOpts{
-		Subsystem:   "hydra", 
+		Subsystem:   "hydra",
 		Name:        "workflow_queue_time_seconds",
 		Help:        "Time workflow spent queued before execution",
 		ConstLabels: constLabels,
@@ -102,7 +101,6 @@ var WorkflowsQueued = promauto.NewGaugeVec(
 	[]string{"namespace", "status"},
 )
 
-
 var StepsExecutedTotal = promauto.NewCounterVec(
 	prometheus.CounterOpts{
 		Subsystem:   "hydra",
@@ -127,7 +125,7 @@ var StepsCachedTotal = promauto.NewCounterVec(
 	prometheus.CounterOpts{
 		Subsystem:   "hydra",
 		Name:        "steps_cached_total",
-		Help:        "Steps skipped due to checkpointing", 
+		Help:        "Steps skipped due to checkpointing",
 		ConstLabels: constLabels,
 	},
 	[]string{"namespace", "workflow_name", "step_name"},
@@ -143,7 +141,6 @@ var StepDurationSeconds = promauto.NewHistogramVec(
 	},
 	[]string{"namespace", "workflow_name", "step_name", "status"},
 )
-
 
 var WorkerHeartbeatsTotal = promauto.NewCounterVec(
 	prometheus.CounterOpts{
@@ -185,7 +182,6 @@ var WorkerConcurrencyCurrent = promauto.NewGaugeVec(
 	[]string{"worker_id", "namespace"},
 )
 
-
 var DbOperationsTotal = promauto.NewCounterVec(
 	prometheus.CounterOpts{
 		Subsystem:   "hydra",
@@ -216,7 +212,6 @@ var DbConnectionsActive = promauto.NewGaugeVec(
 	},
 	[]string{"worker_id"},
 )
-
 
 var SleepsStartedTotal = promauto.NewCounterVec(
 	prometheus.CounterOpts{
@@ -280,7 +275,6 @@ var WorkflowsSleeping = promauto.NewGaugeVec(
 	[]string{"namespace"},
 )
 
-
 var ErrorsTotal = promauto.NewCounterVec(
 	prometheus.CounterOpts{
 		Subsystem:   "hydra",
@@ -311,7 +305,6 @@ var TimeoutsTotal = promauto.NewCounterVec(
 	[]string{"namespace", "operation_type"},
 )
 
-
 var PayloadSizeBytes = promauto.NewHistogramVec(
 	prometheus.HistogramOpts{
 		Subsystem:   "hydra",
@@ -332,7 +325,6 @@ var SerializationErrorsTotal = promauto.NewCounterVec(
 	},
 	[]string{"namespace", "workflow_name", "direction"},
 )
-
 
 func ObserveWorkflowDuration(namespace, workflowName, status string, start time.Time) {
 	duration := time.Since(start)

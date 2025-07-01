@@ -14,7 +14,7 @@ export const CopyApiId = ({ apiId }: { apiId: string }) => {
     >
       <div className="flex flex-row justify-end items-center gap-x-2">
         <Input
-          className="min-w-[322px] focus:ring-0 focus:ring-offset-0"
+          className="min-w-[322px] focus:ring-0 focus:ring-offset-0 h-9"
           readOnly
           defaultValue={apiId}
           placeholder="API ID"

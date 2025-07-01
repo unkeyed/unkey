@@ -117,6 +117,9 @@ export const registerLegacyApisListKeys = (app: App) =>
       limit: limit,
       orderBy: schema.keys.id,
       offset: offset ? offset : undefined,
+      with: {
+        ratelimits: true,
+      },
     });
     metrics.emit({
       metric: "metric.db.read",
@@ -130,29 +133,30 @@ export const registerLegacyApisListKeys = (app: App) =>
       .where(and(eq(schema.keys.keyAuthId, api.keyAuthId), isNull(schema.keys.deletedAtM)));
 
     return c.json({
-      keys: keys.map((k) => ({
-        id: k.id,
-        start: k.start,
-        apiId: api.id,
-        workspaceId: k.workspaceId,
-        name: k.name ?? undefined,
-        ownerId: k.ownerId ?? undefined,
-        meta: k.meta ? JSON.parse(k.meta) : undefined,
-        createdAt: k.createdAtM ?? undefined,
-        expires: k.expires?.getTime() ?? undefined,
-        ratelimit:
-          k.ratelimitAsync !== null && k.ratelimitLimit !== null && k.ratelimitDuration !== null
+      keys: keys.map((k) => {
+        const ratelimit = k.ratelimits.find((rl) => rl.name === "default");
+        return {
+          id: k.id,
+          start: k.start,
+          apiId: api.id,
+          workspaceId: k.workspaceId,
+          name: k.name ?? undefined,
+          ownerId: k.ownerId ?? undefined,
+          meta: k.meta ? JSON.parse(k.meta) : undefined,
+          createdAt: k.createdAtM ?? undefined,
+          expires: k.expires?.getTime() ?? undefined,
+          ratelimit: ratelimit
             ? {
-                async: k.ratelimitAsync,
-                type: k.ratelimitAsync ? "fast" : ("consistent" as unknown),
-                limit: k.ratelimitLimit,
-                duration: k.ratelimitDuration,
-                refillRate: k.ratelimitLimit,
-                refillInterval: k.ratelimitDuration,
+                async: false,
+                limit: ratelimit.limit,
+                duration: ratelimit.duration,
+                refillRate: ratelimit.limit,
+                refillInterval: ratelimit.duration,
               }
             : undefined,
-        remaining: k.remaining ?? undefined,
-      })),
+          remaining: k.remaining ?? undefined,
+        };
+      }),
       // @ts-ignore, mysql sucks
       total: Number.parseInt(total.at(0)?.count ?? "0"),
       cursor: keys.at(-1)?.id ?? undefined,

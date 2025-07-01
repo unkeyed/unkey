@@ -131,7 +131,7 @@ export const DeleteKey = ({ keyDetails, isOpen, onClose }: DeleteKeyProps) => {
                   id="confirm-deletion"
                   className="mt-2"
                   color="danger"
-                  size="md"
+                  size="lg"
                   checked={field.value}
                   onCheckedChange={field.onChange}
                   label="I understand this will permanently delete the key and all its associated data"

@@ -8,9 +8,9 @@ type WorkflowExecution struct {
 	OutputData   []byte
 	ErrorMessage string
 
-	CreatedAt   int64
-	StartedAt   *int64
-	CompletedAt *int64
+	CreatedAt         int64
+	StartedAt         *int64
+	CompletedAt       *int64
 	MaxAttempts       int32
 	RemainingAttempts int32
 	NextRetryAt       *int64
@@ -31,8 +31,8 @@ func (WorkflowExecution) TableName() string {
 
 type WorkflowStep struct {
 	ID           string `gorm:"primaryKey"`
-	ExecutionID  string
-	StepName     string
+	ExecutionID  string `gorm:"index:idx_workflow_step_unique,unique"`
+	StepName     string `gorm:"index:idx_workflow_step_unique,unique"`
 	StepOrder    int32
 	Status       StepStatus
 	OutputData   []byte
@@ -46,7 +46,7 @@ type WorkflowStep struct {
 
 	RemainingAttempts int32
 
-	Namespace string
+	Namespace string `gorm:"index:idx_workflow_step_unique,unique"`
 }
 
 func (WorkflowStep) TableName() string {
@@ -87,7 +87,6 @@ type Lease struct {
 	Namespace string
 
 	WorkerID string
-
 
 	AcquiredAt int64
 

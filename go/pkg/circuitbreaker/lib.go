@@ -3,18 +3,14 @@ package circuitbreaker
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"sync"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/clock"
-	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
+	"github.com/unkeyed/unkey/go/pkg/logging"
+	"github.com/unkeyed/unkey/go/pkg/tracing"
 )
 
-// CB implements the CircuitBreaker interface with configurable failure detection
-// and recovery behavior.
 type CB[Res any] struct {
 	sync.Mutex
 	// This is a pointer to the configuration of the circuit breaker because we
@@ -40,7 +36,6 @@ type CB[Res any] struct {
 	consecutiveFailures  int
 }
 
-// config holds the configuration parameters for a circuit breaker instance.
 type config struct {
 	name string
 	// Max requests that may pass through the circuit breaker in its half-open state
@@ -69,70 +64,41 @@ type config struct {
 	logger logging.Logger
 }
 
-// WithMaxRequests configures the maximum number of requests allowed during
-// the half-open state. Once this threshold is reached, the circuit will either
-// close (if all requests succeeded) or remain open (if any request failed).
-//
-// Default: 10
 func WithMaxRequests(maxRequests int) applyConfig {
 	return func(c *config) {
 		c.maxRequests = maxRequests
 	}
 }
 
-// WithCyclicPeriod sets the interval at which request counters are reset
-// while the circuit is closed. This determines how frequently the circuit
-// "forgets" about past failures.
-//
-// Default: 5 seconds
 func WithCyclicPeriod(cyclicPeriod time.Duration) applyConfig {
 	return func(c *config) {
 		c.cyclicPeriod = cyclicPeriod
 	}
 }
-
-// WithIsDownstreamError provides a function to determine if an error should
-// be counted towards the failure threshold. This allows the circuit breaker
-// to ignore certain types of errors (e.g., validation errors) that don't
-// indicate a problem with the downstream service.
-//
-// Default: func(err error) bool { return err != nil }
 func WithIsDownstreamError(isDownstreamError func(error) bool) applyConfig {
 	return func(c *config) {
 		c.isDownstreamError = isDownstreamError
 	}
 }
-
-// WithTripThreshold sets how many failures must occur within a cyclic period
-// before the circuit breaker trips and enters the open state.
-//
-// Default: 5
 func WithTripThreshold(tripThreshold int) applyConfig {
 	return func(c *config) {
 		c.tripThreshold = tripThreshold
 	}
 }
 
-// WithTimeout sets how long the circuit breaker stays in the open state
-// before transitioning to half-open to test if the service has recovered.
-//
-// Default: 1 minute
 func WithTimeout(timeout time.Duration) applyConfig {
 	return func(c *config) {
 		c.timeout = timeout
 	}
 }
 
-// WithClock provides a custom clock implementation for testing time-based behavior.
-// This should only be used in test code.
+// for testing
 func WithClock(clock clock.Clock) applyConfig {
 	return func(c *config) {
 		c.clock = clock
 	}
 }
 
-// WithLogger provides a custom logger for the circuit breaker to use.
-// If not provided, a no-op logger will be used.
 func WithLogger(logger logging.Logger) applyConfig {
 	return func(c *config) {
 		c.logger = logger
@@ -142,24 +108,6 @@ func WithLogger(logger logging.Logger) applyConfig {
 // applyConfig applies a config setting to the circuit breaker
 type applyConfig func(*config)
 
-// New creates a new circuit breaker with configurable behavior.
-// The name parameter identifies this circuit breaker for logging and metrics.
-// The generic parameter Res specifies the response type from the protected operation.
-//
-// Configuration is provided via functional options:
-//
-//	cb := New[*http.Response]("api_service",
-//	    WithTripThreshold(10),
-//	    WithTimeout(30 * time.Second),
-//	    WithIsDownstreamError(func(err error) bool {
-//	        // Only count 5xx errors as downstream failures
-//	        var httpErr *HttpError
-//	        if errors.As(err, &httpErr) {
-//	            return httpErr.StatusCode >= 500
-//	        }
-//	        return err != nil
-//	    }),
-//	)
 func New[Res any](name string, applyConfigs ...applyConfig) *CB[Res] {
 
 	cfg := &config{
@@ -172,7 +120,7 @@ func New[Res any](name string, applyConfigs ...applyConfig) *CB[Res] {
 		},
 		tripThreshold: 5,
 		clock:         clock.New(),
-		logger:        logging.NewNoop(),
+		logger:        logging.New(nil),
 	}
 
 	for _, apply := range applyConfigs {
@@ -180,33 +128,20 @@ func New[Res any](name string, applyConfigs ...applyConfig) *CB[Res] {
 	}
 
 	cb := &CB[Res]{
-		Mutex:                sync.Mutex{},
-		config:               cfg,
-		logger:               cfg.logger,
-		state:                Closed,
-		resetCountersAt:      cfg.clock.Now().Add(cfg.cyclicPeriod),
-		resetStateAt:         cfg.clock.Now().Add(cfg.timeout),
-		requests:             0,
-		successes:            0,
-		failures:             0,
-		consecutiveSuccesses: 0,
-		consecutiveFailures:  0,
+		config:          cfg,
+		logger:          cfg.logger,
+		state:           Closed,
+		resetCountersAt: cfg.clock.Now().Add(cfg.cyclicPeriod),
+		resetStateAt:    cfg.clock.Now().Add(cfg.timeout),
 	}
 
 	return cb
 }
 
-var _ CircuitBreaker[any] = (*CB[any])(nil)
+var _ CircuitBreaker[any] = &CB[any]{}
 
-// Do executes a function with circuit breaker protection.
-// If the circuit is open, it returns ErrTripped without executing the function.
-// If the circuit is half-open and the maximum test requests are already in flight,
-// it returns ErrTooManyRequests.
-//
-// The function is wrapped with appropriate tracing to track circuit breaker
-// operations in observability systems.
 func (cb *CB[Res]) Do(ctx context.Context, fn func(context.Context) (Res, error)) (res Res, err error) {
-	ctx, span := tracing.Start(ctx, fmt.Sprintf("circuitbreaker.%s.Do", cb.config.name))
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName(fmt.Sprintf("circuitbreaker.%s", cb.config.name), "Do"))
 	defer span.End()
 
 	err = cb.preflight(ctx)
@@ -214,7 +149,7 @@ func (cb *CB[Res]) Do(ctx context.Context, fn func(context.Context) (Res, error)
 		return res, err
 	}
 
-	ctx, fnSpan := tracing.Start(ctx, fmt.Sprintf("circuitbreaker.%s.fn", cb.config.name))
+	ctx, fnSpan := tracing.Start(ctx, tracing.NewSpanName(fmt.Sprintf("circuitbreaker.%s", cb.config.name), "fn"))
 	res, err = fn(ctx)
 	fnSpan.End()
 
@@ -224,10 +159,9 @@ func (cb *CB[Res]) Do(ctx context.Context, fn func(context.Context) (Res, error)
 
 }
 
-// preflight checks if the circuit is ready to accept a request.
-// It updates internal counters and state based on configured intervals.
+// preflight checks if the circuit is ready to accept a request
 func (cb *CB[Res]) preflight(ctx context.Context) error {
-	_, span := tracing.Start(ctx, fmt.Sprintf("circuitbreaker.%s.preflight", cb.config.name))
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName(fmt.Sprintf("circuitbreaker.%s", cb.config.name), "preflight"))
 	defer span.End()
 	cb.Lock()
 	defer cb.Unlock()
@@ -247,25 +181,22 @@ func (cb *CB[Res]) preflight(ctx context.Context) error {
 		cb.resetStateAt = now.Add(cb.config.timeout)
 	}
 
+	requests.WithLabelValues(cb.config.name, string(cb.state)).Inc()
+
 	if cb.state == Open {
 		return ErrTripped
 	}
 
-	cb.logger.Debug("circuit breaker state",
-		slog.String("state", string(cb.state)),
-		slog.Int("requests", cb.requests),
-		slog.Int("maxRequests", cb.config.maxRequests),
-	)
+	cb.logger.Debug("circuit breaker state", "state", string(cb.state), "requests", cb.requests, "maxRequests", cb.config.maxRequests)
 	if cb.state == HalfOpen && cb.requests >= cb.config.maxRequests {
 		return ErrTooManyRequests
 	}
 	return nil
 }
 
-// postflight updates the circuit breaker state based on the result of the request.
-// It tracks successes and failures to determine whether to open or close the circuit.
+// postflight updates the circuit breaker state based on the result of the request
 func (cb *CB[Res]) postflight(ctx context.Context, err error) {
-	_, span := tracing.Start(ctx, fmt.Sprintf("circuitbreaker.%s.postflight", cb.config.name))
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName(fmt.Sprintf("circuitbreaker.%s", cb.config.name), "postflight"))
 	defer span.End()
 	cb.Lock()
 	defer cb.Unlock()
@@ -280,9 +211,8 @@ func (cb *CB[Res]) postflight(ctx context.Context, err error) {
 		cb.consecutiveFailures = 0
 	}
 
-	metrics.CircuitBreakerRequests.WithLabelValues(cb.config.name, string(cb.state)).Inc()
-
 	switch cb.state {
+
 	case Closed:
 		if cb.failures >= cb.config.tripThreshold {
 			cb.state = Open

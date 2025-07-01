@@ -11,7 +11,7 @@ import (
 
 func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.Context) (TResponse, error)) (TResponse, error) {
 	var zero TResponse
-	
+
 	wctx, ok := ctx.(*workflowContext)
 	if !ok {
 		return zero, fmt.Errorf("invalid workflow context")
@@ -21,26 +21,26 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 	if err == nil && existing != nil {
 		responseType := reflect.TypeOf((*TResponse)(nil)).Elem()
 		var response TResponse
-		
+
 		if responseType.Kind() == reflect.Ptr {
 			responseValue := reflect.New(responseType.Elem())
 			response = responseValue.Interface().(TResponse)
 		}
-		
+
 		if len(existing.OutputData) > 0 {
 			err = wctx.marshaller.Unmarshal(existing.OutputData, &response)
 			if err != nil {
 				return zero, fmt.Errorf("failed to unmarshal cached step result: %w", err)
 			}
 		}
-		
+
 		return response, nil
 	}
 
 	existingStep, err := wctx.getAnyStep(stepName)
 	var stepToUse *WorkflowStep
 	var shouldCreateNewStep bool = true
-	
+
 	if err == nil && existingStep != nil {
 		stepToUse = existingStep
 		shouldCreateNewStep = false
@@ -66,11 +66,11 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 		now := time.Now().UnixMilli()
 		stepToUse.Status = StepStatusRunning
 		stepToUse.StartedAt = ptr.P(now)
-		
+
 		stepToUse.ErrorMessage = ""
 		stepToUse.CompletedAt = nil
-		
-		err = wctx.store.UpdateStepStatus(wctx.ctx, wctx.namespace, stepToUse.ID, StepStatusRunning, nil, "")
+
+		err = wctx.store.UpdateStepStatus(wctx.ctx, wctx.namespace, wctx.executionID, stepName, StepStatusRunning, nil, "")
 		if err != nil {
 			return zero, fmt.Errorf("failed to update step: %w", err)
 		}
