@@ -383,10 +383,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ratelimitsResponse := make([]openapi.RatelimitResponse, len(keyRatelimits))
 			for j, rl := range keyRatelimits {
 				ratelimitsResponse[j] = openapi.RatelimitResponse{
-					Id:       rl.ID,
-					Name:     rl.Name,
-					Limit:    int64(rl.Limit),
-					Duration: rl.Duration,
+					Id:        rl.ID,
+					Name:      rl.Name,
+					Limit:     int64(rl.Limit),
+					Duration:  rl.Duration,
+					AutoApply: rl.AutoApply,
 				}
 			}
 			k.Ratelimits = ptr.P(ratelimitsResponse)

@@ -45,14 +45,8 @@ const (
 
 // Defines values for V2KeysCreateKeyRequestBodyCreditsRefillInterval.
 const (
-	V2KeysCreateKeyRequestBodyCreditsRefillIntervalDaily   V2KeysCreateKeyRequestBodyCreditsRefillInterval = "daily"
-	V2KeysCreateKeyRequestBodyCreditsRefillIntervalMonthly V2KeysCreateKeyRequestBodyCreditsRefillInterval = "monthly"
-)
-
-// Defines values for V2KeysUpdateKeyRequestBodyCreditsRefillInterval.
-const (
-	V2KeysUpdateKeyRequestBodyCreditsRefillIntervalDaily   V2KeysUpdateKeyRequestBodyCreditsRefillInterval = "daily"
-	V2KeysUpdateKeyRequestBodyCreditsRefillIntervalMonthly V2KeysUpdateKeyRequestBodyCreditsRefillInterval = "monthly"
+	Daily   V2KeysCreateKeyRequestBodyCreditsRefillInterval = "daily"
+	Monthly V2KeysCreateKeyRequestBodyCreditsRefillInterval = "monthly"
 )
 
 // Defines values for V2KeysVerifyKeyRequestBodyPermissions1Type.
@@ -389,22 +383,8 @@ type KeysVerifyKeyResponseData struct {
 	Name *string `json:"name,omitempty"`
 
 	// Permissions A list of all permission names assigned to this key, either directly or through roles. These permissions determine what actions the key can perform. Only returned when permissions were checked during verification or when the key fails with `code=INSUFFICIENT_PERMISSIONS`.
-	Permissions *[]string `json:"permissions,omitempty"`
-
-	// Ratelimits Information about the rate limits applied during verification. Only included when rate limits were checked. If verification failed with `code=RATE_LIMITED`, this will show which specific rate limit was exceeded.
-	Ratelimits *[]struct {
-		// Limit The maximum number of operations allowed within the current time window for this rate limit.
-		Limit int32 `json:"limit"`
-
-		// Name The name of the rate limit that was checked. This matches the name provided in the request.
-		Name string `json:"name"`
-
-		// Remaining The number of operations still allowed within the current time window after this verification. Your application can use this to inform users about remaining capacity or to implement your own backoff strategies.
-		Remaining int32 `json:"remaining"`
-
-		// Reset Unix timestamp in milliseconds when the rate limit window will reset and 'remaining' will return to 'limit'. Use this to implement retry-after logic or to display wait times to users.
-		Reset int64 `json:"reset"`
-	} `json:"ratelimits,omitempty"`
+	Permissions *[]string            `json:"permissions,omitempty"`
+	Ratelimits  *[]RatelimitResponse `json:"ratelimits,omitempty"`
 
 	// Roles A list of all role names assigned to this key. Roles are collections of permissions that grant access to specific functionality. Only returned when permissions were checked during verification.
 	Roles *[]string `json:"roles,omitempty"`
@@ -518,42 +498,6 @@ type PreconditionFailedErrorResponse struct {
 	Meta Meta `json:"meta"`
 }
 
-// Ratelimit defines model for Ratelimit.
-type Ratelimit struct {
-	// Duration The duration for each ratelimit window in milliseconds.
-	//
-	// This controls how long the rate limit counter accumulates before resetting. Common values include:
-	// - 1000 (1 second): For strict per-second limits on high-frequency operations
-	// - 60000 (1 minute): For moderate API usage control
-	// - 3600000 (1 hour): For less frequent but costly operations
-	// - 86400000 (24 hours): For daily quotas
-	//
-	// Shorter windows provide more frequent resets but may allow large burst usage. Longer windows provide more consistent usage patterns but take longer to reset after limit exhaustion.
-	Duration int64 `json:"duration"`
-
-	// Limit The maximum number of operations allowed within the specified time window.
-	//
-	// When this limit is reached, verification requests will fail with `code=RATE_LIMITED` until the window resets. The limit should reflect:
-	// - Your infrastructure capacity and scaling limitations
-	// - Fair usage expectations for your service
-	// - Different tier levels for various user types
-	// - The relative cost of the operations being limited
-	//
-	// Higher values allow more frequent access but may impact service performance.
-	Limit int64 `json:"limit"`
-
-	// Name The name of this rate limit. This name is used to identify which limit to check during key verification.
-	//
-	// Best practices for limit names:
-	// - Use descriptive, semantic names like 'api_requests', 'heavy_operations', or 'downloads'
-	// - Be consistent with naming conventions across your application
-	// - Create separate limits for different resource types or operation costs
-	// - Consider using namespaced names for better organization (e.g., 'files.downloads', 'compute.training')
-	//
-	// You will reference this exact name when verifying keys to check against this specific limit.
-	Name string `json:"name"`
-}
-
 // RatelimitDeleteOverrideResponseData Empty response object. A successful response indicates the override was successfully deleted. The operation is immediate - as soon as this response is received, the override no longer exists and affected identifiers have reverted to using the default rate limit for the namespace. No other data is returned as part of the deletion operation.
 type RatelimitDeleteOverrideResponseData = map[string]interface{}
 
@@ -638,10 +582,49 @@ type RatelimitOverride struct {
 	OverrideId string `json:"overrideId"`
 }
 
+// RatelimitRequest defines model for RatelimitRequest.
+type RatelimitRequest struct {
+	// AutoApply Whether this ratelimit should be automatically applied when verifying a key.
+	AutoApply bool `json:"autoApply"`
+
+	// Duration The duration for each ratelimit window in milliseconds.
+	//
+	// This controls how long the rate limit counter accumulates before resetting. Common values include:
+	// - 1000 (1 second): For strict per-second limits on high-frequency operations
+	// - 60000 (1 minute): For moderate API usage control
+	// - 3600000 (1 hour): For less frequent but costly operations
+	// - 86400000 (24 hours): For daily quotas
+	//
+	// Shorter windows provide more frequent resets but may allow large burst usage. Longer windows provide more consistent usage patterns but take longer to reset after limit exhaustion.
+	Duration int64 `json:"duration"`
+
+	// Limit The maximum number of operations allowed within the specified time window.
+	//
+	// When this limit is reached, verification requests will fail with `code=RATE_LIMITED` until the window resets. The limit should reflect:
+	// - Your infrastructure capacity and scaling limitations
+	// - Fair usage expectations for your service
+	// - Different tier levels for various user types
+	// - The relative cost of the operations being limited
+	//
+	// Higher values allow more frequent access but may impact service performance.
+	Limit int64 `json:"limit"`
+
+	// Name The name of this rate limit. This name is used to identify which limit to check during key verification.
+	//
+	// Best practices for limit names:
+	// - Use descriptive, semantic names like 'api_requests', 'heavy_operations', or 'downloads'
+	// - Be consistent with naming conventions across your application
+	// - Create separate limits for different resource types or operation costs
+	// - Consider using namespaced names for better organization (e.g., 'files.downloads', 'compute.training')
+	//
+	// You will reference this exact name when verifying keys to check against this specific limit.
+	Name string `json:"name"`
+}
+
 // RatelimitResponse defines model for RatelimitResponse.
 type RatelimitResponse struct {
 	// AutoApply Whether this rate limit should be automatically applied when verifying keys. This is always
-	AutoApply *bool `json:"autoApply,omitempty"`
+	AutoApply bool `json:"autoApply"`
 
 	// Duration Rate limit window duration in milliseconds.
 	Duration int64 `json:"duration"`
@@ -873,7 +856,7 @@ type V2IdentitiesCreateIdentityRequestBody struct {
 	// - Each named limit can have different thresholds and windows
 	//
 	// When verifying keys, you can specify which limits you want to use and all keys attached to this identity will share the limits, regardless of which specific key is used.
-	Ratelimits *[]Ratelimit `json:"ratelimits,omitempty"`
+	Ratelimits *[]RatelimitRequest `json:"ratelimits,omitempty"`
 }
 
 // V2IdentitiesCreateIdentityResponseBody defines model for V2IdentitiesCreateIdentityResponseBody.
@@ -982,7 +965,7 @@ type V2IdentitiesUpdateIdentityRequestBody struct {
 	// Omitting this field preserves existing rate limits, while providing an empty array removes all rate limits.
 	// These limits are shared across all keys belonging to this identity, preventing abuse through multiple keys.
 	// Rate limit changes take effect immediately but may take up to 30 seconds to propagate across all regions.
-	Ratelimits *[]Ratelimit `json:"ratelimits,omitempty"`
+	Ratelimits *[]RatelimitRequest `json:"ratelimits,omitempty"`
 	union      json.RawMessage
 }
 
@@ -1246,28 +1229,7 @@ type V2KeysCreateKeyRequestBody struct {
 	// Unlike credits which track total usage, rate limits reset automatically after each window expires.
 	// Multiple rate limits can control different operation types with separate thresholds and windows.
 	// Essential for preventing API abuse while maintaining good performance for legitimate usage.
-	Ratelimits *[]struct {
-		// Async Controls whether this rate limit uses fast (async=true) or consistent (async=false) mode.
-		// Fast mode has lower latency but may allow brief bursts above the limit during high concurrency.
-		// Consistent mode provides strict guarantees but adds latency to every verification.
-		// Use consistent mode only when precise rate limiting is essential for billing or security.
-		Async *bool `json:"async,omitempty"`
-
-		// Duration Duration of the rate limit window in milliseconds. Common values include 60000 (1 minute),
-		// 3600000 (1 hour), and 86400000 (24 hours). The rate limit automatically resets after this period elapses.
-		// Windows shorter than 1 second are not supported for performance reasons.
-		Duration int32 `json:"duration"`
-
-		// Limit Sets the maximum operations allowed within the duration window.
-		// When this limit is reached, verification fails with code=RATE_LIMITED until the window resets.
-		// Adjust this based on your API's capacity and expected usage patterns.
-		Limit int64 `json:"limit"`
-
-		// Name Identifies this rate limit uniquely within the key. Names must start with a letter and use semantic
-		// identifiers like 'requests', 'computations', or 'write_operations' rather than generic terms.
-		// Duplicate names within the same key are not allowed.
-		Name string `json:"name"`
-	} `json:"ratelimits,omitempty"`
+	Ratelimits *[]RatelimitRequest `json:"ratelimits,omitempty"`
 
 	// Recoverable Controls whether the plaintext key is stored in an encrypted vault for later retrieval.
 	// When true, allows recovering the actual key value using keys.getKey with decrypt=true.
@@ -1671,37 +1633,8 @@ type V2KeysSetRolesResponseData = []struct {
 
 // V2KeysUpdateKeyRequestBody defines model for V2KeysUpdateKeyRequestBody.
 type V2KeysUpdateKeyRequestBody struct {
-	// Credits Controls usage-based limits for this key through credit consumption.
-	// Omitting this field preserves current credit settings, while setting null enables unlimited usage.
-	// Cannot configure refill settings when credits is null, and refillDay requires monthly interval.
-	// Essential for implementing usage-based pricing and subscription quotas.
-	Credits nullable.Nullable[struct {
-		// Refill Configures automatic credit refills on a schedule.
-		// Omitting this field preserves existing refill settings, while setting null disables refills entirely.
-		// Refills add to existing credits rather than replacing them, allowing unused quotas to accumulate.
-		Refill nullable.Nullable[struct {
-			// Amount Specifies how many credits to add during each refill cycle.
-			// This amount gets added to remaining credits, not replaced, so unused credits carry over.
-			// Typically matches your subscription plan's quota.
-			Amount int `json:"amount"`
-
-			// Interval Sets how often credits automatically refill. Monthly refills support specific days via refillDay,
-			// while daily refills occur at midnight UTC. Choose daily for high-frequency APIs and monthly for
-			// subscription-based quotas.
-			Interval V2KeysUpdateKeyRequestBodyCreditsRefillInterval `json:"interval"`
-
-			// RefillDay Sets the day of month for monthly refills (1-31). Only valid with monthly interval.
-			// Days beyond month length (like 31 in February) default to the last valid day.
-			// Useful for aligning refills with billing cycles.
-			RefillDay *int `json:"refillDay,omitempty"`
-		}] `json:"refill,omitempty"`
-
-		// Remaining Counts how many times this key can be used before becoming invalid.
-		// Each verification reduces this count by the verification cost (default 1).
-		// When reaching 0, further verifications fail with `USAGE_EXCEEDED`.
-		// Required when specifying credits for usage-based pricing or quotas.
-		Remaining int64 `json:"remaining"`
-	}] `json:"credits,omitempty"`
+	// Credits Credit configuration and remaining balance for this key.
+	Credits *KeyCredits `json:"credits,omitempty"`
 
 	// Enabled Controls whether the key is currently active for verification requests.
 	// When set to `false`, all verification attempts fail with `code=DISABLED` regardless of other settings.
@@ -1743,29 +1676,8 @@ type V2KeysUpdateKeyRequestBody struct {
 	// Omitting this field preserves existing rate limits, while setting null removes all rate limits.
 	// Unlike credits which track total usage, rate limits reset automatically after each window expires.
 	// Multiple rate limits can control different operation types with separate thresholds and windows.
-	Ratelimits nullable.Nullable[[]struct {
-		// Duration Duration of the rate limit window in milliseconds. Common values include 60000 (1 minute),
-		// 3600000 (1 hour), and 86400000 (24 hours). The rate limit automatically resets after this period elapses.
-		// Windows shorter than 1 second are not supported for performance reasons.
-		Duration int32 `json:"duration"`
-
-		// Limit Sets the maximum operations allowed within the duration window.
-		// When this limit is reached, verification fails with code=RATE_LIMITED until the window resets.
-		// Adjust this based on your API's capacity and expected usage patterns.
-		Limit int64 `json:"limit"`
-
-		// Name Identifies this rate limit uniquely within the key. Names must start with a letter and use semantic
-		// identifiers like 'requests', 'computations', or 'write_operations' rather than generic terms.
-		// Use only letters, numbers, underscores, and hyphens after the initial letter.
-		// Duplicate names within the same key are not allowed.
-		Name string `json:"name"`
-	}] `json:"ratelimits,omitempty"`
+	Ratelimits nullable.Nullable[[]RatelimitRequest] `json:"ratelimits,omitempty"`
 }
-
-// V2KeysUpdateKeyRequestBodyCreditsRefillInterval Sets how often credits automatically refill. Monthly refills support specific days via refillDay,
-// while daily refills occur at midnight UTC. Choose daily for high-frequency APIs and monthly for
-// subscription-based quotas.
-type V2KeysUpdateKeyRequestBodyCreditsRefillInterval string
 
 // V2KeysUpdateKeyResponseBody defines model for V2KeysUpdateKeyResponseBody.
 type V2KeysUpdateKeyResponseBody struct {
@@ -1845,32 +1757,6 @@ type V2KeysVerifyKeyRequestBody struct {
 	// When provided, verification fails unless the key has the specified permissions through direct assignment or role inheritance.
 	// Essential for implementing fine-grained authorization in multi-tenant or privilege-separated APIs.
 	Permissions *V2KeysVerifyKeyRequestBody_Permissions `json:"permissions,omitempty"`
-
-	// Ratelimits Enforces time-based rate limiting during verification to prevent abuse and ensure fair usage.
-	// Omitting this field skips rate limit checks entirely, relying only on configured key rate limits.
-	// Multiple rate limits can be checked simultaneously, each with different costs and temporary overrides.
-	// Rate limit checks are optimized for performance but may allow brief bursts during high concurrency.
-	Ratelimits *[]struct {
-		// Cost Sets how much of the rate limit quota this operation consumes.
-		// Use higher values for expensive operations and 0 for operations that should not count against the limit.
-		// Cost is applied immediately, even if other rate limits or permissions cause verification to fail.
-		Cost *int64 `json:"cost,omitempty"`
-
-		// Duration Temporarily overrides the rate limit window duration in milliseconds for this request only.
-		// Does not modify the stored configuration and applies only to this single verification.
-		// Common values include 60000 (1 minute), 3600000 (1 hour), and 86400000 (24 hours).
-		Duration *int64 `json:"duration,omitempty"`
-
-		// Limit Temporarily overrides the configured rate limit for this request only.
-		// Does not modify the stored configuration and applies only to this single verification.
-		// Useful for implementing per-request dynamic limits based on user tier or operation type.
-		Limit *int64 `json:"limit,omitempty"`
-
-		// Name Identifies which rate limit configuration to check. Must match a rate limit defined on the key or identity.
-		// Use semantic names that clearly describe what's being limited, avoiding generic terms like 'limit1'.
-		// Rate limit names are case-sensitive and must exist in the key's configuration.
-		Name string `json:"name"`
-	} `json:"ratelimits,omitempty"`
 
 	// Tags Attaches metadata tags for analytics and monitoring without affecting verification outcomes.
 	// Enables segmentation of API usage in dashboards by endpoint, client version, region, or custom dimensions.

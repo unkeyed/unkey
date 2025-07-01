@@ -194,60 +194,7 @@ components:
             Active sessions continue until their next verification attempt after expiry.
           example: 1704067200000
         credits:
-          type: object
-          nullable: true
-          properties:
-            remaining:
-              type: integer
-              format: int64
-              minimum: 0
-              maximum: 9223372036854775807 # Max int64 value
-              description: |
-                Counts how many times this key can be used before becoming invalid.
-                Each verification reduces this count by the verification cost (default 1).
-                When reaching 0, further verifications fail with `USAGE_EXCEEDED`.
-                Required when specifying credits for usage-based pricing or quotas.
-              example: 1000
-            refill:
-              type: object
-              nullable: true
-              properties:
-                interval:
-                  type: string
-                  enum:
-                    - daily
-                    - monthly
-                  description: |
-                    Sets how often credits automatically refill. Monthly refills support specific days via refillDay,
-                    while daily refills occur at midnight UTC. Choose daily for high-frequency APIs and monthly for
-                    subscription-based quotas.
-                amount:
-                  type: integer
-                  minimum: 1
-                  maximum: 1000000 # Reasonable upper bound for subscription quotas
-                  description: |
-                    Specifies how many credits to add during each refill cycle.
-                    This amount gets added to remaining credits, not replaced, so unused credits carry over.
-                    Typically matches your subscription plan's quota.
-                  example: 1000
-                refillDay:
-                  type: integer
-                  minimum: 1
-                  maximum: 31 # Valid calendar days
-                  description: |
-                    Sets the day of month for monthly refills (1-31). Only valid with monthly interval.
-                    Days beyond month length (like 31 in February) default to the last valid day.
-                    Useful for aligning refills with billing cycles.
-                  example: 15
-              required:
-                - interval
-                - amount
-              description: |
-                Configures automatic credit refills on a schedule.
-                Omitting this field preserves existing refill settings, while setting null disables refills entirely.
-                Refills add to existing credits rather than replacing them, allowing unused quotas to accumulate.
-          required:
-            - remaining
+          "$ref": "#/components/schemas/KeyCredits"
           description: |
             Controls usage-based limits for this key through credit consumption.
             Omitting this field preserves current credit settings, while setting null enables unlimited usage.
@@ -258,44 +205,7 @@ components:
           nullable: true
           maxItems: 50 # Reasonable limit for rate limit configurations per key
           items:
-            type: object
-            required:
-              - name
-              - limit
-              - duration
-            properties:
-              name:
-                type: string
-                minLength: 1
-                maxLength: 50 # Keep rate limit names concise and readable
-                pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
-                description: |
-                  Identifies this rate limit uniquely within the key. Names must start with a letter and use semantic
-                  identifiers like 'requests', 'computations', or 'write_operations' rather than generic terms.
-                  Use only letters, numbers, underscores, and hyphens after the initial letter.
-                  Duplicate names within the same key are not allowed.
-                example: requests
-              limit:
-                type: integer
-                format: int64
-                minimum: 1
-                maximum: 1000000 # Reasonable upper bound for rate limits
-                description: |
-                  Sets the maximum operations allowed within the duration window.
-                  When this limit is reached, verification fails with code=RATE_LIMITED until the window resets.
-                  Adjust this based on your API's capacity and expected usage patterns.
-                example: 100
-              duration:
-                type: integer
-                format: int32
-                minimum: 1000 # 1 second minimum window
-                maximum: 2592000000 # 30 days maximum window
-                description: |
-                  Duration of the rate limit window in milliseconds. Common values include 60000 (1 minute),
-                  3600000 (1 hour), and 86400000 (24 hours). The rate limit automatically resets after this period elapses.
-                  Windows shorter than 1 second are not supported for performance reasons.
-                example: 60000
-
+            "$ref": "#/components/schemas/RatelimitRequest"
           description: |
             Defines time-based rate limits that protect against abuse by controlling request frequency.
             Omitting this field preserves existing rate limits, while setting null removes all rate limits.
@@ -1387,52 +1297,9 @@ components:
             Omitting this field creates unlimited usage, while setting null is not allowed during creation.
         ratelimits:
           type: array
-          maxItems: 50 # Reasonable limit for rate limit configurations per key
+          maxItems: 50 # Reasonable limit for rate limit configurations per identity
           items:
-            type: object
-            required:
-              - name
-              - limit
-              - duration
-            properties:
-              name:
-                type: string
-                minLength: 1
-                maxLength: 50 # Keep rate limit names concise and readable
-                pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
-                description: |
-                  Identifies this rate limit uniquely within the key. Names must start with a letter and use semantic
-                  identifiers like 'requests', 'computations', or 'write_operations' rather than generic terms.
-                  Duplicate names within the same key are not allowed.
-                example: requests
-              limit:
-                type: integer
-                format: int64
-                minimum: 1
-                maximum: 1000000 # Reasonable upper bound for rate limits
-                description: |
-                  Sets the maximum operations allowed within the duration window.
-                  When this limit is reached, verification fails with code=RATE_LIMITED until the window resets.
-                  Adjust this based on your API's capacity and expected usage patterns.
-                example: 100
-              duration:
-                type: integer
-                format: int32
-                minimum: 1000 # 1 second minimum window
-                maximum: 2592000000 # 30 days maximum window
-                description: |
-                  Duration of the rate limit window in milliseconds. Common values include 60000 (1 minute),
-                  3600000 (1 hour), and 86400000 (24 hours). The rate limit automatically resets after this period elapses.
-                  Windows shorter than 1 second are not supported for performance reasons.
-                example: 60000
-              async:
-                type: boolean
-                default: true
-                description: |
-                  Controls whether this rate limit uses fast (async=true) or consistent (async=false) mode.
-                  Fast mode has lower latency but may allow brief bursts above the limit during high concurrency.
-                  Consistent mode provides strict guarantees but adds latency to every verification.
-                  Use consistent mode only when precise rate limiting is essential for billing or security.
+            "$ref": "#/components/schemas/RatelimitRequest"
           description: |
             Defines time-based rate limits that protect against abuse by controlling request frequency.
             Unlike credits which track total usage, rate limits reset automatically after each window expires.
@@ -2023,6 +1890,7 @@ components:
         - name
         - limit
         - duration
+        - autoApply
       additionalProperties: false
     V2LivenessResponseBody:
       type: object
@@ -2482,7 +2350,7 @@ components:
           type: array
           maxItems: 50 # Reasonable limit for rate limit configurations per identity
           items:
-            "$ref": "#/components/schemas/Ratelimit"
+            "$ref": "#/components/schemas/RatelimitRequest"
           description: |
             Defines shared rate limits that apply to all keys belonging to this identity.
             Prevents abuse by users with multiple keys by enforcing consistent limits across their entire key portfolio.
@@ -2494,12 +2362,13 @@ components:
             - Each named limit can have different thresholds and windows
 
             When verifying keys, you can specify which limits you want to use and all keys attached to this identity will share the limits, regardless of which specific key is used.
-    Ratelimit:
+    RatelimitRequest:
       type: object
       required:
         - name
         - limit
         - duration
+        - autoApply
       properties:
         name:
           description: |-
@@ -2542,6 +2411,11 @@ components:
             Shorter windows provide more frequent resets but may allow large burst usage. Longer windows provide more consistent usage patterns but take longer to reset after limit exhaustion.
           type: integer
           format: int64
+        autoApply:
+          description: |-
+            Whether this ratelimit should be automatically applied when verifying a key.
+          type: boolean
+          default: false
     IdentitiesCreateIdentityResponseData:
       type: object
       properties:
@@ -3663,61 +3537,15 @@ components:
             Omitting this field uses the default cost of 1 credit per verification.
             Credits provide globally consistent usage tracking, essential for paid APIs with strict quotas.
             Verification can succeed while credit deduction fails if the key has insufficient credits.
-        ratelimits:
-          type: array
-          maxItems: 10 # Reasonable limit for rate limit checks per verification
-          items:
-            type: object
-            required:
-              - name
-            properties:
-              name:
-                type: string
-                minLength: 1
-                maxLength: 50 # Keep rate limit names concise and readable
-                pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
-                description: |
-                  Identifies which rate limit configuration to check. Must match a rate limit defined on the key or identity.
-                  Use semantic names that clearly describe what's being limited, avoiding generic terms like 'limit1'.
-                  Rate limit names are case-sensitive and must exist in the key's configuration.
-                example: api_requests
-              cost:
-                type: integer
-                format: int64
-                minimum: 0
-                maximum: 1000 # Reasonable upper bound for operation costs
-                default: 1
-                description: |
-                  Sets how much of the rate limit quota this operation consumes.
-                  Use higher values for expensive operations and 0 for operations that should not count against the limit.
-                  Cost is applied immediately, even if other rate limits or permissions cause verification to fail.
-                example: 3
-              limit:
-                type: integer
-                format: int64
-                minimum: 1
-                maximum: 1000000 # Reasonable upper bound for rate limits
-                description: |
-                  Temporarily overrides the configured rate limit for this request only.
-                  Does not modify the stored configuration and applies only to this single verification.
-                  Useful for implementing per-request dynamic limits based on user tier or operation type.
-                example: 1000
-              duration:
-                type: integer
-                format: int64
-                minimum: 1000 # 1 second minimum window
-                maximum: 2592000000 # 30 days maximum window
-                description: |
-                  Temporarily overrides the rate limit window duration in milliseconds for this request only.
-                  Does not modify the stored configuration and applies only to this single verification.
-                  Common values include 60000 (1 minute), 3600000 (1 hour), and 86400000 (24 hours).
-                example: 60000
-            additionalProperties: false
-          description: |
-            Enforces time-based rate limiting during verification to prevent abuse and ensure fair usage.
-            Omitting this field skips rate limit checks entirely, relying only on configured key rate limits.
-            Multiple rate limits can be checked simultaneously, each with different costs and temporary overrides.
-            Rate limit checks are optimized for performance but may allow brief bursts during high concurrency.
+          ratelimits:
+            type: array
+            items:
+              "$ref": "#/components/schemas/RatelimitRequest"
+            description: |
+              Enforces time-based rate limiting during verification to prevent abuse and ensure fair usage.
+              Omitting this field skips rate limit checks entirely, relying only on configured key rate limits.
+              Multiple rate limits can be checked simultaneously, each with different costs and temporary overrides.
+              Rate limit checks are optimized for performance but may allow brief bursts during high concurrency.
       additionalProperties: false
     KeysVerifyKeyResponseData:
       type: object
@@ -3823,43 +3651,11 @@ components:
         ratelimits:
           type: array
           items:
-            type: object
-            required:
-              - name
-              - limit
-              - remaining
-              - reset
-            properties:
-              name:
-                type: string
-                description:
-                  The name of the rate limit that was checked. This matches
-                  the name provided in the request.
-              limit:
-                type: integer
-                format: int32
-                description:
-                  The maximum number of operations allowed within the current
-                  time window for this rate limit.
-              remaining:
-                type: integer
-                format: int32
-                description:
-                  The number of operations still allowed within the current
-                  time window after this verification. Your application can use this
-                  to inform users about remaining capacity or to implement your own
-                  backoff strategies.
-              reset:
-                type: integer
-                format: int64
-                description:
-                  Unix timestamp in milliseconds when the rate limit window
-                  will reset and 'remaining' will return to 'limit'. Use this to implement
-                  retry-after logic or to display wait times to users.
-          description:
-            Information about the rate limits applied during verification.
-            Only included when rate limits were checked. If verification failed with
-            `code=RATE_LIMITED`, this will show which specific rate limit was exceeded.
+            "$ref": "#/components/schemas/RatelimitResponse"
+            description:
+              Information about the rate limits applied during verification.
+              Only included when rate limits were checked. If verification failed with
+              `code=RATE_LIMITED`, this will show which specific rate limit was exceeded.
       required:
         - valid
         - code
@@ -3906,7 +3702,7 @@ components:
           type: array
           maxItems: 50 # Reasonable limit for rate limit configurations per identity
           items:
-            "$ref": "#/components/schemas/Ratelimit"
+            "$ref": "#/components/schemas/RatelimitRequest"
           description: |
             Replaces all existing identity rate limits with this complete list of rate limits.
             Omitting this field preserves existing rate limits, while providing an empty array removes all rate limits.

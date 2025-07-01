@@ -98,7 +98,7 @@ func TestBadRequests(t *testing.T) {
 	t.Run("missing rate limit name", func(t *testing.T) {
 		req := handler.Request{
 			ExternalId: uid.New("test"),
-			Ratelimits: &[]openapi.Ratelimit{
+			Ratelimits: &[]openapi.RatelimitRequest{
 				{
 					Duration: 1000,
 					Limit:    1,
@@ -121,7 +121,7 @@ func TestBadRequests(t *testing.T) {
 	t.Run("negative rate limit value", func(t *testing.T) {
 		req := handler.Request{
 			ExternalId: uid.New("test"),
-			Ratelimits: &[]openapi.Ratelimit{
+			Ratelimits: &[]openapi.RatelimitRequest{
 				{
 					Name:     "test_limit",
 					Duration: 1000, // valid duration
@@ -144,7 +144,7 @@ func TestBadRequests(t *testing.T) {
 	t.Run("zero rate limit value", func(t *testing.T) {
 		req := handler.Request{
 			ExternalId: uid.New("test"),
-			Ratelimits: &[]openapi.Ratelimit{
+			Ratelimits: &[]openapi.RatelimitRequest{
 				{
 					Name:     "test_limit",
 					Duration: 1000, // valid duration
@@ -167,7 +167,7 @@ func TestBadRequests(t *testing.T) {
 	t.Run("duration less than 1000ms", func(t *testing.T) {
 		req := handler.Request{
 			ExternalId: uid.New("test"),
-			Ratelimits: &[]openapi.Ratelimit{
+			Ratelimits: &[]openapi.RatelimitRequest{
 				{
 					Name:     "test_limit",
 					Duration: 999, // less than 1000ms

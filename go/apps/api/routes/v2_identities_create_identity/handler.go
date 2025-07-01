@@ -194,6 +194,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					Limit:       int32(ratelimit.Limit), // nolint:gosec
 					Duration:    ratelimit.Duration,
 					CreatedAt:   time.Now().UnixMilli(),
+					AutoApply:   ratelimit.AutoApply,
 				})
 				if err != nil {
 					return "", fault.Wrap(err,

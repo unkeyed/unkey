@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
+	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
@@ -16,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
+	"github.com/unkeyed/unkey/go/pkg/vault"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
@@ -30,6 +32,7 @@ type Handler struct {
 	Keys        keys.KeyService
 	Permissions permissions.PermissionService
 	Auditlogs   auditlogs.AuditLogService
+	Vault       *vault.Service
 }
 
 // Method returns the HTTP method this route responds to
@@ -104,6 +107,47 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	var plaintext *string
+	if req.Decrypt != nil && *req.Decrypt {
+		err = h.Permissions.Check(
+			ctx,
+			auth.KeyID,
+			rbac.Or(
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   "*",
+					Action:       rbac.DecryptKey,
+				}),
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   key.Api.ID,
+					Action:       rbac.DecryptKey,
+				}),
+			),
+		)
+		if err != nil {
+			return err
+		}
+
+		if key.EncryptedKey.Valid && key.EncryptionKeyID.Valid {
+			decrypted, decryptErr := h.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
+				Keyring:   key.WorkspaceID,
+				Encrypted: key.EncryptedKey.String,
+			})
+
+			if decryptErr != nil {
+				h.Logger.Error("failed to decrypt key",
+					"keyId", key.ID,
+					"error", decryptErr,
+				)
+			} else {
+				plaintext = ptr.P(decrypted.GetPlaintext())
+			}
+		}
+	} else if req.Key != nil {
+		plaintext = req.Key
+	}
+
 	// Validate key belongs to authorized workspace
 	if key.WorkspaceID != auth.AuthorizedWorkspaceID {
 		return fault.New("key not found",
@@ -114,13 +158,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	k := openapi.KeyResponse{
-		CreatedAt: key.CreatedAtM,
-		Enabled:   key.Enabled,
-		KeyId:     key.ID,
-		Name:      nil,
-		Meta:      nil,
-		Identity:  nil,
-		Credits:   nil,
+		CreatedAt:   key.CreatedAtM,
+		Enabled:     key.Enabled,
+		KeyId:       key.ID,
+		Start:       key.Start,
+		Plaintext:   plaintext,
+		Name:        nil,
+		Meta:        nil,
+		Identity:    nil,
+		Credits:     nil,
+		Expires:     nil,
+		Permissions: nil,
+		Ratelimits:  nil,
+		Roles:       nil,
+		UpdatedAt:   nil,
 	}
 
 	if key.Name.Valid {
@@ -204,10 +255,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		for _, ratelimit := range ratelimits {
 			k.Identity.Ratelimits = append(k.Identity.Ratelimits, openapi.RatelimitResponse{
-				Id:       ratelimit.ID,
-				Duration: ratelimit.Duration,
-				Limit:    int64(ratelimit.Limit),
-				Name:     ratelimit.Name,
+				Id:        ratelimit.ID,
+				Duration:  ratelimit.Duration,
+				Limit:     int64(ratelimit.Limit),
+				Name:      ratelimit.Name,
+				AutoApply: ratelimit.AutoApply,
 			})
 		}
 	}
@@ -223,10 +275,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	ratelimitsResponse := make([]openapi.RatelimitResponse, len(ratelimits))
 	for _, ratelimit := range ratelimits {
 		ratelimitsResponse = append(ratelimitsResponse, openapi.RatelimitResponse{
-			Id:       ratelimit.ID,
-			Duration: ratelimit.Duration,
-			Limit:    int64(ratelimit.Limit),
-			Name:     ratelimit.Name,
+			Id:        ratelimit.ID,
+			Duration:  ratelimit.Duration,
+			Limit:     int64(ratelimit.Limit),
+			Name:      ratelimit.Name,
+			AutoApply: ratelimit.AutoApply,
 		})
 	}
 

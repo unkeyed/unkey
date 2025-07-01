@@ -242,6 +242,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					Limit:       int32(ratelimit.Limit), // nolint:gosec
 					Duration:    int64(ratelimit.Duration),
 					CreatedAt:   now,
+					AutoApply:   ratelimit.AutoApply,
 				})
 				if err != nil {
 					return fault.Wrap(err,

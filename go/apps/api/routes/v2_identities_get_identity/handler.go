@@ -152,10 +152,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	responseRatelimits := make([]openapi.RatelimitResponse, 0, len(ratelimits))
 	for _, r := range ratelimits {
 		responseRatelimits = append(responseRatelimits, openapi.RatelimitResponse{
-			Name:     r.Name,
-			Limit:    int64(r.Limit),
-			Duration: r.Duration,
-			Id:       r.ID,
+			Name:      r.Name,
+			Limit:     int64(r.Limit),
+			Duration:  r.Duration,
+			Id:        r.ID,
+			AutoApply: r.AutoApply,
 		})
 	}
 

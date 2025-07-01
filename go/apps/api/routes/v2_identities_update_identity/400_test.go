@@ -90,7 +90,7 @@ func TestBadRequests(t *testing.T) {
 
 	t.Run("duplicate ratelimit names", func(t *testing.T) {
 		identityID := "identity_123"
-		ratelimits := []openapi.Ratelimit{
+		ratelimits := []openapi.RatelimitRequest{
 			{
 				Name:     "api_calls",
 				Limit:    100,

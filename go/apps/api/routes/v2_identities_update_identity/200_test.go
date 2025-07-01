@@ -175,7 +175,7 @@ func TestSuccess(t *testing.T) {
 		// 2. Add a new 'new_feature' limit
 		// 3. Delete 'special_feature' limit (by not including it)
 
-		ratelimits := []openapi.Ratelimit{
+		ratelimits := []openapi.RatelimitRequest{
 			{
 				Name:     "api_calls",
 				Limit:    200,
@@ -233,7 +233,7 @@ func TestSuccess(t *testing.T) {
 
 	t.Run("remove all ratelimits", func(t *testing.T) {
 		// Empty array should remove all ratelimits
-		emptyRatelimits := []openapi.Ratelimit{}
+		emptyRatelimits := []openapi.RatelimitRequest{}
 
 		req := handler.Request{
 			IdentityId: &identityID,
@@ -277,7 +277,7 @@ func TestSuccess(t *testing.T) {
 			"credits": 1000,
 		}
 
-		ratelimits := []openapi.Ratelimit{
+		ratelimits := []openapi.RatelimitRequest{
 			{
 				Name:     "enterprise_feature",
 				Limit:    50,

@@ -238,7 +238,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				existingRatelimitMap[rl.Name] = rl
 			}
 
-			newRatelimitMap := make(map[string]openapi.Ratelimit)
+			newRatelimitMap := make(map[string]openapi.RatelimitRequest)
 			if req.Ratelimits != nil {
 				for _, rl := range *req.Ratelimits {
 					newRatelimitMap[rl.Name] = rl
@@ -342,6 +342,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						Limit:       int32(newRL.Limit), // nolint:gosec
 						Duration:    newRL.Duration,
 						CreatedAt:   time.Now().UnixMilli(),
+						AutoApply:   newRL.AutoApply,
 					})
 					if err != nil {
 						return fault.Wrap(err,
@@ -427,10 +428,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	responseRatelimits := make([]openapi.RatelimitResponse, 0, len(updatedRatelimits))
 	for _, r := range updatedRatelimits {
 		responseRatelimits = append(responseRatelimits, openapi.RatelimitResponse{
-			Id:       r.ID,
-			Name:     r.Name,
-			Limit:    int64(r.Limit),
-			Duration: r.Duration,
+			Id:        r.ID,
+			Name:      r.Name,
+			Limit:     int64(r.Limit),
+			Duration:  r.Duration,
+			AutoApply: r.AutoApply,
 		})
 	}
 

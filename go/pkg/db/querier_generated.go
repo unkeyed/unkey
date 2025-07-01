@@ -105,9 +105,12 @@ type Querier interface {
 	//FindKeyByIdOrHash
 	//
 	//  SELECT
-	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, apis.id, apis.name, apis.workspace_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection
+	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, apis.id, apis.name, apis.workspace_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection,
+	//      ek.encrypted as encrypted_key,
+	//  	ek.encryption_key_id as encryption_key_id
 	//  FROM `keys` k
 	//  JOIN apis USING(key_auth_id)
+	//  LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
 	//  WHERE CASE
 	//      WHEN ? IS NOT NULL THEN k.id = ?
 	//      WHEN ? IS NOT NULL THEN k.hash = ?
@@ -376,8 +379,10 @@ type Querier interface {
 	//      name,
 	//      `limit`,
 	//      duration,
-	//      created_at
+	//      created_at,
+	//      auto_apply
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -452,8 +457,10 @@ type Querier interface {
 	//      name,
 	//      `limit`,
 	//      duration,
+	//      auto_apply,
 	//      created_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
