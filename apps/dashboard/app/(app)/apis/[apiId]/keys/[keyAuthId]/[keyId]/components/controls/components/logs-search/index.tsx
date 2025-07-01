@@ -19,20 +19,16 @@ export const LogsSearch = ({ apiId }: { apiId: string }) => {
             style: {
               whiteSpace: "pre-line",
             },
-          }
+          },
         );
         return;
       }
       type ValidField = (typeof VALID_FIELDS)[number];
 
-      const transformedFilters = transformStructuredOutputToFilters(
-        data,
-        filters
-      );
+      const transformedFilters = transformStructuredOutputToFilters(data, filters);
 
-      const validFilters = transformedFilters.filter(
-        (filter): filter is KeyDetailsFilterValue =>
-          VALID_FIELDS.includes(filter.field as ValidField)
+      const validFilters = transformedFilters.filter((filter): filter is KeyDetailsFilterValue =>
+        VALID_FIELDS.includes(filter.field as ValidField),
       );
 
       updateFilters(validFilters);

@@ -8,10 +8,7 @@ type LogsSearchProps = {
   initialNamespaces: { id: string; name: string }[];
 };
 
-export const LogsSearch = ({
-  setNamespaces,
-  initialNamespaces,
-}: LogsSearchProps) => {
+export const LogsSearch = ({ setNamespaces, initialNamespaces }: LogsSearchProps) => {
   const isSearchingRef = useRef<boolean>(false);
 
   const searchNamespace = trpc.ratelimit.namespace.search.useMutation({

@@ -17,14 +17,11 @@ export const LogsSearch = ({ keyspaceId }: { keyspaceId: string }) => {
             style: {
               whiteSpace: "pre-line",
             },
-          }
+          },
         );
         return;
       }
-      const transformedFilters = transformStructuredOutputToFilters(
-        data,
-        filters
-      );
+      const transformedFilters = transformStructuredOutputToFilters(data, filters);
       updateFilters(transformedFilters);
     },
     onError(error) {
