@@ -180,6 +180,7 @@ CREATE TABLE `workspaces` (
 	`id` varchar(256) NOT NULL,
 	`org_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
+	`partition_id` varchar(256),
 	`plan` enum('free','pro','enterprise') DEFAULT 'free',
 	`tier` varchar(256) DEFAULT 'Free',
 	`stripe_customer_id` varchar(256),
@@ -228,8 +229,10 @@ CREATE TABLE `ratelimits` (
 	`identity_id` varchar(256),
 	`limit` int NOT NULL,
 	`duration` bigint NOT NULL,
+	`auto_apply` boolean NOT NULL DEFAULT false,
 	CONSTRAINT `ratelimits_id` PRIMARY KEY(`id`),
-	CONSTRAINT `unique_name_idx` UNIQUE(`name`,`key_id`,`identity_id`)
+	CONSTRAINT `unique_name_per_key_idx` UNIQUE(`name`,`key_id`),
+	CONSTRAINT `unique_name_per_identity_idx` UNIQUE(`name`,`identity_id`)
 );
 --> statement-breakpoint
 CREATE TABLE `quota` (
@@ -287,6 +290,178 @@ CREATE TABLE `audit_log_target` (
 	CONSTRAINT `audit_log_target_audit_log_id_id_pk` PRIMARY KEY(`audit_log_id`,`id`)
 );
 --> statement-breakpoint
+CREATE TABLE `partitions` (
+	`id` varchar(256) NOT NULL,
+	`name` varchar(256) NOT NULL,
+	`description` text,
+	`aws_account_id` varchar(256) NOT NULL,
+	`region` varchar(256) NOT NULL,
+	`ip_v4_address` varchar(15),
+	`ip_v6_address` varchar(39),
+	`status` enum('active','draining','inactive') NOT NULL DEFAULT 'active',
+	`delete_protection` boolean DEFAULT false,
+	`created_at_m` bigint NOT NULL DEFAULT 0,
+	`updated_at_m` bigint,
+	`deleted_at_m` bigint,
+	CONSTRAINT `partitions_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `projects` (
+	`id` varchar(256) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`partition_id` varchar(256) NOT NULL,
+	`name` varchar(256) NOT NULL,
+	`slug` varchar(256) NOT NULL,
+	`git_repository_url` varchar(500),
+	`delete_protection` boolean DEFAULT false,
+	`created_at_m` bigint NOT NULL DEFAULT 0,
+	`updated_at_m` bigint,
+	`deleted_at_m` bigint,
+	CONSTRAINT `projects_id` PRIMARY KEY(`id`),
+	CONSTRAINT `workspace_slug_idx` UNIQUE(`workspace_id`,`slug`)
+);
+--> statement-breakpoint
+CREATE TABLE `environments` (
+	`id` varchar(256) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`name` varchar(256) NOT NULL,
+	`description` text,
+	`is_default` boolean NOT NULL DEFAULT false,
+	`delete_protection` boolean DEFAULT false,
+	`created_at_m` bigint NOT NULL DEFAULT 0,
+	`updated_at_m` bigint,
+	`deleted_at_m` bigint,
+	CONSTRAINT `environments_id` PRIMARY KEY(`id`),
+	CONSTRAINT `workspace_name_idx` UNIQUE(`workspace_id`,`name`)
+);
+--> statement-breakpoint
+CREATE TABLE `branches` (
+	`id` varchar(256) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`project_id` varchar(256) NOT NULL,
+	`name` varchar(256) NOT NULL,
+	`environment_id` varchar(256) NOT NULL,
+	`is_production` boolean NOT NULL DEFAULT false,
+	`created_at_m` bigint NOT NULL DEFAULT 0,
+	`updated_at_m` bigint,
+	`deleted_at_m` bigint,
+	CONSTRAINT `branches_id` PRIMARY KEY(`id`),
+	CONSTRAINT `project_name_idx` UNIQUE(`project_id`,`name`)
+);
+--> statement-breakpoint
+CREATE TABLE `rootfs_images` (
+	`id` varchar(256) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`project_id` varchar(256) NOT NULL,
+	`s3_bucket` varchar(256) NOT NULL,
+	`s3_key` varchar(500) NOT NULL,
+	`size_bytes` bigint NOT NULL,
+	`created_at_m` bigint NOT NULL DEFAULT 0,
+	`updated_at_m` bigint,
+	`deleted_at_m` bigint,
+	CONSTRAINT `rootfs_images_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `builds` (
+	`id` varchar(256) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`project_id` varchar(256) NOT NULL,
+	`rootfs_image_id` varchar(256),
+	`git_commit_sha` varchar(40),
+	`git_branch` varchar(256),
+	`status` enum('pending','running','succeeded','failed','cancelled') NOT NULL DEFAULT 'pending',
+	`build_tool` enum('docker','depot','custom') NOT NULL DEFAULT 'docker',
+	`error_message` text,
+	`started_at` bigint,
+	`completed_at` bigint,
+	`created_at_m` bigint NOT NULL DEFAULT 0,
+	`updated_at_m` bigint,
+	`deleted_at_m` bigint,
+	CONSTRAINT `builds_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `versions` (
+	`id` varchar(256) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`project_id` varchar(256) NOT NULL,
+	`environment_id` varchar(256) NOT NULL,
+	`branch_id` varchar(256),
+	`build_id` varchar(256),
+	`rootfs_image_id` varchar(256) NOT NULL,
+	`git_commit_sha` varchar(40),
+	`git_branch` varchar(256),
+	`config_snapshot` json NOT NULL,
+	`topology_config` json NOT NULL,
+	`status` enum('pending','building','deploying','active','failed','archived') NOT NULL DEFAULT 'pending',
+	`jwt_private_key` text,
+	`jwt_public_key` text,
+	`created_at_m` bigint NOT NULL DEFAULT 0,
+	`updated_at_m` bigint,
+	`deleted_at_m` bigint,
+	CONSTRAINT `versions_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `routes` (
+	`id` varchar(256) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`project_id` varchar(256) NOT NULL,
+	`hostname` varchar(256) NOT NULL,
+	`primary_version_id` varchar(256) NOT NULL,
+	`secondary_version_id` varchar(256),
+	`traffic_weight` int DEFAULT 100,
+	`routing_config` json DEFAULT ('{}'),
+	`is_enabled` boolean NOT NULL DEFAULT true,
+	`created_at_m` bigint NOT NULL DEFAULT 0,
+	`updated_at_m` bigint,
+	`deleted_at_m` bigint,
+	CONSTRAINT `routes_id` PRIMARY KEY(`id`),
+	CONSTRAINT `hostname_idx` UNIQUE(`hostname`)
+);
+--> statement-breakpoint
+CREATE TABLE `hostnames` (
+	`id` varchar(256) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`project_id` varchar(256) NOT NULL,
+	`hostname` varchar(256) NOT NULL,
+	`is_custom_domain` boolean NOT NULL DEFAULT false,
+	`certificate_id` varchar(256),
+	`verification_status` enum('pending','verified','failed','expired') DEFAULT 'pending',
+	`verification_token` varchar(256),
+	`verification_method` enum('dns_txt','dns_cname','file_upload','automatic'),
+	`subdomain_config` json,
+	`created_at_m` bigint NOT NULL DEFAULT 0,
+	`updated_at_m` bigint,
+	`deleted_at_m` bigint,
+	CONSTRAINT `hostnames_id` PRIMARY KEY(`id`),
+	CONSTRAINT `hostname_idx` UNIQUE(`hostname`)
+);
+--> statement-breakpoint
+CREATE TABLE `certificates` (
+	`id` varchar(256) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`hostname` varchar(256) NOT NULL,
+	`certificate_type` enum('wildcard','custom','self_signed') NOT NULL,
+	`certificate_pem` text NOT NULL,
+	`certificate_chain` text,
+	`private_key_encrypted` text NOT NULL,
+	`encryption_key_id` varchar(256) NOT NULL,
+	`issuer` varchar(256),
+	`serial_number` varchar(256),
+	`fingerprint` varchar(128),
+	`not_before` bigint NOT NULL,
+	`not_after` bigint NOT NULL,
+	`status` enum('active','expiring_soon','expired','revoked','pending_renewal') NOT NULL DEFAULT 'active',
+	`auto_renew` boolean NOT NULL DEFAULT true,
+	`renewal_attempts` int DEFAULT 0,
+	`last_renewal_attempt` bigint,
+	`acme_account_id` varchar(256),
+	`created_at_m` bigint NOT NULL DEFAULT 0,
+	`updated_at_m` bigint,
+	`deleted_at_m` bigint,
+	CONSTRAINT `certificates_id` PRIMARY KEY(`id`),
+	CONSTRAINT `hostname_idx` UNIQUE(`hostname`)
+);
+--> statement-breakpoint
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);--> statement-breakpoint
 CREATE INDEX `workspace_id_idx` ON `permissions` (`workspace_id`);--> statement-breakpoint
 CREATE INDEX `workspace_id_idx` ON `roles` (`workspace_id`);--> statement-breakpoint
@@ -306,4 +481,35 @@ CREATE INDEX `actor_id_idx` ON `audit_log` (`actor_id`);--> statement-breakpoint
 CREATE INDEX `time_idx` ON `audit_log` (`time`);--> statement-breakpoint
 CREATE INDEX `bucket` ON `audit_log_target` (`bucket`);--> statement-breakpoint
 CREATE INDEX `audit_log_id` ON `audit_log_target` (`audit_log_id`);--> statement-breakpoint
-CREATE INDEX `id_idx` ON `audit_log_target` (`id`);
+CREATE INDEX `id_idx` ON `audit_log_target` (`id`);--> statement-breakpoint
+CREATE INDEX `status_idx` ON `partitions` (`status`);--> statement-breakpoint
+CREATE INDEX `workspace_idx` ON `projects` (`workspace_id`);--> statement-breakpoint
+CREATE INDEX `partition_idx` ON `projects` (`partition_id`);--> statement-breakpoint
+CREATE INDEX `workspace_idx` ON `environments` (`workspace_id`);--> statement-breakpoint
+CREATE INDEX `workspace_idx` ON `branches` (`workspace_id`);--> statement-breakpoint
+CREATE INDEX `project_idx` ON `branches` (`project_id`);--> statement-breakpoint
+CREATE INDEX `environment_idx` ON `branches` (`environment_id`);--> statement-breakpoint
+CREATE INDEX `workspace_idx` ON `rootfs_images` (`workspace_id`);--> statement-breakpoint
+CREATE INDEX `project_idx` ON `rootfs_images` (`project_id`);--> statement-breakpoint
+CREATE INDEX `workspace_idx` ON `builds` (`workspace_id`);--> statement-breakpoint
+CREATE INDEX `project_idx` ON `builds` (`project_id`);--> statement-breakpoint
+CREATE INDEX `status_idx` ON `builds` (`status`);--> statement-breakpoint
+CREATE INDEX `rootfs_image_idx` ON `builds` (`rootfs_image_id`);--> statement-breakpoint
+CREATE INDEX `workspace_idx` ON `versions` (`workspace_id`);--> statement-breakpoint
+CREATE INDEX `project_idx` ON `versions` (`project_id`);--> statement-breakpoint
+CREATE INDEX `environment_idx` ON `versions` (`environment_id`);--> statement-breakpoint
+CREATE INDEX `branch_idx` ON `versions` (`branch_id`);--> statement-breakpoint
+CREATE INDEX `status_idx` ON `versions` (`status`);--> statement-breakpoint
+CREATE INDEX `rootfs_image_idx` ON `versions` (`rootfs_image_id`);--> statement-breakpoint
+CREATE INDEX `workspace_idx` ON `routes` (`workspace_id`);--> statement-breakpoint
+CREATE INDEX `project_idx` ON `routes` (`project_id`);--> statement-breakpoint
+CREATE INDEX `primary_version_idx` ON `routes` (`primary_version_id`);--> statement-breakpoint
+CREATE INDEX `secondary_version_idx` ON `routes` (`secondary_version_id`);--> statement-breakpoint
+CREATE INDEX `workspace_idx` ON `hostnames` (`workspace_id`);--> statement-breakpoint
+CREATE INDEX `project_idx` ON `hostnames` (`project_id`);--> statement-breakpoint
+CREATE INDEX `verification_status_idx` ON `hostnames` (`verification_status`);--> statement-breakpoint
+CREATE INDEX `certificate_idx` ON `hostnames` (`certificate_id`);--> statement-breakpoint
+CREATE INDEX `workspace_idx` ON `certificates` (`workspace_id`);--> statement-breakpoint
+CREATE INDEX `status_idx` ON `certificates` (`status`);--> statement-breakpoint
+CREATE INDEX `expiration_idx` ON `certificates` (`not_after`);--> statement-breakpoint
+CREATE INDEX `fingerprint_idx` ON `certificates` (`fingerprint`);

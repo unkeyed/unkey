@@ -3,7 +3,11 @@ package shutdown
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
+	"time"
 )
 
 // ShutdownCtx is a function type for context-aware shutdown handlers.
@@ -192,4 +196,35 @@ func (s *Shutdowns) Shutdown(ctx context.Context) []error {
 
 	return []error{}
 
+}
+
+// WaitForSignal waits for SIGINT or SIGTERM and then executes shutdown with the given timeout.
+// This is a convenience method that reduces boilerplate for signal handling in server applications.
+// Returns a ShutdownError if any shutdown functions fail, or nil if all succeed.
+//
+// Example usage:
+//
+//	shutdowns := shutdown.New()
+//	shutdowns.RegisterCtx(server.Shutdown)
+//	shutdowns.Register(database.Close)
+//
+//	// This replaces ~10 lines of signal handling boilerplate
+//	if err := shutdowns.WaitForSignal(30*time.Second); err != nil {
+//		logger.Error("Shutdown failed", "error", err)
+//	}
+func (s *Shutdowns) WaitForSignal(shutdownTimeout time.Duration) error {
+	// Wait for interrupt signal
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	<-sigChan
+
+	// Graceful shutdown with timeout
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+
+	errs := s.Shutdown(shutdownCtx)
+	if len(errs) > 0 {
+		return &ShutdownError{Errors: errs}
+	}
+	return nil
 }

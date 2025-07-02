@@ -5,18 +5,24 @@ import { apis } from "./apis";
 import { identities } from "./identity";
 import { keyAuth } from "./keyAuth";
 import { keys } from "./keys";
+import { partitions } from "./partitions";
+import { projects } from "./projects";
 import { quotas } from "./quota";
 import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { vercelBindings, vercelIntegrations } from "./vercel_integration";
+import { versions } from "./versions";
 
 export const workspaces = mysqlTable("workspaces", {
   id: varchar("id", { length: 256 }).primaryKey(),
 
   orgId: varchar("org_id", { length: 256 }).notNull().unique(),
   name: varchar("name", { length: 256 }).notNull(),
+
+  // Deployment platform - which partition this workspace deploys to
+  partitionId: varchar("partition_id", { length: 256 }),
 
   // different plans, this should only be used for visualisations in the ui
   // @deprecated - use tier
@@ -107,4 +113,12 @@ export const workspacesRelations = relations(workspaces, ({ many, one }) => ({
   keySpaces: many(keyAuth),
   identities: many(identities),
   quotas: one(quotas),
+
+  // Deployment platform relations (no foreign keys enforced)
+  partition: one(partitions),
+  projects: many(projects),
+  // environments: many(environments),
+  versions: many(versions),
+  // hostnames: many(hostnames),
+  // certificates: many(certificates),
 }));

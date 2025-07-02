@@ -4,10 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
-	"os/signal"
 	"runtime/debug"
-	"syscall"
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/routes"
@@ -231,31 +228,25 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}()
 
-	return gracefulShutdown(ctx, logger, shutdowns)
-}
-func gracefulShutdown(ctx context.Context, logger logging.Logger, shutdowns *shutdown.Shutdowns) error {
-	cShutdown := make(chan os.Signal, 1)
-	signal.Notify(cShutdown, os.Interrupt, syscall.SIGTERM)
-
-	// Create a channel that closes when the context is done
-	done := ctx.Done()
-
-	// Wait for either a signal or context cancellation
-	select {
-	case <-cShutdown:
-		logger.Info("shutting down due to signal")
-	case <-done:
+	// Handle context cancellation in a separate goroutine
+	go func() {
+		<-ctx.Done()
 		logger.Info("shutting down due to context cancellation")
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
+		errs := shutdowns.Shutdown(shutdownCtx)
+		for _, err := range errs {
+			logger.Error("Shutdown error", "error", err)
+		}
+	}()
+
+	// Wait for signals and handle shutdown
+	logger.Info("API server started successfully")
+	if err := shutdowns.WaitForSignal(time.Minute); err != nil {
+		logger.Error("Shutdown failed", "error", err)
+		return fmt.Errorf("shutdown failed: %w", err)
 	}
 
-	// Create a timeout context for the shutdown process
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	defer cancel()
-
-	errs := shutdowns.Shutdown(shutdownCtx)
-
-	if len(errs) > 0 {
-		return fmt.Errorf("errors occurred during shutdown: %v", errs)
-	}
+	logger.Info("API server shut down successfully")
 	return nil
 }
