@@ -173,8 +173,11 @@ func Test_CreateKey_Forbidden(t *testing.T) {
 	})
 
 	t.Run("cross workspace access", func(t *testing.T) {
-		// Create root key with read permission instead of create
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("api.%s.read_key", otherApiID))
+		// Create a different workspace
+		differentWorkspace := h.CreateWorkspace()
+
+		// Create a root key for the different workspace with full permissions
+		rootKey := h.CreateRootKey(differentWorkspace.ID, "api.*.read_key", "api.*.read_api")
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -182,7 +185,7 @@ func Test_CreateKey_Forbidden(t *testing.T) {
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, 403, res.Status)
+		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 	})
 
@@ -196,8 +199,8 @@ func Test_CreateKey_Forbidden(t *testing.T) {
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		// 403 masked as 403
-		require.Equal(t, 404, res.Status)
+
+		require.Equal(t, 403, res.Status)
 		require.NotNil(t, res.Body)
 	})
 }

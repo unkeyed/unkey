@@ -55,7 +55,7 @@ func TestPreconditionError(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key", "api.*.encrypt_key")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.read_key", "api.*.decrypt_key")
 
 	// Set up request headers
 	headers := http.Header{

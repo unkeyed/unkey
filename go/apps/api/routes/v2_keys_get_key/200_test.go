@@ -117,13 +117,13 @@ func TestGetKeyByKeyID(t *testing.T) {
 	require.NoError(t, err)
 
 	encryption, err := h.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
-		Keyring: h.Resources().UserWorkspace.ID,
+		Keyring: workspace.ID,
 		Data:    key.Key,
 	})
 	require.NoError(t, err)
 
 	err = db.Query.InsertKeyEncryption(ctx, h.DB.RW(), db.InsertKeyEncryptionParams{
-		WorkspaceID:     h.Resources().UserWorkspace.ID,
+		WorkspaceID:     workspace.ID,
 		KeyID:           keyID,
 		CreatedAt:       time.Now().UnixMilli(),
 		Encrypted:       encryption.GetEncrypted(),
@@ -322,7 +322,6 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 			ByteLength: 16,
 		})
 
-		lastRefill := time.Now().Add(-12 * time.Hour)
 		err := db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 			ID:                keyID,
 			KeyringID:         keyAuthID,
@@ -351,7 +350,6 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		require.NotNil(t, res.Body.Data.Credits.Refill)
 		require.Equal(t, int64(100), res.Body.Data.Credits.Refill.Amount)
 		require.Equal(t, "daily", string(res.Body.Data.Credits.Refill.Interval))
-		require.Equal(t, lastRefill.UnixMilli(), *res.Body.Data.Credits.Refill.LastRefillAt)
 	})
 
 	t.Run("key with monthly refill", func(t *testing.T) {

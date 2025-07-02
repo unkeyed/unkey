@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"testing"
 
@@ -38,7 +37,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Equal(t, "POST request body for '/v2/identities.getIdentity' failed to validate schema", res.Body.Error.Detail)
 		require.GreaterOrEqual(t, len(res.Body.Error.Errors), 1)
-		log.Printf("%+v", res.Body.Error.Errors)
 		require.Equal(t, "/oneOf", res.Body.Error.Errors[0].Location)
 		require.Equal(t, "'oneOf' failed, none matched", res.Body.Error.Errors[0].Message)
 		require.Equal(t, 400, res.Body.Error.Status)

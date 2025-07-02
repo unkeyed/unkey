@@ -80,7 +80,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if db.IsNotFound(err) {
 			return fault.Wrap(
 				err,
-				fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
+				fault.Code(codes.Data.Key.NotFound.URN()),
 				fault.Internal("key does not exist"),
 				fault.Public("We could not find the requested key."),
 			)
@@ -105,7 +105,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Check if API is deleted
 	if key.Api.DeletedAtM.Valid {
 		return fault.New("key not found",
-			fault.Code(codes.Data.Api.NotFound.URN()),
+			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to deleted api"),
 			fault.Public("The specified key was not found."),
 		)

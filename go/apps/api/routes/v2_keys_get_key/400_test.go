@@ -45,7 +45,7 @@ func Test_GetKey_BadRequest(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "Either keyId or key must be provided")
+		require.Contains(t, res.Body.Error.Detail, "POST request body for '/v2/keys.getKey' failed to validate schema")
 	})
 
 	t.Run("both keyId and key provided", func(t *testing.T) {
@@ -59,7 +59,7 @@ func Test_GetKey_BadRequest(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "Either keyId or key must be provided")
+		require.Contains(t, res.Body.Error.Detail, "POST request body for '/v2/keys.getKey' failed to validate schema")
 	})
 
 	t.Run("empty keyId string", func(t *testing.T) {

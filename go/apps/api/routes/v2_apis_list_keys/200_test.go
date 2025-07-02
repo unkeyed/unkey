@@ -13,8 +13,11 @@ import (
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_list_keys"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hash"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
+
+	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 )
 
 func TestSuccess(t *testing.T) {
@@ -35,7 +38,7 @@ func TestSuccess(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key", "api.*.read_api")
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key", "api.*.read_api", "api.*.decrypt_key")
 
 	// Create a keyAuth (keyring) for the API
 	keyAuthID := uid.New(uid.KeyAuthPrefix)
@@ -145,10 +148,12 @@ func TestSuccess(t *testing.T) {
 			metaBytes, _ = json.Marshal(keyData.meta)
 		}
 
+		key := keyData.start + uid.New("")
+
 		insertParams := db.InsertKeyParams{
 			ID:                keyData.id,
 			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(keyData.start + uid.New("")),
+			Hash:              hash.Sha256(key),
 			Start:             keyData.start,
 			WorkspaceID:       workspace.ID,
 			ForWorkspaceID:    sql.NullString{Valid: false},
@@ -171,6 +176,21 @@ func TestSuccess(t *testing.T) {
 		}
 
 		err := db.Query.InsertKey(ctx, h.DB.RW(), insertParams)
+		require.NoError(t, err)
+
+		encryption, err := h.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
+			Keyring: h.Resources().UserWorkspace.ID,
+			Data:    key,
+		})
+		require.NoError(t, err)
+
+		err = db.Query.InsertKeyEncryption(ctx, h.DB.RW(), db.InsertKeyEncryptionParams{
+			WorkspaceID:     h.Resources().UserWorkspace.ID,
+			KeyID:           keyData.id,
+			CreatedAt:       time.Now().UnixMilli(),
+			Encrypted:       encryption.GetEncrypted(),
+			EncryptionKeyID: encryption.GetKeyId(),
+		})
 		require.NoError(t, err)
 	}
 
@@ -579,7 +599,10 @@ func TestSuccess(t *testing.T) {
 
 	t.Run("verify encrypted key is returned correctly", func(t *testing.T) {
 		req := handler.Request{
-			ApiId: apiID,
+			ApiId:   apiID,
+			Decrypt: ptr.P(true),
+			Cursor:  ptr.P(testKeys[0].id),
+			Limit:   ptr.P(1),
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -592,5 +615,8 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body.Data)
 
+		for _, key := range res.Body.Data {
+			require.NotEmpty(t, ptr.SafeDeref(key.Plaintext), "Key should be decrypted key")
+		}
 	})
 }

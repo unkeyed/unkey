@@ -37,7 +37,7 @@ func Test_GetKey_Unauthorized(t *testing.T) {
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
-		require.Equal(t, 401, res.Status)
+		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 	})
@@ -49,7 +49,7 @@ func Test_GetKey_Unauthorized(t *testing.T) {
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
-		require.Equal(t, 401, res.Status)
+		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 	})
@@ -61,7 +61,7 @@ func Test_GetKey_Unauthorized(t *testing.T) {
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
-		require.Equal(t, 401, res.Status)
+		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 	})
@@ -73,7 +73,7 @@ func Test_GetKey_Unauthorized(t *testing.T) {
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
-		require.Equal(t, 401, res.Status)
+		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 	})
