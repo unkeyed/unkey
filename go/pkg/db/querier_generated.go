@@ -247,9 +247,30 @@ type Querier interface {
 	//  WHERE role_id = ?
 	//    AND permission_id = ?
 	FindRolePermissionByRoleAndPermissionID(ctx context.Context, db DBTX, arg FindRolePermissionByRoleAndPermissionIDParams) ([]RolesPermission, error)
+	//FindVersionById
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      environment_id,
+	//      branch_id,
+	//      build_id,
+	//      rootfs_image_id,
+	//      git_commit_sha,
+	//      git_branch,
+	//      config_snapshot,
+	//      topology_config,
+	//      status,
+	//      created_at_m,
+	//      updated_at_m,
+	//      deleted_at_m
+	//  FROM `versions`
+	//  WHERE id = ? AND deleted_at_m IS NULL
+	FindVersionById(ctx context.Context, db DBTX, id string) (FindVersionByIdRow, error)
 	//FindWorkspaceByID
 	//
-	//  SELECT id, org_id, name, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  SELECT id, org_id, name, partition_id, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, db DBTX, id string) (Workspace, error)
 	//HardDeleteWorkspace
@@ -586,6 +607,41 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertRolePermission(ctx context.Context, db DBTX, arg InsertRolePermissionParams) error
+	//InsertVersion
+	//
+	//  INSERT INTO `versions` (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      environment_id,
+	//      branch_id,
+	//      build_id,
+	//      rootfs_image_id,
+	//      git_commit_sha,
+	//      git_branch,
+	//      config_snapshot,
+	//      topology_config,
+	//      status,
+	//      created_at_m,
+	//      updated_at_m
+	//  )
+	//  VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertVersion(ctx context.Context, db DBTX, arg InsertVersionParams) error
 	//InsertWorkspace
 	//
 	//  INSERT INTO `workspaces` (
@@ -631,14 +687,14 @@ type Querier interface {
 	ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]Identity, error)
 	//ListIdentityRatelimits
 	//
-	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration
+	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply
 	//  FROM ratelimits
 	//  WHERE identity_id = ?
 	//  ORDER BY id ASC
 	ListIdentityRatelimits(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error)
 	//ListIdentityRatelimitsByID
 	//
-	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration FROM ratelimits WHERE identity_id = ?
+	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply FROM ratelimits WHERE identity_id = ?
 	ListIdentityRatelimitsByID(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error)
 	//ListKeysByKeyAuthID
 	//
@@ -750,7 +806,7 @@ type Querier interface {
 	//ListWorkspaces
 	//
 	//  SELECT
-	//     w.id, w.org_id, w.name, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
+	//     w.id, w.org_id, w.name, w.partition_id, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
 	//     q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team
 	//  FROM `workspaces` w
 	//  LEFT JOIN quota q ON w.id = q.workspace_id

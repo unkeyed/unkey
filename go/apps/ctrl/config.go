@@ -1,4 +1,4 @@
-package controlplane
+package ctrl
 
 import (
 	"github.com/unkeyed/unkey/go/pkg/clock"

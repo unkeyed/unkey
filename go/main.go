@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/unkeyed/unkey/go/cmd/deploy"
 	"github.com/unkeyed/unkey/go/cmd/healthcheck"
 	"github.com/unkeyed/unkey/go/cmd/quotacheck"
 	"github.com/unkeyed/unkey/go/cmd/run"
+	versioncmd "github.com/unkeyed/unkey/go/cmd/version"
 	"github.com/unkeyed/unkey/go/pkg/version"
 	"github.com/urfave/cli/v3"
 )
@@ -20,6 +22,8 @@ func main() {
 
 		Commands: []*cli.Command{
 			run.Cmd,
+			versioncmd.Cmd,
+			deploy.Cmd,
 			healthcheck.Cmd,
 			quotacheck.Cmd,
 		},

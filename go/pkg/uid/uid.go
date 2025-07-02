@@ -32,6 +32,13 @@ const (
 	InstancePrefix           Prefix = "ins"
 	KeyEncryptionKeyPrefix   Prefix = "kek"
 	OrgPrefix                Prefix = "org"
+
+	// Control plane prefixes
+	ProjectPrefix     Prefix = "proj"
+	EnvironmentPrefix Prefix = "env"
+	VersionPrefix     Prefix = "v"
+	BuildPrefix       Prefix = "build"
+	RootfsImagePrefix Prefix = "img"
 )
 
 // epoch starts more recently so that the 32-bit number space gives a

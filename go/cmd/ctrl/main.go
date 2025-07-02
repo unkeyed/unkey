@@ -1,9 +1,9 @@
-package controlplane
+package ctrl
 
 import (
 	"context"
 
-	"github.com/unkeyed/unkey/go/apps/controlplane"
+	"github.com/unkeyed/unkey/go/apps/ctrl"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/tls"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -11,7 +11,7 @@ import (
 )
 
 var Cmd = &cli.Command{
-	Name:  "controlplane",
+	Name:  "ctrl",
 	Usage: "Run the Unkey control plane service for managing infrastructure and services",
 
 	Flags: []cli.Flag{
@@ -128,7 +128,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		}
 	}
 
-	config := controlplane.Config{
+	config := ctrl.Config{
 		// Basic configuration
 		Platform:   cmd.String("platform"),
 		Image:      cmd.String("image"),
@@ -158,5 +158,5 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		return err
 	}
 
-	return controlplane.Run(ctx, config)
+	return ctrl.Run(ctx, config)
 }
