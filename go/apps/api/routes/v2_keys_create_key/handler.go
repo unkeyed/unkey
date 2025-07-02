@@ -95,6 +95,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Internal("api not found"), fault.Public("The specified API was not found."),
 			)
 		}
+
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"), fault.Public("Failed to retrieve API."),
@@ -221,6 +222,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					fault.Internal("failed to marshal meta"), fault.Public("Invalid metadata format."),
 				)
 			}
+
 			insertKeyParams.Meta = sql.NullString{String: string(metaBytes), Valid: true}
 		}
 
@@ -256,6 +258,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Encrypted:       encryption.GetEncrypted(),
 				EncryptionKeyID: encryption.GetKeyId(),
 			})
+
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -265,10 +268,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		// 10. Handle rate limits if provided
-		if req.Ratelimits != nil {
-			for _, ratelimit := range *req.Ratelimits {
+		if req.Ratelimits != nil && len(*req.Ratelimits) > 0 {
+			ratelimitsToInsert := make([]db.InsertKeyRatelimitParams, len(*req.Ratelimits))
+			for i, ratelimit := range *req.Ratelimits {
 				ratelimitID := uid.New(uid.RatelimitPrefix)
-				err = db.Query.InsertKeyRatelimit(ctx, tx, db.InsertKeyRatelimitParams{
+				ratelimitsToInsert[i] = db.InsertKeyRatelimitParams{
 					ID:          ratelimitID,
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					KeyID:       sql.NullString{String: keyID, Valid: true},
@@ -277,30 +281,30 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					Duration:    ratelimit.Duration,
 					CreatedAt:   now,
 					AutoApply:   ratelimit.AutoApply,
-				})
-				if err != nil {
-					return fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("database error"), fault.Public("Failed to create rate limit."),
-					)
 				}
+			}
+
+			err = db.BulkInsert(ctx, tx,
+				"INSERT INTO ratelimits (id, workspace_id, key_id, name, `limit`, duration, created_at, auto_apply) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+				ratelimitsToInsert,
+			)
+			if err != nil {
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to create rate limit."),
+				)
 			}
 		}
 
 		// 11. Handle permissions if provided
 		var auditLogs []auditlog.AuditLog
-		for _, permission := range resolvedPermissions {
-			err = db.Query.InsertKeyPermission(ctx, tx, db.InsertKeyPermissionParams{
+		permissionsToInsert := make([]db.InsertKeyPermissionParams, 0, len(resolvedPermissions))
+		for idx, permission := range resolvedPermissions {
+			permissionsToInsert[idx] = db.InsertKeyPermissionParams{
 				KeyID:        keyID,
 				PermissionID: permission.ID,
 				WorkspaceID:  auth.AuthorizedWorkspaceID,
 				CreatedAt:    now,
-			})
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to assign permission."),
-				)
 			}
 
 			auditLogs = append(auditLogs, auditlog.AuditLog{
@@ -332,19 +336,29 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			})
 		}
 
+		if len(permissionsToInsert) > 0 {
+			err = db.BulkInsert(
+				ctx,
+				tx,
+				"INSERT INTO key_permissions (key_id, permission_id, workspace_id, created_at_m) VALUES (?, ?, ?, ?)",
+				permissionsToInsert,
+			)
+			if err != nil {
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to assign permission."),
+				)
+			}
+		}
+
 		// 12. Handle roles if provided
-		for _, role := range resolvedRoles {
-			err = db.Query.InsertKeyRole(ctx, tx, db.InsertKeyRoleParams{
+		rolesToInsert := make([]db.InsertKeyRoleParams, 0, len(resolvedRoles))
+		for idx, role := range resolvedRoles {
+			rolesToInsert[idx] = db.InsertKeyRoleParams{
 				KeyID:       keyID,
 				RoleID:      role.ID,
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				CreatedAtM:  now,
-			})
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to assign role."),
-				)
 			}
 
 			auditLogs = append(auditLogs, auditlog.AuditLog{
@@ -374,6 +388,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					},
 				},
 			})
+		}
+
+		if len(rolesToInsert) > 0 {
+			err = db.BulkInsert(
+				ctx,
+				tx,
+				"INSERT INTO keys_roles (key_id, role_id, workspace_id, created_at_m) VALUES (?, ?, ?, ?)",
+				rolesToInsert,
+			)
+			if err != nil {
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to assign permission."),
+				)
+			}
 		}
 
 		// 13. Create main audit log for key creation
@@ -408,10 +437,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// 14. Insert audit logs
 		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 		if err != nil {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("audit log error"), fault.Public("Failed to create audit log."),
-			)
+			return err
 		}
 
 		return nil
