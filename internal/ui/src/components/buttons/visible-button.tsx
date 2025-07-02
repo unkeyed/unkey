@@ -20,7 +20,7 @@ type VisibleButtonProps = ButtonProps & {
   variant?: ButtonProps["variant"];
 };
 
-export function VisibleButton({
+function VisibleButton({
   isVisible,
   setIsVisible,
   variant = "outline",
@@ -47,3 +47,7 @@ export function VisibleButton({
     </Button>
   );
 }
+
+VisibleButton.displayName = "VisibleButton";
+
+export { VisibleButton, type VisibleButtonProps };

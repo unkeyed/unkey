@@ -1,8 +1,8 @@
 import { type VariantProps, cva } from "class-variance-authority";
 import * as React from "react";
-import { cn } from "../lib/utils";
+import { cn } from "../../lib/utils";
 
-const inputVariants = cva(
+const textareaVariants = cva(
   "flex min-h-9 w-full rounded-lg text-[13px] leading-5 transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-grayA-8 text-grayA-12",
   {
     variants: {
@@ -31,7 +31,7 @@ const inputVariants = cva(
   },
 );
 
-const inputWrapperVariants = cva("relative flex items-center w-full", {
+const textareaWrapperVariants = cva("relative flex items-center w-full", {
   variants: {
     variant: {
       default: "text-grayA-12",
@@ -46,25 +46,26 @@ const inputWrapperVariants = cva("relative flex items-center w-full", {
 });
 
 // Hack to populate fumadocs' AutoTypeTable
-export type DocumentedInputProps = VariantProps<typeof inputVariants> & {
+type DocumentedTextareaProps = VariantProps<typeof textareaVariants> & {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   wrapperClassName?: string;
 };
 
-export type InputProps = DocumentedInputProps & React.InputHTMLAttributes<HTMLInputElement>;
+type TextareaProps = DocumentedTextareaProps & React.TextareaHTMLAttributes<HTMLTextAreaElement>;
 
-export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, variant, type, leftIcon, rightIcon, wrapperClassName, ...props }, ref) => {
+const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
+  ({ className, variant, leftIcon, rightIcon, wrapperClassName, ...props }, ref) => {
     return (
-      <div className={cn(inputWrapperVariants({ variant }), wrapperClassName)}>
+      <div className={cn(textareaWrapperVariants({ variant }), wrapperClassName)}>
         {leftIcon && (
-          <div className="absolute left-3 flex items-center pointer-events-none">{leftIcon}</div>
+          <div className="absolute left-3 top-3 flex items-start pointer-events-none">
+            {leftIcon}
+          </div>
         )}
-        <input
-          type={type}
+        <textarea
           className={cn(
-            inputVariants({ variant, className }),
+            textareaVariants({ variant, className }),
             "px-3 py-2",
             leftIcon && "pl-9",
             rightIcon && "pr-9",
@@ -72,10 +73,11 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           {...props}
         />
-        {rightIcon && <div className="absolute right-3 flex items-center">{rightIcon}</div>}
+        {rightIcon && <div className="absolute right-3 top-3 flex items-start">{rightIcon}</div>}
       </div>
     );
   },
 );
+Textarea.displayName = "Textarea";
 
-Input.displayName = "Input";
+export { Textarea, type TextareaProps, type DocumentedTextareaProps };
