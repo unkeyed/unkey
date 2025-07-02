@@ -300,7 +300,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			for name, newRL := range newRatelimitMap {
 				existingRL, exists := existingRatelimitMap[name]
 
-				if !exists {
+				if exists {
 					rateLimitsToInsert = append(rateLimitsToInsert, db.InsertIdentityRatelimitParams{
 						ID:          existingRL.ID,
 						WorkspaceID: auth.AuthorizedWorkspaceID,

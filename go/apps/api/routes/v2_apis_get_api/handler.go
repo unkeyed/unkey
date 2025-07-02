@@ -87,19 +87,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
 		)
 	}
+
 	// Check if API belongs to the authorized workspace
 	if api.WorkspaceID != auth.AuthorizedWorkspaceID {
 		return fault.New("wrong workspace",
 			fault.Code(codes.Data.Api.NotFound.URN()),
 			fault.Internal("wrong workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
-		)
-	}
-
-	// Check if API is deleted
-	if api.DeletedAtM.Valid {
-		return fault.New("api not found",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
 		)
 	}
 

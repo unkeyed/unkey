@@ -110,6 +110,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	keyAuth, err := db.Query.FindKeyringByID(ctx, h.DB.RO(), api.KeyAuthID.String)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return fault.New("api not set up for keys",
+				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+				fault.Internal("api not set up for keys, keyauth not found"), fault.Public("The requested API is not set up to handle keys."),
+			)
+		}
+
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
+		)
+	}
+
 	// 5. Generate key using key service
 	keyID := uid.New(uid.KeyPrefix)
 	keyResult, err := h.Keys.CreateKey(ctx, keys.CreateKeyRequest{
@@ -120,8 +135,36 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	encrypt := ptr.SafeDeref(req.Recoverable, false)
 	var encryption *vaultv1.EncryptResponse
-	if req.Recoverable != nil && *req.Recoverable {
+	if encrypt {
+		err = h.Permissions.Check(
+			ctx,
+			auth.KeyID,
+			rbac.Or(
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   "*",
+					Action:       rbac.EncryptKey,
+				}),
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   api.ID,
+					Action:       rbac.EncryptKey,
+				}),
+			),
+		)
+		if err != nil {
+			return err
+		}
+
+		if !keyAuth.StoreEncryptedKeys {
+			return fault.New("api not set up for key encryption",
+				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+				fault.Internal("api not set up for key encryption"), fault.Public("This API does not support key encryption."),
+			)
+		}
+
 		encryption, err = h.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
 			Keyring: s.AuthorizedWorkspaceID(),
 			Data:    keyResult.Key,

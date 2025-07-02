@@ -25,7 +25,6 @@ type Response = openapi.V2ApisListKeysResponseBody
 
 // Handler implements zen.Route interface for the v2 APIs list keys endpoint
 type Handler struct {
-	// Services as public fields
 	Logger      logging.Logger
 	DB          db.Database
 	Keys        keys.KeyService
@@ -110,18 +109,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
 		)
 	}
+
 	// Check if API belongs to the authorized workspace
 	if api.WorkspaceID != auth.AuthorizedWorkspaceID {
 		return fault.New("wrong workspace",
 			fault.Code(codes.Data.Api.NotFound.URN()),
 			fault.Internal("wrong workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
-		)
-	}
-	// Check if API is deleted
-	if api.DeletedAtM.Valid {
-		return fault.New("api not found",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
 		)
 	}
 
@@ -131,6 +124,49 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 			fault.Internal("api not set up for keys"), fault.Public("The requested API is not set up to handle keys."),
 		)
+	}
+
+	keyAuth, err := db.Query.FindKeyringByID(ctx, h.DB.RO(), api.KeyAuthID.String)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return fault.New("api not set up for keys",
+				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+				fault.Internal("api not set up for keys, keyauth not found"), fault.Public("The requested API is not set up to handle keys."),
+			)
+		}
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
+		)
+	}
+
+	if ptr.SafeDeref(req.Decrypt, false) {
+		err = h.Permissions.Check(
+			ctx,
+			auth.KeyID,
+			rbac.Or(
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   "*",
+					Action:       rbac.DecryptKey,
+				}),
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   api.ID,
+					Action:       rbac.DecryptKey,
+				}),
+			),
+		)
+		if err != nil {
+			return err
+		}
+
+		if !keyAuth.StoreEncryptedKeys {
+			return fault.New("api not set up for key encryption",
+				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+				fault.Internal("api not set up for key encryption"), fault.Public("The requested API does not support key encryption."),
+			)
+		}
 	}
 
 	// 5. Query the keys
@@ -243,26 +279,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// If user requested decryption, check permissions and decrypt
 	plaintextMap := map[string]string{} // nolint:staticcheck
 	if req.Decrypt != nil && *req.Decrypt {
-		err = h.Permissions.Check(
-			ctx,
-			auth.KeyID,
-			rbac.Or(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   "*",
-					Action:       rbac.DecryptKey,
-				}),
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   api.ID,
-					Action:       rbac.DecryptKey,
-				}),
-			),
-		)
-		if err != nil {
-			return err
-		}
-
 		// If we have permission, proceed with decryption
 		for _, key := range keys {
 			if key.EncryptedKey.Valid && key.EncryptionKeyID.Valid {

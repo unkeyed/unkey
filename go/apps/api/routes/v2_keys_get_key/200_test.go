@@ -18,9 +18,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func Test_GetKey_ByKeyID(t *testing.T) {
-	t.Parallel()
-
+func TestGetKeyByKeyID(t *testing.T) {
 	h := testutil.NewHarness(t)
 	ctx := context.Background()
 
@@ -46,6 +44,12 @@ func Test_GetKey_ByKeyID(t *testing.T) {
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false},
 		DefaultBytes:  sql.NullInt32{Valid: false},
+	})
+	require.NoError(t, err)
+
+	err = db.Query.UpdateKeyringKeyEncryption(ctx, h.DB.RW(), db.UpdateKeyringKeyEncryptionParams{
+		ID:                 keyAuthID,
+		StoreEncryptedKeys: true,
 	})
 	require.NoError(t, err)
 

@@ -166,7 +166,7 @@ func Test_CreateKey_WithOptionalFields(t *testing.T) {
 	require.True(t, key.Enabled)
 }
 
-func Test_CreateKey_WithEncryption(t *testing.T) {
+func TestCreateKeyWithEncryption(t *testing.T) {
 	t.Parallel()
 
 	h := testutil.NewHarness(t)
@@ -194,6 +194,12 @@ func Test_CreateKey_WithEncryption(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	err = db.Query.UpdateKeyringKeyEncryption(ctx, h.DB.RW(), db.UpdateKeyringKeyEncryptionParams{
+		ID:                 keyAuthID,
+		StoreEncryptedKeys: true,
+	})
+	require.NoError(t, err)
+
 	apiID := uid.New(uid.APIPrefix)
 	err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
 		ID:          apiID,
@@ -205,7 +211,7 @@ func Test_CreateKey_WithEncryption(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key", "api.*.encrypt_key")
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

@@ -350,7 +350,7 @@ func Register(srv *zen.Server, svc *Services) {
 		},
 	)
 
-	// v2/keys.setRoles
+	// v2/keys.getKey
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysGetKey.Handler{

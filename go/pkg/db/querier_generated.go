@@ -74,7 +74,7 @@ type Querier interface {
 	DeleteRoleByID(ctx context.Context, db DBTX, roleID string) error
 	//FindApiByID
 	//
-	//  SELECT id, name, workspace_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
+	//  SELECT id, name, workspace_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ? AND deleted_at_m IS NULL
 	FindApiByID(ctx context.Context, db DBTX, id string) (Api, error)
 	//FindAuditLogTargetByID
 	//
@@ -190,8 +190,7 @@ type Querier interface {
 	FindKeyRoleByKeyAndRoleID(ctx context.Context, db DBTX, arg FindKeyRoleByKeyAndRoleIDParams) ([]KeysRole, error)
 	//FindKeyringByID
 	//
-	//  SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth`
-	//  WHERE id = ?
+	//  SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth` WHERE id = ?
 	FindKeyringByID(ctx context.Context, db DBTX, id string) (KeyAuth, error)
 	// Finds a permission record by its ID
 	// Returns: The permission record if found
@@ -857,6 +856,10 @@ type Querier interface {
 	//  WHERE
 	//      id = ?
 	UpdateIdentity(ctx context.Context, db DBTX, arg UpdateIdentityParams) error
+	//UpdateKeyringKeyEncryption
+	//
+	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?
+	UpdateKeyringKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeyringKeyEncryptionParams) error
 	//UpdateRatelimit
 	//
 	//  UPDATE `ratelimits`

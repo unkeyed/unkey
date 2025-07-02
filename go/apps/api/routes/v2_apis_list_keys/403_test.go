@@ -44,6 +44,12 @@ func TestAuthorizationErrors(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	err = db.Query.UpdateKeyringKeyEncryption(ctx, h.DB.RW(), db.UpdateKeyringKeyEncryptionParams{
+		ID:                 keyAuthID,
+		StoreEncryptedKeys: true,
+	})
+	require.NoError(t, err)
+
 	// Create a test API
 	apiID := uid.New("api")
 	err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{

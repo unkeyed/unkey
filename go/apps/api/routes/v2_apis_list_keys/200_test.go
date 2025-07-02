@@ -48,6 +48,12 @@ func TestSuccess(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	err = db.Query.UpdateKeyringKeyEncryption(ctx, h.DB.RW(), db.UpdateKeyringKeyEncryptionParams{
+		ID:                 keyAuthID,
+		StoreEncryptedKeys: true,
+	})
+	require.NoError(t, err)
+
 	// Create a test API
 	apiID := uid.New("api")
 	err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
@@ -569,5 +575,22 @@ func TestSuccess(t *testing.T) {
 		}
 		require.True(t, foundKeyWithRatelimits, "Should find the key with ratelimits in response")
 		require.True(t, foundKeyWithoutRatelimits, "Should find the key without ratelimits in response")
+	})
+
+	t.Run("verify encrypted key is returned correctly", func(t *testing.T) {
+		req := handler.Request{
+			ApiId: apiID,
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body.Data)
+
 	})
 }

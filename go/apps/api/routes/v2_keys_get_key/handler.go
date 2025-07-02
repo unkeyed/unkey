@@ -123,8 +123,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	keyAuth, err := db.Query.FindKeyringByID(ctx, h.DB.RO(), key.KeyAuthID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return fault.New("api not set up for keys",
+				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+				fault.Internal("api not set up for keys, keyauth not found"), fault.Public("The requested API is not set up to handle keys."),
+			)
+		}
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
+		)
+	}
+
+	decrypt := ptr.SafeDeref(req.Decrypt, false)
 	var plaintext *string
-	if req.Decrypt != nil && *req.Decrypt {
+	if decrypt {
 		err = h.Permissions.Check(
 			ctx,
 			auth.KeyID,
@@ -145,7 +160,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 
-		if key.EncryptedKey.Valid && key.EncryptionKeyID.Valid {
+		if !keyAuth.StoreEncryptedKeys {
+			return fault.New("api not set up for key encryption",
+				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+				fault.Internal("api not set up for key encryption"), fault.Public("The API for this key does not support key encryption."),
+			)
+		}
+
+		// If the key is encrypted and the encryption key ID is valid, decrypt the key.
+		// Otherwise the key was never encrypted to begin with.
+		if key.EncryptedKey.Valid && key.EncryptionKeyID.Valid && req.Key == nil {
 			decrypted, decryptErr := h.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
 				Keyring:   key.WorkspaceID,
 				Encrypted: key.EncryptedKey.String,
@@ -160,8 +184,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				plaintext = ptr.P(decrypted.GetPlaintext())
 			}
 		}
-	} else if req.Key != nil {
-		plaintext = req.Key
+
+		if req.Key != nil {
+			// Only respond with the plaintext key if EXPLICITLY requested.
+			plaintext = req.Key
+		}
 	}
 
 	k := openapi.KeyResponse{
