@@ -278,7 +278,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if req.Credits != nil {
 			insertKeyParams.RemainingRequests = sql.NullInt32{
 				Int32: int32(req.Credits.Remaining), // nolint:gosec
-				Valid: req.Credits.Remaining == -1,
+				Valid: req.Credits.Remaining != -1,
 			}
 
 			if req.Credits.Refill != nil {

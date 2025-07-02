@@ -648,7 +648,8 @@ type RatelimitRequest struct {
 
 // RatelimitResponse defines model for RatelimitResponse.
 type RatelimitResponse struct {
-	// AutoApply Whether this rate limit should be automatically applied when verifying keys. This is always
+	// AutoApply Whether this rate limit should be automatically applied when verifying keys.
+	// When true, we will automatically apply this limit during verification without it being explicitly listed.
 	AutoApply bool `json:"autoApply"`
 
 	// Duration Rate limit window duration in milliseconds.
