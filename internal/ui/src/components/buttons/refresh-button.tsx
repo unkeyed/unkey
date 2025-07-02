@@ -1,7 +1,12 @@
-import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
+"use client";
 import { Refresh3 } from "@unkey/icons";
-import { Button, InfoTooltip, KeyboardButton } from "@unkey/ui";
+// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
+import * as React from "react";
 import { useState } from "react";
+import { useKeyboardShortcut } from "../../hooks/use-keyboard-shortcut";
+import { InfoTooltip } from "../info-tooltip";
+import { Button } from "./button";
+import { KeyboardButton } from "./keyboard-button";
 
 type RefreshButtonProps = {
   onRefresh: () => void;
@@ -12,7 +17,7 @@ type RefreshButtonProps = {
 
 const REFRESH_TIMEOUT_MS = 1000;
 
-export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: RefreshButtonProps) => {
+const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: RefreshButtonProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [refreshTimeout, setRefreshTimeout] = useState<NodeJS.Timeout | null>(null);
 
@@ -70,3 +75,6 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
     </InfoTooltip>
   );
 };
+
+RefreshButton.displayName = "RefreshButton";
+export { RefreshButton, type RefreshButtonProps };

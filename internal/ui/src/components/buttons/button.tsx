@@ -2,8 +2,8 @@
 import { Slot } from "@radix-ui/react-slot";
 import { type VariantProps, cva } from "class-variance-authority";
 import * as React from "react";
-import { cn } from "../lib/utils";
-import { AnimatedLoadingSpinner } from "./animated-loading-spinner";
+import { cn } from "../../lib/utils";
+import { AnimatedLoadingSpinner } from "../animated-loading-spinner";
 
 // Hack to populate fumadocs' AutoTypeTable
 export type DocumentedButtonProps = VariantProps<typeof buttonVariants> & {

@@ -4,7 +4,7 @@ import * as React from "react";
 import { useCallback, useState } from "react";
 import { useKeyboardShortcut } from "../../../hooks/use-keyboard-shortcut";
 import type { FilterValue } from "../../../validation/filter.types";
-import { KeyboardButton } from "../../keyboard-button";
+import { KeyboardButton } from "../../buttons/keyboard-button";
 import { ControlPill } from "./control-pill";
 import { defaultFormatValue } from "./utils";
 
