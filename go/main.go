@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/unkeyed/unkey/go/cmd/api"
-	"github.com/unkeyed/unkey/go/cmd/controlplane"
 	"github.com/unkeyed/unkey/go/cmd/healthcheck"
 	"github.com/unkeyed/unkey/go/cmd/quotacheck"
 	"github.com/unkeyed/unkey/go/pkg/version"
@@ -21,7 +20,6 @@ func main() {
 
 		Commands: []*cli.Command{
 			api.Cmd,
-			controlplane.Cmd,
 			healthcheck.Cmd,
 			quotacheck.Cmd,
 		},
