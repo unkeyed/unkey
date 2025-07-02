@@ -389,14 +389,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if len(rateLimitsToInsert) > 0 {
 				err = db.BulkInsert(ctx, tx,
 					"INSERT INTO ratelimits (id, workspace_id, identity_id, name,`limit`"+`, duration, created_at, auto_apply) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-					ON DUPLICATE KEY UPDATE
+					ON DUPLICATE KEY UPDATE`+"`limit` = VALUES(`limit`),"+`
 					name = VALUES(name),
-					limit = VALUES(limit),
 					duration = VALUES(duration),
 					auto_apply = VALUES(auto_apply),
 					updated_at = NOW()`,
 					rateLimitsToInsert,
 				)
+
+				if err != nil {
+					return fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("database failed to insert ratelimits"), fault.Public("Failed to insert ratelimits"),
+					)
+				}
 			}
 		}
 

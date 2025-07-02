@@ -150,14 +150,16 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 		identityRateLimits := []openapi.RatelimitRequest{
 			{
-				Duration: time.Minute.Milliseconds(),
-				Limit:    100,
-				Name:     "test",
+				Duration:  time.Minute.Milliseconds(),
+				Limit:     100,
+				Name:      "test",
+				AutoApply: true,
 			},
 			{
-				Duration: time.Minute.Milliseconds(),
-				Limit:    200,
-				Name:     "test2",
+				Duration:  time.Minute.Milliseconds(),
+				Limit:     200,
+				Name:      "test2",
+				AutoApply: true,
 			},
 		}
 
@@ -206,14 +208,16 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 		identityRateLimits := []openapi.RatelimitRequest{
 			{
-				Duration: time.Minute.Milliseconds(),
-				Limit:    100,
-				Name:     "requests_per_minute",
+				Duration:  time.Minute.Milliseconds(),
+				Limit:     100,
+				Name:      "requests_per_minute",
+				AutoApply: true,
 			},
 			{
-				Duration: (time.Hour * 24).Milliseconds(),
-				Limit:    1000,
-				Name:     "requests_per_day",
+				Duration:  (time.Hour * 24).Milliseconds(),
+				Limit:     1000,
+				Name:      "requests_per_day",
+				AutoApply: true,
 			},
 		}
 

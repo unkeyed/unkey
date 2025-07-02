@@ -393,15 +393,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if ratelimits, ok := identityRatelimitsMap[key.IdentityID.String]; ok {
-				for _, rl := range ratelimits {
-					k.Identity.Ratelimits = append(k.Identity.Ratelimits, openapi.RatelimitResponse{
+				ratelimitsResponse := make([]openapi.RatelimitResponse, len(ratelimits))
+				for idx, rl := range ratelimits {
+					ratelimitsResponse[idx] = openapi.RatelimitResponse{
 						Id:        rl.ID,
 						Name:      rl.Name,
 						Duration:  rl.Duration,
 						AutoApply: rl.AutoApply,
 						Limit:     int64(rl.Limit),
-					})
+					}
 				}
+
+				k.Identity.Ratelimits = ratelimitsResponse
 			}
 		}
 

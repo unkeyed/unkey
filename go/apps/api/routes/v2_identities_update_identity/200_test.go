@@ -177,14 +177,16 @@ func TestSuccess(t *testing.T) {
 
 		ratelimits := []openapi.RatelimitRequest{
 			{
-				Name:     "api_calls",
-				Limit:    200,
-				Duration: 60000,
+				Name:      "api_calls",
+				Limit:     200,
+				Duration:  60000,
+				AutoApply: true,
 			},
 			{
-				Name:     "new_feature",
-				Limit:    5,
-				Duration: 86400000, // 1 day
+				Name:      "new_feature",
+				Limit:     5,
+				Duration:  86400000, // 1 day
+				AutoApply: false,
 			},
 		}
 
@@ -279,9 +281,10 @@ func TestSuccess(t *testing.T) {
 
 		ratelimits := []openapi.RatelimitRequest{
 			{
-				Name:     "enterprise_feature",
-				Limit:    50,
-				Duration: 3600000,
+				Name:      "enterprise_feature",
+				Limit:     50,
+				Duration:  3600000,
+				AutoApply: true,
 			},
 		}
 

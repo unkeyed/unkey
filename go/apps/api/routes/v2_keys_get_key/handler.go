@@ -206,6 +206,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RefillDay:    ptr.P(int(key.RefillDay.Int16)),
 				LastRefillAt: nil,
 			}
+
 			if key.LastRefillAt.Valid {
 				k.Credits.Refill.LastRefillAt = ptr.P(key.LastRefillAt.Time.UnixMilli())
 			}
