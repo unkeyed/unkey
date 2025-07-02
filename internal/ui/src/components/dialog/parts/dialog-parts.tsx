@@ -7,7 +7,7 @@ import {
   DialogFooter as ShadcnDialogFooter,
   DialogHeader as ShadcnDialogHeader,
   DialogTitle as ShadcnDialogTitle,
-} from "./dialog";
+} from "../dialog";
 
 type DefaultDialogHeaderProps = {
   title: string;
