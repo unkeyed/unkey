@@ -254,22 +254,10 @@ type KeyCreditsRefillRequest struct {
 
 	// RefillDay Day of month for monthly refills (1-31).
 	RefillDay *int `json:"refillDay,omitempty"`
-	union     json.RawMessage
 }
 
 // KeyCreditsRefillRequestInterval How often credits are automatically refilled.
 type KeyCreditsRefillRequestInterval string
-
-// KeyCreditsRefillRequest0 defines model for .
-type KeyCreditsRefillRequest0 struct {
-	Interval interface{} `json:"interval"`
-}
-
-// KeyCreditsRefillRequest1 defines model for .
-type KeyCreditsRefillRequest1 struct {
-	Interval  interface{} `json:"interval"`
-	RefillDay int         `json:"refillDay"`
-}
 
 // KeyCreditsRefillResponse defines model for KeyCreditsRefillResponse.
 type KeyCreditsRefillResponse struct {
@@ -2355,126 +2343,6 @@ type RatelimitListOverridesJSONRequestBody = V2RatelimitListOverridesRequestBody
 
 // RatelimitSetOverrideJSONRequestBody defines body for RatelimitSetOverride for application/json ContentType.
 type RatelimitSetOverrideJSONRequestBody = V2RatelimitSetOverrideRequestBody
-
-// AsKeyCreditsRefillRequest0 returns the union data inside the KeyCreditsRefillRequest as a KeyCreditsRefillRequest0
-func (t KeyCreditsRefillRequest) AsKeyCreditsRefillRequest0() (KeyCreditsRefillRequest0, error) {
-	var body KeyCreditsRefillRequest0
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromKeyCreditsRefillRequest0 overwrites any union data inside the KeyCreditsRefillRequest as the provided KeyCreditsRefillRequest0
-func (t *KeyCreditsRefillRequest) FromKeyCreditsRefillRequest0(v KeyCreditsRefillRequest0) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeKeyCreditsRefillRequest0 performs a merge with any union data inside the KeyCreditsRefillRequest, using the provided KeyCreditsRefillRequest0
-func (t *KeyCreditsRefillRequest) MergeKeyCreditsRefillRequest0(v KeyCreditsRefillRequest0) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsKeyCreditsRefillRequest1 returns the union data inside the KeyCreditsRefillRequest as a KeyCreditsRefillRequest1
-func (t KeyCreditsRefillRequest) AsKeyCreditsRefillRequest1() (KeyCreditsRefillRequest1, error) {
-	var body KeyCreditsRefillRequest1
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromKeyCreditsRefillRequest1 overwrites any union data inside the KeyCreditsRefillRequest as the provided KeyCreditsRefillRequest1
-func (t *KeyCreditsRefillRequest) FromKeyCreditsRefillRequest1(v KeyCreditsRefillRequest1) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeKeyCreditsRefillRequest1 performs a merge with any union data inside the KeyCreditsRefillRequest, using the provided KeyCreditsRefillRequest1
-func (t *KeyCreditsRefillRequest) MergeKeyCreditsRefillRequest1(v KeyCreditsRefillRequest1) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-func (t KeyCreditsRefillRequest) MarshalJSON() ([]byte, error) {
-	b, err := t.union.MarshalJSON()
-	if err != nil {
-		return nil, err
-	}
-	object := make(map[string]json.RawMessage)
-	if t.union != nil {
-		err = json.Unmarshal(b, &object)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	object["amount"], err = json.Marshal(t.Amount)
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling 'amount': %w", err)
-	}
-
-	object["interval"], err = json.Marshal(t.Interval)
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling 'interval': %w", err)
-	}
-
-	if t.RefillDay != nil {
-		object["refillDay"], err = json.Marshal(t.RefillDay)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'refillDay': %w", err)
-		}
-	}
-	b, err = json.Marshal(object)
-	return b, err
-}
-
-func (t *KeyCreditsRefillRequest) UnmarshalJSON(b []byte) error {
-	err := t.union.UnmarshalJSON(b)
-	if err != nil {
-		return err
-	}
-	object := make(map[string]json.RawMessage)
-	err = json.Unmarshal(b, &object)
-	if err != nil {
-		return err
-	}
-
-	if raw, found := object["amount"]; found {
-		err = json.Unmarshal(raw, &t.Amount)
-		if err != nil {
-			return fmt.Errorf("error reading 'amount': %w", err)
-		}
-	}
-
-	if raw, found := object["interval"]; found {
-		err = json.Unmarshal(raw, &t.Interval)
-		if err != nil {
-			return fmt.Errorf("error reading 'interval': %w", err)
-		}
-	}
-
-	if raw, found := object["refillDay"]; found {
-		err = json.Unmarshal(raw, &t.RefillDay)
-		if err != nil {
-			return fmt.Errorf("error reading 'refillDay': %w", err)
-		}
-	}
-
-	return err
-}
 
 // AsV2IdentitiesDeleteIdentityRequestBody0 returns the union data inside the V2IdentitiesDeleteIdentityRequestBody as a V2IdentitiesDeleteIdentityRequestBody0
 func (t V2IdentitiesDeleteIdentityRequestBody) AsV2IdentitiesDeleteIdentityRequestBody0() (V2IdentitiesDeleteIdentityRequestBody0, error) {

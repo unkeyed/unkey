@@ -118,6 +118,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	// Check if API is deleted
+	if api.DeletedAtM.Valid {
+		return fault.New("api not found",
+			fault.Code(codes.Data.Api.NotFound.URN()),
+			fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
+		)
+	}
+
 	// Check if API is set up to handle keys
 	if !api.KeyAuthID.Valid || api.KeyAuthID.String == "" {
 		return fault.New("api not set up for keys",

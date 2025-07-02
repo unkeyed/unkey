@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
+
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_get_key"
@@ -97,7 +99,6 @@ func TestGetKeyByKeyID(t *testing.T) {
 		ByteLength: 16,
 	})
 
-	metaBytes, _ := json.Marshal([]byte("123"))
 	insertParams := db.InsertKeyParams{
 		ID:             keyID,
 		KeyringID:      keyAuthID,
@@ -106,7 +107,6 @@ func TestGetKeyByKeyID(t *testing.T) {
 		WorkspaceID:    workspace.ID,
 		ForWorkspaceID: sql.NullString{Valid: false},
 		Name:           sql.NullString{Valid: true, String: "test-key"},
-		Meta:           sql.NullString{Valid: true, String: string(metaBytes)},
 		Expires:        sql.NullTime{Valid: false},
 		CreatedAtM:     time.Now().UnixMilli(),
 		Enabled:        true,
@@ -114,6 +114,21 @@ func TestGetKeyByKeyID(t *testing.T) {
 	}
 
 	err = db.Query.InsertKey(ctx, h.DB.RW(), insertParams)
+	require.NoError(t, err)
+
+	encryption, err := h.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
+		Keyring: h.Resources().UserWorkspace.ID,
+		Data:    key.Key,
+	})
+	require.NoError(t, err)
+
+	err = db.Query.InsertKeyEncryption(ctx, h.DB.RW(), db.InsertKeyEncryptionParams{
+		WorkspaceID:     h.Resources().UserWorkspace.ID,
+		KeyID:           keyID,
+		CreatedAt:       time.Now().UnixMilli(),
+		Encrypted:       encryption.GetEncrypted(),
+		EncryptionKeyID: encryption.GetKeyId(),
+	})
 	require.NoError(t, err)
 
 	// Create a root key with appropriate permissions
@@ -145,7 +160,7 @@ func TestGetKeyByKeyID(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, res.Body.Data.Plaintext, key.Key)
+		require.Equal(t, ptr.SafeDeref(res.Body.Data.Plaintext), key.Key)
 	})
 
 	t.Run("get key by plaintext key", func(t *testing.T) {
@@ -156,7 +171,19 @@ func TestGetKeyByKeyID(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, res.Body.Data.Plaintext, key.Key)
+		require.Equal(t, res.Body.Data.KeyId, keyID)
+	})
+
+	t.Run("get key by plaintext key with decrypting", func(t *testing.T) {
+		req := handler.Request{
+			Key:     ptr.P(key.Key),
+			Decrypt: ptr.P(true),
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body)
+		require.Equal(t, ptr.SafeDeref(res.Body.Data.Plaintext), key.Key)
 	})
 }
 
@@ -262,7 +289,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 			ByteLength: 16,
 		})
 
-		futureDate := time.Now().Add(24 * time.Hour)
+		futureDate := time.Now().Add(24 * time.Hour).Truncate(time.Hour)
 		err := db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 			ID:          keyID,
 			KeyringID:   keyAuthID,
@@ -304,6 +331,8 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 			WorkspaceID:       workspace.ID,
 			Name:              sql.NullString{Valid: true, String: "credits-key"},
 			RemainingRequests: sql.NullInt32{Valid: true, Int32: 50},
+			RefillAmount:      sql.NullInt32{Valid: true, Int32: 100},
+			RefillDay:         sql.NullInt16{Valid: false, Int16: 0},
 			CreatedAtM:        time.Now().UnixMilli(),
 			Enabled:           true,
 		})

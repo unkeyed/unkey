@@ -102,6 +102,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	// Check if API is deleted
+	if key.Api.DeletedAtM.Valid {
+		return fault.New("key not found",
+			fault.Code(codes.Data.Api.NotFound.URN()),
+			fault.Internal("key belongs to deleted api"),
+			fault.Public("The specified key was not found."),
+		)
+	}
+
 	// Permission check
 	err = h.Permissions.Check(
 		ctx,
@@ -228,15 +237,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if key.RefillAmount.Valid {
+			var refillDay *int
 			interval := openapi.KeyCreditsRefillResponseIntervalDaily
 			if key.RefillDay.Valid {
 				interval = openapi.KeyCreditsRefillResponseIntervalMonthly
+				refillDay = ptr.P(int(key.RefillDay.Int16))
 			}
 
 			k.Credits.Refill = &openapi.KeyCreditsRefillResponse{
 				Amount:       int64(key.RefillAmount.Int32),
 				Interval:     interval,
-				RefillDay:    ptr.P(int(key.RefillDay.Int16)),
+				RefillDay:    refillDay,
 				LastRefillAt: nil,
 			}
 

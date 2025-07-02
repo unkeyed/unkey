@@ -3,7 +3,6 @@ package handler_test
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -70,7 +69,6 @@ func TestPreconditionError(t *testing.T) {
 		ByteLength: 16,
 	})
 
-	metaBytes, _ := json.Marshal([]byte("123"))
 	insertParams := db.InsertKeyParams{
 		ID:             keyID,
 		KeyringID:      keyAuthID,
@@ -79,7 +77,6 @@ func TestPreconditionError(t *testing.T) {
 		WorkspaceID:    h.Resources().UserWorkspace.ID,
 		ForWorkspaceID: sql.NullString{Valid: false},
 		Name:           sql.NullString{Valid: true, String: "test-key"},
-		Meta:           sql.NullString{Valid: true, String: string(metaBytes)},
 		Expires:        sql.NullTime{Valid: false},
 		CreatedAtM:     time.Now().UnixMilli(),
 		Enabled:        true,

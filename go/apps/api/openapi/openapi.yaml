@@ -1731,24 +1731,6 @@ components:
       required:
         - interval
         - amount
-      oneOf:
-        - properties:
-            interval:
-              const: daily
-          required:
-            - interval
-            - amount
-        - properties:
-            interval:
-              const: monthly
-            refillDay:
-              type: integer
-              minimum: 1
-              maximum: 31
-          required:
-            - interval
-            - amount
-            - refillDay
       additionalProperties: false
     KeyResponse:
       type: object
