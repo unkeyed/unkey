@@ -70,7 +70,17 @@ export function BasicControlCloud() {
   const formatFieldName = defaultFormatFieldName;
 
   return (
-    <RenderComponentWithSnippet>
+    <RenderComponentWithSnippet
+      customCodeSnippet={` <div className="w-full max-w-2xl border border-gray-6 rounded-lg">
+  <ControlCloud
+    filters={filters}
+    removeFilter={removeFilter}
+    updateFilters={updateFilters}
+    formatFieldName={formatFieldName}
+  />
+  <div className="p-4 text-sm text-gray-11">Active filters: {filters.length}</div>
+</div>`}
+    >
       <div className="w-full max-w-2xl border border-gray-6 rounded-lg">
         <ControlCloud
           filters={filters}
@@ -101,7 +111,17 @@ export function TimeBasedFilters() {
   const formatFieldName = defaultFormatFieldName;
 
   return (
-    <RenderComponentWithSnippet>
+    <RenderComponentWithSnippet
+      customCodeSnippet={`<div className="w-full max-w-2xl border border-gray-6 rounded-lg">
+  <ControlCloud
+    filters={filters}
+    removeFilter={removeFilter}
+    updateFilters={updateFilters}
+    formatFieldName={formatFieldName}
+  />
+  <div className="p-4 text-sm text-gray-11">Time range filters applied</div>
+</div>`}
+    >
       <div className="w-full max-w-2xl border border-gray-6 rounded-lg">
         <ControlCloud
           filters={filters}
@@ -141,7 +161,20 @@ export function MultipleFilterTypes() {
   };
 
   return (
-    <RenderComponentWithSnippet>
+    <RenderComponentWithSnippet
+      customCodeSnippet={`<div className="w-full max-w-2xl border border-gray-6 rounded-lg">
+  <ControlCloud
+    filters={filters}
+    removeFilter={removeFilter}
+    updateFilters={updateFilters}
+    formatFieldName={formatFieldName}
+    formatValue={formatValue}
+  />
+  <div className="p-4 text-sm text-gray-11">
+    Mixed filter types: status, method, path, and duration
+  </div>
+</div>`}
+    >
       <div className="w-full max-w-2xl border border-gray-6 rounded-lg">
         <ControlCloud
           filters={filters}
@@ -172,7 +205,19 @@ export function EmptyState() {
   const formatFieldName = defaultFormatFieldName;
 
   return (
-    <RenderComponentWithSnippet>
+    <RenderComponentWithSnippet
+      customCodeSnippet={`<div className="w-full max-w-2xl border border-gray-6 rounded-lg">
+  <ControlCloud
+    filters={filters}
+    removeFilter={removeFilter}
+    updateFilters={updateFilters}
+    formatFieldName={formatFieldName}
+  />
+  <div className="p-4 text-sm text-gray-11">
+    No filters applied (component is hidden when empty)
+  </div>
+</div>`}
+    >
       <div className="w-full max-w-2xl border border-gray-6 rounded-lg">
         <ControlCloud
           filters={filters}
@@ -220,7 +265,45 @@ export function InteractiveExample() {
   const formatFieldName = defaultFormatFieldName;
 
   return (
-    <RenderComponentWithSnippet>
+    <RenderComponentWithSnippet
+      customCodeSnippet={`<div className="w-full max-w-2xl space-y-4">
+  <div className="flex gap-2">
+    <button
+      type="button"
+      onClick={() => addFilter("status", "200")}
+      className="px-3 py-1 text-xs bg-gray-3 rounded hover:bg-gray-4"
+    >
+      Add Status Filter
+    </button>
+    <button
+      type="button"
+      onClick={() => addFilter("method", "GET")}
+      className="px-3 py-1 text-xs bg-gray-3 rounded hover:bg-gray-4"
+    >
+      Add Method Filter
+    </button>
+    <button
+      type="button"
+      onClick={() => addFilter("path", "/api/users")}
+      className="px-3 py-1 text-xs bg-gray-3 rounded hover:bg-gray-4"
+    >
+      Add Path Filter
+    </button>
+  </div>
+  <div className="border border-gray-6 rounded-lg">
+    <ControlCloud
+      filters={filters}
+      removeFilter={removeFilter}
+      updateFilters={updateFilters}
+      formatFieldName={formatFieldName}
+    />
+    <div className="p-4 text-sm text-gray-11">
+      Click buttons above to add filters, then use keyboard navigation (
+      {isMac ? "⌥+⇧+C" : "Alt+Shift+C"} to focus)
+    </div>
+  </div>
+</div>`}
+    >
       <div className="w-full max-w-2xl space-y-4">
         <div className="flex gap-2">
           <button

@@ -2,6 +2,7 @@
 import React, { type PropsWithChildren } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./tooltip";
 import { cn } from "../lib/utils";
+
 const baseVariant =
   "px-3 py-2 text-xs font-medium shadow-md rounded-lg focus:border focus:border-accent-12 focus:ring-2 focus:ring-grayA-4 focus-visible:outline-none focus:ring-offset-0";
 const variants = {
@@ -58,4 +59,5 @@ const InfoTooltip = ({
   );
 };
 
+InfoTooltip.displayName = "InfoTooltip";
 export { InfoTooltip };

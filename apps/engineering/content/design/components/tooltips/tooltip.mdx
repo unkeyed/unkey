@@ -1,46 +1,41 @@
 ---
 title: Tooltip
-description: The Tooltip component provides contextual information that appears when users hover over or focus on an element. Built on Radix UI primitives, it offers accessible, customizable tooltips with flexible positioning and styling options.
+description: The Tooltip component provides contextual information that appears when users hover over or focus on an element. It's built on top of Radix UI's tooltip primitive and offers flexible positioning and styling options.
 ---
 import { OnHoverExample } from "./tooltip.onHover"
 
 ## Tooltip
 
-The Tooltip component is a fundamental UI element that displays additional information when users interact with interface elements. It's built on top of Radix UI primitives to ensure accessibility and consistent behavior across different browsers and assistive technologies.
+The Tooltip component is a fundamental UI element that displays additional information when users interact with elements. It's perfect for providing context, explanations, or supplementary details without cluttering the interface.
+
+## Basic Usage
+
+<OnHoverExample />
 
 ## Features
 
-- **Accessible by default** - Built on Radix UI primitives with proper ARIA attributes
-- **Flexible positioning** - Support for top, right, bottom, and left positioning
-- **Customizable styling** - Easy to style with CSS classes and variants
-- **Keyboard navigation** - Full keyboard accessibility support
-- **Touch device support** - Works seamlessly on mobile and touch devices
-- **Animation support** - Smooth enter/exit animations with configurable timing
-- **Delay control** - Configurable delay before showing/hiding tooltips
-
-## Usage
-
-<OnHoverExample />
+- **Flexible Positioning**: Position tooltips on any side (top, right, bottom, left)
+- **Automatic Positioning**: Smart positioning that adjusts based on available space
+- **Accessible**: Built on Radix UI primitives with full keyboard and screen reader support
+- **Customizable Styling**: Easy to customize appearance with CSS classes
+- **Animation**: Smooth enter/exit animations
+- **Delay Control**: Configurable delay before showing/hiding tooltips
 
 ## Components
 
 The Tooltip system consists of several components that work together:
 
 ### TooltipProvider
-
-Wraps your application or component tree to provide tooltip context and configuration. Accepts `delayDuration` and `skipDelayDuration` props to control timing.
+Wraps your application to provide tooltip context and configuration.
 
 ### Tooltip
-
-The root component that manages the tooltip state and behavior. Contains the trigger and content components.
+The root component that manages the tooltip state.
 
 ### TooltipTrigger
-
-The element that triggers the tooltip when hovered or focused. Supports the `asChild` prop to render as a child element.
+The element that triggers the tooltip when hovered or focused.
 
 ### TooltipContent
-
-The actual tooltip content that appears when triggered. Supports positioning, alignment, and styling props.
+The actual tooltip content that appears.
 
 ## Props
 
@@ -48,26 +43,27 @@ The actual tooltip content that appears when triggered. Supports positioning, al
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| delayDuration | number | 700 | Delay in milliseconds before showing the tooltip |
-| skipDelayDuration | number | 300 | Delay in milliseconds before hiding the tooltip |
-| children | React.ReactNode | - | The content to wrap with tooltip context |
+| delayDuration | number | 700 | Delay before showing the tooltip in milliseconds |
+| skipDelayDuration | number | 300 | Delay before hiding the tooltip in milliseconds |
+| children | ReactNode | - | The content to render |
 
 ### Tooltip Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| open | boolean | undefined | Controlled open state |
-| onOpenChange | (open: boolean) => void | undefined | Callback when open state changes |
-| defaultOpen | boolean | false | Default open state |
-| children | React.ReactNode | - | Tooltip trigger and content |
+| defaultOpen | boolean | false | Whether the tooltip is open by default |
+| open | boolean | - | Controlled open state |
+| onOpenChange | (open: boolean) => void | - | Callback when open state changes |
+| delayDuration | number | - | Override provider delay duration |
+| disableHoverableContent | boolean | false | Whether to disable hoverable content |
 
 ### TooltipTrigger Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | asChild | boolean | false | Whether to render as a child element |
-| children | React.ReactNode | - | The trigger element |
-| className | string | undefined | Additional CSS classes |
+| children | ReactNode | - | The trigger element |
+| className | string | - | Additional CSS classes |
 
 ### TooltipContent Props
 
@@ -79,106 +75,92 @@ The actual tooltip content that appears when triggered. Supports positioning, al
 | alignOffset | number | 0 | The offset from the alignment in pixels |
 | avoidCollisions | boolean | true | Whether to avoid collisions with viewport edges |
 | collisionBoundary | Boundary | [] | The boundary for collision detection |
-| collisionPadding | number \| `Partial<Record<Side, number>>` | 0 | The padding for collision detection |
-| arrowPadding | number | 0 | The padding for arrow positioning |
-| sticky | "partial" \| "always" | "partial" | The sticky behavior on collision |
-| hideWhenDetached | boolean | false | Whether to hide when detached from trigger |
-| className | string | undefined | Additional CSS classes |
-
-## Positioning
-
-Tooltips can be positioned on any side of the trigger element with fine-grained control. Use the `side` prop to specify the position (top, right, bottom, left) and the `align` prop to control alignment (start, center, end).
-
-The `sideOffset` and `alignOffset` props allow you to fine-tune the positioning with pixel values. For example, setting `sideOffset={10}` will position the tooltip 10 pixels away from the trigger element.
-
-## Styling
-
-The TooltipContent component comes with default styling that can be customized using the `className` prop. Default styles include:
-
-- Background color with dark mode support
-- Text color with proper contrast
-- Rounded corners
-- Shadow for depth
-- Smooth animations
-- Proper z-index layering
-
-You can override these styles by passing custom CSS classes to the `className` prop.
-
-## Accessibility
-
-The Tooltip component is fully accessible and includes:
-
-- **ARIA attributes** - Proper role and aria-describedby attributes
-- **Keyboard navigation** - Tooltips can be triggered with keyboard focus
-- **Screen reader support** - Content is properly announced to assistive technologies
-- **Focus management** - Proper focus handling and restoration
-- **Touch device support** - Works with touch interactions on mobile devices
-
-## Best Practices
-
-1. **Keep content concise** - Tooltips should provide brief, helpful information
-2. **Use appropriate timing** - Set reasonable delay durations for your use case
-3. **Consider positioning** - Choose positions that don't interfere with other UI elements
-4. **Test with keyboard** - Ensure tooltips work properly with keyboard navigation
-5. **Avoid nested tooltips** - Don't place tooltips inside other tooltips
-6. **Provide alternatives** - Consider if the information should be visible by default instead
+| collisionPadding | number \| Padding | 0 | The padding for collision detection |
+| arrowPadding | number | 0 | The padding for arrow collision detection |
+| sticky | "partial" \| "always" | "partial" | The sticky behavior |
+| hideWhenDetached | boolean | false | Whether to hide when detached |
+| className | string | - | Additional CSS classes |
+| children | ReactNode | - | The tooltip content |
 
 ## Examples
 
-### Basic Usage
-
-The most common pattern is to wrap a trigger element with the Tooltip component and provide content via TooltipContent:
-
+### Basic Tooltip
 ```tsx
-import { Tooltip, TooltipTrigger, TooltipContent } from "@unkey/ui";
-
-// Basic tooltip with button trigger
-<Tooltip>
-  <TooltipTrigger>
-    <button>Hover for help</button>
-  </TooltipTrigger>
-  <TooltipContent>
-    This button performs the main action
-  </TooltipContent>
-</Tooltip>
+<TooltipProvider>
+  <Tooltip>
+    <TooltipTrigger>
+      <button>Hover me</button>
+    </TooltipTrigger>
+    <TooltipContent>
+      This is a basic tooltip
+    </TooltipContent>
+  </Tooltip>
+</TooltipProvider>
 ```
 
-### With Icons
-
-Tooltips work well with icons to provide additional context:
-
+### Custom Positioning
 ```tsx
-import { Tooltip, TooltipTrigger, TooltipContent } from "@unkey/ui";
-import { InfoIcon } from "lucide-react";
+<TooltipProvider>
+  <Tooltip>
+    <TooltipTrigger>
+      <button>Hover me</button>
+    </TooltipTrigger>
+    <TooltipContent side="right" align="start" sideOffset={8}>
+      Tooltip on the right
+    </TooltipContent>
+  </Tooltip>
+</TooltipProvider>
+```
 
-// Tooltip with info icon
-<Tooltip>
-  <TooltipTrigger>
-    <InfoIcon className="h-4 w-4" />
-  </TooltipTrigger>
-  <TooltipContent>
-    Additional information about this feature
-  </TooltipContent>
-</Tooltip>
+### Custom Styling
+```tsx
+<TooltipProvider>
+  <Tooltip>
+    <TooltipTrigger>
+      <button>Hover me</button>
+    </TooltipTrigger>
+    <TooltipContent className="bg-blue-500 text-white border-blue-600">
+      Custom styled tooltip
+    </TooltipContent>
+  </Tooltip>
+</TooltipProvider>
 ```
 
 ### Controlled State
-
-You can control the tooltip state programmatically:
-
 ```tsx
-import { useState } from "react";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@unkey/ui";
-
-// Controlled tooltip
 const [open, setOpen] = useState(false);
 
-<Tooltip open={open} onOpenChange={setOpen}>
-  <TooltipTrigger>
-    <button>Click to toggle</button>
-  </TooltipTrigger>
-  <TooltipContent>
-    This tooltip is controlled programmatically
-  </TooltipContent>
-</Tooltip>
+<TooltipProvider>
+  <Tooltip open={open} onOpenChange={setOpen}>
+    <TooltipTrigger>
+      <button>Click me</button>
+    </TooltipTrigger>
+    <TooltipContent>
+      Controlled tooltip
+    </TooltipContent>
+  </Tooltip>
+</TooltipProvider>
 ```
+
+## Accessibility
+
+The Tooltip component follows accessibility best practices:
+
+- **Keyboard Navigation**: Tooltips can be triggered and dismissed using keyboard
+- **Screen Reader Support**: Proper ARIA attributes and announcements
+- **Focus Management**: Automatic focus handling for keyboard users
+- **High Contrast**: Compatible with high contrast mode
+- **Reduced Motion**: Respects user's motion preferences
+
+## Best Practices
+
+1. **Keep content concise**: Tooltips should provide quick, helpful information
+2. **Use appropriate timing**: Default delays work well for most cases
+3. **Position thoughtfully**: Consider the user's reading flow and available space
+4. **Test with keyboard**: Ensure tooltips work for keyboard-only users
+5. **Avoid overuse**: Don't use tooltips for essential information
+
+## Related Components
+
+- **[InfoTooltip](./info-tooltip.mdx)**: A specialized tooltip for informational content
+- **[TimestampInfo](./timestamp-info.mdx)**: A tooltip component for displaying timestamp information
