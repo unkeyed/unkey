@@ -1,10 +1,10 @@
 import * as React from "react";
 import { cn } from "../../lib/utils";
-import { type DocumentedInputProps, Input, type InputProps } from "../input";
 import { FormDescription, FormLabel } from "./form-helpers";
+import { type DocumentedInputProps, Input, type InputProps } from "./input";
 
 // Hack to populate fumadocs' AutoTypeTable
-export type DocumentedFormInputProps = DocumentedInputProps & {
+type DocumentedFormInputProps = DocumentedInputProps & {
   label?: string;
   description?: string | React.ReactNode;
   required?: boolean;
@@ -12,9 +12,9 @@ export type DocumentedFormInputProps = DocumentedInputProps & {
   error?: string;
 };
 
-export type FormInputProps = InputProps & DocumentedFormInputProps;
+type FormInputProps = InputProps & DocumentedFormInputProps;
 
-export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
+const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
   ({ label, description, error, required, id, className, optional, variant, ...props }, ref) => {
     const inputVariant = error ? "error" : variant;
     const inputId = id || React.useId();
@@ -52,3 +52,5 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
 );
 
 FormInput.displayName = "FormInput";
+
+export { FormInput, type FormInputProps, type DocumentedFormInputProps };
