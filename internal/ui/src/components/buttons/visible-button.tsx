@@ -2,7 +2,7 @@
 import { Eye, EyeSlash } from "@unkey/icons";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import * as React from "react";
-import { cn } from "../lib/utils";
+import { cn } from "../../lib/utils";
 import { Button, type ButtonProps } from "./button";
 
 type VisibleButtonProps = ButtonProps & {
@@ -20,7 +20,7 @@ type VisibleButtonProps = ButtonProps & {
   variant?: ButtonProps["variant"];
 };
 
-export function VisibleButton({
+function VisibleButton({
   isVisible,
   setIsVisible,
   variant = "outline",
@@ -47,3 +47,7 @@ export function VisibleButton({
     </Button>
   );
 }
+
+VisibleButton.displayName = "VisibleButton";
+
+export { VisibleButton, type VisibleButtonProps };
