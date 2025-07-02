@@ -346,6 +346,7 @@ func Register(srv *zen.Server, svc *Services) {
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
 			Auditlogs:   svc.Auditlogs,
+			Vault:       svc.Vault,
 		},
 	)
 

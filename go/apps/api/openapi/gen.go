@@ -266,6 +266,8 @@ type KeyCreditsRefillInterval string
 
 // KeyResponse defines model for KeyResponse.
 type KeyResponse struct {
+	ApiId string `json:"apiId"`
+
 	// CreatedAt Unix timestamp in milliseconds when key was created.
 	CreatedAt int64 `json:"createdAt"`
 

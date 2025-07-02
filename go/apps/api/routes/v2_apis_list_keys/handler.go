@@ -312,6 +312,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Start:       key.Key.Start,
 			CreatedAt:   key.Key.CreatedAtM,
 			Enabled:     key.Key.Enabled,
+			ApiId:       req.ApiId,
 			Credits:     nil,
 			Expires:     nil,
 			Identity:    nil,

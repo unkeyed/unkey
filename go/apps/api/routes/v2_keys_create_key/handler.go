@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"time"
 
+	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
+
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
@@ -21,6 +23,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/uid"
+	"github.com/unkeyed/unkey/go/pkg/vault"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
@@ -33,6 +36,7 @@ type Handler struct {
 	Keys        keys.KeyService
 	Permissions permissions.PermissionService
 	Auditlogs   auditlogs.AuditLogService
+	Vault       *vault.Service
 }
 
 // Method returns the HTTP method this route responds to
@@ -115,6 +119,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	var encryption *vaultv1.EncryptResponse
+	if req.Recoverable != nil && *req.Recoverable {
+		encryption, err = h.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
+			Keyring: s.AuthorizedWorkspaceID(),
+			Data:    keyResult.Key,
+		})
+
+		if err != nil {
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("vault error"), fault.Public("Failed to encrypt key in vault."),
+			)
+		}
+	}
+
 	now := time.Now().UnixMilli()
 
 	// 6. Resolve permissions if provided
@@ -194,7 +213,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		// Note: owner_id is set to null in the SQL query, so we skip setting it here
-
 		if req.Meta != nil {
 			metaBytes, marshalErr := json.Marshal(*req.Meta)
 			if marshalErr != nil {
@@ -228,6 +246,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error"), fault.Public("Failed to create key."),
 			)
+		}
+
+		if encryption != nil {
+			err = db.Query.InsertKeyEncryption(ctx, tx, db.InsertKeyEncryptionParams{
+				WorkspaceID:     auth.AuthorizedWorkspaceID,
+				KeyID:           keyID,
+				CreatedAt:       now,
+				Encrypted:       encryption.GetEncrypted(),
+				EncryptionKeyID: encryption.GetKeyId(),
+			})
+			if err != nil {
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to create key encryption."),
+				)
+			}
 		}
 
 		// 10. Handle rate limits if provided

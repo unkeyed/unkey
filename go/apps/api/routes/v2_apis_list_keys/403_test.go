@@ -34,7 +34,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	// Create a keyAuth (keyring) for the API
-	keyAuthID := uid.New("keyauth")
+	keyAuthID := uid.New(uid.KeyAuthPrefix)
 	err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
 		ID:            keyAuthID,
 		WorkspaceID:   workspace.ID,

@@ -38,7 +38,7 @@ func TestSuccess(t *testing.T) {
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key", "api.*.read_api")
 
 	// Create a keyAuth (keyring) for the API
-	keyAuthID := uid.New("keyauth")
+	keyAuthID := uid.New(uid.KeyAuthPrefix)
 	err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
 		ID:            keyAuthID,
 		WorkspaceID:   workspace.ID,
@@ -407,7 +407,7 @@ func TestSuccess(t *testing.T) {
 
 	t.Run("empty API returns empty result", func(t *testing.T) {
 		// Create a new API with no keys
-		emptyKeyAuthID := uid.New("keyauth")
+		emptyKeyAuthID := uid.New(uid.KeyAuthPrefix)
 		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
 			ID:          emptyKeyAuthID,
 			WorkspaceID: workspace.ID,

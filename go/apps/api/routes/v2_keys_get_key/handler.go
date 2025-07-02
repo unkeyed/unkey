@@ -25,7 +25,7 @@ import (
 type Request = openapi.V2KeysGetKeyRequestBody
 type Response = openapi.V2KeysGetKeyResponseBody
 
-// Handler implements zen.Route interface for the v2 keys whoami endpoint
+// Handler implements zen.Route interface for the v2 keys.getKey endpoint
 type Handler struct {
 	// Services as public fields
 	Logger      logging.Logger
@@ -67,11 +67,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		args.ID = sql.NullString{String: *req.KeyId, Valid: true}
 	} else if req.Key != nil {
 		args.Hash = sql.NullString{String: hash.Sha256(*req.Key), Valid: true}
+	} else {
+		return fault.New("invalid request",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal("missing keyId or key identifier"),
+			fault.Public("Either keyId or key must be provided."),
+		)
 	}
 
 	key, err := db.Query.FindKeyByIdOrHash(ctx, h.DB.RO(), args)
 	if err != nil {
-		// Validate key exists
 		if db.IsNotFound(err) {
 			return fault.Wrap(
 				err,
@@ -85,6 +90,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"),
 			fault.Public("Failed to retrieve Key information."),
+		)
+	}
+
+	// Validate key belongs to authorized workspace
+	if key.WorkspaceID != auth.AuthorizedWorkspaceID {
+		return fault.New("key not found",
+			fault.Code(codes.Data.Key.NotFound.URN()),
+			fault.Internal("key belongs to different workspace"),
+			fault.Public("The specified key was not found."),
 		)
 	}
 
@@ -150,21 +164,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		plaintext = req.Key
 	}
 
-	// Validate key belongs to authorized workspace
-	if key.WorkspaceID != auth.AuthorizedWorkspaceID {
-		return fault.New("key not found",
-			fault.Code(codes.Data.Key.NotFound.URN()),
-			fault.Internal("key belongs to different workspace"),
-			fault.Public("The specified key was not found."),
-		)
-	}
-
 	k := openapi.KeyResponse{
 		CreatedAt:   key.CreatedAtM,
 		Enabled:     key.Enabled,
 		KeyId:       key.ID,
 		Start:       key.Start,
 		Plaintext:   plaintext,
+		ApiId:       key.Api.ID,
 		Name:        nil,
 		Meta:        nil,
 		Identity:    nil,

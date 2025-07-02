@@ -1692,6 +1692,11 @@ components:
     KeyResponse:
       type: object
       properties:
+        apiId:
+          type: string
+          minLength: 8
+          maxLength: 255
+          pattern: "^[a-zA-Z0-9_]+$"
         keyId:
           type: string
           minLength: 8
@@ -1778,6 +1783,7 @@ components:
       required:
         - keyId
         - start
+        - apiId
         - createdAt
         - enabled
       additionalProperties: false
