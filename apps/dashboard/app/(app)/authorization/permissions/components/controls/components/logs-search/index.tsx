@@ -1,7 +1,7 @@
-import { transformStructuredOutputToFilters } from "@/components/logs/validation/utils/transform-structured-output-filter-format";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { LLMSearch } from "@unkey/ui";
+import { transformStructuredOutputToFilters } from "@unkey/ui";
 import { useFilters } from "../../../../hooks/use-filters";
 
 export const PermissionSearch = () => {
@@ -14,7 +14,6 @@ export const PermissionSearch = () => {
           "Please provide more specific search criteria. Your query requires additional details for accurate results.",
           {
             duration: 8000,
-            important: true,
             position: "top-right",
             style: {
               whiteSpace: "pre-line",
@@ -32,7 +31,6 @@ export const PermissionSearch = () => {
       } Please try again or refine your search criteria.`;
       toast.error(errorMessage, {
         duration: 8000,
-        important: true,
         position: "top-right",
         style: {
           whiteSpace: "pre-line",

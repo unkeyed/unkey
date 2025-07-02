@@ -25,7 +25,6 @@ export const LogsSearch = ({ onSearch, onApiListChange, apiList }: Props) => {
     onError(error) {
       toast.error(error.message, {
         duration: 8000,
-        important: true,
         position: "top-right",
         style: {
           whiteSpace: "pre-line",
