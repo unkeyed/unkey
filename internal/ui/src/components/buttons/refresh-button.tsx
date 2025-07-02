@@ -17,7 +17,7 @@ type RefreshButtonProps = {
 
 const REFRESH_TIMEOUT_MS = 1000;
 
-export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: RefreshButtonProps) => {
+const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: RefreshButtonProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [refreshTimeout, setRefreshTimeout] = useState<NodeJS.Timeout | null>(null);
 
@@ -75,3 +75,6 @@ export const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: Refr
     </InfoTooltip>
   );
 };
+
+RefreshButton.displayName = "RefreshButton";
+export { RefreshButton, type RefreshButtonProps };
