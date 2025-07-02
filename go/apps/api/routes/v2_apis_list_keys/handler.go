@@ -185,6 +185,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Query ratelimits for all returned keys
 	ratelimitsMap := make(map[string][]db.ListRatelimitsByKeyIDsRow)
+	identityRatelimitsMap := make(map[string][]db.Ratelimit)
 	if len(keys) > 0 {
 		// Extract key IDs and convert to sql.NullString slice
 		keyIDs := make([]sql.NullString, len(keys))
@@ -205,6 +206,36 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		for _, rl := range ratelimits {
 			if rl.KeyID.Valid {
 				ratelimitsMap[rl.KeyID.String] = append(ratelimitsMap[rl.KeyID.String], rl)
+			}
+		}
+
+		uniqIdentityIds := make(map[string]struct{})
+		for _, key := range keys {
+			if !key.IdentityID.Valid {
+				continue
+			}
+
+			uniqIdentityIds[key.IdentityID.String] = struct{}{}
+		}
+
+		identityIDs := make([]sql.NullString, 0)
+		for identityID := range uniqIdentityIds {
+			identityIDs = append(identityIDs, sql.NullString{String: identityID, Valid: true})
+		}
+
+		// Query ratelimits for these identities
+		identityRatelimits, listErr := db.Query.ListIdentityRatelimitsByIDs(ctx, h.DB.RO(), identityIDs)
+		if listErr != nil {
+			return fault.Wrap(listErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to retrieve ratelimits."),
+			)
+		}
+
+		// Group ratelimits by identity_id
+		for _, rl := range identityRatelimits {
+			if rl.IdentityID.Valid {
+				identityRatelimitsMap[rl.IdentityID.String] = append(identityRatelimitsMap[rl.IdentityID.String], rl)
 			}
 		}
 	}
@@ -246,6 +277,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					)
 					continue
 				}
+
 				plaintextMap[key.Key.ID] = decrypted.GetPlaintext()
 			}
 		}
@@ -296,6 +328,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			k.Name = ptr.P(key.Key.Name.String)
 		}
 
+		if key.Key.UpdatedAtM.Valid {
+			k.UpdatedAt = ptr.P(key.Key.UpdatedAtM.Int64)
+		}
+
+		if key.Key.Expires.Valid {
+			k.Expires = ptr.P(key.Key.Expires.Time.UnixMilli())
+		}
+
 		if key.Key.Meta.Valid {
 			err = json.Unmarshal([]byte(key.Key.Meta.String), &k.Meta)
 			if err != nil {
@@ -306,26 +346,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
-		if key.Key.UpdatedAtM.Valid {
-			k.UpdatedAt = ptr.P(key.Key.UpdatedAtM.Int64)
-		}
-
-		if key.Key.Expires.Valid {
-			k.Expires = ptr.P(key.Key.Expires.Time.UnixMilli())
-		}
-
 		if key.Key.RemainingRequests.Valid {
 			k.Credits = &openapi.KeyCredits{
 				Remaining: int64(key.Key.RemainingRequests.Int32),
 				Refill:    nil,
 			}
 			if key.Key.RefillAmount.Valid {
+				interval := openapi.KeyCreditsRefillIntervalDaily
+				if key.Key.RefillDay.Valid {
+					interval = openapi.KeyCreditsRefillIntervalMonthly
+				}
+
 				k.Credits.Refill = &openapi.KeyCreditsRefill{
 					Amount:       int64(key.Key.RefillAmount.Int32),
-					Interval:     "",
+					Interval:     interval,
 					RefillDay:    ptr.P(int(key.Key.RefillDay.Int16)),
 					LastRefillAt: nil,
 				}
+
 				if key.Key.LastRefillAt.Valid {
 					k.Credits.Refill.LastRefillAt = ptr.P(key.Key.LastRefillAt.Time.UnixMilli())
 				}
@@ -345,11 +383,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Meta:       nil,
 				Ratelimits: nil,
 			}
+
 			if len(key.IdentityMeta) > 0 {
 				err = json.Unmarshal(key.IdentityMeta, &k.Identity.Meta)
 				if err != nil {
 					return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
 						fault.Internal("unable to unmarshal identity meta"), fault.Public("We encountered an error while trying to unmarshal the identity meta data."))
+				}
+			}
+
+			if ratelimits, ok := identityRatelimitsMap[key.IdentityID.String]; ok {
+				for _, rl := range ratelimits {
+					k.Identity.Ratelimits = append(k.Identity.Ratelimits, openapi.RatelimitResponse{
+						Id:        rl.ID,
+						Name:      rl.Name,
+						Duration:  rl.Duration,
+						AutoApply: rl.AutoApply,
+						Limit:     int64(rl.Limit),
+					})
 				}
 			}
 		}
