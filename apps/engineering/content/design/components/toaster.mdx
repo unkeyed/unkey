@@ -1,114 +1,166 @@
 ---
 title: Toaster
-description: A toast notification system built on Sonner that provides customizable toast messages with themes, actions, and promise support.
+description: A comprehensive toast notification system with multiple variants, actions, and customizable behavior for displaying user feedback.
 ---
 import { BasicToast, ToastVariants, ToastWithDescription, ToastWithActions, ToastWithCustomDuration, ToastWithPromise } from "./toaster.example";
 
+## Overview
+
+The Toaster component provides a comprehensive toast notification system for displaying user feedback throughout your application. It's designed to show temporary messages with multiple variants, actions, and customizable behavior.
+
 ## Usage
-
-The Toaster component provides a complete toast notification system. You'll need to add the `<Toaster />` component to your app layout and use the `toast` function to trigger notifications.
-
-### Setup
-
-```tsx
-import { Toaster } from "@unkey/ui";
-
-export default function RootLayout({ children }) {
-  return (
-    <html>
-      <body>
-        {children}
-        <Toaster />
-      </body>
-    </html>
-  );
-}
-```
-
-### Basic Usage
 
 ```tsx
 import { toast } from "@unkey/ui";
 
 export default function MyComponent() {
-  const handleClick = () => {
-    toast("This is a toast notification");
+  const showToast = () => {
+    toast({
+      title: "Success!",
+      description: "Your action was completed successfully.",
+      variant: "success",
+    });
   };
 
-  return (
-    <button onClick={handleClick}>
-      Show Toast
-    </button>
-  );
+  return <Button onClick={showToast}>Show Toast</Button>;
 }
 ```
 
 ## Examples
 
 ### Basic Toast
+Simple toast notification with title and default styling.
+
 <BasicToast />
 
 ### Toast Variants
+Different visual styles for various message types.
+
 <ToastVariants />
 
 ### Toast with Description
+Toast with additional descriptive text for more context.
+
 <ToastWithDescription />
 
 ### Toast with Actions
+Interactive toast with action buttons for user engagement.
+
 <ToastWithActions />
 
 ### Custom Duration
+Toast with custom display duration and timing control.
+
 <ToastWithCustomDuration />
 
-### Promise Toast
+### Promise-based Toast
+Toast that updates based on promise resolution status.
+
 <ToastWithPromise />
+
+## Features
+
+- **Multiple Variants**: Different visual styles (default, success, error, warning)
+- **Rich Content**: Support for titles, descriptions, and actions
+- **Customizable Duration**: Configurable display timing
+- **Promise Integration**: Built-in support for promise-based toasts
+- **Accessibility**: Full accessibility support with proper ARIA attributes
+- **Responsive Design**: Adapts to different screen sizes
+- **Dark Mode Support**: Consistent appearance in light and dark themes
+- **Action Buttons**: Interactive buttons within toast notifications
 
 ## Props
 
-### Toaster Component
-
-The `<Toaster />` component accepts all props from [Sonner's Toaster component](https://sonner.emilkowal.ski/toaster).
-
-| Prop         | Type                                                                                   | Default       | Description                                                      |
-|--------------|----------------------------------------------------------------------------------------|---------------|------------------------------------------------------------------|
-| `theme`      | `"light" \| "dark" \| "system"`                                                        | `"system"`    | The theme for the toaster (automatically set from next-themes). |
-| `position`   | `"top-left" \| "top-center" \| "top-right" \| "bottom-left" \| "bottom-center" \| "bottom-right"` | `"top-right"` | The position where toasts appear.                                |
-| `expand`     | `boolean`                                                                              | `false`       | Whether to expand the toaster when there are multiple toasts.   |
-| `richColors` | `boolean`                                                                              | `false`       | Whether to use rich colors for different toast types.            |
-| `closeButton`| `boolean`                                                                              | `false`       | Whether to show a close button on toasts.                       |
-
 ### Toast Function
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `title` | `string` | - | The main title text of the toast |
+| `description` | `string` | - | Optional description text |
+| `variant` | `"default" \| "success" \| "error" \| "warning"` | `"default"` | The visual variant of the toast |
+| `duration` | `number` | `5000` | Duration in milliseconds before auto-dismiss |
+| `action` | `ToastActionElement` | - | Optional action button |
+| `className` | `string` | - | Additional CSS classes |
 
-The `toast` function is used to trigger toast notifications with various options.
+### ToastActionElement
+| Prop | Type | Description |
+|------|------|-------------|
+| `altText` | `string` | Accessible text for the action |
+| `children` | `React.ReactNode` | Action button content |
 
-## Toast Options
+## Variants
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `description` | `string` | - | Additional description text below the title. |
-| `duration` | `number \| Infinity` | `4000` | How long the toast stays visible (in milliseconds). |
-| `action` | `{ label: string; onClick: () => void }` | - | Action button configuration. |
-| `cancel` | `{ label: string; onClick: () => void }` | - | Cancel button configuration. |
-| `id` | `string` | - | Unique identifier for the toast. |
-| `dismissible` | `boolean` | `true` | Whether the toast can be dismissed. |
+### Default
+- Neutral gray styling
+- General information messages
+- Standard duration and behavior
+
+### Success
+- Green styling for positive feedback
+- Successful operations and confirmations
+- Encourages positive user experience
+
+### Error
+- Red styling for error messages
+- Failed operations and critical issues
+- Requires user attention
+
+### Warning
+- Yellow/orange styling for warnings
+- Cautionary messages and alerts
+- Important but not critical information
+
+## Structure
+
+The Toaster system is composed of several parts:
+
+1. **Toaster Provider** - Context provider for toast management
+2. **Toast Function** - API for creating and displaying toasts
+3. **Toast Component** - Individual toast notification
+4. **Toast Container** - Container for managing multiple toasts
 
 ## Styling
 
-The Toaster component uses CSS custom properties and Tailwind classes for styling:
+The Toaster component includes default styling with:
 
-- **Background**: Uses `bg-background` with proper theming
-- **Text**: Uses `text-content` for primary text and `text-content-subtle` for descriptions
-- **Borders**: Uses `border-border` for consistent border styling
-- **Shadows**: Uses `shadow-lg` for elevation
-- **Action buttons**: Use `bg-primary` and `text-primary-foreground`
-- **Cancel buttons**: Use `bg-secondary` and `text-content-subtle`
+- Consistent spacing and typography
+- Color-coded variants for semantic meaning
+- Smooth animations for enter/exit
+- Dark mode support
+- Responsive design
+- Focus states for accessibility
 
+### Custom Styling
 
-## Integration with Next.js
+You can customize the appearance using className props:
 
-The Toaster component is designed to work seamlessly with Next.js and next-themes:
+```tsx
+toast({
+  title: "Custom Toast",
+  className: "custom-toast-class",
+  action: {
+    altText: "Custom action",
+    children: <Button className="custom-action-class">Action</Button>
+  }
+});
+```
 
-- Automatically detects and applies the current theme
-- Works with both client and server components
-- Supports SSR without hydration issues
-- Integrates with Next.js app router 
+## Accessibility
+
+The Toaster component is built with accessibility in mind:
+
+- **ARIA Attributes**: Proper ARIA labels and live regions
+- **Screen Reader Support**: Announces toast content appropriately
+- **Focus Management**: Maintains focus context during toast display
+- **High Contrast**: Maintains proper contrast ratios
+- **Keyboard Navigation**: Full keyboard support for actions
+- **Dismissible**: Multiple ways to dismiss toasts
+
+## Best Practices
+
+- **Clear Messaging**: Use concise, actionable titles and descriptions
+- **Variant Selection**: Choose appropriate variants for message types
+- **Duration Control**: Set appropriate durations based on message importance
+- **Action Design**: Provide meaningful actions when relevant
+- **Promise Handling**: Use promise-based toasts for async operations
+- **Consistent Usage**: Maintain consistent toast patterns across your app
+- **Accessibility**: Ensure toasts are announced to screen readers 

@@ -1,39 +1,12 @@
 ---
 title: NavigableDialog
-summary: The Navigable Dialog is a multi-step modal component that provides a consistent way to display content with navigation between different sections. It's built on top of the Dialog Container with additional navigation capabilities.
+summary: "The Navigable Dialog is a multi-step modal component that provides a consistent way to display content with navigation between different sections."
 ---
 import { NavigableDialogExample } from "./navigable-dialog.example";
 
-## Features
+## Overview
 
-- Multi-step navigation with sidebar
-- Icon support for navigation items
-- Accessible modal implementation
-- State management between steps
-- Customizable styling for each section
-- Keyboard navigation support
-- Responsive design
-
-## Structure
-
-The NavigableDialog is composed of several components that work together:
-
-1. **NavigableDialogRoot** - The container component that manages dialog state
-2. **NavigableDialogHeader** - Contains the title and optional subtitle
-3. **NavigableDialogBody** - Wrapper for navigation and content
-4. **NavigableDialogNav** - Sidebar navigation with icons and labels
-5. **NavigableDialogContent** - The main content area that displays the active section
-6. **NavigableDialogFooter** - Optional section for actions like buttons
-
-## Styling
-
-The component includes default styling with:
-
-- Responsive layout with side navigation
-- Smooth transitions between sections
-- Icon support in navigation items
-- Dark mode support
-- Customizable through className props
+The Navigable Dialog is a multi-step modal component that provides a consistent way to display content with navigation between different sections. It's built on top of the Dialog Container with additional navigation capabilities.
 
 ## Usage
 
@@ -75,7 +48,21 @@ The component includes default styling with:
 
 <NavigableDialogExample />
 
-## Component Props
+## Variants
+
+The component accepts all standard DialogContainer props.
+
+## Features
+
+- Multi-step navigation with sidebar
+- Icon support for navigation items
+- Accessible modal implementation
+- State management between steps
+- Customizable styling for each section
+- Keyboard navigation support
+- Responsive design
+
+## Props
 
 ### NavigableDialogRoot
 
@@ -110,6 +97,27 @@ The component includes default styling with:
 |----------|--------|---------|--------------------------------|
 | title    | string | -       | The title of the dialog        |
 | subTitle | string | -       | Optional subtitle for the dialog|
+
+## Structure
+
+The NavigableDialog is composed of several components that work together:
+
+1. **NavigableDialogRoot** - The container component that manages dialog state
+2. **NavigableDialogHeader** - Contains the title and optional subtitle
+3. **NavigableDialogBody** - Wrapper for navigation and content
+4. **NavigableDialogNav** - Sidebar navigation with icons and labels
+5. **NavigableDialogContent** - The main content area that displays the active section
+6. **NavigableDialogFooter** - Optional section for actions like buttons
+
+## Styling
+
+The component includes default styling with:
+
+- Responsive layout with side navigation
+- Smooth transitions between sections
+- Icon support in navigation items
+- Dark mode support
+- Customizable through className props
 
 ## Accessibility
 

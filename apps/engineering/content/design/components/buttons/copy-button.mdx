@@ -1,20 +1,48 @@
 ---
 title: CopyButton
-summary: A button component that copies text to clipboard with visual feedback and accessibility features
+description: A button component that copies text to clipboard with visual feedback and accessibility features for enhanced user experience.
 ---
 import { Default } from "./copy-button.examples"
 
-The `CopyButton` component provides a simple way to copy text to the clipboard with visual feedback. It extends the base Button component and includes built-in copy functionality with proper accessibility support.
+## Overview
+
+The CopyButton component provides a simple way to copy text to the clipboard with visual feedback. It's designed to extend the base Button component with built-in copy functionality, proper accessibility support, and analytics tracking capabilities.
+
+## Usage
+
+```tsx
+import { CopyButton } from "@unkey/ui";
+
+export default function MyComponent() {
+  return (
+    <div>
+      <CopyButton value="Text to copy" />
+      <CopyButton 
+        value="API Key" 
+        variant="ghost" 
+        src="api-key-display" 
+      />
+    </div>
+  );
+}
+```
+
+## Examples
+
+### Basic Usage
+Different usage patterns and variants of the CopyButton component.
+
+<Default />
 
 ## Features
 
-- Visual feedback with icon change on copy (TaskUnchecked → TaskChecked)
-- Accessible with screen reader support and ARIA labels
-- Automatic reset after 2 seconds
-- Extends ButtonProps for full button customization
-- Analytics support with optional src prop
-- Prevents event propagation to parent elements
-- TypeScript support with proper typing
+- **Visual Feedback**: Icon changes from TaskUnchecked to TaskChecked on copy
+- **Accessibility**: Full screen reader support with ARIA labels
+- **Auto Reset**: Automatically resets after 2 seconds
+- **Button Integration**: Extends ButtonProps for full customization
+- **Analytics Support**: Optional src prop for tracking
+- **Event Prevention**: Prevents event propagation to parent elements
+- **TypeScript Support**: Full TypeScript support with proper typing
 
 ## Props
 
@@ -25,19 +53,40 @@ The `CopyButton` component provides a simple way to copy text to the clipboard w
 | `variant` | `ButtonVariant` | `"outline"` | Button variant (outline, ghost, primary, etc.) |
 | `className` | `string?` | `undefined` | Additional CSS classes to apply to the button |
 
-The component also accepts all standard Button props.
 
-## Usage
 
-<Default />
+## Variants
+The component accepts all standard Button props.
 
-## Behavior
+## Structure
 
-1. **Click Handling**: On click, the button copies the provided text to the clipboard
-2. **Visual Feedback**: The icon changes from TaskUnchecked to TaskChecked state
-3. **Auto Reset**: After 2 seconds, the icon reverts to its original state
-4. **Event Prevention**: Parent click events are prevented from triggering (`e.stopPropagation`)
-5. **Analytics**: If provided, the `src` prop is passed to analytics for tracking
+The CopyButton component is a specialized button that:
+
+1. **Renders as Button**: Uses the base Button component for styling and behavior
+2. **Copy Functionality**: Handles clipboard operations with visual feedback
+3. **State Management**: Manages copy state and auto-reset functionality
+4. **Analytics Integration**: Optionally tracks copy events
+
+## Styling
+
+The component includes default styling:
+
+- Fixed dimensions: `w-6 h-6` (24x24px)
+- Focus states: `focus:ring-0 focus:border-grayA-6`
+- Icons: Full-size icons with `w-full h-full`
+- Default variant: `outline` for subtle appearance
+- Customizable through className prop
+
+### Custom Styling
+
+You can customize the appearance using the className prop:
+
+```tsx
+<CopyButton
+  value="Custom styled button"
+  className="bg-blue-100 hover:bg-blue-200 border-blue-300"
+/>
+```
 
 ## Accessibility
 
@@ -48,20 +97,3 @@ The component includes comprehensive accessibility features:
 - **Title Attribute**: `title="Copy to clipboard"` for tooltip on hover
 - **Focus Management**: Proper focus states with `focus:ring-0 focus:border-grayA-6`
 - **Keyboard Support**: Full keyboard navigation support inherited from Button component
-
-## Styling
-
-The component includes default styling:
-
-- Fixed dimensions: `w-6 h-6` (24x24px)
-- Focus states: `focus:ring-0 focus:border-grayA-6`
-- Icons: Full-size icons with `w-full h-full`
-- Default variant: `outline` for subtle appearance
-
-## Best Practices
-
-- Use the `src` prop for analytics tracking when copying sensitive data
-- Provide meaningful `value` content for better user experience
-- Consider the button's context when choosing variants
-- Ensure sufficient contrast for the button in your design
-- Test with screen readers to verify accessibility

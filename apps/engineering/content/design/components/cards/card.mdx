@@ -1,18 +1,24 @@
 ---
 title: Card
-description: A flexible container component for grouping related content with optional header, footer, and content sections.
+description: A flexible container component for grouping related content with optional header, footer, and content sections for consistent layouts.
 ---
+import { BasicCard, CardWithHeader, CardWithFooter, CompleteCard, CardGrid } from "./card.example"
 
-import { BasicCard, CardWithHeader, CardWithFooter, CompleteCard, MetricCard, CardGrid } from "./card.example"
+## Overview
 
-## Basic Usage
+The Card component provides a flexible container system for grouping related content throughout your application. It's designed to create consistent layouts with optional header, footer, and content sections while maintaining accessibility and responsive design.
+
+## Usage
 
 ```tsx
-import { Card, CardContent } from "@unkey/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@unkey/ui";
 
 export default function MyComponent() {
   return (
     <Card>
+      <CardHeader>
+        <CardTitle>Card Title</CardTitle>
+      </CardHeader>
       <CardContent>
         <p>Your content goes here</p>
       </CardContent>
@@ -24,46 +30,38 @@ export default function MyComponent() {
 ## Examples
 
 ### Basic Card
-A simple card with just content.
+A simple card with just content for simple layouts.
 
 <BasicCard />
 
 ### Card with Header
-Card with a title and description in the header.
+Card with a title and description in the header for introducing content sections.
 
 <CardWithHeader />
 
 ### Card with Footer
-Card with action buttons in the footer.
+Card with action buttons in the footer for user interactions.
 
 <CardWithFooter />
 
 ### Complete Card
-Card with header, content, and footer sections.
+Card with header, content, and footer sections working together.
 
 <CompleteCard />
 
-### Metric Card
-Specialized card for displaying metrics with MetricCardTitle.
-
-<MetricCard />
-
 ### Card Grid
-Multiple cards in a responsive grid layout.
+Multiple cards in a responsive grid layout for dashboard-style interfaces.
 
 <CardGrid />
 
-## Components
+## Features
 
-The Card system is composed of several subcomponents:
-
-- **Card**: The main container
-- **CardHeader**: Container for title and description
-- **CardTitle**: Main heading text (h2 element)
-- **MetricCardTitle**: Title specifically for metrics (p element)
-- **CardDescription**: Subtitle or description text
-- **CardContent**: Main content area
-- **CardFooter**: Footer area with border separator
+- **Composable Architecture**: Flexible sub-components for custom layouts
+- **Consistent Styling**: Built-in spacing, typography, and design system integration
+- **Responsive Design**: Adapts to different screen sizes automatically
+- **Accessibility**: Semantic HTML structure with proper heading hierarchy
+- **Dark Mode Support**: Consistent appearance in light and dark themes
+- **Customizable**: Extensive styling options through className props
 
 ## Props
 
@@ -88,13 +86,6 @@ The Card system is composed of several subcomponents:
 | `className` | `string` | `undefined` | Additional CSS classes |
 | `children` | `React.ReactNode` | `undefined` | Title text |
 
-### MetricCardTitle
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `className` | `string` | `undefined` | Additional CSS classes |
-| `children` | `React.ReactNode` | `undefined` | Metric title text |
-
 ### CardDescription
 
 | Prop | Type | Default | Description |
@@ -116,27 +107,54 @@ The Card system is composed of several subcomponents:
 | `className` | `string` | `undefined` | Additional CSS classes |
 | `children` | `React.ReactNode` | `undefined` | Footer content |
 
-## Features
+## Variants
 
-- Composable architecture for flexible layouts
-- Consistent styling with design system
-- Built-in spacing and typography
-- Responsive design
-- Border and background styling
-- Accessible semantic structure
+The component accepts all standard Card props.
 
-## Best Practices
+## Structure
 
-- Use `CardTitle` for main headings and `MetricCardTitle` for numeric metrics
-- Include `CardDescription` to provide context for the card content
-- Use `CardFooter` for actions or additional information
-- Combine components based on your content needs
-- Apply consistent spacing using the default padding
+The Card system is composed of several sub-components that work together:
+
+1. **Card** - The main container component
+2. **CardHeader** - Container for title and description
+3. **CardTitle** - Main heading text (h2 element)
+4. **MetricCardTitle** - Title specifically for metrics (p element)
+5. **CardDescription** - Subtitle or description text
+6. **CardContent** - Main content area
+7. **CardFooter** - Footer area with border separator
+
+## Styling
+
+The Card component includes default styling with:
+
+- Consistent spacing and typography from design system
+- Border and background styling for visual separation
+- Responsive design that adapts to container size
+- Dark mode support with appropriate color schemes
+- Focus states for accessibility
+- Customizable through className props
+
+### Custom Styling
+
+You can customize the appearance using className props:
+
+```tsx
+<Card className="custom-card-class">
+  <CardHeader className="custom-header-class">
+    <CardTitle className="custom-title-class">Custom Title</CardTitle>
+  </CardHeader>
+  <CardContent className="custom-content-class">
+    Custom content
+  </CardContent>
+</Card>
+```
 
 ## Accessibility
 
-- Uses semantic HTML elements (h2 for CardTitle, p for descriptions)
-- Maintains proper heading hierarchy
-- Provides sufficient color contrast
-- Supports keyboard navigation
-- Screen reader friendly structure 
+The Card component is built with accessibility in mind:
+
+- **Semantic HTML**: Uses appropriate HTML elements (h2 for CardTitle, p for descriptions)
+- **Heading Hierarchy**: Maintains proper heading hierarchy for screen readers
+- **Color Contrast**: Provides sufficient color contrast between text and background
+- **Keyboard Navigation**: Supports keyboard navigation through focusable elements
+- **Screen Reader Support**: Announces card structure and content appropriately

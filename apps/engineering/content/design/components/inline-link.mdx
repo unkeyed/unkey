@@ -1,63 +1,129 @@
 ---
 title: InlineLink
-description: A component for creating inline links with optional icons and styling.
+description: A versatile inline link component with customizable styling, icon support, and target options for creating consistent link experiences throughout your application.
 ---
+import { InlineLinkBasic, InlineLinkWithIcon, InlineLinkWithTarget, InlineLinkWithCustomClass } from "./inline-link.example";
 
-import { InlineLinkBasic, InlineLinkWithIcon, InlineLinkWithTarget, InlineLinkWithCustomClass } from "./inline-link.example"
+## Overview
 
-## InlineLink
+The InlineLink component provides a consistent way to create inline links throughout your application. It's designed to handle various link scenarios with customizable styling, icon support, and target options while maintaining accessibility and consistent design patterns.
 
-The InlineLink component provides a consistent way to create inline links within text content. It supports icons, custom styling, and target attributes.
+## Usage
 
-## Basic Usage
+```tsx
+import { InlineLink } from "@unkey/ui";
 
-The basic InlineLink includes a label and href.
+export default function MyComponent() {
+  return (
+    <div>
+      <InlineLink href="/docs">Documentation</InlineLink>
+      <InlineLink href="https://example.com" target="_blank">
+        External Link
+      </InlineLink>
+      <InlineLink href="/help" icon={<HelpIcon />}>
+        Help Center
+      </InlineLink>
+    </div>
+  );
+}
+```
+
+## Examples
+
+### Basic Usage
+Simple inline links with different styling options.
 
 <InlineLinkBasic />
 
-## With Icon
-
-Add an icon to the link, positioned either on the left or right.
+### With Icons
+Inline links with icon support for enhanced visual meaning.
 
 <InlineLinkWithIcon />
 
-## With Target
-
-Open the link in a new tab.
+### With Target Options
+Links with different target configurations for external and internal navigation.
 
 <InlineLinkWithTarget />
 
-## With Custom Styling
-
-Apply custom styling to the link.
+### Custom Styling
+Inline links with custom styling classes for specific design requirements.
 
 <InlineLinkWithCustomClass />
 
 ## Features
 
-- Consistent link styling
-- Optional icon support
-- Configurable icon position
-- Custom styling support
-- Target attribute for new tab opening
-- Accessible by default
+- **Flexible Styling**: Multiple styling variants for different contexts
+- **Icon Support**: Built-in support for icons from icon libraries
+- **Target Options**: Configurable target attributes for external/internal links
+- **Accessibility**: Full accessibility support with proper ARIA attributes
+- **Responsive Design**: Adapts to different screen sizes
+- **Dark Mode Support**: Consistent appearance in light and dark themes
+- **Customizable**: Extensive styling options through className prop
 
 ## Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| href | string | required | The URL the link points to |
-| label | string | required | The text content of the link |
-| icon | React.ReactNode | undefined | Optional icon to display with the link |
-| iconPosition | "left" \| "right" | "right" | Position of the icon relative to the label |
-| className | string | undefined | Additional CSS classes |
-| target | boolean | undefined | Whether to open the link in a new tab |
+| `href` | `string` | **Required** | The URL for the link |
+| `children` | `React.ReactNode` | **Required** | Link content |
+| `target` | `"_blank" \| "_self" \| "_parent" \| "_top"` | `"_self"` | Target attribute for the link |
+| `rel` | `string` | - | Rel attribute for the link |
+| `icon` | `React.ReactNode` | - | Optional icon to display with the link |
+| `iconPosition` | `"left" \| "right"` | `"left"` | Position of the icon relative to text |
+| `className` | `string` | - | Additional CSS classes |
+| `onClick` | `(event: React.MouseEvent) => void` | - | Click handler for the link |
+
+## Structure
+
+The InlineLink component is composed of:
+
+1. **Link Container** - Main anchor element with styling
+2. **Icon Element** - Optional icon with positioning
+3. **Text Content** - The main link text
+4. **Accessibility Features** - ARIA attributes and screen reader support
+
+## Styling
+
+The component includes default styling with:
+
+- Consistent link styling with hover and focus states
+- Icon positioning and spacing
+- Color schemes for different link types
+- Dark mode support with appropriate color schemes
+- Focus indicators for keyboard navigation
+- Customizable through className prop
+
+### Custom Styling
+
+You can customize the appearance using the className prop:
+
+```tsx
+<InlineLink
+  href="/custom"
+  className="custom-link-class hover:text-blue-600"
+  icon={<CustomIcon />}
+>
+  Custom Styled Link
+</InlineLink>
+```
 
 ## Accessibility
 
-- Proper ARIA attributes
-- Keyboard navigation support
-- High contrast text for readability
-- Clear focus indicators
-- Semantic HTML structure
-- Descriptive link text
+The InlineLink component is built with accessibility in mind:
+
+- **Semantic HTML**: Uses proper anchor elements with appropriate attributes
+- **ARIA Attributes**: Proper ARIA labels and descriptions for screen readers
+- **Keyboard Navigation**: Full keyboard support including Enter key activation
+- **Focus Management**: Clear focus indicators and logical tab order
+- **Screen Reader Support**: Announces link purpose and target appropriately
+- **External Link Indicators**: Proper indication for external links
+
+## Best Practices
+
+- **Clear Purpose**: Use descriptive link text that explains the destination
+- **Icon Usage**: Use icons to enhance meaning, not replace text
+- **External Links**: Use appropriate target and rel attributes for external links
+- **Consistent Styling**: Maintain consistent link styling across your application
+- **Accessibility**: Test with screen readers and ensure sufficient contrast
+- **Performance**: Consider lazy loading for external links when appropriate
+- **Security**: Use appropriate rel attributes for external links (e.g., `rel="noopener noreferrer"`)

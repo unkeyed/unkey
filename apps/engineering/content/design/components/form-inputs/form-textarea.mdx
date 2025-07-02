@@ -1,6 +1,6 @@
 ---
 title: FormTextarea
-description: A form textarea component with built-in label, description, and error handling capabilities.
+description: A form textarea component with built-in label, description, and error handling capabilities for creating accessible, user-friendly multi-line text inputs.
 ---
 import {
   DefaultFormTextareaVariant,
@@ -16,77 +16,96 @@ import {
   ComplexFormTextareaVariant
 } from "./form-textarea.variants"
 
-# FormTextarea
+## Overview
 
-A comprehensive multi-line text input component that combines labels, descriptions, and validation states. Perfect for creating accessible, user-friendly forms that require longer text inputs with proper labeling and helpful context.
+The FormTextarea component provides a comprehensive multi-line text input system that combines labels, descriptions, and validation states. It's designed to create accessible, user-friendly forms that require longer text inputs with proper labeling, helpful context, and clear validation feedback while maintaining consistency with the design system.
 
-## Default
+## Usage
 
+```tsx
+import { FormTextarea } from "@unkey/ui";
+
+export default function MyComponent() {
+  return (
+    <FormTextarea
+      label="Description"
+      description="Provide a detailed description of your project."
+      placeholder="Enter your description here..."
+      rows={4}
+      required
+    />
+  );
+}
+```
+
+## Examples
+
+### Default FormTextarea
 The default FormTextarea includes a label and optional description text, providing clear context for users.
 
 <DefaultFormTextareaVariant />
 
-## Textarea States
-
 ### Required Field
-
 Use the required prop to indicate mandatory fields. This automatically adds a "Required" tag to the label.
 
 <RequiredFormTextareaVariant />
 
 ### Required Field with Error
-
 When a required field has an error, the "Required" tag changes to error styling to draw more attention.
 
 <RequiredWithErrorFormTextareaVariant />
 
 ### Optional Field
-
 Use the optional prop to explicitly indicate non-mandatory fields. This adds an "Optional" badge to the label.
 
 <OptionalFormTextareaVariant />
 
 ### Success State
-
 Indicates successful validation or acceptance of input value. The success icon and text provide positive feedback.
 
 <SuccessFormTextareaVariant />
 
 ### Warning State
-
 Used for potentially problematic inputs that don't prevent form submission. Includes a warning icon and explanatory text.
 
 <WarningFormTextareaVariant />
 
 ### Error State
-
 Shows validation errors or other issues that need user attention. Features prominent error styling and message.
 
 <ErrorFormTextareaVariant />
 
 ### Disabled State
-
 Apply when the field should be non-interactive, such as during form submission or based on other field values.
 
 <DisabledFormTextareaVariant />
 
 ### With Default Value
-
 Pre-populated textarea with an initial value that users can modify.
 
 <DefaultValueFormTextareaVariant />
 
 ### Read-only State
-
 For displaying non-editable information while maintaining form layout consistency.
 
 <ReadonlyFormTextareaVariant />
 
-## Complex Usage
-
+### Complex Usage
 Example of a FormTextarea with multiple props configured for a specific use case.
 
 <ComplexFormTextareaVariant />
+
+## Features
+
+- **Built-in Labeling**: Automatic label association with proper accessibility
+- **Description Support**: Optional helper text for additional context
+- **Validation States**: Multiple states (success, warning, error) with appropriate styling
+- **Required/Optional Indicators**: Clear visual indicators for field requirements
+- **Multi-line Support**: Designed for longer text inputs with resizable behavior
+- **Accessibility**: Full accessibility support with proper ARIA attributes
+- **Responsive Design**: Adapts to different screen sizes
+- **Dark Mode Support**: Consistent appearance in light and dark themes
+- **Customizable**: Extensive styling options through className props
 
 ## Props
 
@@ -97,34 +116,83 @@ The FormTextarea component extends the standard Textarea component props with ad
     path="../../internal/ui/src/components/form/form-textarea.tsx"
 />
 
+## Variants
+
+### Default
+- Standard form textarea with label and optional description
+- Use for most multi-line text inputs
+- Balanced visual weight and accessibility
+
+### Required
+- Includes "Required" indicator for mandatory fields
+- Use for fields that must be completed
+- Clear visual indication of importance
+
+### Optional
+- Includes "Optional" indicator for non-mandatory fields
+- Use for fields that can be left empty
+- Provides clarity in forms with mixed requirements
+
+### Success
+- Green styling for positive validation states
+- Use for successfully validated inputs
+- Encourages positive user feedback
+
+### Warning
+- Yellow/orange styling for cautionary states
+- Use for inputs that need attention but aren't errors
+- Indicates potential issues
+
+### Error
+- Red styling for validation errors
+- Use for failed validation or critical issues
+- Clearly indicates problems that need resolution
+
+## Structure
+
+The FormTextarea component is composed of:
+
+1. **Label Container** - Contains the label text and required/optional indicators
+2. **Textarea Element** - The actual textarea field with validation states
+3. **Description Text** - Optional helper text below the textarea
+4. **Error Message** - Validation error display when applicable
+5. **Status Icons** - Visual indicators for different states
+
+## Styling
+
+The component includes default styling with:
+
+- Consistent spacing and typography from design system
+- Color-coded validation states for semantic meaning
+- Proper label positioning and association
+- Resizable textarea behavior
+- Dark mode support with appropriate color schemes
+- Focus states for accessibility
+- Customizable through className props
+
+### Custom Styling
+
+You can customize the appearance using className props:
+
+```tsx
+<FormTextarea
+  label="Custom Textarea"
+  description="Custom description"
+  className="custom-form-textarea-class"
+  variant="success"
+  rows={6}
+/>
+```
+
 ## Accessibility
 
-FormTextarea is built with accessibility in mind:
+The FormTextarea component is built with accessibility in mind:
 
-- Labels are properly associated with textareas using htmlFor/id
-- Error messages are announced to screen readers using role="alert"
-- Required fields are marked both visually and via aria-required
-- Helper text is linked to textareas using aria-describedby
-- Error states are indicated using aria-invalid
-
-## Best Practices
-
-When using the FormTextarea component:
-
-- Always provide clear, concise labels
-- Use description text to provide additional context when needed
-- Keep error messages specific and actionable
-- Use required fields sparingly and logically
-- Group related form elements using fieldset and legend when appropriate
-- Consider the mobile experience when writing labels and descriptions
-- Maintain consistent validation patterns across your form
-- Consider character/word limits for lengthy inputs
-- Use the rows attribute to set an appropriate initial height
-- Test with screen readers to ensure accessibility
-
-## Layout Guidelines
-
-- Labels should be clear and concise
-- Error messages should appear immediately below the textarea
-- Description text should be helpful but not too lengthy
-- Consider using the optional badge for clarity in forms with many fields
+- **Label Association**: Labels are properly associated with textareas using htmlFor/id
+- **Error Announcements**: Error messages are announced to screen readers using role="alert"
+- **Required Indicators**: Required fields are marked both visually and via aria-required
+- **Helper Text**: Helper text is linked to textareas using aria-describedby
+- **Validation States**: Error states are indicated using aria-invalid
+- **Screen Reader Support**: Announces validation states and requirements appropriately
+- **Keyboard Navigation**: Full keyboard support for all interactions
+- **Resize Support**: Proper handling of textarea resize functionality

@@ -1,34 +1,132 @@
 ---
 title: Empty
+description: A component for displaying empty states when data is missing, with customizable content and actions.
 ---
 import { EmptyExample } from "./empty.examples";
 
-
 ## Overview
 
-The `<Empty />` component should be used when data is missing, replacing the normal component.
+The Empty component provides a consistent way to display empty states throughout your application. It's designed to replace normal content when data is missing, offering users clear context and actionable next steps.
 
+## Usage
 
-## Empty.Icon
+```tsx
+import { Empty } from "@unkey/ui";
 
-The `<Empty.Icon />` is a default `<Ufo />` icon with styling. 
+export default function MyComponent() {
+  return (
+    <Empty>
+      <Empty.Icon />
+      <Empty.Title>No Data Found</Empty.Title>
+      <Empty.Description>There are no items to display.</Empty.Description>
+      <Empty.Actions>
+        <Button>Create New Item</Button>
+      </Empty.Actions>
+    </Empty>
+  );
+}
+```
 
+## Examples
 
-## Empty.Title
-
-The `<Empty.Title />` is used to display a title within the `<Empty />` component. It can be utilized to emphasize text or provide a warning. 
-
-
-## Empty.Description
-
-The `<Empty.Description />` explains why the `<Empty />` component is displayed instead of data.
-
-
-## Empty.Actions
-
-The `<Empty.Actions />` offers the user one or multiple actions to resolve the lack of data. For instance, if there are too many filters on a table, a button can be added to remove those filters.
-
-
-## Full Example
+### Basic Empty State
+A complete empty state with icon, title, description, and action button.
 
 <EmptyExample />
+
+## Features
+
+- **Composable Structure**: Modular components for flexible layouts
+- **Default Icon**: Built-in UFO icon with consistent styling
+- **Customizable Content**: Flexible title, description, and action areas
+- **Accessibility**: Built-in accessibility support
+- **Responsive Design**: Adapts to different screen sizes
+- **Consistent Styling**: Matches design system standards
+
+## Structure
+
+The Empty component is composed of several sub-components that work together:
+
+1. **Empty** - The main container component
+2. **Empty.Icon** - Default UFO icon with styling
+3. **Empty.Title** - Main heading text for emphasis
+4. **Empty.Description** - Explanatory text about the empty state
+5. **Empty.Actions** - Container for action buttons or links
+
+## Props
+
+### Empty (Main Container)
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `React.ReactNode` | - | Empty state content components |
+| `className` | `string` | `undefined` | Additional CSS classes |
+
+### Empty.Icon
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `className` | `string` | `undefined` | Additional CSS classes for the icon |
+
+### Empty.Title
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `React.ReactNode` | - | Title text content |
+| `className` | `string` | `undefined` | Additional CSS classes |
+
+### Empty.Description
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `React.ReactNode` | - | Description text content |
+| `className` | `string` | `undefined` | Additional CSS classes |
+
+### Empty.Actions
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `React.ReactNode` | - | Action buttons or links |
+| `className` | `string` | `undefined` | Additional CSS classes |
+
+## Styling
+
+The Empty component includes default styling with:
+
+- Centered layout with consistent spacing
+- Typography hierarchy for title and description
+- Icon styling with appropriate sizing
+- Action area with button spacing
+- Responsive design
+- Dark mode support
+
+### Custom Styling
+
+You can customize the appearance using className props:
+
+```tsx
+<Empty className="custom-empty-container">
+  <Empty.Icon className="custom-icon" />
+  <Empty.Title className="custom-title">Custom Title</Empty.Title>
+  <Empty.Description className="custom-description">
+    Custom description text
+  </Empty.Description>
+  <Empty.Actions className="custom-actions">
+    <Button>Custom Action</Button>
+  </Empty.Actions>
+</Empty>
+```
+
+## Accessibility
+
+The Empty component is built with accessibility in mind:
+
+- **Semantic HTML**: Uses appropriate heading elements for titles
+- **Screen Reader Support**: Proper text hierarchy and descriptions
+- **Focus Management**: Logical tab order for action buttons
+- **High Contrast**: Maintains proper contrast ratios
+- **Descriptive Content**: Clear explanations of empty states
+
+## Best Practices
+
+- **Clear Context**: Use descriptive titles and explanations
+- **Actionable Content**: Provide clear next steps in the actions area
+- **Consistent Usage**: Use the same empty state pattern across your application
+- **Filter Context**: When showing empty states due to filters, provide options to clear filters
+- **Helpful Actions**: Include relevant actions that help users resolve the empty state
+- **Visual Hierarchy**: Use the title for emphasis and description for explanation

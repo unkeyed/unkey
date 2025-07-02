@@ -1,17 +1,136 @@
 ---
-title: DateTime
+title: "DateTime"
+description: "A comprehensive date and time picker component that supports both single date and date range selection with time input capabilities."
 ---
-import { Button } from "@unkey/ui"
-import { RenderComponentWithSnippet } from "@/app/components/render"
-import { Row } from "@/app/components/row"
 import { DateTimeExample } from "./date-time.example"
 
+## Overview
 
-## Example
+The DateTime component provides a flexible and accessible date and time selection interface. It's designed to handle both single date selection and date range picking with optional time input, making it perfect for filtering, scheduling, and data analysis use cases.
 
-<DateTimeExample/>
+## Usage
 
+```tsx
+import { DateTime } from "@unkey/ui";
 
+export default function MyComponent() {
+  const handleDateTimeChange = (date?: Range, startTime?: TimeUnit, endTime?: TimeUnit) => {
+    // Handle date and time changes
+  };
 
+  return (
+    <DateTime onChange={handleDateTimeChange}>
+      <DateTime.Calendar mode="range" />
+      <DateTime.TimeInput type="range" />
+      <DateTime.Actions>
+        <Button variant="primary">Apply</Button>
+      </DateTime.Actions>
+    </DateTime>
+  );
+}
+```
+
+## Examples
+
+### Basic Usage
+A comprehensive example showing date range selection with time input and apply functionality.
+
+<DateTimeExample />
+
+## Features
+
+- **Date Range Selection**: Support for both single date and date range picking
+- **Time Input**: Precise time selection with hours, minutes, and seconds
+- **Accessibility**: Built-in keyboard navigation and screen reader support
+- **Responsive**: Adapts to different screen sizes and orientations
+- **Customizable**: Extensive styling and configuration options
+- **Date Constraints**: Min/max date validation and disabled date ranges
+- **Context Management**: Internal state management with external change callbacks
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `React.ReactNode` | `undefined` | Child components (Calendar, TimeInput, Actions) |
+| `className` | `string` | `undefined` | Additional CSS classes for the container |
+| `minDate` | `Date` | `undefined` | Minimum selectable date |
+| `maxDate` | `Date` | `undefined` | Maximum selectable date |
+| `initialRange` | `DateRange` | `undefined` | Initial date range selection |
+| `onChange` | `(date?: DateRange, start?: TimeUnit, end?: TimeUnit) => void` | `undefined` | Callback when date or time changes |
+
+### Calendar Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `mode` | `"single" \| "range"` | `"single"` | Calendar selection mode |
+| `className` | `string` | `undefined` | Additional CSS classes |
+| `classNames` | `Record<string, string>` | `undefined` | Custom class names for calendar elements |
+| `showOutsideDays` | `boolean` | `true` | Show days from adjacent months |
+| `disabledDates` | `Array<{from?: Date, to?: Date, before?: Date, after?: Date}>` | `undefined` | Dates to disable |
+
+### TimeInput Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `type` | `"single" \| "range"` | `"single"` | Time input type (single time or time range) |
+| `className` | `string` | `undefined` | Additional CSS classes |
+| `inputClassNames` | `string` | `undefined` | Custom classes for input fields |
+
+### Actions Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `className` | `string` | `undefined` | Additional CSS classes |
+| `children` | `React.ReactNode` | `undefined` | Action buttons or content |
+
+## Structure
+
+The DateTime component is composed of several sub-components that work together:
+
+1. **DateTime** - The main container component that provides context
+2. **DateTime.Calendar** - Calendar component for date selection
+3. **DateTime.TimeInput** - Time input component for precise time selection
+4. **DateTime.Actions** - Container for action buttons
+
+## Styling
+
+The component includes default styling with:
+
+- Consistent spacing and typography
+- Dark mode support
+- Responsive design
+- Customizable through className props
+- Focus states for accessibility
+
+### Custom Styling
+
+You can customize the appearance using className props:
+
+```tsx
+<DateTime className="custom-container">
+  <DateTime.Calendar 
+    className="custom-calendar"
+    classNames={{
+      day_selected: "bg-blue-500 text-white",
+      day_today: "bg-gray-100"
+    }}
+  />
+  <DateTime.TimeInput className="custom-time-input" />
+  <DateTime.Actions className="custom-actions">
+    <Button>Custom Button</Button>
+  </DateTime.Actions>
+</DateTime>
+```
+
+## Accessibility
+
+The DateTime component is built with accessibility in mind:
+
+- **Keyboard Navigation**: Full keyboard support for all interactions
+- **Screen Reader Support**: Proper ARIA labels and announcements
+- **Focus Management**: Clear focus indicators and logical tab order
+- **High Contrast**: Maintains proper contrast ratios
+- **Semantic HTML**: Uses appropriate HTML elements and roles
+- **Date Format**: Supports various date formats and localization
 
 

@@ -1,17 +1,70 @@
 ---
 title: DialogContainer
-summary: The Dialog Container is a flexible modal component that provides a consistent way to display content in a modal dialog. It's built on top of Radix UI's Dialog primitive with additional styling and functionality.
+description: A flexible modal component that provides a consistent way to display content in a modal dialog with predefined structure and styling.
 ---
 import { DialogContainerExample } from "./dialog-container.example"
 
+## Overview
+
+The DialogContainer component provides a flexible modal component that offers a consistent way to display content in a modal dialog. It's built on top of Radix UI's Dialog primitive with additional styling and functionality, featuring a predefined structure with header, content, and footer sections.
+
+## Usage
+
+```tsx
+import { DialogContainer } from "@unkey/ui";
+
+export default function MyComponent() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <DialogContainer
+      isOpen={isOpen}
+      onOpenChange={setIsOpen}
+      title="Example Dialog"
+      subTitle="Optional subtitle text"
+      footer={
+        <Button onClick={handleAction}>
+          Confirm
+        </Button>
+      }
+    >
+      <div>Your dialog content here</div>
+    </DialogContainer>
+  );
+}
+```
+
+## Examples
+
+### Basic Example
+A complete example showing the DialogContainer with all its features.
+
+<DialogContainerExample />
+
 ## Features
 
-- Accessible modal implementation
-- Customizable overlay and content styling
-- Close button with warning support
-- Keyboard navigation support
-- Customizable animations
-- Responsive design
+- **Accessible Modal**: Accessible modal implementation with proper ARIA attributes
+- **Customizable Overlay**: Customizable overlay and content styling
+- **Close Button**: Built-in close button with warning support
+- **Keyboard Navigation**: Full keyboard navigation support
+- **Customizable Animations**: Configurable animations and transitions
+- **Responsive Design**: Adapts to different screen sizes
+- **Dark Mode Support**: Consistent appearance in light and dark themes
+- **Predefined Structure**: Header, content, and footer sections
+
+## Props
+
+| Prop              | Type                    | Default   | Description                                      |
+|-------------------|-------------------------|-----------|--------------------------------------------------|
+| `isOpen`         | `boolean`               | -         | Controls the open state of the dialog            |
+| `onOpenChange`   | `(value: boolean) => void` | -     | Callback when the open state changes             |
+| `title`          | `string`                | -         | The title of the dialog                          |
+| `subTitle`       | `string`                | -         | Optional subtitle for the dialog                 |
+| `footer`         | `ReactNode`             | -         | Optional footer content                          |
+| `className`      | `string`                | -         | Additional classes for the dialog container      |
+| `contentClassName` | `string`               | -         | Additional classes for the dialog content        |
+| `preventAutoFocus` | `boolean`              | `true`    | Whether to prevent auto-focus on open            |
+| `children`       | `ReactNode`             | -         | The content to display in the dialog             |
 
 ## Structure
 
@@ -25,53 +78,34 @@ The DialogContainer is composed of three main parts:
 
 The component comes with default styling that includes:
 
-- Responsive width and height constraints
-- Drop shadow and rounded corners
-- Overlay with backdrop blur
-- Dark mode support
-- Customizable through `className` and `contentClassName` props
+- **Responsive Width**: Responsive width and height constraints
+- **Visual Effects**: Drop shadow and rounded corners
+- **Overlay**: Overlay with backdrop blur effect
+- **Dark Mode**: Full dark mode support
+- **Customizable**: Extensive styling through `className` and `contentClassName` props
 
-## Usage
+### Custom Styling
+
+You can customize the appearance using className props:
 
 ```tsx
 <DialogContainer
   isOpen={isOpen}
   onOpenChange={setIsOpen}
-  title="Example Dialog"
-  subTitle="Optional subtitle text"
-  footer={
-    <Button onClick={handleAction}>
-      Confirm
-    </Button>
-  }
+  title="Custom Dialog"
+  className="custom-dialog-class"
+  contentClassName="custom-content-class"
 >
-  <div>Your dialog content here</div>
+  Custom content
 </DialogContainer>
 ```
-
-### Basic Example
-
-<DialogContainerExample />
-
-## Props
-
-| Prop              | Type                    | Default   | Description                                      |
-|-------------------|-------------------------|-----------|--------------------------------------------------|
-| isOpen           | boolean                 | -         | Controls the open state of the dialog            |
-| onOpenChange     | (value: boolean) => void | -         | Callback when the open state changes             |
-| title            | string                  | -         | The title of the dialog                          |
-| subTitle         | string                  | -         | Optional subtitle for the dialog                 |
-| footer           | ReactNode               | -         | Optional footer content                          |
-| className        | string                  | -         | Additional classes for the dialog container      |
-| contentClassName | string                  | -         | Additional classes for the dialog content        |
-| preventAutoFocus | boolean                 | true      | Whether to prevent auto-focus on open            |
-| children         | ReactNode               | -         | The content to display in the dialog             |
 
 ## Accessibility
 
 The DialogContainer implements the following accessibility features:
 
-- Manages focus trap within the dialog
-- Supports keyboard navigation (Esc to close)
-- Proper ARIA attributes for screen readers
-- Focus management can be controlled via `preventAutoFocus`
+- **Focus Management**: Manages focus trap within the dialog
+- **Keyboard Support**: Supports keyboard navigation (Esc to close)
+- **ARIA Attributes**: Proper ARIA attributes for screen readers
+- **Focus Control**: Focus management can be controlled via `preventAutoFocus`
+- **Screen Reader Support**: Announces dialog state changes appropriately
