@@ -1,6 +1,6 @@
 "use client";
 
-import type React from "react";
+import * as React from "react";
 import { useEffect, useRef, useState } from "react";
 import { useKeyboardShortcut } from "../../hooks/use-keyboard-shortcut";
 import { cn } from "../../lib/utils";
@@ -25,7 +25,7 @@ type Props = {
   debounceTime?: number;
 };
 
-export const LLMSearch = ({
+const LLMSearch = ({
   exampleQueries,
   onSearch,
   isLoading,
@@ -172,3 +172,6 @@ export const LLMSearch = ({
     </div>
   );
 };
+
+LLMSearch.displayName = "LLMSearch";
+export { LLMSearch };

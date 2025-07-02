@@ -24,6 +24,51 @@ import {
 - **Accessible design** with proper ARIA attributes
 - **Responsive layout** that adapts to different screen sizes
 
+## Usage
+
+### With Log Analysis
+
+```tsx
+<LLMSearch
+  onSearch={handleLogSearch}
+  isLoading={isSearching}
+  exampleQueries={[
+    "Show me all errors from the last 24 hours",
+    "Find requests with response time > 1000ms",
+    "Display authentication failures by user",
+  ]}
+  searchMode="debounced"
+  debounceTime={300}
+/>
+```
+
+### With Analytics Dashboard
+
+```tsx
+<LLMSearch
+  onSearch={handleAnalyticsSearch}
+  isLoading={isLoading}
+  placeholder="Search your analytics data..."
+  loadingText="Analyzing your data..."
+  hideExplainer={true}
+/>
+```
+
+### With Real-time Monitoring
+
+```tsx
+<LLMSearch
+  onSearch={handleRealTimeSearch}
+  isLoading={isSearching}
+  searchMode="allowTypeDuringSearch"
+  exampleQueries={[
+    "Show me active incidents",
+    "Find high CPU usage servers",
+    "Display failed health checks",
+  ]}
+/>
+```
+
 ## Basic Usage
 
 The default LLMSearch includes example queries and standard search functionality.
@@ -133,73 +178,4 @@ The LLMSearch component is built with accessibility in mind:
 - **Loading states**: Accessible loading indicators with descriptive text
 - **Error handling**: Clear error messages and recovery options
 
-## Best Practices
 
-When using the LLMSearch component:
-
-### Search Mode Selection
-- Use **manual mode** for precise searches where accuracy is more important than speed
-- Use **debounced mode** for general search with good balance of responsiveness and efficiency
-- Use **throttled mode** for real-time search where immediate feedback is crucial
-
-### Example Queries
-- Provide 3-5 relevant example queries that demonstrate the search capabilities
-- Use natural language that matches your users' vocabulary
-- Include examples that showcase different search patterns (errors, users, time ranges, etc.)
-
-### Loading States
-- Always provide meaningful loading text that explains what's happening
-- Consider the expected duration of your search operations
-- Use consistent loading patterns across your application
-
-### Performance Considerations
-- Choose appropriate debounce times based on your API response times
-- Consider implementing search result caching for repeated queries
-- Monitor API usage and adjust search modes accordingly
-
-### User Experience
-- Provide clear visual feedback for all search states
-- Use consistent placeholder text that guides users
-- Consider the context where the search is used (logs, analytics, etc.)
-
-## Integration Examples
-
-### With Log Analysis
-```tsx
-<LLMSearch
-  onSearch={handleLogSearch}
-  isLoading={isSearching}
-  exampleQueries={[
-    "Show me all errors from the last 24 hours",
-    "Find requests with response time > 1000ms",
-    "Display authentication failures by user",
-  ]}
-  searchMode="debounced"
-  debounceTime={300}
-/>
-```
-
-### With Analytics Dashboard
-```tsx
-<LLMSearch
-  onSearch={handleAnalyticsSearch}
-  isLoading={isLoading}
-  placeholder="Search your analytics data..."
-  loadingText="Analyzing your data..."
-  hideExplainer={true}
-/>
-```
-
-### With Real-time Monitoring
-```tsx
-<LLMSearch
-  onSearch={handleRealTimeSearch}
-  isLoading={isSearching}
-  searchMode="allowTypeDuringSearch"
-  exampleQueries={[
-    "Show me active incidents",
-    "Find high CPU usage servers",
-    "Display failed health checks",
-  ]}
-/>
-```
