@@ -1,5 +1,5 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
-import { ControlCloud } from "@/components/logs/control-cloud";
+import { ControlCloud } from "@unkey/ui";
 import { useFilters } from "../../hooks/use-filters";
 
 const formatFieldName = (field: string): string => {

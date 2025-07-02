@@ -1,0 +1,114 @@
+---
+title: Toaster
+description: A toast notification system built on Sonner that provides customizable toast messages with themes, actions, and promise support.
+---
+import { BasicToast, ToastVariants, ToastWithDescription, ToastWithActions, ToastWithCustomDuration, ToastWithPromise } from "./toaster.example";
+
+## Usage
+
+The Toaster component provides a complete toast notification system. You'll need to add the `<Toaster />` component to your app layout and use the `toast` function to trigger notifications.
+
+### Setup
+
+```tsx
+import { Toaster } from "@unkey/ui";
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        {children}
+        <Toaster />
+      </body>
+    </html>
+  );
+}
+```
+
+### Basic Usage
+
+```tsx
+import { toast } from "@unkey/ui";
+
+export default function MyComponent() {
+  const handleClick = () => {
+    toast("This is a toast notification");
+  };
+
+  return (
+    <button onClick={handleClick}>
+      Show Toast
+    </button>
+  );
+}
+```
+
+## Examples
+
+### Basic Toast
+<BasicToast />
+
+### Toast Variants
+<ToastVariants />
+
+### Toast with Description
+<ToastWithDescription />
+
+### Toast with Actions
+<ToastWithActions />
+
+### Custom Duration
+<ToastWithCustomDuration />
+
+### Promise Toast
+<ToastWithPromise />
+
+## Props
+
+### Toaster Component
+
+The `<Toaster />` component accepts all props from [Sonner's Toaster component](https://sonner.emilkowal.ski/toaster).
+
+| Prop         | Type                                                                                   | Default       | Description                                                      |
+|--------------|----------------------------------------------------------------------------------------|---------------|------------------------------------------------------------------|
+| `theme`      | `"light" \| "dark" \| "system"`                                                        | `"system"`    | The theme for the toaster (automatically set from next-themes). |
+| `position`   | `"top-left" \| "top-center" \| "top-right" \| "bottom-left" \| "bottom-center" \| "bottom-right"` | `"top-right"` | The position where toasts appear.                                |
+| `expand`     | `boolean`                                                                              | `false`       | Whether to expand the toaster when there are multiple toasts.   |
+| `richColors` | `boolean`                                                                              | `false`       | Whether to use rich colors for different toast types.            |
+| `closeButton`| `boolean`                                                                              | `false`       | Whether to show a close button on toasts.                       |
+
+### Toast Function
+
+The `toast` function is used to trigger toast notifications with various options.
+
+## Toast Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `description` | `string` | - | Additional description text below the title. |
+| `duration` | `number \| Infinity` | `4000` | How long the toast stays visible (in milliseconds). |
+| `action` | `{ label: string; onClick: () => void }` | - | Action button configuration. |
+| `cancel` | `{ label: string; onClick: () => void }` | - | Cancel button configuration. |
+| `id` | `string` | - | Unique identifier for the toast. |
+| `dismissible` | `boolean` | `true` | Whether the toast can be dismissed. |
+
+## Styling
+
+The Toaster component uses CSS custom properties and Tailwind classes for styling:
+
+- **Background**: Uses `bg-background` with proper theming
+- **Text**: Uses `text-content` for primary text and `text-content-subtle` for descriptions
+- **Borders**: Uses `border-border` for consistent border styling
+- **Shadows**: Uses `shadow-lg` for elevation
+- **Action buttons**: Use `bg-primary` and `text-primary-foreground`
+- **Cancel buttons**: Use `bg-secondary` and `text-content-subtle`
+
+
+## Integration with Next.js
+
+The Toaster component is designed to work seamlessly with Next.js and next-themes:
+
+- Automatically detects and applies the current theme
+- Works with both client and server components
+- Supports SSR without hydration issues
+- Integrates with Next.js app router 
