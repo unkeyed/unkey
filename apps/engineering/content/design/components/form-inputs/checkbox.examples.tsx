@@ -6,19 +6,29 @@ import { Checkbox } from "@unkey/ui";
 export function CheckboxBasicVariants() {
   return (
     <RenderComponentWithSnippet
-      customCodeSnippet={`
-<div className="flex flex-col gap-6">
-    <div>
-      <h4 className="text-sm font-medium mb-2">Light</h4>
-      <div className="flex flex-wrap items-center gap-4">
-        <Checkbox id="primary-default" />
-        <Checkbox id="primary-checked" checked />
-        <Checkbox id="primary-focus" className="!ring-4 !ring-gray-6" />
-        <Checkbox id="primary-disabled" disabled />
-        <Checkbox id="primary-disabled-checked" disabled checked />
-      </div>
+      customCodeSnippet={`<div className="flex flex-col gap-6">
+  <div>
+    <h4 className="text-sm font-medium mb-2">Light</h4>
+    <div className="flex flex-wrap items-center gap-4">
+      <Checkbox id="primary-default" />
+      <Checkbox id="primary-checked" checked />
+      <Checkbox id="primary-focus" className="!ring-4 !ring-gray-6" />
+      <Checkbox id="primary-disabled" disabled />
+      <Checkbox id="primary-disabled-checked" disabled checked />
     </div>
-  </div>`}
+  </div>
+
+  <div>
+    <h4 className="text-sm font-medium mb-2">Dark</h4>
+    <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
+      <Checkbox id="primary-dark-default" />
+      <Checkbox id="primary-dark-checked" checked />
+      <Checkbox id="primary-dark-focus" className="!ring-4 !ring-gray-6" />
+      <Checkbox id="primary-dark-disabled" disabled />
+      <Checkbox id="primary-dark-disabled-checked" disabled checked />
+    </div>
+  </div>
+</div>`}
     >
       <div className="flex flex-col gap-6">
         <div>
