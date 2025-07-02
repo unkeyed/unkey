@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import type * as React from "react";
 import { useEffect, useRef, useState } from "react";
 import { useKeyboardShortcut } from "../../hooks/use-keyboard-shortcut";
 import { cn } from "../../lib/utils";
@@ -60,9 +60,9 @@ const LLMSearch = ({
     setTimeout(() => {
       onClear?.();
       setSearchText("");
+      setIsClearingState(false);
     }, 0);
 
-    setIsClearingState(false);
     resetSearchState();
   };
 

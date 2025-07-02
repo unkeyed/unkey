@@ -27,7 +27,7 @@ export const SearchActions: React.FC<SearchActionsProps> = ({
   onSelectExample,
 }) => {
   // Don't render anything if processing (unless in allowTypeDuringSearch mode)
-  if (!(!isProcessing || searchMode === "allowTypeDuringSearch")) {
+  if (isProcessing && searchMode !== "allowTypeDuringSearch") {
     return null;
   }
 
