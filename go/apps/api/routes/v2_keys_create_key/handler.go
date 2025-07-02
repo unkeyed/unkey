@@ -283,7 +283,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			if req.Credits.Refill != nil {
 				insertKeyParams.RefillAmount = sql.NullInt32{
-					Int32: int32(req.Credits.Remaining), // nolint:gosec
+					Int32: int32(req.Credits.Refill.Amount), // nolint:gosec
 					Valid: true,
 				}
 
@@ -357,7 +357,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		// 11. Handle permissions if provided
 		var auditLogs []auditlog.AuditLog
-		permissionsToInsert := make([]db.InsertKeyPermissionParams, 0, len(resolvedPermissions))
+		permissionsToInsert := make([]db.InsertKeyPermissionParams, len(resolvedPermissions))
 		for idx, permission := range resolvedPermissions {
 			permissionsToInsert[idx] = db.InsertKeyPermissionParams{
 				KeyID:        keyID,
@@ -405,13 +405,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to assign permission."),
+					fault.Internal("database error"), fault.Public("Failed to assign permissions."),
 				)
 			}
 		}
 
 		// 12. Handle roles if provided
-		rolesToInsert := make([]db.InsertKeyRoleParams, 0, len(resolvedRoles))
+		rolesToInsert := make([]db.InsertKeyRoleParams, len(resolvedRoles))
 		for idx, role := range resolvedRoles {
 			rolesToInsert[idx] = db.InsertKeyRoleParams{
 				KeyID:       keyID,
@@ -459,7 +459,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to assign permission."),
+					fault.Internal("database error"), fault.Public("Failed to assign roles."),
 				)
 			}
 		}

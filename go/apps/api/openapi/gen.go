@@ -1625,7 +1625,7 @@ type V2KeysSetRolesResponseData = []struct {
 // V2KeysUpdateKeyRequestBody defines model for V2KeysUpdateKeyRequestBody.
 type V2KeysUpdateKeyRequestBody struct {
 	// Credits Credit configuration and remaining balance for this key.
-	Credits *KeyCreditsResponse `json:"credits,omitempty"`
+	Credits *KeyCreditsRequest `json:"credits,omitempty"`
 
 	// Enabled Controls whether the key is currently active for verification requests.
 	// When set to `false`, all verification attempts fail with `code=DISABLED` regardless of other settings.

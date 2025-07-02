@@ -194,7 +194,7 @@ components:
             Active sessions continue until their next verification attempt after expiry.
           example: 1704067200000
         credits:
-          "$ref": "#/components/schemas/KeyCreditsResponse"
+          "$ref": "#/components/schemas/KeyCreditsRequest"
           description: |
             Controls usage-based limits for this key through credit consumption.
             Omitting this field preserves current credit settings, while setting null enables unlimited usage.
@@ -323,7 +323,6 @@ components:
       oneOf:
         - required:
             - keyId
-            - decrypt
         - required:
             - key
     V2KeysGetKeyResponseBody:
@@ -1881,7 +1880,9 @@ components:
           example: 3600000
         autoApply:
           type: boolean
-          description: Whether this rate limit should be automatically applied when verifying keys. This is always
+          description: |
+            Whether this rate limit should be automatically applied when verifying keys.
+            When true, we will automatically apply this limit during verification without it being explicitly listed.
           example: true
       required:
         - id

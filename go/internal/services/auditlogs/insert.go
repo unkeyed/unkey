@@ -179,7 +179,7 @@ func (s *service) insertLogs(ctx context.Context, tx db.DBTX, logs []auditlog.Au
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to insert audit log targets"), fault.Public("Failed to insert audit logs"),
+			fault.Internal("database failed to insert audit log targets"), fault.Public("Failed to insert audit log targets"),
 		)
 	}
 

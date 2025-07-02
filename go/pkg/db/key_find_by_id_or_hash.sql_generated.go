@@ -18,12 +18,11 @@ SELECT
 FROM ` + "`" + `keys` + "`" + ` k
 JOIN apis a USING(key_auth_id)
 LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
-WHERE CASE
+WHERE (CASE
     WHEN ? IS NOT NULL THEN k.id = ?
     WHEN ? IS NOT NULL THEN k.hash = ?
     ELSE FALSE
-    AND k.deleted_at_m IS NULL AND a.deleted_at_m IS NULL
-END
+END) AND k.deleted_at_m IS NULL AND a.deleted_at_m IS NULL
 `
 
 type FindKeyByIdOrHashParams struct {
@@ -69,12 +68,11 @@ type FindKeyByIdOrHashRow struct {
 //	FROM `keys` k
 //	JOIN apis a USING(key_auth_id)
 //	LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
-//	WHERE CASE
+//	WHERE (CASE
 //	    WHEN ? IS NOT NULL THEN k.id = ?
 //	    WHEN ? IS NOT NULL THEN k.hash = ?
 //	    ELSE FALSE
-//	    AND k.deleted_at_m IS NULL AND a.deleted_at_m IS NULL
-//	END
+//	END) AND k.deleted_at_m IS NULL AND a.deleted_at_m IS NULL
 func (q *Queries) FindKeyByIdOrHash(ctx context.Context, db DBTX, arg FindKeyByIdOrHashParams) (FindKeyByIdOrHashRow, error) {
 	row := db.QueryRowContext(ctx, findKeyByIdOrHash,
 		arg.ID,
