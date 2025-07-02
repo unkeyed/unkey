@@ -3,7 +3,7 @@ import * as React from "react";
 import { cn } from "../../../lib/utils";
 import { XMark } from "@unkey/icons";
 import { TimestampInfo } from "../../timestamp-info";
-import { Button } from "../../button";
+import { Button } from "../../buttons/button";
 import type { FilterValue } from "../../../validation/filter.types";
 import { formatOperator } from "./utils";
 import { useEffect, useRef } from "react";
