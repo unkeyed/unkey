@@ -124,7 +124,7 @@ func (j *Jailer) Exec(ctx context.Context, opts *ExecOptions) error {
 	if err := validateFirecrackerPath(firecrackerPath); err != nil {
 		return fmt.Errorf("firecracker path validation failed: %w", err)
 	}
-	
+
 	// This replaces the current process with firecracker
 	//nolint:gosec // Path validation performed above
 	return syscall.Exec(firecrackerPath, args, os.Environ())
@@ -157,13 +157,13 @@ func (j *Jailer) RunInJail(ctx context.Context, opts *ExecOptions) (*os.Process,
 	// Build firecracker command
 	// AIDEV-NOTE: Firecracker binary path is now hardcoded to standard location
 	firecrackerPath := "/usr/local/bin/firecracker"
-	
+
 	// Validate firecracker path for security
 	if err := validateFirecrackerPath(firecrackerPath); err != nil {
 		span.RecordError(err)
 		return nil, fmt.Errorf("firecracker path validation failed: %w", err)
 	}
-	
+
 	args := []string{firecrackerPath, "--api-sock", opts.SocketPath}
 	args = append(args, opts.FirecrackerArgs...)
 
@@ -316,37 +316,37 @@ func safeUint64ToInt(value uint64) (int, error) {
 func validateFirecrackerPath(path string) error {
 	// Clean the path to resolve any . or .. components
 	cleanPath := filepath.Clean(path)
-	
+
 	// Check for path traversal attempts
 	if strings.Contains(cleanPath, "..") {
 		return fmt.Errorf("path traversal attempt detected: %s", path)
 	}
-	
+
 	// Ensure path is absolute and starts with expected directories
 	if !filepath.IsAbs(cleanPath) {
 		return fmt.Errorf("firecracker path must be absolute: %s", path)
 	}
-	
+
 	// Check for dangerous characters
 	if strings.ContainsAny(cleanPath, ";&|$`\\") {
 		return fmt.Errorf("dangerous characters detected in path: %s", path)
 	}
-	
+
 	// Verify file exists and is executable
 	info, err := os.Stat(cleanPath)
 	if err != nil {
 		return fmt.Errorf("firecracker binary not found: %w", err)
 	}
-	
+
 	if info.IsDir() {
 		return fmt.Errorf("firecracker path is a directory: %s", cleanPath)
 	}
-	
+
 	// Check if file is executable
 	if info.Mode()&0111 == 0 {
 		return fmt.Errorf("firecracker binary is not executable: %s", cleanPath)
 	}
-	
+
 	return nil
 }
 

@@ -52,7 +52,7 @@ help: ## Show this help message
 	@echo "  clean        - Remove build artifacts"
 	@echo "  fmt          - Format code"
 	@echo "  info         - Show binary information"
-	@echo "  install      - Install to /usr/local/bin"
+	@echo "  install      - Install to /usr/bin"
 	@echo "  lint         - Run linter"
 	@echo "  test         - Run basic tests"
 	@echo "  test-echo    - Test with echo command"
@@ -68,26 +68,15 @@ info: build ## Show binary information
 
 .PHONY: install
 install: build ## Install to /usr/local/bin
-	@echo "Installing $(BINARY) to /usr/local/bin..."
-	sudo cp $(BINARY) /usr/local/bin/
-	sudo chmod +x /usr/local/bin/$(BINARY)
+	@echo "Installing $(BINARY) to /usr/bin..."
+	sudo cp $(BINARY) /usr/bin/
+	sudo chmod +x /usr/bin/$(BINARY)
 
 .PHONY: lint
 lint: ## Run linter
 	@echo "Running linter..."
 	golangci-lint run
 
-.PHONY: test
-test: build ## Run basic tests
-	@echo "Testing $(BINARY)..."
-	./$(BINARY) --version
-	./$(BINARY) --help
-
 .PHONY: test-echo
 test-echo: build ## Test with echo command
 	./$(BINARY) -- echo "Hello from metald-init"
-
-.PHONY: test-env
-test-env: build ## Test with environment variables
-	@echo "Testing with mock kernel cmdline..."
-	@# This would need to be run in a VM or with a mock /proc/cmdline

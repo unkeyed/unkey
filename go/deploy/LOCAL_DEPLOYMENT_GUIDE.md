@@ -88,18 +88,22 @@ sudo ./scripts/install-firecracker.sh
 
 </details>
 
-### 3. Firecracker Jailer Setup (REQUIRED)
+### 3. Firecracker Setup (REQUIRED)
 
-The Firecracker jailer provides defense-in-depth security by isolating VMs. Complete these setup steps:
+Metald now uses an integrated jailer approach that handles VM isolation automatically:
 
 ```bash
-# Note: Firecracker user and cgroups are now automatically configured by metald
-# No manual setup required for jailer user or cgroups
+# Install Firecracker with jailer (required for metald)
+sudo ./scripts/install-firecracker.sh
+
+# The metald service now includes integrated jailer functionality
+# No separate jailer binary or manual cgroup setup is required
 ```
 
 **Notes**:
-- The setup script automatically detects and prefers cgroup v2 for better performance and security
-- On systems with hybrid cgroup setups, you may need to force cgroup v2 using the CGROUP_VERSION environment variable
+- Metald v0.2.0+ includes integrated jailer functionality
+- No manual jailer user or cgroup configuration needed
+- The system automatically handles VM isolation and security
 
 <details>
 <summary><b>For Ubuntu</b></summary>
@@ -179,183 +183,44 @@ Services must be installed in this specific order due to dependencies:
 5. **builderd** - Container build service
 6. **metald** - VM management service (depends on assetmanagerd and billaged)
 
-## Complete Installation Process
+## Quick Installation
 
-All commands should be run from the `/path/to/unkey/go/deploy` directory unless otherwise specified.
+Run from the `/path/to/unkey/go/deploy` directory:
 
 ### Step 1: Observability Stack
 
-The OTEL-LGTM stack provides comprehensive monitoring with Grafana, Loki (logs), Tempo (traces), and Mimir (metrics).
-
 ```bash
-# Start the observability stack (uses Podman or Docker)
+# Start observability stack
 make o11y
-
-# Verify it's running
-podman ps | grep otel-lgtm  # or docker ps | grep otel-lgtm
-
-# Access Grafana dashboard
-# URL: http://localhost:3000
-# Username: admin
-# Password: admin
 ```
 
-**Available endpoints:**
-- Grafana UI: `http://localhost:3000`
-- OTLP gRPC: `localhost:4317` (for service telemetry)
-- OTLP HTTP: `localhost:4318` (for service telemetry)
+Access Grafana at `http://localhost:3000` (admin/admin)
 
 ### Step 2: SPIRE Installation and Setup
 
-SPIRE provides service identity and automatic mTLS between all services. The installation process now supports environment-based configurations (dev, canary, prod).
-
-#### 2.1 Install SPIRE Components
-
 ```bash
-# Install SPIRE server and agent binaries (default: dev environment)
-make -C spire install
-
-# Or specify a different environment
-SPIRE_ENVIRONMENT=canary make -C spire install
-SPIRE_ENVIRONMENT=prod make -C spire install
-
-# Reload systemd to recognize new service files
-sudo systemctl daemon-reload
+# Install and start SPIRE with all services registered
+make spire-install
+make spire-start
 ```
 
-#### 2.2 Start SPIRE Server
+### Step 3: Install Services
 
 ```bash
-# Start the SPIRE server
-make -C spire service-start-server
+# Install all services
+make install
 
-# Verify server is running
-make -C spire service-status-server
-
-# Check server logs if needed
-make -C spire service-logs-server
+# Verify all services are running
+make service-status
 ```
 
-#### 2.3 Bootstrap and Register SPIRE Agent (Automated)
+### Step 4: Verify Installation
 
 ```bash
-# Create the trust bundle for the agent
-make -C spire bootstrap-agent
-
-# Register the agent automatically (generates join token, configures systemd, starts agent)
-make -C spire register-agent
-
-# Verify agent is running and registered
-make -C spire service-status-agent
-```
-
-The `register-agent` command now provides a fully automated workflow:
-- Generates join token automatically
-- Configures systemd with the token
-- Starts the agent with auto-registration
-- Cleans up sensitive data after success
-- Handles re-registration gracefully
-
-#### 2.4 Register Unkey Services with SPIRE
-
-```bash
-# Register all Unkey services at once
-make -C spire register-services
-
-# List all registered entries to verify
-make -C spire list-entries
-```
-
-### Step 3: Install Core Services
-
-#### 3.1 AssetManagerd Installation
-
-```bash
-# Create service user
-make -C assetmanagerd create-user
-
-# Build and install the service
-make -C assetmanagerd install
-
-# Start the service
-make -C assetmanagerd service-start
-
-# Verify it's running
-make -C assetmanagerd service-status
-
-# Check logs if needed
-make -C assetmanagerd service-logs
-```
-
-#### 3.2 Billaged Installation
-
-```bash
-# Build and install (creates user automatically)
-make -C billaged install
-
-# Start the service
-make -C billaged service-start
-
-# Verify it's running
-make -C billaged service-status
-```
-
-#### 3.3 Builderd Installation
-
-```bash
-# Ensure Docker is running (required for builderd)
-sudo systemctl status docker
-
-# Build and install
-make -C builderd install
-
-# Start the service
-make -C builderd service-start
-
-# Verify it's running
-make -C builderd service-status
-```
-
-#### 3.4 Metald Installation
-
-```bash
-# Download VM assets (required for first run)
-cd metald
-sudo ./scripts/setup-vm-assets.sh
-cd ..
-
-# Build and install
-make -C metald install
-
-# The jailer configuration from Step 3 is automatically applied
-sudo systemctl daemon-reload
-
-# Start the service
-make -C metald service-start
-
-# Verify it's running
-make -C metald service-status
-
-# Verify jailer is working:
-sudo journalctl -u metald | grep -i jailer
-```
-
-### Step 4: Verify mTLS
-
-All services are configured to use SPIFFE/mTLS by default. Verify it's working:
-
-```bash
-# Verify services are using mTLS (check logs)
-for service in assetmanagerd billaged builderd metald; do
-    echo "=== $service logs ==="
-    sudo journalctl -u $service -n 20 --no-pager | grep -i "tls\|spiffe"
+# Check all services are healthy
+for port in 8080 8081 8082 8083; do
+    curl -s http://localhost:$port/health | jq .
 done
-
-# Check SPIFFE workload API
-sudo /opt/spire/bin/spire-agent healthcheck -socketPath /var/lib/spire/agent/agent.sock
-
-# Verify SPIFFE SVIDs are being issued
-sudo /opt/spire/bin/spire-server entry list -socketPath /var/lib/spire/server/server.sock
 ```
 
 ## Verification and Testing
@@ -392,7 +257,7 @@ curl -s http://localhost:8083/health | jq .  # assetmanagerd
 # {
 #   "status": "healthy",
 #   "service": "<service-name>",
-#   "version": "0.1.0",
+#   "version": "0.x.x",
 #   "uptime_seconds": 123.456
 # }
 
@@ -405,7 +270,7 @@ curl -s http://localhost:8084/live && echo " SPIRE agent is healthy"
 
 ```bash
 # Check SPIFFE SVIDs are being issued
-sudo /opt/spire/bin/spire-server entry list -socketPath /run/spire/server.sock
+sudo /opt/spire/bin/spire-server entry list -socketPath /var/lib/spire/server/server.sock
 
 # Test agent can fetch SVIDs
 sudo /opt/spire/bin/spire-agent api fetch x509 \
@@ -428,128 +293,45 @@ make -C <service-name> service-start    # Start service
 make -C <service-name> service-stop     # Stop service
 make -C <service-name> service-restart  # Restart service
 make -C <service-name> service-status   # Check status
-make -C <service-name> service-logs     # Follow logs
+make -C <service-name> service-logs     # Follow logs (or service-logs-tail for some services)
 
 # Examples
 make -C metald service-restart
-make -C billaged service-logs
+make -C billaged service-logs-tail
 make -C assetmanagerd service-status
+make -C builderd service-logs
 ```
 
 ### Managing All Services
 
 ```bash
-# Start all core services in order
-for service in assetmanagerd billaged builderd metald; do
-    make -C $service service-start
-    sleep 2  # Allow service to initialize
-done
-
-# Stop all services in reverse order
-for service in metald builderd billaged assetmanagerd; do
-    make -C $service service-stop
-done
-
-# Check all service statuses
-for service in assetmanagerd billaged builderd metald; do
-    echo "=== $service ==="
-    make -C $service service-status
-done
+# Use top-level commands for all services
+make service-start     # Start all services
+make service-stop      # Stop all services
+make service-status    # Check all service status
 ```
 
 ### SPIRE Management
 
 ```bash
-# SPIRE server commands
-make -C spire service-start-server
-make -C spire service-stop-server
-make -C spire service-logs-server
-
-# SPIRE agent commands
-make -C spire service-start-agent
-make -C spire service-stop-agent
-make -C spire service-logs-agent
-
-# View both SPIRE logs
-make -C spire service-logs
+# Essential SPIRE commands
+make spire-start       # Start SPIRE and register services
+make spire-stop        # Stop SPIRE services
+make spire-status      # Check SPIRE status
 ```
 
 ### Observability Stack Management
 
 ```bash
-# Start observability stack
-make o11y
-
-# Stop observability stack
-make o11y-stop
-
-# View logs
-make o11y-logs
+make o11y              # Start observability stack
+make o11y-stop         # Stop observability stack
 ```
 
 ## Uninstallation
 
-### Quick Complete Cleanup
-
-For a complete system cleanup with confirmation:
-
 ```bash
 # Complete cleanup - removes everything including data
 make clean-all
-```
-
-For immediate cleanup without confirmation:
-
-```bash
-# Force complete cleanup
-make clean-all-force
-```
-
-### Selective Cleanup Options
-
-For more control over what gets removed:
-
-```bash
-# Manual cleanup using individual service uninstall commands
-# (cleanup-system.sh script not available - use manual commands below)
-```
-
-### Manual Step-by-Step Uninstallation
-
-If you prefer manual control:
-
-```bash
-# 1. Stop all services
-make -C metald service-stop
-make -C builderd service-stop
-make -C billaged service-stop
-make -C assetmanagerd service-stop
-make -C spire service-stop-agent
-make -C spire service-stop-server
-make o11y-stop
-
-# 2. Uninstall services (removes binaries and systemd files)
-make -C metald uninstall
-make -C builderd uninstall
-make -C billaged uninstall
-make -C assetmanagerd uninstall
-make -C spire uninstall
-
-# 3. Optional: Remove users
-sudo userdel metald
-sudo userdel billaged
-sudo userdel builderd
-sudo userdel assetmanagerd
-sudo userdel spire-server
-sudo userdel spire-agent
-
-# 4. Optional: Remove data
-sudo rm -rf /opt/metald /opt/billaged /opt/builderd
-sudo rm -rf /opt/assetmanagerd /opt/vm-assets
-sudo rm -rf /opt/spire /var/lib/spire /etc/spire
-
-# 5. Reload systemd
-sudo systemctl daemon-reload
 ```
 
 ## Troubleshooting Guide
@@ -634,7 +416,7 @@ sudo systemctl restart <service>
 ls -la /var/lib/spire/agent/agent.sock
 
 # Check if services have SPIFFE IDs
-sudo /opt/spire/bin/spire-server entry list -socketPath /run/spire/server.sock
+sudo /opt/spire/bin/spire-server entry list -socketPath /var/lib/spire/server/server.sock
 
 # Re-register services if needed
 make -C spire register-services
@@ -704,7 +486,7 @@ for port in 8080 8081 8082 8083 8084 8085; do
 done
 
 # Check SPIFFE workload API
-sudo /opt/spire/bin/spire-agent healthcheck -socketPath /run/spire/sockets/agent.sock
+sudo /opt/spire/bin/spire-agent healthcheck -socketPath /var/lib/spire/agent/agent.sock
 ```
 
 ## Configuration Reference
@@ -723,8 +505,13 @@ sudo /opt/spire/bin/spire-agent healthcheck -socketPath /run/spire/sockets/agent
 ### Key Environment Variables
 
 **TLS/SPIFFE Configuration**:
-- `UNKEY_<SERVICE>_TLS_MODE`: `disabled`, `file`, or `spiffe`
+- `UNKEY_<SERVICE>_TLS_MODE`: `file` or `spiffe` (default: `spiffe`)
 - `UNKEY_<SERVICE>_SPIFFE_SOCKET`: Path to SPIFFE socket (default: `/var/lib/spire/agent/agent.sock`)
+
+**SPIRE Configuration**:
+- `UNKEY_SPIRE_TRUST_DOMAIN`: Trust domain (e.g., `development.unkey.app`)
+- `UNKEY_SPIRE_SERVER_URL`: Server URL for agents (default: `https://localhost:8085`)
+- `UNKEY_SPIRE_JOIN_TOKEN`: 1-year join token for development auto-join
 
 **Service Configuration**:
 - `UNKEY_<SERVICE>_PORT`: API listen port
@@ -759,14 +546,23 @@ The following security features are **REQUIRED** and automatically enabled:
 2. **SPIFFE/mTLS**: Ensures secure inter-service communication through:
    - Automatic certificate rotation
    - Service identity verification
-   - Encrypted communication channels
+   - Encrypted HTTPS communication
    - Zero-trust networking
 
-To verify both are active:
+3. **Enhanced SPIRE Security**: 
+   - Agents communicate with servers over HTTPS (not Unix sockets)
+   - TLS mode defaults to `spiffe` (disabled mode deprecated)
+   - Node attestation support for production environments
+   - Environment-specific trust domains
+
+To verify security features are active:
 ```bash
 # Check jailer processes
 ps aux | grep jailer  # Should show jailer processes for each VM
 
-# Check mTLS
+# Check mTLS is enabled
 sudo journalctl -u metald -u billaged -u assetmanagerd -u builderd | grep -i "tls mode: spiffe"
+
+# Verify agent HTTPS communication
+sudo journalctl -u spire-agent | grep -i "server_address.*https"
 ```

@@ -22,18 +22,18 @@ type Config struct {
 
 	// UserID is the user identifier for authentication
 	UserID string
-	
+
 	// TenantID is the tenant identifier for data scoping
 	TenantID string
 
 	// TLS configuration
-	TLSMode              string        // "disabled", "file", or "spiffe"
-	SPIFFESocketPath     string        // Path to SPIFFE agent socket
-	TLSCertFile          string        // TLS certificate file (for file mode)
-	TLSKeyFile           string        // TLS key file (for file mode)
-	TLSCAFile            string        // TLS CA file (for file mode)
-	EnableCertCaching    bool          // Enable certificate caching
-	CertCacheTTL         time.Duration // Certificate cache TTL
+	TLSMode           string        // "disabled", "file", or "spiffe"
+	SPIFFESocketPath  string        // Path to SPIFFE agent socket
+	TLSCertFile       string        // TLS certificate file (for file mode)
+	TLSKeyFile        string        // TLS key file (for file mode)
+	TLSCAFile         string        // TLS CA file (for file mode)
+	EnableCertCaching bool          // Enable certificate caching
+	CertCacheTTL      time.Duration // Certificate cache TTL
 
 	// Optional HTTP client timeout
 	Timeout time.Duration
@@ -288,7 +288,7 @@ func (c *Client) GetServerAddress() string {
 	return c.serverAddr
 }
 
-// tenantTransport adds authentication and tenant isolation headers to all requests  
+// tenantTransport adds authentication and tenant isolation headers to all requests
 type tenantTransport struct {
 	Base     http.RoundTripper
 	UserID   string
@@ -306,7 +306,7 @@ func (t *tenantTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// AIDEV-BUSINESS_RULE: In development, use "dev_user_<id>" format
 	// TODO: Update to proper JWT tokens in production
 	req2.Header.Set("Authorization", fmt.Sprintf("Bearer dev_user_%s", t.UserID))
-	
+
 	// Also set X-Tenant-ID header for tenant identification
 	req2.Header.Set("X-Tenant-ID", t.TenantID)
 

@@ -11,8 +11,8 @@ User=root
 Group=root
 
 # AIDEV-NOTE: Systemd-managed directory creation
-# RuntimeDirectory creates /run/spire (cleared on reboot)
-RuntimeDirectory=spire spire/sockets
+# RuntimeDirectory creates /run/spire (cleared on reboot) - keeping for backward compatibility
+RuntimeDirectory=spire
 RuntimeDirectoryMode=0755
 RuntimeDirectoryPreserve=yes
 # StateDirectory creates /var/lib/spire (persistent)

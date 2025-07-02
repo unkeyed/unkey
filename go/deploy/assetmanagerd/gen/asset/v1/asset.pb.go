@@ -346,6 +346,232 @@ func (x *Asset) GetSourceImage() string {
 	return ""
 }
 
+type UploadAssetRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Data:
+	//
+	//	*UploadAssetRequest_Metadata
+	//	*UploadAssetRequest_Chunk
+	Data          isUploadAssetRequest_Data `protobuf_oneof:"data"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UploadAssetRequest) Reset() {
+	*x = UploadAssetRequest{}
+	mi := &file_asset_v1_asset_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadAssetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadAssetRequest) ProtoMessage() {}
+
+func (x *UploadAssetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_asset_v1_asset_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadAssetRequest.ProtoReflect.Descriptor instead.
+func (*UploadAssetRequest) Descriptor() ([]byte, []int) {
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *UploadAssetRequest) GetData() isUploadAssetRequest_Data {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+func (x *UploadAssetRequest) GetMetadata() *UploadAssetMetadata {
+	if x != nil {
+		if x, ok := x.Data.(*UploadAssetRequest_Metadata); ok {
+			return x.Metadata
+		}
+	}
+	return nil
+}
+
+func (x *UploadAssetRequest) GetChunk() []byte {
+	if x != nil {
+		if x, ok := x.Data.(*UploadAssetRequest_Chunk); ok {
+			return x.Chunk
+		}
+	}
+	return nil
+}
+
+type isUploadAssetRequest_Data interface {
+	isUploadAssetRequest_Data()
+}
+
+type UploadAssetRequest_Metadata struct {
+	Metadata *UploadAssetMetadata `protobuf:"bytes,1,opt,name=metadata,proto3,oneof"`
+}
+
+type UploadAssetRequest_Chunk struct {
+	Chunk []byte `protobuf:"bytes,2,opt,name=chunk,proto3,oneof"`
+}
+
+func (*UploadAssetRequest_Metadata) isUploadAssetRequest_Data() {}
+
+func (*UploadAssetRequest_Chunk) isUploadAssetRequest_Data() {}
+
+type UploadAssetMetadata struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Type          AssetType              `protobuf:"varint,2,opt,name=type,proto3,enum=asset.v1.AssetType" json:"type,omitempty"`
+	SizeBytes     int64                  `protobuf:"varint,3,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	Labels        map[string]string      `protobuf:"bytes,4,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	CreatedBy     string                 `protobuf:"bytes,5,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
+	BuildId       string                 `protobuf:"bytes,6,opt,name=build_id,json=buildId,proto3" json:"build_id,omitempty"`
+	SourceImage   string                 `protobuf:"bytes,7,opt,name=source_image,json=sourceImage,proto3" json:"source_image,omitempty"`
+	Id            string                 `protobuf:"bytes,8,opt,name=id,proto3" json:"id,omitempty"` // Optional: specific asset ID to use
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UploadAssetMetadata) Reset() {
+	*x = UploadAssetMetadata{}
+	mi := &file_asset_v1_asset_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadAssetMetadata) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadAssetMetadata) ProtoMessage() {}
+
+func (x *UploadAssetMetadata) ProtoReflect() protoreflect.Message {
+	mi := &file_asset_v1_asset_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadAssetMetadata.ProtoReflect.Descriptor instead.
+func (*UploadAssetMetadata) Descriptor() ([]byte, []int) {
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *UploadAssetMetadata) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *UploadAssetMetadata) GetType() AssetType {
+	if x != nil {
+		return x.Type
+	}
+	return AssetType_ASSET_TYPE_UNSPECIFIED
+}
+
+func (x *UploadAssetMetadata) GetSizeBytes() int64 {
+	if x != nil {
+		return x.SizeBytes
+	}
+	return 0
+}
+
+func (x *UploadAssetMetadata) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
+}
+
+func (x *UploadAssetMetadata) GetCreatedBy() string {
+	if x != nil {
+		return x.CreatedBy
+	}
+	return ""
+}
+
+func (x *UploadAssetMetadata) GetBuildId() string {
+	if x != nil {
+		return x.BuildId
+	}
+	return ""
+}
+
+func (x *UploadAssetMetadata) GetSourceImage() string {
+	if x != nil {
+		return x.SourceImage
+	}
+	return ""
+}
+
+func (x *UploadAssetMetadata) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type UploadAssetResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Asset         *Asset                 `protobuf:"bytes,1,opt,name=asset,proto3" json:"asset,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UploadAssetResponse) Reset() {
+	*x = UploadAssetResponse{}
+	mi := &file_asset_v1_asset_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadAssetResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadAssetResponse) ProtoMessage() {}
+
+func (x *UploadAssetResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_asset_v1_asset_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadAssetResponse.ProtoReflect.Descriptor instead.
+func (*UploadAssetResponse) Descriptor() ([]byte, []int) {
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *UploadAssetResponse) GetAsset() *Asset {
+	if x != nil {
+		return x.Asset
+	}
+	return nil
+}
+
 type RegisterAssetRequest struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	Name      string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -367,7 +593,7 @@ type RegisterAssetRequest struct {
 
 func (x *RegisterAssetRequest) Reset() {
 	*x = RegisterAssetRequest{}
-	mi := &file_asset_v1_asset_proto_msgTypes[1]
+	mi := &file_asset_v1_asset_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -379,7 +605,7 @@ func (x *RegisterAssetRequest) String() string {
 func (*RegisterAssetRequest) ProtoMessage() {}
 
 func (x *RegisterAssetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_asset_v1_asset_proto_msgTypes[1]
+	mi := &file_asset_v1_asset_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -392,7 +618,7 @@ func (x *RegisterAssetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterAssetRequest.ProtoReflect.Descriptor instead.
 func (*RegisterAssetRequest) Descriptor() ([]byte, []int) {
-	return file_asset_v1_asset_proto_rawDescGZIP(), []int{1}
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *RegisterAssetRequest) GetName() string {
@@ -481,7 +707,7 @@ type RegisterAssetResponse struct {
 
 func (x *RegisterAssetResponse) Reset() {
 	*x = RegisterAssetResponse{}
-	mi := &file_asset_v1_asset_proto_msgTypes[2]
+	mi := &file_asset_v1_asset_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -493,7 +719,7 @@ func (x *RegisterAssetResponse) String() string {
 func (*RegisterAssetResponse) ProtoMessage() {}
 
 func (x *RegisterAssetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_asset_v1_asset_proto_msgTypes[2]
+	mi := &file_asset_v1_asset_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -506,7 +732,7 @@ func (x *RegisterAssetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterAssetResponse.ProtoReflect.Descriptor instead.
 func (*RegisterAssetResponse) Descriptor() ([]byte, []int) {
-	return file_asset_v1_asset_proto_rawDescGZIP(), []int{2}
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *RegisterAssetResponse) GetAsset() *Asset {
@@ -527,7 +753,7 @@ type GetAssetRequest struct {
 
 func (x *GetAssetRequest) Reset() {
 	*x = GetAssetRequest{}
-	mi := &file_asset_v1_asset_proto_msgTypes[3]
+	mi := &file_asset_v1_asset_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -539,7 +765,7 @@ func (x *GetAssetRequest) String() string {
 func (*GetAssetRequest) ProtoMessage() {}
 
 func (x *GetAssetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_asset_v1_asset_proto_msgTypes[3]
+	mi := &file_asset_v1_asset_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -552,7 +778,7 @@ func (x *GetAssetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAssetRequest.ProtoReflect.Descriptor instead.
 func (*GetAssetRequest) Descriptor() ([]byte, []int) {
-	return file_asset_v1_asset_proto_rawDescGZIP(), []int{3}
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetAssetRequest) GetId() string {
@@ -580,7 +806,7 @@ type GetAssetResponse struct {
 
 func (x *GetAssetResponse) Reset() {
 	*x = GetAssetResponse{}
-	mi := &file_asset_v1_asset_proto_msgTypes[4]
+	mi := &file_asset_v1_asset_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -592,7 +818,7 @@ func (x *GetAssetResponse) String() string {
 func (*GetAssetResponse) ProtoMessage() {}
 
 func (x *GetAssetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_asset_v1_asset_proto_msgTypes[4]
+	mi := &file_asset_v1_asset_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -605,7 +831,7 @@ func (x *GetAssetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAssetResponse.ProtoReflect.Descriptor instead.
 func (*GetAssetResponse) Descriptor() ([]byte, []int) {
-	return file_asset_v1_asset_proto_rawDescGZIP(), []int{4}
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GetAssetResponse) GetAsset() *Asset {
@@ -639,7 +865,7 @@ type ListAssetsRequest struct {
 
 func (x *ListAssetsRequest) Reset() {
 	*x = ListAssetsRequest{}
-	mi := &file_asset_v1_asset_proto_msgTypes[5]
+	mi := &file_asset_v1_asset_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -651,7 +877,7 @@ func (x *ListAssetsRequest) String() string {
 func (*ListAssetsRequest) ProtoMessage() {}
 
 func (x *ListAssetsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_asset_v1_asset_proto_msgTypes[5]
+	mi := &file_asset_v1_asset_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -664,7 +890,7 @@ func (x *ListAssetsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAssetsRequest.ProtoReflect.Descriptor instead.
 func (*ListAssetsRequest) Descriptor() ([]byte, []int) {
-	return file_asset_v1_asset_proto_rawDescGZIP(), []int{5}
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ListAssetsRequest) GetType() AssetType {
@@ -712,7 +938,7 @@ type ListAssetsResponse struct {
 
 func (x *ListAssetsResponse) Reset() {
 	*x = ListAssetsResponse{}
-	mi := &file_asset_v1_asset_proto_msgTypes[6]
+	mi := &file_asset_v1_asset_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -724,7 +950,7 @@ func (x *ListAssetsResponse) String() string {
 func (*ListAssetsResponse) ProtoMessage() {}
 
 func (x *ListAssetsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_asset_v1_asset_proto_msgTypes[6]
+	mi := &file_asset_v1_asset_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -737,7 +963,7 @@ func (x *ListAssetsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAssetsResponse.ProtoReflect.Descriptor instead.
 func (*ListAssetsResponse) Descriptor() ([]byte, []int) {
-	return file_asset_v1_asset_proto_rawDescGZIP(), []int{6}
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListAssetsResponse) GetAssets() []*Asset {
@@ -765,7 +991,7 @@ type AcquireAssetRequest struct {
 
 func (x *AcquireAssetRequest) Reset() {
 	*x = AcquireAssetRequest{}
-	mi := &file_asset_v1_asset_proto_msgTypes[7]
+	mi := &file_asset_v1_asset_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -777,7 +1003,7 @@ func (x *AcquireAssetRequest) String() string {
 func (*AcquireAssetRequest) ProtoMessage() {}
 
 func (x *AcquireAssetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_asset_v1_asset_proto_msgTypes[7]
+	mi := &file_asset_v1_asset_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -790,7 +1016,7 @@ func (x *AcquireAssetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcquireAssetRequest.ProtoReflect.Descriptor instead.
 func (*AcquireAssetRequest) Descriptor() ([]byte, []int) {
-	return file_asset_v1_asset_proto_rawDescGZIP(), []int{7}
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *AcquireAssetRequest) GetAssetId() string {
@@ -824,7 +1050,7 @@ type AcquireAssetResponse struct {
 
 func (x *AcquireAssetResponse) Reset() {
 	*x = AcquireAssetResponse{}
-	mi := &file_asset_v1_asset_proto_msgTypes[8]
+	mi := &file_asset_v1_asset_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -836,7 +1062,7 @@ func (x *AcquireAssetResponse) String() string {
 func (*AcquireAssetResponse) ProtoMessage() {}
 
 func (x *AcquireAssetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_asset_v1_asset_proto_msgTypes[8]
+	mi := &file_asset_v1_asset_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -849,7 +1075,7 @@ func (x *AcquireAssetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcquireAssetResponse.ProtoReflect.Descriptor instead.
 func (*AcquireAssetResponse) Descriptor() ([]byte, []int) {
-	return file_asset_v1_asset_proto_rawDescGZIP(), []int{8}
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *AcquireAssetResponse) GetAsset() *Asset {
@@ -875,7 +1101,7 @@ type ReleaseAssetRequest struct {
 
 func (x *ReleaseAssetRequest) Reset() {
 	*x = ReleaseAssetRequest{}
-	mi := &file_asset_v1_asset_proto_msgTypes[9]
+	mi := &file_asset_v1_asset_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -887,7 +1113,7 @@ func (x *ReleaseAssetRequest) String() string {
 func (*ReleaseAssetRequest) ProtoMessage() {}
 
 func (x *ReleaseAssetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_asset_v1_asset_proto_msgTypes[9]
+	mi := &file_asset_v1_asset_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -900,7 +1126,7 @@ func (x *ReleaseAssetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReleaseAssetRequest.ProtoReflect.Descriptor instead.
 func (*ReleaseAssetRequest) Descriptor() ([]byte, []int) {
-	return file_asset_v1_asset_proto_rawDescGZIP(), []int{9}
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ReleaseAssetRequest) GetLeaseId() string {
@@ -919,7 +1145,7 @@ type ReleaseAssetResponse struct {
 
 func (x *ReleaseAssetResponse) Reset() {
 	*x = ReleaseAssetResponse{}
-	mi := &file_asset_v1_asset_proto_msgTypes[10]
+	mi := &file_asset_v1_asset_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -931,7 +1157,7 @@ func (x *ReleaseAssetResponse) String() string {
 func (*ReleaseAssetResponse) ProtoMessage() {}
 
 func (x *ReleaseAssetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_asset_v1_asset_proto_msgTypes[10]
+	mi := &file_asset_v1_asset_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -944,7 +1170,7 @@ func (x *ReleaseAssetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReleaseAssetResponse.ProtoReflect.Descriptor instead.
 func (*ReleaseAssetResponse) Descriptor() ([]byte, []int) {
-	return file_asset_v1_asset_proto_rawDescGZIP(), []int{10}
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ReleaseAssetResponse) GetAsset() *Asset {
@@ -964,7 +1190,7 @@ type DeleteAssetRequest struct {
 
 func (x *DeleteAssetRequest) Reset() {
 	*x = DeleteAssetRequest{}
-	mi := &file_asset_v1_asset_proto_msgTypes[11]
+	mi := &file_asset_v1_asset_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -976,7 +1202,7 @@ func (x *DeleteAssetRequest) String() string {
 func (*DeleteAssetRequest) ProtoMessage() {}
 
 func (x *DeleteAssetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_asset_v1_asset_proto_msgTypes[11]
+	mi := &file_asset_v1_asset_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -989,7 +1215,7 @@ func (x *DeleteAssetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAssetRequest.ProtoReflect.Descriptor instead.
 func (*DeleteAssetRequest) Descriptor() ([]byte, []int) {
-	return file_asset_v1_asset_proto_rawDescGZIP(), []int{11}
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *DeleteAssetRequest) GetId() string {
@@ -1016,7 +1242,7 @@ type DeleteAssetResponse struct {
 
 func (x *DeleteAssetResponse) Reset() {
 	*x = DeleteAssetResponse{}
-	mi := &file_asset_v1_asset_proto_msgTypes[12]
+	mi := &file_asset_v1_asset_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1028,7 +1254,7 @@ func (x *DeleteAssetResponse) String() string {
 func (*DeleteAssetResponse) ProtoMessage() {}
 
 func (x *DeleteAssetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_asset_v1_asset_proto_msgTypes[12]
+	mi := &file_asset_v1_asset_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1041,7 +1267,7 @@ func (x *DeleteAssetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAssetResponse.ProtoReflect.Descriptor instead.
 func (*DeleteAssetResponse) Descriptor() ([]byte, []int) {
-	return file_asset_v1_asset_proto_rawDescGZIP(), []int{12}
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *DeleteAssetResponse) GetDeleted() bool {
@@ -1072,7 +1298,7 @@ type GarbageCollectRequest struct {
 
 func (x *GarbageCollectRequest) Reset() {
 	*x = GarbageCollectRequest{}
-	mi := &file_asset_v1_asset_proto_msgTypes[13]
+	mi := &file_asset_v1_asset_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1084,7 +1310,7 @@ func (x *GarbageCollectRequest) String() string {
 func (*GarbageCollectRequest) ProtoMessage() {}
 
 func (x *GarbageCollectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_asset_v1_asset_proto_msgTypes[13]
+	mi := &file_asset_v1_asset_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1097,7 +1323,7 @@ func (x *GarbageCollectRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GarbageCollectRequest.ProtoReflect.Descriptor instead.
 func (*GarbageCollectRequest) Descriptor() ([]byte, []int) {
-	return file_asset_v1_asset_proto_rawDescGZIP(), []int{13}
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *GarbageCollectRequest) GetMaxAgeSeconds() int64 {
@@ -1131,7 +1357,7 @@ type GarbageCollectResponse struct {
 
 func (x *GarbageCollectResponse) Reset() {
 	*x = GarbageCollectResponse{}
-	mi := &file_asset_v1_asset_proto_msgTypes[14]
+	mi := &file_asset_v1_asset_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1143,7 +1369,7 @@ func (x *GarbageCollectResponse) String() string {
 func (*GarbageCollectResponse) ProtoMessage() {}
 
 func (x *GarbageCollectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_asset_v1_asset_proto_msgTypes[14]
+	mi := &file_asset_v1_asset_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1156,7 +1382,7 @@ func (x *GarbageCollectResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GarbageCollectResponse.ProtoReflect.Descriptor instead.
 func (*GarbageCollectResponse) Descriptor() ([]byte, []int) {
-	return file_asset_v1_asset_proto_rawDescGZIP(), []int{14}
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *GarbageCollectResponse) GetDeletedAssets() []*Asset {
@@ -1184,7 +1410,7 @@ type PrepareAssetsRequest struct {
 
 func (x *PrepareAssetsRequest) Reset() {
 	*x = PrepareAssetsRequest{}
-	mi := &file_asset_v1_asset_proto_msgTypes[15]
+	mi := &file_asset_v1_asset_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1196,7 +1422,7 @@ func (x *PrepareAssetsRequest) String() string {
 func (*PrepareAssetsRequest) ProtoMessage() {}
 
 func (x *PrepareAssetsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_asset_v1_asset_proto_msgTypes[15]
+	mi := &file_asset_v1_asset_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1209,7 +1435,7 @@ func (x *PrepareAssetsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PrepareAssetsRequest.ProtoReflect.Descriptor instead.
 func (*PrepareAssetsRequest) Descriptor() ([]byte, []int) {
-	return file_asset_v1_asset_proto_rawDescGZIP(), []int{15}
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *PrepareAssetsRequest) GetAssetIds() []string {
@@ -1242,7 +1468,7 @@ type PrepareAssetsResponse struct {
 
 func (x *PrepareAssetsResponse) Reset() {
 	*x = PrepareAssetsResponse{}
-	mi := &file_asset_v1_asset_proto_msgTypes[16]
+	mi := &file_asset_v1_asset_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1254,7 +1480,7 @@ func (x *PrepareAssetsResponse) String() string {
 func (*PrepareAssetsResponse) ProtoMessage() {}
 
 func (x *PrepareAssetsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_asset_v1_asset_proto_msgTypes[16]
+	mi := &file_asset_v1_asset_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1267,7 +1493,7 @@ func (x *PrepareAssetsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PrepareAssetsResponse.ProtoReflect.Descriptor instead.
 func (*PrepareAssetsResponse) Descriptor() ([]byte, []int) {
-	return file_asset_v1_asset_proto_rawDescGZIP(), []int{16}
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *PrepareAssetsResponse) GetAssetPaths() map[string]string {
@@ -1297,7 +1523,7 @@ type QueryAssetsRequest struct {
 
 func (x *QueryAssetsRequest) Reset() {
 	*x = QueryAssetsRequest{}
-	mi := &file_asset_v1_asset_proto_msgTypes[17]
+	mi := &file_asset_v1_asset_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1309,7 +1535,7 @@ func (x *QueryAssetsRequest) String() string {
 func (*QueryAssetsRequest) ProtoMessage() {}
 
 func (x *QueryAssetsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_asset_v1_asset_proto_msgTypes[17]
+	mi := &file_asset_v1_asset_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1322,7 +1548,7 @@ func (x *QueryAssetsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueryAssetsRequest.ProtoReflect.Descriptor instead.
 func (*QueryAssetsRequest) Descriptor() ([]byte, []int) {
-	return file_asset_v1_asset_proto_rawDescGZIP(), []int{17}
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *QueryAssetsRequest) GetType() AssetType {
@@ -1389,7 +1615,7 @@ type BuildOptions struct {
 
 func (x *BuildOptions) Reset() {
 	*x = BuildOptions{}
-	mi := &file_asset_v1_asset_proto_msgTypes[18]
+	mi := &file_asset_v1_asset_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1401,7 +1627,7 @@ func (x *BuildOptions) String() string {
 func (*BuildOptions) ProtoMessage() {}
 
 func (x *BuildOptions) ProtoReflect() protoreflect.Message {
-	mi := &file_asset_v1_asset_proto_msgTypes[18]
+	mi := &file_asset_v1_asset_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1414,7 +1640,7 @@ func (x *BuildOptions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuildOptions.ProtoReflect.Descriptor instead.
 func (*BuildOptions) Descriptor() ([]byte, []int) {
-	return file_asset_v1_asset_proto_rawDescGZIP(), []int{18}
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *BuildOptions) GetEnableAutoBuild() bool {
@@ -1472,7 +1698,7 @@ type QueryAssetsResponse struct {
 
 func (x *QueryAssetsResponse) Reset() {
 	*x = QueryAssetsResponse{}
-	mi := &file_asset_v1_asset_proto_msgTypes[19]
+	mi := &file_asset_v1_asset_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1484,7 +1710,7 @@ func (x *QueryAssetsResponse) String() string {
 func (*QueryAssetsResponse) ProtoMessage() {}
 
 func (x *QueryAssetsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_asset_v1_asset_proto_msgTypes[19]
+	mi := &file_asset_v1_asset_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1497,7 +1723,7 @@ func (x *QueryAssetsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueryAssetsResponse.ProtoReflect.Descriptor instead.
 func (*QueryAssetsResponse) Descriptor() ([]byte, []int) {
-	return file_asset_v1_asset_proto_rawDescGZIP(), []int{19}
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *QueryAssetsResponse) GetAssets() []*Asset {
@@ -1535,7 +1761,7 @@ type BuildInfo struct {
 
 func (x *BuildInfo) Reset() {
 	*x = BuildInfo{}
-	mi := &file_asset_v1_asset_proto_msgTypes[20]
+	mi := &file_asset_v1_asset_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1547,7 +1773,7 @@ func (x *BuildInfo) String() string {
 func (*BuildInfo) ProtoMessage() {}
 
 func (x *BuildInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_asset_v1_asset_proto_msgTypes[20]
+	mi := &file_asset_v1_asset_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1560,7 +1786,7 @@ func (x *BuildInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuildInfo.ProtoReflect.Descriptor instead.
 func (*BuildInfo) Descriptor() ([]byte, []int) {
-	return file_asset_v1_asset_proto_rawDescGZIP(), []int{20}
+	return file_asset_v1_asset_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *BuildInfo) GetBuildId() string {
@@ -1625,7 +1851,27 @@ const file_asset_v1_asset_proto_rawDesc = "" +
 	"\fsource_image\x18\x0f \x01(\tR\vsourceImage\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xca\x03\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"q\n" +
+	"\x12UploadAssetRequest\x12;\n" +
+	"\bmetadata\x18\x01 \x01(\v2\x1d.asset.v1.UploadAssetMetadataH\x00R\bmetadata\x12\x16\n" +
+	"\x05chunk\x18\x02 \x01(\fH\x00R\x05chunkB\x06\n" +
+	"\x04data\"\xdc\x02\n" +
+	"\x13UploadAssetMetadata\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12'\n" +
+	"\x04type\x18\x02 \x01(\x0e2\x13.asset.v1.AssetTypeR\x04type\x12\x1d\n" +
+	"\n" +
+	"size_bytes\x18\x03 \x01(\x03R\tsizeBytes\x12A\n" +
+	"\x06labels\x18\x04 \x03(\v2).asset.v1.UploadAssetMetadata.LabelsEntryR\x06labels\x12\x1d\n" +
+	"\n" +
+	"created_by\x18\x05 \x01(\tR\tcreatedBy\x12\x19\n" +
+	"\bbuild_id\x18\x06 \x01(\tR\abuildId\x12!\n" +
+	"\fsource_image\x18\a \x01(\tR\vsourceImage\x12\x0e\n" +
+	"\x02id\x18\b \x01(\tR\x02id\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"<\n" +
+	"\x13UploadAssetResponse\x12%\n" +
+	"\x05asset\x18\x01 \x01(\v2\x0f.asset.v1.AssetR\x05asset\"\xca\x03\n" +
 	"\x14RegisterAssetRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12'\n" +
 	"\x04type\x18\x02 \x01(\x0e2\x13.asset.v1.AssetTypeR\x04type\x122\n" +
@@ -1752,8 +1998,9 @@ const file_asset_v1_asset_proto_rawDesc = "" +
 	"\x15STORAGE_BACKEND_LOCAL\x10\x01\x12\x16\n" +
 	"\x12STORAGE_BACKEND_S3\x10\x02\x12\x18\n" +
 	"\x14STORAGE_BACKEND_HTTP\x10\x03\x12\x17\n" +
-	"\x13STORAGE_BACKEND_NFS\x10\x042\xd0\x05\n" +
-	"\x13AssetManagerService\x12P\n" +
+	"\x13STORAGE_BACKEND_NFS\x10\x042\x9e\x06\n" +
+	"\x13AssetManagerService\x12L\n" +
+	"\vUploadAsset\x12\x1c.asset.v1.UploadAssetRequest\x1a\x1d.asset.v1.UploadAssetResponse(\x01\x12P\n" +
 	"\rRegisterAsset\x12\x1e.asset.v1.RegisterAssetRequest\x1a\x1f.asset.v1.RegisterAssetResponse\x12A\n" +
 	"\bGetAsset\x12\x19.asset.v1.GetAssetRequest\x1a\x1a.asset.v1.GetAssetResponse\x12G\n" +
 	"\n" +
@@ -1780,87 +2027,97 @@ func file_asset_v1_asset_proto_rawDescGZIP() []byte {
 }
 
 var file_asset_v1_asset_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_asset_v1_asset_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
+var file_asset_v1_asset_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_asset_v1_asset_proto_goTypes = []any{
 	(AssetType)(0),                 // 0: asset.v1.AssetType
 	(AssetStatus)(0),               // 1: asset.v1.AssetStatus
 	(StorageBackend)(0),            // 2: asset.v1.StorageBackend
 	(*Asset)(nil),                  // 3: asset.v1.Asset
-	(*RegisterAssetRequest)(nil),   // 4: asset.v1.RegisterAssetRequest
-	(*RegisterAssetResponse)(nil),  // 5: asset.v1.RegisterAssetResponse
-	(*GetAssetRequest)(nil),        // 6: asset.v1.GetAssetRequest
-	(*GetAssetResponse)(nil),       // 7: asset.v1.GetAssetResponse
-	(*ListAssetsRequest)(nil),      // 8: asset.v1.ListAssetsRequest
-	(*ListAssetsResponse)(nil),     // 9: asset.v1.ListAssetsResponse
-	(*AcquireAssetRequest)(nil),    // 10: asset.v1.AcquireAssetRequest
-	(*AcquireAssetResponse)(nil),   // 11: asset.v1.AcquireAssetResponse
-	(*ReleaseAssetRequest)(nil),    // 12: asset.v1.ReleaseAssetRequest
-	(*ReleaseAssetResponse)(nil),   // 13: asset.v1.ReleaseAssetResponse
-	(*DeleteAssetRequest)(nil),     // 14: asset.v1.DeleteAssetRequest
-	(*DeleteAssetResponse)(nil),    // 15: asset.v1.DeleteAssetResponse
-	(*GarbageCollectRequest)(nil),  // 16: asset.v1.GarbageCollectRequest
-	(*GarbageCollectResponse)(nil), // 17: asset.v1.GarbageCollectResponse
-	(*PrepareAssetsRequest)(nil),   // 18: asset.v1.PrepareAssetsRequest
-	(*PrepareAssetsResponse)(nil),  // 19: asset.v1.PrepareAssetsResponse
-	(*QueryAssetsRequest)(nil),     // 20: asset.v1.QueryAssetsRequest
-	(*BuildOptions)(nil),           // 21: asset.v1.BuildOptions
-	(*QueryAssetsResponse)(nil),    // 22: asset.v1.QueryAssetsResponse
-	(*BuildInfo)(nil),              // 23: asset.v1.BuildInfo
-	nil,                            // 24: asset.v1.Asset.LabelsEntry
-	nil,                            // 25: asset.v1.RegisterAssetRequest.LabelsEntry
-	nil,                            // 26: asset.v1.ListAssetsRequest.LabelSelectorEntry
-	nil,                            // 27: asset.v1.PrepareAssetsResponse.AssetPathsEntry
-	nil,                            // 28: asset.v1.QueryAssetsRequest.LabelSelectorEntry
-	nil,                            // 29: asset.v1.BuildOptions.BuildLabelsEntry
+	(*UploadAssetRequest)(nil),     // 4: asset.v1.UploadAssetRequest
+	(*UploadAssetMetadata)(nil),    // 5: asset.v1.UploadAssetMetadata
+	(*UploadAssetResponse)(nil),    // 6: asset.v1.UploadAssetResponse
+	(*RegisterAssetRequest)(nil),   // 7: asset.v1.RegisterAssetRequest
+	(*RegisterAssetResponse)(nil),  // 8: asset.v1.RegisterAssetResponse
+	(*GetAssetRequest)(nil),        // 9: asset.v1.GetAssetRequest
+	(*GetAssetResponse)(nil),       // 10: asset.v1.GetAssetResponse
+	(*ListAssetsRequest)(nil),      // 11: asset.v1.ListAssetsRequest
+	(*ListAssetsResponse)(nil),     // 12: asset.v1.ListAssetsResponse
+	(*AcquireAssetRequest)(nil),    // 13: asset.v1.AcquireAssetRequest
+	(*AcquireAssetResponse)(nil),   // 14: asset.v1.AcquireAssetResponse
+	(*ReleaseAssetRequest)(nil),    // 15: asset.v1.ReleaseAssetRequest
+	(*ReleaseAssetResponse)(nil),   // 16: asset.v1.ReleaseAssetResponse
+	(*DeleteAssetRequest)(nil),     // 17: asset.v1.DeleteAssetRequest
+	(*DeleteAssetResponse)(nil),    // 18: asset.v1.DeleteAssetResponse
+	(*GarbageCollectRequest)(nil),  // 19: asset.v1.GarbageCollectRequest
+	(*GarbageCollectResponse)(nil), // 20: asset.v1.GarbageCollectResponse
+	(*PrepareAssetsRequest)(nil),   // 21: asset.v1.PrepareAssetsRequest
+	(*PrepareAssetsResponse)(nil),  // 22: asset.v1.PrepareAssetsResponse
+	(*QueryAssetsRequest)(nil),     // 23: asset.v1.QueryAssetsRequest
+	(*BuildOptions)(nil),           // 24: asset.v1.BuildOptions
+	(*QueryAssetsResponse)(nil),    // 25: asset.v1.QueryAssetsResponse
+	(*BuildInfo)(nil),              // 26: asset.v1.BuildInfo
+	nil,                            // 27: asset.v1.Asset.LabelsEntry
+	nil,                            // 28: asset.v1.UploadAssetMetadata.LabelsEntry
+	nil,                            // 29: asset.v1.RegisterAssetRequest.LabelsEntry
+	nil,                            // 30: asset.v1.ListAssetsRequest.LabelSelectorEntry
+	nil,                            // 31: asset.v1.PrepareAssetsResponse.AssetPathsEntry
+	nil,                            // 32: asset.v1.QueryAssetsRequest.LabelSelectorEntry
+	nil,                            // 33: asset.v1.BuildOptions.BuildLabelsEntry
 }
 var file_asset_v1_asset_proto_depIdxs = []int32{
 	0,  // 0: asset.v1.Asset.type:type_name -> asset.v1.AssetType
 	1,  // 1: asset.v1.Asset.status:type_name -> asset.v1.AssetStatus
 	2,  // 2: asset.v1.Asset.backend:type_name -> asset.v1.StorageBackend
-	24, // 3: asset.v1.Asset.labels:type_name -> asset.v1.Asset.LabelsEntry
-	0,  // 4: asset.v1.RegisterAssetRequest.type:type_name -> asset.v1.AssetType
-	2,  // 5: asset.v1.RegisterAssetRequest.backend:type_name -> asset.v1.StorageBackend
-	25, // 6: asset.v1.RegisterAssetRequest.labels:type_name -> asset.v1.RegisterAssetRequest.LabelsEntry
-	3,  // 7: asset.v1.RegisterAssetResponse.asset:type_name -> asset.v1.Asset
-	3,  // 8: asset.v1.GetAssetResponse.asset:type_name -> asset.v1.Asset
-	0,  // 9: asset.v1.ListAssetsRequest.type:type_name -> asset.v1.AssetType
-	1,  // 10: asset.v1.ListAssetsRequest.status:type_name -> asset.v1.AssetStatus
-	26, // 11: asset.v1.ListAssetsRequest.label_selector:type_name -> asset.v1.ListAssetsRequest.LabelSelectorEntry
-	3,  // 12: asset.v1.ListAssetsResponse.assets:type_name -> asset.v1.Asset
-	3,  // 13: asset.v1.AcquireAssetResponse.asset:type_name -> asset.v1.Asset
-	3,  // 14: asset.v1.ReleaseAssetResponse.asset:type_name -> asset.v1.Asset
-	3,  // 15: asset.v1.GarbageCollectResponse.deleted_assets:type_name -> asset.v1.Asset
-	27, // 16: asset.v1.PrepareAssetsResponse.asset_paths:type_name -> asset.v1.PrepareAssetsResponse.AssetPathsEntry
-	0,  // 17: asset.v1.QueryAssetsRequest.type:type_name -> asset.v1.AssetType
-	1,  // 18: asset.v1.QueryAssetsRequest.status:type_name -> asset.v1.AssetStatus
-	28, // 19: asset.v1.QueryAssetsRequest.label_selector:type_name -> asset.v1.QueryAssetsRequest.LabelSelectorEntry
-	21, // 20: asset.v1.QueryAssetsRequest.build_options:type_name -> asset.v1.BuildOptions
-	29, // 21: asset.v1.BuildOptions.build_labels:type_name -> asset.v1.BuildOptions.BuildLabelsEntry
-	3,  // 22: asset.v1.QueryAssetsResponse.assets:type_name -> asset.v1.Asset
-	23, // 23: asset.v1.QueryAssetsResponse.triggered_builds:type_name -> asset.v1.BuildInfo
-	4,  // 24: asset.v1.AssetManagerService.RegisterAsset:input_type -> asset.v1.RegisterAssetRequest
-	6,  // 25: asset.v1.AssetManagerService.GetAsset:input_type -> asset.v1.GetAssetRequest
-	8,  // 26: asset.v1.AssetManagerService.ListAssets:input_type -> asset.v1.ListAssetsRequest
-	10, // 27: asset.v1.AssetManagerService.AcquireAsset:input_type -> asset.v1.AcquireAssetRequest
-	12, // 28: asset.v1.AssetManagerService.ReleaseAsset:input_type -> asset.v1.ReleaseAssetRequest
-	14, // 29: asset.v1.AssetManagerService.DeleteAsset:input_type -> asset.v1.DeleteAssetRequest
-	16, // 30: asset.v1.AssetManagerService.GarbageCollect:input_type -> asset.v1.GarbageCollectRequest
-	18, // 31: asset.v1.AssetManagerService.PrepareAssets:input_type -> asset.v1.PrepareAssetsRequest
-	20, // 32: asset.v1.AssetManagerService.QueryAssets:input_type -> asset.v1.QueryAssetsRequest
-	5,  // 33: asset.v1.AssetManagerService.RegisterAsset:output_type -> asset.v1.RegisterAssetResponse
-	7,  // 34: asset.v1.AssetManagerService.GetAsset:output_type -> asset.v1.GetAssetResponse
-	9,  // 35: asset.v1.AssetManagerService.ListAssets:output_type -> asset.v1.ListAssetsResponse
-	11, // 36: asset.v1.AssetManagerService.AcquireAsset:output_type -> asset.v1.AcquireAssetResponse
-	13, // 37: asset.v1.AssetManagerService.ReleaseAsset:output_type -> asset.v1.ReleaseAssetResponse
-	15, // 38: asset.v1.AssetManagerService.DeleteAsset:output_type -> asset.v1.DeleteAssetResponse
-	17, // 39: asset.v1.AssetManagerService.GarbageCollect:output_type -> asset.v1.GarbageCollectResponse
-	19, // 40: asset.v1.AssetManagerService.PrepareAssets:output_type -> asset.v1.PrepareAssetsResponse
-	22, // 41: asset.v1.AssetManagerService.QueryAssets:output_type -> asset.v1.QueryAssetsResponse
-	33, // [33:42] is the sub-list for method output_type
-	24, // [24:33] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	27, // 3: asset.v1.Asset.labels:type_name -> asset.v1.Asset.LabelsEntry
+	5,  // 4: asset.v1.UploadAssetRequest.metadata:type_name -> asset.v1.UploadAssetMetadata
+	0,  // 5: asset.v1.UploadAssetMetadata.type:type_name -> asset.v1.AssetType
+	28, // 6: asset.v1.UploadAssetMetadata.labels:type_name -> asset.v1.UploadAssetMetadata.LabelsEntry
+	3,  // 7: asset.v1.UploadAssetResponse.asset:type_name -> asset.v1.Asset
+	0,  // 8: asset.v1.RegisterAssetRequest.type:type_name -> asset.v1.AssetType
+	2,  // 9: asset.v1.RegisterAssetRequest.backend:type_name -> asset.v1.StorageBackend
+	29, // 10: asset.v1.RegisterAssetRequest.labels:type_name -> asset.v1.RegisterAssetRequest.LabelsEntry
+	3,  // 11: asset.v1.RegisterAssetResponse.asset:type_name -> asset.v1.Asset
+	3,  // 12: asset.v1.GetAssetResponse.asset:type_name -> asset.v1.Asset
+	0,  // 13: asset.v1.ListAssetsRequest.type:type_name -> asset.v1.AssetType
+	1,  // 14: asset.v1.ListAssetsRequest.status:type_name -> asset.v1.AssetStatus
+	30, // 15: asset.v1.ListAssetsRequest.label_selector:type_name -> asset.v1.ListAssetsRequest.LabelSelectorEntry
+	3,  // 16: asset.v1.ListAssetsResponse.assets:type_name -> asset.v1.Asset
+	3,  // 17: asset.v1.AcquireAssetResponse.asset:type_name -> asset.v1.Asset
+	3,  // 18: asset.v1.ReleaseAssetResponse.asset:type_name -> asset.v1.Asset
+	3,  // 19: asset.v1.GarbageCollectResponse.deleted_assets:type_name -> asset.v1.Asset
+	31, // 20: asset.v1.PrepareAssetsResponse.asset_paths:type_name -> asset.v1.PrepareAssetsResponse.AssetPathsEntry
+	0,  // 21: asset.v1.QueryAssetsRequest.type:type_name -> asset.v1.AssetType
+	1,  // 22: asset.v1.QueryAssetsRequest.status:type_name -> asset.v1.AssetStatus
+	32, // 23: asset.v1.QueryAssetsRequest.label_selector:type_name -> asset.v1.QueryAssetsRequest.LabelSelectorEntry
+	24, // 24: asset.v1.QueryAssetsRequest.build_options:type_name -> asset.v1.BuildOptions
+	33, // 25: asset.v1.BuildOptions.build_labels:type_name -> asset.v1.BuildOptions.BuildLabelsEntry
+	3,  // 26: asset.v1.QueryAssetsResponse.assets:type_name -> asset.v1.Asset
+	26, // 27: asset.v1.QueryAssetsResponse.triggered_builds:type_name -> asset.v1.BuildInfo
+	4,  // 28: asset.v1.AssetManagerService.UploadAsset:input_type -> asset.v1.UploadAssetRequest
+	7,  // 29: asset.v1.AssetManagerService.RegisterAsset:input_type -> asset.v1.RegisterAssetRequest
+	9,  // 30: asset.v1.AssetManagerService.GetAsset:input_type -> asset.v1.GetAssetRequest
+	11, // 31: asset.v1.AssetManagerService.ListAssets:input_type -> asset.v1.ListAssetsRequest
+	13, // 32: asset.v1.AssetManagerService.AcquireAsset:input_type -> asset.v1.AcquireAssetRequest
+	15, // 33: asset.v1.AssetManagerService.ReleaseAsset:input_type -> asset.v1.ReleaseAssetRequest
+	17, // 34: asset.v1.AssetManagerService.DeleteAsset:input_type -> asset.v1.DeleteAssetRequest
+	19, // 35: asset.v1.AssetManagerService.GarbageCollect:input_type -> asset.v1.GarbageCollectRequest
+	21, // 36: asset.v1.AssetManagerService.PrepareAssets:input_type -> asset.v1.PrepareAssetsRequest
+	23, // 37: asset.v1.AssetManagerService.QueryAssets:input_type -> asset.v1.QueryAssetsRequest
+	6,  // 38: asset.v1.AssetManagerService.UploadAsset:output_type -> asset.v1.UploadAssetResponse
+	8,  // 39: asset.v1.AssetManagerService.RegisterAsset:output_type -> asset.v1.RegisterAssetResponse
+	10, // 40: asset.v1.AssetManagerService.GetAsset:output_type -> asset.v1.GetAssetResponse
+	12, // 41: asset.v1.AssetManagerService.ListAssets:output_type -> asset.v1.ListAssetsResponse
+	14, // 42: asset.v1.AssetManagerService.AcquireAsset:output_type -> asset.v1.AcquireAssetResponse
+	16, // 43: asset.v1.AssetManagerService.ReleaseAsset:output_type -> asset.v1.ReleaseAssetResponse
+	18, // 44: asset.v1.AssetManagerService.DeleteAsset:output_type -> asset.v1.DeleteAssetResponse
+	20, // 45: asset.v1.AssetManagerService.GarbageCollect:output_type -> asset.v1.GarbageCollectResponse
+	22, // 46: asset.v1.AssetManagerService.PrepareAssets:output_type -> asset.v1.PrepareAssetsResponse
+	25, // 47: asset.v1.AssetManagerService.QueryAssets:output_type -> asset.v1.QueryAssetsResponse
+	38, // [38:48] is the sub-list for method output_type
+	28, // [28:38] is the sub-list for method input_type
+	28, // [28:28] is the sub-list for extension type_name
+	28, // [28:28] is the sub-list for extension extendee
+	0,  // [0:28] is the sub-list for field type_name
 }
 
 func init() { file_asset_v1_asset_proto_init() }
@@ -1868,13 +2125,17 @@ func file_asset_v1_asset_proto_init() {
 	if File_asset_v1_asset_proto != nil {
 		return
 	}
+	file_asset_v1_asset_proto_msgTypes[1].OneofWrappers = []any{
+		(*UploadAssetRequest_Metadata)(nil),
+		(*UploadAssetRequest_Chunk)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_asset_v1_asset_proto_rawDesc), len(file_asset_v1_asset_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   27,
+			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

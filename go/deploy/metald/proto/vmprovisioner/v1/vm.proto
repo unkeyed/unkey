@@ -306,6 +306,13 @@ message GetVmInfoResponse {
   VmNetworkInfo network_info = 6;
 }
 
+// Port mapping for VM network forwarding
+message PortMapping {
+  int32 container_port = 1;  // Port inside the VM
+  int32 host_port = 2;       // Port on the host system
+  string protocol = 3;       // Protocol (tcp, udp)
+}
+
 // Network information for a VM
 message VmNetworkInfo {
   string ip_address = 1;
@@ -314,6 +321,7 @@ message VmNetworkInfo {
   string network_namespace = 4;
   string gateway = 5;
   repeated string dns_servers = 6;
+  repeated PortMapping port_mappings = 7;  // Port forwards from host to VM
 }
 
 message VmMetrics {

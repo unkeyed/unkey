@@ -82,30 +82,24 @@ clean-all: ## Completely remove SPIRE (data, configs, users)
 
 .PHONY: create-join-token
 create-join-token: ## Create join token for agent
-	@echo "Creating join token for trust domain: $(TRUST_DOMAIN)..."
 	@sudo $(SPIRE_INSTALL_DIR)/bin/spire-server token generate \
 		-socketPath /var/lib/spire/server/server.sock \
 		-spiffeID spiffe://$(TRUST_DOMAIN)/agent/node1
 
 .PHONY: create-users
 create-users: ## Create SPIRE directories (users no longer needed - runs as root)
-	@echo "SPIRE runs as root - no user creation needed"
+	@true
 
 .PHONY: deregister-services
 deregister-services: ## Deregister all Unkey services from SPIRE
-	@echo "Deregistering services from SPIRE..."
 	@TRUST_DOMAIN=$(TRUST_DOMAIN) ./scripts/deregister-services.sh
 
 .PHONY: download-spire
 download-spire: ## Download SPIRE binaries
-	@echo "Downloading SPIRE $(SPIRE_VERSION)..."
 	@if [ ! -f /tmp/spire-install/spire-$(SPIRE_VERSION)/bin/spire-agent ]; then \
 		rm -rf /tmp/spire-install/spire-$(SPIRE_VERSION); \
 		mkdir -p /tmp/spire-install; \
 		curl -sL $(SPIRE_URL) | tar xz -C /tmp/spire-install; \
-		echo "SPIRE downloaded successfully"; \
-	else \
-		echo "SPIRE $(SPIRE_VERSION) already downloaded"; \
 	fi
 
 .PHONY: help
@@ -121,41 +115,35 @@ help: ## Show this help message
 
 .PHONY: install
 install: install-server install-agent ## Install both SPIRE server and agent
+	@echo "Next steps: 'make service-start-server', then 'make register-agent', then 'make register-services'"
 
 .PHONY: install-agent
 install-agent: download-spire create-users setup-directories ## Install SPIRE agent
-	@echo "Installing SPIRE agent..."
 	@sudo systemctl stop spire-agent 2>/dev/null || true
 	@sudo rm -f $(SPIRE_INSTALL_DIR)/bin/spire-agent
 	@sudo cp contrib/systemd/spire-agent.service /etc/systemd/system/spire-agent.service
 	@sudo cp /tmp/spire-install/spire-$(SPIRE_VERSION)/bin/spire-agent $(SPIRE_INSTALL_DIR)/bin/
 	@sudo chmod +x $(SPIRE_INSTALL_DIR)/bin/spire-agent
-	@echo "Installing agent configuration for environment: $(SPIRE_ENVIRONMENT)..."
-	@echo "Trust domain: $(TRUST_DOMAIN)"
 	@sudo cp environments/$(SPIRE_ENVIRONMENT)/agent.conf $(SPIRE_CONFIG_DIR)/agent/agent.conf
 	@sudo chmod 700 $(SPIRE_DATA_DIR)/agent/keys
-	@echo "Installing systemd service..."
 	@sudo cp contrib/systemd/spire-agent.service /etc/systemd/system/
 	@sudo systemctl daemon-reload
-	@sudo systemctl enable spire-agent
-	@echo "SPIRE agent installed. Bootstrap bundle required before starting."
+	@sudo systemctl enable spire-agent >/dev/null 2>&1
+	@echo "✓ SPIRE agent installed ($(SPIRE_ENVIRONMENT): $(TRUST_DOMAIN))" 
+	@echo "Next: Start server with 'make service-start-server', then 'make register-agent'"
 
 .PHONY: install-server
 install-server: download-spire create-users setup-directories ## Install SPIRE server
-	@echo "Installing SPIRE server..."
 	@sudo systemctl stop spire-server 2>/dev/null || true
 	@sudo rm -f $(SPIRE_INSTALL_DIR)/bin/spire-server
 	@sudo cp /tmp/spire-install/spire-$(SPIRE_VERSION)/bin/spire-server $(SPIRE_INSTALL_DIR)/bin/
 	@sudo chmod +x $(SPIRE_INSTALL_DIR)/bin/spire-server
 	@# AIDEV-NOTE: spire-server binary includes all CLI functionality in v1.12.2
-	@echo "Installing server configuration for environment: $(SPIRE_ENVIRONMENT)..."
-	@echo "Trust domain: $(TRUST_DOMAIN)"
 	@sudo cp environments/$(SPIRE_ENVIRONMENT)/server.conf $(SPIRE_CONFIG_DIR)/server/server.conf
-	@echo "Installing systemd service..."
 	@sudo cp contrib/systemd/spire-server.service /etc/systemd/system/
 	@sudo systemctl daemon-reload
-	@sudo systemctl enable spire-server
-	@echo "SPIRE server installed. Run 'make service-start-server' to start."
+	@sudo systemctl enable spire-server >/dev/null 2>&1
+	@echo "✓ SPIRE server installed ($(SPIRE_ENVIRONMENT): $(TRUST_DOMAIN))"
 
 .PHONY: list-entries
 list-entries: ## List all registered entries
@@ -164,52 +152,49 @@ list-entries: ## List all registered entries
 
 .PHONY: register-agent
 register-agent: ## Register agent with join token (one-time setup)
-	@echo "Registering agent..."
 	@./scripts/register-agent.sh
 
 .PHONY: register-services
 register-services: ## Register all Unkey services with SPIRE
-	@echo "Registering services with SPIRE..."
 	@TRUST_DOMAIN=$(TRUST_DOMAIN) ./scripts/register-services.sh
 
 .PHONY: service-logs
 service-logs: ## Follow logs for both services
-	@echo "Following logs for both services (Ctrl+C to stop)..."
-	sudo journalctl -u spire-server -u spire-agent -f
+	@sudo journalctl -u spire-server -u spire-agent -f
 
 .PHONY: service-logs-agent
 service-logs-agent: ## Follow SPIRE agent logs
-	sudo journalctl -u spire-agent -f
+	@sudo journalctl -u spire-agent -f
 
 .PHONY: service-logs-server
 service-logs-server: ## Follow SPIRE server logs
-	sudo journalctl -u spire-server -f
+	@sudo journalctl -u spire-server -f
 
 .PHONY: service-restart
 service-restart: service-restart-server service-restart-agent ## Restart both
 
 .PHONY: service-restart-agent
 service-restart-agent: ## Restart SPIRE agent
-	@echo "Restarting SPIRE agent..."
-	sudo systemctl restart spire-agent
+	@sudo systemctl restart spire-agent
+	@echo "✓ SPIRE agent restarted"
 
 .PHONY: service-restart-server
 service-restart-server: ## Restart SPIRE server
-	@echo "Restarting SPIRE server..."
-	sudo systemctl restart spire-server
+	@sudo systemctl restart spire-server
+	@echo "✓ SPIRE server restarted"
 
 .PHONY: service-start
 service-start: service-start-server service-start-agent ## Start both server and agent
 
 .PHONY: service-start-agent
 service-start-agent: ## Start SPIRE agent
-	@echo "Starting SPIRE agent..."
-	sudo systemctl start spire-agent
+	@sudo systemctl start spire-agent
+	@echo "✓ SPIRE agent started"
 
 .PHONY: service-start-server
 service-start-server: ## Start SPIRE server
-	@echo "Starting SPIRE server..."
-	sudo systemctl start spire-server
+	@sudo systemctl start spire-server
+	@echo "✓ SPIRE server started"
 
 .PHONY: service-status
 service-status: ## Check status of both services
@@ -221,33 +206,31 @@ service-status: ## Check status of both services
 
 .PHONY: service-status-agent
 service-status-agent: ## Check SPIRE agent status
-	sudo systemctl status spire-agent
+	@sudo systemctl status spire-agent
 
 .PHONY: service-status-server
 service-status-server: ## Check SPIRE server status
-	sudo systemctl status spire-server
+	@sudo systemctl status spire-server
 
 .PHONY: service-stop
 service-stop: service-stop-agent service-stop-server ## Stop both agent and server
 
 .PHONY: service-stop-agent
 service-stop-agent: ## Stop SPIRE agent
-	@echo "Stopping SPIRE agent..."
-	sudo systemctl stop spire-agent
+	@sudo systemctl stop spire-agent
+	@echo "✓ SPIRE agent stopped"
 
 .PHONY: service-stop-server
 service-stop-server: ## Stop SPIRE server
-	@echo "Stopping SPIRE server..."
-	sudo systemctl stop spire-server
+	@sudo systemctl stop spire-server
+	@echo "✓ SPIRE server stopped"
 
 .PHONY: setup-agent
 setup-agent: ## Setup agent with join token
-	@echo "Setting up agent with join token..."
-	@./scripts/setup-agent.sh
+	@./scripts/register-agent.sh
 
 .PHONY: setup-directories
 setup-directories: ## Create SPIRE directories
-	@echo "Setting up SPIRE directories..."
 	@sudo mkdir -p $(SPIRE_INSTALL_DIR)/bin
 	@sudo mkdir -p $(SPIRE_INSTALL_DIR)/scripts
 	@sudo mkdir -p $(SPIRE_CONFIG_DIR)/server
@@ -261,26 +244,18 @@ uninstall: uninstall-server uninstall-agent ## Uninstall both SPIRE server and a
 
 .PHONY: uninstall-agent
 uninstall-agent: ## Uninstall SPIRE agent
-	@echo "Uninstalling SPIRE agent..."
-	@sudo systemctl stop spire-agent || true
-	@sudo systemctl disable spire-agent || true
+	@sudo systemctl stop spire-agent 2>/dev/null || true
+	@sudo systemctl disable spire-agent 2>/dev/null || true
 	@sudo rm -f /etc/systemd/system/spire-agent.service
 	@sudo rm -f $(SPIRE_INSTALL_DIR)/bin/spire-agent
 	@sudo systemctl daemon-reload
-	@echo "SPIRE agent uninstalled."
-	@echo "Data preserved in $(SPIRE_DATA_DIR)/agent. To fully remove:"
-	@echo "  sudo userdel spire-agent"
-	@echo "  sudo rm -rf $(SPIRE_DATA_DIR)/agent $(SPIRE_CONFIG_DIR)/agent"
+	@echo "✓ SPIRE agent uninstalled (data preserved)"
 
 .PHONY: uninstall-server
 uninstall-server: ## Uninstall SPIRE server
-	@echo "Uninstalling SPIRE server..."
-	@sudo systemctl stop spire-server || true
-	@sudo systemctl disable spire-server || true
+	@sudo systemctl stop spire-server 2>/dev/null || true
+	@sudo systemctl disable spire-server 2>/dev/null || true
 	@sudo rm -f /etc/systemd/system/spire-server.service
 	@sudo rm -f $(SPIRE_INSTALL_DIR)/bin/spire-server
 	@sudo systemctl daemon-reload
-	@echo "SPIRE server uninstalled."
-	@echo "Data preserved in $(SPIRE_DATA_DIR)/server. To fully remove:"
-	@echo "  sudo userdel spire-server"
-	@echo "  sudo rm -rf $(SPIRE_DATA_DIR)/server $(SPIRE_CONFIG_DIR)/server"
+	@echo "✓ SPIRE server uninstalled (data preserved)"

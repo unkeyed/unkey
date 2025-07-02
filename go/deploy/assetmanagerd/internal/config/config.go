@@ -61,12 +61,12 @@ type Config struct {
 
 	// Builderd integration configuration
 	// AIDEV-NOTE: When enabled, assetmanagerd will automatically trigger builderd to create missing assets
-	BuilderdEnabled         bool          `env:"UNKEY_ASSETMANAGERD_BUILDERD_ENABLED" envDefault:"true"`
-	BuilderdEndpoint        string        `env:"UNKEY_ASSETMANAGERD_BUILDERD_ENDPOINT" envDefault:"https://localhost:8082"`
-	BuilderdTimeout         time.Duration `env:"UNKEY_ASSETMANAGERD_BUILDERD_TIMEOUT" envDefault:"30m"`
-	BuilderdAutoRegister    bool          `env:"UNKEY_ASSETMANAGERD_BUILDERD_AUTO_REGISTER" envDefault:"true"`
-	BuilderdMaxRetries      int           `env:"UNKEY_ASSETMANAGERD_BUILDERD_MAX_RETRIES" envDefault:"3"`
-	BuilderdRetryDelay      time.Duration `env:"UNKEY_ASSETMANAGERD_BUILDERD_RETRY_DELAY" envDefault:"5s"`
+	BuilderdEnabled      bool          `env:"UNKEY_ASSETMANAGERD_BUILDERD_ENABLED" envDefault:"true"`
+	BuilderdEndpoint     string        `env:"UNKEY_ASSETMANAGERD_BUILDERD_ENDPOINT" envDefault:"https://localhost:8082"`
+	BuilderdTimeout      time.Duration `env:"UNKEY_ASSETMANAGERD_BUILDERD_TIMEOUT" envDefault:"30m"`
+	BuilderdAutoRegister bool          `env:"UNKEY_ASSETMANAGERD_BUILDERD_AUTO_REGISTER" envDefault:"true"`
+	BuilderdMaxRetries   int           `env:"UNKEY_ASSETMANAGERD_BUILDERD_MAX_RETRIES" envDefault:"3"`
+	BuilderdRetryDelay   time.Duration `env:"UNKEY_ASSETMANAGERD_BUILDERD_RETRY_DELAY" envDefault:"5s"`
 }
 
 // Load loads configuration from environment variables

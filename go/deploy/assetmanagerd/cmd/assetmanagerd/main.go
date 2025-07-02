@@ -30,7 +30,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
-var version = "0.3.0"
+var version = ""
 
 // getVersion returns the version, with fallback logic for development builds
 func getVersion() string {
@@ -170,14 +170,14 @@ func main() {
 			RetryDelay:  cfg.BuilderdRetryDelay,
 			TLSProvider: tlsProvider,
 		}
-		
+
 		var err error
 		builderdClient, err = builderd.NewClient(builderdCfg, logger)
 		if err != nil {
 			logger.Error("failed to create builderd client", slog.String("error", err.Error()))
 			os.Exit(1)
 		}
-		
+
 		logger.Info("builderd integration enabled",
 			slog.String("endpoint", cfg.BuilderdEndpoint),
 			slog.Bool("auto_register", cfg.BuilderdAutoRegister),
@@ -321,14 +321,14 @@ func main() {
 // seedKernelAssets automatically registers default kernel assets on startup
 func seedKernelAssets(assetRegistry *registry.Registry, logger *slog.Logger) error {
 	kernelPath := "/opt/vm-assets/vmlinux"
-	
+
 	// Check if kernel file exists
 	if _, err := os.Stat(kernelPath); os.IsNotExist(err) {
 		logger.Info("kernel file not found, skipping kernel asset seeding",
 			slog.String("path", kernelPath))
 		return nil
 	}
-	
+
 	// Check if kernel asset already exists
 	filters := registry.ListFilters{
 		Type: assetv1.AssetType_ASSET_TYPE_KERNEL,
@@ -337,53 +337,53 @@ func seedKernelAssets(assetRegistry *registry.Registry, logger *slog.Logger) err
 	if err != nil {
 		return fmt.Errorf("failed to check existing kernel assets: %w", err)
 	}
-	
+
 	if len(existingAssets) > 0 {
 		logger.Info("kernel assets already exist, skipping seeding",
 			slog.Int("existing_count", len(existingAssets)))
 		return nil
 	}
-	
+
 	// Calculate file info
 	fileInfo, err := os.Stat(kernelPath)
 	if err != nil {
 		return fmt.Errorf("failed to stat kernel file: %w", err)
 	}
-	
+
 	checksum, err := calculateChecksum(kernelPath)
 	if err != nil {
 		return fmt.Errorf("failed to calculate kernel checksum: %w", err)
 	}
-	
+
 	// Create kernel asset
 	asset := &assetv1.Asset{
-		Name:         "vmlinux",
-		Type:         assetv1.AssetType_ASSET_TYPE_KERNEL,
-		Backend:      assetv1.StorageBackend_STORAGE_BACKEND_LOCAL,
-		Location:     kernelPath,
-		SizeBytes:    fileInfo.Size(),
-		Checksum:     checksum,
-		Status:       assetv1.AssetStatus_ASSET_STATUS_AVAILABLE,
-		Labels:       map[string]string{
+		Name:      "vmlinux",
+		Type:      assetv1.AssetType_ASSET_TYPE_KERNEL,
+		Backend:   assetv1.StorageBackend_STORAGE_BACKEND_LOCAL,
+		Location:  kernelPath,
+		SizeBytes: fileInfo.Size(),
+		Checksum:  checksum,
+		Status:    assetv1.AssetStatus_ASSET_STATUS_AVAILABLE,
+		Labels: map[string]string{
 			"version": "5.10",
 			"arch":    "x86_64",
 			"default": "true",
 		},
-		CreatedBy:    "assetmanagerd-startup",
+		CreatedBy: "assetmanagerd-startup",
 	}
-	
+
 	// Register the asset
 	err = assetRegistry.CreateAsset(asset)
 	if err != nil {
 		return fmt.Errorf("failed to register kernel asset: %w", err)
 	}
-	
+
 	logger.Info("seeded default kernel asset",
 		slog.String("asset_id", asset.Id),
 		slog.String("path", kernelPath),
 		slog.Int64("size_bytes", fileInfo.Size()),
 		slog.String("checksum", checksum))
-	
+
 	return nil
 }
 
@@ -394,11 +394,11 @@ func calculateChecksum(path string) (string, error) {
 		return "", err
 	}
 	defer file.Close()
-	
+
 	hash := sha256.New()
 	if _, err := io.Copy(hash, file); err != nil {
 		return "", err
 	}
-	
+
 	return fmt.Sprintf("%x", hash.Sum(nil)), nil
 }

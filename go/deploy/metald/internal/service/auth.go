@@ -61,7 +61,7 @@ func AuthenticationInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc
 				slog.String("user_id", customerCtx.CustomerID),
 				slog.String("requested_tenant", requestedTenantID),
 			)
-			
+
 			if requestedTenantID != "" {
 				// Validate that authenticated user can access the requested tenant
 				if err := validateTenantAccess(ctx, customerCtx, requestedTenantID); err != nil {
@@ -173,31 +173,31 @@ func ExtractCustomerID(ctx context.Context) (string, error) {
 // validateTenantAccess validates that the authenticated user can access the requested tenant
 func validateTenantAccess(ctx context.Context, customerCtx *CustomerContext, requestedTenantID string) error {
 	// AIDEV-BUSINESS_RULE: Tenant access validation for multi-tenant security
-	
+
 	// In development mode, allow any authenticated user to access any tenant
 	// TODO: In production, implement proper tenant-user relationship checks
 	// This should query a tenant membership service or database
-	
+
 	// For now, basic validation that tenant ID is not empty
 	if requestedTenantID == "" {
 		return fmt.Errorf("tenant ID cannot be empty")
 	}
-	
+
 	// Development: Simple access control for demonstration
 	// Block access to "restricted-tenant" unless user is "admin-user"
 	if requestedTenantID == "restricted-tenant" && customerCtx.CustomerID != "admin-user" {
 		return fmt.Errorf("access denied: user %s cannot access restricted tenant", customerCtx.CustomerID)
 	}
-	
+
 	// In production, this would check:
-	// 1. User has permission to access the tenant  
+	// 1. User has permission to access the tenant
 	// 2. User's role within the tenant (admin, user, etc.)
 	// 3. Specific resource permissions if needed
-	
+
 	// Example future implementation:
 	// tenantService := GetTenantServiceFromContext(ctx)
 	// return tenantService.ValidateUserAccess(customerCtx.CustomerID, requestedTenantID)
-	
+
 	return nil // Allow all other access in development
 }
 

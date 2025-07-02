@@ -37,7 +37,7 @@ import (
 )
 
 // version is set at build time via ldflags
-var version = "0.3.0" // AIDEV-NOTE: Bumped minor version for automatic asset building feature
+var version = "" // AIDEV-NOTE: Version injected at build time via Makefile LDFLAGS
 
 // AIDEV-NOTE: Enhanced version management with debug.ReadBuildInfo fallback
 // Handles production builds (ldflags), development builds (git commit), and module builds
@@ -209,7 +209,7 @@ func main() {
 	case types.BackendTypeFirecracker:
 		// Use SDK client v4 with integrated jailer - let SDK handle complete lifecycle
 		// AIDEV-NOTE: SDK manages firecracker process, integrated jailer, and networking
-		
+
 		// Convert main config to network config
 		networkConfig := &network.Config{
 			BridgeName:      cfg.Network.BridgeName,
@@ -222,7 +222,7 @@ func main() {
 			PortRangeMin:    32768, // Default
 			PortRangeMax:    65535, // Default
 		}
-		
+
 		networkManager, err := network.NewManager(logger, networkConfig, &cfg.Network)
 		if err != nil {
 			logger.Error("failed to create network manager",
@@ -356,11 +356,11 @@ func main() {
 	// Initialize VM reconciler to fix stale VM state issues
 	// AIDEV-NOTE: Critical fix for state inconsistency where database shows VMs but no processes exist
 	vmReconciler := reconciler.NewVMReconciler(logger, backend, vmRepo, 5*time.Minute)
-	
+
 	// Start VM reconciler in background
 	reconcilerCtx, cancelReconciler := context.WithCancel(ctx)
 	defer cancelReconciler()
-	
+
 	go vmReconciler.Start(reconcilerCtx)
 	logger.Info("VM reconciler started",
 		slog.Duration("interval", 5*time.Minute),
@@ -393,10 +393,10 @@ func main() {
 
 	// Get default interceptors (tenant auth, metrics, logging)
 	sharedInterceptors := interceptors.NewDefaultInterceptors("metald", interceptorOpts...)
-	
+
 	// Add authentication interceptor first (before tenant auth)
 	interceptorList = append(interceptorList, service.AuthenticationInterceptor(logger))
-	
+
 	// Add shared interceptors (convert UnaryInterceptorFunc to Interceptor)
 	for _, interceptor := range sharedInterceptors {
 		interceptorList = append(interceptorList, connect.Interceptor(interceptor))
@@ -533,8 +533,6 @@ func main() {
 
 	logger.Info("server shutdown complete")
 }
-
-
 
 // printUsage displays help information
 func printUsage() {

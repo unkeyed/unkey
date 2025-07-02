@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vishvananda/netlink"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/config"
+	"github.com/vishvananda/netlink"
 )
 
 // HostProtection monitors and protects the host's primary network interface
@@ -98,7 +98,7 @@ func (p *HostProtection) Stop(ctx context.Context) error {
 func (p *HostProtection) detectPrimaryInterface() error {
 	if p.config.PrimaryInterface != "" {
 		p.primaryIface = p.config.PrimaryInterface
-		p.logger.Info("using configured primary interface", 
+		p.logger.Info("using configured primary interface",
 			slog.String("interface", p.primaryIface))
 		return nil
 	}

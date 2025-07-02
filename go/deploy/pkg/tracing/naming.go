@@ -20,6 +20,7 @@ import "strings"
 // string if no slash is found.
 //
 // Example:
+//
 //	ExtractMethodName("/metald.v1.VmService/CreateVm") // returns "CreateVm"
 //	ExtractMethodName("CreateVm")                      // returns "CreateVm"
 func ExtractMethodName(procedure string) string {
@@ -35,6 +36,7 @@ func ExtractMethodName(procedure string) string {
 // if the procedure path has fewer than two segments.
 //
 // Example:
+//
 //	ExtractServiceName("/metald.v1.VmService/CreateVm") // returns "metald.v1.VmService"
 //	ExtractServiceName("/CreateVm")                    // returns ""
 //	ExtractServiceName("invalid")                      // returns ""
@@ -51,6 +53,7 @@ func ExtractServiceName(procedure string) string {
 // across all Unkey services for distributed tracing.
 //
 // Example:
+//
 //	FormatSpanName("metald", "CreateVm")     // returns "metald.CreateVm"
 //	FormatSpanName("billaged", "GetUsage")  // returns "billaged.GetUsage"
 func FormatSpanName(serviceName, methodName string) string {

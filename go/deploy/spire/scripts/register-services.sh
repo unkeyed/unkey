@@ -74,9 +74,12 @@ register_service "billaged" "/usr/local/bin/billaged" "billaged"
 register_service "builderd" "/usr/local/bin/builderd" "root"
 register_service "assetmanagerd" "/usr/local/bin/assetmanagerd" "root"
 
-# Register the metald client for testing
-# AIDEV-NOTE: The example client runs as the current user
+# Register the CLI tools for testing
+# AIDEV-NOTE: The CLI tools run as the current user
 register_service "metald-cli" "/usr/local/bin/metald-cli" "$USER"
+register_service "assetmanagerd-cli" "/usr/local/bin/assetmanagerd-cli" "$USER"
+register_service "billaged-cli" "/usr/local/bin/billaged-cli" "$USER"
+register_service "builderd-cli" "/usr/local/bin/builderd-cli" "$USER"
 
 # List all registered entries
 echo -e "\n${YELLOW}=== Registered Services ===${NC}"

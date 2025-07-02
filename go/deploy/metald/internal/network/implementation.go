@@ -13,21 +13,21 @@ import (
 	"sync"
 	"time"
 
+	"github.com/unkeyed/unkey/go/deploy/metald/internal/config"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
-	"github.com/unkeyed/unkey/go/deploy/metald/internal/config"
 )
 
 // Config holds network configuration
 type Config struct {
 	BridgeName      string // Default: "br-vms"
-	BridgeIP        string // Default: "10.100.0.1/16"
-	VMSubnet        string // Default: "10.100.0.0/16"
+	BridgeIP        string // Default: "172.31.0.1/19"
+	VMSubnet        string // Default: "172.31.0.0/19"
 	EnableIPv6      bool
 	DNSServers      []string // Default: ["8.8.8.8", "8.8.4.4"]
 	EnableRateLimit bool
 	RateLimitMbps   int // Per VM rate limit in Mbps
-	
+
 	// Port allocation configuration
 	PortRangeMin int // Default: 32768
 	PortRangeMax int // Default: 65535
@@ -37,11 +37,11 @@ type Config struct {
 func DefaultConfig() *Config {
 	return &Config{ //nolint:exhaustruct // EnableIPv6 field uses zero value (false) which is appropriate for default config
 		BridgeName:      "br-vms",
-		BridgeIP:        "10.100.0.1/16",
-		VMSubnet:        "10.100.0.0/16",
+		BridgeIP:        "172.31.0.1/19",
+		VMSubnet:        "172.31.0.0/19",
 		DNSServers:      []string{"8.8.8.8", "8.8.4.4"},
 		EnableRateLimit: true,
-		RateLimitMbps:   100, // 100 Mbps default
+		RateLimitMbps:   100,   // 100 Mbps default
 		PortRangeMin:    32768, // Ephemeral port range start
 		PortRangeMax:    65535, // Ephemeral port range end
 	}
@@ -383,7 +383,7 @@ func (m *Manager) CreateVMNetwork(ctx context.Context, vmID string) (*VMNetwork,
 // CreateVMNetworkWithNamespace sets up networking for a VM with a specific namespace name
 func (m *Manager) CreateVMNetworkWithNamespace(ctx context.Context, vmID, nsName string) (*VMNetwork, error) {
 	startTime := time.Now()
-	
+
 	m.logger.InfoContext(ctx, "creating VM network",
 		slog.String("vm_id", vmID),
 		slog.String("namespace", nsName),
@@ -857,8 +857,50 @@ func (m *Manager) configureNamespace(ns netns.NsHandle, vethName string, ip net.
 			Mask: net.CIDRMask(16, 32), // Use /16 to match the bridge subnet
 		},
 	}
-	if err := netlink.AddrAdd(vethLink, addr); err != nil {
-		return fmt.Errorf("failed to add IP to veth: %w", err)
+
+	// AIDEV-NOTE: Retry adding IP to handle race conditions where veth might not be immediately ready
+	var addErr error
+	for i := 0; i < 5; i++ {
+		addErr = netlink.AddrAdd(vethLink, addr)
+		if addErr == nil {
+			break
+		}
+
+		// Check if it's a "no such device" error specifically
+		if strings.Contains(addErr.Error(), "no such device") {
+			m.logger.Warn("veth device not ready for IP assignment, retrying",
+				slog.String("veth", vethName),
+				slog.Int("attempt", i+1),
+				slog.String("error", addErr.Error()),
+			)
+			time.Sleep(50 * time.Millisecond)
+
+			// Re-get the veth link in the current namespace context (we're already in the target namespace)
+			vethLink, err = netlink.LinkByName(vethName)
+			if err != nil {
+				// Log available interfaces for debugging
+				if links, listErr := netlink.LinkList(); listErr == nil {
+					var linkNames []string
+					for _, link := range links {
+						linkNames = append(linkNames, link.Attrs().Name)
+					}
+					m.logger.Error("available interfaces in namespace during retry",
+						slog.String("veth", vethName),
+						slog.Int("attempt", i+1),
+						slog.Any("interfaces", linkNames),
+					)
+				}
+				return fmt.Errorf("failed to re-get veth link on retry %d: %w", i+1, err)
+			}
+			continue
+		}
+
+		// For other errors, don't retry
+		break
+	}
+
+	if addErr != nil {
+		return fmt.Errorf("failed to add IP to veth after retries: %w", addErr)
 	}
 
 	// Enable proxy ARP on veth so it responds to ARP requests for the VM
@@ -890,6 +932,7 @@ func (m *Manager) configureNamespace(ns netns.NsHandle, vethName string, ip net.
 }
 
 // applyRateLimit applies traffic shaping to the interface
+//
 //nolint:unused // Reserved for future rate limiting implementation
 func (m *Manager) applyRateLimit(link netlink.Link, mbps int) {
 	// Use tc (traffic control) to limit bandwidth
@@ -932,7 +975,7 @@ func (m *Manager) applyRateLimit(link netlink.Link, mbps int) {
 // DeleteVMNetwork removes networking for a VM
 func (m *Manager) DeleteVMNetwork(ctx context.Context, vmID string) error {
 	startTime := time.Now()
-	
+
 	m.logger.InfoContext(ctx, "deleting VM network",
 		slog.String("vm_id", vmID),
 	)
@@ -971,7 +1014,7 @@ func (m *Manager) DeleteVMNetwork(ctx context.Context, vmID string) error {
 	// TAP devices are created in host namespace for Firecracker access and must be explicitly cleaned up
 	if link, err := netlink.LinkByName(deviceNames.TAP); err == nil {
 		if delErr := netlink.LinkDel(link); delErr != nil {
-			m.logger.WarnContext(ctx, "Failed to delete TAP device", 
+			m.logger.WarnContext(ctx, "Failed to delete TAP device",
 				"device", deviceNames.TAP, "error", delErr)
 		} else {
 			m.logger.InfoContext(ctx, "Deleted TAP device", "device", deviceNames.TAP)
@@ -980,7 +1023,7 @@ func (m *Manager) DeleteVMNetwork(ctx context.Context, vmID string) error {
 
 	// Verify cleanup completed successfully
 	if err := m.verifyNetworkCleanup(ctx, vmID, deviceNames); err != nil {
-		m.logger.WarnContext(ctx, "Network cleanup verification failed", 
+		m.logger.WarnContext(ctx, "Network cleanup verification failed",
 			"vm_id", vmID, "error", err)
 	}
 
@@ -1013,7 +1056,7 @@ func (m *Manager) verifyNetworkCleanup(ctx context.Context, vmID string, deviceN
 		remainingResources = append(remainingResources, fmt.Sprintf("TAP device: %s", deviceNames.TAP))
 	}
 
-	// Check if veth host device still exists  
+	// Check if veth host device still exists
 	if _, err := netlink.LinkByName(deviceNames.VethHost); err == nil {
 		remainingResources = append(remainingResources, fmt.Sprintf("veth device: %s", deviceNames.VethHost))
 	}
@@ -1262,6 +1305,7 @@ func (m *Manager) GetNetworkStats(vmID string) (*NetworkStats, error) {
 }
 
 // isValidInterfaceName validates that an interface name is safe to use in commands
+//
 //nolint:unused // Used by applyRateLimit function which is reserved for future implementation
 func isValidInterfaceName(name string) bool {
 	// Linux interface names must be 1-15 characters
@@ -1342,31 +1386,31 @@ func (m *Manager) logNetworkState(context string) {
 func (m *Manager) AllocatePortsForVM(vmID string, exposedPorts []string) ([]PortMapping, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	var mappings []PortMapping
-	
+
 	for _, portSpec := range exposedPorts {
 		// Parse port format: can be "80", "80/tcp", "80/udp"
 		parts := strings.Split(portSpec, "/")
 		if len(parts) == 0 {
 			continue
 		}
-		
+
 		var containerPort int
 		protocol := "tcp" // default
-		
+
 		if _, err := fmt.Sscanf(parts[0], "%d", &containerPort); err != nil {
-			m.logger.Warn("invalid port format", 
+			m.logger.Warn("invalid port format",
 				slog.String("port_spec", portSpec),
 				slog.String("error", err.Error()),
 			)
 			continue
 		}
-		
+
 		if len(parts) > 1 {
 			protocol = strings.ToLower(parts[1])
 		}
-		
+
 		// Allocate host port
 		hostPort, err := m.portAllocator.AllocatePort(vmID, containerPort, protocol)
 		if err != nil {
@@ -1374,7 +1418,7 @@ func (m *Manager) AllocatePortsForVM(vmID string, exposedPorts []string) ([]Port
 			m.releaseVMPortsLocked(vmID)
 			return nil, fmt.Errorf("failed to allocate port %s for VM %s: %w", portSpec, vmID, err)
 		}
-		
+
 		mapping := PortMapping{
 			ContainerPort: containerPort,
 			HostPort:      hostPort,
@@ -1382,7 +1426,7 @@ func (m *Manager) AllocatePortsForVM(vmID string, exposedPorts []string) ([]Port
 			VMID:          vmID,
 		}
 		mappings = append(mappings, mapping)
-		
+
 		m.logger.Info("allocated port mapping",
 			slog.String("vm_id", vmID),
 			slog.Int("container_port", containerPort),
@@ -1390,7 +1434,7 @@ func (m *Manager) AllocatePortsForVM(vmID string, exposedPorts []string) ([]Port
 			slog.String("protocol", protocol),
 		)
 	}
-	
+
 	return mappings, nil
 }
 
@@ -1398,14 +1442,14 @@ func (m *Manager) AllocatePortsForVM(vmID string, exposedPorts []string) ([]Port
 func (m *Manager) ReleaseVMPorts(vmID string) []PortMapping {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	return m.releaseVMPortsLocked(vmID)
 }
 
 // releaseVMPortsLocked releases VM ports with lock already held
 func (m *Manager) releaseVMPortsLocked(vmID string) []PortMapping {
 	mappings := m.portAllocator.ReleaseVMPorts(vmID)
-	
+
 	for _, mapping := range mappings {
 		m.logger.Info("released port mapping",
 			slog.String("vm_id", vmID),
@@ -1414,7 +1458,7 @@ func (m *Manager) releaseVMPortsLocked(vmID string) []PortMapping {
 			slog.String("protocol", mapping.Protocol),
 		)
 	}
-	
+
 	return mappings
 }
 
@@ -1422,7 +1466,7 @@ func (m *Manager) releaseVMPortsLocked(vmID string) []PortMapping {
 func (m *Manager) GetVMPorts(vmID string) []PortMapping {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	return m.portAllocator.GetVMPorts(vmID)
 }
 
@@ -1430,7 +1474,7 @@ func (m *Manager) GetVMPorts(vmID string) []PortMapping {
 func (m *Manager) GetPortVM(hostPort int) (string, bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	return m.portAllocator.GetPortVM(hostPort)
 }
 
@@ -1438,7 +1482,7 @@ func (m *Manager) GetPortVM(hostPort int) (string, bool) {
 func (m *Manager) IsPortAllocated(hostPort int) bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	return m.portAllocator.IsPortAllocated(hostPort)
 }
 
@@ -1446,7 +1490,7 @@ func (m *Manager) IsPortAllocated(hostPort int) bool {
 func (m *Manager) GetPortAllocationStats() (allocated, available int) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	return m.portAllocator.GetAllocatedCount(), m.portAllocator.GetAvailableCount()
 }
 
@@ -1540,14 +1584,14 @@ func (m *Manager) isNetworkIDActive(networkID string) bool {
 
 // CleanupReport contains the results of orphaned resource cleanup
 type CleanupReport struct {
-	DryRun         bool
-	OrphanedTAPs   []string
-	OrphanedVeths  []string
-	OrphanedNS     []string
-	CleanedTAPs    []string
-	CleanedVeths   []string
-	CleanedNS      []string
-	Errors         []string
+	DryRun        bool
+	OrphanedTAPs  []string
+	OrphanedVeths []string
+	OrphanedNS    []string
+	CleanedTAPs   []string
+	CleanedVeths  []string
+	CleanedNS     []string
+	Errors        []string
 }
 
 // GetBridgeCapacityStatus returns current bridge capacity and utilization

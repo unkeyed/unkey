@@ -3,6 +3,7 @@
 # Variables
 BINARY_NAME := metald-cli
 BUILD_DIR := build
+VERSION ?= 0.5.2
 
 # Default target
 .DEFAULT_GOAL := help

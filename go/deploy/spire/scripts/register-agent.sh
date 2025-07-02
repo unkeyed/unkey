@@ -1,11 +1,13 @@
 #!/bin/bash
-# AIDEV-NOTE: Automated agent registration with systemd integration
-# This script handles the complete agent registration workflow
+# AIDEV-NOTE: Generate long-lived join token for auto-joining agents
+# For development: creates a long-lived token that enables auto-joining on startup
+# For production: creates shorter-lived tokens with node attestation
 
 set -euo pipefail
 
 # Get trust domain from environment or use default
-TRUST_DOMAIN=${TRUST_DOMAIN:-development.unkey.app}
+TRUST_DOMAIN=${UNKEY_SPIRE_TRUST_DOMAIN:-development.unkey.app}
+ENVIRONMENT=${SPIRE_ENVIRONMENT:-development}
 SPIRE_DIR="/opt/spire"
 AGENT_SERVICE_DIR="/etc/systemd/system/spire-agent.service.d"
 
@@ -15,15 +17,16 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}=== SPIRE Agent Registration ===${NC}"
+echo -e "${GREEN}=== SPIRE Agent Auto-Join Setup ===${NC}"
+echo -e "Environment: ${YELLOW}${ENVIRONMENT}${NC}"
 echo -e "Trust Domain: ${YELLOW}${TRUST_DOMAIN}${NC}"
 
 # Check if server is running
-#if ! systemctl is-active --quiet spire-server; then
-#    echo -e "${RED}Error: SPIRE server is not running${NC}"
-#    echo "Start it with: sudo systemctl start spire-server"
-#    exit 1
-#fi
+if ! systemctl is-active --quiet spire-server; then
+    echo -e "${RED}Error: SPIRE server is not running${NC}"
+    echo "Start it with: sudo systemctl start spire-server"
+    exit 1
+fi
 
 # Wait for server socket
 echo "Waiting for SPIRE server socket..."
@@ -41,26 +44,34 @@ if [ ! -S /var/lib/spire/server/server.sock ]; then
     exit 1
 fi
 
-# Check if agent is already registered
-if systemctl is-active --quiet spire-agent; then
-    echo -e "${YELLOW}Warning: Agent appears to be already running${NC}"
-    echo "Checking registration status..."
-
-    # Try to get agent SVID to verify registration
-    if sudo ${SPIRE_DIR}/bin/spire-agent api fetch x509 -socketPath /var/lib/spire/agent/agent.sock 2>/dev/null | grep -q "SPIFFE ID"; then
-        echo -e "${GREEN}✓ Agent is already registered and running${NC}"
+# Check if auto-join is already configured
+if [ -f "$AGENT_SERVICE_DIR/auto-join.conf" ]; then
+    echo -e "${YELLOW}Auto-join already configured${NC}"
+    echo "Checking if agent is running..."
+    
+    if systemctl is-active --quiet spire-agent; then
+        echo -e "${GREEN}✓ Agent is running with auto-join${NC}"
         exit 0
     fi
-
-    echo "Agent is running but not properly registered. Stopping..."
-    sudo systemctl stop spire-agent
 fi
 
 # Generate join token
 echo "Generating join token..."
+
+# For development, create very long-lived token (1 year)
+# For production, shorter-lived tokens are recommended
+if [ "$ENVIRONMENT" = "development" ]; then
+    TTL="31536000"  # 1 year in seconds
+    echo -e "${YELLOW}Creating long-lived token for development (1 year)${NC}"
+else
+    TTL="3600"  # 1 hour in seconds
+    echo -e "${YELLOW}Creating token for ${ENVIRONMENT} (1 hour)${NC}"
+fi
+
 JOIN_TOKEN=$(sudo ${SPIRE_DIR}/bin/spire-server token generate \
     -socketPath /var/lib/spire/server/server.sock \
     -spiffeID spiffe://${TRUST_DOMAIN}/agent/node1 \
+    -ttl ${TTL} \
     | grep "Token:" | cut -d' ' -f2)
 
 if [ -z "$JOIN_TOKEN" ]; then
@@ -70,65 +81,63 @@ fi
 
 echo -e "${GREEN}Join token generated${NC}"
 
-# Create systemd drop-in for join token
-echo "Configuring agent with join token..."
+# Configure systemd for auto-join
+echo "Setting up auto-join configuration..."
 sudo mkdir -p "$AGENT_SERVICE_DIR"
-cat <<EOF | sudo tee "$AGENT_SERVICE_DIR/join-token.conf" > /dev/null
+
+# Create auto-join environment configuration
+cat <<EOF | sudo tee "$AGENT_SERVICE_DIR/auto-join.conf" > /dev/null
 [Service]
-Environment="SPIRE_AGENT_JOIN_TOKEN=${JOIN_TOKEN}"
+# AIDEV-NOTE: Auto-join configuration
+Environment="UNKEY_SPIRE_JOIN_TOKEN=${JOIN_TOKEN}"
+Environment="UNKEY_SPIRE_TRUST_DOMAIN=${TRUST_DOMAIN}"
 EOF
 
-# Update agent service to use join token on first start
-cat <<'EOF' | sudo tee "$AGENT_SERVICE_DIR/auto-register.conf" > /dev/null
-[Service]
-# AIDEV-NOTE: Auto-registration support
-# The join token is passed as a command line argument if the env var is set
-ExecStart=
-ExecStart=/bin/bash -c '\
-    if [ -n "${SPIRE_AGENT_JOIN_TOKEN}" ]; then \
-        exec /opt/spire/bin/spire-agent run -config /etc/spire/agent/agent.conf -joinToken "${SPIRE_AGENT_JOIN_TOKEN}"; \
-    else \
-        exec /opt/spire/bin/spire-agent run -config /etc/spire/agent/agent.conf; \
-    fi'
-EOF
-
-# Reload systemd
+# Reload systemd and start agent
 sudo systemctl daemon-reload
 
+# Enable auto-start
+sudo systemctl enable spire-agent
+
 # Start agent
-echo "Starting SPIRE agent..."
-sudo systemctl start spire-agent
+echo "Starting SPIRE agent with auto-join..."
+sudo systemctl restart spire-agent
 
 # Wait for agent to start
 echo "Waiting for agent to initialize..."
-for i in {1..10}; do
+for i in {1..15}; do
     if systemctl is-active --quiet spire-agent && \
        [ -S /var/lib/spire/agent/agent.sock ]; then
-        echo -e "${GREEN}✓ Agent started${NC}"
+        echo -e "${GREEN}✓ Agent started and socket ready${NC}"
         break
     fi
-    echo "Waiting... ($i/10)"
+    echo "Waiting... ($i/15)"
     sleep 2
 done
 
-# Verify registration
+# Verify agent is working
 if systemctl is-active --quiet spire-agent; then
-    echo -e "${GREEN}✓ SPIRE agent started successfully${NC}"
-
-    # Remove join token after successful registration
-    echo "Cleaning up join token..."
-    sudo rm -f "$AGENT_SERVICE_DIR/join-token.conf"
-    sudo systemctl daemon-reload
-
-    echo -e "${GREEN}✓ Agent registration complete!${NC}"
-
-    # Show agent info
+    echo -e "${GREEN}✓ SPIRE agent auto-join configured successfully${NC}"
+    
+    # Test agent health
     echo -e "\n${YELLOW}Agent Health Check:${NC}"
-    curl -sv http://localhost:9991/live && echo || echo "Health check endpoint not ready yet"
+    curl -sv http://localhost:9990/live && echo || echo "Health check endpoint not ready yet"
+    
+    # Show token expiry warning for non-development environments
+    if [ "$ENVIRONMENT" != "development" ]; then
+        echo -e "\n${YELLOW}⚠ Token expires in ${TTL}${NC}"
+        echo -e "For production, consider using node attestation instead"
+    fi
 
+    echo -e "\n${YELLOW}Auto-join configured! Agent will now:${NC}"
+    echo "✓ Start automatically on boot"
+    echo "✓ Join the SPIRE server automatically"
+    echo "✓ Re-join after restarts (until token expires)"
+    
     echo -e "\n${YELLOW}Next steps:${NC}"
     echo "1. Register services: make register-services"
     echo "2. View agent logs: sudo journalctl -u spire-agent -f"
+    echo "3. Test agent: sudo journalctl -u spire-agent -n 20"
 else
     echo -e "${RED}✗ Failed to start SPIRE agent${NC}"
     echo "Check logs with: sudo journalctl -u spire-agent -n 50"

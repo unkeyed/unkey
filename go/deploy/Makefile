@@ -61,52 +61,32 @@ clean-all: ## Complete uninstall and cleanup of all services and data
 	fi
 
 clean-all-force: ## Force complete cleanup without confirmation
-	@echo "Stopping all services..."
 	@for service in $(SERVICES); do \
-		echo "Stopping $$service..."; \
 		sudo systemctl stop $$service 2>/dev/null || true; \
 	done
-	@echo "Stopping SPIRE..."
 	@sudo systemctl stop spire-agent 2>/dev/null || true
 	@sudo systemctl stop spire-server 2>/dev/null || true
-	@echo "Stopping observability stack..."
 	@$(MAKE) o11y-stop 2>/dev/null || true
-	@echo ""
-	@echo "Uninstalling services..."
 	@for service in $(SERVICES); do \
-		echo "Uninstalling $$service..."; \
 		$(MAKE) -C $$service uninstall 2>/dev/null || true; \
 	done
-	@echo "Uninstalling SPIRE..."
 	@$(MAKE) -C $(SPIRE_DIR) uninstall 2>/dev/null || true
-	@echo ""
-	@echo "Removing service users..."
 	@for user in $(SERVICES); do \
 		if [ "$$user" != "metald" ]; then \
-			echo "Removing user $$user..."; \
 			sudo userdel -r $$user 2>/dev/null || true; \
 		fi; \
 	done
-	@echo ""
-	@echo "Removing service directories..."
 	@for service in $(SERVICES); do \
 		sudo rm -rf /opt/$$service; \
 	done
 	@sudo rm -rf /opt/vm-assets
 	@sudo rm -rf /opt/spire /var/lib/spire /etc/spire /run/spire
-	@echo ""
-	@echo "Cleaning up systemd..."
 	@sudo systemctl daemon-reload
-	@echo ""
-	@echo "Cleaning build artifacts..."
 	@for service in $(SERVICES); do \
 		$(MAKE) -C $$service clean 2>/dev/null || true; \
 	done
 	@$(MAKE) -C $(SPIRE_DIR) clean 2>/dev/null || true
-	@echo ""
-	@echo "==================================="
-	@echo "✓ System cleanup complete!"
-	@echo "==================================="
+	@echo "✓ System cleanup complete"
 
 deps: assetmanagerd-deps builderd-deps metald-deps billaged-deps ## Download dependencies for both services
 
@@ -130,11 +110,10 @@ help: ## Show this help message
 install: assetmanagerd-install builderd-install metald-install billaged-install ## Install both services
 
 install-tools: ## Install development tools
-	@echo "Installing development tools..."
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-	go install golang.org/x/tools/cmd/goimports@latest
-	@echo "Installing buf..."
+	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	@go install golang.org/x/tools/cmd/goimports@latest
 	@command buf 2>/dev/null || (sudo /usr/bin/curl -sSL "https://github.com/bufbuild/buf/releases/latest/download/buf-$$(uname -s)-$$(uname -m)" -o /usr/local/bin/buf && sudo chmod +x /usr/local/bin/buf)
+	@echo "✓ Development tools installed"
 
 lint: assetmanagerd-lint builderd-lint metald-lint billaged-lint ## Run linting for both services
 
@@ -142,7 +121,6 @@ metald-help: ## Show metald Makefile help
 	$(MAKE) -C $(METALD_DIR) help
 
 o11y: ## Start observability stack (Grafana LGTM)
-	@echo "Starting Grafana + OpenTelemetry LGTM stack..."
 	@docker run -d \
 		--name unkey-o11y-lgtm \
 		-p 3000:3000 \
@@ -151,17 +129,11 @@ o11y: ## Start observability stack (Grafana LGTM)
 		-p 9090:9090 \
 		-p 3100:3100 \
 		-e GF_SERVER_HTTP_ADDR=0.0.0.0 \
-		grafana/otel-lgtm:latest
-	@echo ""
-	@echo "==================================="
-	@echo "✓ Observability stack started!"
-	@echo "==================================="
+		grafana/otel-lgtm:latest >/dev/null
+	@echo "✓ Observability stack started"
 	@echo "Grafana UI: http://0.0.0.0:3000 (admin/admin)"
-	@echo "OTLP gRPC: 0.0.0.0:4317"
-	@echo "OTLP HTTP: 0.0.0.0:4318"
-	@echo "Prometheus: http://0.0.0.0:9090"
-	@echo "Loki: http://0.0.0.0:3100"
-	@echo ""
+	@echo "OTLP gRPC: 0.0.0.0:4317 | OTLP HTTP: 0.0.0.0:4318"
+	@echo "Prometheus: http://0.0.0.0:9090 | Loki: http://0.0.0.0:3100"
 
 o11y-logs: ## Show observability stack logs
 	@docker logs -f unkey-o11y-lgtm
@@ -172,16 +144,14 @@ o11y-restart: ## Restart observability stack
 	@$(MAKE) o11y
 
 o11y-stop: ## Stop observability stack
-	@echo "Stopping observability stack..."
 	@docker stop unkey-o11y-lgtm 2>/dev/null || true
 	@docker rm unkey-o11y-lgtm 2>/dev/null || true
 	@echo "✓ Observability stack stopped"
 
 service-logs: ## Follow logs for both services in parallel
-	@echo "Following logs for both services (Ctrl+C to stop)..."
-	$(MAKE) -C $(METALD_DIR) service-logs &
-	$(MAKE) -C $(BILLAGED_DIR) service-logs &
-	wait
+	@$(MAKE) -C $(METALD_DIR) service-logs &
+	@$(MAKE) -C $(BILLAGED_DIR) service-logs &
+	@wait
 
 service-restart: metald-service-restart billaged-service-restart ## Restart both services
 

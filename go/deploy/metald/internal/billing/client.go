@@ -144,13 +144,13 @@ func NewConnectRPCBillingClientWithHTTP(endpoint string, logger *slog.Logger, ht
 	clientInterceptors = append(clientInterceptors,
 		observability.DebugInterceptor(logger, "billaged"),
 	)
-	
+
 	// Convert UnaryInterceptorFunc to Interceptor
 	var interceptorList []connect.Interceptor
 	for _, interceptor := range clientInterceptors {
 		interceptorList = append(interceptorList, connect.Interceptor(interceptor))
 	}
-	
+
 	billingClient := billingv1connect.NewBillingServiceClient(
 		httpClient,
 		endpoint,

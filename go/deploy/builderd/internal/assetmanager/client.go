@@ -68,7 +68,7 @@ func (c *Client) RegisterBuildArtifact(ctx context.Context, buildID, artifactPat
 	return c.RegisterBuildArtifactWithID(ctx, buildID, artifactPath, assetType, labels, "")
 }
 
-// RegisterBuildArtifactWithID registers a successfully built artifact with a specific asset ID
+// RegisterBuildArtifactWithID uploads and registers a successfully built artifact with a specific asset ID
 func (c *Client) RegisterBuildArtifactWithID(ctx context.Context, buildID, artifactPath string, assetType assetv1.AssetType, labels map[string]string, assetID string) (string, error) {
 	if !c.enabled {
 		c.logger.DebugContext(ctx, "assetmanagerd integration disabled, skipping artifact registration")
@@ -81,12 +81,6 @@ func (c *Client) RegisterBuildArtifactWithID(ctx context.Context, buildID, artif
 		return "", fmt.Errorf("failed to stat artifact file: %w", err)
 	}
 
-	// Calculate checksum
-	checksum, err := c.calculateChecksum(artifactPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to calculate checksum: %w", err)
-	}
-
 	// Prepare labels
 	if labels == nil {
 		labels = make(map[string]string)
@@ -94,44 +88,81 @@ func (c *Client) RegisterBuildArtifactWithID(ctx context.Context, buildID, artif
 	labels["build_id"] = buildID
 	labels["created_by"] = "builderd"
 
-	// Create register request
-	// AIDEV-NOTE: Location should be relative to storage backend's base path
-	req := &assetv1.RegisterAssetRequest{
-		Name:         filepath.Base(artifactPath),
-		Type:         assetType,
-		Backend:      assetv1.StorageBackend_STORAGE_BACKEND_LOCAL,
-		Location:     filepath.Base(artifactPath), // Just the filename, not full path
-		SizeBytes:    fileInfo.Size(),
-		Checksum:     checksum,
-		Labels:       labels,
-		CreatedBy:    "builderd",
-		BuildId:      buildID,
-		SourceImage:  labels["docker_image"], // Optional, from build metadata
-		Id:           assetID, // Optional, use pre-generated ID if provided
+	// Create upload metadata
+	metadata := &assetv1.UploadAssetMetadata{
+		Name:        filepath.Base(artifactPath),
+		Type:        assetType,
+		SizeBytes:   fileInfo.Size(),
+		Labels:      labels,
+		CreatedBy:   "builderd",
+		BuildId:     buildID,
+		SourceImage: labels["docker_image"], // Optional, from build metadata
+		Id:          assetID,                // Optional, use pre-generated ID if provided
 	}
 
-	// Register with assetmanagerd
-	// AIDEV-NOTE: Set tenant headers required by tenant authentication interceptor
-	connectReq := connect.NewRequest(req)
-	
-	// Try to extract tenant info from labels first (builderd sets these)
+	// Upload asset via streaming API
+	// AIDEV-NOTE: This properly uploads the file to assetmanagerd's storage and registers it
+	stream := c.client.UploadAsset(ctx)
+
+	// Try to extract tenant info from labels for headers
 	tenantID := labels["tenant_id"]
 	customerID := labels["customer_id"]
-	
-	// Set tenant headers if available
+
+	// Set tenant headers on the stream if available
 	if tenantID != "" {
-		connectReq.Header().Set("X-Tenant-ID", tenantID)
+		stream.RequestHeader().Set("X-Tenant-ID", tenantID)
 	}
 	if customerID != "" {
-		connectReq.Header().Set("X-Customer-ID", customerID)
-	}
-	
-	resp, err := c.client.RegisterAsset(ctx, connectReq)
-	if err != nil {
-		return "", fmt.Errorf("failed to register asset: %w", err)
+		stream.RequestHeader().Set("X-Customer-ID", customerID)
 	}
 
-	c.logger.InfoContext(ctx, "registered build artifact with assetmanagerd",
+	// Send metadata first
+	metadataReq := &assetv1.UploadAssetRequest{
+		Data: &assetv1.UploadAssetRequest_Metadata{
+			Metadata: metadata,
+		},
+	}
+	if err := stream.Send(metadataReq); err != nil {
+		return "", fmt.Errorf("failed to send metadata: %w", err)
+	}
+
+	// Open file for streaming
+	file, err := os.Open(artifactPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to open artifact file: %w", err)
+	}
+	defer file.Close()
+
+	// Stream file in chunks
+	const chunkSize = 64 * 1024 // 64KB chunks
+	buffer := make([]byte, chunkSize)
+	
+	for {
+		n, err := file.Read(buffer)
+		if err != nil && err != io.EOF {
+			return "", fmt.Errorf("failed to read file chunk: %w", err)
+		}
+		if n == 0 {
+			break
+		}
+
+		chunkReq := &assetv1.UploadAssetRequest{
+			Data: &assetv1.UploadAssetRequest_Chunk{
+				Chunk: buffer[:n],
+			},
+		}
+		if err := stream.Send(chunkReq); err != nil {
+			return "", fmt.Errorf("failed to send chunk: %w", err)
+		}
+	}
+
+	// Close and receive response
+	resp, err := stream.CloseAndReceive()
+	if err != nil {
+		return "", fmt.Errorf("failed to upload asset: %w", err)
+	}
+
+	c.logger.InfoContext(ctx, "uploaded and registered build artifact with assetmanagerd",
 		slog.String("asset_id", resp.Msg.GetAsset().GetId()),
 		slog.String("build_id", buildID),
 		slog.String("artifact_path", artifactPath),

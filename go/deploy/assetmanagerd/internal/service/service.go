@@ -665,8 +665,8 @@ func (s *Service) StartGarbageCollector(ctx context.Context) {
 	}
 }
 
-// UploadAsset handles direct asset uploads (for future use)
-func (s *Service) UploadAsset(ctx context.Context, name string, assetType assetv1.AssetType, reader io.Reader, size int64) (*assetv1.Asset, error) {
+// uploadAssetHelper handles direct asset uploads (helper method)
+func (s *Service) uploadAssetHelper(ctx context.Context, name string, assetType assetv1.AssetType, reader io.Reader, size int64) (*assetv1.Asset, error) {
 	// AIDEV-NOTE: This is a helper method for direct uploads
 	// Currently, builderd uploads to storage directly then calls RegisterAsset
 	// This method would be used for manual uploads or future integrations
@@ -706,6 +706,119 @@ func (s *Service) UploadAsset(ctx context.Context, name string, assetType assetv
 	}
 
 	return resp.Msg.GetAsset(), nil
+}
+
+// UploadAsset handles streaming asset uploads via gRPC
+func (s *Service) UploadAsset(
+	ctx context.Context,
+	stream *connect.ClientStream[assetv1.UploadAssetRequest],
+) (*connect.Response[assetv1.UploadAssetResponse], error) {
+	// AIDEV-NOTE: Streaming upload RPC for builderd to upload assets before registering
+	// First message should contain metadata, subsequent messages contain chunks
+	
+	// Read first message (metadata)
+	if !stream.Receive() {
+		if stream.Err() != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to receive metadata: %w", stream.Err()))
+		}
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("no metadata received"))
+	}
+	
+	firstMsg := stream.Msg()
+	metadata := firstMsg.GetMetadata()
+	if metadata == nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("first message must contain metadata"))
+	}
+	
+	// Validate metadata
+	if metadata.GetName() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("name is required"))
+	}
+	
+	// Generate asset ID if not provided
+	assetID := metadata.GetId()
+	if assetID == "" {
+		assetID = fmt.Sprintf("%s-%d", metadata.GetName(), time.Now().UnixNano())
+	}
+	
+	// Create a pipe for streaming data to storage
+	pipeReader, pipeWriter := io.Pipe()
+	defer pipeReader.Close()
+	
+	// Start storing in background
+	storeCh := make(chan struct {
+		location string
+		err      error
+	}, 1)
+	
+	go func() {
+		defer pipeWriter.Close()
+		location, err := s.storage.Store(ctx, assetID, pipeReader, metadata.GetSizeBytes())
+		storeCh <- struct {
+			location string
+			err      error
+		}{location, err}
+	}()
+	
+	// Stream data chunks
+	var totalBytes int64
+	for stream.Receive() {
+		chunk := stream.Msg().GetChunk()
+		if chunk == nil {
+			continue
+		}
+		
+		if _, err := pipeWriter.Write(chunk); err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to write chunk: %w", err))
+		}
+		totalBytes += int64(len(chunk))
+	}
+	
+	if stream.Err() != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("stream error: %w", stream.Err()))
+	}
+	
+	// Close writer to signal end of data
+	pipeWriter.Close()
+	
+	// Wait for storage to complete
+	storeResult := <-storeCh
+	if storeResult.err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to store asset: %w", storeResult.err))
+	}
+	
+	// Get checksum
+	checksum, err := s.storage.GetChecksum(ctx, storeResult.location)
+	if err != nil {
+		_ = s.storage.Delete(ctx, storeResult.location)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get checksum: %w", err))
+	}
+	
+	// Register asset
+	req := &assetv1.RegisterAssetRequest{
+		Name:        metadata.GetName(),
+		Type:        metadata.GetType(),
+		Backend:     assetv1.StorageBackend_STORAGE_BACKEND_LOCAL,
+		Location:    storeResult.location,
+		SizeBytes:   totalBytes,
+		Checksum:    checksum,
+		Labels:      metadata.GetLabels(),
+		CreatedBy:   metadata.GetCreatedBy(),
+		BuildId:     metadata.GetBuildId(),
+		SourceImage: metadata.GetSourceImage(),
+		Id:          assetID,
+	}
+	
+	resp, err := s.RegisterAsset(ctx, connect.NewRequest(req))
+	if err != nil {
+		_ = s.storage.Delete(ctx, storeResult.location)
+		return nil, err
+	}
+	
+	// Return response
+	return connect.NewResponse(&assetv1.UploadAssetResponse{
+		Asset: resp.Msg.GetAsset(),
+	}), nil
 }
 
 // copyFile copies a file from source to destination

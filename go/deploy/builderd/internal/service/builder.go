@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -32,8 +35,13 @@ type BuilderService struct {
 	// tenantMgr    *tenant.Manager
 
 	// AIDEV-NOTE: Temporary in-memory storage for build jobs until database is implemented
-	builds map[string]*builderv1.BuildJob
+	builds      map[string]*builderv1.BuildJob
 	buildsMutex sync.RWMutex
+
+	// AIDEV-NOTE: Shutdown coordination to prevent races
+	shutdownCtx    context.Context
+	shutdownCancel context.CancelFunc
+	buildWg        sync.WaitGroup
 }
 
 // NewBuilderService creates a new BuilderService instance
@@ -46,19 +54,78 @@ func NewBuilderService(
 	// Create executor registry
 	executors := executor.NewRegistry(logger, cfg, buildMetrics)
 
+	// AIDEV-NOTE: Create shutdown context for coordinated service shutdown
+	shutdownCtx, shutdownCancel := context.WithCancel(context.Background())
+
 	return &BuilderService{
-		logger:       logger,
-		buildMetrics: buildMetrics,
-		config:       cfg,
-		executors:    executors,
-		assetClient:  assetClient,
-		builds:       make(map[string]*builderv1.BuildJob),
+		logger:         logger,
+		buildMetrics:   buildMetrics,
+		config:         cfg,
+		executors:      executors,
+		assetClient:    assetClient,
+		builds:         make(map[string]*builderv1.BuildJob),
+		shutdownCtx:    shutdownCtx,
+		shutdownCancel: shutdownCancel,
 	}
 }
 
 // generateBuildID generates a unique build ID
 func generateBuildID() string {
 	return fmt.Sprintf("build-%d", time.Now().UnixNano())
+}
+
+// selectKernelForImage determines which bundled kernel to use for a given Docker image
+func (s *BuilderService) selectKernelForImage(imageName string) (kernelPath, kernelName string, err error) {
+	// AIDEV-NOTE: Maps base images to appropriate bundled kernels
+	// This ensures kernel/rootfs compatibility
+
+	imageLower := strings.ToLower(imageName)
+	kernelsDir := "/opt/builderd/kernels"
+
+	// Determine kernel based on base image
+	var kernelFile string
+	var kernelDisplayName string
+
+	switch {
+	case strings.Contains(imageLower, "alpine"):
+		kernelFile = "alpine-kernel"
+		kernelDisplayName = "Alpine Linux Kernel"
+	case strings.Contains(imageLower, "ubuntu"):
+		kernelFile = "ubuntu-kernel"
+		kernelDisplayName = "Ubuntu Linux Kernel"
+	case strings.Contains(imageLower, "debian"):
+		kernelFile = "ubuntu-kernel" // Use Ubuntu kernel for Debian (compatible)
+		kernelDisplayName = "Ubuntu Linux Kernel (Debian compatible)"
+	default:
+		// Default to Alpine kernel for unknown images
+		kernelFile = "alpine-kernel"
+		kernelDisplayName = "Alpine Linux Kernel (default)"
+	}
+
+	kernelPath = filepath.Join(kernelsDir, kernelFile)
+
+	// Verify kernel exists
+	if _, err := os.Stat(kernelPath); err != nil {
+		return "", "", fmt.Errorf("bundled kernel not found: %s", kernelPath)
+	}
+
+	return kernelPath, kernelDisplayName, nil
+}
+
+// extractOSFromImage extracts the OS type from a Docker image name
+func extractOSFromImage(imageName string) string {
+	imageLower := strings.ToLower(imageName)
+
+	switch {
+	case strings.Contains(imageLower, "alpine"):
+		return "alpine"
+	case strings.Contains(imageLower, "ubuntu"):
+		return "ubuntu"
+	case strings.Contains(imageLower, "debian"):
+		return "debian"
+	default:
+		return "unknown"
+	}
 }
 
 // CreateBuild creates a new build job
@@ -88,16 +155,16 @@ func (s *BuilderService) CreateBuild(
 	}
 
 	// TODO: Check tenant quotas
-	
+
 	// Create build job record
 	buildJob := &builderv1.BuildJob{
-		BuildId:     generateBuildID(),
-		Config:      req.Msg.GetConfig(),
-		State:       builderv1.BuildState_BUILD_STATE_BUILDING,
-		CreatedAt:   timestamppb.Now(),
-		StartedAt:   timestamppb.Now(),
+		BuildId:   generateBuildID(),
+		Config:    req.Msg.GetConfig(),
+		State:     builderv1.BuildState_BUILD_STATE_BUILDING,
+		CreatedAt: timestamppb.Now(),
+		StartedAt: timestamppb.Now(),
 	}
-	
+
 	// Store build job in memory
 	s.buildsMutex.Lock()
 	s.builds[buildJob.BuildId] = buildJob
@@ -105,20 +172,40 @@ func (s *BuilderService) CreateBuild(
 
 	// Execute the build asynchronously
 	// AIDEV-NOTE: Launch build in a goroutine to avoid blocking the RPC call
+	// AIDEV-BUSINESS_RULE: Use shutdown-aware context to prevent races during service shutdown
+	s.buildWg.Add(1)
 	go func() {
-		// Create a new context that isn't tied to the RPC context but preserves tenant info
-		// This prevents the build from being cancelled when the RPC returns
-		buildCtx := context.Background()
-		
+		defer s.buildWg.Done()
+
+		// AIDEV-NOTE: Use shutdown context to coordinate with service lifecycle
+		// This prevents builds from running indefinitely during shutdown
+		buildCtx := s.shutdownCtx
+
 		// AIDEV-NOTE: Preserve tenant context for asset registration
 		tenantID := req.Msg.GetConfig().GetTenant().GetTenantId()
 		customerID := req.Msg.GetConfig().GetTenant().GetCustomerId()
-		
+
 		s.logger.InfoContext(buildCtx, "starting async build execution",
 			slog.String("build_id", buildJob.BuildId),
 			slog.String("tenant_id", req.Msg.GetConfig().GetTenant().GetTenantId()),
 		)
-		
+
+		// AIDEV-NOTE: Check for shutdown signal before starting expensive build operation
+		select {
+		case <-buildCtx.Done():
+			s.logger.InfoContext(buildCtx, "build cancelled due to shutdown",
+				slog.String("build_id", buildJob.BuildId),
+			)
+			// Update build job with cancelled state
+			s.buildsMutex.Lock()
+			buildJob.State = builderv1.BuildState_BUILD_STATE_CANCELLED
+			buildJob.CompletedAt = timestamppb.Now()
+			buildJob.ErrorMessage = "Build cancelled due to service shutdown"
+			s.buildsMutex.Unlock()
+			return
+		default:
+		}
+
 		buildResult, err := s.executors.ExecuteWithID(buildCtx, req.Msg, buildJob.BuildId)
 		if err != nil {
 			// Update build job with error state
@@ -127,7 +214,7 @@ func (s *BuilderService) CreateBuild(
 			buildJob.CompletedAt = timestamppb.Now()
 			buildJob.ErrorMessage = err.Error()
 			s.buildsMutex.Unlock()
-			
+
 			s.logger.ErrorContext(buildCtx, "build execution failed",
 				slog.String("error", err.Error()),
 				slog.String("build_id", buildJob.BuildId),
@@ -163,11 +250,11 @@ func (s *BuilderService) CreateBuild(
 		// AIDEV-NOTE: This enables the built rootfs to be used for VM creation
 		if buildState == builderv1.BuildState_BUILD_STATE_COMPLETED && s.assetClient.IsEnabled() {
 			labels := map[string]string{
-				"source_type":  buildResult.SourceType,
-				"tenant_id":    tenantID,    // AIDEV-NOTE: Include tenant info for asset registration
-				"customer_id":  customerID,  // AIDEV-NOTE: Include customer info for asset registration
+				"source_type": buildResult.SourceType,
+				"tenant_id":   tenantID,   // AIDEV-NOTE: Include tenant info for asset registration
+				"customer_id": customerID, // AIDEV-NOTE: Include customer info for asset registration
 			}
-			
+
 			// Add docker image label if it's a Docker source
 			// AIDEV-NOTE: Must use "docker_image" label to match metald's query expectations
 			if dockerSource := req.Msg.GetConfig().GetSource().GetDockerImage(); dockerSource != nil {
@@ -182,26 +269,86 @@ func (s *BuilderService) CreateBuild(
 
 			// Use suggested asset ID if provided in the build config
 			suggestedAssetID := req.Msg.GetConfig().GetSuggestedAssetId()
-			
+
 			s.logger.InfoContext(buildCtx, "registering build artifact with asset ID",
 				slog.String("suggested_asset_id", suggestedAssetID),
 				slog.String("build_id", buildJob.BuildId),
 				slog.Any("labels", labels),
 			)
-			
+
+			// First upload the rootfs
 			assetID, err := s.assetClient.RegisterBuildArtifactWithID(buildCtx, buildJob.BuildId, buildResult.RootfsPath, assetType, labels, suggestedAssetID)
 			if err != nil {
 				// Log error but don't fail the build
-				s.logger.ErrorContext(buildCtx, "failed to register build artifact with assetmanagerd",
+				s.logger.ErrorContext(buildCtx, "failed to register rootfs with assetmanagerd",
 					slog.String("error", err.Error()),
 					slog.String("build_id", buildJob.BuildId),
 					slog.String("rootfs_path", buildResult.RootfsPath),
 				)
 			} else {
-				s.logger.InfoContext(buildCtx, "registered build artifact with assetmanagerd",
+				s.logger.InfoContext(buildCtx, "registered rootfs with assetmanagerd",
 					slog.String("asset_id", assetID),
 					slog.String("build_id", buildJob.BuildId),
 				)
+			}
+
+			// Extract the source image from build config
+			var sourceImage string
+			if buildJob.Config != nil && buildJob.Config.Source != nil {
+				if dockerSource := buildJob.Config.Source.GetDockerImage(); dockerSource != nil {
+					sourceImage = dockerSource.ImageUri
+				}
+			}
+
+			if sourceImage == "" {
+				s.logger.WarnContext(buildCtx, "no Docker image source found, skipping kernel upload")
+			} else {
+				// Now upload the appropriate kernel
+				kernelPath, kernelName, err := s.selectKernelForImage(sourceImage)
+				if err != nil {
+					s.logger.ErrorContext(buildCtx, "failed to select kernel for image",
+						slog.String("error", err.Error()),
+						slog.String("image", sourceImage),
+					)
+				} else {
+					// Create kernel labels
+					var tenantID, customerID string
+					if buildJob.Config != nil && buildJob.Config.Tenant != nil {
+						tenantID = buildJob.Config.Tenant.TenantId
+						customerID = buildJob.Config.Tenant.CustomerId
+					}
+
+					kernelLabels := map[string]string{
+						"kernel_type":   "bundled",
+						"compatible_os": extractOSFromImage(sourceImage),
+						"build_id":      buildJob.BuildId,
+						"created_by":    "builderd",
+						"tenant_id":     tenantID,
+						"customer_id":   customerID,
+					}
+
+					kernelAssetID, err := s.assetClient.RegisterBuildArtifactWithID(
+						buildCtx,
+						buildJob.BuildId+"-kernel",
+						kernelPath,
+						assetv1.AssetType_ASSET_TYPE_KERNEL,
+						kernelLabels,
+						"", // Let assetmanagerd generate kernel asset ID
+					)
+					if err != nil {
+						s.logger.ErrorContext(buildCtx, "failed to register kernel with assetmanagerd",
+							slog.String("error", err.Error()),
+							slog.String("kernel_path", kernelPath),
+							slog.String("kernel_name", kernelName),
+						)
+					} else {
+						s.logger.InfoContext(buildCtx, "registered kernel with assetmanagerd",
+							slog.String("kernel_asset_id", kernelAssetID),
+							slog.String("kernel_name", kernelName),
+							slog.String("build_id", buildJob.BuildId),
+						)
+					}
+				}
 			}
 		}
 	}()
@@ -236,7 +383,7 @@ func (s *BuilderService) GetBuild(
 	s.buildsMutex.RUnlock()
 
 	if !exists {
-		return nil, connect.NewError(connect.CodeNotFound, 
+		return nil, connect.NewError(connect.CodeNotFound,
 			fmt.Errorf("build not found: %s", req.Msg.GetBuildId()))
 	}
 
@@ -463,4 +610,29 @@ func (s *BuilderService) validateBuildConfig(config *builderv1.BuildConfig) erro
 	}
 
 	return nil
+}
+
+// Shutdown gracefully shuts down the BuilderService
+// AIDEV-NOTE: This method coordinates shutdown of all running builds to prevent races
+func (s *BuilderService) Shutdown(ctx context.Context) error {
+	s.logger.InfoContext(ctx, "starting BuilderService shutdown")
+
+	// Cancel all running builds
+	s.shutdownCancel()
+
+	// Wait for all builds to complete with timeout
+	done := make(chan struct{})
+	go func() {
+		s.buildWg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		s.logger.InfoContext(ctx, "all builds completed during shutdown")
+		return nil
+	case <-ctx.Done():
+		s.logger.WarnContext(ctx, "shutdown timeout reached, some builds may have been terminated")
+		return ctx.Err()
+	}
 }

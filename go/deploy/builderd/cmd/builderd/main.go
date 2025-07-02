@@ -34,7 +34,7 @@ import (
 )
 
 // version is set at build time via ldflags
-var version = "0.1.0"
+var version = ""
 
 // AIDEV-NOTE: Enhanced version management with debug.ReadBuildInfo fallback
 // Handles production builds (ldflags), development builds (git commit), and module builds
@@ -381,7 +381,7 @@ func main() {
 	}
 
 	// Coordinated shutdown with proper ordering
-	performGracefulShutdown(logger, server, promServer, providers, &shutdownStarted, &shutdownMutex, cfg.Server.ShutdownTimeout)
+	performGracefulShutdown(logger, server, promServer, providers, builderService, &shutdownStarted, &shutdownMutex, cfg.Server.ShutdownTimeout)
 }
 
 // printUsage displays help information
@@ -514,7 +514,7 @@ func validateServiceHealth(logger *slog.Logger, cfg *config.Config, buildMetrics
 }
 
 // Coordinated graceful shutdown function
-func performGracefulShutdown(logger *slog.Logger, server *http.Server, promServer *http.Server, providers *observability.Providers, shutdownStarted *int64, shutdownMutex *sync.Mutex, shutdownTimeout time.Duration) {
+func performGracefulShutdown(logger *slog.Logger, server *http.Server, promServer *http.Server, providers *observability.Providers, builderService *service.BuilderService, shutdownStarted *int64, shutdownMutex *sync.Mutex, shutdownTimeout time.Duration) {
 	// Ensure shutdown only happens once
 	if !atomic.CompareAndSwapInt64(shutdownStarted, 0, 1) {
 		logger.Warn("shutdown already in progress")
@@ -532,6 +532,16 @@ func performGracefulShutdown(logger *slog.Logger, server *http.Server, promServe
 
 	// Use errgroup for coordinated shutdown
 	g, gCtx := errgroup.WithContext(shutdownCtx)
+
+	// AIDEV-NOTE: Shutdown BuilderService first to stop new builds and wait for running ones
+	g.Go(func() error {
+		logger.Info("shutting down BuilderService")
+		if err := builderService.Shutdown(gCtx); err != nil {
+			return fmt.Errorf("BuilderService shutdown failed: %w", err)
+		}
+		logger.Info("BuilderService shutdown complete")
+		return nil
+	})
 
 	// Shutdown HTTP server
 	g.Go(func() error {

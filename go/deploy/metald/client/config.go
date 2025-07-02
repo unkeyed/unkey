@@ -16,31 +16,31 @@ import (
 type VMConfigFile struct {
 	// Name is a human-readable name for this configuration
 	Name string `json:"name"`
-	
+
 	// Description describes the purpose of this configuration
 	Description string `json:"description"`
-	
+
 	// Template is the base template to use (optional)
 	Template string `json:"template,omitempty"`
-	
+
 	// CPU configuration
 	CPU CPUConfig `json:"cpu"`
-	
+
 	// Memory configuration
 	Memory MemoryConfig `json:"memory"`
-	
+
 	// Boot configuration
 	Boot BootConfig `json:"boot"`
-	
+
 	// Storage devices
 	Storage []StorageConfig `json:"storage"`
-	
+
 	// Network interfaces
 	Network []NetworkConfig `json:"network"`
-	
+
 	// Console configuration
 	Console ConsoleConfig `json:"console"`
-	
+
 	// Metadata key-value pairs
 	Metadata map[string]string `json:"metadata"`
 }
@@ -77,18 +77,18 @@ type StorageConfig struct {
 
 // NetworkConfig represents network interface configuration in a config file
 type NetworkConfig struct {
-	ID            string        `json:"id"`
-	InterfaceType string        `json:"interface_type"`
-	Mode          string        `json:"mode"` // "dual_stack", "ipv4_only", "ipv6_only"
-	IPv4          *IPv4Config   `json:"ipv4,omitempty"`
-	IPv6          *IPv6Config   `json:"ipv6,omitempty"`
+	ID            string      `json:"id"`
+	InterfaceType string      `json:"interface_type"`
+	Mode          string      `json:"mode"` // "dual_stack", "ipv4_only", "ipv6_only"
+	IPv4          *IPv4Config `json:"ipv4,omitempty"`
+	IPv6          *IPv6Config `json:"ipv6,omitempty"`
 }
 
 // IPv4Config represents IPv4 configuration in a config file
 type IPv4Config struct {
-	DHCP       bool   `json:"dhcp"`
-	StaticIP   string `json:"static_ip,omitempty"`
-	Gateway    string `json:"gateway,omitempty"`
+	DHCP       bool     `json:"dhcp"`
+	StaticIP   string   `json:"static_ip,omitempty"`
+	Gateway    string   `json:"gateway,omitempty"`
 	DNSServers []string `json:"dns_servers,omitempty"`
 }
 
@@ -114,12 +114,12 @@ func LoadVMConfigFromFile(filename string) (*VMConfigFile, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file %s: %w", filename, err)
 	}
-	
+
 	var config VMConfigFile
 	if err := json.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse config file %s: %w", filename, err)
 	}
-	
+
 	return &config, nil
 }
 
@@ -130,23 +130,23 @@ func SaveVMConfigToFile(config *VMConfigFile, filename string) error {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create directory %s: %w", dir, err)
 	}
-	
+
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
-	
+
 	if err := os.WriteFile(filename, data, 0644); err != nil {
 		return fmt.Errorf("failed to write config file %s: %w", filename, err)
 	}
-	
+
 	return nil
 }
 
 // ToVMConfig converts a VMConfigFile to a protobuf VmConfig
 func (c *VMConfigFile) ToVMConfig() (*vmprovisionerv1.VmConfig, error) {
 	var builder *VMConfigBuilder
-	
+
 	// Start with template if specified
 	if c.Template != "" {
 		template := VMTemplate(c.Template)
@@ -154,26 +154,26 @@ func (c *VMConfigFile) ToVMConfig() (*vmprovisionerv1.VmConfig, error) {
 	} else {
 		builder = NewVMConfigBuilder()
 	}
-	
+
 	// Override with specific configuration
 	builder.WithCPU(c.CPU.VCPUCount, c.CPU.MaxVCPUCount)
 	builder.WithMemoryMB(c.Memory.SizeMB, c.Memory.MaxSizeMB, c.Memory.HotplugEnabled)
 	builder.WithBoot(c.Boot.KernelPath, c.Boot.InitrdPath, c.Boot.KernelArgs)
-	
+
 	// Clear storage and network from template
 	builder.config.Storage = []*vmprovisionerv1.StorageDevice{}
 	builder.config.Network = []*vmprovisionerv1.NetworkInterface{}
-	
+
 	// Add storage devices
 	for _, storage := range c.Storage {
 		interfaceType := storage.InterfaceType
 		if interfaceType == "" {
 			interfaceType = "virtio-blk"
 		}
-		builder.AddStorageWithOptions(storage.ID, storage.Path, storage.ReadOnly, 
+		builder.AddStorageWithOptions(storage.ID, storage.Path, storage.ReadOnly,
 			storage.IsRootDevice, interfaceType, storage.Options)
 	}
-	
+
 	// Add network interfaces
 	for _, network := range c.Network {
 		mode := parseNetworkMode(network.Mode)
@@ -181,10 +181,10 @@ func (c *VMConfigFile) ToVMConfig() (*vmprovisionerv1.VmConfig, error) {
 		if interfaceType == "" {
 			interfaceType = "virtio-net"
 		}
-		
+
 		var ipv4Config *vmprovisionerv1.IPv4Config
 		var ipv6Config *vmprovisionerv1.IPv6Config
-		
+
 		if network.IPv4 != nil {
 			ipv4Config = &vmprovisionerv1.IPv4Config{
 				Dhcp:       network.IPv4.DHCP,
@@ -193,7 +193,7 @@ func (c *VMConfigFile) ToVMConfig() (*vmprovisionerv1.VmConfig, error) {
 				DnsServers: network.IPv4.DNSServers,
 			}
 		}
-		
+
 		if network.IPv6 != nil {
 			ipv6Config = &vmprovisionerv1.IPv6Config{
 				Slaac:             network.IPv6.SLAAC,
@@ -203,22 +203,22 @@ func (c *VMConfigFile) ToVMConfig() (*vmprovisionerv1.VmConfig, error) {
 				DnsServers:        network.IPv6.DNSServers,
 			}
 		}
-		
+
 		builder.AddNetworkWithCustomConfig(network.ID, interfaceType, mode, ipv4Config, ipv6Config)
 	}
-	
+
 	// Configure console
 	builder.WithConsole(c.Console.Enabled, c.Console.Output, c.Console.ConsoleType)
-	
+
 	// Add metadata
 	if c.Metadata != nil {
 		builder.WithMetadata(c.Metadata)
 	}
-	
+
 	// Add config file metadata
 	builder.AddMetadata("config_name", c.Name)
 	builder.AddMetadata("config_description", c.Description)
-	
+
 	return builder.Build(), nil
 }
 
@@ -241,8 +241,8 @@ func FromVMConfig(config *vmprovisionerv1.VmConfig, name, description string) *V
 			InitrdPath: config.Boot.InitrdPath,
 			KernelArgs: config.Boot.KernelArgs,
 		},
-		Storage:  []StorageConfig{},
-		Network:  []NetworkConfig{},
+		Storage: []StorageConfig{},
+		Network: []NetworkConfig{},
 		Console: ConsoleConfig{
 			Enabled:     config.Console.Enabled,
 			Output:      config.Console.Output,
@@ -250,7 +250,7 @@ func FromVMConfig(config *vmprovisionerv1.VmConfig, name, description string) *V
 		},
 		Metadata: config.Metadata,
 	}
-	
+
 	// Convert storage devices
 	for _, storage := range config.Storage {
 		configFile.Storage = append(configFile.Storage, StorageConfig{
@@ -262,7 +262,7 @@ func FromVMConfig(config *vmprovisionerv1.VmConfig, name, description string) *V
 			Options:       storage.Options,
 		})
 	}
-	
+
 	// Convert network interfaces
 	for _, network := range config.Network {
 		netConfig := NetworkConfig{
@@ -270,7 +270,7 @@ func FromVMConfig(config *vmprovisionerv1.VmConfig, name, description string) *V
 			InterfaceType: network.InterfaceType,
 			Mode:          formatNetworkMode(network.Mode),
 		}
-		
+
 		if network.Ipv4Config != nil {
 			netConfig.IPv4 = &IPv4Config{
 				DHCP:       network.Ipv4Config.Dhcp,
@@ -279,7 +279,7 @@ func FromVMConfig(config *vmprovisionerv1.VmConfig, name, description string) *V
 				DNSServers: network.Ipv4Config.DnsServers,
 			}
 		}
-		
+
 		if network.Ipv6Config != nil {
 			netConfig.IPv6 = &IPv6Config{
 				SLAAC:             network.Ipv6Config.Slaac,
@@ -289,10 +289,10 @@ func FromVMConfig(config *vmprovisionerv1.VmConfig, name, description string) *V
 				DNSServers:        network.Ipv6Config.DnsServers,
 			}
 		}
-		
+
 		configFile.Network = append(configFile.Network, netConfig)
 	}
-	
+
 	return configFile
 }
 
@@ -338,7 +338,7 @@ func CreateBuiltinConfigs(configDir string) error {
 		"high-memory": TemplateHighMemory,
 		"development": TemplateDevelopment,
 	}
-	
+
 	descriptions := map[string]string{
 		"minimal":     "Minimal VM configuration with basic resources for lightweight workloads",
 		"standard":    "Standard VM configuration with balanced CPU and memory for general workloads",
@@ -346,19 +346,19 @@ func CreateBuiltinConfigs(configDir string) error {
 		"high-memory": "High-memory VM configuration optimized for memory-intensive workloads",
 		"development": "Development VM configuration with extra resources and development tools",
 	}
-	
+
 	for name, template := range templates {
 		builder := NewVMConfigFromTemplate(template)
 		config := builder.Build()
-		
+
 		configFile := FromVMConfig(config, name, descriptions[name])
 		configFile.Template = string(template)
-		
+
 		filename := filepath.Join(configDir, fmt.Sprintf("%s.json", name))
 		if err := SaveVMConfigToFile(configFile, filename); err != nil {
 			return fmt.Errorf("failed to create config file %s: %w", filename, err)
 		}
 	}
-	
+
 	return nil
 }

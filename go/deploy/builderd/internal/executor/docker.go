@@ -154,7 +154,7 @@ func (d *DockerExecutor) ExtractDockerImageWithID(ctx context.Context, request *
 	}
 
 	// Step 4: Extract filesystem from container
-	if err := d.extractFilesystem(ctx, logger, containerID, rootfsDir); err != nil {
+	if err := d.extractFilesystem(ctx, logger, containerID, rootfsDir, metadata); err != nil {
 		logger.ErrorContext(ctx, "failed to extract filesystem",
 			slog.String("error", err.Error()),
 			slog.String("container_id", containerID),
@@ -194,15 +194,15 @@ func (d *DockerExecutor) ExtractDockerImageWithID(ctx context.Context, request *
 
 	// Create build result
 	result := &BuildResult{ //nolint:exhaustruct // Error, Metadata, and Metrics fields are set after successful build
-		BuildID:      buildID,
-		SourceType:   "docker",
-		SourceImage:  fullImageName,
-		RootfsPath:   ext4Path, // Use the ext4 image path instead of directory
-		WorkspaceDir: workspaceDir,
-		TenantID:     tenantID,
-		StartTime:    start,
-		EndTime:      time.Now(),
-		Status:       "completed",
+		BuildID:       buildID,
+		SourceType:    "docker",
+		SourceImage:   fullImageName,
+		RootfsPath:    ext4Path, // Use the ext4 image path instead of directory
+		WorkspaceDir:  workspaceDir,
+		TenantID:      tenantID,
+		StartTime:     start,
+		EndTime:       time.Now(),
+		Status:        "completed",
 		ImageMetadata: metadata, // Include the extracted metadata
 	}
 
@@ -341,7 +341,7 @@ func (d *DockerExecutor) createContainer(ctx context.Context, logger *slog.Logge
 }
 
 // extractFilesystem extracts the filesystem from the container to the rootfs directory
-func (d *DockerExecutor) extractFilesystem(ctx context.Context, logger *slog.Logger, containerID, rootfsDir string) error {
+func (d *DockerExecutor) extractFilesystem(ctx context.Context, logger *slog.Logger, containerID, rootfsDir string, metadata *builderv1.ImageMetadata) error {
 	// AIDEV-NOTE: Comprehensive observability for filesystem extraction step
 	tracer := otel.Tracer("builderd/docker")
 	stepStart := time.Now()
@@ -459,7 +459,7 @@ func (d *DockerExecutor) extractFilesystem(ctx context.Context, logger *slog.Log
 	logger.InfoContext(ctx, "filesystem extraction completed",
 		slog.Duration("duration", stepDuration),
 	)
-	
+
 	// AIDEV-NOTE: CRITICAL FIX - Inject metald-init into rootfs after extraction
 	// This ensures every container has the required init process for VM execution
 	if err := d.injectMetaldInit(ctx, logger, rootfsDir); err != nil {
@@ -469,7 +469,27 @@ func (d *DockerExecutor) extractFilesystem(ctx context.Context, logger *slog.Log
 		)
 		// Continue anyway - this is not fatal, VM might still work with container's original init
 	}
-	
+
+	// AIDEV-NOTE: Create container command file for metald-init
+	// This tells metald-init what command to run when the microVM starts
+	if err := d.createContainerCmd(ctx, logger, rootfsDir, metadata); err != nil {
+		logger.WarnContext(ctx, "failed to create container.cmd (non-fatal)",
+			slog.String("error", err.Error()),
+			slog.String("rootfs_dir", rootfsDir),
+		)
+		// Continue anyway - this is not fatal if there's a fallback command
+	}
+
+	// AIDEV-NOTE: Create container environment file for metald-init
+	// This provides complete container runtime environment replication
+	if err := d.createContainerEnv(ctx, logger, rootfsDir, metadata); err != nil {
+		logger.WarnContext(ctx, "failed to create container.env (non-fatal)",
+			slog.String("error", err.Error()),
+			slog.String("rootfs_dir", rootfsDir),
+		)
+		// Continue anyway - basic environment will still work
+	}
+
 	return nil
 }
 
@@ -658,7 +678,7 @@ func (d *DockerExecutor) createExt4Image(ctx context.Context, logger *slog.Logge
 	if err != nil {
 		return fmt.Errorf("failed to calculate rootfs size: %w", err)
 	}
-	
+
 	// Add 20% overhead for filesystem metadata and future growth
 	imageSize := int64(float64(rootfsSize) * 1.2)
 	// Minimum 100MB, round up to nearest MB
@@ -667,7 +687,7 @@ func (d *DockerExecutor) createExt4Image(ctx context.Context, logger *slog.Logge
 		imageSize = minSize
 	}
 	imageSize = (imageSize + 1024*1024 - 1) / (1024 * 1024) * (1024 * 1024) // Round up to MB
-	
+
 	logger.InfoContext(ctx, "calculated image size",
 		slog.Int64("rootfs_bytes", rootfsSize),
 		slog.Int64("image_bytes", imageSize),
@@ -950,17 +970,17 @@ func (d *DockerExecutor) injectMetaldInit(ctx context.Context, logger *slog.Logg
 	logger.InfoContext(ctx, "injecting metald-init into rootfs",
 		slog.String("rootfs_dir", rootfsDir),
 	)
-	
+
 	// Source path for metald-init binary
 	// Try multiple possible locations for metald-init
 	var srcPaths = []string{
-		"/usr/bin/metald-init",                           // Installed location
-		"/usr/local/bin/metald-init",                     // Alternative install location  
-		"./cmd/metald-init/metald-init",                  // Local build
-		"../metald/cmd/metald-init/metald-init",          // Relative from builderd
-		"/opt/metald/bin/metald-init",                    // Custom location
+		"/usr/bin/metald-init",                  // Standard installation location
+		"./cmd/metald-init/metald-init",         // Local build
+		"../metald/cmd/metald-init/metald-init", // Relative from builderd
+		"/usr/local/bin/metald-init",            // Legacy location (fallback)
+		"/opt/metald/bin/metald-init",           // Custom location
 	}
-	
+
 	var srcPath string
 	for _, path := range srcPaths {
 		if _, err := os.Stat(path); err == nil {
@@ -968,35 +988,145 @@ func (d *DockerExecutor) injectMetaldInit(ctx context.Context, logger *slog.Logg
 			break
 		}
 	}
-	
+
 	if srcPath == "" {
 		return fmt.Errorf("metald-init binary not found in any expected location: %v", srcPaths)
 	}
-	
+
 	// Destination paths in rootfs
 	usrBinDir := filepath.Join(rootfsDir, "usr", "bin")
 	dstPath := filepath.Join(usrBinDir, "metald-init")
-	
+
 	// Create /usr/bin directory if it doesn't exist
 	if err := os.MkdirAll(usrBinDir, 0755); err != nil {
 		return fmt.Errorf("failed to create /usr/bin directory: %w", err)
 	}
-	
+
 	// Copy metald-init binary
 	srcData, err := os.ReadFile(srcPath)
 	if err != nil {
 		return fmt.Errorf("failed to read metald-init source: %w", err)
 	}
-	
+
 	if err := os.WriteFile(dstPath, srcData, 0755); err != nil {
 		return fmt.Errorf("failed to write metald-init to rootfs: %w", err)
 	}
-	
+
 	logger.InfoContext(ctx, "metald-init injection completed",
 		slog.String("src_path", srcPath),
 		slog.String("dst_path", dstPath),
 		slog.Int("size_bytes", len(srcData)),
 	)
-	
+
+	return nil
+}
+
+// createContainerCmd creates /container.cmd file with the container's command for metald-init
+// AIDEV-NOTE: This function creates the command file that metald-init reads to know what to execute
+// The file contains a JSON array of the full command (entrypoint + command)
+func (d *DockerExecutor) createContainerCmd(ctx context.Context, logger *slog.Logger, rootfsDir string, metadata *builderv1.ImageMetadata) error {
+	logger.InfoContext(ctx, "creating container command file",
+		slog.String("rootfs_dir", rootfsDir),
+	)
+
+	// Build the full command from entrypoint + command
+	var fullCmd []string
+
+	// Add entrypoint if present
+	if len(metadata.Entrypoint) > 0 {
+		fullCmd = append(fullCmd, metadata.Entrypoint...)
+	}
+
+	// Add command if present
+	if len(metadata.Command) > 0 {
+		fullCmd = append(fullCmd, metadata.Command...)
+	}
+
+	// If no command specified, provide a default
+	if len(fullCmd) == 0 {
+		logger.WarnContext(ctx, "no entrypoint or command found, using default shell")
+		fullCmd = []string{"/bin/sh"}
+	}
+
+	// Create the command file path
+	cmdPath := filepath.Join(rootfsDir, "container.cmd")
+
+	// Marshal command to JSON
+	cmdData, err := json.Marshal(fullCmd)
+	if err != nil {
+		return fmt.Errorf("failed to marshal container command: %w", err)
+	}
+
+	// Write to file
+	if err := os.WriteFile(cmdPath, cmdData, 0644); err != nil {
+		return fmt.Errorf("failed to write container.cmd file: %w", err)
+	}
+
+	logger.InfoContext(ctx, "container command file created",
+		slog.String("path", cmdPath),
+		slog.Any("command", fullCmd),
+		slog.Int("size", len(cmdData)),
+	)
+
+	return nil
+}
+
+// createContainerEnv creates environment configuration file for complete container runtime replication
+// AIDEV-NOTE: This function creates a comprehensive environment setup that metald-init reads
+// to replicate the exact container runtime environment including working directory, env vars, etc.
+func (d *DockerExecutor) createContainerEnv(ctx context.Context, logger *slog.Logger, rootfsDir string, metadata *builderv1.ImageMetadata) error {
+	logger.InfoContext(ctx, "creating container environment file",
+		slog.String("rootfs_dir", rootfsDir),
+	)
+
+	// Create comprehensive environment configuration
+	envConfig := struct {
+		WorkingDir   string            `json:"working_dir,omitempty"`
+		Env          map[string]string `json:"env,omitempty"`
+		User         string            `json:"user,omitempty"`
+		ExposedPorts []string          `json:"exposed_ports,omitempty"`
+	}{
+		WorkingDir:   metadata.WorkingDir,
+		Env:          metadata.Env,
+		User:         metadata.User,
+		ExposedPorts: metadata.ExposedPorts,
+	}
+
+	// Set default working directory if not specified
+	if envConfig.WorkingDir == "" {
+		envConfig.WorkingDir = "/"
+	}
+
+	// Ensure essential environment variables are set
+	if envConfig.Env == nil {
+		envConfig.Env = make(map[string]string)
+	}
+
+	// Set default PATH if not present
+	if _, hasPath := envConfig.Env["PATH"]; !hasPath {
+		envConfig.Env["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+	}
+
+	// Create the environment file path
+	envPath := filepath.Join(rootfsDir, "container.env")
+
+	// Marshal environment config to JSON
+	envData, err := json.MarshalIndent(envConfig, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal container environment: %w", err)
+	}
+
+	// Write to file
+	if err := os.WriteFile(envPath, envData, 0644); err != nil {
+		return fmt.Errorf("failed to write container.env file: %w", err)
+	}
+
+	logger.InfoContext(ctx, "container environment file created",
+		slog.String("path", envPath),
+		slog.String("working_dir", envConfig.WorkingDir),
+		slog.Int("env_vars", len(envConfig.Env)),
+		slog.Int("size", len(envData)),
+	)
+
 	return nil
 }

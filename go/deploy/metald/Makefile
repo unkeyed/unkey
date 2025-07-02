@@ -5,7 +5,7 @@
 # Variables
 BINARY_NAME := metald
 BUILD_DIR := build
-VERSION ?= 0.3.0
+VERSION ?= 0.5.2
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
 LDFLAGS := -ldflags "-s -w -X main.version=$(VERSION)"
@@ -17,48 +17,44 @@ RESET := \033[0m
 # Targets (alphabetically ordered)
 .PHONY: build build-linux check ci clean clean-gen debug deps dev fmt generate health help install install-tools lint lint-proto metrics proto-breaking release run service-logs service-logs-full service-restart service-start service-status service-stop setup test test-coverage test-short uninstall version vet
 
-build: deps ## Build the binary
-	@echo "Building $(BINARY_NAME)..."
+build: generate deps ## Build the binary
 	@mkdir -p $(BUILD_DIR)
-	go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/api
+	@go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/metald
 
 build-linux: ## Build Linux binary for deployment
-	@echo "Building $(BINARY_NAME) for Linux..."
 	@mkdir -p $(BUILD_DIR)
-	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux ./cmd/api
+	@GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux ./cmd/metald
 
 check: fmt vet lint test ## Run all checks (fmt, vet, lint with proto, test)
 
 ci: deps generate lint vet test build ## Run CI pipeline locally
 
 clean: ## Clean build artifacts
-	rm -rf $(BUILD_DIR)
-	rm -f coverage.out coverage.html
+	@rm -rf $(BUILD_DIR)
+	@rm -f coverage.out coverage.html
 
 clean-gen: ## Clean generated protobuf code
-	rm -rf gen/
+	@rm -rf gen/
 
 debug: build ## Run with debug logging
-	UNKEY_METALD_OTEL_ENABLED=true ./$(BUILD_DIR)/$(BINARY_NAME)
+	@UNKEY_METALD_OTEL_ENABLED=true ./$(BUILD_DIR)/$(BINARY_NAME)
 
 deps: ## Download and tidy dependencies
-	go mod download
-	go mod tidy
+	@go mod download
+	@go mod tidy
 
 dev: ## Run the service in development mode
-	go run ./cmd/api
+	@go run ./cmd/metald
 
 fmt: ## Format Go code
-	goimports -w .
+	@goimports -w .
 
 generate: ## Generate protobuf code
-	@echo "Generating protobuf code..."
 	@buf generate
 	@buf lint
 
 health: ## Check service health
-	@echo "Checking service health..."
-	curl -s http://localhost:8080/_/health | jq . || echo "Health check failed"
+	@curl -s http://localhost:8080/_/health | jq . || echo "Health check failed"
 
 help: ## Display this help message
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make $(CYAN)<target>$(RESET)\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  $(CYAN)%-20s$(RESET) %s\n", $$1, $$2 } /^##@/ { printf "\n%s\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
@@ -67,86 +63,80 @@ help: ## Display this help message
 # to /etc/metald/metald.env on first install. The systemd service uses EnvironmentFile to load
 # these settings, allowing easy configuration management without modifying the service file.
 install: build ## Install metald binary and systemd service
-	@echo "Installing metald binary and service..."
-	sudo systemctl stop metald 2>/dev/null || true
-	sudo cp $(BUILD_DIR)/$(BINARY_NAME) /usr/local/bin/$(BINARY_NAME)
-	sudo chmod +x /usr/local/bin/$(BINARY_NAME)
-	sudo cp contrib/systemd/metald.service /etc/systemd/system/metald.service
-	@echo "Creating tmpfiles.d configuration for network namespaces..."
-	@echo "d /run/netns 0755 root root -" | sudo tee /etc/tmpfiles.d/metald-netns.conf > /dev/null
-	sudo systemctl daemon-reload
-	sudo systemctl start metald 2>/dev/null || true
-	@echo "Installation complete. Service started."
+	@sudo systemctl stop metald 2>/dev/null || true
+	@sudo cp $(BUILD_DIR)/$(BINARY_NAME) /usr/local/bin/$(BINARY_NAME)
+	@sudo chmod +x /usr/local/bin/$(BINARY_NAME)
+	@sudo cp contrib/systemd/metald.service /etc/systemd/system/metald.service
+	@echo "d /run/netns 0755 root root -" | sudo tee /etc/tmpfiles.d/metald-netns.conf >/dev/null
+	@sudo systemctl daemon-reload
+	@sudo systemctl start metald 2>/dev/null || true
+	@echo "✓ metald installed and started"
 
 
 lint: lint-proto ## Run linting tools (includes protobuf linting)
-	@which golangci-lint > /dev/null || (echo "golangci-lint not found, install from https://golangci-lint.run/usage/install/" && exit 1)
-	golangci-lint run --disable=godox
+	@which golangci-lint >/dev/null || (echo "golangci-lint not found, install from https://golangci-lint.run/usage/install/" && exit 1)
+	@golangci-lint run --disable=godox
 
 lint-proto: ## Run protobuf linter
-	@echo "Running protobuf linter..."
 	@buf lint
 
 metrics: ## Check Prometheus metrics
-	@echo "Checking Prometheus metrics..."
-	curl -s http://localhost:9464/metrics | grep -E "^(vm_|process_|jailer_)" || echo "No VM metrics found"
+	@curl -s http://localhost:9464/metrics | grep -E "^(vm_|process_|jailer_)" || echo "No VM metrics found"
 
 proto-breaking: ## Check for breaking changes in protobuf files
-	buf breaking --against '.git#branch=main'
+	@buf breaking --against '.git#branch=main'
 
 release: clean ci build-linux ## Prepare release build
-	@echo "Release build complete: $(BUILD_DIR)/$(BINARY_NAME)-linux"
+	@echo "✓ Release build: $(BUILD_DIR)/$(BINARY_NAME)-linux"
 
 run: build ## Build and run the service
-	./$(BUILD_DIR)/$(BINARY_NAME)
+	@./$(BUILD_DIR)/$(BINARY_NAME)
 
 service-logs: ## Follow metald service logs
-	sudo journalctl -u metald -f
+	@sudo journalctl -u metald -f
 
 service-logs-full: ## Show all metald service logs
-	sudo journalctl -u metald --no-pager
+	@sudo journalctl -u metald --no-pager
 
 service-restart: ## Restart metald service
-	@echo "Restarting metald service..."
-	sudo systemctl restart metald
+	@sudo systemctl restart metald
+	@echo "✓ metald restarted"
 
 service-start: ## Start metald service
-	@echo "Starting metald service..."
-	sudo systemctl start metald
-	@echo "Service started. Use 'make service-logs' to view logs."
+	@sudo systemctl start metald
+	@echo "✓ metald started"
 
 service-status: ## Show metald service status
-	sudo systemctl status metald
+	@sudo systemctl status metald
 
 service-stop: ## Stop metald service
-	@echo "Stopping metald service..."
-	sudo systemctl stop metald
+	@sudo systemctl stop metald
+	@echo "✓ metald stopped"
 
 setup: deps generate ## Complete development setup
 
 test: ## Run all tests
-	go test ./... -v
+	@go test ./... -v
 
 test-coverage: ## Run tests with coverage report
-	go test ./... -coverprofile=coverage.out
-	go tool cover -html=coverage.out -o coverage.html
-	@echo "Coverage report generated: coverage.html"
+	@go test ./... -coverprofile=coverage.out
+	@go tool cover -html=coverage.out -o coverage.html
+	@echo "✓ Coverage report: coverage.html"
 
 test-short: ## Run tests in short mode
-	go test ./... -short
+	@go test ./... -short
 
 uninstall: ## Uninstall metald service and binary
-	@echo "Uninstalling metald service..."
-	sudo systemctl stop metald 2>/dev/null || true
-	sudo systemctl disable metald 2>/dev/null || true
-	sudo rm -f /etc/systemd/system/metald.service
-	sudo rm -f /usr/local/bin/$(BINARY_NAME)
-	sudo rm -f /etc/sudoers.d/metald
-	sudo systemctl daemon-reload
-	@echo "Uninstallation complete."
+	@sudo systemctl stop metald 2>/dev/null || true
+	@sudo systemctl disable metald 2>/dev/null || true
+	@sudo rm -f /etc/systemd/system/metald.service
+	@sudo rm -f /usr/local/bin/$(BINARY_NAME)
+	@sudo rm -f /etc/sudoers.d/metald
+	@sudo systemctl daemon-reload
+	@echo "✓ metald uninstalled"
 
 version: ## Show version information
 	@echo "$(BINARY_NAME) version: $(VERSION)"
 
 vet: ## Run go vet
-	go vet ./...
+	@go vet ./...

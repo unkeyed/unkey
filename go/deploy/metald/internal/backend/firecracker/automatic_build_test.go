@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"log/slog"
+
 	assetv1 "github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/asset/v1"
 	metaldv1 "github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/config"
-	"log/slog"
 )
 
 // mockAssetClient implements assetmanager.Client for testing automatic builds
@@ -54,9 +55,9 @@ func (m *mockAssetClient) QueryAssets(ctx context.Context, assetType assetv1.Ass
 		return &assetv1.QueryAssetsResponse{
 			Assets: []*assetv1.Asset{
 				{
-					Id:   "kernel-123",
-					Name: "vmlinux",
-					Type: assetv1.AssetType_ASSET_TYPE_KERNEL,
+					Id:     "kernel-123",
+					Name:   "vmlinux",
+					Type:   assetv1.AssetType_ASSET_TYPE_KERNEL,
 					Status: assetv1.AssetStatus_ASSET_STATUS_AVAILABLE,
 				},
 			},
@@ -71,7 +72,7 @@ func (m *mockAssetClient) QueryAssets(ctx context.Context, assetType assetv1.Ass
 	// If build is triggered and enabled for rootfs
 	if m.triggerBuild && buildOptions != nil && buildOptions.EnableAutoBuild && assetType == assetv1.AssetType_ASSET_TYPE_ROOTFS {
 		dockerImage := labels["docker_image"]
-		
+
 		// Create build info
 		buildInfo := &assetv1.BuildInfo{
 			BuildId:     "test-build-123",
@@ -90,7 +91,7 @@ func (m *mockAssetClient) QueryAssets(ctx context.Context, assetType assetv1.Ass
 				} else {
 					buildInfo.Status = "completed"
 					buildInfo.AssetId = "test-asset-456"
-					
+
 					// Add the built asset to response
 					resp.Assets = append(resp.Assets, &assetv1.Asset{
 						Id:     "test-asset-456",
@@ -143,14 +144,14 @@ func TestAutomaticAssetBuilding(t *testing.T) {
 	// 4. VM uses the newly built asset
 
 	tests := []struct {
-		name          string
-		dockerImage   string
-		tenantID      string
-		triggerBuild  bool
-		buildDelay    time.Duration
-		buildError    error
-		expectError   bool
-		expectBuild   bool
+		name         string
+		dockerImage  string
+		tenantID     string
+		triggerBuild bool
+		buildDelay   time.Duration
+		buildError   error
+		expectError  bool
+		expectBuild  bool
 	}{
 		{
 			name:         "successful automatic build",
@@ -240,7 +241,7 @@ func TestAutomaticAssetBuilding(t *testing.T) {
 			}
 
 			lastCall := mockClient.queryCalls[len(mockClient.queryCalls)-1]
-			
+
 			// Check asset type
 			if lastCall.assetType != assetv1.AssetType_ASSET_TYPE_ROOTFS {
 				t.Errorf("expected ASSET_TYPE_ROOTFS, got %v", lastCall.assetType)
@@ -273,7 +274,7 @@ func TestAutomaticAssetBuilding(t *testing.T) {
 				if len(assetMapping.assets) == 0 {
 					t.Error("expected assets in mapping but got none")
 				}
-				
+
 				if len(paths) == 0 {
 					t.Error("expected prepared paths but got none")
 				}
@@ -319,7 +320,7 @@ func TestAutomaticBuildTimeout(t *testing.T) {
 
 	// This should timeout
 	_, _, err := client.prepareVMAssets(ctx, "test-vm-timeout", vmConfig)
-	
+
 	if err == nil {
 		t.Error("expected timeout error but got none")
 	}

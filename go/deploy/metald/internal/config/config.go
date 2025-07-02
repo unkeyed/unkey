@@ -152,20 +152,20 @@ type NetworkConfig struct {
 	BridgeName      string
 	EnableRateLimit bool
 	RateLimitMbps   int
-	
+
 	// Production Scalability Configuration
-	MaxVMsPerBridge    int    // Maximum VMs per bridge before creating new bridge
-	EnableMultiBridge  bool   // Enable multiple bridges for scalability  
-	BridgePrefix       string // Prefix for multiple bridges (e.g., "metald-br")
-	
+	MaxVMsPerBridge   int    // Maximum VMs per bridge before creating new bridge
+	EnableMultiBridge bool   // Enable multiple bridges for scalability
+	BridgePrefix      string // Prefix for multiple bridges (e.g., "metald-br")
+
 	// Host Protection Configuration
-	EnableHostProtection bool // Enable host network route protection
+	EnableHostProtection bool   // Enable host network route protection
 	PrimaryInterface     string // Primary host interface to protect (auto-detected if empty)
 }
 
 // TLSConfig holds TLS configuration
 type TLSConfig struct {
-	// Mode can be "disabled", "file", or "spiffe"
+	// Mode can be "file" or "spiffe" (default: "spiffe")
 	Mode string `json:"mode,omitempty"`
 
 	// File-based TLS options
@@ -359,13 +359,13 @@ func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (
 			BridgeName:      getEnvOrDefault("UNKEY_METALD_NETWORK_BRIDGE", "br-vms"),
 			EnableRateLimit: getEnvBoolOrDefault("UNKEY_METALD_NETWORK_RATE_LIMIT"),
 			RateLimitMbps:   getEnvIntOrDefault("UNKEY_METALD_NETWORK_RATE_LIMIT_MBPS", 1000),
-			
+
 			// Production Scalability Defaults
-			MaxVMsPerBridge:    getEnvIntOrDefault("UNKEY_METALD_NETWORK_MAX_VMS_PER_BRIDGE", 1000),
-			EnableMultiBridge:  getEnvBoolOrDefault("UNKEY_METALD_NETWORK_MULTI_BRIDGE"),
-			BridgePrefix:       getEnvOrDefault("UNKEY_METALD_NETWORK_BRIDGE_PREFIX", "metald-br"),
-			
-			// Host Protection Defaults  
+			MaxVMsPerBridge:   getEnvIntOrDefault("UNKEY_METALD_NETWORK_MAX_VMS_PER_BRIDGE", 1000),
+			EnableMultiBridge: getEnvBoolOrDefault("UNKEY_METALD_NETWORK_MULTI_BRIDGE"),
+			BridgePrefix:      getEnvOrDefault("UNKEY_METALD_NETWORK_BRIDGE_PREFIX", "metald-br"),
+
+			// Host Protection Defaults
 			EnableHostProtection: getEnvBoolOrDefault("UNKEY_METALD_NETWORK_HOST_PROTECTION"),
 			PrimaryInterface:     getEnvOrDefault("UNKEY_METALD_NETWORK_PRIMARY_INTERFACE", ""),
 		},

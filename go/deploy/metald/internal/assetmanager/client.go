@@ -49,7 +49,7 @@ func NewClient(cfg *config.AssetManagerConfig, logger *slog.Logger) (Client, err
 
 	// Create HTTP client with timeouts and OpenTelemetry instrumentation
 	httpClient := &http.Client{
-		Timeout: 30 * time.Second,
+		Timeout:   30 * time.Second,
 		Transport: otelhttp.NewTransport(http.DefaultTransport),
 	}
 
@@ -61,13 +61,13 @@ func NewClient(cfg *config.AssetManagerConfig, logger *slog.Logger) (Client, err
 		loggingInterceptor(logger),
 		observability.DebugInterceptor(logger, "assetmanager"),
 	)
-	
+
 	// Convert UnaryInterceptorFunc to Interceptor
 	var interceptorList []connect.Interceptor
 	for _, interceptor := range clientInterceptors {
 		interceptorList = append(interceptorList, connect.Interceptor(interceptor))
 	}
-	
+
 	assetClient := assetv1connect.NewAssetManagerServiceClient(
 		httpClient,
 		cfg.Endpoint,
@@ -94,13 +94,13 @@ func NewClientWithHTTP(cfg *config.AssetManagerConfig, logger *slog.Logger, http
 		loggingInterceptor(logger),
 		observability.DebugInterceptor(logger, "assetmanager"),
 	)
-	
+
 	// Convert UnaryInterceptorFunc to Interceptor
 	var interceptorList []connect.Interceptor
 	for _, interceptor := range clientInterceptors {
 		interceptorList = append(interceptorList, connect.Interceptor(interceptor))
 	}
-	
+
 	assetClient := assetv1connect.NewAssetManagerServiceClient(
 		httpClient,
 		cfg.Endpoint,
@@ -168,7 +168,7 @@ func (c *client) QueryAssets(ctx context.Context, assetType assetv1.AssetType, l
 		PageSize:      1000, // Reasonable default for initial implementation
 		BuildOptions:  buildOptions,
 	}
-	
+
 	// Only filter by AVAILABLE status if we're not doing automatic builds
 	// Otherwise we might miss PENDING/BUILDING assets and trigger duplicate builds
 	if buildOptions == nil || !buildOptions.GetEnableAutoBuild() {
@@ -404,4 +404,3 @@ func loggingInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc {
 		}
 	}
 }
-

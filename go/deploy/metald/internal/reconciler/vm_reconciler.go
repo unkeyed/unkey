@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
+	metaldv1 "github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/database"
-	metaldv1 "github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
 )
 
 // VMReconciler handles VM state reconciliation between database and reality
@@ -74,7 +74,7 @@ func (r *VMReconciler) ReconcileNow(ctx context.Context) *ReconciliationReport {
 // reconcileOnce performs a single reconciliation cycle
 func (r *VMReconciler) reconcileOnce(ctx context.Context) *ReconciliationReport {
 	startTime := time.Now()
-	
+
 	r.logger.InfoContext(ctx, "starting VM reconciliation cycle")
 
 	report := &ReconciliationReport{
@@ -130,7 +130,7 @@ func (r *VMReconciler) reconcileOnce(ctx context.Context) *ReconciliationReport 
 	}
 
 	report.Duration = time.Since(startTime)
-	
+
 	r.logger.InfoContext(ctx, "VM reconciliation cycle completed",
 		slog.Duration("duration", report.Duration),
 		slog.Int("database_vms", report.DatabaseVMCount),
@@ -148,7 +148,7 @@ func (r *VMReconciler) reconcileOnce(ctx context.Context) *ReconciliationReport 
 // reconcileVM reconciles a single VM's state
 func (r *VMReconciler) reconcileVM(ctx context.Context, vm *database.VM, runningProcesses map[string]FirecrackerProcess) VMReconciliationReport {
 	vmReport := VMReconciliationReport{
-		VMID:         vm.ID,
+		VMID:          vm.ID,
 		DatabaseState: metaldv1.VmState(vm.State),
 	}
 
@@ -252,7 +252,7 @@ func (r *VMReconciler) updateVMState(ctx context.Context, vmID string, newState 
 // Uses defense-in-depth approach: age-based + validation-based + tracking-based checks
 func (r *VMReconciler) isOrphanedRecord(ctx context.Context, vm *database.VM) bool {
 	now := time.Now()
-	
+
 	// Defense 1: Age-based check - very conservative threshold
 	shutdownAge := now.Sub(vm.UpdatedAt)
 	if shutdownAge < OrphanedRecordAgeThreshold {
@@ -263,7 +263,7 @@ func (r *VMReconciler) isOrphanedRecord(ctx context.Context, vm *database.VM) bo
 		)
 		return false
 	}
-	
+
 	// Defense 2: Validation-based check - verify VM resources don't exist
 	if r.vmResourcesExist(ctx, vm) {
 		r.logger.DebugContext(ctx, "VM resources still exist - not orphaned",
@@ -271,7 +271,7 @@ func (r *VMReconciler) isOrphanedRecord(ctx context.Context, vm *database.VM) bo
 		)
 		return false
 	}
-	
+
 	// Defense 3: Tracking-based check - look for signs of improper shutdown
 	if r.hasProperShutdownMarkers(ctx, vm) {
 		r.logger.DebugContext(ctx, "VM has proper shutdown markers - not orphaned",
@@ -279,13 +279,13 @@ func (r *VMReconciler) isOrphanedRecord(ctx context.Context, vm *database.VM) bo
 		)
 		return false
 	}
-	
+
 	// All checks passed - this appears to be an orphaned record
 	r.logger.InfoContext(ctx, "VM identified as orphaned record",
 		slog.String("vm_id", vm.ID),
 		slog.Duration("age", shutdownAge),
 	)
-	
+
 	return true
 }
 
@@ -295,10 +295,10 @@ func (r *VMReconciler) vmResourcesExist(ctx context.Context, vm *database.VM) bo
 	// For now, we'll assume resources don't exist if no process is running
 	// Future enhancements could check:
 	// - Network namespace existence
-	// - TAP device existence  
+	// - TAP device existence
 	// - Storage file existence
 	// - Jailer chroot directory existence
-	
+
 	return false
 }
 
@@ -310,7 +310,7 @@ func (r *VMReconciler) hasProperShutdownMarkers(ctx context.Context, vm *databas
 	// - Shutdown reason metadata
 	// - Graceful shutdown logs
 	// - Process exit code tracking
-	
+
 	return false
 }
 
@@ -319,7 +319,7 @@ func (r *VMReconciler) deleteOrphanedVM(ctx context.Context, vmID string) error 
 	r.logger.InfoContext(ctx, "deleting orphaned VM record",
 		slog.String("vm_id", vmID),
 	)
-	
+
 	// Use soft delete to maintain audit trail
 	if err := r.vmRepo.DeleteVMWithContext(ctx, vmID); err != nil {
 		r.logger.ErrorContext(ctx, "failed to delete orphaned VM",
@@ -328,11 +328,11 @@ func (r *VMReconciler) deleteOrphanedVM(ctx context.Context, vmID string) error 
 		)
 		return fmt.Errorf("failed to delete orphaned VM %s: %w", vmID, err)
 	}
-	
+
 	r.logger.InfoContext(ctx, "successfully deleted orphaned VM record",
 		slog.String("vm_id", vmID),
 	)
-	
+
 	return nil
 }
 
@@ -365,12 +365,12 @@ func (r *VMReconciler) getRunningFirecrackerProcesses() (map[string]FirecrackerP
 		}
 
 		cmdline := string(cmdlineBytes)
-		
+
 		// Check if this is a Firecracker process
 		if strings.Contains(cmdline, "firecracker") || strings.Contains(cmdline, "fc_vcpu") {
 			// Extract VM ID from command line if possible
 			vmID := r.extractVMIDFromCmdline(cmdline)
-			
+
 			process := FirecrackerProcess{
 				PID:     pid,
 				Cmdline: cmdline,
@@ -388,7 +388,7 @@ func (r *VMReconciler) getRunningFirecrackerProcesses() (map[string]FirecrackerP
 func (r *VMReconciler) extractVMIDFromCmdline(cmdline string) string {
 	// Look for VM ID patterns in the command line
 	// This is heuristic-based and may need adjustment
-	
+
 	// Pattern 1: --id vm-id or --id=vm-id
 	if strings.Contains(cmdline, "--id") {
 		parts := strings.Fields(strings.ReplaceAll(cmdline, "\x00", " "))
@@ -430,40 +430,40 @@ type FirecrackerProcess struct {
 
 // ReconciliationReport contains the results of a reconciliation cycle
 type ReconciliationReport struct {
-	StartTime           time.Time               `json:"start_time"`
-	Duration            time.Duration           `json:"duration"`
-	DatabaseVMCount     int                     `json:"database_vm_count"`
-	RunningProcessCount int                     `json:"running_process_count"`
-	MarkedDead          int                     `json:"marked_dead"`
-	StateUpdated        int                     `json:"state_updated"`
-	OrphansDeleted      int                     `json:"orphans_deleted"`
-	NoChangeNeeded      int                     `json:"no_change_needed"`
-	ErrorCount          int                     `json:"error_count"`
+	StartTime           time.Time                `json:"start_time"`
+	Duration            time.Duration            `json:"duration"`
+	DatabaseVMCount     int                      `json:"database_vm_count"`
+	RunningProcessCount int                      `json:"running_process_count"`
+	MarkedDead          int                      `json:"marked_dead"`
+	StateUpdated        int                      `json:"state_updated"`
+	OrphansDeleted      int                      `json:"orphans_deleted"`
+	NoChangeNeeded      int                      `json:"no_change_needed"`
+	ErrorCount          int                      `json:"error_count"`
 	VMReports           []VMReconciliationReport `json:"vm_reports"`
-	Errors              []string                `json:"errors"`
+	Errors              []string                 `json:"errors"`
 }
 
 // VMReconciliationReport contains the results for a specific VM
 type VMReconciliationReport struct {
-	VMID          string                `json:"vm_id"`
-	DatabaseState metaldv1.VmState      `json:"database_state"`
-	ProcessID     string                `json:"process_id"`
-	ProcessExists bool                  `json:"process_exists"`
-	ProcessInfo   FirecrackerProcess    `json:"process_info,omitempty"`
-	Action        ReconcileAction       `json:"action"`
-	NewState      metaldv1.VmState      `json:"new_state,omitempty"`
-	Error         string                `json:"error,omitempty"`
+	VMID          string             `json:"vm_id"`
+	DatabaseState metaldv1.VmState   `json:"database_state"`
+	ProcessID     string             `json:"process_id"`
+	ProcessExists bool               `json:"process_exists"`
+	ProcessInfo   FirecrackerProcess `json:"process_info,omitempty"`
+	Action        ReconcileAction    `json:"action"`
+	NewState      metaldv1.VmState   `json:"new_state,omitempty"`
+	Error         string             `json:"error,omitempty"`
 }
 
 // ReconcileAction represents the action taken during reconciliation
 type ReconcileAction string
 
 const (
-	ReconcileActionNoChange      ReconcileAction = "no_change"
-	ReconcileActionMarkDead      ReconcileAction = "mark_dead"
-	ReconcileActionUpdateState   ReconcileAction = "update_state"
-	ReconcileActionDeleteOrphan  ReconcileAction = "delete_orphan"
-	ReconcileActionError         ReconcileAction = "error"
+	ReconcileActionNoChange     ReconcileAction = "no_change"
+	ReconcileActionMarkDead     ReconcileAction = "mark_dead"
+	ReconcileActionUpdateState  ReconcileAction = "update_state"
+	ReconcileActionDeleteOrphan ReconcileAction = "delete_orphan"
+	ReconcileActionError        ReconcileAction = "error"
 )
 
 // AIDEV-BUSINESS_RULE: Orphaned record cleanup thresholds - conservative to protect customer VMs

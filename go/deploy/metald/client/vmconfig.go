@@ -100,7 +100,7 @@ func (b *VMConfigBuilder) AddStorage(id, path string, readOnly, isRoot bool, int
 	if interfaceType == "" {
 		interfaceType = "virtio-blk"
 	}
-	
+
 	storage := &vmprovisionerv1.StorageDevice{
 		Id:            id,
 		Path:          path,
@@ -109,7 +109,7 @@ func (b *VMConfigBuilder) AddStorage(id, path string, readOnly, isRoot bool, int
 		InterfaceType: interfaceType,
 		Options:       make(map[string]string),
 	}
-	
+
 	b.config.Storage = append(b.config.Storage, storage)
 	return b
 }
@@ -129,7 +129,7 @@ func (b *VMConfigBuilder) AddStorageWithOptions(id, path string, readOnly, isRoo
 	if interfaceType == "" {
 		interfaceType = "virtio-blk"
 	}
-	
+
 	storage := &vmprovisionerv1.StorageDevice{
 		Id:            id,
 		Path:          path,
@@ -138,7 +138,7 @@ func (b *VMConfigBuilder) AddStorageWithOptions(id, path string, readOnly, isRoo
 		InterfaceType: interfaceType,
 		Options:       options,
 	}
-	
+
 	b.config.Storage = append(b.config.Storage, storage)
 	return b
 }
@@ -151,7 +151,7 @@ func (b *VMConfigBuilder) AddNetwork(id, interfaceType string, mode vmprovisione
 	if mode == vmprovisionerv1.NetworkMode_NETWORK_MODE_UNSPECIFIED {
 		mode = vmprovisionerv1.NetworkMode_NETWORK_MODE_DUAL_STACK
 	}
-	
+
 	network := &vmprovisionerv1.NetworkInterface{
 		Id:            id,
 		InterfaceType: interfaceType,
@@ -164,7 +164,7 @@ func (b *VMConfigBuilder) AddNetwork(id, interfaceType string, mode vmprovisione
 			PrivacyExtensions: true,
 		},
 	}
-	
+
 	b.config.Network = append(b.config.Network, network)
 	return b
 }
@@ -185,13 +185,13 @@ func (b *VMConfigBuilder) AddIPv6OnlyNetwork(id string) *VMConfigBuilder {
 }
 
 // AddNetworkWithCustomConfig adds a network interface with custom IPv4/IPv6 configuration
-func (b *VMConfigBuilder) AddNetworkWithCustomConfig(id, interfaceType string, mode vmprovisionerv1.NetworkMode, 
+func (b *VMConfigBuilder) AddNetworkWithCustomConfig(id, interfaceType string, mode vmprovisionerv1.NetworkMode,
 	ipv4Config *vmprovisionerv1.IPv4Config, ipv6Config *vmprovisionerv1.IPv6Config) *VMConfigBuilder {
-	
+
 	if interfaceType == "" {
 		interfaceType = "virtio-net"
 	}
-	
+
 	network := &vmprovisionerv1.NetworkInterface{
 		Id:            id,
 		InterfaceType: interfaceType,
@@ -199,7 +199,7 @@ func (b *VMConfigBuilder) AddNetworkWithCustomConfig(id, interfaceType string, m
 		Ipv4Config:    ipv4Config,
 		Ipv6Config:    ipv6Config,
 	}
-	
+
 	b.config.Network = append(b.config.Network, network)
 	return b
 }
@@ -257,10 +257,10 @@ func ValidateVMConfig(config *vmprovisionerv1.VmConfig) error {
 		return fmt.Errorf("vCPU count must be greater than 0")
 	}
 	if config.Cpu.MaxVcpuCount < config.Cpu.VcpuCount {
-		return fmt.Errorf("max vCPU count (%d) must be >= current vCPU count (%d)", 
+		return fmt.Errorf("max vCPU count (%d) must be >= current vCPU count (%d)",
 			config.Cpu.MaxVcpuCount, config.Cpu.VcpuCount)
 	}
-	
+
 	// Validate memory configuration
 	if config.Memory == nil {
 		return fmt.Errorf("memory configuration is required")
@@ -269,10 +269,10 @@ func ValidateVMConfig(config *vmprovisionerv1.VmConfig) error {
 		return fmt.Errorf("memory size must be greater than 0")
 	}
 	if config.Memory.MaxSizeBytes < config.Memory.SizeBytes {
-		return fmt.Errorf("max memory size (%d) must be >= current memory size (%d)", 
+		return fmt.Errorf("max memory size (%d) must be >= current memory size (%d)",
 			config.Memory.MaxSizeBytes, config.Memory.SizeBytes)
 	}
-	
+
 	// Validate boot configuration
 	if config.Boot == nil {
 		return fmt.Errorf("boot configuration is required")
@@ -280,7 +280,7 @@ func ValidateVMConfig(config *vmprovisionerv1.VmConfig) error {
 	if config.Boot.KernelPath == "" {
 		return fmt.Errorf("kernel path is required")
 	}
-	
+
 	// Validate storage - must have at least one root device
 	hasRoot := false
 	for _, storage := range config.Storage {
@@ -300,7 +300,7 @@ func ValidateVMConfig(config *vmprovisionerv1.VmConfig) error {
 	if !hasRoot && len(config.Storage) > 0 {
 		return fmt.Errorf("at least one storage device must be marked as root device")
 	}
-	
+
 	// Validate network interfaces
 	for _, network := range config.Network {
 		if network.Id == "" {
@@ -310,7 +310,7 @@ func ValidateVMConfig(config *vmprovisionerv1.VmConfig) error {
 			return fmt.Errorf("network mode must be specified for interface %s", network.Id)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -338,7 +338,7 @@ const (
 // NewVMConfigFromTemplate creates a VM configuration builder from a predefined template
 func NewVMConfigFromTemplate(template VMTemplate) *VMConfigBuilder {
 	builder := NewVMConfigBuilder()
-	
+
 	switch template {
 	case TemplateMinimal:
 		builder.WithCPU(1, 2).
@@ -349,7 +349,7 @@ func NewVMConfigFromTemplate(template VMTemplate) *VMConfigBuilder {
 			WithDefaultConsole("/tmp/minimal-vm-console.log").
 			AddMetadata("template", "minimal").
 			AddMetadata("purpose", "lightweight")
-			
+
 	case TemplateStandard:
 		builder.WithCPU(2, 4).
 			WithMemoryGB(2, 8, true). // 2GB, max 8GB, hotplug enabled
@@ -359,7 +359,7 @@ func NewVMConfigFromTemplate(template VMTemplate) *VMConfigBuilder {
 			WithDefaultConsole("/tmp/standard-vm-console.log").
 			AddMetadata("template", "standard").
 			AddMetadata("purpose", "general")
-			
+
 	case TemplateHighCPU:
 		builder.WithCPU(8, 16).
 			WithMemoryGB(4, 16, true). // 4GB, max 16GB
@@ -369,7 +369,7 @@ func NewVMConfigFromTemplate(template VMTemplate) *VMConfigBuilder {
 			WithDefaultConsole("/tmp/high-cpu-vm-console.log").
 			AddMetadata("template", "high-cpu").
 			AddMetadata("purpose", "compute-intensive")
-			
+
 	case TemplateHighMemory:
 		builder.WithCPU(4, 8).
 			WithMemoryGB(16, 64, true). // 16GB, max 64GB
@@ -379,7 +379,7 @@ func NewVMConfigFromTemplate(template VMTemplate) *VMConfigBuilder {
 			WithDefaultConsole("/tmp/high-memory-vm-console.log").
 			AddMetadata("template", "high-memory").
 			AddMetadata("purpose", "memory-intensive")
-			
+
 	case TemplateDevelopment:
 		builder.WithCPU(4, 8).
 			WithMemoryGB(8, 32, true). // 8GB, max 32GB
@@ -391,12 +391,12 @@ func NewVMConfigFromTemplate(template VMTemplate) *VMConfigBuilder {
 			AddMetadata("template", "development").
 			AddMetadata("purpose", "development").
 			AddMetadata("environment", "dev")
-			
+
 	default:
 		// Return standard template for unknown templates
 		return NewVMConfigFromTemplate(TemplateStandard)
 	}
-	
+
 	return builder
 }
 
@@ -405,11 +405,11 @@ func (b *VMConfigBuilder) ForDockerImage(imageName string) *VMConfigBuilder {
 	// Add Docker-specific metadata and storage configuration
 	b.AddMetadata("docker_image", imageName).
 		AddMetadata("runtime", "docker")
-	
+
 	// AIDEV-NOTE: Use standardized rootfs path instead of Docker image-specific naming
 	// This aligns with assetmanagerd's PrepareAssets method which uses "rootfs.ext4"
 	rootfsPath := "/opt/vm-assets/rootfs.ext4"
-	
+
 	// Replace any existing root storage with Docker-specific one
 	newStorage := []*vmprovisionerv1.StorageDevice{}
 	for _, storage := range b.config.Storage {
@@ -418,14 +418,14 @@ func (b *VMConfigBuilder) ForDockerImage(imageName string) *VMConfigBuilder {
 		}
 	}
 	b.config.Storage = newStorage
-	
+
 	// Add Docker rootfs with metadata for automatic build system
-	b.AddStorageWithOptions("rootfs", rootfsPath, false, true, "virtio-blk", 
+	b.AddStorageWithOptions("rootfs", rootfsPath, false, true, "virtio-blk",
 		map[string]string{
 			"docker_image": imageName,
 			"auto_build":   "true",
 		})
-	
+
 	return b
 }
 
@@ -440,7 +440,7 @@ func sanitizeImageName(imageName string) string {
 		"+": "_",
 		" ": "_",
 	}
-	
+
 	for old, new := range replacements {
 		safe = fmt.Sprintf("%s", safe)
 		// Simple replacement without complex string manipulation
@@ -455,4 +455,18 @@ func sanitizeImageName(imageName string) string {
 		safe = result
 	}
 	return safe
+}
+
+// ForceBuild configures the VM to force rebuild assets even if cached versions exist
+func (b *VMConfigBuilder) ForceBuild(force bool) *VMConfigBuilder {
+	// Add force build metadata that will be picked up by the asset management system
+	if force {
+		b.AddMetadata("force_rebuild", "true")
+	} else {
+		// Remove force rebuild metadata if it exists
+		if b.config.Metadata != nil {
+			delete(b.config.Metadata, "force_rebuild")
+		}
+	}
+	return b
 }

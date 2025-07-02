@@ -33,6 +33,9 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
+	// AssetManagerServiceUploadAssetProcedure is the fully-qualified name of the AssetManagerService's
+	// UploadAsset RPC.
+	AssetManagerServiceUploadAssetProcedure = "/asset.v1.AssetManagerService/UploadAsset"
 	// AssetManagerServiceRegisterAssetProcedure is the fully-qualified name of the
 	// AssetManagerService's RegisterAsset RPC.
 	AssetManagerServiceRegisterAssetProcedure = "/asset.v1.AssetManagerService/RegisterAsset"
@@ -64,6 +67,8 @@ const (
 
 // AssetManagerServiceClient is a client for the asset.v1.AssetManagerService service.
 type AssetManagerServiceClient interface {
+	// Upload and register an asset in one operation
+	UploadAsset(context.Context) *connect.ClientStreamForClient[v1.UploadAssetRequest, v1.UploadAssetResponse]
 	// Register a new asset (called by builderd after creating images)
 	RegisterAsset(context.Context, *connect.Request[v1.RegisterAssetRequest]) (*connect.Response[v1.RegisterAssetResponse], error)
 	// Get asset location and metadata
@@ -96,6 +101,12 @@ func NewAssetManagerServiceClient(httpClient connect.HTTPClient, baseURL string,
 	baseURL = strings.TrimRight(baseURL, "/")
 	assetManagerServiceMethods := v1.File_asset_v1_asset_proto.Services().ByName("AssetManagerService").Methods()
 	return &assetManagerServiceClient{
+		uploadAsset: connect.NewClient[v1.UploadAssetRequest, v1.UploadAssetResponse](
+			httpClient,
+			baseURL+AssetManagerServiceUploadAssetProcedure,
+			connect.WithSchema(assetManagerServiceMethods.ByName("UploadAsset")),
+			connect.WithClientOptions(opts...),
+		),
 		registerAsset: connect.NewClient[v1.RegisterAssetRequest, v1.RegisterAssetResponse](
 			httpClient,
 			baseURL+AssetManagerServiceRegisterAssetProcedure,
@@ -155,6 +166,7 @@ func NewAssetManagerServiceClient(httpClient connect.HTTPClient, baseURL string,
 
 // assetManagerServiceClient implements AssetManagerServiceClient.
 type assetManagerServiceClient struct {
+	uploadAsset    *connect.Client[v1.UploadAssetRequest, v1.UploadAssetResponse]
 	registerAsset  *connect.Client[v1.RegisterAssetRequest, v1.RegisterAssetResponse]
 	getAsset       *connect.Client[v1.GetAssetRequest, v1.GetAssetResponse]
 	listAssets     *connect.Client[v1.ListAssetsRequest, v1.ListAssetsResponse]
@@ -164,6 +176,11 @@ type assetManagerServiceClient struct {
 	garbageCollect *connect.Client[v1.GarbageCollectRequest, v1.GarbageCollectResponse]
 	prepareAssets  *connect.Client[v1.PrepareAssetsRequest, v1.PrepareAssetsResponse]
 	queryAssets    *connect.Client[v1.QueryAssetsRequest, v1.QueryAssetsResponse]
+}
+
+// UploadAsset calls asset.v1.AssetManagerService.UploadAsset.
+func (c *assetManagerServiceClient) UploadAsset(ctx context.Context) *connect.ClientStreamForClient[v1.UploadAssetRequest, v1.UploadAssetResponse] {
+	return c.uploadAsset.CallClientStream(ctx)
 }
 
 // RegisterAsset calls asset.v1.AssetManagerService.RegisterAsset.
@@ -213,6 +230,8 @@ func (c *assetManagerServiceClient) QueryAssets(ctx context.Context, req *connec
 
 // AssetManagerServiceHandler is an implementation of the asset.v1.AssetManagerService service.
 type AssetManagerServiceHandler interface {
+	// Upload and register an asset in one operation
+	UploadAsset(context.Context, *connect.ClientStream[v1.UploadAssetRequest]) (*connect.Response[v1.UploadAssetResponse], error)
 	// Register a new asset (called by builderd after creating images)
 	RegisterAsset(context.Context, *connect.Request[v1.RegisterAssetRequest]) (*connect.Response[v1.RegisterAssetResponse], error)
 	// Get asset location and metadata
@@ -241,6 +260,12 @@ type AssetManagerServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewAssetManagerServiceHandler(svc AssetManagerServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	assetManagerServiceMethods := v1.File_asset_v1_asset_proto.Services().ByName("AssetManagerService").Methods()
+	assetManagerServiceUploadAssetHandler := connect.NewClientStreamHandler(
+		AssetManagerServiceUploadAssetProcedure,
+		svc.UploadAsset,
+		connect.WithSchema(assetManagerServiceMethods.ByName("UploadAsset")),
+		connect.WithHandlerOptions(opts...),
+	)
 	assetManagerServiceRegisterAssetHandler := connect.NewUnaryHandler(
 		AssetManagerServiceRegisterAssetProcedure,
 		svc.RegisterAsset,
@@ -297,6 +322,8 @@ func NewAssetManagerServiceHandler(svc AssetManagerServiceHandler, opts ...conne
 	)
 	return "/asset.v1.AssetManagerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
+		case AssetManagerServiceUploadAssetProcedure:
+			assetManagerServiceUploadAssetHandler.ServeHTTP(w, r)
 		case AssetManagerServiceRegisterAssetProcedure:
 			assetManagerServiceRegisterAssetHandler.ServeHTTP(w, r)
 		case AssetManagerServiceGetAssetProcedure:
@@ -323,6 +350,10 @@ func NewAssetManagerServiceHandler(svc AssetManagerServiceHandler, opts ...conne
 
 // UnimplementedAssetManagerServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedAssetManagerServiceHandler struct{}
+
+func (UnimplementedAssetManagerServiceHandler) UploadAsset(context.Context, *connect.ClientStream[v1.UploadAssetRequest]) (*connect.Response[v1.UploadAssetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("asset.v1.AssetManagerService.UploadAsset is not implemented"))
+}
 
 func (UnimplementedAssetManagerServiceHandler) RegisterAsset(context.Context, *connect.Request[v1.RegisterAssetRequest]) (*connect.Response[v1.RegisterAssetResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("asset.v1.AssetManagerService.RegisterAsset is not implemented"))

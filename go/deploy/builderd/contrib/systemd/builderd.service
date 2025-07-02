@@ -73,5 +73,10 @@ Environment=UNKEY_BUILDERD_SPIFFE_SOCKET=/var/lib/spire/agent/agent.sock
 LimitNOFILE=65536
 LimitNPROC=4096
 
+# Shutdown configuration
+# AIDEV-NOTE: Give builderd time to finish builds and shutdown gracefully
+TimeoutStopSec=30
+KillMode=mixed
+
 [Install]
 WantedBy=multi-user.target

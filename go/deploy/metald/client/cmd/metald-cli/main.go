@@ -9,8 +9,8 @@ import (
 	"os"
 	"time"
 
-	vmprovisionerv1 "github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
 	"github.com/unkeyed/unkey/go/deploy/metald/client"
+	vmprovisionerv1 "github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
 )
 
 // AIDEV-NOTE: CLI tool demonstrating metald client usage with SPIFFE integration
@@ -18,23 +18,24 @@ import (
 
 func main() {
 	var (
-		serverAddr    = flag.String("server", getEnvOrDefault("UNKEY_METALD_SERVER_ADDRESS", "https://localhost:8080"), "metald server address")
-		userID        = flag.String("user", getEnvOrDefault("UNKEY_METALD_USER_ID", "cli-user"), "user ID for authentication")
-		tenantID      = flag.String("tenant", getEnvOrDefault("UNKEY_METALD_TENANT_ID", "cli-tenant"), "tenant ID for data scoping")
-		tlsMode       = flag.String("tls-mode", getEnvOrDefault("UNKEY_METALD_TLS_MODE", "spiffe"), "TLS mode: disabled, file, or spiffe")
-		spiffeSocket  = flag.String("spiffe-socket", getEnvOrDefault("UNKEY_METALD_SPIFFE_SOCKET", "/var/lib/spire/agent/agent.sock"), "SPIFFE agent socket path")
-		tlsCert       = flag.String("tls-cert", "", "TLS certificate file (for file mode)")
-		tlsKey        = flag.String("tls-key", "", "TLS key file (for file mode)")
-		tlsCA         = flag.String("tls-ca", "", "TLS CA file (for file mode)")
-		timeout       = flag.Duration("timeout", 30*time.Second, "request timeout")
-		jsonOutput    = flag.Bool("json", false, "output results as JSON")
-		
+		serverAddr   = flag.String("server", getEnvOrDefault("UNKEY_METALD_SERVER_ADDRESS", "https://localhost:8080"), "metald server address")
+		userID       = flag.String("user", getEnvOrDefault("UNKEY_METALD_USER_ID", "cli-user"), "user ID for authentication")
+		tenantID     = flag.String("tenant", getEnvOrDefault("UNKEY_METALD_TENANT_ID", "cli-tenant"), "tenant ID for data scoping")
+		tlsMode      = flag.String("tls-mode", getEnvOrDefault("UNKEY_METALD_TLS_MODE", "spiffe"), "TLS mode: disabled, file, or spiffe")
+		spiffeSocket = flag.String("spiffe-socket", getEnvOrDefault("UNKEY_METALD_SPIFFE_SOCKET", "/var/lib/spire/agent/agent.sock"), "SPIFFE agent socket path")
+		tlsCert      = flag.String("tls-cert", "", "TLS certificate file (for file mode)")
+		tlsKey       = flag.String("tls-key", "", "TLS key file (for file mode)")
+		tlsCA        = flag.String("tls-ca", "", "TLS CA file (for file mode)")
+		timeout      = flag.Duration("timeout", 30*time.Second, "request timeout")
+		jsonOutput   = flag.Bool("json", false, "output results as JSON")
+
 		// VM configuration options
-		configFile    = flag.String("config", "", "path to VM configuration file (JSON)")
-		template      = flag.String("template", "standard", "VM template: minimal, standard, high-cpu, high-memory, development")
-		cpuCount      = flag.Uint("cpu", 0, "number of vCPUs (overrides template)")
-		memoryMB      = flag.Uint64("memory", 0, "memory in MB (overrides template)")
-		dockerImage   = flag.String("docker-image", "", "Docker image to run in VM")
+		configFile  = flag.String("config", "", "path to VM configuration file (JSON)")
+		template    = flag.String("template", "standard", "VM template: minimal, standard, high-cpu, high-memory, development")
+		cpuCount    = flag.Uint("cpu", 0, "number of vCPUs (overrides template)")
+		memoryMB    = flag.Uint64("memory", 0, "memory in MB (overrides template)")
+		dockerImage = flag.String("docker-image", "", "Docker image to run in VM")
+		forceBuild  = flag.Bool("force-build", false, "force rebuild assets even if cached versions exist")
 	)
 	flag.Parse()
 
@@ -71,6 +72,7 @@ func main() {
 		CPUCount:    uint32(*cpuCount),
 		MemoryMB:    *memoryMB,
 		DockerImage: *dockerImage,
+		ForceBuild:  *forceBuild,
 	}
 
 	// Execute command
@@ -139,6 +141,7 @@ VM Configuration Options:
   -cpu <count>                Override CPU count from template
   -memory <mb>                Override memory in MB from template
   -docker-image <image>       Configure VM for Docker image
+  -force-build                Force rebuild assets even if cached versions exist
 
 Examples:
   # Create and boot a VM with SPIFFE authentication
@@ -152,6 +155,9 @@ Examples:
 
   # Create VM for Docker image
   %s -docker-image=nginx:alpine create-and-boot
+
+  # Create VM for Docker image with force build (bypass cache)
+  %s -docker-image=nginx:alpine -force-build create-and-boot
 
   # Generate configuration file
   %s -template=development config-gen > dev-vm.json
@@ -172,6 +178,7 @@ type VMConfigOptions struct {
 	CPUCount    uint32
 	MemoryMB    uint64
 	DockerImage string
+	ForceBuild  bool
 }
 
 // createVMConfig creates a VM configuration from the provided options
@@ -184,7 +191,7 @@ func createVMConfig(options VMConfigOptions) (*vmprovisionerv1.VmConfig, error) 
 		}
 		return configFile.ToVMConfig()
 	}
-	
+
 	// Start with template
 	templateName := options.Template
 	if templateName == "" {
@@ -192,12 +199,15 @@ func createVMConfig(options VMConfigOptions) (*vmprovisionerv1.VmConfig, error) 
 	}
 	template := client.VMTemplate(templateName)
 	builder := client.NewVMConfigFromTemplate(template)
-	
+
 	// Apply Docker image configuration if specified
 	if options.DockerImage != "" {
 		builder.ForDockerImage(options.DockerImage)
+		if options.ForceBuild {
+			builder.ForceBuild(true)
+		}
 	}
-	
+
 	// Apply overrides
 	if options.CPUCount > 0 {
 		// Keep max CPU at 2x current CPU or original max, whichever is higher
@@ -208,7 +218,7 @@ func createVMConfig(options VMConfigOptions) (*vmprovisionerv1.VmConfig, error) 
 		}
 		builder.WithCPU(options.CPUCount, maxCPU)
 	}
-	
+
 	if options.MemoryMB > 0 {
 		// Keep max memory at 2x current memory or original max, whichever is higher
 		maxMemoryMB := options.MemoryMB * 2
@@ -218,17 +228,24 @@ func createVMConfig(options VMConfigOptions) (*vmprovisionerv1.VmConfig, error) 
 		}
 		builder.WithMemoryMB(options.MemoryMB, maxMemoryMB, builder.Build().Memory.HotplugEnabled)
 	}
-	
+
 	// Add CLI metadata
 	builder.AddMetadata("created_by", "metald-cli")
 	builder.AddMetadata("creation_time", time.Now().Format(time.RFC3339))
-	
+
 	// Validate configuration
 	config := builder.Build()
 	if err := client.ValidateVMConfig(config); err != nil {
 		return nil, fmt.Errorf("VM configuration validation failed: %w", err)
 	}
-	
+
+	// DEBUG: Log what we're sending to metald
+	fmt.Printf("DEBUG: Final VM config metadata: %v\n", config.Metadata)
+	for i, storage := range config.Storage {
+		fmt.Printf("DEBUG: Storage[%d]: id=%s, path=%s, isRoot=%v, options=%v\n",
+			i, storage.Id, storage.Path, storage.IsRootDevice, storage.Options)
+	}
+
 	return config, nil
 }
 
@@ -242,6 +259,13 @@ func handleCreate(ctx context.Context, metaldClient *client.Client, options VMCo
 	config, err := createVMConfig(options)
 	if err != nil {
 		log.Fatalf("Failed to create VM configuration: %v", err)
+	}
+
+	// DEBUG: Log config right before sending
+	fmt.Printf("DEBUG CLIENT: Sending VM config metadata: %v\n", config.Metadata)
+	for i, storage := range config.Storage {
+		fmt.Printf("DEBUG CLIENT: Storage[%d]: id=%s, path=%s, isRoot=%v, options=%v\n",
+			i, storage.Id, storage.Path, storage.IsRootDevice, storage.Options)
 	}
 
 	req := &client.CreateVMRequest{
@@ -402,6 +426,13 @@ func handleInfo(ctx context.Context, metaldClient *client.Client, jsonOutput boo
 			fmt.Printf("    IP: %s\n", vmInfo.NetworkInfo.IpAddress)
 			fmt.Printf("    MAC: %s\n", vmInfo.NetworkInfo.MacAddress)
 			fmt.Printf("    TAP: %s\n", vmInfo.NetworkInfo.TapDevice)
+
+			if len(vmInfo.NetworkInfo.PortMappings) > 0 {
+				fmt.Printf("    Port Mappings:\n")
+				for _, mapping := range vmInfo.NetworkInfo.PortMappings {
+					fmt.Printf("      %d:%d/%s\n", mapping.HostPort, mapping.ContainerPort, mapping.Protocol)
+				}
+			}
 		}
 	}
 }
@@ -551,7 +582,7 @@ func handleCreateAndBoot(ctx context.Context, metaldClient *client.Client, optio
 
 	if jsonOutput {
 		outputJSON(map[string]interface{}{
-			"vm_id":       createResp.VMID,
+			"vm_id":        createResp.VMID,
 			"create_state": createResp.State.String(),
 			"boot_success": bootResp.Success,
 			"boot_state":   bootResp.State.String(),
@@ -630,7 +661,7 @@ func handleConfigGen(options VMConfigOptions, jsonOutput bool) {
 	if err != nil {
 		log.Fatalf("Failed to create VM configuration: %v", err)
 	}
-	
+
 	// Convert to config file format
 	templateName := options.Template
 	if templateName == "" {
@@ -638,13 +669,13 @@ func handleConfigGen(options VMConfigOptions, jsonOutput bool) {
 	}
 	configFile := client.FromVMConfig(config, templateName, fmt.Sprintf("Generated %s VM configuration", templateName))
 	configFile.Template = templateName
-	
+
 	// Output as JSON
 	data, err := json.MarshalIndent(configFile, "", "  ")
 	if err != nil {
 		log.Fatalf("Failed to marshal configuration: %v", err)
 	}
-	
+
 	fmt.Printf("%s\n", data)
 }
 
@@ -652,7 +683,7 @@ func handleConfigValidate(configFile string, jsonOutput bool) {
 	if configFile == "" {
 		log.Fatal("Configuration file path is required")
 	}
-	
+
 	// Load configuration file
 	config, err := client.LoadVMConfigFromFile(configFile)
 	if err != nil {
@@ -666,7 +697,7 @@ func handleConfigValidate(configFile string, jsonOutput bool) {
 		}
 		os.Exit(1)
 	}
-	
+
 	// Convert to VM config and validate
 	vmConfig, err := config.ToVMConfig()
 	if err != nil {
@@ -680,7 +711,7 @@ func handleConfigValidate(configFile string, jsonOutput bool) {
 		}
 		os.Exit(1)
 	}
-	
+
 	// Validate the VM configuration
 	if err := client.ValidateVMConfig(vmConfig); err != nil {
 		if jsonOutput {
@@ -693,7 +724,7 @@ func handleConfigValidate(configFile string, jsonOutput bool) {
 		}
 		os.Exit(1)
 	}
-	
+
 	// Configuration is valid
 	if jsonOutput {
 		outputJSON(map[string]interface{}{

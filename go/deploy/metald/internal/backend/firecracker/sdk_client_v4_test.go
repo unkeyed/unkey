@@ -43,7 +43,7 @@ func (m *MockAssetClient) ReleaseAsset(ctx context.Context, leaseID string) erro
 
 func TestBuildAssetRequirements(t *testing.T) {
 	client := &SDKClientV4{}
-	
+
 	tests := []struct {
 		name     string
 		config   *metaldv1.VmConfig
@@ -84,7 +84,7 @@ func TestBuildAssetRequirements(t *testing.T) {
 			expected: 2, // kernel + rootfs
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			reqs := client.buildAssetRequirements(tt.config)
@@ -95,7 +95,7 @@ func TestBuildAssetRequirements(t *testing.T) {
 
 func TestMatchAssets(t *testing.T) {
 	client := &SDKClientV4{}
-	
+
 	// Test successful matching
 	reqs := []assetRequirement{
 		{
@@ -110,7 +110,7 @@ func TestMatchAssets(t *testing.T) {
 			Required: true,
 		},
 	}
-	
+
 	availableAssets := []*assetv1.Asset{
 		{
 			Id:   "kernel-123",
@@ -124,14 +124,14 @@ func TestMatchAssets(t *testing.T) {
 			},
 		},
 	}
-	
+
 	mapping, err := client.matchAssets(reqs, availableAssets)
 	assert.NoError(t, err)
 	assert.NotNil(t, mapping)
 	assert.Equal(t, 2, len(mapping.AssetIDs()))
 	assert.Contains(t, mapping.AssetIDs(), "kernel-123")
 	assert.Contains(t, mapping.AssetIDs(), "rootfs-456")
-	
+
 	// Test missing required asset
 	reqsMissing := []assetRequirement{
 		{
@@ -142,7 +142,7 @@ func TestMatchAssets(t *testing.T) {
 			Required: true,
 		},
 	}
-	
+
 	_, err = client.matchAssets(reqsMissing, availableAssets)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "no matching asset found")

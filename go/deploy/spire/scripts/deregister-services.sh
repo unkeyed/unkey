@@ -69,6 +69,9 @@ deregister_service "billaged"
 deregister_service "builderd"
 deregister_service "assetmanagerd"
 deregister_service "metald-cli"
+deregister_service "assetmanagerd-cli"
+deregister_service "billaged-cli"
+deregister_service "builderd-cli"
 deregister_service "metald-client"
 
 # List remaining registered entries

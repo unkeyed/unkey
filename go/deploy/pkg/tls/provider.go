@@ -1,9 +1,9 @@
 // Package tls provides TLS configuration abstraction with support for multiple backends.
 //
 // The package supports three TLS modes:
-//   - disabled: No TLS (development)
+//   - disabled: No TLS (deprecated, for testing only)
 //   - file: Traditional certificate files
-//   - spiffe: SPIFFE/SPIRE identity (with graceful fallback)
+//   - spiffe: SPIFFE/SPIRE identity (recommended default)
 //
 // Example usage:
 //
@@ -68,7 +68,7 @@ const (
 // Config configures TLS provider creation.
 type Config struct {
 	// Mode specifies the TLS configuration mode.
-	Mode Mode `json:"mode" default:"disabled"`
+	Mode Mode `json:"mode" default:"spiffe"`
 
 	// CertFile is the path to the certificate file (file mode).
 	CertFile string `json:"cert_file,omitempty"`

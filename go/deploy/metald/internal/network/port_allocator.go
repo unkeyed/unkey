@@ -2,7 +2,9 @@ package network
 
 import (
 	"fmt"
+	"math/rand"
 	"sync"
+	"time"
 )
 
 // AIDEV-NOTE: Port allocator manages host port allocation for container port mapping
@@ -21,12 +23,15 @@ type PortAllocator struct {
 	// Port ranges for allocation
 	minPort int
 	maxPort int
-	
+
 	// Port tracking
-	allocated map[int]bool           // host port -> allocated
+	allocated map[int]bool             // host port -> allocated
 	vmPorts   map[string][]PortMapping // VM ID -> port mappings
-	portToVM  map[int]string          // host port -> VM ID
-	
+	portToVM  map[int]string           // host port -> VM ID
+
+	// Random number generator for port selection
+	rng *rand.Rand
+
 	mu sync.Mutex
 }
 
@@ -37,7 +42,7 @@ func NewPortAllocator(minPort, maxPort int) *PortAllocator {
 		minPort = 32768
 		maxPort = 65535
 	}
-	
+
 	//exhaustruct:ignore
 	return &PortAllocator{
 		minPort:   minPort,
@@ -45,6 +50,7 @@ func NewPortAllocator(minPort, maxPort int) *PortAllocator {
 		allocated: make(map[int]bool),
 		vmPorts:   make(map[string][]PortMapping),
 		portToVM:  make(map[int]string),
+		rng:       rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -52,24 +58,34 @@ func NewPortAllocator(minPort, maxPort int) *PortAllocator {
 func (p *PortAllocator) AllocatePort(vmID string, containerPort int, protocol string) (int, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	
+
 	// Validate protocol
 	if protocol != "tcp" && protocol != "udp" {
 		return 0, fmt.Errorf("unsupported protocol: %s", protocol)
 	}
-	
-	// First, try to allocate the same port as container port if it's in range and available
-	if containerPort >= p.minPort && containerPort <= p.maxPort && !p.allocated[containerPort] {
-		return p.doAllocatePort(vmID, containerPort, containerPort, protocol)
+
+	// Use random port allocation for better security and distribution
+	portRange := p.maxPort - p.minPort + 1
+	maxAttempts := portRange
+	if maxAttempts > 1000 {
+		maxAttempts = 1000 // Limit attempts to avoid long search times
 	}
-	
-	// Find next available port in range
+
+	// Try random ports first
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		hostPort := p.minPort + p.rng.Intn(portRange)
+		if !p.allocated[hostPort] {
+			return p.doAllocatePort(vmID, hostPort, containerPort, protocol)
+		}
+	}
+
+	// Fallback: sequential search if random didn't work (very rare case)
 	for hostPort := p.minPort; hostPort <= p.maxPort; hostPort++ {
 		if !p.allocated[hostPort] {
 			return p.doAllocatePort(vmID, hostPort, containerPort, protocol)
 		}
 	}
-	
+
 	return 0, fmt.Errorf("no available ports in range %d-%d", p.minPort, p.maxPort)
 }
 
@@ -77,22 +93,22 @@ func (p *PortAllocator) AllocatePort(vmID string, containerPort int, protocol st
 func (p *PortAllocator) AllocateSpecificPort(vmID string, hostPort, containerPort int, protocol string) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	
+
 	// Validate protocol
 	if protocol != "tcp" && protocol != "udp" {
 		return fmt.Errorf("unsupported protocol: %s", protocol)
 	}
-	
+
 	// Check if port is in range
 	if hostPort < p.minPort || hostPort > p.maxPort {
 		return fmt.Errorf("port %d outside allocation range %d-%d", hostPort, p.minPort, p.maxPort)
 	}
-	
+
 	// Check if already allocated
 	if p.allocated[hostPort] {
 		return fmt.Errorf("port %d already allocated to VM %s", hostPort, p.portToVM[hostPort])
 	}
-	
+
 	_, err := p.doAllocatePort(vmID, hostPort, containerPort, protocol)
 	return err
 }
@@ -107,11 +123,11 @@ func (p *PortAllocator) doAllocatePort(vmID string, hostPort, containerPort int,
 			}
 		}
 	}
-	
+
 	// Mark port as allocated
 	p.allocated[hostPort] = true
 	p.portToVM[hostPort] = vmID
-	
+
 	// Create mapping
 	mapping := PortMapping{
 		ContainerPort: containerPort,
@@ -119,10 +135,10 @@ func (p *PortAllocator) doAllocatePort(vmID string, hostPort, containerPort int,
 		Protocol:      protocol,
 		VMID:          vmID,
 	}
-	
+
 	// Add to VM's port list
 	p.vmPorts[vmID] = append(p.vmPorts[vmID], mapping)
-	
+
 	return hostPort, nil
 }
 
@@ -130,17 +146,17 @@ func (p *PortAllocator) doAllocatePort(vmID string, hostPort, containerPort int,
 func (p *PortAllocator) ReleasePort(hostPort int) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	
+
 	// Check if port is allocated
 	vmID, allocated := p.portToVM[hostPort]
 	if !allocated {
 		return fmt.Errorf("port %d is not allocated", hostPort)
 	}
-	
+
 	// Remove from allocated ports
 	delete(p.allocated, hostPort)
 	delete(p.portToVM, hostPort)
-	
+
 	// Remove from VM's port list
 	if mappings, exists := p.vmPorts[vmID]; exists {
 		newMappings := make([]PortMapping, 0, len(mappings))
@@ -149,14 +165,14 @@ func (p *PortAllocator) ReleasePort(hostPort int) error {
 				newMappings = append(newMappings, mapping)
 			}
 		}
-		
+
 		if len(newMappings) == 0 {
 			delete(p.vmPorts, vmID)
 		} else {
 			p.vmPorts[vmID] = newMappings
 		}
 	}
-	
+
 	return nil
 }
 
@@ -164,21 +180,21 @@ func (p *PortAllocator) ReleasePort(hostPort int) error {
 func (p *PortAllocator) ReleaseVMPorts(vmID string) []PortMapping {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	
+
 	mappings, exists := p.vmPorts[vmID]
 	if !exists {
 		return nil
 	}
-	
+
 	// Release all host ports for this VM
 	for _, mapping := range mappings {
 		delete(p.allocated, mapping.HostPort)
 		delete(p.portToVM, mapping.HostPort)
 	}
-	
+
 	// Remove VM from tracking
 	delete(p.vmPorts, vmID)
-	
+
 	return mappings
 }
 
@@ -186,12 +202,12 @@ func (p *PortAllocator) ReleaseVMPorts(vmID string) []PortMapping {
 func (p *PortAllocator) GetVMPorts(vmID string) []PortMapping {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	
+
 	mappings, exists := p.vmPorts[vmID]
 	if !exists {
 		return nil
 	}
-	
+
 	// Return a copy to prevent race conditions
 	result := make([]PortMapping, len(mappings))
 	copy(result, mappings)
@@ -202,7 +218,7 @@ func (p *PortAllocator) GetVMPorts(vmID string) []PortMapping {
 func (p *PortAllocator) IsPortAllocated(hostPort int) bool {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	
+
 	return p.allocated[hostPort]
 }
 
@@ -210,7 +226,7 @@ func (p *PortAllocator) IsPortAllocated(hostPort int) bool {
 func (p *PortAllocator) GetPortVM(hostPort int) (string, bool) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	
+
 	vmID, exists := p.portToVM[hostPort]
 	return vmID, exists
 }
@@ -219,7 +235,7 @@ func (p *PortAllocator) GetPortVM(hostPort int) (string, bool) {
 func (p *PortAllocator) GetAllocatedCount() int {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	
+
 	return len(p.allocated)
 }
 
@@ -233,12 +249,12 @@ func (p *PortAllocator) GetAvailableCount() int {
 func (p *PortAllocator) GetAllAllocated() []PortMapping {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	
+
 	var result []PortMapping
 	for _, mappings := range p.vmPorts {
 		result = append(result, mappings...)
 	}
-	
+
 	return result
 }
 
@@ -246,7 +262,7 @@ func (p *PortAllocator) GetAllAllocated() []PortMapping {
 func (p *PortAllocator) Reset() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	
+
 	p.allocated = make(map[int]bool)
 	p.vmPorts = make(map[string][]PortMapping)
 	p.portToVM = make(map[int]string)

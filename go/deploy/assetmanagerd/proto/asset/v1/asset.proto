@@ -7,6 +7,9 @@ option go_package = "github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/asset/
 // AssetManagerService manages VM assets (kernels, rootfs images) across the
 // infrastructure
 service AssetManagerService {
+  // Upload and register an asset in one operation
+  rpc UploadAsset(stream UploadAssetRequest) returns (UploadAssetResponse);
+  
   // Register a new asset (called by builderd after creating images)
   rpc RegisterAsset(RegisterAssetRequest) returns (RegisterAssetResponse);
 
@@ -84,6 +87,28 @@ message Asset {
   // Build information (if created by builderd)
   string build_id = 14;
   string source_image = 15;
+}
+
+message UploadAssetRequest {
+  oneof data {
+    UploadAssetMetadata metadata = 1;
+    bytes chunk = 2;
+  }
+}
+
+message UploadAssetMetadata {
+  string name = 1;
+  AssetType type = 2;
+  int64 size_bytes = 3;
+  map<string, string> labels = 4;
+  string created_by = 5;
+  string build_id = 6;
+  string source_image = 7;
+  string id = 8; // Optional: specific asset ID to use
+}
+
+message UploadAssetResponse {
+  Asset asset = 1;
 }
 
 message RegisterAssetRequest {

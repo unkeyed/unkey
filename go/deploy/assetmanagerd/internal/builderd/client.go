@@ -61,8 +61,8 @@ type CompletedBuild struct {
 
 // Client is a client for the builderd service
 type Client struct {
-	cfg          *Config
-	logger       *slog.Logger
+	cfg           *Config
+	logger        *slog.Logger
 	builderClient builderv1connect.BuilderServiceClient
 }
 

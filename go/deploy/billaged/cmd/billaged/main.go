@@ -30,7 +30,7 @@ import (
 )
 
 // version is set at build time via ldflags
-var version = "0.1.0"
+var version = ""
 
 // AIDEV-NOTE: Enhanced version management with debug.ReadBuildInfo fallback
 // Handles production builds (ldflags), development builds (git commit), and module builds
@@ -435,7 +435,6 @@ func printUsageSummary(logger *slog.Logger, summary *aggregator.UsageSummary) {
 		"vm_id", summary.VMID,
 	)
 }
-
 
 // printVersion displays version information
 func printVersion() {
