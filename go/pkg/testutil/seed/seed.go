@@ -99,6 +99,8 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 		Meta:              sql.NullString{String: "", Valid: false},
 		Expires:           sql.NullTime{Time: time.Time{}, Valid: false},
 		RemainingRequests: sql.NullInt32{Int32: 0, Valid: false},
+		RefillDay:         sql.NullInt16{Int16: 0, Valid: false},
+		RefillAmount:      sql.NullInt32{Int32: 0, Valid: false},
 		RatelimitAsync:    sql.NullBool{Bool: false, Valid: false},
 		RatelimitLimit:    sql.NullInt32{Int32: 0, Valid: false},
 		RatelimitDuration: sql.NullInt64{Int64: 0, Valid: false},

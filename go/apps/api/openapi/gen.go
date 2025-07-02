@@ -16,18 +16,24 @@ const (
 	RootKeyScopes = "rootKey.Scopes"
 )
 
-// Defines values for KeyCreditsRefillInterval.
+// Defines values for KeyCreditsRefillRequestInterval.
 const (
-	KeyCreditsRefillIntervalDaily   KeyCreditsRefillInterval = "daily"
-	KeyCreditsRefillIntervalMonthly KeyCreditsRefillInterval = "monthly"
+	KeyCreditsRefillRequestIntervalDaily   KeyCreditsRefillRequestInterval = "daily"
+	KeyCreditsRefillRequestIntervalMonthly KeyCreditsRefillRequestInterval = "monthly"
+)
+
+// Defines values for KeyCreditsRefillResponseInterval.
+const (
+	KeyCreditsRefillResponseIntervalDaily   KeyCreditsRefillResponseInterval = "daily"
+	KeyCreditsRefillResponseIntervalMonthly KeyCreditsRefillResponseInterval = "monthly"
 )
 
 // Defines values for KeysUpdateRemainingResponseDataRefillSettingsInterval.
 const (
-	KeysUpdateRemainingResponseDataRefillSettingsIntervalDaily   KeysUpdateRemainingResponseDataRefillSettingsInterval = "daily"
-	KeysUpdateRemainingResponseDataRefillSettingsIntervalMonthly KeysUpdateRemainingResponseDataRefillSettingsInterval = "monthly"
-	KeysUpdateRemainingResponseDataRefillSettingsIntervalNever   KeysUpdateRemainingResponseDataRefillSettingsInterval = "never"
-	KeysUpdateRemainingResponseDataRefillSettingsIntervalWeekly  KeysUpdateRemainingResponseDataRefillSettingsInterval = "weekly"
+	Daily   KeysUpdateRemainingResponseDataRefillSettingsInterval = "daily"
+	Monthly KeysUpdateRemainingResponseDataRefillSettingsInterval = "monthly"
+	Never   KeysUpdateRemainingResponseDataRefillSettingsInterval = "never"
+	Weekly  KeysUpdateRemainingResponseDataRefillSettingsInterval = "weekly"
 )
 
 // Defines values for KeysVerifyKeyResponseDataCode.
@@ -238,21 +244,40 @@ type InternalServerErrorResponse struct {
 	Meta Meta `json:"meta"`
 }
 
-// KeyCredits Credit configuration and remaining balance for this key.
-type KeyCredits struct {
-	Refill *KeyCreditsRefill `json:"refill,omitempty"`
-
-	// Remaining Number of credits remaining (-1 for unlimited).
-	Remaining int64 `json:"remaining"`
-}
-
-// KeyCreditsRefill defines model for KeyCreditsRefill.
-type KeyCreditsRefill struct {
+// KeyCreditsRefillRequest defines model for KeyCreditsRefillRequest.
+type KeyCreditsRefillRequest struct {
 	// Amount Number of credits added during each refill.
 	Amount int64 `json:"amount"`
 
 	// Interval How often credits are automatically refilled.
-	Interval KeyCreditsRefillInterval `json:"interval"`
+	Interval KeyCreditsRefillRequestInterval `json:"interval"`
+
+	// RefillDay Day of month for monthly refills (1-31).
+	RefillDay *int `json:"refillDay,omitempty"`
+	union     json.RawMessage
+}
+
+// KeyCreditsRefillRequestInterval How often credits are automatically refilled.
+type KeyCreditsRefillRequestInterval string
+
+// KeyCreditsRefillRequest0 defines model for .
+type KeyCreditsRefillRequest0 struct {
+	Interval interface{} `json:"interval"`
+}
+
+// KeyCreditsRefillRequest1 defines model for .
+type KeyCreditsRefillRequest1 struct {
+	Interval  interface{} `json:"interval"`
+	RefillDay int         `json:"refillDay"`
+}
+
+// KeyCreditsRefillResponse defines model for KeyCreditsRefillResponse.
+type KeyCreditsRefillResponse struct {
+	// Amount Number of credits added during each refill.
+	Amount int64 `json:"amount"`
+
+	// Interval How often credits are automatically refilled.
+	Interval KeyCreditsRefillResponseInterval `json:"interval"`
 
 	// LastRefillAt Unix timestamp in milliseconds of last refill.
 	LastRefillAt *int64 `json:"lastRefillAt,omitempty"`
@@ -261,8 +286,24 @@ type KeyCreditsRefill struct {
 	RefillDay *int `json:"refillDay,omitempty"`
 }
 
-// KeyCreditsRefillInterval How often credits are automatically refilled.
-type KeyCreditsRefillInterval string
+// KeyCreditsRefillResponseInterval How often credits are automatically refilled.
+type KeyCreditsRefillResponseInterval string
+
+// KeyCreditsRequest Credit configuration and remaining balance for this key.
+type KeyCreditsRequest struct {
+	Refill *KeyCreditsRefillRequest `json:"refill,omitempty"`
+
+	// Remaining Number of credits remaining (-1 for unlimited).
+	Remaining int64 `json:"remaining"`
+}
+
+// KeyCreditsResponse Credit configuration and remaining balance for this key.
+type KeyCreditsResponse struct {
+	Refill *KeyCreditsRefillResponse `json:"refill,omitempty"`
+
+	// Remaining Number of credits remaining (-1 for unlimited).
+	Remaining int64 `json:"remaining"`
+}
 
 // KeyResponse defines model for KeyResponse.
 type KeyResponse struct {
@@ -272,7 +313,7 @@ type KeyResponse struct {
 	CreatedAt int64 `json:"createdAt"`
 
 	// Credits Credit configuration and remaining balance for this key.
-	Credits *KeyCredits `json:"credits,omitempty"`
+	Credits *KeyCreditsResponse `json:"credits,omitempty"`
 
 	// Enabled Whether the key is enabled or disabled.
 	Enabled bool `json:"enabled"`
@@ -1146,7 +1187,7 @@ type V2KeysCreateKeyRequestBody struct {
 	ByteLength *int `json:"byteLength,omitempty"`
 
 	// Credits Credit configuration and remaining balance for this key.
-	Credits *KeyCredits `json:"credits,omitempty"`
+	Credits *KeyCreditsRequest `json:"credits,omitempty"`
 
 	// Enabled Controls whether the key is active immediately upon creation.
 	// When set to `false`, the key exists but all verification attempts fail with `code=DISABLED`.
@@ -1596,7 +1637,7 @@ type V2KeysSetRolesResponseData = []struct {
 // V2KeysUpdateKeyRequestBody defines model for V2KeysUpdateKeyRequestBody.
 type V2KeysUpdateKeyRequestBody struct {
 	// Credits Credit configuration and remaining balance for this key.
-	Credits *KeyCredits `json:"credits,omitempty"`
+	Credits *KeyCreditsResponse `json:"credits,omitempty"`
 
 	// Enabled Controls whether the key is currently active for verification requests.
 	// When set to `false`, all verification attempts fail with `code=DISABLED` regardless of other settings.
@@ -2314,6 +2355,126 @@ type RatelimitListOverridesJSONRequestBody = V2RatelimitListOverridesRequestBody
 
 // RatelimitSetOverrideJSONRequestBody defines body for RatelimitSetOverride for application/json ContentType.
 type RatelimitSetOverrideJSONRequestBody = V2RatelimitSetOverrideRequestBody
+
+// AsKeyCreditsRefillRequest0 returns the union data inside the KeyCreditsRefillRequest as a KeyCreditsRefillRequest0
+func (t KeyCreditsRefillRequest) AsKeyCreditsRefillRequest0() (KeyCreditsRefillRequest0, error) {
+	var body KeyCreditsRefillRequest0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromKeyCreditsRefillRequest0 overwrites any union data inside the KeyCreditsRefillRequest as the provided KeyCreditsRefillRequest0
+func (t *KeyCreditsRefillRequest) FromKeyCreditsRefillRequest0(v KeyCreditsRefillRequest0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeKeyCreditsRefillRequest0 performs a merge with any union data inside the KeyCreditsRefillRequest, using the provided KeyCreditsRefillRequest0
+func (t *KeyCreditsRefillRequest) MergeKeyCreditsRefillRequest0(v KeyCreditsRefillRequest0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsKeyCreditsRefillRequest1 returns the union data inside the KeyCreditsRefillRequest as a KeyCreditsRefillRequest1
+func (t KeyCreditsRefillRequest) AsKeyCreditsRefillRequest1() (KeyCreditsRefillRequest1, error) {
+	var body KeyCreditsRefillRequest1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromKeyCreditsRefillRequest1 overwrites any union data inside the KeyCreditsRefillRequest as the provided KeyCreditsRefillRequest1
+func (t *KeyCreditsRefillRequest) FromKeyCreditsRefillRequest1(v KeyCreditsRefillRequest1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeKeyCreditsRefillRequest1 performs a merge with any union data inside the KeyCreditsRefillRequest, using the provided KeyCreditsRefillRequest1
+func (t *KeyCreditsRefillRequest) MergeKeyCreditsRefillRequest1(v KeyCreditsRefillRequest1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t KeyCreditsRefillRequest) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	object["amount"], err = json.Marshal(t.Amount)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'amount': %w", err)
+	}
+
+	object["interval"], err = json.Marshal(t.Interval)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'interval': %w", err)
+	}
+
+	if t.RefillDay != nil {
+		object["refillDay"], err = json.Marshal(t.RefillDay)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'refillDay': %w", err)
+		}
+	}
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *KeyCreditsRefillRequest) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["amount"]; found {
+		err = json.Unmarshal(raw, &t.Amount)
+		if err != nil {
+			return fmt.Errorf("error reading 'amount': %w", err)
+		}
+	}
+
+	if raw, found := object["interval"]; found {
+		err = json.Unmarshal(raw, &t.Interval)
+		if err != nil {
+			return fmt.Errorf("error reading 'interval': %w", err)
+		}
+	}
+
+	if raw, found := object["refillDay"]; found {
+		err = json.Unmarshal(raw, &t.RefillDay)
+		if err != nil {
+			return fmt.Errorf("error reading 'refillDay': %w", err)
+		}
+	}
+
+	return err
+}
 
 // AsV2IdentitiesDeleteIdentityRequestBody0 returns the union data inside the V2IdentitiesDeleteIdentityRequestBody as a V2IdentitiesDeleteIdentityRequestBody0
 func (t V2IdentitiesDeleteIdentityRequestBody) AsV2IdentitiesDeleteIdentityRequestBody0() (V2IdentitiesDeleteIdentityRequestBody0, error) {

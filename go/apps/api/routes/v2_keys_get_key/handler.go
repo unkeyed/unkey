@@ -222,18 +222,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if key.RemainingRequests.Valid {
-		k.Credits = &openapi.KeyCredits{
+		k.Credits = &openapi.KeyCreditsResponse{
 			Remaining: int64(key.RemainingRequests.Int32),
 			Refill:    nil,
 		}
 
 		if key.RefillAmount.Valid {
-			interval := openapi.KeyCreditsRefillIntervalDaily
+			interval := openapi.KeyCreditsRefillResponseIntervalDaily
 			if key.RefillDay.Valid {
-				interval = openapi.KeyCreditsRefillIntervalMonthly
+				interval = openapi.KeyCreditsRefillResponseIntervalMonthly
 			}
 
-			k.Credits.Refill = &openapi.KeyCreditsRefill{
+			k.Credits.Refill = &openapi.KeyCreditsRefillResponse{
 				Amount:       int64(key.RefillAmount.Int32),
 				Interval:     interval,
 				RefillDay:    ptr.P(int(key.RefillDay.Int16)),

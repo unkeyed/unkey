@@ -194,7 +194,7 @@ components:
             Active sessions continue until their next verification attempt after expiry.
           example: 1704067200000
         credits:
-          "$ref": "#/components/schemas/KeyCredits"
+          "$ref": "#/components/schemas/KeyCreditsResponse"
           description: |
             Controls usage-based limits for this key through credit consumption.
             Omitting this field preserves current credit settings, while setting null enables unlimited usage.
@@ -1238,7 +1238,7 @@ components:
             Essential for trial periods, temporary access, and security compliance requiring key rotation.
           example: 1704067200000
         credits:
-          "$ref": "#/components/schemas/KeyCredits"
+          "$ref": "#/components/schemas/KeyCreditsRequest"
           description: |
             Controls usage-based limits through credit consumption with optional automatic refills.
             Unlike rate limits which control frequency, credits control total usage with global consistency.
@@ -1639,7 +1639,7 @@ components:
         - id
         - externalId
         - ratelimits
-    KeyCredits:
+    KeyCreditsResponse:
       type: object
       description: Credit configuration and remaining balance for this key.
       properties:
@@ -1651,11 +1651,11 @@ components:
           description: Number of credits remaining (-1 for unlimited).
           example: 1000
         refill:
-          "$ref": "#/components/schemas/KeyCreditsRefill"
+          "$ref": "#/components/schemas/KeyCreditsRefillResponse"
       required:
         - remaining
       additionalProperties: false
-    KeyCreditsRefill:
+    KeyCreditsRefillResponse:
       type: object
       properties:
         interval:
@@ -1688,6 +1688,67 @@ components:
       required:
         - interval
         - amount
+      additionalProperties: false
+    KeyCreditsRequest:
+      type: object
+      description: Credit configuration and remaining balance for this key.
+      properties:
+        remaining:
+          type: integer
+          format: int64
+          minimum: -1 # -1 represents unlimited
+          maximum: 9223372036854775807
+          description: Number of credits remaining (-1 for unlimited).
+          example: 1000
+        refill:
+          "$ref": "#/components/schemas/KeyCreditsRefillRequest"
+      required:
+        - remaining
+      additionalProperties: false
+    KeyCreditsRefillRequest:
+      type: object
+      properties:
+        interval:
+          type: string
+          enum:
+            - daily
+            - monthly
+          description: How often credits are automatically refilled.
+          example: daily
+        amount:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 1000000
+          description: Number of credits added during each refill.
+          example: 100
+        refillDay:
+          type: integer
+          minimum: 1
+          maximum: 31
+          description: Day of month for monthly refills (1-31).
+          example: 1
+      required:
+        - interval
+        - amount
+      oneOf:
+        - properties:
+            interval:
+              const: daily
+          required:
+            - interval
+            - amount
+        - properties:
+            interval:
+              const: monthly
+            refillDay:
+              type: integer
+              minimum: 1
+              maximum: 31
+          required:
+            - interval
+            - amount
+            - refillDay
       additionalProperties: false
     KeyResponse:
       type: object
@@ -1749,7 +1810,7 @@ components:
           description: Unix timestamp in milliseconds when key expires.
           example: 1733000000000
         credits:
-          "$ref": "#/components/schemas/KeyCredits"
+          "$ref": "#/components/schemas/KeyCreditsResponse"
         plaintext:
           type: string
           description: Decrypted key value (only when decrypt=true).

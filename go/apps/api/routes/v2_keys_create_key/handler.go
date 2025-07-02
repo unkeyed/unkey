@@ -241,6 +241,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			CreatedAtM:        now,
 			Enabled:           true,
 			RemainingRequests: sql.NullInt32{Int32: 0, Valid: false},
+			RefillDay:         sql.NullInt16{Int16: 0, Valid: false},
+			RefillAmount:      sql.NullInt32{Int32: 0, Valid: false},
 			Name:              sql.NullString{String: "", Valid: false},
 			IdentityID:        sql.NullString{String: "", Valid: false},
 			Meta:              sql.NullString{String: "", Valid: false},
@@ -276,7 +278,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if req.Credits != nil {
 			insertKeyParams.RemainingRequests = sql.NullInt32{
 				Int32: int32(req.Credits.Remaining), // nolint:gosec
-				Valid: true,
+				Valid: req.Credits.Remaining == -1,
+			}
+
+			if req.Credits.Refill != nil {
+				insertKeyParams.RefillAmount = sql.NullInt32{
+					Int32: int32(req.Credits.Remaining), // nolint:gosec
+					Valid: true,
+				}
+
+				if req.Credits.Refill.Interval == openapi.KeyCreditsRefillRequestIntervalMonthly {
+					insertKeyParams.RefillDay = sql.NullInt16{
+						Int16: int16(*req.Credits.Refill.RefillDay), // nolint:gosec
+						Valid: true,
+					}
+				}
 			}
 		}
 
