@@ -222,7 +222,7 @@ The project uses [buf](https://buf.build/) for protobuf management:
 
 ```yaml
 # buf.gen.yaml
-version: v1
+version: v2
 plugins:
   - plugin: go
     out: gen

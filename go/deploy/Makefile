@@ -113,6 +113,9 @@ install-tools: ## Install development tools
 	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	@go install golang.org/x/tools/cmd/goimports@latest
 	@command buf 2>/dev/null || (sudo /usr/bin/curl -sSL "https://github.com/bufbuild/buf/releases/latest/download/buf-$$(uname -s)-$$(uname -m)" -o /usr/local/bin/buf && sudo chmod +x /usr/local/bin/buf)
+	@mkdir -p $(HOME)/bin
+	@cp scripts/format-go.sh $(HOME)/bin
+	@cp scripts/buf-lint.sh $(HOME)/bin
 	@echo "✓ Development tools installed"
 
 lint: assetmanagerd-lint builderd-lint metald-lint billaged-lint ## Run linting for both services

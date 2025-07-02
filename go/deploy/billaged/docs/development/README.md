@@ -241,7 +241,7 @@ func TestAggregator_CalculateDelta(t *testing.T) {
         {"counter reset", 10, 100, 10},
         {"first value", 100, 0, 100},
     }
-    
+
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
             got := calculateDelta(tt.current, tt.previous)
@@ -304,7 +304,7 @@ git diff --exit-code gen/
 
 `buf.gen.yaml`:
 ```yaml
-version: v1
+version: v2
 plugins:
   - plugin: buf.build/protocolbuffers/go
     out: gen
@@ -497,7 +497,7 @@ grpcurl -plaintext -d '{
 
 2. Record metric in service:
    ```go
-   s.metrics.NewMetric.Add(ctx, 1, 
+   s.metrics.NewMetric.Add(ctx, 1,
        metric.WithAttributes(
            attribute.String("key", "value"),
        ),
