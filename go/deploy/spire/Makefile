@@ -124,6 +124,8 @@ install-agent: download-spire create-users setup-directories ## Install SPIRE ag
 	@sudo cp contrib/systemd/spire-agent.service /etc/systemd/system/spire-agent.service
 	@sudo cp /tmp/spire-install/spire-$(SPIRE_VERSION)/bin/spire-agent $(SPIRE_INSTALL_DIR)/bin/
 	@sudo chmod +x $(SPIRE_INSTALL_DIR)/bin/spire-agent
+	@sudo cp contrib/bin/spire-agent-wrapper.sh $(SPIRE_INSTALL_DIR)/bin/
+	@sudo chmod +x $(SPIRE_INSTALL_DIR)/bin/spire-agent-wrapper.sh
 	@sudo cp environments/$(SPIRE_ENVIRONMENT)/agent.conf $(SPIRE_CONFIG_DIR)/agent/agent.conf
 	@sudo chmod 700 $(SPIRE_DATA_DIR)/agent/keys
 	@sudo cp contrib/systemd/spire-agent.service /etc/systemd/system/
