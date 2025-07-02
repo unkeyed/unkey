@@ -60,39 +60,36 @@ export function CheckboxBasicVariants() {
 export function CheckboxOutlineVariants() {
   return (
     <RenderComponentWithSnippet
-      customCodeSnippet={`
-<div className="flex flex-col gap-6">
-    <div>
-      <h4 className="text-sm font-medium mb-2">Light</h4>
-      <div className="flex flex-wrap items-center gap-4">
-        <Checkbox id="outline-default" variant="outline" />
-        <Checkbox id="outline-checked" variant="outline" checked />
-        <Checkbox
-          id="outline-focus"
-          variant="outline"
-          className="!ring-4 !ring-gray-6 !border-grayA-12"
-        />
-        <Checkbox id="outline-disabled" variant="outline" disabled />
-        <Checkbox id="outline-disabled-checked" variant="outline" disabled checked />
-      </div>
-    </div>
+      customCodeSnippet={`<div className="flex flex-col gap-6">
+<div>
+  <h4 className="text-sm font-medium mb-2">Light</h4>
+  <div className="flex flex-wrap items-center gap-4">
+    <Checkbox id="outline-default" variant="outline" />
+    <Checkbox id="outline-checked" variant="outline" checked />
+    <Checkbox
+      id="outline-focus"
+      variant="outline"
+      className="!ring-4 !ring-gray-6 !border-grayA-12"
+    />
+    <Checkbox id="outline-disabled" variant="outline" disabled />
+    <Checkbox id="outline-disabled-checked" variant="outline" disabled checked />
+  </div>
 
-    <div>
-      <h4 className="text-sm font-medium mb-2">Dark</h4>
-      <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
-        <Checkbox id="outline-dark-default" variant="outline" />
-        <Checkbox id="outline-dark-checked" variant="outline" checked />
-        <Checkbox
-          id="outline-dark-focus"
-          variant="outline"
-          className="!ring-4 !ring-gray-6 !border-grayA-12"
-        />
-        <Checkbox id="outline-dark-disabled" variant="outline" disabled />
-        <Checkbox id="outline-dark-disabled-checked" variant="outline" disabled checked />
-      </div>
+  <div>
+    <h4 className="text-sm font-medium mb-2">Dark</h4>
+    <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
+      <Checkbox id="outline-dark-default" variant="outline" />
+      <Checkbox id="outline-dark-checked" variant="outline" checked />
+      <Checkbox
+        id="outline-dark-focus"
+        variant="outline"
+        className="!ring-4 !ring-gray-6 !border-grayA-12"
+      />
+      <Checkbox id="outline-dark-disabled" variant="outline" disabled />
+      <Checkbox id="outline-dark-disabled-checked" variant="outline" disabled checked />
     </div>
   </div>
-    `}
+</div>`}
     >
       <div className="flex flex-col gap-6">
         <div>
@@ -132,8 +129,7 @@ export function CheckboxOutlineVariants() {
 export function CheckboxGhostVariants() {
   return (
     <RenderComponentWithSnippet
-      customCodeSnippet={`
-<div className="flex flex-col gap-6">
+      customCodeSnippet={`<div className="flex flex-col gap-6">
   <div>
     <h4 className="text-sm font-medium mb-2">Light</h4>
     <div className="flex flex-wrap items-center gap-4">
@@ -165,8 +161,7 @@ export function CheckboxGhostVariants() {
       <Checkbox id="ghost-dark-disabled-checked" variant="ghost" disabled checked />
     </div>
   </div>
-</div>
-    `}
+</div>`}
     >
       <div className="flex flex-col gap-6">
         <div>
@@ -866,58 +861,56 @@ export function CheckboxWarningGhost() {
 export function CheckboxSuccessPrimary() {
   return (
     <RenderComponentWithSnippet
-      customCodeSnippet={`
-<div className="flex flex-col gap-6">
-    <div>
-      <h4 className="text-sm font-medium mb-2">Light</h4>
-      <div className="flex flex-wrap items-center gap-4">
-        <Checkbox id="success-primary-default" variant="primary" color="success" />
-        <Checkbox id="success-primary-checked" variant="primary" color="success" checked />
-        <Checkbox
-          id="success-primary-focus"
-          variant="primary"
-          color="success"
-          className="!ring-4 !ring-success-6"
-        />
-        <Checkbox id="success-primary-disabled" variant="primary" color="success" disabled />
-        <Checkbox
-          id="success-primary-disabled-checked"
-          variant="primary"
-          color="success"
-          disabled
-          checked
-        />
-      </div>
-    </div>
-
-    <div>
-      <h4 className="text-sm font-medium mb-2">Dark</h4>
-      <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
-        <Checkbox id="success-primary-dark-default" variant="primary" color="success" />
-        <Checkbox id="success-primary-dark-checked" variant="primary" color="success" checked />
-        <Checkbox
-          id="success-primary-dark-focus"
-          variant="primary"
-          color="success"
-          className="!ring-4 !ring-success-6"
-        />
-        <Checkbox
-          id="success-primary-dark-disabled"
-          variant="primary"
-          color="success"
-          disabled
-        />
-        <Checkbox
-          id="success-primary-dark-disabled-checked"
-          variant="primary"
-          color="success"
-          disabled
-          checked
-        />
-      </div>
+      customCodeSnippet={`<div className="flex flex-col gap-6">
+  <div>
+    <h4 className="text-sm font-medium mb-2">Light</h4>
+    <div className="flex flex-wrap items-center gap-4">
+      <Checkbox id="success-primary-default" variant="primary" color="success" />
+      <Checkbox id="success-primary-checked" variant="primary" color="success" checked />
+      <Checkbox
+        id="success-primary-focus"
+        variant="primary"
+        color="success"
+        className="!ring-4 !ring-success-6"
+      />
+      <Checkbox id="success-primary-disabled" variant="primary" color="success" disabled />
+      <Checkbox
+        id="success-primary-disabled-checked"
+        variant="primary"
+        color="success"
+        disabled
+        checked
+      />
     </div>
   </div>
-    `}
+
+  <div>
+    <h4 className="text-sm font-medium mb-2">Dark</h4>
+    <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
+      <Checkbox id="success-primary-dark-default" variant="primary" color="success" />
+      <Checkbox id="success-primary-dark-checked" variant="primary" color="success" checked />
+      <Checkbox
+        id="success-primary-dark-focus"
+        variant="primary"
+        color="success"
+        className="!ring-4 !ring-success-6"
+      />
+      <Checkbox
+        id="success-primary-dark-disabled"
+        variant="primary"
+        color="success"
+        disabled
+      />
+      <Checkbox
+        id="success-primary-dark-disabled-checked"
+        variant="primary"
+        color="success"
+        disabled
+        checked
+      />
+    </div>
+  </div>
+</div>`}
     >
       <div className="flex flex-col gap-6">
         <div>
@@ -1304,53 +1297,51 @@ export function CheckboxInfoPrimary() {
 export function CheckboxInfoOutline() {
   return (
     <RenderComponentWithSnippet
-      customCodeSnippet={`
-<div className="flex flex-col gap-6">
-    <div>
-      <h4 className="text-sm font-medium mb-2">Light</h4>
-      <div className="flex flex-wrap items-center gap-4">
-        <Checkbox id="info-outline-default" variant="outline" color="info" />
-        <Checkbox id="info-outline-checked" variant="outline" color="info" checked />
-        <Checkbox
-          id="info-outline-focus"
-          variant="outline"
-          color="info"
-          className="!ring-4 !ring-info-6 !border-info-9"
-        />
-        <Checkbox id="info-outline-disabled" variant="outline" color="info" disabled />
-        <Checkbox
-          id="info-outline-disabled-checked"
-          variant="outline"
-          color="info"
-          disabled
-          checked
-        />
-      </div>
-    </div>
-
-    <div>
-      <h4 className="text-sm font-medium mb-2">Dark</h4>
-      <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
-        <Checkbox id="info-outline-dark-default" variant="outline" color="info" />
-        <Checkbox id="info-outline-dark-checked" variant="outline" color="info" checked />
-        <Checkbox
-          id="info-outline-dark-focus"
-          variant="outline"
-          color="info"
-          className="!ring-4 !ring-info-6 !border-info-9"
-        />
-        <Checkbox id="info-outline-dark-disabled" variant="outline" color="info" disabled />
-        <Checkbox
-          id="info-outline-dark-disabled-checked"
-          variant="outline"
-          color="info"
-          disabled
-          checked
-        />
-      </div>
+      customCodeSnippet={`<div className="flex flex-col gap-6">
+  <div>
+    <h4 className="text-sm font-medium mb-2">Light</h4>
+    <div className="flex flex-wrap items-center gap-4">
+      <Checkbox id="info-outline-default" variant="outline" color="info" />
+      <Checkbox id="info-outline-checked" variant="outline" color="info" checked />
+      <Checkbox
+        id="info-outline-focus"
+        variant="outline"
+        color="info"
+        className="!ring-4 !ring-info-6 !border-info-9"
+      />
+      <Checkbox id="info-outline-disabled" variant="outline" color="info" disabled />
+      <Checkbox
+        id="info-outline-disabled-checked"
+        variant="outline"
+        color="info"
+        disabled
+        checked
+      />
     </div>
   </div>
-    `}
+
+  <div>
+    <h4 className="text-sm font-medium mb-2">Dark</h4>
+    <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
+      <Checkbox id="info-outline-dark-default" variant="outline" color="info" />
+      <Checkbox id="info-outline-dark-checked" variant="outline" color="info" checked />
+      <Checkbox
+        id="info-outline-dark-focus"
+        variant="outline"
+        color="info"
+        className="!ring-4 !ring-info-6 !border-info-9"
+      />
+      <Checkbox id="info-outline-dark-disabled" variant="outline" color="info" disabled />
+      <Checkbox
+        id="info-outline-dark-disabled-checked"
+        variant="outline"
+        color="info"
+        disabled
+        checked
+      />
+    </div>
+  </div>
+</div>`}
     >
       <div className="flex flex-col gap-6">
         <div>
@@ -1404,60 +1395,58 @@ export function CheckboxInfoOutline() {
 export function CheckboxInfoGhost() {
   return (
     <RenderComponentWithSnippet
-      customCodeSnippet={`
-<div className="flex flex-col gap-6">
-  <div>
-    <h4 className="text-sm font-medium mb-2">Light</h4>
-    <div className="flex flex-wrap items-center gap-4">
-      <Checkbox id="info-ghost-default" variant="ghost" color="info" />
-      <Checkbox id="info-ghost-checked" variant="ghost" color="info" checked />
-      <Checkbox id="info-ghost-hover" variant="ghost" color="info" className="!bg-info-3" />
-      <Checkbox
-        id="info-ghost-focus"
-        variant="ghost"
-        color="info"
-        className="!ring-4 !ring-info-6 !border-info-9"
-      />
-      <Checkbox id="info-ghost-disabled" variant="ghost" color="info" disabled />
-      <Checkbox
-        id="info-ghost-disabled-checked"
-        variant="ghost"
-        color="info"
-        disabled
-        checked
-      />
-    </div>
-  </div>
-
-  <div>
-    <h4 className="text-sm font-medium mb-2">Dark</h4>
-    <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
-      <Checkbox id="info-ghost-dark-default" variant="ghost" color="info" />
-      <Checkbox id="info-ghost-dark-checked" variant="ghost" color="info" checked />
-      <Checkbox
-        id="info-ghost-dark-hover"
-        variant="ghost"
-        color="info"
-        className="!bg-info-3"
-      />
-      <Checkbox
-        id="info-ghost-dark-focus"
-        variant="ghost"
-        color="info"
-        className="!ring-4 !ring-info-6 !border-info-9"
-      />
-      <Checkbox id="info-ghost-dark-disabled" variant="ghost" color="info" disabled />
-      <Checkbox
-        id="info-ghost-dark-disabled-checked"
-        variant="ghost"
-        color="info"
-        disabled
-        checked
-      />
-    </div>
+      customCodeSnippet={`<div className="flex flex-col gap-6">
+<div>
+  <h4 className="text-sm font-medium mb-2">Light</h4>
+  <div className="flex flex-wrap items-center gap-4">
+    <Checkbox id="info-ghost-default" variant="ghost" color="info" />
+    <Checkbox id="info-ghost-checked" variant="ghost" color="info" checked />
+    <Checkbox id="info-ghost-hover" variant="ghost" color="info" className="!bg-info-3" />
+    <Checkbox
+      id="info-ghost-focus"
+      variant="ghost"
+      color="info"
+      className="!ring-4 !ring-info-6 !border-info-9"
+    />
+    <Checkbox id="info-ghost-disabled" variant="ghost" color="info" disabled />
+    <Checkbox
+      id="info-ghost-disabled-checked"
+      variant="ghost"
+      color="info"
+      disabled
+      checked
+    />
   </div>
 </div>
-    `}
+
+<div>
+  <h4 className="text-sm font-medium mb-2">Dark</h4>
+  <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
+    <Checkbox id="info-ghost-dark-default" variant="ghost" color="info" />
+    <Checkbox id="info-ghost-dark-checked" variant="ghost" color="info" checked />
+    <Checkbox
+      id="info-ghost-dark-hover"
+      variant="ghost"
+      color="info"
+      className="!bg-info-3"
+    />
+    <Checkbox
+      id="info-ghost-dark-focus"
+      variant="ghost"
+      color="info"
+      className="!ring-4 !ring-info-6 !border-info-9"
+    />
+    <Checkbox id="info-ghost-dark-disabled" variant="ghost" color="info" disabled />
+    <Checkbox
+      id="info-ghost-dark-disabled-checked"
+      variant="ghost"
+      color="info"
+      disabled
+      checked
+    />
+  </div>
+</div>
+</div>`}
     >
       <div className="flex flex-col gap-6">
         <div>
@@ -1518,8 +1507,7 @@ export function CheckboxInfoGhost() {
 export function CheckboxSizeVariants() {
   return (
     <RenderComponentWithSnippet
-      customCodeSnippet={`
-<div className="flex flex-col gap-6">
+      customCodeSnippet={`<div className="flex flex-col gap-6">
   <div>
     <h4 className="text-sm font-medium mb-2">Light</h4>
     <div className="flex flex-wrap items-center gap-4">
@@ -1539,8 +1527,7 @@ export function CheckboxSizeVariants() {
       <Checkbox id="size-xlg-dark" size="xlg" checked />
     </div>
   </div>
-</div>
-    `}
+</div>`}
     >
       <div className="flex flex-col gap-6">
         <div>
@@ -1570,75 +1557,73 @@ export function CheckboxSizeVariants() {
 export function CheckboxWithLabels() {
   return (
     <RenderComponentWithSnippet
-      customCodeSnippet={`
-<div className="flex flex-col gap-6">
-    <div>
-      <h4 className="text-sm font-medium mb-2">Light</h4>
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center space-x-2">
-          <Checkbox id="checkbox-terms" />
-          <label
-            htmlFor="checkbox-terms"
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-          >
-            Accept terms and conditions
-          </label>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Checkbox id="checkbox-disabled" disabled />
-          <label
-            htmlFor="checkbox-disabled"
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-          >
-            Disabled option
-          </label>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Checkbox id="checkbox-checked" checked />
-          <label
-            htmlFor="checkbox-checked"
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-          >
-            Selected option
-          </label>
-        </div>
+      customCodeSnippet={`<div className="flex flex-col gap-6">
+  <div>
+    <h4 className="text-sm font-medium mb-2">Light</h4>
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center space-x-2">
+        <Checkbox id="checkbox-terms" />
+        <label
+          htmlFor="checkbox-terms"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
+          Accept terms and conditions
+        </label>
       </div>
-    </div>
-
-    <div>
-      <h4 className="text-sm font-medium mb-2">Dark</h4>
-      <div className="bg-black p-4 rounded-md flex flex-col gap-2 dark">
-        <div className="flex items-center space-x-2">
-          <Checkbox id="checkbox-terms-dark" />
-          <label
-            htmlFor="checkbox-terms-dark"
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-          >
-            Accept terms and conditions
-          </label>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Checkbox id="checkbox-disabled-dark" disabled />
-          <label
-            htmlFor="checkbox-disabled-dark"
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-          >
-            Disabled option
-          </label>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Checkbox id="checkbox-checked-dark" checked />
-          <label
-            htmlFor="checkbox-checked-dark"
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-          >
-            Selected option
-          </label>
-        </div>
+      <div className="flex items-center space-x-2">
+        <Checkbox id="checkbox-disabled" disabled />
+        <label
+          htmlFor="checkbox-disabled"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
+          Disabled option
+        </label>
+      </div>
+      <div className="flex items-center space-x-2">
+        <Checkbox id="checkbox-checked" checked />
+        <label
+          htmlFor="checkbox-checked"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
+          Selected option
+        </label>
       </div>
     </div>
   </div>
-    `}
+
+  <div>
+    <h4 className="text-sm font-medium mb-2">Dark</h4>
+    <div className="bg-black p-4 rounded-md flex flex-col gap-2 dark">
+      <div className="flex items-center space-x-2">
+        <Checkbox id="checkbox-terms-dark" />
+        <label
+          htmlFor="checkbox-terms-dark"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
+          Accept terms and conditions
+        </label>
+      </div>
+      <div className="flex items-center space-x-2">
+        <Checkbox id="checkbox-disabled-dark" disabled />
+        <label
+          htmlFor="checkbox-disabled-dark"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
+          Disabled option
+        </label>
+      </div>
+      <div className="flex items-center space-x-2">
+        <Checkbox id="checkbox-checked-dark" checked />
+        <label
+          htmlFor="checkbox-checked-dark"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
+          Selected option
+        </label>
+      </div>
+    </div>
+  </div>
+</div>`}
     >
       <div className="flex flex-col gap-6">
         <div>

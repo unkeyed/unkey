@@ -22,9 +22,13 @@ export const DialogExample: React.FC = () => {
   const [inputValue, setInputValue] = useState("");
 
   const handleCloseAttempt = () => {
-    // In a real application, you might show a confirmation dialog here
-    alert("You have unsaved changes. Are you sure you want to close?");
-    setIsWarningOpen(false);
+    // In a real application, you would show a proper confirmation dialog
+    const confirmClose = window.confirm(
+      "You have unsaved changes. Are you sure you want to close?",
+    );
+    if (confirmClose) {
+      setIsWarningOpen(false);
+    }
   };
 
   return (

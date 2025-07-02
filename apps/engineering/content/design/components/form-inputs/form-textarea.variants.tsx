@@ -92,8 +92,8 @@ export const SuccessFormTextareaVariant = () => {
   description="Your public key has been verified"
   variant="success"
   defaultValue={\`-----BEGIN PUBLIC KEY-----
-MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCridrK
------END PUBLIC KEY-----\`}
+  MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCridrK
+  -----END PUBLIC KEY-----\`}
   placeholder="Enter your public key"
 />`}
     >
