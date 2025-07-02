@@ -849,6 +849,7 @@ type Querier interface {
 	//      name = ?,
 	//      `limit` = ?,
 	//      duration = ?,
+	//      auto_apply = ?,
 	//      updated_at = NOW()
 	//  WHERE
 	//      id = ?

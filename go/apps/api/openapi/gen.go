@@ -43,12 +43,6 @@ const (
 	VALID                   KeysVerifyKeyResponseDataCode = "VALID"
 )
 
-// Defines values for V2KeysCreateKeyRequestBodyCreditsRefillInterval.
-const (
-	Daily   V2KeysCreateKeyRequestBodyCreditsRefillInterval = "daily"
-	Monthly V2KeysCreateKeyRequestBodyCreditsRefillInterval = "monthly"
-)
-
 // Defines values for V2KeysVerifyKeyRequestBodyPermissions1Type.
 const (
 	And V2KeysVerifyKeyRequestBodyPermissions1Type = "and"
@@ -1149,37 +1143,8 @@ type V2KeysCreateKeyRequestBody struct {
 	// Consider 32 bytes for highly sensitive APIs, but avoid values above 64 bytes unless specifically required.
 	ByteLength *int `json:"byteLength,omitempty"`
 
-	// Credits Controls usage-based limits through credit consumption with optional automatic refills.
-	// Unlike rate limits which control frequency, credits control total usage with global consistency.
-	// Essential for implementing usage-based pricing, subscription tiers, and hard usage quotas.
-	// Omitting this field creates unlimited usage, while setting null is not allowed during creation.
-	Credits *struct {
-		// Refill Configures automatic credit refills on a schedule for subscription-like recurring quotas.
-		// Refills add to existing credits rather than replacing them, allowing unused quotas to accumulate.
-		// Essential for implementing predictable billing cycles and user-friendly quota management.
-		Refill *struct {
-			// Amount Specifies how many credits to add during each refill cycle.
-			// This amount gets added to remaining credits, not replaced, so unused credits carry over.
-			// Typically matches your subscription plan's quota for predictable billing cycles.
-			Amount int `json:"amount"`
-
-			// Interval Sets how often credits automatically refill. Daily refills occur at midnight UTC,
-			// while monthly refills support specific days via refillDay.
-			// Choose daily for high-frequency APIs and monthly for subscription-based quotas.
-			Interval V2KeysCreateKeyRequestBodyCreditsRefillInterval `json:"interval"`
-
-			// RefillDay Sets the day of month for monthly refills (1-31). Only valid with monthly interval.
-			// Days beyond month length (like 31 in February) default to the last valid day.
-			// Useful for aligning refills with billing cycles and subscription renewals.
-			RefillDay *int `json:"refillDay,omitempty"`
-		} `json:"refill,omitempty"`
-
-		// Remaining Sets the initial number of times this key can be used before becoming invalid.
-		// Each verification reduces this count by the verification cost (default 1).
-		// When reaching 0, further verifications fail with code=USAGE_EXCEEDED.
-		// Provides globally consistent usage limits, ideal for implementing usage-based pricing and strict quotas.
-		Remaining int64 `json:"remaining"`
-	} `json:"credits,omitempty"`
+	// Credits Credit configuration and remaining balance for this key.
+	Credits *KeyCredits `json:"credits,omitempty"`
 
 	// Enabled Controls whether the key is active immediately upon creation.
 	// When set to `false`, the key exists but all verification attempts fail with `code=DISABLED`.
@@ -1243,11 +1208,6 @@ type V2KeysCreateKeyRequestBody struct {
 	// Roles provide a convenient way to group permissions and apply consistent access patterns across multiple keys.
 	Roles *[]string `json:"roles,omitempty"`
 }
-
-// V2KeysCreateKeyRequestBodyCreditsRefillInterval Sets how often credits automatically refill. Daily refills occur at midnight UTC,
-// while monthly refills support specific days via refillDay.
-// Choose daily for high-frequency APIs and monthly for subscription-based quotas.
-type V2KeysCreateKeyRequestBodyCreditsRefillInterval string
 
 // V2KeysCreateKeyResponseBody defines model for V2KeysCreateKeyResponseBody.
 type V2KeysCreateKeyResponseBody struct {

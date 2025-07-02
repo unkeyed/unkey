@@ -10,21 +10,23 @@ import (
 )
 
 const updateRatelimit = `-- name: UpdateRatelimit :exec
-UPDATE ` + "`" + `ratelimits` + "`" + ` 
-SET 
+UPDATE ` + "`" + `ratelimits` + "`" + `
+SET
     name = ?,
     ` + "`" + `limit` + "`" + ` = ?,
     duration = ?,
+    auto_apply = ?,
     updated_at = NOW()
-WHERE 
+WHERE
     id = ?
 `
 
 type UpdateRatelimitParams struct {
-	Name     string `db:"name"`
-	Limit    int32  `db:"limit"`
-	Duration int64  `db:"duration"`
-	ID       string `db:"id"`
+	Name      string `db:"name"`
+	Limit     int32  `db:"limit"`
+	Duration  int64  `db:"duration"`
+	AutoApply bool   `db:"auto_apply"`
+	ID        string `db:"id"`
 }
 
 // UpdateRatelimit
@@ -34,6 +36,7 @@ type UpdateRatelimitParams struct {
 //	    name = ?,
 //	    `limit` = ?,
 //	    duration = ?,
+//	    auto_apply = ?,
 //	    updated_at = NOW()
 //	WHERE
 //	    id = ?
@@ -42,6 +45,7 @@ func (q *Queries) UpdateRatelimit(ctx context.Context, db DBTX, arg UpdateRateli
 		arg.Name,
 		arg.Limit,
 		arg.Duration,
+		arg.AutoApply,
 		arg.ID,
 	)
 	return err

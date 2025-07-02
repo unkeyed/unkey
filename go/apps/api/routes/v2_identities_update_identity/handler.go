@@ -112,7 +112,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if _, exists := nameSet[ratelimit.Name]; exists {
 				return fault.New("duplicate ratelimit name",
 					fault.Code(codes.App.Validation.InvalidInput.URN()),
-					fault.Internal("duplicate ratelimit name"), fault.Public(fmt.Sprintf("Ratelimit with name \"%s\" is already defined in the request", ratelimit.Name)),
+					fault.Internal("duplicate ratelimit name"),
+					fault.Public(fmt.Sprintf("Ratelimit with name \"%s\" is already defined in the request", ratelimit.Name)),
 				)
 			}
 			nameSet[ratelimit.Name] = true
@@ -245,65 +246,72 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 			}
 
+			rateLimitsToDelete := make([]string, 0)
 			// Delete ratelimits that are not in the new list
 			for _, existingRL := range existingRatelimits {
-				if _, exists := newRatelimitMap[existingRL.Name]; !exists {
-					// Delete this ratelimit
-					err = db.Query.DeleteRatelimit(ctx, tx, existingRL.ID)
-					if err != nil {
-						return fault.Wrap(err,
-							fault.Internal("unable to delete ratelimit"), fault.Public("We're unable to delete a ratelimit."),
-						)
-					}
+				_, exists := newRatelimitMap[existingRL.Name]
+				if exists {
+					continue
+				}
 
-					// Add audit log for deletion
-					auditLogs = append(auditLogs, auditlog.AuditLog{
-						WorkspaceID: auth.AuthorizedWorkspaceID,
-						Event:       auditlog.RatelimitDeleteEvent,
-						Display:     fmt.Sprintf("Deleted ratelimit %s", existingRL.ID),
-						ActorID:     auth.KeyID,
-						ActorName:   "root key",
-						ActorType:   auditlog.RootKeyActor,
-						ActorMeta:   map[string]any{},
-						RemoteIP:    s.Location(),
-						UserAgent:   s.UserAgent(),
-						Resources: []auditlog.AuditLogResource{
-							{
-								ID:          identity.ID,
-								Type:        auditlog.IdentityResourceType,
-								DisplayName: identity.ExternalID,
-								Name:        identity.ExternalID,
-								Meta:        nil,
-							},
-							{
-								ID:          existingRL.ID,
-								Type:        auditlog.RatelimitResourceType,
-								DisplayName: existingRL.Name,
-								Name:        existingRL.Name,
-								Meta:        nil,
-							},
+				rateLimitsToDelete = append(rateLimitsToDelete, existingRL.ID)
+
+				// Add audit log for deletion
+				auditLogs = append(auditLogs, auditlog.AuditLog{
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					Event:       auditlog.RatelimitDeleteEvent,
+					Display:     fmt.Sprintf("Deleted ratelimit %s", existingRL.ID),
+					ActorID:     auth.KeyID,
+					ActorName:   "root key",
+					ActorType:   auditlog.RootKeyActor,
+					ActorMeta:   map[string]any{},
+					RemoteIP:    s.Location(),
+					UserAgent:   s.UserAgent(),
+					Resources: []auditlog.AuditLogResource{
+						{
+							ID:          identity.ID,
+							Type:        auditlog.IdentityResourceType,
+							DisplayName: identity.ExternalID,
+							Name:        identity.ExternalID,
+							Meta:        nil,
 						},
-					})
+						{
+							ID:          existingRL.ID,
+							Type:        auditlog.RatelimitResourceType,
+							DisplayName: existingRL.Name,
+							Name:        existingRL.Name,
+							Meta:        nil,
+						},
+					},
+				})
+			}
+
+			if len(rateLimitsToDelete) > 0 {
+				err = db.Query.DeleteManyRatelimitsByIDs(ctx, tx, rateLimitsToDelete)
+				if err != nil {
+					return fault.Wrap(err,
+						fault.Internal("unable to delete ratelimits"), fault.Public("We're unable to delete ratelimits."),
+					)
 				}
 			}
 
+			rateLimitsToInsert := make([]db.InsertIdentityRatelimitParams, 0)
 			// Update existing ratelimits or create new ones
 			for name, newRL := range newRatelimitMap {
-				if existingRL, exists := existingRatelimitMap[name]; exists {
-					// Update this ratelimit
-					err = db.Query.UpdateRatelimit(ctx, tx, db.UpdateRatelimitParams{
-						ID:       existingRL.ID,
-						Name:     newRL.Name,
-						Limit:    int32(newRL.Limit), // nolint:gosec
-						Duration: newRL.Duration,
-					})
-					if err != nil {
-						return fault.Wrap(err,
-							fault.Internal("unable to update ratelimit"), fault.Public("We're unable to update a ratelimit."),
-						)
-					}
+				existingRL, exists := existingRatelimitMap[name]
 
-					// Add audit log for update
+				if !exists {
+					rateLimitsToInsert = append(rateLimitsToInsert, db.InsertIdentityRatelimitParams{
+						ID:          existingRL.ID,
+						WorkspaceID: auth.AuthorizedWorkspaceID,
+						IdentityID:  sql.NullString{String: identity.ID, Valid: true},
+						Name:        newRL.Name,
+						Limit:       int32(newRL.Limit), // nolint:gosec
+						Duration:    newRL.Duration,
+						AutoApply:   newRL.AutoApply,
+						CreatedAt:   time.Now().UnixMilli(),
+					})
+
 					auditLogs = append(auditLogs, auditlog.AuditLog{
 						WorkspaceID: auth.AuthorizedWorkspaceID,
 						Event:       auditlog.RatelimitUpdateEvent,
@@ -331,58 +339,67 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 							},
 						},
 					})
-				} else {
-					// Create new ratelimit
-					ratelimitID := uid.New(uid.RatelimitPrefix)
-					err = db.Query.InsertIdentityRatelimit(ctx, tx, db.InsertIdentityRatelimitParams{
-						ID:          ratelimitID,
-						WorkspaceID: auth.AuthorizedWorkspaceID,
-						IdentityID:  sql.NullString{String: identity.ID, Valid: true},
-						Name:        newRL.Name,
-						Limit:       int32(newRL.Limit), // nolint:gosec
-						Duration:    newRL.Duration,
-						CreatedAt:   time.Now().UnixMilli(),
-						AutoApply:   newRL.AutoApply,
-					})
-					if err != nil {
-						return fault.Wrap(err,
-							fault.Internal("unable to create ratelimit"), fault.Public("We're unable to create a new ratelimit."),
-						)
-					}
 
-					// Add audit log for creation
-					auditLogs = append(auditLogs, auditlog.AuditLog{
-						WorkspaceID: auth.AuthorizedWorkspaceID,
-						Event:       auditlog.RatelimitCreateEvent,
-						Display:     fmt.Sprintf("Created ratelimit %s", ratelimitID),
-						ActorID:     auth.KeyID,
-						ActorName:   "root key",
-						ActorType:   auditlog.RootKeyActor,
-						ActorMeta:   map[string]any{},
-						RemoteIP:    s.Location(),
-						UserAgent:   s.UserAgent(),
-						Resources: []auditlog.AuditLogResource{
-							{
-								ID:          identity.ID,
-								Type:        auditlog.IdentityResourceType,
-								DisplayName: identity.ExternalID,
-								Name:        identity.ExternalID,
-								Meta:        nil,
-							},
-							{
-								ID:          ratelimitID,
-								Type:        auditlog.RatelimitResourceType,
-								DisplayName: newRL.Name,
-								Name:        newRL.Name,
-								Meta:        nil,
-							},
-						},
-					})
+					continue
 				}
+
+				// Create new ratelimit
+				ratelimitID := uid.New(uid.RatelimitPrefix)
+				rateLimitsToInsert = append(rateLimitsToInsert, db.InsertIdentityRatelimitParams{
+					ID:          ratelimitID,
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					IdentityID:  sql.NullString{String: identity.ID, Valid: true},
+					Name:        newRL.Name,
+					Limit:       int32(newRL.Limit), // nolint:gosec
+					Duration:    newRL.Duration,
+					CreatedAt:   time.Now().UnixMilli(),
+					AutoApply:   newRL.AutoApply,
+				})
+
+				// Add audit log for creation
+				auditLogs = append(auditLogs, auditlog.AuditLog{
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					Event:       auditlog.RatelimitCreateEvent,
+					Display:     fmt.Sprintf("Created ratelimit %s", ratelimitID),
+					ActorID:     auth.KeyID,
+					ActorName:   "root key",
+					ActorType:   auditlog.RootKeyActor,
+					ActorMeta:   map[string]any{},
+					RemoteIP:    s.Location(),
+					UserAgent:   s.UserAgent(),
+					Resources: []auditlog.AuditLogResource{
+						{
+							ID:          identity.ID,
+							Type:        auditlog.IdentityResourceType,
+							DisplayName: identity.ExternalID,
+							Name:        identity.ExternalID,
+							Meta:        nil,
+						},
+						{
+							ID:          ratelimitID,
+							Type:        auditlog.RatelimitResourceType,
+							DisplayName: newRL.Name,
+							Name:        newRL.Name,
+							Meta:        nil,
+						},
+					},
+				})
+			}
+
+			if len(rateLimitsToInsert) > 0 {
+				err = db.BulkInsert(ctx, tx,
+					"INSERT INTO ratelimits (id, workspace_id, identity_id, name,`limit`"+`, duration, created_at, auto_apply) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+					ON DUPLICATE KEY UPDATE
+					name = VALUES(name),
+					limit = VALUES(limit),
+					duration = VALUES(duration),
+					auto_apply = VALUES(auto_apply),
+					updated_at = NOW()`,
+					rateLimitsToInsert,
+				)
 			}
 		}
 
-		// Insert audit logs
 		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 		if err != nil {
 			return fault.Wrap(err,

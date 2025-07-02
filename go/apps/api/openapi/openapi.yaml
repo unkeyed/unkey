@@ -1238,58 +1238,7 @@ components:
             Essential for trial periods, temporary access, and security compliance requiring key rotation.
           example: 1704067200000
         credits:
-          type: object
-          required:
-            - remaining
-          properties:
-            remaining:
-              type: integer
-              format: int64
-              minimum: 0
-              maximum: 9223372036854775807 # Max int64 value
-              description: |
-                Sets the initial number of times this key can be used before becoming invalid.
-                Each verification reduces this count by the verification cost (default 1).
-                When reaching 0, further verifications fail with code=USAGE_EXCEEDED.
-                Provides globally consistent usage limits, ideal for implementing usage-based pricing and strict quotas.
-              example: 1000
-            refill:
-              type: object
-              properties:
-                interval:
-                  type: string
-                  enum:
-                    - daily
-                    - monthly
-                  description: |
-                    Sets how often credits automatically refill. Daily refills occur at midnight UTC,
-                    while monthly refills support specific days via refillDay.
-                    Choose daily for high-frequency APIs and monthly for subscription-based quotas.
-                amount:
-                  type: integer
-                  minimum: 1
-                  maximum: 1000000 # Reasonable upper bound for subscription quotas
-                  description: |
-                    Specifies how many credits to add during each refill cycle.
-                    This amount gets added to remaining credits, not replaced, so unused credits carry over.
-                    Typically matches your subscription plan's quota for predictable billing cycles.
-                  example: 1000
-                refillDay:
-                  type: integer
-                  minimum: 1
-                  maximum: 31 # Valid calendar days
-                  description: |
-                    Sets the day of month for monthly refills (1-31). Only valid with monthly interval.
-                    Days beyond month length (like 31 in February) default to the last valid day.
-                    Useful for aligning refills with billing cycles and subscription renewals.
-                  example: 15
-              required:
-                - interval
-                - amount
-              description: |
-                Configures automatic credit refills on a schedule for subscription-like recurring quotas.
-                Refills add to existing credits rather than replacing them, allowing unused quotas to accumulate.
-                Essential for implementing predictable billing cycles and user-friendly quota management.
+          "$ref": "#/components/schemas/KeyCredits"
           description: |
             Controls usage-based limits through credit consumption with optional automatic refills.
             Unlike rate limits which control frequency, credits control total usage with global consistency.
@@ -2398,6 +2347,7 @@ components:
             Higher values allow more frequent access but may impact service performance.
           type: integer
           format: int64
+          minimum: 1
         duration:
           description: |-
             The duration for each ratelimit window in milliseconds.
@@ -2411,6 +2361,7 @@ components:
             Shorter windows provide more frequent resets but may allow large burst usage. Longer windows provide more consistent usage patterns but take longer to reset after limit exhaustion.
           type: integer
           format: int64
+          minimum: 1000
         autoApply:
           description: |-
             Whether this ratelimit should be automatically applied when verifying a key.
@@ -6097,9 +6048,11 @@ paths:
                     - name: requests
                       limit: 10000
                       duration: 3600000
+                      autoApply: true
                     - name: heavy_compute
                       limit: 100
                       duration: 86400000
+                      autoApply: false
         required: true
       responses:
         "200":

@@ -20,7 +20,6 @@ import (
 func TestCreateIdentitySuccessfully(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
-
 	route := &handler.Handler{
 		Logger:      h.Logger,
 		DB:          h.DB,
