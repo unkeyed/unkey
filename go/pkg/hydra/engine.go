@@ -2,12 +2,13 @@ package hydra
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/hydra/db"
 	"github.com/unkeyed/unkey/go/pkg/hydra/metrics"
-	"github.com/unkeyed/unkey/go/pkg/hydra/store"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -19,7 +20,7 @@ import (
 type Config struct {
 	// Store is the persistence layer for workflow state and metadata.
 	// This field is required and cannot be nil.
-	Store store.Store
+	DB db.DBTX
 
 	// Namespace provides tenant isolation for workflows. All workflows
 	// created by this engine will be scoped to this namespace.
@@ -39,22 +40,6 @@ type Config struct {
 	Marshaller Marshaller
 }
 
-// NewConfig creates a default config with sensible defaults.
-//
-// The returned config uses:
-// - "default" namespace
-// - Real clock implementation
-// - All other fields will be set to their defaults when passed to New()
-func NewConfig() Config {
-	return Config{
-		Store:      nil,
-		Namespace:  "default",
-		Clock:      clock.New(),
-		Logger:     nil,
-		Marshaller: nil,
-	}
-}
-
 // Engine is the core workflow orchestration engine that manages workflow
 // lifecycle, coordination, and execution.
 //
@@ -68,7 +53,7 @@ func NewConfig() Config {
 // Engine instances are thread-safe and can be shared across multiple
 // workers and goroutines.
 type Engine struct {
-	store        store.Store
+	db           db.DBTX
 	namespace    string
 	cronHandlers map[string]CronHandler
 	clock        clock.Clock
@@ -90,9 +75,6 @@ type Engine struct {
 //	    Logger:    logger,
 //	})
 func New(config Config) *Engine {
-	if config.Store == nil {
-		panic("hydra: config.Store cannot be nil")
-	}
 
 	namespace := config.Namespace
 	if namespace == "" {
@@ -115,29 +97,13 @@ func New(config Config) *Engine {
 	}
 
 	return &Engine{
-		store:        config.Store,
+		db:           config.DB,
 		namespace:    namespace,
 		cronHandlers: make(map[string]CronHandler),
 		clock:        clk,
 		logger:       logger,
 		marshaller:   marshaller,
 	}
-}
-
-// NewWithStore creates a new Engine with the provided store and default config.
-//
-// This is a convenience function for creating an engine with minimal configuration.
-// Other configuration options will use their default values.
-//
-// Deprecated: Use New(Config{...}) for more explicit configuration.
-func NewWithStore(st store.Store, namespace string, clk clock.Clock) *Engine {
-	return New(Config{
-		Store:      st,
-		Namespace:  namespace,
-		Clock:      clk,
-		Logger:     nil,
-		Marshaller: nil,
-	})
 }
 
 // GetNamespace returns the namespace for this engine instance.
@@ -168,20 +134,15 @@ func (e *Engine) RegisterCron(cronSpec, name string, handler CronHandler) error 
 
 	e.cronHandlers[name] = handler
 
-	cronJob := &store.CronJob{
+	return db.Query.CreateCronJob(context.Background(), e.db, db.CreateCronJobParams{
 		ID:           uid.New(uid.CronJobPrefix),
 		Name:         name,
 		CronSpec:     cronSpec,
-		Namespace:    e.namespace,
-		WorkflowName: "", // Empty since this uses a handler, not a workflow
+		WorkflowName: "",
 		Enabled:      true,
 		CreatedAt:    e.clock.Now().UnixMilli(),
 		UpdatedAt:    e.clock.Now().UnixMilli(),
-		LastRunAt:    nil,
-		NextRunAt:    calculateNextRun(cronSpec, e.clock.Now()),
-	}
-
-	return e.store.UpsertCronJob(context.Background(), cronJob)
+	})
 }
 
 // StartWorkflow starts a new workflow execution with the given name and payload.
@@ -239,27 +200,26 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowName string, payload
 	// Record payload size
 	metrics.RecordPayloadSize(e.namespace, workflowName, "input", len(data))
 
-	workflow := &store.WorkflowExecution{
+	workflow := db.CreateWorkflowParams{
 		ID:                executionID,
 		WorkflowName:      workflowName,
-		Status:            store.WorkflowStatusPending,
+		Status:            db.WorkflowExecutionsStatusPending,
 		InputData:         data,
-		OutputData:        nil,
-		ErrorMessage:      "",
 		Namespace:         e.namespace,
 		MaxAttempts:       config.MaxAttempts,
 		RemainingAttempts: config.MaxAttempts, // Start with full attempts available
 		CreatedAt:         e.clock.Now().UnixMilli(),
-		StartedAt:         nil,
-		CompletedAt:       nil,
-		NextRetryAt:       nil,
-		SleepUntil:        nil,
 		TriggerType:       config.TriggerType,
-		TriggerSource:     config.TriggerSource,
-		TraceID:           "",
+		TriggerSource: sql.NullString{String: func() string {
+			if config.TriggerSource != nil {
+				return *config.TriggerSource
+			}
+			return ""
+		}(), Valid: config.TriggerSource != nil},
+		TraceID: "",
 	}
 
-	err = e.store.CreateWorkflow(ctx, workflow)
+	err = db.Query.CreateWorkflow(ctx, e.db, workflow)
 	if err != nil {
 		metrics.RecordError(e.namespace, "engine", "workflow_creation_failed")
 		return "", fmt.Errorf("failed to create workflow: %w", err)
@@ -271,9 +231,4 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowName string, payload
 	metrics.WorkflowsQueued.WithLabelValues(e.namespace, "pending").Inc()
 
 	return workflow.ID, nil
-}
-
-// GetStore returns the underlying store (for testing purposes)
-func (e *Engine) GetStore() store.Store {
-	return e.store
 }

@@ -2,18 +2,16 @@ package hydra
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql" // MySQL driver
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/clock"
-	"github.com/unkeyed/unkey/go/pkg/hydra/store"
-	"github.com/unkeyed/unkey/go/pkg/hydra/store/gorm"
+	"github.com/unkeyed/unkey/go/pkg/hydra/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/go/pkg/uid"
-	"gorm.io/driver/mysql"
-	gormlib "gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 // Test helper functions
@@ -31,44 +29,23 @@ func newTestEngineWithClock(t *testing.T, clk clock.Clock) *Engine {
 	containersClient := containers.New(t)
 	hostDsn, _ := containersClient.RunMySQL()
 
-	// Open MySQL database with GORM
-	db, err := gormlib.Open(mysql.Open(hostDsn), &gormlib.Config{
-		Logger: logger.Discard,
-	})
+	// Open MySQL database with sql.DB
+	sqlDB, err := sql.Open("mysql", hostDsn)
 	require.NoError(t, err)
 
-	// Auto-migrate the hydra schema
-	err = db.AutoMigrate(
-		&store.WorkflowExecution{
-			ID: "", WorkflowName: "", Status: "", InputData: nil, OutputData: nil,
-			ErrorMessage: "", CreatedAt: 0, StartedAt: nil, CompletedAt: nil,
-			MaxAttempts: 0, RemainingAttempts: 0, NextRetryAt: nil, Namespace: "",
-			TriggerType: "", TriggerSource: nil, SleepUntil: nil, TraceID: "",
-		},
-		&store.WorkflowStep{
-			ID: "", ExecutionID: "", StepName: "", StepOrder: 0, Status: "",
-			OutputData: nil, ErrorMessage: "", StartedAt: nil, CompletedAt: nil,
-			MaxAttempts: 0, RemainingAttempts: 0, Namespace: "",
-		},
-		&store.CronJob{
-			ID: "", Name: "", CronSpec: "", Namespace: "", WorkflowName: "",
-			Enabled: false, CreatedAt: 0, UpdatedAt: 0, LastRunAt: nil, NextRunAt: 0,
-		},
-		&store.Lease{
-			ResourceID: "", Kind: "", Namespace: "", WorkerID: "",
-			AcquiredAt: 0, ExpiresAt: 0, HeartbeatAt: 0,
-		},
-	)
+	// Test the connection
+	err = sqlDB.Ping()
 	require.NoError(t, err)
 
-	// Create the store
-	gormStore := gorm.NewGORMStore(db, clk)
+	// TODO: Run schema migrations for sqlc tables
+	// This would typically use the schema.sql file from the db package
+	// For now, we'll assume the schema is already set up
 
 	// Create engine with unique namespace for test isolation
 	testNamespace := uid.New(uid.TestPrefix)
 
 	engine := New(Config{
-		Store:      gormStore,
+		DB:         sqlDB,
 		Namespace:  testNamespace,
 		Clock:      clk,
 		Logger:     nil,
@@ -79,21 +56,25 @@ func newTestEngineWithClock(t *testing.T, clk clock.Clock) *Engine {
 }
 
 // waitForWorkflowCompletion waits until a workflow reaches a terminal state (completed or failed)
-func waitForWorkflowCompletion(t *testing.T, e *Engine, executionID string, timeout time.Duration) *store.WorkflowExecution {
+func waitForWorkflowCompletion(t *testing.T, e *Engine, executionID string, timeout time.Duration) *db.WorkflowExecution {
 	t.Helper()
 
-	var workflow *store.WorkflowExecution
+	var workflow *db.WorkflowExecution
 
 	require.Eventually(t, func() bool {
 		var err error
-		workflow, err = e.GetStore().GetWorkflow(context.Background(), e.GetNamespace(), executionID)
+		wf, err := db.Query.GetWorkflow(context.Background(), e.db, db.GetWorkflowParams{
+			ID:        executionID,
+			Namespace: e.GetNamespace(),
+		})
 		if err != nil {
 			t.Logf("Error getting workflow %s: %v", executionID, err)
 			return false
 		}
+		workflow = &wf
 
-		isComplete := workflow.Status == store.WorkflowStatusCompleted ||
-			workflow.Status == store.WorkflowStatusFailed
+		isComplete := workflow.Status == db.WorkflowExecutionsStatusCompleted ||
+			workflow.Status == db.WorkflowExecutionsStatusFailed
 
 		if !isComplete {
 			t.Logf("Workflow %s status: %s", executionID, workflow.Status)

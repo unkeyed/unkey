@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/unkeyed/unkey/go/pkg/ptr"
+	"github.com/unkeyed/unkey/go/pkg/hydra/db"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 // Sleep suspends workflow execution for the specified duration.
@@ -58,33 +59,27 @@ func Sleep(ctx WorkflowContext, duration time.Duration) error {
 
 	now := time.Now().UnixMilli()
 	existingStep, err := wctx.getAnyStep(stepName)
-	if err == nil && existingStep != nil && existingStep.StartedAt != nil {
-		sleepUntil := *existingStep.StartedAt + duration.Milliseconds()
+	if err == nil && existingStep != nil && existingStep.StartedAt.Valid {
+		sleepUntil := existingStep.StartedAt.Int64 + duration.Milliseconds()
 
 		if sleepUntil <= now {
-			return wctx.markStepCompleted(existingStep.ID, []byte("{}"))
+			return wctx.markStepCompleted(stepName, []byte("{}"))
 		}
 		return wctx.suspendWorkflowForSleep(sleepUntil)
 	}
 
 	sleepUntil := now + duration.Milliseconds()
 
-	step := &WorkflowStep{
-		ID:                "",
+	err = db.Query.CreateStep(wctx.ctx, wctx.db, db.CreateStepParams{
+		ID:                uid.New("step"),
 		ExecutionID:       wctx.ExecutionID(),
 		StepName:          stepName,
 		StepOrder:         wctx.getNextStepOrder(),
-		Status:            StepStatusRunning,
+		Status:            db.WorkflowStepsStatusRunning,
 		Namespace:         wctx.namespace,
-		StartedAt:         ptr.P(now),
-		OutputData:        nil,
-		ErrorMessage:      "",
 		MaxAttempts:       1, // Sleep doesn't need retries
 		RemainingAttempts: 1,
-		CompletedAt:       nil,
-	}
-
-	err = wctx.store.CreateStep(wctx.ctx, step)
+	})
 	if err != nil {
 		return fmt.Errorf("failed to create sleep step: %w", err)
 	}

@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/clock"
-	"github.com/unkeyed/unkey/go/pkg/hydra/store"
+	"github.com/unkeyed/unkey/go/pkg/hydra/db"
 	"github.com/unkeyed/unkey/go/pkg/hydra/testharness"
 )
 
@@ -101,17 +101,17 @@ func TestEventDrivenConsistency(t *testing.T) {
 	}
 
 	// Verify database consistency matches events
-	allWorkflows, err := engine.store.GetAllWorkflows(ctx, engine.GetNamespace())
+	allWorkflows, err := db.Query.GetAllWorkflows(ctx, engine.db, engine.GetNamespace())
 	require.NoError(t, err)
 
-	workflowStatusCounts := make(map[store.WorkflowStatus]int)
+	workflowStatusCounts := make(map[db.WorkflowExecutionsStatus]int)
 	for _, wf := range allWorkflows {
 		workflowStatusCounts[wf.Status]++
 	}
 
 	// Database should match event counts
-	completedInDB := workflowStatusCounts[store.WorkflowStatusCompleted]
-	failedInDB := workflowStatusCounts[store.WorkflowStatusFailed]
+	completedInDB := workflowStatusCounts[db.WorkflowExecutionsStatusCompleted]
+	failedInDB := workflowStatusCounts[db.WorkflowExecutionsStatusFailed]
 
 	eventCompletedCount := eventCollector.Count(testharness.WorkflowCompleted)
 	eventFailedCount := eventCollector.Count(testharness.WorkflowFailed)
@@ -122,17 +122,17 @@ func TestEventDrivenConsistency(t *testing.T) {
 		"Failed workflows in DB should match failed events")
 
 	// Verify step consistency
-	allSteps, err := engine.store.GetAllSteps(ctx, engine.GetNamespace())
+	allSteps, err := db.Query.GetAllSteps(ctx, engine.db, engine.GetNamespace())
 	require.NoError(t, err)
 
-	stepStatusCounts := make(map[store.StepStatus]int)
+	stepStatusCounts := make(map[db.WorkflowStepsStatus]int)
 	for _, step := range allSteps {
 		stepStatusCounts[step.Status]++
 	}
 
 	// Steps in database should match step events
-	completedStepsInDB := stepStatusCounts[store.StepStatusCompleted]
-	failedStepsInDB := stepStatusCounts[store.StepStatusFailed]
+	completedStepsInDB := stepStatusCounts[db.WorkflowStepsStatusCompleted]
+	failedStepsInDB := stepStatusCounts[db.WorkflowStepsStatusFailed]
 
 	eventStepExecutedCount := eventCollector.Count(testharness.StepExecuted)
 	eventStepFailedCount := eventCollector.Count(testharness.StepFailed)

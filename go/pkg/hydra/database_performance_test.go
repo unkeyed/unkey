@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/clock"
-	"github.com/unkeyed/unkey/go/pkg/hydra/store"
+	"github.com/unkeyed/unkey/go/pkg/hydra/db"
 )
 
 // loadTestWorkflow is a minimal workflow for load testing
@@ -65,7 +65,7 @@ func TestDatabaseQueryPerformanceUnderLoad(t *testing.T) {
 	}
 
 	// Verify workflows are pending
-	pendingCount, err := countPendingWorkflows(engine.store, ctx, engine.GetNamespace())
+	pendingCount, err := countPendingWorkflows(engine.db, ctx, engine.GetNamespace())
 	require.NoError(t, err)
 	require.Equal(t, numPendingWorkflows, pendingCount,
 		"Should have created %d pending workflows", numPendingWorkflows)
@@ -95,7 +95,11 @@ func TestDatabaseQueryPerformanceUnderLoad(t *testing.T) {
 				default:
 					// Measure query performance
 					start := time.Now()
-					_, err := engine.store.GetPendingWorkflows(ctx, engine.GetNamespace(), 50, nil)
+					_, err := db.Query.GetPendingWorkflows(ctx, engine.db, db.GetPendingWorkflowsParams{
+						Namespace: engine.GetNamespace(),
+						Limit:     50,
+						Offset:    0,
+					})
 					queryDuration := time.Since(start)
 
 					totalQueries.Add(1)
@@ -194,7 +198,11 @@ func TestDatabaseIndexOptimization(t *testing.T) {
 
 			for i := 0; i < numQueries; i++ {
 				start := time.Now()
-				workflows, err := engine.store.GetPendingWorkflows(ctx, engine.GetNamespace(), 50, nil)
+				workflows, err := db.Query.GetPendingWorkflows(ctx, engine.db, db.GetPendingWorkflowsParams{
+					Namespace: engine.GetNamespace(),
+					Limit:     50,
+					Offset:    0,
+				})
 				duration := time.Since(start)
 
 				require.NoError(t, err)
@@ -253,16 +261,15 @@ func TestConcurrentLeaseAcquisition(t *testing.T) {
 
 			for _, executionID := range executionIDs {
 				// Try to acquire lease
-				lease := &store.Lease{
+				err := db.Query.AcquireLease(ctx, engine.db, db.AcquireLeaseParams{
 					ResourceID:  executionID,
-					Kind:        "workflow",
+					Kind:        db.LeasesKindWorkflow,
 					Namespace:   engine.GetNamespace(),
 					WorkerID:    workerIDStr,
 					AcquiredAt:  testClock.Now().UnixMilli(),
 					ExpiresAt:   testClock.Now().Add(30 * time.Second).UnixMilli(),
 					HeartbeatAt: testClock.Now().UnixMilli(),
-				}
-				err := engine.store.AcquireLease(ctx, lease)
+				})
 
 				if err != nil {
 					failedLeases.Add(1)
@@ -302,8 +309,12 @@ func TestConcurrentLeaseAcquisition(t *testing.T) {
 }
 
 // Helper function to count pending workflows
-func countPendingWorkflows(s store.Store, ctx context.Context, namespace string) (int, error) {
-	workflows, err := s.GetPendingWorkflows(ctx, namespace, 10000, nil) // Large limit
+func countPendingWorkflows(database db.DBTX, ctx context.Context, namespace string) (int, error) {
+	workflows, err := db.Query.GetPendingWorkflows(ctx, database, db.GetPendingWorkflowsParams{
+		Namespace: namespace,
+		Limit:     10000, // Large limit
+		Offset:    0,
+	})
 	if err != nil {
 		return 0, err
 	}

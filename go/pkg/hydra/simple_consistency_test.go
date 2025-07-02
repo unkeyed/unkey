@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/clock"
-	"github.com/unkeyed/unkey/go/pkg/hydra/store"
+	"github.com/unkeyed/unkey/go/pkg/hydra/db"
 	"github.com/unkeyed/unkey/go/pkg/hydra/testharness"
 )
 
@@ -84,12 +84,12 @@ func TestSimpleDataConsistency(t *testing.T) {
 	}
 
 	// Verify database consistency
-	allWorkflows, err := engine.store.GetAllWorkflows(context.Background(), engine.GetNamespace())
+	allWorkflows, err := db.Query.GetAllWorkflows(context.Background(), engine.db, engine.GetNamespace())
 	require.NoError(t, err)
 
 	completedInDB := 0
 	for _, wf := range allWorkflows {
-		if wf.Status == store.WorkflowStatusCompleted {
+		if wf.Status == db.WorkflowExecutionsStatusCompleted {
 			completedInDB++
 		}
 	}
@@ -197,12 +197,12 @@ func TestConcurrentWorkerConsistency(t *testing.T) {
 	require.Equal(t, 0, duplicateCompletions, "Should have zero duplicate workflow completions")
 
 	// Verify database consistency
-	allWorkflows, err := engine.store.GetAllWorkflows(context.Background(), engine.GetNamespace())
+	allWorkflows, err := db.Query.GetAllWorkflows(context.Background(), engine.db, engine.GetNamespace())
 	require.NoError(t, err)
 
 	completedInDB := 0
 	for _, wf := range allWorkflows {
-		if wf.Status == store.WorkflowStatusCompleted {
+		if wf.Status == db.WorkflowExecutionsStatusCompleted {
 			completedInDB++
 		}
 	}

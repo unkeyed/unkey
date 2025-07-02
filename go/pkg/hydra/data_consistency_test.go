@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/clock"
-	"github.com/unkeyed/unkey/go/pkg/hydra/store"
+	"github.com/unkeyed/unkey/go/pkg/hydra/db"
 )
 
 // TestConcurrentWorkflowAccess tests that multiple workers trying to acquire
@@ -80,8 +80,11 @@ func TestConcurrentWorkflowAccess(t *testing.T) {
 	require.Eventually(t, func() bool {
 		completedCount := 0
 		for _, workflowID := range workflowIDs {
-			workflow, err := engine.GetStore().GetWorkflow(context.Background(), engine.GetNamespace(), workflowID)
-			if err == nil && workflow.Status == store.WorkflowStatusCompleted {
+			workflow, err := db.Query.GetWorkflow(context.Background(), engine.db, db.GetWorkflowParams{
+				ID:        workflowID,
+				Namespace: engine.GetNamespace(),
+			})
+			if err == nil && workflow.Status == db.WorkflowExecutionsStatusCompleted {
 				completedCount++
 			}
 		}
@@ -150,7 +153,7 @@ func TestStepExecutionRaceConditions(t *testing.T) {
 	require.NotNil(t, finalWorkflow)
 
 	// Verify workflow completed successfully (no race conditions caused failures)
-	require.Equal(t, store.WorkflowStatusCompleted, finalWorkflow.Status,
+	require.Equal(t, db.WorkflowExecutionsStatusCompleted, finalWorkflow.Status,
 		"Workflow should complete successfully without race conditions")
 
 	// Test individual step consistency by trying to get each expected step
@@ -162,14 +165,18 @@ func TestStepExecutionRaceConditions(t *testing.T) {
 	duplicateSteps := 0
 	for _, stepName := range expectedSteps {
 		// Try to get the step - this verifies it exists and is unique
-		step, err := engine.store.GetStep(ctx, engine.GetNamespace(), executionID, stepName)
+		step, err := db.Query.GetStep(ctx, engine.db, db.GetStepParams{
+			Namespace:   engine.GetNamespace(),
+			ExecutionID: executionID,
+			StepName:    stepName,
+		})
 		if err != nil {
 			t.Errorf("Expected step '%s' not found: %v", stepName, err)
 			continue
 		}
 
 		// Verify step completed successfully
-		if step.Status != store.StepStatusCompleted {
+		if step.Status != db.WorkflowStepsStatusCompleted {
 			t.Errorf("Step '%s' not completed: %s", stepName, step.Status)
 		}
 	}
@@ -214,13 +221,17 @@ func TestDatabaseTransactionIntegrity(t *testing.T) {
 
 	// Wait for normal workflow to complete
 	finalWorkflow1 := waitForWorkflowCompletion(t, engine, executionID1, 5*time.Second)
-	require.Equal(t, store.WorkflowStatusCompleted, finalWorkflow1.Status)
+	require.Equal(t, db.WorkflowExecutionsStatusCompleted, finalWorkflow1.Status)
 
 	// Verify steps were created properly by checking the transaction step
-	step1, err := engine.store.GetStep(ctx, engine.GetNamespace(), executionID1, "transaction-step")
+	step1, err := db.Query.GetStep(ctx, engine.db, db.GetStepParams{
+		Namespace:   engine.GetNamespace(),
+		ExecutionID: executionID1,
+		StepName:    "transaction-step",
+	})
 	require.NoError(t, err)
 	require.NotNil(t, step1, "Transaction step should be created for successful workflow")
-	require.Equal(t, store.StepStatusCompleted, step1.Status, "Transaction step should complete successfully")
+	require.Equal(t, db.WorkflowStepsStatusCompleted, step1.Status, "Transaction step should complete successfully")
 
 }
 

@@ -2,12 +2,14 @@ package hydra
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"reflect"
 	"time"
 
+	"github.com/unkeyed/unkey/go/pkg/hydra/db"
 	"github.com/unkeyed/unkey/go/pkg/hydra/metrics"
-	"github.com/unkeyed/unkey/go/pkg/ptr"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 // Step executes a named step within a workflow with automatic checkpointing and retry logic.
@@ -97,7 +99,7 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 	}
 
 	existingStep, err := wctx.getAnyStep(stepName)
-	var stepToUse *WorkflowStep
+	var stepToUse *db.WorkflowStep
 	shouldCreateNewStep := true
 
 	if err == nil && existingStep != nil {
@@ -108,33 +110,31 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 	stepStartTime := time.Now()
 
 	if shouldCreateNewStep {
-		stepToUse = &WorkflowStep{
-			ID:                "",
+		stepID := uid.New("step")
+		err = db.Query.CreateStep(wctx.ctx, wctx.db, db.CreateStepParams{
+			ID:                stepID,
 			ExecutionID:       wctx.ExecutionID(),
 			StepName:          stepName,
 			StepOrder:         wctx.getNextStepOrder(),
-			Status:            StepStatusRunning,
+			Status:            db.WorkflowStepsStatusRunning,
 			Namespace:         wctx.namespace,
-			StartedAt:         ptr.P(stepStartTime.UnixMilli()),
-			OutputData:        nil,
-			ErrorMessage:      "",
 			MaxAttempts:       wctx.stepMaxAttempts,
 			RemainingAttempts: wctx.stepMaxAttempts,
-			CompletedAt:       nil,
-		}
-
-		err = wctx.store.CreateStep(wctx.ctx, stepToUse)
+		})
 		if err != nil {
 			metrics.RecordError(wctx.namespace, "step", "create_step_failed")
 			return zero, fmt.Errorf("failed to create step: %w", err)
 		}
 	} else {
-		stepToUse.Status = StepStatusRunning
-		stepToUse.StartedAt = ptr.P(stepStartTime.UnixMilli())
-		stepToUse.ErrorMessage = ""
-		stepToUse.CompletedAt = nil
-
-		err = wctx.store.UpdateStepStatus(wctx.ctx, wctx.namespace, wctx.executionID, stepName, StepStatusRunning, nil, "")
+		err = db.Query.UpdateStepStatus(wctx.ctx, wctx.db, db.UpdateStepStatusParams{
+			Status:       db.WorkflowStepsStatusRunning,
+			CompletedAt:  sql.NullInt64{},
+			OutputData:   nil,
+			ErrorMessage: sql.NullString{},
+			Namespace:    wctx.namespace,
+			ExecutionID:  wctx.executionID,
+			StepName:     stepName,
+		})
 		if err != nil {
 			metrics.RecordError(wctx.namespace, "step", "update_step_failed")
 			return zero, fmt.Errorf("failed to update step: %w", err)
