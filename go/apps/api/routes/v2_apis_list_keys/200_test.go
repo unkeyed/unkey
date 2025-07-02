@@ -94,6 +94,7 @@ func TestSuccess(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	encryptedKeysMap := make(map[string]struct{})
 	// Create test keys with various configurations
 	testKeys := []struct {
 		id         string
@@ -192,6 +193,7 @@ func TestSuccess(t *testing.T) {
 			EncryptionKeyID: encryption.GetKeyId(),
 		})
 		require.NoError(t, err)
+		encryptedKeysMap[keyData.id] = struct{}{}
 	}
 
 	// Set up request headers
@@ -601,8 +603,6 @@ func TestSuccess(t *testing.T) {
 		req := handler.Request{
 			ApiId:   apiID,
 			Decrypt: ptr.P(true),
-			Cursor:  ptr.P(testKeys[0].id),
-			Limit:   ptr.P(1),
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -616,7 +616,12 @@ func TestSuccess(t *testing.T) {
 		require.NotNil(t, res.Body.Data)
 
 		for _, key := range res.Body.Data {
-			require.NotEmpty(t, ptr.SafeDeref(key.Plaintext), "Key should be decrypted key")
+			_, exists := encryptedKeysMap[key.KeyId]
+			if !exists {
+				continue
+			}
+
+			require.NotEmpty(t, ptr.SafeDeref(key.Plaintext), "Key should be decrypted and have plaintext")
 		}
 	})
 }
