@@ -13,7 +13,6 @@ export const LogsSearch = ({ keyspaceId }: { keyspaceId: string }) => {
           "Please provide more specific search criteria. Your query requires additional details for accurate results.",
           {
             duration: 8000,
-            important: true,
             position: "top-right",
             style: {
               whiteSpace: "pre-line",
@@ -32,7 +31,6 @@ export const LogsSearch = ({ keyspaceId }: { keyspaceId: string }) => {
 
       toast.error(errorMessage, {
         duration: 8000,
-        important: true,
         position: "top-right",
         style: {
           whiteSpace: "pre-line",
