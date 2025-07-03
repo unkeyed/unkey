@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/clock"
-	"github.com/unkeyed/unkey/go/pkg/hydra/db"
 )
 
 // TestStepIdempotencyDuringWorkerFailure guarantees that workflow steps are idempotent
@@ -70,21 +69,15 @@ func TestStepIdempotencyDuringWorkerFailure(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 
 		// Check if workflow has been picked up
-		currentStatus, getErr := db.Query.GetWorkflow(ctx, engine.db, db.GetWorkflowParams{
-			ID:        executionID,
-			Namespace: engine.GetNamespace(),
-		})
+		currentStatus, getErr := engine.store.GetWorkflow(ctx, engine.GetNamespace(), executionID)
 		require.NoError(t, getErr)
-		if currentStatus.Status != db.WorkflowExecutionsStatusPending {
+		if currentStatus.Status != WorkflowStatusPending {
 			break
 		}
 	}
 
 	// Check that workflow is being processed
-	_, err = db.Query.GetWorkflow(ctx, engine.db, db.GetWorkflowParams{
-		ID:        executionID,
-		Namespace: engine.GetNamespace(),
-	})
+	_, err = engine.store.GetWorkflow(ctx, engine.GetNamespace(), executionID)
 	require.NoError(t, err)
 
 	// Simulate worker1 crash by shutting it down
@@ -120,12 +113,9 @@ func TestStepIdempotencyDuringWorkerFailure(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 
 		// Check if workflow has been picked up
-		currentStatus, err := db.Query.GetWorkflow(ctx, engine.db, db.GetWorkflowParams{
-			ID:        executionID,
-			Namespace: engine.GetNamespace(),
-		})
+		currentStatus, err := engine.store.GetWorkflow(ctx, engine.GetNamespace(), executionID)
 		require.NoError(t, err)
-		if currentStatus.Status != db.WorkflowExecutionsStatusPending {
+		if currentStatus.Status != WorkflowStatusPending {
 			break
 		}
 	}
@@ -142,7 +132,7 @@ func TestStepIdempotencyDuringWorkerFailure(t *testing.T) {
 			"processing payments multiple times, or creating duplicate records.", finalCount)
 
 	// Verify workflow completed successfully
-	require.Equal(t, db.WorkflowExecutionsStatusCompleted, finalResult.Status, "Workflow should complete successfully despite worker crash")
+	require.Equal(t, WorkflowStatusCompleted, finalResult.Status, "Workflow should complete successfully despite worker crash")
 }
 
 // testWorkflow is a minimal workflow for testing step idempotency

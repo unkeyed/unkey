@@ -7,11 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"database/sql"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/clock"
-
-	_ "modernc.org/sqlite"
+	"github.com/unkeyed/unkey/go/pkg/hydra/store/gorm"
 )
 
 // TestWorkflowPickupLatencyBaseline measures the baseline latency for a single worker
@@ -412,18 +410,13 @@ func (w *benchmarkWorkflow) Start(ctx context.Context, payload any) (string, err
 
 // Helper for benchmarks that need testing.TB interface
 func newTestEngineBench(tb testing.TB) *Engine {
-	dbPath := tb.TempDir() + "/bench.db"
-	sqlDB, err := sql.Open("sqlite", dbPath)
+	store, err := gorm.NewSQLiteStore(tb.TempDir()+"/bench.db", nil)
 	if err != nil {
 		tb.Fatal(err)
 	}
 
-	// TODO: Run schema migrations for sqlc tables
-	// This would typically use the schema.sql file from the db package
-	// For now, we'll assume the schema is already set up
-
 	return New(Config{
-		DB:    sqlDB,
+		Store: store,
 		Clock: clock.New(),
 	})
 }

@@ -2,15 +2,14 @@ package hydra
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"sync"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/go/pkg/clock"
-	"github.com/unkeyed/unkey/go/pkg/hydra/db"
 	"github.com/unkeyed/unkey/go/pkg/hydra/metrics"
+	"github.com/unkeyed/unkey/go/pkg/hydra/store"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -76,11 +75,11 @@ type worker struct {
 	shutdownC           chan struct{}
 	doneC               chan struct{}
 	wg                  sync.WaitGroup
-	activeLeases        map[string]bool                                       // Track workflow IDs we have leases for
-	activeLeasesM       sync.RWMutex                                          // Protect the activeLeases map
-	queryCircuitBreaker circuitbreaker.CircuitBreaker[[]db.WorkflowExecution] // Protect query operations
-	leaseCircuitBreaker circuitbreaker.CircuitBreaker[any]                    // Protect lease operations
-	workflowQueue       chan db.WorkflowExecution                             // Queue of workflows to process
+	activeLeases        map[string]bool                                          // Track workflow IDs we have leases for
+	activeLeasesM       sync.RWMutex                                             // Protect the activeLeases map
+	queryCircuitBreaker circuitbreaker.CircuitBreaker[[]store.WorkflowExecution] // Protect query operations
+	leaseCircuitBreaker circuitbreaker.CircuitBreaker[any]                       // Protect lease operations
+	workflowQueue       chan store.WorkflowExecution                             // Queue of workflows to process
 }
 
 // NewWorker creates a new worker instance with the provided configuration.
@@ -128,7 +127,7 @@ func NewWorker(e *Engine, config WorkerConfig) (Worker, error) {
 	}
 
 	// Initialize circuit breakers for different database operations
-	queryCircuitBreaker := circuitbreaker.New[[]db.WorkflowExecution]("hydra-query")
+	queryCircuitBreaker := circuitbreaker.New[[]store.WorkflowExecution]("hydra-query")
 	leaseCircuitBreaker := circuitbreaker.New[any]("hydra-lease")
 
 	// Create workflow queue with capacity based on concurrency
@@ -149,7 +148,7 @@ func NewWorker(e *Engine, config WorkerConfig) (Worker, error) {
 		activeLeasesM:       sync.RWMutex{},
 		queryCircuitBreaker: queryCircuitBreaker,
 		leaseCircuitBreaker: leaseCircuitBreaker,
-		workflowQueue:       make(chan db.WorkflowExecution, queueSize),
+		workflowQueue:       make(chan store.WorkflowExecution, queueSize),
 	}
 
 	return worker, nil
@@ -212,15 +211,8 @@ func (w *worker) pollOnce(ctx context.Context) {
 		fetchLimit = 10 // Minimum fetch size
 	}
 
-	workflows, err := w.queryCircuitBreaker.Do(ctx, func(ctx context.Context) ([]db.WorkflowExecution, error) {
-		now := w.clock.Now().UnixMilli()
-		return db.Query.GetPendingWorkflows(ctx, w.engine.db, db.GetPendingWorkflowsParams{
-			Namespace:   w.engine.namespace,
-			NextRetryAt: sql.NullInt64{Int64: now, Valid: true},
-			SleepUntil:  sql.NullInt64{Int64: now, Valid: true},
-			Limit:       int32(fetchLimit),
-			Offset:      0,
-		})
+	workflows, err := w.queryCircuitBreaker.Do(ctx, func(ctx context.Context) ([]store.WorkflowExecution, error) {
+		return w.engine.store.GetPendingWorkflows(ctx, w.engine.namespace, fetchLimit, workflowNames)
 	})
 
 	// Record polling metrics
@@ -249,16 +241,7 @@ func (w *worker) processWorkflows(ctx context.Context) {
 		select {
 		case workflow := <-w.workflowQueue:
 			// Try to acquire lease with direct store call (no circuit breaker to avoid blocking)
-			expiresAt := w.clock.Now().Add(w.config.ClaimTimeout).UnixMilli()
-			err := db.Query.AcquireLease(ctx, w.engine.db, db.AcquireLeaseParams{
-				ResourceID:  workflow.ID,
-				Kind:        db.LeasesKindWorkflow,
-				Namespace:   w.engine.namespace,
-				WorkerID:    w.config.WorkerID,
-				AcquiredAt:  w.clock.Now().UnixMilli(),
-				ExpiresAt:   expiresAt,
-				HeartbeatAt: w.clock.Now().UnixMilli(),
-			})
+			err := w.engine.store.AcquireWorkflowLease(ctx, workflow.ID, w.engine.namespace, w.config.WorkerID, w.config.ClaimTimeout)
 			if err != nil {
 				// Another worker got it or error, skip this workflow
 				metrics.LeaseAcquisitionsTotal.WithLabelValues(w.config.WorkerID, "workflow", "failed").Inc()
@@ -278,10 +261,7 @@ func (w *worker) processWorkflows(ctx context.Context) {
 			w.executeWorkflow(ctx, &workflow)
 
 			// Release the lease and stop tracking it
-			if _, err := db.Query.ReleaseLease(ctx, w.engine.db, db.ReleaseLeaseParams{
-				ResourceID: workflow.ID,
-				WorkerID:   w.config.WorkerID,
-			}); err != nil {
+			if err := w.engine.store.ReleaseLease(ctx, workflow.ID, w.config.WorkerID); err != nil {
 				w.engine.logger.Error("Failed to release workflow lease",
 					"workflow_id", workflow.ID,
 					"worker_id", w.config.WorkerID,
@@ -301,18 +281,14 @@ func (w *worker) processWorkflows(ctx context.Context) {
 	}
 }
 
-func (w *worker) executeWorkflow(ctx context.Context, e *db.WorkflowExecution) {
+func (w *worker) executeWorkflow(ctx context.Context, e *WorkflowExecution) {
 	startTime := w.clock.Now()
 
 	// Calculate queue time (time from creation to execution start)
 	queueTime := time.Duration(startTime.UnixMilli()-e.CreatedAt) * time.Millisecond
 	metrics.WorkflowQueueTimeSeconds.WithLabelValues(e.Namespace, e.WorkflowName).Observe(queueTime.Seconds())
 
-	err := db.Query.UpdateWorkflowStatusRunning(ctx, w.engine.db, db.UpdateWorkflowStatusRunningParams{
-		StartedAt: sql.NullInt64{Int64: w.clock.Now().UnixMilli(), Valid: true},
-		ID:        e.ID,
-		Namespace: e.Namespace,
-	})
+	err := w.engine.store.UpdateWorkflowStatus(ctx, e.Namespace, e.ID, WorkflowStatusRunning, "")
 	if err != nil {
 		metrics.RecordError(e.Namespace, "worker", "status_update_failed")
 		return
@@ -321,12 +297,7 @@ func (w *worker) executeWorkflow(ctx context.Context, e *db.WorkflowExecution) {
 	wf, exists := w.workflows[e.WorkflowName]
 	if !exists {
 		noHandlerErr := fmt.Errorf("no handler registered for workflow %s", e.WorkflowName)
-		if failErr := db.Query.UpdateWorkflowStatus(ctx, w.engine.db, db.UpdateWorkflowStatusParams{
-			Status:       db.WorkflowExecutionsStatusFailed,
-			ErrorMessage: sql.NullString{String: noHandlerErr.Error(), Valid: true},
-			ID:           e.ID,
-			Namespace:    e.Namespace,
-		}); failErr != nil {
+		if failErr := w.engine.store.FailWorkflow(ctx, e.Namespace, e.ID, noHandlerErr.Error(), true); failErr != nil {
 			w.engine.logger.Error("Failed to mark workflow as failed",
 				"workflow_id", e.ID,
 				"workflow_name", e.WorkflowName,
@@ -348,7 +319,7 @@ func (w *worker) executeWorkflow(ctx context.Context, e *db.WorkflowExecution) {
 		workflowName:    e.WorkflowName,
 		namespace:       e.Namespace,
 		workerID:        w.config.WorkerID,
-		db:              w.engine.db,
+		store:           w.engine.store,
 		marshaller:      w.engine.marshaller,
 		stepTimeout:     5 * time.Minute, // Default step timeout
 		stepMaxAttempts: 3,               // Default step max attempts
@@ -359,11 +330,7 @@ func (w *worker) executeWorkflow(ctx context.Context, e *db.WorkflowExecution) {
 
 	if err != nil {
 		if suspendErr, ok := err.(*WorkflowSuspendedError); ok {
-			if sleepErr := db.Query.SleepWorkflow(ctx, w.engine.db, db.SleepWorkflowParams{
-				SleepUntil: sql.NullInt64{Int64: suspendErr.ResumeTime, Valid: true},
-				ID:         e.ID,
-				Namespace:  e.Namespace,
-			}); sleepErr != nil {
+			if sleepErr := w.engine.store.SleepWorkflow(ctx, e.Namespace, e.ID, suspendErr.ResumeTime); sleepErr != nil {
 				w.engine.logger.Error("Failed to suspend workflow",
 					"workflow_id", e.ID,
 					"workflow_name", e.WorkflowName,
@@ -377,12 +344,7 @@ func (w *worker) executeWorkflow(ctx context.Context, e *db.WorkflowExecution) {
 		}
 
 		isFinal := e.RemainingAttempts <= 1
-		if failErr := db.Query.UpdateWorkflowStatus(ctx, w.engine.db, db.UpdateWorkflowStatusParams{
-			Status:       db.WorkflowExecutionsStatusFailed,
-			ErrorMessage: sql.NullString{String: err.Error(), Valid: true},
-			ID:           e.ID,
-			Namespace:    e.Namespace,
-		}); failErr != nil {
+		if failErr := w.engine.store.FailWorkflow(ctx, e.Namespace, e.ID, err.Error(), isFinal); failErr != nil {
 			w.engine.logger.Error("Failed to mark workflow as failed",
 				"workflow_id", e.ID,
 				"workflow_name", e.WorkflowName,
@@ -402,12 +364,7 @@ func (w *worker) executeWorkflow(ctx context.Context, e *db.WorkflowExecution) {
 		return
 	}
 
-	if err := db.Query.CompleteWorkflow(ctx, w.engine.db, db.CompleteWorkflowParams{
-		CompletedAt: sql.NullInt64{Int64: w.clock.Now().UnixMilli(), Valid: true},
-		OutputData:  nil, // No output data for now
-		ID:          e.ID,
-		Namespace:   e.Namespace,
-	}); err != nil {
+	if err := w.engine.store.CompleteWorkflow(ctx, e.Namespace, e.ID, nil); err != nil { // No output data for now
 		w.engine.logger.Error("Failed to mark workflow as completed",
 			"workflow_id", e.ID,
 			"workflow_name", e.WorkflowName,
@@ -470,11 +427,7 @@ func (w *worker) sendHeartbeatsForActiveLeases(ctx context.Context) {
 	for _, workflowID := range leaseIDs {
 		// Protect heartbeat with circuit breaker
 		_, err := w.leaseCircuitBreaker.Do(ctx, func(ctx context.Context) (any, error) {
-			return nil, db.Query.UpdateLease(ctx, w.engine.db, db.UpdateLeaseParams{
-				ExpiresAt:   newExpiresAt,
-				HeartbeatAt: w.clock.Now().UnixMilli(),
-				ResourceID:  workflowID,
-			})
+			return nil, w.engine.store.HeartbeatLease(ctx, workflowID, w.config.WorkerID, newExpiresAt)
 		})
 		if err != nil {
 			// Record failed heartbeat
@@ -498,19 +451,13 @@ func (w *worker) cleanupExpiredLeases(ctx context.Context) {
 		select {
 		case <-tickerC:
 			// Clean up expired leases first
-			err := db.Query.CleanupExpiredLeases(ctx, w.engine.db, db.CleanupExpiredLeasesParams{
-				Namespace: w.engine.namespace,
-				ExpiresAt: w.clock.Now().UnixMilli(),
-			})
+			err := w.engine.store.CleanupExpiredLeases(ctx, w.engine.namespace)
 			if err != nil {
 				w.engine.logger.Warn("Failed to cleanup expired leases", "error", err.Error())
 			}
 
 			// Then reset orphaned workflows back to pending so they can be picked up again
-			err = db.Query.ResetOrphanedWorkflows(ctx, w.engine.db, db.ResetOrphanedWorkflowsParams{
-				Namespace:   w.engine.namespace,
-				Namespace_2: w.engine.namespace,
-			})
+			err = w.engine.store.ResetOrphanedWorkflows(ctx, w.engine.namespace)
 			if err != nil {
 				w.engine.logger.Warn("Failed to reset orphaned workflows", "error", err.Error())
 			}
@@ -547,10 +494,7 @@ func (w *worker) processDueCronJobs(ctx context.Context) {
 
 	now := w.engine.clock.Now().UnixMilli()
 
-	dueCrons, err := db.Query.GetDueCronJobs(ctx, w.engine.db, db.GetDueCronJobsParams{
-		Namespace: w.engine.namespace,
-		NextRunAt: now,
-	})
+	dueCrons, err := w.engine.store.GetDueCronJobs(ctx, w.engine.namespace, now)
 	if err != nil {
 		return
 	}
@@ -571,25 +515,24 @@ func (w *worker) processDueCronJobs(ctx context.Context) {
 			continue
 		}
 
-		err := db.Query.AcquireLease(ctx, w.engine.db, db.AcquireLeaseParams{
+		lease := &Lease{
 			ResourceID:  cronJob.ID,
-			Kind:        db.LeasesKindCronJob,
+			Kind:        string(LeaseKindCronJob),
 			Namespace:   w.engine.namespace,
 			WorkerID:    w.config.WorkerID,
-			AcquiredAt:  w.clock.Now().UnixMilli(),
-			ExpiresAt:   w.clock.Now().Add(w.config.ClaimTimeout).UnixMilli(),
-			HeartbeatAt: w.clock.Now().UnixMilli(),
-		})
+			AcquiredAt:  now,
+			ExpiresAt:   now + (5 * time.Minute).Milliseconds(), // 5 minute lease for cron execution
+			HeartbeatAt: now,
+		}
+
+		err := w.engine.store.AcquireLease(ctx, lease)
 		if err != nil {
 			continue
 		}
 
 		w.executeCronJob(ctx, cronJob)
 
-		if _, err := db.Query.ReleaseLease(ctx, w.engine.db, db.ReleaseLeaseParams{
-			ResourceID: cronJob.ID,
-			WorkerID:   w.config.WorkerID,
-		}); err != nil {
+		if err := w.engine.store.ReleaseLease(ctx, cronJob.ID, w.config.WorkerID); err != nil {
 			w.engine.logger.Error("Failed to release cron job lease",
 				"cron_job_id", cronJob.ID,
 				"cron_name", cronJob.Name,
@@ -600,7 +543,7 @@ func (w *worker) processDueCronJobs(ctx context.Context) {
 	}
 }
 
-func (w *worker) executeCronJob(ctx context.Context, cronJob db.CronJob) {
+func (w *worker) executeCronJob(ctx context.Context, cronJob CronJob) {
 
 	now := w.engine.clock.Now().UnixMilli()
 
@@ -638,14 +581,7 @@ func (w *worker) executeCronJob(ctx context.Context, cronJob db.CronJob) {
 	}()
 
 	nextRun := calculateNextRun(cronJob.CronSpec, w.engine.clock.Now())
-	if err := db.Query.UpdateCronJob(ctx, w.engine.db, db.UpdateCronJobParams{
-		CronSpec:     cronJob.CronSpec,
-		WorkflowName: cronJob.WorkflowName,
-		Enabled:      cronJob.Enabled,
-		UpdatedAt:    now,
-		NextRunAt:    nextRun,
-		ID:           cronJob.ID,
-	}); err != nil {
+	if err := w.engine.store.UpdateCronJobLastRun(ctx, w.engine.namespace, cronJob.ID, now, nextRun); err != nil {
 		w.engine.logger.Error("Failed to update cron job last run time",
 			"cron_job_id", cronJob.ID,
 			"cron_name", cronJob.Name,

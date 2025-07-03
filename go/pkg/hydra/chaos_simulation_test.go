@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/clock"
-	"github.com/unkeyed/unkey/go/pkg/hydra/db"
+	"github.com/unkeyed/unkey/go/pkg/hydra/store"
 )
 
 // ChaosSimulator orchestrates chaos testing scenarios
@@ -239,18 +239,18 @@ func TestChaosSimulation(t *testing.T) {
 	completedWorkflows := 0
 	failedWorkflows := 0
 
-	workflows, err := db.Query.GetAllWorkflows(ctx, engine.db, engine.GetNamespace())
+	workflows, err := engine.store.GetAllWorkflows(ctx, engine.GetNamespace())
 	require.NoError(t, err)
 
 	for _, wf := range workflows {
 		switch wf.Status {
-		case db.WorkflowExecutionsStatusPending, db.WorkflowExecutionsStatusRunning:
+		case store.WorkflowStatusPending, store.WorkflowStatusRunning:
 			pendingWorkflows++
-		case db.WorkflowExecutionsStatusCompleted:
+		case store.WorkflowStatusCompleted:
 			completedWorkflows++
-		case db.WorkflowExecutionsStatusFailed:
+		case store.WorkflowStatusFailed:
 			failedWorkflows++
-		case db.WorkflowExecutionsStatusSleeping:
+		case store.WorkflowStatusSleeping:
 			// Sleeping workflows count as pending for our metrics
 		}
 	}
@@ -266,7 +266,7 @@ func TestChaosSimulation(t *testing.T) {
 
 	// Check for data consistency
 	stepExecutions := make(map[string]int)
-	steps, err := db.Query.GetAllSteps(ctx, engine.db, engine.GetNamespace())
+	steps, err := engine.store.GetAllSteps(ctx, engine.GetNamespace())
 	require.NoError(t, err)
 
 	for _, step := range steps {
@@ -387,12 +387,9 @@ func TestDatabaseFailureScenarios(t *testing.T) {
 	// Verify workflows completed
 	completedCount := 0
 	for _, workflowID := range recoveryWorkflows {
-		wf, err := db.Query.GetWorkflow(ctx, engine.db, db.GetWorkflowParams{
-			ID:        workflowID,
-			Namespace: engine.GetNamespace(),
-		})
+		wf, err := engine.store.GetWorkflow(ctx, engine.GetNamespace(), workflowID)
 		require.NoError(t, err)
-		if wf.Status == db.WorkflowExecutionsStatusCompleted {
+		if wf.Status == store.WorkflowStatusCompleted {
 			completedCount++
 		}
 	}
@@ -424,10 +421,7 @@ func TestDatabaseFailureScenarios(t *testing.T) {
 
 	// Check final state
 	for _, workflowID := range processingWorkflows {
-		_, err := db.Query.GetWorkflow(ctx, engine.db, db.GetWorkflowParams{
-			ID:        workflowID,
-			Namespace: engine.GetNamespace(),
-		})
+		_, err := engine.store.GetWorkflow(ctx, engine.GetNamespace(), workflowID)
 		require.NoError(t, err)
 	}
 

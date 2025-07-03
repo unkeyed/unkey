@@ -7,7 +7,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/clock"
-	"github.com/unkeyed/unkey/go/pkg/hydra/db"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -60,26 +59,20 @@ func TestWorkerHeartbeatFunctionality(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 
 		// Check if workflow has been picked up
-		currentStatus, getErr := db.Query.GetWorkflow(ctx, engine.db, db.GetWorkflowParams{
-			ID:        executionID,
-			Namespace: engine.GetNamespace(),
-		})
+		currentStatus, getErr := engine.store.GetWorkflow(ctx, engine.GetNamespace(), executionID)
 		if getErr != nil {
 			return false
 		}
-		return currentStatus.Status != db.WorkflowExecutionsStatusPending
+		return currentStatus.Status != WorkflowStatusPending
 	}, 3*time.Second, 50*time.Millisecond, "Worker should pick up workflow within timeout")
 
 	// Verify workflow is being processed
-	workflowStatus, err := db.Query.GetWorkflow(ctx, engine.db, db.GetWorkflowParams{
-		ID:        executionID,
-		Namespace: engine.GetNamespace(),
-	})
+	workflowStatus, err := engine.store.GetWorkflow(ctx, engine.GetNamespace(), executionID)
 	require.NoError(t, err)
-	require.Equal(t, db.WorkflowExecutionsStatusRunning, workflowStatus.Status, "Workflow should be running")
+	require.Equal(t, WorkflowStatusRunning, workflowStatus.Status, "Workflow should be running")
 
 	// Get initial lease
-	lease, err := db.Query.GetLease(ctx, engine.db, executionID)
+	lease, err := engine.store.GetLease(ctx, executionID)
 	require.NoError(t, err)
 	require.Equal(t, workerID, lease.WorkerID, "Lease should be held by our worker")
 
@@ -90,7 +83,7 @@ func TestWorkerHeartbeatFunctionality(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)       // Let heartbeat be processed
 
 	// Verify heartbeat extended the lease
-	updatedLease, err := db.Query.GetLease(ctx, engine.db, executionID)
+	updatedLease, err := engine.store.GetLease(ctx, executionID)
 	require.NoError(t, err)
 	require.Equal(t, workerID, updatedLease.WorkerID, "Lease should still be held by our worker")
 	require.Greater(t, updatedLease.ExpiresAt, initialExpiresAt,

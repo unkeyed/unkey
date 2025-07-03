@@ -2,11 +2,10 @@ package hydra
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 
-	"github.com/unkeyed/unkey/go/pkg/hydra/db"
+	"github.com/unkeyed/unkey/go/pkg/hydra/store"
 )
 
 // Workflow defines the interface for typed workflows.
@@ -94,7 +93,7 @@ type workflowContext struct {
 	workflowName    string
 	namespace       string
 	workerID        string
-	db              db.DBTX
+	store           store.Store
 	marshaller      Marshaller
 	stepTimeout     time.Duration
 	stepMaxAttempts int32
@@ -118,66 +117,24 @@ func (w *workflowContext) getNextStepOrder() int32 {
 	return int32(w.stepOrder) // nolint:gosec // Overflow is extremely unlikely in practice
 }
 
-func (w *workflowContext) getCompletedStep(stepName string) (*db.WorkflowStep, error) {
-	step, err := db.Query.GetStep(w.ctx, w.db, db.GetStepParams{
-		Namespace:   w.namespace,
-		ExecutionID: w.executionID,
-		StepName:    stepName,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// Check if step is completed
-	if step.Status != db.WorkflowStepsStatusCompleted {
-		return nil, sql.ErrNoRows // Return same error as if step wasn't found
-	}
-
-	return &step, nil
+func (w *workflowContext) getCompletedStep(stepName string) (*store.WorkflowStep, error) {
+	return w.store.GetCompletedStep(w.ctx, w.namespace, w.executionID, stepName)
 }
 
-func (w *workflowContext) getAnyStep(stepName string) (*db.WorkflowStep, error) {
-	step, err := db.Query.GetStep(w.ctx, w.db, db.GetStepParams{
-		Namespace:   w.namespace,
-		ExecutionID: w.executionID,
-		StepName:    stepName,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return &step, nil
+func (w *workflowContext) getAnyStep(stepName string) (*store.WorkflowStep, error) {
+	return w.store.GetStep(w.ctx, w.namespace, w.executionID, stepName)
 }
 
 func (w *workflowContext) markStepCompleted(stepName string, outputData []byte) error {
-	return db.Query.UpdateStepStatus(w.ctx, w.db, db.UpdateStepStatusParams{
-		Status:       db.WorkflowStepsStatusCompleted,
-		CompletedAt:  sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
-		OutputData:   outputData,
-		ErrorMessage: sql.NullString{},
-		Namespace:    w.namespace,
-		ExecutionID:  w.executionID,
-		StepName:     stepName,
-	})
+	return w.store.UpdateStepStatus(w.ctx, w.namespace, w.executionID, stepName, store.StepStatusCompleted, outputData, "")
 }
 
 func (w *workflowContext) markStepFailed(stepName string, errorMsg string) error {
-	return db.Query.UpdateStepStatus(w.ctx, w.db, db.UpdateStepStatusParams{
-		Status:       db.WorkflowStepsStatusFailed,
-		CompletedAt:  sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
-		OutputData:   nil,
-		ErrorMessage: sql.NullString{String: errorMsg, Valid: errorMsg != ""},
-		Namespace:    w.namespace,
-		ExecutionID:  w.executionID,
-		StepName:     stepName,
-	})
+	return w.store.UpdateStepStatus(w.ctx, w.namespace, w.executionID, stepName, store.StepStatusFailed, nil, errorMsg)
 }
 
 func (w *workflowContext) suspendWorkflowForSleep(sleepUntil int64) error {
-	return db.Query.SleepWorkflow(w.ctx, w.db, db.SleepWorkflowParams{
-		SleepUntil: sql.NullInt64{Int64: sleepUntil, Valid: true},
-		ID:         w.executionID,
-		Namespace:  w.namespace,
-	})
+	return w.store.SleepWorkflow(w.ctx, w.namespace, w.executionID, sleepUntil)
 }
 
 // RegisterWorkflow registers a typed workflow with a worker.
