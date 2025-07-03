@@ -193,6 +193,7 @@ type KeysTableActionsProps = {
 };
 
 export const KeysTableActions = ({ keyData }: KeysTableActionsProps) => {
-  const items = getKeysTableActionItems(keyData);
+  const trpcUtils = trpc.useUtils();
+  const items = getKeysTableActionItems(keyData, trpcUtils);
   return <TableActionPopover items={items} />;
 };
