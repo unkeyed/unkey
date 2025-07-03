@@ -32,6 +32,7 @@ services:
       - mysql
     ports:
       - 3900:3900
+
   apiv2_lb:
     container_name: apiv2_lb
     image: nginx:latest

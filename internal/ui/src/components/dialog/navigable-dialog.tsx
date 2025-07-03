@@ -5,8 +5,8 @@ import * as React from "react";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { FC, ReactNode } from "react";
 import { cn } from "../../lib/utils";
-import { Button } from "../button";
-import { Dialog, DialogContent } from "./parts/dialog";
+import { Button } from "../buttons/button";
+import { Dialog, DialogContent } from "./dialog";
 import {
   DefaultDialogContentArea,
   DefaultDialogFooter,
@@ -260,6 +260,13 @@ const NavigableDialogBody = ({
 }) => {
   return <div className={cn("flex flex-grow overflow-hidden", className)}>{children}</div>;
 };
+
+NavigableDialogBody.displayName = "NavigableDialogBody";
+NavigableDialogContent.displayName = "NavigableDialogContent";
+NavigableDialogNav.displayName = "NavigableDialogNav";
+NavigableDialogHeader.displayName = "NavigableDialogHeader";
+NavigableDialogFooter.displayName = "NavigableDialogFooter";
+NavigableDialogRoot.displayName = "NavigableDialogRoot";
 
 export {
   NavigableDialogRoot,
