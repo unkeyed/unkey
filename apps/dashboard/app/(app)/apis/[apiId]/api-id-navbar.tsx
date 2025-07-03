@@ -191,7 +191,7 @@ export const ApisNavbar = ({
                 isIdentifier
                 active
               >
-                {shortenId(keyData.id)}
+                {shortenId(specificKey.id)}
               </Navbar.Breadcrumbs.Link>
             )}
           </Navbar.Breadcrumbs>
