@@ -104,7 +104,7 @@ export const PermissionsList = () => {
         width: "20%",
         render: (permission) => (
           <AssignedItemsCell
-            type="slug"
+            kind="slug"
             value={permission.slug}
             isSelected={permission.permissionId === selectedPermission?.permissionId}
           />
@@ -116,7 +116,7 @@ export const PermissionsList = () => {
         width: "20%",
         render: (permission) => (
           <AssignedItemsCell
-            type="roles"
+            kind="roles"
             totalCount={permission.totalConnectedRoles}
             isSelected={permission.permissionId === selectedPermission?.permissionId}
           />
@@ -128,7 +128,7 @@ export const PermissionsList = () => {
         width: "20%",
         render: (permission) => (
           <AssignedItemsCell
-            type="keys"
+            kind="keys"
             totalCount={permission.totalConnectedKeys}
             isSelected={permission.permissionId === selectedPermission?.permissionId}
           />
