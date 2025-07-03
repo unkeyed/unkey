@@ -544,9 +544,10 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		// Find each ratelimit and verify
 		var apiCallsRL, dataTransferRL *openapi.RatelimitResponse
 		for _, rl := range ratelimits {
-			if rl.Name == "api_calls" {
+			switch rl.Name {
+			case "api_calls":
 				apiCallsRL = &rl
-			} else if rl.Name == "data_transfer" {
+			case "data_transfer":
 				dataTransferRL = &rl
 			}
 		}

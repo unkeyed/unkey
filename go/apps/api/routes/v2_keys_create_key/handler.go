@@ -278,7 +278,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if req.Credits != nil {
 			if req.Credits.Remaining.IsSpecified() {
 				insertKeyParams.RemainingRequests = sql.NullInt32{
-					Int32: int32(req.Credits.Remaining.MustGet()),
+					Int32: int32(req.Credits.Remaining.MustGet()), // nolint:gosec
 					Valid: true,
 				}
 			}
@@ -299,7 +299,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					}
 
 					insertKeyParams.RefillDay = sql.NullInt16{
-						Int16: int16(*req.Credits.Refill.RefillDay),
+						Int16: int16(*req.Credits.Refill.RefillDay), // nolint:gosec
 						Valid: true,
 					}
 				}

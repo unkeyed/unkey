@@ -253,9 +253,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if key.IdentityID.Valid {
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{ID: key.IdentityID.String, Deleted: false})
-		if err != nil {
-			if db.IsNotFound(err) {
+		identity, idErr := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{ID: key.IdentityID.String, Deleted: false})
+		if idErr != nil {
+			if db.IsNotFound(idErr) {
 				return fault.New("identity not found for key",
 					fault.Code(codes.Data.Identity.NotFound.URN()),
 					fault.Internal("identity not found"),
@@ -263,7 +263,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				)
 			}
 
-			return fault.Wrap(err,
+			return fault.Wrap(idErr,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error"),
 				fault.Public("Failed to retrieve Identity information."),
@@ -287,9 +287,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
-		ratelimits, err := db.Query.ListIdentityRatelimitsByID(ctx, h.DB.RO(), sql.NullString{Valid: true, String: identity.ID})
-		if err != nil && !db.IsNotFound(err) {
-			return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
+		ratelimits, rlErr := db.Query.ListIdentityRatelimitsByID(ctx, h.DB.RO(), sql.NullString{Valid: true, String: identity.ID})
+		if rlErr != nil && !db.IsNotFound(rlErr) {
+			return fault.Wrap(rlErr, fault.Code(codes.App.Internal.UnexpectedError.URN()),
 				fault.Internal("unable to retrieve identity ratelimits"),
 				fault.Public("We encountered an error while trying to retrieve the identity ratelimits."),
 			)
