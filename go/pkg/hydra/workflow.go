@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/hydra/store"
+	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // Workflow defines the interface for typed workflows.
@@ -203,22 +205,49 @@ func (w *workflowWrapper[TReq]) Name() string {
 }
 
 func (w *workflowWrapper[TReq]) Run(ctx WorkflowContext, req any) error {
-	// Extract the raw payload and unmarshal it to the correct type
-	rawPayload, ok := req.(*RawPayload)
-	if !ok {
-		return fmt.Errorf("expected RawPayload, got %T", req)
-	}
-
-	var typedReq TReq
 	wctx, ok := ctx.(*workflowContext)
 	if !ok {
 		return fmt.Errorf("invalid context type, expected *workflowContext")
 	}
+
+	// Start tracing span for workflow execution
+	workflowCtx, span := tracing.Start(wctx.ctx, fmt.Sprintf("hydra.workflow.%s", w.wrapped.Name()))
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("hydra.workflow.name", w.wrapped.Name()),
+		attribute.String("hydra.execution.id", wctx.executionID),
+		attribute.String("hydra.namespace", wctx.namespace),
+		attribute.String("hydra.worker.id", wctx.workerID),
+	)
+
+	// Update the workflow context to use the traced context
+	wctx.ctx = workflowCtx
+
+	// Extract the raw payload and unmarshal it to the correct type
+	rawPayload, ok := req.(*RawPayload)
+	if !ok {
+		err := fmt.Errorf("expected RawPayload, got %T", req)
+		tracing.RecordError(span, err)
+		return err
+	}
+
+	var typedReq TReq
 	if err := wctx.marshaller.Unmarshal(rawPayload.Data, &typedReq); err != nil {
+		tracing.RecordError(span, err)
 		return fmt.Errorf("failed to unmarshal workflow request: %w", err)
 	}
 
-	return w.wrapped.Run(ctx, typedReq)
+	// Pass the updated workflow context (with traced context) to the workflow implementation
+	err := w.wrapped.Run(wctx, typedReq)
+	if err != nil {
+		tracing.RecordError(span, err)
+		span.SetAttributes(attribute.String("hydra.workflow.status", "failed"))
+	} else {
+		span.SetAttributes(attribute.String("hydra.workflow.status", "completed"))
+	}
+
+	return err
 }
 
 // WorkflowOption defines a function that configures workflow execution

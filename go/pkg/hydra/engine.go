@@ -9,7 +9,9 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/hydra/metrics"
 	"github.com/unkeyed/unkey/go/pkg/hydra/store"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/go/pkg/uid"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // Config holds the configuration for creating a new Engine instance.
@@ -216,8 +218,17 @@ func (e *Engine) RegisterCron(cronSpec, name string, handler CronHandler) error 
 // - hydra_workflows_queued (gauge)
 // - hydra_payload_size_bytes (histogram)
 func (e *Engine) StartWorkflow(ctx context.Context, workflowName string, payload any, opts ...WorkflowOption) (string, error) {
+	// Start tracing span for workflow creation
+	ctx, span := tracing.Start(ctx, "hydra.engine.StartWorkflow")
+	defer span.End()
 
 	executionID := uid.New("wf")
+
+	span.SetAttributes(
+		attribute.String("hydra.workflow.name", workflowName),
+		attribute.String("hydra.execution.id", executionID),
+		attribute.String("hydra.namespace", e.namespace),
+	)
 
 	config := &WorkflowConfig{
 		MaxAttempts:     3, // Default to 3 attempts total (1 initial + 2 retries)
@@ -230,14 +241,27 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowName string, payload
 		opt(config)
 	}
 
+	span.SetAttributes(
+		attribute.String("hydra.trigger.type", string(config.TriggerType)),
+	)
+
 	data, err := e.marshaller.Marshal(payload)
 	if err != nil {
 		metrics.SerializationErrorsTotal.WithLabelValues(e.namespace, workflowName, "input").Inc()
+		tracing.RecordError(span, err)
 		return "", fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
 	// Record payload size
 	metrics.RecordPayloadSize(e.namespace, workflowName, "input", len(data))
+
+	// Extract trace ID and span ID from span context for workflow correlation
+	traceID := ""
+	spanID := ""
+	if spanContext := span.SpanContext(); spanContext.IsValid() {
+		traceID = spanContext.TraceID().String()
+		spanID = spanContext.SpanID().String()
+	}
 
 	workflow := &store.WorkflowExecution{
 		ID:                executionID,
@@ -256,12 +280,14 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowName string, payload
 		SleepUntil:        nil,
 		TriggerType:       config.TriggerType,
 		TriggerSource:     config.TriggerSource,
-		TraceID:           "",
+		TraceID:           traceID,
+		SpanID:            spanID,
 	}
 
 	err = e.store.CreateWorkflow(ctx, workflow)
 	if err != nil {
 		metrics.RecordError(e.namespace, "engine", "workflow_creation_failed")
+		tracing.RecordError(span, err)
 		return "", fmt.Errorf("failed to create workflow: %w", err)
 	}
 
@@ -269,6 +295,8 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowName string, payload
 	triggerTypeStr := string(config.TriggerType)
 	metrics.WorkflowsStartedTotal.WithLabelValues(e.namespace, workflowName, triggerTypeStr).Inc()
 	metrics.WorkflowsQueued.WithLabelValues(e.namespace, "pending").Inc()
+
+	span.SetAttributes(attribute.String("hydra.workflow.status", "created"))
 
 	return workflow.ID, nil
 }

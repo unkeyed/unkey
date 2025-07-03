@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/hydra"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -40,23 +41,35 @@ func (s *Service) CreateVersion(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	// Start the build process by calling the build service directly
-	buildReq := connect.NewRequest(&ctrlv1.CreateBuildRequest{
-		WorkspaceId: req.Msg.GetWorkspaceId(),
-		ProjectId:   req.Msg.GetProjectId(),
-		VersionId:   versionID,
-		DockerImage: req.Msg.GetDockerImageTag(),
-	})
+	s.logger.Info("starting deployment workflow for version",
+		"version_id", versionID,
+		"workspace_id", req.Msg.GetWorkspaceId(),
+		"project_id", req.Msg.GetProjectId(),
+		"docker_image", req.Msg.GetDockerImageTag())
 
-	_, err = s.buildService.CreateBuild(ctx, buildReq)
-	if err != nil {
-		// Log error but don't fail the version creation
-		// The version will remain in pending state
-		// TODO: add proper error handling and version status update
+	// Start the deployment workflow directly
+	deployReq := &DeployRequest{
+		WorkspaceID: req.Msg.GetWorkspaceId(),
+		ProjectID:   req.Msg.GetProjectId(),
+		VersionID:   versionID,
+		DockerImage: req.Msg.GetDockerImageTag(),
 	}
 
-	// Build service will create the build with this version_id
-	// No need to store build_id in version - we can query by version_id
+	executionID, err := s.hydraEngine.StartWorkflow(ctx, "deployment", deployReq,
+		hydra.WithMaxAttempts(3),
+		hydra.WithTimeout(25*time.Minute),
+		hydra.WithRetryBackoff(1*time.Minute),
+	)
+	if err != nil {
+		s.logger.Error("failed to start deployment workflow",
+			"version_id", versionID,
+			"error", err)
+		// Don't fail version creation - workflow can be retried
+	} else {
+		s.logger.Info("deployment workflow started",
+			"version_id", versionID,
+			"execution_id", executionID)
+	}
 
 	res := connect.NewResponse(&ctrlv1.CreateVersionResponse{
 		VersionId: versionID,

@@ -8,12 +8,13 @@ import (
 
 	"log/slog"
 
-	"github.com/unkeyed/unkey/go/apps/ctrl/services/build"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/version"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/go/pkg/builder"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/hydra"
+	"github.com/unkeyed/unkey/go/pkg/hydra/store/gorm"
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
@@ -74,13 +75,44 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	shutdowns.Register(database.Close)
 
+	// Initialize Hydra workflow engine with separate MySQL store
+	hydraStore, err := gorm.NewMySQLStore(cfg.DatabaseHydra, cfg.Clock)
+	if err != nil {
+		return fmt.Errorf("unable to create hydra store: %w", err)
+	}
+
+	hydraEngine := hydra.New(hydra.Config{
+		Store:     hydraStore,
+		Namespace: "ctrl",
+		Clock:     cfg.Clock,
+		Logger:    logger,
+	})
+
+	// Create Hydra worker
+	hydraWorker, err := hydra.NewWorker(hydraEngine, hydra.WorkerConfig{
+		WorkerID:          cfg.InstanceID,
+		Concurrency:       10,
+		PollInterval:      2 * time.Second, // Less aggressive polling
+		HeartbeatInterval: 30 * time.Second,
+		ClaimTimeout:      30 * time.Minute, // Handle long builds
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create hydra worker: %w", err)
+	}
+
 	// Create the mock builder service for demo
 	builderService := builder.NewMockService()
 
+	// Register deployment workflow with Hydra worker
+	deployWorkflow := version.NewDeployWorkflow(database, logger, builderService)
+	err = hydra.RegisterWorkflow(hydraWorker, deployWorkflow)
+	if err != nil {
+		return fmt.Errorf("unable to register deployment workflow: %w", err)
+	}
+
 	// Create the service implementations
 	ctrlSvc := ctrl.New(cfg.InstanceID, database)
-	buildSvc := build.New(database, logger, builderService)
-	versionSvc := version.New(database, buildSvc)
+	versionSvc := version.New(database, hydraEngine, builderService, logger)
 
 	// Create the connect handler
 	mux := http.NewServeMux()
@@ -91,9 +123,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 	versionPath, versionHandler := ctrlv1connect.NewVersionServiceHandler(versionSvc)
 	mux.Handle(versionPath, versionHandler)
-
-	buildPath, buildHandler := ctrlv1connect.NewBuildServiceHandler(buildSvc)
-	mux.Handle(buildPath, buildHandler)
 
 	// Configure server
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)
@@ -126,6 +155,15 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Register server shutdown
 	shutdowns.RegisterCtx(server.Shutdown)
+
+	// Start Hydra worker
+	go func() {
+		logger.Info("Starting Hydra workflow worker")
+		if err := hydraWorker.Start(ctx); err != nil {
+			logger.Error("Failed to start Hydra worker", "error", err)
+		}
+	}()
+	shutdowns.RegisterCtx(hydraWorker.Shutdown)
 
 	// Start server
 	go func() {

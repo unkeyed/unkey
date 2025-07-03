@@ -1,9 +1,11 @@
 package version
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"math/rand"
 	"net/http"
@@ -247,19 +249,44 @@ func runDeploymentSteps(ctx context.Context, cmd *cli.Command, workspace, projec
 		buildArgs = append(buildArgs,
 			"-t", dockerImage,
 			"--build-arg", fmt.Sprintf("VERSION=%s-%s", branch, commit),
-			"--quiet", // Suppress build output unless there's an error
 			buildContext,
 		)
 
 		buildCmd := exec.CommandContext(ctx, "docker", buildArgs...)
 
+		// Create pipes to capture stdout and stderr
+		stdout, err := buildCmd.StdoutPipe()
+		if err != nil {
+			return fmt.Errorf("failed to create stdout pipe: %w", err)
+		}
+		stderr, err := buildCmd.StderrPipe()
+		if err != nil {
+			return fmt.Errorf("failed to create stderr pipe: %w", err)
+		}
+
+		// Start the build command
+		if err := buildCmd.Start(); err != nil {
+			return fmt.Errorf("failed to start docker build: %w", err)
+		}
+
 		// Capture all output for error reporting
 		var allOutput strings.Builder
-		buildCmd.Stdout = &allOutput
-		buildCmd.Stderr = &allOutput
 
-		// Run the build
-		err := buildCmd.Run()
+		// Create a combined reader for both stdout and stderr
+		combinedOutput := io.MultiReader(stdout, stderr)
+		scanner := bufio.NewScanner(combinedOutput)
+
+		// Process output line by line
+		for scanner.Scan() {
+			line := scanner.Text()
+			allOutput.WriteString(line + "\n")
+
+			// Print all docker build output
+			fmt.Printf("    %s\n", metaText.Render(line))
+		}
+
+		// Wait for the build to complete
+		err = buildCmd.Wait()
 
 		if err != nil {
 			fmt.Printf("  %s: Docker build failed\n", errorText.Render("Error"))
@@ -375,12 +402,7 @@ func pollVersionStatus(ctx context.Context, logger logging.Logger, client ctrlv1
 	timeout := time.NewTimer(30 * time.Second) // 30 second timeout
 	defer timeout.Stop()
 
-	// Create build service client for build polling
-	buildClient := ctrlv1connect.NewBuildServiceClient(&http.Client{}, "http://localhost:7091")
-
 	lastVersionStatus := ""
-	lastBuildStatus := ""
-	currentBuildID := ""
 
 	for {
 		select {
@@ -404,13 +426,6 @@ func pollVersionStatus(ctx context.Context, logger logging.Logger, client ctrlv1
 
 			version := getResp.Msg.GetVersion()
 			currentVersionStatus := version.GetStatus().String()
-			buildID := version.GetBuildId()
-
-			// Track current build ID
-			if buildID != "" && buildID != currentBuildID {
-				currentBuildID = buildID
-				lastBuildStatus = ""
-			}
 
 			// Show version status updates with section headers
 			if currentVersionStatus != lastVersionStatus {
@@ -429,41 +444,6 @@ func pollVersionStatus(ctx context.Context, logger logging.Logger, client ctrlv1
 					fmt.Printf("  %s: Deployment failed\n", errorText.Render("Error"))
 				}
 				lastVersionStatus = currentVersionStatus
-			}
-
-			// Poll build status if we're building and have a build ID
-			if version.GetStatus() == ctrlv1.VersionStatus_VERSION_STATUS_BUILDING && buildID != "" {
-				buildReq := connect.NewRequest(&ctrlv1.GetBuildRequest{
-					BuildId: buildID,
-				})
-				buildReq.Header().Set("Authorization", "Bearer ctrl-secret-token")
-
-				buildResp, err := buildClient.GetBuild(ctx, buildReq)
-				if err == nil {
-					build := buildResp.Msg.GetBuild()
-					currentBuildStatus := build.GetStatus().String()
-
-					// Show build status updates
-					if currentBuildStatus != lastBuildStatus {
-						var message string
-						switch build.GetStatus() {
-						case ctrlv1.BuildStatus_BUILD_STATUS_PENDING:
-							message = buildQueuedMessages[rand.Intn(len(buildQueuedMessages))]
-						case ctrlv1.BuildStatus_BUILD_STATUS_RUNNING:
-							message = buildRunningMessages[rand.Intn(len(buildRunningMessages))]
-						default:
-							message = getBuildStatusDisplayName(build.GetStatus())
-						}
-						fmt.Printf("  %s\n", metaText.Render(message))
-
-						// Show build error if failed
-						if build.GetStatus() == ctrlv1.BuildStatus_BUILD_STATUS_FAILED && build.GetErrorMessage() != "" {
-							fmt.Printf("  %s: %s\n", errorText.Render("Build Error"), build.GetErrorMessage())
-						}
-
-						lastBuildStatus = currentBuildStatus
-					}
-				}
 			}
 
 			// Check if deployment is complete

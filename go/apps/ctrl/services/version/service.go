@@ -1,28 +1,27 @@
 package version
 
 import (
-	"context"
-
-	"connectrpc.com/connect"
-	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
+	"github.com/unkeyed/unkey/go/pkg/builder"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/hydra"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
-
-type BuildService interface {
-	CreateBuild(ctx context.Context, req *connect.Request[ctrlv1.CreateBuildRequest]) (*connect.Response[ctrlv1.CreateBuildResponse], error)
-}
 
 type Service struct {
 	ctrlv1connect.UnimplementedVersionServiceHandler
-	db           db.Database
-	buildService BuildService
+	db             db.Database
+	hydraEngine    *hydra.Engine
+	builderService builder.Service
+	logger         logging.Logger
 }
 
-func New(database db.Database, buildService BuildService) *Service {
+func New(database db.Database, hydraEngine *hydra.Engine, builderService builder.Service, logger logging.Logger) *Service {
 	return &Service{
 		UnimplementedVersionServiceHandler: ctrlv1connect.UnimplementedVersionServiceHandler{},
 		db:                                 database,
-		buildService:                       buildService,
+		hydraEngine:                        hydraEngine,
+		builderService:                     builderService,
+		logger:                             logger,
 	}
 }

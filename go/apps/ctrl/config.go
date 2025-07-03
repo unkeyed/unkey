@@ -25,6 +25,7 @@ type Config struct {
 
 	// DatabasePrimary is the primary database connection string for read and write operations
 	DatabasePrimary string
+	DatabaseHydra   string
 
 	// --- OpenTelemetry configuration ---
 

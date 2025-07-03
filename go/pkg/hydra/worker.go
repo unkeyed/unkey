@@ -10,7 +10,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/hydra/metrics"
 	"github.com/unkeyed/unkey/go/pkg/hydra/store"
+	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/go/pkg/uid"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Worker represents a workflow worker that can start, run, and shutdown.
@@ -284,6 +287,46 @@ func (w *worker) processWorkflows(ctx context.Context) {
 func (w *worker) executeWorkflow(ctx context.Context, e *WorkflowExecution) {
 	startTime := w.clock.Now()
 
+	// Start tracing span for workflow execution
+	var span trace.Span
+
+	if e.TraceID != "" && e.SpanID != "" {
+		// Reconstruct the exact trace context from stored trace ID and span ID
+		traceID, traceErr := trace.TraceIDFromHex(e.TraceID)
+		spanID, spanErr := trace.SpanIDFromHex(e.SpanID)
+
+		if traceErr == nil && spanErr == nil {
+			// Create the exact span context from the original workflow creation
+			originalSpanCtx := trace.NewSpanContext(trace.SpanContextConfig{
+				TraceID:    traceID,
+				SpanID:     spanID,
+				TraceFlags: trace.FlagsSampled,
+			})
+
+			// Set this context as the parent for the execution span
+			ctx = trace.ContextWithSpanContext(ctx, originalSpanCtx)
+		}
+	}
+
+	ctx, span = tracing.Start(ctx, fmt.Sprintf("hydra.worker.executeWorkflow.%s", e.WorkflowName))
+	defer span.End()
+
+	spanAttributes := []attribute.KeyValue{
+		attribute.String("hydra.workflow.name", e.WorkflowName),
+		attribute.String("hydra.execution.id", e.ID),
+		attribute.String("hydra.namespace", e.Namespace),
+		attribute.String("hydra.worker.id", w.config.WorkerID),
+	}
+
+	if e.TraceID != "" {
+		spanAttributes = append(spanAttributes, attribute.String("hydra.original_trace_id", e.TraceID))
+	}
+	if e.SpanID != "" {
+		spanAttributes = append(spanAttributes, attribute.String("hydra.original_span_id", e.SpanID))
+	}
+
+	span.SetAttributes(spanAttributes...)
+
 	// Calculate queue time (time from creation to execution start)
 	queueTime := time.Duration(startTime.UnixMilli()-e.CreatedAt) * time.Millisecond
 	metrics.WorkflowQueueTimeSeconds.WithLabelValues(e.Namespace, e.WorkflowName).Observe(queueTime.Seconds())
@@ -291,12 +334,17 @@ func (w *worker) executeWorkflow(ctx context.Context, e *WorkflowExecution) {
 	err := w.engine.store.UpdateWorkflowStatus(ctx, e.Namespace, e.ID, WorkflowStatusRunning, "")
 	if err != nil {
 		metrics.RecordError(e.Namespace, "worker", "status_update_failed")
+		tracing.RecordError(span, err)
+		span.SetAttributes(attribute.String("hydra.workflow.status", "failed"))
 		return
 	}
 
 	wf, exists := w.workflows[e.WorkflowName]
 	if !exists {
 		noHandlerErr := fmt.Errorf("no handler registered for workflow %s", e.WorkflowName)
+		tracing.RecordError(span, noHandlerErr)
+		span.SetAttributes(attribute.String("hydra.workflow.status", "failed"))
+
 		if failErr := w.engine.store.FailWorkflow(ctx, e.Namespace, e.ID, noHandlerErr.Error(), true); failErr != nil {
 			w.engine.logger.Error("Failed to mark workflow as failed",
 				"workflow_id", e.ID,
@@ -314,7 +362,7 @@ func (w *worker) executeWorkflow(ctx context.Context, e *WorkflowExecution) {
 	payload := &RawPayload{Data: e.InputData}
 
 	wctx := &workflowContext{
-		ctx:             ctx,
+		ctx:             ctx, // This is the traced context from the worker span
 		executionID:     e.ID,
 		workflowName:    e.WorkflowName,
 		namespace:       e.Namespace,
@@ -329,7 +377,11 @@ func (w *worker) executeWorkflow(ctx context.Context, e *WorkflowExecution) {
 	err = wf.Run(wctx, payload)
 
 	if err != nil {
+		tracing.RecordError(span, err)
+
 		if suspendErr, ok := err.(*WorkflowSuspendedError); ok {
+			span.SetAttributes(attribute.String("hydra.workflow.status", "suspended"))
+
 			if sleepErr := w.engine.store.SleepWorkflow(ctx, e.Namespace, e.ID, suspendErr.ResumeTime); sleepErr != nil {
 				w.engine.logger.Error("Failed to suspend workflow",
 					"workflow_id", e.ID,
@@ -344,6 +396,8 @@ func (w *worker) executeWorkflow(ctx context.Context, e *WorkflowExecution) {
 		}
 
 		isFinal := e.RemainingAttempts <= 1
+		span.SetAttributes(attribute.String("hydra.workflow.status", "failed"))
+
 		if failErr := w.engine.store.FailWorkflow(ctx, e.Namespace, e.ID, err.Error(), isFinal); failErr != nil {
 			w.engine.logger.Error("Failed to mark workflow as failed",
 				"workflow_id", e.ID,
@@ -364,7 +418,10 @@ func (w *worker) executeWorkflow(ctx context.Context, e *WorkflowExecution) {
 		return
 	}
 
+	span.SetAttributes(attribute.String("hydra.workflow.status", "completed"))
+
 	if err := w.engine.store.CompleteWorkflow(ctx, e.Namespace, e.ID, nil); err != nil { // No output data for now
+		tracing.RecordError(span, err)
 		w.engine.logger.Error("Failed to mark workflow as completed",
 			"workflow_id", e.ID,
 			"workflow_name", e.WorkflowName,

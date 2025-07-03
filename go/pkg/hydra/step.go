@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/hydra/metrics"
+	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // Step executes a named step within a workflow with automatic checkpointing and retry logic.
@@ -68,10 +70,22 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 		return zero, fmt.Errorf("invalid workflow context")
 	}
 
+	// Start tracing span for this step
+	stepCtx, span := tracing.Start(wctx.ctx, fmt.Sprintf("hydra.step.%s", stepName))
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("hydra.step.name", stepName),
+		attribute.String("hydra.workflow.name", wctx.workflowName),
+		attribute.String("hydra.execution.id", wctx.executionID),
+		attribute.String("hydra.namespace", wctx.namespace),
+	)
+
 	existing, err := wctx.getCompletedStep(stepName)
 	if err == nil && existing != nil {
 		// Record cached step hit
 		metrics.StepsCachedTotal.WithLabelValues(wctx.namespace, wctx.workflowName, stepName).Inc()
+		span.SetAttributes(attribute.Bool("hydra.step.cached", true))
 
 		responseType := reflect.TypeOf((*TResponse)(nil)).Elem()
 		var response TResponse
@@ -81,7 +95,9 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 			var ok bool
 			response, ok = responseValue.Interface().(TResponse)
 			if !ok {
-				return zero, fmt.Errorf("failed to convert response to expected type")
+				err := fmt.Errorf("failed to convert response to expected type")
+				tracing.RecordError(span, err)
+				return zero, err
 			}
 		}
 
@@ -89,12 +105,15 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 			err = wctx.marshaller.Unmarshal(existing.OutputData, &response)
 			if err != nil {
 				metrics.RecordError(wctx.namespace, "step", "unmarshal_cached_result_failed")
+				tracing.RecordError(span, err)
 				return zero, fmt.Errorf("failed to unmarshal cached step result: %w", err)
 			}
 		}
 
 		return response, nil
 	}
+
+	span.SetAttributes(attribute.Bool("hydra.step.cached", false))
 
 	existingStep, err := wctx.getAnyStep(stepName)
 	var stepToUse *WorkflowStep
@@ -126,8 +145,10 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 		err = wctx.store.CreateStep(wctx.ctx, stepToUse)
 		if err != nil {
 			metrics.RecordError(wctx.namespace, "step", "create_step_failed")
+			tracing.RecordError(span, err)
 			return zero, fmt.Errorf("failed to create step: %w", err)
 		}
+		span.SetAttributes(attribute.Bool("hydra.step.new", true))
 	} else {
 		stepToUse.Status = StepStatusRunning
 		stepToUse.StartedAt = ptr.P(stepStartTime.UnixMilli())
@@ -137,17 +158,23 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 		err = wctx.store.UpdateStepStatus(wctx.ctx, wctx.namespace, wctx.executionID, stepName, StepStatusRunning, nil, "")
 		if err != nil {
 			metrics.RecordError(wctx.namespace, "step", "update_step_failed")
+			tracing.RecordError(span, err)
 			return zero, fmt.Errorf("failed to update step: %w", err)
 		}
 
 		// Record step retry
 		if stepToUse.RemainingAttempts < stepToUse.MaxAttempts {
 			metrics.StepsRetriedTotal.WithLabelValues(wctx.namespace, wctx.workflowName, stepName).Inc()
+			span.SetAttributes(attribute.Bool("hydra.step.retry", true))
 		}
+		span.SetAttributes(attribute.Bool("hydra.step.new", false))
 	}
 
-	response, err := fn(wctx.ctx)
+	response, err := fn(stepCtx)
 	if err != nil {
+		tracing.RecordError(span, err)
+		span.SetAttributes(attribute.String("hydra.step.status", "failed"))
+
 		if markErr := wctx.markStepFailed(stepName, err.Error()); markErr != nil {
 			metrics.RecordError(wctx.namespace, "step", "mark_step_failed_error")
 		}
@@ -158,6 +185,9 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 
 	respData, err := wctx.marshaller.Marshal(response)
 	if err != nil {
+		tracing.RecordError(span, err)
+		span.SetAttributes(attribute.String("hydra.step.status", "failed"))
+
 		if markErr := wctx.markStepFailed(stepName, err.Error()); markErr != nil {
 			metrics.RecordError(wctx.namespace, "step", "mark_step_failed_error")
 		}
@@ -169,10 +199,13 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 
 	err = wctx.markStepCompleted(stepName, respData)
 	if err != nil {
+		tracing.RecordError(span, err)
+		span.SetAttributes(attribute.String("hydra.step.status", "failed"))
 		metrics.RecordError(wctx.namespace, "step", "mark_completed_failed")
 		return zero, fmt.Errorf("failed to mark step completed: %w", err)
 	}
 
+	span.SetAttributes(attribute.String("hydra.step.status", "completed"))
 	metrics.ObserveStepDuration(wctx.namespace, wctx.workflowName, stepName, "completed", stepStartTime)
 	metrics.StepsExecutedTotal.WithLabelValues(wctx.namespace, wctx.workflowName, stepName, "completed").Inc()
 

@@ -67,6 +67,13 @@ var Cmd = &cli.Command{
 			Required: true,
 		},
 
+		&cli.StringFlag{
+			Name:     "database-hydra",
+			Usage:    "MySQL connection string for hydra database. Required for all deployments. Example: user:pass@host:3306/hydra?parseTime=true",
+			Sources:  cli.EnvVars("UNKEY_DATABASE_HYDRA"),
+			Required: true,
+		},
+
 		// Observability
 		&cli.BoolFlag{
 			Name:     "otel",
@@ -138,6 +145,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		// Database configuration
 		DatabasePrimary: cmd.String("database-primary"),
+		DatabaseHydra:   cmd.String("database-hydra"),
 
 		// Observability
 		OtelEnabled:           cmd.Bool("otel"),

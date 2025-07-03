@@ -23,6 +23,7 @@ type WorkflowExecution struct {
 	SleepUntil *int64 `gorm:"index:idx_workflow_status_sleep"`
 
 	TraceID string
+	SpanID  string
 }
 
 func (WorkflowExecution) TableName() string {
