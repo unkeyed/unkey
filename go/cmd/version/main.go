@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math/rand"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/git"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/urfave/cli/v3"
 )
@@ -68,11 +70,6 @@ var createCmd = &cli.Command{
 			Usage:    "Git commit SHA",
 			Required: false,
 		},
-		&cli.BoolFlag{
-			Name:  "watch",
-			Usage: "Watch the deployment progress",
-			Value: true,
-		},
 		&cli.StringFlag{
 			Name:     "control-plane-url",
 			Usage:    "Control plane base URL",
@@ -108,79 +105,135 @@ func createAction(ctx context.Context, cmd *cli.Command) error {
 	workspace := "acme"
 	project := "my-api"
 
+	// Get Git information automatically
+	gitInfo := git.GetInfo()
+
+	// Use Git info as defaults, allow CLI flags to override
 	branch := cmd.String("branch")
+	if branch == "main" && gitInfo.IsRepo { // CLI default is "main"
+		branch = gitInfo.Branch
+	}
+
+	commit := cmd.String("commit")
+	if commit == "" && gitInfo.CommitSHA != "" {
+		commit = gitInfo.CommitSHA
+	}
+
 	dockerImage := cmd.String("docker-image")
 	dockerfile := cmd.String("dockerfile")
 	buildContext := cmd.String("context")
-	commit := cmd.String("commit")
-	watch := cmd.Bool("watch")
 
-	return runDeploymentSteps(ctx, cmd, workspace, project, branch, dockerImage, dockerfile, buildContext, commit, watch, logger)
+	return runDeploymentSteps(ctx, cmd, workspace, project, branch, dockerImage, dockerfile, buildContext, commit, logger)
 }
 
-// Styles for clean output - Vitest-inspired hierarchical display
+// Styles for clean output
 var (
-	headerStyle  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("15")).MarginTop(1).MarginBottom(1)
-	successIcon  = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render("✓")
-	errorIcon    = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Render("✗")
-	pendingIcon  = lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render("○")
-	sectionName  = lipgloss.NewStyle().Bold(true)
-	subStepName  = lipgloss.NewStyle().Foreground(lipgloss.Color("15"))
-	detailsText  = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
-	durationText = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
+	headerStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("15")).MarginTop(1).MarginBottom(1)
+	sectionName = lipgloss.NewStyle().Bold(true)
+	metaText    = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
+	errorText   = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
+)
+
+// Fun loading messages for different deployment phases
+var (
+	buildingMessages = []string{
+		"Transforming containers into pure magic...",
+		"Teaching Docker images to fly...",
+		"Compressing pixels and dreams...",
+		"Turning containers inside out...",
+		"Extracting the essence of your code...",
+		"Squishing containers flat like pancakes...",
+		"Converting Docker to VM-speak...",
+	}
+
+	deployingMessages = []string{
+		"Waking up sleepy virtual machines...",
+		"Teaching VMs to dance with your code...",
+		"Summoning compute spirits from the cloud...",
+		"Bribing CPUs with electricity...",
+		"Convincing VMs to get out of bed...",
+		"Herding virtual cats into formation...",
+		"Rolling out the red carpet for your app...",
+	}
+
+	buildQueuedMessages = []string{
+		"Waiting in line behind the other builds...",
+		"Taking a number at the build deli...",
+		"Patience, young padawan...",
+		"Good things come to those who wait...",
+		"Counting sheep until build starts...",
+		"Build is doing pre-flight checks...",
+	}
+
+	buildRunningMessages = []string{
+		"Assembling bits and bytes...",
+		"Compiling dreams into reality...",
+		"Teaching code to behave...",
+		"Negotiating with Docker layers...",
+		"Convincing dependencies to play nice...",
+		"Building the eighth wonder of the world...",
+		"Crafting digital masterpieces...",
+	}
 )
 
 func printDeploymentComplete(versionID, workspace, branch, commit string) {
 	fmt.Println()
-	fmt.Printf("%s %s\n", successIcon, sectionName.Render("Deployment Complete"))
-	fmt.Printf("  %s %s: %s\n", successIcon, subStepName.Render("Version ID"), detailsText.Render(versionID))
-	fmt.Printf("  %s %s: %s\n", successIcon, subStepName.Render("Status"), detailsText.Render("Ready"))
-	fmt.Printf("  %s %s: %s\n", successIcon, subStepName.Render("Environment"), detailsText.Render("Production"))
+	fmt.Printf("%s\n", sectionName.Render("Deployment Complete"))
+	fmt.Printf("  Version ID: %s\n", metaText.Render(versionID))
+	fmt.Printf("  Status: Ready\n")
+	fmt.Printf("  Environment: Production\n")
 
 	fmt.Println()
-	fmt.Printf("%s %s\n", successIcon, sectionName.Render("Domains"))
+	fmt.Printf("%s\n", sectionName.Render("Domains"))
 
-	// Generate hostnames based on patterns
-	gitSha := "abc123d"
-	if commit != "" && len(commit) >= 7 {
-		gitSha = commit[:7]
+	// Use actual Git info for hostname generation
+	gitInfo := git.GetInfo()
+	shortSHA := "unknown"
+	if gitInfo.ShortSHA != "" {
+		shortSHA = gitInfo.ShortSHA
+	} else if commit != "" && len(commit) >= 7 {
+		shortSHA = commit[:7]
 	}
 
-	fmt.Printf("  %s\n", detailsText.Render(fmt.Sprintf("https://%s-%s-%s.unkey.app", branch, gitSha, workspace)))
-	fmt.Printf("  %s\n", detailsText.Render("https://api.acme.com"))
+	fmt.Printf("  %s\n", metaText.Render(fmt.Sprintf("https://%s-%s-%s.unkey.app", branch, shortSHA, workspace)))
+	fmt.Printf("  %s\n", metaText.Render("https://api.acme.com"))
 
 	fmt.Println()
-	fmt.Printf("%s %s\n", successIcon, sectionName.Render("Source"))
-	fmt.Printf("  %s %s: %s\n", successIcon, subStepName.Render("Branch"), detailsText.Render(branch))
-	if commit != "" {
-		fmt.Printf("  %s %s: %s\n", successIcon, subStepName.Render("Commit"), detailsText.Render(commit[:7]))
+	fmt.Printf("%s\n", sectionName.Render("Source"))
+	fmt.Printf("  Branch: %s\n", branch)
+	if gitInfo.ShortSHA != "" {
+		fmt.Printf("  Commit: %s\n", gitInfo.ShortSHA)
+		if gitInfo.IsDirty {
+			fmt.Printf("  Status: %s\n", metaText.Render("Working directory has uncommitted changes"))
+		}
 	}
 }
 
-func runDeploymentSteps(ctx context.Context, cmd *cli.Command, workspace, project, branch, dockerImage, dockerfile, buildContext, commit string, watch bool, logger logging.Logger) error {
+func runDeploymentSteps(ctx context.Context, cmd *cli.Command, workspace, project, branch, dockerImage, dockerfile, buildContext, commit string, logger logging.Logger) error {
 
-	// Simple header
-	version := "v1.0.0"
-	fmt.Println(headerStyle.Render(fmt.Sprintf("DEPLOY  %s  %s", version, buildContext)))
-	fmt.Println()
+	// Get Git info for better image tagging
+	gitInfo := git.GetInfo()
 
 	// If no docker image provided, build one
 	if dockerImage == "" {
-		// Start Building section
-		fmt.Print("○ Building")
-		buildStart := time.Now()
+		fmt.Printf("%s\n", sectionName.Render("Building"))
 
-		// Generate image tag
-		timestamp := time.Now().Unix()
-		dockerImage = fmt.Sprintf("ghcr.io/unkeyed/deploy-wip:%s-%d", branch, timestamp)
+		// Generate image tag using Git info when available
+		imageTag := branch
+		if gitInfo.ShortSHA != "" {
+			imageTag = fmt.Sprintf("%s-%s", branch, gitInfo.ShortSHA)
+		} else {
+			// Fallback to timestamp if no Git info
+			timestamp := time.Now().Unix()
+			imageTag = fmt.Sprintf("%s-%d", branch, timestamp)
+		}
+		dockerImage = fmt.Sprintf("ghcr.io/unkeyed/deploy-wip:%s", imageTag)
 
-		fmt.Printf("\r%s %s %s\n", successIcon, sectionName.Render("Building"), durationText.Render(fmt.Sprintf("(%.1fs)", time.Since(buildStart).Seconds())))
-		fmt.Printf("  %s %s: %s\n", successIcon, subStepName.Render("Generate image tag"), detailsText.Render(dockerImage))
-		fmt.Printf("  %s %s: %s\n", successIcon, subStepName.Render("Docker build context"), detailsText.Render(buildContext))
+		fmt.Printf("  Image tag: %s\n", metaText.Render(dockerImage))
+		fmt.Printf("  Build context: %s\n", metaText.Render(buildContext))
 
 		// Docker build steps
-		fmt.Printf("  %s %s", pendingIcon, subStepName.Render("Build steps"))
-		dockerBuildStart := time.Now()
+		fmt.Printf("  Building Docker image...\n")
 
 		// Build the Docker image with minimal output
 		var buildArgs []string
@@ -209,22 +262,18 @@ func runDeploymentSteps(ctx context.Context, cmd *cli.Command, workspace, projec
 		err := buildCmd.Run()
 
 		if err != nil {
-			fmt.Printf("\r  %s %s %s\n", errorIcon, subStepName.Render("Build steps"), durationText.Render(fmt.Sprintf("(%.1fs)", time.Since(dockerBuildStart).Seconds())))
+			fmt.Printf("  %s: Docker build failed\n", errorText.Render("Error"))
 			// Show the full build output on failure
-			fmt.Printf("    Build output:\n")
 			for _, line := range strings.Split(allOutput.String(), "\n") {
 				if strings.TrimSpace(line) != "" {
-					fmt.Printf("    %s\n", detailsText.Render(line))
+					fmt.Printf("    %s\n", line)
 				}
 			}
 			return fmt.Errorf("docker build failed: %w", err)
 		}
 
-		fmt.Printf("\r  %s %s %s\n", successIcon, subStepName.Render("Build steps"), durationText.Render(fmt.Sprintf("(%.1fs)", time.Since(dockerBuildStart).Seconds())))
-
 		// Publishing section
-		fmt.Printf("%s %s", pendingIcon, sectionName.Render("Publishing"))
-		publishStart := time.Now()
+		fmt.Printf("%s\n", sectionName.Render("Publishing"))
 
 		pushCmd := exec.CommandContext(ctx, "docker", "push", dockerImage)
 
@@ -235,23 +284,19 @@ func runDeploymentSteps(ctx context.Context, cmd *cli.Command, workspace, projec
 
 		// Run the push
 		if err := pushCmd.Run(); err != nil {
-			fmt.Printf("\r%s %s %s\n", errorIcon, sectionName.Render("Publishing"), durationText.Render(fmt.Sprintf("(%.1fs)", time.Since(publishStart).Seconds())))
+			fmt.Printf("  %s: Docker push failed\n", errorText.Render("Error"))
 			// Show the push output on failure
-			fmt.Printf("    Push output:\n")
 			for _, line := range strings.Split(pushOutput.String(), "\n") {
 				if strings.TrimSpace(line) != "" {
-					fmt.Printf("    %s\n", detailsText.Render(line))
+					fmt.Printf("    %s\n", line)
 				}
 			}
 			return fmt.Errorf("docker push failed: %w", err)
 		}
-
-		fmt.Printf("\r%s %s %s\n", successIcon, sectionName.Render("Publishing"), durationText.Render(fmt.Sprintf("(%.1fs)", time.Since(publishStart).Seconds())))
 	}
 
 	// Creating Version section
-	fmt.Printf("%s %s", pendingIcon, sectionName.Render("Creating Version"))
-	versionStart := time.Now()
+	fmt.Printf("%s\n", sectionName.Render("Creating Version"))
 
 	// Create control plane client
 	controlPlaneURL := cmd.String("control-plane-url")
@@ -262,13 +307,13 @@ func runDeploymentSteps(ctx context.Context, cmd *cli.Command, workspace, projec
 
 	// Create version request
 	createReq := connect.NewRequest(&ctrlv1.CreateVersionRequest{
-		WorkspaceId:   workspace,
-		ProjectId:     project,
-		Branch:        branch,
-		SourceType:    ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
-		GitCommitSha:  cmd.String("commit"),
-		EnvironmentId: "env_prod",
-		UploadUrl:     "", // Not used for this flow
+		WorkspaceId:    workspace,
+		ProjectId:      project,
+		Branch:         branch,
+		SourceType:     ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
+		GitCommitSha:   cmd.String("commit"),
+		EnvironmentId:  "env_prod",
+		DockerImageTag: dockerImage,
 	})
 
 	// Add auth header
@@ -308,25 +353,16 @@ func runDeploymentSteps(ctx context.Context, cmd *cli.Command, workspace, projec
 	}
 
 	versionID := createResp.Msg.GetVersionId()
-	fmt.Printf("\r%s %s %s\n", successIcon, sectionName.Render("Creating Version"), durationText.Render(fmt.Sprintf("(%.1fs)", time.Since(versionStart).Seconds())))
-	fmt.Printf("  %s %s: %s\n", successIcon, subStepName.Render("Version ID"), detailsText.Render(versionID))
-	fmt.Printf("  %s %s: %s\n", successIcon, subStepName.Render("Image"), detailsText.Render(dockerImage))
-	fmt.Printf("  %s %s: %s\n", successIcon, subStepName.Render("Branch"), detailsText.Render(branch))
+	fmt.Printf("  Version ID: %s\n", metaText.Render(versionID))
+	fmt.Printf("  Image: %s\n", metaText.Render(dockerImage))
+	fmt.Printf("  Branch: %s\n", metaText.Render(branch))
 
-	if watch {
-		// Deploying section
-		fmt.Printf("%s %s", pendingIcon, sectionName.Render("Deploying"))
-		deployStart := time.Now()
-
-		// Poll for version status updates
-		if err := pollVersionStatus(ctx, logger, client, versionID); err != nil {
-			fmt.Printf("\r%s %s %s\n", errorIcon, sectionName.Render("Deploying"), durationText.Render(fmt.Sprintf("(%.1fs)", time.Since(deployStart).Seconds())))
-			return fmt.Errorf("deployment failed: %w", err)
-		}
-
-		fmt.Printf("\r%s %s %s\n", successIcon, sectionName.Render("Deploying"), durationText.Render(fmt.Sprintf("(%.1fs)", time.Since(deployStart).Seconds())))
-		printDeploymentComplete(versionID, workspace, branch, commit)
+	// Poll for version status updates
+	if err := pollVersionStatus(ctx, logger, client, versionID); err != nil {
+		return fmt.Errorf("deployment failed: %w", err)
 	}
+
+	printDeploymentComplete(versionID, workspace, branch, commit)
 
 	return nil
 }
@@ -339,21 +375,22 @@ func pollVersionStatus(ctx context.Context, logger logging.Logger, client ctrlv1
 	timeout := time.NewTimer(30 * time.Second) // 30 second timeout
 	defer timeout.Stop()
 
-	lastStatus := ""
+	// Create build service client for build polling
+	buildClient := ctrlv1connect.NewBuildServiceClient(&http.Client{}, "http://localhost:7091")
+
+	lastVersionStatus := ""
+	lastBuildStatus := ""
+	currentBuildID := ""
 
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-timeout.C:
-			fmt.Printf("  %s %s\n", errorIcon, subStepName.Render("Deployment timeout after 30 seconds"))
-			return fault.Wrap(errors.New("deployment timeout"),
-				fault.Code(codes.UnkeyAppErrorsInternalServiceUnavailable),
-				fault.Internal("Version status polling timed out after 30 seconds"),
-				fault.Public("Deployment is taking longer than expected. Check status manually."),
-			)
+			fmt.Printf("Error: Deployment timeout after 30 seconds\n")
+			return fmt.Errorf("deployment timeout")
 		case <-ticker.C:
-			// Call the GetVersion API
+			// Always poll version status
 			getReq := connect.NewRequest(&ctrlv1.GetVersionRequest{
 				VersionId: versionID,
 			})
@@ -361,21 +398,72 @@ func pollVersionStatus(ctx context.Context, logger logging.Logger, client ctrlv1
 
 			getResp, err := client.GetVersion(ctx, getReq)
 			if err != nil {
-				logger.Debug("Failed to get version status",
-					"error", err,
-					"version_id", versionID,
-				)
+				logger.Debug("Failed to get version status", "error", err, "version_id", versionID)
 				continue
 			}
 
 			version := getResp.Msg.GetVersion()
-			currentStatus := version.GetStatus().String()
+			currentVersionStatus := version.GetStatus().String()
+			buildID := version.GetBuildId()
 
-			// Only print status updates when they change
-			if currentStatus != lastStatus {
-				statusName := getStatusDisplayName(version.GetStatus())
-				fmt.Printf("  %s %s\n", pendingIcon, subStepName.Render(statusName))
-				lastStatus = currentStatus
+			// Track current build ID
+			if buildID != "" && buildID != currentBuildID {
+				currentBuildID = buildID
+				lastBuildStatus = ""
+			}
+
+			// Show version status updates with section headers
+			if currentVersionStatus != lastVersionStatus {
+				switch version.GetStatus() {
+				case ctrlv1.VersionStatus_VERSION_STATUS_BUILDING:
+					fmt.Printf("%s\n", sectionName.Render("Building"))
+					message := buildingMessages[rand.Intn(len(buildingMessages))]
+					fmt.Printf("  %s\n", metaText.Render(message))
+				case ctrlv1.VersionStatus_VERSION_STATUS_DEPLOYING:
+					fmt.Printf("%s\n", sectionName.Render("Deploying"))
+					message := deployingMessages[rand.Intn(len(deployingMessages))]
+					fmt.Printf("  %s\n", metaText.Render(message))
+				case ctrlv1.VersionStatus_VERSION_STATUS_ACTIVE:
+					// Will be handled after the polling loop
+				case ctrlv1.VersionStatus_VERSION_STATUS_FAILED:
+					fmt.Printf("  %s: Deployment failed\n", errorText.Render("Error"))
+				}
+				lastVersionStatus = currentVersionStatus
+			}
+
+			// Poll build status if we're building and have a build ID
+			if version.GetStatus() == ctrlv1.VersionStatus_VERSION_STATUS_BUILDING && buildID != "" {
+				buildReq := connect.NewRequest(&ctrlv1.GetBuildRequest{
+					BuildId: buildID,
+				})
+				buildReq.Header().Set("Authorization", "Bearer ctrl-secret-token")
+
+				buildResp, err := buildClient.GetBuild(ctx, buildReq)
+				if err == nil {
+					build := buildResp.Msg.GetBuild()
+					currentBuildStatus := build.GetStatus().String()
+
+					// Show build status updates
+					if currentBuildStatus != lastBuildStatus {
+						var message string
+						switch build.GetStatus() {
+						case ctrlv1.BuildStatus_BUILD_STATUS_PENDING:
+							message = buildQueuedMessages[rand.Intn(len(buildQueuedMessages))]
+						case ctrlv1.BuildStatus_BUILD_STATUS_RUNNING:
+							message = buildRunningMessages[rand.Intn(len(buildRunningMessages))]
+						default:
+							message = getBuildStatusDisplayName(build.GetStatus())
+						}
+						fmt.Printf("  %s\n", metaText.Render(message))
+
+						// Show build error if failed
+						if build.GetStatus() == ctrlv1.BuildStatus_BUILD_STATUS_FAILED && build.GetErrorMessage() != "" {
+							fmt.Printf("  %s: %s\n", errorText.Render("Build Error"), build.GetErrorMessage())
+						}
+
+						lastBuildStatus = currentBuildStatus
+					}
+				}
 			}
 
 			// Check if deployment is complete
@@ -387,11 +475,6 @@ func pollVersionStatus(ctx context.Context, logger logging.Logger, client ctrlv1
 			if version.GetStatus() == ctrlv1.VersionStatus_VERSION_STATUS_FAILED {
 				return fmt.Errorf("deployment failed")
 			}
-
-			logger.Debug("Polling version status",
-				"version_id", versionID,
-				"status", currentStatus,
-			)
 		}
 	}
 }
@@ -404,9 +487,9 @@ func getStatusDisplayName(status ctrlv1.VersionStatus) string {
 	case ctrlv1.VersionStatus_VERSION_STATUS_PENDING:
 		return "Queuing deployment"
 	case ctrlv1.VersionStatus_VERSION_STATUS_BUILDING:
-		return "Converting Docker image to Firecracker rootfs"
+		return "Building"
 	case ctrlv1.VersionStatus_VERSION_STATUS_DEPLOYING:
-		return "Starting instances"
+		return "Deploying"
 	case ctrlv1.VersionStatus_VERSION_STATUS_ACTIVE:
 		return "Ready and serving traffic"
 	case ctrlv1.VersionStatus_VERSION_STATUS_FAILED:
@@ -415,6 +498,26 @@ func getStatusDisplayName(status ctrlv1.VersionStatus) string {
 		return "Deployment archived"
 	default:
 		return "Unknown status"
+	}
+}
+
+// getBuildStatusDisplayName converts a build status to a human-readable display name
+func getBuildStatusDisplayName(status ctrlv1.BuildStatus) string {
+	switch status {
+	case ctrlv1.BuildStatus_BUILD_STATUS_UNSPECIFIED:
+		return "Build status unknown"
+	case ctrlv1.BuildStatus_BUILD_STATUS_PENDING:
+		return "Build queued"
+	case ctrlv1.BuildStatus_BUILD_STATUS_RUNNING:
+		return "Building Docker image..."
+	case ctrlv1.BuildStatus_BUILD_STATUS_SUCCEEDED:
+		return "Build completed"
+	case ctrlv1.BuildStatus_BUILD_STATUS_FAILED:
+		return "Build failed"
+	case ctrlv1.BuildStatus_BUILD_STATUS_CANCELLED:
+		return "Build cancelled"
+	default:
+		return "Unknown build status"
 	}
 }
 

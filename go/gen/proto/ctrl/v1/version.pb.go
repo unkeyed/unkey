@@ -142,11 +142,12 @@ type CreateVersionRequest struct {
 	// Source information
 	SourceType   SourceType `protobuf:"varint,4,opt,name=source_type,json=sourceType,proto3,enum=ctrl.v1.SourceType" json:"source_type,omitempty"`
 	GitCommitSha string     `protobuf:"bytes,5,opt,name=git_commit_sha,json=gitCommitSha,proto3" json:"git_commit_sha,omitempty"` // For git sources
-	UploadUrl    string     `protobuf:"bytes,6,opt,name=upload_url,json=uploadUrl,proto3" json:"upload_url,omitempty"`            // Request pre-signed URL for CLI uploads
 	// Optional environment override (defaults based on branch)
 	EnvironmentId string `protobuf:"bytes,7,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Docker image support
+	DockerImageTag string `protobuf:"bytes,8,opt,name=docker_image_tag,json=dockerImageTag,proto3" json:"docker_image_tag,omitempty"` // e.g. "ghcr.io/user/app:sha256..."
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CreateVersionRequest) Reset() {
@@ -214,13 +215,6 @@ func (x *CreateVersionRequest) GetGitCommitSha() string {
 	return ""
 }
 
-func (x *CreateVersionRequest) GetUploadUrl() string {
-	if x != nil {
-		return x.UploadUrl
-	}
-	return ""
-}
-
 func (x *CreateVersionRequest) GetEnvironmentId() string {
 	if x != nil {
 		return x.EnvironmentId
@@ -228,11 +222,17 @@ func (x *CreateVersionRequest) GetEnvironmentId() string {
 	return ""
 }
 
+func (x *CreateVersionRequest) GetDockerImageTag() string {
+	if x != nil {
+		return x.DockerImageTag
+	}
+	return ""
+}
+
 type CreateVersionResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	VersionId     string                 `protobuf:"bytes,1,opt,name=version_id,json=versionId,proto3" json:"version_id,omitempty"`
-	UploadUrl     string                 `protobuf:"bytes,2,opt,name=upload_url,json=uploadUrl,proto3" json:"upload_url,omitempty"` // Pre-signed S3 URL for CLI uploads
-	Status        VersionStatus          `protobuf:"varint,3,opt,name=status,proto3,enum=ctrl.v1.VersionStatus" json:"status,omitempty"`
+	Status        VersionStatus          `protobuf:"varint,2,opt,name=status,proto3,enum=ctrl.v1.VersionStatus" json:"status,omitempty"` // Will be PENDING or BUILDING
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -270,13 +270,6 @@ func (*CreateVersionResponse) Descriptor() ([]byte, []int) {
 func (x *CreateVersionResponse) GetVersionId() string {
 	if x != nil {
 		return x.VersionId
-	}
-	return ""
-}
-
-func (x *CreateVersionResponse) GetUploadUrl() string {
-	if x != nil {
-		return x.UploadUrl
 	}
 	return ""
 }
@@ -376,160 +369,6 @@ func (x *GetVersionResponse) GetVersion() *Version {
 	return nil
 }
 
-type ListVersionsRequest struct {
-	state       protoimpl.MessageState `protogen:"open.v1"`
-	WorkspaceId string                 `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
-	ProjectId   string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	// Filters
-	EnvironmentId string        `protobuf:"bytes,3,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
-	Branch        string        `protobuf:"bytes,4,opt,name=branch,proto3" json:"branch,omitempty"`
-	Status        VersionStatus `protobuf:"varint,5,opt,name=status,proto3,enum=ctrl.v1.VersionStatus" json:"status,omitempty"`
-	// Pagination
-	PageSize      int32  `protobuf:"varint,10,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	PageToken     string `protobuf:"bytes,11,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListVersionsRequest) Reset() {
-	*x = ListVersionsRequest{}
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListVersionsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListVersionsRequest) ProtoMessage() {}
-
-func (x *ListVersionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListVersionsRequest.ProtoReflect.Descriptor instead.
-func (*ListVersionsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_version_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *ListVersionsRequest) GetWorkspaceId() string {
-	if x != nil {
-		return x.WorkspaceId
-	}
-	return ""
-}
-
-func (x *ListVersionsRequest) GetProjectId() string {
-	if x != nil {
-		return x.ProjectId
-	}
-	return ""
-}
-
-func (x *ListVersionsRequest) GetEnvironmentId() string {
-	if x != nil {
-		return x.EnvironmentId
-	}
-	return ""
-}
-
-func (x *ListVersionsRequest) GetBranch() string {
-	if x != nil {
-		return x.Branch
-	}
-	return ""
-}
-
-func (x *ListVersionsRequest) GetStatus() VersionStatus {
-	if x != nil {
-		return x.Status
-	}
-	return VersionStatus_VERSION_STATUS_UNSPECIFIED
-}
-
-func (x *ListVersionsRequest) GetPageSize() int32 {
-	if x != nil {
-		return x.PageSize
-	}
-	return 0
-}
-
-func (x *ListVersionsRequest) GetPageToken() string {
-	if x != nil {
-		return x.PageToken
-	}
-	return ""
-}
-
-type ListVersionsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Versions      []*Version             `protobuf:"bytes,1,rep,name=versions,proto3" json:"versions,omitempty"`
-	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
-	TotalCount    int32                  `protobuf:"varint,3,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListVersionsResponse) Reset() {
-	*x = ListVersionsResponse{}
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListVersionsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListVersionsResponse) ProtoMessage() {}
-
-func (x *ListVersionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListVersionsResponse.ProtoReflect.Descriptor instead.
-func (*ListVersionsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_version_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *ListVersionsResponse) GetVersions() []*Version {
-	if x != nil {
-		return x.Versions
-	}
-	return nil
-}
-
-func (x *ListVersionsResponse) GetNextPageToken() string {
-	if x != nil {
-		return x.NextPageToken
-	}
-	return ""
-}
-
-func (x *ListVersionsResponse) GetTotalCount() int32 {
-	if x != nil {
-		return x.TotalCount
-	}
-	return 0
-}
-
 type Version struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -560,7 +399,7 @@ type Version struct {
 
 func (x *Version) Reset() {
 	*x = Version{}
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[6]
+	mi := &file_proto_ctrl_v1_version_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -572,7 +411,7 @@ func (x *Version) String() string {
 func (*Version) ProtoMessage() {}
 
 func (x *Version) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[6]
+	mi := &file_proto_ctrl_v1_version_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -585,7 +424,7 @@ func (x *Version) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Version.ProtoReflect.Descriptor instead.
 func (*Version) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_version_proto_rawDescGZIP(), []int{6}
+	return file_proto_ctrl_v1_version_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Version) GetId() string {
@@ -709,7 +548,7 @@ type Topology struct {
 
 func (x *Topology) Reset() {
 	*x = Topology{}
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[7]
+	mi := &file_proto_ctrl_v1_version_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -721,7 +560,7 @@ func (x *Topology) String() string {
 func (*Topology) ProtoMessage() {}
 
 func (x *Topology) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[7]
+	mi := &file_proto_ctrl_v1_version_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -734,7 +573,7 @@ func (x *Topology) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Topology.ProtoReflect.Descriptor instead.
 func (*Topology) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_version_proto_rawDescGZIP(), []int{7}
+	return file_proto_ctrl_v1_version_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Topology) GetCpuMillicores() int32 {
@@ -790,7 +629,7 @@ type RegionalConfig struct {
 
 func (x *RegionalConfig) Reset() {
 	*x = RegionalConfig{}
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[8]
+	mi := &file_proto_ctrl_v1_version_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -802,7 +641,7 @@ func (x *RegionalConfig) String() string {
 func (*RegionalConfig) ProtoMessage() {}
 
 func (x *RegionalConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[8]
+	mi := &file_proto_ctrl_v1_version_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -815,7 +654,7 @@ func (x *RegionalConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegionalConfig.ProtoReflect.Descriptor instead.
 func (*RegionalConfig) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_version_proto_rawDescGZIP(), []int{8}
+	return file_proto_ctrl_v1_version_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *RegionalConfig) GetRegion() string {
@@ -843,7 +682,7 @@ var File_proto_ctrl_v1_version_proto protoreflect.FileDescriptor
 
 const file_proto_ctrl_v1_version_proto_rawDesc = "" +
 	"\n" +
-	"\x1bproto/ctrl/v1/version.proto\x12\actrl.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x92\x02\n" +
+	"\x1bproto/ctrl/v1/version.proto\x12\actrl.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9d\x02\n" +
 	"\x14CreateVersionRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
@@ -851,37 +690,18 @@ const file_proto_ctrl_v1_version_proto_rawDesc = "" +
 	"\x06branch\x18\x03 \x01(\tR\x06branch\x124\n" +
 	"\vsource_type\x18\x04 \x01(\x0e2\x13.ctrl.v1.SourceTypeR\n" +
 	"sourceType\x12$\n" +
-	"\x0egit_commit_sha\x18\x05 \x01(\tR\fgitCommitSha\x12\x1d\n" +
-	"\n" +
-	"upload_url\x18\x06 \x01(\tR\tuploadUrl\x12%\n" +
-	"\x0eenvironment_id\x18\a \x01(\tR\renvironmentId\"\x85\x01\n" +
+	"\x0egit_commit_sha\x18\x05 \x01(\tR\fgitCommitSha\x12%\n" +
+	"\x0eenvironment_id\x18\a \x01(\tR\renvironmentId\x12(\n" +
+	"\x10docker_image_tag\x18\b \x01(\tR\x0edockerImageTag\"f\n" +
 	"\x15CreateVersionResponse\x12\x1d\n" +
 	"\n" +
-	"version_id\x18\x01 \x01(\tR\tversionId\x12\x1d\n" +
-	"\n" +
-	"upload_url\x18\x02 \x01(\tR\tuploadUrl\x12.\n" +
-	"\x06status\x18\x03 \x01(\x0e2\x16.ctrl.v1.VersionStatusR\x06status\"2\n" +
+	"version_id\x18\x01 \x01(\tR\tversionId\x12.\n" +
+	"\x06status\x18\x02 \x01(\x0e2\x16.ctrl.v1.VersionStatusR\x06status\"2\n" +
 	"\x11GetVersionRequest\x12\x1d\n" +
 	"\n" +
 	"version_id\x18\x01 \x01(\tR\tversionId\"@\n" +
 	"\x12GetVersionResponse\x12*\n" +
-	"\aversion\x18\x01 \x01(\v2\x10.ctrl.v1.VersionR\aversion\"\x82\x02\n" +
-	"\x13ListVersionsRequest\x12!\n" +
-	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
-	"\n" +
-	"project_id\x18\x02 \x01(\tR\tprojectId\x12%\n" +
-	"\x0eenvironment_id\x18\x03 \x01(\tR\renvironmentId\x12\x16\n" +
-	"\x06branch\x18\x04 \x01(\tR\x06branch\x12.\n" +
-	"\x06status\x18\x05 \x01(\x0e2\x16.ctrl.v1.VersionStatusR\x06status\x12\x1b\n" +
-	"\tpage_size\x18\n" +
-	" \x01(\x05R\bpageSize\x12\x1d\n" +
-	"\n" +
-	"page_token\x18\v \x01(\tR\tpageToken\"\x8d\x01\n" +
-	"\x14ListVersionsResponse\x12,\n" +
-	"\bversions\x18\x01 \x03(\v2\x10.ctrl.v1.VersionR\bversions\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n" +
-	"\vtotal_count\x18\x03 \x01(\x05R\n" +
-	"totalCount\"\xcc\x05\n" +
+	"\aversion\x18\x01 \x01(\v2\x10.ctrl.v1.VersionR\aversion\"\xcc\x05\n" +
 	"\aVersion\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\fworkspace_id\x18\x02 \x01(\tR\vworkspaceId\x12\x1d\n" +
@@ -929,12 +749,11 @@ const file_proto_ctrl_v1_version_proto_rawDesc = "" +
 	"SourceType\x12\x1b\n" +
 	"\x17SOURCE_TYPE_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fSOURCE_TYPE_GIT\x10\x01\x12\x1a\n" +
-	"\x16SOURCE_TYPE_CLI_UPLOAD\x10\x022\xfa\x01\n" +
+	"\x16SOURCE_TYPE_CLI_UPLOAD\x10\x022\xab\x01\n" +
 	"\x0eVersionService\x12P\n" +
 	"\rCreateVersion\x12\x1d.ctrl.v1.CreateVersionRequest\x1a\x1e.ctrl.v1.CreateVersionResponse\"\x00\x12G\n" +
 	"\n" +
-	"GetVersion\x12\x1a.ctrl.v1.GetVersionRequest\x1a\x1b.ctrl.v1.GetVersionResponse\"\x00\x12M\n" +
-	"\fListVersions\x12\x1c.ctrl.v1.ListVersionsRequest\x1a\x1d.ctrl.v1.ListVersionsResponse\"\x00B6Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1b\x06proto3"
+	"GetVersion\x12\x1a.ctrl.v1.GetVersionRequest\x1a\x1b.ctrl.v1.GetVersionResponse\"\x00B6Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1b\x06proto3"
 
 var (
 	file_proto_ctrl_v1_version_proto_rawDescOnce sync.Once
@@ -949,7 +768,7 @@ func file_proto_ctrl_v1_version_proto_rawDescGZIP() []byte {
 }
 
 var file_proto_ctrl_v1_version_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_proto_ctrl_v1_version_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_proto_ctrl_v1_version_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_proto_ctrl_v1_version_proto_goTypes = []any{
 	(VersionStatus)(0),            // 0: ctrl.v1.VersionStatus
 	(SourceType)(0),               // 1: ctrl.v1.SourceType
@@ -957,37 +776,31 @@ var file_proto_ctrl_v1_version_proto_goTypes = []any{
 	(*CreateVersionResponse)(nil), // 3: ctrl.v1.CreateVersionResponse
 	(*GetVersionRequest)(nil),     // 4: ctrl.v1.GetVersionRequest
 	(*GetVersionResponse)(nil),    // 5: ctrl.v1.GetVersionResponse
-	(*ListVersionsRequest)(nil),   // 6: ctrl.v1.ListVersionsRequest
-	(*ListVersionsResponse)(nil),  // 7: ctrl.v1.ListVersionsResponse
-	(*Version)(nil),               // 8: ctrl.v1.Version
-	(*Topology)(nil),              // 9: ctrl.v1.Topology
-	(*RegionalConfig)(nil),        // 10: ctrl.v1.RegionalConfig
-	nil,                           // 11: ctrl.v1.Version.EnvironmentVariablesEntry
-	(*timestamppb.Timestamp)(nil), // 12: google.protobuf.Timestamp
+	(*Version)(nil),               // 6: ctrl.v1.Version
+	(*Topology)(nil),              // 7: ctrl.v1.Topology
+	(*RegionalConfig)(nil),        // 8: ctrl.v1.RegionalConfig
+	nil,                           // 9: ctrl.v1.Version.EnvironmentVariablesEntry
+	(*timestamppb.Timestamp)(nil), // 10: google.protobuf.Timestamp
 }
 var file_proto_ctrl_v1_version_proto_depIdxs = []int32{
 	1,  // 0: ctrl.v1.CreateVersionRequest.source_type:type_name -> ctrl.v1.SourceType
 	0,  // 1: ctrl.v1.CreateVersionResponse.status:type_name -> ctrl.v1.VersionStatus
-	8,  // 2: ctrl.v1.GetVersionResponse.version:type_name -> ctrl.v1.Version
-	0,  // 3: ctrl.v1.ListVersionsRequest.status:type_name -> ctrl.v1.VersionStatus
-	8,  // 4: ctrl.v1.ListVersionsResponse.versions:type_name -> ctrl.v1.Version
-	0,  // 5: ctrl.v1.Version.status:type_name -> ctrl.v1.VersionStatus
-	11, // 6: ctrl.v1.Version.environment_variables:type_name -> ctrl.v1.Version.EnvironmentVariablesEntry
-	9,  // 7: ctrl.v1.Version.topology:type_name -> ctrl.v1.Topology
-	12, // 8: ctrl.v1.Version.created_at:type_name -> google.protobuf.Timestamp
-	12, // 9: ctrl.v1.Version.updated_at:type_name -> google.protobuf.Timestamp
-	10, // 10: ctrl.v1.Topology.regions:type_name -> ctrl.v1.RegionalConfig
-	2,  // 11: ctrl.v1.VersionService.CreateVersion:input_type -> ctrl.v1.CreateVersionRequest
-	4,  // 12: ctrl.v1.VersionService.GetVersion:input_type -> ctrl.v1.GetVersionRequest
-	6,  // 13: ctrl.v1.VersionService.ListVersions:input_type -> ctrl.v1.ListVersionsRequest
-	3,  // 14: ctrl.v1.VersionService.CreateVersion:output_type -> ctrl.v1.CreateVersionResponse
-	5,  // 15: ctrl.v1.VersionService.GetVersion:output_type -> ctrl.v1.GetVersionResponse
-	7,  // 16: ctrl.v1.VersionService.ListVersions:output_type -> ctrl.v1.ListVersionsResponse
-	14, // [14:17] is the sub-list for method output_type
-	11, // [11:14] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	6,  // 2: ctrl.v1.GetVersionResponse.version:type_name -> ctrl.v1.Version
+	0,  // 3: ctrl.v1.Version.status:type_name -> ctrl.v1.VersionStatus
+	9,  // 4: ctrl.v1.Version.environment_variables:type_name -> ctrl.v1.Version.EnvironmentVariablesEntry
+	7,  // 5: ctrl.v1.Version.topology:type_name -> ctrl.v1.Topology
+	10, // 6: ctrl.v1.Version.created_at:type_name -> google.protobuf.Timestamp
+	10, // 7: ctrl.v1.Version.updated_at:type_name -> google.protobuf.Timestamp
+	8,  // 8: ctrl.v1.Topology.regions:type_name -> ctrl.v1.RegionalConfig
+	2,  // 9: ctrl.v1.VersionService.CreateVersion:input_type -> ctrl.v1.CreateVersionRequest
+	4,  // 10: ctrl.v1.VersionService.GetVersion:input_type -> ctrl.v1.GetVersionRequest
+	3,  // 11: ctrl.v1.VersionService.CreateVersion:output_type -> ctrl.v1.CreateVersionResponse
+	5,  // 12: ctrl.v1.VersionService.GetVersion:output_type -> ctrl.v1.GetVersionResponse
+	11, // [11:13] is the sub-list for method output_type
+	9,  // [9:11] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_proto_ctrl_v1_version_proto_init() }
@@ -1001,7 +814,7 @@ func file_proto_ctrl_v1_version_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_ctrl_v1_version_proto_rawDesc), len(file_proto_ctrl_v1_version_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   10,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

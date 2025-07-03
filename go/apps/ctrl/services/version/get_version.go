@@ -52,6 +52,12 @@ func (s *Service) GetVersion(
 		protoVersion.RootfsImageId = version.RootfsImageID
 	}
 
+	// Find the latest build for this version
+	build, err := db.Query.FindLatestBuildByVersionId(ctx, s.db.RO(), version.ID)
+	if err == nil {
+		protoVersion.BuildId = build.ID
+	}
+
 	res := connect.NewResponse(&ctrlv1.GetVersionResponse{
 		Version: protoVersion,
 	})

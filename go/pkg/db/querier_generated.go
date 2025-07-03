@@ -83,6 +83,24 @@ type Querier interface {
 	//  JOIN audit_log ON audit_log.id = audit_log_target.audit_log_id
 	//  WHERE audit_log_target.id = ?
 	FindAuditLogTargetByID(ctx context.Context, db DBTX, id string) ([]FindAuditLogTargetByIDRow, error)
+	//FindBuildById
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      version_id,
+	//      rootfs_image_id,
+	//      status,
+	//      error_message,
+	//      started_at,
+	//      completed_at,
+	//      created_at_m,
+	//      updated_at_m,
+	//      deleted_at_m
+	//  FROM `builds`
+	//  WHERE id = ? AND deleted_at_m IS NULL
+	FindBuildById(ctx context.Context, db DBTX, id string) (Build, error)
 	//FindIdentityByExternalID
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at FROM identities WHERE workspace_id = ? AND external_id = ? AND deleted = ?
@@ -173,6 +191,26 @@ type Querier interface {
 	//  SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth`
 	//  WHERE id = ?
 	FindKeyringByID(ctx context.Context, db DBTX, id string) (KeyAuth, error)
+	//FindLatestBuildByVersionId
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      version_id,
+	//      rootfs_image_id,
+	//      status,
+	//      error_message,
+	//      started_at,
+	//      completed_at,
+	//      created_at_m,
+	//      updated_at_m,
+	//      deleted_at_m
+	//  FROM `builds`
+	//  WHERE version_id = ? AND deleted_at_m IS NULL
+	//  ORDER BY created_at_m DESC
+	//  LIMIT 1
+	FindLatestBuildByVersionId(ctx context.Context, db DBTX, versionID string) (Build, error)
 	// Finds a permission record by its ID
 	// Returns: The permission record if found
 	//
@@ -359,6 +397,36 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertAuditLogTarget(ctx context.Context, db DBTX, arg InsertAuditLogTargetParams) error
+	//InsertBuild
+	//
+	//  INSERT INTO builds (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      version_id,
+	//      rootfs_image_id,
+	//      status,
+	//      error_message,
+	//      started_at,
+	//      completed_at,
+	//      created_at_m,
+	//      updated_at_m,
+	//      deleted_at_m
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      NULL,
+	//      'pending',
+	//      NULL,
+	//      NULL,
+	//      NULL,
+	//      ?,
+	//      NULL,
+	//      NULL
+	//  )
+	InsertBuild(ctx context.Context, db DBTX, arg InsertBuildParams) error
 	//InsertIdentity
 	//
 	//  INSERT INTO `identities` (
@@ -858,6 +926,30 @@ type Querier interface {
 	//  SET delete_protection = ?
 	//  WHERE id = ?
 	UpdateApiDeleteProtection(ctx context.Context, db DBTX, arg UpdateApiDeleteProtectionParams) error
+	//UpdateBuildFailed
+	//
+	//  UPDATE builds SET
+	//      status = 'failed',
+	//      completed_at = ?,
+	//      error_message = ?,
+	//      updated_at_m = ?
+	//  WHERE id = ?
+	UpdateBuildFailed(ctx context.Context, db DBTX, arg UpdateBuildFailedParams) error
+	//UpdateBuildStatus
+	//
+	//  UPDATE builds SET
+	//      status = ?,
+	//      updated_at_m = ?
+	//  WHERE id = ?
+	UpdateBuildStatus(ctx context.Context, db DBTX, arg UpdateBuildStatusParams) error
+	//UpdateBuildSucceeded
+	//
+	//  UPDATE builds SET
+	//      status = 'succeeded',
+	//      completed_at = ?,
+	//      updated_at_m = ?
+	//  WHERE id = ?
+	UpdateBuildSucceeded(ctx context.Context, db DBTX, arg UpdateBuildSucceededParams) error
 	//UpdateIdentity
 	//
 	//  UPDATE `identities`
@@ -888,6 +980,13 @@ type Querier interface {
 	//      updated_at_m= ?
 	//  WHERE id = ?
 	UpdateRatelimitOverride(ctx context.Context, db DBTX, arg UpdateRatelimitOverrideParams) (sql.Result, error)
+	//UpdateVersionStatus
+	//
+	//  UPDATE versions SET
+	//      status = ?,
+	//      updated_at_m = ?
+	//  WHERE id = ?
+	UpdateVersionStatus(ctx context.Context, db DBTX, arg UpdateVersionStatusParams) error
 	//UpdateWorkspaceEnabled
 	//
 	//  UPDATE `workspaces`

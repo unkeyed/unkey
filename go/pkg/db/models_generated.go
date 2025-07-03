@@ -53,49 +53,6 @@ func (ns NullApisAuthType) Value() (driver.Value, error) {
 	return string(ns.ApisAuthType), nil
 }
 
-type BuildsBuildTool string
-
-const (
-	BuildsBuildToolDocker BuildsBuildTool = "docker"
-	BuildsBuildToolDepot  BuildsBuildTool = "depot"
-	BuildsBuildToolCustom BuildsBuildTool = "custom"
-)
-
-func (e *BuildsBuildTool) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = BuildsBuildTool(s)
-	case string:
-		*e = BuildsBuildTool(s)
-	default:
-		return fmt.Errorf("unsupported scan type for BuildsBuildTool: %T", src)
-	}
-	return nil
-}
-
-type NullBuildsBuildTool struct {
-	BuildsBuildTool BuildsBuildTool
-	Valid           bool // Valid is true if BuildsBuildTool is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullBuildsBuildTool) Scan(value interface{}) error {
-	if value == nil {
-		ns.BuildsBuildTool, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.BuildsBuildTool.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullBuildsBuildTool) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.BuildsBuildTool), nil
-}
-
 type BuildsStatus string
 
 const (
@@ -643,20 +600,18 @@ type Branch struct {
 }
 
 type Build struct {
-	ID            string          `db:"id"`
-	WorkspaceID   string          `db:"workspace_id"`
-	ProjectID     string          `db:"project_id"`
-	RootfsImageID sql.NullString  `db:"rootfs_image_id"`
-	GitCommitSha  sql.NullString  `db:"git_commit_sha"`
-	GitBranch     sql.NullString  `db:"git_branch"`
-	Status        BuildsStatus    `db:"status"`
-	BuildTool     BuildsBuildTool `db:"build_tool"`
-	ErrorMessage  sql.NullString  `db:"error_message"`
-	StartedAt     sql.NullInt64   `db:"started_at"`
-	CompletedAt   sql.NullInt64   `db:"completed_at"`
-	CreatedAtM    int64           `db:"created_at_m"`
-	UpdatedAtM    sql.NullInt64   `db:"updated_at_m"`
-	DeletedAtM    sql.NullInt64   `db:"deleted_at_m"`
+	ID            string         `db:"id"`
+	WorkspaceID   string         `db:"workspace_id"`
+	ProjectID     string         `db:"project_id"`
+	VersionID     string         `db:"version_id"`
+	RootfsImageID sql.NullString `db:"rootfs_image_id"`
+	Status        BuildsStatus   `db:"status"`
+	ErrorMessage  sql.NullString `db:"error_message"`
+	StartedAt     sql.NullInt64  `db:"started_at"`
+	CompletedAt   sql.NullInt64  `db:"completed_at"`
+	CreatedAtM    int64          `db:"created_at_m"`
+	UpdatedAtM    sql.NullInt64  `db:"updated_at_m"`
+	DeletedAtM    sql.NullInt64  `db:"deleted_at_m"`
 }
 
 type Certificate struct {

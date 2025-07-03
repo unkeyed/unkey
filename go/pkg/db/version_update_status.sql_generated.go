@@ -11,27 +11,25 @@ import (
 )
 
 const updateVersionStatus = `-- name: UpdateVersionStatus :exec
-UPDATE ` + "`" + `versions` + "`" + `
-SET 
+UPDATE versions SET 
     status = ?,
     updated_at_m = ?
-WHERE id = ? AND deleted_at_m IS NULL
+WHERE id = ?
 `
 
 type UpdateVersionStatusParams struct {
-	Status     VersionsStatus `db:"status"`
-	UpdatedAtM sql.NullInt64  `db:"updated_at_m"`
-	ID         string         `db:"id"`
+	Status VersionsStatus `db:"status"`
+	Now    sql.NullInt64  `db:"now"`
+	ID     string         `db:"id"`
 }
 
 // UpdateVersionStatus
 //
-//	UPDATE `versions`
-//	SET
+//	UPDATE versions SET
 //	    status = ?,
 //	    updated_at_m = ?
-//	WHERE id = ? AND deleted_at_m IS NULL
+//	WHERE id = ?
 func (q *Queries) UpdateVersionStatus(ctx context.Context, db DBTX, arg UpdateVersionStatusParams) error {
-	_, err := db.ExecContext(ctx, updateVersionStatus, arg.Status, arg.UpdatedAtM, arg.ID)
+	_, err := db.ExecContext(ctx, updateVersionStatus, arg.Status, arg.Now, arg.ID)
 	return err
 }

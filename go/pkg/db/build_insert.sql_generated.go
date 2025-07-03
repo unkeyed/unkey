@@ -7,87 +7,82 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const insertBuild = `-- name: InsertBuild :exec
-INSERT INTO ` + "`" + `builds` + "`" + ` (
+INSERT INTO builds (
     id,
     workspace_id,
     project_id,
+    version_id,
     rootfs_image_id,
-    git_commit_sha,
-    git_branch,
     status,
-    build_tool,
+    error_message,
+    started_at,
+    completed_at,
     created_at_m,
-    updated_at_m
-)
-VALUES (
+    updated_at_m,
+    deleted_at_m
+) VALUES (
     ?,
     ?,
     ?,
     ?,
+    NULL,
+    'pending',
+    NULL,
+    NULL,
+    NULL,
     ?,
-    ?,
-    ?,
-    ?,
-    ?,
-    ?
+    NULL,
+    NULL
 )
 `
 
 type InsertBuildParams struct {
-	ID            string          `db:"id"`
-	WorkspaceID   string          `db:"workspace_id"`
-	ProjectID     string          `db:"project_id"`
-	RootfsImageID sql.NullString  `db:"rootfs_image_id"`
-	GitCommitSha  sql.NullString  `db:"git_commit_sha"`
-	GitBranch     sql.NullString  `db:"git_branch"`
-	Status        BuildsStatus    `db:"status"`
-	BuildTool     BuildsBuildTool `db:"build_tool"`
-	CreatedAtM    int64           `db:"created_at_m"`
-	UpdatedAtM    sql.NullInt64   `db:"updated_at_m"`
+	ID          string `db:"id"`
+	WorkspaceID string `db:"workspace_id"`
+	ProjectID   string `db:"project_id"`
+	VersionID   string `db:"version_id"`
+	CreatedAt   int64  `db:"created_at"`
 }
 
 // InsertBuild
 //
-//	INSERT INTO `builds` (
+//	INSERT INTO builds (
 //	    id,
 //	    workspace_id,
 //	    project_id,
+//	    version_id,
 //	    rootfs_image_id,
-//	    git_commit_sha,
-//	    git_branch,
 //	    status,
-//	    build_tool,
+//	    error_message,
+//	    started_at,
+//	    completed_at,
 //	    created_at_m,
-//	    updated_at_m
-//	)
-//	VALUES (
+//	    updated_at_m,
+//	    deleted_at_m
+//	) VALUES (
 //	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
+//	    NULL,
+//	    'pending',
+//	    NULL,
+//	    NULL,
+//	    NULL,
 //	    ?,
-//	    ?,
-//	    ?,
-//	    ?,
-//	    ?,
-//	    ?
+//	    NULL,
+//	    NULL
 //	)
 func (q *Queries) InsertBuild(ctx context.Context, db DBTX, arg InsertBuildParams) error {
 	_, err := db.ExecContext(ctx, insertBuild,
 		arg.ID,
 		arg.WorkspaceID,
 		arg.ProjectID,
-		arg.RootfsImageID,
-		arg.GitCommitSha,
-		arg.GitBranch,
-		arg.Status,
-		arg.BuildTool,
-		arg.CreatedAtM,
-		arg.UpdatedAtM,
+		arg.VersionID,
+		arg.CreatedAt,
 	)
 	return err
 }

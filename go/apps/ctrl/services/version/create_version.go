@@ -40,10 +40,27 @@ func (s *Service) CreateVersion(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
+	// Start the build process by calling the build service directly
+	buildReq := connect.NewRequest(&ctrlv1.CreateBuildRequest{
+		WorkspaceId: req.Msg.GetWorkspaceId(),
+		ProjectId:   req.Msg.GetProjectId(),
+		VersionId:   versionID,
+		DockerImage: req.Msg.GetDockerImageTag(),
+	})
+
+	_, err = s.buildService.CreateBuild(ctx, buildReq)
+	if err != nil {
+		// Log error but don't fail the version creation
+		// The version will remain in pending state
+		// TODO: add proper error handling and version status update
+	}
+
+	// Build service will create the build with this version_id
+	// No need to store build_id in version - we can query by version_id
+
 	res := connect.NewResponse(&ctrlv1.CreateVersionResponse{
 		VersionId: versionID,
 		Status:    ctrlv1.VersionStatus_VERSION_STATUS_PENDING,
-		UploadUrl: "", // Not used for this flow
 	})
 
 	return res, nil

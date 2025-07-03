@@ -8,9 +8,11 @@ import (
 
 	"log/slog"
 
+	"github.com/unkeyed/unkey/go/apps/ctrl/services/build"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/version"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
+	"github.com/unkeyed/unkey/go/pkg/builder"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -72,9 +74,13 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	shutdowns.Register(database.Close)
 
+	// Create the mock builder service for demo
+	builderService := builder.NewMockService()
+
 	// Create the service implementations
 	ctrlSvc := ctrl.New(cfg.InstanceID, database)
-	versionSvc := version.New(database)
+	buildSvc := build.New(database, logger, builderService)
+	versionSvc := version.New(database, buildSvc)
 
 	// Create the connect handler
 	mux := http.NewServeMux()
@@ -85,6 +91,9 @@ func Run(ctx context.Context, cfg Config) error {
 
 	versionPath, versionHandler := ctrlv1connect.NewVersionServiceHandler(versionSvc)
 	mux.Handle(versionPath, versionHandler)
+
+	buildPath, buildHandler := ctrlv1connect.NewBuildServiceHandler(buildSvc)
+	mux.Handle(buildPath, buildHandler)
 
 	// Configure server
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)

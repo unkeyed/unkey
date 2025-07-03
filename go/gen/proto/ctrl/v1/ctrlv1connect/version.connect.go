@@ -39,9 +39,6 @@ const (
 	// VersionServiceGetVersionProcedure is the fully-qualified name of the VersionService's GetVersion
 	// RPC.
 	VersionServiceGetVersionProcedure = "/ctrl.v1.VersionService/GetVersion"
-	// VersionServiceListVersionsProcedure is the fully-qualified name of the VersionService's
-	// ListVersions RPC.
-	VersionServiceListVersionsProcedure = "/ctrl.v1.VersionService/ListVersions"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
@@ -49,7 +46,6 @@ var (
 	versionServiceServiceDescriptor             = v1.File_proto_ctrl_v1_version_proto.Services().ByName("VersionService")
 	versionServiceCreateVersionMethodDescriptor = versionServiceServiceDescriptor.Methods().ByName("CreateVersion")
 	versionServiceGetVersionMethodDescriptor    = versionServiceServiceDescriptor.Methods().ByName("GetVersion")
-	versionServiceListVersionsMethodDescriptor  = versionServiceServiceDescriptor.Methods().ByName("ListVersions")
 )
 
 // VersionServiceClient is a client for the ctrl.v1.VersionService service.
@@ -58,8 +54,6 @@ type VersionServiceClient interface {
 	CreateVersion(context.Context, *connect.Request[v1.CreateVersionRequest]) (*connect.Response[v1.CreateVersionResponse], error)
 	// Get version details
 	GetVersion(context.Context, *connect.Request[v1.GetVersionRequest]) (*connect.Response[v1.GetVersionResponse], error)
-	// List versions with filtering
-	ListVersions(context.Context, *connect.Request[v1.ListVersionsRequest]) (*connect.Response[v1.ListVersionsResponse], error)
 }
 
 // NewVersionServiceClient constructs a client for the ctrl.v1.VersionService service. By default,
@@ -84,12 +78,6 @@ func NewVersionServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(versionServiceGetVersionMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
-		listVersions: connect.NewClient[v1.ListVersionsRequest, v1.ListVersionsResponse](
-			httpClient,
-			baseURL+VersionServiceListVersionsProcedure,
-			connect.WithSchema(versionServiceListVersionsMethodDescriptor),
-			connect.WithClientOptions(opts...),
-		),
 	}
 }
 
@@ -97,7 +85,6 @@ func NewVersionServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 type versionServiceClient struct {
 	createVersion *connect.Client[v1.CreateVersionRequest, v1.CreateVersionResponse]
 	getVersion    *connect.Client[v1.GetVersionRequest, v1.GetVersionResponse]
-	listVersions  *connect.Client[v1.ListVersionsRequest, v1.ListVersionsResponse]
 }
 
 // CreateVersion calls ctrl.v1.VersionService.CreateVersion.
@@ -110,19 +97,12 @@ func (c *versionServiceClient) GetVersion(ctx context.Context, req *connect.Requ
 	return c.getVersion.CallUnary(ctx, req)
 }
 
-// ListVersions calls ctrl.v1.VersionService.ListVersions.
-func (c *versionServiceClient) ListVersions(ctx context.Context, req *connect.Request[v1.ListVersionsRequest]) (*connect.Response[v1.ListVersionsResponse], error) {
-	return c.listVersions.CallUnary(ctx, req)
-}
-
 // VersionServiceHandler is an implementation of the ctrl.v1.VersionService service.
 type VersionServiceHandler interface {
 	// Create a new version
 	CreateVersion(context.Context, *connect.Request[v1.CreateVersionRequest]) (*connect.Response[v1.CreateVersionResponse], error)
 	// Get version details
 	GetVersion(context.Context, *connect.Request[v1.GetVersionRequest]) (*connect.Response[v1.GetVersionResponse], error)
-	// List versions with filtering
-	ListVersions(context.Context, *connect.Request[v1.ListVersionsRequest]) (*connect.Response[v1.ListVersionsResponse], error)
 }
 
 // NewVersionServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -143,20 +123,12 @@ func NewVersionServiceHandler(svc VersionServiceHandler, opts ...connect.Handler
 		connect.WithSchema(versionServiceGetVersionMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
-	versionServiceListVersionsHandler := connect.NewUnaryHandler(
-		VersionServiceListVersionsProcedure,
-		svc.ListVersions,
-		connect.WithSchema(versionServiceListVersionsMethodDescriptor),
-		connect.WithHandlerOptions(opts...),
-	)
 	return "/ctrl.v1.VersionService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case VersionServiceCreateVersionProcedure:
 			versionServiceCreateVersionHandler.ServeHTTP(w, r)
 		case VersionServiceGetVersionProcedure:
 			versionServiceGetVersionHandler.ServeHTTP(w, r)
-		case VersionServiceListVersionsProcedure:
-			versionServiceListVersionsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -172,8 +144,4 @@ func (UnimplementedVersionServiceHandler) CreateVersion(context.Context, *connec
 
 func (UnimplementedVersionServiceHandler) GetVersion(context.Context, *connect.Request[v1.GetVersionRequest]) (*connect.Response[v1.GetVersionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.VersionService.GetVersion is not implemented"))
-}
-
-func (UnimplementedVersionServiceHandler) ListVersions(context.Context, *connect.Request[v1.ListVersionsRequest]) (*connect.Response[v1.ListVersionsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.VersionService.ListVersions is not implemented"))
 }
