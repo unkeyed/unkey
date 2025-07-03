@@ -1,5 +1,5 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
-import { ControlCloud } from "@/components/logs/control-cloud";
+import { ControlCloud } from "@unkey/ui";
 import { format } from "date-fns";
 import { useFilters } from "../../hooks/use-filters";
 

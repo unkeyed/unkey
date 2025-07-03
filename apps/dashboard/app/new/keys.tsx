@@ -1,7 +1,6 @@
 "use client";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Code } from "@/components/ui/code";
 import { trpc } from "@/lib/trpc/client";
 import {
   Button,
@@ -11,6 +10,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
+  Code,
   CopyButton,
   Empty,
   Separator,

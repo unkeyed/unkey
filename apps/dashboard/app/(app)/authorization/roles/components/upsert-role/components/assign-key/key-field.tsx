@@ -1,6 +1,7 @@
+import { SelectedItemsList } from "@/components/selected-item-list";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import type { RoleKey } from "@/lib/trpc/routers/authorization/roles/connected-keys-and-perms";
-import { Key2, XMark } from "@unkey/icons";
+import { Key2 } from "@unkey/icons";
 import { useMemo, useState } from "react";
 import { useRoleLimits } from "../../../table/hooks/use-role-limits";
 import { RoleWarningCallout } from "../warning-callout";
@@ -30,7 +31,7 @@ export const KeyField = ({
   const { calculateLimits } = useRoleLimits(roleId);
   const { hasKeyWarning, totalKeys } = calculateLimits(value);
 
-  const { keys, isFetchingNextPage, hasNextPage, loadMore } = useFetchKeys();
+  const { keys, isFetchingNextPage, hasNextPage, loadMore ,isLoading} = useFetchKeys();
   const { searchResults, isSearching } = useSearchKeys(searchValue);
 
   const allKeys = useMemo(() => {
@@ -113,6 +114,15 @@ export const KeyField = ({
     onChange(value.filter((id) => id !== keyId));
   };
 
+  const handleAddKey = (keyId: string) => {
+    if (!value.includes(keyId)) {
+      onChange([...value, keyId]);
+    }
+    setSearchValue("");
+  };
+
+  const isComboboxLoading = isLoading || (isSearching && searchValue.trim().length > 0);
+
   return (
     <div className="space-y-3">
       <FormCombobox
@@ -126,10 +136,7 @@ export const KeyField = ({
           if (val === "__load_more__") {
             return;
           }
-          if (!value.includes(val)) {
-            onChange([...value, val]);
-          }
-          setSearchValue("");
+          handleAddKey(val);
         }}
         placeholder={
           <div className="flex w-full text-grayA-8 text-[13px] gap-1.5 items-center py-2">
@@ -138,54 +145,43 @@ export const KeyField = ({
         }
         searchPlaceholder="Search keys by name or ID..."
         emptyMessage={
-          isSearching ? (
-            <div className="px-3 py-3 text-gray-10 text-[13px]">Searching...</div>
+          isComboboxLoading ? (
+            <div className="px-3 py-3 text-gray-10 text-[13px] flex items-center gap-2">
+              <div className="animate-spin h-3 w-3 border border-gray-6 border-t-gray-11 rounded-full" />
+              {isSearching ? "Searching..." : "Loading keys..."}
+            </div>
           ) : (
             <div className="px-3 py-3 text-gray-10 text-[13px]">No keys found</div>
           )
         }
         variant="default"
         error={error}
-        disabled={disabled || Boolean(hasKeyWarning)}
+        disabled={disabled || isLoading || hasKeyWarning}
+        loading={isComboboxLoading}
+        title={
+          isComboboxLoading
+            ? isSearching && searchValue.trim()
+              ? "Searching for keys..."
+              : "Loading available keys..."
+            : undefined
+        }
       />
-
       {hasKeyWarning ? <RoleWarningCallout count={totalKeys} type="keys" /> : null}
-
-      {/* Selected Keys Display */}
-      {selectedKeys.length > 0 && (
-        <div className="space-y-2">
-          <div className="grid grid-cols-2 gap-2 max-w-[400px]">
-            {selectedKeys.map((key) => (
-              <div
-                key={key.id}
-                className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-black border border-gray-5 rounded-md text-xs h-12 w-full"
-              >
-                <div className="border rounded-full flex items-center justify-center border-grayA-6 size-4 flex-shrink-0">
-                  <Key2 size="sm-regular" className="text-grayA-11" />
-                </div>
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <span className="font-medium text-accent-12 truncate text-xs">
-                    {key.id.length > 15 ? `${key.id.slice(0, 8)}...${key.id.slice(-4)}` : key.id}
-                  </span>
-                  <span className="text-accent-9 text-[11px] font-mono truncate">
-                    {key.name || "Unnamed Key"}
-                  </span>
-                </div>
-                {!disabled && (
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveKey(key.id)}
-                    className="p-0.5 hover:bg-grayA-4 rounded text-grayA-11 hover:text-accent-12 transition-colors flex-shrink-0 ml-auto"
-                    aria-label={`Remove ${key.name || key.id}`}
-                  >
-                    <XMark size="sm-regular" />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <SelectedItemsList
+        items={selectedKeys.map((k) => ({
+          ...k,
+          name: k.name ?? "Unnamed Key",
+        }))}
+        disabled={disabled}
+        onRemoveItem={handleRemoveKey}
+        renderIcon={() => <Key2 size="sm-regular" className="text-grayA-11" />}
+        enableTransitions
+        renderPrimaryText={(key) =>
+          key.id.length > 15 ? `${key.id.slice(0, 8)}...${key.id.slice(-4)}` : key.id
+        }
+        renderSecondaryText={(key) => key.name || "Unnamed Key"}
+        itemHeight="h-12"
+      />
     </div>
   );
 };

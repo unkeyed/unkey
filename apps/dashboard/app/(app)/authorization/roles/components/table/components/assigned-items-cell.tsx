@@ -1,6 +1,6 @@
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
-import { HandHoldingKey, Key2 } from "@unkey/icons";
+import { Key2, Page2 } from "@unkey/icons";
 
 export const AssignedItemsCell = ({
   roleId,
@@ -13,7 +13,7 @@ export const AssignedItemsCell = ({
 }) => {
   const { data: keysData, isLoading: keysLoading } =
     trpc.authorization.roles.connectedKeys.useQuery(
-      { roleId, limit: 3 },
+      { roleId },
       {
         enabled: kind === "keys",
         staleTime: 5 * 60 * 1000,
@@ -21,7 +21,7 @@ export const AssignedItemsCell = ({
     );
   const { data: permissionsData, isLoading: permissionsLoading } =
     trpc.authorization.roles.connectedPerms.useQuery(
-      { roleId, limit: 3 },
+      { roleId},
       {
         enabled: kind === "permissions",
         staleTime: 5 * 60 * 1000,
@@ -36,7 +36,7 @@ export const AssignedItemsCell = ({
     kind === "keys" ? (
       <Key2 size="md-regular" className="opacity-50" />
     ) : (
-      <HandHoldingKey size="md-regular" className="opacity-50" />
+      <Page2 size="md-regular" className="opacity-50" />
     );
 
   const itemClassName = cn(

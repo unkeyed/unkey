@@ -1,11 +1,11 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleInfo } from "@unkey/icons";
 import {
+  Badge,
   Button,
   DialogContainer,
   FormInput,

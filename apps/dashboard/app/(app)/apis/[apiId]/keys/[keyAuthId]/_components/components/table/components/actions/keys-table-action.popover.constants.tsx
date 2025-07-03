@@ -1,4 +1,6 @@
+import { MAX_KEYS_FETCH_LIMIT } from "@/app/(app)/authorization/roles/components/upsert-role/components/assign-key/hooks/use-fetch-keys";
 import { toast } from "@/components/ui/toaster";
+import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import {
   ArrowOppositeDirectionY,
@@ -10,6 +12,7 @@ import {
   Code,
   Gauge,
   PenWriting3,
+  Tag,
   Trash,
 } from "@unkey/icons";
 import { DeleteKey } from "./components/delete-key";
@@ -20,9 +23,15 @@ import { EditExternalId } from "./components/edit-external-id";
 import { EditKeyName } from "./components/edit-key-name";
 import { EditMetadata } from "./components/edit-metadata";
 import { EditRatelimits } from "./components/edit-ratelimits";
-import type { MenuItem } from "./keys-table-action.popover";
+import { KeyRbacDialog } from "./components/edit-rbac";
+import { MAX_PERMS_FETCH_LIMIT } from "./components/edit-rbac/components/assign-permission/hooks/use-fetch-keys-permissions";
+import { MAX_ROLES_FETCH_LIMIT } from "./components/edit-rbac/components/assign-role/hooks/use-fetch-keys-roles";
+import { KeysTableActionPopover, type MenuItem } from "./keys-table-action.popover";
 
-export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
+export const getKeysTableActionItems = (
+  key: KeyDetails,
+  trpcUtils: ReturnType<typeof trpc.useUtils>,
+): MenuItem[] => {
   return [
     {
       id: "override",
@@ -88,10 +97,103 @@ export const getKeysTableActionItems = (key: KeyDetails): MenuItem[] => {
       divider: true,
     },
     {
+      id: "edit-rbac",
+      label: "Manage roles and permissions...",
+      icon: <Tag size="md-regular" />,
+      ActionComponent: (props) => (
+        <KeyRbacDialog
+          {...props}
+          existingKey={{
+            id: key.id,
+            permissionIds: [],
+            roleIds: [],
+            name: key.name ?? undefined,
+          }}
+        />
+      ),
+      prefetch: async () => {
+        try {
+          // Primary data - always needed when dialog opens
+          const connectedData = await trpcUtils.key.connectedRolesAndPerms.fetch({
+            keyId: key.id,
+          });
+
+          const currentRoleIds = connectedData?.roles?.map((r) => r.id) ?? [];
+          const directPermissionIds =
+            connectedData?.permissions?.filter((p) => p.source === "direct")?.map((p) => p.id) ??
+            [];
+          const rolePermissionIds =
+            connectedData?.permissions?.filter((p) => p.source === "role")?.map((p) => p.id) ?? [];
+          const allEffectivePermissionIds = [...rolePermissionIds, ...directPermissionIds];
+
+          // Prefetch dependent data that requires connectedData
+          const dependentPrefetches = [];
+
+          if (allEffectivePermissionIds.length > 0 || currentRoleIds.length > 0) {
+            dependentPrefetches.push(
+              trpcUtils.key.queryPermissionSlugs.prefetch({
+                roleIds: currentRoleIds,
+                permissionIds: allEffectivePermissionIds,
+              }),
+            );
+          }
+
+          // Always prefetch combobox data - independent of connectedData
+          const comboboxDataPromise = Promise.all([
+            trpcUtils.key.update.rbac.permissions.query.prefetchInfinite({
+              limit: MAX_PERMS_FETCH_LIMIT,
+            }),
+            trpcUtils.key.update.rbac.roles.query.prefetchInfinite({
+              limit: MAX_ROLES_FETCH_LIMIT,
+            }),
+            trpcUtils.authorization.roles.keys.query.prefetchInfinite({
+              limit: MAX_KEYS_FETCH_LIMIT,
+            }),
+            trpcUtils.authorization.roles.permissions.query.prefetchInfinite({
+              limit: MAX_PERMS_FETCH_LIMIT,
+            }),
+          ]);
+
+          await Promise.all([comboboxDataPromise, ...dependentPrefetches]);
+        } catch {
+          // Fallback: prefetch only the combobox data which doesn't depend on connectedData
+          try {
+            await Promise.all([
+              trpcUtils.key.update.rbac.permissions.query.prefetchInfinite({
+                limit: MAX_PERMS_FETCH_LIMIT,
+              }),
+              trpcUtils.key.update.rbac.roles.query.prefetchInfinite({
+                limit: MAX_ROLES_FETCH_LIMIT,
+              }),
+              trpcUtils.authorization.roles.keys.query.prefetchInfinite({
+                limit: MAX_KEYS_FETCH_LIMIT,
+              }),
+              trpcUtils.authorization.roles.permissions.query.prefetchInfinite({
+                limit: MAX_PERMS_FETCH_LIMIT,
+              }),
+            ]);
+          } catch (fallbackError) {
+            console.warn("Failed to prefetch combobox data:", fallbackError);
+          }
+        }
+      },
+      divider: true,
+    },
+    {
       id: "delete-key",
       label: "Delete key",
       icon: <Trash size="md-regular" />,
       ActionComponent: (props) => <DeleteKey {...props} keyDetails={key} />,
     },
   ];
+};
+
+type KeysTableActionsProps = {
+  keyData: KeyDetails;
+};
+
+export const KeysTableActions = ({ keyData }: KeysTableActionsProps) => {
+  const trpcUtils = trpc.useUtils();
+  const items = getKeysTableActionItems(keyData, trpcUtils);
+  return <KeysTableActionPopover items={items} />;
 };

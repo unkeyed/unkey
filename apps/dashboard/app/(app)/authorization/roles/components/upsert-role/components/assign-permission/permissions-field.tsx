@@ -1,6 +1,7 @@
+import { SelectedItemsList } from "@/components/selected-item-list";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import type { RolePermission } from "@/lib/trpc/routers/authorization/roles/connected-keys-and-perms";
-import { HandHoldingKey, XMark } from "@unkey/icons";
+import { Page2 } from "@unkey/icons";
 import { useMemo, useState } from "react";
 import { useRoleLimits } from "../../../table/hooks/use-role-limits";
 import { RoleWarningCallout } from "../warning-callout";
@@ -29,7 +30,7 @@ export const PermissionField = ({
   const { calculateLimits } = useRoleLimits(roleId);
   const { hasPermWarning, totalPerms } = calculateLimits(value);
 
-  const { permissions, isFetchingNextPage, hasNextPage, loadMore } = useFetchPermissions();
+  const { permissions, isFetchingNextPage, hasNextPage, loadMore,isLoading } = useFetchPermissions();
   const { searchResults, isSearching } = useSearchPermissions(searchValue);
 
   // Combine loaded permissions with search results, prioritizing search when available
@@ -119,6 +120,15 @@ export const PermissionField = ({
     onChange(value.filter((id) => id !== permissionId));
   };
 
+  const handleAddPermission = (permissionId: string) => {
+    if (!value.includes(permissionId)) {
+      onChange([...value, permissionId]);
+    }
+    setSearchValue("");
+  };
+
+  const isComboboxLoading = isLoading || (isSearching && searchValue.trim().length > 0);
+
   return (
     <div className="space-y-3">
       <FormCombobox
@@ -132,10 +142,7 @@ export const PermissionField = ({
           if (val === "__load_more__") {
             return;
           }
-          if (!value.includes(val)) {
-            onChange([...value, val]);
-          }
-          setSearchValue("");
+          handleAddPermission(val);
         }}
         placeholder={
           <div className="flex w-full text-grayA-8 text-[13px] gap-1.5 items-center py-2">
@@ -144,53 +151,42 @@ export const PermissionField = ({
         }
         searchPlaceholder="Search permissions by name, ID, slug, or description..."
         emptyMessage={
-          isSearching ? (
-            <div className="px-3 py-3 text-gray-10 text-[13px]">Searching...</div>
+          isComboboxLoading ? (
+            <div className="px-3 py-3 text-gray-10 text-[13px] flex items-center gap-2">
+              <div className="animate-spin h-3 w-3 border border-gray-6 border-t-gray-11 rounded-full" />
+              {isSearching ? "Searching..." : "Loading permissions..."}
+            </div>
           ) : (
             <div className="px-3 py-3 text-gray-10 text-[13px]">No permissions found</div>
           )
         }
         variant="default"
         error={error}
-        disabled={disabled || Boolean(hasPermWarning)}
+        disabled={disabled || isLoading || hasPermWarning}
+        loading={isComboboxLoading}
+        title={
+          isComboboxLoading
+            ? isSearching && searchValue.trim()
+              ? "Searching for permissions..."
+              : "Loading available permissions..."
+            : undefined
+        }
       />
-
       {hasPermWarning ? <RoleWarningCallout count={totalPerms} type="permissions" /> : null}
-
-      {/* Selected Permissions Display */}
-      {selectedPermissions.length > 0 && (
-        <div className="space-y-2">
-          <div className="grid grid-cols-2 gap-2 max-w-[400px]">
-            {selectedPermissions.map((permission) => (
-              <div
-                key={permission.id}
-                className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-black border border-gray-5 rounded-md text-xs h-12 w-full"
-              >
-                <div className="border rounded-full flex items-center justify-center border-grayA-6 size-4 flex-shrink-0">
-                  <HandHoldingKey size="sm-regular" className="text-grayA-11" />
-                </div>
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <span className="font-medium text-accent-12 truncate text-xs">
-                    {permission.name || permission.slug || permission.id}
-                  </span>
-                  <span className="text-accent-9 text-[11px] font-mono truncate">
-                    {permission.slug || "No slug"}
-                  </span>
-                </div>
-                {!disabled && (
-                  <button
-                    type="button"
-                    onClick={() => handleRemovePermission(permission.id)}
-                    className="p-0.5 hover:bg-grayA-4 rounded text-grayA-11 hover:text-accent-12 transition-colors flex-shrink-0 ml-auto"
-                    aria-label={`Remove ${permission.name || permission.slug}`}
-                  >
-                    <XMark size="sm-regular" />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+      { selectedPermissions.length > 0 && (
+          <SelectedItemsList
+          items={selectedPermissions.map((k) => ({
+          ...k,
+          name: k.name ?? "Unnamed Permission",
+        }))}
+        disabled={disabled}
+        onRemoveItem={handleRemovePermission}
+        renderIcon={() => <Page2 size="sm-regular" className="text-grayA-11" />}
+        renderPrimaryText={(permission) => permission.name}
+        enableTransitions
+        // This can't cannot happen but we need it to make TS happy
+        renderSecondaryText={(permission) => permission.slug ?? "Unnamed Slug"}
+      />
       )}
     </div>
   );
