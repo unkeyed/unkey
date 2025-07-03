@@ -1,0 +1,310 @@
+openapi: 3.0.3
+info:
+  title: User Management API
+  description: A simple API for managing users and their profiles
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+servers:
+  - url: https://api.example.com/v1
+    description: Production server
+  - url: https://staging-api.example.com/v1
+    description: Staging server
+
+paths:
+  /users:
+    get:
+      summary: Get all users
+      description: Retrieve a list of all users
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of users to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of users to skip
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+        '400':
+          description: Bad request
+        '500':
+          description: Internal server error
+    post:
+      summary: Create a new user
+      description: Create a new user account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Bad request
+        '409':
+          description: User already exists
+        '500':
+          description: Internal server error
+
+  /users/{userId}:
+    get:
+      summary: Get user by ID
+      description: Retrieve a specific user by their ID
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The user ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+        '500':
+          description: Internal server error
+    put:
+      summary: Update user
+      description: Update an existing user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The user ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Bad request
+        '404':
+          description: User not found
+        '500':
+          description: Internal server error
+    delete:
+      summary: Delete user
+      description: Delete a user account
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The user ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: User deleted successfully
+        '404':
+          description: User not found
+        '500':
+          description: Internal server error
+
+  /users/{userId}/profile:
+    get:
+      summary: Get user profile
+      description: Retrieve the profile information for a user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The user ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '404':
+          description: User not found
+        '500':
+          description: Internal server error
+
+components:
+  schemas:
+    User:
+      type: object
+      required:
+        - id
+        - email
+        - username
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the user
+        email:
+          type: string
+          format: email
+          description: User's email address
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+          description: User's username
+        firstName:
+          type: string
+          maxLength: 100
+          description: User's first name
+        lastName:
+          type: string
+          maxLength: 100
+          description: User's last name
+        isActive:
+          type: boolean
+          default: true
+          description: Whether the user account is active
+        createdAt:
+          type: string
+          format: date-time
+          description: When the user was created
+        updatedAt:
+          type: string
+          format: date-time
+          description: When the user was last updated
+
+    CreateUserRequest:
+      type: object
+      required:
+        - email
+        - username
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+          description: User's username
+        password:
+          type: string
+          minLength: 8
+          description: User's password
+        firstName:
+          type: string
+          maxLength: 100
+          description: User's first name
+        lastName:
+          type: string
+          maxLength: 100
+          description: User's last name
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+          description: User's username
+        firstName:
+          type: string
+          maxLength: 100
+          description: User's first name
+        lastName:
+          type: string
+          maxLength: 100
+          description: User's last name
+        isActive:
+          type: boolean
+          description: Whether the user account is active
+
+    UserProfile:
+      type: object
+      required:
+        - userId
+        - bio
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: The user ID this profile belongs to
+        bio:
+          type: string
+          maxLength: 500
+          description: User's biography
+        avatarUrl:
+          type: string
+          format: uri
+          description: URL to user's avatar image
+        location:
+          type: string
+          maxLength: 100
+          description: User's location
+        website:
+          type: string
+          format: uri
+          description: User's website URL
+        socialLinks:
+          type: object
+          properties:
+            twitter:
+              type: string
+            linkedin:
+              type: string
+            github:
+              type: string
