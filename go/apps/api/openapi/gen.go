@@ -281,22 +281,20 @@ type KeyCreditsRefillResponseInterval string
 type KeyCreditsRequest struct {
 	Refill *KeyCreditsRefillRequest `json:"refill,omitempty"`
 
-	// Remaining Number of credits remaining (-1 for unlimited).
-	Remaining int64 `json:"remaining"`
+	// Remaining Number of credits remaining (null for unlimited).
+	Remaining nullable.Nullable[int64] `json:"remaining"`
 }
 
 // KeyCreditsResponse Credit configuration and remaining balance for this key.
 type KeyCreditsResponse struct {
 	Refill *KeyCreditsRefillResponse `json:"refill,omitempty"`
 
-	// Remaining Number of credits remaining (-1 for unlimited).
-	Remaining int64 `json:"remaining"`
+	// Remaining Number of credits remaining (null for unlimited).
+	Remaining nullable.Nullable[int64] `json:"remaining"`
 }
 
 // KeyResponse defines model for KeyResponse.
 type KeyResponse struct {
-	ApiId string `json:"apiId"`
-
 	// CreatedAt Unix timestamp in milliseconds when key was created.
 	CreatedAt int64 `json:"createdAt"`
 
@@ -373,7 +371,7 @@ type KeysUpdateRemainingResponseData struct {
 		RefillDay *int `json:"refillDay,omitempty"`
 	}] `json:"refillSettings,omitempty"`
 
-	// Remaining The updated remaining credits value for the key after the operation completes. This reflects the exact value that was set in the request. A value of -1 indicates unlimited usage, meaning the key can be used an unlimited number of times without being rejected for credit exhaustion. This field is guaranteed to be present in every response.
+	// Remaining The updated remaining credits value for the key after the operation completes. This reflects the exact value that was set in the request. A value of null indicates unlimited usage, meaning the key can be used an unlimited number of times without being rejected for credit exhaustion. This field is guaranteed to be present in every response.
 	Remaining int64 `json:"remaining"`
 }
 
@@ -1701,13 +1699,13 @@ type V2KeysUpdateRemainingRequestBody struct {
 	// Key behaviors:
 	// - This completely replaces the current remaining credits value
 	// - To add credits, first get the current value and then set remaining = current + additional
-	// - To make a key unlimited, set remaining = -1
+	// - To make a key unlimited, set remaining = null
 	// - To make a key with unlimited usage have a specific limit, set remaining to a positive number
 	// - Credits are decremented each time the key is successfully verified (by the cost value, default 1)
 	// - When credits reach zero, verification fails with code=USAGE_EXCEEDED
 	//
 	// This field is useful for implementing usage-based pricing, subscription tiers, trial periods, or consumption quotas.
-	Remaining int64 `json:"remaining"`
+	Remaining nullable.Nullable[int64] `json:"remaining"`
 }
 
 // V2KeysUpdateRemainingResponse defines model for V2KeysUpdateRemainingResponse.

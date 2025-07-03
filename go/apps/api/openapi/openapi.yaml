@@ -1013,13 +1013,15 @@ components:
         remaining:
           type: integer
           format: int64
+          nullable: true
+          minimum: 0
           description: |-
             The new value for the remaining credits. This is an absolute value replacement, not an increment or decrement operation.
 
             Key behaviors:
             - This completely replaces the current remaining credits value
             - To add credits, first get the current value and then set remaining = current + additional
-            - To make a key unlimited, set remaining = -1
+            - To make a key unlimited, set remaining = null
             - To make a key with unlimited usage have a specific limit, set remaining to a positive number
             - Credits are decremented each time the key is successfully verified (by the cost value, default 1)
             - When credits reach zero, verification fails with code=USAGE_EXCEEDED
@@ -1051,7 +1053,7 @@ components:
           description:
             The updated remaining credits value for the key after the operation
             completes. This reflects the exact value that was set in the request.
-            A value of -1 indicates unlimited usage, meaning the key can be used an
+            A value of null indicates unlimited usage, meaning the key can be used an
             unlimited number of times without being rejected for credit exhaustion.
             This field is guaranteed to be present in every response.
           example: 1000
@@ -1645,9 +1647,10 @@ components:
         remaining:
           type: integer
           format: int64
-          minimum: -1 # -1 represents unlimited
+          nullable: true
+          minimum: 0
           maximum: 9223372036854775807
-          description: Number of credits remaining (-1 for unlimited).
+          description: Number of credits remaining (null for unlimited).
           example: 1000
         refill:
           "$ref": "#/components/schemas/KeyCreditsRefillResponse"
@@ -1695,9 +1698,10 @@ components:
         remaining:
           type: integer
           format: int64
-          minimum: -1 # -1 represents unlimited
+          nullable: true
+          minimum: 0
           maximum: 9223372036854775807
-          description: Number of credits remaining (-1 for unlimited).
+          description: Number of credits remaining (null for unlimited).
           example: 1000
         refill:
           "$ref": "#/components/schemas/KeyCreditsRefillRequest"
@@ -1734,11 +1738,6 @@ components:
     KeyResponse:
       type: object
       properties:
-        apiId:
-          type: string
-          minLength: 8
-          maxLength: 255
-          pattern: "^[a-zA-Z0-9_]+$"
         keyId:
           type: string
           minLength: 8
@@ -4842,7 +4841,7 @@ paths:
       tags:
         - keys
       summary: Update remaining credits for an API key
-      description: |-
+      description: |
         Sets the remaining number of credits for a key, providing precise control over usage limits for implementing usage-based business models. Use this endpoint when customers make purchases to add credits, during subscription renewals to reset credits, or for adjustments due to refunds and promotions.
 
         The credits feature provides globally consistent usage limiting where each successful verification decrements the counter by the specified cost value (default 1). When credits reach zero, verification fails with `code=USAGE_EXCEEDED`, making this ideal for monetization models where accuracy is critical compared to rate limits which control frequency.
@@ -4872,12 +4871,12 @@ paths:
               setUnlimited:
                 summary: Set unlimited usage
                 description:
-                  Setting remaining to -1 makes the key usable an unlimited
+                  Setting remaining to null makes the key usable an unlimited
                   number of times. This is useful for premium tiers, trusted partners,
                   or internal applications where usage counting isn't needed.
                 value:
                   keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-                  remaining: -1
+                  remaining: null
               removeRefills:
                 summary: Remove refill settings
                 description:
@@ -4932,7 +4931,7 @@ paths:
                     meta:
                       requestId: req_1234567890abcdef
                     data:
-                      remaining: -1
+                      remaining: null
                       refillSettings:
         "400":
           description:

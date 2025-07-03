@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oapi-codegen/nullable"
 	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 
 	"github.com/stretchr/testify/require"
@@ -346,7 +347,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data.Credits)
-		require.Equal(t, int64(50), res.Body.Data.Credits.Remaining)
+		require.Equal(t, nullable.NewNullableWithValue(int64(50)), res.Body.Data.Credits.Remaining)
 		require.NotNil(t, res.Body.Data.Credits.Refill)
 		require.Equal(t, int64(100), res.Body.Data.Credits.Refill.Amount)
 		require.Equal(t, "daily", string(res.Body.Data.Credits.Refill.Interval))

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/oapi-codegen/nullable"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
@@ -206,7 +207,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		KeyId:       key.ID,
 		Start:       key.Start,
 		Plaintext:   plaintext,
-		ApiId:       key.Api.ID,
 		Name:        nil,
 		Meta:        nil,
 		Identity:    nil,
@@ -232,7 +232,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	if key.RemainingRequests.Valid {
 		k.Credits = &openapi.KeyCreditsResponse{
-			Remaining: int64(key.RemainingRequests.Int32),
+			Remaining: nullable.NewNullableWithValue(int64(key.RemainingRequests.Int32)),
 			Refill:    nil,
 		}
 
