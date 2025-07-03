@@ -36,7 +36,6 @@ func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, er
 	}
 
 	if err != nil {
-
 		return VerifyResponse{}, fault.Wrap(
 			err,
 			fault.Internal("unable to load key"),
@@ -62,8 +61,8 @@ func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, er
 			fault.Public("The key has been deleted."),
 		)
 	}
-	if !key.Enabled {
 
+	if !key.Enabled {
 		return VerifyResponse{}, fault.New(
 			"key is disabled",
 			fault.Code(codes.Auth.Authorization.KeyDisabled.URN()),
@@ -113,6 +112,7 @@ func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, er
 		AuthorizedWorkspaceID: authorizedWorkspaceID,
 		KeyID:                 key.ID,
 	}
+
 	// Root keys store the user's workspace id in `ForWorkspaceID` and we're
 	// interested in the user, not our rootkey workspace.
 	if key.ForWorkspaceID.Valid {

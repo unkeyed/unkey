@@ -4,7 +4,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as React from "react";
 
 import { XMark } from "@unkey/icons";
-import { cn } from "../../../lib/utils";
+import { cn } from "../../lib/utils";
 
 const Dialog = DialogPrimitive.Root;
 

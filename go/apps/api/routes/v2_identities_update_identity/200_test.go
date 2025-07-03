@@ -175,16 +175,18 @@ func TestSuccess(t *testing.T) {
 		// 2. Add a new 'new_feature' limit
 		// 3. Delete 'special_feature' limit (by not including it)
 
-		ratelimits := []openapi.Ratelimit{
+		ratelimits := []openapi.RatelimitRequest{
 			{
-				Name:     "api_calls",
-				Limit:    200,
-				Duration: 60000,
+				Name:      "api_calls",
+				Limit:     200,
+				Duration:  60000,
+				AutoApply: true,
 			},
 			{
-				Name:     "new_feature",
-				Limit:    5,
-				Duration: 86400000, // 1 day
+				Name:      "new_feature",
+				Limit:     5,
+				Duration:  86400000, // 1 day
+				AutoApply: false,
 			},
 		}
 
@@ -204,7 +206,7 @@ func TestSuccess(t *testing.T) {
 		require.Len(t, *res.Body.Data.Ratelimits, 2)
 
 		// Check ratelimit values
-		var apiCallsLimit, newFeatureLimit *openapi.Ratelimit
+		var apiCallsLimit, newFeatureLimit *openapi.RatelimitResponse
 		for i := range *res.Body.Data.Ratelimits {
 			switch (*res.Body.Data.Ratelimits)[i].Name {
 			case "api_calls":
@@ -233,7 +235,7 @@ func TestSuccess(t *testing.T) {
 
 	t.Run("remove all ratelimits", func(t *testing.T) {
 		// Empty array should remove all ratelimits
-		emptyRatelimits := []openapi.Ratelimit{}
+		emptyRatelimits := []openapi.RatelimitRequest{}
 
 		req := handler.Request{
 			IdentityId: &identityID,
@@ -277,11 +279,12 @@ func TestSuccess(t *testing.T) {
 			"credits": 1000,
 		}
 
-		ratelimits := []openapi.Ratelimit{
+		ratelimits := []openapi.RatelimitRequest{
 			{
-				Name:     "enterprise_feature",
-				Limit:    50,
-				Duration: 3600000,
+				Name:      "enterprise_feature",
+				Limit:     50,
+				Duration:  3600000,
+				AutoApply: true,
 			},
 		}
 

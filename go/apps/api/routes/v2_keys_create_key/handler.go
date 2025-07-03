@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"time"
 
+	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
+
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
@@ -21,6 +23,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/uid"
+	"github.com/unkeyed/unkey/go/pkg/vault"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
@@ -33,6 +36,7 @@ type Handler struct {
 	Keys        keys.KeyService
 	Permissions permissions.PermissionService
 	Auditlogs   auditlogs.AuditLogService
+	Vault       *vault.Service
 }
 
 // Method returns the HTTP method this route responds to
@@ -91,6 +95,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Internal("api not found"), fault.Public("The specified API was not found."),
 			)
 		}
+
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"), fault.Public("Failed to retrieve API."),
@@ -105,6 +110,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	keyAuth, err := db.Query.FindKeyringByID(ctx, h.DB.RO(), api.KeyAuthID.String)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return fault.New("api not set up for keys",
+				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+				fault.Internal("api not set up for keys, keyauth not found"), fault.Public("The requested API is not set up to handle keys."),
+			)
+		}
+
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
+		)
+	}
+
 	// 5. Generate key using key service
 	keyID := uid.New(uid.KeyPrefix)
 	keyResult, err := h.Keys.CreateKey(ctx, keys.CreateKeyRequest{
@@ -113,6 +133,49 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		return err
+	}
+
+	encrypt := ptr.SafeDeref(req.Recoverable, false)
+	var encryption *vaultv1.EncryptResponse
+	if encrypt {
+		err = h.Permissions.Check(
+			ctx,
+			auth.KeyID,
+			rbac.Or(
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   "*",
+					Action:       rbac.EncryptKey,
+				}),
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   api.ID,
+					Action:       rbac.EncryptKey,
+				}),
+			),
+		)
+		if err != nil {
+			return err
+		}
+
+		if !keyAuth.StoreEncryptedKeys {
+			return fault.New("api not set up for key encryption",
+				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+				fault.Internal("api not set up for key encryption"), fault.Public("This API does not support key encryption."),
+			)
+		}
+
+		encryption, err = h.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
+			Keyring: s.AuthorizedWorkspaceID(),
+			Data:    keyResult.Key,
+		})
+
+		if err != nil {
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("vault error"), fault.Public("Failed to encrypt key in vault."),
+			)
+		}
 	}
 
 	now := time.Now().UnixMilli()
@@ -178,6 +241,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			CreatedAtM:        now,
 			Enabled:           true,
 			RemainingRequests: sql.NullInt32{Int32: 0, Valid: false},
+			RefillDay:         sql.NullInt16{Int16: 0, Valid: false},
+			RefillAmount:      sql.NullInt32{Int32: 0, Valid: false},
 			Name:              sql.NullString{String: "", Valid: false},
 			IdentityID:        sql.NullString{String: "", Valid: false},
 			Meta:              sql.NullString{String: "", Valid: false},
@@ -194,7 +259,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		// Note: owner_id is set to null in the SQL query, so we skip setting it here
-
 		if req.Meta != nil {
 			metaBytes, marshalErr := json.Marshal(*req.Meta)
 			if marshalErr != nil {
@@ -203,6 +267,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					fault.Internal("failed to marshal meta"), fault.Public("Invalid metadata format."),
 				)
 			}
+
 			insertKeyParams.Meta = sql.NullString{String: string(metaBytes), Valid: true}
 		}
 
@@ -211,9 +276,33 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if req.Credits != nil {
-			insertKeyParams.RemainingRequests = sql.NullInt32{
-				Int32: int32(req.Credits.Remaining), // nolint:gosec
-				Valid: true,
+			if req.Credits.Remaining.IsSpecified() {
+				insertKeyParams.RemainingRequests = sql.NullInt32{
+					Int32: int32(req.Credits.Remaining.MustGet()), // nolint:gosec
+					Valid: true,
+				}
+			}
+
+			if req.Credits.Refill != nil {
+				insertKeyParams.RefillAmount = sql.NullInt32{
+					Int32: int32(req.Credits.Refill.Amount), // nolint:gosec
+					Valid: true,
+				}
+
+				if req.Credits.Refill.Interval == openapi.KeyCreditsRefillIntervalMonthly {
+					if req.Credits.Refill.RefillDay == nil {
+						return fault.New("missing refillDay",
+							fault.Code(codes.App.Validation.InvalidInput.URN()),
+							fault.Internal("refillDay required for monthly interval"),
+							fault.Public("`refillDay` must be provided when the refill interval is `monthly`."),
+						)
+					}
+
+					insertKeyParams.RefillDay = sql.NullInt16{
+						Int16: int16(*req.Credits.Refill.RefillDay), // nolint:gosec
+						Valid: true,
+					}
+				}
 			}
 		}
 
@@ -230,42 +319,61 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
+		if encryption != nil {
+			err = db.Query.InsertKeyEncryption(ctx, tx, db.InsertKeyEncryptionParams{
+				WorkspaceID:     auth.AuthorizedWorkspaceID,
+				KeyID:           keyID,
+				CreatedAt:       now,
+				Encrypted:       encryption.GetEncrypted(),
+				EncryptionKeyID: encryption.GetKeyId(),
+			})
+
+			if err != nil {
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to create key encryption."),
+				)
+			}
+		}
+
 		// 10. Handle rate limits if provided
-		if req.Ratelimits != nil {
-			for _, ratelimit := range *req.Ratelimits {
+		if req.Ratelimits != nil && len(*req.Ratelimits) > 0 {
+			ratelimitsToInsert := make([]db.InsertKeyRatelimitParams, len(*req.Ratelimits))
+			for i, ratelimit := range *req.Ratelimits {
 				ratelimitID := uid.New(uid.RatelimitPrefix)
-				err = db.Query.InsertKeyRatelimit(ctx, tx, db.InsertKeyRatelimitParams{
+				ratelimitsToInsert[i] = db.InsertKeyRatelimitParams{
 					ID:          ratelimitID,
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					KeyID:       sql.NullString{String: keyID, Valid: true},
 					Name:        ratelimit.Name,
 					Limit:       int32(ratelimit.Limit), // nolint:gosec
-					Duration:    int64(ratelimit.Duration),
+					Duration:    ratelimit.Duration,
 					CreatedAt:   now,
-				})
-				if err != nil {
-					return fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("database error"), fault.Public("Failed to create rate limit."),
-					)
+					AutoApply:   ratelimit.AutoApply,
 				}
+			}
+
+			err = db.BulkInsert(ctx, tx,
+				"INSERT INTO ratelimits (id, workspace_id, key_id, name, `limit`, duration, created_at, auto_apply) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+				ratelimitsToInsert,
+			)
+			if err != nil {
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to create rate limit."),
+				)
 			}
 		}
 
 		// 11. Handle permissions if provided
 		var auditLogs []auditlog.AuditLog
-		for _, permission := range resolvedPermissions {
-			err = db.Query.InsertKeyPermission(ctx, tx, db.InsertKeyPermissionParams{
+		permissionsToInsert := make([]db.InsertKeyPermissionParams, len(resolvedPermissions))
+		for idx, permission := range resolvedPermissions {
+			permissionsToInsert[idx] = db.InsertKeyPermissionParams{
 				KeyID:        keyID,
 				PermissionID: permission.ID,
 				WorkspaceID:  auth.AuthorizedWorkspaceID,
 				CreatedAt:    now,
-			})
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to assign permission."),
-				)
 			}
 
 			auditLogs = append(auditLogs, auditlog.AuditLog{
@@ -297,19 +405,29 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			})
 		}
 
+		if len(permissionsToInsert) > 0 {
+			err = db.BulkInsert(
+				ctx,
+				tx,
+				"INSERT INTO key_permissions (key_id, permission_id, workspace_id, created_at_m) VALUES (?, ?, ?, ?)",
+				permissionsToInsert,
+			)
+			if err != nil {
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to assign permissions."),
+				)
+			}
+		}
+
 		// 12. Handle roles if provided
-		for _, role := range resolvedRoles {
-			err = db.Query.InsertKeyRole(ctx, tx, db.InsertKeyRoleParams{
+		rolesToInsert := make([]db.InsertKeyRoleParams, len(resolvedRoles))
+		for idx, role := range resolvedRoles {
+			rolesToInsert[idx] = db.InsertKeyRoleParams{
 				KeyID:       keyID,
 				RoleID:      role.ID,
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				CreatedAtM:  now,
-			})
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to assign role."),
-				)
 			}
 
 			auditLogs = append(auditLogs, auditlog.AuditLog{
@@ -339,6 +457,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					},
 				},
 			})
+		}
+
+		if len(rolesToInsert) > 0 {
+			err = db.BulkInsert(
+				ctx,
+				tx,
+				"INSERT INTO keys_roles (key_id, role_id, workspace_id, created_at_m) VALUES (?, ?, ?, ?)",
+				rolesToInsert,
+			)
+			if err != nil {
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to assign roles."),
+				)
+			}
 		}
 
 		// 13. Create main audit log for key creation
@@ -373,10 +506,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// 14. Insert audit logs
 		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 		if err != nil {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("audit log error"), fault.Public("Failed to create audit log."),
-			)
+			return err
 		}
 
 		return nil
