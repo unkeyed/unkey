@@ -21,7 +21,7 @@ export const AssignedItemsCell = ({
     );
   const { data: permissionsData, isLoading: permissionsLoading } =
     trpc.authorization.roles.connectedPerms.useQuery(
-      { roleId},
+      { roleId },
       {
         enabled: kind === "permissions",
         staleTime: 5 * 60 * 1000,

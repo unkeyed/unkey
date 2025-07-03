@@ -24,7 +24,6 @@ export const useRoleLimits = (roleId?: string) => {
     }
     return trpcUtils.authorization.roles.connectedKeys.getData({
       roleId,
-      limit: 3,
     });
   };
 
@@ -34,7 +33,6 @@ export const useRoleLimits = (roleId?: string) => {
     }
     return trpcUtils.authorization.roles.connectedPerms.getData({
       roleId,
-      limit: 3,
     });
   };
 
@@ -46,11 +44,9 @@ export const useRoleLimits = (roleId?: string) => {
     const permsPreview = getPermsPreview();
 
     // Calculate totals - use preview data first, fallback to additional arrays
-    const totalKeys =
-      keysPreview?.totalCount || keysPreview?.items?.length || additionalKeys?.length || 0;
+    const totalKeys = keysPreview?.totalCount || additionalKeys?.length || 0;
 
-    const totalPerms =
-      permsPreview?.totalCount || permsPreview?.items?.length || additionalPerms?.length || 0;
+    const totalPerms = permsPreview?.totalCount || additionalPerms?.length || 0;
 
     // Only show warnings for existing roles (edit mode)
     const hasKeyWarning = Boolean(roleId && totalKeys > MAX_ATTACH_LIMIT);

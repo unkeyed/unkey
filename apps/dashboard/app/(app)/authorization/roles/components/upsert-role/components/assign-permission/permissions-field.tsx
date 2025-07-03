@@ -30,7 +30,8 @@ export const PermissionField = ({
   const { calculateLimits } = useRoleLimits(roleId);
   const { hasPermWarning, totalPerms } = calculateLimits(value);
 
-  const { permissions, isFetchingNextPage, hasNextPage, loadMore,isLoading } = useFetchPermissions();
+  const { permissions, isFetchingNextPage, hasNextPage, loadMore, isLoading } =
+    useFetchPermissions();
   const { searchResults, isSearching } = useSearchPermissions(searchValue);
 
   // Combine loaded permissions with search results, prioritizing search when available
@@ -172,21 +173,24 @@ export const PermissionField = ({
             : undefined
         }
       />
-      {hasPermWarning ? <RoleWarningCallout count={totalPerms} type="permissions" /> : null}
-      { selectedPermissions.length > 0 && (
+      {hasPermWarning ? (
+        <RoleWarningCallout count={totalPerms} type="permissions" />
+      ) : (
+        selectedPermissions.length > 0 && (
           <SelectedItemsList
-          items={selectedPermissions.map((k) => ({
-          ...k,
-          name: k.name ?? "Unnamed Permission",
-        }))}
-        disabled={disabled}
-        onRemoveItem={handleRemovePermission}
-        renderIcon={() => <Page2 size="sm-regular" className="text-grayA-11" />}
-        renderPrimaryText={(permission) => permission.name}
-        enableTransitions
-        // This can't cannot happen but we need it to make TS happy
-        renderSecondaryText={(permission) => permission.slug ?? "Unnamed Slug"}
-      />
+            items={selectedPermissions.map((k) => ({
+              ...k,
+              name: k.name ?? "Unnamed Permission",
+            }))}
+            disabled={disabled}
+            onRemoveItem={handleRemovePermission}
+            renderIcon={() => <Page2 size="sm-regular" className="text-grayA-11" />}
+            renderPrimaryText={(permission) => permission.name}
+            enableTransitions
+            // This can't cannot happen but we need it to make TS happy
+            renderSecondaryText={(permission) => permission.slug ?? "Unnamed Slug"}
+          />
+        )
       )}
     </div>
   );

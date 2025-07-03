@@ -31,7 +31,7 @@ export const KeyField = ({
   const { calculateLimits } = useRoleLimits(roleId);
   const { hasKeyWarning, totalKeys } = calculateLimits(value);
 
-  const { keys, isFetchingNextPage, hasNextPage, loadMore ,isLoading} = useFetchKeys();
+  const { keys, isFetchingNextPage, hasNextPage, loadMore, isLoading } = useFetchKeys();
   const { searchResults, isSearching } = useSearchKeys(searchValue);
 
   const allKeys = useMemo(() => {
@@ -166,22 +166,25 @@ export const KeyField = ({
             : undefined
         }
       />
-      {hasKeyWarning ? <RoleWarningCallout count={totalKeys} type="keys" /> : null}
-      <SelectedItemsList
-        items={selectedKeys.map((k) => ({
-          ...k,
-          name: k.name ?? "Unnamed Key",
-        }))}
-        disabled={disabled}
-        onRemoveItem={handleRemoveKey}
-        renderIcon={() => <Key2 size="sm-regular" className="text-grayA-11" />}
-        enableTransitions
-        renderPrimaryText={(key) =>
-          key.id.length > 15 ? `${key.id.slice(0, 8)}...${key.id.slice(-4)}` : key.id
-        }
-        renderSecondaryText={(key) => key.name || "Unnamed Key"}
-        itemHeight="h-12"
-      />
+      {hasKeyWarning ? (
+        <RoleWarningCallout count={totalKeys} type="keys" />
+      ) : (
+        <SelectedItemsList
+          items={selectedKeys.map((k) => ({
+            ...k,
+            name: k.name ?? "Unnamed Key",
+          }))}
+          disabled={disabled}
+          onRemoveItem={handleRemoveKey}
+          renderIcon={() => <Key2 size="sm-regular" className="text-grayA-11" />}
+          enableTransitions
+          renderPrimaryText={(key) =>
+            key.id.length > 15 ? `${key.id.slice(0, 8)}...${key.id.slice(-4)}` : key.id
+          }
+          renderSecondaryText={(key) => key.name || "Unnamed Key"}
+          itemHeight="h-12"
+        />
+      )}
     </div>
   );
 };
