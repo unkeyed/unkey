@@ -16,6 +16,8 @@ SET remaining_requests = CASE
     WHEN ? = 'set' THEN ?
     WHEN ? = 'increment' THEN remaining_requests + ?
     WHEN ? = 'decrement' THEN remaining_requests - ?
+    WHEN ? = 'decrement' AND remaining_requests- ? > 0 THEN remaining_requests - ?
+    WHEN ? = 'decrement' AND remaining_requests - ? <= 0 THEN 0
 END
 WHERE id = ?
 `
@@ -33,6 +35,8 @@ type UpdateKeyCreditsParams struct {
 //	    WHEN ? = 'set' THEN ?
 //	    WHEN ? = 'increment' THEN remaining_requests + ?
 //	    WHEN ? = 'decrement' THEN remaining_requests - ?
+//	    WHEN ? = 'decrement' AND remaining_requests- ? > 0 THEN remaining_requests - ?
+//	    WHEN ? = 'decrement' AND remaining_requests - ? <= 0 THEN 0
 //	END
 //	WHERE id = ?
 func (q *Queries) UpdateKeyCredits(ctx context.Context, db DBTX, arg UpdateKeyCreditsParams) error {
@@ -40,6 +44,11 @@ func (q *Queries) UpdateKeyCredits(ctx context.Context, db DBTX, arg UpdateKeyCr
 		arg.Operation,
 		arg.Credits,
 		arg.Operation,
+		arg.Credits,
+		arg.Operation,
+		arg.Credits,
+		arg.Operation,
+		arg.Credits,
 		arg.Credits,
 		arg.Operation,
 		arg.Credits,

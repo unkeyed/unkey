@@ -115,7 +115,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.Equal(t, key.RefillDay.Valid, false)
 	})
 
-	setTo := int64(rand.IntN(50))
+	setTo := int64(rand.IntN(50) + 1)
 	t.Run(fmt.Sprintf("set to fixed value of %d", setTo), func(t *testing.T) {
 		req := handler.Request{
 			KeyId:     keyID,
@@ -135,10 +135,10 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, key)
 		require.Equal(t, key.RemainingRequests.Valid, true)
-		require.Equal(t, key.RemainingRequests.Int32, setTo)
+		require.EqualValues(t, key.RemainingRequests.Int32, setTo)
 	})
 
-	increaseBy := int64(rand.IntN(50))
+	increaseBy := int64(rand.IntN(50) + 1)
 	t.Run(fmt.Sprintf("increase credits by %d", increaseBy), func(t *testing.T) {
 		req := handler.Request{
 			KeyId:     keyID,
@@ -158,10 +158,10 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, key)
 		require.Equal(t, key.RemainingRequests.Valid, true)
-		require.Equal(t, key.RemainingRequests.Int32, setTo+increaseBy)
+		require.EqualValues(t, key.RemainingRequests.Int32, setTo+increaseBy)
 	})
 
-	decreaseBy := int64(rand.IntN(50))
+	decreaseBy := int64(rand.IntN(50) + 1)
 	t.Run(fmt.Sprintf("decrease credits by %d", decreaseBy), func(t *testing.T) {
 		req := handler.Request{
 			KeyId:     keyID,
@@ -175,12 +175,12 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, remaining, setTo-increaseBy)
+		require.Equal(t, remaining, (setTo+increaseBy)-decreaseBy)
 
 		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.NotNil(t, key)
 		require.Equal(t, key.RemainingRequests.Valid, true)
-		require.Equal(t, key.RemainingRequests.Int32, setTo-increaseBy)
+		require.EqualValues(t, key.RemainingRequests.Int32, (setTo+increaseBy)-decreaseBy)
 	})
 }

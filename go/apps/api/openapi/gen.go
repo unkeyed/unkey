@@ -1577,10 +1577,11 @@ type V2KeysUpdateCreditsRequestBody struct {
 	// Value The new value for the remaining credits. This is an absolute value replacement, not an increment or decrement operation.
 	//
 	// Key behaviors:
-	// - This completely replaces the current remaining credits value
-	// - To add credits, first get the current value and then set remaining = current + additional
+	// - This completely replaces the current remaining credits value when operation is set to 'set'
+	// - To add credits, either replace the current value with the new value or increment the current value by a new value
 	// - To make a key unlimited, set remaining = null
 	// - To make a key with unlimited usage have a specific limit, set remaining to a positive number
+	// - If a decrement would result in a negative value, the remaining credits are set to zero
 	// - Credits are decremented each time the key is successfully verified (by the cost value, default 1)
 	// - When credits reach zero, verification fails with code=USAGE_EXCEEDED
 	//

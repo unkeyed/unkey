@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/oapi-codegen/nullable"
@@ -122,21 +121,38 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	value := int32(0)
+	if (req.Operation == openapi.Decrement || req.Operation == openapi.Increment) && (!req.Value.IsSpecified() || req.Value.IsNull()) {
+		return fault.New("wrong operation usage",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal("wrong operation usage"),
+			fault.Public("When specifying an increment or decrement operation, a value must be provided."),
+		)
+	}
+
+	if (req.Operation == openapi.Decrement || req.Operation == openapi.Increment) && !key.RemainingRequests.Valid {
+		return fault.New("wrong operation usage",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal("wrong operation usage"),
+			fault.Public("You cannot increment or decrement a key with unlimited credits."),
+		)
+	}
+
+	credits := sql.NullInt32{Int32: 0, Valid: false}
+
 	// The only errors that can be returned here are isNull or notSpecified
 	// which firstly is wanted and secondly doesn't matter
 	reqVal, _ := req.Value.Get()
 
 	// Value has been set as not null
-	if !req.Value.IsNull() {
-		value = int32(reqVal) // nolint:gosec
+	if !req.Value.IsNull() && req.Value.IsSpecified() {
+		credits = sql.NullInt32{Int32: int32(reqVal), Valid: true}
 	}
 
 	key, err = db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.FindKeyByIdOrHashRow, error) {
 		err = db.Query.UpdateKeyCredits(ctx, tx, db.UpdateKeyCreditsParams{
 			ID:        key.ID,
 			Operation: string(req.Operation),
-			Credits:   sql.NullInt32{Int32: value, Valid: !req.Value.IsNull()},
+			Credits:   credits,
 		})
 		if err != nil {
 			return db.FindKeyByIdOrHashRow{}, fault.Wrap(err,
@@ -169,9 +185,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Hash: sql.NullString{String: "", Valid: false},
 			},
 		)
-
-		log.Printf("KEY BEFORE UPDATE: %+v", key)
-		log.Printf("KEY AFTER UPDATE: %+v", keyAfterUpdate)
 
 		if keyErr != nil {
 			if db.IsNotFound(keyErr) {
@@ -239,8 +252,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Refill:    nil,
 		Remaining: null,
 	}
-
-	log.Printf("KEY AFTER UPDATE: %+v", key)
 
 	if key.RemainingRequests.Valid {
 		responseData.Remaining = nullable.NewNullableWithValue(int64(key.RemainingRequests.Int32))
