@@ -68,6 +68,8 @@ linters:
         - ^github.com/ClickHouse/clickhouse-go/v2.*$
         - ^github.com/aws/aws-sdk-go-v2/.*$
         - ^github.com/unkeyed/unkey/go/apps/api/openapi.Meta$
+        - ^gorm.io/gorm.Config$
+        - ^gorm.io/gorm.*$
     funlen:
       lines: 100
       statements: 50
