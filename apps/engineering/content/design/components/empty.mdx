@@ -1,11 +1,7 @@
 ---
 title: Empty
 ---
-import { Empty } from "@unkey/ui"
-import { RenderComponentWithSnippet } from "@/app/components/render"
-import { Row } from "@/app/components/row"
-import { BookBookmark, ShieldCheck } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { EmptyExample } from "./empty.examples";
 
 
 ## Overview
@@ -35,18 +31,4 @@ The `<Empty.Actions />` offers the user one or multiple actions to resolve the l
 
 ## Full Example
 
-<RenderComponentWithSnippet>
-  <Row>
-    <Empty>
-      <Empty.Icon />
-      <Empty.Title>Example Title Text</Empty.Title>
-      <Empty.Description>Example of Description Text.</Empty.Description>
-      <Empty.Actions>
-        <Button>
-            <BookBookmark /> 
-            Submit
-        </Button>
-      </Empty.Actions>
-    </Empty>
-  </Row>
-</RenderComponentWithSnippet>
+<EmptyExample />

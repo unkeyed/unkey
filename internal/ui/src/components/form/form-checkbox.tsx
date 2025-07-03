@@ -1,10 +1,10 @@
 import * as React from "react";
 import { cn } from "../../lib/utils";
-import { Checkbox, type CheckboxProps } from "../checkbox";
+import { Checkbox, type CheckboxProps } from "./checkbox";
 import { FormDescription, FormLabel } from "./form-helpers";
 
 // Hack to populate fumadocs' AutoTypeTable
-export type DocumentedFormCheckboxProps = {
+type DocumentedFormCheckboxProps = {
   label?: string;
   description?: string | React.ReactNode;
   required?: boolean;
@@ -15,10 +15,10 @@ export type DocumentedFormCheckboxProps = {
   size?: CheckboxProps["size"];
 };
 
-export type FormCheckboxProps = Omit<CheckboxProps, "size" | "variant" | "color"> &
+type FormCheckboxProps = Omit<CheckboxProps, "size" | "variant" | "color"> &
   DocumentedFormCheckboxProps;
 
-export const FormCheckbox = React.forwardRef<HTMLButtonElement, FormCheckboxProps>(
+const FormCheckbox = React.forwardRef<HTMLButtonElement, FormCheckboxProps>(
   (
     {
       label,
@@ -78,3 +78,5 @@ export const FormCheckbox = React.forwardRef<HTMLButtonElement, FormCheckboxProp
 );
 
 FormCheckbox.displayName = "FormCheckbox";
+
+export { FormCheckbox, type FormCheckboxProps, type DocumentedFormCheckboxProps };

@@ -53,7 +53,8 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
   const [rowSelection, setRowSelection] = useState({});
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const router = useRouter();
-  const deleteKey = trpc.rootKey.delete.useMutation({
+
+  const deleteKey = trpc.settings.rootKeys.delete.useMutation({
     onSuccess: (_data, variables) => {
       setRowSelection({});
       toast.success(

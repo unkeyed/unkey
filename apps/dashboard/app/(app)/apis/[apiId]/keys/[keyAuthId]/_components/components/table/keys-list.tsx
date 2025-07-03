@@ -8,7 +8,6 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import React, { useCallback, useMemo, useState } from "react";
-import { getKeysTableActionItems } from "./components/actions/keys-table-action.popover.constants";
 import { VerificationBarChart } from "./components/bar-chart";
 import { HiddenValueCell } from "./components/hidden-value";
 import { LastUsedCell } from "./components/last-used";
@@ -27,9 +26,9 @@ import { getRowClassName } from "./utils/get-row-class";
 
 const KeysTableActionPopover = dynamic(
   () =>
-    import("./components/actions/keys-table-action.popover").then((mod) => ({
-      default: mod.KeysTableActionPopover,
-    })),
+    import("./components/actions/keys-table-action.popover.constants").then(
+      (mod) => mod.KeysTableActions,
+    ),
   {
     ssr: false,
     loading: () => (
@@ -254,7 +253,7 @@ export const KeysList = ({
         header: "",
         width: "15%",
         render: (key) => {
-          return <KeysTableActionPopover items={getKeysTableActionItems(key)} />;
+          return <KeysTableActionPopover keyData={key} />;
         },
       },
     ],

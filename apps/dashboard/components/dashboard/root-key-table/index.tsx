@@ -19,7 +19,8 @@ import {
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Badge, Button, Checkbox, InfoTooltip } from "@unkey/ui";
+import { Badge } from "@unkey/ui";
+import { Button, Checkbox, InfoTooltip } from "@unkey/ui";
 import { ArrowUpDown, Minus, MoreHorizontal, MoreVertical, Trash } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
@@ -41,7 +42,7 @@ type Props = {
 
 export const RootKeyTable: React.FC<Props> = ({ data }) => {
   const router = useRouter();
-  const deleteKey = trpc.rootKey.delete.useMutation({
+  const deleteKey = trpc.settings.rootKeys.delete.useMutation({
     onSuccess: () => {
       toast.success("Root Key was deleted");
       router.refresh();

@@ -13,6 +13,7 @@ import { enableKey } from "./api/keys/toggle-key-enabled";
 import { overviewApiSearch } from "./api/overview-api-search";
 import { queryApisOverview } from "./api/overview/query-overview";
 import { queryVerificationTimeseries } from "./api/overview/query-timeseries";
+import { queryApiKeyDetails } from "./api/query-api-key-details";
 import { setDefaultApiBytes } from "./api/setDefaultBytes";
 import { setDefaultApiPrefix } from "./api/setDefaultPrefix";
 import { updateAPIDeleteProtection } from "./api/updateDeleteProtection";
@@ -36,13 +37,19 @@ import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
 import { createIdentity } from "./identity/create";
 import { queryIdentities } from "./identity/query";
+import { searchIdentities } from "./identity/search";
 import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
 import { deleteKeys } from "./key/delete";
-import { deleteRootKeys } from "./key/deleteRootKey";
 import { fetchKeyPermissions } from "./key/fetch-key-permissions";
 import { queryKeyDetailsLogs } from "./key/query-logs";
 import { keyDetailsVerificationsTimeseries } from "./key/query-timeseries";
+import { getConnectedRolesAndPerms } from "./key/rbac/connected-roles-and-perms";
+import { getPermissionSlugs } from "./key/rbac/get-permission-slugs";
+import { queryKeysPermissions } from "./key/rbac/permissions/query";
+import { queryKeysRoles } from "./key/rbac/roles/query-keys-roles";
+import { searchKeysRoles } from "./key/rbac/roles/search-keys-roles";
+import { updateKeyRbac } from "./key/rbac/update-rbac";
 import { updateKeysEnabled } from "./key/updateEnabled";
 import { updateKeyExpiration } from "./key/updateExpiration";
 import { updateKeyMetadata } from "./key/updateMetadata";
@@ -91,6 +98,8 @@ import { disconnectRoleFromKey } from "./rbac/disconnectRoleFromKey";
 import { removePermissionFromRootKey } from "./rbac/removePermissionFromRootKey";
 import { updatePermission } from "./rbac/updatePermission";
 import { updateRole } from "./rbac/updateRole";
+import { deleteRootKeys } from "./settings/root-keys/delete";
+import { rootKeysLlmSearch } from "./settings/root-keys/llm-search";
 import { queryRootKeys } from "./settings/root-keys/query";
 import { cancelSubscription } from "./stripe/cancelSubscription";
 import { createSubscription } from "./stripe/createSubscription";
@@ -119,11 +128,23 @@ export const router = t.router({
       ownerId: updateKeyOwner,
       ratelimit: updateKeyRatelimit,
       remaining: updateKeyRemaining,
+      rbac: t.router({
+        update: updateKeyRbac,
+        roles: t.router({
+          search: searchKeysRoles,
+          query: queryKeysRoles,
+        }),
+        permissions: t.router({
+          search: searchRolesPermissions,
+          query: queryKeysPermissions,
+        }),
+      }),
     }),
+    queryPermissionSlugs: getPermissionSlugs,
+    connectedRolesAndPerms: getConnectedRolesAndPerms,
   }),
   rootKey: t.router({
     create: createRootKey,
-    delete: deleteRootKeys,
     update: t.router({
       name: updateRootKeyName,
     }),
@@ -131,6 +152,8 @@ export const router = t.router({
   settings: t.router({
     rootKeys: t.router({
       query: queryRootKeys,
+      llmSearch: rootKeysLlmSearch,
+      delete: deleteRootKeys,
     }),
   }),
   api: t.router({
@@ -141,6 +164,7 @@ export const router = t.router({
     setDefaultBytes: setDefaultApiBytes,
     updateIpWhitelist: updateApiIpWhitelist,
     updateDeleteProtection: updateAPIDeleteProtection,
+    queryApiKeyDetails,
     keys: t.router({
       timeseries: keyVerificationsTimeseries,
       activeKeysTimeseries: activeKeysTimeseries,
@@ -272,6 +296,7 @@ export const router = t.router({
   identity: t.router({
     create: createIdentity,
     query: queryIdentities,
+    search: searchIdentities,
   }),
 });
 

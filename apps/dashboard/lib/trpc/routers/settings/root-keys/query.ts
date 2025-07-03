@@ -1,12 +1,8 @@
-import { and, count, db, desc, eq, isNull, lt, schema } from "@/lib/db";
+import { rootKeysQueryPayload } from "@/app/(app)/settings/root-keys/components/table/query-logs.schema";
+import { and, count, db, desc, eq, exists, isNull, like, lt, or, schema } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
-const queryRootKeysPayload = z.object({
-  limit: z.number().int().min(1).max(100).default(50),
-  cursor: z.number().int().optional(),
-});
 
 const PermissionResponse = z.object({
   id: z.string(),
@@ -18,12 +14,11 @@ const RootKeyResponse = z.object({
   start: z.string(),
   createdAt: z.number(),
   lastUpdatedAt: z.number().nullable(),
-  ownerId: z.string().nullable(),
   name: z.string().nullable(),
   permissionSummary: z.object({
     total: z.number(),
-    categories: z.record(z.number()), // { "API": 4, "Keys": 6, "Ratelimit": 2 }
-    hasCriticalPerm: z.boolean(), // delete, decrypt permissions
+    categories: z.record(z.number()),
+    hasCriticalPerm: z.boolean(),
   }),
   permissions: z.array(PermissionResponse),
 });
@@ -37,12 +32,15 @@ const RootKeysResponse = z.object({
 
 type PermissionResponse = z.infer<typeof PermissionResponse>;
 type RootKeysResponse = z.infer<typeof RootKeysResponse>;
+export type RootKey = z.infer<typeof RootKeyResponse>;
+
+export const LIMIT = 50;
 
 export const queryRootKeys = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
   .use(withRatelimit(ratelimit.read))
-  .input(queryRootKeysPayload)
+  .input(rootKeysQueryPayload)
   .output(RootKeysResponse)
   .query(async ({ ctx, input }) => {
     // Build base conditions
@@ -52,26 +50,109 @@ export const queryRootKeys = t.procedure
     ];
 
     // Add cursor condition for pagination
-    if (input.cursor) {
+    if (input.cursor && typeof input.cursor === "number") {
       baseConditions.push(lt(schema.keys.createdAtM, input.cursor));
     }
+
+    // Build filter conditions
+    const filterConditions = [];
+
+    // Name filter
+    if (input.name && input.name.length > 0) {
+      const nameConditions = input.name.map((filter) => {
+        if (filter.operator === "is") {
+          return eq(schema.keys.name, filter.value);
+        }
+        if (filter.operator === "contains") {
+          return like(schema.keys.name, `%${filter.value}%`);
+        }
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Unsupported name operator: ${filter.operator}`,
+        });
+      });
+
+      if (nameConditions.length === 1) {
+        filterConditions.push(nameConditions[0]);
+      } else {
+        filterConditions.push(or(...nameConditions));
+      }
+    }
+
+    // Start filter
+    if (input.start && input.start.length > 0) {
+      const startConditions = input.start.map((filter) => {
+        if (filter.operator === "is") {
+          return eq(schema.keys.start, filter.value);
+        }
+        if (filter.operator === "contains") {
+          return like(schema.keys.start, `%${filter.value}%`);
+        }
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Unsupported key operator: ${filter.operator}`,
+        });
+      });
+
+      if (startConditions.length === 1) {
+        filterConditions.push(startConditions[0]);
+      } else {
+        filterConditions.push(or(...startConditions));
+      }
+    }
+
+    // Permission filter
+    if (input.permission && input.permission.length > 0) {
+      const permissionConditions = input.permission.map((filter) => {
+        if (filter.operator === "contains") {
+          return exists(
+            db
+              .select()
+              .from(schema.keysPermissions)
+              .innerJoin(
+                schema.permissions,
+                eq(schema.keysPermissions.permissionId, schema.permissions.id),
+              )
+              .where(
+                and(
+                  eq(schema.keysPermissions.keyId, schema.keys.id),
+                  like(schema.permissions.name, `%${filter.value}%`),
+                ),
+              ),
+          );
+        }
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Unsupported permission operator: ${filter.operator}`,
+        });
+      });
+
+      if (permissionConditions.length === 1) {
+        filterConditions.push(permissionConditions[0]);
+      } else {
+        filterConditions.push(or(...permissionConditions));
+      }
+    }
+
+    // Combine all conditions
+    const allConditions =
+      filterConditions.length > 0 ? [...baseConditions, ...filterConditions] : baseConditions;
 
     try {
       const [totalResult, keysResult] = await Promise.all([
         db
           .select({ count: count() })
           .from(schema.keys)
-          .where(and(...baseConditions)),
+          .where(and(...allConditions)),
         db.query.keys.findMany({
-          where: and(...baseConditions),
+          where: and(...allConditions),
           orderBy: [desc(schema.keys.createdAtM)],
-          limit: input.limit + 1, // Get one extra to check if there are more
+          limit: LIMIT + 1, // Get one extra to check if there are more
           columns: {
             id: true,
             start: true,
             createdAtM: true,
             updatedAtM: true,
-            ownerId: true,
             name: true,
           },
           with: {
@@ -93,8 +174,8 @@ export const queryRootKeys = t.procedure
       ]);
 
       // Check if we have more results
-      const hasMore = keysResult.length > input.limit;
-      const keysWithoutExtra = hasMore ? keysResult.slice(0, input.limit) : keysResult;
+      const hasMore = keysResult.length > LIMIT;
+      const keysWithoutExtra = hasMore ? keysResult.slice(0, LIMIT) : keysResult;
 
       // Transform the data to flatten permissions and add summary
       const keys = keysWithoutExtra.map((key) => {
@@ -113,7 +194,6 @@ export const queryRootKeys = t.procedure
           start: key.start,
           createdAt: key.createdAtM,
           lastUpdatedAt: key.updatedAtM,
-          ownerId: key.ownerId,
           name: key.name,
           permissionSummary,
           permissions,
@@ -156,17 +236,22 @@ function categorizePermissions(permissions: PermissionResponse[]) {
 
     // Extract category from permission name (e.g., "api.*.create_key" -> "api")
     const parts = permission.name.split(".");
-    if (parts.length < 2) {
+    if (parts.length < 3) {
       console.warn(`Invalid permission format: ${permission.name}`);
       continue;
     }
-
-    const [identifier] = parts;
+    // Skip the second element
+    const [identifier, _, action] = parts;
     let category: string;
 
     switch (identifier) {
       case "api":
-        category = "API";
+        // Separate API permissions from key permissions
+        if (action.includes("key")) {
+          category = "Keys";
+        } else {
+          category = "API";
+        }
         break;
       case "ratelimit":
         category = "Ratelimit";
