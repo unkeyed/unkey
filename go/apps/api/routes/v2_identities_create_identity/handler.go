@@ -103,35 +103,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		meta = rawMeta
 	}
 
-	// Validate rate limits
-	if req.Ratelimits != nil {
-		for _, ratelimit := range *req.Ratelimits {
-			// Validate rate limit name is provided
-			if ratelimit.Name == "" {
-				return fault.New("invalid rate limit",
-					fault.Code(codes.App.Validation.InvalidInput.URN()),
-					fault.Internal("missing rate limit name"), fault.Public("Rate limit name is required."),
-				)
-			}
-
-			// Validate rate limit value is positive
-			if ratelimit.Limit <= 0 {
-				return fault.New("invalid rate limit",
-					fault.Code(codes.App.Validation.InvalidInput.URN()),
-					fault.Internal("invalid rate limit value"), fault.Public("Rate limit value must be greater than zero."),
-				)
-			}
-
-			// Validate duration is at least 1000ms (1 second)
-			if ratelimit.Duration < 1000 {
-				return fault.New("invalid rate limit",
-					fault.Code(codes.App.Validation.InvalidInput.URN()),
-					fault.Internal("invalid rate limit duration"), fault.Public("Rate limit duration must be at least 1000ms (1 second)."),
-				)
-			}
-		}
-	}
-
 	identityID, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
 		identityID := uid.New(uid.IdentityPrefix)
 		args := db.InsertIdentityParams{
@@ -142,9 +113,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        meta,
 		}
-		h.Logger.Warn("inserting identity",
-			"args", args,
-		)
 		err = db.Query.InsertIdentity(ctx, tx, args)
 
 		if err != nil {
@@ -184,9 +152,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if req.Ratelimits != nil {
-			for _, ratelimit := range *req.Ratelimits {
+			rateLimitsToInsert := make([]db.InsertIdentityRatelimitParams, len(*req.Ratelimits))
+			for i, ratelimit := range *req.Ratelimits {
 				ratelimitID := uid.New(uid.RatelimitPrefix)
-				err = db.Query.InsertIdentityRatelimit(ctx, tx, db.InsertIdentityRatelimitParams{
+				rateLimitsToInsert[i] = db.InsertIdentityRatelimitParams{
 					ID:          ratelimitID,
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					IdentityID:  sql.NullString{String: identityID, Valid: true},
@@ -194,11 +163,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					Limit:       int32(ratelimit.Limit), // nolint:gosec
 					Duration:    ratelimit.Duration,
 					CreatedAt:   time.Now().UnixMilli(),
-				})
-				if err != nil {
-					return "", fault.Wrap(err,
-						fault.Internal("unable to create ratelimit"), fault.Public("We're unable to create a ratelimit for the identity."),
-					)
+					AutoApply:   ratelimit.AutoApply,
 				}
 
 				auditLogs = append(auditLogs, auditlog.AuditLog{
@@ -229,14 +194,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					},
 				})
 			}
+
+			err = db.BulkInsert(
+				ctx,
+				tx,
+				"INSERT INTO ratelimits (id, workspace_id, identity_id, name, `limit`, duration, created_at, auto_apply) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+				rateLimitsToInsert,
+			)
+			if err != nil {
+				return "", fault.Wrap(err,
+					fault.Internal("unable to create ratelimit"), fault.Public("We're unable to create a ratelimit for the identity."),
+				)
+			}
 		}
 
 		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 		if err != nil {
-			return "", fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database failed to insert audit logs"), fault.Public("Failed to insert audit logs"),
-			)
+			return "", err
 		}
 
 		return identityID, nil

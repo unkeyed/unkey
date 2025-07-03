@@ -113,12 +113,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		// Format ratelimits
-		formattedRatelimits := make([]openapi.Ratelimit, 0, len(ratelimits))
+		formattedRatelimits := make([]openapi.RatelimitResponse, 0, len(ratelimits))
 		for _, r := range ratelimits {
-			formattedRatelimits = append(formattedRatelimits, openapi.Ratelimit{
-				Name:     r.Name,
-				Limit:    int64(r.Limit),
-				Duration: r.Duration,
+			formattedRatelimits = append(formattedRatelimits, openapi.RatelimitResponse{
+				Id:        r.ID,
+				Name:      r.Name,
+				Limit:     int64(r.Limit),
+				Duration:  r.Duration,
+				AutoApply: r.AutoApply,
 			})
 		}
 

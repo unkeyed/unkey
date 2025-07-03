@@ -18,8 +18,10 @@ INSERT INTO ` + "`" + `ratelimits` + "`" + ` (
     name,
     ` + "`" + `limit` + "`" + `,
     duration,
+    auto_apply,
     created_at
 ) VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -37,6 +39,7 @@ type InsertKeyRatelimitParams struct {
 	Name        string         `db:"name"`
 	Limit       int32          `db:"limit"`
 	Duration    int64          `db:"duration"`
+	AutoApply   bool           `db:"auto_apply"`
 	CreatedAt   int64          `db:"created_at"`
 }
 
@@ -49,8 +52,10 @@ type InsertKeyRatelimitParams struct {
 //	    name,
 //	    `limit`,
 //	    duration,
+//	    auto_apply,
 //	    created_at
 //	) VALUES (
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -67,6 +72,7 @@ func (q *Queries) InsertKeyRatelimit(ctx context.Context, db DBTX, arg InsertKey
 		arg.Name,
 		arg.Limit,
 		arg.Duration,
+		arg.AutoApply,
 		arg.CreatedAt,
 	)
 	return err
