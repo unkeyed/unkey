@@ -1,10 +1,10 @@
 import React from "react";
 import { cn } from "../../lib/utils";
-import { type DocumentedTextareaProps, Textarea, type TextareaProps } from "../textarea";
 import { FormDescription, FormLabel } from "./form-helpers";
+import { type DocumentedTextareaProps, Textarea, type TextareaProps } from "./textarea";
 
 // Hack to populate fumadocs' AutoTypeTable
-export type DocumentedFormTextareaProps = DocumentedTextareaProps & {
+type DocumentedFormTextareaProps = DocumentedTextareaProps & {
   label?: string;
   description?: string | React.ReactNode;
   required?: boolean;
@@ -12,9 +12,9 @@ export type DocumentedFormTextareaProps = DocumentedTextareaProps & {
   error?: string;
 };
 
-export type FormTextareaProps = TextareaProps & DocumentedFormTextareaProps;
+type FormTextareaProps = TextareaProps & DocumentedFormTextareaProps;
 
-export const FormTextarea = React.forwardRef<HTMLTextAreaElement, FormTextareaProps>(
+const FormTextarea = React.forwardRef<HTMLTextAreaElement, FormTextareaProps>(
   (
     {
       label,
@@ -72,3 +72,5 @@ export const FormTextarea = React.forwardRef<HTMLTextAreaElement, FormTextareaPr
 );
 
 FormTextarea.displayName = "FormTextarea";
+
+export { FormTextarea, type FormTextareaProps, type DocumentedFormTextareaProps };

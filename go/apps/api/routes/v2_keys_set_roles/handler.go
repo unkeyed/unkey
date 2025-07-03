@@ -295,10 +295,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if len(auditLogs) > 0 {
 			err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("audit log error"), fault.Public("Failed to create audit log for role changes."),
-				)
+				return err
 			}
 		}
 

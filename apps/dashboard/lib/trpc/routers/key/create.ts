@@ -7,7 +7,6 @@ import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { requireUser, requireWorkspace, t } from "../../trpc";
-
 const vault = new Vault({
   baseUrl: env().AGENT_URL,
   token: env().AGENT_TOKEN,

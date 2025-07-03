@@ -1,7 +1,6 @@
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { ChartActivity2 } from "@unkey/icons";
-import { TimestampInfo } from "@unkey/ui";
+import { Badge, TimestampInfo } from "@unkey/ui";
 import { useRef, useState } from "react";
 import { STATUS_STYLES } from "../utils/get-row-class";
 

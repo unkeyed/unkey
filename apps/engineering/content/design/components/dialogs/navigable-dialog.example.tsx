@@ -74,7 +74,27 @@ export const NavigableDialogExample = memo(() => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <RenderComponentWithSnippet>
+    <RenderComponentWithSnippet
+      customCodeSnippet={`<div className="flex justify-center">
+  <Button onClick={() => setIsOpen(true)}>Open Example Dialog</Button>
+
+  <NavigableDialogRoot isOpen={isOpen} onOpenChange={setIsOpen} preventAutoFocus>
+    <NavigableDialogHeader
+      title="NavigableDialog Example"
+      subTitle="A simple demonstration"
+    />
+
+    <NavigableDialogBody className="flex text-warning-5">
+      <NavigableDialogNav items={NAV_ITEMS} />
+      <NavigableDialogContent items={CONTENT_ITEMS} />
+    </NavigableDialogBody>
+
+    <NavigableDialogFooter>
+      <Button onClick={() => setIsOpen(false)}>Close</Button>
+    </NavigableDialogFooter>
+  </NavigableDialogRoot>
+</div>`}
+    >
       <div className="flex justify-center">
         <Button onClick={() => setIsOpen(true)}>Open Example Dialog</Button>
 
@@ -84,7 +104,7 @@ export const NavigableDialogExample = memo(() => {
             subTitle="A simple demonstration"
           />
 
-          <NavigableDialogBody>
+          <NavigableDialogBody className="flex text-warning-5">
             <NavigableDialogNav items={NAV_ITEMS} />
             <NavigableDialogContent items={CONTENT_ITEMS} />
           </NavigableDialogBody>

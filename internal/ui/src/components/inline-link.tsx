@@ -29,7 +29,7 @@ type InlineLinkProps = {
    */
   target?: boolean;
 };
-export const InlineLink: React.FC<InlineLinkProps> = ({
+const InlineLink: React.FC<InlineLinkProps> = ({
   className,
   label,
   href,
@@ -54,3 +54,7 @@ export const InlineLink: React.FC<InlineLinkProps> = ({
     </a>
   );
 };
+
+InlineLink.displayName = "InlineLink";
+
+export { InlineLink };

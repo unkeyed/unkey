@@ -131,7 +131,7 @@ export const UpdateKeyStatus = ({ keyDetails, isOpen, onClose }: UpdateKeyStatus
                 <FormCheckbox
                   id="confirm-status-change"
                   color={isEnabling ? "default" : "danger"}
-                  size="md"
+                  size="lg"
                   onCheckedChange={field.onChange}
                   required
                   label={

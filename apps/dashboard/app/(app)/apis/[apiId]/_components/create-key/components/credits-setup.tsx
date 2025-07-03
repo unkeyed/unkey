@@ -1,5 +1,5 @@
 "use client";
-import { ChartPie, CircleInfo } from "@unkey/icons";
+import { ChartPie } from "@unkey/icons";
 import {
   FormInput,
   Select,
@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
+import { FormDescription } from "@unkey/ui/src/components/form/form-helpers";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 import type { CreditsFormValues } from "../create-key.schema";
 import { ProtectionSwitch } from "./protection-switch";
@@ -142,10 +143,12 @@ export const UsageSetup = () => {
                 <SelectItem value="monthly">Monthly</SelectItem>
               </SelectContent>
             </Select>
-            <output className="text-gray-9 flex gap-2 items-center text-[13px]">
-              <CircleInfo size="md-regular" aria-hidden="true" />
-              <span>Interval key will be refilled.</span>
-            </output>
+            <FormDescription
+              description="Interval key will be refilled."
+              descriptionId="refill-interval-description"
+              errorId="refill-interval-error"
+              error={errors.limit?.data?.refill?.interval?.message}
+            />
           </div>
         )}
       />

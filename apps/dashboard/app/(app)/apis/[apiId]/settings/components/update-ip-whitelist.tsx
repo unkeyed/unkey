@@ -1,13 +1,11 @@
 "use client";
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { zodResolver } from "@hookform/resolvers/zod";
 import type { Workspace } from "@unkey/db";
 import { ArrowUpRight, Lock, Shield } from "@unkey/icons";
 import { Button, FormTextarea, InlineLink, SettingCard } from "@unkey/ui";
-import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
+import { createApiFormConfig, createMutationHandlers } from "./key-settings-form-helper";
 import { StatusBadge } from "./status-badge";
 
 const formSchema = z.object({
@@ -29,7 +27,7 @@ type Props = {
 };
 
 export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
-  const router = useRouter();
+  const { onUpdateSuccess, onError } = createMutationHandlers();
   const isEnabled = workspace.features.ipWhitelist;
 
   const {
@@ -37,7 +35,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
     handleSubmit,
     formState: { isValid, isSubmitting, errors, isDirty },
   } = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+    ...createApiFormConfig(formSchema),
     defaultValues: {
       ipWhitelist: api.ipWhitelist ?? "",
       apiId: api.id,
@@ -46,14 +44,8 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
   });
 
   const updateIps = trpc.api.updateIpWhitelist.useMutation({
-    onSuccess() {
-      toast.success("Your ip whitelist has been updated!");
-      router.refresh();
-    },
-    onError(err) {
-      console.error(err);
-      toast.error(err.message);
-    },
+    onSuccess: onUpdateSuccess("IP whitelist updated successfully"),
+    onError,
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -114,6 +106,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
             <Button
               size="lg"
               variant="primary"
+              className="w-fit px-3.5"
               disabled={!isValid || isSubmitting || !isDirty}
               type="submit"
               loading={isSubmitting}
@@ -124,7 +117,13 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
         ) : (
           <div className="flex flex-col justify-center items-end w-full h-full">
             <a target="_blank" rel="noreferrer" href="https://cal.com/james-r-perkins/sales">
-              <Button type="button" size="lg" variant="primary" color="info">
+              <Button
+                type="button"
+                size="lg"
+                variant="primary"
+                color="info"
+                className="w-fit px-3.5"
+              >
                 Upgrade to Enterprise
               </Button>
             </a>

@@ -113,7 +113,7 @@ func TestSuccess(t *testing.T) {
 		require.Len(t, *res.Body.Data.Ratelimits, 2)
 
 		// Ratelimits can be in any order, so we need to find the specific ones
-		var apiCallsLimit, specialFeatureLimit *openapi.Ratelimit
+		var apiCallsLimit, specialFeatureLimit *openapi.RatelimitResponse
 		for i := range *res.Body.Data.Ratelimits {
 			switch (*res.Body.Data.Ratelimits)[i].Name {
 			case "api_calls":
@@ -424,7 +424,7 @@ func TestSuccess(t *testing.T) {
 		require.Len(t, *res.Body.Data.Ratelimits, len(rateLimits))
 
 		// Create a map of rate limits by name to verify each one
-		returnedRateLimits := make(map[string]openapi.Ratelimit)
+		returnedRateLimits := make(map[string]openapi.RatelimitResponse)
 		for _, rl := range *res.Body.Data.Ratelimits {
 			returnedRateLimits[rl.Name] = rl
 		}

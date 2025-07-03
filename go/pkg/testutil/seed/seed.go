@@ -99,6 +99,8 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 		Meta:              sql.NullString{String: "", Valid: false},
 		Expires:           sql.NullTime{Time: time.Time{}, Valid: false},
 		RemainingRequests: sql.NullInt32{Int32: 0, Valid: false},
+		RefillDay:         sql.NullInt16{Int16: 0, Valid: false},
+		RefillAmount:      sql.NullInt32{Int32: 0, Valid: false},
 		RatelimitAsync:    sql.NullBool{Bool: false, Valid: false},
 		RatelimitLimit:    sql.NullInt32{Int32: 0, Valid: false},
 		RatelimitDuration: sql.NullInt64{Int64: 0, Valid: false},
@@ -122,8 +124,7 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 
 			mysqlErr := &mysql.MySQLError{} // nolint:exhaustruct
 			if errors.As(err, &mysqlErr) {
-				// Error 1062 (23000): Duplicate entry
-				require.Equal(s.t, uint16(1062), mysqlErr.Number, "Unexpected MySQL error number, got %d, expected %d", mysqlErr.Number, uint16(1062))
+				require.True(s.t, db.IsDuplicateKeyError(err), "Expected duplicate key error, got MySQL error number %d", mysqlErr.Number)
 				existing, findErr := db.Query.FindPermissionByNameAndWorkspaceID(ctx, s.DB.RO(), db.FindPermissionByNameAndWorkspaceIDParams{
 					WorkspaceID: s.Resources.RootWorkspace.ID,
 					Name:        permission,
