@@ -5,15 +5,15 @@ export const AssignedItemsCell = ({
   totalCount,
   value,
   isSelected = false,
-  type,
+  kind,
 }: {
   totalCount?: number;
   value?: string;
   isSelected?: boolean;
-  type: "roles" | "keys" | "permissions" | "slug";
+  kind: "roles" | "keys" | "permissions" | "slug";
 }) => {
   const getIcon = () => {
-    switch (type) {
+    switch (kind) {
       case "roles":
         return <Tag size="md-regular" className="opacity-50" />;
       case "keys":
@@ -21,13 +21,13 @@ export const AssignedItemsCell = ({
       case "slug":
         return <Page2 size="md-regular" className="opacity-50" />;
       default:
-        throw new Error(`Invalid type: ${type}`);
+        throw new Error(`Invalid type: ${kind}`);
     }
   };
 
   const getDisplayText = (count: number) => {
     if (count === 1) {
-      switch (type) {
+      switch (kind) {
         case "roles":
           return "Role";
         case "keys":
@@ -35,11 +35,11 @@ export const AssignedItemsCell = ({
         case "permissions":
           return "Permission";
         default:
-          throw new Error(`Invalid type: ${type}`);
+          throw new Error(`Invalid type: ${kind}`);
       }
     }
 
-    switch (type) {
+    switch (kind) {
       case "roles":
         return "Roles";
       case "keys":
@@ -47,7 +47,7 @@ export const AssignedItemsCell = ({
       case "permissions":
         return "Permissions";
       default:
-        throw new Error(`Invalid type: ${type}`);
+        throw new Error(`Invalid type: ${kind}`);
     }
   };
 
@@ -61,7 +61,7 @@ export const AssignedItemsCell = ({
     isSelected ? "border-grayA-7 text-grayA-9" : "border-grayA-6 text-grayA-8",
   );
 
-  if (type === "slug") {
+  if (kind === "slug") {
     if (!value) {
       return (
         <div className="flex flex-col gap-1 py-2 max-w-[200px] animate-in fade-in slide-in-from-top-2 duration-300">
