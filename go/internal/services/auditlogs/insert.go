@@ -4,13 +4,72 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
+	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
+
+// Generated Insert query which we are re-using for bulk inserts
+const insertAuditLog = `INSERT INTO ` + "`" + `audit_log` + "`" + ` (
+    id,
+    workspace_id,
+    bucket_id,
+    bucket,
+    event,
+    time,
+    display,
+    remote_ip,
+    user_agent,
+    actor_type,
+    actor_id,
+    actor_name,
+    actor_meta,
+    created_at
+) VALUES (
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?
+)`
+
+// Generated Insert query which we are re-using for bulk inserts
+const insertAuditLogTarget = `INSERT INTO ` + "`" + `audit_log_target` + "`" + ` (
+    workspace_id,
+    bucket_id,
+    bucket,
+    audit_log_id,
+    display_name,
+    type,
+    id,
+    name,
+    meta,
+    created_at
+) VALUES (
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?
+)`
 
 // DEFAULT_BUCKET is the default bucket name used for audit logs when no bucket
 // is specified. All audit logs are categorized into buckets for organization
@@ -48,35 +107,23 @@ func (s *service) Insert(ctx context.Context, tx db.DBTX, logs []auditlog.AuditL
 		return nil
 	}
 
+	if tx == nil {
+		return db.Tx(ctx, s.db.RW(), func(ctx context.Context, tx db.DBTX) error {
+			return s.insertLogs(ctx, tx, logs)
+		})
+	}
+
+	return s.insertLogs(ctx, tx, logs)
+}
+
+func (s *service) insertLogs(ctx context.Context, tx db.DBTX, logs []auditlog.AuditLog) error {
 	auditLogs := make([]db.InsertAuditLogParams, 0)
 	auditLogTargets := make([]db.InsertAuditLogTargetParams, 0)
-
-	var dbTx = tx
-	var rwTx *sql.Tx
-	if tx == nil {
-		// If we didn't get a transaction, start a new one so we can commit all
-		// audit logs together to not miss anything
-		newTx, err := s.db.RW().Begin(ctx)
-		if err != nil {
-			return err
-		}
-
-		dbTx = newTx
-		rwTx = newTx
-
-		defer func() {
-			rollbackErr := rwTx.Rollback()
-			if rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
-				s.logger.Error("rollback failed", "error", rollbackErr)
-			}
-		}()
-	}
 
 	for _, l := range logs {
 		auditLogID := uid.New(uid.AuditLogPrefix)
 
 		now := time.Now().UnixMilli()
-
 		actorMeta, err := json.Marshal(l.ActorMeta)
 		if err != nil {
 			return err
@@ -111,7 +158,6 @@ func (s *service) Insert(ctx context.Context, tx db.DBTX, logs []auditlog.AuditL
 				WorkspaceID: l.WorkspaceID,
 				BucketID:    "dummy",
 				Bucket:      DEFAULT_BUCKET,
-
 				Type:        string(resource.Type),
 				DisplayName: resource.DisplayName,
 				Name:        sql.NullString{String: resource.DisplayName, Valid: resource.DisplayName != ""},
@@ -121,23 +167,20 @@ func (s *service) Insert(ctx context.Context, tx db.DBTX, logs []auditlog.AuditL
 		}
 	}
 
-	for _, log := range auditLogs {
-		if err := db.Query.InsertAuditLog(ctx, dbTx, log); err != nil {
-			return err
-		}
+	err := db.BulkInsert(ctx, tx, insertAuditLog, auditLogs)
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database failed to insert audit logs"), fault.Public("Failed to insert audit logs"),
+		)
 	}
 
-	for _, logTarget := range auditLogTargets {
-		if err := db.Query.InsertAuditLogTarget(ctx, dbTx, logTarget); err != nil {
-			return err
-		}
-	}
-
-	// If we are not using a transaction that has been passed in we will just commit all logs
-	if rwTx != nil {
-		if err := rwTx.Commit(); err != nil {
-			return err
-		}
+	err = db.BulkInsert(ctx, tx, insertAuditLogTarget, auditLogTargets)
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database failed to insert audit log targets"), fault.Public("Failed to insert audit log targets"),
+		)
 	}
 
 	return nil

@@ -37,7 +37,6 @@ type Config struct {
 }
 
 func New(cfg Config) (*Service, error) {
-
 	encryptionKey, decryptionKeys, err := loadMasterKeys(cfg.MasterKeys)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load master keys: %w", err)

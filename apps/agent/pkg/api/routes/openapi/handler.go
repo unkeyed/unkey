@@ -8,7 +8,6 @@ import (
 )
 
 func New(svc routes.Services) *routes.Route {
-
 	return routes.NewRoute("GET", "/openapi.json",
 		func(w http.ResponseWriter, r *http.Request) {
 

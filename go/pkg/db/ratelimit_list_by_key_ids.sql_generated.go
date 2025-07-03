@@ -12,23 +12,25 @@ import (
 )
 
 const listRatelimitsByKeyIDs = `-- name: ListRatelimitsByKeyIDs :many
-SELECT 
+SELECT
   id,
   key_id,
   name,
   ` + "`" + `limit` + "`" + `,
-  duration
-FROM ratelimits 
+  duration,
+  auto_apply
+FROM ratelimits
 WHERE key_id IN (/*SLICE:key_ids*/?)
 ORDER BY key_id, id
 `
 
 type ListRatelimitsByKeyIDsRow struct {
-	ID       string         `db:"id"`
-	KeyID    sql.NullString `db:"key_id"`
-	Name     string         `db:"name"`
-	Limit    int32          `db:"limit"`
-	Duration int64          `db:"duration"`
+	ID        string         `db:"id"`
+	KeyID     sql.NullString `db:"key_id"`
+	Name      string         `db:"name"`
+	Limit     int32          `db:"limit"`
+	Duration  int64          `db:"duration"`
+	AutoApply bool           `db:"auto_apply"`
 }
 
 // ListRatelimitsByKeyIDs
@@ -38,7 +40,8 @@ type ListRatelimitsByKeyIDsRow struct {
 //	  key_id,
 //	  name,
 //	  `limit`,
-//	  duration
+//	  duration,
+//	  auto_apply
 //	FROM ratelimits
 //	WHERE key_id IN (/*SLICE:key_ids*/?)
 //	ORDER BY key_id, id
@@ -67,6 +70,7 @@ func (q *Queries) ListRatelimitsByKeyIDs(ctx context.Context, db DBTX, keyIds []
 			&i.Name,
 			&i.Limit,
 			&i.Duration,
+			&i.AutoApply,
 		); err != nil {
 			return nil, err
 		}
