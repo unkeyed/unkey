@@ -1,410 +1,59 @@
-# AssetManagerd Architecture & Dependencies
+# Assetmanagerd Architecture
 
-This document describes the internal architecture of assetmanagerd and its interactions with external services.
+This document provides a comprehensive overview of assetmanagerd's architecture, including component interactions, data flow, and design decisions.
 
-## Table of Contents
+## Service Overview
 
-- [System Architecture](#system-architecture)
-- [Component Overview](#component-overview)
-- [Service Dependencies](#service-dependencies)
-- [Data Flow](#data-flow)
-- [Storage Architecture](#storage-architecture)
-- [Database Schema](#database-schema)
-- [Garbage Collection](#garbage-collection)
-- [Security Architecture](#security-architecture)
+Assetmanagerd serves as the centralized asset management service in the Unkey Deploy platform, responsible for storing, tracking, and lifecycle management of VM assets (kernels, rootfs images). The service integrates tightly with builderd for automatic asset creation and provides reference counting for garbage collection.
 
 ## System Architecture
 
-```mermaid
-graph TB
-    subgraph "External Services"
-        BUILD[Builderd]
-        METAL[Metald]
-        SPIFFE[SPIFFE/SPIRE]
-    end
-    
-    subgraph "API Layer"
-        API[ConnectRPC Server<br/>:8083]
-        AUTH[Auth Interceptor]
-        METRICS_EP[Prometheus Metrics<br/>:9467]
-        HEALTH[Health Check<br/>/health]
-    end
-    
-    subgraph "Service Layer"
-        SVC[Asset Service]
-        REG[Asset Registry]
-        LEASE[Lease Manager]
-        GC[Garbage Collector]
-    end
-    
-    subgraph "Storage Layer"
-        STORE[Storage Interface]
-        LOCAL[Local FS Backend]
-        S3[S3 Backend<br/>(planned)]
-        NFS[NFS Backend<br/>(planned)]
-    end
-    
-    subgraph "Data Layer"
-        DB[(SQLite Database)]
-        CACHE[Local Cache<br/>/opt/assetmanagerd/cache]
-        FS[Asset Storage<br/>/opt/vm-assets]
-    end
-    
-    BUILD -->|RegisterAsset| API
-    METAL -->|PrepareAssets| API
-    METAL -->|AcquireAsset| API
-    SPIFFE --> API
-    
-    API --> AUTH
-    AUTH --> SVC
-    SVC --> REG
-    SVC --> LEASE
-    SVC --> GC
-    
-    REG --> DB
-    LEASE --> DB
-    GC --> DB
-    
-    SVC --> STORE
-    STORE --> LOCAL
-    STORE -.-> S3
-    STORE -.-> NFS
-    
-    LOCAL --> FS
-    LOCAL --> CACHE
-    
-    API --> METRICS_EP
-    API --> HEALTH
+```
+┌─────────────┐    ┌─────────────────┐    ┌─────────────┐
+│   metald    │────│  assetmanagerd  │────│  builderd   │
+│             │    │                 │    │             │
+│ VM Assets   │    │ Asset Registry  │    │ Build Exec  │
+│ Consumer    │    │ + Storage       │    │ + Register  │
+└─────────────┘    └─────────────────┘    └─────────────┘
+                            │
+                    ┌───────────────────┐
+                    │ Storage Backends  │
+                    │ • Local FS        │
+                    │ • S3 (planned)    │
+                    │ • NFS (planned)   │
+                    └───────────────────┘
 ```
 
-## Component Overview
+## Core Components
 
-### API Layer
+### Asset Registry
 
-#### ConnectRPC Server
+SQLite-based metadata store providing ACID transactions and efficient querying.
 
-**Location**: [`cmd/assetmanagerd/main.go:267-298`](../../cmd/assetmanagerd/main.go:267-298)
+**Implementation**: [registry.go](../../internal/registry/registry.go)
 
-The server component handles:
-- HTTP/2 server with optional TLS/mTLS support
-- Request/response compression
-- OpenTelemetry instrumentation
-- Health check endpoints
-
-Configuration:
-```go
-mux := http.NewServeMux()
-mux.Handle(assetv1connect.NewAssetManagerServiceHandler(service, interceptors...))
-mux.Handle("/health", healthHandler)
-```
-
-#### Authentication Interceptor
-
-**Location**: [`internal/observability/interceptor.go`](../../internal/observability/interceptor.go)
-
-Handles:
-- SPIFFE/SPIRE mTLS verification
-- Request logging
-- Error handling and recovery
-
-### Service Layer
-
-#### Asset Service
-
-**Location**: [`internal/service/service.go:39-58`](../../internal/service/service.go:39-58)
-
-```go
-type Service struct {
-    registry *registry.Registry
-    storage  storage.Storage
-    logger   *slog.Logger
-    config   *config.Config
-}
-```
-
-Core responsibilities:
-- Implements all RPC methods
-- Coordinates between registry and storage
-- Manages asset lifecycle
-- Handles concurrent requests
-
-#### Asset Registry
-
-**Location**: [`internal/registry/registry.go:32-49`](../../internal/registry/registry.go:32-49)
-
-```go
-type Registry struct {
-    db       *sql.DB
-    mu       sync.RWMutex
-    logger   *slog.Logger
-    config   *config.Config
-    gcTicker *time.Ticker
-}
-```
-
-Features:
-- SQLite-based metadata storage
-- Thread-safe operations with RWMutex
-- Automatic garbage collection
-- Label-based filtering
-
-#### Lease Manager
-
-**Location**: [`internal/registry/registry.go:CreateLease`](../../internal/registry/registry.go)
-
-Handles:
-- Lease creation with TTL
-- Reference counting
-- Expiration tracking
-- Atomic operations
-
-### Storage Layer
-
-#### Storage Interface
-
-**Location**: [`internal/storage/storage.go:10`](../../internal/storage/storage.go:10)
-
-```go
-type Storage interface {
-    Get(ctx context.Context, key string) (io.ReadCloser, error)
-    Put(ctx context.Context, key string, reader io.Reader) error
-    Delete(ctx context.Context, key string) error
-    Exists(ctx context.Context, key string) (bool, error)
-    Copy(ctx context.Context, srcKey, dstPath string) error
-}
-```
-
-#### Local Storage Backend
-
-**Location**: [`internal/storage/local.go:24-37`](../../internal/storage/local.go:24-37)
-
-```go
-type LocalStorage struct {
-    basePath  string
-    cachePath string
-    logger    *slog.Logger
-}
-```
-
-Features:
-- Sharded directory structure for performance
-- Hard link optimization for same filesystem
-- Atomic file operations
-- Cache directory management
-
-## Service Dependencies
-
-### Primary Dependencies
-
-#### Builderd Integration
-
-[Builderd](../builderd/docs/README.md) is the primary producer of assets:
-
-1. **Asset Upload Flow**:
-   ```mermaid
-   sequenceDiagram
-       Builderd->>Storage: Upload rootfs to /opt/vm-assets
-       Builderd->>AssetManagerd: RegisterAsset(metadata)
-       AssetManagerd->>SQLite: Store asset record
-       AssetManagerd-->>Builderd: Asset registered
-   ```
-
-2. **Integration Details**:
-   - Builderd uploads assets directly to storage
-   - Calls `RegisterAsset` with metadata
-   - Provides `build_id` and `source_image` references
-   - Assets are immutable once registered
-
-#### Metald Integration
-
-[Metald](../metald/docs/README.md) is the primary consumer of assets:
-
-1. **Asset Preparation Flow**:
-   ```mermaid
-   sequenceDiagram
-       Metald->>AssetManagerd: PrepareAssets([kernel, rootfs])
-       AssetManagerd->>AssetManagerd: AcquireAsset (internal)
-       AssetManagerd->>Storage: Link/Copy to target
-       AssetManagerd->>SQLite: Create leases
-       AssetManagerd-->>Metald: Prepared paths + lease IDs
-   ```
-
-2. **Lifecycle Management**:
-   - Acquires leases when creating VMs
-   - Releases leases when VMs are destroyed
-   - Uses `PrepareAssets` for jailer chroot setup
-
-### Infrastructure Dependencies
-
-#### SQLite Database
-
-**Location**: [`internal/registry/registry.go:InitDB`](../../internal/registry/registry.go)
-
-Configuration:
-- Path: `/opt/assetmanagerd/assets.db`
-- WAL mode for better concurrency
-- Connection pool: 10 max open, 5 idle
-- Automatic schema migration
-
-#### SPIFFE/SPIRE
-
-**Location**: Uses [`pkg/tls`](../../pkg/tls) and [`pkg/spiffe`](../../pkg/spiffe)
-
-Features:
-- Workload identity verification
-- Automatic certificate rotation
-- mTLS for all service communication
-
-Configuration:
-```go
-TLS: tls.Config{
-    Mode:         getEnvOrDefault("UNKEY_ASSETMANAGERD_TLS_MODE", "spiffe"),
-    SpiffeSocket: getEnvOrDefault("SPIFFE_ENDPOINT_SOCKET", "unix:///tmp/spire-agent/public/api.sock"),
-}
-```
-
-## Data Flow
-
-### Asset Registration Flow
-
-```mermaid
-graph LR
-    REQ[RegisterAsset Request] --> VAL[Validate Metadata]
-    VAL --> CHECK[Check Duplicate]
-    CHECK --> STORE[Verify in Storage]
-    STORE --> DB[Store in SQLite]
-    DB --> IDX[Update Indexes]
-    IDX --> RESP[Response]
-```
-
-### Asset Lifecycle
-
-```mermaid
-stateDiagram-v2
-    [*] --> UPLOADING: RegisterAsset
-    UPLOADING --> AVAILABLE: Upload complete
-    UPLOADING --> ERROR: Upload failed
-    AVAILABLE --> AVAILABLE: AcquireAsset
-    AVAILABLE --> DELETING: DeleteAsset
-    DELETING --> [*]: Cleanup complete
-    ERROR --> DELETING: Manual cleanup
-```
-
-### Asset Preparation Flow
-
-```mermaid
-graph LR
-    REQ[PrepareAssets Request] --> LEASE[Acquire Leases]
-    LEASE --> MKDIR[Create Target Dir]
-    MKDIR --> ITER[For Each Asset]
-    ITER --> TRY[Try Hard Link]
-    TRY -->|Same FS| LINK[Create Link]
-    TRY -->|Cross FS| COPY[Copy File]
-    LINK --> MAP[Map Paths]
-    COPY --> MAP
-    MAP --> RESP[Response]
-```
-
-## Storage Architecture
-
-### Storage Backends
-
-#### Local Storage (Implemented)
-
-**Sharded Directory Structure** to prevent filesystem performance degradation:
-
-```
-/opt/vm-assets/
-├── {first-2-chars}/
-│   └── {asset-id}
-```
-
-**Implementation**: [`internal/storage/local.go:43`](../../internal/storage/local.go:43)
-```go
-func (l *LocalStorage) keyToPath(key string) string {
-    if len(key) >= 2 {
-        return filepath.Join(l.basePath, key[:2], key)
-    }
-    return filepath.Join(l.basePath, key)
-}
-```
-
-**Cache Structure**:
-```
-/opt/assetmanagerd/cache/
-└── downloads/
-    └── {asset-id}
-```
-
-#### Hard Link Optimization
-
-PrepareAssets uses hard links when source and destination are on the same filesystem:
-
-```go
-// From service.go:361
-srcPath := filepath.Join(l.storagePath, asset.Location)
-if sameFilesystem(srcPath, ref.TargetPath) {
-    return os.Link(srcPath, ref.TargetPath)
-}
-return copyFile(srcPath, ref.TargetPath)
-```
-
-Benefits:
-- Near-instant "copy" operations
-- No additional disk space used
-- Atomic operation
-
-#### S3 Storage (Planned)
-
-Configuration:
-```go
-type S3Config struct {
-    Bucket       string
-    Region       string
-    Endpoint     string
-    AccessKey    string
-    SecretKey    string
-    UsePathStyle bool
-}
-```
-
-#### NFS Storage (Planned)
-
-Configuration:
-```go
-type NFSConfig struct {
-    Server     string
-    ExportPath string
-    MountOpts  string
-}
-```
-
-## Database Schema
-
-### Assets Table
+#### Database Schema
 
 ```sql
+-- Asset metadata table
 CREATE TABLE assets (
-    id TEXT PRIMARY KEY,              -- ULID
-    name TEXT NOT NULL,               -- Human name
-    type INTEGER NOT NULL,            -- AssetType enum
-    status INTEGER NOT NULL,          -- AssetStatus enum
-    backend INTEGER NOT NULL,         -- StorageBackend enum
-    location TEXT NOT NULL,           -- Backend-specific path
-    size_bytes INTEGER NOT NULL,      
-    checksum TEXT NOT NULL,           -- SHA256
-    created_by TEXT NOT NULL,         -- SPIFFE ID
-    created_at INTEGER NOT NULL,      -- Unix timestamp
-    last_accessed_at INTEGER NOT NULL,
-    reference_count INTEGER NOT NULL DEFAULT 0,
-    build_id TEXT,                    -- Optional builderd reference
-    source_image TEXT                 -- Optional source image
+    id TEXT PRIMARY KEY,                -- ULID identifier
+    name TEXT NOT NULL,                 -- Human-readable name
+    type INTEGER NOT NULL,              -- AssetType enum
+    status INTEGER NOT NULL,            -- AssetStatus enum
+    backend INTEGER NOT NULL,           -- StorageBackend enum
+    location TEXT NOT NULL,             -- Storage path/URL
+    size_bytes INTEGER NOT NULL,        -- File size
+    checksum TEXT NOT NULL,             -- SHA256 hash
+    created_by TEXT NOT NULL,           -- Creator identifier
+    created_at INTEGER NOT NULL,        -- Unix timestamp
+    last_accessed_at INTEGER NOT NULL,  -- Last access time
+    reference_count INTEGER DEFAULT 0,  -- Active references
+    build_id TEXT,                      -- Associated build
+    source_image TEXT                   -- Source Docker image
 );
-```
 
-### Asset Labels Table
-
-```sql
+-- Asset labels (key-value pairs)
 CREATE TABLE asset_labels (
     asset_id TEXT NOT NULL,
     key TEXT NOT NULL,
@@ -412,196 +61,395 @@ CREATE TABLE asset_labels (
     PRIMARY KEY (asset_id, key),
     FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
 );
-```
 
-### Asset Leases Table
-
-```sql
+-- Reference counting leases
 CREATE TABLE asset_leases (
-    id TEXT PRIMARY KEY,              -- Lease ULID
+    id TEXT PRIMARY KEY,                -- ULID identifier
     asset_id TEXT NOT NULL,
-    acquired_by TEXT NOT NULL,        -- Service/VM ID
-    acquired_at INTEGER NOT NULL,     -- Unix timestamp
-    expires_at INTEGER,               -- Optional TTL
-    released_at INTEGER,              -- When released
+    acquired_by TEXT NOT NULL,          -- Lease holder identifier
+    acquired_at INTEGER NOT NULL,       -- Acquisition timestamp
+    expires_at INTEGER,                 -- Optional expiration
     FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
 );
 ```
 
-### Indexes
+**Source**: [registry.go:62-108](../../internal/registry/registry.go:62)
 
-```sql
-CREATE INDEX idx_assets_type_status ON assets(type, status);
-CREATE INDEX idx_assets_checksum ON assets(checksum);
-CREATE INDEX idx_asset_labels_key_value ON asset_labels(key, value);
-CREATE INDEX idx_leases_expires_at ON asset_leases(expires_at);
-CREATE INDEX idx_leases_asset_id ON asset_leases(asset_id);
-```
+#### Indexing Strategy
 
-## Garbage Collection
+Optimized indexes for common query patterns:
+- Type-based filtering: `idx_assets_type`
+- Status filtering: `idx_assets_status`  
+- Temporal queries: `idx_assets_created_at`, `idx_assets_last_accessed_at`
+- Reference counting: `idx_assets_reference_count`
+- Build tracking: `idx_assets_build_id`
+- Label searches: `idx_asset_labels_key_value`
 
-### Algorithm
+### Storage Backends
 
-**Location**: [`internal/registry/registry.go:RunGarbageCollection`](../../internal/registry/registry.go)
+Pluggable storage architecture supporting multiple backend types.
 
-1. **Lease Cleanup**:
-   ```sql
-   DELETE FROM asset_leases WHERE expires_at < ? AND released_at IS NULL
-   ```
+**Interface**: [storage.go](../../internal/storage/storage.go)
 
-2. **Reference Count Update**:
-   ```sql
-   UPDATE assets SET reference_count = (
-       SELECT COUNT(*) FROM asset_leases 
-       WHERE asset_id = assets.id AND released_at IS NULL
-   )
-   ```
-
-3. **Asset Removal Criteria**:
-   - Status = DELETED
-   - Reference count = 0
-   - Last accessed > max_age
-
-4. **Storage Cleanup**:
-   - Remove files from storage backend
-   - Clean cache entries
-
-### Configuration
+#### Backend Interface
 
 ```go
-type GCConfig struct {
-    Enabled      bool          // Enable automatic GC
-    Interval     time.Duration // How often to run (default: 1h)
-    MaxAssetAge  time.Duration // Max age for unreferenced assets (default: 168h)
+type Backend interface {
+    Store(ctx context.Context, id string, reader io.Reader, size int64) (string, error)
+    Retrieve(ctx context.Context, location string) (io.ReadCloser, error)
+    Delete(ctx context.Context, location string) error
+    Exists(ctx context.Context, location string) (bool, error)
+    GetSize(ctx context.Context, location string) (int64, error)
+    GetChecksum(ctx context.Context, location string) (string, error)
+    EnsureLocal(ctx context.Context, location string, cacheDir string) (string, error)
+    Type() string
 }
 ```
 
-## Security Architecture
+#### Local Backend Implementation
 
-### Authentication
+Current production backend using local filesystem with sharding.
 
-1. **SPIFFE/mTLS** (Production):
-   - Workload identity verification
-   - Certificate rotation
-   - Trust domain validation
+**Implementation**: [local.go](../../internal/storage/local.go)
 
-2. **File-based TLS** (Testing):
-   - Manual certificate management
-   - Static trust anchors
+##### File Organization
+- Base path: Configurable via `UNKEY_ASSETMANAGERD_LOCAL_STORAGE_PATH`
+- Sharding: First 2 characters of asset ID create subdirectories
+- Atomic writes: Temporary files with atomic rename
+- Integrity: SHA256 checksum validation
 
-3. **Disabled** (Development only):
-   - No authentication
-   - Local testing only
+**Sharding Logic**: [local.go:37-43](../../internal/storage/local.go:37)
 
-### Authorization
+#### Future Backends
 
-Currently no fine-grained authorization. All authenticated services have full access.
+Planned implementations for broader deployment scenarios:
+- **S3 Backend**: AWS S3 and compatible object storage
+- **NFS Backend**: Network filesystem for shared storage
+- **HTTP Backend**: Read-only HTTP/HTTPS URLs
 
-Future considerations:
-- Service-specific permissions
-- Read-only vs read-write roles
-- Asset ownership tracking
+## Service Integration Patterns
 
-### Data Security
+### Builderd Integration
 
-1. **Checksum Verification**:
-   - SHA256 for all assets
-   - Verified on registration
-   - Verified on preparation
+Automatic asset creation workflow when assets don't exist.
 
-2. **Immutable Assets**:
-   - No modification after registration
-   - Version new assets instead
+#### Integration Architecture
 
-3. **Secure Deletion**:
-   - Overwrite before deletion (optional)
-   - Verify no active leases
+```
+┌─────────────────┐     Missing Asset     ┌─────────────────┐
+│  assetmanagerd  │────────────────────→  │    builderd     │
+│                 │                       │                 │
+│ QueryAssets()   │                       │ CreateBuild()   │
+│                 │                       │                 │
+│                 │  ←────────────────────│ RegisterAsset() │
+│ Auto-registered │     Built Asset       │                 │
+└─────────────────┘                       └─────────────────┘
+```
 
-## Concurrency and Consistency
+#### Trigger Conditions
 
-### Transaction Boundaries
+Automatic builds are triggered when:
+1. `QueryAssets` or `ListAssets` returns no results
+2. Request includes `docker_image` label for rootfs type
+3. Builderd integration is enabled
+4. Builderd client is available
 
-All registry operations use SQLite transactions for consistency:
+**Trigger Logic**: [service.go:228-255](../../internal/service/service.go:228)
+
+#### Build Workflow
+
+1. **Build Triggering**: [service.go:863-935](../../internal/service/service.go:863)
+   - Extract docker image from labels
+   - Create build request with tenant context
+   - Submit to builderd via gRPC
+
+2. **Build Monitoring**: [service.go:895-923](../../internal/service/service.go:895)
+   - Poll build status every 5 seconds
+   - Handle completion, failure, and cancellation
+   - Timeout after configured duration
+
+3. **Asset Registration**: Automatic via builderd post-build hooks
+   - Builderd uploads rootfs to storage
+   - Builderd calls `RegisterAsset` to add metadata
+   - Asset becomes available for subsequent queries
+
+### SPIFFE/SPIRE Integration
+
+All service communication secured with mutual TLS via SPIFFE/SPIRE.
+
+**TLS Configuration**: [main.go:102-124](../../cmd/assetmanagerd/main.go:102)
+
+#### Authentication Flow
+
+```
+┌─────────────┐    mTLS + SPIFFE ID    ┌─────────────────┐
+│   Client    │───────────────────────→│  assetmanagerd  │
+│             │                       │                 │
+│ SVID Cert   │                       │ Verify SPIFFE   │
+│             │  ←───────────────────── │ ID + Issue SVID │
+└─────────────┘    Authenticated      └─────────────────┘
+```
+
+#### Security Features
+- Automatic certificate rotation
+- Identity-based access control
+- Encrypted communication
+- Service identity verification
+
+## Reference Counting & Lifecycle Management
+
+### Lease-based Reference Counting
+
+Assets use lease-based reference counting to prevent deletion of in-use resources.
+
+#### Lease Management
+
+**Creation**: [registry.go:350-393](../../internal/registry/registry.go:350)
+```go
+func (r *Registry) CreateLease(assetID, acquiredBy string, ttl time.Duration) (string, error)
+```
+
+**Release**: [registry.go:395-435](../../internal/registry/registry.go:395)
+```go
+func (r *Registry) ReleaseLease(leaseID string) error
+```
+
+#### Reference Count Updates
+
+Atomic operations ensure consistency:
+- `AcquireAsset`: Increment reference count, create lease
+- `ReleaseAsset`: Decrement reference count, remove lease
+- Database transactions prevent race conditions
+
+### Garbage Collection
+
+Automated cleanup of expired leases and unreferenced assets.
+
+**GC Implementation**: [service.go:407-495](../../internal/service/service.go:407)
+
+#### GC Process
+
+1. **Expired Lease Cleanup**: [service.go:418-436](../../internal/service/service.go:418)
+   - Query leases past expiration time
+   - Release expired leases automatically
+   - Decrement asset reference counts
+
+2. **Unreferenced Asset Cleanup**: [service.go:440-483](../../internal/service/service.go:440)
+   - Find assets with zero references
+   - Filter by last accessed time threshold
+   - Delete from storage and registry atomically
+
+3. **Background GC**: [service.go:628-666](../../internal/service/service.go:628)
+   - Runs on configurable interval (default: 1 hour)
+   - Respects configured max age (default: 7 days)
+   - Logs freed space and deleted asset counts
+
+#### GC Configuration
+
+```bash
+# Garbage collection settings
+UNKEY_ASSETMANAGERD_GC_ENABLED=true
+UNKEY_ASSETMANAGERD_GC_INTERVAL=1h
+UNKEY_ASSETMANAGERD_GC_MAX_AGE=168h  # 7 days
+```
+
+## Asset Preparation Pipeline
+
+Optimized asset staging for VM deployment with Firecracker integration.
+
+**Implementation**: [service.go:497-626](../../internal/service/service.go:497)
+
+### Preparation Process
+
+1. **Asset Resolution**: Verify all requested assets exist
+2. **Local Staging**: Ensure assets are available locally via `EnsureLocal()`
+3. **Target Preparation**: Create target directory structure
+4. **File Operations**: Hardlink or copy assets to target locations
+5. **Firecracker Naming**: Standardize filenames for Firecracker compatibility
+
+### Firecracker Integration
+
+Specific handling for Firecracker microVM requirements:
 
 ```go
-// Example from registry.go:CreateAsset
-tx, err := r.db.BeginTx(ctx, nil)
-defer tx.Rollback()
-// ... operations ...
-return tx.Commit()
+// Standardized naming for Firecracker
+switch asset.GetType() {
+case assetv1.AssetType_ASSET_TYPE_KERNEL:
+    filename = "vmlinux"           // Kernel binary
+case assetv1.AssetType_ASSET_TYPE_ROOTFS:
+    filename = "rootfs.ext4"       // Root filesystem
+default:
+    filename = filepath.Base(localPath)
+}
 ```
 
-### Reference Count Safety
+**Source**: [service.go:535-544](../../internal/service/service.go:535)
 
-Atomic increment/decrement operations prevent race conditions:
+### Container Metadata Handling
 
-```sql
--- Acquire increments atomically
-UPDATE assets SET reference_count = reference_count + 1 WHERE id = ?
+Rootfs assets include optional metadata for container initialization:
 
--- Release decrements with check
-UPDATE assets SET reference_count = reference_count - 1 
-WHERE id = ? AND reference_count > 0
+**Metadata Logic**: [service.go:576-612](../../internal/service/service.go:576)
+
+- Looks for `.metadata.json` files alongside rootfs assets
+- Copies metadata to `metadata.json` in target directory
+- Graceful handling when metadata files don't exist
+
+## Configuration Architecture
+
+Environment-based configuration with comprehensive validation.
+
+**Config Implementation**: [config.go](../../internal/config/config.go)
+
+### Configuration Categories
+
+#### Service Configuration
+```bash
+UNKEY_ASSETMANAGERD_PORT=8083           # Service port
+UNKEY_ASSETMANAGERD_ADDRESS=0.0.0.0     # Bind address
 ```
 
-## Performance Considerations
+#### Storage Configuration
+```bash
+UNKEY_ASSETMANAGERD_STORAGE_BACKEND=local
+UNKEY_ASSETMANAGERD_LOCAL_STORAGE_PATH=/opt/vm-assets
+UNKEY_ASSETMANAGERD_DATABASE_PATH=/opt/assetmanagerd/assets.db
+UNKEY_ASSETMANAGERD_CACHE_DIR=/opt/assetmanagerd/cache
+```
 
-### Optimizations
+#### Builderd Integration
+```bash
+UNKEY_ASSETMANAGERD_BUILDERD_ENABLED=true
+UNKEY_ASSETMANAGERD_BUILDERD_ENDPOINT=https://localhost:8082
+UNKEY_ASSETMANAGERD_BUILDERD_TIMEOUT=30m
+UNKEY_ASSETMANAGERD_BUILDERD_AUTO_REGISTER=true
+```
 
-1. **Sharded Storage**: Prevents directory listing bottlenecks
-2. **Hard Links**: Zero-copy asset preparation
-3. **Connection Pooling**: SQLite connection reuse
-4. **Batch Operations**: PrepareAssets handles multiple assets
-5. **Checksum Deduplication**: Reduces storage usage
+#### Performance Tuning
+```bash
+UNKEY_ASSETMANAGERD_MAX_ASSET_SIZE=10737418240    # 10GB
+UNKEY_ASSETMANAGERD_MAX_CACHE_SIZE=107374182400   # 100GB
+UNKEY_ASSETMANAGERD_DOWNLOAD_CONCURRENCY=4
+```
 
-### Caching Strategy
+### Validation Logic
 
-1. **Local storage acts as cache** for remote backends
-2. **LRU eviction** planned for cache management
-3. **Per-node caching**: Each instance maintains local cache
+Comprehensive validation ensures service reliability:
+
+**Validation**: [config.go:88-152](../../internal/config/config.go:88)
+
+- Port range validation
+- Storage backend compatibility checks
+- Size limit consistency verification
+- Builderd configuration validation
+- TLS mode verification
+
+## Observability Architecture
+
+Comprehensive monitoring with OpenTelemetry integration.
+
+**Observability**: [otel.go](../../internal/observability/otel.go)
+
+### Telemetry Export
+
+- **Traces**: OTLP HTTP to collector (default: localhost:4318)
+- **Metrics**: Prometheus endpoint (:9467) + OTLP export
+- **Sampling**: Configurable trace sampling rate
+
+### Service Metrics
+
+Key metrics exported for monitoring:
+
+- Request duration and error rates
+- Asset operation counters
+- Storage backend performance
+- GC effectiveness metrics
+- Builderd integration success rates
+
+### Health Checks
+
+Comprehensive health monitoring:
+
+**Health Handler**: [main.go:262](../../cmd/assetmanagerd/main.go:262)
+
+- Service uptime tracking
+- Version information
+- Component health status
+
+## Data Flow Patterns
+
+### Asset Registration Flow
+
+```
+1. Asset Upload (builderd) → Storage Backend
+2. Builderd → RegisterAsset() → assetmanagerd
+3. Verify existence in storage
+4. Calculate checksum if missing
+5. Atomic registry transaction
+6. Return asset metadata
+```
+
+### Asset Query Flow
+
+```
+1. Client → QueryAssets() → assetmanagerd
+2. Query registry with filters
+3. If empty results + docker_image label:
+   a. Trigger builderd build
+   b. Wait for completion (optional)
+   c. Re-query registry
+4. Return assets (+ build info)
+```
+
+### Asset Preparation Flow
+
+```
+1. Client → PrepareAssets() → assetmanagerd
+2. Validate all asset IDs exist
+3. For each asset:
+   a. EnsureLocal() via storage backend
+   b. Create target directory
+   c. Hardlink or copy to target
+   d. Handle metadata files
+4. Return asset path mapping
+```
+
+## Security Considerations
+
+### Authentication & Authorization
+
+- **mTLS**: All service communication via SPIFFE/SPIRE
+- **Tenant Isolation**: Request-scoped tenant context
+- **Service Identity**: SPIFFE ID-based access control
+
+### Data Protection
+
+- **Integrity**: SHA256 checksums for all assets
+- **Encryption**: TLS for data in transit
+- **Access Logging**: Comprehensive audit trails
+
+### Input Validation
+
+- **Size Limits**: Configurable maximum asset sizes
+- **Path Sanitization**: Prevent directory traversal attacks
+- **Type Validation**: Strict protobuf schema enforcement
+
+## Performance Characteristics
 
 ### Scalability
 
-1. **Horizontal Scaling**:
-   - Multiple instances with shared storage
-   - Load balancer distribution
-   - Shared SQLite limitations
+- **Concurrent Operations**: Configurable worker pools
+- **Database Optimization**: Indexed queries and connection pooling
+- **Storage Sharding**: Filesystem optimization via directory sharding
 
-2. **Storage Scaling**:
-   - Pluggable backends
-   - Distributed storage support
-   - CDN integration (future)
+### Caching Strategy
 
-## Failure Handling
+- **Local Caching**: EnsureLocal() for remote backends
+- **Metadata Caching**: SQLite with WAL mode for performance
+- **Connection Pooling**: HTTP/2 for gRPC communication
 
-### Service Resilience
+### Resource Management
 
-- **SQLite durability**: WAL mode for crash recovery
-- **Atomic operations**: All-or-nothing asset operations
-- **Graceful shutdown**: Completes in-flight requests
-
-### Storage Failures
-
-- **Retry logic**: Exponential backoff for transient failures
-- **Fallback paths**: Multiple storage backends (future)
-- **Consistency checks**: Periodic verification (planned)
-
-## Future Enhancements
-
-1. **Storage Backends**:
-   - S3/Object storage implementation
-   - NFS support for shared storage
-   - HTTP proxy backend for CDN
-   - P2P distribution for edge
-
-2. **Advanced Features**:
-   - Asset compression
-   - Content-addressable storage
-   - Incremental updates
-   - Multi-region replication
-
-3. **Operations**:
-   - Distributed registry (replace SQLite)
-   - Smart caching with pre-warming
-   - Asset usage analytics
-   - Cost tracking
+- **Memory Usage**: Streaming for large file operations
+- **Disk Usage**: Automatic garbage collection
+- **Network Usage**: Efficient gRPC streaming protocols

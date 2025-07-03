@@ -10,7 +10,7 @@ This document provides a detailed view of how services in the Unkey Deploy syste
 |--------|--------|-----------|---------|---------|
 | metald | assetmanagerd | `ListAssets`, `PrepareAssets`, `AcquireAsset`, `ReleaseAsset` | VM asset lifecycle | ✓ Implemented |
 | metald | billaged | `SendMetricsBatch`, `NotifyVmStarted`, `NotifyVmStopped`, `SendHeartbeat`, `NotifyPossibleGap` | Usage tracking | ✓ Implemented |
-| builderd | assetmanagerd | `RegisterAsset` | Register built images | ⚠ Planned |
+| builderd | assetmanagerd | `RegisterAsset`, `StoreAsset` | Register and store built images | ✓ Implemented |
 
 ## Detailed Service Interactions
 
@@ -84,15 +84,23 @@ This document provides a detailed view of how services in the Unkey Deploy syste
 - **Purpose**: Trigger historical data recovery
 - **Implementation**: [metald/internal/billing/client.go:165](../metald/internal/billing/client.go)
 
-### builderd → assetmanagerd (Planned)
+### builderd → assetmanagerd
 
-**Purpose**: Register newly built VM images
+**Purpose**: Register and store newly built VM images
 
 #### API: RegisterAsset
 - **When**: After successful image build
 - **Request**: Asset metadata, storage location
 - **Response**: Asset ID
-- **Status**: ⚠ Not yet implemented
+- **Side Effects**: Creates asset registry entry
+- **Implementation**: [builderd/internal/service/builder.go:312](../builderd/internal/service/builder.go)
+
+#### API: StoreAsset
+- **When**: During build process for streaming uploads
+- **Request**: Asset data stream, metadata
+- **Response**: Storage confirmation
+- **Side Effects**: Stores asset data to configured backend
+- **Implementation**: [builderd/internal/service/builder.go:287](../builderd/internal/service/builder.go)
 
 ## Data Flow Diagrams
 
@@ -316,10 +324,10 @@ graph LR
 
 ### Planned Integrations
 
-1. **builderd → assetmanagerd**:
+1. **builderd → assetmanagerd** (✓ Implemented):
    - Register built images automatically
    - Validate image integrity
-   - Trigger asset distribution
+   - Streaming asset uploads with metadata
 
 2. **Event Bus Integration**:
    - Async notifications for non-critical paths

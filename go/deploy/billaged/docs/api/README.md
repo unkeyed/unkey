@@ -1,322 +1,465 @@
 # Billaged API Documentation
 
-The Billaged service exposes a ConnectRPC API for receiving and processing VM usage metrics. All API endpoints use Protocol Buffers for message serialization and support both gRPC and HTTP/JSON protocols.
+This document provides complete reference for the billaged ConnectRPC service, including all endpoints, request/response patterns, and integration examples.
 
-## Service Definition
+## Service Overview
 
-**Proto Definition**: [`billing/v1/billing.proto`](../../proto/billing/v1/billing.proto:1-15)
+The BillingService handles VM usage metrics collection, aggregation, and lifecycle management through a ConnectRPC interface with comprehensive error handling and tenant isolation.
 
-```protobuf
-service BillingService {
-  rpc SendMetricsBatch(SendMetricsBatchRequest) returns (SendMetricsBatchResponse);
-  rpc SendHeartbeat(SendHeartbeatRequest) returns (SendHeartbeatResponse);
-  rpc NotifyVmStarted(NotifyVmStartedRequest) returns (NotifyVmStartedResponse);
-  rpc NotifyVmStopped(NotifyVmStoppedRequest) returns (NotifyVmStoppedResponse);
-  rpc NotifyPossibleGap(NotifyPossibleGapRequest) returns (NotifyPossibleGapResponse);
-}
-```
+**Service Definition**: [billing.proto](../../proto/billing/v1/billing.proto)  
+**Generated Client**: [billingv1connect/billing.connect.go](../../gen/billing/v1/billingv1connect/billing.connect.go)  
+**Service Implementation**: [service/billing.go](../../internal/service/billing.go)
 
-## RPC Methods
+## Authentication & Authorization
+
+All API calls require SPIFFE/mTLS authentication with tenant-scoped authorization:
+
+- **Authentication**: Bearer token format `dev_user_<user_id>` (development) or JWT (production)
+- **Tenant Isolation**: `X-Tenant-ID` header for customer data scoping
+- **Transport Security**: SPIFFE workload API for certificate management
+
+Source: [client/client.go:216-244](../../client/client.go#L216-244)
+
+## API Endpoints
 
 ### SendMetricsBatch
 
-Processes a batch of VM usage metrics from metald instances. This is the primary data ingestion endpoint.
+Processes batches of VM usage metrics from metald instances with real-time aggregation.
 
-**Implementation**: [`internal/service/billing.go:33-84`](../../internal/service/billing.go:33-84)
+**RPC Definition**: [billing.proto:10](../../proto/billing/v1/billing.proto#L10)
 
-#### Request
+#### Request Schema
 
 ```protobuf
 message SendMetricsBatchRequest {
-  string vm_id = 1;
-  string customer_id = 2;
-  repeated VMMetrics metrics = 3;
+  string vm_id = 1;           // Unique VM identifier
+  string customer_id = 2;     // Customer tenant identifier  
+  repeated VMMetrics metrics = 3; // Batch of usage metrics
 }
 
 message VMMetrics {
-  google.protobuf.Timestamp timestamp = 1;
-  int64 cpu_time_nanos = 2;
-  int64 memory_usage_bytes = 3;
-  int64 disk_read_bytes = 4;
-  int64 disk_write_bytes = 5;
-  int64 network_rx_bytes = 6;
-  int64 network_tx_bytes = 7;
+  google.protobuf.Timestamp timestamp = 1;    // Metric collection time
+  int64 cpu_time_nanos = 2;                   // CPU time used (cumulative)
+  int64 memory_usage_bytes = 3;               // Memory usage (point-in-time)
+  int64 disk_read_bytes = 4;                  // Disk read bytes (cumulative)
+  int64 disk_write_bytes = 5;                 // Disk write bytes (cumulative)  
+  int64 network_rx_bytes = 6;                 // Network receive bytes (cumulative)
+  int64 network_tx_bytes = 7;                 // Network transmit bytes (cumulative)
 }
 ```
 
-#### Response
+#### Response Schema
 
 ```protobuf
 message SendMetricsBatchResponse {
-  bool success = 1;
-  string message = 2;
+  bool success = 1;    // Processing success indicator
+  string message = 2;  // Status message or error details
 }
 ```
 
-#### Example
+#### Implementation Details
+
+The service processes metrics through an in-memory aggregator with delta calculations:
+
+- **Delta Processing**: Handles cumulative counters with overflow protection ([aggregator.go:135-173](../../internal/aggregator/aggregator.go#L135-173))
+- **Batch Validation**: Ensures non-empty batches and logs first/last metrics for debugging
+- **Metrics Recording**: Updates OpenTelemetry counters for usage processed per customer
+- **Performance Tracking**: Records aggregation duration for monitoring
+
+#### Request Example
 
 ```bash
-curl -X POST http://localhost:8081/billing.v1.BillingService/SendMetricsBatch \
+curl -X POST https://billaged:8081/billing.v1.BillingService/SendMetricsBatch \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer dev_user_metald_1" \
+  -H "X-Tenant-ID: customer-abc" \
   -d '{
-    "vm_id": "vm-123",
-    "customer_id": "customer-456",
-    "metrics": [
-      {
-        "timestamp": "2024-01-01T12:00:00Z",
-        "cpu_time_nanos": 1000000000,
-        "memory_usage_bytes": 1073741824,
-        "disk_read_bytes": 10485760,
-        "disk_write_bytes": 5242880,
-        "network_rx_bytes": 1048576,
-        "network_tx_bytes": 524288
-      }
-    ]
+    "vm_id": "vm-firecracker-123",
+    "customer_id": "customer-abc",
+    "metrics": [{
+      "timestamp": "2024-01-15T10:30:00Z",
+      "cpu_time_nanos": 1500000000,
+      "memory_usage_bytes": 536870912,
+      "disk_read_bytes": 1048576,
+      "disk_write_bytes": 524288,
+      "network_rx_bytes": 2048,
+      "network_tx_bytes": 1024
+    }]
   }'
 ```
 
-#### Downstream Processing
+#### Response Example
 
-1. **Metrics Validation**: Checks for non-empty metrics batch
-2. **Aggregator Processing**: [`internal/aggregator/aggregator.go:97-133`](../../internal/aggregator/aggregator.go:97-133)
-   - Calculates deltas for cumulative metrics
-   - Updates VM usage tracking data
-   - Handles counter resets gracefully
-3. **Metrics Recording**: Updates OpenTelemetry metrics if enabled
+```json
+{
+  "success": true,
+  "message": "processed 1 metrics"
+}
+```
+
+#### Error Scenarios
+
+- **Empty Batch**: Returns `success: false` with "no metrics provided" message
+- **Processing Failure**: Internal aggregation errors logged with context
+- **Authentication Failure**: ConnectRPC authentication errors for invalid tokens
+
+---
 
 ### SendHeartbeat
 
-Receives periodic heartbeats from metald instances with their active VM lists.
+Processes heartbeat signals from metald instances with active VM lists for health monitoring and gap detection.
 
-**Implementation**: [`internal/service/billing.go:87-106`](../../internal/service/billing.go:87-106)
+**RPC Definition**: [billing.proto:11](../../proto/billing/v1/billing.proto#L11)
 
-#### Request
+#### Request Schema
 
 ```protobuf
 message SendHeartbeatRequest {
-  string instance_id = 1;
-  repeated string active_vms = 2;
+  string instance_id = 1;       // Metald instance identifier
+  repeated string active_vms = 2; // List of currently active VM IDs
 }
 ```
 
-#### Response
+#### Response Schema
 
 ```protobuf
 message SendHeartbeatResponse {
-  bool success = 1;
+  bool success = 1;    // Heartbeat acknowledgment
 }
 ```
 
-#### Example
+#### Implementation Details
+
+Currently handles basic heartbeat acknowledgment with plans for enhanced health checking:
+
+- **Health Monitoring**: Logs active VM counts for operational visibility
+- **Gap Detection**: Framework for identifying missing metrics (planned enhancement)
+- **Instance Tracking**: Associates VM lists with specific metald instances
+
+Source: [service/billing.go:86-106](../../internal/service/billing.go#L86-106)
+
+#### Request Example
 
 ```bash
-curl -X POST http://localhost:8081/billing.v1.BillingService/SendHeartbeat \
+curl -X POST https://billaged:8081/billing.v1.BillingService/SendHeartbeat \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer dev_user_metald_1" \
   -d '{
-    "instance_id": "metald-node-1",
-    "active_vms": ["vm-123", "vm-456", "vm-789"]
+    "instance_id": "metald-prod-node-01",
+    "active_vms": ["vm-web-1", "vm-db-2", "vm-cache-3"]
   }'
 ```
+
+#### Response Example
+
+```json
+{
+  "success": true
+}
+```
+
+---
 
 ### NotifyVmStarted
 
-Handles VM lifecycle start events. Initializes tracking for new VMs.
+Handles VM startup notifications to initialize billing tracking and lifecycle management.
 
-**Implementation**: [`internal/service/billing.go:109-128`](../../internal/service/billing.go:109-128)
+**RPC Definition**: [billing.proto:12](../../proto/billing/v1/billing.proto#L12)
 
-#### Request
+#### Request Schema
 
 ```protobuf
 message NotifyVmStartedRequest {
-  string vm_id = 1;
-  string customer_id = 2;
-  int64 start_time = 3;  // Unix timestamp in nanoseconds
+  string vm_id = 1;        // VM identifier
+  string customer_id = 2;  // Customer tenant identifier
+  int64 start_time = 3;    // Unix timestamp (nanoseconds)
 }
 ```
 
-#### Response
+#### Response Schema
 
 ```protobuf
 message NotifyVmStartedResponse {
-  bool success = 1;
+  bool success = 1;    // Notification acknowledgment
 }
 ```
 
-#### Example
+#### Implementation Details
+
+Initializes VM usage tracking and customer mapping:
+
+- **Usage Initialization**: Creates new VMUsageData structure with start time
+- **Customer Mapping**: Adds VM to customer's VM list for tenant isolation
+- **Duplicate Handling**: Safely handles multiple start notifications for same VM
+
+Source: [aggregator.go:175-206](../../internal/aggregator/aggregator.go#L175-206)
+
+#### Request Example
 
 ```bash
-curl -X POST http://localhost:8081/billing.v1.BillingService/NotifyVmStarted \
+curl -X POST https://billaged:8081/billing.v1.BillingService/NotifyVmStarted \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer dev_user_metald_1" \
+  -H "X-Tenant-ID: customer-abc" \
   -d '{
-    "vm_id": "vm-123",
-    "customer_id": "customer-456",
-    "start_time": 1704110400000000000
+    "vm_id": "vm-firecracker-456",
+    "customer_id": "customer-abc", 
+    "start_time": 1705315800000000000
   }'
 ```
+
+---
 
 ### NotifyVmStopped
 
-Handles VM lifecycle stop events. Generates final usage summary.
+Handles VM shutdown notifications to generate final usage summaries and cleanup tracking data.
 
-**Implementation**: [`internal/service/billing.go:131-148`](../../internal/service/billing.go:131-148)
+**RPC Definition**: [billing.proto:13](../../proto/billing/v1/billing.proto#L13)
 
-#### Request
+#### Request Schema
 
 ```protobuf
 message NotifyVmStoppedRequest {
-  string vm_id = 1;
-  int64 stop_time = 2;  // Unix timestamp in nanoseconds
+  string vm_id = 1;     // VM identifier
+  int64 stop_time = 2;  // Unix timestamp (nanoseconds)
 }
 ```
 
-#### Response
+#### Response Schema
 
 ```protobuf
 message NotifyVmStoppedResponse {
-  bool success = 1;
+  bool success = 1;    // Notification acknowledgment
 }
 ```
 
-#### Example
+#### Implementation Details
+
+Generates final billing summary and cleans up VM tracking:
+
+- **Final Summary**: Creates complete usage summary for billing systems
+- **Resource Cleanup**: Removes VM data from in-memory aggregator
+- **Customer Cleanup**: Updates customer-to-VM mappings
+- **Usage Callback**: Triggers usage summary callback for external processing
+
+Source: [aggregator.go:208-247](../../internal/aggregator/aggregator.go#L208-247)
+
+#### Request Example
 
 ```bash
-curl -X POST http://localhost:8081/billing.v1.BillingService/NotifyVmStopped \
+curl -X POST https://billaged:8081/billing.v1.BillingService/NotifyVmStopped \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer dev_user_metald_1" \
   -d '{
-    "vm_id": "vm-123",
-    "stop_time": 1704114000000000000
+    "vm_id": "vm-firecracker-456",
+    "stop_time": 1705319400000000000
   }'
 ```
 
-#### Downstream Processing
-
-1. **Final Summary Generation**: [`internal/aggregator/aggregator.go:209-247`](../../internal/aggregator/aggregator.go:209-247)
-2. **Callback Execution**: Triggers usage summary callback with final metrics
-3. **Cleanup**: Removes VM from active tracking
+---
 
 ### NotifyPossibleGap
 
-Handles data gap notifications for billing accuracy.
+Handles notifications about potential gaps in metrics reporting for data reconciliation.
 
-**Implementation**: [`internal/service/billing.go:151-176`](../../internal/service/billing.go:151-176)
+**RPC Definition**: [billing.proto:14](../../proto/billing/v1/billing.proto#L14)
 
-#### Request
+#### Request Schema
 
 ```protobuf
 message NotifyPossibleGapRequest {
-  string vm_id = 1;
-  int64 last_sent = 2;   // Last successful metric timestamp
-  int64 resume_time = 3; // When metrics resumed
+  string vm_id = 1;       // VM identifier
+  int64 last_sent = 2;    // Last successful metrics timestamp (nanoseconds)
+  int64 resume_time = 3;  // Metrics reporting resume time (nanoseconds)
 }
 ```
 
-#### Response
+#### Response Schema
 
 ```protobuf
 message NotifyPossibleGapResponse {
-  bool success = 1;
+  bool success = 1;    // Notification acknowledgment
 }
 ```
 
-#### Example
+#### Implementation Details
+
+Logs gap information for operational visibility and future reconciliation:
+
+- **Gap Calculation**: Computes gap duration in milliseconds for monitoring
+- **Warning Logging**: Logs gap details with severity appropriate for operations
+- **Future Enhancement**: Framework for billing period reconciliation and alerting
+
+Source: [service/billing.go:150-176](../../internal/service/billing.go#L150-176)
+
+#### Request Example
 
 ```bash
-curl -X POST http://localhost:8081/billing.v1.BillingService/NotifyPossibleGap \
+curl -X POST https://billaged:8081/billing.v1.BillingService/NotifyPossibleGap \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer dev_user_metald_1" \
   -d '{
-    "vm_id": "vm-123",
-    "last_sent": 1704110400000000000,
-    "resume_time": 1704111000000000000
+    "vm_id": "vm-firecracker-456",
+    "last_sent": 1705315800000000000,
+    "resume_time": 1705316100000000000
   }'
 ```
 
-## HTTP Endpoints
+## Client Libraries
 
-### GET /stats
+### Go Client
 
-Returns current aggregation statistics.
+**Package**: [client/](../../client/)  
+**Main Types**: [client/types.go](../../client/types.go)
 
-**Implementation**: [`cmd/billaged/main.go:218-229`](../../cmd/billaged/main.go:218-229)
+#### Configuration
 
-#### Response
-
-```json
-{
-  "active_vms": 42,
-  "aggregation_interval": "60s"
+```go
+config := client.Config{
+    ServerAddress:    "https://billaged:8081",
+    UserID:          "metald-instance-1",
+    TenantID:        "customer-abc",
+    TLSMode:         "spiffe",
+    SPIFFESocketPath: "/var/lib/spire/agent/agent.sock",
+    Timeout:         30 * time.Second,
 }
+
+client, err := client.New(ctx, config)
+defer client.Close()
 ```
 
-### GET /metrics
+#### Usage Example
 
-Prometheus metrics endpoint (when OpenTelemetry is enabled).
+```go
+// Send metrics batch
+response, err := client.SendMetricsBatch(ctx, &client.SendMetricsBatchRequest{
+    VmID:       "vm-12345",
+    CustomerID: "customer-abc",
+    Metrics:    vmMetrics,
+})
 
-**Port**: 9465 (configurable)
+// Send heartbeat
+response, err := client.SendHeartbeat(ctx, &client.SendHeartbeatRequest{
+    InstanceID: "metald-prod-1",
+    ActiveVMs:  []string{"vm-1", "vm-2"},
+})
+```
 
-#### Available Metrics
+### CLI Tool
 
-- `billaged_usage_records_processed_total{vm_id,customer_id}` - Usage records processed
-- `billaged_aggregation_duration_seconds` - Aggregation latency histogram
-- `billaged_active_vms` - Currently tracked VMs
-- `billaged_billing_errors_total{error_type}` - Processing errors
+**Binary**: [cmd/billaged-cli/](../../cmd/billaged-cli/)
 
-### GET /health
+#### Basic Usage
 
-Health check endpoint provided by the health package.
+```bash
+# Send metrics batch
+billaged-cli -server=https://billaged:8081 -tenant=customer-abc send-metrics
 
-**Implementation**: Uses [`pkg/health`](../../cmd/billaged/main.go:284)
+# Send heartbeat
+billaged-cli -user=metald-1 -tenant=customer-abc heartbeat
 
-#### Response
+# Notify VM lifecycle
+billaged-cli notify-started vm-12345
+billaged-cli notify-stopped vm-12345
+```
 
-```json
-{
-  "status": "healthy",
-  "service": "billaged",
-  "version": "0.1.0",
-  "uptime": "1h30m45s"
-}
+#### Environment Configuration
+
+```bash
+export UNKEY_BILLAGED_SERVER_ADDRESS=https://billaged:8081
+export UNKEY_BILLAGED_USER_ID=metald-instance-1  
+export UNKEY_BILLAGED_TENANT_ID=customer-abc
+export UNKEY_BILLAGED_TLS_MODE=spiffe
 ```
 
 ## Error Handling
 
-All RPC methods return standard ConnectRPC errors:
+### ConnectRPC Error Codes
 
-- `CodeInvalidArgument`: Invalid request parameters
-- `CodeInternal`: Internal processing errors
-- `CodeUnavailable`: Service temporarily unavailable
+| Code | Description | Common Causes |
+|------|-------------|---------------|
+| `Unauthenticated` | Authentication failure | Invalid bearer token, missing X-Tenant-ID |
+| `InvalidArgument` | Request validation failure | Empty VM ID, invalid timestamps |
+| `Internal` | Server processing error | Aggregation failures, OTEL errors |
+| `Unavailable` | Service unavailable | SPIFFE certificate issues, resource exhaustion |
 
-Errors are logged with structured fields for debugging:
+### Error Response Format
 
-```go
-logger.Error("rpc error",
-  slog.String("procedure", req.Spec().Procedure),
-  slog.Duration("duration", duration),
-  slog.String("error", err.Error()),
-)
+```json
+{
+  "code": "InvalidArgument",
+  "message": "vm_id cannot be empty",
+  "details": [
+    {
+      "type": "BadRequest",
+      "field": "vm_id",
+      "description": "VM identifier is required for metrics processing"
+    }
+  ]
+}
 ```
 
-## Authentication
+### Retry Strategies
 
-Currently, the service does not implement authentication. In production deployments:
+- **Transient Errors**: Exponential backoff for `Unavailable` and `Internal` errors
+- **Authentication Errors**: Immediate failure for `Unauthenticated` errors  
+- **Validation Errors**: No retry for `InvalidArgument` errors
+- **Timeout Handling**: 30-second default timeout with client-configurable override
 
-1. Use SPIFFE/mTLS for service-to-service authentication
-2. Deploy behind an API gateway for external access
-3. Implement customer isolation at the metald level
+## Integration Patterns
 
-## Rate Limiting
+### Metald Integration
 
-No built-in rate limiting. Recommended approach:
+Primary integration pattern with VM provisioning service:
 
-1. Configure rate limits at the load balancer/proxy level
-2. Monitor `billaged_usage_records_processed_total` for anomalies
-3. Set appropriate batch size limits in metald
+```go
+// metald sends metrics periodically
+metrics := collectVMMetrics(vmID)
+billaging.SendMetricsBatch(ctx, &billaged.SendMetricsBatchRequest{
+    VmID:       vmID,
+    CustomerID: customer,
+    Metrics:    metrics,
+})
 
-## Protocol Support
+// metald notifies lifecycle events  
+billaging.NotifyVmStarted(ctx, &billaged.NotifyVmStartedRequest{
+    VmID:       vmID,
+    CustomerID: customer,
+    StartTime:  startTime.UnixNano(),
+})
+```
 
-The service supports both gRPC and HTTP/JSON through ConnectRPC:
+### Batch Processing
 
-- **gRPC**: Native protocol buffer encoding
-- **HTTP/JSON**: Automatic JSON transcoding
-- **gRPC-Web**: Browser-compatible protocol
+Optimal batching strategies for high-throughput environments:
 
-All protocols are served on the same port (8081 by default).
+- **Batch Size**: 10-100 metrics per batch for optimal performance
+- **Frequency**: 30-60 second intervals for real-time billing accuracy
+- **Ordering**: Chronological ordering by timestamp for accurate delta calculations
+
+### Monitoring Integration
+
+OpenTelemetry metrics for operational visibility:
+
+- **Usage Tracking**: `billaged_usage_records_processed_total{vm_id,customer_id}`
+- **Performance**: `billaged_aggregation_duration_seconds` histogram
+- **Health**: `billaged_active_vms` gauge for current tracking count
+
+## Rate Limits & Quotas
+
+### Default Limits
+
+- **Request Rate**: 1000 requests/second per instance
+- **Batch Size**: 1000 metrics per SendMetricsBatch request
+- **Concurrent Connections**: 100 concurrent client connections
+- **Memory Usage**: 1GB for VM usage data aggregation
+
+### Production Scaling
+
+For high-scale deployments:
+
+- **Horizontal Scaling**: Deploy multiple billaged instances behind load balancer
+- **Resource Monitoring**: Monitor memory usage for large customer bases
+- **Aggregation Tuning**: Adjust interval based on billing precision requirements
+
+Configuration: [config/config.go](../../internal/config/config.go)

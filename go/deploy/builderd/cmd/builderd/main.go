@@ -4,10 +4,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"runtime/debug"
 	"sync"
@@ -17,6 +19,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	assetv1 "github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/asset/v1"
 	"github.com/unkeyed/unkey/go/deploy/builderd/gen/builder/v1/builderv1connect"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/assetmanager"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/config"
@@ -205,6 +208,26 @@ func main() {
 			slog.String("error", err.Error()),
 		)
 		os.Exit(1)
+	}
+
+	// Initialize base assets (kernel, rootfs) required for VM creation
+	// AIDEV-NOTE: This ensures builderd can create VMs without external setup scripts
+	if cfg.AssetManager.Enabled {
+		logger.Info("initializing base VM assets")
+		// Temporarily inline the base asset initialization to avoid import issues
+		// TODO: Move to assets package once imports are stable
+		baseAssetInitCtx, cancel := context.WithTimeout(rootCtx, 10*time.Minute)
+		defer cancel()
+
+		if err := initializeBaseAssets(baseAssetInitCtx, logger, cfg, assetClient); err != nil {
+			logger.Error("failed to initialize base assets",
+				slog.String("error", err.Error()),
+			)
+			// Don't exit - continue with degraded functionality
+			logger.Warn("continuing with degraded functionality - base assets may not be available")
+		} else {
+			logger.Info("base assets initialization completed")
+		}
 	}
 
 	// Create builder service
@@ -586,4 +609,120 @@ func performGracefulShutdown(logger *slog.Logger, server *http.Server, promServe
 	}
 
 	logger.Info("graceful shutdown completed successfully")
+}
+
+// initializeBaseAssets downloads and registers base VM assets if they don't exist
+func initializeBaseAssets(ctx context.Context, logger *slog.Logger, cfg *config.Config, assetClient *assetmanager.Client) error {
+	// AIDEV-NOTE: Inline base asset initialization to avoid import cycles
+	// This logic should eventually be moved to the assets package
+
+	baseAssets := []struct {
+		name        string
+		url         string
+		assetType   assetv1.AssetType
+		description string
+	}{
+		{
+			name:        "vmlinux",
+			url:         "https://s3.amazonaws.com/spec.ccfc.min/img/quickstart_guide/x86_64/kernels/vmlinux.bin",
+			assetType:   assetv1.AssetType_ASSET_TYPE_KERNEL,
+			description: "Firecracker x86_64 kernel",
+		},
+		{
+			name:        "rootfs.ext4",
+			url:         "https://s3.amazonaws.com/spec.ccfc.min/img/quickstart_guide/x86_64/rootfs/bionic.rootfs.ext4",
+			assetType:   assetv1.AssetType_ASSET_TYPE_ROOTFS,
+			description: "Ubuntu Bionic base rootfs",
+		},
+	}
+
+	storageDir := cfg.Builder.RootfsOutputDir
+	for _, asset := range baseAssets {
+		logger.InfoContext(ctx, "ensuring base asset is available",
+			"asset", asset.name,
+			"type", asset.assetType,
+		)
+
+		// Check if asset already exists locally
+		localPath := filepath.Join(storageDir, "base", asset.name)
+		if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil {
+			return fmt.Errorf("failed to create directory for %s: %w", asset.name, err)
+		}
+
+		// Download if not present
+		if _, err := os.Stat(localPath); os.IsNotExist(err) {
+			logger.InfoContext(ctx, "downloading base asset",
+				"asset", asset.name,
+				"url", asset.url,
+			)
+
+			if err := downloadAsset(ctx, asset.url, localPath); err != nil {
+				return fmt.Errorf("failed to download %s: %w", asset.name, err)
+			}
+
+			logger.InfoContext(ctx, "asset downloaded successfully",
+				"asset", asset.name,
+				"path", localPath,
+			)
+		}
+
+		// Register with assetmanagerd
+		labels := map[string]string{
+			"created_by":   "builderd",
+			"customer_id":  "system",
+			"tenant_id":    "system",
+			"source":       "firecracker-quickstart",
+			"asset_type":   asset.name,
+			"architecture": "x86_64",
+		}
+
+		assetID, err := assetClient.RegisterBuildArtifact(ctx, "base-assets", localPath, asset.assetType, labels)
+		if err != nil {
+			// Log warning but don't fail - asset might already be registered
+			logger.WarnContext(ctx, "failed to register asset, might already exist",
+				"asset", asset.name,
+				"error", err,
+			)
+		} else {
+			logger.InfoContext(ctx, "asset registered successfully",
+				"asset", asset.name,
+				"asset_id", assetID,
+			)
+		}
+	}
+
+	return nil
+}
+
+// downloadAsset downloads a file from URL to local path
+func downloadAsset(ctx context.Context, url, localPath string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to download: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("HTTP %d", resp.StatusCode)
+	}
+
+	tmpPath := localPath + ".tmp"
+	tmpFile, err := os.Create(tmpPath)
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+	defer os.Remove(tmpPath)
+
+	_, err = io.Copy(tmpFile, resp.Body)
+	tmpFile.Close()
+	if err != nil {
+		return fmt.Errorf("failed to write file: %w", err)
+	}
+
+	return os.Rename(tmpPath, localPath)
 }

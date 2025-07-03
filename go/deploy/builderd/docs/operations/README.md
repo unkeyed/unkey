@@ -1,558 +1,480 @@
 # Builderd Operations Manual
 
+This guide covers production deployment, monitoring, and operational management of the builderd service.
+
 ## Installation and Configuration
 
 ### System Requirements
 
-- **OS**: Linux (Ubuntu 20.04+, RHEL 8+, or compatible)
-- **CPU**: Minimum 2 cores, recommended 4+ cores
-- **Memory**: Minimum 4GB, recommended 8GB+
-- **Storage**: 50GB+ SSD for build workspace and cache
-- **Docker**: Version 20.10+ installed and running
-- **Network**: Outbound HTTPS for registry access
+**Minimum Requirements**:
+- **OS**: Linux with Docker runtime support
+- **CPU**: 4+ cores recommended for concurrent builds
+- **Memory**: 8GB+ for running multiple builds simultaneously  
+- **Storage**: SSD with 100GB+ free space for build artifacts
+- **Docker**: Docker Engine 20.10+ for image extraction
 
 ### Installation
 
-#### Binary Installation
-
 ```bash
+# Build from source
 cd builderd
-make build    # Build the binary
-make install  # Install with systemd unit
+make build
+
+# Install with systemd integration  
+sudo make install
+
+# Verify installation
+systemctl status builderd
 ```
 
-#### Container Deployment
+**Binary Location**: `/usr/local/bin/builderd`
+**Systemd Unit**: `/etc/systemd/system/builderd.service`
+
+**Systemd Configuration**: [contrib/systemd/builderd.service](../../contrib/systemd/builderd.service)
+
+### Core Configuration
+
+**Environment File**: `/etc/builderd/environment`
 
 ```bash
-docker run -d \
-  --name builderd \
-  -p 8082:8082 \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -v /opt/builderd:/opt/builderd \
-  -e UNKEY_BUILDERD_TLS_MODE=spiffe \
-  -e UNKEY_BUILDERD_SPIFFE_SOCKET=/run/spire/sockets/agent.sock \
-  -v /run/spire/sockets:/run/spire/sockets:ro \
-  ghcr.io/unkeyed/builderd:latest
-```
+# Server Configuration
+UNKEY_BUILDERD_PORT=8082
+UNKEY_BUILDERD_ADDRESS=0.0.0.0
+UNKEY_BUILDERD_SHUTDOWN_TIMEOUT=15s
+UNKEY_BUILDERD_RATE_LIMIT=100
 
-### Configuration
+# Build Configuration  
+UNKEY_BUILDERD_MAX_CONCURRENT_BUILDS=5
+UNKEY_BUILDERD_BUILD_TIMEOUT=15m
+UNKEY_BUILDERD_ROOTFS_OUTPUT_DIR=/opt/builderd/rootfs
+UNKEY_BUILDERD_WORKSPACE_DIR=/opt/builderd/workspace
+UNKEY_BUILDERD_SCRATCH_DIR=/tmp/builderd
 
-All configuration is done via environment variables following the `UNKEY_BUILDERD_*` pattern.
+# Storage Configuration
+UNKEY_BUILDERD_STORAGE_BACKEND=local
+UNKEY_BUILDERD_STORAGE_RETENTION_DAYS=30
+UNKEY_BUILDERD_STORAGE_MAX_SIZE_GB=100
 
-#### Core Configuration
+# Docker Configuration
+UNKEY_BUILDERD_DOCKER_MAX_IMAGE_SIZE_GB=5
+UNKEY_BUILDERD_DOCKER_PULL_TIMEOUT=10m
+UNKEY_BUILDERD_DOCKER_REGISTRY_AUTH=true
 
-```bash
-# Server settings
-UNKEY_BUILDERD_PORT=8082                    # Service port
-UNKEY_BUILDERD_ADDRESS=0.0.0.0              # Bind address
-UNKEY_BUILDERD_SHUTDOWN_TIMEOUT=15s         # Graceful shutdown timeout
-UNKEY_BUILDERD_RATE_LIMIT=100               # Health endpoint rate limit
-
-# Build settings
-UNKEY_BUILDERD_MAX_CONCURRENT_BUILDS=5      # Parallel build limit
-UNKEY_BUILDERD_BUILD_TIMEOUT=15m            # Build timeout
-UNKEY_BUILDERD_SCRATCH_DIR=/tmp/builderd    # Temp directory
-UNKEY_BUILDERD_ROOTFS_OUTPUT_DIR=/opt/builderd/rootfs  # Output directory
-UNKEY_BUILDERD_WORKSPACE_DIR=/opt/builderd/workspace   # Build workspace
-```
-
-#### Storage Configuration
-
-```bash
-# Storage backend
-UNKEY_BUILDERD_STORAGE_BACKEND=local        # local, s3, gcs
-UNKEY_BUILDERD_STORAGE_RETENTION_DAYS=30    # Artifact retention
-UNKEY_BUILDERD_STORAGE_MAX_SIZE_GB=100      # Max storage size
-UNKEY_BUILDERD_STORAGE_CACHE_ENABLED=true   # Enable caching
-UNKEY_BUILDERD_STORAGE_CACHE_MAX_SIZE_GB=50 # Cache size limit
-
-# S3 configuration (if backend=s3)
-UNKEY_BUILDERD_STORAGE_S3_BUCKET=builderd-artifacts
-UNKEY_BUILDERD_STORAGE_S3_REGION=us-east-1
-UNKEY_BUILDERD_STORAGE_S3_ACCESS_KEY=AKIAXXXXXXXX
-UNKEY_BUILDERD_STORAGE_S3_SECRET_KEY=xxxxxxxxxx
-```
-
-#### Security Configuration
-
-```bash
-# TLS/mTLS settings
-UNKEY_BUILDERD_TLS_MODE=spiffe              # disabled, file, spiffe
-UNKEY_BUILDERD_SPIFFE_SOCKET=/run/spire/sockets/agent.sock
-
-# Docker settings
-UNKEY_BUILDERD_DOCKER_REGISTRY_AUTH=true    # Enable registry auth
-UNKEY_BUILDERD_DOCKER_MAX_IMAGE_SIZE_GB=5   # Max image size
-UNKEY_BUILDERD_DOCKER_PULL_TIMEOUT=10m      # Pull timeout
-```
-
-#### Tenant Configuration
-
-```bash
-# Default limits
-UNKEY_BUILDERD_TENANT_DEFAULT_MAX_MEMORY_BYTES=2147483648  # 2GB
-UNKEY_BUILDERD_TENANT_DEFAULT_MAX_CPU_CORES=2
-UNKEY_BUILDERD_TENANT_DEFAULT_MAX_DAILY_BUILDS=100
-UNKEY_BUILDERD_TENANT_DEFAULT_TIMEOUT_SECONDS=900
+# Tenant Configuration
 UNKEY_BUILDERD_TENANT_ISOLATION_ENABLED=true
+UNKEY_BUILDERD_TENANT_DEFAULT_TIER=free
 ```
 
-## Monitoring and Metrics
+**Configuration Reference**: [internal/config/config.go:147](../../internal/config/config.go#L147)
 
-### Prometheus Metrics
+### Security Configuration
 
-When OpenTelemetry is enabled, builderd exports metrics on the configured port (default 9466).
+**SPIFFE/SPIRE Integration** (Required for Production):
+```bash
+# TLS Configuration
+UNKEY_BUILDERD_TLS_MODE=spiffe
+UNKEY_BUILDERD_SPIFFE_SOCKET=/var/lib/spire/agent/agent.sock
 
-#### Key Metrics
-
-**Build Metrics**:
-- `builderd_builds_total{state,source,target,tenant}` - Total builds by status
-- `builderd_build_duration_seconds` - Build execution time histogram
-- `builderd_concurrent_builds` - Current running builds gauge
-- `builderd_build_size_bytes` - Rootfs size distribution
-
-**Resource Metrics**:
-- `builderd_cpu_usage_cores{tenant}` - CPU usage per tenant
-- `builderd_memory_usage_bytes{tenant}` - Memory usage per tenant
-- `builderd_disk_usage_bytes{tenant}` - Disk usage per tenant
-
-**Dependency Metrics**:
-- `builderd_docker_operations_total{operation,status}` - Docker operation counts
-- `builderd_assetmanager_calls_total{method,status}` - AssetManagerd calls
-- `builderd_storage_operations_duration_seconds` - Storage operation latency
-
-#### Prometheus Configuration
-
-```yaml
-scrape_configs:
-  - job_name: 'builderd'
-    static_configs:
-      - targets: ['localhost:9466']
-    scrape_interval: 15s
+# Alternative: File-based TLS
+UNKEY_BUILDERD_TLS_MODE=file
+UNKEY_BUILDERD_TLS_CERT_FILE=/etc/builderd/certs/server.crt
+UNKEY_BUILDERD_TLS_KEY_FILE=/etc/builderd/certs/server.key
+UNKEY_BUILDERD_TLS_CA_FILE=/etc/builderd/certs/ca.crt
 ```
+
+**SPIFFE Configuration**: [internal/config/config.go:224](../../internal/config/config.go#L224)
+
+### Database Configuration
+
+```bash
+# SQLite (Recommended for single-instance)
+UNKEY_BUILDERD_DATABASE_TYPE=sqlite
+UNKEY_BUILDERD_DATABASE_DATA_DIR=/opt/builderd/data
+
+# PostgreSQL (For multi-instance deployments)
+UNKEY_BUILDERD_DATABASE_TYPE=postgres
+UNKEY_BUILDERD_DATABASE_HOST=postgres.internal
+UNKEY_BUILDERD_DATABASE_PORT=5432
+UNKEY_BUILDERD_DATABASE_NAME=builderd
+UNKEY_BUILDERD_DATABASE_USERNAME=builderd
+UNKEY_BUILDERD_DATABASE_PASSWORD=<secure-password>
+UNKEY_BUILDERD_DATABASE_SSL_MODE=require
+```
+
+### Assetmanagerd Integration
+
+```bash
+# Asset Management Configuration
+UNKEY_BUILDERD_ASSETMANAGER_ENABLED=true
+UNKEY_BUILDERD_ASSETMANAGER_ENDPOINT=https://assetmanagerd:8083
+```
+
+**Integration Details**: [internal/assetmanager/client.go:28](../../internal/assetmanager/client.go#L28)
+
+## Monitoring and Observability
 
 ### OpenTelemetry Configuration
 
 ```bash
-# Enable OpenTelemetry
+# OpenTelemetry Configuration
 UNKEY_BUILDERD_OTEL_ENABLED=true
 UNKEY_BUILDERD_OTEL_SERVICE_NAME=builderd
-UNKEY_BUILDERD_OTEL_SERVICE_VERSION=0.1.0
+UNKEY_BUILDERD_OTEL_SERVICE_VERSION=0.2.0
 UNKEY_BUILDERD_OTEL_SAMPLING_RATE=1.0
-UNKEY_BUILDERD_OTEL_ENDPOINT=localhost:4318
+UNKEY_BUILDERD_OTEL_ENDPOINT=http://otel-collector:4318
 
-# Prometheus exporter
+# Prometheus Integration
 UNKEY_BUILDERD_OTEL_PROMETHEUS_ENABLED=true
 UNKEY_BUILDERD_OTEL_PROMETHEUS_PORT=9466
 UNKEY_BUILDERD_OTEL_PROMETHEUS_INTERFACE=127.0.0.1
+
+# High-Cardinality Metrics (Use with caution)
+UNKEY_BUILDERD_OTEL_HIGH_CARDINALITY_ENABLED=false
 ```
 
-### Grafana Dashboards
+**Observability Implementation**: [internal/observability/otel.go](../../internal/observability/otel.go)
 
-Import the provided dashboard from `builderd/contrib/grafana-dashboards/`:
+### Key Metrics to Monitor
 
-1. **Build Overview**: Build rates, success rates, duration percentiles
-2. **Resource Usage**: CPU, memory, disk usage by tenant
-3. **Error Analysis**: Error rates by type and tenant
-4. **Dependency Health**: External service status and latencies
+**Build Metrics**:
+- `builderd_builds_total` - Total builds started (by tenant, type, status)
+- `builderd_build_duration_seconds` - Build completion time histogram
+- `builderd_build_errors_total` - Build failure counter (by error type)
+- `builderd_active_builds` - Currently running builds gauge
+- `builderd_build_cancellations_total` - Build cancellation counter
 
-## Health Checks and Alerting
+**Pipeline Metrics**:
+- `builderd_pull_duration_seconds` - Image/source pull time
+- `builderd_extract_duration_seconds` - Filesystem extraction time  
+- `builderd_optimize_duration_seconds` - Rootfs optimization time
 
-### Health Check Endpoint
+**Resource Metrics**:
+- `builderd_image_size_bytes` - Source image sizes
+- `builderd_rootfs_size_bytes` - Generated rootfs sizes
+- `builderd_compression_ratio` - Size reduction achieved
+- `builderd_build_memory_usage_bytes` - Peak memory usage
+- `builderd_build_disk_usage_bytes` - Peak disk usage
 
-**Endpoint**: `GET /health`
+**Tenant Metrics** (High-cardinality):
+- `builderd_tenant_builds_total` - Per-tenant build counters
+- `builderd_tenant_quota_violations_total` - Quota violation events
 
-**Response**:
+**Metrics Implementation**: [internal/observability/metrics.go](../../internal/observability/metrics.go)
+
+### Prometheus Configuration
+
+**Scrape Configuration**:
+```yaml
+- job_name: 'builderd'
+  static_configs:
+    - targets: ['builderd:9466']
+  scrape_interval: 30s
+  metrics_path: /metrics
+```
+
+**Dashboard Queries**:
+```promql
+# Build success rate
+rate(builderd_builds_total{status="success"}[5m]) / 
+rate(builderd_builds_total[5m])
+
+# Average build duration
+rate(builderd_build_duration_seconds_sum[5m]) / 
+rate(builderd_build_duration_seconds_count[5m])
+
+# Active builds by tenant
+builderd_active_builds
+
+# Error rate by type
+rate(builderd_build_errors_total[5m])
+```
+
+### Health Checks
+
+**Health Endpoint**: `GET /health`
+
+**Response Format**:
 ```json
 {
   "status": "healthy",
-  "version": "0.1.0",
-  "uptime_seconds": 3600,
-  "checks": {
-    "docker": "healthy",
-    "storage": "healthy",
-    "assetmanager": "healthy"
-  }
+  "version": "0.2.0",
+  "uptime": "24h30m15s",
+  "timestamp": "2024-01-15T10:30:00Z"
 }
 ```
 
-**Implementation**: [main.go:314](../../../cmd/builderd/main.go:314)
+**Health Check Implementation**: Uses unified health package with rate limiting.
 
-### Alerting Rules
+**Service Validation**: [cmd/builderd/main.go:497](../../cmd/builderd/main.go#L497)
 
-Example Prometheus alerting rules:
+### Logging Configuration
 
-```yaml
-groups:
-  - name: builderd
-    rules:
-      - alert: BuilderdHighFailureRate
-        expr: rate(builderd_builds_total{state="failed"}[5m]) > 0.1
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: High build failure rate
-          
-      - alert: BuilderdStorageFull
-        expr: builderd_storage_usage_bytes / builderd_storage_limit_bytes > 0.9
-        for: 10m
-        labels:
-          severity: critical
-        annotations:
-          summary: Storage approaching capacity
-          
-      - alert: BuilderdUnhealthy
-        expr: up{job="builderd"} == 0
-        for: 2m
-        labels:
-          severity: critical
-        annotations:
-          summary: Builderd is down
+**Structured Logging**: JSON format with contextual fields
+
+**Log Levels**:
+- `INFO` - Normal operation events
+- `WARN` - Non-fatal issues and degraded performance
+- `ERROR` - Build failures and service errors
+- `DEBUG` - Detailed debugging information
+
+**Key Log Fields**:
+- `tenant_id` - Tenant identifier for all operations
+- `build_id` - Build job identifier
+- `source_type` - Build source type (docker, git, archive)
+- `duration` - Operation timing
+
+### Tracing
+
+**Trace Hierarchy**:
+```
+builderd.build_execution
+├── builderd.docker.pull_image
+├── builderd.docker.create_container
+├── builderd.docker.extract_filesystem
+├── builderd.docker.optimize_rootfs
+└── builderd.assetmanager.register_artifact
 ```
 
-## Backup and Recovery
-
-### Data to Backup
-
-1. **Build Artifacts** (if using local storage)
-   - Location: `$UNKEY_BUILDERD_ROOTFS_OUTPUT_DIR`
-   - Frequency: Daily incremental, weekly full
-   - Retention: Match `STORAGE_RETENTION_DAYS`
-
-2. **Database** (when implemented)
-   - SQLite: Copy database file
-   - PostgreSQL: pg_dump
-
-3. **Configuration**
-   - Environment variables
-   - TLS certificates (if using file mode)
-
-### Backup Script Example
-
-```bash
-#!/bin/bash
-# builderd-backup.sh
-
-BACKUP_DIR="/backup/builderd/$(date +%Y%m%d)"
-mkdir -p "$BACKUP_DIR"
-
-# Backup artifacts (local storage only)
-if [ "$UNKEY_BUILDERD_STORAGE_BACKEND" = "local" ]; then
-  rsync -av --delete \
-    "$UNKEY_BUILDERD_ROOTFS_OUTPUT_DIR/" \
-    "$BACKUP_DIR/artifacts/"
-fi
-
-# Backup database (future)
-if [ -f "/opt/builderd/data/builderd.db" ]; then
-  cp "/opt/builderd/data/builderd.db" "$BACKUP_DIR/"
-fi
-
-# Backup configuration
-env | grep ^UNKEY_BUILDERD_ > "$BACKUP_DIR/config.env"
-```
-
-### Recovery Procedures
-
-1. **Service Recovery**:
-   ```bash
-   # Stop service
-   systemctl stop builderd
-   
-   # Restore artifacts
-   rsync -av /backup/builderd/latest/artifacts/ $UNKEY_BUILDERD_ROOTFS_OUTPUT_DIR/
-   
-   # Restore database (if applicable)
-   cp /backup/builderd/latest/builderd.db /opt/builderd/data/
-   
-   # Start service
-   systemctl start builderd
-   ```
-
-2. **Disaster Recovery**:
-   - Deploy new builderd instance
-   - Restore configuration from backup
-   - Restore artifacts/database
-   - Update DNS/load balancer
-   - Verify service health
+**Trace Attributes**:
+- `tenant.id` - Tenant identifier
+- `build.type` - Build type (docker, git, archive)
+- `source.image` - Docker image URI
+- `build.duration` - Total build time
 
 ## Performance Tuning
 
-### System Tuning
+### Build Concurrency
 
-1. **File Descriptors**:
-   ```bash
-   # /etc/security/limits.conf
-   builderd soft nofile 65536
-   builderd hard nofile 65536
-   ```
+**Concurrent Build Limits**:
+```bash
+# System-wide concurrent builds
+UNKEY_BUILDERD_MAX_CONCURRENT_BUILDS=10
 
-2. **Kernel Parameters**:
-   ```bash
-   # /etc/sysctl.conf
-   vm.max_map_count = 262144
-   fs.file-max = 2097152
-   net.ipv4.tcp_keepalive_time = 600
-   ```
+# Per-tenant limits (configured per tier)
+# Free: 3, Pro: 5, Enterprise: 10, Dedicated: 20
+```
 
-3. **Docker Configuration**:
-   ```json
-   {
-     "storage-driver": "overlay2",
-     "log-driver": "json-file",
-     "log-opts": {
-       "max-size": "10m",
-       "max-file": "3"
-     }
-   }
-   ```
+**Resource Considerations**:
+- **Memory**: ~2GB per concurrent Docker build
+- **CPU**: 1-2 cores per build for optimal performance
+- **Disk I/O**: SSD recommended for workspace and output directories
 
-### Build Performance
+### Docker Optimization
 
-1. **Registry Mirror**:
-   ```bash
-   UNKEY_BUILDERD_DOCKER_REGISTRY_MIRROR=https://mirror.internal
-   ```
+**Docker Configuration**:
+```bash
+# Image size limits
+UNKEY_BUILDERD_DOCKER_MAX_IMAGE_SIZE_GB=5
 
-2. **Concurrent Builds**:
-   - Adjust based on CPU/memory
-   - Rule of thumb: 1 build per 2 CPU cores
-   - Monitor resource usage
+# Pull timeout for large images
+UNKEY_BUILDERD_DOCKER_PULL_TIMEOUT=10m
 
-3. **Cache Tuning**:
-   - Size cache based on working set
-   - Monitor cache hit rates
-   - Adjust eviction policies
+# Registry mirrors for faster pulls
+UNKEY_BUILDERD_DOCKER_REGISTRY_MIRROR=https://mirror.gcr.io
+```
 
 ### Storage Optimization
 
-1. **Local Storage**:
-   - Use SSD for workspace/output
-   - Enable compression for artifacts
-   - Regular cleanup of old builds
-
-2. **S3 Storage**:
-   - Enable S3 Transfer Acceleration
-   - Use appropriate storage class
-   - Configure lifecycle policies
-
-## Troubleshooting Guide
-
-### Common Issues
-
-#### 1. Build Failures
-
-**Symptom**: Builds fail with "pull access denied"
-**Cause**: Missing registry authentication
-**Solution**:
+**Storage Backend Tuning**:
 ```bash
-# Configure Docker auth
-docker login ghcr.io
-# Restart builderd to pick up credentials
-systemctl restart builderd
+# Local storage configuration
+UNKEY_BUILDERD_STORAGE_CACHE_ENABLED=true
+UNKEY_BUILDERD_STORAGE_CACHE_MAX_SIZE_GB=50
+
+# Retention policies
+UNKEY_BUILDERD_STORAGE_RETENTION_DAYS=30
+UNKEY_BUILDERD_CLEANUP_INTERVAL=1h
 ```
 
-**Symptom**: Builds fail with "no space left on device"
-**Cause**: Disk full or quota exceeded
-**Solution**:
-```bash
-# Check disk usage
-df -h $UNKEY_BUILDERD_ROOTFS_OUTPUT_DIR
-# Clean old artifacts
-find $UNKEY_BUILDERD_ROOTFS_OUTPUT_DIR -mtime +30 -delete
-# Increase quota limits
-UNKEY_BUILDERD_STORAGE_MAX_SIZE_GB=200
-```
+**Directory Structure Optimization**:
+- Use separate partitions for workspace and output directories
+- Configure appropriate filesystem (ext4 recommended)
+- Enable noatime mount option for performance
 
-#### 2. Performance Issues
+### Network Optimization
 
-**Symptom**: Slow build times
-**Diagnosis**:
-```bash
-# Check metrics
-curl -s localhost:9466/metrics | grep builderd_build_duration_seconds
-# Check Docker daemon
-docker system df
-docker system events
-```
-**Solutions**:
-- Enable registry mirror
-- Increase concurrent builds
-- Add more CPU/memory
-
-#### 3. Connection Issues
-
-**Symptom**: "connection refused" errors
-**Diagnosis**:
-```bash
-# Check service status
-systemctl status builderd
-# Check port binding
-ss -tlnp | grep 8082
-# Check TLS configuration
-openssl s_client -connect localhost:8082
-```
-
-### Debug Mode
-
-Enable debug logging:
-```bash
-UNKEY_BUILDERD_LOG_LEVEL=debug
-UNKEY_BUILDERD_LOG_FORMAT=json
-```
-
-### Log Analysis
-
-Key log patterns to watch:
-
-```bash
-# Build failures
-jq 'select(.level=="error" and .build_id)' /var/log/builderd.log
-
-# Slow operations
-jq 'select(.duration_ms > 5000)' /var/log/builderd.log
-
-# Tenant issues
-jq 'select(.tenant_id=="tenant-123")' /var/log/builderd.log
-```
-
-## Maintenance Procedures
-
-### Regular Maintenance
-
-**Daily**:
-- Monitor error rates and alerts
-- Check disk usage
-- Review failed builds
-
-**Weekly**:
-- Clean old build artifacts
-- Review performance metrics
-- Update security patches
-
-**Monthly**:
-- Analyze usage trends
-- Optimize cache settings
-- Review tenant quotas
-- Audit access logs
-
-### Upgrade Procedures
-
-1. **Rolling Upgrade** (with multiple instances):
-   ```bash
-   # For each instance:
-   kubectl drain node-X
-   kubectl apply -f builderd-new.yaml
-   kubectl uncordon node-X
-   ```
-
-2. **In-place Upgrade** (single instance):
-   ```bash
-   # Backup current version
-   cp /usr/local/bin/builderd /usr/local/bin/builderd.bak
-   
-   # Stop service
-   systemctl stop builderd
-   
-   # Install new version
-   make install
-   
-   # Start service
-   systemctl start builderd
-   
-   # Verify health
-   curl http://localhost:8082/health
-   ```
-
-### Capacity Planning
-
-Monitor these metrics for capacity planning:
-
-1. **Build Queue Depth**: Indicates need for more workers
-2. **Resource Utilization**: CPU/memory usage trends
-3. **Storage Growth**: Artifact accumulation rate
-4. **Error Rates**: May indicate resource constraints
-
-Scaling recommendations:
-- **Vertical**: Add CPU/memory when utilization > 80%
-- **Horizontal**: Add instances when queue depth > 10
-- **Storage**: Expand when usage > 70% of capacity
+**Registry Access**:
+- Configure registry mirrors for commonly used images
+- Use dedicated registry credentials for faster authentication
+- Consider private registry for base images
 
 ## Security Operations
 
-### Security Hardening
+### Access Control
 
-1. **Network Security**:
-   ```bash
-   # Firewall rules
-   ufw allow from 10.0.0.0/8 to any port 8082
-   ufw allow from 172.16.0.0/12 to any port 9466
-   ```
+**SPIFFE Identity Validation**: All service communications require valid SPIFFE identities.
 
-2. **Process Isolation**:
-   - Run as non-root user
-   - Use systemd security features
-   - Enable AppArmor/SELinux
+**Tenant Isolation**:
+- Build workspaces isolated per tenant
+- Resource quotas enforced at multiple levels
+- Storage paths scoped by tenant identifier
 
-3. **TLS Configuration**:
-   - Enforce TLS 1.3 minimum
-   - Regular certificate rotation
-   - Strong cipher suites
+### Security Monitoring
 
-### Audit Logging
+**Security Events to Monitor**:
+- Authentication failures from invalid SPIFFE identities
+- Quota violations and potential abuse
+- Unusual build patterns or resource usage
+- Failed registry authentication attempts
 
-Enable comprehensive audit logging:
-
+**Log Monitoring Queries**:
 ```bash
-UNKEY_BUILDERD_AUDIT_ENABLED=true
-UNKEY_BUILDERD_AUDIT_LOG_PATH=/var/log/builderd-audit.log
+# Authentication failures
+journalctl -u builderd | grep "authentication failed"
+
+# Quota violations  
+journalctl -u builderd | grep "quota exceeded"
+
+# Build failures
+journalctl -u builderd | grep "build execution failed"
 ```
 
-Audit log format:
-```json
-{
-  "timestamp": "2024-01-01T12:00:00Z",
-  "event": "build.create",
-  "tenant_id": "tenant-123",
-  "user_id": "user-456",
-  "resource": "build-abc",
-  "action": "create",
-  "result": "success"
-}
+### Vulnerability Management
+
+**Container Security**:
+- Regularly update Docker runtime and base images
+- Monitor CVE databases for image vulnerabilities
+- Implement image scanning in build pipeline (planned)
+
+**Build Isolation**:
+- Builds execute in temporary isolated directories
+- No network access except to approved registries
+- Resource limits prevent resource exhaustion attacks
+
+## Backup and Recovery
+
+### Data Backup
+
+**Critical Data**:
+- Build job database (SQLite/PostgreSQL)
+- Configuration files (`/etc/builderd/`)
+- Build artifacts (`/opt/builderd/rootfs/`)
+- Base assets (`/opt/builderd/rootfs/base/`)
+
+**Backup Strategy**:
+```bash
+# Database backup (SQLite)
+sqlite3 /opt/builderd/data/builderd.db ".backup /backup/builderd-$(date +%Y%m%d).db"
+
+# Configuration backup
+tar -czf /backup/builderd-config-$(date +%Y%m%d).tar.gz /etc/builderd/
+
+# Artifacts backup (selective)
+rsync -av --exclude='workspace/' /opt/builderd/ /backup/builderd-data/
 ```
 
-### Incident Response
+### Disaster Recovery
 
-1. **Detection**: Monitor alerts and anomalies
-2. **Containment**: Isolate affected tenants
-3. **Investigation**: Analyze logs and metrics
-4. **Recovery**: Restore service functionality
-5. **Post-mortem**: Document and improve
+**Recovery Procedure**:
+1. Restore configuration files to `/etc/builderd/`
+2. Restore database from backup
+3. Restore base assets to enable new builds
+4. Restart builderd service
+5. Verify health endpoints and basic functionality
 
-## Disaster Recovery
+**Recovery Testing**: Regularly test recovery procedures in non-production environments.
 
-### RTO/RPO Targets
+## Troubleshooting
 
-- **RTO** (Recovery Time Objective): 1 hour
-- **RPO** (Recovery Point Objective): 1 hour
+### Common Issues
 
-### DR Procedures
+**Build Failures**:
+```bash
+# Check Docker daemon status
+systemctl status docker
 
-1. **Primary Site Failure**:
-   - Activate DR site
-   - Update DNS to DR endpoint
-   - Restore from latest backup
-   - Verify service health
+# Verify Docker access
+docker info
 
-2. **Data Corruption**:
-   - Stop service immediately
-   - Identify corruption scope
-   - Restore from known-good backup
-   - Replay missing builds if needed
+# Check disk space
+df -h /opt/builderd/
 
-3. **Security Breach**:
-   - Isolate affected systems
-   - Rotate all credentials
-   - Audit all access logs
-   - Implement additional controls
+# Review build logs
+journalctl -u builderd -f
+```
+
+**SPIFFE Authentication Issues**:
+```bash
+# Check SPIRE agent status
+systemctl status spire-agent
+
+# Verify socket permissions
+ls -la /var/lib/spire/agent/agent.sock
+
+# Test SPIFFE identity
+spire-agent api fetch -socketPath /var/lib/spire/agent/agent.sock
+```
+
+**Performance Issues**:
+```bash
+# Check active builds
+curl -s http://localhost:9466/metrics | grep builderd_active_builds
+
+# Review resource usage
+top -p $(pgrep builderd)
+
+# Check Docker resource usage
+docker stats
+```
+
+### Debug Configuration
+
+**Debug Mode**:
+```bash
+# Enable debug logging
+UNKEY_BUILDERD_LOG_LEVEL=debug
+
+# Enable request tracing
+UNKEY_BUILDERD_OTEL_SAMPLING_RATE=1.0
+```
+
+**Debug Endpoints**:
+- `/health` - Service health with detailed status
+- `/metrics` - Prometheus metrics for debugging
+- OpenTelemetry traces via configured collector
+
+### Log Analysis
+
+**Important Log Patterns**:
+```bash
+# Build lifecycle events
+grep "build execution" /var/log/builderd.log
+
+# Tenant operations
+grep "tenant_id.*build" /var/log/builderd.log
+
+# Error patterns
+grep "ERROR" /var/log/builderd.log | tail -20
+
+# Performance metrics
+grep "duration" /var/log/builderd.log
+```
+
+## Capacity Planning
+
+### Resource Requirements
+
+**Per-Build Resources**:
+- **Memory**: 1-2GB per concurrent build
+- **CPU**: 1-2 cores per build for optimal performance
+- **Temporary Disk**: 2-5GB per build (varies by image size)
+- **Network**: Registry pull bandwidth (varies by image size)
+
+**System Scaling Guidelines**:
+- **Small**: 5 concurrent builds, 4 cores, 16GB RAM
+- **Medium**: 10 concurrent builds, 8 cores, 32GB RAM  
+- **Large**: 20 concurrent builds, 16 cores, 64GB RAM
+
+### Growth Planning
+
+**Metrics to Track**:
+- Build frequency and duration trends
+- Storage usage growth patterns
+- Resource utilization per tenant tier
+- Peak usage patterns and seasonal variations
+
+**Scaling Indicators**:
+- Build queue times increasing
+- Resource utilization > 80% sustained
+- Frequent quota violations
+- Storage approaching configured limits

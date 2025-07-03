@@ -85,10 +85,11 @@ echo -e "${GREEN}Join token generated${NC}"
 echo "Setting up auto-join configuration..."
 sudo mkdir -p "$AGENT_SERVICE_DIR"
 
-# Create auto-join environment configuration
+# Update auto-join environment configuration with the token
 cat <<EOF | sudo tee "$AGENT_SERVICE_DIR/auto-join.conf" > /dev/null
 [Service]
-# AIDEV-NOTE: Auto-join configuration
+# AIDEV-NOTE: Auto-join configuration for development environment
+# This file provides the join token for automatic agent registration
 Environment="UNKEY_SPIRE_JOIN_TOKEN=${JOIN_TOKEN}"
 Environment="UNKEY_SPIRE_TRUST_DOMAIN=${TRUST_DOMAIN}"
 EOF

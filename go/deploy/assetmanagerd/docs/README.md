@@ -1,65 +1,72 @@
-# AssetManagerd Documentation
+# Assetmanagerd Documentation
 
-Welcome to the AssetManagerd documentation. This service provides centralized asset management for virtual machine resources including kernels, rootfs images, initrd, and disk images with lifecycle management capabilities.
+Welcome to the Assetmanagerd documentation. This service manages VM assets (kernels, rootfs images) across the Unkey Deploy infrastructure with automatic build triggering and lifecycle management.
 
 ## Documentation Navigation
 
-### [API Documentation](api/README.md)
-Complete reference for all AssetManagerd RPCs, including:
+### [API Documentation](api/)
+Complete reference for all AssetManagerService RPCs, including:
 - Service endpoints and methods
-- Request/response schemas  
+- Request/response schemas with streaming support
+- Automatic build triggering workflows
+- Reference counting and lease management
 - Error handling patterns
-- Integration examples
-- Asset lifecycle management
 
-### [Architecture Guide](architecture/README.md)
+### [Architecture Guide](architecture/)
 Deep dive into the service design:
-- System architecture and components
-- Storage backend design
-- Database schema and registry
+- Asset storage backends and registry design
+- Integration with builderd for automatic builds
+- Reference counting and garbage collection
+- SPIFFE/SPIRE mTLS authentication
 - Service interaction patterns
-- Garbage collection algorithm
-- Asset preparation strategies
 
-### [Operations Manual](operations/README.md)
+### [Operations Manual](operations/)
 Production deployment and management:
-- Installation and configuration
+- Configuration and environment variables
 - Monitoring and metrics
 - Health checks and alerting
-- Storage backend configuration
+- Garbage collection and storage management
 - Performance tuning
-- Troubleshooting guide
 
-### [Development Setup](development/README.md)
+### [Development Setup](development/)
 Getting started with development:
-- Build instructions
+- Build instructions and testing
 - Local development environment
-- Testing strategies
+- Storage backend configuration
 - Debugging techniques
-- Contributing guidelines
 
 ## Quick Links
 
 - [Service Overview](../) - Main README with key features
 - [API Proto Definition](../proto/asset/v1/asset.proto) - Protocol buffer definitions
-- [QUESTIONS.md](../QUESTIONS.md) - Common questions and answers
+- [Configuration Reference](../internal/config/config.go) - Environment variables
 
 ## Service Role
 
-AssetManagerd is one of the four pillar services in Unkey Deploy, responsible for:
-- **Asset Storage** - Centralized storage for VM images and resources
-- **Lifecycle Management** - Reference counting and garbage collection
-- **Asset Distribution** - Efficient deployment to VM jailer environments
-- **Metadata Registry** - Searchable registry with label-based discovery
+Assetmanagerd is one of the four pillar services in Unkey Deploy, responsible for:
+- **Asset Storage** - Centralized management of VM kernels and rootfs images
+- **Reference Counting** - Lease-based lifecycle management for garbage collection
+- **Automatic Builds** - Integration with builderd to create missing assets on-demand
+- **Multi-backend Storage** - Pluggable storage backends (local, S3, NFS)
+
+## Key Features
+
+- **Streaming Uploads** - Efficient large file handling via gRPC streaming
+- **Automatic Asset Creation** - Triggers builderd when assets don't exist
+- **Reference Counting** - Prevents deletion of in-use assets
+- **Background GC** - Automatic cleanup of unused assets
+- **Multi-tenant Support** - Tenant isolation and authentication
+- **Storage Flexibility** - Multiple backend storage options
 
 ## Integration Points
 
-- **builderd** - Uploads assets to storage and registers them via API
-- **metald** - Acquires and prepares assets for VM provisioning
-- **Storage Backends** - Pluggable storage (local, S3, NFS, HTTP)
+- **[builderd](../../builderd/docs/)** - Automatically triggers builds for missing rootfs assets
+- **metald** - // AIDEV: metald documentation needed for complete interaction description
+- **billaged** - // AIDEV: billaged documentation needed for complete interaction description
+- **SPIFFE/SPIRE** - mTLS authentication for all service communications
 
 ## Getting Help
 
-- Check the [Operations Manual](operations/README.md) for common issues
-- Review [QUESTIONS.md](../QUESTIONS.md) for design rationale
-- Consult the [Architecture Guide](architecture/README.md) for implementation details
+- Check the [Operations Manual](operations/) for configuration and deployment
+- Review the [Architecture Guide](architecture/) for implementation details
+- Consult the [API Documentation](api/) for integration guidance

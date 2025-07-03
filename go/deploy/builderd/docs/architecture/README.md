@@ -1,424 +1,415 @@
 # Builderd Architecture Guide
 
+This document provides a comprehensive overview of builderd's internal architecture, service interactions, and design patterns.
+
 ## System Architecture
 
-Builderd is a multi-tenant build execution service designed to transform various source types (Docker images, Git repositories, archives) into optimized rootfs images for Firecracker microVM deployment.
-
-### High-Level Architecture
+Builderd follows a modular architecture with clear separation of concerns:
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│    Clients      │     │   API Gateway   │     │     metald      │
-│  (Direct API)   │     │    (Future)     │     │    (Future)     │
-└────────┬────────┘     └────────┬────────┘     └────────┬────────┘
-         │                       │                        │
-         └───────────────────────┴────────────────────────┘
-                                 │
-                                 v
-                     ┌───────────────────────┐
-                     │      builderd         │
-                     │  (ConnectRPC/gRPC)    │
-                     └───────────┬───────────┘
-                                 │
-        ┌────────────────────────┼────────────────────────┐
-        │                        │                        │
-        v                        v                        v
-┌───────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│ assetmanagerd │     │  Docker Daemon   │     │ Storage Backend │
-│  (Artifact    │     │ (Image Pulling)  │     │ (Local/S3/GCS)  │
-│  Registration)│     └──────────────────┘     └─────────────────┘
-└───────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                          Builderd                               │
+│                                                                 │
+│ ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │
+│ │   ConnectRPC    │  │   Tenant Auth   │  │   OpenTelemetry │ │
+│ │   API Layer     │  │   Interceptor   │  │   Tracing       │ │
+│ └─────────────────┘  └─────────────────┘  └─────────────────┘ │
+│           │                    │                    │         │
+│ ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │
+│ │   Builder       │  │   Config        │  │   Metrics       │ │
+│ │   Service       │  │   Management    │  │   Collection    │ │
+│ └─────────────────┘  └─────────────────┘  └─────────────────┘ │
+│           │                    │                    │         │
+│ ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │
+│ │   Executor      │  │   Asset         │  │   Tenant        │ │
+│ │   Registry      │  │   Client        │  │   Manager       │ │
+│ └─────────────────┘  └─────────────────┘  └─────────────────┘ │
+│           │                    │                    │         │
+│ ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │
+│ │   Docker        │  │   Storage       │  │   Build         │ │
+│ │   Executor      │  │   Backend       │  │   Isolation     │ │
+│ └─────────────────┘  └─────────────────┘  └─────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+          │                      │                      │
+          │ Docker APIs          │ File I/O            │ SPIFFE mTLS
+          │                      │                      │
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│   Docker        │  │   Local         │  │   Assetmanager  │
+│   Runtime       │  │   Filesystem    │  │   Service       │
+└─────────────────┘  └─────────────────┘  └─────────────────┘
 ```
 
-### Core Components
+## Core Components
 
-#### 1. Service Layer ([service/builder.go](../../../internal/service/builder.go))
-- **BuilderService**: Main ConnectRPC service implementation
-- Handles all RPC methods (CreateBuild, GetBuild, etc.)
-- Validates requests and enforces tenant permissions
-- Coordinates with executors for build processing
+### BuilderService
 
-#### 2. Executor System ([executor/](../../../internal/executor/))
-- **Registry** ([registry.go](../../../internal/executor/registry.go)): Manages executor instances
-- **DockerExecutor** ([docker.go](../../../internal/executor/docker.go)): Handles Docker image extraction
-- Future executors: GitExecutor, ArchiveExecutor
-- Implements strategy pattern for extensible build types
+The main service component that orchestrates build operations with comprehensive lifecycle management.
 
-#### 3. Multi-Tenant Management ([tenant/](../../../internal/tenant/))
-- **Manager** ([manager.go](../../../internal/tenant/manager.go)): Tenant lifecycle management
-- **Isolation** ([isolation.go](../../../internal/tenant/isolation.go)): Security boundaries
-- **Storage** ([storage.go](../../../internal/tenant/storage.go)): Tenant-specific storage
-- Enforces resource quotas and access controls
+**Implementation**: [internal/service/builder.go](../../internal/service/builder.go)
 
-#### 4. Observability ([observability/](../../../internal/observability/))
-- **Metrics** ([metrics.go](../../../internal/observability/metrics.go)): Build and resource metrics
-- **Interceptor** ([interceptor.go](../../../internal/observability/interceptor.go)): Request logging and auth
-- **OpenTelemetry** ([otel.go](../../../internal/observability/otel.go)): Tracing and metrics export
+**Key Responsibilities**:
+- Build job coordination and state management
+- Tenant-scoped validation and authorization
+- Asset registration with assetmanagerd integration
+- Graceful shutdown coordination
+
+**Shutdown Coordination**:
+```go
+func (s *BuilderService) Shutdown(ctx context.Context) error {
+    s.shutdownCancel()  // Cancel all running builds
+    s.buildWg.Wait()    // Wait for completion with timeout
+}
+```
+Source: [internal/service/builder.go:617](../../internal/service/builder.go#L617)
+
+### Executor Registry
+
+Pluggable executor system that handles different source types with extensible patterns.
+
+**Implementation**: [internal/executor/registry.go](../../internal/executor/registry.go)
+
+**Architecture Pattern**:
+```go
+type Executor interface {
+    Execute(ctx context.Context, request *builderv1.CreateBuildRequest) (*BuildResult, error)
+    ExecuteWithID(ctx context.Context, request *builderv1.CreateBuildRequest, buildID string) (*BuildResult, error)
+    GetSupportedSources() []string
+    Cleanup(ctx context.Context, buildID string) error
+}
+```
+Source: [internal/executor/types.go:11](../../internal/executor/types.go#L11)
+
+**Current Executors**:
+- **DockerExecutor**: Extracts Docker images to optimized rootfs
+- **GitExecutor**: (Planned) Git repository builds
+- **ArchiveExecutor**: (Planned) Archive extraction builds
+
+### Docker Executor
+
+Comprehensive Docker image processing with microVM optimization.
+
+**Implementation**: [internal/executor/docker.go](../../internal/executor/docker.go)
+
+**Build Pipeline**:
+1. **Image Pull**: Download Docker image with timeout and authentication
+2. **Container Creation**: Create container without running for filesystem access
+3. **Metadata Extraction**: Extract runtime configuration (CMD, ENTRYPOINT, ENV)
+4. **Filesystem Extraction**: Export container filesystem via docker export
+5. **Rootfs Optimization**: Remove unnecessary files and caches
+6. **Init Injection**: Inject metald-init for microVM execution
+7. **Ext4 Creation**: Generate filesystem image for Firecracker VMs
+
+**Critical Integration Points**:
+```go
+// Inject metald-init for VM execution
+func (d *DockerExecutor) injectMetaldInit(ctx context.Context, logger *slog.Logger, rootfsDir string) error
+```
+Source: [internal/executor/docker.go:969](../../internal/executor/docker.go#L969)
+
+```go
+// Create container command file for metald-init
+func (d *DockerExecutor) createContainerCmd(ctx context.Context, logger *slog.Logger, rootfsDir string, metadata *builderv1.ImageMetadata) error
+```
+Source: [internal/executor/docker.go:1027](../../internal/executor/docker.go#L1027)
+
+## Service Dependencies
+
+### Assetmanagerd Integration
+
+Builderd integrates closely with assetmanagerd for artifact management and microVM provisioning.
+
+**Client Implementation**: [internal/assetmanager/client.go](../../internal/assetmanager/client.go)
+
+**Integration Flow**:
+1. Build completion triggers automatic asset registration
+2. Rootfs and kernel assets uploaded via streaming API
+3. Tenant context preserved for access control
+4. Asset IDs returned for metald VM creation
+
+**Asset Registration**:
+```go
+assetID, err := s.assetClient.RegisterBuildArtifactWithID(
+    ctx, 
+    buildID, 
+    rootfsPath, 
+    assetv1.AssetType_ASSET_TYPE_ROOTFS, 
+    labels, 
+    suggestedAssetID
+)
+```
+Source: [internal/service/builder.go:280](../../internal/service/builder.go#L280)
+
+**Base Asset Initialization**:
+Builderd automatically downloads and registers base VM assets (kernel, rootfs) on startup to ensure microVM infrastructure availability.
+
+```go
+func initializeBaseAssets(ctx context.Context, logger *slog.Logger, cfg *config.Config, assetClient *assetmanager.Client) error
+```
+Source: [cmd/builderd/main.go:615](../../cmd/builderd/main.go#L615)
+
+### SPIFFE/SPIRE Authentication
+
+All service communications use SPIFFE/SPIRE for mTLS authentication and authorization.
+
+**TLS Provider Integration**: [pkg/tls](../../internal/config/config.go#L224)
+
+**Configuration**:
+```go
+type TLSConfig struct {
+    Mode             string // "disabled", "file", "spiffe"  
+    SPIFFESocketPath string // "/var/lib/spire/agent/agent.sock"
+    CertFile         string // For file-based TLS
+    KeyFile          string // For file-based TLS
+    CAFile           string // For file-based TLS
+}
+```
+Source: [internal/config/config.go:134](../../internal/config/config.go#L134)
+
+### Metald Integration
+
+While builderd doesn't directly call metald, it produces assets that metald consumes for VM creation.
+
+**Asset Labeling for Metald**:
+```go
+labels := map[string]string{
+    "docker_image": dockerSource.GetImageUri(),  // Enables metald VM queries
+    "tenant_id":    tenantID,
+    "customer_id":  customerID,
+}
+```
+Source: [internal/service/builder.go:261](../../internal/service/builder.go#L261)
+
+## Multi-Tenant Architecture
+
+### Tenant Isolation
+
+Builderd enforces strict tenant isolation at multiple layers:
+
+**Request-Level Isolation**:
+- Tenant authentication via SPIFFE identity validation
+- Resource quota enforcement per tenant tier
+- Storage path isolation for build artifacts
+
+**Tenant Context Flow**:
+```go
+type TenantContext struct {
+    TenantID       string
+    CustomerID     string  
+    Tier           TenantTier
+    Permissions    []string
+    Metadata       map[string]string
+}
+```
+Source: [proto/builder/v1/builder.proto:69](../../proto/builder/v1/builder.proto#L69)
+
+### Resource Quotas
+
+**Tenant Resource Limits**:
+```go
+type TenantResourceLimits struct {
+    MaxMemoryBytes       int64
+    MaxCPUCores         int32
+    MaxDiskBytes        int64
+    TimeoutSeconds      int32
+    MaxConcurrentBuilds int32
+    MaxDailyBuilds      int32
+    MaxStorageBytes     int64
+    MaxBuildTimeMinutes int32
+}
+```
+Source: [proto/builder/v1/builder.proto:207](../../proto/builder/v1/builder.proto#L207)
+
+**Default Limits by Tier**: [internal/config/config.go:188](../../internal/config/config.go#L188)
+
+### Tenant Manager
+
+**Implementation**: [internal/tenant/manager.go](../../internal/tenant/manager.go)
+
+Handles tenant-specific configuration, quota enforcement, and usage tracking.
 
 ## Build Execution Pipeline
 
-### Build Lifecycle
-
-1. **Request Validation**
-   - Tenant authentication via interceptor
-   - Build configuration validation
-   - Quota checks and resource limits
-
-2. **Build Scheduling** (Currently synchronous, async planned)
-   - Build job creation and persistence
-   - Resource allocation
-   - Executor selection based on source type
-
-3. **Source Processing**
-   - Docker: Pull image from registry
-   - Git: Clone repository (future)
-   - Archive: Download and extract (future)
-
-4. **Rootfs Generation**
-   - Extract layers/files to workspace
-   - Apply optimizations (strip debug, remove docs)
-   - Configure runtime (init strategy, environment)
-   - Package as rootfs archive
-
-5. **Artifact Management**
-   - Store rootfs in configured backend
-   - Register with assetmanagerd
-   - Update build metadata
-
-6. **Cleanup**
-   - Remove temporary workspace
-   - Release allocated resources
-   - Record metrics
-
-### Build States
-
-State transitions managed in [proto definition](../../../proto/builder/v1/builder.proto:38):
+### Build Lifecycle States
 
 ```
 PENDING → PULLING → EXTRACTING → BUILDING → OPTIMIZING → COMPLETED
-   ↓         ↓          ↓            ↓           ↓            ↓
-   └─────────┴──────────┴────────────┴───────────┴─→ FAILED
-                                                         ↓
-                                                    CANCELLED
+                                      ↓
+                                   FAILED
+                                      ↓  
+                                  CANCELLED
 ```
 
-## Multi-Tenant Isolation
+**State Definitions**: [proto/builder/v1/builder.proto:38](../../proto/builder/v1/builder.proto#L38)
 
-### Security Boundaries
+### Async Build Execution
 
-1. **Process Isolation**
-   - Separate Linux namespaces per build
-   - Unprivileged build processes
-   - No network access during builds
+Builds execute asynchronously to avoid blocking API calls:
 
-2. **Filesystem Isolation**
-   - Tenant-specific workspace directories
-   - Read-only bind mounts for shared resources
-   - Separate storage buckets per tenant
+```go
+s.buildWg.Add(1)
+go func() {
+    defer s.buildWg.Done()
+    buildCtx := s.shutdownCtx  // Shutdown-aware context
+    
+    // Build execution with coordinated cancellation
+    buildResult, err := s.executors.ExecuteWithID(buildCtx, req.Msg, buildJob.BuildId)
+}()
+```
+Source: [internal/service/builder.go:177](../../internal/service/builder.go#L177)
 
-3. **Resource Isolation**
-   - CPU and memory limits via cgroups
-   - Disk quota enforcement
-   - Build timeout enforcement
+### Build Result Processing
 
-### Tenant Tiers
-
-Defined in [proto](../../../proto/builder/v1/builder.proto:52):
-
-- **FREE**: Limited resources, shared infrastructure
-- **PRO**: Standard resources, basic isolation
-- **ENTERPRISE**: Higher limits, enhanced isolation
-- **DEDICATED**: Dedicated infrastructure, full isolation
-
-Each tier has configurable limits for:
-- Maximum concurrent builds
-- Daily build quota
-- CPU cores and memory
-- Storage capacity
-- Build timeout
+After successful builds:
+1. Update build job state and metadata
+2. Register rootfs with assetmanagerd  
+3. Register appropriate kernel with assetmanagerd
+4. Record build metrics and telemetry
 
 ## Storage Architecture
 
 ### Storage Backends
 
-1. **Local Filesystem**
-   - Development and single-node deployments
-   - Path: `{rootfs_output_dir}/{tenant_id}/{build_id}/`
-   - Retention via cron cleanup
+**Current Implementation**: Local filesystem storage with configurable backends.
 
-2. **S3/S3-Compatible**
-   - Production cloud deployments
-   - Bucket structure: `{bucket}/{tenant_id}/builds/{build_id}/`
-   - Lifecycle policies for retention
+**Configuration**: [internal/config/config.go:42](../../internal/config/config.go#L42)
 
-3. **Google Cloud Storage**
-   - GCP deployments
-   - Similar structure to S3
-   - IAM-based access control
+**Future Backends**:
+- **S3**: AWS S3 and S3-compatible storage
+- **GCS**: Google Cloud Storage
+- **NFS**: Network filesystem storage
 
-### Caching Strategy
+### Build Artifacts
 
-Build caching implemented at multiple levels:
-
-1. **Layer Cache** (Docker builds)
-   - Cache key: `{tenant_id}/{image_digest}/{layer_digest}`
-   - LRU eviction policy
-   - Shared across tenant builds
-
-2. **Artifact Cache**
-   - Completed rootfs images
-   - Cache key: `{source_hash}_{target_config_hash}`
-   - Tenant-isolated
-
-3. **Registry Mirror** (Optional)
-   - Local Docker registry mirror
-   - Reduces external bandwidth
-   - Improves pull performance
-
-## Service Interactions
-
-### Current Integrations
-
-1. **assetmanagerd**
-   - Register built artifacts via [client](../../../internal/assetmanager/client.go)
-   - Provides centralized asset tracking
-   - Enables artifact discovery for VMs
-
-2. **Docker Daemon**
-   - Local daemon for image operations
-   - Authentication for private registries
-   - Layer extraction and manipulation
-
-3. **SPIFFE/SPIRE**
-   - Service identity and authentication
-   - mTLS for service communication
-   - Dynamic certificate rotation
-
-### Future Integrations
-
-1. **metald** (Planned)
-   - Will consume builderd for on-demand builds
-   - Rootfs provisioning for new VMs
-   - Build status callbacks
-
-2. **billaged** (Planned)
-   - Resource usage metrics
-   - Build time and storage tracking
-   - Cost allocation per tenant
-
-3. **Message Queue** (Planned)
-   - Async build job queue
-   - Build status notifications
-   - Event-driven workflows
-
-## Concurrency Model
-
-### Request Handling
-- Each RPC handled in separate goroutine
-- Context propagation for cancellation
-- Timeout enforcement at multiple levels
-
-### Build Execution
-- Currently synchronous in request handler
-- Future: Worker pool with job queue
-- Configurable concurrency limits
-
-### Resource Management
-- Semaphore for concurrent build limits
-- Mutex protection for shared state
-- Atomic operations for metrics
-
-## Data Model
-
-### Build Job Structure
-
-Primary entity defined in [proto](../../../proto/builder/v1/builder.proto:295):
-
+**Directory Structure**:
 ```
-BuildJob
-├── build_id (UUID)
-├── config (BuildConfig)
-│   ├── tenant (TenantContext)
-│   ├── source (BuildSource)
-│   ├── target (BuildTarget)
-│   └── strategy (BuildStrategy)
-├── state (BuildState)
-├── timestamps
-│   ├── created_at
-│   ├── started_at
-│   └── completed_at
-├── results
-│   ├── rootfs_path
-│   ├── rootfs_size_bytes
-│   └── rootfs_checksum
-├── metrics (BuildMetrics)
-└── logs (array)
+/opt/builderd/
+├── workspace/           # Temporary build workspaces
+│   └── build-<id>/     # Per-build working directories
+├── rootfs/             # Built rootfs outputs
+│   ├── build-<id>.ext4     # Ext4 filesystem images
+│   ├── build-<id>.metadata.json # Container metadata
+│   └── base/               # Base VM assets (kernel, rootfs)
+└── scratch/            # Temporary storage during builds
 ```
 
-### Database Schema (Future)
+**Path Configuration**: [internal/config/config.go:32](../../internal/config/config.go#L32)
 
-```sql
--- Builds table
-CREATE TABLE builds (
-    id UUID PRIMARY KEY,
-    tenant_id TEXT NOT NULL,
-    customer_id TEXT,
-    state TEXT NOT NULL,
-    config JSONB NOT NULL,
-    created_at TIMESTAMP NOT NULL,
-    started_at TIMESTAMP,
-    completed_at TIMESTAMP,
-    rootfs_path TEXT,
-    error_message TEXT,
-    metrics JSONB,
-    INDEX idx_tenant_created (tenant_id, created_at DESC)
-);
+## Observability Architecture
 
--- Build logs table
-CREATE TABLE build_logs (
-    build_id UUID REFERENCES builds(id),
-    timestamp TIMESTAMP NOT NULL,
-    level TEXT NOT NULL,
-    message TEXT NOT NULL,
-    metadata JSONB,
-    INDEX idx_build_time (build_id, timestamp)
-);
+### OpenTelemetry Integration
+
+**Implementation**: [internal/observability/otel.go](../../internal/observability/otel.go)
+
+**Tracing Instrumentation**:
+- Build operation spans with step-level detail
+- Service-to-service request tracing  
+- Docker executor step tracing
+
+**Span Hierarchy**:
 ```
+builderd.docker.build
+├── builderd.docker.pull_image
+├── builderd.docker.create_container  
+├── builderd.docker.extract_filesystem
+├── builderd.docker.optimize_rootfs
+└── builderd.docker.create_ext4_image
+```
+
+### Metrics Collection
+
+**Implementation**: [internal/observability/metrics.go](../../internal/observability/metrics.go)
+
+**Key Metrics**:
+- `builderd_builds_total` - Build counters by type and tenant
+- `builderd_build_duration_seconds` - Build completion times
+- `builderd_active_builds` - Currently running builds
+- `builderd_build_errors_total` - Failure counters by error type
+
+**High-Cardinality Metrics**: Optional tenant-specific metrics when enabled.
+
+### Health Checks
+
+**Health Endpoint**: `/health` with rate limiting and comprehensive validation.
+
+**Implementation**: [cmd/builderd/main.go:497](../../cmd/builderd/main.go#L497)
+
+## Security Architecture
+
+### Process Isolation
+
+**Build Sandbox**: Each build executes in isolated environment with:
+- Temporary working directories with restricted permissions
+- Resource limits enforced via cgroups (planned)
+- Network isolation for registry access only
+
+### Path Validation
+
+**Security Validation**: [internal/executor/docker.go:799](../../internal/executor/docker.go#L799)
+
+```go
+func validateAndSanitizePath(rootfsDir, targetPath string) error {
+    // Prevent directory traversal attacks
+    // Validate path length and dangerous characters
+    // Ensure paths remain within rootfs directory
+}
+```
+
+### Registry Security
+
+**Docker Registry Authentication**: Support for private registries with credentials.
+
+**Configuration**: [internal/config/config.go:69](../../internal/config/config.go#L69)
+
+## Configuration Management
+
+### Environment Variables
+
+All configuration uses the `UNKEY_BUILDERD_*` prefix pattern:
+
+**Core Configuration**:
+- `UNKEY_BUILDERD_PORT` - Server port (default: 8082)
+- `UNKEY_BUILDERD_ADDRESS` - Bind address (default: 0.0.0.0)
+- `UNKEY_BUILDERD_MAX_CONCURRENT_BUILDS` - Build concurrency (default: 5)
+- `UNKEY_BUILDERD_BUILD_TIMEOUT` - Build timeout (default: 15m)
+
+**Full Configuration**: [internal/config/config.go:147](../../internal/config/config.go#L147)
+
+### Configuration Validation
+
+**Implementation**: [internal/config/config.go:250](../../internal/config/config.go#L250)
+
+Validates all configuration values on startup with clear error messages for misconfigurations.
 
 ## Error Handling
 
-### Error Categories
+### Build Error Types
 
-1. **Validation Errors**
-   - Invalid configuration
-   - Missing required fields
-   - Returns `INVALID_ARGUMENT`
+**Error Classification**: [internal/executor/types.go:99](../../internal/executor/types.go#L99)
 
-2. **Resource Errors**
-   - Quota exceeded
-   - No available executors
-   - Returns `RESOURCE_EXHAUSTED`
-
-3. **Execution Errors**
-   - Docker pull failures
-   - Build process crashes
-   - Returns `INTERNAL`
-
-4. **External Errors**
-   - Registry unavailable
-   - Storage backend issues
-   - Retry with backoff
+- `source_not_found` - Image/repository not accessible
+- `source_too_large` - Exceeds size limits
+- `extraction_failed` - Filesystem extraction error
+- `permission_denied` - Insufficient access rights
+- `quota_exceeded` - Tenant limits exceeded
+- `timeout` - Build timeout exceeded
+- `internal_error` - Server-side processing error
 
 ### Error Propagation
 
-```
-Client Request
-    ↓
-Interceptor (Auth/Logging)
-    ↓
-Service Handler
-    ↓
-Executor
-    ↓
-External Service (Docker/Storage)
-```
+Errors are consistently propagated with context and structured logging throughout the build pipeline.
 
-Errors bubble up with context preservation and are logged at each level.
-
-## Performance Considerations
-
-### Bottlenecks
-
-1. **Docker Operations**
-   - Image pulls are network-bound
-   - Layer extraction is I/O intensive
-   - Mitigation: Registry mirrors, parallel pulls
-
-2. **Storage I/O**
-   - Large rootfs writes
-   - Concurrent access patterns
-   - Mitigation: SSD storage, write batching
-
-3. **Memory Usage**
-   - Large images consume significant RAM
-   - Multiple concurrent builds
-   - Mitigation: Streaming processing, limits
-
-### Optimization Strategies
-
-1. **Caching**
-   - Layer-level Docker cache
-   - Completed build cache
-   - Registry response cache
-
-2. **Parallelization**
-   - Concurrent layer downloads
-   - Parallel optimization steps
-   - Async artifact registration
-
-3. **Resource Pooling**
-   - Reusable workspace directories
-   - Connection pooling for external services
-   - Executor instance pooling
-
-## Security Model
-
-### Authentication
-- SPIFFE identities for services
-- mTLS for all communication
-- Token-based tenant authentication
-
-### Authorization
-- Tenant-scoped operations
-- Resource-based access control
-- Audit logging for all actions
-
-### Build Security
-- Unprivileged build processes
-- No network access during builds
-- Input validation and sanitization
-- Resource limits enforcement
-
-## Monitoring and Debugging
-
-### Key Metrics
-- Build success/failure rates
-- Build duration percentiles
-- Resource utilization
-- Queue depths and wait times
-
-### Health Indicators
-- External service connectivity
-- Storage availability
-- Memory/CPU pressure
-- Error rates by category
-
-### Debug Tools
-- Structured JSON logs
-- OpenTelemetry traces
-- Build artifact inspection
-- Tenant usage reports
-
-## Future Architecture
+## Future Architecture Considerations
 
 ### Planned Enhancements
 
-1. **Async Job Queue**
-   - Redis/NATS-based queue
-   - Priority scheduling
-   - Job dependencies
+1. **Database Integration**: Persistent build job storage with PostgreSQL/SQLite
+2. **Build Caching**: Intermediate build artifact caching for performance
+3. **Git Integration**: Direct Git repository build support
+4. **Multi-Backend Executors**: Support for additional build strategies
+5. **Enhanced Resource Management**: cgroups-based resource isolation
 
-2. **Distributed Builds**
-   - Multiple builderd instances
-   - Shared storage backend
-   - Consistent hashing for distribution
+### Scalability Patterns
 
-3. **Build Plugins**
-   - Custom optimization steps
-   - Language-specific builders
-   - Post-processing hooks
-
-4. **Advanced Caching**
-   - Content-addressable storage
-   - Cross-tenant cache sharing
-   - Predictive cache warming
+- **Horizontal Scaling**: Multi-instance deployment with shared storage
+- **Work Distribution**: Queue-based build distribution (planned)
+- **Cache Layer**: Redis-based build result caching (planned)

@@ -47,10 +47,10 @@ graph TB
 
 | Service | Port | Role | Documentation |
 |---------|------|------|---------------|
-| [metald](../metald/) | 8080 | VM lifecycle orchestration, Firecracker management | [✓ Docs](../metald/docs/) |
-| [billaged](../billaged/) | 8081 | Usage tracking, billing aggregation, metering | [✓ Docs](../billaged/docs/) |
-| [builderd](../builderd/) | 8082 | VM image building, asset creation | [✓ Docs](../builderd/docs/) |
-| [assetmanagerd](../assetmanagerd/) | 8083 | VM asset storage, distribution, lifecycle | [✓ Docs](../assetmanagerd/docs/) |
+| [metald](../metald/) | 8080 | VM lifecycle orchestration, Firecracker management | [✓ Complete](../metald/docs/) |
+| [billaged](../billaged/) | 8081 | Usage tracking, billing aggregation, metering | [✓ Complete](../billaged/docs/) |
+| [builderd](../builderd/) | 8082 | VM image building, asset creation | [✓ Complete](../builderd/docs/) |
+| [assetmanagerd](../assetmanagerd/) | 8083 | VM asset storage, distribution, lifecycle | [✓ Complete](../assetmanagerd/docs/) |
 
 ### Technology Stack
 
@@ -153,10 +153,10 @@ UNKEY_*_OTEL_ENDPOINT=http://localhost:4318
 - Efficient caching and staging
 
 ### Image Building (builderd)
-- Custom VM image creation
-- Multi-architecture support
-- Automated build pipelines
-- Asset registration integration (planned)
+- Custom VM image creation from Docker, Git, and Archive sources
+- Multi-architecture support with pluggable executor backends
+- Automated build pipelines with asset registration
+- Integration with assetmanagerd for automatic distribution
 
 ## Documentation Standards
 

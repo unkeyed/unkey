@@ -117,7 +117,7 @@ The service calculates a composite billing score based on weighted resource usag
 resourceScore = (cpuSeconds * 1.0) + (memoryGB * 0.5) + (diskMB * 0.3)
 ```
 
-[View implementation](internal/aggregator/aggregator.go:198-207)
+[View implementation](internal/aggregator/aggregator.go:282-326)
 
 ## API Highlights
 

@@ -1,605 +1,652 @@
 # Billaged Development Setup
 
-This guide covers building, testing, and contributing to the billaged service.
-
-## Table of Contents
-
-- [Prerequisites](#prerequisites)
-- [Development Environment](#development-environment)
-- [Building from Source](#building-from-source)
-- [Testing](#testing)
-- [Code Generation](#code-generation)
-- [Contributing](#contributing)
-- [Debugging](#debugging)
-
-## Prerequisites
-
-### Required Tools
-
-- **Go**: 1.22.0 or higher ([go.mod:3](../../go.mod:3))
-- **Make**: For build automation
-- **protoc**: Protocol buffer compiler (v3.19+)
-- **buf**: For protobuf management
-- **golangci-lint**: For code linting
-
-### Optional Tools
-
-- **Docker**: For containerized builds
-- **SPIRE**: For testing mTLS locally
-- **Prometheus**: For metrics testing
-- **grpcurl**: For API testing
-
-### Tool Installation
-
-```bash
-# Install Go (via official installer or package manager)
-# https://golang.org/dl/
-
-# Install protoc
-brew install protobuf  # macOS
-apt install protobuf-compiler  # Ubuntu/Debian
-
-# Install buf
-curl -sSL https://github.com/bufbuild/buf/releases/download/v1.28.1/buf-Linux-x86_64 \
-  -o /usr/local/bin/buf && chmod +x /usr/local/bin/buf
-
-# Install golangci-lint
-curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
-  | sh -s -- -b $(go env GOPATH)/bin v1.54.2
-
-# Install grpcurl
-go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest
-```
+This guide covers building, testing, and developing the billaged service locally.
 
 ## Development Environment
 
-### Project Structure
+### Prerequisites
 
-```
-billaged/
-├── cmd/
-│   └── billaged/
-│       └── main.go              # Application entry point
-├── internal/
-│   ├── aggregator/              # Core aggregation logic
-│   │   └── aggregator.go
-│   ├── config/                  # Configuration management
-│   │   └── config.go
-│   ├── observability/           # Metrics and tracing
-│   │   ├── interceptor.go
-│   │   ├── metrics.go
-│   │   └── otel.go
-│   └── service/                 # Service implementation
-│       └── billing.go
-├── proto/
-│   └── billing/v1/              # Protocol buffer definitions
-│       └── billing.proto
-├── gen/                         # Generated code (do not edit)
-│   └── billing/v1/
-├── contrib/
-│   ├── systemd/                 # Systemd unit files
-│   └── grafana-dashboards/      # Monitoring dashboards
-├── Makefile                     # Build automation
-├── go.mod                       # Go module definition
-└── go.sum                       # Dependency checksums
+#### Required Software
+- **Go 1.24.4+**: Primary development language ([go.mod](../../go.mod#L3))
+- **Protocol Buffers**: `protoc` compiler for gRPC/ConnectRPC code generation
+- **Buf**: Protocol buffer linting and generation tool
+- **Make**: Build automation and development tasks
+- **Docker**: Container runtime for integration testing (optional)
+
+#### Development Dependencies
+
+**Go Module**: [go.mod](../../go.mod)
+
+```bash
+# Core dependencies
+connectrpc.com/connect v1.18.1                    # ConnectRPC framework
+github.com/prometheus/client_golang v1.22.0       # Metrics collection
+go.opentelemetry.io/otel v1.37.0                 # Observability framework
+google.golang.org/protobuf v1.36.6               # Protocol buffer runtime
+
+# Unkey internal packages
+github.com/unkeyed/unkey/go/deploy/pkg/health     # Health check utilities
+github.com/unkeyed/unkey/go/deploy/pkg/tls        # TLS/SPIFFE integration
 ```
 
 ### Environment Setup
 
+#### Go Environment
+
 ```bash
-# Clone the repository
+# Verify Go installation
+go version  # Should be 1.24.4+
+
+# Set Go environment
+export GOPATH=$HOME/go
+export PATH=$PATH:$GOPATH/bin
+
+# Clone repository
 git clone https://github.com/unkeyed/unkey
 cd go/deploy/billaged
-
-# Download dependencies
-go mod download
-
-# Verify setup
-go mod verify
 ```
 
-### IDE Configuration
+#### Protocol Buffer Setup
 
-#### VS Code
+```bash
+# Install buf (recommended)
+curl -sSL "https://github.com/bufbuild/buf/releases/latest/download/buf-$(uname -s)-$(uname -m)" \
+  -o "/usr/local/bin/buf"
+chmod +x /usr/local/bin/buf
 
-`.vscode/settings.json`:
-```json
-{
-  "go.lintTool": "golangci-lint",
-  "go.lintFlags": ["--fast"],
-  "go.testFlags": ["-v"],
-  "go.buildTags": "",
-  "go.generateTestsFlags": ["-exported"]
-}
+# Alternative: Install protoc directly
+sudo apt-get install protobuf-compiler  # Ubuntu/Debian
+brew install protobuf                   # macOS
 ```
-
-#### GoLand
-
-1. Enable Go modules support
-2. Set GOPATH to module mode
-3. Configure golangci-lint as external tool
 
 ## Building from Source
 
-### Make Targets
+### Build System
 
-**Makefile**: [`Makefile:1-63`](../../Makefile:1-63)
+**Build Configuration**: [Makefile](../../Makefile)
+
+#### Standard Build
 
 ```bash
-# Build binary
+# Clean build
+make clean
 make build
 
-# Run tests
-make test
-
-# Run linter
-make lint
-
-# Generate code
-make generate
-
-# Install systemd service
-make install
-
-# Clean build artifacts
-make clean
-
-# Run all CI checks
-make ci
+# Output: build/billaged binary
+./build/billaged --version
 ```
 
-### Manual Build
+#### Development Build
 
 ```bash
-# Build for current platform
-go build -o billaged ./cmd/billaged
+# Build with debug symbols
+make build-debug
 
-# Build with version info
-go build -ldflags "-X main.version=v0.1.0" -o billaged ./cmd/billaged
+# Build with race detection
+make build-race
 
-# Cross-compile for Linux
-GOOS=linux GOARCH=amd64 go build -o billaged-linux-amd64 ./cmd/billaged
-
-# Build with race detector (development only)
-go build -race -o billaged-race ./cmd/billaged
+# Cross-compilation for Linux
+GOOS=linux GOARCH=amd64 make build
 ```
 
-### Docker Build
-
-```dockerfile
-# Dockerfile example
-FROM golang:1.22-alpine AS builder
-WORKDIR /app
-COPY . .
-RUN go mod download
-RUN go build -o billaged ./cmd/billaged
-
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates
-COPY --from=builder /app/billaged /billaged
-ENTRYPOINT ["/billaged"]
-```
+#### Protocol Buffer Generation
 
 ```bash
-# Build Docker image
-docker build -t billaged:dev .
+# Generate Go code from proto files
+make proto-gen
 
-# Run with environment variables
-docker run -e UNKEY_BILLAGED_TLS_MODE=disabled billaged:dev
+# Lint protocol buffer files
+make proto-lint
+
+# Clean generated files
+make proto-clean
+```
+
+**Generated Files**: [gen/](../../gen/)
+- `billing/v1/billing.pb.go` - Protocol buffer types
+- `billing/v1/billingv1connect/billing.connect.go` - ConnectRPC service stubs
+
+### Build Targets
+
+#### Available Make Targets
+
+```bash
+make help                    # Show all available targets
+make build                   # Build production binary
+make test                    # Run unit tests
+make test-integration        # Run integration tests
+make test-coverage           # Generate test coverage report
+make install                 # Install binary and systemd unit
+make clean                   # Clean build artifacts
+make fmt                     # Format Go code
+make lint                    # Run Go linting
+make proto-gen               # Generate protobuf code
+make proto-lint              # Lint protobuf files
+```
+
+## Local Development
+
+### Development Configuration
+
+#### Minimal Development Setup
+
+```bash
+# Development environment variables
+export UNKEY_BILLAGED_PORT=8081
+export UNKEY_BILLAGED_ADDRESS=127.0.0.1         # Localhost only
+export UNKEY_BILLAGED_AGGREGATION_INTERVAL=10s  # Faster feedback
+export UNKEY_BILLAGED_TLS_MODE=disabled         # No SPIFFE required
+export UNKEY_BILLAGED_OTEL_ENABLED=false        # Simplified observability
+```
+
+#### Full Development Setup
+
+```bash
+# Full-featured development environment
+export UNKEY_BILLAGED_PORT=8081
+export UNKEY_BILLAGED_ADDRESS=0.0.0.0
+export UNKEY_BILLAGED_AGGREGATION_INTERVAL=30s
+export UNKEY_BILLAGED_TLS_MODE=spiffe
+export UNKEY_BILLAGED_SPIFFE_SOCKET=/tmp/spire/agent.sock
+export UNKEY_BILLAGED_OTEL_ENABLED=true
+export UNKEY_BILLAGED_OTEL_PROMETHEUS_ENABLED=true
+export UNKEY_BILLAGED_OTEL_PROMETHEUS_PORT=9465
+```
+
+### Running Locally
+
+#### Development Server
+
+```bash
+# Run with development configuration
+make run-dev
+
+# Run with custom configuration
+go run cmd/billaged/main.go
+
+# Run with specific log level
+UNKEY_BILLAGED_LOG_LEVEL=debug go run cmd/billaged/main.go
+```
+
+#### Using Air for Live Reload
+
+```bash
+# Install air for live reloading
+go install github.com/cosmtrek/air@latest
+
+# Create .air.toml configuration
+cat > .air.toml << EOF
+root = "."
+cmd = "go run cmd/billaged/main.go"
+include_ext = ["go"]
+exclude_dir = ["build", "gen", "docs"]
+EOF
+
+# Start development server with live reload
+air
+```
+
+### Client Development
+
+#### CLI Tool Development
+
+**CLI Source**: [cmd/billaged-cli/main.go](../../cmd/billaged-cli/main.go)
+
+```bash
+# Build CLI tool
+cd cmd/billaged-cli
+go build -o billaged-cli
+
+# Test CLI commands
+./billaged-cli -server=http://localhost:8081 heartbeat
+./billaged-cli -server=http://localhost:8081 send-metrics
+./billaged-cli -server=http://localhost:8081 notify-started vm-test-123
+```
+
+#### Client Library Development
+
+**Client Library**: [client/](../../client/)
+
+```go
+// Example client usage for development
+package main
+
+import (
+    "context"
+    "log"
+    "time"
+    
+    "github.com/unkeyed/unkey/go/deploy/billaged/client"
+    billingv1 "github.com/unkeyed/unkey/go/deploy/billaged/gen/billing/v1"
+    "google.golang.org/protobuf/types/known/timestamppb"
+)
+
+func main() {
+    ctx := context.Background()
+    
+    // Development client configuration
+    config := client.Config{
+        ServerAddress: "http://localhost:8081",
+        UserID:       "dev-user-123",
+        TenantID:     "dev-tenant-456", 
+        TLSMode:      "disabled",
+        Timeout:      10 * time.Second,
+    }
+    
+    client, err := client.New(ctx, config)
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer client.Close()
+    
+    // Send test metrics
+    metrics := []*billingv1.VMMetrics{{
+        Timestamp:        timestamppb.Now(),
+        CpuTimeNanos:     1000000000,
+        MemoryUsageBytes: 512 * 1024 * 1024,
+        DiskReadBytes:    1024 * 1024,
+        DiskWriteBytes:   512 * 1024,
+        NetworkRxBytes:   2048,
+        NetworkTxBytes:   1024,
+    }}
+    
+    resp, err := client.SendMetricsBatch(ctx, &client.SendMetricsBatchRequest{
+        VmID:       "dev-vm-123",
+        CustomerID: "dev-tenant-456",
+        Metrics:    metrics,
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    log.Printf("Response: %+v", resp)
+}
 ```
 
 ## Testing
 
-### Unit Tests
+### Unit Testing
 
-**Test files**: [`*_test.go` pattern](../../internal/)
+#### Test Structure
+
+**Test Files**: Located alongside source files with `_test.go` suffix
 
 ```bash
-# Run all tests
+# Run all unit tests
 make test
 
-# Run with coverage
-go test -coverprofile=coverage.out ./...
-go tool cover -html=coverage.out
+# Run tests with coverage
+make test-coverage
 
 # Run specific package tests
-go test -v ./internal/aggregator
+go test ./internal/service/...
+go test ./internal/aggregator/...
+go test ./internal/config/...
 
-# Run with race detector
+# Run tests with verbose output
+go test -v ./...
+
+# Run tests with race detection
 go test -race ./...
-
-# Run specific test
-go test -run TestAggregator_ProcessMetricsBatch ./internal/aggregator
 ```
 
-### Integration Tests
+#### Test Coverage
 
 ```bash
-# Start test dependencies
-docker-compose -f test/docker-compose.yml up -d
+# Generate coverage report
+make test-coverage
 
-# Run integration tests
-go test -tags=integration ./test/integration
+# View coverage in browser
+go tool cover -html=coverage.out
 
-# Cleanup
-docker-compose -f test/docker-compose.yml down
+# Coverage by package
+go test -coverprofile=cover.out ./...
+go tool cover -func=cover.out
 ```
 
-### Test Patterns
+### Integration Testing
 
-#### Table-Driven Tests
+#### Service Integration Tests
+
+**Test Location**: [internal/service/](../../internal/service/)
 
 ```go
-func TestAggregator_CalculateDelta(t *testing.T) {
-    tests := []struct {
-        name     string
-        current  int64
-        previous int64
-        want     int64
-    }{
-        {"normal increment", 100, 50, 50},
-        {"counter reset", 10, 100, 10},
-        {"first value", 100, 0, 100},
+// Example integration test structure
+func TestBillingServiceIntegration(t *testing.T) {
+    // Setup test aggregator
+    logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+    agg := aggregator.NewAggregator(logger, 5*time.Second)
+    
+    // Create service with test metrics
+    service := service.NewBillingService(logger, agg, nil)
+    
+    // Test metrics processing
+    req := &billingv1.SendMetricsBatchRequest{
+        VmId:       "test-vm-123",
+        CustomerId: "test-customer",
+        Metrics:    generateTestMetrics(),
     }
+    
+    resp, err := service.SendMetricsBatch(context.Background(), connect.NewRequest(req))
+    require.NoError(t, err)
+    assert.True(t, resp.Msg.Success)
+}
+```
 
+#### End-to-End Testing
+
+```bash
+# Start development server
+UNKEY_BILLAGED_TLS_MODE=disabled go run cmd/billaged/main.go &
+SERVER_PID=$!
+
+# Run integration tests
+go test -tags=integration ./test/integration/...
+
+# Cleanup
+kill $SERVER_PID
+```
+
+### Mock Testing
+
+#### Aggregator Mock Testing
+
+**Test Implementation**: [internal/aggregator/aggregator_test.go](../../internal/aggregator/)
+
+```go
+func TestAggregatorResourceScoring(t *testing.T) {
+    tests := []struct {
+        name           string
+        metrics        []*billingv1.VMMetrics
+        expectedScore  float64
+    }{
+        {
+            name: "cpu_heavy_workload",
+            metrics: generateCPUHeavyMetrics(),
+            expectedScore: 3.5, // Expected resource score
+        },
+        {
+            name: "memory_heavy_workload", 
+            metrics: generateMemoryHeavyMetrics(),
+            expectedScore: 2.8,
+        },
+    }
+    
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
-            got := calculateDelta(tt.current, tt.previous)
-            if got != tt.want {
-                t.Errorf("got %d, want %d", got, tt.want)
-            }
+            agg := aggregator.NewAggregator(logger, time.Minute)
+            agg.ProcessMetricsBatch("test-vm", "test-customer", tt.metrics)
+            
+            // Verify resource score calculation
+            summary := agg.GenerateUsageSummary("test-vm")
+            assert.InDelta(t, tt.expectedScore, summary.ResourceScore, 0.1)
         })
     }
 }
 ```
 
-#### Mock Testing
+### Performance Testing
+
+#### Benchmark Tests
 
 ```go
-// Mock billing client for testing
-type mockBillingClient struct {
-    recordedMetrics []VMMetrics
+// Benchmark aggregation performance
+func BenchmarkAggregatorProcessing(b *testing.B) {
+    logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+    agg := aggregator.NewAggregator(logger, time.Minute)
+    metrics := generateLargeMetricsBatch(100) // 100 metrics
+    
+    b.ResetTimer()
+    for i := 0; i < b.N; i++ {
+        agg.ProcessMetricsBatch("bench-vm", "bench-customer", metrics)
+    }
 }
-
-func (m *mockBillingClient) SendMetricsBatch(ctx context.Context, batch []VMMetrics) error {
-    m.recordedMetrics = append(m.recordedMetrics, batch...)
-    return nil
-}
 ```
 
-### Benchmarks
+#### Load Testing
 
 ```bash
-# Run benchmarks
-go test -bench=. ./internal/aggregator
+# Install load testing tool
+go install github.com/rakyll/hey@latest
 
-# Run with memory profiling
-go test -bench=. -benchmem ./internal/aggregator
+# Basic load test
+hey -n 1000 -c 10 -m POST \
+  -H "Content-Type: application/json" \
+  -d '{"vm_id":"load-test","customer_id":"test","metrics":[]}' \
+  http://localhost:8081/billing.v1.BillingService/SendMetricsBatch
 
-# Compare benchmarks
-go test -bench=. ./internal/aggregator > old.txt
-# make changes
-go test -bench=. ./internal/aggregator > new.txt
-benchstat old.txt new.txt
+# Sustained load test
+hey -n 10000 -c 50 -q 100 \
+  -H "Content-Type: application/json" \
+  -d @test-metrics.json \
+  http://localhost:8081/billing.v1.BillingService/SendMetricsBatch
 ```
-
-## Code Generation
-
-### Protocol Buffers
-
-**Proto files**: [`proto/billing/v1/`](../../proto/billing/v1/)
-
-```bash
-# Generate Go code from proto files
-make generate
-
-# Manual generation
-buf generate
-
-# Verify generated code is up to date
-git diff --exit-code gen/
-```
-
-### buf Configuration
-
-`buf.gen.yaml`:
-```yaml
-version: v2
-plugins:
-  - plugin: buf.build/protocolbuffers/go
-    out: gen
-    opt: paths=source_relative
-  - plugin: buf.build/connectrpc/go
-    out: gen
-    opt: paths=source_relative
-```
-
-## Contributing
-
-### Code Style
-
-The project uses standard Go formatting and conventions:
-
-```bash
-# Format code
-gofmt -w .
-
-# Run linter
-golangci-lint run
-
-# Fix linter issues
-golangci-lint run --fix
-```
-
-### Commit Guidelines
-
-Follow conventional commits:
-
-```
-feat: add new aggregation algorithm
-fix: handle counter resets properly
-docs: update API documentation
-test: add benchmarks for aggregator
-refactor: simplify metric processing
-```
-
-### Pull Request Process
-
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature/my-feature`
-3. Make changes and add tests
-4. Run CI checks: `make ci`
-5. Commit with clear message
-6. Push branch and create PR
-
-### Code Review Checklist
-
-- [ ] Tests pass (`make test`)
-- [ ] Linter passes (`make lint`)
-- [ ] Documentation updated
-- [ ] Benchmarks if performance-critical
-- [ ] No sensitive data in logs
-- [ ] Error handling follows patterns
 
 ## Debugging
 
-### Local Development
+### Debugging Tools
 
-```bash
-# Run with debug logging
-go run ./cmd/billaged
-
-# Run with specific config
-UNKEY_BILLAGED_TLS_MODE=disabled \
-UNKEY_BILLAGED_AGGREGATION_INTERVAL=10s \
-go run ./cmd/billaged
-```
-
-### Delve Debugger
+#### Go Debugging with Delve
 
 ```bash
 # Install delve
 go install github.com/go-delve/delve/cmd/dlv@latest
 
-# Debug the application
-dlv debug ./cmd/billaged
+# Debug main binary
+dlv debug cmd/billaged/main.go
 
 # Debug with arguments
-dlv debug ./cmd/billaged -- --config=debug.yaml
+dlv debug cmd/billaged/main.go -- --help
 
 # Attach to running process
 dlv attach $(pgrep billaged)
 ```
 
-### VS Code Debug Configuration
-
-`.vscode/launch.json`:
-```json
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Debug billaged",
-      "type": "go",
-      "request": "launch",
-      "mode": "debug",
-      "program": "${workspaceFolder}/cmd/billaged",
-      "env": {
-        "UNKEY_BILLAGED_TLS_MODE": "disabled",
-        "UNKEY_BILLAGED_LOG_LEVEL": "debug"
-      }
-    }
-  ]
-}
-```
-
-### Performance Profiling
+#### Debug Configuration
 
 ```bash
-# CPU profiling
-go run -cpuprofile=cpu.prof ./cmd/billaged
+# Enable debug logging
+export UNKEY_BILLAGED_LOG_LEVEL=debug
 
-# Memory profiling
-go run -memprofile=mem.prof ./cmd/billaged
-
-# Analyze profiles
-go tool pprof cpu.prof
-go tool pprof mem.prof
-
-# Generate flame graph
-go tool pprof -http=:8080 cpu.prof
+# Enable Go runtime debugging
+export GODEBUG=gctrace=1           # GC debugging
+export GODEBUG=schedtrace=1000     # Scheduler debugging
 ```
 
-### Testing with grpcurl
+### Development Observability
+
+#### Local Prometheus Setup
 
 ```bash
-# List services
-grpcurl -plaintext localhost:8081 list
+# Start Prometheus with development configuration
+cat > prometheus-dev.yml << EOF
+global:
+  scrape_interval: 15s
 
-# Describe service
-grpcurl -plaintext localhost:8081 describe billing.v1.BillingService
+scrape_configs:
+  - job_name: 'billaged-dev'
+    static_configs:
+      - targets: ['localhost:9465']
+    scrape_interval: 5s
+EOF
 
-# Send test request
-grpcurl -plaintext -d '{
-  "vm_id": "test-vm",
-  "customer_id": "test-customer",
-  "metrics": [{
-    "timestamp": "2024-01-01T12:00:00Z",
-    "cpu_time_nanos": 1000000000,
-    "memory_usage_bytes": 1073741824
-  }]
-}' localhost:8081 billing.v1.BillingService/SendMetricsBatch
+# Run Prometheus
+prometheus --config.file=prometheus-dev.yml --web.listen-address=localhost:9090
 ```
 
-## Common Development Tasks
-
-### Adding a New RPC Method
-
-1. Update proto file:
-   ```protobuf
-   service BillingService {
-     // Existing methods...
-     rpc NewMethod(NewMethodRequest) returns (NewMethodResponse);
-   }
-   ```
-
-2. Generate code:
-   ```bash
-   make generate
-   ```
-
-3. Implement handler in [`internal/service/billing.go`](../../internal/service/billing.go):
-   ```go
-   func (s *BillingServiceServer) NewMethod(
-       ctx context.Context,
-       req *connect.Request[billingv1.NewMethodRequest],
-   ) (*connect.Response[billingv1.NewMethodResponse], error) {
-       // Implementation
-   }
-   ```
-
-4. Add tests:
-   ```go
-   func TestBillingService_NewMethod(t *testing.T) {
-       // Test implementation
-   }
-   ```
-
-### Adding Metrics
-
-1. Define metric in [`internal/observability/metrics.go`](../../internal/observability/metrics.go):
-   ```go
-   newMetric, err := meter.Float64Counter(
-       "billaged_new_metric_total",
-       metric.WithDescription("Description"),
-   )
-   ```
-
-2. Record metric in service:
-   ```go
-   s.metrics.NewMetric.Add(ctx, 1,
-       metric.WithAttributes(
-           attribute.String("key", "value"),
-       ),
-   )
-   ```
-
-### Updating Dependencies
+#### Local Grafana Setup
 
 ```bash
-# Update specific dependency
-go get -u github.com/connectrpc/connect-go
+# Start Grafana in development mode
+docker run -d -p 3000:3000 \
+  -e GF_SECURITY_ADMIN_PASSWORD=admin \
+  grafana/grafana
 
-# Update all dependencies
-go get -u ./...
-
-# Tidy module
-go mod tidy
-
-# Verify
-go mod verify
+# Import development dashboard
+curl -X POST http://admin:admin@localhost:3000/api/dashboards/db \
+  -H "Content-Type: application/json" \
+  -d @contrib/grafana-dashboards/development.json
 ```
 
-## Troubleshooting Development Issues
+### Local SPIFFE Setup
 
-### Common Problems
+#### Development SPIRE Configuration
 
-1. **Generated code out of sync**
-   ```bash
-   make generate
-   git add gen/
-   ```
+```bash
+# Start SPIRE server for development
+spire-server run -config spire/environments/development/server.conf &
 
-2. **Import errors**
-   ```bash
-   go mod tidy
-   go mod download
-   ```
+# Start SPIRE agent
+spire-agent run -config spire/environments/development/agent.conf &
 
-3. **Linter failures**
-   ```bash
-   golangci-lint run --fix
-   ```
+# Register billaged workload
+spire-server entry create \
+  -spiffeID spiffe://dev.unkey.io/billaged \
+  -parentID spiffe://dev.unkey.io/agent \
+  -selector unix:uid:$(id -u) \
+  -selector unix:gid:$(id -g)
 
-4. **Test failures**
-   ```bash
-   go test -v ./... -short
-   ```
+# Verify registration
+spire-server entry show
+```
 
-### Getting Help
+## Code Quality
 
-- Check existing issues on GitHub
-- Review AIDEV comments in code
-- Consult Go documentation
-- Ask in project discussions
+### Linting and Formatting
 
-## Performance Optimization
+#### Go Code Quality
 
-### Profiling Checklist
+```bash
+# Format code
+make fmt
+gofmt -w .
+goimports -w .
 
-1. **CPU Profile**: Identify hot paths
-2. **Memory Profile**: Find allocations
-3. **Goroutine Profile**: Check for leaks
-4. **Block Profile**: Find contention
+# Lint code
+make lint
+golangci-lint run
 
-### Common Optimizations
+# Vet code
+go vet ./...
 
-1. **Reduce Allocations**:
-   ```go
-   // Reuse slices
-   metrics = metrics[:0]
-   ```
+# Check for security issues
+gosec ./...
+```
 
-2. **Batch Operations**:
-   ```go
-   // Process in batches
-   for i := 0; i < len(metrics); i += batchSize {
-       end := min(i+batchSize, len(metrics))
-       processBatch(metrics[i:end])
-   }
-   ```
+#### Protocol Buffer Linting
 
-3. **Concurrent Processing**:
-   ```go
-   // Use worker pool
-   for i := 0; i < workers; i++ {
-       go worker(jobs, results)
-   }
-   ```
+```bash
+# Lint protobuf files
+make proto-lint
+buf lint
 
-## Release Process
+# Format protobuf files
+buf format -w
 
-### Version Management
+# Check breaking changes
+buf breaking --against .git#HEAD~1
+```
 
-Update version in:
-1. [`cmd/billaged/main.go:31`](../../cmd/billaged/main.go:31) - `version` variable
-2. [`internal/config/config.go:25`](../../internal/config/config.go:25) - Default service version
-3. [`Makefile`](../../Makefile) - VERSION variable
+### Pre-commit Hooks
 
-### Release Checklist
+#### Git Hooks Setup
 
-1. Run all tests: `make ci`
-2. Update CHANGELOG.md
-3. Tag release: `git tag -a v0.1.1 -m "Release v0.1.1"`
-4. Build release binaries
-5. Update documentation
+```bash
+# Install pre-commit hooks
+cat > .git/hooks/pre-commit << 'EOF'
+#!/bin/bash
+set -e
+
+echo "Running pre-commit checks..."
+
+# Format code
+make fmt
+
+# Run linting
+make lint
+
+# Run tests
+make test
+
+echo "Pre-commit checks passed!"
+EOF
+
+chmod +x .git/hooks/pre-commit
+```
+
+### Documentation
+
+#### Code Documentation
+
+```bash
+# Generate Go documentation
+godoc -http=:6060
+
+# View documentation in browser
+open http://localhost:6060/pkg/github.com/unkeyed/unkey/go/deploy/billaged/
+```
+
+#### API Documentation
+
+```bash
+# Generate protobuf documentation
+buf generate --template buf.gen.doc.yaml
+
+# View generated documentation
+open docs/api/
+```
+
+## Contributing
+
+### Development Workflow
+
+#### Standard Development Flow
+
+1. **Feature Branch**: Create feature branch from main
+2. **Development**: Implement feature with tests
+3. **Testing**: Run full test suite including integration tests
+4. **Documentation**: Update relevant documentation
+5. **Review**: Submit pull request for code review
+6. **Integration**: Merge after approval and CI success
+
+#### Commit Message Format
+
+```
+type(scope): description
+
+body
+
+footer
+```
+
+**Examples**:
+```
+feat(aggregator): add resource score weighting configuration
+fix(service): handle empty metrics batch gracefully  
+docs(api): update SendMetricsBatch example
+test(client): add integration test for SPIFFE authentication
+```
+
+### Development Best Practices
+
+#### Code Organization
+
+- **Package Structure**: Follow Go package conventions with clear separation of concerns
+- **Error Handling**: Use structured errors with context for debugging
+- **Logging**: Use structured logging with appropriate levels and context
+- **Testing**: Write tests for all public APIs and critical business logic
+- **Documentation**: Document all public APIs and complex algorithms
+
+#### Performance Considerations
+
+- **Memory Efficiency**: Minimize allocations in hot paths
+- **Concurrency**: Use appropriate synchronization for shared data structures
+- **Resource Cleanup**: Ensure proper cleanup of resources and goroutines
+- **Metrics**: Add appropriate metrics for monitoring performance
+
+#### Security Practices
+
+- **Input Validation**: Validate all external inputs thoroughly
+- **Authentication**: Enforce SPIFFE authentication in production code paths
+- **Tenant Isolation**: Ensure customer data isolation at all levels
+- **Secrets Management**: Never commit secrets or certificates to source control

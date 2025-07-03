@@ -1,499 +1,766 @@
-# AssetManagerd Development Guide
+# Assetmanagerd Development Guide
 
-This guide covers setting up a development environment, building, testing, and contributing to AssetManagerd.
+This document provides comprehensive guidance for developing, testing, and contributing to assetmanagerd.
 
-## Development Environment
+## Development Environment Setup
 
 ### Prerequisites
 
-- **Go**: 1.21 or later
-- **Make**: GNU Make 4.0+
-- **SQLite**: 3.35+ (for CLI tools)
-- **protoc**: Protocol Buffer compiler
-- **buf**: For protobuf management
-- **SPIRE**: For local mTLS testing (optional)
+**Required Tools**:
+- Go 1.24.4 or later
+- Protocol Buffers compiler (`protoc`)
+- SQLite 3.x
+- Make
+- Docker (optional, for integration testing)
+
+**Go Dependencies**: [go.mod](../../go.mod)
+
+### Local Development
+
+#### Clone and Build
+
+```bash
+# Clone the repository
+cd /path/to/unkey/go/deploy/assetmanagerd
+
+# Install dependencies
+go mod download
+
+# Generate protobuf code
+make generate
+
+# Build the binary
+make build
+
+# Run tests
+make test
+```
+
+#### Makefile Targets
+
+**Build System**: [Makefile](../../Makefile)
+
+```bash
+# Development commands
+make build          # Build binary
+make test           # Run unit tests
+make lint           # Run linters
+make generate       # Generate protobuf code
+make clean          # Clean build artifacts
+
+# Installation commands
+make install        # Install with systemd unit
+make uninstall      # Remove systemd unit
+```
+
+### IDE Configuration
+
+#### VS Code Settings
+
+Create `.vscode/settings.json`:
+
+```json
+{
+  "go.buildTags": "integration",
+  "go.testFlags": ["-v", "-race"],
+  "go.lintTool": "golangci-lint",
+  "protobuf.path": [
+    "proto",
+    "../builderd/proto"
+  ]
+}
+```
+
+#### GoLand Configuration
+
+- Enable Go modules support
+- Configure Protocol Buffers plugin
+- Set build tags for integration tests
+- Enable race detection for tests
+
+## Code Architecture
 
 ### Project Structure
 
 ```
 assetmanagerd/
 ├── cmd/
-│   └── assetmanagerd/
-│       └── main.go              # Entry point
-├── proto/
-│   └── asset/v1/
-│       └── asset.proto          # API definitions
-├── gen/                         # Generated code (do not edit)
+│   ├── assetmanagerd/          # Main service binary
+│   └── assetmanagerd-cli/      # CLI client
 ├── internal/
-│   ├── config/                  # Configuration
-│   ├── observability/           # Metrics and tracing
-│   ├── registry/                # SQLite database
-│   ├── service/                 # Business logic
-│   └── storage/                 # Storage backends
-├── build/                       # Build artifacts
+│   ├── builderd/               # Builderd client integration
+│   ├── config/                 # Configuration management
+│   ├── observability/          # Telemetry and monitoring
+│   ├── registry/               # SQLite asset registry
+│   ├── service/                # gRPC service implementation
+│   └── storage/                # Storage backend interfaces
+├── client/                     # Go client library
+├── proto/asset/v1/             # Protocol buffer definitions
+├── gen/asset/v1/              # Generated code
 ├── contrib/
-│   ├── systemd/                 # Service files
-│   └── grafana-dashboards/      # Monitoring
-├── Makefile                     # Build automation
-└── go.mod                       # Go module definition
+│   ├── grafana-dashboards/    # Monitoring dashboards
+│   └── systemd/               # Service unit files
+└── docs/                      # Documentation
 ```
 
-## Building
+### Design Principles
 
-### Quick Start
+#### AIDEV Anchors
 
-```bash
-# Clone the repository
-git clone https://github.com/unkeyed/unkey
-cd unkey/go/deploy/assetmanagerd
+The codebase uses AIDEV anchor comments for important design decisions:
 
-# Build the binary
-make build
+**Search Command**: `grep -r "AIDEV-" assetmanagerd/`
 
-# Run locally
-./build/assetmanagerd
-```
+Key anchors to understand:
+- `AIDEV-NOTE`: Implementation explanations
+- `AIDEV-BUSINESS_RULE`: Critical business logic
+- `AIDEV-TODO`: Planned improvements
+- `AIDEV-QUESTION`: Areas needing clarification
 
-### Makefile Targets
+#### Error Handling
 
-**Core targets** ([Makefile](../../Makefile)):
-
-```bash
-make build      # Build binary to ./build/
-make install    # Build and install with systemd
-make clean      # Remove build artifacts
-make test       # Run unit tests
-make lint       # Run linters
-make proto      # Regenerate protobuf code
-```
-
-### Build Process
-
-The build process ([Makefile:8-10](../../Makefile:8-10)):
-
-```makefile
-build:
-	@echo "Building assetmanagerd..."
-	go build -o build/assetmanagerd cmd/assetmanagerd/main.go
-```
-
-Version is embedded at build time ([cmd/assetmanagerd/main.go:21](../../cmd/assetmanagerd/main.go:21)):
+Consistent error handling patterns:
 
 ```go
-const version = "v0.1.0"
+// Use ConnectRPC error codes
+return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("name is required"))
+
+// Wrap storage errors
+if err != nil {
+    return fmt.Errorf("failed to store asset: %w", err)
+}
+
+// Log errors with context
+s.logger.LogAttrs(ctx, slog.LevelError, "failed to get asset",
+    slog.String("id", assetID),
+    slog.String("error", err.Error()),
+)
 ```
 
-### Cross-Compilation
+#### Context Propagation
 
-```bash
-# Build for different platforms
-GOOS=linux GOARCH=amd64 make build
-GOOS=linux GOARCH=arm64 make build
+Proper context usage throughout the codebase:
+
+```go
+// Always pass context from RPC handlers
+func (s *Service) RegisterAsset(ctx context.Context, req *connect.Request[...]) {
+    // Pass context to all operations
+    exists, err := s.storage.Exists(ctx, location)
+    
+    // Use context for cancellation
+    select {
+    case <-ctx.Done():
+        return ctx.Err()
+    case result := <-resultChan:
+        return result
+    }
+}
 ```
 
-## Local Development
-
-### Running Locally
-
-1. **Basic Setup**:
-```bash
-# Create directories
-mkdir -p /tmp/assetmanagerd/{db,assets}
-
-# Set minimal environment
-export UNKEY_ASSETMANAGERD_DATABASE_PATH=/tmp/assetmanagerd/db/assets.db
-export UNKEY_ASSETMANAGERD_LOCAL_STORAGE_PATH=/tmp/assetmanagerd/assets
-export UNKEY_ASSETMANAGERD_TLS_MODE=insecure  # For testing only!
-
-# Run
-./build/assetmanagerd
-```
-
-2. **With SPIFFE/SPIRE**:
-```bash
-# Start SPIRE agent (see SPIRE docs)
-spire-agent run -config /path/to/agent.conf &
-
-# Run with SPIFFE
-export UNKEY_ASSETMANAGERD_TLS_MODE=spiffe
-export SPIFFE_ENDPOINT_SOCKET=unix:///tmp/spire-agent/public/api.sock
-./build/assetmanagerd
-```
-
-### Development Configuration
-
-Create a `.env` file for development:
-
-```bash
-# .env.development
-UNKEY_ASSETMANAGERD_PORT=8083
-UNKEY_ASSETMANAGERD_METRICS_PORT=9467
-UNKEY_ASSETMANAGERD_LOG_LEVEL=debug
-UNKEY_ASSETMANAGERD_DATABASE_PATH=/tmp/assetmanagerd/assets.db
-UNKEY_ASSETMANAGERD_LOCAL_STORAGE_PATH=/tmp/assetmanagerd/assets
-UNKEY_ASSETMANAGERD_GC_ENABLED=false  # Disable in dev
-UNKEY_ASSETMANAGERD_TLS_MODE=insecure
-```
-
-Load environment:
-```bash
-source .env.development
-./build/assetmanagerd
-```
-
-## Testing
+## Testing Strategy
 
 ### Unit Tests
 
-Run the test suite:
+Comprehensive unit test coverage with mocks and table-driven tests.
+
+#### Test Structure
+
+```go
+func TestService_RegisterAsset(t *testing.T) {
+    tests := []struct {
+        name           string
+        request        *assetv1.RegisterAssetRequest
+        mockSetup      func(*MockStorage, *MockRegistry)
+        expectedError  string
+        expectedAsset  *assetv1.Asset
+    }{
+        {
+            name: "successful registration",
+            request: &assetv1.RegisterAssetRequest{
+                Name:     "test-asset",
+                Type:     assetv1.AssetType_ASSET_TYPE_KERNEL,
+                Location: "test/path",
+            },
+            mockSetup: func(storage *MockStorage, registry *MockRegistry) {
+                storage.EXPECT().Exists(gomock.Any(), "test/path").Return(true, nil)
+                registry.EXPECT().CreateAsset(gomock.Any()).Return(nil)
+            },
+        },
+        // More test cases...
+    }
+    
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            // Test implementation
+        })
+    }
+}
+```
+
+#### Mock Generation
+
+Generate mocks for interfaces:
 
 ```bash
-# Run all tests
-make test
-
-# Run with coverage
-go test -coverprofile=coverage.out ./...
-go tool cover -html=coverage.out
-
-# Run specific package tests
-go test ./internal/registry/...
-
-# Verbose output
-go test -v ./...
+//go:generate mockgen -source=internal/storage/storage.go -destination=mocks/storage_mock.go
+//go:generate mockgen -source=internal/registry/registry.go -destination=mocks/registry_mock.go
 ```
 
 ### Integration Tests
 
-Test against a running service:
+Full-stack integration tests with real dependencies.
 
-```bash
-# Start the service
-./build/assetmanagerd &
+#### Test Environment
 
-# Run integration tests
-go test -tags=integration ./tests/...
-
-# Using grpcurl
-grpcurl -plaintext localhost:8083 list
-grpcurl -plaintext localhost:8083 asset.v1.AssetService/ListAssets
-```
-
-### Test Data
-
-Generate test assets:
-
-```bash
-# Create test kernel
-dd if=/dev/zero of=/tmp/test-kernel bs=1M count=50
-sha256sum /tmp/test-kernel
-
-# Register via grpcurl
-grpcurl -plaintext -d '{
-  "name": "test-kernel",
-  "type": "ASSET_TYPE_KERNEL",
-  "location": "/tmp/test-kernel",
-  "size_bytes": 52428800,
-  "checksum": "sha256:...",
-  "labels": {"test": "true"}
-}' localhost:8083 asset.v1.AssetService/RegisterAsset
-```
-
-## Protocol Buffers
-
-### Modifying the API
-
-1. **Edit the proto file**:
-```bash
-vim proto/asset/v1/asset.proto
-```
-
-2. **Regenerate code**:
-```bash
-make proto
-```
-
-3. **Update implementation**:
-- Modify service methods in `internal/service/service.go`
-- Update any affected clients
-
-### Code Generation
-
-The project uses [buf](https://buf.build/) for protobuf management:
-
-```yaml
-# buf.gen.yaml
-version: v2
-plugins:
-  - plugin: go
-    out: gen
-    opt: paths=source_relative
-  - plugin: connect-go
-    out: gen
-    opt: paths=source_relative
-```
-
-## Code Style
-
-### Go Standards
-
-Follow standard Go conventions:
-- Run `gofmt` on all code
-- Follow [Effective Go](https://golang.org/doc/effective_go)
-- Use meaningful variable names
-- Add comments for exported functions
-
-### Project Conventions
-
-1. **Error Handling**:
 ```go
-if err != nil {
-    return nil, fmt.Errorf("failed to create asset: %w", err)
+func setupTestEnvironment(t *testing.T) (*Service, func()) {
+    // Create temporary directories
+    tempDir := t.TempDir()
+    
+    // Setup test database
+    dbPath := filepath.Join(tempDir, "test.db")
+    registry, err := registry.New(dbPath, slog.Default())
+    require.NoError(t, err)
+    
+    // Setup test storage
+    storagePath := filepath.Join(tempDir, "storage")
+    storage, err := storage.NewLocalBackend(storagePath, slog.Default())
+    require.NoError(t, err)
+    
+    // Create service
+    cfg := &config.Config{
+        StorageBackend:   "local",
+        LocalStoragePath: storagePath,
+        DatabasePath:     dbPath,
+    }
+    
+    service := service.New(cfg, slog.Default(), registry, storage, nil)
+    
+    return service, func() {
+        registry.Close()
+    }
 }
 ```
 
-2. **Logging**:
+#### Integration Test Examples
+
 ```go
-slog.Info("asset registered",
-    "asset_id", asset.ID,
-    "type", asset.Type,
-    "size_bytes", asset.SizeBytes,
+func TestIntegration_AssetLifecycle(t *testing.T) {
+    service, cleanup := setupTestEnvironment(t)
+    defer cleanup()
+    
+    // Test full asset lifecycle
+    ctx := context.Background()
+    
+    // 1. Register asset
+    registerReq := &assetv1.RegisterAssetRequest{...}
+    registerResp, err := service.RegisterAsset(ctx, connect.NewRequest(registerReq))
+    require.NoError(t, err)
+    
+    // 2. Acquire asset
+    acquireReq := &assetv1.AcquireAssetRequest{...}
+    acquireResp, err := service.AcquireAsset(ctx, connect.NewRequest(acquireReq))
+    require.NoError(t, err)
+    
+    // 3. Release asset
+    releaseReq := &assetv1.ReleaseAssetRequest{...}
+    _, err = service.ReleaseAsset(ctx, connect.NewRequest(releaseReq))
+    require.NoError(t, err)
+    
+    // 4. Delete asset
+    deleteReq := &assetv1.DeleteAssetRequest{...}
+    deleteResp, err := service.DeleteAsset(ctx, connect.NewRequest(deleteReq))
+    require.NoError(t, err)
+    require.True(t, deleteResp.Msg.Deleted)
+}
+```
+
+### Performance Tests
+
+Benchmarks for critical operations:
+
+```go
+func BenchmarkService_ListAssets(b *testing.B) {
+    service, cleanup := setupBenchEnvironment(b)
+    defer cleanup()
+    
+    // Pre-populate with test data
+    populateTestAssets(b, service, 1000)
+    
+    ctx := context.Background()
+    req := &assetv1.ListAssetsRequest{PageSize: 100}
+    
+    b.ResetTimer()
+    for i := 0; i < b.N; i++ {
+        _, err := service.ListAssets(ctx, connect.NewRequest(req))
+        require.NoError(b, err)
+    }
+}
+```
+
+### Test Data Management
+
+#### Test Fixtures
+
+```go
+// test/fixtures/assets.go
+func NewTestKernel() *assetv1.Asset {
+    return &assetv1.Asset{
+        Id:       "01HN123456789ABCDEF",
+        Name:     "test-kernel",
+        Type:     assetv1.AssetType_ASSET_TYPE_KERNEL,
+        Status:   assetv1.AssetStatus_ASSET_STATUS_AVAILABLE,
+        Backend:  assetv1.StorageBackend_STORAGE_BACKEND_LOCAL,
+        Location: "test/vmlinux",
+        Labels: map[string]string{
+            "arch":    "x86_64",
+            "version": "5.10",
+        },
+    }
+}
+```
+
+#### Database Migrations
+
+Test database schema evolution:
+
+```go
+func TestDatabase_Migration(t *testing.T) {
+    // Test migration from older schema versions
+    // Ensure backward compatibility
+    // Verify data integrity after migration
+}
+```
+
+## Protocol Buffer Development
+
+### Schema Evolution
+
+Safe protobuf schema changes:
+
+#### Safe Changes
+- Adding new fields (with default values)
+- Adding new enum values (except for first position)
+- Adding new RPCs to services
+- Deprecating fields (don't remove immediately)
+
+#### Breaking Changes (Avoid)
+- Removing fields or changing field numbers
+- Changing field types
+- Removing enum values
+- Changing RPC signatures
+
+#### Example Evolution
+
+```protobuf
+// Before
+message Asset {
+  string id = 1;
+  string name = 2;
+  AssetType type = 3;
+}
+
+// After (safe evolution)
+message Asset {
+  string id = 1;
+  string name = 2;
+  AssetType type = 3;
+  string description = 4;      // New optional field
+  repeated string tags = 5;    // New repeated field
+  string deprecated_field = 6 [deprecated = true];  // Deprecated safely
+}
+```
+
+### Code Generation
+
+Automated protobuf code generation:
+
+```bash
+# Generate Go code
+buf generate
+
+# Verify generated code
+buf lint proto/
+buf breaking proto/ --against 'https://github.com/unkeyed/unkey.git#branch=main,subdir=go/deploy/assetmanagerd/proto'
+```
+
+**Generation Config**: [buf.gen.yaml](../../buf.gen.yaml)
+
+## Local Development Workflows
+
+### Running Locally
+
+#### Minimal Setup
+
+```bash
+# Set required environment variables
+export UNKEY_ASSETMANAGERD_PORT=8083
+export UNKEY_ASSETMANAGERD_LOCAL_STORAGE_PATH=/tmp/vm-assets
+export UNKEY_ASSETMANAGERD_DATABASE_PATH=/tmp/assets.db
+export UNKEY_ASSETMANAGERD_TLS_MODE=disabled  # For local dev only
+
+# Create storage directory
+mkdir -p /tmp/vm-assets
+
+# Run the service
+go run cmd/assetmanagerd/main.go
+```
+
+#### With SPIFFE (Production-like)
+
+```bash
+# Start SPIRE agent (if not running)
+sudo systemctl start spire-agent
+
+# Use SPIFFE mode
+export UNKEY_ASSETMANAGERD_TLS_MODE=spiffe
+export UNKEY_ASSETMANAGERD_SPIFFE_SOCKET=/var/lib/spire/agent/agent.sock
+
+# Run with mTLS
+go run cmd/assetmanagerd/main.go
+```
+
+#### With Builderd Integration
+
+```bash
+# Start builderd first
+cd ../builderd && go run cmd/builderd/main.go
+
+# Enable builderd integration
+export UNKEY_ASSETMANAGERD_BUILDERD_ENABLED=true
+export UNKEY_ASSETMANAGERD_BUILDERD_ENDPOINT=https://localhost:8082
+
+# Run assetmanagerd
+go run cmd/assetmanagerd/main.go
+```
+
+### Development Tools
+
+#### CLI Client
+
+Test service functionality with the CLI client:
+
+**CLI Implementation**: [assetmanagerd-cli/main.go](../../cmd/assetmanagerd-cli/main.go)
+
+```bash
+# Build CLI
+go build -o assetmanagerd-cli cmd/assetmanagerd-cli/main.go
+
+# List assets
+./assetmanagerd-cli list
+
+# Register an asset
+./assetmanagerd-cli register --name test-kernel --type kernel --location /path/to/vmlinux
+
+# Query with auto-build
+./assetmanagerd-cli query --type rootfs --label docker_image=nginx:latest --auto-build
+```
+
+#### gRPC Client
+
+Direct gRPC testing with grpcurl:
+
+```bash
+# List available services
+grpcurl -plaintext localhost:8083 list
+
+# Call specific RPC
+grpcurl -plaintext -d '{"type": 1}' localhost:8083 asset.v1.AssetManagerService/ListAssets
+
+# With mTLS (production)
+grpcurl -cert client.crt -key client.key -cacert ca.crt localhost:8083 list
+```
+
+#### Database Inspection
+
+Direct SQLite access for debugging:
+
+```bash
+# Open database
+sqlite3 /tmp/assets.db
+
+# Common queries
+.schema                              # Show schema
+SELECT COUNT(*) FROM assets;         # Asset count
+SELECT * FROM assets LIMIT 5;       # Recent assets
+SELECT * FROM asset_leases;          # Active leases
+```
+
+## Debugging Techniques
+
+### Logging Configuration
+
+Enhanced logging for development:
+
+```go
+// Enable debug logging
+logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+    Level: slog.LevelDebug,
+}))
+
+// Add request tracing
+logger = logger.With(
+    slog.String("request_id", requestID),
+    slog.String("tenant_id", tenantID),
 )
 ```
 
-3. **Context Usage**:
-```go
-ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-defer cancel()
-```
+### Profiling
 
-### Linting
+Go runtime profiling for performance analysis:
 
-Run linters before committing:
-
-```bash
-# golangci-lint (install: https://golangci-lint.run/)
-golangci-lint run
-
-# go vet
-go vet ./...
-
-# staticcheck
-staticcheck ./...
-```
-
-## Debugging
-
-### Enable Debug Logging
-
-```bash
-export UNKEY_ASSETMANAGERD_LOG_LEVEL=debug
-./build/assetmanagerd
-```
-
-### Using Delve
-
-```bash
-# Install delve
-go install github.com/go-delve/delve/cmd/dlv@latest
-
-# Debug the service
-dlv debug ./cmd/assetmanagerd/main.go
-
-# Set breakpoints
-(dlv) break main.main
-(dlv) break service.go:103  # RegisterAsset
-(dlv) continue
-```
-
-### Performance Profiling
-
-1. **Enable pprof** (add to main.go):
 ```go
 import _ "net/http/pprof"
+
+// Add pprof endpoint (development only)
 go func() {
     log.Println(http.ListenAndServe("localhost:6060", nil))
 }()
 ```
 
-2. **Collect profiles**:
+Access profiles:
 ```bash
 # CPU profile
-go tool pprof http://localhost:6060/debug/pprof/profile?seconds=30
+go tool pprof http://localhost:6060/debug/pprof/profile
 
 # Memory profile
 go tool pprof http://localhost:6060/debug/pprof/heap
 
-# Goroutine profile
+# Goroutine analysis
 go tool pprof http://localhost:6060/debug/pprof/goroutine
 ```
 
-### Database Debugging
+### Tracing
+
+OpenTelemetry tracing for request flow analysis:
+
+```go
+// Add custom spans
+ctx, span := otel.Tracer("assetmanagerd").Start(ctx, "custom_operation")
+defer span.End()
+
+// Add attributes
+span.SetAttributes(
+    attribute.String("asset.id", assetID),
+    attribute.Int64("asset.size", size),
+)
+```
+
+## Contributing Guidelines
+
+### Code Style
+
+#### Go Conventions
+- Follow standard Go formatting (`gofmt`, `goimports`)
+- Use meaningful variable names
+- Write self-documenting code
+- Add comments for exported functions
+
+#### Linting Rules
+
+**Linter Configuration**: [.golangci.yml](../../.golangci.yml)
 
 ```bash
-# Open SQLite CLI
-sqlite3 /tmp/assetmanagerd/assets.db
+# Run all linters
+golangci-lint run
 
-# Useful queries
-.tables
-.schema assets
-SELECT * FROM assets;
-SELECT COUNT(*) FROM asset_leases WHERE released_at IS NULL;
-
-# Monitor in real-time
-watch -n 1 'sqlite3 /tmp/assetmanagerd/assets.db "SELECT COUNT(*) FROM assets"'
+# Fix auto-fixable issues
+golangci-lint run --fix
 ```
 
-## Adding Features
+### Commit Guidelines
 
-### Example: Adding a New Storage Backend
+#### Commit Message Format
 
-1. **Define the interface** ([internal/storage/storage.go](../../internal/storage/storage.go)):
-```go
-type Storage interface {
-    Get(ctx context.Context, key string) (io.ReadCloser, error)
-    Put(ctx context.Context, key string, reader io.Reader) error
-    Delete(ctx context.Context, key string) error
-    Exists(ctx context.Context, key string) (bool, error)
-    Copy(ctx context.Context, srcKey, dstPath string) error
-}
+```
+type(scope): description
+
+[optional body]
+
+[optional footer]
 ```
 
-2. **Implement the backend**:
+Examples:
+```
+feat(api): add streaming upload support for large assets
+fix(storage): handle race condition in concurrent asset access
+docs(api): update RegisterAsset RPC documentation
+test(integration): add builderd integration test suite
+```
+
+#### Commit Types
+- `feat`: New features
+- `fix`: Bug fixes  
+- `docs`: Documentation changes
+- `test`: Test additions/modifications
+- `refactor`: Code refactoring
+- `perf`: Performance improvements
+- `chore`: Maintenance tasks
+
+### Pull Request Process
+
+1. **Branch Creation**: Create feature branch from `main`
+2. **Development**: Implement changes with tests
+3. **Testing**: Ensure all tests pass
+4. **Documentation**: Update relevant documentation
+5. **Review**: Submit PR with clear description
+6. **CI/CD**: Ensure all checks pass
+
+#### PR Template
+
+```markdown
+## Description
+Brief description of changes
+
+## Type of Change
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Breaking change
+- [ ] Documentation update
+
+## Testing
+- [ ] Unit tests added/updated
+- [ ] Integration tests added/updated
+- [ ] Manual testing performed
+
+## Checklist
+- [ ] Code follows style guidelines
+- [ ] Self-review completed
+- [ ] Documentation updated
+- [ ] No breaking changes without approval
+```
+
+### Release Process
+
+#### Version Management
+
+Semantic versioning with automated releases:
+
+```bash
+# Update version
+git tag v0.3.0
+
+# Build release
+make release
+
+# Publish artifacts
+make publish
+```
+
+#### Release Notes
+
+Automated generation from conventional commits:
+
+```bash
+# Generate changelog
+conventional-changelog -p angular -i CHANGELOG.md -s
+```
+
+## Advanced Development
+
+### Custom Storage Backends
+
+Implementing new storage backends:
+
 ```go
-// internal/storage/s3.go
-type S3Storage struct {
+// Implement the Backend interface
+type S3Backend struct {
     client *s3.Client
     bucket string
 }
 
-func (s *S3Storage) Get(ctx context.Context, key string) (io.ReadCloser, error) {
-    // Implementation
+func (b *S3Backend) Store(ctx context.Context, id string, reader io.Reader, size int64) (string, error) {
+    // S3 upload implementation
 }
-```
 
-3. **Register in factory**:
-```go
-// internal/storage/factory.go
-func NewStorage(backend string, config Config) (Storage, error) {
-    switch backend {
+// Register in storage factory
+func NewBackend(cfg *config.Config, logger *slog.Logger) (Backend, error) {
+    switch cfg.StorageBackend {
     case "s3":
-        return NewS3Storage(config)
-    // ...
+        return NewS3Backend(cfg, logger)
+    // ... other backends
     }
 }
 ```
 
-### Example: Adding a New RPC
+### Extension Points
 
-1. **Update proto**:
-```protobuf
-rpc VerifyAsset(VerifyAssetRequest) returns (VerifyAssetResponse);
+#### Middleware
 
-message VerifyAssetRequest {
-    string asset_id = 1;
-}
+Add custom middleware for gRPC interceptors:
 
-message VerifyAssetResponse {
-    bool valid = 1;
-    string actual_checksum = 2;
-}
-```
-
-2. **Regenerate code**:
-```bash
-make proto
-```
-
-3. **Implement method**:
 ```go
-func (s *Service) VerifyAsset(
-    ctx context.Context,
-    req *assetv1.VerifyAssetRequest,
-) (*assetv1.VerifyAssetResponse, error) {
-    // Implementation
+// Custom interceptor
+func customInterceptor() connect.UnaryInterceptorFunc {
+    return connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
+        return connect.UnaryFunc(func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+            // Custom logic before
+            resp, err := next(ctx, req)
+            // Custom logic after
+            return resp, err
+        })
+    })
 }
 ```
 
-## Contributing
+#### Event Hooks
 
-### Workflow
+Add event hooks for asset lifecycle:
 
-1. **Fork and clone** the repository
-2. **Create a feature branch**: `git checkout -b feature/my-feature`
-3. **Make changes** and add tests
-4. **Run tests**: `make test lint`
-5. **Commit** with descriptive message
-6. **Push** and create pull request
+```go
+type AssetHook interface {
+    OnAssetCreated(ctx context.Context, asset *assetv1.Asset) error
+    OnAssetDeleted(ctx context.Context, asset *assetv1.Asset) error
+}
 
-### Commit Messages
-
-Follow conventional commits:
-```
-feat: add S3 storage backend
-fix: prevent race condition in reference counting
-docs: update API examples
-test: add integration tests for GC
-chore: update dependencies
+// Register hooks in service
+func (s *Service) RegisterHook(hook AssetHook) {
+    s.hooks = append(s.hooks, hook)
+}
 ```
 
-### Pull Request Guidelines
+### Performance Optimization
 
-- Include tests for new features
-- Update documentation
-- Ensure CI passes
-- Add AIDEV comments for complex code
-- Follow existing patterns
+#### Database Optimization
 
-## Release Process
+```go
+// Prepared statements for common queries
+type PreparedQueries struct {
+    getAsset     *sql.Stmt
+    listAssets   *sql.Stmt
+    createLease  *sql.Stmt
+}
 
-1. **Update version** in `main.go`
-2. **Update CHANGELOG**
-3. **Tag release**: `git tag v0.2.0`
-4. **Build release binaries**:
-```bash
-# Build for multiple platforms
-for GOOS in linux darwin; do
-    for GOARCH in amd64 arm64; do
-        GOOS=$GOOS GOARCH=$GOARCH make build
-        mv build/assetmanagerd build/assetmanagerd-$GOOS-$GOARCH
-    done
-done
+// Connection pooling tuning
+db.SetMaxOpenConns(25)
+db.SetMaxIdleConns(5)
+db.SetConnMaxLifetime(5 * time.Minute)
 ```
 
-## Troubleshooting Development Issues
+#### Caching Layer
 
-### Common Problems
+```go
+// Asset metadata caching
+type CachedRegistry struct {
+    registry *Registry
+    cache    *lru.Cache
+    ttl      time.Duration
+}
 
-**1. "cannot find module"**
-```bash
-go mod download
-go mod tidy
+func (c *CachedRegistry) GetAsset(id string) (*assetv1.Asset, error) {
+    // Check cache first
+    if cached, ok := c.cache.Get(id); ok {
+        return cached.(*assetv1.Asset), nil
+    }
+    
+    // Fallback to database
+    asset, err := c.registry.GetAsset(id)
+    if err != nil {
+        return nil, err
+    }
+    
+    // Cache result
+    c.cache.Add(id, asset)
+    return asset, nil
+}
 ```
-
-**2. "proto files not found"**
-```bash
-make proto
-```
-
-**3. "permission denied" on storage**
-```bash
-# Check permissions
-ls -la /tmp/assetmanagerd/
-# Fix if needed
-chmod -R 755 /tmp/assetmanagerd/
-```
-
-**4. Port already in use**
-```bash
-# Find process
-lsof -i :8083
-# Or use different port
-export UNKEY_ASSETMANAGERD_PORT=8084
-```
-
-### Getting Help
-
-- Check existing issues on GitHub
-- Ask in development chat/forum
-- Review service logs with debug enabled
-- Use `git grep` to find examples in codebase

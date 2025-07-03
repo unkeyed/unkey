@@ -1,458 +1,598 @@
-# AssetManagerd Operations Guide
+# Assetmanagerd Operations Manual
 
-This guide covers deployment, monitoring, and operational procedures for AssetManagerd in production environments.
+This document provides comprehensive guidance for deploying, configuring, monitoring, and troubleshooting assetmanagerd in production environments.
 
-## Deployment
+## Installation & Deployment
 
-### System Requirements
+### Binary Installation
 
-- **OS**: Linux (Ubuntu 22.04+ or compatible)
-- **Memory**: 512MB minimum, 2GB recommended
-- **Storage**: 10GB minimum for metadata + asset storage needs
-- **Network**: Low latency to metald and builderd services
-
-### Installation
-
-AssetManagerd is distributed as a single Go binary and systemd service:
+Build and install using the service Makefile:
 
 ```bash
-# Build and install (from project root)
+# Build the binary
 cd assetmanagerd
-make install
+make build
 
-# This will:
-# 1. Build the binary to ./build/assetmanagerd
-# 2. Install to /usr/local/bin/assetmanagerd
-# 3. Install systemd unit from contrib/systemd/
-# 4. Create required directories
+# Install with systemd unit
+sudo make install
 ```
 
-### Directory Structure
-
-```
-/opt/assetmanagerd/
-├── assets.db           # SQLite metadata database
-└── logs/              # Service logs (if not using journald)
-
-/opt/vm-assets/        # Asset storage (configurable)
-├── ab/                # Sharded directories
-├── cd/
-└── ...
-
-/etc/assetmanagerd/    # Configuration (optional)
-└── config.yaml        # Not currently used
-```
+**Build Configuration**: [Makefile](../../Makefile)
 
 ### Systemd Service
 
-**Unit file**: [contrib/systemd/assetmanagerd.service](../../contrib/systemd/assetmanagerd.service)
+Service unit provides robust process management:
+
+**Unit File**: [assetmanagerd.service](../../contrib/systemd/assetmanagerd.service)
 
 ```bash
 # Service management
-systemctl start assetmanagerd
-systemctl status assetmanagerd
-systemctl enable assetmanagerd  # Auto-start on boot
+sudo systemctl enable assetmanagerd
+sudo systemctl start assetmanagerd
+sudo systemctl status assetmanagerd
 
-# View logs
-journalctl -u assetmanagerd -f
+# Log monitoring
+sudo journalctl -fu assetmanagerd
 ```
 
-### Configuration
+### Container Deployment
 
-All configuration via environment variables:
+Docker deployment with proper volume mounts:
+
+```dockerfile
+FROM alpine:latest
+RUN apk add --no-cache ca-certificates
+COPY assetmanagerd /usr/local/bin/
+EXPOSE 8083 9467
+USER 1000:1000
+ENTRYPOINT ["/usr/local/bin/assetmanagerd"]
+```
+
+Volume requirements:
+- `/opt/vm-assets`: Asset storage directory
+- `/opt/assetmanagerd`: Database and cache directory
+- `/var/lib/spire/agent/agent.sock`: SPIFFE agent socket
+
+## Configuration
+
+### Environment Variables
+
+Complete configuration reference with defaults and validation rules.
+
+**Config Source**: [config.go](../../internal/config/config.go)
+
+#### Service Configuration
 
 ```bash
-# /etc/assetmanagerd/environment
-UNKEY_ASSETMANAGERD_PORT=8083
-UNKEY_ASSETMANAGERD_METRICS_PORT=9467
-UNKEY_ASSETMANAGERD_STORAGE_BACKEND=local
+# Network configuration
+UNKEY_ASSETMANAGERD_PORT=8083                    # Service port (1-65535)
+UNKEY_ASSETMANAGERD_ADDRESS=0.0.0.0              # Bind address
+
+# Storage backend selection
+UNKEY_ASSETMANAGERD_STORAGE_BACKEND=local        # local|s3|nfs
 UNKEY_ASSETMANAGERD_LOCAL_STORAGE_PATH=/opt/vm-assets
 UNKEY_ASSETMANAGERD_DATABASE_PATH=/opt/assetmanagerd/assets.db
-UNKEY_ASSETMANAGERD_GC_ENABLED=true
-UNKEY_ASSETMANAGERD_GC_INTERVAL=3600s
-UNKEY_ASSETMANAGERD_GC_AGE_THRESHOLD=604800  # 7 days in seconds
-UNKEY_ASSETMANAGERD_LOG_LEVEL=info
-UNKEY_ASSETMANAGERD_TLS_MODE=spiffe
-SPIFFE_ENDPOINT_SOCKET=unix:///tmp/spire-agent/public/api.sock
+UNKEY_ASSETMANAGERD_CACHE_DIR=/opt/assetmanagerd/cache
 ```
 
-## Monitoring
+#### Storage Limits & Performance
+
+```bash
+# Asset size limits
+UNKEY_ASSETMANAGERD_MAX_ASSET_SIZE=10737418240    # 10GB max per asset
+UNKEY_ASSETMANAGERD_MAX_CACHE_SIZE=107374182400   # 100GB total cache
+
+# Performance tuning
+UNKEY_ASSETMANAGERD_DOWNLOAD_CONCURRENCY=4       # Concurrent downloads
+UNKEY_ASSETMANAGERD_DOWNLOAD_TIMEOUT=30m         # Download timeout
+```
+
+#### Garbage Collection
+
+```bash
+# GC scheduling and thresholds
+UNKEY_ASSETMANAGERD_GC_ENABLED=true              # Enable background GC
+UNKEY_ASSETMANAGERD_GC_INTERVAL=1h               # GC run frequency
+UNKEY_ASSETMANAGERD_GC_MAX_AGE=168h              # 7 days retention
+UNKEY_ASSETMANAGERD_GC_MIN_REFERENCES=0          # Min refs to preserve
+```
+
+#### Builderd Integration
+
+```bash
+# Auto-build configuration
+UNKEY_ASSETMANAGERD_BUILDERD_ENABLED=true                    # Enable integration
+UNKEY_ASSETMANAGERD_BUILDERD_ENDPOINT=https://localhost:8082 # Builderd URL
+UNKEY_ASSETMANAGERD_BUILDERD_TIMEOUT=30m                     # Build timeout
+UNKEY_ASSETMANAGERD_BUILDERD_AUTO_REGISTER=true              # Auto-register builds
+UNKEY_ASSETMANAGERD_BUILDERD_MAX_RETRIES=3                   # Retry attempts
+UNKEY_ASSETMANAGERD_BUILDERD_RETRY_DELAY=5s                  # Retry delay
+```
+
+#### TLS/SPIFFE Configuration
+
+```bash
+# SPIFFE/SPIRE integration (required)
+UNKEY_ASSETMANAGERD_TLS_MODE=spiffe                          # spiffe|file|disabled
+UNKEY_ASSETMANAGERD_SPIFFE_SOCKET=/var/lib/spire/agent/agent.sock
+
+# File-based TLS (alternative)
+UNKEY_ASSETMANAGERD_TLS_CERT_FILE=/path/to/cert.pem
+UNKEY_ASSETMANAGERD_TLS_KEY_FILE=/path/to/key.pem
+UNKEY_ASSETMANAGERD_TLS_CA_FILE=/path/to/ca.pem
+```
+
+#### Observability
+
+```bash
+# OpenTelemetry configuration
+UNKEY_ASSETMANAGERD_OTEL_ENABLED=true                        # Enable telemetry
+UNKEY_ASSETMANAGERD_OTEL_SERVICE_NAME=assetmanagerd
+UNKEY_ASSETMANAGERD_OTEL_SERVICE_VERSION=0.2.0
+UNKEY_ASSETMANAGERD_OTEL_ENDPOINT=localhost:4318             # OTLP collector
+UNKEY_ASSETMANAGERD_OTEL_SAMPLING_RATE=1.0                   # Trace sampling
+
+# Prometheus metrics
+UNKEY_ASSETMANAGERD_OTEL_PROMETHEUS_ENABLED=true
+UNKEY_ASSETMANAGERD_OTEL_PROMETHEUS_PORT=9467
+UNKEY_ASSETMANAGERD_OTEL_PROMETHEUS_INTERFACE=127.0.0.1      # Localhost only
+```
+
+### Configuration Validation
+
+The service performs comprehensive validation on startup:
+
+**Validation Logic**: [config.go:88-152](../../internal/config/config.go:88)
+
+Common validation errors:
+- Invalid port ranges (1-65535)
+- Storage backend misconfiguration
+- Size limit inconsistencies (cache < max asset)
+- Missing builderd endpoint when enabled
+- Invalid TLS mode specification
+
+## Monitoring & Metrics
 
 ### Health Checks
 
-AssetManagerd exposes a gRPC health check endpoint:
+Multiple health check endpoints for different monitoring needs:
 
 ```bash
-# Using grpc-health-probe
-grpc-health-probe -addr=localhost:8083 -tls -tls-no-verify
+# Service health (includes uptime and version)
+curl http://localhost:9467/health
 
-# Response codes:
-# - SERVING: Healthy and ready
-# - NOT_SERVING: Unhealthy
-# - UNKNOWN: Health check not implemented
+# Basic connectivity test
+curl https://localhost:8083/health.v1.HealthService/Check
 ```
 
-**Implementation**: Standard gRPC health service ([cmd/assetmanagerd/main.go](../../cmd/assetmanagerd/main.go))
+**Health Implementation**: [main.go:262](../../cmd/assetmanagerd/main.go:262)
 
-### Metrics
+### Prometheus Metrics
 
-Prometheus metrics exposed on port 9467:
+Comprehensive metrics exported on `:9467/metrics`:
 
-#### RPC Metrics
-- `assetmanagerd_rpc_requests_total{method,status}` - Total RPC requests
-- `assetmanagerd_rpc_duration_seconds{method,status}` - RPC latency histogram
-- `assetmanagerd_rpc_requests_in_flight` - Current concurrent requests
-
-#### Storage Metrics  
-- `assetmanagerd_storage_operations_total{op,status}` - Storage operations
-- `assetmanagerd_storage_duration_seconds{op}` - Storage operation latency
-- `assetmanagerd_storage_bytes_total{op}` - Bytes read/written
+#### Request Metrics
+- `http_request_duration_seconds` - Request duration histogram
+- `grpc_server_handling_seconds` - gRPC handling time
+- `assetmanagerd_requests_total` - Total request counter
+- `assetmanagerd_request_errors_total` - Error counter by type
 
 #### Asset Metrics
-- `assetmanagerd_assets_total{type,status}` - Total assets by type/status
-- `assetmanagerd_assets_size_bytes_total{type}` - Total storage by asset type
-- `assetmanagerd_assets_references_total` - Total active references
-- `assetmanagerd_assets_leases_active` - Active lease count
+- `assetmanagerd_assets_total` - Total assets by type/status
+- `assetmanagerd_asset_size_bytes` - Asset size distribution
+- `assetmanagerd_storage_usage_bytes` - Storage utilization
+- `assetmanagerd_cache_usage_bytes` - Cache utilization
 
-#### GC Metrics
-- `assetmanagerd_gc_runs_total{status}` - GC execution count
+#### Garbage Collection Metrics
+- `assetmanagerd_gc_runs_total` - GC execution counter
 - `assetmanagerd_gc_duration_seconds` - GC execution time
-- `assetmanagerd_gc_assets_deleted_total` - Assets cleaned up
-- `assetmanagerd_gc_bytes_reclaimed_total` - Storage reclaimed
+- `assetmanagerd_gc_assets_deleted_total` - Assets deleted counter
+- `assetmanagerd_gc_bytes_freed_total` - Storage freed counter
 
-### Prometheus Configuration
+#### Builderd Integration Metrics
+- `assetmanagerd_builds_triggered_total` - Auto-builds triggered
+- `assetmanagerd_build_duration_seconds` - Build completion time
+- `assetmanagerd_build_failures_total` - Build failure counter
 
-```yaml
-# prometheus.yml
-scrape_configs:
-  - job_name: 'assetmanagerd'
-    static_configs:
-      - targets: ['assetmanagerd:9467']
-    metric_relabel_configs:
-      - source_labels: [__name__]
-        regex: 'go_.*'
-        action: drop  # Drop Go runtime metrics if not needed
-```
+### OpenTelemetry Tracing
 
-### Grafana Dashboard
+Distributed tracing with OTLP export:
 
-Import the dashboard from [contrib/grafana-dashboards/assetmanagerd.json](../../contrib/grafana-dashboards/) (when available).
+**Trace Configuration**: [otel.go](../../internal/observability/otel.go)
 
-Key panels:
-- RPC request rate and latency
-- Storage operations and failures
-- Asset inventory by type
-- Reference count trends
-- GC effectiveness
+#### Key Trace Operations
+- `assetmanagerd.service.register_asset` - Asset registration
+- `assetmanagerd.service.trigger_build` - Builderd integration
+- `assetmanagerd.service.wait_for_build` - Build monitoring
+- `assetmanagerd.storage.store` - Storage operations
+- `assetmanagerd.registry.create_asset` - Database operations
 
-### Alerts
+#### Trace Attributes
+- `asset.id`, `asset.type`, `asset.size_bytes`
+- `docker.image`, `build.id`, `tenant.id`
+- `storage.backend`, `storage.location`
 
-Example Prometheus alert rules:
+### Logging
 
-```yaml
-groups:
-  - name: assetmanagerd
-    rules:
-      - alert: AssetManagerdDown
-        expr: up{job="assetmanagerd"} == 0
-        for: 5m
-        annotations:
-          summary: "AssetManagerd is down"
-          
-      - alert: AssetManagerdHighErrorRate
-        expr: rate(assetmanagerd_rpc_requests_total{status="error"}[5m]) > 0.05
-        for: 10m
-        annotations:
-          summary: "High RPC error rate"
-          
-      - alert: AssetManagerdStorageFull
-        expr: disk_usage_percent{path="/opt/vm-assets"} > 90
-        for: 5m
-        annotations:
-          summary: "Asset storage near capacity"
-          
-      - alert: AssetManagerdGCFailing
-        expr: rate(assetmanagerd_gc_runs_total{status="error"}[1h]) > 0
-        annotations:
-          summary: "Garbage collection failures"
-```
+Structured JSON logging with contextual information:
 
-## Logging
+**Log Configuration**: [main.go:76-80](../../cmd/assetmanagerd/main.go:76)
 
-AssetManagerd uses structured logging with slog:
+#### Log Levels
+- `ERROR`: Service failures, build errors, storage issues
+- `WARN`: Recoverable errors, expired leases, missing metadata
+- `INFO`: Operations, GC runs, build completions
+- `DEBUG`: Detailed request tracing (disabled in production)
 
+#### Key Log Fields
 ```json
 {
-  "time": "2024-01-20T10:30:45Z",
+  "time": "2024-01-15T10:30:00Z",
   "level": "INFO",
   "msg": "registered asset",
-  "asset_id": "550e8400-e29b-41d4-a716",
-  "type": "KERNEL",
-  "size_bytes": 12345678,
-  "trace_id": "abc123"
+  "component": "service",
+  "asset_id": "01HN123456789ABCDEF",
+  "name": "nginx-rootfs",
+  "type": "ASSET_TYPE_ROOTFS",
+  "size_bytes": 52428800,
+  "build_id": "01HN987654321FEDCBA"
 }
 ```
 
-### Log Levels
+## Storage Management
 
-Set via `UNKEY_ASSETMANAGERD_LOG_LEVEL`:
-- `debug` - Verbose debugging information
-- `info` - Normal operations (default)
-- `warn` - Warning conditions
-- `error` - Error conditions
+### Local Storage Organization
 
-### Log Aggregation
+Efficient filesystem organization for performance:
 
-For production, aggregate logs to a central system:
+**Storage Implementation**: [local.go](../../internal/storage/local.go)
+
+```
+/opt/vm-assets/
+├── 01/                    # First 2 chars of asset ID
+│   ├── 01HN123456789...   # Asset file
+│   └── 01HN234567890...   # Another asset
+├── 02/
+│   └── 02HN345678901...
+└── cache/                 # Downloaded remote assets
+    ├── downloads/
+    └── temp/
+```
+
+#### Sharding Benefits
+- Prevents directory scan performance issues
+- Enables parallel filesystem operations
+- Improves backup and maintenance efficiency
+
+**Sharding Logic**: [local.go:37-43](../../internal/storage/local.go:37)
+
+### Database Management
+
+SQLite database with WAL mode for performance:
+
+**Database Configuration**: [registry.go:31-39](../../internal/registry/registry.go:31)
 
 ```bash
-# Vector configuration example
-[sources.assetmanagerd]
-type = "journald"
-include_units = ["assetmanagerd"]
+# Database location
+/opt/assetmanagerd/assets.db
 
-[transforms.parse_assetmanagerd]
-type = "remap"
-inputs = ["assetmanagerd"]
-source = '''
-.service = "assetmanagerd"
-.level = .MESSAGE.level
-.asset_id = .MESSAGE.asset_id
-'''
-
-[sinks.elasticsearch]
-type = "elasticsearch"
-inputs = ["parse_assetmanagerd"]
-endpoints = ["http://elasticsearch:9200"]
+# Associated files
+/opt/assetmanagerd/assets.db-wal    # Write-ahead log
+/opt/assetmanagerd/assets.db-shm    # Shared memory
 ```
 
-## Operational Procedures
-
-### Backup and Recovery
-
-#### Database Backup
-
-The SQLite database contains critical metadata:
+#### Backup Strategy
 
 ```bash
-# Online backup (safe while running)
-sqlite3 /opt/assetmanagerd/assets.db ".backup /backup/assets.db"
+# Online backup (safe during operation)
+sqlite3 /opt/assetmanagerd/assets.db ".backup /backup/assets-$(date +%Y%m%d).db"
 
-# Scheduled backup script
-#!/bin/bash
-BACKUP_DIR="/backup/assetmanagerd/$(date +%Y%m%d)"
-mkdir -p "$BACKUP_DIR"
-sqlite3 /opt/assetmanagerd/assets.db ".backup $BACKUP_DIR/assets.db"
-find /backup/assetmanagerd -mtime +7 -delete  # Keep 7 days
+# Vacuum for maintenance (offline only)
+sudo systemctl stop assetmanagerd
+sqlite3 /opt/assetmanagerd/assets.db "VACUUM;"
+sudo systemctl start assetmanagerd
 ```
 
-#### Asset Recovery
-
-Assets can be rebuilt from metadata if files are lost:
+#### Database Monitoring
 
 ```bash
-# List all assets in database
-sqlite3 /opt/assetmanagerd/assets.db \
-  "SELECT id, location, checksum FROM assets WHERE status = 2"
+# Check database size and table stats
+sqlite3 /opt/assetmanagerd/assets.db "
+SELECT 
+    name,
+    COUNT(*) as rows
+FROM sqlite_master 
+LEFT JOIN pragma_table_info(name) ON name != 'sqlite_sequence'
+GROUP BY name;
+"
 
-# Verify asset integrity
-find /opt/vm-assets -type f -exec sha256sum {} \; > checksums.txt
-# Compare with database checksums
+# Check asset counts by type
+sqlite3 /opt/assetmanagerd/assets.db "
+SELECT type, COUNT(*) FROM assets GROUP BY type;
+"
 ```
 
-### Capacity Planning
+### Storage Cleanup
 
-#### Storage Requirements
-
-Calculate based on asset types and retention:
-
-```
-Daily storage = (kernels × 50MB) + (rootfs × 500MB) + (disk_images × size)
-Total storage = Daily storage × Retention days × 1.2 (20% overhead)
-```
-
-Example for 100 VMs/day, 7-day retention:
-```
-Kernels: 100 × 50MB × 7 = 35GB
-RootFS: 100 × 500MB × 7 = 350GB  
-Total: (35 + 350) × 1.2 = 462GB
-```
-
-#### Database Growth
-
-SQLite database grows with asset count:
-- ~1KB per asset record
-- ~0.5KB per lease record
-- Negligible for millions of assets
-
-### Manual Garbage Collection
-
-Trigger GC manually when needed:
+Manual cleanup operations for maintenance:
 
 ```bash
+# Force garbage collection
+curl -X POST https://localhost:8083/asset.v1.AssetManagerService/GarbageCollect \
+  -H "Content-Type: application/json" \
+  -d '{"delete_unreferenced": true, "max_age_seconds": 604800}'
+
 # Dry run to see what would be deleted
-grpcurl -plaintext localhost:8083 \
-  asset.v1.AssetService/GarbageCollect \
-  -d '{"dry_run": true, "age_threshold_seconds": 604800}'
-
-# Execute GC
-grpcurl -plaintext localhost:8083 \
-  asset.v1.AssetService/GarbageCollect \
-  -d '{"age_threshold_seconds": 604800}'
+curl -X POST https://localhost:8083/asset.v1.AssetManagerService/GarbageCollect \
+  -H "Content-Type: application/json" \
+  -d '{"delete_unreferenced": true, "dry_run": true}'
 ```
 
-### Performance Tuning
+## Performance Tuning
 
-#### SQLite Optimization
+### Database Optimization
+
+SQLite performance tuning:
 
 ```sql
--- Set pragmas for performance (add to startup)
+-- Current settings (applied automatically)
 PRAGMA journal_mode = WAL;
 PRAGMA synchronous = NORMAL;
-PRAGMA cache_size = -64000;  -- 64MB cache
-PRAGMA temp_store = MEMORY;
+PRAGMA cache_size = 10000;
+PRAGMA temp_store = memory;
 ```
 
-#### Filesystem Tuning
+**Connection Pool Settings**: [registry.go:36-39](../../internal/registry/registry.go:36)
 
-For XFS (recommended for asset storage):
+### Storage Performance
+
+Filesystem optimization:
+
 ```bash
-# Mount options for performance
-mount -o noatime,nodiratime,logbufs=8,logbsize=256k /dev/vdb /opt/vm-assets
+# For ext4 filesystems
+sudo tune2fs -o journal_data_writeback /dev/sda1
 
-# Increase directory size for many files
-xfs_growfs -d /opt/vm-assets
+# For XFS filesystems  
+sudo mount -o noatime,nodiratime /dev/sda1 /opt/vm-assets
 ```
 
-### Troubleshooting
+### Network Optimization
 
-#### Common Issues
+gRPC and HTTP/2 tuning:
 
-**1. Cannot acquire assets - "no such file"**
-- Check asset exists: `ls -la /opt/vm-assets/{first-2-chars}/{asset-id}`
-- Verify database record: `sqlite3 assets.db "SELECT * FROM assets WHERE id='....'"`
-- Check storage permissions
-
-**2. High memory usage**
-- Check for memory leaks: `pprof` endpoint (if enabled)
-- Review SQLite cache size
-- Check for stuck GC operations
-
-**3. Slow asset preparation**
-- Verify same filesystem for hard links
-- Check disk I/O: `iostat -x 1`
-- Monitor network if using remote storage
-
-#### Debug Mode
-
-Enable debug logging for troubleshooting:
 ```bash
-UNKEY_ASSETMANAGERD_LOG_LEVEL=debug systemctl restart assetmanagerd
+# Increase connection limits
+echo 'net.core.somaxconn = 1024' >> /etc/sysctl.conf
+echo 'net.ipv4.tcp_max_syn_backlog = 1024' >> /etc/sysctl.conf
+sysctl -p
 ```
 
-#### Database Corruption
+### Memory Management
 
-If SQLite corruption suspected:
+Go runtime optimization:
+
 ```bash
-# Check integrity
-sqlite3 /opt/assetmanagerd/assets.db "PRAGMA integrity_check"
+# Set garbage collection target
+export GOGC=75
 
-# Recover from backup
-systemctl stop assetmanagerd
-mv assets.db assets.db.corrupt
-cp /backup/assets.db.latest assets.db
-systemctl start assetmanagerd
+# Limit max goroutines for concurrency control
+export GOMAXPROCS=4
+```
+
+## Troubleshooting
+
+### Common Issues
+
+#### Service Won't Start
+
+**Symptom**: Service fails to start or exits immediately
+
+**Diagnosis**:
+```bash
+# Check systemd status
+sudo systemctl status assetmanagerd
+
+# View detailed logs
+sudo journalctl -u assetmanagerd --no-pager
+
+# Common causes and solutions:
+```
+
+1. **Configuration Error**: Check environment variables and validation
+2. **SPIFFE Socket Missing**: Ensure spire-agent is running
+3. **Database Permissions**: Fix `/opt/assetmanagerd` ownership
+4. **Port Conflicts**: Check if port 8083 is already in use
+
+#### Build Integration Failures
+
+**Symptom**: Automatic builds not triggering or failing
+
+**Diagnosis**:
+```bash
+# Check builderd connectivity
+curl -k https://localhost:8082/health
+
+# Verify TLS certificates
+openssl s_client -connect localhost:8082 -servername builderd
+
+# Check logs for build errors
+sudo journalctl -u assetmanagerd | grep -i build
+```
+
+**Common Solutions**:
+1. Verify `UNKEY_ASSETMANAGERD_BUILDERD_ENDPOINT` configuration
+2. Check SPIFFE/SPIRE service identity registration
+3. Increase `UNKEY_ASSETMANAGERD_BUILDERD_TIMEOUT` for slow builds
+4. Verify tenant authentication headers
+
+#### Storage Issues
+
+**Symptom**: Asset uploads failing or storage errors
+
+**Diagnosis**:
+```bash
+# Check disk space
+df -h /opt/vm-assets
+
+# Check permissions
+ls -la /opt/vm-assets
+
+# Check for corrupted assets
+sqlite3 /opt/assetmanagerd/assets.db "
+SELECT id, name, location FROM assets 
+WHERE status = 4;  -- ERROR status
+"
+```
+
+#### High Memory Usage
+
+**Symptom**: Excessive memory consumption
+
+**Diagnosis**:
+```bash
+# Check memory usage
+sudo systemctl show assetmanagerd --property=MemoryCurrent
+
+# Profile Go application
+go tool pprof http://localhost:9467/debug/pprof/heap
+```
+
+**Solutions**:
+1. Reduce `UNKEY_ASSETMANAGERD_DOWNLOAD_CONCURRENCY`
+2. Lower `UNKEY_ASSETMANAGERD_MAX_CACHE_SIZE`
+3. Enable more aggressive garbage collection
+4. Check for memory leaks in streaming operations
+
+### Debugging Tools
+
+#### Asset Registry Inspection
+
+```bash
+# List all assets
+sqlite3 /opt/assetmanagerd/assets.db "
+SELECT id, name, type, status, size_bytes, reference_count 
+FROM assets 
+ORDER BY created_at DESC 
+LIMIT 10;
+"
+
+# Check active leases
+sqlite3 /opt/assetmanagerd/assets.db "
+SELECT l.id, l.asset_id, l.acquired_by, 
+       datetime(l.acquired_at, 'unixepoch') as acquired,
+       datetime(l.expires_at, 'unixepoch') as expires
+FROM asset_leases l
+JOIN assets a ON l.asset_id = a.id;
+"
+
+# Find assets by label
+sqlite3 /opt/assetmanagerd/assets.db "
+SELECT a.id, a.name, al.key, al.value
+FROM assets a
+JOIN asset_labels al ON a.id = al.asset_id
+WHERE al.key = 'docker_image' AND al.value LIKE '%nginx%';
+"
+```
+
+#### Network Debugging
+
+```bash
+# Test gRPC connectivity
+grpcurl -insecure localhost:8083 list
+grpcurl -insecure localhost:8083 list asset.v1.AssetManagerService
+
+# Test specific RPC
+grpcurl -insecure -d '{"type": 1}' localhost:8083 asset.v1.AssetManagerService/ListAssets
+```
+
+#### Log Analysis
+
+```bash
+# Find recent errors
+sudo journalctl -u assetmanagerd --since "1 hour ago" | grep ERROR
+
+# Monitor real-time operations
+sudo journalctl -fu assetmanagerd | jq 'select(.level == "INFO")'
+
+# Analyze build patterns
+sudo journalctl -u assetmanagerd | grep "build" | jq '.msg, .build_id, .docker_image'
+```
+
+### Performance Monitoring
+
+#### Key Performance Indicators
+
+1. **Request Latency**: 95th percentile < 500ms for GetAsset
+2. **Build Success Rate**: > 95% auto-build completion
+3. **Storage Utilization**: < 80% of max cache size
+4. **GC Effectiveness**: Regular cleanup without resource exhaustion
+
+#### Alerting Rules
+
+```yaml
+# Prometheus alerting rules
+groups:
+- name: assetmanagerd
+  rules:
+  - alert: AssetmanagerdDown
+    expr: up{job="assetmanagerd"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      
+  - alert: HighErrorRate
+    expr: rate(assetmanagerd_request_errors_total[5m]) > 0.1
+    for: 2m
+    labels:
+      severity: warning
+      
+  - alert: StorageNearFull
+    expr: assetmanagerd_storage_usage_bytes / assetmanagerd_max_cache_size > 0.9
+    for: 5m
+    labels:
+      severity: warning
+      
+  - alert: BuildFailures
+    expr: rate(assetmanagerd_build_failures_total[10m]) > 0.2
+    for: 3m
+    labels:
+      severity: warning
 ```
 
 ## Security Operations
 
-### TLS Certificate Rotation
+### Certificate Management
 
-When using SPIFFE, certificates auto-rotate. Monitor rotation:
+SPIFFE/SPIRE automatic certificate rotation:
 
 ```bash
-# Check certificate expiry
-openssl s_client -connect localhost:8083 -servername assetmanagerd \
-  -cert client.crt -key client.key 2>/dev/null | \
-  openssl x509 -noout -dates
+# Check current certificate
+spire-agent api fetch x509 -socketPath /var/lib/spire/agent/agent.sock
+
+# Verify service identity
+spire-server entry show -spiffeID spiffe://unkey.dev/assetmanagerd
+```
+
+### Access Control
+
+Service-level access control via SPIFFE IDs:
+
+```bash
+# Register assetmanagerd service identity
+spire-server entry create \
+  -spiffeID spiffe://unkey.dev/assetmanagerd \
+  -parentID spiffe://unkey.dev/node \
+  -selector unix:uid:1000
 ```
 
 ### Audit Logging
 
-Track asset access for compliance:
-
-```sql
--- Query recent asset access
-SELECT 
-    a.id,
-    a.name,
-    al.acquired_by,
-    datetime(al.acquired_at, 'unixepoch') as acquired_time
-FROM assets a
-JOIN asset_leases al ON a.id = al.asset_id
-WHERE al.acquired_at > strftime('%s', 'now', '-1 day')
-ORDER BY al.acquired_at DESC;
-```
-
-### Security Scanning
-
-Regular security tasks:
-1. Scan asset contents for vulnerabilities
-2. Verify checksums haven't changed
-3. Review access logs for anomalies
-4. Update Go binary for security patches
-
-## Maintenance Windows
-
-### Rolling Updates
-
-For zero-downtime updates with multiple instances:
+Comprehensive audit trail in structured logs:
 
 ```bash
-# 1. Update one instance at a time
-# 2. Verify health before proceeding
-# 3. Monitor error rates during rollout
+# Asset access audit
+sudo journalctl -u assetmanagerd | jq 'select(.msg | contains("asset")) | {time, msg, asset_id, user}'
 
-for host in assetmgr-{1..3}; do
-    ssh $host "systemctl stop assetmanagerd"
-    scp build/assetmanagerd $host:/usr/local/bin/
-    ssh $host "systemctl start assetmanagerd"
-    sleep 30
-    grpc-health-probe -addr=$host:8083 -tls || exit 1
-done
+# Build trigger audit  
+sudo journalctl -u assetmanagerd | jq 'select(.msg | contains("build")) | {time, msg, build_id, docker_image, tenant_id}'
 ```
-
-### Database Maintenance
-
-Periodic optimization:
-
-```bash
-# Monthly maintenance script
-#!/bin/bash
-sqlite3 /opt/assetmanagerd/assets.db <<EOF
-VACUUM;
-ANALYZE;
-PRAGMA optimize;
-EOF
-```
-
-## Disaster Recovery
-
-### RTO/RPO Targets
-
-- **RTO** (Recovery Time Objective): 15 minutes
-- **RPO** (Recovery Point Objective): 1 hour
-
-### Recovery Procedures
-
-1. **Service Failure**: Auto-restart via systemd
-2. **Node Failure**: Deploy to new node, restore from backup
-3. **Data Loss**: Restore database, re-register missing assets
-4. **Complete Loss**: Rebuild from builderd artifacts
-
-### Testing
-
-Regular DR testing schedule:
-- Monthly: Backup restoration test
-- Quarterly: Full node recovery
-- Annually: Complete service rebuild

@@ -1,414 +1,521 @@
-# Metald Architecture & Dependencies
+# Architecture Guide
 
-This document describes the internal architecture of metald and its interactions with external services.
+This document provides a comprehensive overview of metald's architecture, covering service design, component interactions, and integration patterns with other Unkey Deploy services.
 
-## Table of Contents
+## Service Overview
 
-- [System Architecture](#system-architecture)
-- [Component Overview](#component-overview)
-- [Service Dependencies](#service-dependencies)
-- [Data Flow](#data-flow)
-- [Backend Architecture](#backend-architecture)
-- [Network Architecture](#network-architecture)
-- [Security Architecture](#security-architecture)
+Metald is the Virtual Machine Manager (VMM) control plane that provides unified VM lifecycle management across multiple hypervisor backends. It serves as the central orchestrator for VM operations in the Unkey Deploy infrastructure.
 
-## System Architecture
+**Purpose**: Unified VM management with multi-tenant security, resource tracking, and comprehensive observability.
 
-```mermaid
-graph TB
-    subgraph "External Layer"
-        CLIENT[API Clients]
-        SPIFFE[SPIFFE/SPIRE]
-    end
-    
-    subgraph "API Layer"
-        API[ConnectRPC Server<br/>:8080]
-        AUTH[Auth Interceptor]
-        METRICS_EP[Prometheus Metrics<br/>:9090]
-        HEALTH[Health Check<br/>/health]
-    end
-    
-    subgraph "Service Layer"
-        VM_SVC[VM Service]
-        METRICS_COLLECTOR[Metrics Collector]
-    end
-    
-    subgraph "Backend Layer"
-        BACKEND_MGR[Backend Manager]
-        FC[Firecracker Backend]
-        CH[Cloud Hypervisor Backend]
-    end
-    
-    subgraph "Infrastructure Layer"
-        JAILER[Integrated Jailer]
-        NET_MGR[Network Manager]
-        DB[SQLite Database]
-    end
-    
-    subgraph "External Services"
-        ASSET[AssetManagerd<br/>:8083]
-        BILL[Billaged<br/>:8081]
-    end
-    
-    CLIENT -->|TLS/mTLS| API
-    SPIFFE --> API
-    API --> AUTH
-    AUTH --> VM_SVC
-    VM_SVC --> BACKEND_MGR
-    VM_SVC --> DB
-    VM_SVC --> METRICS_COLLECTOR
-    
-    BACKEND_MGR --> FC
-    BACKEND_MGR --> CH
-    
-    FC --> JAILER
-    FC --> NET_MGR
-    
-    VM_SVC -.->|Asset Queries| ASSET
-    METRICS_COLLECTOR -->|Batch Metrics| BILL
-    
-    API --> METRICS_EP
-    API --> HEALTH
+## Core Architecture
+
+### Component Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        metald Service                           │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐│
+│  │  API Gateway    │    │ Authentication  │    │  Authorization  ││
+│  │  (ConnectRPC)   │    │  (SPIFFE/mTLS)  │    │  (Customer)     ││
+│  └─────────────────┘    └─────────────────┘    └─────────────────┘│
+│           │                       │                       │       │
+│  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐│
+│  │   VM Service    │    │ Billing Client  │    │ Asset Client    ││
+│  │ [vm.go:25]      │    │ [billing/*.go]  │    │ [assetmgr/*.go] ││
+│  └─────────────────┘    └─────────────────┘    └─────────────────┘│
+│           │                       │                       │       │
+│  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐│
+│  │ VM Repository   │    │ Network Manager │    │ State Monitor   ││
+│  │ [database/*.go] │    │ [network/*.go]  │    │ [reconciler/]   ││
+│  └─────────────────┘    └─────────────────┘    └─────────────────┘│
+│           │                       │                       │       │
+│  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐│
+│  │ Backend Layer   │    │ Observability   │    │ Configuration   ││
+│  │ [backend/*.go]  │    │ [observ/*.go]   │    │ [config/*.go]   ││
+│  └─────────────────┘    └─────────────────┘    └─────────────────┘│
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-## Component Overview
+### Layer Responsibilities
 
-### API Layer
-
-#### ConnectRPC Server
-- **Location**: [main.go:398-441](../../../metald/cmd/api/main.go#L398-L441)
-- **Purpose**: HTTP/2 server with optional TLS/mTLS support
-- **Features**:
-  - Request/response compression
-  - OpenTelemetry instrumentation
-  - Customer authentication middleware
-
-#### Authentication Interceptor
-- **Location**: [auth.go:42-72](../../../metald/internal/service/auth.go#L42-L72)
-- **Purpose**: Extract and validate customer ID from Authorization header
-- **Implementation**:
-  ```go
-  // Bearer token format: "Bearer dev_customer_{customer_id}"
-  func authInterceptor() connect.UnaryInterceptorFunc {
-      return func(next connect.UnaryFunc) connect.UnaryFunc {
-          return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
-              customerID, err := extractCustomerFromAuth(req.Header())
-              if err != nil {
-                  return nil, connect.NewError(connect.CodeUnauthenticated, err)
-              }
-              ctx = context.WithValue(ctx, customerIDKey, customerID)
-              return next(ctx, req)
-          }
-      }
-  }
-  ```
-
-### Service Layer
-
-#### VM Service
-- **Location**: [vm.go:25-33](../../../metald/internal/service/vm.go#L25-L33)
-- **Responsibilities**:
-  - VM lifecycle operations
-  - Configuration validation
-  - State persistence
-  - Metrics recording
-- **Dependencies**:
-  - Backend interface for hypervisor operations
-  - Database repository for state management
-  - Billing collector for usage tracking
-
-#### Metrics Collector
-- **Location**: [collector.go:51-63](../../../metald/internal/billing/collector.go#L51-L63)
-- **Purpose**: Collect high-frequency VM metrics for billing
-- **Features**:
-  - 5-minute collection intervals
-  - Batch transmission to billaged
-  - Gap detection and recovery
-
-### Backend Layer
-
-#### Backend Interface
-- **Location**: [backend.go:11-45](../../../metald/internal/backend/types/backend.go#L11-L45)
-- **Definition**:
-  ```go
-  type Backend interface {
-      Initialize() error
-      CreateVM(ctx context.Context, config *metaldv1.VmConfig) (string, error)
-      DeleteVM(ctx context.Context, vmID string) error
-      BootVM(ctx context.Context, vmID string) error
-      ShutdownVM(ctx context.Context, vmID string) error
-      PauseVM(ctx context.Context, vmID string) error
-      ResumeVM(ctx context.Context, vmID string) error
-      RebootVM(ctx context.Context, vmID string) error
-      GetVMInfo(ctx context.Context, vmID string) (*VMInfo, error)
-      GetVMMetrics(ctx context.Context, vmID string) (*VMMetrics, error)
-  }
-  ```
-
-#### Firecracker Backend
-- **Location**: [sdk_client_v4.go](../../../metald/internal/backend/firecracker/sdk_client_v4.go)
-- **Features**:
-  - SDK v4 integration
-  - Integrated jailer support
-  - Network namespace management
-  - TAP device handling
-
-#### Cloud Hypervisor Backend
-- **Location**: [client.go](../../../metald/internal/backend/cloudhypervisor/client.go)
-- **Status**: Placeholder implementation
-- **Future**: Alternative to Firecracker for different workloads
-
-### Infrastructure Layer
-
-#### Integrated Jailer
-- **Location**: [jailer.go](../../../metald/internal/jailer/jailer.go)
-- **Purpose**: Security isolation for VMs
-- **Features**:
-  - Chroot environment setup
-  - Cgroup resource limits
-  - Network namespace creation
-  - UID/GID isolation
-
-#### Network Manager
-- **Location**: [manager.go](../../../metald/internal/network/manager.go)
-- **Responsibilities**:
-  - TAP device creation
-  - IP address allocation
-  - Bridge configuration
-  - Namespace management
-
-#### Database Layer
-- **Location**: [database.go](../../../metald/internal/database/database.go), [repository.go](../../../metald/internal/database/repository.go)
-- **Technology**: SQLite with WAL mode
-- **Schema**: [schema.sql](../../../metald/internal/database/schema.sql)
-- **Features**:
-  - VM state persistence
-  - Soft deletes for audit trail
-  - Indexed queries by customer
+1. **API Layer**: ConnectRPC endpoints with authentication and authorization
+2. **Service Layer**: Business logic for VM lifecycle management
+3. **Integration Layer**: External service communication (billing, assets)
+4. **Persistence Layer**: VM state management and database operations
+5. **Backend Layer**: Hypervisor abstraction and VM execution
+6. **Infrastructure Layer**: Networking, observability, and configuration
 
 ## Service Dependencies
 
-### AssetManagerd Integration
+### Primary Dependencies
 
-**Client Interface**: [client.go:19-31](../../../metald/internal/assetmanager/client.go#L19-L31)
+#### AssetManagerd Integration
+- **Source**: [assetmanager/client.go](../../internal/assetmanager/client.go)
+- **Purpose**: VM asset management (kernels, rootfs images)
+- **Key Operations**:
+  - `QueryAssets` - Asset discovery with automatic building via [client.go:160](../../internal/assetmanager/client.go#L160)
+  - `PrepareAssets` - Asset staging for VM creation via [client.go:220](../../internal/assetmanager/client.go#L220)
+  - `AcquireAsset` - Reference counting via [client.go:262](../../internal/assetmanager/client.go#L262)
+  - `ReleaseAsset` - Cleanup on VM deletion via [client.go:303](../../internal/assetmanager/client.go#L303)
+
+#### Billaged Integration
+- **Source**: [billing/client.go](../../internal/billing/client.go)
+- **Purpose**: VM usage metrics and billing aggregation
+- **Key Operations**:
+  - `SendMetricsBatch` - Real-time VM metrics via [client.go:167](../../internal/billing/client.go#L167)
+  - `SendHeartbeat` - Service health monitoring via [client.go:228](../../internal/billing/client.go#L228)
+  - `NotifyVmStarted` - Lifecycle events via [client.go:265](../../internal/billing/client.go#L265)
+  - `NotifyVmStopped` - Lifecycle events via [client.go:305](../../internal/billing/client.go#L305)
+
+#### SPIFFE/Spire Integration
+- **Source**: [TLS configuration](../../internal/config/config.go#L372)
+- **Purpose**: Service-to-service mTLS authentication
+- **Features**:
+  - Automatic certificate rotation
+  - Service identity verification
+  - Secure inter-service communication
+
+### Optional Dependencies
+
+#### Builderd Integration
+- **Integration**: Via assetmanagerd automatic build triggering
+- **Purpose**: Automatic rootfs creation when assets don't exist
+- **Flow**: metald → assetmanagerd → builderd (when assets missing)
+
+## VM Lifecycle Management
+
+### State Machine
+
+VMs transition through well-defined states with database persistence:
+
+```
+┌─────────────┐    CreateVm    ┌─────────────┐    BootVm     ┌─────────────┐
+│             │ ──────────────▶│             │ ─────────────▶│             │
+│ NOT_CREATED │                │   CREATED   │               │   RUNNING   │
+│             │                │             │               │             │
+└─────────────┘                └─────────────┘               └─────────────┘
+                                       │                             │
+                                DeleteVm│                             │PauseVm
+                                       │                             ▼
+                               ┌─────────────┐                ┌─────────────┐
+                               │             │                │             │
+                               │   DELETED   │                │   PAUSED    │
+                               │             │                │             │
+                               └─────────────┘                └─────────────┘
+                                       ▲                             │
+                                       │                             │ResumeVm
+                ┌─────────────┐        │ShutdownVm            ┌─────────────┐
+                │             │ ───────────────────────────────│             │
+                │  SHUTDOWN   │◀───────────────────────────────│   RUNNING   │
+                │             │                               │             │
+                └─────────────┘                               └─────────────┘
+```
+
+**Implementation**: [service/vm.go](../../internal/service/vm.go)
+
+### Database State Consistency
+
+VM state is persisted in SQLite with automatic reconciliation:
+
+- **Repository**: [database/repository.go](../../internal/database/repository.go)
+- **Schema**: [database/schema.sql](../../internal/database/schema.sql)
+- **Reconciler**: [reconciler/vm_reconciler.go](../../internal/reconciler/vm_reconciler.go)
+
+**Key Features**:
+- Transaction-based state updates
+- Automatic orphaned VM cleanup via [reconciler/vm_reconciler.go](../../internal/reconciler/vm_reconciler.go)
+- Customer-scoped queries for multi-tenancy
+- Soft deletes for audit trails
+
+## Backend Abstraction
+
+### Backend Interface
+
+Defined in [backend/types/backend.go](../../internal/backend/types/backend.go):
+
 ```go
-type Client interface {
-    ListAssets(ctx context.Context, assetType assetv1.AssetType, labels map[string]string) ([]*assetv1.Asset, error)
-    PrepareAssets(ctx context.Context, assetIDs []string, targetPath string, vmID string) (map[string]string, error)
-    AcquireAsset(ctx context.Context, assetID string, vmID string) (string, error)
-    ReleaseAsset(ctx context.Context, leaseID string) error
+type Backend interface {
+    CreateVM(ctx context.Context, config *VmConfig) (string, error)
+    DeleteVM(ctx context.Context, vmID string) error
+    BootVM(ctx context.Context, vmID string) error
+    ShutdownVMWithOptions(ctx context.Context, vmID string, force bool, timeout int32) error
+    PauseVM(ctx context.Context, vmID string) error
+    ResumeVM(ctx context.Context, vmID string) error
+    RebootVM(ctx context.Context, vmID string) error
+    GetVMInfo(ctx context.Context, vmID string) (*VMInfo, error)
 }
 ```
 
-**Current Implementation**:
-- Client is created in [main.go:220-239](../../../metald/cmd/api/main.go#L220-L239)
-- Integration points are stubbed but functional
+### Firecracker Backend
 
-**Intended Flow**:
-```mermaid
-sequenceDiagram
-    Metald->>AssetManagerd: ListAssets(ROOTFS)
-    AssetManagerd-->>Metald: Available rootfs images
-    Metald->>AssetManagerd: PrepareAssets(vm_id, [kernel, rootfs])
-    AssetManagerd-->>Metald: Local paths
-    Metald->>Firecracker: Create VM with paths
+Primary implementation using Firecracker SDK:
+
+- **Source**: [backend/firecracker/sdk_client_v4.go](../../internal/backend/firecracker/sdk_client_v4.go)
+- **Features**:
+  - Integrated jailer for security isolation via [jailer/jailer.go](../../internal/jailer/jailer.go)
+  - Network management with TAP devices
+  - Asset preparation and mounting
+  - Process lifecycle management
+  - Metrics collection via stats sockets
+
+**Security Features**:
+- Chroot isolation via [config.go:67](../../internal/config/config.go#L67)
+- Dedicated UID/GID per VM
+- Network namespace isolation
+- Resource limits and quotas
+
+### Cloud Hypervisor Backend
+
+**Status**: Planned but not implemented
+- **Interface**: Ready via backend abstraction
+- **Implementation**: [backend/cloudhypervisor/client.go](../../internal/backend/cloudhypervisor/client.go) (placeholder)
+
+## Network Management
+
+### Network Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      Host Network                               │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐         │
+│  │     VM1     │    │     VM2     │    │     VM3     │         │
+│  │ 172.31.0.10 │    │ 172.31.0.11 │    │ 172.31.0.12 │         │
+│  └─────────────┘    └─────────────┘    └─────────────┘         │
+│         │                   │                   │              │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐         │
+│  │    tap1     │    │    tap2     │    │    tap3     │         │
+│  └─────────────┘    └─────────────┘    └─────────────┘         │
+│         │                   │                   │              │
+│         └───────────────────┼───────────────────┘              │
+│                             │                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                   br-vms                                │   │
+│  │               172.31.0.1/19                             │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                             │                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                Host Interface                           │   │
+│  │                 (NAT/Forwarding)                        │   │
+│  └─────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### Billaged Integration
+### Network Components
 
-**Client Interface**: [client.go:19-35](../../../metald/internal/billing/client.go#L19-L35)
-```go
-type BillingClient interface {
-    SendMetricsBatch(ctx context.Context, vmID, customerID string, metrics []*types.VMMetrics) error
-    SendHeartbeat(ctx context.Context, instanceID string, activeVMs []string) error
-    NotifyVmStarted(ctx context.Context, vmID, customerID string, startTime int64) error
-    NotifyVmStopped(ctx context.Context, vmID string, stopTime int64) error
-    NotifyPossibleGap(ctx context.Context, vmID string, lastSent, resumeTime int64) error
-}
+#### Network Manager
+- **Source**: [network/implementation.go](../../internal/network/implementation.go)
+- **Features**:
+  - Bridge creation and management
+  - IP address allocation via [network/allocator.go](../../internal/network/allocator.go)
+  - TAP device creation and configuration
+  - IPv4/IPv6 dual-stack support
+  - Rate limiting and QoS
+
+#### Port Allocation
+- **Source**: [network/port_allocator.go](../../internal/network/port_allocator.go)
+- **Features**:
+  - Dynamic port assignment for VM services
+  - Port range management (32768-65535)
+  - Conflict detection and resolution
+  - Automatic cleanup on VM deletion
+
+#### Network Protection
+- **Source**: [network/protection.go](../../internal/network/protection.go)
+- **Features**:
+  - Host route protection from VM access
+  - Primary interface detection and isolation
+  - Firewall rule management
+  - Network namespace isolation
+
+## Multi-Tenant Security
+
+### Authentication Layer
+
+**SPIFFE/SPIRE Integration**:
+- Service identity verification via [config.go:372](../../internal/config/config.go#L372)
+- Automatic certificate rotation
+- mTLS for all service communications
+
+**Customer Authentication**:
+- Bearer token validation via [service/auth.go:22](../../internal/service/auth.go#L22)
+- Customer context extraction via [auth.go:47](../../internal/service/auth.go#L47)
+- Request-response baggage propagation
+
+### Authorization Model
+
+**Customer Isolation**:
+- Database-level customer scoping via [repository.go](../../internal/database/repository.go)
+- VM ownership validation via [vm.go:206](../../internal/service/vm.go#L206)
+- API request filtering by authenticated customer
+
+**Resource Quotas**:
+- Per-customer VM limits (configurable)
+- Resource allocation controls (CPU, memory, storage)
+- Network bandwidth limiting
+
+## Observability Architecture
+
+### Metrics Collection
+
+**VM Metrics**: [observability/metrics.go](../../internal/observability/metrics.go)
+- `metald_vm_operations_total` - Operation counts by type and result
+- `metald_vm_operation_duration_seconds` - Operation latency histograms
+- `metald_active_vms` - Current VM count by state and customer
+- `metald_backend_errors_total` - Backend failure rates
+
+**Billing Metrics**: [observability/billing_metrics.go](../../internal/observability/billing_metrics.go)
+- `metald_billing_metrics_collected_total` - Metrics collection rate
+- `metald_billing_errors_total` - Billing integration failures
+- `metald_vm_resource_usage` - Real-time resource consumption
+
+### Distributed Tracing
+
+**OpenTelemetry Integration**:
+- Trace propagation across service boundaries
+- Operation-level span creation via [vm.go:50](../../internal/service/vm.go#L50)
+- Error attribution and correlation
+- Performance monitoring and optimization
+
+**Debug Interceptors**:
+- Request/response logging via [observability/debug_interceptor.go](../../internal/observability/debug_interceptor.go)
+- Service call tracing
+- Error context preservation
+
+## Service Interactions
+
+### Outbound Service Calls
+
+#### AssetManager Communication
+```
+metald ──QueryAssets──▶ assetmanagerd ──TriggerBuild──▶ builderd
+       ◀──Assets────────              ◀──BuildResult───
+       ──PrepareAssets─▶
+       ◀──PreparedPaths─
+       ──AcquireAsset──▶
+       ◀──LeaseID──────
 ```
 
-**Integration Points**:
-1. VM lifecycle notifications:
-   - Start: [collector.go:96](../../../metald/internal/billing/collector.go#L96)
-   - Stop: [collector.go:165](../../../metald/internal/billing/collector.go#L165)
+**Implementation**: [assetmanager/client.go](../../internal/assetmanager/client.go)
 
-2. Metrics collection:
-   - Collection interval: 5 minutes
-   - Batch size: 1 (configurable)
-   - Metrics: CPU, memory, disk I/O, network I/O
-
-**Data Flow**:
-```mermaid
-sequenceDiagram
-    participant VM
-    participant Metald
-    participant Collector
-    participant Billaged
-    
-    VM->>Metald: BootVM
-    Metald->>Collector: StartCollection(vm_id)
-    Metald->>Billaged: NotifyVmStarted
-    
-    loop Every 5 minutes
-        Collector->>VM: GetMetrics
-        VM-->>Collector: VMMetrics
-        Collector->>Collector: Buffer metrics
-        Collector->>Billaged: SendMetricsBatch
-    end
-    
-    VM->>Metald: ShutdownVM
-    Metald->>Collector: StopCollection(vm_id)
-    Metald->>Billaged: NotifyVmStopped
+#### Billing Communication
+```
+metald ──SendMetricsBatch──▶ billaged
+       ──SendHeartbeat────▶
+       ──NotifyVmStarted──▶
+       ──NotifyVmStopped──▶
+       ──NotifyPossibleGap▶
 ```
 
-## Data Flow
+**Implementation**: [billing/client.go](../../internal/billing/client.go)
+
+### Inbound Service Calls
+
+#### Client Applications
+- **Source**: External applications via ConnectRPC API
+- **Authentication**: Bearer token + SPIFFE validation
+- **Operations**: All VM lifecycle operations
+
+#### Monitoring Systems
+- **Prometheus**: Metrics scraping via `/metrics` endpoint
+- **Health Checks**: Status monitoring via `/health` endpoint
+- **OTLP Export**: Trace and metric export to collectors
+
+## Data Flow Patterns
 
 ### VM Creation Flow
 
-```mermaid
-graph LR
-    REQ[CreateVm Request] --> AUTH[Auth Check]
-    AUTH --> VAL[Validate Config]
-    VAL --> DB1[Store in DB]
-    DB1 --> NET[Allocate Network]
-    NET --> ASSET[Prepare Assets]
-    ASSET --> JAIL[Setup Jailer]
-    JAIL --> FC[Create Firecracker VM]
-    FC --> RESP[Response]
+```
+1. Client ──CreateVm──▶ metald
+2. metald ──Authenticate──▶ Customer validation
+3. metald ──QueryAssets──▶ assetmanagerd
+4. assetmanagerd ──TriggerBuild──▶ builderd (if needed)
+5. metald ──PrepareAssets──▶ assetmanagerd
+6. metald ──CreateVM──▶ Firecracker backend
+7. metald ──PersistState──▶ SQLite database
+8. metald ──AcquireAssets──▶ assetmanagerd
+9. metald ──Response──▶ Client
+```
+
+### VM Boot Flow
+
+```
+1. Client ──BootVm──▶ metald
+2. metald ──ValidateOwnership──▶ Database
+3. metald ──BootVM──▶ Firecracker backend
+4. metald ──UpdateState──▶ Database
+5. metald ──StartCollection──▶ Billing metrics
+6. metald ──NotifyVmStarted──▶ billaged
+7. metald ──Response──▶ Client
 ```
 
 ### Metrics Collection Flow
 
-```mermaid
-graph LR
-    VM[VM Process] -->|cgroups| STATS[Resource Stats]
-    STATS -->|100ms| COL[Collector]
-    COL -->|Buffer| MEM[In-Memory Buffer]
-    MEM -->|5 min| BATCH[Batch Processor]
-    BATCH -->|gRPC| BILL[Billaged]
+```
+1. Background ──CollectMetrics──▶ Firecracker stats
+2. metald ──BatchMetrics──▶ Billing collector
+3. Collector ──SendMetricsBatch──▶ billaged
+4. metald ──ExportMetrics──▶ OpenTelemetry
+5. OTEL ──Export──▶ Prometheus/Jaeger
 ```
 
-## Backend Architecture
+## Error Handling Patterns
 
-### Firecracker Integration
+### Retry Logic
 
-The Firecracker backend uses SDK v4 with integrated jailer support:
+**Asset Operations**:
+- Exponential backoff for asset preparation failures
+- Circuit breaker for assetmanagerd communication
+- Fallback to cached assets when available
 
-1. **VM Creation**:
-   - Allocate unique VM ID
-   - Create jailer chroot environment
-   - Copy kernel and rootfs to chroot
-   - Configure network in namespace
-   - Start Firecracker process
+**Billing Operations**:
+- Buffering for temporary billaged unavailability
+- Retry with jitter for metric batching
+- Gap detection and reconciliation
 
-2. **Network Setup**:
-   - Create TAP device in host namespace
-   - Move TAP to VM network namespace
-   - Configure bridge connectivity
-   - Set up iptables rules
+### Resource Cleanup
 
-3. **Resource Isolation**:
-   - CPU: cgroup cpu controller
-   - Memory: cgroup memory controller
-   - Disk I/O: cgroup blkio controller
-   - Network: TC rate limiting
+**VM Cleanup**: [vm.go:811](../../internal/service/vm.go#L811)
+- Multi-retry cleanup with grace periods
+- Orphaned resource detection via reconciler
+- Manual cleanup logging for operator intervention
 
-### State Management
+**Asset Cleanup**:
+- Automatic lease release on VM deletion
+- Reference counting for garbage collection
+- Storage cleanup via assetmanagerd
 
-VM state transitions managed in [repository.go](../../../metald/internal/database/repository.go):
+### State Consistency
 
-```
-CREATED -> RUNNING -> PAUSED -> RUNNING -> SHUTDOWN -> (deleted)
-```
+**Database Reconciliation**: [reconciler/vm_reconciler.go](../../internal/reconciler/vm_reconciler.go)
+- Periodic state validation (5 minute interval)
+- Orphaned VM detection and cleanup
+- Process state synchronization
 
-Each state change:
-1. Validates current state
-2. Performs backend operation
-3. Updates database
-4. Notifies billing service
+**Network Cleanup**:
+- TAP device cleanup on VM deletion
+- IP address deallocation
+- Bridge cleanup when no VMs remain
 
-## Network Architecture
+## Configuration Management
 
-### Dual-Stack Support
+### Environment Variables
 
-Metald supports both IPv4 and IPv6 networking:
+**Critical Settings**: [config/config.go](../../internal/config/config.go)
+- `UNKEY_METALD_BACKEND` - Hypervisor backend selection
+- `UNKEY_METALD_TLS_MODE` - Security mode (spiffe/file/disabled)
+- `UNKEY_METALD_BILLING_ENABLED` - Billing integration toggle
+- `UNKEY_METALD_ASSETMANAGER_ENABLED` - Asset integration toggle
 
-- **IPv4**: Default subnet 10.100.0.0/16
-- **IPv6**: Default subnet fd00::/64
-- **Bridge**: metald0 with both stacks
-- **DHCP/SLAAC**: Automatic configuration
+**Security Settings**:
+- `UNKEY_METALD_JAILER_UID` - VM isolation user ID
+- `UNKEY_METALD_JAILER_GID` - VM isolation group ID  
+- `UNKEY_METALD_JAILER_CHROOT_DIR` - Isolation directory
 
-### TAP Device Management
+**Network Settings**:
+- `UNKEY_METALD_NETWORK_BRIDGE_IPV4` - Bridge IP configuration
+- `UNKEY_METALD_NETWORK_VM_SUBNET_IPV4` - VM subnet allocation
+- `UNKEY_METALD_NETWORK_HOST_PROTECTION` - Host route protection
 
-Each VM gets a unique TAP device:
-1. Created in root namespace
-2. Moved to VM's network namespace
-3. Connected to bridge
-4. Configured with rate limiting
+### Validation
 
-## Security Architecture
-
-### Multi-Tenant Isolation
-
-1. **API Level**: Customer ID validation
-2. **Process Level**: Jailer with unique UID/GID
-3. **Filesystem Level**: Chroot per VM
-4. **Network Level**: Network namespaces
-5. **Resource Level**: Cgroup limits
-
-### Defense in Depth
-
-```mermaid
-graph TB
-    subgraph "Layer 1: API"
-        AUTH[Authentication]
-        AUTHZ[Authorization]
-    end
-    
-    subgraph "Layer 2: Process"
-        JAIL[Jailer]
-        NS[Namespaces]
-    end
-    
-    subgraph "Layer 3: Resources"
-        CGROUP[Cgroups]
-        RLIMIT[Resource Limits]
-    end
-    
-    subgraph "Layer 4: Kernel"
-        KVM[KVM]
-        SEC[Seccomp]
-    end
-    
-    AUTH --> AUTHZ
-    AUTHZ --> JAIL
-    JAIL --> NS
-    NS --> CGROUP
-    CGROUP --> RLIMIT
-    RLIMIT --> KVM
-    KVM --> SEC
-```
-
-### TLS/mTLS Support
-
-Optional TLS modes configured in [config.go:164-181](../../../metald/internal/config/config.go#L164-L181):
-- `disabled`: No TLS (development only)
-- `file`: Certificate from files
-- `spiffe`: SPIFFE/SPIRE integration
+**Configuration Validation**: [config.go:393](../../internal/config/config.go#L393)
+- Required field validation
+- Value range checking
+- Cross-field consistency validation
+- Environment-specific defaults
 
 ## Performance Considerations
 
-### Database Performance
-- SQLite with WAL mode for concurrent reads
-- Indexed queries on hot paths
-- Soft deletes to avoid lock contention
+### Concurrency
 
-### Network Performance
-- Pre-allocated TAP devices pool (future)
-- Batch network operations
-- Rate limiting at TAP level
+**VM Operations**:
+- Per-customer operation limiting
+- Backend-level concurrency control
+- Database connection pooling
 
-### Metrics Performance
-- In-memory buffering
-- Batch transmission
-- Configurable collection intervals
+**Network Operations**:
+- Parallel TAP device creation
+- Concurrent IP allocation
+- Asynchronous cleanup operations
+
+### Resource Management
+
+**Memory Usage**:
+- VM state caching with TTL
+- Metrics buffering for batch operations
+- Database connection reuse
+
+**Storage Optimization**:
+- Asset deduplication via assetmanagerd
+- Compressed VM state storage
+- Efficient database indexing
+
+### Scalability Patterns
+
+**Horizontal Scaling**:
+- Stateless service design (except local DB)
+- Customer-based load distribution
+- Service discovery via SPIFFE
+
+**Vertical Scaling**:
+- Configurable worker pools
+- Memory-based caching strategies
+- Database optimization for VM queries
+
+## Security Architecture
+
+### Process Isolation
+
+**Jailer Integration**: [jailer/jailer.go](../../internal/jailer/jailer.go)
+- Chroot environment per VM
+- Dedicated UID/GID isolation
+- Resource limit enforcement
+- Namespace isolation
+
+### Network Security
+
+**Isolation Mechanisms**:
+- Network namespace per VM
+- Bridge-based segmentation
+- Host route protection
+- Firewall rule automation
+
+### Data Protection
+
+**Customer Data Isolation**:
+- Database-level customer scoping
+- Encrypted data at rest (TLS for transport)
+- Audit logging for all operations
+- SPIFFE identity verification
+
+## Deployment Architecture
+
+### Service Placement
+
+**Requirements**:
+- Root privileges for network operations
+- Direct access to hypervisor binaries
+- Local SQLite database storage
+- Network interface management capabilities
+
+**Recommended Setup**:
+- Dedicated VM management nodes
+- systemd service management
+- Log aggregation for audit trails
+- Monitoring integration
+
+### High Availability
+
+**State Management**:
+- Local database for fast access
+- External backup for disaster recovery
+- State reconciliation on restart
+- Customer data partitioning
+
+**Service Resilience**:
+- Health check endpoints
+- Graceful degradation modes
+- Circuit breaker patterns
+- Automatic restart capabilities

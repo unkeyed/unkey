@@ -1,244 +1,204 @@
-# Builderd Development Setup
+# Builderd Development Guide
 
-## Getting Started
+This guide covers building, testing, and contributing to the builderd service.
+
+## Development Environment
 
 ### Prerequisites
 
-- **Go**: Version 1.21+ installed
-- **Docker**: Version 20.10+ for build execution
+**Required Software**:
+- **Go**: 1.24.4+ (as specified in go.mod)
+- **Docker**: 20.10+ for image extraction testing
 - **Make**: For build automation
-- **SPIRE** (optional): For SPIFFE/mTLS testing
 - **Git**: For version control
+- **protoc**: Protocol buffer compiler (for proto changes)
 
-### Repository Setup
+**System Requirements**:
+- **OS**: Linux (required for Docker integration)
+- **Memory**: 8GB+ for development and testing
+- **Storage**: 20GB+ free space for build artifacts and Docker images
 
+### Getting Started
+
+**Clone Repository**:
 ```bash
-# Clone the repository
-git clone https://github.com/unkeyed/unkey.git
-cd unkey/go/deploy/builderd
-
-# Install dependencies
-go mod download
-
-# Verify setup
-go mod verify
+git clone https://github.com/unkeyed/unkey
+cd go/deploy/builderd
 ```
 
-## Build Instructions
-
-### Building the Binary
-
+**Install Dependencies**:
 ```bash
-# Build the binary
+# Download Go dependencies
+go mod download
+
+# Verify Docker access
+docker info
+```
+
+**Build from Source**:
+```bash
+# Build binary
 make build
 
-# Output location
+# Binary location
 ls -la build/builderd
 ```
 
-The binary is built with version information:
-- Git commit hash
-- Build timestamp
-- Go version
+**Build Targets**: [Makefile](../../Makefile)
 
-### Installing with Systemd
+### Project Structure
 
-```bash
-# Build and install with systemd unit
-make install
-
-# This will:
-# 1. Build the binary
-# 2. Copy to /usr/local/bin/
-# 3. Install systemd unit file
-# 4. Create necessary directories
+```
+builderd/
+├── cmd/
+│   ├── builderd/           # Main service binary
+│   └── builderd-cli/       # CLI client tool
+├── client/                 # Go client library
+├── internal/
+│   ├── assetmanager/      # Assetmanagerd client integration
+│   ├── assets/            # Base asset management
+│   ├── config/            # Configuration management
+│   ├── executor/          # Build executor implementations
+│   ├── observability/     # Metrics and tracing
+│   ├── service/           # Main service implementation
+│   ├── storage/           # Storage backend interfaces
+│   └── tenant/            # Multi-tenant isolation
+├── proto/
+│   └── builder/v1/        # Protocol buffer definitions
+├── gen/                   # Generated protobuf code
+├── contrib/
+│   ├── systemd/           # Systemd service files
+│   └── grafana-dashboards/ # Monitoring dashboards
+└── docs/                  # Service documentation
 ```
 
-### Cross-Platform Builds
+### Configuration for Development
 
+**Development Environment**:
 ```bash
-# Linux AMD64
-GOOS=linux GOARCH=amd64 go build -o build/builderd-linux-amd64 ./cmd/builderd
+# Create development config
+cat > environment.dev <<EOF
+UNKEY_BUILDERD_PORT=8082
+UNKEY_BUILDERD_ADDRESS=127.0.0.1
+UNKEY_BUILDERD_TLS_MODE=disabled
+UNKEY_BUILDERD_ASSETMANAGER_ENABLED=false
+UNKEY_BUILDERD_OTEL_ENABLED=true
+UNKEY_BUILDERD_OTEL_PROMETHEUS_ENABLED=true
+UNKEY_BUILDERD_TENANT_ISOLATION_ENABLED=false
+UNKEY_BUILDERD_ROOTFS_OUTPUT_DIR=/tmp/builderd/rootfs
+UNKEY_BUILDERD_WORKSPACE_DIR=/tmp/builderd/workspace
+UNKEY_BUILDERD_SCRATCH_DIR=/tmp/builderd/scratch
+EOF
 
-# Linux ARM64
-GOOS=linux GOARCH=arm64 go build -o build/builderd-linux-arm64 ./cmd/builderd
+# Source configuration
+source environment.dev
 
-# macOS (for development only)
-GOOS=darwin GOARCH=amd64 go build -o build/builderd-darwin-amd64 ./cmd/builderd
+# Create required directories
+mkdir -p /tmp/builderd/{rootfs,workspace,scratch}
 ```
 
-## Local Development Environment
-
-### Basic Setup
-
-1. **Create development directories**:
-   ```bash
-   mkdir -p /tmp/builderd/{workspace,rootfs,cache}
-   ```
-
-2. **Set development environment**:
-   ```bash
-   export UNKEY_BUILDERD_TLS_MODE=disabled
-   export UNKEY_BUILDERD_STORAGE_BACKEND=local
-   export UNKEY_BUILDERD_ROOTFS_OUTPUT_DIR=/tmp/builderd/rootfs
-   export UNKEY_BUILDERD_WORKSPACE_DIR=/tmp/builderd/workspace
-   export UNKEY_BUILDERD_SCRATCH_DIR=/tmp/builderd/cache
-   export UNKEY_BUILDERD_ASSETMANAGER_ENABLED=false
-   export UNKEY_BUILDERD_OTEL_ENABLED=false
-   ```
-
-3. **Run builderd**:
-   ```bash
-   go run cmd/builderd/main.go
-   ```
-
-### Development with Dependencies
-
-#### Running with Docker
-
-Ensure Docker daemon is running:
+**Run Development Server**:
 ```bash
-# Check Docker status
-docker info
+# Run with configuration
+./build/builderd
 
-# If using Docker Desktop, ensure it's running
-# For Linux, ensure dockerd is running
-sudo systemctl status docker
+# Or with live reload (requires air)
+air
 ```
 
-#### Running with AssetManagerd
+### Code Generation
 
-1. **Start assetmanagerd** (in separate terminal):
-   ```bash
-   cd ../assetmanagerd
-   go run cmd/assetmanagerd/main.go
-   ```
-
-2. **Configure builderd**:
-   ```bash
-   export UNKEY_BUILDERD_ASSETMANAGER_ENABLED=true
-   export UNKEY_BUILDERD_ASSETMANAGER_ENDPOINT=http://localhost:8083
-   ```
-
-#### Running with SPIFFE/SPIRE
-
-1. **Start SPIRE agent**:
-   ```bash
-   # Using Docker
-   docker run -d \
-     --name spire-agent \
-     -v /run/spire/sockets:/run/spire/sockets \
-     spiffe/spire-agent:latest
-   ```
-
-2. **Configure builderd**:
-   ```bash
-   export UNKEY_BUILDERD_TLS_MODE=spiffe
-   export UNKEY_BUILDERD_SPIFFE_SOCKET=/run/spire/sockets/agent.sock
-   ```
-
-### Development Scripts
-
-Create a `dev.sh` script for easy development:
-
+**Protocol Buffers**:
 ```bash
-#!/bin/bash
-# dev.sh - Development helper script
+# Regenerate protobuf code
+make generate
 
-set -e
-
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-NC='\033[0m'
-
-# Default action
-ACTION=${1:-run}
-
-case $ACTION in
-  build)
-    echo -e "${GREEN}Building builderd...${NC}"
-    go build -o build/builderd ./cmd/builderd
-    ;;
-    
-  run)
-    echo -e "${GREEN}Running builderd in development mode...${NC}"
-    export UNKEY_BUILDERD_TLS_MODE=disabled
-    export UNKEY_BUILDERD_STORAGE_BACKEND=local
-    export UNKEY_BUILDERD_ASSETMANAGER_ENABLED=false
-    go run cmd/builderd/main.go
-    ;;
-    
-  test)
-    echo -e "${GREEN}Running tests...${NC}"
-    go test ./...
-    ;;
-    
-  clean)
-    echo -e "${GREEN}Cleaning build artifacts...${NC}"
-    rm -rf build/
-    rm -rf /tmp/builderd/
-    ;;
-    
-  *)
-    echo "Usage: $0 {build|run|test|clean}"
-    exit 1
-    ;;
-esac
+# Verify generated files
+ls -la gen/builder/v1/
 ```
 
-## Testing Strategies
+**Generation Dependencies**:
+- `protoc-gen-go`: Go protobuf plugin
+- `protoc-gen-connect-go`: ConnectRPC plugin
 
-### Unit Testing
+**Generation Configuration**: [buf.gen.yaml](../../buf.gen.yaml)
 
-#### Running Tests
+## Testing
 
+### Unit Tests
+
+**Run All Tests**:
 ```bash
-# Run all tests
-go test ./...
+# Run unit tests
+make test
 
 # Run with coverage
-go test -cover ./...
+make test-coverage
 
-# Run with detailed coverage
-go test -coverprofile=coverage.out ./...
-go tool cover -html=coverage.out
+# Verbose test output
+go test -v ./...
 ```
 
-#### Writing Tests
+**Test Patterns**:
+```bash
+# Test specific package
+go test ./internal/executor/
 
-Example test for build service:
+# Test with build tags
+go test -tags integration ./...
 
+# Run specific test
+go test -run TestDockerExecutor_Extract ./internal/executor/
+```
+
+### Integration Tests
+
+**Prerequisites**:
+```bash
+# Ensure Docker is running
+systemctl start docker
+
+# Pull test images
+docker pull alpine:latest
+docker pull nginx:latest
+```
+
+**Run Integration Tests**:
+```bash
+# Integration tests (requires Docker)
+make test-integration
+
+# End-to-end tests
+make test-e2e
+```
+
+### Testing Patterns
+
+**Mock Generation**:
+```bash
+# Generate mocks for interfaces
+go generate ./...
+
+# Mock locations
+ls -la internal/*/mocks/
+```
+
+**Test Fixtures**:
+```bash
+# Test data location
+testdata/
+├── docker-images/     # Sample Docker configurations
+├── build-configs/     # Sample build configurations
+└── expected-outputs/  # Expected test results
+```
+
+**Example Test Structure**:
 ```go
-// internal/service/builder_test.go
-package service
-
-import (
-    "context"
-    "testing"
-    
-    "connectrpc.com/connect"
-    builderv1 "github.com/unkeyed/unkey/go/deploy/builderd/gen/builder/v1"
-    "github.com/stretchr/testify/assert"
-    "github.com/stretchr/testify/require"
-)
-
-func TestBuilderService_CreateBuild(t *testing.T) {
-    // Setup
-    logger := slog.Default()
-    config := &config.Config{
-        Builder: config.BuilderConfig{
-            MaxConcurrentBuilds: 5,
-        },
-    }
-    service := NewBuilderService(logger, nil, config, nil)
-    
-    // Test case
-    req := &builderv1.CreateBuildRequest{
+func TestDockerExecutor_ExtractImage(t *testing.T) {
+    // Arrange
+    executor := NewDockerExecutor(logger, config, metrics)
+    request := &builderv1.CreateBuildRequest{
         Config: &builderv1.BuildConfig{
-            Tenant: &builderv1.TenantContext{
-                TenantId: "test-tenant",
-            },
             Source: &builderv1.BuildSource{
                 SourceType: &builderv1.BuildSource_DockerImage{
                     DockerImage: &builderv1.DockerImageSource{
@@ -248,383 +208,327 @@ func TestBuilderService_CreateBuild(t *testing.T) {
             },
         },
     }
-    
-    // Execute
-    resp, err := service.CreateBuild(context.Background(), 
-        connect.NewRequest(req))
-    
+
+    // Act
+    result, err := executor.Execute(ctx, request)
+
     // Assert
     require.NoError(t, err)
-    assert.NotEmpty(t, resp.Msg.BuildId)
-    assert.Equal(t, builderv1.BuildState_BUILD_STATE_PENDING, 
-        resp.Msg.State)
-}
-```
-
-### Integration Testing
-
-#### Docker Executor Test
-
-```go
-// internal/executor/docker_test.go
-func TestDockerExecutor_ExtractImage(t *testing.T) {
-    if testing.Short() {
-        t.Skip("Skipping integration test")
-    }
-    
-    // Requires Docker daemon
-    executor := NewDockerExecutor(logger, config, nil)
-    
-    req := &builderv1.CreateBuildRequest{
-        Config: &builderv1.BuildConfig{
-            Source: &builderv1.BuildSource{
-                SourceType: &builderv1.BuildSource_DockerImage{
-                    DockerImage: &builderv1.DockerImageSource{
-                        ImageUri: "alpine:3.18",
-                    },
-                },
-            },
-        },
-    }
-    
-    result, err := executor.ExtractDockerImage(
-        context.Background(), req)
-    
-    require.NoError(t, err)
+    assert.Equal(t, "completed", result.Status)
     assert.FileExists(t, result.RootfsPath)
 }
 ```
 
-#### End-to-End Test
+### Benchmarking
 
+**Performance Tests**:
 ```bash
-# test/e2e/build_test.sh
-#!/bin/bash
+# Run benchmarks
+go test -bench=. ./internal/executor/
 
-# Start builderd
-./build/builderd &
-BUILDERD_PID=$!
+# Benchmark with memory profiling
+go test -bench=. -memprofile=mem.prof ./internal/executor/
 
-# Wait for startup
-sleep 5
-
-# Test build creation
-grpcurl -plaintext \
-  -d '{
-    "config": {
-      "tenant": {"tenant_id": "test"},
-      "source": {
-        "docker_image": {
-          "image_uri": "alpine:latest"
-        }
-      }
-    }
-  }' \
-  localhost:8082 \
-  builder.v1.BuilderService/CreateBuild
-
-# Cleanup
-kill $BUILDERD_PID
+# CPU profiling
+go test -bench=. -cpuprofile=cpu.prof ./internal/executor/
 ```
 
-### Testing with Mock Services
-
-#### Mock AssetManagerd
-
+**Example Benchmark**:
 ```go
-// test/mocks/assetmanager.go
-type MockAssetManagerClient struct {
-    RegisterFunc func(ctx context.Context, req *assetv1.RegisterAssetRequest) (*assetv1.RegisterAssetResponse, error)
-}
-
-func (m *MockAssetManagerClient) RegisterAsset(ctx context.Context, req *connect.Request[assetv1.RegisterAssetRequest]) (*connect.Response[assetv1.RegisterAssetResponse], error) {
-    if m.RegisterFunc != nil {
-        resp, err := m.RegisterFunc(ctx, req.Msg)
-        if err != nil {
-            return nil, err
-        }
-        return connect.NewResponse(resp), nil
+func BenchmarkDockerExtraction(b *testing.B) {
+    executor := NewDockerExecutor(logger, config, nil)
+    
+    for i := 0; i < b.N; i++ {
+        result, err := executor.Extract(ctx, request)
+        require.NoError(b, err)
+        cleanup(result.WorkspaceDir)
     }
-    return connect.NewResponse(&assetv1.RegisterAssetResponse{
-        Asset: &assetv1.Asset{
-            Id: "asset-123",
-        },
-    }), nil
 }
 ```
 
-## Debugging Techniques
+## Development Workflow
 
-### Debug Logging
+### Code Style
 
-Enable verbose logging:
-```bash
-export UNKEY_BUILDERD_LOG_LEVEL=debug
-go run cmd/builderd/main.go
-```
-
-### Using Delve Debugger
-
-```bash
-# Install delve
-go install github.com/go-delve/delve/cmd/dlv@latest
-
-# Debug the application
-dlv debug ./cmd/builderd/main.go
-
-# Set breakpoints
-(dlv) break main.main
-(dlv) break service.(*BuilderService).CreateBuild
-
-# Run
-(dlv) continue
-```
-
-### Remote Debugging
-
-For debugging in containers:
-
-```dockerfile
-FROM golang:1.21
-RUN go install github.com/go-delve/delve/cmd/dlv@latest
-WORKDIR /app
-COPY . .
-EXPOSE 8082 2345
-CMD ["dlv", "debug", "./cmd/builderd", "--headless", "--listen=:2345", "--api-version=2"]
-```
-
-### Performance Profiling
-
-Enable profiling endpoints:
-
-```go
-// Add to main.go
-import _ "net/http/pprof"
-
-go func() {
-    log.Println(http.ListenAndServe("localhost:6060", nil))
-}()
-```
-
-Profile the application:
-```bash
-# CPU profile
-go tool pprof http://localhost:6060/debug/pprof/profile?seconds=30
-
-# Memory profile
-go tool pprof http://localhost:6060/debug/pprof/heap
-
-# Goroutine profile
-go tool pprof http://localhost:6060/debug/pprof/goroutine
-```
-
-## Development Tools
-
-### Code Generation
-
-```bash
-# Generate protobuf code
-make proto
-
-# This runs:
-# buf generate proto/
-```
-
-### Linting
-
-```bash
-# Install golangci-lint
-curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
-
-# Run linting
-golangci-lint run ./...
-
-# Fix issues automatically
-golangci-lint run --fix ./...
-```
-
-### Code Formatting
-
+**Go Format**:
 ```bash
 # Format code
 go fmt ./...
 
-# Use goimports for import organization
-go install golang.org/x/tools/cmd/goimports@latest
+# Import organization
 goimports -w .
+
+# Linting
+golangci-lint run
 ```
 
-## Contributing Guidelines
-
-### Code Style
-
-1. **Follow Go conventions**:
-   - Use `gofmt` for formatting
-   - Follow effective Go guidelines
-   - Use meaningful variable names
-
-2. **Error Handling**:
-   ```go
-   // Good
-   if err != nil {
-       return fmt.Errorf("failed to create build: %w", err)
-   }
-   
-   // Bad
-   if err != nil {
-       return err
-   }
-   ```
-
-3. **Logging**:
-   ```go
-   // Use structured logging
-   logger.InfoContext(ctx, "build created",
-       slog.String("build_id", buildID),
-       slog.String("tenant_id", tenantID),
-       slog.Duration("duration", duration),
-   )
-   ```
-
-4. **Comments**:
-   - Add godoc comments for exported functions
-   - Use AIDEV-NOTE for important implementation details
-   - Explain complex logic inline
+**Linting Configuration**: [.golangci.yml](../../.golangci.yml)
 
 ### Git Workflow
 
-1. **Branch Naming**:
-   - Feature: `feature/add-git-executor`
-   - Bugfix: `fix/docker-pull-timeout`
-   - Refactor: `refactor/tenant-isolation`
+**Branch Naming**:
+- `feature/description` - New features
+- `fix/description` - Bug fixes  
+- `docs/description` - Documentation updates
+- `refactor/description` - Code refactoring
 
-2. **Commit Messages**:
-   - Use conventional commits
-   - Examples:
-     - `feat: add Git repository source support`
-     - `fix: handle Docker auth for private registries`
-     - `refactor: extract build metrics to separate package`
+**Commit Message Format**:
+```
+type(scope): description
 
-3. **Pull Request Process**:
-   - Write clear PR description
-   - Include test coverage
-   - Update documentation
-   - Request reviews
+feat(executor): add git repository support
+fix(docker): handle large image extraction
+docs(api): update build configuration examples
+```
 
-### Testing Requirements
+### Pre-commit Hooks
 
-1. **Unit Tests**: Required for all new code
-2. **Integration Tests**: For external dependencies
-3. **Coverage**: Maintain >80% coverage
-4. **Performance**: No significant regression
+**Setup Pre-commit**:
+```bash
+# Install pre-commit hooks
+pre-commit install
 
-## Common Development Tasks
+# Run manually
+pre-commit run --all-files
+```
 
-### Adding a New Source Type
+**Hook Configuration**: [.pre-commit-config.yaml](../../.pre-commit-config.yaml)
 
-1. **Define protobuf message**:
-   ```protobuf
-   // proto/builder/v1/builder.proto
-   message GitRepositorySource {
-     string repository_url = 1;
-     string ref = 2;
-     GitAuth auth = 3;
-   }
-   ```
+## Debugging
 
-2. **Generate code**:
-   ```bash
-   make proto
-   ```
+### Local Debugging
 
-3. **Implement executor**:
-   ```go
-   // internal/executor/git.go
-   type GitExecutor struct {
-       logger *slog.Logger
-       config *config.Config
-   }
-   
-   func (g *GitExecutor) Execute(ctx context.Context, 
-       req *builderv1.CreateBuildRequest) (*BuildResult, error) {
-       // Implementation
-   }
-   ```
+**VS Code Configuration**:
+```json
+{
+    "name": "Debug builderd",
+    "type": "go",
+    "request": "launch",
+    "mode": "debug",
+    "program": "${workspaceFolder}/cmd/builderd/main.go",
+    "env": {
+        "UNKEY_BUILDERD_PORT": "8082",
+        "UNKEY_BUILDERD_TLS_MODE": "disabled",
+        "UNKEY_BUILDERD_OTEL_ENABLED": "false"
+    },
+    "args": []
+}
+```
 
-4. **Register executor**:
-   ```go
-   // internal/executor/registry.go
-   registry.Register("git", NewGitExecutor(logger, config))
-   ```
+**Delve Debugging**:
+```bash
+# Debug with delve
+dlv debug ./cmd/builderd/main.go
 
-### Adding Metrics
+# Remote debugging
+dlv debug --headless --listen=:2345 --api-version=2 ./cmd/builderd/main.go
+```
 
-1. **Define metric**:
-   ```go
-   // internal/observability/metrics.go
-   gitClonesDuration := prometheus.NewHistogramVec(
-       prometheus.HistogramOpts{
-           Name: "builderd_git_clone_duration_seconds",
-           Help: "Git clone operation duration",
-       },
-       []string{"tenant_id", "success"},
-   )
-   ```
+### Trace Analysis
 
-2. **Register metric**:
-   ```go
-   prometheus.MustRegister(gitClonesDuration)
-   ```
+**OpenTelemetry Traces**:
+```bash
+# Enable tracing in development
+export UNKEY_BUILDERD_OTEL_ENABLED=true
+export UNKEY_BUILDERD_OTEL_ENDPOINT=http://localhost:4318
 
-3. **Record metric**:
-   ```go
-   timer := prometheus.NewTimer(gitClonesDuration.WithLabelValues(
-       tenantID, "true"))
-   defer timer.ObserveDuration()
-   ```
+# Run with Jaeger
+docker run -d -p 16686:16686 -p 14268:14268 jaegertracing/all-in-one:latest
+```
 
-## Troubleshooting Development Issues
+**Trace Viewing**: Visit http://localhost:16686 for Jaeger UI
 
-### Common Problems
+### Log Debugging
 
-1. **Module Dependencies**:
-   ```bash
-   # Clear module cache
-   go clean -modcache
-   
-   # Re-download dependencies
-   go mod download
-   ```
+**Debug Logging**:
+```bash
+# Enable debug logs
+export UNKEY_BUILDERD_LOG_LEVEL=debug
 
-2. **Build Errors**:
-   ```bash
-   # Clean build cache
-   go clean -cache
-   
-   # Rebuild
-   go build -a ./cmd/builderd
-   ```
+# Structured log analysis
+./build/builderd 2>&1 | jq 'select(.level == "error")'
+```
 
-3. **Test Failures**:
-   ```bash
-   # Run specific test with verbose output
-   go test -v -run TestBuilderService ./internal/service/
-   ```
+**Log Fields for Debugging**:
+- `build_id` - Build job identifier
+- `tenant_id` - Tenant context
+- `source_type` - Build source type
+- `error` - Error messages and stack traces
 
-### Development FAQ
+## Adding New Features
 
-**Q: How do I test without Docker?**
-A: Set up mock executors that simulate Docker operations without actual containers.
+### Executor Pattern
 
-**Q: How do I debug tenant isolation?**
-A: Use debug logging and inspect namespace/cgroup creation in `/sys/fs/cgroup/`.
+**Creating New Executor**:
+```go
+// internal/executor/git.go
+type GitExecutor struct {
+    logger *slog.Logger
+    config *config.Config
+    metrics *observability.BuildMetrics
+}
 
-**Q: How do I test with different storage backends?**
-A: Use environment variables to switch between local/S3/GCS backends.
+func NewGitExecutor(logger *slog.Logger, cfg *config.Config, metrics *observability.BuildMetrics) *GitExecutor {
+    return &GitExecutor{
+        logger:  logger,
+        config:  cfg,
+        metrics: metrics,
+    }
+}
 
-## Resources
+func (g *GitExecutor) Execute(ctx context.Context, request *builderv1.CreateBuildRequest) (*BuildResult, error) {
+    // Implementation
+}
 
-- [Go Documentation](https://go.dev/doc/)
-- [ConnectRPC Documentation](https://connect.build/docs/go/)
-- [Docker SDK Documentation](https://pkg.go.dev/github.com/docker/docker/client)
-- [OpenTelemetry Go](https://opentelemetry.io/docs/instrumentation/go/)
+func (g *GitExecutor) GetSupportedSources() []string {
+    return []string{"git"}
+}
+```
+
+**Register Executor**: [internal/executor/registry.go:36](../../internal/executor/registry.go#L36)
+
+### Protocol Buffer Changes
+
+**Updating Proto Definitions**:
+1. Modify [proto/builder/v1/builder.proto](../../proto/builder/v1/builder.proto)
+2. Run `make generate` to update generated code
+3. Update service implementation to handle new fields
+4. Add tests for new functionality
+5. Update API documentation
+
+**Example Proto Addition**:
+```protobuf
+// Add new build strategy
+message PythonBuildStrategy {
+  string python_version = 1;
+  string requirements_file = 2;
+  bool use_poetry = 3;
+}
+
+// Update BuildStrategy
+message BuildStrategy {
+  oneof strategy_type {
+    DockerExtractStrategy docker_extract = 1;
+    GitBuildStrategy git_build = 2;
+    PythonBuildStrategy python_build = 3;  // New strategy
+  }
+}
+```
+
+### Configuration Changes
+
+**Adding Configuration Options**:
+1. Update config structs in [internal/config/config.go](../../internal/config/config.go)
+2. Add environment variable parsing
+3. Add validation in `validateConfig()`
+4. Update documentation and examples
+5. Add tests for new configuration
+
+**Example Configuration Addition**:
+```go
+type GitConfig struct {
+    Enabled        bool          `yaml:"enabled"`
+    CloneTimeout   time.Duration `yaml:"clone_timeout"`
+    MaxRepoSizeGB  int           `yaml:"max_repo_size_gb"`
+    AllowedHosts   []string      `yaml:"allowed_hosts"`
+}
+
+// Add to main Config struct
+type Config struct {
+    // ... existing fields
+    Git GitConfig `yaml:"git"`
+}
+
+// Add environment variable parsing
+Git: GitConfig{
+    Enabled:       getEnvBoolOrDefault("UNKEY_BUILDERD_GIT_ENABLED", false),
+    CloneTimeout:  getEnvDurationOrDefault("UNKEY_BUILDERD_GIT_CLONE_TIMEOUT", 5*time.Minute),
+    MaxRepoSizeGB: getEnvIntOrDefault("UNKEY_BUILDERD_GIT_MAX_REPO_SIZE_GB", 1),
+    AllowedHosts:  getEnvSliceOrDefault("UNKEY_BUILDERD_GIT_ALLOWED_HOSTS", []string{"github.com", "gitlab.com"}),
+},
+```
+
+## Contribution Guidelines
+
+### Development Process
+
+1. **Issue Creation**: Create GitHub issue describing the feature/bug
+2. **Branch Creation**: Create feature branch from main
+3. **Implementation**: Implement changes with tests
+4. **Testing**: Ensure all tests pass and add new tests
+5. **Documentation**: Update relevant documentation
+6. **Pull Request**: Create PR with detailed description
+7. **Review**: Address code review feedback
+8. **Merge**: Squash and merge after approval
+
+### Code Review Checklist
+
+**Functionality**:
+- [ ] Implementation matches requirements
+- [ ] Error handling is comprehensive
+- [ ] Resource cleanup is proper
+- [ ] Logging includes relevant context
+
+**Testing**:
+- [ ] Unit tests cover new functionality
+- [ ] Integration tests for external dependencies
+- [ ] Edge cases are tested
+- [ ] Performance impact is acceptable
+
+**Code Quality**:
+- [ ] Code follows Go conventions
+- [ ] Functions are focused and testable
+- [ ] Comments explain complex logic
+- [ ] No security vulnerabilities introduced
+
+**Documentation**:
+- [ ] API documentation updated
+- [ ] Configuration documented
+- [ ] Examples provided where appropriate
+- [ ] Breaking changes noted
+
+### Release Process
+
+**Version Management**:
+- Follow semantic versioning (v0.x.y)
+- Update version in relevant files
+- Create release notes with changes
+- Tag releases in Git
+
+**Deployment Testing**:
+- Test in staging environment
+- Verify backward compatibility
+- Check service integration points
+- Validate configuration migration
+
+## Architecture Decisions
+
+### Design Principles
+
+1. **Tenant Isolation**: All operations must respect tenant boundaries
+2. **Observability First**: Comprehensive logging, metrics, and tracing
+3. **Graceful Degradation**: Failures should not cascade across tenants
+4. **Resource Efficiency**: Optimize for resource usage and cleanup
+5. **Security by Default**: Secure configurations and input validation
+
+### Technology Choices
+
+**Why ConnectRPC**: Type-safe, HTTP/2-based RPC with excellent tooling
+**Why SPIFFE/SPIRE**: Industry-standard workload identity for zero-trust
+**Why OpenTelemetry**: Vendor-neutral observability with rich ecosystem
+**Why Docker**: Ubiquitous container runtime with excellent tooling
+
+### Future Considerations
+
+**Planned Enhancements**:
+- Database integration for persistent storage
+- Build result caching for performance
+- Multi-node deployment support
+- Enhanced security scanning
+
+**Technical Debt**:
+- In-memory build storage (needs database)
+- Limited executor types (expand beyond Docker)
+- Basic tenant management (needs enhancement)
+
+Source: [AIDEV comments throughout codebase](../../internal/service/builder.go)

@@ -1,538 +1,668 @@
-# Billaged Operations Guide
+# Billaged Operations Manual
 
-This guide covers production deployment, monitoring, troubleshooting, and operational best practices for the billaged service.
+This guide covers production deployment, monitoring, and operational procedures for the billaged service.
 
-## Table of Contents
-
-- [Deployment](#deployment)
-- [Configuration](#configuration)
-- [Monitoring](#monitoring)
-- [Health Checks](#health-checks)
-- [Troubleshooting](#troubleshooting)
-- [Performance Tuning](#performance-tuning)
-- [Security Operations](#security-operations)
-
-## Deployment
+## Installation & Deployment
 
 ### System Requirements
 
-- **OS**: Linux (any modern distribution)
-- **CPU**: 2+ cores recommended
-- **Memory**: 2GB minimum, 4GB+ recommended
-- **Network**: Low latency to metald instances
-- **Disk**: Minimal (logs only)
+#### Hardware Requirements
+- **CPU**: 2+ cores for high-throughput metric processing
+- **Memory**: 4GB+ RAM for large-scale VM aggregation (1MB per 1000 active VMs)
+- **Storage**: 10GB+ for logs, configuration, and temporary data
+- **Network**: Low-latency connection to metald instances (<10ms preferred)
 
-### Installation Methods
+#### Software Dependencies
+- **OS**: Linux with systemd support (RHEL 8+, Ubuntu 20.04+, Fedora 35+)
+- **Go Runtime**: Go 1.24.4+ for building from source
+- **SPIRE Agent**: Running SPIRE workload API for service authentication
+- **systemd**: Service management and process supervision
 
-#### 1. Systemd Service
+### Building from Source
 
-**Installation**: [`Makefile:14-24`](../../Makefile:14-24)
-
-```bash
-# Build and install with systemd
-cd billaged
-make install
-
-# Start the service
-sudo systemctl start billaged
-sudo systemctl enable billaged
-
-# Check status
-sudo systemctl status billaged
-```
-
-**Unit File**: [`contrib/systemd/billaged.service`](../../contrib/systemd/billaged.service)
-
-#### 2. Docker Container
+**Build Location**: [Makefile](../../Makefile)
 
 ```bash
-# Build Docker image
-docker build -t billaged:latest .
+# Clone repository
+git clone https://github.com/unkeyed/unkey
+cd go/deploy/billaged
 
-# Run with environment variables
-docker run -d \
-  --name billaged \
-  -p 8081:8081 \
-  -p 9465:9465 \
-  -e UNKEY_BILLAGED_TLS_MODE=disabled \
-  -e UNKEY_BILLAGED_AGGREGATION_INTERVAL=60s \
-  billaged:latest
+# Build binary
+make build
+# Creates: build/billaged
+
+# Install with systemd integration
+sudo make install
+# Installs: binary, systemd unit, environment template
 ```
 
-#### 3. Kubernetes Deployment
+### Installation Locations
 
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: billaged
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: billaged
-  template:
-    metadata:
-      labels:
-        app: billaged
-    spec:
-      containers:
-      - name: billaged
-        image: billaged:latest
-        ports:
-        - containerPort: 8081
-          name: grpc
-        - containerPort: 9465
-          name: metrics
-        env:
-        - name: UNKEY_BILLAGED_TLS_MODE
-          value: "spiffe"
-        - name: UNKEY_BILLAGED_SPIFFE_SOCKET
-          value: "/run/spire/sockets/agent.sock"
-        volumeMounts:
-        - name: spire-agent-socket
-          mountPath: /run/spire/sockets
-          readOnly: true
-      volumes:
-      - name: spire-agent-socket
-        hostPath:
-          path: /run/spire/sockets
-          type: DirectoryOrCreate
+**Systemd Integration**: [contrib/systemd/](../../contrib/systemd/)
+
+```
+/usr/local/bin/billaged              # Service binary
+/etc/systemd/system/billaged.service # Systemd unit file
+/etc/billaged/environment            # Environment configuration
+/var/log/billaged/                   # Log directory
+/var/lib/billaged/                   # Runtime data directory
 ```
 
-## Configuration
+## Configuration Management
 
-Billaged uses environment variables for configuration. All variables follow the `UNKEY_BILLAGED_*` naming convention.
+### Environment Variables
 
-### Configuration Reference
+**Configuration Reference**: [config/config.go](../../internal/config/config.go)
 
-**Implementation**: [`internal/config/config.go:15-34`](../../internal/config/config.go:15-34)
+#### Core Server Configuration
 
-#### Server Configuration
+```bash
+# Server binding configuration
+export UNKEY_BILLAGED_PORT=8081                    # Service port
+export UNKEY_BILLAGED_ADDRESS=0.0.0.0              # Bind address
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `UNKEY_BILLAGED_PORT` | `8081` | Server port |
-| `UNKEY_BILLAGED_ADDRESS` | `0.0.0.0` | Bind address |
-| `UNKEY_BILLAGED_AGGREGATION_INTERVAL` | `60s` | Usage summary interval |
+# Billing aggregation settings  
+export UNKEY_BILLAGED_AGGREGATION_INTERVAL=60s     # Summary interval
+```
+
+#### Security Configuration
+
+```bash
+# TLS and authentication
+export UNKEY_BILLAGED_TLS_MODE=spiffe              # TLS mode: spiffe, file, disabled
+export UNKEY_BILLAGED_SPIFFE_SOCKET=/var/lib/spire/agent/agent.sock # SPIFFE socket
+
+# File-based TLS (alternative to SPIFFE)
+export UNKEY_BILLAGED_TLS_CERT_FILE=/etc/billaged/tls/cert.pem
+export UNKEY_BILLAGED_TLS_KEY_FILE=/etc/billaged/tls/key.pem  
+export UNKEY_BILLAGED_TLS_CA_FILE=/etc/billaged/tls/ca.pem
+```
 
 #### OpenTelemetry Configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `UNKEY_BILLAGED_ENABLE_OTEL` | `false` | Enable OpenTelemetry |
-| `UNKEY_BILLAGED_OTEL_SERVICE_NAME` | `billaged` | Service name for traces |
-| `UNKEY_BILLAGED_OTEL_SERVICE_VERSION` | `0.1.0` | Service version |
-| `UNKEY_BILLAGED_OTEL_SAMPLING_RATE` | `1.0` | Trace sampling rate (0.0-1.0) |
-| `UNKEY_BILLAGED_OTEL_ENDPOINT` | `localhost:4318` | OTLP HTTP endpoint |
-| `UNKEY_BILLAGED_OTEL_PROMETHEUS_ENABLED` | `true` | Enable Prometheus metrics |
-| `UNKEY_BILLAGED_OTEL_PROMETHEUS_PORT` | `9465` | Prometheus metrics port |
-| `UNKEY_BILLAGED_OTEL_PROMETHEUS_INTERFACE` | `127.0.0.1` | Metrics bind interface |
-| `UNKEY_BILLAGED_OTEL_HIGH_CARDINALITY_ENABLED` | `false` | Enable high-cardinality labels |
+```bash
+# Observability settings
+export UNKEY_BILLAGED_OTEL_ENABLED=true                        # Enable OTEL
+export UNKEY_BILLAGED_OTEL_SERVICE_NAME=billaged               # Service name
+export UNKEY_BILLAGED_OTEL_SERVICE_VERSION=0.1.0              # Version tag
+export UNKEY_BILLAGED_OTEL_SAMPLING_RATE=1.0                  # Trace sampling
+export UNKEY_BILLAGED_OTEL_ENDPOINT=localhost:4318            # OTLP endpoint
 
-#### TLS Configuration
+# Prometheus metrics
+export UNKEY_BILLAGED_OTEL_PROMETHEUS_ENABLED=true            # Enable Prometheus
+export UNKEY_BILLAGED_OTEL_PROMETHEUS_PORT=9465               # Metrics port  
+export UNKEY_BILLAGED_OTEL_PROMETHEUS_INTERFACE=127.0.0.1     # Bind interface
+export UNKEY_BILLAGED_OTEL_HIGH_CARDINALITY_ENABLED=false     # Limit cardinality
+```
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `UNKEY_BILLAGED_TLS_MODE` | `spiffe` | TLS mode: `disabled`, `file`, `spiffe` |
-| `UNKEY_BILLAGED_TLS_CERT_FILE` | - | Certificate file path (file mode) |
-| `UNKEY_BILLAGED_TLS_KEY_FILE` | - | Private key file path (file mode) |
-| `UNKEY_BILLAGED_TLS_CA_FILE` | - | CA bundle file path (file mode) |
-| `UNKEY_BILLAGED_SPIFFE_SOCKET` | `/var/lib/spire/agent/agent.sock` | SPIFFE workload API socket |
+### Production Configuration Template
 
-### Production Configuration Example
+**Environment File**: [contrib/systemd/billaged.env.example](../../contrib/systemd/billaged.env.example)
 
 ```bash
-# /etc/systemd/system/billaged.service.d/override.conf
+# Production environment template
+UNKEY_BILLAGED_PORT=8081
+UNKEY_BILLAGED_ADDRESS=0.0.0.0
+UNKEY_BILLAGED_AGGREGATION_INTERVAL=60s
+
+# Security (SPIFFE required in production)
+UNKEY_BILLAGED_TLS_MODE=spiffe
+UNKEY_BILLAGED_SPIFFE_SOCKET=/var/lib/spire/agent/agent.sock
+
+# Observability (full monitoring enabled)
+UNKEY_BILLAGED_OTEL_ENABLED=true
+UNKEY_BILLAGED_OTEL_SERVICE_NAME=billaged
+UNKEY_BILLAGED_OTEL_PROMETHEUS_ENABLED=true
+UNKEY_BILLAGED_OTEL_PROMETHEUS_PORT=9465
+UNKEY_BILLAGED_OTEL_PROMETHEUS_INTERFACE=127.0.0.1
+UNKEY_BILLAGED_OTEL_HIGH_CARDINALITY_ENABLED=false
+```
+
+### Configuration Validation
+
+**Validation Logic**: [config/config.go:183-198](../../internal/config/config.go#L183-198)
+
+The service validates configuration on startup:
+
+- **Sampling Rate**: Must be between 0.0 and 1.0 for tracing
+- **OTLP Endpoint**: Required when OpenTelemetry is enabled
+- **Service Name**: Required for proper observability tagging
+
+## Service Management
+
+### Systemd Integration
+
+**Unit File**: [contrib/systemd/billaged.service](../../contrib/systemd/billaged.service)
+
+#### Service Control
+
+```bash
+# Start service
+sudo systemctl start billaged
+
+# Enable automatic startup
+sudo systemctl enable billaged
+
+# Check service status
+sudo systemctl status billaged
+
+# View logs
+sudo journalctl -u billaged -f
+
+# Restart service
+sudo systemctl restart billaged
+
+# Stop service
+sudo systemctl stop billaged
+```
+
+#### Service Status Monitoring
+
+```bash
+# Service health check
+curl http://localhost:8081/health
+
+# Service statistics
+curl http://localhost:8081/stats
+
+# Prometheus metrics (if enabled)
+curl http://localhost:9465/metrics
+```
+
+### Process Management
+
+#### Resource Limits
+
+**Systemd Configuration**:
+```ini
 [Service]
-Environment="UNKEY_BILLAGED_PORT=8081"
-Environment="UNKEY_BILLAGED_ADDRESS=0.0.0.0"
-Environment="UNKEY_BILLAGED_AGGREGATION_INTERVAL=60s"
-Environment="UNKEY_BILLAGED_ENABLE_OTEL=true"
-Environment="UNKEY_BILLAGED_OTEL_ENDPOINT=otel-collector.monitoring:4318"
-Environment="UNKEY_BILLAGED_OTEL_SAMPLING_RATE=0.1"
-Environment="UNKEY_BILLAGED_OTEL_HIGH_CARDINALITY_ENABLED=false"
-Environment="UNKEY_BILLAGED_TLS_MODE=spiffe"
+LimitNOFILE=65536        # File descriptor limit
+LimitNPROC=4096          # Process limit  
+MemoryMax=4G             # Memory limit
+CPUQuota=200%            # CPU limit (2 cores)
 ```
 
-## Monitoring
+#### Health Monitoring
 
-### Prometheus Metrics
+**Health Handler**: [pkg/health/health.go](../../../pkg/health/health.go)
 
-**Endpoint**: `http://localhost:9465/metrics`  
-**Implementation**: [`internal/observability/metrics.go:35-55`](../../internal/observability/metrics.go:35-55)
+```bash
+# Health endpoint provides:
+# - Service version and uptime
+# - Basic connectivity status
+# - Resource usage summary
 
-#### Core Metrics
-
-##### billaged_usage_records_processed_total
-- **Type**: Counter
-- **Labels**: `vm_id`, `customer_id` (when high cardinality enabled)
-- **Description**: Total number of usage records processed
-- **Use Case**: Monitor ingestion rate and identify per-VM issues
-
-##### billaged_aggregation_duration_seconds
-- **Type**: Histogram
-- **Labels**: None
-- **Description**: Time spent aggregating usage metrics
-- **Use Case**: Monitor aggregation performance
-
-##### billaged_active_vms
-- **Type**: Gauge
-- **Labels**: None
-- **Description**: Number of active VMs being tracked
-- **Use Case**: Capacity planning and load monitoring
-
-##### billaged_billing_errors_total
-- **Type**: Counter
-- **Labels**: `error_type`
-- **Description**: Total number of billing processing errors
-- **Use Case**: Error rate monitoring and alerting
-
-### Sample Queries
-
-```promql
-# VMs per customer
-sum by (customer_id) (
-  increase(billaged_usage_records_processed_total[5m])
-)
-
-# Aggregation latency P99
-histogram_quantile(0.99, 
-  rate(billaged_aggregation_duration_seconds_bucket[5m])
-)
-
-# Error rate
-rate(billaged_billing_errors_total[5m])
-
-# Memory usage estimation (1KB per VM)
-billaged_active_vms * 1024
+curl http://localhost:8081/health
+{
+  "status": "healthy",
+  "version": "0.1.0",
+  "uptime": "2h30m15s",
+  "active_vms": 45
+}
 ```
 
-### Grafana Dashboard
+## Monitoring & Observability
 
-**Location**: [`contrib/grafana-dashboards/billaged-overview.json`](../../contrib/grafana-dashboards/billaged-overview.json)
+### Key Metrics
 
-Dashboard panels:
-- Active VMs by customer
-- Processing rate and latency
-- Error rates by type
-- Resource usage trends
-- Aggregation interval distribution
+**Metrics Implementation**: [observability/metrics.go](../../internal/observability/metrics.go)
 
-### Logging
+#### Core Business Metrics
 
-**Format**: Structured JSON ([`cmd/billaged/main.go:92-104`](../../cmd/billaged/main.go:92-104))
+```prometheus
+# Usage processing metrics
+billaged_usage_records_processed_total{vm_id,customer_id}  # Total records processed
+billaged_aggregation_duration_seconds                      # Processing latency histogram
+billaged_active_vms                                        # Current VM tracking count
+billaged_billing_errors_total{error_type}                 # Processing error count
+```
+
+#### System Performance Metrics
+
+```prometheus
+# HTTP request metrics (via OTEL)
+http_request_duration_seconds{method,status}              # Request latency
+http_requests_total{method,status}                        # Request count
+http_request_size_bytes                                   # Request size distribution
+http_response_size_bytes                                  # Response size distribution
+
+# Go runtime metrics
+go_memstats_alloc_bytes                                   # Memory allocation
+go_memstats_gc_duration_seconds                           # GC pause time
+go_goroutines                                            # Goroutine count
+```
+
+### Prometheus Configuration
+
+#### Scrape Configuration
+
+```yaml
+# prometheus.yml
+scrape_configs:
+  - job_name: 'billaged'
+    static_configs:
+      - targets: ['billaged-host:9465']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    
+    # Optional: SPIFFE mTLS authentication
+    tls_config:
+      cert_file: /etc/prometheus/spiffe-cert.pem
+      key_file: /etc/prometheus/spiffe-key.pem
+      ca_file: /etc/prometheus/spiffe-ca.pem
+```
+
+#### Alert Rules
+
+```yaml
+# billaged-alerts.yml
+groups:
+  - name: billaged
+    rules:
+      # High error rate
+      - alert: BillagedHighErrorRate
+        expr: rate(billaged_billing_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Billaged error rate is high"
+          description: "Error rate {{ $value }} errors/sec for 2 minutes"
+
+      # Processing latency
+      - alert: BillagedHighLatency  
+        expr: histogram_quantile(0.95, rate(billaged_aggregation_duration_seconds_bucket[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Billaged processing latency is high"
+          description: "95th percentile latency is {{ $value }}s"
+
+      # Memory usage
+      - alert: BillagedHighMemoryUsage
+        expr: process_resident_memory_bytes{job="billaged"} > 4e9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Billaged memory usage is high"
+          description: "Memory usage {{ $value | humanizeBytes }} above 4GB"
+```
+
+### Grafana Dashboards
+
+**Dashboard Location**: [contrib/grafana-dashboards/](../../contrib/grafana-dashboards/)
+
+#### Key Dashboard Panels
+
+1. **Usage Processing Rate**: `rate(billaged_usage_records_processed_total[5m])`
+2. **Active VM Count**: `billaged_active_vms`
+3. **Processing Latency**: `histogram_quantile(0.95, rate(billaged_aggregation_duration_seconds_bucket[5m]))`
+4. **Error Rate**: `rate(billaged_billing_errors_total[5m])`
+5. **Memory Usage**: `process_resident_memory_bytes`
+
+## Log Management
+
+### Log Configuration
+
+**Logging Setup**: [cmd/billaged/main.go:89-92](../../cmd/billaged/main.go#L89-92)
+
+#### Structured JSON Logging
 
 ```json
 {
-  "time": "2024-01-01T12:00:00Z",
-  "level": "INFO",
-  "msg": "usage summary generated",
-  "vm_id": "vm-123",
-  "customer_id": "customer-456",
-  "cpu_seconds": 45.2,
-  "memory_gb_seconds": 30.5,
-  "resource_score": 78.5
+  "time": "2024-01-15T10:30:00Z",
+  "level": "INFO", 
+  "msg": "received metrics batch",
+  "vm_id": "vm-firecracker-123",
+  "customer_id": "customer-abc",
+  "metrics_count": 5,
+  "component": "billing_service"
 }
 ```
 
 #### Log Levels
 
-- **DEBUG**: Detailed processing information
-- **INFO**: Normal operations, summaries
-- **WARN**: Recoverable issues
-- **ERROR**: Processing failures
+- **DEBUG**: Detailed metric processing information and delta calculations
+- **INFO**: Service lifecycle, usage summaries, and normal operations
+- **WARN**: Gap detection, potential data issues, and configuration warnings  
+- **ERROR**: Processing failures, authentication errors, and system issues
 
-## Health Checks
+### Log Aggregation
 
-### Health Endpoint
+#### Centralized Logging
 
-**URL**: `http://localhost:8081/health`  
-**Implementation**: [`pkg/health`](../../cmd/billaged/main.go:284)
+```bash
+# Systemd journal integration
+sudo journalctl -u billaged -o json | tee /var/log/billaged/billaged.log
 
-#### Response Format
+# Log rotation configuration
+sudo logrotate -d /etc/logrotate.d/billaged
+
+# Real-time log monitoring
+sudo tail -f /var/log/billaged/billaged.log | jq .
+```
+
+#### Usage Summary Logging
+
+**Summary Format**: [cmd/billaged/main.go:392-437](../../cmd/billaged/main.go#L392-437)
 
 ```json
 {
-  "status": "healthy",
-  "service": "billaged",
-  "version": "0.1.0",
-  "uptime": "72h15m30s",
-  "checks": {
-    "memory": "ok",
-    "goroutines": 42
-  }
+  "time": "2024-01-15T10:31:00Z",
+  "level": "INFO",
+  "msg": "=== BILLAGED USAGE SUMMARY ===",
+  "vm_id": "vm-firecracker-123", 
+  "customer_id": "customer-abc",
+  "period": "60s",
+  "cpu_time_used_ms": 1500,
+  "avg_memory_usage_mb": 512,
+  "disk_read_mb": 1,
+  "disk_write_mb": 0.5,
+  "network_rx_mb": 0.002,
+  "network_tx_mb": 0.001,
+  "resource_score": 2.8505,
+  "sample_count": 60
 }
-```
-
-### Readiness vs Liveness
-
-**Readiness**: Service ready to accept traffic
-- Check: `/health` returns 200
-- Indicates: Service initialized
-
-**Liveness**: Service is running
-- Check: `/health` returns any response
-- Indicates: Process not deadlocked
-
-### Kubernetes Probes
-
-```yaml
-livenessProbe:
-  httpGet:
-    path: /health
-    port: 8081
-  initialDelaySeconds: 10
-  periodSeconds: 30
-
-readinessProbe:
-  httpGet:
-    path: /health
-    port: 8081
-  initialDelaySeconds: 5
-  periodSeconds: 10
-```
-
-## Troubleshooting
-
-### Common Issues
-
-#### 1. High Memory Usage
-
-**Symptoms**: Growing memory consumption
-
-**Diagnosis**:
-```bash
-# Check active VMs
-curl http://localhost:8081/stats
-
-# Monitor Prometheus metrics
-curl http://localhost:9465/metrics | grep billaged_active_vms
-```
-
-**Solutions**:
-- Reduce aggregation interval
-- Scale horizontally
-- Check for VM lifecycle event delivery
-
-#### 2. Missing Metrics
-
-**Symptoms**: No usage summaries generated
-
-**Diagnosis**:
-```bash
-# Check RPC errors
-journalctl -u billaged | grep "rpc error"
-
-# Verify metald connectivity
-nc -zv metald-host 8080
-```
-
-**Solutions**:
-- Verify network connectivity
-- Check TLS/mTLS configuration
-- Confirm metald is sending metrics
-
-#### 3. SPIFFE Authentication Failures
-
-**Symptoms**: Connection refused errors
-
-**Diagnosis**:
-```bash
-# Check SPIFFE agent
-spire-agent api fetch x509
-
-# Verify socket permissions
-ls -la /var/lib/spire/agent/agent.sock
-```
-
-**Solutions**:
-- Ensure SPIRE agent is running
-- Check socket path configuration
-- Verify workload registration
-
-### Debug Commands
-
-```bash
-# Check active VMs
-curl http://localhost:8081/stats | jq
-
-# Monitor metrics ingestion
-curl -s http://localhost:9465/metrics | grep billaged_usage_records_processed_total
-
-# Watch aggregation performance
-watch -n 5 'curl -s http://localhost:9465/metrics | grep billaged_aggregation_duration'
-```
-
-### Debug Mode
-
-Enable detailed logging:
-
-```bash
-# Set log level to debug
-export UNKEY_BILLAGED_LOG_LEVEL=debug
-
-# Run with verbose output
-./billaged 2>&1 | jq '.'
 ```
 
 ## Performance Tuning
 
 ### Memory Optimization
 
-1. **Aggregation Interval**: Shorter intervals = less memory
-   ```bash
-   export UNKEY_BILLAGED_AGGREGATION_INTERVAL=30s
-   ```
+#### VM Tracking Optimization
 
-2. **Batch Size**: Control in metald configuration
-   - Smaller batches = more frequent processing
-   - Larger batches = better throughput
+**Data Structures**: [aggregator.go:68-79](../../internal/aggregator/aggregator.go#L68-79)
 
-### CPU Optimization
+```bash
+# Monitor memory usage per VM
+# Typical: ~1KB per active VM
+# High load: 1000 VMs = ~1MB memory usage
 
-1. **GOMAXPROCS**: Set based on CPU cores
-   ```bash
-   export GOMAXPROCS=4
-   ```
+# Optimize for large deployments
+export UNKEY_BILLAGED_AGGREGATION_INTERVAL=30s  # More frequent cleanup
+```
 
-2. **Concurrency**: Tune based on workload
-   - More VMs = higher concurrency needed
-   - Monitor goroutine count
+#### Garbage Collection Tuning
 
-### Network Optimization
+```bash
+# Go GC tuning for high-throughput
+export GOGC=100                    # Default GC percentage
+export GOMEMLIMIT=3GiB            # Memory limit hint
+export GODEBUG=gctrace=1          # GC debugging (development only)
+```
 
-1. **HTTP/2 Settings**: Already optimized by default
-2. **Compression**: Enabled for all RPCs
-3. **Keep-alive**: Configured for long-lived connections
+### Aggregation Performance
 
-### Resource Limits
+#### Interval Tuning
 
-Systemd resource limits:
-```ini
-[Service]
-# Memory limit
-MemoryLimit=2G
-# CPU quota (200% = 2 cores)
-CPUQuota=200%
-# Restart on failure
-Restart=on-failure
-RestartSec=5s
+**Configuration**: [config/config.go:152-153](../../internal/config/config.go#L152-153)
+
+```bash
+# High-precision billing (more CPU, more accurate)
+export UNKEY_BILLAGED_AGGREGATION_INTERVAL=30s
+
+# Balanced performance (recommended)  
+export UNKEY_BILLAGED_AGGREGATION_INTERVAL=60s
+
+# High-throughput (less CPU, less precision)
+export UNKEY_BILLAGED_AGGREGATION_INTERVAL=120s
+```
+
+#### Batch Size Optimization
+
+- **Small Batches** (1-10 metrics): Lower latency, higher overhead
+- **Medium Batches** (10-100 metrics): Optimal balance (recommended)
+- **Large Batches** (100+ metrics): Higher latency, better throughput
+
+### Network Performance
+
+#### ConnectRPC Optimization
+
+```bash
+# Connection pooling and HTTP/2
+# Handled automatically by ConnectRPC library
+
+# Monitor connection metrics
+curl http://localhost:9465/metrics | grep http_request
+```
+
+#### SPIFFE Performance
+
+```bash
+# Certificate caching configuration
+export UNKEY_BILLAGED_SPIFFE_CERT_CACHE_TTL=5s
+
+# Monitor certificate renewal
+sudo journalctl -u spire-agent -f | grep billaged
 ```
 
 ## Security Operations
 
-### TLS/mTLS Operations
+### SPIFFE/SPIRE Configuration
 
-#### Certificate Rotation (File Mode)
+#### Workload Registration
 
-```bash
-# Update certificates
-cp new-cert.pem /etc/billaged/cert.pem
-cp new-key.pem /etc/billaged/key.pem
-
-# Reload service
-systemctl reload billaged
-```
-
-#### SPIFFE Operations
+**Registration Script**: [../../spire/scripts/register-services.sh](../../spire/scripts/register-services.sh)
 
 ```bash
-# List workload entries
-spire-server entry list
-
-# Update workload registration
-spire-server entry update \
-  -entryID <id> \
-  -selector unix:uid:1000 \
-  -spiffeID spiffe://example.org/billaged
+# Register billaged workload with SPIRE
+spire-server entry create \
+  -spiffeID spiffe://unkey.dev/billaged \
+  -parentID spiffe://unkey.dev/agent \
+  -selector unix:uid:billaged \
+  -selector unix:gid:billaged
 ```
 
-### Security Checklist
+#### Certificate Monitoring
 
-- [ ] TLS enabled for production
-- [ ] SPIFFE workload registered
-- [ ] Network policies configured
-- [ ] Prometheus endpoint secured
-- [ ] Logs sanitized (no sensitive data)
-- [ ] Regular security updates
+```bash
+# Check SPIFFE identity
+spire-agent api fetch -socketPath /var/lib/spire/agent/agent.sock
 
-### Incident Response
+# Monitor certificate expiration
+sudo journalctl -u spire-agent -f | grep billaged
+```
 
-1. **Metric Data Leak**: No persistent storage, restart clears all
-2. **Authentication Bypass**: Check TLS configuration immediately
-3. **DoS Attack**: Implement rate limiting at proxy level
+### Network Security
 
-## Backup and Recovery
+#### Firewall Configuration
 
-### State Recovery
+```bash
+# iptables rules for billaged
+sudo iptables -A INPUT -p tcp --dport 8081 -s 10.0.0.0/8 -j ACCEPT     # Service port
+sudo iptables -A INPUT -p tcp --dport 9465 -s 127.0.0.1 -j ACCEPT      # Metrics port (localhost only)
+sudo iptables -A INPUT -p tcp --dport 8081 -j DROP                      # Block external access
+```
 
-Billaged is stateless, but consider:
+#### TLS Configuration
 
-1. **Configuration Backup**: Version control environment files
-2. **Metric Continuity**: Metald will retry on recovery
-3. **Gap Detection**: Automatic via NotifyPossibleGap
+```bash
+# Verify TLS setup
+openssl s_client -connect localhost:8081 -servername billaged
 
-### Disaster Recovery
+# Check certificate chain
+openssl x509 -in /var/lib/spire/agent/svid.pem -text -noout
+```
 
-1. **Multi-region**: Deploy in multiple regions
-2. **Load Balancing**: Use anycast or GeoDNS
-3. **Failover**: Automatic with health checks
+## Troubleshooting
+
+### Common Issues
+
+#### 1. SPIFFE Authentication Failures
+
+**Symptoms**: `Unauthenticated` errors in logs, connection failures
+**Diagnosis**:
+```bash
+# Check SPIRE agent status
+sudo systemctl status spire-agent
+
+# Verify workload registration
+spire-server entry show -spiffeID spiffe://unkey.dev/billaged
+
+# Check socket permissions
+ls -la /var/lib/spire/agent/agent.sock
+```
+
+**Resolution**:
+```bash
+# Restart SPIRE agent
+sudo systemctl restart spire-agent
+
+# Re-register workload if needed
+./register-services.sh
+```
+
+#### 2. High Memory Usage
+
+**Symptoms**: Memory usage above 4GB, slow aggregation
+**Diagnosis**:
+```bash
+# Check VM count
+curl http://localhost:8081/stats
+
+# Monitor memory growth
+watch 'ps aux | grep billaged'
+```
+
+**Resolution**:
+```bash
+# Reduce aggregation interval for more frequent cleanup
+export UNKEY_BILLAGED_AGGREGATION_INTERVAL=30s
+
+# Restart service to clear memory
+sudo systemctl restart billaged
+```
+
+#### 3. Processing Latency Issues
+
+**Symptoms**: High `billaged_aggregation_duration_seconds` metrics
+**Diagnosis**:
+```bash
+# Check current processing load
+curl http://localhost:9465/metrics | grep billaged_aggregation_duration
+
+# Monitor CPU usage
+top -p $(pgrep billaged)
+```
+
+**Resolution**:
+```bash
+# Increase CPU allocation
+# Edit /etc/systemd/system/billaged.service
+CPUQuota=400%  # 4 cores
+
+sudo systemctl daemon-reload
+sudo systemctl restart billaged
+```
+
+#### 4. Missing Metrics
+
+**Symptoms**: No usage summaries in logs, zero active VMs
+**Diagnosis**:
+```bash
+# Check metald connectivity
+curl http://metald:8080/health
+
+# Verify service registration
+spire-server entry show
+```
+
+**Resolution**:
+```bash
+# Check network connectivity
+telnet metald 8080
+
+# Verify SPIFFE configuration
+sudo journalctl -u spire-agent -f
+```
+
+### Diagnostic Commands
+
+#### Service Health
+
+```bash
+# Overall service health
+curl http://localhost:8081/health
+
+# Current statistics  
+curl http://localhost:8081/stats
+
+# Process information
+ps aux | grep billaged
+pmap $(pgrep billaged)
+```
+
+#### Performance Analysis
+
+```bash
+# Go profiling (if enabled)
+go tool pprof http://localhost:8081/debug/pprof/profile
+
+# Memory profile
+go tool pprof http://localhost:8081/debug/pprof/heap
+
+# Goroutine analysis
+go tool pprof http://localhost:8081/debug/pprof/goroutine
+```
+
+### Emergency Procedures
+
+#### Service Recovery
+
+```bash
+# Immediate restart
+sudo systemctl restart billaged
+
+# Clear all state (loses current aggregation data)
+sudo systemctl stop billaged
+sudo rm -rf /var/lib/billaged/*
+sudo systemctl start billaged
+
+# Rollback to previous version
+sudo cp /usr/local/bin/billaged.backup /usr/local/bin/billaged
+sudo systemctl restart billaged
+```
+
+#### Data Reconciliation
+
+If usage data is lost or corrupted:
+
+1. **Review Logs**: Check systemd journal for error patterns
+2. **Gap Notifications**: Monitor for `NotifyPossibleGap` calls from metald
+3. **Manual Reconciliation**: Use CLI tool to recreate missing lifecycle events
+4. **Billing Adjustment**: Coordinate with billing systems for manual adjustments
 
 ## Capacity Planning
 
-### Sizing Guidelines
+### Scaling Guidelines
 
-| VMs | CPU | Memory | Network |
-|-----|-----|--------|---------|
-| 1K | 1 core | 512MB | 10 Mbps |
-| 10K | 2 cores | 2GB | 100 Mbps |
-| 100K | 4 cores | 8GB | 1 Gbps |
+#### Vertical Scaling
 
-### Scaling Triggers
+- **Memory**: 1MB per 1000 active VMs (linear scaling)
+- **CPU**: 1 core per 5000 metrics/second processing
+- **Network**: 100Mbps for 10000 concurrent VMs
 
-Monitor these metrics for scaling decisions:
-- `billaged_active_vms` > 10,000
-- `billaged_aggregation_duration_seconds` > 5s
-- CPU usage > 80%
-- Memory usage > 80%
+#### Horizontal Scaling
 
-### Horizontal Scaling
+Multiple billaged instances with client-side load balancing:
 
-1. **Stateless Design**: Each instance independent
-2. **Load Distribution**: Round-robin or least-connections
-3. **Session Affinity**: Not required
-4. **Shared State**: None (design advantage)
+```bash
+# Deploy multiple instances
+billaged-1: port 8081
+billaged-2: port 8082  
+billaged-3: port 8083
 
-## Monitoring Alerts
-
-### Prometheus Alert Rules
-
-```yaml
-groups:
-  - name: billaged
-    rules:
-      - alert: BillagedDown
-        expr: up{job="billaged"} == 0
-        for: 5m
-        annotations:
-          summary: "Billaged service is down"
-          
-      - alert: BillagedHighErrorRate
-        expr: rate(billaged_billing_errors_total[5m]) > 0.1
-        for: 10m
-        annotations:
-          summary: "High billing error rate"
-          
-      - alert: BillagedSlowAggregation
-        expr: histogram_quantile(0.95, rate(billaged_aggregation_duration_seconds_bucket[5m])) > 5
-        for: 15m
-        annotations:
-          summary: "Slow aggregation performance"
-          
-      - alert: BillagedHighMemory
-        expr: billaged_active_vms > 50000
-        for: 30m
-        annotations:
-          summary: "High number of active VMs"
+# Client configuration
+export UNKEY_BILLAGED_ENDPOINTS=billaged-1:8081,billaged-2:8082,billaged-3:8083
 ```
+
+### Resource Monitoring
+
+#### Key Capacity Metrics
+
+- **Memory Growth Rate**: Should be linear with VM count
+- **Processing Latency**: Should remain under 10ms per batch
+- **Error Rate**: Should remain under 0.1% for production
+- **Active VM Count**: Monitor for sudden changes indicating issues

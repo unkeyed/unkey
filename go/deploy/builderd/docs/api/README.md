@@ -1,77 +1,70 @@
 # Builderd API Documentation
 
-This document provides comprehensive API reference for the Builderd service ConnectRPC/gRPC interface.
+This document provides complete reference for the builderd ConnectRPC API, including all service endpoints, request/response schemas, and integration patterns.
 
-## Service Definition
+## Service Overview
 
-The BuilderService provides multi-tenant build execution for various source types. All operations are tenant-scoped and subject to resource quotas.
+Builderd exposes a single ConnectRPC service `BuilderService` that handles multi-tenant build operations with comprehensive lifecycle management.
 
-**Proto Definition**: [`proto/builder/v1/builder.proto`](../../proto/builder/v1/builder.proto)
+**Service Definition**: [proto/builder/v1/builder.proto](../../proto/builder/v1/builder.proto)
 
-## Base URL
-
-- **gRPC/ConnectRPC**: `https://localhost:8082/builder.v1.BuilderService/`
-- **Health Check**: `https://localhost:8082/health`
+**Generated Client**: [gen/builder/v1/builderv1connect/builder.connect.go](../../gen/builder/v1/builderv1connect/builder.connect.go)
 
 ## Authentication
 
-All API calls require tenant authentication via SPIFFE/mTLS or custom tenant context headers.
+All API calls require SPIFFE/SPIRE mTLS authentication with tenant context:
 
-## API Documentation
+```go
+// Tenant headers required for all requests
+X-Tenant-ID: <tenant-id>
+X-Customer-ID: <customer-id>  // Optional for enterprise tiers
+Authorization: Bearer <jwt-token>
+```
 
-### BuilderService
+Source: [internal/service/builder.go:136](../../internal/service/builder.go#L136)
 
-Service definition: [builder.proto:10](../../../proto/builder/v1/builder.proto:10)
+## API Endpoints
 
-The BuilderService provides multi-tenant build execution for various source types including Docker images, Git repositories, and archives.
+### CreateBuild
 
-### RPCs
+Creates a new build job with tenant-scoped resource validation.
 
-#### CreateBuild
+**Endpoint**: `/builder.v1.BuilderService/CreateBuild`
 
-**Method**: `rpc CreateBuild(CreateBuildRequest) returns (CreateBuildResponse)`  
-[Proto definition](../../../proto/builder/v1/builder.proto:12)
-
-Creates and executes a new build job. Currently executes synchronously but will support async execution in future.
-
-**Request Schema** ([CreateBuildRequest](../../../proto/builder/v1/builder.proto:352)):
+**Request Schema**: 
 ```protobuf
 message CreateBuildRequest {
-  BuildConfig config = 1;  // Complete build configuration
+  BuildConfig config = 1;
 }
 ```
 
-**Response Schema** ([CreateBuildResponse](../../../proto/builder/v1/builder.proto:354)):
+**Response Schema**:
 ```protobuf
 message CreateBuildResponse {
-  string build_id = 1;              // Unique build identifier
-  BuildState state = 2;             // Current build state
+  string build_id = 1;
+  BuildState state = 2;
   google.protobuf.Timestamp created_at = 3;
-  string rootfs_path = 4;           // Path to generated rootfs
+  string rootfs_path = 4;
 }
 ```
 
-**Downstream Calls**: 
-- Executes Docker commands locally for image extraction
-- Registers artifacts with assetmanagerd upon successful completion ([client.go:63](../../../internal/assetmanager/client.go:63))
+**Source Types Supported**:
+- **Docker Images**: `ghcr.io/unkeyed/unkey:latest` with optional registry authentication
+- **Git Repositories**: GitHub/GitLab URLs with branch/tag/commit selection (planned)
+- **Archives**: tar.gz/zip files with build context specification (planned)
 
-**Error Handling**:
-- `INVALID_ARGUMENT`: Invalid build configuration
-- `RESOURCE_EXHAUSTED`: Quota limits exceeded
-- `INTERNAL`: Build execution failures
-
-**Example**:
+**Example Request**:
 ```json
 {
   "config": {
     "tenant": {
       "tenant_id": "tenant-123",
-      "customer_id": "cust-456",
+      "customer_id": "customer-456",
       "tier": "TENANT_TIER_PRO"
     },
     "source": {
       "docker_image": {
-        "image_uri": "ghcr.io/unkeyed/api:latest"
+        "image_uri": "ghcr.io/unkeyed/unkey:f4cfee5"
       }
     },
     "target": {
@@ -83,340 +76,286 @@ message CreateBuildResponse {
       "docker_extract": {
         "flatten_filesystem": true
       }
-    }
+    },
+    "suggested_asset_id": "asset-789"
   }
 }
 ```
 
-#### GetBuild
+**Implementation**: [internal/service/builder.go:132](../../internal/service/builder.go#L132)
 
-**Method**: `rpc GetBuild(GetBuildRequest) returns (GetBuildResponse)`  
-[Proto definition](../../../proto/builder/v1/builder.proto:15)
+### GetBuild
 
-Retrieves build status and detailed information.
+Retrieves build status and progress information with tenant authorization.
 
-**Request Schema** ([GetBuildRequest](../../../proto/builder/v1/builder.proto:361)):
+**Endpoint**: `/builder.v1.BuilderService/GetBuild`
+
+**Request Schema**:
 ```protobuf
 message GetBuildRequest {
   string build_id = 1;
-  string tenant_id = 2;  // For authorization
+  string tenant_id = 2;
 }
 ```
 
-**Response Schema** ([GetBuildResponse](../../../proto/builder/v1/builder.proto:366)):
+**Response Schema**:
 ```protobuf
 message GetBuildResponse {
-  BuildJob build = 1;  // Complete build information
+  BuildJob build = 1;
 }
 ```
 
-**Error Handling**:
-- `NOT_FOUND`: Build not found
-- `PERMISSION_DENIED`: Tenant lacks access to build
+**Build States**:
+- `BUILD_STATE_PENDING` - Job queued
+- `BUILD_STATE_PULLING` - Pulling Docker image/source
+- `BUILD_STATE_EXTRACTING` - Extracting/preparing source
+- `BUILD_STATE_BUILDING` - Building rootfs
+- `BUILD_STATE_OPTIMIZING` - Applying optimizations
+- `BUILD_STATE_COMPLETED` - Build successful
+- `BUILD_STATE_FAILED` - Build failed
+- `BUILD_STATE_CANCELLED` - Build cancelled
 
-#### ListBuilds
+**Implementation**: [internal/service/builder.go:368](../../internal/service/builder.go#L368)
 
-**Method**: `rpc ListBuilds(ListBuildsRequest) returns (ListBuildsResponse)`  
-[Proto definition](../../../proto/builder/v1/builder.proto:18)
+### ListBuilds
 
-Lists builds for a tenant with optional filtering.
+Lists builds for a tenant with filtering and pagination support.
 
-**Request Schema** ([ListBuildsRequest](../../../proto/builder/v1/builder.proto:368)):
+**Endpoint**: `/builder.v1.BuilderService/ListBuilds`
+
+**Request Schema**:
 ```protobuf
 message ListBuildsRequest {
-  string tenant_id = 1;                    // Required for filtering
-  repeated BuildState state_filter = 2;    // Optional state filters
-  int32 page_size = 3;                     // Pagination size
-  string page_token = 4;                   // Pagination token
+  string tenant_id = 1;
+  repeated BuildState state_filter = 2;
+  int32 page_size = 3;
+  string page_token = 4;
 }
 ```
 
-**Response Schema** ([ListBuildsResponse](../../../proto/builder/v1/builder.proto:375)):
-```protobuf
-message ListBuildsResponse {
-  repeated BuildJob builds = 1;
-  string next_page_token = 2;
-  int32 total_count = 3;
-}
-```
+**Implementation**: [internal/service/builder.go:397](../../internal/service/builder.go#L397)
 
-#### CancelBuild
+### CancelBuild
 
-**Method**: `rpc CancelBuild(CancelBuildRequest) returns (CancelBuildResponse)`  
-[Proto definition](../../../proto/builder/v1/builder.proto:21)
+Cancels a running build with proper cleanup and metrics recording.
 
-Cancels a running build job.
+**Endpoint**: `/builder.v1.BuilderService/CancelBuild`
 
-**Request Schema** ([CancelBuildRequest](../../../proto/builder/v1/builder.proto:381)):
-```protobuf
-message CancelBuildRequest {
-  string build_id = 1;
-  string tenant_id = 2;  // For authorization
-}
-```
+**Implementation**: [internal/service/builder.go:421](../../internal/service/builder.go#L421)
 
-**Response Schema** ([CancelBuildResponse](../../../proto/builder/v1/builder.proto:386)):
-```protobuf
-message CancelBuildResponse {
-  bool success = 1;
-  BuildState state = 2;
-}
-```
+### DeleteBuild
 
-#### DeleteBuild
+Deletes a build and its artifacts with optional force flag.
 
-**Method**: `rpc DeleteBuild(DeleteBuildRequest) returns (DeleteBuildResponse)`  
-[Proto definition](../../../proto/builder/v1/builder.proto:24)
+**Endpoint**: `/builder.v1.BuilderService/DeleteBuild`
 
-Deletes a build and its artifacts.
+**Implementation**: [internal/service/builder.go:448](../../internal/service/builder.go#L448)
 
-**Request Schema** ([DeleteBuildRequest](../../../proto/builder/v1/builder.proto:391)):
-```protobuf
-message DeleteBuildRequest {
-  string build_id = 1;
-  string tenant_id = 2;  // For authorization
-  bool force = 3;        // Delete even if running
-}
-```
+### StreamBuildLogs
 
-**Response Schema** ([DeleteBuildResponse](../../../proto/builder/v1/builder.proto:397)):
-```protobuf
-message DeleteBuildResponse {
-  bool success = 1;
-}
-```
+Streams build logs in real-time with optional follow mode.
 
-#### StreamBuildLogs
+**Endpoint**: `/builder.v1.BuilderService/StreamBuildLogs`
 
-**Method**: `rpc StreamBuildLogs(StreamBuildLogsRequest) returns (stream StreamBuildLogsResponse)`  
-[Proto definition](../../../proto/builder/v1/builder.proto:27)
-
-Streams build logs in real-time.
-
-**Request Schema** ([StreamBuildLogsRequest](../../../proto/builder/v1/builder.proto:399)):
-```protobuf
-message StreamBuildLogsRequest {
-  string build_id = 1;
-  string tenant_id = 2;  // For authorization
-  bool follow = 3;       // Continue streaming new logs
-}
-```
-
-**Response Schema** ([StreamBuildLogsResponse](../../../proto/builder/v1/builder.proto:325)):
+**Stream Response**:
 ```protobuf
 message StreamBuildLogsResponse {
   google.protobuf.Timestamp timestamp = 1;
-  string level = 2;      // "info", "warn", "error", "debug"
+  string level = 2;
   string message = 3;
-  string component = 4;  // "puller", "extractor", "builder"
+  string component = 4;
   map<string, string> metadata = 5;
 }
 ```
 
-#### GetTenantQuotas
+**Implementation**: [internal/service/builder.go:471](../../internal/service/builder.go#L471)
 
-**Method**: `rpc GetTenantQuotas(GetTenantQuotasRequest) returns (GetTenantQuotasResponse)`  
-[Proto definition](../../../proto/builder/v1/builder.proto:31)
+### GetTenantQuotas
 
-Retrieves tenant quota information and current usage.
+Retrieves tenant quota information and current usage statistics.
 
-**Request Schema** ([GetTenantQuotasRequest](../../../proto/builder/v1/builder.proto:405)):
-```protobuf
-message GetTenantQuotasRequest {
-  string tenant_id = 1;
-}
-```
+**Endpoint**: `/builder.v1.BuilderService/GetTenantQuotas`
 
-**Response Schema** ([GetTenantQuotasResponse](../../../proto/builder/v1/builder.proto:407)):
-```protobuf
-message GetTenantQuotasResponse {
-  TenantResourceLimits current_limits = 1;
-  TenantUsageStats current_usage = 2;
-  repeated QuotaViolation violations = 3;
-}
-```
+**Response includes**:
+- Current resource limits per tenant tier
+- Usage statistics (active builds, storage used, etc.)
+- Quota violations and warnings
 
-#### GetBuildStats
+**Implementation**: [internal/service/builder.go:503](../../internal/service/builder.go#L503)
 
-**Method**: `rpc GetBuildStats(GetBuildStatsRequest) returns (GetBuildStatsResponse)`  
-[Proto definition](../../../proto/builder/v1/builder.proto:34)
+### GetBuildStats
 
-Retrieves build statistics for a tenant.
+Retrieves build statistics and analytics for a tenant.
 
-**Request Schema** ([GetBuildStatsRequest](../../../proto/builder/v1/builder.proto:414)):
-```protobuf
-message GetBuildStatsRequest {
-  string tenant_id = 1;
-  google.protobuf.Timestamp start_time = 2;
-  google.protobuf.Timestamp end_time = 3;
-}
-```
+**Endpoint**: `/builder.v1.BuilderService/GetBuildStats`
 
-**Response Schema** ([GetBuildStatsResponse](../../../proto/builder/v1/builder.proto:420)):
-```protobuf
-message GetBuildStatsResponse {
-  int32 total_builds = 1;
-  int32 successful_builds = 2;
-  int32 failed_builds = 3;
-  int64 avg_build_time_ms = 4;
-  int64 total_storage_bytes = 5;
-  int64 total_compute_minutes = 6;
-  repeated BuildJob recent_builds = 7;
-}
-```
+**Implementation**: [internal/service/builder.go:544](../../internal/service/builder.go#L544)
+
+## Error Handling
+
+The API returns standard ConnectRPC error codes:
+
+- `InvalidArgument` - Malformed request or validation failure
+- `NotFound` - Build ID not found or not accessible to tenant
+- `PermissionDenied` - Insufficient tenant permissions
+- `ResourceExhausted` - Quota limits exceeded
+- `Internal` - Server-side processing error
+
+**Error Validation**: [internal/service/builder.go:568](../../internal/service/builder.go#L568)
+
 ## Service Interactions
 
-### Outbound Calls
+### Downstream Calls to assetmanagerd
 
-1. **assetmanagerd** ([client implementation](../../../internal/assetmanager/client.go:63))
-   - `RegisterAsset`: Called after successful builds to register rootfs artifacts
-   - Includes build metadata and tenant labels for tracking
+After successful builds, builderd automatically registers artifacts:
 
-2. **Docker daemon** (local execution)
-   - `docker pull`: Fetches images from registries
-   - `docker save`: Exports image layers
-   - `docker inspect`: Retrieves image metadata
-
-### Inbound Calls
-
-Currently, builderd is called directly by clients. Future integrations:
-- **metald** will call CreateBuild when provisioning new VMs
-- **API gateway** will proxy build requests from external clients
-
-### Data Flow
-
-1. Client submits build request with source and target configuration
-2. Builderd validates tenant quotas and permissions
-3. Build executor pulls source (e.g., Docker image)
-4. Rootfs is extracted and optimized based on target settings
-5. Artifact is stored in configured storage backend
-6. Successful builds are registered with assetmanagerd
-7. Build metadata and logs are persisted for retrieval
-
-### Authentication
-
-- Service-to-service: SPIFFE/mTLS authentication required
-- Tenant context: Extracted from request headers by interceptor ([interceptor.go](../../../internal/observability/interceptor.go))
-- Authorization: Tenant ID validated against resource ownership
-
-## Configuration
-
-### Environment Variables
-
-All configuration follows the `UNKEY_BUILDERD_*` pattern. Key variables:
-
-**Server Configuration**:
-- `UNKEY_BUILDERD_PORT`: Service port (default: 8082)
-- `UNKEY_BUILDERD_ADDRESS`: Bind address (default: 0.0.0.0)
-- `UNKEY_BUILDERD_SHUTDOWN_TIMEOUT`: Graceful shutdown timeout (default: 15s)
-
-**Build Configuration**:
-- `UNKEY_BUILDERD_MAX_CONCURRENT_BUILDS`: Max parallel builds (default: 5)
-- `UNKEY_BUILDERD_BUILD_TIMEOUT`: Build timeout (default: 15m)
-- `UNKEY_BUILDERD_ROOTFS_OUTPUT_DIR`: Output directory (default: /opt/builderd/rootfs)
-
-**Service Endpoints**:
-- `UNKEY_BUILDERD_ASSETMANAGER_ENDPOINT`: AssetManagerd URL (default: https://localhost:8083)
-- `UNKEY_BUILDERD_ASSETMANAGER_ENABLED`: Enable integration (default: true)
-
-**Tenant Defaults**:
-- `UNKEY_BUILDERD_TENANT_DEFAULT_MAX_MEMORY_BYTES`: Memory limit (default: 2GB)
-- `UNKEY_BUILDERD_TENANT_DEFAULT_MAX_CPU_CORES`: CPU cores (default: 2)
-- `UNKEY_BUILDERD_TENANT_DEFAULT_MAX_DAILY_BUILDS`: Daily quota (default: 100)
-
-See [config.go](../../../internal/config/config.go:154) for complete configuration options.
-
-### Feature Flags
-
-- `UNKEY_BUILDERD_TENANT_ISOLATION_ENABLED`: Enable full tenant isolation (default: true)
-- `UNKEY_BUILDERD_STORAGE_CACHE_ENABLED`: Enable build caching (default: true)
-- `UNKEY_BUILDERD_OTEL_ENABLED`: Enable OpenTelemetry (default: false)
-
-### Circuit Breakers
-
-Currently not implemented. Future versions will include:
-- Registry connection circuit breakers
-- Storage backend circuit breakers
-- Per-tenant rate limiting
-
-## Operations
-
-### Metrics
-
-When OpenTelemetry is enabled, the following metrics are exported:
-
-**Build Metrics** ([metrics.go](../../../internal/observability/metrics.go)):
-- `builderd_builds_total`: Total builds by state, source, and tenant
-- `builderd_build_duration_seconds`: Build execution time histogram
-- `builderd_concurrent_builds`: Current number of running builds
-- `builderd_build_size_bytes`: Rootfs size distribution
-
-**Dependency Health**:
-- `builderd_assetmanager_calls_total`: Calls to assetmanagerd
-- `builderd_assetmanager_errors_total`: Failed assetmanagerd calls
-- `builderd_docker_operations_total`: Docker operation counts
-
-### Health Checks
-
-**Endpoint**: `/health`  
-**Implementation**: [main.go:314](../../../cmd/builderd/main.go:314)
-
-Returns service health status including:
-- Service uptime
-- Build queue depth
-- Storage availability
-- Dependency connectivity
-
-### Logging
-
-Structured JSON logging via slog with fields:
-- `tenant_id`: Tenant identifier
-- `build_id`: Build job ID
-- `source_type`: Build source (docker, git, etc.)
-- `duration`: Operation duration
-- `error`: Error details
-
-### Debugging
-
-**Debug Endpoints**: Not currently implemented
-
-**Common Issues**:
-1. **Storage Full**: Check `UNKEY_BUILDERD_ROOTFS_OUTPUT_DIR` disk space
-2. **Docker Errors**: Verify Docker daemon is running and accessible
-3. **Quota Exceeded**: Check tenant limits via GetTenantQuotas
-4. **Asset Registration Failed**: Verify assetmanagerd connectivity
-
-## Development
-
-### Build Instructions
-
-```bash
-cd builderd
-make build  # Build the binary
-make install  # Install with systemd unit
+```go
+// Asset registration with tenant context
+assetID, err := s.assetClient.RegisterBuildArtifactWithID(
+    ctx, 
+    buildID, 
+    rootfsPath, 
+    assetv1.AssetType_ASSET_TYPE_ROOTFS, 
+    labels, 
+    suggestedAssetID
+)
 ```
 
-### Testing
+**Source**: [internal/service/builder.go:280](../../internal/service/builder.go#L280)
 
-Unit tests: [service/builder_test.go](../../../internal/service/builder_test.go) (to be implemented)
-Integration tests require Docker daemon access
+**Client Implementation**: [internal/assetmanager/client.go:72](../../internal/assetmanager/client.go#L72)
 
-### Local Development
+## Configuration Schema
 
-1. Start dependencies:
-   ```bash
-   docker run -d --name spire-agent spiffe/spire-agent:latest
-   docker run -d --name assetmanagerd assetmanagerd:latest
-   ```
+### Tenant Resource Limits
 
-2. Run builderd:
-   ```bash
-   UNKEY_BUILDERD_TLS_MODE=disabled \
-   UNKEY_BUILDERD_ASSETMANAGER_ENABLED=false \
-   ./build/builderd
-   ```
+```protobuf
+message TenantResourceLimits {
+  int64 max_memory_bytes = 1;
+  int32 max_cpu_cores = 2;
+  int64 max_disk_bytes = 3;
+  int32 timeout_seconds = 4;
+  int32 max_concurrent_builds = 5;
+  int32 max_daily_builds = 6;
+  int64 max_storage_bytes = 7;
+  int32 max_build_time_minutes = 8;
+  repeated string allowed_registries = 9;
+  repeated string allowed_git_hosts = 10;
+  bool allow_external_network = 11;
+}
+```
 
-3. Test with grpcurl:
-   ```bash
-   grpcurl -plaintext localhost:8082 builder.v1.BuilderService/GetTenantQuotas
-   ```
+### Build Strategies
+
+**Docker Extract Strategy** (Currently Implemented):
+```protobuf
+message DockerExtractStrategy {
+  bool preserve_layers = 1;
+  bool flatten_filesystem = 2;
+  repeated string exclude_patterns = 3;
+}
+```
+
+**Future Strategies**:
+- `GoApiStrategy` - Go application builds
+- `SinatraStrategy` - Ruby/Sinatra applications  
+- `NodejsStrategy` - Node.js applications
+
+## Integration Examples
+
+### Go Client Usage
+
+```go
+package main
+
+import (
+    "context"
+    "github.com/unkeyed/unkey/go/deploy/builderd/client"
+    builderv1 "github.com/unkeyed/unkey/go/deploy/builderd/gen/builder/v1"
+)
+
+func main() {
+    // Create client with SPIFFE authentication
+    builderClient, err := client.New(ctx, client.Config{
+        ServerAddress: "https://builderd:8082",
+        TenantID:     "tenant-123",
+        UserID:       "user-456",
+        TLSMode:      "spiffe",
+    })
+    if err != nil {
+        panic(err)
+    }
+    defer builderClient.Close()
+
+    // Create build request
+    resp, err := builderClient.CreateBuild(ctx, &client.CreateBuildRequest{
+        Config: &builderv1.BuildConfig{
+            Tenant: &builderv1.TenantContext{
+                TenantId:   "tenant-123",
+                CustomerId: "customer-456",
+                Tier:       builderv1.TenantTier_TENANT_TIER_PRO,
+            },
+            Source: &builderv1.BuildSource{
+                SourceType: &builderv1.BuildSource_DockerImage{
+                    DockerImage: &builderv1.DockerImageSource{
+                        ImageUri: "ghcr.io/unkeyed/unkey:latest",
+                    },
+                },
+            },
+            Target: &builderv1.BuildTarget{
+                TargetType: &builderv1.BuildTarget_MicrovmRootfs{
+                    MicrovmRootfs: &builderv1.MicroVMRootfs{
+                        InitStrategy: builderv1.InitStrategy_INIT_STRATEGY_TINI,
+                    },
+                },
+            },
+            Strategy: &builderv1.BuildStrategy{
+                StrategyType: &builderv1.BuildStrategy_DockerExtract{
+                    DockerExtract: &builderv1.DockerExtractStrategy{
+                        FlattenFilesystem: true,
+                    },
+                },
+            },
+        },
+    })
+}
+```
+
+**Client Implementation**: [client/client.go](../../client/client.go)
+
+### HTTP/ConnectRPC Integration
+
+```bash
+# Create build via HTTP
+curl -X POST https://builderd:8082/builder.v1.BuilderService/CreateBuild \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-ID: tenant-123" \
+  -H "Authorization: Bearer <jwt-token>" \
+  -d '{
+    "config": {
+      "tenant": {"tenant_id": "tenant-123", "tier": "TENANT_TIER_PRO"},
+      "source": {"docker_image": {"image_uri": "alpine:latest"}},
+      "target": {"microvm_rootfs": {"init_strategy": "INIT_STRATEGY_TINI"}},
+      "strategy": {"docker_extract": {"flatten_filesystem": true}}
+    }
+  }'
+```
+
+## Metrics and Observability
+
+The API automatically records metrics for all operations:
+
+- `builderd_builds_total` - Total builds by tenant and type
+- `builderd_build_duration_seconds` - Build completion time
+- `builderd_build_errors_total` - Build failures by error type
+- `builderd_active_builds` - Currently running builds
+
+**Metrics Implementation**: [internal/observability/metrics.go](../../internal/observability/metrics.go)
+
+## Rate Limiting
+
+Health endpoint includes rate limiting:
+- Default: 100 requests/second with 10-request burst
+- Configurable via `UNKEY_BUILDERD_RATE_LIMIT`
+
+**Implementation**: [cmd/builderd/main.go:474](../../cmd/builderd/main.go#L474)

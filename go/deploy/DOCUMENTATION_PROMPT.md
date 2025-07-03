@@ -26,11 +26,12 @@ First, explore the service directory structure to understand the codebase organi
    - Also search the broader project structure (parent directories and siblings) for related proto files
 
 3. **Discover Documentation Structure**:
-   - Look for existing documentation patterns:
-     - `./docs/`
-     - `./documentation/`
-     - Service-specific docs in other service directories
-   - Identify the documentation repository path based on findings
+  - Only focus on structure
+  - Do not read existing markdown files in './${SERVICE_NAME}/docs' directory.
+  - You may read documentation for a service that is not the current ${SERVICE_NAME} if there is a dependency.
+  - Documentation output structure:
+    - ./${SERVICE_NAME}/docs/README.md
+    - ./${SERVICE_NAME}/docs/{api,architecture,development,operations}/README.md
 
 4. **Report Discovery Results**:
    ```
@@ -44,17 +45,14 @@ First, explore the service directory structure to understand the codebase organi
 As you analyze the Go source code, dynamically discover dependencies:
 
 1. **Dependency Discovery**: When you find references to other services (imports, gRPC clients, HTTP calls, message queue topics, database references), immediately attempt to locate documentation for that dependency.
+  - If you can not find documentation for that service, write an AIDEV-NOTE comment to fill that in when the documentation exists.
+  - Each service will have documentation in `${SERVICE_NAME}/docs`
 
-2. **Documentation Lookup**: Search for existing documentation using discovered patterns:
-   - `[docs-path]/[service-name]/README.md`
-   - `[docs-path]/[service-name]/docs/`
-   - `[docs-path]/services/[service-name].md`
-
-3. **Knowledge Integration**:
+2. **Knowledge Integration**:
    - **If documentation exists**: Read and incorporate that knowledge to accurately describe the interaction, data flow, and integration patterns
    - **If documentation missing**: Insert `// AIDEV: [service-name] documentation needed for complete interaction description` and document the interaction based solely on source code evidence
 
-4. **Iterative Learning**: Each discovered dependency makes your understanding of the primary service richer. Use this growing knowledge to refine earlier sections of the documentation.
+3. **Iterative Learning**: Each discovered dependency makes your understanding of the primary service richer. Use this growing knowledge to refine earlier sections of the documentation.
 
 ### Dependency Analysis Patterns
 
@@ -172,6 +170,7 @@ For each `Q:,A:` pair, Read `Q:` question. Analyze if `Q:` is a question. If `Q:
 ---
 
 **Final Instruction**:
+1. Before beginning, erase the current ${SERVICE_NAME}/docs/* so you don't poison your context on accident.
 1. Begin by discovering the file structure for `${SERVICE_NAME}`
 2. Generate the complete service documentation following this specification
 3. As you discover dependencies in the source code, dynamically enhance your documentation with knowledge from existing service docs
@@ -190,3 +189,4 @@ For each `Q:,A:` pair, Read `Q:` question. Analyze if `Q:` is a question. If `Q:
 6. Save the documentation to the appropriate location based on the discovered documentation structure pattern
 7. Answer `${SERVICE_NAME}/QUESTIONS.md` appropriately.
 8. Do not copy bits of code (e.g. proto defs, function signatures, etc), link to the relevant source with line number.
+9. Do not reference the current ${SERVICE_NAME}/docs/ at any time, you must create it as though it never existed.

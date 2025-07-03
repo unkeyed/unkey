@@ -128,7 +128,9 @@ install-agent: download-spire create-users setup-directories ## Install SPIRE ag
 	@sudo chmod +x $(SPIRE_INSTALL_DIR)/bin/spire-agent-wrapper.sh
 	@sudo cp environments/$(SPIRE_ENVIRONMENT)/agent.conf $(SPIRE_CONFIG_DIR)/agent/agent.conf
 	@sudo chmod 700 $(SPIRE_DATA_DIR)/agent/keys
-	@sudo cp contrib/systemd/spire-agent.service /etc/systemd/system/
+	@# AIDEV-NOTE: Install systemd drop-in directory for auto-join configuration
+	@sudo mkdir -p /etc/systemd/system/spire-agent.service.d
+	@sudo cp contrib/systemd/spire-agent.service.d/auto-join.conf /etc/systemd/system/spire-agent.service.d/
 	@sudo systemctl daemon-reload
 	@sudo systemctl enable spire-agent >/dev/null 2>&1
 	@echo "✓ SPIRE agent installed ($(SPIRE_ENVIRONMENT): $(TRUST_DOMAIN))" 
@@ -249,7 +251,9 @@ uninstall-agent: ## Uninstall SPIRE agent
 	@sudo systemctl stop spire-agent 2>/dev/null || true
 	@sudo systemctl disable spire-agent 2>/dev/null || true
 	@sudo rm -f /etc/systemd/system/spire-agent.service
+	@sudo rm -rf /etc/systemd/system/spire-agent.service.d
 	@sudo rm -f $(SPIRE_INSTALL_DIR)/bin/spire-agent
+	@sudo rm -f $(SPIRE_INSTALL_DIR)/bin/spire-agent-wrapper.sh
 	@sudo systemctl daemon-reload
 	@echo "✓ SPIRE agent uninstalled (data preserved)"
 

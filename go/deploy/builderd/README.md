@@ -13,6 +13,8 @@ Builderd transforms various source types into optimized rootfs images for Firecr
 
 **Purpose**: Multi-tenant build execution service that processes Docker images, Git repositories, and archives to produce optimized ext4 rootfs images for microVM deployment.
 
+**Implementation**: [BuilderService](internal/service/builder.go:23) with [DockerExecutor](internal/executor/docker.go:25) for Docker image processing and [tenant manager](internal/tenant/manager.go:14) for multi-tenant isolation.
+
 ### Key Features
 
 - **Multi-Tenant Isolation**: Linux namespaces, cgroups, and tenant-specific resource limits
@@ -25,11 +27,13 @@ Builderd transforms various source types into optimized rootfs images for Firecr
 
 ### Dependencies
 
-- [assetmanagerd](../assetmanagerd/README.md) - Registers built artifacts for VM provisioning
+- [assetmanagerd](../assetmanagerd/README.md) - Registers built artifacts for VM provisioning ([client implementation](internal/assetmanager/client.go:63))
 - [metald](../metald/README.md) - Consumes registered assets for VM creation
-- SPIFFE/Spire - Service authentication and mTLS
-- Docker Engine - Image pulling and container operations
-- OpenTelemetry - Observability and metrics collection
+- SPIFFE/Spire - Service authentication and mTLS ([TLS provider](cmd/builderd/main.go:147))
+- Docker Engine - Image pulling and container operations ([executor implementation](internal/executor/docker.go:25))
+- OpenTelemetry - Observability and metrics collection ([metrics setup](internal/observability/otel.go:1))
+
+// AIDEV-NOTE: Documentation updated with source code references for easy navigation
 
 ## Quick Start
 
