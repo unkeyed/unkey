@@ -199,6 +199,7 @@ func (h *Harness) Register(route zen.Route, middleware ...zen.Middleware) {
 func (h *Harness) CreateRootKey(workspaceID string, permissions ...string) string {
 	return h.seeder.CreateRootKey(context.Background(), workspaceID, permissions...)
 }
+
 func (h *Harness) CreateWorkspace() db.Workspace {
 	return h.seeder.CreateWorkspace(context.Background())
 }

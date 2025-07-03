@@ -134,17 +134,10 @@ For special layouts, buttons can use the `shape` prop.
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `variant` | `"primary" \| "outline" \| "ghost"` | `"primary"` | The visual variant of the button |
-| `color` | `"default" \| "danger" \| "warning" \| "success" \| "info"` | `"default"` | The color scheme of the button |
-| `size` | `"sm" \| "md" \| "lg" \| "xlg" \| "2xlg"` | `"md"` | The size of the button |
-| `shape` | `"default" \| "square"` | `"default"` | The shape of the button |
-| `loading` | `boolean` | `false` | Whether the button is in a loading state |
-| `loadingLabel` | `string` | - | Label to show during loading state |
-| `disabled` | `boolean` | `false` | Whether the button is disabled |
-| `keyboard` | `KeyboardConfig` | - | Keyboard shortcut configuration |
-| `className` | `string` | - | Additional CSS classes |
+<AutoTypeTable
+  name="DocumentedButtonProps"
+  path="../../internal/ui/src/components/buttons/button.tsx"
+/>
 
 ### KeyboardConfig
 | Prop | Type | Description |
@@ -238,13 +231,3 @@ The Button component is built with accessibility in mind:
 - **Loading States**: Proper ARIA attributes for loading states
 - **Screen Reader Support**: Announces button states and actions appropriately
 - **High Contrast**: Maintains proper contrast ratios across all variants
-
-## Best Practices
-
-- **Hierarchy**: Maintain a clear visual hierarchy with your button choices
-- **Color Semantics**: Apply color variants based on the action's impact
-- **Interaction States**: Ensure loading and disabled states are clearly communicated
-- **Sizing and Spacing**: Use appropriate sizes and maintain consistent spacing
-- **Content Guidelines**: Use concise, action-oriented text
-- **Accessibility**: Test with screen readers and ensure sufficient contrast
-- **Responsive Behavior**: Consider button behavior on mobile devices
