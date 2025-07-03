@@ -289,7 +289,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					Valid: true,
 				}
 
-				if req.Credits.Refill.Interval == openapi.KeyCreditsRefillRequestIntervalMonthly {
+				if req.Credits.Refill.Interval == openapi.KeyCreditsRefillIntervalMonthly {
 					insertKeyParams.RefillDay = sql.NullInt16{
 						Int16: int16(*req.Credits.Refill.RefillDay), // nolint:gosec
 						Valid: true,

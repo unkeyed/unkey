@@ -201,7 +201,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	k := openapi.KeyResponse{
+	k := openapi.KeyResponseData{
 		CreatedAt:   key.CreatedAtM,
 		Enabled:     key.Enabled,
 		KeyId:       key.ID,
@@ -231,28 +231,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if key.RemainingRequests.Valid {
-		k.Credits = &openapi.KeyCreditsResponse{
+		k.Credits = &openapi.KeyCreditsData{
 			Remaining: nullable.NewNullableWithValue(int64(key.RemainingRequests.Int32)),
 			Refill:    nil,
 		}
 
 		if key.RefillAmount.Valid {
 			var refillDay *int
-			interval := openapi.KeyCreditsRefillResponseIntervalDaily
+			interval := openapi.KeyCreditsRefillIntervalDaily
 			if key.RefillDay.Valid {
-				interval = openapi.KeyCreditsRefillResponseIntervalMonthly
+				interval = openapi.KeyCreditsRefillIntervalMonthly
 				refillDay = ptr.P(int(key.RefillDay.Int16))
 			}
 
-			k.Credits.Refill = &openapi.KeyCreditsRefillResponse{
-				Amount:       int64(key.RefillAmount.Int32),
-				Interval:     interval,
-				RefillDay:    refillDay,
-				LastRefillAt: nil,
-			}
-
-			if key.LastRefillAt.Valid {
-				k.Credits.Refill.LastRefillAt = ptr.P(key.LastRefillAt.Time.UnixMilli())
+			k.Credits.Refill = &openapi.KeyCreditsRefill{
+				Amount:    int64(key.RefillAmount.Int32),
+				Interval:  interval,
+				RefillDay: refillDay,
 			}
 		}
 	}

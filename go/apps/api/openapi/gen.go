@@ -16,24 +16,18 @@ const (
 	RootKeyScopes = "rootKey.Scopes"
 )
 
-// Defines values for KeyCreditsRefillRequestInterval.
+// Defines values for KeyCreditsRefillInterval.
 const (
-	KeyCreditsRefillRequestIntervalDaily   KeyCreditsRefillRequestInterval = "daily"
-	KeyCreditsRefillRequestIntervalMonthly KeyCreditsRefillRequestInterval = "monthly"
-)
-
-// Defines values for KeyCreditsRefillResponseInterval.
-const (
-	KeyCreditsRefillResponseIntervalDaily   KeyCreditsRefillResponseInterval = "daily"
-	KeyCreditsRefillResponseIntervalMonthly KeyCreditsRefillResponseInterval = "monthly"
+	KeyCreditsRefillIntervalDaily   KeyCreditsRefillInterval = "daily"
+	KeyCreditsRefillIntervalMonthly KeyCreditsRefillInterval = "monthly"
 )
 
 // Defines values for KeysUpdateRemainingResponseDataRefillSettingsInterval.
 const (
-	Daily   KeysUpdateRemainingResponseDataRefillSettingsInterval = "daily"
-	Monthly KeysUpdateRemainingResponseDataRefillSettingsInterval = "monthly"
-	Never   KeysUpdateRemainingResponseDataRefillSettingsInterval = "never"
-	Weekly  KeysUpdateRemainingResponseDataRefillSettingsInterval = "weekly"
+	KeysUpdateRemainingResponseDataRefillSettingsIntervalDaily   KeysUpdateRemainingResponseDataRefillSettingsInterval = "daily"
+	KeysUpdateRemainingResponseDataRefillSettingsIntervalMonthly KeysUpdateRemainingResponseDataRefillSettingsInterval = "monthly"
+	KeysUpdateRemainingResponseDataRefillSettingsIntervalNever   KeysUpdateRemainingResponseDataRefillSettingsInterval = "never"
+	KeysUpdateRemainingResponseDataRefillSettingsIntervalWeekly  KeysUpdateRemainingResponseDataRefillSettingsInterval = "weekly"
 )
 
 // Defines values for KeysVerifyKeyResponseDataCode.
@@ -87,7 +81,7 @@ type ApisGetApiResponseData struct {
 }
 
 // ApisListKeysResponseData Array of API keys with complete configuration and metadata.
-type ApisListKeysResponseData = []KeyResponse
+type ApisListKeysResponseData = []KeyResponseData
 
 // BadRequestErrorDetails defines model for BadRequestErrorDetails.
 type BadRequestErrorDetails struct {
@@ -244,62 +238,36 @@ type InternalServerErrorResponse struct {
 	Meta Meta `json:"meta"`
 }
 
-// KeyCreditsRefillRequest defines model for KeyCreditsRefillRequest.
-type KeyCreditsRefillRequest struct {
-	// Amount Number of credits added during each refill.
-	Amount int64 `json:"amount"`
-
-	// Interval How often credits are automatically refilled.
-	Interval KeyCreditsRefillRequestInterval `json:"interval"`
-
-	// RefillDay Day of month for monthly refills (1-31).
-	RefillDay *int `json:"refillDay,omitempty"`
-}
-
-// KeyCreditsRefillRequestInterval How often credits are automatically refilled.
-type KeyCreditsRefillRequestInterval string
-
-// KeyCreditsRefillResponse defines model for KeyCreditsRefillResponse.
-type KeyCreditsRefillResponse struct {
-	// Amount Number of credits added during each refill.
-	Amount int64 `json:"amount"`
-
-	// Interval How often credits are automatically refilled.
-	Interval KeyCreditsRefillResponseInterval `json:"interval"`
-
-	// LastRefillAt Unix timestamp in milliseconds of last refill.
-	LastRefillAt *int64 `json:"lastRefillAt,omitempty"`
-
-	// RefillDay Day of month for monthly refills (1-31).
-	RefillDay *int `json:"refillDay,omitempty"`
-}
-
-// KeyCreditsRefillResponseInterval How often credits are automatically refilled.
-type KeyCreditsRefillResponseInterval string
-
-// KeyCreditsRequest Credit configuration and remaining balance for this key.
-type KeyCreditsRequest struct {
-	Refill *KeyCreditsRefillRequest `json:"refill,omitempty"`
+// KeyCreditsData Credit configuration and remaining balance for this key.
+type KeyCreditsData struct {
+	Refill *KeyCreditsRefill `json:"refill,omitempty"`
 
 	// Remaining Number of credits remaining (null for unlimited).
 	Remaining nullable.Nullable[int64] `json:"remaining"`
 }
 
-// KeyCreditsResponse Credit configuration and remaining balance for this key.
-type KeyCreditsResponse struct {
-	Refill *KeyCreditsRefillResponse `json:"refill,omitempty"`
+// KeyCreditsRefill defines model for KeyCreditsRefill.
+type KeyCreditsRefill struct {
+	// Amount Number of credits added during each refill.
+	Amount int64 `json:"amount"`
 
-	// Remaining Number of credits remaining (null for unlimited).
-	Remaining nullable.Nullable[int64] `json:"remaining"`
+	// Interval How often credits are automatically refilled.
+	Interval KeyCreditsRefillInterval `json:"interval"`
+
+	// RefillDay Day of month for monthly refills (1-31).
+	RefillDay *int `json:"refillDay,omitempty"`
 }
 
-// KeyResponse defines model for KeyResponse.
-type KeyResponse struct {
+// KeyCreditsRefillInterval How often credits are automatically refilled.
+type KeyCreditsRefillInterval string
+
+// KeyResponseData defines model for KeyResponseData.
+type KeyResponseData struct {
 	// CreatedAt Unix timestamp in milliseconds when key was created.
 	CreatedAt int64 `json:"createdAt"`
 
 	// Credits Credit configuration and remaining balance for this key.
-	Credits *KeyCreditsResponse `json:"credits,omitempty"`
+	Credits *KeyCreditsData `json:"credits,omitempty"`
 
 	// Enabled Whether the key is enabled or disabled.
 	Enabled bool `json:"enabled"`
@@ -1174,7 +1142,7 @@ type V2KeysCreateKeyRequestBody struct {
 	ByteLength *int `json:"byteLength,omitempty"`
 
 	// Credits Credit configuration and remaining balance for this key.
-	Credits *KeyCreditsRequest `json:"credits,omitempty"`
+	Credits *KeyCreditsData `json:"credits,omitempty"`
 
 	// Enabled Controls whether the key is active immediately upon creation.
 	// When set to `false`, the key exists but all verification attempts fail with `code=DISABLED`.
@@ -1309,7 +1277,7 @@ type V2KeysGetKeyRequestBody1 = interface{}
 
 // V2KeysGetKeyResponseBody defines model for V2KeysGetKeyResponseBody.
 type V2KeysGetKeyResponseBody struct {
-	Data KeyResponse `json:"data"`
+	Data KeyResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
@@ -1624,7 +1592,7 @@ type V2KeysSetRolesResponseData = []struct {
 // V2KeysUpdateKeyRequestBody defines model for V2KeysUpdateKeyRequestBody.
 type V2KeysUpdateKeyRequestBody struct {
 	// Credits Credit configuration and remaining balance for this key.
-	Credits *KeyCreditsRequest `json:"credits,omitempty"`
+	Credits *KeyCreditsData `json:"credits,omitempty"`
 
 	// Enabled Controls whether the key is currently active for verification requests.
 	// When set to `false`, all verification attempts fail with `code=DISABLED` regardless of other settings.
