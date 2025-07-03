@@ -378,15 +378,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if key.Key.RefillAmount.Valid {
+				var refillDay *int
 				interval := openapi.KeyCreditsRefillIntervalDaily
 				if key.Key.RefillDay.Valid {
 					interval = openapi.KeyCreditsRefillIntervalMonthly
+					refillDay = ptr.P(int(key.Key.RefillDay.Int16)) // nolint:gosec
 				}
 
 				k.Credits.Refill = &openapi.KeyCreditsRefill{
 					Amount:    int64(key.Key.RefillAmount.Int32),
 					Interval:  interval,
-					RefillDay: ptr.P(int(key.Key.RefillDay.Int16)),
+					RefillDay: refillDay,
 				}
 			}
 		}

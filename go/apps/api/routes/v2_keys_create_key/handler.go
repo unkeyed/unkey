@@ -290,8 +290,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 
 				if req.Credits.Refill.Interval == openapi.KeyCreditsRefillIntervalMonthly {
+					if req.Credits.Refill.RefillDay == nil {
+						return fault.New("missing refillDay",
+							fault.Code(codes.App.Validation.InvalidInput.URN()),
+							fault.Internal("refillDay required for monthly interval"),
+							fault.Public("`refillDay` must be provided when the refill interval is `monthly`."),
+						)
+					}
+
 					insertKeyParams.RefillDay = sql.NullInt16{
-						Int16: int16(*req.Credits.Refill.RefillDay), // nolint:gosec
+						Int16: int16(*req.Credits.Refill.RefillDay),
 						Valid: true,
 					}
 				}
