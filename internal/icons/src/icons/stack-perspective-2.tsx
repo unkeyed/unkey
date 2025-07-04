@@ -9,27 +9,34 @@
  * For more details:
  * https://nucleoapp.com/license
  */
+import type React from "react";
+import { type IconProps, sizeMap } from "../props";
 
-// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
-import React from "react";
-import { sizeMap, type IconProps } from "../props";
-
-export const ChevronLeft: React.FC<IconProps> = ({
+export const StackPerspective2: React.FC<IconProps> = ({
   size = "xl-thin",
   ...props
 }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size];
+
   return (
     <svg
-      {...props}
       height={pixelSize}
       width={pixelSize}
       viewBox="0 0 18 18"
       xmlns="http://www.w3.org/2000/svg"
+      {...props}
     >
       <g fill="currentColor">
         <path
-          d="M11.5 15.25L5.25 9L11.5 2.75"
+          d="M13.75,13.375l.691,.146c.932,.196,1.809-.515,1.809-1.468V4.619c0-.709-.497-1.322-1.191-1.468l-6.5-1.368c-.712-.15-1.388,.231-1.669,.843"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={strokeWidth}
+        />
+        <path
+          d="M3.559,4.479l6.5,1.368c.694,.146,1.191,.758,1.191,1.468v7.434c0,.953-.877,1.664-1.809,1.468l-6.5-1.368c-.694-.146-1.191-.758-1.191-1.468V5.947c0-.953,.877-1.664,1.809-1.468Z"
           fill="none"
           stroke="currentColor"
           strokeLinecap="round"
