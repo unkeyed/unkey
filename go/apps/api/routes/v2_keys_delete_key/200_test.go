@@ -59,16 +59,17 @@ func TestKeyDeleteSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	softDeleteKeyID := uid.New(uid.KeyPrefix)
-	softDeletekey, _ := h.Keys.CreateKey(ctx, keys.CreateKeyRequest{
+	softDeleteKey, err := h.Keys.CreateKey(ctx, keys.CreateKeyRequest{
 		Prefix:     "test",
 		ByteLength: 16,
 	})
+	require.NoError(t, err)
 
 	err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 		ID:                softDeleteKeyID,
 		KeyringID:         keyAuthID,
-		Hash:              softDeletekey.Hash,
-		Start:             softDeletekey.Start,
+		Hash:              softDeleteKey.Hash,
+		Start:             softDeleteKey.Start,
 		WorkspaceID:       workspace.ID,
 		ForWorkspaceID:    sql.NullString{Valid: false},
 		Name:              sql.NullString{Valid: true, String: "test-key"},
@@ -81,10 +82,11 @@ func TestKeyDeleteSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	hardDeleteKeyID := uid.New(uid.KeyPrefix)
-	hardDeleteKey, _ := h.Keys.CreateKey(ctx, keys.CreateKeyRequest{
+	hardDeleteKey, err := h.Keys.CreateKey(ctx, keys.CreateKeyRequest{
 		Prefix:     "test",
 		ByteLength: 16,
 	})
+	require.NoError(t, err)
 
 	err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 		ID:                hardDeleteKeyID,
@@ -197,7 +199,6 @@ func TestKeyDeleteSuccess(t *testing.T) {
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.NoError(t, err)
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
 

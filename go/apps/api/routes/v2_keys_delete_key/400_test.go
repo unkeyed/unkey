@@ -11,7 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 )
 
-func TestKeyUpdateCreditsBadRequest(t *testing.T) {
+func TestKeyDeleteBadRequest(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
