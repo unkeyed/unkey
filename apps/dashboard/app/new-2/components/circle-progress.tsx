@@ -20,12 +20,7 @@ export const CircleProgress = ({
   if (isComplete) {
     return (
       <div className={cn("inline-flex items-center justify-center", className)}>
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 18 18"
-          className="text-success-9"
-        >
+        <svg width={size} height={size} viewBox="0 0 18 18" className="text-success-9">
           <g fill="currentColor" strokeLinecap="butt" strokeLinejoin="miter">
             <path
               d="M9 1.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 1 0 0-15z"

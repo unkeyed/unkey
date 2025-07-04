@@ -11,12 +11,10 @@ export const stepInfos: StepInfo[] = [
   },
   {
     title: "Set up your first API key",
-    description:
-      "Create an API key to start authenticating requests to your application.",
+    description: "Create an API key to start authenticating requests to your application.",
   },
   {
     title: "Configure your dashboard",
-    description:
-      "Customize your dashboard settings and invite team members to collaborate.",
+    description: "Customize your dashboard settings and invite team members to collaborate.",
   },
 ];

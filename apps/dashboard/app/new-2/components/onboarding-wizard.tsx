@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight } from "@unkey/icons";
 import { Button, Separator } from "@unkey/ui";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { CircleProgress } from "./circle-progress";
 
 export type OnboardingStep =
@@ -36,11 +36,7 @@ export type OnboardingWizardProps = {
 const CIRCLE_PROGRESS_SIZE = 12;
 const CIRCLE_PROGRESS_STROKE_WIDTH = 1.5;
 
-export const OnboardingWizard = ({
-  steps,
-  onComplete,
-  onStepChange,
-}: OnboardingWizardProps) => {
+export const OnboardingWizard = ({ steps, onComplete, onStepChange }: OnboardingWizardProps) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
   if (steps.length === 0) {
@@ -94,18 +90,13 @@ export const OnboardingWizard = ({
             disabled={isFirstStep}
           >
             <div className="flex items-center gap-1">
-              <ChevronLeft
-                size="sm-regular"
-                className="text-gray-12 !w-3 !h-3 flex-shrink-0"
-              />
+              <ChevronLeft size="sm-regular" className="text-gray-12 !w-3 !h-3 flex-shrink-0" />
               <span className="font-medium text-gray-12 text-xs">Back</span>
             </div>
           </Button>
           <div className="gap-[10px] items-center justify-center flex">
             {currentStep.icon}
-            <span className="text-gray-12 font-medium text-xs">
-              {currentStep.name}
-            </span>
+            <span className="text-gray-12 font-medium text-xs">{currentStep.name}</span>
           </div>
         </div>
         {/* Form validation progress circle*/}
@@ -113,13 +104,9 @@ export const OnboardingWizard = ({
           {currentStep.kind === "required" ? (
             <div className="items-center flex gap-[10px]">
               <div className="items-center flex gap-1.5 text-xs">
-                <span className="font-medium text-gray-12">
-                  {currentStep.filledInputCount}
-                </span>
+                <span className="font-medium text-gray-12">{currentStep.filledInputCount}</span>
                 <span className="text-gray-10">of</span>
-                <span className="font-medium text-gray-12">
-                  {currentStep.totalInputCount}
-                </span>
+                <span className="font-medium text-gray-12">{currentStep.totalInputCount}</span>
                 <span className="text-gray-10">required fields</span>
               </div>
               <div className="flex-shrink-0">
@@ -140,9 +127,7 @@ export const OnboardingWizard = ({
                 onClick={handleSkip}
               >
                 <div className="flex items-center gap-1">
-                  <span className="font-medium text-gray-12 text-xs">
-                    Skip step
-                  </span>
+                  <span className="font-medium text-gray-12 text-xs">Skip step</span>
                   <ChevronRight
                     size="sm-regular"
                     className="text-gray-12 !w-3 !h-3 flex-shrink-0"
@@ -161,7 +146,16 @@ export const OnboardingWizard = ({
         <Separator className="my-2" />
         <div className="mb-8" />
 
-        <Button size="xlg" className="w-full rounded-lg" onClick={handleNext}>
+        <Button
+          size="xlg"
+          className="w-full rounded-lg"
+          onClick={handleNext}
+          disabled={
+            currentStep.kind === "required"
+              ? currentStep.filledInputCount !== currentStep.totalInputCount
+              : false
+          }
+        >
           {currentStep.buttonText}
         </Button>
         <div className="text-gray-9 leading-6 text-xs text-center mt-2">
