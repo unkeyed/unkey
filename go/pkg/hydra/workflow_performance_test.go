@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/clock"
-	"github.com/unkeyed/unkey/go/pkg/hydra/store/gorm"
+	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
 )
 
 // TestWorkflowPickupLatencyBaseline measures the baseline latency for a single worker
@@ -410,13 +410,19 @@ func (w *benchmarkWorkflow) Start(ctx context.Context, payload any) (string, err
 
 // Helper for benchmarks that need testing.TB interface
 func newTestEngineBench(tb testing.TB) *Engine {
-	store, err := gorm.NewSQLiteStore(tb.TempDir()+"/bench.db", nil)
-	if err != nil {
-		tb.Fatal(err)
+	// Use MySQL container for benchmarks
+	t, ok := tb.(*testing.T)
+	if !ok {
+		// For benchmarks, create a new testing.T
+		t = &testing.T{}
+		t.Helper()
 	}
 
+	containersClient := containers.New(t)
+	hostDsn, _ := containersClient.RunMySQL()
+
 	return New(Config{
-		Store: store,
+		DSN:   hostDsn,
 		Clock: clock.New(),
 	})
 }

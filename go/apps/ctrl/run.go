@@ -14,7 +14,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/builder"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hydra"
-	"github.com/unkeyed/unkey/go/pkg/hydra/store/gorm"
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
@@ -75,14 +74,9 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	shutdowns.Register(database.Close)
 
-	// Initialize Hydra workflow engine with separate MySQL store
-	hydraStore, err := gorm.NewMySQLStore(cfg.DatabaseHydra, cfg.Clock)
-	if err != nil {
-		return fmt.Errorf("unable to create hydra store: %w", err)
-	}
-
+	// Initialize Hydra workflow engine with DSN
 	hydraEngine := hydra.New(hydra.Config{
-		Store:     hydraStore,
+		DSN:       cfg.DatabaseHydra,
 		Namespace: "ctrl",
 		Clock:     cfg.Clock,
 		Logger:    logger,

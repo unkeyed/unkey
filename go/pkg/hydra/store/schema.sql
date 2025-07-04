@@ -6,8 +6,8 @@ CREATE TABLE workflow_executions (
     id VARCHAR(255) PRIMARY KEY,
     workflow_name VARCHAR(255) NOT NULL,
     status ENUM('pending', 'running', 'sleeping', 'completed', 'failed') NOT NULL,
-    input_data LONGBLOB,
-    output_data LONGBLOB,
+    input_data VARBINARY(10485760),  -- 10MB limit for workflow inputs
+    output_data VARBINARY(1048576),  -- 1MB limit for workflow outputs
     error_message TEXT,
     
     created_at BIGINT NOT NULL,
@@ -35,7 +35,7 @@ CREATE TABLE workflow_steps (
     step_name VARCHAR(255) NOT NULL,
     step_order INT NOT NULL,
     status ENUM('pending', 'running', 'completed', 'failed') NOT NULL,
-    output_data LONGBLOB,
+    output_data VARBINARY(1048576),  -- 1MB limit for step outputs
     error_message TEXT,
     
     started_at BIGINT,

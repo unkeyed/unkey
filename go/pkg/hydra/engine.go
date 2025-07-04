@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/hydra/metrics"
 	"github.com/unkeyed/unkey/go/pkg/hydra/store"
+	"github.com/unkeyed/unkey/go/pkg/hydra/store/gorm"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -19,9 +20,10 @@ import (
 // All fields except Store are optional and will use sensible defaults
 // if not provided.
 type Config struct {
-	// Store is the persistence layer for workflow state and metadata.
-	// This field is required and cannot be nil.
-	Store store.Store
+	// DSN is the database connection string for MySQL.
+	// This field is required and cannot be empty.
+	// The engine will create both GORM and SQLC stores from this connection.
+	DSN string
 
 	// Namespace provides tenant isolation for workflows. All workflows
 	// created by this engine will be scoped to this namespace.
@@ -49,7 +51,7 @@ type Config struct {
 // - All other fields will be set to their defaults when passed to New()
 func NewConfig() Config {
 	return Config{
-		Store:      nil,
+		DSN:        "",
 		Namespace:  "default",
 		Clock:      clock.New(),
 		Logger:     nil,
@@ -71,6 +73,7 @@ func NewConfig() Config {
 // workers and goroutines.
 type Engine struct {
 	store        store.Store
+	sqlc         store.Store // SQLC store for incremental migration
 	namespace    string
 	cronHandlers map[string]CronHandler
 	clock        clock.Clock
@@ -92,13 +95,8 @@ type Engine struct {
 //	    Logger:    logger,
 //	})
 func New(config Config) *Engine {
-	if config.Store == nil {
-		panic("hydra: config.Store cannot be nil")
-	}
-
-	namespace := config.Namespace
-	if namespace == "" {
-		namespace = "default"
+	if config.DSN == "" {
+		panic("hydra: config.DSN is required")
 	}
 
 	clk := config.Clock
@@ -116,8 +114,26 @@ func New(config Config) *Engine {
 		marshaller = NewJSONMarshaller() // Default to JSON marshaller
 	}
 
+	// Create GORM store from DSN
+	gormStore, err := gorm.NewMySQLStore(config.DSN, clk)
+	if err != nil {
+		panic(fmt.Sprintf("hydra: failed to create GORM store from DSN: %v", err))
+	}
+
+	// Create SQLC store from the same DSN
+	sqlcStore, err := store.NewSQLCStoreFromDSN(config.DSN, clk)
+	if err != nil {
+		panic(fmt.Sprintf("hydra: failed to create SQLC store from DSN: %v", err))
+	}
+
+	namespace := config.Namespace
+	if namespace == "" {
+		namespace = "default"
+	}
+
 	return &Engine{
-		store:        config.Store,
+		store:        gormStore, // Main store (GORM)
+		sqlc:         sqlcStore, // SQLC store for migration
 		namespace:    namespace,
 		cronHandlers: make(map[string]CronHandler),
 		clock:        clk,
@@ -126,28 +142,17 @@ func New(config Config) *Engine {
 	}
 }
 
-// NewWithStore creates a new Engine with the provided store and default config.
-//
-// This is a convenience function for creating an engine with minimal configuration.
-// Other configuration options will use their default values.
-//
-// Deprecated: Use New(Config{...}) for more explicit configuration.
-func NewWithStore(st store.Store, namespace string, clk clock.Clock) *Engine {
-	return New(Config{
-		Store:      st,
-		Namespace:  namespace,
-		Clock:      clk,
-		Logger:     nil,
-		Marshaller: nil,
-	})
-}
-
 // GetNamespace returns the namespace for this engine instance.
 //
 // This method is primarily used by workers and internal components
 // to scope database operations to the correct tenant namespace.
 func (e *Engine) GetNamespace() string {
 	return e.namespace
+}
+
+// GetSQLCStore returns the SQLC store if available, nil otherwise
+func (e *Engine) GetSQLCStore() store.Store {
+	return e.sqlc
 }
 
 // RegisterCron registers a cron job with the given schedule and handler.
