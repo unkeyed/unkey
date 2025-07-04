@@ -75,12 +75,16 @@ func Run(ctx context.Context, cfg Config) error {
 	shutdowns.Register(database.Close)
 
 	// Initialize Hydra workflow engine with DSN
-	hydraEngine := hydra.New(hydra.Config{
-		DSN:       cfg.DatabaseHydra,
-		Namespace: "ctrl",
-		Clock:     cfg.Clock,
-		Logger:    logger,
+	hydraEngine, err := hydra.New(hydra.Config{
+		DSN:        cfg.DatabaseHydra,
+		Namespace:  "ctrl",
+		Clock:      cfg.Clock,
+		Logger:     logger,
+		Marshaller: hydra.NewJSONMarshaller(),
 	})
+	if err != nil {
+		return fmt.Errorf("failed to initialize hydra engine: %w", err)
+	}
 
 	// Create Hydra worker
 	hydraWorker, err := hydra.NewWorker(hydraEngine, hydra.WorkerConfig{

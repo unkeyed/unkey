@@ -3,7 +3,7 @@
 //   sqlc v1.27.0
 // source: workflows.sql
 
-package sqlcstore
+package store
 
 import (
 	"context"
@@ -20,8 +20,8 @@ type CleanupExpiredLeasesParams struct {
 	ExpiresAt int64  `db:"expires_at" json:"expires_at"`
 }
 
-func (q *Queries) CleanupExpiredLeases(ctx context.Context, arg CleanupExpiredLeasesParams) error {
-	_, err := q.db.ExecContext(ctx, cleanupExpiredLeases, arg.Namespace, arg.ExpiresAt)
+func (q *Queries) CleanupExpiredLeases(ctx context.Context, db DBTX, arg CleanupExpiredLeasesParams) error {
+	_, err := db.ExecContext(ctx, cleanupExpiredLeases, arg.Namespace, arg.ExpiresAt)
 	return err
 }
 
@@ -38,8 +38,8 @@ type CompleteWorkflowParams struct {
 	Namespace   string        `db:"namespace" json:"namespace"`
 }
 
-func (q *Queries) CompleteWorkflow(ctx context.Context, arg CompleteWorkflowParams) error {
-	_, err := q.db.ExecContext(ctx, completeWorkflow,
+func (q *Queries) CompleteWorkflow(ctx context.Context, db DBTX, arg CompleteWorkflowParams) error {
+	_, err := db.ExecContext(ctx, completeWorkflow,
 		arg.CompletedAt,
 		arg.OutputData,
 		arg.ID,
@@ -70,8 +70,8 @@ type CreateCronJobParams struct {
 	NextRunAt    int64          `db:"next_run_at" json:"next_run_at"`
 }
 
-func (q *Queries) CreateCronJob(ctx context.Context, arg CreateCronJobParams) error {
-	_, err := q.db.ExecContext(ctx, createCronJob,
+func (q *Queries) CreateCronJob(ctx context.Context, db DBTX, arg CreateCronJobParams) error {
+	_, err := db.ExecContext(ctx, createCronJob,
 		arg.ID,
 		arg.Name,
 		arg.CronSpec,
@@ -104,8 +104,8 @@ type CreateLeaseParams struct {
 	HeartbeatAt int64      `db:"heartbeat_at" json:"heartbeat_at"`
 }
 
-func (q *Queries) CreateLease(ctx context.Context, arg CreateLeaseParams) error {
-	_, err := q.db.ExecContext(ctx, createLease,
+func (q *Queries) CreateLease(ctx context.Context, db DBTX, arg CreateLeaseParams) error {
+	_, err := db.ExecContext(ctx, createLease,
 		arg.ResourceID,
 		arg.Kind,
 		arg.Namespace,
@@ -142,8 +142,8 @@ type CreateStepParams struct {
 	Namespace         string              `db:"namespace" json:"namespace"`
 }
 
-func (q *Queries) CreateStep(ctx context.Context, arg CreateStepParams) error {
-	_, err := q.db.ExecContext(ctx, createStep,
+func (q *Queries) CreateStep(ctx context.Context, db DBTX, arg CreateStepParams) error {
+	_, err := db.ExecContext(ctx, createStep,
 		arg.ID,
 		arg.ExecutionID,
 		arg.StepName,
@@ -195,8 +195,8 @@ type CreateWorkflowParams struct {
 	SpanID            sql.NullString                    `db:"span_id" json:"span_id"`
 }
 
-func (q *Queries) CreateWorkflow(ctx context.Context, arg CreateWorkflowParams) error {
-	_, err := q.db.ExecContext(ctx, createWorkflow,
+func (q *Queries) CreateWorkflow(ctx context.Context, db DBTX, arg CreateWorkflowParams) error {
+	_, err := db.ExecContext(ctx, createWorkflow,
 		arg.ID,
 		arg.WorkflowName,
 		arg.Status,
@@ -232,8 +232,8 @@ type FailWorkflowFinalParams struct {
 	Namespace    string         `db:"namespace" json:"namespace"`
 }
 
-func (q *Queries) FailWorkflowFinal(ctx context.Context, arg FailWorkflowFinalParams) error {
-	_, err := q.db.ExecContext(ctx, failWorkflowFinal,
+func (q *Queries) FailWorkflowFinal(ctx context.Context, db DBTX, arg FailWorkflowFinalParams) error {
+	_, err := db.ExecContext(ctx, failWorkflowFinal,
 		arg.ErrorMessage,
 		arg.CompletedAt,
 		arg.ID,
@@ -255,8 +255,8 @@ type FailWorkflowWithRetryParams struct {
 	Namespace    string         `db:"namespace" json:"namespace"`
 }
 
-func (q *Queries) FailWorkflowWithRetry(ctx context.Context, arg FailWorkflowWithRetryParams) error {
-	_, err := q.db.ExecContext(ctx, failWorkflowWithRetry,
+func (q *Queries) FailWorkflowWithRetry(ctx context.Context, db DBTX, arg FailWorkflowWithRetryParams) error {
+	_, err := db.ExecContext(ctx, failWorkflowWithRetry,
 		arg.ErrorMessage,
 		arg.NextRetryAt,
 		arg.ID,
@@ -270,8 +270,8 @@ SELECT id, execution_id, step_name, step_order, status, output_data, error_messa
 WHERE namespace = ?
 `
 
-func (q *Queries) GetAllSteps(ctx context.Context, namespace string) ([]WorkflowStep, error) {
-	rows, err := q.db.QueryContext(ctx, getAllSteps, namespace)
+func (q *Queries) GetAllSteps(ctx context.Context, db DBTX, namespace string) ([]WorkflowStep, error) {
+	rows, err := db.QueryContext(ctx, getAllSteps, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -311,8 +311,8 @@ SELECT id, workflow_name, status, input_data, output_data, error_message, create
 WHERE namespace = ?
 `
 
-func (q *Queries) GetAllWorkflows(ctx context.Context, namespace string) ([]WorkflowExecution, error) {
-	rows, err := q.db.QueryContext(ctx, getAllWorkflows, namespace)
+func (q *Queries) GetAllWorkflows(ctx context.Context, db DBTX, namespace string) ([]WorkflowExecution, error) {
+	rows, err := db.QueryContext(ctx, getAllWorkflows, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -364,8 +364,8 @@ type GetCompletedStepParams struct {
 	StepName    string `db:"step_name" json:"step_name"`
 }
 
-func (q *Queries) GetCompletedStep(ctx context.Context, arg GetCompletedStepParams) (WorkflowStep, error) {
-	row := q.db.QueryRowContext(ctx, getCompletedStep, arg.Namespace, arg.ExecutionID, arg.StepName)
+func (q *Queries) GetCompletedStep(ctx context.Context, db DBTX, arg GetCompletedStepParams) (WorkflowStep, error) {
+	row := db.QueryRowContext(ctx, getCompletedStep, arg.Namespace, arg.ExecutionID, arg.StepName)
 	var i WorkflowStep
 	err := row.Scan(
 		&i.ID,
@@ -394,8 +394,8 @@ type GetCronJobParams struct {
 	Name      string `db:"name" json:"name"`
 }
 
-func (q *Queries) GetCronJob(ctx context.Context, arg GetCronJobParams) (CronJob, error) {
-	row := q.db.QueryRowContext(ctx, getCronJob, arg.Namespace, arg.Name)
+func (q *Queries) GetCronJob(ctx context.Context, db DBTX, arg GetCronJobParams) (CronJob, error) {
+	row := db.QueryRowContext(ctx, getCronJob, arg.Namespace, arg.Name)
 	var i CronJob
 	err := row.Scan(
 		&i.ID,
@@ -417,8 +417,8 @@ SELECT id, name, cron_spec, namespace, workflow_name, enabled, created_at, updat
 WHERE namespace = ? AND enabled = true
 `
 
-func (q *Queries) GetCronJobs(ctx context.Context, namespace string) ([]CronJob, error) {
-	rows, err := q.db.QueryContext(ctx, getCronJobs, namespace)
+func (q *Queries) GetCronJobs(ctx context.Context, db DBTX, namespace string) ([]CronJob, error) {
+	rows, err := db.QueryContext(ctx, getCronJobs, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -461,8 +461,8 @@ type GetDueCronJobsParams struct {
 	NextRunAt int64  `db:"next_run_at" json:"next_run_at"`
 }
 
-func (q *Queries) GetDueCronJobs(ctx context.Context, arg GetDueCronJobsParams) ([]CronJob, error) {
-	rows, err := q.db.QueryContext(ctx, getDueCronJobs, arg.Namespace, arg.NextRunAt)
+func (q *Queries) GetDueCronJobs(ctx context.Context, db DBTX, arg GetDueCronJobsParams) ([]CronJob, error) {
+	rows, err := db.QueryContext(ctx, getDueCronJobs, arg.Namespace, arg.NextRunAt)
 	if err != nil {
 		return nil, err
 	}
@@ -505,8 +505,8 @@ type GetExpiredLeasesParams struct {
 	ExpiresAt int64  `db:"expires_at" json:"expires_at"`
 }
 
-func (q *Queries) GetExpiredLeases(ctx context.Context, arg GetExpiredLeasesParams) ([]Lease, error) {
-	rows, err := q.db.QueryContext(ctx, getExpiredLeases, arg.Namespace, arg.ExpiresAt)
+func (q *Queries) GetExpiredLeases(ctx context.Context, db DBTX, arg GetExpiredLeasesParams) ([]Lease, error) {
+	rows, err := db.QueryContext(ctx, getExpiredLeases, arg.Namespace, arg.ExpiresAt)
 	if err != nil {
 		return nil, err
 	}
@@ -546,8 +546,8 @@ type GetLeaseParams struct {
 	Kind       LeasesKind `db:"kind" json:"kind"`
 }
 
-func (q *Queries) GetLease(ctx context.Context, arg GetLeaseParams) (Lease, error) {
-	row := q.db.QueryRowContext(ctx, getLease, arg.ResourceID, arg.Kind)
+func (q *Queries) GetLease(ctx context.Context, db DBTX, arg GetLeaseParams) (Lease, error) {
+	row := db.QueryRowContext(ctx, getLease, arg.ResourceID, arg.Kind)
 	var i Lease
 	err := row.Scan(
 		&i.ResourceID,
@@ -580,8 +580,8 @@ type GetPendingWorkflowsParams struct {
 	Limit       int32         `db:"limit" json:"limit"`
 }
 
-func (q *Queries) GetPendingWorkflows(ctx context.Context, arg GetPendingWorkflowsParams) ([]WorkflowExecution, error) {
-	rows, err := q.db.QueryContext(ctx, getPendingWorkflows,
+func (q *Queries) GetPendingWorkflows(ctx context.Context, db DBTX, arg GetPendingWorkflowsParams) ([]WorkflowExecution, error) {
+	rows, err := db.QueryContext(ctx, getPendingWorkflows,
 		arg.Namespace,
 		arg.NextRetryAt,
 		arg.SleepUntil,
@@ -648,8 +648,8 @@ type GetPendingWorkflowsFilteredParams struct {
 	Limit        int32         `db:"limit" json:"limit"`
 }
 
-func (q *Queries) GetPendingWorkflowsFiltered(ctx context.Context, arg GetPendingWorkflowsFilteredParams) ([]WorkflowExecution, error) {
-	rows, err := q.db.QueryContext(ctx, getPendingWorkflowsFiltered,
+func (q *Queries) GetPendingWorkflowsFiltered(ctx context.Context, db DBTX, arg GetPendingWorkflowsFilteredParams) ([]WorkflowExecution, error) {
+	rows, err := db.QueryContext(ctx, getPendingWorkflowsFiltered,
 		arg.Namespace,
 		arg.NextRetryAt,
 		arg.SleepUntil,
@@ -707,8 +707,8 @@ type GetSleepingWorkflowsParams struct {
 	SleepUntil sql.NullInt64 `db:"sleep_until" json:"sleep_until"`
 }
 
-func (q *Queries) GetSleepingWorkflows(ctx context.Context, arg GetSleepingWorkflowsParams) ([]WorkflowExecution, error) {
-	rows, err := q.db.QueryContext(ctx, getSleepingWorkflows, arg.Namespace, arg.SleepUntil)
+func (q *Queries) GetSleepingWorkflows(ctx context.Context, db DBTX, arg GetSleepingWorkflowsParams) ([]WorkflowExecution, error) {
+	rows, err := db.QueryContext(ctx, getSleepingWorkflows, arg.Namespace, arg.SleepUntil)
 	if err != nil {
 		return nil, err
 	}
@@ -760,8 +760,8 @@ type GetStepParams struct {
 	StepName    string `db:"step_name" json:"step_name"`
 }
 
-func (q *Queries) GetStep(ctx context.Context, arg GetStepParams) (WorkflowStep, error) {
-	row := q.db.QueryRowContext(ctx, getStep, arg.Namespace, arg.ExecutionID, arg.StepName)
+func (q *Queries) GetStep(ctx context.Context, db DBTX, arg GetStepParams) (WorkflowStep, error) {
+	row := db.QueryRowContext(ctx, getStep, arg.Namespace, arg.ExecutionID, arg.StepName)
 	var i WorkflowStep
 	err := row.Scan(
 		&i.ID,
@@ -790,8 +790,8 @@ type GetWorkflowParams struct {
 	Namespace string `db:"namespace" json:"namespace"`
 }
 
-func (q *Queries) GetWorkflow(ctx context.Context, arg GetWorkflowParams) (WorkflowExecution, error) {
-	row := q.db.QueryRowContext(ctx, getWorkflow, arg.ID, arg.Namespace)
+func (q *Queries) GetWorkflow(ctx context.Context, db DBTX, arg GetWorkflowParams) (WorkflowExecution, error) {
+	row := db.QueryRowContext(ctx, getWorkflow, arg.ID, arg.Namespace)
 	var i WorkflowExecution
 	err := row.Scan(
 		&i.ID,
@@ -829,8 +829,8 @@ type HeartbeatLeaseParams struct {
 	WorkerID    string `db:"worker_id" json:"worker_id"`
 }
 
-func (q *Queries) HeartbeatLease(ctx context.Context, arg HeartbeatLeaseParams) error {
-	_, err := q.db.ExecContext(ctx, heartbeatLease,
+func (q *Queries) HeartbeatLease(ctx context.Context, db DBTX, arg HeartbeatLeaseParams) error {
+	_, err := db.ExecContext(ctx, heartbeatLease,
 		arg.HeartbeatAt,
 		arg.ExpiresAt,
 		arg.ResourceID,
@@ -849,8 +849,8 @@ type ReleaseLeaseParams struct {
 	WorkerID   string `db:"worker_id" json:"worker_id"`
 }
 
-func (q *Queries) ReleaseLease(ctx context.Context, arg ReleaseLeaseParams) error {
-	_, err := q.db.ExecContext(ctx, releaseLease, arg.ResourceID, arg.WorkerID)
+func (q *Queries) ReleaseLease(ctx context.Context, db DBTX, arg ReleaseLeaseParams) error {
+	_, err := db.ExecContext(ctx, releaseLease, arg.ResourceID, arg.WorkerID)
 	return err
 }
 
@@ -871,8 +871,8 @@ type ResetOrphanedWorkflowsParams struct {
 	Namespace_2 string `db:"namespace_2" json:"namespace_2"`
 }
 
-func (q *Queries) ResetOrphanedWorkflows(ctx context.Context, arg ResetOrphanedWorkflowsParams) error {
-	_, err := q.db.ExecContext(ctx, resetOrphanedWorkflows, arg.Namespace, arg.Namespace_2)
+func (q *Queries) ResetOrphanedWorkflows(ctx context.Context, db DBTX, arg ResetOrphanedWorkflowsParams) error {
+	_, err := db.ExecContext(ctx, resetOrphanedWorkflows, arg.Namespace, arg.Namespace_2)
 	return err
 }
 
@@ -888,8 +888,8 @@ type SleepWorkflowParams struct {
 	Namespace  string        `db:"namespace" json:"namespace"`
 }
 
-func (q *Queries) SleepWorkflow(ctx context.Context, arg SleepWorkflowParams) error {
-	_, err := q.db.ExecContext(ctx, sleepWorkflow, arg.SleepUntil, arg.ID, arg.Namespace)
+func (q *Queries) SleepWorkflow(ctx context.Context, db DBTX, arg SleepWorkflowParams) error {
+	_, err := db.ExecContext(ctx, sleepWorkflow, arg.SleepUntil, arg.ID, arg.Namespace)
 	return err
 }
 
@@ -909,8 +909,8 @@ type UpdateCronJobParams struct {
 	Namespace    string         `db:"namespace" json:"namespace"`
 }
 
-func (q *Queries) UpdateCronJob(ctx context.Context, arg UpdateCronJobParams) error {
-	_, err := q.db.ExecContext(ctx, updateCronJob,
+func (q *Queries) UpdateCronJob(ctx context.Context, db DBTX, arg UpdateCronJobParams) error {
+	_, err := db.ExecContext(ctx, updateCronJob,
 		arg.CronSpec,
 		arg.WorkflowName,
 		arg.Enabled,
@@ -936,8 +936,8 @@ type UpdateCronJobLastRunParams struct {
 	Namespace string        `db:"namespace" json:"namespace"`
 }
 
-func (q *Queries) UpdateCronJobLastRun(ctx context.Context, arg UpdateCronJobLastRunParams) error {
-	_, err := q.db.ExecContext(ctx, updateCronJobLastRun,
+func (q *Queries) UpdateCronJobLastRun(ctx context.Context, db DBTX, arg UpdateCronJobLastRunParams) error {
+	_, err := db.ExecContext(ctx, updateCronJobLastRun,
 		arg.LastRunAt,
 		arg.NextRunAt,
 		arg.UpdatedAt,
@@ -950,7 +950,7 @@ func (q *Queries) UpdateCronJobLastRun(ctx context.Context, arg UpdateCronJobLas
 const updateLease = `-- name: UpdateLease :exec
 UPDATE leases 
 SET worker_id = ?, acquired_at = ?, expires_at = ?, heartbeat_at = ?
-WHERE resource_id = ? AND kind = ?
+WHERE resource_id = ? AND kind = ? AND expires_at < ?
 `
 
 type UpdateLeaseParams struct {
@@ -960,16 +960,18 @@ type UpdateLeaseParams struct {
 	HeartbeatAt int64      `db:"heartbeat_at" json:"heartbeat_at"`
 	ResourceID  string     `db:"resource_id" json:"resource_id"`
 	Kind        LeasesKind `db:"kind" json:"kind"`
+	ExpiresAt_2 int64      `db:"expires_at_2" json:"expires_at_2"`
 }
 
-func (q *Queries) UpdateLease(ctx context.Context, arg UpdateLeaseParams) error {
-	_, err := q.db.ExecContext(ctx, updateLease,
+func (q *Queries) UpdateLease(ctx context.Context, db DBTX, arg UpdateLeaseParams) error {
+	_, err := db.ExecContext(ctx, updateLease,
 		arg.WorkerID,
 		arg.AcquiredAt,
 		arg.ExpiresAt,
 		arg.HeartbeatAt,
 		arg.ResourceID,
 		arg.Kind,
+		arg.ExpiresAt_2,
 	)
 	return err
 }
@@ -990,8 +992,8 @@ type UpdateStepStatusParams struct {
 	StepName     string              `db:"step_name" json:"step_name"`
 }
 
-func (q *Queries) UpdateStepStatus(ctx context.Context, arg UpdateStepStatusParams) error {
-	_, err := q.db.ExecContext(ctx, updateStepStatus,
+func (q *Queries) UpdateStepStatus(ctx context.Context, db DBTX, arg UpdateStepStatusParams) error {
+	_, err := db.ExecContext(ctx, updateStepStatus,
 		arg.Status,
 		arg.CompletedAt,
 		arg.OutputData,
@@ -1016,8 +1018,8 @@ type UpdateWorkflowStatusParams struct {
 	Namespace    string                   `db:"namespace" json:"namespace"`
 }
 
-func (q *Queries) UpdateWorkflowStatus(ctx context.Context, arg UpdateWorkflowStatusParams) error {
-	_, err := q.db.ExecContext(ctx, updateWorkflowStatus,
+func (q *Queries) UpdateWorkflowStatus(ctx context.Context, db DBTX, arg UpdateWorkflowStatusParams) error {
+	_, err := db.ExecContext(ctx, updateWorkflowStatus,
 		arg.Status,
 		arg.ErrorMessage,
 		arg.ID,
@@ -1040,7 +1042,7 @@ type UpdateWorkflowToRunningParams struct {
 	Namespace string        `db:"namespace" json:"namespace"`
 }
 
-func (q *Queries) UpdateWorkflowToRunning(ctx context.Context, arg UpdateWorkflowToRunningParams) error {
-	_, err := q.db.ExecContext(ctx, updateWorkflowToRunning, arg.StartedAt, arg.ID, arg.Namespace)
+func (q *Queries) UpdateWorkflowToRunning(ctx context.Context, db DBTX, arg UpdateWorkflowToRunningParams) error {
+	_, err := db.ExecContext(ctx, updateWorkflowToRunning, arg.StartedAt, arg.ID, arg.Namespace)
 	return err
 }

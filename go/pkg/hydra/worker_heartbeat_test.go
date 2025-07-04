@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/hydra/store"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -59,20 +60,29 @@ func TestWorkerHeartbeatFunctionality(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 
 		// Check if workflow has been picked up
-		currentStatus, getErr := engine.GetSQLCStore().GetWorkflow(ctx, engine.GetNamespace(), executionID)
+		currentStatus, getErr := store.Query.GetWorkflow(ctx, engine.GetDB(), store.GetWorkflowParams{
+			ID:        executionID,
+			Namespace: engine.GetNamespace(),
+		})
 		if getErr != nil {
 			return false
 		}
-		return currentStatus.Status != WorkflowStatusPending
+		return currentStatus.Status != store.WorkflowExecutionsStatusPending
 	}, 3*time.Second, 50*time.Millisecond, "Worker should pick up workflow within timeout")
 
 	// Verify workflow is being processed
-	workflowStatus, err := engine.GetSQLCStore().GetWorkflow(ctx, engine.GetNamespace(), executionID)
+	workflowStatus, err := store.Query.GetWorkflow(ctx, engine.GetDB(), store.GetWorkflowParams{
+		ID:        executionID,
+		Namespace: engine.GetNamespace(),
+	})
 	require.NoError(t, err)
-	require.Equal(t, WorkflowStatusRunning, workflowStatus.Status, "Workflow should be running")
+	require.Equal(t, store.WorkflowExecutionsStatusRunning, workflowStatus.Status, "Workflow should be running")
 
 	// Get initial lease
-	lease, err := engine.store.GetLease(ctx, executionID)
+	lease, err := store.Query.GetLease(ctx, engine.GetDB(), store.GetLeaseParams{
+		ResourceID: executionID,
+		Kind:       store.LeasesKindWorkflow,
+	})
 	require.NoError(t, err)
 	require.Equal(t, workerID, lease.WorkerID, "Lease should be held by our worker")
 
@@ -83,7 +93,10 @@ func TestWorkerHeartbeatFunctionality(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)       // Let heartbeat be processed
 
 	// Verify heartbeat extended the lease
-	updatedLease, err := engine.store.GetLease(ctx, executionID)
+	updatedLease, err := store.Query.GetLease(ctx, engine.GetDB(), store.GetLeaseParams{
+		ResourceID: executionID,
+		Kind:       store.LeasesKindWorkflow,
+	})
 	require.NoError(t, err)
 	require.Equal(t, workerID, updatedLease.WorkerID, "Lease should still be held by our worker")
 	require.Greater(t, updatedLease.ExpiresAt, initialExpiresAt,

@@ -2,12 +2,12 @@
 -- Using ENUMs for type safety and removing step input_data
 
 -- Workflow Executions Table
-CREATE TABLE workflow_executions (
+CREATE TABLE IF NOT EXISTS workflow_executions (
     id VARCHAR(255) PRIMARY KEY,
     workflow_name VARCHAR(255) NOT NULL,
     status ENUM('pending', 'running', 'sleeping', 'completed', 'failed') NOT NULL,
-    input_data VARBINARY(10485760),  -- 10MB limit for workflow inputs
-    output_data VARBINARY(1048576),  -- 1MB limit for workflow outputs
+    input_data LONGBLOB,  -- Large binary data for workflow inputs
+    output_data MEDIUMBLOB,  -- Medium binary data for workflow outputs
     error_message TEXT,
     
     created_at BIGINT NOT NULL,
@@ -29,13 +29,13 @@ CREATE TABLE workflow_executions (
 );
 
 -- Workflow Steps Table (no input_data, only output_data)
-CREATE TABLE workflow_steps (
+CREATE TABLE IF NOT EXISTS workflow_steps (
     id VARCHAR(255) PRIMARY KEY,
     execution_id VARCHAR(255) NOT NULL,
     step_name VARCHAR(255) NOT NULL,
     step_order INT NOT NULL,
     status ENUM('pending', 'running', 'completed', 'failed') NOT NULL,
-    output_data VARBINARY(1048576),  -- 1MB limit for step outputs
+    output_data MEDIUMBLOB,  -- Medium binary data for step outputs
     error_message TEXT,
     
     started_at BIGINT,
@@ -48,7 +48,7 @@ CREATE TABLE workflow_steps (
 );
 
 -- Cron Jobs Table
-CREATE TABLE cron_jobs (
+CREATE TABLE IF NOT EXISTS cron_jobs (
     id VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     cron_spec VARCHAR(255) NOT NULL,
@@ -62,7 +62,7 @@ CREATE TABLE cron_jobs (
 );
 
 -- Leases Table (step kind included for GORM compatibility, though unused)
-CREATE TABLE leases (
+CREATE TABLE IF NOT EXISTS leases (
     resource_id VARCHAR(255) PRIMARY KEY,
     kind ENUM('workflow', 'step', 'cron_job') NOT NULL,
     namespace VARCHAR(255) NOT NULL,

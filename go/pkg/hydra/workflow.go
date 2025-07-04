@@ -2,6 +2,7 @@ package hydra
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -65,6 +66,11 @@ type Workflow[TReq any] interface {
 // or when the payload type is not known at compile time.
 type GenericWorkflow = Workflow[any]
 
+// RawPayload represents raw workflow input data that needs to be unmarshalled
+type RawPayload struct {
+	Data []byte
+}
+
 // WorkflowContext provides access to workflow execution context and utilities.
 //
 // The context is passed to workflow Run() methods and provides access to:
@@ -95,7 +101,7 @@ type workflowContext struct {
 	workflowName    string
 	namespace       string
 	workerID        string
-	store           store.Store
+	db              *sql.DB
 	marshaller      Marshaller
 	stepTimeout     time.Duration
 	stepMaxAttempts int32
@@ -120,23 +126,72 @@ func (w *workflowContext) getNextStepOrder() int32 {
 }
 
 func (w *workflowContext) getCompletedStep(stepName string) (*store.WorkflowStep, error) {
-	return w.store.GetCompletedStep(w.ctx, w.namespace, w.executionID, stepName)
+	// Use new Query pattern - return SQLC types directly
+	sqlcStep, err := store.Query.GetCompletedStep(w.ctx, w.db, store.GetCompletedStepParams{
+		Namespace:   w.namespace,
+		ExecutionID: w.executionID,
+		StepName:    stepName,
+	})
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("step not found")
+		}
+		return nil, err
+	}
+
+	return &sqlcStep, nil
 }
 
 func (w *workflowContext) getAnyStep(stepName string) (*store.WorkflowStep, error) {
-	return w.store.GetStep(w.ctx, w.namespace, w.executionID, stepName)
+	// Use new Query pattern - return SQLC types directly
+	sqlcStep, err := store.Query.GetStep(w.ctx, w.db, store.GetStepParams{
+		Namespace:   w.namespace,
+		ExecutionID: w.executionID,
+		StepName:    stepName,
+	})
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("step not found")
+		}
+		return nil, err
+	}
+
+	return &sqlcStep, nil
 }
 
 func (w *workflowContext) markStepCompleted(stepName string, outputData []byte) error {
-	return w.store.UpdateStepStatus(w.ctx, w.namespace, w.executionID, stepName, store.StepStatusCompleted, outputData, "")
+	// Use new Query pattern
+	return store.Query.UpdateStepStatus(w.ctx, w.db, store.UpdateStepStatusParams{
+		Status:       store.WorkflowStepsStatusCompleted,
+		CompletedAt:  sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		OutputData:   outputData,
+		ErrorMessage: sql.NullString{Valid: false},
+		Namespace:    w.namespace,
+		ExecutionID:  w.executionID,
+		StepName:     stepName,
+	})
 }
 
 func (w *workflowContext) markStepFailed(stepName string, errorMsg string) error {
-	return w.store.UpdateStepStatus(w.ctx, w.namespace, w.executionID, stepName, store.StepStatusFailed, nil, errorMsg)
+	// Use new Query pattern
+	return store.Query.UpdateStepStatus(w.ctx, w.db, store.UpdateStepStatusParams{
+		Status:       store.WorkflowStepsStatusFailed,
+		CompletedAt:  sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		OutputData:   []byte{},
+		ErrorMessage: sql.NullString{String: errorMsg, Valid: errorMsg != ""},
+		Namespace:    w.namespace,
+		ExecutionID:  w.executionID,
+		StepName:     stepName,
+	})
 }
 
 func (w *workflowContext) suspendWorkflowForSleep(sleepUntil int64) error {
-	return w.store.SleepWorkflow(w.ctx, w.namespace, w.executionID, sleepUntil)
+	// Use new Query pattern
+	return store.Query.SleepWorkflow(w.ctx, w.db, store.SleepWorkflowParams{
+		SleepUntil: sql.NullInt64{Int64: sleepUntil, Valid: true},
+		ID:         w.executionID,
+		Namespace:  w.namespace,
+	})
 }
 
 // RegisterWorkflow registers a typed workflow with a worker.
@@ -261,7 +316,7 @@ type WorkflowConfig struct {
 
 	RetryBackoff time.Duration
 
-	TriggerType   TriggerType
+	TriggerType   store.WorkflowExecutionsTriggerType
 	TriggerSource *string
 }
 
@@ -287,7 +342,7 @@ func WithRetryBackoff(backoff time.Duration) WorkflowOption {
 }
 
 // WithTrigger sets the trigger type and source for a workflow
-func WithTrigger(triggerType TriggerType, triggerSource *string) WorkflowOption {
+func WithTrigger(triggerType store.WorkflowExecutionsTriggerType, triggerSource *string) WorkflowOption {
 	return func(c *WorkflowConfig) {
 		c.TriggerType = triggerType
 		c.TriggerSource = triggerSource

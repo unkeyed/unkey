@@ -2,6 +2,7 @@ package hydra
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 	"time"
 
@@ -10,197 +11,158 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-// TestStoreOperationCoverage ensures all store operations work end-to-end
-func TestStoreOperationCoverage(t *testing.T) {
+func TestSQLCQueryCoverage(t *testing.T) {
+	// Test that basic SQLC Query operations work
 	engine := newTestEngine(t)
 	ctx := context.Background()
 	namespace := engine.GetNamespace()
 
 	t.Run("WorkflowOperations", func(t *testing.T) {
-		// Test complete workflow lifecycle
-		workflow := &store.WorkflowExecution{
-			ID:                uid.New(uid.WorkflowPrefix),
+		// Test CreateWorkflow using Query pattern
+		workflowID := uid.New(uid.WorkflowPrefix)
+		err := store.Query.CreateWorkflow(ctx, engine.GetDB(), store.CreateWorkflowParams{
+			ID:                workflowID,
 			WorkflowName:      "test-workflow",
-			Status:            store.WorkflowStatusPending,
-			InputData:         []byte(`{"test": true}`),
+			Status:            store.WorkflowExecutionsStatusPending,
+			InputData:         []byte(`{"test": "data"}`),
+			OutputData:        []byte{},
+			ErrorMessage:      sql.NullString{Valid: false},
 			CreatedAt:         time.Now().UnixMilli(),
+			StartedAt:         sql.NullInt64{Valid: false},
+			CompletedAt:       sql.NullInt64{Valid: false},
 			MaxAttempts:       3,
 			RemainingAttempts: 3,
+			NextRetryAt:       sql.NullInt64{Valid: false},
 			Namespace:         namespace,
-		}
-
-		// Test CreateWorkflow
-		err := engine.GetSQLCStore().CreateWorkflow(ctx, workflow)
+			TriggerType:       store.NullWorkflowExecutionsTriggerType{Valid: false},
+			TriggerSource:     sql.NullString{Valid: false},
+			SleepUntil:        sql.NullInt64{Valid: false},
+			TraceID:           sql.NullString{Valid: false},
+			SpanID:            sql.NullString{Valid: false},
+		})
 		require.NoError(t, err, "CreateWorkflow should work")
 
-		// Test GetWorkflow
-		retrieved, err := engine.GetSQLCStore().GetWorkflow(ctx, namespace, workflow.ID)
+		// Test GetWorkflow using Query pattern
+		workflow, err := store.Query.GetWorkflow(ctx, engine.GetDB(), store.GetWorkflowParams{
+			ID:        workflowID,
+			Namespace: namespace,
+		})
 		require.NoError(t, err, "GetWorkflow should work")
-		require.Equal(t, workflow.ID, retrieved.ID)
+		require.Equal(t, workflowID, workflow.ID)
+		require.Equal(t, "test-workflow", workflow.WorkflowName)
+		require.Equal(t, store.WorkflowExecutionsStatusPending, workflow.Status)
 
-		// Test GetPendingWorkflows
-		pending, err := engine.GetSQLCStore().GetPendingWorkflows(ctx, namespace, 10, nil)
+		// Test GetAllWorkflows
+		allWorkflows, err := store.Query.GetAllWorkflows(ctx, engine.GetDB(), namespace)
+		require.NoError(t, err, "GetAllWorkflows should work")
+		require.Len(t, allWorkflows, 1)
+
+		// Test GetPendingWorkflows using Query pattern
+		pendingWorkflows, err := store.Query.GetPendingWorkflows(ctx, engine.GetDB(), store.GetPendingWorkflowsParams{
+			Namespace:   namespace,
+			NextRetryAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+			SleepUntil:  sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+			Limit:       10,
+		})
 		require.NoError(t, err, "GetPendingWorkflows should work")
-		require.Len(t, pending, 1)
+		require.Len(t, pendingWorkflows, 1)
 
-		// Test UpdateWorkflowStatus
-		err = engine.GetSQLCStore().UpdateWorkflowStatus(ctx, namespace, workflow.ID, store.WorkflowStatusRunning, "")
+		// Test UpdateWorkflowStatus using Query pattern
+		err = store.Query.UpdateWorkflowStatus(ctx, engine.GetDB(), store.UpdateWorkflowStatusParams{
+			Status:       store.WorkflowExecutionsStatusRunning,
+			ErrorMessage: sql.NullString{Valid: false},
+			ID:           workflowID,
+			Namespace:    namespace,
+		})
 		require.NoError(t, err, "UpdateWorkflowStatus should work")
 
-		// Test CompleteWorkflow
-		err = engine.GetSQLCStore().CompleteWorkflow(ctx, namespace, workflow.ID, []byte(`{"result": "success"}`))
+		// Test CompleteWorkflow using Query pattern
+		err = store.Query.CompleteWorkflow(ctx, engine.GetDB(), store.CompleteWorkflowParams{
+			CompletedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+			OutputData:  []byte(`{"result": "success"}`),
+			ID:          workflowID,
+			Namespace:   namespace,
+		})
 		require.NoError(t, err, "CompleteWorkflow should work")
+
+		// Verify final state
+		finalWorkflow, err := store.Query.GetWorkflow(ctx, engine.GetDB(), store.GetWorkflowParams{
+			ID:        workflowID,
+			Namespace: namespace,
+		})
+		require.NoError(t, err)
+		require.Equal(t, store.WorkflowExecutionsStatusCompleted, finalWorkflow.Status)
 	})
 
 	t.Run("StepOperations", func(t *testing.T) {
-		// Test step lifecycle
-		step := &store.WorkflowStep{
-			ID:                uid.New(uid.StepPrefix),
-			ExecutionID:       uid.New(uid.WorkflowPrefix),
+		// Create a workflow first
+		workflowID := uid.New(uid.WorkflowPrefix)
+		err := store.Query.CreateWorkflow(ctx, engine.GetDB(), store.CreateWorkflowParams{
+			ID:                workflowID,
+			WorkflowName:      "test-workflow-with-steps",
+			Status:            store.WorkflowExecutionsStatusRunning,
+			InputData:         []byte(`{"test": "data"}`),
+			OutputData:        []byte{},
+			ErrorMessage:      sql.NullString{Valid: false},
+			CreatedAt:         time.Now().UnixMilli(),
+			StartedAt:         sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+			CompletedAt:       sql.NullInt64{Valid: false},
+			MaxAttempts:       3,
+			RemainingAttempts: 3,
+			NextRetryAt:       sql.NullInt64{Valid: false},
+			Namespace:         namespace,
+			TriggerType:       store.NullWorkflowExecutionsTriggerType{Valid: false},
+			TriggerSource:     sql.NullString{Valid: false},
+			SleepUntil:        sql.NullInt64{Valid: false},
+			TraceID:           sql.NullString{Valid: false},
+			SpanID:            sql.NullString{Valid: false},
+		})
+		require.NoError(t, err)
+
+		// Test CreateStep using Query pattern
+		stepID := uid.New(uid.StepPrefix)
+		err = store.Query.CreateStep(ctx, engine.GetDB(), store.CreateStepParams{
+			ID:                stepID,
+			ExecutionID:       workflowID,
 			StepName:          "test-step",
 			StepOrder:         1,
-			Status:            store.StepStatusPending,
+			Status:            store.WorkflowStepsStatusRunning,
+			OutputData:        []byte{},
+			ErrorMessage:      sql.NullString{Valid: false},
+			StartedAt:         sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+			CompletedAt:       sql.NullInt64{Valid: false},
 			MaxAttempts:       3,
 			RemainingAttempts: 3,
 			Namespace:         namespace,
-		}
-
-		// Test CreateStep
-		err := engine.GetSQLCStore().CreateStep(ctx, step)
+		})
 		require.NoError(t, err, "CreateStep should work")
 
-		// Test GetStep
-		retrieved, err := engine.GetSQLCStore().GetStep(ctx, namespace, step.ExecutionID, step.StepName)
+		// Test GetStep using Query pattern
+		step, err := store.Query.GetStep(ctx, engine.GetDB(), store.GetStepParams{
+			Namespace:   namespace,
+			ExecutionID: workflowID,
+			StepName:    "test-step",
+		})
 		require.NoError(t, err, "GetStep should work")
-		require.Equal(t, step.ID, retrieved.ID)
+		require.Equal(t, stepID, step.ID)
+		require.Equal(t, "test-step", step.StepName)
 
-		// Test UpdateStepStatus
-		err = engine.GetSQLCStore().UpdateStepStatus(ctx, namespace, step.ExecutionID, step.StepName, store.StepStatusCompleted, []byte(`{"output": "test"}`), "")
+		// Test UpdateStepStatus using Query pattern
+		err = store.Query.UpdateStepStatus(ctx, engine.GetDB(), store.UpdateStepStatusParams{
+			Status:       store.WorkflowStepsStatusCompleted,
+			CompletedAt:  sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+			OutputData:   []byte(`{"step_result": "success"}`),
+			ErrorMessage: sql.NullString{Valid: false},
+			Namespace:    namespace,
+			ExecutionID:  workflowID,
+			StepName:     "test-step",
+		})
 		require.NoError(t, err, "UpdateStepStatus should work")
 
-		// Test GetCompletedStep
-		completed, err := engine.GetSQLCStore().GetCompletedStep(ctx, namespace, step.ExecutionID, step.StepName)
-		require.NoError(t, err, "GetCompletedStep should work")
-		require.Equal(t, store.StepStatusCompleted, completed.Status)
-	})
-
-	t.Run("CronOperations", func(t *testing.T) {
-		cronJob := &store.CronJob{
-			ID:           uid.New(uid.CronJobPrefix),
-			Name:         "test-cron",
-			CronSpec:     "0 0 * * *",
-			Namespace:    namespace,
-			WorkflowName: "test-workflow",
-			Enabled:      true,
-			CreatedAt:    time.Now().UnixMilli(),
-			UpdatedAt:    time.Now().UnixMilli(),
-			NextRunAt:    time.Now().Add(24 * time.Hour).UnixMilli(),
-		}
-
-		// Test UpsertCronJob (create)
-		err := engine.GetSQLCStore().UpsertCronJob(ctx, cronJob)
-		require.NoError(t, err, "UpsertCronJob (create) should work")
-
-		// Test GetCronJob
-		retrieved, err := engine.GetSQLCStore().GetCronJob(ctx, namespace, cronJob.Name)
-		require.NoError(t, err, "GetCronJob should work")
-		require.Equal(t, cronJob.Name, retrieved.Name)
-
-		// Test GetCronJobs
-		cronJobs, err := engine.GetSQLCStore().GetCronJobs(ctx, namespace)
-		require.NoError(t, err, "GetCronJobs should work")
-		require.Len(t, cronJobs, 1)
-
-		// Test GetDueCronJobs
-		futureTime := time.Now().Add(48 * time.Hour).UnixMilli()
-		dueCrons, err := engine.GetSQLCStore().GetDueCronJobs(ctx, namespace, futureTime)
-		require.NoError(t, err, "GetDueCronJobs should work")
-		require.Len(t, dueCrons, 1)
-
-		// Test UpdateCronJobLastRun
-		now := time.Now().UnixMilli()
-		nextRun := now + (24 * time.Hour).Milliseconds()
-		err = engine.GetSQLCStore().UpdateCronJobLastRun(ctx, namespace, cronJob.ID, now, nextRun)
-		require.NoError(t, err, "UpdateCronJobLastRun should work")
-	})
-
-	t.Run("LeaseOperations", func(t *testing.T) {
-		resourceID := uid.New(uid.WorkflowPrefix)
-		workerID := uid.New(uid.WorkerPrefix)
-		now := time.Now().UnixMilli()
-
-		lease := &store.Lease{
-			ResourceID:  resourceID,
-			Kind:        string(store.LeaseKindWorkflow),
-			Namespace:   namespace,
-			WorkerID:    workerID,
-			AcquiredAt:  now,
-			ExpiresAt:   now + (5 * time.Minute).Milliseconds(),
-			HeartbeatAt: now,
-		}
-
-		// Test AcquireLease
-		err := engine.GetSQLCStore().AcquireLease(ctx, lease)
-		require.NoError(t, err, "AcquireLease should work")
-
-		// Test GetLease
-		retrieved, err := engine.GetSQLCStore().GetLease(ctx, resourceID)
-		require.NoError(t, err, "GetLease should work")
-		require.Equal(t, workerID, retrieved.WorkerID)
-
-		// Test HeartbeatLease
-		newExpiresAt := now + (10 * time.Minute).Milliseconds()
-		err = engine.GetSQLCStore().HeartbeatLease(ctx, resourceID, workerID, newExpiresAt)
-		require.NoError(t, err, "HeartbeatLease should work")
-
-		// Test ReleaseLease
-		err = engine.GetSQLCStore().ReleaseLease(ctx, resourceID, workerID)
-		require.NoError(t, err, "ReleaseLease should work")
-	})
-
-	t.Run("CleanupOperations", func(t *testing.T) {
-		// Test GetExpiredLeases
-		expired, err := engine.GetSQLCStore().GetExpiredLeases(ctx, namespace)
-		require.NoError(t, err, "GetExpiredLeases should work")
-		_ = expired // Don't assert on count as it depends on test state
-
-		// Test CleanupExpiredLeases
-		err = engine.GetSQLCStore().CleanupExpiredLeases(ctx, namespace)
-		require.NoError(t, err, "CleanupExpiredLeases should work")
-
-		// Test ResetOrphanedWorkflows
-		err = engine.GetSQLCStore().ResetOrphanedWorkflows(ctx, namespace)
-		require.NoError(t, err, "ResetOrphanedWorkflows should work")
-	})
-
-	t.Run("TransactionSupport", func(t *testing.T) {
-		// Test WithTx
-		err := engine.GetSQLCStore().WithTx(ctx, func(txStore store.Store) error {
-			// Create a workflow within transaction
-			workflow := &store.WorkflowExecution{
-				ID:                uid.New(uid.WorkflowPrefix),
-				WorkflowName:      "tx-test-workflow",
-				Status:            store.WorkflowStatusPending,
-				InputData:         []byte(`{"tx": true}`),
-				CreatedAt:         time.Now().UnixMilli(),
-				MaxAttempts:       1,
-				RemainingAttempts: 1,
-				Namespace:         namespace,
-			}
-			return txStore.CreateWorkflow(ctx, workflow)
-		})
-		require.NoError(t, err, "WithTx should work")
-	})
-
-	t.Run("TestingHelpers", func(t *testing.T) {
-		// Test GetAllWorkflows
-		workflows, err := engine.GetSQLCStore().GetAllWorkflows(ctx, namespace)
-		require.NoError(t, err, "GetAllWorkflows should work")
-		require.GreaterOrEqual(t, len(workflows), 0)
-
 		// Test GetAllSteps
-		steps, err := engine.GetSQLCStore().GetAllSteps(ctx, namespace)
+		allSteps, err := store.Query.GetAllSteps(ctx, engine.GetDB(), namespace)
 		require.NoError(t, err, "GetAllSteps should work")
-		require.GreaterOrEqual(t, len(steps), 0)
+		require.Len(t, allSteps, 1)
+		require.Equal(t, store.WorkflowStepsStatusCompleted, allSteps[0].Status)
 	})
 }

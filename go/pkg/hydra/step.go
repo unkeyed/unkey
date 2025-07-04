@@ -2,13 +2,15 @@ package hydra
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"reflect"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/hydra/metrics"
+	"github.com/unkeyed/unkey/go/pkg/hydra/store"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/go/pkg/ptr"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -116,7 +118,7 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 	span.SetAttributes(attribute.Bool("hydra.step.cached", false))
 
 	existingStep, err := wctx.getAnyStep(stepName)
-	var stepToUse *WorkflowStep
+	var stepToUse *store.WorkflowStep
 	shouldCreateNewStep := true
 
 	if err == nil && existingStep != nil {
@@ -127,40 +129,55 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 	stepStartTime := time.Now()
 
 	if shouldCreateNewStep {
-		stepToUse = &WorkflowStep{
-			ID:                "",
+		stepID := uid.New(uid.StepPrefix)
+
+		// Create step using Query pattern
+		err = store.Query.CreateStep(wctx.ctx, wctx.db, store.CreateStepParams{
+			ID:                stepID,
 			ExecutionID:       wctx.ExecutionID(),
 			StepName:          stepName,
 			StepOrder:         wctx.getNextStepOrder(),
-			Status:            StepStatusRunning,
-			Namespace:         wctx.namespace,
-			StartedAt:         ptr.P(stepStartTime.UnixMilli()),
-			OutputData:        nil,
-			ErrorMessage:      "",
+			Status:            store.WorkflowStepsStatusRunning,
+			OutputData:        []byte{},
+			ErrorMessage:      sql.NullString{Valid: false},
+			StartedAt:         sql.NullInt64{Int64: stepStartTime.UnixMilli(), Valid: true},
+			CompletedAt:       sql.NullInt64{Valid: false},
 			MaxAttempts:       wctx.stepMaxAttempts,
 			RemainingAttempts: wctx.stepMaxAttempts,
-			CompletedAt:       nil,
-		}
-
-		err = wctx.store.CreateStep(wctx.ctx, stepToUse)
+			Namespace:         wctx.namespace,
+		})
 		if err != nil {
-			metrics.RecordError(wctx.namespace, "step", "create_step_failed")
+			metrics.RecordError(wctx.namespace, "step", "create_failed")
 			tracing.RecordError(span, err)
 			return zero, fmt.Errorf("failed to create step: %w", err)
 		}
+
+		// Get the created step for further use
+		step, err := store.Query.GetStep(wctx.ctx, wctx.db, store.GetStepParams{
+			Namespace:   wctx.namespace,
+			ExecutionID: wctx.ExecutionID(),
+			StepName:    stepName,
+		})
+		stepToUse = &step
+		if err != nil {
+			return zero, fmt.Errorf("failed to retrieve created step: %w", err)
+		}
 		span.SetAttributes(attribute.Bool("hydra.step.new", true))
 	} else {
-		stepToUse.Status = StepStatusRunning
-		stepToUse.StartedAt = ptr.P(stepStartTime.UnixMilli())
-		stepToUse.ErrorMessage = ""
-		stepToUse.CompletedAt = nil
-
-		err = wctx.store.UpdateStepStatus(wctx.ctx, wctx.namespace, wctx.executionID, stepName, StepStatusRunning, nil, "")
+		// Update existing step to running status - using Query pattern
+		err = store.Query.UpdateStepStatus(wctx.ctx, wctx.db, store.UpdateStepStatusParams{
+			Status:       store.WorkflowStepsStatusRunning,
+			CompletedAt:  sql.NullInt64{Valid: false},
+			OutputData:   []byte{},
+			ErrorMessage: sql.NullString{Valid: false},
+			Namespace:    wctx.namespace,
+			ExecutionID:  wctx.ExecutionID(),
+			StepName:     stepName,
+		})
 		if err != nil {
-			metrics.RecordError(wctx.namespace, "step", "update_step_failed")
-			tracing.RecordError(span, err)
-			return zero, fmt.Errorf("failed to update step: %w", err)
+			return zero, fmt.Errorf("failed to update step status: %w", err)
 		}
+		stepToUse.CompletedAt = sql.NullInt64{Valid: false}
 
 		// Record step retry
 		if stepToUse.RemainingAttempts < stepToUse.MaxAttempts {

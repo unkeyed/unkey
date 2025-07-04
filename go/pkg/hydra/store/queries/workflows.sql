@@ -94,7 +94,7 @@ INSERT INTO leases (
 -- name: UpdateLease :exec
 UPDATE leases 
 SET worker_id = ?, acquired_at = ?, expires_at = ?, heartbeat_at = ?
-WHERE resource_id = ? AND kind = ?;
+WHERE resource_id = ? AND kind = ? AND expires_at < ?;
 
 -- name: UpdateWorkflowToRunning :exec
 UPDATE workflow_executions 

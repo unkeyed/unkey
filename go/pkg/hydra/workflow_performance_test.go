@@ -9,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/clock"
-	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
 )
 
 // TestWorkflowPickupLatencyBaseline measures the baseline latency for a single worker
@@ -418,11 +417,6 @@ func newTestEngineBench(tb testing.TB) *Engine {
 		t.Helper()
 	}
 
-	containersClient := containers.New(t)
-	hostDsn, _ := containersClient.RunMySQL()
-
-	return New(Config{
-		DSN:   hostDsn,
-		Clock: clock.New(),
-	})
+	// Use the unified test helper
+	return newTestEngineWithClock(t, clock.New())
 }

@@ -1,6 +1,7 @@
 package hydra
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -18,54 +19,47 @@ func TestNoGORMDependencies(t *testing.T) {
 	})
 }
 
-// TestStoreInterfaceCompleteness ensures all store methods are implemented
-func TestStoreInterfaceCompleteness(t *testing.T) {
-	// Use reflection to verify that sqlcStore implements all Store interface methods
-	storeType := reflect.TypeOf((*store.Store)(nil)).Elem()
-	// Note: Since SqlcStore is not exported, we test through the Store interface
-	// This test validates that our engine's store implements all required methods
+// TestSQLCQueryAccess ensures the Query singleton is properly accessible
+func TestSQLCQueryAccess(t *testing.T) {
+	// Verify that we can access the SQLC Query singleton and engine has DB access
 	engine := newTestEngine(t)
-	sqlcStoreType := reflect.TypeOf(engine.GetSQLCStore())
 
-	t.Run("AllMethodsImplemented", func(t *testing.T) {
-		for i := 0; i < storeType.NumMethod(); i++ {
-			method := storeType.Method(i)
-			_, hasMethod := sqlcStoreType.MethodByName(method.Name)
-			if !hasMethod {
-				t.Errorf("SQLC store missing implementation for method: %s", method.Name)
+	t.Run("QuerySingletonExists", func(t *testing.T) {
+		// Test that store.Query is accessible and implements Querier interface
+		queryType := reflect.TypeOf(store.Query)
+		if queryType == nil {
+			t.Fatal("store.Query should not be nil")
+		}
+		t.Logf("Query type: %v", queryType)
+	})
+
+	t.Run("EngineHasDBAccess", func(t *testing.T) {
+		// Test that engine has direct database access
+		db := engine.GetDB()
+		if db == nil {
+			t.Fatal("Engine should have non-nil database connection")
+		}
+
+		// Test that we can perform a basic query
+		ctx := context.Background()
+		workflows, err := store.Query.GetAllWorkflows(ctx, db, engine.GetNamespace())
+		if err != nil {
+			t.Fatalf("Should be able to query workflows: %v", err)
+		}
+		t.Logf("Found %d workflows", len(workflows))
+	})
+
+	t.Run("NoStoreAbstraction", func(t *testing.T) {
+		// Verify that the old store abstraction methods don't exist on Engine
+		engineType := reflect.TypeOf(engine)
+
+		// These methods should NOT exist anymore
+		oldMethods := []string{"GetStore", "GetSQLCStore", "store"}
+		for _, methodName := range oldMethods {
+			_, hasMethod := engineType.MethodByName(methodName)
+			if hasMethod {
+				t.Errorf("Engine should not have deprecated method: %s", methodName)
 			}
 		}
-	})
-}
-
-// TestNoPanicPlaceholders ensures no methods still have panic placeholders
-func TestNoPanicPlaceholders(t *testing.T) {
-	t.Run("NoNotImplementedPanics", func(t *testing.T) {
-		// This test would use reflection or static analysis to check that
-		// no methods contain "panic("not implemented")"
-		// In practice, this would be a linter rule or CI check
-		t.Log("Manual verification: No 'not implemented yet' panics should exist")
-	})
-}
-
-// TestConsistentTypeConversions validates that type conversions between
-// SQLC and store models are correct and complete
-func TestConsistentTypeConversions(t *testing.T) {
-	t.Run("WorkflowExecutionConversion", func(t *testing.T) {
-		// Test that all fields are properly converted between SQLC and store models
-		// This would involve creating test instances and verifying field mapping
-		t.Log("Should test SQLC WorkflowExecution -> store.WorkflowExecution conversion")
-	})
-
-	t.Run("WorkflowStepConversion", func(t *testing.T) {
-		t.Log("Should test SQLC WorkflowStep -> store.WorkflowStep conversion")
-	})
-
-	t.Run("CronJobConversion", func(t *testing.T) {
-		t.Log("Should test SQLC CronJob -> store.CronJob conversion")
-	})
-
-	t.Run("LeaseConversion", func(t *testing.T) {
-		t.Log("Should test SQLC Lease -> store.Lease conversion")
 	})
 }

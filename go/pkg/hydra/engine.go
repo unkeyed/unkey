@@ -2,9 +2,11 @@ package hydra
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
+	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/hydra/metrics"
 	"github.com/unkeyed/unkey/go/pkg/hydra/store"
@@ -12,6 +14,9 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	"go.opentelemetry.io/otel/attribute"
+
+	// MySQL driver
+	_ "github.com/go-sql-driver/mysql"
 )
 
 // Config holds the configuration for creating a new Engine instance.
@@ -71,7 +76,7 @@ func NewConfig() Config {
 // Engine instances are thread-safe and can be shared across multiple
 // workers and goroutines.
 type Engine struct {
-	store        store.Store // SQLC store (renamed from sqlc for compatibility)
+	db           *sql.DB
 	namespace    string
 	cronHandlers map[string]CronHandler
 	clock        clock.Clock
@@ -92,45 +97,39 @@ type Engine struct {
 //	    Namespace: "production",
 //	    Logger:    logger,
 //	})
-func New(config Config) *Engine {
-	if config.DSN == "" {
-		panic("hydra: config.DSN is required")
-	}
+func New(config Config) (*Engine, error) {
 
-	clk := config.Clock
-	if clk == nil {
-		clk = clock.New() // Default to real clock
-	}
-
-	logger := config.Logger
-	if logger == nil {
-		logger = logging.NewNoop() // Default logger
-	}
-
-	marshaller := config.Marshaller
-	if marshaller == nil {
-		marshaller = NewJSONMarshaller() // Default to JSON marshaller
-	}
-
-	// Create SQLC store from DSN
-	sqlcStore, err := store.NewSQLCStoreFromDSN(config.DSN, clk)
+	err := assert.All(
+		assert.NotEmpty(config.DSN),
+		assert.NotNil(config.Clock),
+		assert.NotEmpty(config.Namespace),
+		assert.NotNil(config.Logger),
+		assert.NotNil(config.Marshaller),
+	)
 	if err != nil {
-		panic(fmt.Sprintf("hydra: failed to create SQLC store from DSN: %v", err))
+		return nil, err
 	}
 
-	namespace := config.Namespace
-	if namespace == "" {
-		namespace = "default"
+	// Open direct database connection
+	db, err := sql.Open("mysql", config.DSN)
+	if err != nil {
+		return nil, fmt.Errorf("hydra: failed to open database connection: %w", err)
+	}
+
+	// Test the connection
+	if err := db.Ping(); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("hydra: failed to ping database: %v", err)
 	}
 
 	return &Engine{
-		store:        sqlcStore, // SQLC store
-		namespace:    namespace,
+		db:           db,
+		namespace:    config.Namespace,
 		cronHandlers: make(map[string]CronHandler),
-		clock:        clk,
-		logger:       logger,
-		marshaller:   marshaller,
-	}
+		clock:        config.Clock,
+		logger:       config.Logger,
+		marshaller:   config.Marshaller,
+	}, nil
 }
 
 // GetNamespace returns the namespace for this engine instance.
@@ -141,9 +140,9 @@ func (e *Engine) GetNamespace() string {
 	return e.namespace
 }
 
-// GetSQLCStore returns the SQLC store if available, nil otherwise
-func (e *Engine) GetSQLCStore() store.Store {
-	return e.store
+// GetDB returns the database connection for direct query usage
+func (e *Engine) GetDB() *sql.DB {
+	return e.db
 }
 
 // RegisterCron registers a cron job with the given schedule and handler.
@@ -166,20 +165,19 @@ func (e *Engine) RegisterCron(cronSpec, name string, handler CronHandler) error 
 
 	e.cronHandlers[name] = handler
 
-	cronJob := &store.CronJob{
+	// Use new Query pattern instead of store abstraction
+	return store.Query.CreateCronJob(context.Background(), e.db, store.CreateCronJobParams{
 		ID:           uid.New(uid.CronJobPrefix),
 		Name:         name,
 		CronSpec:     cronSpec,
 		Namespace:    e.namespace,
-		WorkflowName: "", // Empty since this uses a handler, not a workflow
+		WorkflowName: sql.NullString{Valid: false}, // Empty since this uses a handler, not a workflow
 		Enabled:      true,
 		CreatedAt:    e.clock.Now().UnixMilli(),
 		UpdatedAt:    e.clock.Now().UnixMilli(),
-		LastRunAt:    nil,
+		LastRunAt:    sql.NullInt64{Valid: false},
 		NextRunAt:    calculateNextRun(cronSpec, e.clock.Now()),
-	}
-
-	return e.store.UpsertCronJob(context.Background(), cronJob)
+	})
 }
 
 // StartWorkflow starts a new workflow execution with the given name and payload.
@@ -218,7 +216,7 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowName string, payload
 	ctx, span := tracing.Start(ctx, "hydra.engine.StartWorkflow")
 	defer span.End()
 
-	executionID := uid.New("wf")
+	executionID := uid.New(uid.WorkflowPrefix)
 
 	span.SetAttributes(
 		attribute.String("hydra.workflow.name", workflowName),
@@ -230,7 +228,7 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowName string, payload
 		MaxAttempts:     3, // Default to 3 attempts total (1 initial + 2 retries)
 		TimeoutDuration: 1 * time.Hour,
 		RetryBackoff:    1 * time.Second,
-		TriggerType:     TriggerTypeAPI, // Default trigger type
+		TriggerType:     store.WorkflowExecutionsTriggerTypeApi, // Default trigger type
 		TriggerSource:   nil,
 	}
 	for _, opt := range opts {
@@ -259,28 +257,27 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowName string, payload
 		spanID = spanContext.SpanID().String()
 	}
 
-	workflow := &store.WorkflowExecution{
+	// Use new Query pattern instead of store abstraction
+	err = store.Query.CreateWorkflow(ctx, e.db, store.CreateWorkflowParams{
 		ID:                executionID,
 		WorkflowName:      workflowName,
-		Status:            store.WorkflowStatusPending,
+		Status:            store.WorkflowExecutionsStatusPending,
 		InputData:         data,
-		OutputData:        nil,
-		ErrorMessage:      "",
-		Namespace:         e.namespace,
-		MaxAttempts:       config.MaxAttempts,
-		RemainingAttempts: config.MaxAttempts, // Start with full attempts available
+		OutputData:        []byte{},
+		ErrorMessage:      sql.NullString{Valid: false},
 		CreatedAt:         e.clock.Now().UnixMilli(),
-		StartedAt:         nil,
-		CompletedAt:       nil,
-		NextRetryAt:       nil,
-		SleepUntil:        nil,
-		TriggerType:       config.TriggerType,
-		TriggerSource:     config.TriggerSource,
-		TraceID:           traceID,
-		SpanID:            spanID,
-	}
-
-	err = e.store.CreateWorkflow(ctx, workflow)
+		StartedAt:         sql.NullInt64{Valid: false},
+		CompletedAt:       sql.NullInt64{Valid: false},
+		MaxAttempts:       int32(config.MaxAttempts),
+		RemainingAttempts: int32(config.MaxAttempts), // Start with full attempts available
+		NextRetryAt:       sql.NullInt64{Valid: false},
+		Namespace:         e.namespace,
+		TriggerType:       store.NullWorkflowExecutionsTriggerType{Valid: false}, // TODO: Convert trigger type
+		TriggerSource:     sql.NullString{Valid: false},
+		SleepUntil:        sql.NullInt64{Valid: false},
+		TraceID:           sql.NullString{String: traceID, Valid: traceID != ""},
+		SpanID:            sql.NullString{String: spanID, Valid: spanID != ""},
+	})
 	if err != nil {
 		metrics.RecordError(e.namespace, "engine", "workflow_creation_failed")
 		tracing.RecordError(span, err)
@@ -294,10 +291,5 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowName string, payload
 
 	span.SetAttributes(attribute.String("hydra.workflow.status", "created"))
 
-	return workflow.ID, nil
-}
-
-// GetStore returns the underlying store (for testing purposes)
-func (e *Engine) GetStore() store.Store {
-	return e.store
+	return executionID, nil
 }
