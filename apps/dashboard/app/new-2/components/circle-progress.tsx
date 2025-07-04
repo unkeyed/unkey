@@ -15,40 +15,12 @@ export const CircleProgress = ({
   strokeWidth = 2,
   className = "",
 }: CircleProgressProps) => {
-  const isComplete = value >= total;
-
-  if (isComplete) {
-    return (
-      <div className={cn("inline-flex items-center justify-center", className)}>
-        <svg width={size} height={size} viewBox="0 0 18 18" className="text-success-9">
-          <g fill="currentColor" strokeLinecap="butt" strokeLinejoin="miter">
-            <path
-              d="M9 1.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 1 0 0-15z"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="square"
-              strokeMiterlimit="10"
-              strokeWidth={strokeWidth}
-            />
-            <path
-              d="M5.25 9.75l2.25 2.25 5.25-6"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="square"
-              strokeMiterlimit="10"
-              strokeWidth={strokeWidth}
-            />
-          </g>
-        </svg>
-      </div>
-    );
-  }
-
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const progress = Math.min((value / total) * 100, 100);
   const strokeDasharray = circumference;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
+  const isComplete = value >= total;
 
   return (
     <div className={cn("inline-flex items-center justify-center", className)}>
@@ -76,9 +48,40 @@ export const CircleProgress = ({
           strokeDashoffset={strokeDashoffset}
           strokeLinecap="round"
           style={{
-            transition: "stroke-dashoffset 0.3s ease-in-out",
+            transition: "stroke-dashoffset 0.3s ease-in-out, opacity 0.2s ease-in-out",
+            opacity: isComplete ? 0 : 1,
           }}
         />
+        {/* Checkmark group */}
+        <g
+          className="text-success-9"
+          style={{
+            transition: "opacity 0.2s ease-in-out",
+            opacity: isComplete ? 1 : 0,
+          }}
+        >
+          {/* Circle background for checkmark */}
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={strokeWidth}
+            strokeLinecap="square"
+          />
+          {/* Checkmark path */}
+          <path
+            d={`M${size * 0.292} ${size * 0.542} l${size * 0.125} ${
+              size * 0.125
+            } l${size * 0.292} -${size * 0.333}`}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={strokeWidth}
+            strokeLinecap="square"
+            transform={`rotate(90 ${size / 2} ${size / 2})`}
+          />
+        </g>
       </svg>
     </div>
   );
