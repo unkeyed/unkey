@@ -65,7 +65,7 @@ func TestDatabaseQueryPerformanceUnderLoad(t *testing.T) {
 	}
 
 	// Verify workflows are pending
-	pendingCount, err := countPendingWorkflows(engine.store, ctx, engine.GetNamespace())
+	pendingCount, err := countPendingWorkflows(engine.GetSQLCStore(), ctx, engine.GetNamespace())
 	require.NoError(t, err)
 	require.Equal(t, numPendingWorkflows, pendingCount,
 		"Should have created %d pending workflows", numPendingWorkflows)
@@ -95,7 +95,7 @@ func TestDatabaseQueryPerformanceUnderLoad(t *testing.T) {
 				default:
 					// Measure query performance
 					start := time.Now()
-					_, err := engine.store.GetPendingWorkflows(ctx, engine.GetNamespace(), 50, nil)
+					_, err := engine.GetSQLCStore().GetPendingWorkflows(ctx, engine.GetNamespace(), 50, nil)
 					queryDuration := time.Since(start)
 
 					totalQueries.Add(1)
@@ -194,7 +194,7 @@ func TestDatabaseIndexOptimization(t *testing.T) {
 
 			for i := 0; i < numQueries; i++ {
 				start := time.Now()
-				workflows, err := engine.store.GetPendingWorkflows(ctx, engine.GetNamespace(), 50, nil)
+				workflows, err := engine.GetSQLCStore().GetPendingWorkflows(ctx, engine.GetNamespace(), 50, nil)
 				duration := time.Since(start)
 
 				require.NoError(t, err)

@@ -215,7 +215,7 @@ func (w *worker) pollOnce(ctx context.Context) {
 	}
 
 	workflows, err := w.queryCircuitBreaker.Do(ctx, func(ctx context.Context) ([]store.WorkflowExecution, error) {
-		return w.engine.store.GetPendingWorkflows(ctx, w.engine.namespace, fetchLimit, workflowNames)
+		return w.engine.GetSQLCStore().GetPendingWorkflows(ctx, w.engine.namespace, fetchLimit, workflowNames)
 	})
 
 	// Record polling metrics
@@ -244,7 +244,7 @@ func (w *worker) processWorkflows(ctx context.Context) {
 		select {
 		case workflow := <-w.workflowQueue:
 			// Try to acquire lease with direct store call (no circuit breaker to avoid blocking)
-			err := w.engine.store.AcquireWorkflowLease(ctx, workflow.ID, w.engine.namespace, w.config.WorkerID, w.config.ClaimTimeout)
+			err := w.engine.GetSQLCStore().AcquireWorkflowLease(ctx, workflow.ID, w.engine.namespace, w.config.WorkerID, w.config.ClaimTimeout)
 			if err != nil {
 				// Another worker got it or error, skip this workflow
 				metrics.LeaseAcquisitionsTotal.WithLabelValues(w.config.WorkerID, "workflow", "failed").Inc()
@@ -264,7 +264,7 @@ func (w *worker) processWorkflows(ctx context.Context) {
 			w.executeWorkflow(ctx, &workflow)
 
 			// Release the lease and stop tracking it
-			if err := w.engine.store.ReleaseLease(ctx, workflow.ID, w.config.WorkerID); err != nil {
+			if err := w.engine.GetSQLCStore().ReleaseLease(ctx, workflow.ID, w.config.WorkerID); err != nil {
 				w.engine.logger.Error("Failed to release workflow lease",
 					"workflow_id", workflow.ID,
 					"worker_id", w.config.WorkerID,
@@ -331,7 +331,7 @@ func (w *worker) executeWorkflow(ctx context.Context, e *WorkflowExecution) {
 	queueTime := time.Duration(startTime.UnixMilli()-e.CreatedAt) * time.Millisecond
 	metrics.WorkflowQueueTimeSeconds.WithLabelValues(e.Namespace, e.WorkflowName).Observe(queueTime.Seconds())
 
-	err := w.engine.store.UpdateWorkflowStatus(ctx, e.Namespace, e.ID, WorkflowStatusRunning, "")
+	err := w.engine.GetSQLCStore().UpdateWorkflowStatus(ctx, e.Namespace, e.ID, WorkflowStatusRunning, "")
 	if err != nil {
 		metrics.RecordError(e.Namespace, "worker", "status_update_failed")
 		tracing.RecordError(span, err)
@@ -345,7 +345,7 @@ func (w *worker) executeWorkflow(ctx context.Context, e *WorkflowExecution) {
 		tracing.RecordError(span, noHandlerErr)
 		span.SetAttributes(attribute.String("hydra.workflow.status", "failed"))
 
-		if failErr := w.engine.store.FailWorkflow(ctx, e.Namespace, e.ID, noHandlerErr.Error(), true); failErr != nil {
+		if failErr := w.engine.GetSQLCStore().FailWorkflow(ctx, e.Namespace, e.ID, noHandlerErr.Error(), true); failErr != nil {
 			w.engine.logger.Error("Failed to mark workflow as failed",
 				"workflow_id", e.ID,
 				"workflow_name", e.WorkflowName,
@@ -367,7 +367,7 @@ func (w *worker) executeWorkflow(ctx context.Context, e *WorkflowExecution) {
 		workflowName:    e.WorkflowName,
 		namespace:       e.Namespace,
 		workerID:        w.config.WorkerID,
-		store:           w.engine.store,
+		store:           w.engine.GetSQLCStore(),
 		marshaller:      w.engine.marshaller,
 		stepTimeout:     5 * time.Minute, // Default step timeout
 		stepMaxAttempts: 3,               // Default step max attempts
@@ -382,7 +382,7 @@ func (w *worker) executeWorkflow(ctx context.Context, e *WorkflowExecution) {
 		if suspendErr, ok := err.(*WorkflowSuspendedError); ok {
 			span.SetAttributes(attribute.String("hydra.workflow.status", "suspended"))
 
-			if sleepErr := w.engine.store.SleepWorkflow(ctx, e.Namespace, e.ID, suspendErr.ResumeTime); sleepErr != nil {
+			if sleepErr := w.engine.GetSQLCStore().SleepWorkflow(ctx, e.Namespace, e.ID, suspendErr.ResumeTime); sleepErr != nil {
 				w.engine.logger.Error("Failed to suspend workflow",
 					"workflow_id", e.ID,
 					"workflow_name", e.WorkflowName,
@@ -398,7 +398,7 @@ func (w *worker) executeWorkflow(ctx context.Context, e *WorkflowExecution) {
 		isFinal := e.RemainingAttempts <= 1
 		span.SetAttributes(attribute.String("hydra.workflow.status", "failed"))
 
-		if failErr := w.engine.store.FailWorkflow(ctx, e.Namespace, e.ID, err.Error(), isFinal); failErr != nil {
+		if failErr := w.engine.GetSQLCStore().FailWorkflow(ctx, e.Namespace, e.ID, err.Error(), isFinal); failErr != nil {
 			w.engine.logger.Error("Failed to mark workflow as failed",
 				"workflow_id", e.ID,
 				"workflow_name", e.WorkflowName,
@@ -420,7 +420,7 @@ func (w *worker) executeWorkflow(ctx context.Context, e *WorkflowExecution) {
 
 	span.SetAttributes(attribute.String("hydra.workflow.status", "completed"))
 
-	if err := w.engine.store.CompleteWorkflow(ctx, e.Namespace, e.ID, nil); err != nil { // No output data for now
+	if err := w.engine.GetSQLCStore().CompleteWorkflow(ctx, e.Namespace, e.ID, nil); err != nil { // No output data for now
 		tracing.RecordError(span, err)
 		w.engine.logger.Error("Failed to mark workflow as completed",
 			"workflow_id", e.ID,
@@ -484,7 +484,7 @@ func (w *worker) sendHeartbeatsForActiveLeases(ctx context.Context) {
 	for _, workflowID := range leaseIDs {
 		// Protect heartbeat with circuit breaker
 		_, err := w.leaseCircuitBreaker.Do(ctx, func(ctx context.Context) (any, error) {
-			return nil, w.engine.store.HeartbeatLease(ctx, workflowID, w.config.WorkerID, newExpiresAt)
+			return nil, w.engine.GetSQLCStore().HeartbeatLease(ctx, workflowID, w.config.WorkerID, newExpiresAt)
 		})
 		if err != nil {
 			// Record failed heartbeat
@@ -508,13 +508,13 @@ func (w *worker) cleanupExpiredLeases(ctx context.Context) {
 		select {
 		case <-tickerC:
 			// Clean up expired leases first
-			err := w.engine.store.CleanupExpiredLeases(ctx, w.engine.namespace)
+			err := w.engine.GetSQLCStore().CleanupExpiredLeases(ctx, w.engine.namespace)
 			if err != nil {
 				w.engine.logger.Warn("Failed to cleanup expired leases", "error", err.Error())
 			}
 
 			// Then reset orphaned workflows back to pending so they can be picked up again
-			err = w.engine.store.ResetOrphanedWorkflows(ctx, w.engine.namespace)
+			err = w.engine.GetSQLCStore().ResetOrphanedWorkflows(ctx, w.engine.namespace)
 			if err != nil {
 				w.engine.logger.Warn("Failed to reset orphaned workflows", "error", err.Error())
 			}
@@ -551,7 +551,7 @@ func (w *worker) processDueCronJobs(ctx context.Context) {
 
 	now := w.engine.clock.Now().UnixMilli()
 
-	dueCrons, err := w.engine.store.GetDueCronJobs(ctx, w.engine.namespace, now)
+	dueCrons, err := w.engine.GetSQLCStore().GetDueCronJobs(ctx, w.engine.namespace, now)
 	if err != nil {
 		return
 	}
@@ -582,14 +582,14 @@ func (w *worker) processDueCronJobs(ctx context.Context) {
 			HeartbeatAt: now,
 		}
 
-		err := w.engine.store.AcquireLease(ctx, lease)
+		err := w.engine.GetSQLCStore().AcquireLease(ctx, lease)
 		if err != nil {
 			continue
 		}
 
 		w.executeCronJob(ctx, cronJob)
 
-		if err := w.engine.store.ReleaseLease(ctx, cronJob.ID, w.config.WorkerID); err != nil {
+		if err := w.engine.GetSQLCStore().ReleaseLease(ctx, cronJob.ID, w.config.WorkerID); err != nil {
 			w.engine.logger.Error("Failed to release cron job lease",
 				"cron_job_id", cronJob.ID,
 				"cron_name", cronJob.Name,
@@ -638,7 +638,7 @@ func (w *worker) executeCronJob(ctx context.Context, cronJob CronJob) {
 	}()
 
 	nextRun := calculateNextRun(cronJob.CronSpec, w.engine.clock.Now())
-	if err := w.engine.store.UpdateCronJobLastRun(ctx, w.engine.namespace, cronJob.ID, now, nextRun); err != nil {
+	if err := w.engine.GetSQLCStore().UpdateCronJobLastRun(ctx, w.engine.namespace, cronJob.ID, now, nextRun); err != nil {
 		w.engine.logger.Error("Failed to update cron job last run time",
 			"cron_job_id", cronJob.ID,
 			"cron_name", cronJob.Name,

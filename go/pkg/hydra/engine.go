@@ -8,7 +8,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/hydra/metrics"
 	"github.com/unkeyed/unkey/go/pkg/hydra/store"
-	"github.com/unkeyed/unkey/go/pkg/hydra/store/gorm"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -22,7 +21,7 @@ import (
 type Config struct {
 	// DSN is the database connection string for MySQL.
 	// This field is required and cannot be empty.
-	// The engine will create both GORM and SQLC stores from this connection.
+	// The engine will create an SQLC store from this connection.
 	DSN string
 
 	// Namespace provides tenant isolation for workflows. All workflows
@@ -72,8 +71,7 @@ func NewConfig() Config {
 // Engine instances are thread-safe and can be shared across multiple
 // workers and goroutines.
 type Engine struct {
-	store        store.Store
-	sqlc         store.Store // SQLC store for incremental migration
+	store        store.Store // SQLC store (renamed from sqlc for compatibility)
 	namespace    string
 	cronHandlers map[string]CronHandler
 	clock        clock.Clock
@@ -114,13 +112,7 @@ func New(config Config) *Engine {
 		marshaller = NewJSONMarshaller() // Default to JSON marshaller
 	}
 
-	// Create GORM store from DSN
-	gormStore, err := gorm.NewMySQLStore(config.DSN, clk)
-	if err != nil {
-		panic(fmt.Sprintf("hydra: failed to create GORM store from DSN: %v", err))
-	}
-
-	// Create SQLC store from the same DSN
+	// Create SQLC store from DSN
 	sqlcStore, err := store.NewSQLCStoreFromDSN(config.DSN, clk)
 	if err != nil {
 		panic(fmt.Sprintf("hydra: failed to create SQLC store from DSN: %v", err))
@@ -132,8 +124,7 @@ func New(config Config) *Engine {
 	}
 
 	return &Engine{
-		store:        gormStore, // Main store (GORM)
-		sqlc:         sqlcStore, // SQLC store for migration
+		store:        sqlcStore, // SQLC store
 		namespace:    namespace,
 		cronHandlers: make(map[string]CronHandler),
 		clock:        clk,
@@ -152,7 +143,7 @@ func (e *Engine) GetNamespace() string {
 
 // GetSQLCStore returns the SQLC store if available, nil otherwise
 func (e *Engine) GetSQLCStore() store.Store {
-	return e.sqlc
+	return e.store
 }
 
 // RegisterCron registers a cron job with the given schedule and handler.

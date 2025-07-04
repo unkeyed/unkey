@@ -162,7 +162,7 @@ func TestStepExecutionRaceConditions(t *testing.T) {
 	duplicateSteps := 0
 	for _, stepName := range expectedSteps {
 		// Try to get the step - this verifies it exists and is unique
-		step, err := engine.store.GetStep(ctx, engine.GetNamespace(), executionID, stepName)
+		step, err := engine.GetSQLCStore().GetStep(ctx, engine.GetNamespace(), executionID, stepName)
 		if err != nil {
 			t.Errorf("Expected step '%s' not found: %v", stepName, err)
 			continue
@@ -217,7 +217,7 @@ func TestDatabaseTransactionIntegrity(t *testing.T) {
 	require.Equal(t, store.WorkflowStatusCompleted, finalWorkflow1.Status)
 
 	// Verify steps were created properly by checking the transaction step
-	step1, err := engine.store.GetStep(ctx, engine.GetNamespace(), executionID1, "transaction-step")
+	step1, err := engine.GetSQLCStore().GetStep(ctx, engine.GetNamespace(), executionID1, "transaction-step")
 	require.NoError(t, err)
 	require.NotNil(t, step1, "Transaction step should be created for successful workflow")
 	require.Equal(t, store.StepStatusCompleted, step1.Status, "Transaction step should complete successfully")
