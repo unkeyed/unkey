@@ -34,6 +34,8 @@ const (
 	CronJobPrefix            Prefix = "cron"
 	KeyEncryptionKeyPrefix   Prefix = "kek"
 	OrgPrefix                Prefix = "org"
+	WorkflowPrefix           Prefix = "wf"
+	StepPrefix               Prefix = "step"
 
 	// Control plane prefixes
 	ProjectPrefix     Prefix = "proj"
