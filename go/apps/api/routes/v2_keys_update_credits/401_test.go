@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -17,7 +16,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestKeyUpdateCreditsBadRequest(t *testing.T) {
+func TestKeyUpdateCreditsUnauthorized(t *testing.T) {
 	h := testutil.NewHarness(t)
 	ctx := t.Context()
 
@@ -75,87 +74,73 @@ func TestKeyUpdateCreditsBadRequest(t *testing.T) {
 		CreatedAtM:        time.Now().UnixMilli(),
 		Enabled:           true,
 		IdentityID:        sql.NullString{Valid: false, String: ""},
-		RemainingRequests: sql.NullInt32{Int32: 0, Valid: false},
+		RemainingRequests: sql.NullInt32{Int32: 100, Valid: true},
 	}
 
 	err = db.Query.InsertKey(ctx, h.DB.RW(), insertParams)
 	require.NoError(t, err)
 
-	// Create root key with read permissions
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.update_key")
-
-	headers := http.Header{
-		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	req := handler.Request{
+		KeyId:     keyID,
+		Operation: openapi.Increment,
+		Value:     nullable.NewNullableWithValue(int64(10)),
 	}
 
-	t.Run("missing keyId", func(t *testing.T) {
-		req := handler.Request{}
-
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "POST request body for '/v2/keys.updateCredits' failed to validate schema")
-	})
-
-	t.Run("empty keyId string", func(t *testing.T) {
-		req := handler.Request{
-			KeyId: "",
+	t.Run("missing authorization header", func(t *testing.T) {
+		headers := http.Header{
+			"Content-Type": {"application/json"},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 	})
 
-	t.Run("increment with null throws error", func(t *testing.T) {
-		req := handler.Request{
-			KeyId:     keyID,
-			Operation: openapi.Increment,
+	t.Run("empty authorization header", func(t *testing.T) {
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {""},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 	})
 
-	t.Run("can't increment unlimited key", func(t *testing.T) {
-		req := handler.Request{
-			KeyId:     keyID,
-			Operation: openapi.Decrement,
-			Value:     nullable.NewNullableWithValue(int64(1)),
+	t.Run("malformed authorization header - no Bearer prefix", func(t *testing.T) {
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {"invalid_token_without_bearer"},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 	})
 
-	t.Run("decrement with null throws error", func(t *testing.T) {
-		req := handler.Request{
-			KeyId:     keyID,
-			Operation: openapi.Decrement,
+	t.Run("malformed authorization header - Bearer only", func(t *testing.T) {
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {"Bearer"},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 	})
 
-	t.Run("can't decrement unlimited key", func(t *testing.T) {
-		req := handler.Request{
-			KeyId:     keyID,
-			Operation: openapi.Decrement,
-			Value:     nullable.NewNullableWithValue(int64(1)),
+	t.Run("nonexistent root key", func(t *testing.T) {
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {"Bearer " + uid.New(uid.KeyPrefix)},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status)
+		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
+		require.Equal(t, 401, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 	})
