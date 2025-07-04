@@ -310,7 +310,9 @@ function createVerificationTimeseriesQuery(interval: TimeInterval, whereClause: 
   }[interval.step];
 
   if (!msPerUnit) {
-    throw new Error("createVerificationTimeseriesQuery");
+    throw new Error(
+      `Unsupported interval step: ${interval.step}. Expected one of: MINUTE, HOUR, DAY, MONTH`,
+    );
   }
 
   const stepMs = msPerUnit * interval.stepSize;
