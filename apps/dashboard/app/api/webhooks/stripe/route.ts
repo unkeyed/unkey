@@ -15,10 +15,19 @@ export const POST = async (req: Request): Promise<Response> => {
   const e = stripeEnv();
 
   if (!e) {
-    throw new Error("stripe env variables are not set up");
+    throw new Error(
+      "Stripe environment configuration is missing. Check that STRIPE_SECRET_KEY and other required Stripe environment variables are properly set.",
+    );
   }
 
-  const stripe = new Stripe(stripeEnv()!.STRIPE_SECRET_KEY, {
+  const stripeSecretKey = stripeEnv()?.STRIPE_SECRET_KEY;
+  if (!stripeSecretKey) {
+    throw new Error(
+      "STRIPE_SECRET_KEY environment variable is not set. This is required for Stripe API operations.",
+    );
+  }
+
+  const stripe = new Stripe(stripeSecretKey, {
     apiVersion: "2023-10-16",
     typescript: true,
   });
@@ -74,25 +83,43 @@ export const POST = async (req: Request): Promise<Response> => {
       break;
     }
     case "customer.subscription.created": {
-      const sub = event.data.object as Stripe.Subscription;
+      try {
+        const sub = event.data.object as Stripe.Subscription;
 
-      // Only handle trial subscriptions
-      if (!sub.trial_end) {
-        return new Response("OK");
+        if (!sub.trial_end || !sub.items?.data?.[0]?.price?.id || !sub.customer) {
+          return new Response("OK");
+        }
+
+        const [price, customer] = await Promise.all([
+          stripe.prices.retrieve(sub.items.data[0].price.id),
+          stripe.customers.retrieve(
+            typeof sub.customer === "string" ? sub.customer : sub.customer.id,
+          ),
+        ]);
+
+        if (!price.product || price.unit_amount === null || price.unit_amount === undefined) {
+          throw new Error("Invalid price data");
+        }
+
+        const product = await stripe.products.retrieve(
+          typeof price.product === "string" ? price.product : price.product.id,
+        );
+
+        if (customer.deleted || !customer.email) {
+          throw new Error("Invalid customer data");
+        }
+
+        const formattedPrice = new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+        }).format(price.unit_amount / 100);
+
+        await alertSlack(product.name, formattedPrice, customer.email, customer.name || "Unknown");
+        break;
+      } catch (error) {
+        console.error("Webhook error:", error);
+        return new Response("Error", { status: 500 });
       }
-
-      // Get product and price information
-      const price = await stripe.prices.retrieve(sub.items.data[0].price.id);
-      const product = await stripe.products.retrieve(price.product as string);
-      const customer = (await stripe.customers.retrieve(sub.customer as string)) as Stripe.Customer;
-
-      const formattedPrice = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-      }).format(price.unit_amount! / 100);
-
-      await alertSlack(product.name, formattedPrice, customer.email!, customer.name!);
-      break;
     }
 
     default:

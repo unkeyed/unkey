@@ -142,7 +142,7 @@ export const rbacRouter = t.router({
           );
         await insertAuditLogs(tx, {
           workspaceId: permissionRelation.workspaceId,
-          actor: { type: "user", id: ctx.user!.id },
+          actor: { type: "user", id: ctx.user.id },
           event: "authorization.disconnect_permission_and_key",
           description: `Disconnected ${permissionRelation.keyId} from ${permissionRelation.permissionId}`,
           resources: [
@@ -222,7 +222,7 @@ export const rbacRouter = t.router({
           });
         await insertAuditLogs(tx, {
           workspaceId: tuple.workspaceId,
-          actor: { type: "user", id: ctx.user!.id },
+          actor: { type: "user", id: ctx.user.id },
           event: "authorization.connect_role_and_permission",
           description: `Connected ${tuple.roleId} to ${tuple.permissionId}`,
           resources: [
@@ -277,7 +277,7 @@ export const rbacRouter = t.router({
           );
         await insertAuditLogs(tx, {
           workspaceId: workspace.id,
-          actor: { type: "user", id: ctx.user!.id },
+          actor: { type: "user", id: ctx.user.id },
           event: "authorization.disconnect_role_and_permissions",
           description: `Disconnected ${input.roleId} from ${input.permissionId}`,
           resources: [
@@ -355,7 +355,7 @@ export const rbacRouter = t.router({
           });
         await insertAuditLogs(tx, {
           workspaceId: tuple.workspaceId,
-          actor: { type: "user", id: ctx.user!.id },
+          actor: { type: "user", id: ctx.user.id },
           event: "authorization.connect_role_and_key",
           description: `Connected ${tuple.roleId} with ${tuple.keyId}`,
           resources: [
@@ -810,6 +810,14 @@ export async function upsertPermissions(
     const newPermissions: InsertPermission[] = [];
     const auditLogs: UnkeyAuditLog[] = [];
 
+    const userId = ctx.user?.id;
+    if (!userId) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "UserId not found",
+      });
+    }
+
     const permissions = slugs.map((slug) => {
       const existingPermission = existingPermissions.find((p) => p.slug === slug);
 
@@ -830,7 +838,7 @@ export async function upsertPermissions(
       newPermissions.push(permission);
       auditLogs.push({
         workspaceId,
-        actor: { type: "user", id: ctx.user!.id },
+        actor: { type: "user", id: userId },
         event: "permission.create",
         description: `Created ${permission.id}`,
         resources: [

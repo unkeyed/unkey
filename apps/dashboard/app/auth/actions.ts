@@ -89,11 +89,22 @@ export async function verifyEmail(code: string): Promise<VerificationResult> {
 }
 
 export async function resendAuthCode(email: string): Promise<EmailAuthResult> {
+  const envVars = env();
+  const unkeyRootKey = envVars.UNKEY_ROOT_KEY;
+  if (!unkeyRootKey) {
+    console.error("UNKEY_ROOT_KEY environment variable is not set");
+    return {
+      success: false,
+      code: AuthErrorCode.UNKNOWN_ERROR,
+      message: "Service temporarily unavailable. Please try again later.",
+    };
+  }
+
   const rl = new Ratelimit({
     namespace: "resend_code",
     duration: "5m",
     limit: 5,
-    rootKey: env().UNKEY_ROOT_KEY!,
+    rootKey: unkeyRootKey,
   });
 
   const { success } = await rl.limit(email);

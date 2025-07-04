@@ -70,6 +70,7 @@ type ProviderUser = {
 };
 
 export class WorkOSAuthProvider extends BaseAuthProvider {
+  //INFO: Best to leave this alone, some other class might be accessing `instance` implicitly
   private static instance: WorkOSAuthProvider | null = null;
   private readonly provider: WorkOS;
   private readonly clientId: string;
@@ -146,8 +147,12 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 7);
 
+        if (!refreshResult.sealedSession) {
+          throw new Error("Session refresh failed due to missing sealedSession");
+        }
+
         return {
-          newToken: refreshResult.sealedSession!,
+          newToken: refreshResult.sealedSession,
           expiresAt,
           session: {
             userId: refreshResult.session.user.id,
@@ -295,7 +300,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         organizationId: newOrgId,
       });
 
-      if (!refreshResult.authenticated || !refreshResult.session) {
+      if (!refreshResult.authenticated || !refreshResult.session || !refreshResult.sealedSession) {
         const errMsg = refreshResult.authenticated ? "" : refreshResult.reason;
         throw new Error(`Organization switch failed ${errMsg}`);
       }
@@ -305,7 +310,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       expiresAt.setDate(expiresAt.getDate() + 7);
 
       return {
-        newToken: refreshResult.sealedSession!,
+        newToken: refreshResult.sealedSession,
         expiresAt,
         session: {
           userId: refreshResult.session.user.id,
@@ -345,6 +350,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         data: memberships.data.map((membership) => ({
           id: membership.id,
           user,
+          // biome-ignore lint/style/noNonNullAssertion: Safe to leave
           organization: orgMap.get(membership.organizationId)!,
           role: membership.role.slug,
           createdAt: membership.createdAt,

@@ -23,7 +23,9 @@ const memory = new MemoryStore({ persistentMap: new Map() });
  */
 const cloudflare = new CloudflareStore({
   domain: "cache.unkey.dev",
+  // biome-ignore lint/style/noNonNullAssertion: Safe to leave
   zoneId: process.env.CLOUDFLARE_ZONE_ID!,
+  // biome-ignore lint/style/noNonNullAssertion: Safe to leave
   cloudflareApiKey: process.env.CLOUDFLARE_API_KEY!,
 });
 
@@ -60,7 +62,11 @@ async function main() {
   const user = await cache.user.get("userId");
   console.info(user);
 
-  await cache.apiKey.set("hash", { hash: "hash", ownerId: "me", permissions: ["do_many_things"] });
+  await cache.apiKey.set("hash", {
+    hash: "hash",
+    ownerId: "me",
+    permissions: ["do_many_things"],
+  });
 }
 
 main();

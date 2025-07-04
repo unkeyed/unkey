@@ -44,7 +44,8 @@ export const createRootKey = t.procedure
         message: `API ${env().UNKEY_API_ID} was not found`,
       });
     }
-    if (!unkeyApi.keyAuthId) {
+    const keyAuthId = unkeyApi.keyAuthId;
+    if (!keyAuthId) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
         message: `API ${env().UNKEY_API_ID} is not setup to handle keys`,
@@ -63,7 +64,7 @@ export const createRootKey = t.procedure
       await db.transaction(async (tx) => {
         await tx.insert(schema.keys).values({
           id: keyId,
-          keyAuthId: unkeyApi.keyAuthId!,
+          keyAuthId,
           name: input?.name,
           hash,
           start,

@@ -161,8 +161,13 @@ export const Client: React.FC<Props> = ({
           disabled={disabled}
           variant="primary"
           onClick={() => {
+            if (!projectId) {
+              toast.error("Project not selected. Please select a project and try again.");
+              return;
+            }
+
             create.mutate({
-              projectId: projectId!,
+              projectId,
               integrationId,
               accessToken,
               vercelTeamId: vercelTeamId,

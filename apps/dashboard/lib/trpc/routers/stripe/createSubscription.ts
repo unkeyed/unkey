@@ -16,7 +16,10 @@ export const createSubscription = t.procedure
   .mutation(async ({ ctx, input }) => {
     const e = stripeEnv();
     if (!e) {
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Stripe is not set up" });
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Stripe is not set up",
+      });
     }
 
     const stripe = new Stripe(e.STRIPE_SECRET_KEY, {
@@ -30,6 +33,13 @@ export const createSubscription = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message: `Could not find product ${input.productId}.`,
+      });
+    }
+
+    if (!product.default_price) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: `Could not find product default price ${input.productId}.`,
       });
     }
 
@@ -66,7 +76,7 @@ export const createSubscription = t.procedure
       customer: customer.id,
       items: [
         {
-          price: product.default_price!.toString(),
+          price: product.default_price.toString(),
         },
       ],
       billing_cycle_anchor_config: {

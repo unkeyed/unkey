@@ -153,7 +153,11 @@ function createActiveKeysTimeseriesQuery(interval: TimeInterval, whereClause: st
     MONTH: 2592000_000,
   }[interval.step];
 
-  const stepMs = msPerUnit! * interval.stepSize;
+  if (!msPerUnit) {
+    throw new Error("Unknown interval in 'createActiveKeysTimeseriesQuery'");
+  }
+
+  const stepMs = msPerUnit * interval.stepSize;
 
   return `
     SELECT

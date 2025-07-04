@@ -36,7 +36,7 @@ function merge<R extends string>(
       if (!acc[rule]) {
         acc[rule] = [];
       }
-      acc[rule]!.push(arg);
+      acc[rule].push(arg);
       return acc;
     },
     {} as PermissionQuery<R>,

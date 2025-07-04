@@ -61,19 +61,31 @@ export const transformRole = (
   keys:
     "keys" in role
       ? role.keys
-          .filter((roleKey) => roleKey.key !== null)
+          .filter(
+            (
+              roleKey,
+            ): roleKey is typeof roleKey & {
+              key: { id: string; name: string | null };
+            } => roleKey.key?.id != null,
+          )
           .map((roleKey) => ({
-            id: roleKey.key!.id,
-            name: roleKey.key!.name,
+            id: roleKey.key.id,
+            name: roleKey.key.name,
           }))
       : [],
   permissions:
     "permissions" in role
       ? role.permissions
-          .filter((rolePermission) => rolePermission.permission !== null)
+          .filter(
+            (
+              rolePermission,
+            ): rolePermission is typeof rolePermission & {
+              permission: { id: string; name: string };
+            } => rolePermission.permission?.id != null,
+          )
           .map((rolePermission) => ({
-            id: rolePermission.permission!.id,
-            name: rolePermission.permission!.name,
+            id: rolePermission.permission.id,
+            name: rolePermission.permission.name,
           }))
       : [],
 });

@@ -116,22 +116,35 @@ export default async function Page(props: Props) {
 
   const users = (
     await Promise.all(
-      [...new Set(integration.vercelBindings.map((b) => b.lastEditedBy))].map(async (id) => {
-        const u = await auth.getUser(id);
-        return {
-          id: u!.id,
-          name: u!.fullName ?? u!.email ?? "",
-          image: u!.avatarUrl,
-        };
-      }),
+      [...new Set(integration.vercelBindings.map((b) => b.lastEditedBy))]
+        .filter(Boolean)
+        .map(async (id) => {
+          try {
+            const u = await auth.getUser(id);
+            if (!u) {
+              console.error(`User not found for ID: ${id}`);
+              return null;
+            }
+            return {
+              id: u.id,
+              name: u.fullName || u.email || "Unknown User",
+              image: u.avatarUrl,
+            };
+          } catch (error) {
+            console.error(`Failed to fetch user ${id}:`, error);
+            return null;
+          }
+        }),
     )
-  ).reduce(
-    (acc, user) => {
-      acc[user.id] = user;
-      return acc;
-    },
-    {} as Record<string, { id: string; name: string; image: string | null }>,
-  );
+  )
+    .filter((user): user is NonNullable<typeof user> => user !== null)
+    .reduce(
+      (acc, user) => {
+        acc[user.id] = user;
+        return acc;
+      },
+      {} as Record<string, { id: string; name: string; image: string | null }>,
+    );
 
   const projects = await Promise.all(
     rawProjects.map(async (p) => ({
