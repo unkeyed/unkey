@@ -379,9 +379,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			if key.Key.RefillAmount.Valid {
 				var refillDay *int
-				interval := openapi.KeyCreditsRefillIntervalDaily
+				interval := openapi.Daily
 				if key.Key.RefillDay.Valid {
-					interval = openapi.KeyCreditsRefillIntervalMonthly
+					interval = openapi.Monthly
 					refillDay = ptr.P(int(key.Key.RefillDay.Int16)) // nolint:gosec
 				}
 
