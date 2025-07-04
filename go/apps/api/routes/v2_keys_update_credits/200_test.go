@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"math/rand/v2"
 	"net/http"
 	"testing"
@@ -104,7 +103,6 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
-		log.Printf("DATA: %+v", res.Body.Data)
 		require.Equal(t, res.Body.Data.Remaining.IsNull(), true)
 
 		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyID)

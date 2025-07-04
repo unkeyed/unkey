@@ -145,7 +145,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Value has been set as not null
 	if !req.Value.IsNull() && req.Value.IsSpecified() {
-		credits = sql.NullInt32{Int32: int32(reqVal), Valid: true}
+		credits = sql.NullInt32{Int32: int32(reqVal), Valid: true} // nolint:gosec
 	}
 
 	key, err = db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.FindKeyByIdOrHashRow, error) {
