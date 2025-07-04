@@ -6,7 +6,6 @@ package openapi
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/oapi-codegen/runtime"
@@ -18,16 +17,8 @@ const (
 
 // Defines values for KeyCreditsRefillInterval.
 const (
-	KeyCreditsRefillIntervalDaily   KeyCreditsRefillInterval = "daily"
-	KeyCreditsRefillIntervalMonthly KeyCreditsRefillInterval = "monthly"
-)
-
-// Defines values for KeysUpdateRemainingResponseDataRefillSettingsInterval.
-const (
-	KeysUpdateRemainingResponseDataRefillSettingsIntervalDaily   KeysUpdateRemainingResponseDataRefillSettingsInterval = "daily"
-	KeysUpdateRemainingResponseDataRefillSettingsIntervalMonthly KeysUpdateRemainingResponseDataRefillSettingsInterval = "monthly"
-	KeysUpdateRemainingResponseDataRefillSettingsIntervalNever   KeysUpdateRemainingResponseDataRefillSettingsInterval = "never"
-	KeysUpdateRemainingResponseDataRefillSettingsIntervalWeekly  KeysUpdateRemainingResponseDataRefillSettingsInterval = "weekly"
+	Daily   KeyCreditsRefillInterval = "daily"
+	Monthly KeyCreditsRefillInterval = "monthly"
 )
 
 // Defines values for KeysVerifyKeyResponseDataCode.
@@ -41,6 +32,13 @@ const (
 	UNAUTHORIZED            KeysVerifyKeyResponseDataCode = "UNAUTHORIZED"
 	USAGEEXCEEDED           KeysVerifyKeyResponseDataCode = "USAGE_EXCEEDED"
 	VALID                   KeysVerifyKeyResponseDataCode = "VALID"
+)
+
+// Defines values for V2KeysUpdateCreditsRequestBodyOperation.
+const (
+	Decrement V2KeysUpdateCreditsRequestBodyOperation = "decrement"
+	Increment V2KeysUpdateCreditsRequestBodyOperation = "increment"
+	Set       V2KeysUpdateCreditsRequestBodyOperation = "set"
 )
 
 // Defines values for V2KeysVerifyKeyRequestBodyPermissions1Type.
@@ -321,30 +319,6 @@ type KeysDeleteKeyResponseData = map[string]interface{}
 
 // KeysUpdateKeyResponseData Empty response object by design. A successful response indicates the key was updated successfully. The endpoint doesn't return the updated key to reduce response size and avoid exposing sensitive information. Changes may take up to 30 seconds to propagate to all regions due to cache invalidation delays. If you need the updated key state, use a subsequent call to `keys.getKey`.
 type KeysUpdateKeyResponseData = map[string]interface{}
-
-// KeysUpdateRemainingResponseData defines model for KeysUpdateRemainingResponseData.
-type KeysUpdateRemainingResponseData struct {
-	// RefillSettings If the key has automatic refill settings, they are included here with their current configuration. If null, the key does not have automatic refills configured (either because they were removed with overwriteRefillSettings=true or because they were never set up). Refill settings create subscription-like behavior where the key automatically receives new credits on a regular schedule.
-	RefillSettings nullable.Nullable[struct {
-		// Amount The number of credits added during each automatic refill. This is the quota that gets renewed each period, making it useful for implementing subscription tiers with different usage limits (e.g., Basic=100/month, Pro=1000/month).
-		Amount *int64 `json:"amount,omitempty"`
-
-		// Interval The interval at which credits are automatically refilled. 'daily' resets at midnight UTC, 'weekly' resets on the specified weekday (where 1=Monday, 7=Sunday), 'monthly' resets on the specified day of month, and 'never' means no automatic refills occur.
-		Interval *KeysUpdateRemainingResponseDataRefillSettingsInterval `json:"interval,omitempty"`
-
-		// LastRefillAt The timestamp when the last automatic refill occurred. This helps track when credits were last replenished and understand when the next refill will occur. The timestamp is in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ).
-		LastRefillAt *time.Time `json:"lastRefillAt,omitempty"`
-
-		// RefillDay For monthly refills, the day of the month on which to refill (1-31). For weekly refills, the day of the week (1=Monday, 7=Sunday). This allows aligning refills with billing cycles, subscription periods, or other business-relevant schedules.
-		RefillDay *int `json:"refillDay,omitempty"`
-	}] `json:"refillSettings,omitempty"`
-
-	// Remaining The updated remaining credits value for the key after the operation completes. This reflects the exact value that was set in the request. A value of null indicates unlimited usage, meaning the key can be used an unlimited number of times without being rejected for credit exhaustion. This field is guaranteed to be present in every response.
-	Remaining int64 `json:"remaining"`
-}
-
-// KeysUpdateRemainingResponseDataRefillSettingsInterval The interval at which credits are automatically refilled. 'daily' resets at midnight UTC, 'weekly' resets on the specified weekday (where 1=Monday, 7=Sunday), 'monthly' resets on the specified day of month, and 'never' means no automatic refills occur.
-type KeysUpdateRemainingResponseDataRefillSettingsInterval string
 
 // KeysVerifyKeyResponseData defines model for KeysVerifyKeyResponseData.
 type KeysVerifyKeyResponseData struct {
@@ -1589,6 +1563,47 @@ type V2KeysSetRolesResponseData = []struct {
 	Name string `json:"name"`
 }
 
+// V2KeysUpdateCreditsRequestBody defines model for V2KeysUpdateCreditsRequestBody.
+type V2KeysUpdateCreditsRequestBody struct {
+	// KeyId The ID of the key to update (begins with `key_`). This is the database reference ID for the key, not the actual API key string that users authenticate with. This ID uniquely identifies which key's credits will be updated.
+	KeyId string `json:"keyId"`
+
+	// Operation The operation to perform on the remaining credits. This can be one of:
+	// - set: Replace the current remaining credits value with the specified value.
+	// - increment: Add the specified value to the current remaining credits value.
+	// - decrement: Subtract the specified value from the current remaining credits value.
+	Operation V2KeysUpdateCreditsRequestBodyOperation `json:"operation"`
+
+	// Value The new value for the remaining credits. This is an absolute value replacement, not an increment or decrement operation.
+	//
+	// Key behaviors:
+	// - This completely replaces the current remaining credits value when operation is set to 'set'
+	// - To add credits, either replace the current value with the new value or increment the current value by a new value
+	// - To make a key unlimited, set remaining = null
+	// - To make a key with unlimited usage have a specific limit, set remaining to a positive number
+	// - If a decrement would result in a negative value, the remaining credits are set to zero
+	// - Credits are decremented each time the key is successfully verified (by the cost value, default 1)
+	// - When credits reach zero, verification fails with code=USAGE_EXCEEDED
+	//
+	// This field is useful for implementing usage-based pricing, subscription tiers, trial periods, or consumption quotas.
+	Value nullable.Nullable[int64] `json:"value,omitempty"`
+}
+
+// V2KeysUpdateCreditsRequestBodyOperation The operation to perform on the remaining credits. This can be one of:
+// - set: Replace the current remaining credits value with the specified value.
+// - increment: Add the specified value to the current remaining credits value.
+// - decrement: Subtract the specified value from the current remaining credits value.
+type V2KeysUpdateCreditsRequestBodyOperation string
+
+// V2KeysUpdateCreditsResponse defines model for V2KeysUpdateCreditsResponse.
+type V2KeysUpdateCreditsResponse struct {
+	// Data Credit configuration and remaining balance for this key.
+	Data KeyCreditsData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2KeysUpdateKeyRequestBody defines model for V2KeysUpdateKeyRequestBody.
 type V2KeysUpdateKeyRequestBody struct {
 	// Credits Credit configuration and remaining balance for this key.
@@ -1641,44 +1656,6 @@ type V2KeysUpdateKeyRequestBody struct {
 type V2KeysUpdateKeyResponseBody struct {
 	// Data Empty response object by design. A successful response indicates the key was updated successfully. The endpoint doesn't return the updated key to reduce response size and avoid exposing sensitive information. Changes may take up to 30 seconds to propagate to all regions due to cache invalidation delays. If you need the updated key state, use a subsequent call to `keys.getKey`.
 	Data *KeysUpdateKeyResponseData `json:"data,omitempty"`
-
-	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
-	Meta Meta `json:"meta"`
-}
-
-// V2KeysUpdateRemainingRequestBody defines model for V2KeysUpdateRemainingRequestBody.
-type V2KeysUpdateRemainingRequestBody struct {
-	// KeyId The ID of the key to update (begins with `key_`). This is the database reference ID for the key, not the actual API key string that users authenticate with. This ID uniquely identifies which key's credits will be updated.
-	KeyId string `json:"keyId"`
-
-	// OverwriteRefillSettings When true, any existing automatic refill settings will be removed from the key.
-	//
-	// Use cases:
-	// - Convert a key with automatic periodic refills to a one-time credit allocation
-	// - Remove subscription-like behavior in favor of manually controlled credits
-	// - Downgrade from an automatic plan to a fixed allocation
-	// - Simplify credit management by removing automated refills
-	//
-	// When false or omitted, existing refill settings are preserved, and only the current remaining value is updated. This lets you adjust the current balance without changing the refill schedule.
-	OverwriteRefillSettings *bool `json:"overwriteRefillSettings,omitempty"`
-
-	// Remaining The new value for the remaining credits. This is an absolute value replacement, not an increment or decrement operation.
-	//
-	// Key behaviors:
-	// - This completely replaces the current remaining credits value
-	// - To add credits, first get the current value and then set remaining = current + additional
-	// - To make a key unlimited, set remaining = null
-	// - To make a key with unlimited usage have a specific limit, set remaining to a positive number
-	// - Credits are decremented each time the key is successfully verified (by the cost value, default 1)
-	// - When credits reach zero, verification fails with code=USAGE_EXCEEDED
-	//
-	// This field is useful for implementing usage-based pricing, subscription tiers, trial periods, or consumption quotas.
-	Remaining nullable.Nullable[int64] `json:"remaining"`
-}
-
-// V2KeysUpdateRemainingResponse defines model for V2KeysUpdateRemainingResponse.
-type V2KeysUpdateRemainingResponse struct {
-	Data KeysUpdateRemainingResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
@@ -2263,11 +2240,11 @@ type SetPermissionsJSONRequestBody = V2KeysSetPermissionsRequestBody
 // SetRolesJSONRequestBody defines body for SetRoles for application/json ContentType.
 type SetRolesJSONRequestBody = V2KeysSetRolesRequestBody
 
+// UpdateCreditsJSONRequestBody defines body for UpdateCredits for application/json ContentType.
+type UpdateCreditsJSONRequestBody = V2KeysUpdateCreditsRequestBody
+
 // UpdateKeyJSONRequestBody defines body for UpdateKey for application/json ContentType.
 type UpdateKeyJSONRequestBody = V2KeysUpdateKeyRequestBody
-
-// UpdateRemainingJSONRequestBody defines body for UpdateRemaining for application/json ContentType.
-type UpdateRemainingJSONRequestBody = V2KeysUpdateRemainingRequestBody
 
 // VerifyKeyJSONRequestBody defines body for VerifyKey for application/json ContentType.
 type VerifyKeyJSONRequestBody = V2KeysVerifyKeyRequestBody

@@ -40,9 +40,7 @@ func (s *service) replayRequests() {
 		if err != nil {
 			s.logger.Error("failed to replay request", "error", err.Error())
 		}
-
 	}
-
 }
 
 func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) error {
