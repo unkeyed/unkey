@@ -15,7 +15,6 @@ UPDATE ` + "`" + `keys` + "`" + `
 SET remaining_requests = CASE
     WHEN ? = 'set' THEN ?
     WHEN ? = 'increment' THEN remaining_requests + ?
-    WHEN ? = 'decrement' THEN remaining_requests - ?
     WHEN ? = 'decrement' AND remaining_requests- ? > 0 THEN remaining_requests - ?
     WHEN ? = 'decrement' AND remaining_requests - ? <= 0 THEN 0
 END
@@ -34,15 +33,12 @@ type UpdateKeyCreditsParams struct {
 //	SET remaining_requests = CASE
 //	    WHEN ? = 'set' THEN ?
 //	    WHEN ? = 'increment' THEN remaining_requests + ?
-//	    WHEN ? = 'decrement' THEN remaining_requests - ?
 //	    WHEN ? = 'decrement' AND remaining_requests- ? > 0 THEN remaining_requests - ?
 //	    WHEN ? = 'decrement' AND remaining_requests - ? <= 0 THEN 0
 //	END
 //	WHERE id = ?
 func (q *Queries) UpdateKeyCredits(ctx context.Context, db DBTX, arg UpdateKeyCreditsParams) error {
 	_, err := db.ExecContext(ctx, updateKeyCredits,
-		arg.Operation,
-		arg.Credits,
 		arg.Operation,
 		arg.Credits,
 		arg.Operation,

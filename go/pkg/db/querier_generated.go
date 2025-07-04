@@ -865,7 +865,6 @@ type Querier interface {
 	//  SET remaining_requests = CASE
 	//      WHEN ? = 'set' THEN ?
 	//      WHEN ? = 'increment' THEN remaining_requests + ?
-	//      WHEN ? = 'decrement' THEN remaining_requests - ?
 	//      WHEN ? = 'decrement' AND remaining_requests- ? > 0 THEN remaining_requests - ?
 	//      WHEN ? = 'decrement' AND remaining_requests - ? <= 0 THEN 0
 	//  END
