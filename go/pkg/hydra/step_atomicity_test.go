@@ -66,7 +66,7 @@ func TestStepExecutionAtomicity(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 
 		// Check if workflow completed
-		currentStatus, getErr := engine.store.GetWorkflow(ctx, engine.GetNamespace(), executionID)
+		currentStatus, getErr := engine.GetSQLCStore().GetWorkflow(ctx, engine.GetNamespace(), executionID)
 		if getErr != nil {
 			return false
 		}
@@ -86,7 +86,7 @@ func TestStepExecutionAtomicity(t *testing.T) {
 			"This could mean duplicate emails sent, multiple payments charged, etc.", finalSideEffectsCount)
 
 	// Verify the workflow completed successfully
-	finalWorkflow, err := engine.store.GetWorkflow(ctx, engine.GetNamespace(), executionID)
+	finalWorkflow, err := engine.GetSQLCStore().GetWorkflow(ctx, engine.GetNamespace(), executionID)
 	require.NoError(t, err)
 	require.Equal(t, WorkflowStatusCompleted, finalWorkflow.Status,
 		"Workflow should complete successfully")
@@ -171,7 +171,7 @@ func TestConcurrentStepExecution(t *testing.T) {
 		time.Sleep(20 * time.Millisecond)
 
 		// Check if workflow completed
-		currentStatus, err := engine.store.GetWorkflow(ctx, engine.GetNamespace(), executionID)
+		currentStatus, err := engine.GetSQLCStore().GetWorkflow(ctx, engine.GetNamespace(), executionID)
 		if err != nil {
 			return false
 		}

@@ -387,7 +387,7 @@ func TestDatabaseFailureScenarios(t *testing.T) {
 	// Verify workflows completed
 	completedCount := 0
 	for _, workflowID := range recoveryWorkflows {
-		wf, err := engine.store.GetWorkflow(ctx, engine.GetNamespace(), workflowID)
+		wf, err := engine.GetSQLCStore().GetWorkflow(ctx, engine.GetNamespace(), workflowID)
 		require.NoError(t, err)
 		if wf.Status == store.WorkflowStatusCompleted {
 			completedCount++
@@ -421,7 +421,7 @@ func TestDatabaseFailureScenarios(t *testing.T) {
 
 	// Check final state
 	for _, workflowID := range processingWorkflows {
-		_, err := engine.store.GetWorkflow(ctx, engine.GetNamespace(), workflowID)
+		_, err := engine.GetSQLCStore().GetWorkflow(ctx, engine.GetNamespace(), workflowID)
 		require.NoError(t, err)
 	}
 

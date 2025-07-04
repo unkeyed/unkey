@@ -49,7 +49,7 @@ func waitForWorkflowCompletion(t *testing.T, e *Engine, executionID string, time
 
 	require.Eventually(t, func() bool {
 		var err error
-		workflow, err = e.GetStore().GetWorkflow(context.Background(), e.GetNamespace(), executionID)
+		workflow, err = e.GetSQLCStore().GetWorkflow(context.Background(), e.GetNamespace(), executionID)
 		if err != nil {
 			t.Logf("Error getting workflow %s: %v", executionID, err)
 			return false

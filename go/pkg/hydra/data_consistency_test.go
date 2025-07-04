@@ -80,7 +80,7 @@ func TestConcurrentWorkflowAccess(t *testing.T) {
 	require.Eventually(t, func() bool {
 		completedCount := 0
 		for _, workflowID := range workflowIDs {
-			workflow, err := engine.GetStore().GetWorkflow(context.Background(), engine.GetNamespace(), workflowID)
+			workflow, err := engine.GetSQLCStore().GetWorkflow(context.Background(), engine.GetNamespace(), workflowID)
 			if err == nil && workflow.Status == store.WorkflowStatusCompleted {
 				completedCount++
 			}

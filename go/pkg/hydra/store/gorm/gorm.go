@@ -101,15 +101,7 @@ func (s *gormStore) CreateWorkflow(ctx context.Context, workflow *store.Workflow
 }
 
 func (s *gormStore) GetWorkflow(ctx context.Context, namespace, id string) (*store.WorkflowExecution, error) {
-	var workflow store.WorkflowExecution
-	err := s.db.WithContext(ctx).
-		Where("id = ? AND namespace = ?", id, namespace).
-		First(&workflow).Error
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, errors.New("workflow not found")
-	}
-	return &workflow, err
+	panic("GetWorkflow has been migrated to SQLC - use engine.GetSQLCStore().GetWorkflow() instead")
 }
 
 func (s *gormStore) GetPendingWorkflows(ctx context.Context, namespace string, limit int, workflowNames []string) ([]store.WorkflowExecution, error) {
