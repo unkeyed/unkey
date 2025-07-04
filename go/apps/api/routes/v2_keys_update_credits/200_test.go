@@ -138,6 +138,12 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 
 	increaseBy := int64(rand.IntN(50) + 1)
 	t.Run(fmt.Sprintf("increase credits by %d", increaseBy), func(t *testing.T) {
+		// Get current credits before decrement
+		currentKey, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyID)
+		require.NoError(t, err)
+		require.True(t, currentKey.RemainingRequests.Valid)
+		currentCredits := int64(currentKey.RemainingRequests.Int32)
+
 		req := handler.Request{
 			KeyId:     keyID,
 			Operation: openapi.Increment,
@@ -150,17 +156,23 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, remaining, setTo+increaseBy)
+		require.Equal(t, remaining, currentCredits+increaseBy)
 
 		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.NotNil(t, key)
 		require.Equal(t, key.RemainingRequests.Valid, true)
-		require.EqualValues(t, key.RemainingRequests.Int32, setTo+increaseBy)
+		require.EqualValues(t, key.RemainingRequests.Int32, currentCredits+increaseBy)
 	})
 
 	decreaseBy := int64(rand.IntN(50) + 1)
 	t.Run(fmt.Sprintf("decrease credits by %d", decreaseBy), func(t *testing.T) {
+		// Get current credits before decrement
+		currentKey, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyID)
+		require.NoError(t, err)
+		require.True(t, currentKey.RemainingRequests.Valid)
+		currentCredits := int64(currentKey.RemainingRequests.Int32)
+
 		req := handler.Request{
 			KeyId:     keyID,
 			Operation: openapi.Decrement,
@@ -173,12 +185,12 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, remaining, (setTo+increaseBy)-decreaseBy)
+		require.Equal(t, remaining, currentCredits-decreaseBy)
 
 		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.NotNil(t, key)
 		require.Equal(t, key.RemainingRequests.Valid, true)
-		require.EqualValues(t, key.RemainingRequests.Int32, (setTo+increaseBy)-decreaseBy)
+		require.EqualValues(t, key.RemainingRequests.Int32, currentCredits-decreaseBy)
 	})
 }

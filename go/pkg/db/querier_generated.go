@@ -865,14 +865,14 @@ type Querier interface {
 	//  SET remaining_requests = CASE
 	//      WHEN ? = 'set' THEN ?
 	//      WHEN ? = 'increment' THEN remaining_requests + ?
-	//      WHEN ? = 'decrement' AND remaining_requests- ? > 0 THEN remaining_requests - ?
+	//      WHEN ? = 'decrement' AND remaining_requests - ? > 0 THEN remaining_requests - ?
 	//      WHEN ? = 'decrement' AND remaining_requests - ? <= 0 THEN 0
 	//  END
 	//  WHERE id = ?
 	UpdateKeyCredits(ctx context.Context, db DBTX, arg UpdateKeyCreditsParams) error
 	//UpdateKeyCreditsRefill
 	//
-	//  UPDATE `keys` SET refill_amount = ? AND refill_day = ? WHERE id = ?
+	//  UPDATE `keys` SET refill_amount = ?, refill_day = ? WHERE id = ?
 	UpdateKeyCreditsRefill(ctx context.Context, db DBTX, arg UpdateKeyCreditsRefillParams) error
 	//UpdateKeyringKeyEncryption
 	//

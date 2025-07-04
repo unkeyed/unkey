@@ -12,7 +12,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func Test_GetKey_NotFound(t *testing.T) {
+func TestUpdateKeyCreditsNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{

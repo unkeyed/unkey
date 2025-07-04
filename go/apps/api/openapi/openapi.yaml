@@ -1022,7 +1022,7 @@ components:
             Key behaviors:
             - This completely replaces the current remaining credits value when operation is set to 'set'
             - To add credits, either replace the current value with the new value or increment the current value by a new value
-            - To make a key unlimited, set remaining = null
+            - To make a key unlimited, set value = null
             - To make a key with unlimited usage have a specific limit, set remaining to a positive number
             - If a decrement would result in a negative value, the remaining credits are set to zero
             - Credits are decremented each time the key is successfully verified (by the cost value, default 1)
@@ -4743,44 +4743,37 @@ paths:
             schema:
               "$ref": "#/components/schemas/V2KeysUpdateCreditsRequestBody"
             examples:
-              setCredits:
-                summary: Set remaining credits
-                description:
-                  This sets an absolute value of 1000 credits for the key.
-                  If the key previously had 200 credits, it will now have 1000 (not
-                  1200). If it previously had unlimited usage, it will now be limited
-                  to 1000 credits.
-                value:
-                  keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-                  remaining: 1000
               setUnlimited:
                 summary: Set unlimited usage
                 description:
                   Setting remaining to null makes the key usable an unlimited
                   number of times. This is useful for premium tiers, trusted partners,
-                  or internal applications where usage counting isn't needed.
+                  or internal applications where usage counting isn't needed. Any previous refill settings will be removed.
                 value:
                   keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-                  remaining: null
-              removeRefills:
-                summary: Remove refill settings
-                description:
-                  This sets 500 credits and removes any automatic refill
-                  configuration, effectively converting a key from a subscription-like
-                  model to a one-time credit allocation. Useful when downgrading from
-                  an automatic plan to a fixed allocation.
+                  value: null
+                  operation: set
+              setCredits:
+                summary: Set credits
+                description: To set credits, first get the current value using keys.getKey, then add the amount.
                 value:
                   keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-                  remaining: 500
-              addPurchasedCredits:
-                summary: Add purchased credits
-                description:
-                  To add credits to the existing balance, first get the
-                  current value using keys.getKey, then add the purchased amount.
-                  Any existing refill settings are preserved.
+                  value: 2500
+                  operation: set
+              incrementCredits:
+                summary: Increment credits
+                description: To increment credits to the existing balance, just specify the increment operation and the amount to add.
                 value:
                   keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-                  remaining: 2500
+                  value: 2500
+                  operation: increment
+              decrementCredits:
+                summary: Decrement credits
+                description: To decrement credits to the existing balance, just specify the decrement operation and the amount to subtract.
+                value:
+                  keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+                  value: 2500
+                  operation: decrement
       responses:
         "200":
           description: Remaining credits successfully updated

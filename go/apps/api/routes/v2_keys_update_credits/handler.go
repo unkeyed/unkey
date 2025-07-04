@@ -204,7 +204,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		remaining := "unlimited"
-		if keyAfterUpdate.RemainingRequests.Int32 > 0 {
+		if keyAfterUpdate.RemainingRequests.Valid {
 			remaining = fmt.Sprintf("%d", keyAfterUpdate.RemainingRequests.Int32)
 		}
 

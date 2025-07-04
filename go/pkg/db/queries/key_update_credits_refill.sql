@@ -1,2 +1,2 @@
 -- name: UpdateKeyCreditsRefill :exec
-UPDATE `keys` SET refill_amount = ? AND refill_day = ? WHERE id = ?;
+UPDATE `keys` SET refill_amount = ?, refill_day = ? WHERE id = ?;

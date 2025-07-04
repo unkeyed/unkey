@@ -11,7 +11,7 @@ import (
 )
 
 const updateKeyCreditsRefill = `-- name: UpdateKeyCreditsRefill :exec
-UPDATE ` + "`" + `keys` + "`" + ` SET refill_amount = ? AND refill_day = ? WHERE id = ?
+UPDATE ` + "`" + `keys` + "`" + ` SET refill_amount = ?, refill_day = ? WHERE id = ?
 `
 
 type UpdateKeyCreditsRefillParams struct {
@@ -22,7 +22,7 @@ type UpdateKeyCreditsRefillParams struct {
 
 // UpdateKeyCreditsRefill
 //
-//	UPDATE `keys` SET refill_amount = ? AND refill_day = ? WHERE id = ?
+//	UPDATE `keys` SET refill_amount = ?, refill_day = ? WHERE id = ?
 func (q *Queries) UpdateKeyCreditsRefill(ctx context.Context, db DBTX, arg UpdateKeyCreditsRefillParams) error {
 	_, err := db.ExecContext(ctx, updateKeyCreditsRefill, arg.RefillAmount, arg.RefillDay, arg.ID)
 	return err

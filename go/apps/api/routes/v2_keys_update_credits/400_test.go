@@ -125,7 +125,7 @@ func TestKeyUpdateCreditsBadRequest(t *testing.T) {
 	t.Run("can't increment unlimited key", func(t *testing.T) {
 		req := handler.Request{
 			KeyId:     keyID,
-			Operation: openapi.Decrement,
+			Operation: openapi.Increment,
 			Value:     nullable.NewNullableWithValue(int64(1)),
 		}
 
