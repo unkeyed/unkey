@@ -15,7 +15,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestKeyUpdateCreditsUnauthorized(t *testing.T) {
+func TestKeyDeleteUnauthorized(t *testing.T) {
 	h := testutil.NewHarness(t)
 	ctx := t.Context()
 

@@ -16,7 +16,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func Test_GetKey_NotFound(t *testing.T) {
+func TestKeyDeleteNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 	ctx := t.Context()
 
@@ -30,23 +30,12 @@ func Test_GetKey_NotFound(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.delete_key")
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
-
-	t.Run("nonexistent keyId", func(t *testing.T) {
-		req := handler.Request{
-			KeyId: uid.New(uid.KeyPrefix),
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
-		require.Equal(t, 404, res.Status)
-		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "We could not find the requested key")
-	})
 
 	// Create a workspace and user
 	workspace := h.Resources().UserWorkspace
@@ -103,6 +92,17 @@ func Test_GetKey_NotFound(t *testing.T) {
 		ID:  keyID,
 	})
 	require.NoError(t, err)
+
+	t.Run("nonexistent keyId", func(t *testing.T) {
+		req := handler.Request{
+			KeyId: uid.New(uid.KeyPrefix),
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, 404, res.Status)
+		require.NotNil(t, res.Body)
+		require.Contains(t, res.Body.Error.Detail, "We could not find the requested key")
+	})
 
 	t.Run("can't delete soft deleted key", func(t *testing.T) {
 		req := handler.Request{
