@@ -3,13 +3,13 @@ import {
   type ExpirationFormValues,
   expirationSchema,
 } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.schema";
+import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer } from "@unkey/ui";
 import { useEffect } from "react";
 import { FormProvider } from "react-hook-form";
-import type { ActionComponentProps } from "../../keys-table-action.popover";
 import { useEditExpiration } from "../hooks/use-edit-expiration";
 import { KeyInfo } from "../key-info";
 import { getKeyExpirationDefaults } from "./utils";

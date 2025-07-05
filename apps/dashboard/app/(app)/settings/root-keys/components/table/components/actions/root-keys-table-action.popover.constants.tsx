@@ -1,6 +1,5 @@
 "use client";
-import type { MenuItem } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover";
-import { KeysTableActionPopover } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover";
+import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { PenWriting3, Trash } from "@unkey/icons";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
@@ -14,7 +13,7 @@ type RootKeysTableActionsProps = {
 export const RootKeysTableActions = ({ rootKey }: RootKeysTableActionsProps) => {
   const router = useRouter();
   const menuItems = getRootKeyTableActionItems(rootKey, router);
-  return <KeysTableActionPopover items={menuItems} />;
+  return <TableActionPopover items={menuItems} />;
 };
 
 const getRootKeyTableActionItems = (rootKey: RootKey, router: AppRouterInstance): MenuItem[] => {
