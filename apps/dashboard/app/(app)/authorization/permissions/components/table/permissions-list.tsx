@@ -3,7 +3,7 @@ import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
 import { BookBookmark, Page2 } from "@unkey/icons";
-import { Badge, Button, Checkbox, Empty } from "@unkey/ui";
+import { Button, Checkbox, Empty } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useCallback, useMemo, useState } from "react";
 import { PermissionsTableActions } from "./components/actions/keys-table-action.popover.constants";
@@ -19,7 +19,7 @@ import {
   SlugColumnSkeleton,
 } from "./components/skeletons";
 import { usePermissionsListQuery } from "./hooks/use-permissions-list-query";
-import { STATUS_STYLES, getRowClassName } from "./utils/get-row-class";
+import { getRowClassName } from "./utils/get-row-class";
 
 export const PermissionsList = () => {
   const { permissions, isLoading, isLoadingMore, loadMore, totalCount, hasMore } =
@@ -104,8 +104,8 @@ export const PermissionsList = () => {
         width: "20%",
         render: (permission) => (
           <AssignedItemsCell
-            type="slug"
-            items={[permission.slug]}
+            kind="slug"
+            value={permission.slug}
             isSelected={permission.permissionId === selectedPermission?.permissionId}
           />
         ),
@@ -116,9 +116,8 @@ export const PermissionsList = () => {
         width: "20%",
         render: (permission) => (
           <AssignedItemsCell
-            type="roles"
-            items={permission.assignedRoles.items}
-            totalCount={permission.assignedRoles.totalCount}
+            kind="roles"
+            totalCount={permission.totalConnectedRoles}
             isSelected={permission.permissionId === selectedPermission?.permissionId}
           />
         ),
@@ -127,32 +126,13 @@ export const PermissionsList = () => {
         key: "assigned_to_keys",
         header: "Assigned to Keys",
         width: "20%",
-        render: (permission) => {
-          const keyCount = permission.totalConnectedKeys;
-
-          const getKeyText = (count: number): string => {
-            if (count === 0) {
-              return "None assigned";
-            }
-            if (count === 1) {
-              return "1 key";
-            }
-            return `${count} keys`;
-          };
-
-          return (
-            <Badge
-              className={cn(
-                "px-1.5 rounded-md flex gap-2 items-center max-w-min h-[22px] border-none cursor-pointer",
-                permission.permissionId === selectedPermission?.permissionId
-                  ? STATUS_STYLES.badge.selected
-                  : STATUS_STYLES.badge.default,
-              )}
-            >
-              {getKeyText(keyCount)}
-            </Badge>
-          );
-        },
+        render: (permission) => (
+          <AssignedItemsCell
+            kind="keys"
+            totalCount={permission.totalConnectedKeys}
+            isSelected={permission.permissionId === selectedPermission?.permissionId}
+          />
+        ),
       },
       {
         key: "last_updated",

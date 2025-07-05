@@ -1,7 +1,7 @@
 "use client";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
-import type { Roles } from "@/lib/trpc/routers/authorization/roles/query";
+import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { BookBookmark, Tag } from "@unkey/icons";
 import { Button, Checkbox, Empty } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
@@ -23,7 +23,7 @@ import { getRowClassName } from "./utils/get-row-class";
 
 export const RolesList = () => {
   const { roles, isLoading, isLoadingMore, loadMore, totalCount, hasMore } = useRolesListQuery();
-  const [selectedRole, setSelectedRole] = useState<Roles | null>(null);
+  const [selectedRole, setSelectedRole] = useState<RoleBasic | null>(null);
   const [selectedRoles, setSelectedRoles] = useState<Set<string>>(new Set());
   const [hoveredRoleName, setHoveredRoleName] = useState<string | null>(null);
 
@@ -39,7 +39,7 @@ export const RolesList = () => {
     });
   }, []);
 
-  const columns: Column<Roles>[] = useMemo(
+  const columns: Column<RoleBasic>[] = useMemo(
     () => [
       {
         key: "role",
@@ -103,23 +103,21 @@ export const RolesList = () => {
         width: "20%",
         render: (role) => (
           <AssignedItemsCell
-            items={role.assignedKeys.items}
-            totalCount={role.assignedKeys.totalCount}
+            roleId={role.roleId}
             isSelected={role.roleId === selectedRole?.roleId}
-            type="keys"
+            kind="keys"
           />
         ),
       },
       {
         key: "permissions",
-        header: "Permissions",
+        header: "Assigned Permissions",
         width: "20%",
         render: (role) => (
           <AssignedItemsCell
-            items={role.permissions.items}
-            totalCount={role.permissions.totalCount}
+            roleId={role.roleId}
             isSelected={role.roleId === selectedRole?.roleId}
-            type="permissions"
+            kind="permissions"
           />
         ),
       },

@@ -4,8 +4,6 @@ import { db, sql } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { z } from "zod";
 
-const MAX_ITEMS_TO_SHOW = 3;
-const ITEM_SEPARATOR = "|||";
 export const DEFAULT_LIMIT = 50;
 
 export const permissions = z.object({
@@ -15,10 +13,7 @@ export const permissions = z.object({
   slug: z.string(),
   lastUpdated: z.number(),
   totalConnectedKeys: z.number(),
-  assignedRoles: z.object({
-    items: z.array(z.string()),
-    totalCount: z.number().optional(),
-  }),
+  totalConnectedRoles: z.number(),
 });
 
 export type Permission = z.infer<typeof permissions>;
@@ -56,21 +51,6 @@ export const queryPermissions = t.procedure
       p.description,
       p.slug,
       p.updated_at_m,
-      
-      -- Roles: get first 3 unique names
-      (
-        SELECT GROUP_CONCAT(sub.name ORDER BY sub.name SEPARATOR ${ITEM_SEPARATOR})
-        FROM (
-          SELECT DISTINCT r.name
-          FROM roles_permissions rp
-          LEFT JOIN roles r ON rp.role_id = r.id
-          WHERE rp.permission_id = p.id 
-            AND rp.workspace_id = ${workspaceId}
-            AND r.name IS NOT NULL
-          ORDER BY r.name
-          LIMIT ${MAX_ITEMS_TO_SHOW}
-        ) sub
-      ) as role_items,
       
       -- Roles: total count
       (
@@ -121,7 +101,6 @@ export const queryPermissions = t.procedure
       description: string | null;
       slug: string;
       updated_at_m: number;
-      role_items: string | null;
       total_roles: number;
       total_connected_keys: number;
       grand_total: number;
@@ -141,21 +120,13 @@ export const queryPermissions = t.procedure
     const items = hasMore ? rows.slice(0, -1) : rows;
 
     const permissionsResponseData: Permission[] = items.map((row) => {
-      // Parse concatenated strings back to arrays
-      const roleItems = row.role_items
-        ? row.role_items.split(ITEM_SEPARATOR).filter((item) => item.trim() !== "")
-        : [];
-
       return {
         permissionId: row.id,
         name: row.name || "",
         description: row.description || "",
         slug: row.slug || "",
         lastUpdated: Number(row.updated_at_m) || 0,
-        assignedRoles:
-          row.total_roles <= MAX_ITEMS_TO_SHOW
-            ? { items: roleItems }
-            : { items: roleItems, totalCount: Number(row.total_roles) },
+        totalConnectedRoles: Number(row.total_roles),
         totalConnectedKeys: Number(row.total_connected_keys) || 0,
       };
     });
