@@ -217,8 +217,8 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
           startTime: 0,
           endTime: timestamp,
           host: { filters: [] },
-          method: { filters: [] },
-          path: { filters: [] },
+          methods: { filters: [] },
+          paths: { filters: [] },
           status: { filters: [] },
           requestId: {
             filters: [

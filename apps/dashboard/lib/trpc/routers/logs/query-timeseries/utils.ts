@@ -1,14 +1,13 @@
-import type { queryTimeseriesPayload } from "@/app/(app)/logs/components/charts/query-timeseries.schema";
+import type { QueryLogsPayload } from "@/app/(app)/logs/filters.schema";
 import { getTimestampFromRelative } from "@/lib/utils";
 import type { LogsTimeseriesParams } from "@unkey/clickhouse/src/logs";
-import type { z } from "zod";
 import {
   type RegularTimeseriesGranularity,
   type TimeseriesConfig,
   getTimeseriesGranularity,
 } from "../../utils/granularity";
 
-export function transformFilters(params: z.infer<typeof queryTimeseriesPayload>): {
+export function transformFilters(params: Omit<QueryLogsPayload, "limit" | "cursor">): {
   params: Omit<LogsTimeseriesParams, "workspaceId">;
   granularity: RegularTimeseriesGranularity;
 } {
@@ -26,9 +25,9 @@ export function transformFilters(params: z.infer<typeof queryTimeseriesPayload>)
       startTime: timeConfig.startTime,
       endTime: timeConfig.endTime,
       hosts: params.host?.filters.map((f) => f.value) || [],
-      methods: params.method?.filters.map((f) => f.value) || [],
+      methods: params.methods?.filters.map((f) => f.value) || [],
       paths:
-        params.path?.filters.map((f) => ({
+        params.paths?.filters.map((f) => ({
           operator: f.operator,
           value: f.value,
         })) || [],
