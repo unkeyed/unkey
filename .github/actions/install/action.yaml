@@ -33,11 +33,11 @@ runs:
         path: |
           ~/go/bin
           ~/.cache/go-build
-        key: ${{ runner.os }}-go-tools-${{ inputs.cache-prefix }}-${{ hashFiles('./go/go.mod') }}
+        key: ${{ runner.os }}-go-tools-${{ inputs.cache-prefix }}-v1
         restore-keys: |
+          ${{ runner.os }}-go-tools-${{ inputs.cache-prefix }}-${{ hashFiles('./go/go.mod') }}
           ${{ runner.os }}-go-tools-${{ inputs.cache-prefix }}-
           ${{ runner.os }}-go-tools-
-
     # Download Go dependencies with retry logic
     - name: Download Go dependencies
       if: ${{ inputs.go == 'true' }}
