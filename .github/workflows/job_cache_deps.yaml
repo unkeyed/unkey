@@ -31,11 +31,10 @@ jobs:
           path: |
             ~/go/bin
             ~/.cache/go-build
-          key: ${{ runner.os }}-go-tools-${{ inputs.cache-key-suffix }}-${{ hashFiles('./go/go.mod') }}
+          key: ${{ runner.os }}-go-tools-${{ inputs.cache-key-suffix }}-${{ hashFiles('./go/go.mod', './go/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-tools-${{ inputs.cache-key-suffix }}-
             ${{ runner.os }}-go-tools-
-
       - name: Download Go dependencies
         working-directory: ./go
         run: |
