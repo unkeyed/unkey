@@ -1,26 +1,11 @@
 name: Unit Tests
 on:
   workflow_call:
+
 jobs:
-  test:
-    strategy:
-      fail-fast: false
-      matrix:
-        path:
-          - "./internal/billing"
-          - "./internal/encryption"
-          - "./internal/hash"
-          - "./internal/id"
-          - "./internal/keys"
-          - "./internal/resend"
-          - "./internal/clickhouse"
-          - "./packages/api"
-          - "./packages/cache"
-          - "./packages/hono"
-          - "./packages/nextjs"
-          - "./packages/rbac"
-          - "./apps/dashboard"
-    name: Test ${{matrix.path}}
+  # Single job to install dependencies and cache them
+  setup:
+    name: Setup Dependencies
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,8 +13,58 @@ jobs:
         uses: ./.github/actions/install
         with:
           ts: true
+          cache-prefix: "unit-tests"
+      - name: Build packages
+        run: pnpm turbo run build --filter='./packages/*' --filter='./internal/*'
+
+  # Group tests by type to reduce parallel dependency downloads
+  test-packages:
+    name: Test Packages
+    runs-on: ubuntu-latest
+    needs: setup
+    strategy:
+      fail-fast: false
+      matrix:
+        group:
+          - name: "packages-core"
+            paths: "./packages/api ./packages/cache ./packages/hono"
+          - name: "packages-client"
+            paths: "./packages/nextjs ./packages/rbac"
+          - name: "internal-core"
+            paths: "./internal/billing ./internal/encryption ./internal/hash"
+          - name: "internal-utils"
+            paths: "./internal/id ./internal/keys ./internal/resend ./internal/clickhouse"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        uses: ./.github/actions/install
+        with:
+          ts: true
+          cache-prefix: "unit-tests"
       - name: Build
-        if: ${{ matrix.path != './apps/dashboard' }}
-        run: pnpm turbo run build --filter=${{matrix.path}}
+        run: |
+          for path in ${{ matrix.group.paths }}; do
+            echo "Building $path..."
+            pnpm turbo run build --filter="$path"
+          done
       - name: Test
-        run: pnpm turbo run test --filter=${{matrix.path}}
+        run: |
+          for path in ${{ matrix.group.paths }}; do
+            echo "Testing $path..."
+            pnpm turbo run test --filter="$path"
+          done
+
+  # Dashboard tests separately as they don't need build
+  test-dashboard:
+    name: Test Dashboard
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        uses: ./.github/actions/install
+        with:
+          ts: true
+          cache-prefix: "unit-tests"
+      - name: Test
+        run: pnpm turbo run test --filter="./apps/dashboard"

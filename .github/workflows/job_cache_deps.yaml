@@ -1,0 +1,184 @@
+name: Cache Dependencies
+on:
+  workflow_call:
+    inputs:
+      cache-key-suffix:
+        description: "Additional suffix for cache keys"
+        type: string
+        default: ""
+  schedule:
+    # Run daily at 2 AM UTC to warm up caches
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  cache-go-deps:
+    name: Cache Go Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ./go/go.mod
+          cache-dependency-path: ./go/go.sum
+          cache: true
+
+      - name: Cache Go tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/bin
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-tools-${{ inputs.cache-key-suffix }}-${{ hashFiles('./go/go.mod') }}
+          restore-keys: |
+            ${{ runner.os }}-go-tools-${{ inputs.cache-key-suffix }}-
+            ${{ runner.os }}-go-tools-
+
+      - name: Download Go dependencies
+        working-directory: ./go
+        run: |
+          echo "Downloading Go dependencies..."
+          go mod download
+          echo "Go dependencies cached successfully"
+
+      - name: Install and cache Go tools
+        run: |
+          echo "Installing Go tools..."
+          go install github.com/mfridman/tparse@latest
+          go install github.com/pressly/goose/v3/cmd/goose@latest
+          echo "Go tools cached successfully"
+
+  cache-node-deps:
+    name: Cache Node Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ inputs.cache-key-suffix }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-${{ inputs.cache-key-suffix }}-
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Cache global npm packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-global-${{ inputs.cache-key-suffix }}-${{ hashFiles('**/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-global-${{ inputs.cache-key-suffix }}-
+            ${{ runner.os }}-npm-global-
+
+      - name: Install dependencies
+        run: |
+          echo "Installing Node.js dependencies..."
+          pnpm install --recursive --frozen-lockfile
+          echo "Node.js dependencies cached successfully"
+
+      - name: Install global tools
+        run: |
+          echo "Installing global tools..."
+          npm install -g wrangler@latest
+          echo "Global tools cached successfully"
+
+  cache-build-artifacts:
+    name: Cache Build Artifacts
+    runs-on: ubuntu-latest
+    needs: [cache-node-deps]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install
+        uses: ./.github/actions/install
+        with:
+          ts: true
+          cache-prefix: "build-cache-${{ inputs.cache-key-suffix }}"
+
+      - name: Cache Turbo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ inputs.cache-key-suffix }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-${{ inputs.cache-key-suffix }}-
+            ${{ runner.os }}-turbo-
+
+      - name: Build packages
+        run: |
+          echo "Building packages..."
+          pnpm turbo run build --filter='./packages/*' --filter='./internal/*'
+          echo "Build artifacts cached successfully"
+
+  cache-docker-images:
+    name: Cache Docker Images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ inputs.cache-key-suffix }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-${{ inputs.cache-key-suffix }}-
+            ${{ runner.os }}-buildx-
+
+      - name: Pre-pull base images
+        run: |
+          echo "Pre-pulling common base images..."
+          docker pull node:lts-alpine
+          docker pull golang:alpine
+          docker pull mysql:8.0
+          docker pull clickhouse/clickhouse-server:latest
+          echo "Base images cached successfully"
+
+  report-cache-status:
+    name: Report Cache Status
+    runs-on: ubuntu-latest
+    needs: [cache-go-deps, cache-node-deps, cache-build-artifacts, cache-docker-images]
+    if: always()
+    steps:
+      - name: Report status
+        run: |
+          echo "Cache warming completed with the following results:"
+          echo "- Go dependencies: ${{ needs.cache-go-deps.result }}"
+          echo "- Node dependencies: ${{ needs.cache-node-deps.result }}"
+          echo "- Build artifacts: ${{ needs.cache-build-artifacts.result }}"
+          echo "- Docker images: ${{ needs.cache-docker-images.result }}"
+
+          if [[ "${{ needs.cache-go-deps.result }}" == "failure" ]] || \
+             [[ "${{ needs.cache-node-deps.result }}" == "failure" ]] || \
+             [[ "${{ needs.cache-build-artifacts.result }}" == "failure" ]] || \
+             [[ "${{ needs.cache-docker-images.result }}" == "failure" ]]; then
+            echo "⚠️  Some cache warming jobs failed"
+            exit 1
+          else
+            echo "✅ All cache warming jobs completed successfully"
+          fi

@@ -1,56 +1,113 @@
 name: Install Repo
-description: Install the toolchain and dependencies
+description: Install the toolchain and dependencies with improved caching
 
 inputs:
   go:
     description: Whether to install Go and dependencies
+    default: "false"
   ts:
     description: Whether to install Node.js and dependencies
+    default: "false"
+  cache-prefix:
+    description: Additional cache key prefix for cache isolation
+    default: ""
 
 runs:
   using: "composite"
 
   steps:
+    # Go Setup with enhanced caching
     - name: Setup Go
+      if: ${{ inputs.go == 'true' }}
       uses: actions/setup-go@v5
       with:
         go-version-file: ./go/go.mod
         cache-dependency-path: ./go/go.sum
+        cache: true
 
-    - run: go mod download
+    # Cache Go tools separately to avoid re-downloading
+    - name: Cache Go tools
+      if: ${{ inputs.go == 'true' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/go/bin
+          ~/.cache/go-build
+        key: ${{ runner.os }}-go-tools-${{ inputs.cache-prefix }}-${{ hashFiles('./go/go.mod') }}
+        restore-keys: |
+          ${{ runner.os }}-go-tools-${{ inputs.cache-prefix }}-
+          ${{ runner.os }}-go-tools-
+
+    # Download Go dependencies with retry logic
+    - name: Download Go dependencies
       if: ${{ inputs.go == 'true' }}
       shell: bash
       working-directory: ./go
+      run: |
+        max_attempts=3
+        attempt=1
 
-    - name: Install tparse
-      run: go install github.com/mfridman/tparse@latest
+        while [ $attempt -le $max_attempts ]; do
+          echo "Attempt $attempt: Downloading Go dependencies..."
+          if go mod download; then
+            echo "Go dependencies downloaded successfully"
+            break
+          else
+            echo "Attempt $attempt failed"
+            if [ $attempt -eq $max_attempts ]; then
+              echo "All attempts failed"
+              exit 1
+            fi
+            sleep $((attempt * 5))
+          fi
+          attempt=$((attempt + 1))
+        done
+
+    # Install Go tools only if not cached
+    - name: Install Go tools
       if: ${{ inputs.go == 'true' }}
       shell: bash
-      working-directory: ./apps/agent
+      run: |
+        # Check if tools are already installed
+        if ! command -v tparse &> /dev/null; then
+          echo "Installing tparse..."
+          go install github.com/mfridman/tparse@latest
+        else
+          echo "tparse already installed"
+        fi
 
-    - name: Install goose
-      run: go install github.com/pressly/goose/v3/cmd/goose@latest
-      shell: bash
+        if ! command -v goose &> /dev/null; then
+          echo "Installing goose..."
+          go install github.com/pressly/goose/v3/cmd/goose@latest
+        else
+          echo "goose already installed"
+        fi
 
-    - name: Install Task
+    # Install Task
+    - name: Setup Task
+      if: ${{ inputs.go == 'true' }}
       uses: arduino/setup-task@v2
-      if: ${{ inputs.go == 'true' }}
 
-    - name: Setup Node
+    # Node.js Setup with enhanced caching
+    - name: Setup Node.js
       if: ${{ inputs.ts == 'true' }}
       uses: actions/setup-node@v4
       with:
         node-version: lts/*
 
-    - uses: pnpm/action-setup@v4
+    # Setup pnpm with version caching
+    - name: Setup pnpm
       if: ${{ inputs.ts == 'true' }}
+      uses: pnpm/action-setup@v4
       with:
         run_install: false
+
     - name: Enable corepack
       if: ${{ inputs.ts == 'true' }}
       shell: bash
       run: corepack enable
 
+    # Get pnpm store directory
     - name: Get pnpm store directory
       if: ${{ inputs.ts == 'true' }}
       id: pnpm-cache
@@ -58,18 +115,66 @@ runs:
       run: |
         echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
 
-    - uses: actions/cache@v3
+    # Enhanced pnpm cache with better restore keys
+    - name: Setup pnpm cache
       if: ${{ inputs.ts == 'true' }}
-      name: Setup pnpm cache
+      uses: actions/cache@v4
       with:
         path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        key: ${{ runner.os }}-pnpm-store-${{ inputs.cache-prefix }}-${{ hashFiles('**/pnpm-lock.yaml') }}
         restore-keys: |
+          ${{ runner.os }}-pnpm-store-${{ inputs.cache-prefix }}-
           ${{ runner.os }}-pnpm-store-
 
-    - name: Install dependencies
+    # Cache global npm packages
+    - name: Cache global npm packages
+      if: ${{ inputs.ts == 'true' }}
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-npm-global-${{ inputs.cache-prefix }}-${{ hashFiles('**/package.json') }}
+        restore-keys: |
+          ${{ runner.os }}-npm-global-${{ inputs.cache-prefix }}-
+          ${{ runner.os }}-npm-global-
+
+    # Install dependencies with retry logic and frozen lockfile
+    - name: Install Node.js dependencies
       if: ${{ inputs.ts == 'true' }}
       shell: bash
       run: |
-        pnpm install --recursive
-        npm i -g wrangler@latest
+        max_attempts=3
+        attempt=1
+
+        while [ $attempt -le $max_attempts ]; do
+          echo "Attempt $attempt: Installing Node.js dependencies..."
+
+          # Use frozen lockfile for consistency and speed
+          if pnpm install --recursive --frozen-lockfile --prefer-offline; then
+            echo "Node.js dependencies installed successfully"
+            break
+          else
+            echo "Attempt $attempt failed"
+            if [ $attempt -eq $max_attempts ]; then
+              echo "All attempts failed"
+              exit 1
+            fi
+
+            # Clear pnpm store on failure to avoid corrupted cache
+            pnpm store prune
+            sleep $((attempt * 5))
+          fi
+          attempt=$((attempt + 1))
+        done
+
+    # Install global tools with caching check
+    - name: Install global tools
+      if: ${{ inputs.ts == 'true' }}
+      shell: bash
+      run: |
+        # Check if wrangler is already installed and up to date
+        if ! command -v wrangler &> /dev/null; then
+          echo "Installing wrangler..."
+          npm install -g wrangler@latest
+        else
+          echo "wrangler already installed: $(wrangler --version)"
+        fi

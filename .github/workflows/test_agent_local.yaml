@@ -2,7 +2,6 @@ name: Test Agent Local
 on:
   workflow_call:
 
-
 jobs:
   test_agent_local:
     runs-on: ubuntu-latest
@@ -13,7 +12,6 @@ jobs:
         uses: ./.github/actions/install
         with:
           go: true
-
 
       - name: Build
         run: task build

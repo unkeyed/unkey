@@ -6,7 +6,6 @@ on:
         required: true
         type: string
 
-
 jobs:
   test_agent_integration:
     runs-on: ubuntu-latest
@@ -17,7 +16,6 @@ jobs:
         uses: ./.github/actions/install
         with:
           go: true
-
 
       - name: Build
         run: task build

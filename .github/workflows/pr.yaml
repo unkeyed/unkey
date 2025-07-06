@@ -9,59 +9,102 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
   cancel-in-progress: true
+
 permissions:
   contents: read
+
 jobs:
+  # First, detect what has changed to avoid unnecessary work
   detect_changes:
     if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
     uses: ./.github/workflows/job_detect_changes.yaml
 
+  # Warm up caches early to avoid rate limits in parallel jobs
+  cache_dependencies:
+    if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
+    uses: ./.github/workflows/job_cache_deps.yaml
+    with:
+      cache-key-suffix: "pr-${{ github.event.number || github.sha }}"
+
+  # Test packages with improved caching
   test_packages:
     name: Test Packages
     if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
+    needs: [cache_dependencies]
     uses: ./.github/workflows/job_test_unit.yaml
 
+  # Build only if API changes detected
   build:
     name: Build
-    if: (github.event.pull_request.draft == false || github.event_name != 'pull_request') && needs.detect_changes.outputs.api == 'true'
-    needs: [detect_changes]
+    if: |
+      (github.event.pull_request.draft == false || github.event_name != 'pull_request') &&
+      needs.detect_changes.outputs.api == 'true'
+    needs: [detect_changes, cache_dependencies]
     uses: ./.github/workflows/build.yaml
 
+  # Test API only if changes detected
   test_api:
     name: Test API
-    if: (github.event.pull_request.draft == false || github.event_name != 'pull_request') && needs.detect_changes.outputs.api == 'true'
-    needs: [detect_changes]
+    if: |
+      (github.event.pull_request.draft == false || github.event_name != 'pull_request') &&
+      needs.detect_changes.outputs.api == 'true'
+    needs: [detect_changes, cache_dependencies]
     uses: ./.github/workflows/job_test_api_local.yaml
 
+  # Test Agent only if changes detected
   test_agent_local:
     name: Test Agent Local
-    if: (github.event.pull_request.draft == false || github.event_name != 'pull_request') && needs.detect_changes.outputs.agent == 'true'
-    needs: [detect_changes]
+    if: |
+      (github.event.pull_request.draft == false || github.event_name != 'pull_request') &&
+      needs.detect_changes.outputs.agent == 'true'
+    needs: [detect_changes, cache_dependencies]
     uses: ./.github/workflows/job_test_agent_local.yaml
-  # test_agent_integration:
-  #   name: Test Agent Integration
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   steps:
-  #     - uses: actions/checkout@v4
 
-  #     - name: Run containers
-  #       run: docker compose -f ./deployment/docker-compose.yaml up -d agent
-
-  #     - name: Install
-  #       uses: ./.github/actions/install
-  #       with:
-  #         go: true
-
-  #     - name: Test
-  #       run: go test -v -cover -json -timeout=60m -failfast ./integration/identities/... ./integration/cluster/... | tparse -all -progress -smallscreen
-  #       env:
-  #         CLUSTER_TEST: true
-  #         AGENT_BASE_URL: "http://localhost:8080"
-  #       working-directory: apps/agent
-
+  # Test Go API only if changes detected
   test_go_api_local:
     name: Test Go API Local
-    if: (github.event.pull_request.draft == false || github.event_name != 'pull_request') && needs.detect_changes.outputs.api == 'true'
-    needs: [detect_changes]
+    if: |
+      (github.event.pull_request.draft == false || github.event_name != 'pull_request') &&
+      needs.detect_changes.outputs.api == 'true'
+    needs: [detect_changes, cache_dependencies]
     uses: ./.github/workflows/job_test_go_api_local.yaml
+
+  # Final status check
+  pr_status:
+    name: PR Status
+    runs-on: ubuntu-latest
+    needs:
+      [
+        detect_changes,
+        cache_dependencies,
+        test_packages,
+        build,
+        test_api,
+        test_agent_local,
+        test_go_api_local,
+      ]
+    if: always()
+    steps:
+      - name: Check PR Status
+        run: |
+          echo "PR validation completed with the following results:"
+          echo "- Change detection: ${{ needs.detect_changes.result }}"
+          echo "- Cache dependencies: ${{ needs.cache_dependencies.result }}"
+          echo "- Test packages: ${{ needs.test_packages.result }}"
+          echo "- Build: ${{ needs.build.result }}"
+          echo "- Test API: ${{ needs.test_api.result }}"
+          echo "- Test Agent: ${{ needs.test_agent_local.result }}"
+          echo "- Test Go API: ${{ needs.test_go_api_local.result }}"
+
+          # Check if any required jobs failed
+          if [[ "${{ needs.cache_dependencies.result }}" == "failure" ]] || \
+             [[ "${{ needs.test_packages.result }}" == "failure" ]] || \
+             [[ "${{ needs.build.result }}" == "failure" ]] || \
+             [[ "${{ needs.test_api.result }}" == "failure" ]] || \
+             [[ "${{ needs.test_agent_local.result }}" == "failure" ]] || \
+             [[ "${{ needs.test_go_api_local.result }}" == "failure" ]]; then
+            echo "❌ PR validation failed"
+            exit 1
+          else
+            echo "✅ PR validation passed"
+          fi

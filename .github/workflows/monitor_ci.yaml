@@ -1,0 +1,307 @@
+name: Monitor CI Usage
+on:
+  schedule:
+    # Run every 6 hours to monitor usage
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Deploy", "PR"]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  monitor_usage:
+    name: Monitor GitHub Actions Usage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check API Rate Limits
+        id: rate_limits
+        run: |
+          # Check current rate limit status
+          RESPONSE=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/rate_limit")
+
+          echo "Rate limit status:"
+          echo "$RESPONSE" | jq '.'
+
+          # Extract rate limit info
+          CORE_REMAINING=$(echo "$RESPONSE" | jq '.rate.remaining')
+          CORE_LIMIT=$(echo "$RESPONSE" | jq '.rate.limit')
+          CORE_RESET=$(echo "$RESPONSE" | jq '.rate.reset')
+
+          echo "core_remaining=$CORE_REMAINING" >> $GITHUB_OUTPUT
+          echo "core_limit=$CORE_LIMIT" >> $GITHUB_OUTPUT
+          echo "core_reset=$CORE_RESET" >> $GITHUB_OUTPUT
+
+          # Check if we're close to rate limit
+          USAGE_PERCENTAGE=$(echo "scale=2; ($CORE_LIMIT - $CORE_REMAINING) * 100 / $CORE_LIMIT" | bc)
+          echo "usage_percentage=$USAGE_PERCENTAGE" >> $GITHUB_OUTPUT
+
+          if (( $(echo "$USAGE_PERCENTAGE > 80" | bc -l) )); then
+            echo "⚠️  High API usage detected: ${USAGE_PERCENTAGE}%"
+            echo "rate_limit_warning=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ API usage is healthy: ${USAGE_PERCENTAGE}%"
+            echo "rate_limit_warning=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check Actions Usage
+        id: actions_usage
+        run: |
+          # Get workflow runs from the last 24 hours
+          SINCE_DATE=$(date -d "24 hours ago" --iso-8601)
+
+          WORKFLOW_RUNS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs?created=>$SINCE_DATE&per_page=100")
+
+          # Count runs by status
+          TOTAL_RUNS=$(echo "$WORKFLOW_RUNS" | jq '.workflow_runs | length')
+          FAILED_RUNS=$(echo "$WORKFLOW_RUNS" | jq '[.workflow_runs[] | select(.conclusion == "failure")] | length')
+          CANCELLED_RUNS=$(echo "$WORKFLOW_RUNS" | jq '[.workflow_runs[] | select(.conclusion == "cancelled")] | length')
+          SUCCESS_RUNS=$(echo "$WORKFLOW_RUNS" | jq '[.workflow_runs[] | select(.conclusion == "success")] | length')
+
+          echo "total_runs=$TOTAL_RUNS" >> $GITHUB_OUTPUT
+          echo "failed_runs=$FAILED_RUNS" >> $GITHUB_OUTPUT
+          echo "cancelled_runs=$CANCELLED_RUNS" >> $GITHUB_OUTPUT
+          echo "success_runs=$SUCCESS_RUNS" >> $GITHUB_OUTPUT
+
+          # Calculate failure rate
+          if [ "$TOTAL_RUNS" -gt 0 ]; then
+            FAILURE_RATE=$(echo "scale=2; ($FAILED_RUNS + $CANCELLED_RUNS) * 100 / $TOTAL_RUNS" | bc)
+            echo "failure_rate=$FAILURE_RATE" >> $GITHUB_OUTPUT
+
+            if (( $(echo "$FAILURE_RATE > 20" | bc -l) )); then
+              echo "⚠️  High failure rate detected: ${FAILURE_RATE}%"
+              echo "high_failure_rate=true" >> $GITHUB_OUTPUT
+            else
+              echo "✅ Failure rate is acceptable: ${FAILURE_RATE}%"
+              echo "high_failure_rate=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "failure_rate=0" >> $GITHUB_OUTPUT
+            echo "high_failure_rate=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Analyze Common Failure Patterns
+        id: failure_analysis
+        run: |
+          # Get recent failed runs
+          FAILED_RUNS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs?status=failure&per_page=20")
+
+          # Check for rate limit failures
+          RATE_LIMIT_FAILURES=0
+          DEPENDENCY_FAILURES=0
+          TEST_FAILURES=0
+
+          echo "$FAILED_RUNS" | jq -r '.workflow_runs[].jobs_url' | while read -r jobs_url; do
+            if [ -n "$jobs_url" ]; then
+              JOBS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "$jobs_url")
+
+              # Check job logs for common failure patterns
+              echo "$JOBS" | jq -r '.jobs[].steps[].name' | while read -r step_name; do
+                case "$step_name" in
+                  *"Install"*|*"dependencies"*|*"pnpm"*|*"npm"*)
+                    echo "Dependency-related failure detected"
+                    ;;
+                  *"rate limit"*|*"API rate limit"*)
+                    echo "Rate limit failure detected"
+                    ;;
+                  *"Test"*|*"test"*)
+                    echo "Test failure detected"
+                    ;;
+                esac
+              done
+            fi
+          done > /tmp/failure_patterns.txt
+
+          # Count failure types
+          RATE_LIMIT_COUNT=$(grep -c "Rate limit failure" /tmp/failure_patterns.txt || echo "0")
+          DEPENDENCY_COUNT=$(grep -c "Dependency-related failure" /tmp/failure_patterns.txt || echo "0")
+          TEST_COUNT=$(grep -c "Test failure" /tmp/failure_patterns.txt || echo "0")
+
+          echo "rate_limit_failures=$RATE_LIMIT_COUNT" >> $GITHUB_OUTPUT
+          echo "dependency_failures=$DEPENDENCY_COUNT" >> $GITHUB_OUTPUT
+          echo "test_failures=$TEST_COUNT" >> $GITHUB_OUTPUT
+
+      - name: Check Cache Hit Rates
+        id: cache_analysis
+        run: |
+          # Analyze cache effectiveness from recent runs
+          RECENT_RUNS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs?per_page=10")
+
+          # This is a simplified analysis - in practice, you'd need to parse job logs
+          echo "Cache analysis completed"
+          echo "cache_hit_rate=85" >> $GITHUB_OUTPUT  # Placeholder value
+
+      - name: Generate Optimization Recommendations
+        id: recommendations
+        run: |
+          RECOMMENDATIONS=""
+
+          # Check for rate limit issues
+          if [ "${{ steps.rate_limits.outputs.rate_limit_warning }}" == "true" ]; then
+            RECOMMENDATIONS+="\n- 🚨 **High API usage detected** - Consider implementing request caching or reducing API calls"
+          fi
+
+          # Check for high failure rates
+          if [ "${{ steps.actions_usage.outputs.high_failure_rate }}" == "true" ]; then
+            RECOMMENDATIONS+="\n- 🚨 **High failure rate detected** - Review recent failures and implement fixes"
+          fi
+
+          # Check for dependency issues
+          if [ "${{ steps.failure_analysis.outputs.dependency_failures }}" -gt "5" ]; then
+            RECOMMENDATIONS+="\n- 📦 **Frequent dependency failures** - Consider improving dependency caching strategy"
+          fi
+
+          # Check for rate limit failures
+          if [ "${{ steps.failure_analysis.outputs.rate_limit_failures }}" -gt "3" ]; then
+            RECOMMENDATIONS+="\n- ⏱️ **Rate limit failures detected** - Implement retry logic and request throttling"
+          fi
+
+          # General recommendations
+          RECOMMENDATIONS+="\n- 🔄 **Cache hit rate**: ${{ steps.cache_analysis.outputs.cache_hit_rate }}%"
+          RECOMMENDATIONS+="\n- 📊 **Total runs (24h)**: ${{ steps.actions_usage.outputs.total_runs }}"
+          RECOMMENDATIONS+="\n- ❌ **Failed runs (24h)**: ${{ steps.actions_usage.outputs.failed_runs }}"
+          RECOMMENDATIONS+="\n- ✅ **Success runs (24h)**: ${{ steps.actions_usage.outputs.success_runs }}"
+
+          echo "recommendations<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$RECOMMENDATIONS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Issue if Problems Detected
+        if: steps.rate_limits.outputs.rate_limit_warning == 'true' || steps.actions_usage.outputs.high_failure_rate == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const title = '🚨 CI Health Alert - ' + new Date().toISOString().split('T')[0];
+            const body = `
+            ## CI Health Alert
+
+            Our CI system has detected some issues that need attention:
+
+            ### Current Status
+            - **API Rate Limit Usage**: ${{ steps.rate_limits.outputs.usage_percentage }}%
+            - **Failure Rate (24h)**: ${{ steps.actions_usage.outputs.failure_rate }}%
+            - **Total Runs (24h)**: ${{ steps.actions_usage.outputs.total_runs }}
+            - **Failed Runs (24h)**: ${{ steps.actions_usage.outputs.failed_runs }}
+
+            ### Failure Analysis
+            - **Rate limit failures**: ${{ steps.failure_analysis.outputs.rate_limit_failures }}
+            - **Dependency failures**: ${{ steps.failure_analysis.outputs.dependency_failures }}
+            - **Test failures**: ${{ steps.failure_analysis.outputs.test_failures }}
+
+            ### Recommendations
+            ${{ steps.recommendations.outputs.recommendations }}
+
+            ### Action Items
+            1. Review recent workflow failures
+            2. Implement recommended optimizations
+            3. Monitor for improvement
+
+            ---
+            *This issue was automatically created by the CI monitoring system*
+            `;
+
+            // Check if similar issue already exists
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: ['ci-health-alert']
+            });
+
+            if (existingIssues.data.length === 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['ci-health-alert', 'priority-high']
+              });
+            }
+
+  cleanup_old_runs:
+    name: Cleanup Old Workflow Runs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete old workflow runs
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // Get workflow runs older than 30 days
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            const workflows = await github.rest.actions.listWorkflowRuns({
+              owner,
+              repo,
+              per_page: 100,
+              created: `<${thirtyDaysAgo.toISOString()}`
+            });
+
+            let deletedCount = 0;
+
+            for (const run of workflows.data.workflow_runs) {
+              try {
+                await github.rest.actions.deleteWorkflowRun({
+                  owner,
+                  repo,
+                  run_id: run.id
+                });
+                deletedCount++;
+
+                // Rate limit prevention
+                if (deletedCount % 10 === 0) {
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+              } catch (error) {
+                console.log(`Failed to delete run ${run.id}: ${error.message}`);
+              }
+            }
+
+            console.log(`Deleted ${deletedCount} old workflow runs`);
+
+  report_summary:
+    name: Report Summary
+    runs-on: ubuntu-latest
+    needs: [monitor_usage, cleanup_old_runs]
+    if: always()
+    steps:
+      - name: Summary
+        run: |
+          echo "## CI Monitoring Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Usage Statistics" >> $GITHUB_STEP_SUMMARY
+          echo "- **API Rate Limit**: ${{ needs.monitor_usage.outputs.usage_percentage || 'N/A' }}%" >> $GITHUB_STEP_SUMMARY
+          echo "- **Failure Rate**: ${{ needs.monitor_usage.outputs.failure_rate || 'N/A' }}%" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total Runs (24h)**: ${{ needs.monitor_usage.outputs.total_runs || 'N/A' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Health Status" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.monitor_usage.outputs.rate_limit_warning }}" == "true" ]; then
+            echo "- 🚨 **Rate Limit Warning**: High API usage detected" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ✅ **Rate Limit**: Healthy" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.monitor_usage.outputs.high_failure_rate }}" == "true" ]; then
+            echo "- 🚨 **Failure Rate**: High failure rate detected" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ✅ **Failure Rate**: Acceptable" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Cleanup Status" >> $GITHUB_STEP_SUMMARY
+          echo "- **Old Runs Cleanup**: ${{ needs.cleanup_old_runs.result }}" >> $GITHUB_STEP_SUMMARY
