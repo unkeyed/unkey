@@ -27,12 +27,11 @@ func TestGetKeyByKeyID(t *testing.T) {
 	ctx := context.Background()
 
 	route := &handler.Handler{
-		Logger:      h.Logger,
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Permissions: h.Permissions,
-		Auditlogs:   h.Auditlogs,
-		Vault:       h.Vault,
+		Logger:    h.Logger,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
+		Vault:     h.Vault,
 	}
 
 	h.Register(route)
@@ -193,12 +192,11 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 	ctx := context.Background()
 
 	route := &handler.Handler{
-		Logger:      h.Logger,
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Permissions: h.Permissions,
-		Auditlogs:   h.Auditlogs,
-		Vault:       h.Vault,
+		Logger:    h.Logger,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
+		Vault:     h.Vault,
 	}
 
 	h.Register(route)

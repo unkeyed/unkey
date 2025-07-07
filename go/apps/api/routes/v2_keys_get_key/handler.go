@@ -11,7 +11,6 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
-	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -29,12 +28,11 @@ type Response = openapi.V2KeysGetKeyResponseBody
 // Handler implements zen.Route interface for the v2 keys.getKey endpoint
 type Handler struct {
 	// Services as public fields
-	Logger      logging.Logger
-	DB          db.Database
-	Keys        keys.KeyService
-	Permissions permissions.PermissionService
-	Auditlogs   auditlogs.AuditLogService
-	Vault       *vault.Service
+	Logger    logging.Logger
+	DB        db.Database
+	Keys      keys.KeyService
+	Auditlogs auditlogs.AuditLogService
+	Vault     *vault.Service
 }
 
 // Method returns the HTTP method this route responds to
@@ -51,7 +49,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.getKey")
 
 	// Authentication
-	auth, err := h.Keys.VerifyRootKey(ctx, s)
+	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -113,22 +111,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Permission check
-	err = h.Permissions.Check(
-		ctx,
-		auth.KeyID,
-		rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   "*",
-				Action:       rbac.ReadKey,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   key.Api.ID,
-				Action:       rbac.ReadKey,
-			}),
-		),
-	)
+	auth, err = auth.WithPermissions(ctx, rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   "*",
+			Action:       rbac.ReadKey,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   key.Api.ID,
+			Action:       rbac.ReadKey,
+		}),
+	)).Result()
 	if err != nil {
 		return err
 	}
@@ -150,22 +144,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	decrypt := ptr.SafeDeref(req.Decrypt, false)
 	var plaintext *string
 	if decrypt {
-		err = h.Permissions.Check(
-			ctx,
-			auth.KeyID,
-			rbac.Or(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   "*",
-					Action:       rbac.DecryptKey,
-				}),
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   key.Api.ID,
-					Action:       rbac.DecryptKey,
-				}),
-			),
-		)
+		// Permission check
+		auth, err = auth.WithPermissions(ctx, rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   "*",
+				Action:       rbac.DecryptKey,
+			}),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   key.Api.ID,
+				Action:       rbac.DecryptKey,
+			}),
+		)).Result()
 		if err != nil {
 			return err
 		}

@@ -55,8 +55,9 @@ func New(t *testing.T) *Containers {
 	require.NoError(t, err)
 
 	c := &Containers{
-		t:    t,
-		pool: pool,
+		t:       t,
+		pool:    pool,
+		network: nil,
 	}
 
 	network, err := c.getOrCreateNetwork(networkName, true)

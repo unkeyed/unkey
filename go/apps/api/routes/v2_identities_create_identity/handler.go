@@ -11,7 +11,6 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
-	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
@@ -28,11 +27,10 @@ type Response = openapi.V2IdentitiesCreateIdentityResponseBody
 // Handler implements zen.Route interface for the v2 identities create identity endpoint
 type Handler struct {
 	// Services as public fields
-	Logger      logging.Logger
-	DB          db.Database
-	Keys        keys.KeyService
-	Permissions permissions.PermissionService
-	Auditlogs   auditlogs.AuditLogService
+	Logger    logging.Logger
+	DB        db.Database
+	Keys      keys.KeyService
+	Auditlogs auditlogs.AuditLogService
 }
 
 const (
@@ -53,7 +51,7 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, err := h.Keys.VerifyRootKey(ctx, s)
+	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -67,17 +65,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = h.Permissions.Check(
-		ctx,
-		auth.KeyID,
-		rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Identity,
-				ResourceID:   "*",
-				Action:       rbac.CreateIdentity,
-			}),
-		),
-	)
+	auth, err = auth.WithPermissions(ctx, rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Identity,
+			ResourceID:   "*",
+			Action:       rbac.CreateIdentity,
+		}),
+	)).Result()
 	if err != nil {
 		return err
 	}
@@ -133,7 +127,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.IdentityCreateEvent,
 				Display:     fmt.Sprintf("Created identity %s.", identityID),
-				ActorID:     auth.KeyID,
+				ActorID:     auth.Key.ID,
 				ActorName:   "root key",
 				ActorMeta:   map[string]any{},
 				ActorType:   auditlog.RootKeyActor,
@@ -170,7 +164,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					Event:       auditlog.RatelimitCreateEvent,
 					Display:     fmt.Sprintf("Created ratelimit %s.", ratelimitID),
-					ActorID:     auth.KeyID,
+					ActorID:     auth.Key.ID,
 					ActorType:   auditlog.RootKeyActor,
 					ActorName:   "root key",
 					ActorMeta:   map[string]any{},

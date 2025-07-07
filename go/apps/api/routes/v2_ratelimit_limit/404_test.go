@@ -23,7 +23,6 @@ func TestNamespaceNotFound(t *testing.T) {
 		DB:                            h.DB,
 		Keys:                          h.Keys,
 		Logger:                        h.Logger,
-		Permissions:                   h.Permissions,
 		Ratelimit:                     h.Ratelimit,
 		RatelimitNamespaceByNameCache: h.Caches.RatelimitNamespaceByName,
 		RatelimitOverrideMatchesCache: h.Caches.RatelimitOverridesMatch,

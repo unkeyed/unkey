@@ -23,12 +23,11 @@ func Test_CreateKey_Success(t *testing.T) {
 	ctx := context.Background()
 
 	route := &handler.Handler{
-		Logger:      h.Logger,
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Permissions: h.Permissions,
-		Auditlogs:   h.Auditlogs,
-		Vault:       h.Vault,
+		Logger:    h.Logger,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
+		Vault:     h.Vault,
 	}
 
 	h.Register(route)
@@ -92,12 +91,11 @@ func Test_CreateKey_WithOptionalFields(t *testing.T) {
 	ctx := context.Background()
 
 	route := &handler.Handler{
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Logger:      h.Logger,
-		Permissions: h.Permissions,
-		Auditlogs:   h.Auditlogs,
-		Vault:       h.Vault,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Logger:    h.Logger,
+		Auditlogs: h.Auditlogs,
+		Vault:     h.Vault,
 	}
 
 	h.Register(route)
@@ -173,12 +171,11 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 	ctx := context.Background()
 
 	route := &handler.Handler{
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Logger:      h.Logger,
-		Permissions: h.Permissions,
-		Auditlogs:   h.Auditlogs,
-		Vault:       h.Vault,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Logger:    h.Logger,
+		Auditlogs: h.Auditlogs,
+		Vault:     h.Vault,
 	}
 
 	h.Register(route)

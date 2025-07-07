@@ -10,7 +10,6 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
-	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -26,11 +25,10 @@ type Response = openapi.V2ApisListKeysResponseBody
 
 // Handler implements zen.Route interface for the v2 APIs list keys endpoint
 type Handler struct {
-	Logger      logging.Logger
-	DB          db.Database
-	Keys        keys.KeyService
-	Permissions permissions.PermissionService
-	Vault       *vault.Service
+	Logger logging.Logger
+	DB     db.Database
+	Keys   keys.KeyService
+	Vault  *vault.Service
 }
 
 // Method returns the HTTP method this route responds to
@@ -47,7 +45,8 @@ func (h *Handler) Path() string {
 // The current implementation queries the database directly without caching, which may impact performance.
 // Consider implementing cache with optional bypass via revalidateKeysCache parameter.
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, err := h.Keys.VerifyRootKey(ctx, s)
+
+	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -60,38 +59,34 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = h.Permissions.Check(
-		ctx,
-		auth.KeyID,
-		rbac.Or(
-			rbac.And(
-				rbac.Or(
-					rbac.T(rbac.Tuple{
-						ResourceType: rbac.Api,
-						ResourceID:   "*",
-						Action:       rbac.ReadKey,
-					}),
-					rbac.T(rbac.Tuple{
-						ResourceType: rbac.Api,
-						ResourceID:   req.ApiId,
-						Action:       rbac.ReadKey,
-					}),
-				),
-				rbac.Or(
-					rbac.T(rbac.Tuple{
-						ResourceType: rbac.Api,
-						ResourceID:   "*",
-						Action:       rbac.ReadAPI,
-					}),
-					rbac.T(rbac.Tuple{
-						ResourceType: rbac.Api,
-						ResourceID:   req.ApiId,
-						Action:       rbac.ReadAPI,
-					}),
-				),
+	auth, err = auth.WithPermissions(ctx, rbac.Or(
+		rbac.And(
+			rbac.Or(
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   "*",
+					Action:       rbac.ReadKey,
+				}),
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   req.ApiId,
+					Action:       rbac.ReadKey,
+				}),
+			),
+			rbac.Or(
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   "*",
+					Action:       rbac.ReadAPI,
+				}),
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   req.ApiId,
+					Action:       rbac.ReadAPI,
+				}),
 			),
 		),
-	)
+	)).Result()
 	if err != nil {
 		return err
 	}
@@ -150,22 +145,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if ptr.SafeDeref(req.Decrypt, false) {
-		err = h.Permissions.Check(
-			ctx,
-			auth.KeyID,
-			rbac.Or(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   "*",
-					Action:       rbac.DecryptKey,
-				}),
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   api.ID,
-					Action:       rbac.DecryptKey,
-				}),
-			),
-		)
+		auth, err = auth.WithPermissions(ctx, rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   "*",
+				Action:       rbac.DecryptKey,
+			}),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   api.ID,
+				Action:       rbac.DecryptKey,
+			}),
+		)).Result()
 		if err != nil {
 			return err
 		}

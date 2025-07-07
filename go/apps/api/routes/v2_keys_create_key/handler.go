@@ -13,7 +13,6 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
-	"github.com/unkeyed/unkey/go/internal/services/permissions"
 
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
 	"github.com/unkeyed/unkey/go/pkg/codes"
@@ -31,12 +30,11 @@ type Request = openapi.V2KeysCreateKeyRequestBody
 type Response = openapi.V2KeysCreateKeyResponseBody
 
 type Handler struct {
-	Logger      logging.Logger
-	DB          db.Database
-	Keys        keys.KeyService
-	Permissions permissions.PermissionService
-	Auditlogs   auditlogs.AuditLogService
-	Vault       *vault.Service
+	Logger    logging.Logger
+	DB        db.Database
+	Keys      keys.KeyService
+	Auditlogs auditlogs.AuditLogService
+	Vault     *vault.Service
 }
 
 // Method returns the HTTP method this route responds to
@@ -54,7 +52,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.createKey")
 
 	// 1. Authentication
-	auth, err := h.Keys.VerifyRootKey(ctx, s)
+	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -66,22 +64,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// 3. Permission check
-	err = h.Permissions.Check(
-		ctx,
-		auth.KeyID,
-		rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   req.ApiId,
-				Action:       rbac.CreateKey,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   "*",
-				Action:       rbac.CreateKey,
-			}),
-		),
-	)
+	auth, err = auth.WithPermissions(ctx, rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   req.ApiId,
+			Action:       rbac.CreateKey,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   "*",
+			Action:       rbac.CreateKey,
+		}),
+	)).Result()
 	if err != nil {
 		return err
 	}
@@ -138,9 +132,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	encrypt := ptr.SafeDeref(req.Recoverable, false)
 	var encryption *vaultv1.EncryptResponse
 	if encrypt {
-		err = h.Permissions.Check(
+		auth, err = auth.WithPermissions(
 			ctx,
-			auth.KeyID,
 			rbac.Or(
 				rbac.T(rbac.Tuple{
 					ResourceType: rbac.Api,
@@ -153,7 +146,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					Action:       rbac.EncryptKey,
 				}),
 			),
-		)
+		).Result()
 		if err != nil {
 			return err
 		}
@@ -376,7 +369,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.AuthConnectPermissionKeyEvent,
 				ActorType:   auditlog.RootKeyActor,
-				ActorID:     auth.KeyID,
+				ActorID:     auth.Key.ID,
 				ActorName:   "root key",
 				ActorMeta:   map[string]any{},
 				Display:     fmt.Sprintf("Added permission %s to key %s", permission.Name, keyID),
@@ -430,7 +423,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.AuthConnectRoleKeyEvent,
 				ActorType:   auditlog.RootKeyActor,
-				ActorID:     auth.KeyID,
+				ActorID:     auth.Key.ID,
 				ActorName:   "root key",
 				ActorMeta:   map[string]any{},
 				Display:     fmt.Sprintf("Connected role %s to key %s", role.Name, keyID),
@@ -475,7 +468,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			Event:       auditlog.KeyCreateEvent,
 			ActorType:   auditlog.RootKeyActor,
-			ActorID:     auth.KeyID,
+			ActorID:     auth.Key.ID,
 			ActorName:   "root key",
 			ActorMeta:   map[string]any{},
 			Display:     fmt.Sprintf("Created key %s", keyID),

@@ -6,7 +6,6 @@ import (
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
-	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -22,10 +21,9 @@ type Response = openapi.V2PermissionsListRolesResponseBody
 // Handler implements zen.Route interface for the v2 permissions list roles endpoint
 type Handler struct {
 	// Services as public fields
-	Logger      logging.Logger
-	DB          db.Database
-	Keys        keys.KeyService
-	Permissions permissions.PermissionService
+	Logger logging.Logger
+	DB     db.Database
+	Keys   keys.KeyService
 }
 
 // Method returns the HTTP method this route responds to
@@ -43,7 +41,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/permissions.listRoles")
 
 	// 1. Authentication
-	auth, err := h.Keys.VerifyRootKey(ctx, s)
+	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -58,17 +56,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	cursor := ptr.SafeDeref(req.Cursor, "")
 
 	// 3. Permission check
-	err = h.Permissions.Check(
-		ctx,
-		auth.KeyID,
-		rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Rbac,
-				ResourceID:   "*",
-				Action:       rbac.ReadRole,
-			}),
-		),
-	)
+	auth, err = auth.WithPermissions(ctx, rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Rbac,
+			ResourceID:   "*",
+			Action:       rbac.ReadRole,
+		}),
+	)).Result()
 	if err != nil {
 		return err
 	}

@@ -14,7 +14,6 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
-	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
@@ -184,25 +183,15 @@ func Run(ctx context.Context, cfg Config) error {
 	keySvc, err := keys.New(keys.Config{
 		Logger:         logger,
 		DB:             db,
-		Clock:          clk,
 		KeyCache:       caches.VerificationKeyByHash,
 		WorkspaceCache: caches.WorkspaceByID,
 		RateLimiter:    rlSvc,
 		UsageLimiter:   ulSvc,
 		RBAC:           rbac.New(),
+		Clickhouse:     ch,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
-	}
-
-	p, err := permissions.New(permissions.Config{
-		DB:     db,
-		Logger: logger,
-		Clock:  clk,
-		Cache:  caches.PermissionsByKeyId,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create permissions service: %w", err)
 	}
 
 	vaultStorage, err := storage.NewMemory(storage.MemoryConfig{
@@ -227,16 +216,15 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 
 	routes.Register(srv, &routes.Services{
-		Logger:      logger,
-		Database:    db,
-		ClickHouse:  ch,
-		Keys:        keySvc,
-		Validator:   validator,
-		Ratelimit:   rlSvc,
-		Permissions: p,
-		Auditlogs:   auditlogSvc,
-		Caches:      caches,
-		Vault:       vaultSvc,
+		Logger:     logger,
+		Database:   db,
+		ClickHouse: ch,
+		Keys:       keySvc,
+		Validator:  validator,
+		Ratelimit:  rlSvc,
+		Auditlogs:  auditlogSvc,
+		Caches:     caches,
+		Vault:      vaultSvc,
 	})
 
 	go func() {

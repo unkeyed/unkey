@@ -4,26 +4,37 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/go/pkg/clickhouse"
+	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
+	"github.com/unkeyed/unkey/go/pkg/zen"
 	"golang.org/x/exp/slices"
 )
 
 type KeyVerifier struct {
-	Key db.FindKeyForVerificationRow // The actual key data embedded
+	Key         db.FindKeyForVerificationRow
+	Ratelimits  []db.KeyFindForVerificationRatelimit
+	Roles       []string
+	Permissions []string
+
+	Valid                 bool
+	Status                openapi.KeysVerifyKeyResponseDataCode
+	AuthorizedWorkspaceID string
+	IsRootKey             bool
+
+	session *zen.Session
+	error   error
 
 	rateLimiter  ratelimit.Service
 	usageLimiter usagelimiter.Service
 	rBAC         *rbac.RBAC
-
-	Valid  bool
-	Status openapi.KeysVerifyKeyResponseDataCode
-
-	error error
+	clickhouse   clickhouse.ClickHouse
 }
 
 func (k *KeyVerifier) WithCredits(ctx context.Context, cost int32) *KeyVerifier {
@@ -49,7 +60,7 @@ func (k *KeyVerifier) WithCredits(ctx context.Context, cost int32) *KeyVerifier 
 	return k
 }
 
-func (k *KeyVerifier) WithIPWhitelist(ctx context.Context, ip string) *KeyVerifier {
+func (k *KeyVerifier) WithIPWhitelist() *KeyVerifier {
 	if !k.Valid || k.error != nil {
 		return k
 	}
@@ -59,7 +70,7 @@ func (k *KeyVerifier) WithIPWhitelist(ctx context.Context, ip string) *KeyVerifi
 	}
 
 	allowedIPs := strings.Split(k.Key.IpWhitelist.String, ",")
-	if !slices.Contains(allowedIPs, ip) {
+	if !slices.Contains(allowedIPs, k.session.Location()) {
 		k.Valid = false
 		k.Status = openapi.FORBIDDEN
 	}
@@ -72,7 +83,7 @@ func (k *KeyVerifier) WithPermissions(ctx context.Context, query rbac.Permission
 		return k
 	}
 
-	allowed, err := k.rBAC.EvaluatePermissions(query, k.Key.Perms.([]string))
+	allowed, err := k.rBAC.EvaluatePermissions(query, k.Permissions)
 	if err != nil {
 		k.error = err
 		return k
@@ -94,21 +105,19 @@ func (k *KeyVerifier) WithRateLimits(ctx context.Context, specifiedLimits []stri
 	return k
 }
 
-type Ratelimit struct {
-}
-
 func (k *KeyVerifier) Result() (*KeyVerifier, error) {
+	k.clickhouse.BufferKeyVerification(schema.KeyVerificationRequestV1{
+		RequestID:   k.session.RequestID(),
+		WorkspaceID: k.session.AuthorizedWorkspaceID(),
+		// ForWorkspaceID: s.AuthorizedWorkspaceID, // We need this at some point to actually assign the logs to the "real" workspaceID
+		Time:       time.Now().UnixMilli(),
+		Region:     "",
+		Outcome:    "",
+		KeySpaceID: k.Key.KeyAuthID,
+		KeyID:      k.Key.ID,
+		IdentityID: k.Key.IdentityID.String,
+		Tags:       []string{},
+	})
+
 	return k, k.error
-}
-
-func (k *KeyVerifier) GetRoles() []string {
-	return k.Key.Roles.([]string)
-}
-
-func (k *KeyVerifier) GetPermissions() []string {
-	return k.Key.Perms.([]string)
-}
-
-func (k *KeyVerifier) GetRatelimits() []db.KeyFindForVerificationRatelimit {
-	return k.Key.Ratelimits.([]db.KeyFindForVerificationRatelimit)
 }

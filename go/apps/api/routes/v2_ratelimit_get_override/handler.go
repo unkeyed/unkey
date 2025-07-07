@@ -6,7 +6,6 @@ import (
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
-	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -21,10 +20,9 @@ type Response = openapi.V2RatelimitGetOverrideResponseBody
 // Handler implements zen.Route interface for the v2 ratelimit get override endpoint
 type Handler struct {
 	// Services as public fields
-	Logger      logging.Logger
-	DB          db.Database
-	Keys        keys.KeyService
-	Permissions permissions.PermissionService
+	Logger logging.Logger
+	DB     db.Database
+	Keys   keys.KeyService
 }
 
 // Method returns the HTTP method this route responds to
@@ -39,7 +37,7 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, err := h.Keys.VerifyRootKey(ctx, s)
+	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -67,22 +65,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = h.Permissions.Check(
-		ctx,
-		auth.KeyID,
-		rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Ratelimit,
-				ResourceID:   namespace.ID,
-				Action:       rbac.ReadOverride,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Ratelimit,
-				ResourceID:   "*",
-				Action:       rbac.ReadOverride,
-			}),
-		),
-	)
+	auth, err = auth.WithPermissions(ctx, rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Ratelimit,
+			ResourceID:   namespace.ID,
+			Action:       rbac.ReadOverride,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Ratelimit,
+			ResourceID:   "*",
+			Action:       rbac.ReadOverride,
+		}),
+	)).Result()
 	if err != nil {
 		return err
 	}

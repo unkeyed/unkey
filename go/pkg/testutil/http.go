@@ -12,7 +12,6 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
-	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
@@ -41,16 +40,15 @@ type Harness struct {
 
 	middleware []zen.Middleware
 
-	DB          db.Database
-	Caches      caches.Caches
-	Logger      logging.Logger
-	Keys        keys.KeyService
-	Permissions permissions.PermissionService
-	Auditlogs   auditlogs.AuditLogService
-	ClickHouse  clickhouse.ClickHouse
-	Ratelimit   ratelimit.Service
-	Vault       *vault.Service
-	seeder      *seed.Seeder
+	DB         db.Database
+	Caches     caches.Caches
+	Logger     logging.Logger
+	Keys       keys.KeyService
+	Auditlogs  auditlogs.AuditLogService
+	ClickHouse clickhouse.ClickHouse
+	Ratelimit  ratelimit.Service
+	Vault      *vault.Service
+	seeder     *seed.Seeder
 }
 
 func NewHarness(t *testing.T) *Harness {
@@ -99,14 +97,6 @@ func NewHarness(t *testing.T) *Harness {
 	validator, err := validation.New()
 	require.NoError(t, err)
 
-	permissionService, err := permissions.New(permissions.Config{
-		DB:     db,
-		Logger: logger,
-		Clock:  clk,
-		Cache:  caches.PermissionsByKeyId,
-	})
-	require.NoError(t, err)
-
 	ctr, err := counter.NewRedis(counter.RedisConfig{
 		RedisURL: redisUrl,
 		Logger:   logger,
@@ -129,12 +119,12 @@ func NewHarness(t *testing.T) *Harness {
 	keyService, err := keys.New(keys.Config{
 		Logger:         logger,
 		DB:             db,
-		Clock:          clk,
 		KeyCache:       caches.VerificationKeyByHash,
 		WorkspaceCache: caches.WorkspaceByID,
 		RateLimiter:    ratelimitService,
 		UsageLimiter:   ulSvc,
 		RBAC:           rbac.New(),
+		Clickhouse:     ch,
 	})
 	require.NoError(t, err)
 
@@ -169,21 +159,20 @@ func NewHarness(t *testing.T) *Harness {
 	seeder.Seed(context.Background())
 
 	h := Harness{
-		t:           t,
-		Logger:      logger,
-		srv:         srv,
-		containers:  cont,
-		validator:   validator,
-		Keys:        keyService,
-		Permissions: permissionService,
-		Ratelimit:   ratelimitService,
-		Vault:       v,
-		ClickHouse:  ch,
-		DB:          db,
-		seeder:      seeder,
-		Clock:       clk,
-		Auditlogs:   auditLogSvc,
-		Caches:      caches,
+		t:          t,
+		Logger:     logger,
+		srv:        srv,
+		containers: cont,
+		validator:  validator,
+		Keys:       keyService,
+		Ratelimit:  ratelimitService,
+		Vault:      v,
+		ClickHouse: ch,
+		DB:         db,
+		seeder:     seeder,
+		Clock:      clk,
+		Auditlogs:  auditLogSvc,
+		Caches:     caches,
 		middleware: []zen.Middleware{
 			zen.WithTracing(),
 			zen.WithLogging(logger),

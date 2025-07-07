@@ -10,7 +10,6 @@ import (
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
-	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
@@ -34,7 +33,6 @@ type Handler struct {
 	Keys                          keys.KeyService
 	DB                            db.Database
 	ClickHouse                    clickhouse.Bufferer
-	Permissions                   permissions.PermissionService
 	Ratelimit                     ratelimit.Service
 	RatelimitNamespaceByNameCache cache.Cache[db.FindRatelimitNamespaceByNameParams, db.RatelimitNamespace]
 	RatelimitOverrideMatchesCache cache.Cache[db.ListRatelimitOverrideMatchesParams, []db.RatelimitOverride]
@@ -54,7 +52,7 @@ func (h *Handler) Path() string {
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Authenticate the request with a root key
-	auth, err := h.Keys.VerifyRootKey(ctx, s)
+	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -111,22 +109,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Verify permissions for rate limiting
-	err = h.Permissions.Check(
-		ctx,
-		auth.KeyID,
-		rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Ratelimit,
-				ResourceID:   namespace.ID,
-				Action:       rbac.Limit,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Ratelimit,
-				ResourceID:   "*",
-				Action:       rbac.Limit,
-			}),
-		),
-	)
+	auth, err = auth.WithPermissions(ctx, rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Ratelimit,
+			ResourceID:   namespace.ID,
+			Action:       rbac.Limit,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Ratelimit,
+			ResourceID:   "*",
+			Action:       rbac.Limit,
+		}),
+	)).Result()
 	if err != nil {
 		return err
 	}
