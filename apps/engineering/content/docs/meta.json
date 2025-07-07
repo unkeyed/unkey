@@ -2,5 +2,16 @@
   "title": "Docs",
   "description": "Engineering at Unkey",
   "icon": "Code",
-  "root": true
+  "root": true,
+  "pages": [
+    "index",
+    "api-design",
+    "releases",
+    "architecture",
+    "contributing",
+    "infrastructure",
+    "runbooks",
+    "company",
+    "rfcs"
+  ]
 }

@@ -1,0 +1,6 @@
+{
+  "title": "Runbooks",
+  "description": "Operational runbooks for Unkey infrastructure and services",
+  "icon": "BookOpen",
+  "pages": ["index", "services"]
+}
