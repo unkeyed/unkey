@@ -1,5 +1,10 @@
 name: Runbook Freshness Check
 
+permissions:
+  contents: read       # checkout + git log
+  issues: write        # create / update issues
+  pull-requests: write # allow comments if needed in the future
+
 on:
   schedule:
     # Run daily at 9 AM UTC
