@@ -76,7 +76,6 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
             <InlineLink
               label="Learn more"
               href="https://www.unkey.com/docs/apis/features/whitelist#ip-whitelisting"
-              target
               icon={<ArrowUpRight size="sm-thin" />}
             />
           </div>

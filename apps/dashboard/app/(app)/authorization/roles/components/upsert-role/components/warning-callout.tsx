@@ -20,7 +20,6 @@ export const RoleWarningCallout = ({ count, type }: RoleWarningCalloutProps) => 
         <span className="font-medium">Warning:</span> This role has {formatNumber(count)} {itemText}{" "}
         assigned. Use the{" "}
         <InlineLink
-          target
           className="underline"
           href="https://www.unkey.com/docs/api-reference/overview"
           label="API"

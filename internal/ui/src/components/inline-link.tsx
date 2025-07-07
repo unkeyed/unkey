@@ -2,7 +2,7 @@
 import * as React from "react";
 import { cn } from "../lib/utils";
 
-type InlineLinkProps = {
+export interface InlineLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
   /**
    * The URL to link to.
    */
@@ -24,10 +24,7 @@ type InlineLinkProps = {
    * Additional CSS classes to apply to the link.
    */
   className?: string;
-  /**
-   * The target attribute for the link. Standard HTML values: "_blank", "_self", "_parent", "_top", or a frame name.
-   */
-  target?: "_blank" | "_self" | "_parent" | "_top";
+
   
 };
 const InlineLink: React.FC<InlineLinkProps> = ({
@@ -36,7 +33,8 @@ const InlineLink: React.FC<InlineLinkProps> = ({
   href,
   icon,
   iconPosition = "right",
-  target,
+  target = "_blank",
+  rel = "noopener noreferrer",
   ...props
 }) => {
   return (
@@ -44,7 +42,7 @@ const InlineLink: React.FC<InlineLinkProps> = ({
       href={href}
       className={cn(className, "underline inline-flex hover:opacity-70")}
       target={target}
-      rel={target === "_blank" ? "noopener noreferrer" : undefined}
+      rel={rel}
       {...props}
     >
       <span className="inline-flex gap-x-1 items-center">

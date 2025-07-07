@@ -142,7 +142,6 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
             <InlineLink
               label="Learn more"
               href="https://www.unkey.com/docs/security/delete-protection"
-              target={true}
               icon={<ArrowUpRight size="sm-thin" />}
             />
           </p>
