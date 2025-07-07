@@ -1,8 +1,4 @@
-import {
-  components,
-  docs,
-  meta,
-} from "@/.source";
+import { components, docs, meta } from "@/.source";
 import { loader } from "fumadocs-core/source";
 import { createMDXSource } from "fumadocs-mdx";
 
