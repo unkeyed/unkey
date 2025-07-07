@@ -96,12 +96,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	_, err = key.
+	// rbac
+
+	// req.Permissions
+
+	auth, err = key.
 		WithCredits(ctx, 1).
 		WithIPWhitelist().
 		WithPermissions(ctx, rbac.PermissionQuery{}).
 		// WithRateLimits(ctx, req.Ratelimits).
 		Result()
+
+	res.Data.Code = auth.Status
+	res.Data.Valid = auth.Valid
 
 	return s.JSON(http.StatusOK, res)
 }

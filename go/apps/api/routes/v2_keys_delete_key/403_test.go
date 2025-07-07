@@ -23,11 +23,10 @@ func TestKeyDeleteForbidden(t *testing.T) {
 	ctx := context.Background()
 
 	route := &handler.Handler{
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Logger:      h.Logger,
-		Permissions: h.Permissions,
-		Auditlogs:   h.Auditlogs,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Logger:    h.Logger,
+		Auditlogs: h.Auditlogs,
 	}
 
 	h.Register(route)
@@ -117,10 +116,6 @@ func TestKeyDeleteForbidden(t *testing.T) {
 		Meta:              sql.NullString{Valid: false},
 		Expires:           sql.NullTime{Valid: false},
 		RemainingRequests: sql.NullInt32{Valid: true, Int32: 100},
-		RatelimitAsync:    sql.NullBool{Valid: false},
-		RatelimitLimit:    sql.NullInt32{Valid: false},
-		RatelimitDuration: sql.NullInt64{Valid: false},
-		Environment:       sql.NullString{Valid: false},
 	})
 	require.NoError(t, err)
 

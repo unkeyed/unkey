@@ -3,7 +3,6 @@ package keys
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -77,19 +76,15 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		Permissions: permissions,
 	}
 
-	log.Printf("keyRoles: %#v keyPerms: %#v ratelimits: %#v %s", roles, permissions, ratelimits, string(key.Ratelimits.([]byte)))
-
 	if key.DeletedAtM.Valid {
 		kv.Status = openapi.NOTFOUND
 		kv.Valid = false
-
 		return kv, nil
 	}
 
 	if !key.Enabled {
 		kv.Status = openapi.DISABLED
 		kv.Valid = false
-
 		return kv, nil
 	}
 

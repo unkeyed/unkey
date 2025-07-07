@@ -3,6 +3,7 @@ package keys
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"strings"
 	"time"
 
@@ -48,7 +49,7 @@ func (k *KeyVerifier) WithCredits(ctx context.Context, cost int32) *KeyVerifier 
 	})
 	if err != nil {
 		k.error = err
-		return nil
+		return k
 	}
 
 	k.Key.RemainingRequests = sql.NullInt32{Int32: usage.Remaining, Valid: true}
@@ -69,8 +70,15 @@ func (k *KeyVerifier) WithIPWhitelist() *KeyVerifier {
 		return k
 	}
 
+	// Validation
+	clientIP := k.session.Location()
+	if clientIP == "" {
+		k.error = errors.New("client IP is required for IP whitelist validation")
+		return k
+	}
+
 	allowedIPs := strings.Split(k.Key.IpWhitelist.String, ",")
-	if !slices.Contains(allowedIPs, k.session.Location()) {
+	if !slices.Contains(allowedIPs, clientIP) {
 		k.Valid = false
 		k.Status = openapi.FORBIDDEN
 	}
