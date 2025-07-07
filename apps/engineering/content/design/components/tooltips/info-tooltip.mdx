@@ -47,13 +47,15 @@ A simple example showing the most common use case.
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
+| `children` | `React.ReactNode` | `-` | The trigger element that activates the tooltip |
 | `content` | `React.ReactNode` | `-` | The content to display in the tooltip |
-| `position` | `TooltipPosition` | `-` | Configuration for tooltip positioning |
+| `variant` | `"primary" \| "inverted" \| "secondary" \| "muted"` | `"primary"` | The visual style variant for the tooltip |
+| `delayDuration` | `number` | `undefined` | Delay before showing the tooltip in milliseconds |
+| `position` | `TooltipPosition` | `{ side: "right", align: "center" }` | Configuration for tooltip positioning |
 | `disabled` | `boolean` | `false` | Whether the tooltip is disabled |
 | `asChild` | `boolean` | `false` | Whether to render the trigger as a child element |
-| `delayDuration` | `number` | `-` | Delay before showing the tooltip in milliseconds |
-| `variant` | `string` | `-` | Styling variant for the tooltip |
-| `className` | `string` | `-` | Additional CSS classes for the tooltip |
+| `className` | `string` | `undefined` | Additional CSS classes for the tooltip content |
+| `triggerClassName` | `string` | `undefined` | Additional CSS classes for the trigger element |
 
 ## Position Configuration
 

@@ -98,7 +98,17 @@ The most minimal styling for checkboxes that need less visual emphasis.
 ### Different Sizes
 Checkboxes can be sized appropriately for different UI needs.
 
+#### Small
+<SmallFormCheckboxVariant />
+
+#### Medium
+<MediumFormCheckboxVariant />
+
+#### Large
 <LargeFormCheckboxVariant />
+
+#### XLarge
+<XLargeFormCheckboxVariant />
 
 ### Complex Usage
 Example of FormCheckboxes with multiple props configured for a specific use case, such as a cookie consent form.
@@ -122,24 +132,24 @@ Example of FormCheckboxes with multiple props configured for a specific use case
 
 The FormCheckbox component extends the standard Checkbox component props with additional form-specific properties:
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `label` | `string` | - | The label text to display next to the checkbox |
-| `description` | `string \| React.ReactNode` | - | Optional helper text displayed below the checkbox |
-| `required` | `boolean` | - | Whether the field is required. Adds a "Required" indicator |
-| `optional` | `boolean` | - | Whether the field is optional. Adds an "Optional" indicator |
-| `error` | `string` | - | Error message to display. Overrides description and applies error styling |
-| `variant` | `"primary" \| "outline" \| "ghost"` | `"primary"` | The variant style to use for the checkbox |
-| `color` | `"default" \| "success" \| "warning" \| "danger" \| "info"` | - | The color scheme to use for the checkbox |
-| `size` | `"sm" \| "md" \| "lg" \| "xlg"` | `"md"` | The size of the checkbox |
-| `checked` | `boolean` | - | Whether the checkbox is checked |
-| `defaultChecked` | `boolean` | - | Default checked state when uncontrolled |
-| `disabled` | `boolean` | - | Whether the checkbox is disabled |
-| `name` | `string` | - | Name of the checkbox for form submission |
-| `value` | `string` | - | Value of the checkbox for form submission |
-| `onCheckedChange` | `(checked: boolean) => void` | - | Callback triggered when checkbox state changes |
-| `className` | `string` | - | Additional CSS classes to apply |
-| `id` | `string` | - | Unique identifier for the checkbox. Auto-generated if not provided |
+| Prop               | Type                                                                     | Default     | Description                                           |  
+|--------------------|--------------------------------------------------------------------------|-------------|-------------------------------------------------------|  
+| `label`            | `string`                                                                 | -           | The label text to display next to the checkbox        |  
+| `description`      | `string \| React.ReactNode`                                              | -           | Optional helper text displayed below the checkbox     |  
+| `required`         | `boolean`                                                                | -           | Whether the field is required. Adds a "Required" indicator |  
+| `optional`         | `boolean`                                                                | -           | Whether the field is optional. Adds an "Optional" indicator |  
+| `error`            | `string`                                                                 | -           | Error message to display. Overrides description and applies error styling |  
+| `variant`          | `"primary" \| "outline" \| "ghost"`                                      | `"primary"` | The variant style to use for the checkbox             |  
+| `color`            | `"default" \| "success" \| "warning" \| "danger" \| "info"`              | `"default"` | The color scheme to use for the checkbox              |  
+| `size`             | `"sm" \| "md" \| "lg" \| "xlg"`                                          | `"md"`      | The size of the checkbox                              |  
+| `checked`          | `boolean`                                                                | `false`     | Whether the checkbox is checked                       |  
+| `defaultChecked`   | `boolean`                                                                | -           | Default checked state when uncontrolled               |  
+| `disabled`         | `boolean`                                                                | -           | Whether the checkbox is disabled                      |  
+| `name`             | `string`                                                                 | -           | Name of the checkbox for form submission              |  
+| `value`            | `string`                                                                 | -           | Value of the checkbox for form submission             |  
+| `onCheckedChange`  | `(checked: boolean) => void`                                             | -           | Callback triggered when checkbox state changes        |  
+| `className`        | `string`                                                                 | -           | Additional CSS classes to apply                       |  
+| `id`               | `string`                                                                 | -           | Unique identifier for the checkbox. Auto-generated if not provided | 
 
 ## Variants
 
