@@ -166,7 +166,8 @@ export const RatelimitSetup = () => {
                       This rate limit rule will always be used.{" "}
                       <InlineLink
                         label="Learn more"
-                        target
+                        target="_blank"
+                        rel="noopener noreferrer"
                         href="https://unkey.com/docs/apis/features/ratelimiting/overview#auto-apply-vs-manual-ratelimits"
                       />
                       .
