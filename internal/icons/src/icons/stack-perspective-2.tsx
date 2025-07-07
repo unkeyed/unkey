@@ -12,20 +12,20 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const Refresh3: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
+export const StackPerspective2: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size];
 
   return (
     <svg
-      {...props}
       height={pixelSize}
       width={pixelSize}
       viewBox="0 0 18 18"
       xmlns="http://www.w3.org/2000/svg"
+      {...props}
     >
       <g fill="currentColor">
         <path
-          d="M16.12,14.695l-.408-2.945h-.002c-1.083,2.64-3.68,4.5-6.71,4.5-4.004,0-7.25-3.246-7.25-7.25"
+          d="M13.75,13.375l.691,.146c.932,.196,1.809-.515,1.809-1.468V4.619c0-.709-.497-1.322-1.191-1.468l-6.5-1.368c-.712-.15-1.388,.231-1.669,.843"
           fill="none"
           stroke="currentColor"
           strokeLinecap="round"
@@ -33,7 +33,7 @@ export const Refresh3: React.FC<IconProps> = ({ size = "xl-thin", ...props }) =>
           strokeWidth={strokeWidth}
         />
         <path
-          d="M1.88,3.305l.408,2.945h.002C3.373,3.61,5.969,1.75,9,1.75c4.004,0,7.25,3.246,7.25,7.25"
+          d="M3.559,4.479l6.5,1.368c.694,.146,1.191,.758,1.191,1.468v7.434c0,.953-.877,1.664-1.809,1.468l-6.5-1.368c-.694-.146-1.191-.758-1.191-1.468V5.947c0-.953,.877-1.664,1.809-1.468Z"
           fill="none"
           stroke="currentColor"
           strokeLinecap="round"
