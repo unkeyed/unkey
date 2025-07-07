@@ -7,6 +7,7 @@ import (
 )
 
 type KeyService interface {
+	Get(ctx context.Context, hash string) (KeyVerifier, error)
 	Verify(ctx context.Context, hash string) (VerifyResponse, error)
 	VerifyRootKey(ctx context.Context, sess *zen.Session) (VerifyResponse, error)
 	CreateKey(ctx context.Context, req CreateKeyRequest) (CreateKeyResponse, error)

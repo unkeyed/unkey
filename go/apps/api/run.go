@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/counter"
@@ -23,6 +24,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/prometheus"
+	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
 	"github.com/unkeyed/unkey/go/pkg/vault"
 	"github.com/unkeyed/unkey/go/pkg/vault/storage"
@@ -154,17 +156,6 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create validator: %w", err)
 	}
 
-	keySvc, err := keys.New(keys.Config{
-		Logger:         logger,
-		DB:             db,
-		Clock:          clk,
-		KeyCache:       caches.KeyByHash,
-		WorkspaceCache: caches.WorkspaceByID,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create key service: %w", err)
-	}
-
 	ctr, err := counter.NewRedis(counter.RedisConfig{
 		RedisURL: cfg.RedisUrl,
 		Logger:   logger,
@@ -180,6 +171,28 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create ratelimit service: %w", err)
+	}
+
+	ulSvc, err := usagelimiter.New(usagelimiter.Config{
+		Logger: logger,
+		DB:     db,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create usage limiter service: %w", err)
+	}
+
+	keySvc, err := keys.New(keys.Config{
+		Logger:         logger,
+		DB:             db,
+		Clock:          clk,
+		KeyCache:       caches.VerificationKeyByHash,
+		WorkspaceCache: caches.WorkspaceByID,
+		RateLimiter:    rlSvc,
+		UsageLimiter:   ulSvc,
+		RBAC:           rbac.New(),
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create key service: %w", err)
 	}
 
 	p, err := permissions.New(permissions.Config{
@@ -208,6 +221,11 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create vault service: %w", err)
 	}
 
+	auditlogSvc := auditlogs.New(auditlogs.Config{
+		Logger: logger,
+		DB:     db,
+	})
+
 	routes.Register(srv, &routes.Services{
 		Logger:      logger,
 		Database:    db,
@@ -216,12 +234,9 @@ func Run(ctx context.Context, cfg Config) error {
 		Validator:   validator,
 		Ratelimit:   rlSvc,
 		Permissions: p,
-		Auditlogs: auditlogs.New(auditlogs.Config{
-			Logger: logger,
-			DB:     db,
-		}),
-		Caches: caches,
-		Vault:  vaultSvc,
+		Auditlogs:   auditlogSvc,
+		Caches:      caches,
+		Vault:       vaultSvc,
 	})
 
 	go func() {
@@ -233,6 +248,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	return gracefulShutdown(ctx, logger, shutdowns)
 }
+
 func gracefulShutdown(ctx context.Context, logger logging.Logger, shutdowns *shutdown.Shutdowns) error {
 	cShutdown := make(chan os.Signal, 1)
 	signal.Notify(cShutdown, os.Interrupt, syscall.SIGTERM)
@@ -257,5 +273,6 @@ func gracefulShutdown(ctx context.Context, logger logging.Logger, shutdowns *shu
 	if len(errs) > 0 {
 		return fmt.Errorf("errors occurred during shutdown: %v", errs)
 	}
+
 	return nil
 }

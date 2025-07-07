@@ -247,10 +247,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			IdentityID:        sql.NullString{String: "", Valid: false},
 			Meta:              sql.NullString{String: "", Valid: false},
 			Expires:           sql.NullTime{Time: time.Time{}, Valid: false},
-			RatelimitAsync:    sql.NullBool{Bool: false, Valid: false},
-			RatelimitLimit:    sql.NullInt32{Int32: 0, Valid: false},
-			RatelimitDuration: sql.NullInt64{Int64: 0, Valid: false},
-			Environment:       sql.NullString{String: "", Valid: false},
 		}
 
 		// Set optional fields

@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -53,28 +54,44 @@ func New(t *testing.T) *Containers {
 	err = pool.Client.Ping()
 	require.NoError(t, err)
 
-	networks, err := pool.NetworksByName(networkName)
-	require.NoError(t, err)
-
-	var network *dockertest.Network
-	for _, found := range networks {
-		if found.Network.Name == networkName {
-			network = &found
-			break
-		}
-	}
-	if network == nil {
-		network, err = pool.CreateNetwork(networkName)
-		require.NoError(t, err)
-	}
-
 	c := &Containers{
-		t:       t,
-		pool:    pool,
-		network: network,
+		t:    t,
+		pool: pool,
 	}
+
+	network, err := c.getOrCreateNetwork(networkName, true)
+	require.NoError(t, err)
+	c.network = network
 
 	return c
+}
+
+// getOrCreateNetwork safely gets an existing network or creates a new one,
+// ignoring "network already exists" errors.
+func (c *Containers) getOrCreateNetwork(networkName string, retry bool) (*dockertest.Network, error) {
+	networks, err := c.pool.NetworksByName(networkName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if network already exists
+	for _, found := range networks {
+		if found.Network.Name == networkName {
+			return &found, nil
+		}
+	}
+
+	// Network doesn't exist, create it
+	network, err := c.pool.CreateNetwork(networkName)
+	if err != nil {
+		if strings.Contains(err.Error(), "API error (409)") && retry {
+			return c.getOrCreateNetwork(networkName, false)
+		}
+
+		return nil, err
+	}
+
+	return network, nil
 }
 
 // getOrCreateContainer safely gets an existing container or creates a new one,
@@ -95,13 +112,14 @@ func (c *Containers) getOrCreateContainer(containerName string, runOpts *dockert
 		if exists {
 			return resource, false, nil
 		}
+
 		resource, err = c.pool.RunWithOptions(runOpts)
 		if err == nil {
 			return resource, true, nil
 		}
+
 		time.Sleep(time.Duration(i) * time.Second)
-
 	}
-	return nil, false, fault.Wrap(err, fault.Internal("exceeded retries already"))
 
+	return nil, false, fault.Wrap(err, fault.Internal("exceeded retries already"))
 }

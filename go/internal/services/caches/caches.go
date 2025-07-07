@@ -25,6 +25,10 @@ type Caches struct {
 	// Keys are string (hash) and values are db.Key.
 	KeyByHash cache.Cache[string, db.Key]
 
+	// VerificationKeyByHash caches verification key lookups by their hash.
+	// Keys are string (hash) and values are db.VerificationKey.
+	VerificationKeyByHash cache.Cache[string, db.FindKeyForVerificationRow]
+
 	// PermissionsByKeyId caches permission strings for a given key ID.
 	// Keys are string (key ID) and values are slices of string representing permissions.
 	PermissionsByKeyId cache.Cache[string, []string]
@@ -77,7 +81,6 @@ type Config struct {
 //	// Use the caches
 //	key, err := caches.KeyByHash.Get(ctx, "some-hash")
 func New(config Config) (Caches, error) {
-
 	ratelimitNamespace, err := cache.New(cache.Config[db.FindRatelimitNamespaceByNameParams, db.RatelimitNamespace]{
 		Fresh:    time.Minute,
 		Stale:    24 * time.Hour,
@@ -109,6 +112,19 @@ func New(config Config) (Caches, error) {
 		MaxSize: 1_000_000,
 
 		Resource: "key_by_hash",
+		Clock:    config.Clock,
+	})
+	if err != nil {
+		return Caches{}, err
+	}
+
+	verificationKeyByHash, err := cache.New(cache.Config[string, db.FindKeyForVerificationRow]{
+		Fresh:   10 * time.Second,
+		Stale:   24 * time.Hour,
+		Logger:  config.Logger,
+		MaxSize: 1_000_000,
+
+		Resource: "verification_key_by_hash",
 		Clock:    config.Clock,
 	})
 	if err != nil {
@@ -175,5 +191,6 @@ func New(config Config) (Caches, error) {
 		WorkspaceByID:            middleware.WithTracing(workspaceByID),
 		ApiByID:                  middleware.WithTracing(apiById),
 		IdentityByID:             middleware.WithTracing(identityByID),
+		VerificationKeyByHash:    middleware.WithTracing(verificationKeyByHash),
 	}, nil
 }

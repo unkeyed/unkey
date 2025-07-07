@@ -101,10 +101,6 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 		RemainingRequests: sql.NullInt32{Int32: 0, Valid: false},
 		RefillDay:         sql.NullInt16{Int16: 0, Valid: false},
 		RefillAmount:      sql.NullInt32{Int32: 0, Valid: false},
-		RatelimitAsync:    sql.NullBool{Bool: false, Valid: false},
-		RatelimitLimit:    sql.NullInt32{Int32: 0, Valid: false},
-		RatelimitDuration: sql.NullInt64{Int64: 0, Valid: false},
-		Environment:       sql.NullString{String: "", Valid: false},
 	}
 
 	err := db.Query.InsertKey(ctx, s.DB.RW(), insertKeyParams)

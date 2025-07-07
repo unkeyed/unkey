@@ -109,10 +109,6 @@ func TestNotFound(t *testing.T) {
 			Meta:              sql.NullString{Valid: false},
 			Expires:           sql.NullTime{Valid: false},
 			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
 		})
 		require.NoError(t, err)
 
@@ -172,10 +168,6 @@ func TestNotFound(t *testing.T) {
 			Meta:              sql.NullString{Valid: false},
 			Expires:           sql.NullTime{Valid: false},
 			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
 		})
 		require.NoError(t, err)
 
@@ -237,10 +229,6 @@ func TestNotFound(t *testing.T) {
 			Meta:              sql.NullString{Valid: false},
 			Expires:           sql.NullTime{Valid: false},
 			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
 		})
 		require.NoError(t, err)
 
@@ -311,10 +299,6 @@ func TestNotFound(t *testing.T) {
 			Meta:              sql.NullString{Valid: false},
 			Expires:           sql.NullTime{Valid: false},
 			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
 		})
 		require.NoError(t, err)
 
@@ -382,10 +366,6 @@ func TestNotFound(t *testing.T) {
 			Meta:              sql.NullString{Valid: false},
 			Expires:           sql.NullTime{Valid: false},
 			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
 		})
 		require.NoError(t, err)
 

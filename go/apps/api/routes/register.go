@@ -40,6 +40,7 @@ import (
 	v2KeysSetPermissions "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_set_permissions"
 	v2KeysSetRoles "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_set_roles"
 	v2KeysUpdateCredits "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_update_credits"
+	v2KeysVerifyKey "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_verify_key"
 
 	zen "github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -337,6 +338,19 @@ func Register(srv *zen.Server, svc *Services) {
 
 	// ---------------------------------------------------------------------------
 	// v2/keys
+
+	// v2/keys.verifyKey
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v2KeysVerifyKey.Handler{
+			Logger:      svc.Logger,
+			ClickHouse:  svc.ClickHouse,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Permissions: svc.Permissions,
+			Auditlogs:   svc.Auditlogs,
+		},
+	)
 
 	// v2/keys.createKey
 	srv.RegisterRoute(

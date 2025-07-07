@@ -1,57 +1,63 @@
 -- name: FindKeyForVerification :one
-WITH direct_permissions AS (
-    SELECT kp.key_id, p.name as permission_name
-    FROM keys_permissions kp
-    JOIN permissions p ON kp.permission_id = p.id
-),
-role_permissions AS (
-    SELECT kr.key_id, p.name as permission_name
-    FROM keys_roles kr
-    JOIN roles_permissions rp ON kr.role_id = rp.role_id
-    JOIN permissions p ON rp.permission_id = p.id
-),
-all_permissions AS (
-    SELECT * FROM direct_permissions
-    UNION
-    SELECT * FROM role_permissions
-),
-all_ratelimits AS (
-    SELECT
-        key_id as target_id,
-        'key' as target_type,
-        name,
-        `limit`,
-        duration
-    FROM ratelimits
-    WHERE key_id IS NOT NULL
-    UNION
-    SELECT
-        identity_id as target_id,
-        'identity' as target_type,
-        name,
-        `limit`,
-        duration
-    FROM ratelimits
-    WHERE identity_id IS NOT NULL
-)
-SELECT
-    sqlc.embed(k),
-    sqlc.embed(i),
-    JSON_ARRAYAGG(
-        JSON_OBJECT(
-            'target_type', rl.target_type,
-            'name', rl.name,
-            'limit', rl.limit,
-            'duration', rl.duration
-        )
-    ) as ratelimits,
-    GROUP_CONCAT(DISTINCT perms.permission_name) as permissions
-FROM `keys` k
-LEFT JOIN identities i ON k.identity_id = i.id
-LEFT JOIN all_permissions perms ON k.id = perms.key_id
-LEFT JOIN all_ratelimits rl ON (
-    (rl.target_type = 'key' AND rl.target_id = k.id) OR
-    (rl.target_type = 'identity' AND rl.target_id = k.identity_id)
-)
-WHERE k.hash = ?
-GROUP BY k.id;
+select k.id,
+       k.key_auth_id,
+       k.workspace_id,
+       k.for_workspace_id,
+       k.name,
+       k.meta,
+       k.expires,
+       k.deleted_at_m,
+       k.refill_day,
+       k.refill_amount,
+       k.last_refill_at,
+       k.enabled,
+       k.remaining_requests,
+       a.ip_whitelist,
+       a.id as api_id,
+       a.deleted_at_m as api_deleted_at_m,
+
+       COALESCE(
+          (SELECT JSON_ARRAYAGG(name)
+                 FROM (SELECT name
+                       FROM keys_roles kr
+                                JOIN roles r ON r.id = kr.role_id
+                       WHERE kr.key_id = k.id) as roles),
+                JSON_ARRAY()
+       ) as roles,
+
+       COALESCE((SELECT JSON_ARRAYAGG(slug)
+                 FROM (SELECT slug
+                       FROM keys_permissions kp
+                                JOIN permissions p ON kp.permission_id = p.id
+                       WHERE kp.key_id = k.id) as direct_perms
+                 UNION ALL
+                 SELECT slug
+                 FROM (SELECT slug
+                       FROM keys_roles kr
+                                JOIN roles_permissions rp ON kr.role_id = rp.role_id
+                                JOIN permissions p ON rp.permission_id = p.id
+                       WHERE kr.key_id = k.id) as role_permissions),
+                JSON_ARRAY()
+       ) as perms,
+
+       coalesce(
+               (select json_arrayagg(json_array(rl.id, rl.name, rl.key_id, rl.identity_id, rl.limit, rl.duration, rl.auto_apply))
+                from `ratelimits` rl
+                where rl.key_id = k.id
+                   OR rl.identity_id = i.id),
+               json_array()
+       ) as `ratelimits`,
+
+       i.external_id,
+       i.meta as identity_meta,
+       sqlc.embed(ka),
+       ws.enabled as workspace_enabled,
+       fws.enabled as for_workspace_enabled
+from `keys` k
+        JOIN apis a USING(key_auth_id)
+        LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = 0
+        JOIN key_auth ka ON ka.id = k.key_auth_id
+        JOIN workspaces ws ON ws.id = k.workspace_id
+        LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
+where k.hash = ?
+  and k.deleted_at_m is null;

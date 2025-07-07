@@ -2,7 +2,10 @@ package keys
 
 import (
 	"context"
+	"log"
+	"time"
 
+	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/codes"
@@ -11,6 +14,60 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 )
+
+func (s *service) Get(ctx context.Context, rawKey string) (KeyVerifier, error) {
+	ctx, span := tracing.Start(ctx, "keys.VerifyRootKey")
+	defer span.End()
+
+	err := assert.NotEmpty(rawKey)
+	if err != nil {
+		return KeyVerifier{}, fault.Wrap(err, fault.Internal("rawKey is empty"))
+	}
+	h := hash.Sha256(rawKey)
+
+	key, err := s.keyCache.SWR(ctx, h, func(ctx context.Context) (db.FindKeyForVerificationRow, error) {
+		return db.Query.FindKeyForVerification(ctx, s.db.RO(), h)
+	}, caches.DefaultFindFirstOp)
+
+	if err != nil {
+		if db.IsNotFound(err) {
+			return KeyVerifier{
+				Valid:  false,
+				Status: openapi.NOTFOUND,
+			}, nil
+		}
+
+		return KeyVerifier{}, fault.Wrap(
+			err,
+			fault.Internal("unable to load key"),
+			fault.Public("We could not load the requested key."),
+		)
+	}
+
+	log.Printf("key: %#v", key)
+
+	kv := KeyVerifier{
+		Key:          key,
+		rateLimiter:  s.raterLimiter,
+		usageLimiter: s.usageLimiter,
+		rBAC:         s.rbac,
+		// By default we assume the key is valid unless proven otherwise
+		Valid:  true,
+		Status: openapi.VALID,
+	}
+
+	if !key.Enabled {
+		kv.Status = openapi.DISABLED
+		kv.Valid = false
+	}
+
+	if key.Expires.Valid && time.Now().After(key.Expires.Time) {
+		kv.Status = openapi.EXPIRED
+		kv.Valid = false
+	}
+
+	return kv, nil
+}
 
 func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, error) {
 	ctx, span := tracing.Start(ctx, "keys.VerifyRootKey")
@@ -22,8 +79,8 @@ func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, er
 	}
 	h := hash.Sha256(rawKey)
 
-	key, err := s.keyCache.SWR(ctx, h, func(ctx context.Context) (db.Key, error) {
-		return db.Query.FindKeyByHash(ctx, s.db.RO(), h)
+	key, err := s.keyCache.SWR(ctx, h, func(ctx context.Context) (db.FindKeyForVerificationRow, error) {
+		return db.Query.FindKeyForVerification(ctx, s.db.RO(), h)
 	}, caches.DefaultFindFirstOp)
 
 	if db.IsNotFound(err) {
@@ -76,30 +133,7 @@ func (s *service) Verify(ctx context.Context, rawKey string) (VerifyResponse, er
 		authorizedWorkspaceID = key.ForWorkspaceID.String
 	}
 
-	ws, err := s.workspaceCache.SWR(ctx, authorizedWorkspaceID, func(ctx context.Context) (db.Workspace, error) {
-		return db.Query.FindWorkspaceByID(ctx, s.db.RW(), authorizedWorkspaceID)
-	}, caches.DefaultFindFirstOp)
-
-	if db.IsNotFound(err) {
-		return VerifyResponse{}, fault.New(
-			"workspace not found",
-			fault.Code(codes.Data.Workspace.NotFound.URN()),
-			fault.Internal("workspace not found"),
-			fault.Public("The requested workspace does not exist."),
-		)
-	}
-	if err != nil {
-		s.logger.Error("unable to load workspace",
-			"error", err.Error())
-		return VerifyResponse{}, fault.Wrap(
-			err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("unable to load workspace"),
-			fault.Public("We could not load the requested workspace."),
-		)
-	}
-
-	if !ws.Enabled {
+	if !key.WorkspaceEnabled || (key.ForWorkspaceEnabled.Valid && !key.ForWorkspaceEnabled.Bool) {
 		return VerifyResponse{}, fault.New(
 			"workspace is disabled",
 			fault.Code(codes.Auth.Authorization.WorkspaceDisabled.URN()),

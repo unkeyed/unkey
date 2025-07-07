@@ -14,11 +14,13 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/counter"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/vault"
@@ -84,15 +86,6 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
-	keyService, err := keys.New(keys.Config{
-		Logger:         logger,
-		DB:             db,
-		Clock:          clk,
-		KeyCache:       caches.KeyByHash,
-		WorkspaceCache: caches.WorkspaceByID,
-	})
-	require.NoError(t, err)
-
 	// Start ClickHouse container with migrations
 	chDSN, _ := cont.RunClickHouse()
 
@@ -127,6 +120,24 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
+	ulSvc, err := usagelimiter.New(usagelimiter.Config{
+		Logger: logger,
+		DB:     db,
+	})
+	require.NoError(t, err)
+
+	keyService, err := keys.New(keys.Config{
+		Logger:         logger,
+		DB:             db,
+		Clock:          clk,
+		KeyCache:       caches.VerificationKeyByHash,
+		WorkspaceCache: caches.WorkspaceByID,
+		RateLimiter:    ratelimitService,
+		UsageLimiter:   ulSvc,
+		RBAC:           rbac.New(),
+	})
+	require.NoError(t, err)
+
 	s3 := cont.RunS3(t)
 
 	vaultStorage, err := storage.NewS3(storage.S3Config{
@@ -147,6 +158,11 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
+	auditLogSvc := auditlogs.New(auditlogs.Config{
+		DB:     db,
+		Logger: logger,
+	})
+
 	// Create seeder
 	seeder := seed.New(t, db)
 
@@ -166,11 +182,8 @@ func NewHarness(t *testing.T) *Harness {
 		DB:          db,
 		seeder:      seeder,
 		Clock:       clk,
-		Auditlogs: auditlogs.New(auditlogs.Config{
-			DB:     db,
-			Logger: logger,
-		}),
-		Caches: caches,
+		Auditlogs:   auditLogSvc,
+		Caches:      caches,
 		middleware: []zen.Middleware{
 			zen.WithTracing(),
 			zen.WithLogging(logger),
