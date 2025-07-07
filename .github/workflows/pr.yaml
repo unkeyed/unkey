@@ -1,6 +1,7 @@
 name: PR
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches: [main]
   merge_group:
     branches: [main]
@@ -13,29 +14,29 @@ permissions:
   contents: read
 jobs:
   detect_changes:
-    if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
+    if: github.event.pull_request.draft == false
     uses: ./.github/workflows/job_detect_changes.yaml
 
   test_packages:
     name: Test Packages
-    if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
+    if: github.event.pull_request.draft == false
     uses: ./.github/workflows/job_test_unit.yaml
 
   build:
     name: Build
-    if: (github.event.pull_request.draft == false || github.event_name != 'pull_request') && needs.detect_changes.outputs.api == 'true'
+    if: github.event.pull_request.draft == false && needs.detect_changes.outputs.api == 'true'
     needs: [detect_changes]
     uses: ./.github/workflows/build.yaml
 
   test_api:
     name: Test API
-    if: (github.event.pull_request.draft == false || github.event_name != 'pull_request') && needs.detect_changes.outputs.api == 'true'
+    if: github.event.pull_request.draft == false && needs.detect_changes.outputs.api == 'true'
     needs: [detect_changes]
     uses: ./.github/workflows/job_test_api_local.yaml
 
   test_agent_local:
     name: Test Agent Local
-    if: (github.event.pull_request.draft == false || github.event_name != 'pull_request') && needs.detect_changes.outputs.agent == 'true'
+    if: github.event.pull_request.draft == false && needs.detect_changes.outputs.agent == 'true'
     needs: [detect_changes]
     uses: ./.github/workflows/job_test_agent_local.yaml
   # test_agent_integration:
@@ -62,6 +63,6 @@ jobs:
 
   test_go_api_local:
     name: Test Go API Local
-    if: (github.event.pull_request.draft == false || github.event_name != 'pull_request') && needs.detect_changes.outputs.api == 'true'
+    if: github.event.pull_request.draft == false && needs.detect_changes.outputs.api == 'true'
     needs: [detect_changes]
     uses: ./.github/workflows/job_test_go_api_local.yaml
