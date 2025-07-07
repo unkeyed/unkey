@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Refresh3, StackPerspective2, Trash } from "@unkey/icons";
 import { Button, FormInput } from "@unkey/ui";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import type { OnboardingStep } from "../components/onboarding-wizard";
@@ -24,6 +24,7 @@ const workspaceSchema = z.object({
 type WorkspaceFormData = z.infer<typeof workspaceSchema>;
 
 export const useWorkspaceStep = (): OnboardingStep => {
+  const [isSlugGenerated, setIsSlugGenerated] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   const form = useForm<WorkspaceFormData>({
@@ -39,11 +40,12 @@ export const useWorkspaceStep = (): OnboardingStep => {
     console.info("Workspace form submitted:", data);
   };
 
-  const filledInputCount = Object.keys(form.formState.touchedFields).filter(
-    (field) =>
-      !form.formState.errors[field as keyof WorkspaceFormData] &&
-      form.getValues(field as keyof WorkspaceFormData),
-  ).length;
+  const validFieldCount = Object.keys(form.getValues()).filter((field) => {
+    const fieldName = field as keyof WorkspaceFormData;
+    const hasError = Boolean(form.formState.errors[fieldName]);
+    const hasValue = Boolean(form.getValues(fieldName));
+    return !hasError && hasValue;
+  }).length;
 
   return {
     name: "Workspace",
@@ -80,6 +82,13 @@ export const useWorkspaceStep = (): OnboardingStep => {
               {...form.register("workspaceName")}
               placeholder="Enter workspace name"
               label="Workspace name"
+              onBlur={(evt) => {
+                if (!isSlugGenerated) {
+                  form.setValue("workspaceUrl", slugify(evt.currentTarget.value));
+                  form.trigger("workspaceUrl");
+                  setIsSlugGenerated(true);
+                }
+              }}
               required
               error={form.formState.errors.workspaceName?.message}
             />
@@ -96,8 +105,8 @@ export const useWorkspaceStep = (): OnboardingStep => {
       </form>
     ),
     kind: "required" as const,
-    filledInputCount,
-    totalInputCount: 2,
+    validFieldCount,
+    requiredFieldCount: 2,
     buttonText: "Continue",
     description: "Set up your workspace to get started",
     onStepNext: () => {
@@ -107,4 +116,14 @@ export const useWorkspaceStep = (): OnboardingStep => {
       console.info("Going back from workspace step");
     },
   };
+};
+
+const slugify = (text: string): string => {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "") // Remove special chars except spaces and hyphens
+    .replace(/\s+/g, "-") // Replace spaces with hyphens
+    .replace(/-+/g, "-") // Replace multiple hyphens with single
+    .replace(/^-|-$/g, ""); // Remove leading/trailing hyphens
 };

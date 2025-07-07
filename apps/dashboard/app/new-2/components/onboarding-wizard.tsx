@@ -3,33 +3,42 @@ import { Button, Separator } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { CircleProgress } from "./circle-progress";
 
-export type OnboardingStep =
+export type OnboardingStep = {
+  /** Display name of the step shown in the navigation */
+  name: string;
+  /** Icon component displayed next to the step name */
+  icon: JSX.Element;
+  /** Main content/form rendered for this step */
+  body: React.ReactNode;
+  /** Callback fired when user clicks next/continue button */
+  onStepNext?: (currentStep: number) => void;
+  /** Callback fired when user clicks back button */
+  onStepBack?: (currentStep: number) => void;
+  /** Description text shown below the main button */
+  description: string;
+  /** Text displayed on the primary action button */
+  buttonText: string;
+} & (
   | {
-      name: string;
-      icon: JSX.Element;
-      body: React.ReactNode;
-      onStepNext?: (currentStep: number) => void;
-      onStepBack?: (currentStep: number) => void;
-      description: string;
-      buttonText: string;
+      /** Step type - no validation required, can be skipped */
       kind: "non-required";
     }
   | {
-      name: string;
-      icon: JSX.Element;
-      body: React.ReactNode;
-      onStepNext?: (currentStep: number) => void;
-      onStepBack?: (currentStep: number) => void;
-      description: string;
-      buttonText: string;
+      /** Step type - has form validation, must be completed */
       kind: "required";
-      filledInputCount: number;
-      totalInputCount: number;
-    };
+      /** Number of fields that are valid (no errors and have values) */
+      validFieldCount: number;
+      /** Total number of required fields that must be completed */
+      requiredFieldCount: number;
+    }
+);
 
 export type OnboardingWizardProps = {
+  /** Array of steps to display in the wizard. Must contain at least one step. */
   steps: OnboardingStep[];
+  /** Callback fired when the wizard is completed (user clicks continue on last step) */
   onComplete?: () => void;
+  /** Callback fired whenever the current step changes */
   onStepChange?: (stepIndex: number) => void;
 };
 
@@ -104,15 +113,15 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
           {currentStep.kind === "required" ? (
             <div className="items-center flex gap-[10px]">
               <div className="items-center flex gap-1.5 text-xs">
-                <span className="font-medium text-gray-12">{currentStep.filledInputCount}</span>
+                <span className="font-medium text-gray-12">{currentStep.validFieldCount}</span>
                 <span className="text-gray-10">of</span>
-                <span className="font-medium text-gray-12">{currentStep.totalInputCount}</span>
+                <span className="font-medium text-gray-12">{currentStep.requiredFieldCount}</span>
                 <span className="text-gray-10">required fields</span>
               </div>
               <div className="flex-shrink-0">
                 <CircleProgress
-                  value={currentStep.filledInputCount}
-                  total={currentStep.totalInputCount}
+                  value={currentStep.validFieldCount}
+                  total={currentStep.requiredFieldCount}
                   size={CIRCLE_PROGRESS_SIZE}
                   strokeWidth={CIRCLE_PROGRESS_STROKE_WIDTH}
                 />
@@ -152,7 +161,7 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
           onClick={handleNext}
           disabled={
             currentStep.kind === "required"
-              ? currentStep.filledInputCount !== currentStep.totalInputCount
+              ? currentStep.validFieldCount !== currentStep.requiredFieldCount
               : false
           }
         >

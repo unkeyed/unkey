@@ -49,17 +49,36 @@ const inputWrapperVariants = cva("relative flex items-center w-full", {
 type DocumentedInputProps = VariantProps<typeof inputVariants> & {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  prefix?: string;
   wrapperClassName?: string;
 };
 
 type InputProps = DocumentedInputProps & React.InputHTMLAttributes<HTMLInputElement>;
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, variant, type, leftIcon, rightIcon, wrapperClassName, ...props }, ref) => {
+  ({ className, variant, type, leftIcon, rightIcon, prefix, wrapperClassName, ...props }, ref) => {
+    const prefixRef = React.useRef<HTMLSpanElement>(null);
+    const [prefixWidth, setPrefixWidth] = React.useState(0);
+
+    React.useEffect(() => {
+      if (prefix && prefixRef.current) {
+        setPrefixWidth(prefixRef.current.offsetWidth);
+      }
+    }, [prefix]);
+
     return (
       <div className={cn(inputWrapperVariants({ variant }), wrapperClassName)}>
         {leftIcon && (
           <div className="absolute left-3 flex items-center pointer-events-none">{leftIcon}</div>
+        )}
+        {prefix && (
+          <span
+            ref={prefixRef}
+            className="absolute left-3 flex items-center pointer-events-none text-[13px] leading-5 opacity-40 select-none"
+            style={{ zIndex: 1 }}
+          >
+            {prefix}
+          </span>
         )}
         <input
           type={type}
@@ -68,7 +87,11 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             "px-3 py-2",
             leftIcon && "pl-9",
             rightIcon && "pr-9",
+            prefix && !leftIcon && "pl-3",
           )}
+          style={{
+            paddingLeft: prefix && !leftIcon ? `${prefixWidth + 12}px` : undefined,
+          }}
           ref={ref}
           {...props}
         />

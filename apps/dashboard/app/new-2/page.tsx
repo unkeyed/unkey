@@ -16,8 +16,8 @@ export default function OnboardingPage() {
       icon: <StackPerspective2 size="sm-regular" className="text-gray-11" />,
       body: <div>API Key form content</div>,
       kind: "required" as const,
-      filledInputCount: 0,
-      totalInputCount: 1,
+      validFieldCount: 0,
+      requiredFieldCount: 1,
       description: "Next: you’ll create your first API key",
       buttonText: "Continue",
     },
@@ -42,7 +42,7 @@ export default function OnboardingPage() {
   const currentStepInfo = stepInfos[currentStepIndex];
 
   return (
-    <div className="flex flex-col items-center justify-center pt-6">
+    <div className="min-h-screen flex flex-col items-center pt-6">
       {/* Unkey Logo */}
       <div className="text-2xl font-medium text-gray-12 leading-7">Unkey</div>
       {/* Spacer */}
@@ -72,6 +72,7 @@ export default function OnboardingPage() {
           onComplete={handleComplete}
           onStepChange={handleStepChange}
         />
+        <div className="mb-10" />
       </div>
     </div>
   );
