@@ -24,9 +24,7 @@ export interface InlineLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorEl
    * Additional CSS classes to apply to the link.
    */
   className?: string;
-
-  
-};
+}
 const InlineLink: React.FC<InlineLinkProps> = ({
   className,
   label,
