@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/hydra/store"
 	"github.com/unkeyed/unkey/go/pkg/hydra/testharness"
 )
 
@@ -117,9 +118,12 @@ func TestStepExecutesExactlyOnce(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 
 		// Check if workflow has been picked up
-		currentStatus, err := e.store.GetWorkflow(context.Background(), e.GetNamespace(), executionID)
+		currentStatus, err := store.Query.GetWorkflow(context.Background(), e.GetDB(), store.GetWorkflowParams{
+			ID:        executionID,
+			Namespace: e.GetNamespace(),
+		})
 		require.NoError(t, err)
-		if currentStatus.Status != WorkflowStatusPending {
+		if currentStatus.Status != store.WorkflowExecutionsStatusPending {
 			break
 		}
 	}

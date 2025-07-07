@@ -61,6 +61,7 @@ export const createWorkspace = t.procedure
       createdAtM: Date.now(),
       updatedAtM: null,
       deletedAtM: null,
+      partitionId: null,
     };
 
     await db

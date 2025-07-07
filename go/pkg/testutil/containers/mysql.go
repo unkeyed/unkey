@@ -3,20 +3,23 @@ package containers
 import (
 	"database/sql"
 	"fmt"
-	"strings"
+	"os"
+	"path/filepath"
+	"runtime"
+	"time"
 
 	mysql "github.com/go-sql-driver/mysql"
 	"github.com/ory/dockertest/v3"
-	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/ory/dockertest/v3/docker"
 
 	"github.com/stretchr/testify/require"
 )
 
-// RunMySQL starts a MySQL container and returns a database connection string (DSN).
+// RunMySQL starts a MySQL container and returns MySQL config structs without database names.
 //
 // The method starts a containerized MySQL instance, waits until it's ready to accept
-// connections, creates the necessary database schema, and then returns a properly
-// formatted DSN that can be used to connect to the database.
+// connections, creates the necessary database schemas (unkey and hydra), and then returns
+// MySQL config structs that can be used to connect to specific databases.
 //
 // Thread safety:
 //   - This method is not thread-safe and should be called from a single goroutine.
@@ -28,11 +31,11 @@ import (
 //
 // Side effects:
 //   - Creates a Docker container that will persist until test cleanup.
-//   - Creates a database with the Unkey schema.
+//   - Creates databases for both unkey and hydra schemas.
 //   - Registers cleanup functions with the test to remove resources after test completion.
 //
 // Returns:
-//   - A MySQL DSN string that can be used with sql.Open or similar functions
+//   - MySQL config structs without database names that can be used by setting DBName
 //
 // The method will automatically register cleanup functions with the test to ensure
 // that the container is stopped and removed when the test completes, regardless of success
@@ -42,15 +45,17 @@ import (
 //
 //	func TestDatabaseOperations(t *testing.T) {
 //	    containers := testutil.NewContainers(t)
-//	    dsn := containers.RunMySQL()
+//	    hostCfg, dockerCfg := containers.RunMySQL()
 //
-//	    // Connect to the database using the DSN
-//	    db, err := sql.Open("mysql", dsn)
+//	    // Connect to the unkey database
+//	    hostCfg.DBName = "unkey"
+//	    db, err := sql.Open("mysql", hostCfg.FormatDSN())
 //	    if err != nil {
 //	        t.Fatal(err)
 //	    }
 //
-//	    // Now use the database for testing
+//	    // Connect to the hydra database
+//	    dockerCfg.DBName = "hydra"
 //	    // ...
 //
 //	    // No need to clean up - it happens automatically when the test finishes
@@ -58,23 +63,39 @@ import (
 //
 // Note: This function requires Docker to be installed and running on the system
 // where tests are executed. It will fail if Docker is not available.
-func (c *Containers) RunMySQL() (hostDsn, dockerDsn string) {
-	c.t.Helper()
+func (c *Containers) RunMySQL() (hostCfg, dockerCfg *mysql.Config) {
 
+	_, err := c.pool.Client.InspectImage(containerNameMySQL)
+	if err != nil {
+		// Get the path to the current file
+		_, currentFilePath, _, _ := runtime.Caller(0)
+
+		// We're going from go/pkg/testutil/containers/ up to unkey/
+		projectRoot := filepath.Join(filepath.Dir(currentFilePath), "../../../..")
+
+		t0 := time.Now()
+		// nolint:exhaustruct
+		err = c.pool.Client.BuildImage(docker.BuildImageOptions{
+			Name:         containerNameMySQL,
+			Dockerfile:   "deployment/Dockerfile.mysql",
+			ContextDir:   projectRoot,
+			OutputStream: os.Stdout,
+			ErrorStream:  os.Stderr,
+		})
+		require.NoError(c.t, err)
+		c.t.Logf("Building mysql took %s\n", time.Since(t0))
+	}
 	runOpts := &dockertest.RunOptions{
 		Name:       containerNameMySQL,
-		Repository: "mysql",
+		Repository: containerNameMySQL,
 		Tag:        "latest",
 		Env: []string{
-			"MYSQL_ROOT_PASSWORD=root",
-			"MYSQL_DATABASE=unkey",
-			"MYSQL_USER=unkey",
-			"MYSQL_PASSWORD=password",
+			"MYSQL_ALLOW_EMPTY_PASSWORD=yes",
 		},
 		Networks: []*dockertest.Network{c.network},
 	}
 
-	resource, isNew, err := c.getOrCreateContainer(containerNameMySQL, runOpts)
+	resource, _, err := c.getOrCreateContainer(containerNameMySQL, runOpts)
 	require.NoError(c.t, err)
 
 	cfg := mysql.NewConfig()
@@ -82,11 +103,16 @@ func (c *Containers) RunMySQL() (hostDsn, dockerDsn string) {
 	cfg.Passwd = "password"
 	cfg.Net = "tcp"
 	cfg.Addr = fmt.Sprintf("localhost:%s", resource.GetPort("3306/tcp"))
-	cfg.DBName = "unkey"
+	cfg.DBName = "" // Explicitly no database name in base DSN
 	cfg.ParseTime = true
 	cfg.Logger = &mysql.NopLogger{}
 
 	var conn *sql.DB
+	defer func() {
+		if conn != nil {
+			require.NoError(c.t, conn.Close())
+		}
+	}()
 	require.NoError(c.t, c.pool.Retry(func() error {
 
 		connector, err2 := mysql.NewConnector(cfg)
@@ -103,29 +129,16 @@ func (c *Containers) RunMySQL() (hostDsn, dockerDsn string) {
 		return nil
 	}))
 
-	defer func() {
-		require.NoError(c.t, conn.Close())
-	}()
+	hostCfg = cfg
 
-	// Only run schema migrations for new containers
-	if isNew {
-		// Creating the database tables
-		queries := strings.Split(string(db.Schema), ";")
-		for _, query := range queries {
-			query = strings.TrimSpace(query)
-			if query == "" {
-				continue
-			}
-			// Add the semicolon back
-			query += ";"
+	dockerCfg = mysql.NewConfig()
+	dockerCfg.User = cfg.User
+	dockerCfg.Passwd = cfg.Passwd
+	dockerCfg.Net = cfg.Net
+	dockerCfg.Addr = fmt.Sprintf("%s:3306", resource.GetIPInNetwork(c.network))
+	dockerCfg.DBName = "" // Explicitly no database name in base config
+	dockerCfg.ParseTime = cfg.ParseTime
+	dockerCfg.Logger = cfg.Logger
 
-			_, err = conn.Exec(query)
-			require.NoError(c.t, err)
-
-		}
-	}
-	hostDsn = cfg.FormatDSN()
-	cfg.Addr = fmt.Sprintf("%s:3306", resource.GetIPInNetwork(c.network))
-	dockerDsn = cfg.FormatDSN()
-	return hostDsn, dockerDsn
+	return hostCfg, dockerCfg
 }
