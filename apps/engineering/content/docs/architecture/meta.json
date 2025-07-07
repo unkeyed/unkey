@@ -2,6 +2,6 @@
   "title": "Architecture",
   "description": "How does Unkey work",
   "icon": "Pencil",
-  "root": true,
+  "root": false,
   "pages": ["index", "---Services---"]
 }

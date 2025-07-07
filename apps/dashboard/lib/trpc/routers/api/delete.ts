@@ -42,6 +42,14 @@ export const deleteApi = t.procedure
           "This API has delete protection enabled. Please disable it before deleting the API.",
       });
     }
+    const keyAuthId = api.keyAuthId;
+    if (!keyAuthId) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message:
+          "This API is missing required authentication configuration and cannot be deleted. Please contact support@unkey.dev",
+      });
+    }
     try {
       await db.transaction(async (tx) => {
         await tx
@@ -70,7 +78,7 @@ export const deleteApi = t.procedure
         });
 
         const keyIds = await tx.query.keys.findMany({
-          where: eq(schema.keys.keyAuthId, api.keyAuthId!),
+          where: eq(schema.keys.keyAuthId, keyAuthId),
           columns: { id: true },
         });
 
@@ -78,7 +86,7 @@ export const deleteApi = t.procedure
           await tx
             .update(schema.keys)
             .set({ deletedAtM: Date.now() })
-            .where(eq(schema.keys.keyAuthId, api.keyAuthId!));
+            .where(eq(schema.keys.keyAuthId, keyAuthId));
           await insertAuditLogs(
             tx,
             keyIds.map(({ id }) => ({

@@ -1,0 +1,242 @@
+name: Runbook Freshness Check
+
+permissions:
+  contents: read       # checkout + git log
+  issues: write        # create / update issues
+  pull-requests: write # allow comments if needed in the future
+
+on:
+  schedule:
+    # Run daily at 9 AM UTC
+    - cron: '0 9 * * *'
+  workflow_dispatch: # Allow manual trigger
+    inputs:
+      force_file:
+        description: 'Force create issue for specific runbook file (relative path from repo root)'
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  check-runbook-freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Get full history for git log
+
+      - name: Check runbook freshness and create issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { execSync } = require('child_process');
+            const fs = require('fs');
+            const path = require('path');
+            
+            const forceFile = '${{ github.event.inputs.force_file }}';
+            
+            // Find all runbook files or use forced file
+            const runbookDir = 'apps/engineering/content/docs/runbooks';
+            const findRunbooks = (dir) => {
+              const files = [];
+              const items = fs.readdirSync(dir, { withFileTypes: true });
+              
+              for (const item of items) {
+                const fullPath = path.join(dir, item.name);
+                if (item.isDirectory()) {
+                  files.push(...findRunbooks(fullPath));
+                } else if (item.name.endsWith('.mdx')) {
+                  files.push(fullPath);
+                }
+              }
+              return files;
+            };
+            
+            let runbookFiles = [];
+            if (forceFile) {
+              // Manual trigger for specific file
+              if (fs.existsSync(forceFile)) {
+                runbookFiles = [forceFile];
+                console.log(`🎯 Manual trigger for: ${forceFile}`);
+              } else {
+                throw new Error(`File not found: ${forceFile}`);
+              }
+            } else {
+              // Regular scan
+              runbookFiles = findRunbooks(runbookDir);
+              console.log(`📚 Found ${runbookFiles.length} runbook files`);
+            }
+            
+            const staleRunbooks = [];
+            const currentDate = Math.floor(Date.now() / 1000);
+            const ninetyDaysAgo = currentDate - (90 * 24 * 60 * 60); // 90 days in seconds
+            
+            for (const file of runbookFiles) {
+              try {
+                // Get last modified date from git
+                const lastModified = execSync(`git log -1 --format="%ct" -- "${file}"`, { encoding: 'utf8' }).trim();
+                const lastModifiedTimestamp = parseInt(lastModified);
+                
+                const daysSinceUpdate = Math.floor((currentDate - lastModifiedTimestamp) / (24 * 60 * 60));
+                const isStale = forceFile || (lastModifiedTimestamp && lastModifiedTimestamp < ninetyDaysAgo);
+                
+                if (isStale) {
+                  const lastModifiedDate = new Date(lastModifiedTimestamp * 1000).toISOString().split('T')[0];
+                  
+                  staleRunbooks.push({
+                    file: file,
+                    lastModified: lastModifiedDate,
+                    daysSinceUpdate: daysSinceUpdate
+                  });
+                  
+                  console.log(`⚠️  ${forceFile ? 'FORCED' : 'STALE'}: ${file} (${daysSinceUpdate} days old)`);
+                } else {
+                  const lastModifiedDate = new Date(lastModifiedTimestamp * 1000).toISOString().split('T')[0];
+                  console.log(`✅ FRESH: ${file} (${daysSinceUpdate} days old)`);
+                }
+              } catch (error) {
+                console.log(`❓ Could not check ${file}: ${error.message}`);
+              }
+            }
+            
+            if (staleRunbooks.length === 0) {
+              console.log('🎉 All runbooks are fresh (updated within 90 days)!');
+              return;
+            }
+            
+            // Create individual issues for each stale runbook
+            const issuesCreated = [];
+            const issuesUpdated = [];
+            
+            for (const runbook of staleRunbooks) {
+              const fileName = path.basename(runbook.file, '.mdx');
+              const relativePath = runbook.file.replace('apps/engineering/content/docs/', '');
+              
+              // Create issue title and body for this specific runbook
+              const issueTitle = `📚 Runbook Review: ${fileName} (${runbook.daysSinceUpdate} days old)`;
+              const severityEmoji = runbook.daysSinceUpdate > 365 ? '💀' : runbook.daysSinceUpdate > 180 ? '🔴' : '⚠️';
+              
+              const issueBody = `## Runbook Review Required ${severityEmoji}
+              
+              **File**: \`${runbook.file}\`  
+              **Last Updated**: ${runbook.lastModified} (${runbook.daysSinceUpdate} days ago)  
+              **Triggered**: ${forceFile ? 'Manual' : 'Automatic 90-day check'}
+              
+              ## Review Checklist
+              
+              Please verify the following for this runbook:
+              
+              ### 🔧 Technical Accuracy
+              - [ ] All commands are correct and tested
+              - [ ] Service names and endpoints are current
+              - [ ] File paths and repository locations are accurate
+              - [ ] Dependencies and prerequisites are up to date
+              
+              ### 🔗 Links and References
+              - [ ] All URLs are accessible and current
+              - [ ] GitHub links point to correct files/commits
+              - [ ] AWS console links are valid
+              - [ ] Documentation references are accurate
+              
+              ### 📋 Procedures
+              - [ ] Investigation steps are complete and logical
+              - [ ] Resolution procedures are clear and actionable
+              - [ ] Emergency/escalation paths are current
+              - [ ] Prerequisites (tools, access) are documented
+              
+              ### 🔒 Security & Access
+              - [ ] Authentication methods are current
+              - [ ] Access URLs and SSO links work
+              - [ ] Permission requirements are accurate
+              - [ ] Sensitive information is properly handled
+              
+              ## Testing
+              
+              ${runbook.daysSinceUpdate > 90 ? '- [ ] Test commands in staging/dev environment' : ''}
+              - [ ] Verify critical links are accessible
+              - [ ] Check that referenced services are running
+              - [ ] Confirm escalation contacts are current
+              
+              ## After Review
+              
+              1. Update any outdated information
+              2. Add a note about what was verified/changed
+              3. Commit changes to reset the staleness timer
+              4. Close this issue
+              
+              ---
+              
+              ${runbook.daysSinceUpdate > 365 ? '💀 **URGENT**: This runbook is over 1 year old and likely contains broken procedures!' : ''}
+              ${runbook.daysSinceUpdate > 180 ? '🔴 **HIGH PRIORITY**: This runbook is over 6 months old!' : ''}
+              
+              **View file**: [${fileName}](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/${runbook.file})  
+              **Edit file**: [Edit on GitHub](https://github.com/${context.repo.owner}/${context.repo.repo}/edit/main/${runbook.file})
+              
+              *Issue created by runbook freshness check on ${new Date().toISOString().split('T')[0]}*`;
+              
+              // Check if issue already exists for this specific runbook
+              const existingIssues = await github.rest.issues.listForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open',
+                labels: 'runbook-review'
+              });
+              
+              const existingIssue = existingIssues.data.find(issue => 
+                issue.title.includes(fileName) && issue.body.includes(runbook.file)
+              );
+              
+              if (existingIssue) {
+                // Update existing issue
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existingIssue.number,
+                  title: issueTitle,
+                  body: issueBody
+                });
+                
+                // Add comment about update
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existingIssue.number,
+                  body: `🔄 **Updated**: Re-scanned and runbook is still ${runbook.daysSinceUpdate} days old. ${forceFile ? '(Manual trigger)' : ''}`
+                });
+                
+                issuesUpdated.push(`#${existingIssue.number} - ${fileName}`);
+                console.log(`✅ Updated existing issue #${existingIssue.number} for ${fileName}`);
+                
+              } else {
+                // Create new issue
+                const priorityLabel = runbook.daysSinceUpdate > 180 ? 'priority-high' : 'priority-medium';
+                const labels = ['runbook-review', 'ops', priorityLabel, 'documentation'];
+                
+                if (forceFile) labels.push('manual-trigger');
+                
+                const issue = await github.rest.issues.create({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  title: issueTitle,
+                  body: issueBody,
+                  labels: labels
+                });
+                
+                issuesCreated.push(`#${issue.data.number} - ${fileName}`);
+                console.log(`✅ Created new issue #${issue.data.number} for ${fileName}`);
+              }
+            }
+            
+            // Summary
+            console.log(`\n📊 Summary:`);
+            console.log(`- Found ${staleRunbooks.length} stale runbook${staleRunbooks.length > 1 ? 's' : ''}`);
+            console.log(`- Created ${issuesCreated.length} new issue${issuesCreated.length > 1 ? 's' : ''}`);
+            console.log(`- Updated ${issuesUpdated.length} existing issue${issuesUpdated.length > 1 ? 's' : ''}`);
+            
+            if (issuesCreated.length > 0) {
+              console.log(`\nNew issues: ${issuesCreated.join(', ')}`);
+            }
+            if (issuesUpdated.length > 0) {
+              console.log(`Updated issues: ${issuesUpdated.join(', ')}`);
+            }

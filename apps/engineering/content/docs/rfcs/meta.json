@@ -1,5 +1,5 @@
 {
   "title": "RFCs",
-  "root": true,
+  "root": false,
   "description": "Requests For Comments"
 }
