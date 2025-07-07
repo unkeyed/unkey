@@ -19,33 +19,6 @@ export const baseOptions: HomeLayoutProps = {
       active: "nested-url",
     },
     {
-      text: "Contributing",
-      url: "/contributing",
-      active: "nested-url",
-    },
-
-    {
-      text: "Company",
-      url: "/company",
-      active: "nested-url",
-    },
-
-    {
-      text: "Architecture",
-      url: "/architecture",
-      active: "nested-url",
-    },
-    {
-      text: "Infrastructure",
-      url: "/infrastructure",
-      active: "nested-url",
-    },
-    {
-      text: "RFCs",
-      url: "/rfcs",
-      active: "nested-url",
-    },
-    {
       text: "Design",
       url: "/design",
       active: "nested-url",
