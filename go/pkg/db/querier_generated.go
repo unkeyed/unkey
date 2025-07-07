@@ -93,6 +93,26 @@ type Querier interface {
 	//  JOIN audit_log ON audit_log.id = audit_log_target.audit_log_id
 	//  WHERE audit_log_target.id = ?
 	FindAuditLogTargetByID(ctx context.Context, db DBTX, id string) ([]FindAuditLogTargetByIDRow, error)
+	//FindBuildById
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      version_id,
+	//      rootfs_image_id,
+	//      git_commit_sha,
+	//      git_branch,
+	//      status,
+	//      build_tool,
+	//      error_message,
+	//      started_at,
+	//      completed_at,
+	//      created_at,
+	//      updated_at
+	//  FROM `builds`
+	//  WHERE id = ?
+	FindBuildById(ctx context.Context, db DBTX, id string) (Build, error)
 	//FindIdentityByExternalID
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at FROM identities WHERE workspace_id = ? AND external_id = ? AND deleted = ?
@@ -201,6 +221,28 @@ type Querier interface {
 	//
 	//  SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth` WHERE id = ?
 	FindKeyringByID(ctx context.Context, db DBTX, id string) (KeyAuth, error)
+	//FindLatestBuildByVersionId
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      version_id,
+	//      rootfs_image_id,
+	//      git_commit_sha,
+	//      git_branch,
+	//      status,
+	//      build_tool,
+	//      error_message,
+	//      started_at,
+	//      completed_at,
+	//      created_at,
+	//      updated_at
+	//  FROM `builds`
+	//  WHERE version_id = ?
+	//  ORDER BY created_at DESC
+	//  LIMIT 1
+	FindLatestBuildByVersionId(ctx context.Context, db DBTX, versionID string) (Build, error)
 	// Finds a permission record by its ID
 	// Returns: The permission record if found
 	//
@@ -275,9 +317,27 @@ type Querier interface {
 	//  WHERE role_id = ?
 	//    AND permission_id = ?
 	FindRolePermissionByRoleAndPermissionID(ctx context.Context, db DBTX, arg FindRolePermissionByRoleAndPermissionIDParams) ([]RolesPermission, error)
+	//FindVersionById
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      branch_id,
+	//      build_id,
+	//      rootfs_image_id,
+	//      git_commit_sha,
+	//      git_branch,
+	//      config_snapshot,
+	//      status,
+	//      created_at,
+	//      updated_at
+	//  FROM `versions`
+	//  WHERE id = ?
+	FindVersionById(ctx context.Context, db DBTX, id string) (Version, error)
 	//FindWorkspaceByID
 	//
-	//  SELECT id, org_id, name, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  SELECT id, org_id, name, partition_id, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, db DBTX, id string) (Workspace, error)
 	//HardDeleteWorkspace
@@ -366,6 +426,40 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertAuditLogTarget(ctx context.Context, db DBTX, arg InsertAuditLogTargetParams) error
+	//InsertBuild
+	//
+	//  INSERT INTO builds (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      version_id,
+	//      rootfs_image_id,
+	//      git_commit_sha,
+	//      git_branch,
+	//      status,
+	//      build_tool,
+	//      error_message,
+	//      started_at,
+	//      completed_at,
+	//      created_at,
+	//      updated_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      NULL,
+	//      NULL,
+	//      NULL,
+	//      'pending',
+	//      'docker',
+	//      NULL,
+	//      NULL,
+	//      NULL,
+	//      ?,
+	//      NULL
+	//  )
+	InsertBuild(ctx context.Context, db DBTX, arg InsertBuildParams) error
 	//InsertIdentity
 	//
 	//  INSERT INTO `identities` (
@@ -628,6 +722,37 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertRolePermission(ctx context.Context, db DBTX, arg InsertRolePermissionParams) error
+	//InsertVersion
+	//
+	//  INSERT INTO `versions` (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      branch_id,
+	//      build_id,
+	//      rootfs_image_id,
+	//      git_commit_sha,
+	//      git_branch,
+	//      config_snapshot,
+	//      status,
+	//      created_at,
+	//      updated_at
+	//  )
+	//  VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertVersion(ctx context.Context, db DBTX, arg InsertVersionParams) error
 	//InsertWorkspace
 	//
 	//  INSERT INTO `workspaces` (
@@ -808,7 +933,7 @@ type Querier interface {
 	//ListWorkspaces
 	//
 	//  SELECT
-	//     w.id, w.org_id, w.name, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
+	//     w.id, w.org_id, w.name, w.partition_id, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
 	//     q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team
 	//  FROM `workspaces` w
 	//  LEFT JOIN quota q ON w.id = q.workspace_id
@@ -864,6 +989,30 @@ type Querier interface {
 	//  SET delete_protection = ?
 	//  WHERE id = ?
 	UpdateApiDeleteProtection(ctx context.Context, db DBTX, arg UpdateApiDeleteProtectionParams) error
+	//UpdateBuildFailed
+	//
+	//  UPDATE builds SET
+	//      status = 'failed',
+	//      completed_at = ?,
+	//      error_message = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdateBuildFailed(ctx context.Context, db DBTX, arg UpdateBuildFailedParams) error
+	//UpdateBuildStatus
+	//
+	//  UPDATE builds SET
+	//      status = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdateBuildStatus(ctx context.Context, db DBTX, arg UpdateBuildStatusParams) error
+	//UpdateBuildSucceeded
+	//
+	//  UPDATE builds SET
+	//      status = 'succeeded',
+	//      completed_at = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdateBuildSucceeded(ctx context.Context, db DBTX, arg UpdateBuildSucceededParams) error
 	//UpdateIdentity
 	//
 	//  UPDATE `identities`
@@ -914,6 +1063,13 @@ type Querier interface {
 	//      updated_at_m= ?
 	//  WHERE id = ?
 	UpdateRatelimitOverride(ctx context.Context, db DBTX, arg UpdateRatelimitOverrideParams) (sql.Result, error)
+	//UpdateVersionStatus
+	//
+	//  UPDATE versions SET
+	//      status = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdateVersionStatus(ctx context.Context, db DBTX, arg UpdateVersionStatusParams) error
 	//UpdateWorkspaceEnabled
 	//
 	//  UPDATE `workspaces`
