@@ -6,7 +6,6 @@ import {
 } from "fumadocs-mdx/config";
 
 import { createGenerator, remarkAutoTypeTable } from "fumadocs-typescript";
-import { z } from "zod";
 
 const generator = createGenerator();
 
