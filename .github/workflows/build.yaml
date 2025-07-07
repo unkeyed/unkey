@@ -2,6 +2,9 @@ name: Build
 on:
   workflow_call:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build
@@ -16,11 +19,10 @@ jobs:
         uses: ./.github/actions/install
         with:
           ts: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build
         run: pnpm turbo run build --filter=./apps/api
-
-
 
       - name: Create .dev.vars
         run: |
@@ -34,16 +36,11 @@ jobs:
         run: pnpm dev & sleep 15
         working-directory: apps/api
 
-
-
-
       - name: Load Schema into MySQL
         run: pnpm drizzle-kit push
         working-directory: internal/db
         env:
           DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey"
-
-
 
       - name: Build
         run: pnpm build
