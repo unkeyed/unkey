@@ -1,4 +1,7 @@
-CREATE TABLE IF NOT EXISTS hydra.workflow_executions (
+
+USE hydra;
+
+CREATE TABLE IF NOT EXISTS workflow_executions (
     id VARCHAR(255) PRIMARY KEY,
     workflow_name VARCHAR(255) NOT NULL,
     status ENUM('pending', 'running', 'sleeping', 'completed', 'failed') NOT NULL,
@@ -24,7 +27,7 @@ CREATE TABLE IF NOT EXISTS hydra.workflow_executions (
     span_id VARCHAR(255)
 );
 
-CREATE TABLE IF NOT EXISTS hydra.workflow_steps (
+CREATE TABLE IF NOT EXISTS workflow_steps (
     id VARCHAR(255) PRIMARY KEY,
     execution_id VARCHAR(255) NOT NULL,
     step_name VARCHAR(255) NOT NULL,
@@ -42,7 +45,7 @@ CREATE TABLE IF NOT EXISTS hydra.workflow_steps (
 );
 
 -- Cron Jobs Table
-CREATE TABLE IF NOT EXISTS hydra.cron_jobs (
+CREATE TABLE IF NOT EXISTS cron_jobs (
     id VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     cron_spec VARCHAR(255) NOT NULL,
@@ -56,7 +59,7 @@ CREATE TABLE IF NOT EXISTS hydra.cron_jobs (
 );
 
 -- Leases Table (step kind included for GORM compatibility, though unused)
-CREATE TABLE IF NOT EXISTS hydra.leases (
+CREATE TABLE IF NOT EXISTS leases (
     resource_id VARCHAR(255) PRIMARY KEY,
     kind ENUM('workflow', 'step', 'cron_job') NOT NULL,
     namespace VARCHAR(255) NOT NULL,

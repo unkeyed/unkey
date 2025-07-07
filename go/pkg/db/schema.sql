@@ -1,4 +1,6 @@
-CREATE TABLE `unkey`.`apis` (
+USE `unkey`;
+
+CREATE TABLE `apis` (
 	`id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
@@ -13,7 +15,7 @@ CREATE TABLE `unkey`.`apis` (
 	CONSTRAINT `apis_key_auth_id_unique` UNIQUE(`key_auth_id`)
 );
 
-CREATE TABLE `unkey`.`keys_permissions` (
+CREATE TABLE `keys_permissions` (
 	`temp_id` bigint AUTO_INCREMENT NOT NULL,
 	`key_id` varchar(256) NOT NULL,
 	`permission_id` varchar(256) NOT NULL,
@@ -25,7 +27,7 @@ CREATE TABLE `unkey`.`keys_permissions` (
 	CONSTRAINT `key_id_permission_id_idx` UNIQUE(`key_id`,`permission_id`)
 );
 
-CREATE TABLE `unkey`.`keys_roles` (
+CREATE TABLE `keys_roles` (
 	`key_id` varchar(256) NOT NULL,
 	`role_id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
@@ -35,7 +37,7 @@ CREATE TABLE `unkey`.`keys_roles` (
 	CONSTRAINT `unique_key_id_role_id` UNIQUE(`key_id`,`role_id`)
 );
 
-CREATE TABLE `unkey`.`permissions` (
+CREATE TABLE `permissions` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`name` varchar(512) NOT NULL,
@@ -48,7 +50,7 @@ CREATE TABLE `unkey`.`permissions` (
 	CONSTRAINT `unique_slug_per_workspace_idx` UNIQUE(`slug`,`workspace_id`)
 );
 
-CREATE TABLE `unkey`.`roles` (
+CREATE TABLE `roles` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`name` varchar(512) NOT NULL,
@@ -59,7 +61,7 @@ CREATE TABLE `unkey`.`roles` (
 	CONSTRAINT `unique_name_per_workspace_idx` UNIQUE(`name`,`workspace_id`)
 );
 
-CREATE TABLE `unkey`.`roles_permissions` (
+CREATE TABLE `roles_permissions` (
 	`role_id` varchar(256) NOT NULL,
 	`permission_id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
@@ -69,7 +71,7 @@ CREATE TABLE `unkey`.`roles_permissions` (
 	CONSTRAINT `unique_tuple_permission_id_role_id` UNIQUE(`permission_id`,`role_id`)
 );
 
-CREATE TABLE `unkey`.`key_auth` (
+CREATE TABLE `key_auth` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`created_at_m` bigint NOT NULL DEFAULT 0,
@@ -83,7 +85,7 @@ CREATE TABLE `unkey`.`key_auth` (
 	CONSTRAINT `key_auth_id` PRIMARY KEY(`id`)
 );
 
-CREATE TABLE `unkey`.`encrypted_keys` (
+CREATE TABLE `encrypted_keys` (
 	`workspace_id` varchar(256) NOT NULL,
 	`key_id` varchar(256) NOT NULL,
 	`created_at` bigint NOT NULL DEFAULT 0,
@@ -93,7 +95,7 @@ CREATE TABLE `unkey`.`encrypted_keys` (
 	CONSTRAINT `key_id_idx` UNIQUE(`key_id`)
 );
 
-CREATE TABLE `unkey`.`keys` (
+CREATE TABLE `keys` (
 	`id` varchar(256) NOT NULL,
 	`key_auth_id` varchar(256) NOT NULL,
 	`hash` varchar(256) NOT NULL,
@@ -121,7 +123,7 @@ CREATE TABLE `unkey`.`keys` (
 	CONSTRAINT `hash_idx` UNIQUE(`hash`)
 );
 
-CREATE TABLE `unkey`.`vercel_bindings` (
+CREATE TABLE `vercel_bindings` (
 	`id` varchar(256) NOT NULL,
 	`integration_id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
@@ -138,7 +140,7 @@ CREATE TABLE `unkey`.`vercel_bindings` (
 	CONSTRAINT `project_environment_resource_type_idx` UNIQUE(`project_id`,`environment`,`resource_type`)
 );
 
-CREATE TABLE `unkey`.`vercel_integrations` (
+CREATE TABLE `vercel_integrations` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`team_id` varchar(256),
@@ -149,7 +151,7 @@ CREATE TABLE `unkey`.`vercel_integrations` (
 	CONSTRAINT `vercel_integrations_id` PRIMARY KEY(`id`)
 );
 
-CREATE TABLE `unkey`.`ratelimit_namespaces` (
+CREATE TABLE `ratelimit_namespaces` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`name` varchar(512) NOT NULL,
@@ -160,7 +162,7 @@ CREATE TABLE `unkey`.`ratelimit_namespaces` (
 	CONSTRAINT `unique_name_per_workspace_idx` UNIQUE(`name`,`workspace_id`)
 );
 
-CREATE TABLE `unkey`.`ratelimit_overrides` (
+CREATE TABLE `ratelimit_overrides` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`namespace_id` varchar(256) NOT NULL,
@@ -176,7 +178,7 @@ CREATE TABLE `unkey`.`ratelimit_overrides` (
 	CONSTRAINT `unique_identifier_per_namespace_idx` UNIQUE(`identifier`,`namespace_id`)
 );
 
-CREATE TABLE `unkey`.`workspaces` (
+CREATE TABLE `workspaces` (
 	`id` varchar(256) NOT NULL,
 	`org_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
@@ -197,7 +199,7 @@ CREATE TABLE `unkey`.`workspaces` (
 	CONSTRAINT `workspaces_org_id_unique` UNIQUE(`org_id`)
 );
 
-CREATE TABLE `unkey`.`key_migration_errors` (
+CREATE TABLE `key_migration_errors` (
 	`id` varchar(256) NOT NULL,
 	`migration_id` varchar(256) NOT NULL,
 	`created_at` bigint NOT NULL,
@@ -206,7 +208,7 @@ CREATE TABLE `unkey`.`key_migration_errors` (
 	CONSTRAINT `key_migration_errors_id` PRIMARY KEY(`id`)
 );
 
-CREATE TABLE `unkey`.`identities` (
+CREATE TABLE `identities` (
 	`id` varchar(256) NOT NULL,
 	`external_id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
@@ -219,7 +221,7 @@ CREATE TABLE `unkey`.`identities` (
 	CONSTRAINT `workspace_id_external_id_deleted_idx` UNIQUE(`workspace_id`,`external_id`,`deleted`)
 );
 
-CREATE TABLE `unkey`.`ratelimits` (
+CREATE TABLE `ratelimits` (
 	`id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
@@ -235,7 +237,7 @@ CREATE TABLE `unkey`.`ratelimits` (
 	CONSTRAINT `unique_name_per_identity_idx` UNIQUE(`name`,`identity_id`)
 );
 
-CREATE TABLE `unkey`.`quota` (
+CREATE TABLE `quota` (
 	`workspace_id` varchar(256) NOT NULL,
 	`requests_per_month` bigint NOT NULL DEFAULT 0,
 	`logs_retention_days` int NOT NULL DEFAULT 0,
@@ -244,7 +246,7 @@ CREATE TABLE `unkey`.`quota` (
 	CONSTRAINT `quota_workspace_id` PRIMARY KEY(`workspace_id`)
 );
 
-CREATE TABLE `unkey`.`audit_log` (
+CREATE TABLE `audit_log` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`bucket` varchar(256) NOT NULL DEFAULT 'unkey_mutations',
@@ -263,7 +265,7 @@ CREATE TABLE `unkey`.`audit_log` (
 	CONSTRAINT `audit_log_id` PRIMARY KEY(`id`)
 );
 
-CREATE TABLE `unkey`.`audit_log_bucket` (
+CREATE TABLE `audit_log_bucket` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
@@ -275,7 +277,7 @@ CREATE TABLE `unkey`.`audit_log_bucket` (
 	CONSTRAINT `unique_name_per_workspace_idx` UNIQUE(`workspace_id`,`name`)
 );
 
-CREATE TABLE `unkey`.`audit_log_target` (
+CREATE TABLE `audit_log_target` (
 	`workspace_id` varchar(256) NOT NULL,
 	`bucket_id` varchar(256) NOT NULL,
 	`bucket` varchar(256) NOT NULL DEFAULT 'unkey_mutations',
@@ -290,7 +292,7 @@ CREATE TABLE `unkey`.`audit_log_target` (
 	CONSTRAINT `audit_log_target_audit_log_id_id_pk` PRIMARY KEY(`audit_log_id`,`id`)
 );
 
-CREATE TABLE `unkey`.`partitions` (
+CREATE TABLE `partitions` (
 	`id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`description` text,
@@ -305,7 +307,7 @@ CREATE TABLE `unkey`.`partitions` (
 	CONSTRAINT `partitions_id` PRIMARY KEY(`id`)
 );
 
-CREATE TABLE `unkey`.`projects` (
+CREATE TABLE `projects` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`partition_id` varchar(256) NOT NULL,
@@ -319,7 +321,7 @@ CREATE TABLE `unkey`.`projects` (
 	CONSTRAINT `workspace_slug_idx` UNIQUE(`workspace_id`,`slug`)
 );
 
-CREATE TABLE `unkey`.`branches` (
+CREATE TABLE `branches` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
@@ -331,7 +333,7 @@ CREATE TABLE `unkey`.`branches` (
 	CONSTRAINT `project_name_idx` UNIQUE(`project_id`,`name`)
 );
 
-CREATE TABLE `unkey`.`rootfs_images` (
+CREATE TABLE `rootfs_images` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
@@ -343,7 +345,7 @@ CREATE TABLE `unkey`.`rootfs_images` (
 	CONSTRAINT `rootfs_images_id` PRIMARY KEY(`id`)
 );
 
-CREATE TABLE `unkey`.`builds` (
+CREATE TABLE `builds` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
@@ -361,7 +363,7 @@ CREATE TABLE `unkey`.`builds` (
 	CONSTRAINT `builds_id` PRIMARY KEY(`id`)
 );
 
-CREATE TABLE `unkey`.`versions` (
+CREATE TABLE `versions` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
@@ -377,7 +379,7 @@ CREATE TABLE `unkey`.`versions` (
 	CONSTRAINT `versions_id` PRIMARY KEY(`id`)
 );
 
-CREATE TABLE `unkey`.`routes` (
+CREATE TABLE `routes` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
@@ -390,7 +392,7 @@ CREATE TABLE `unkey`.`routes` (
 	CONSTRAINT `hostname_idx` UNIQUE(`hostname`)
 );
 
-CREATE TABLE `unkey`.`hostnames` (
+CREATE TABLE `hostnames` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
@@ -407,46 +409,46 @@ CREATE TABLE `unkey`.`hostnames` (
 	CONSTRAINT `hostname_idx` UNIQUE(`hostname`)
 );
 
-CREATE INDEX `workspace_id_idx` ON `unkey`.`apis` (`workspace_id`);
-CREATE INDEX `workspace_id_idx` ON `unkey`.`permissions` (`workspace_id`);
-CREATE INDEX `workspace_id_idx` ON `unkey`.`roles` (`workspace_id`);
-CREATE INDEX `key_auth_id_deleted_at_idx` ON `unkey`.`keys` (`key_auth_id`,`deleted_at_m`);
-CREATE INDEX `idx_keys_on_for_workspace_id` ON `unkey`.`keys` (`for_workspace_id`);
-CREATE INDEX `owner_id_idx` ON `unkey`.`keys` (`owner_id`);
-CREATE INDEX `identity_id_idx` ON `unkey`.`keys` (`identity_id`);
-CREATE INDEX `deleted_at_idx` ON `unkey`.`keys` (`deleted_at_m`);
-CREATE INDEX `name_idx` ON `unkey`.`ratelimits` (`name`);
-CREATE INDEX `identity_id_idx` ON `unkey`.`ratelimits` (`identity_id`);
-CREATE INDEX `key_id_idx` ON `unkey`.`ratelimits` (`key_id`);
-CREATE INDEX `workspace_id_idx` ON `unkey`.`audit_log` (`workspace_id`);
-CREATE INDEX `bucket_id_idx` ON `unkey`.`audit_log` (`bucket_id`);
-CREATE INDEX `bucket_idx` ON `unkey`.`audit_log` (`bucket`);
-CREATE INDEX `event_idx` ON `unkey`.`audit_log` (`event`);
-CREATE INDEX `actor_id_idx` ON `unkey`.`audit_log` (`actor_id`);
-CREATE INDEX `time_idx` ON `unkey`.`audit_log` (`time`);
-CREATE INDEX `bucket` ON `unkey`.`audit_log_target` (`bucket`);
-CREATE INDEX `audit_log_id` ON `unkey`.`audit_log_target` (`audit_log_id`);
-CREATE INDEX `id_idx` ON `unkey`.`audit_log_target` (`id`);
-CREATE INDEX `status_idx` ON `unkey`.`partitions` (`status`);
-CREATE INDEX `workspace_idx` ON `unkey`.`projects` (`workspace_id`);
-CREATE INDEX `partition_idx` ON `unkey`.`projects` (`partition_id`);
-CREATE INDEX `workspace_idx` ON `unkey`.`branches` (`workspace_id`);
-CREATE INDEX `project_idx` ON `unkey`.`branches` (`project_id`);
-CREATE INDEX `workspace_idx` ON `unkey`.`rootfs_images` (`workspace_id`);
-CREATE INDEX `project_idx` ON `unkey`.`rootfs_images` (`project_id`);
-CREATE INDEX `workspace_idx` ON `unkey`.`builds` (`workspace_id`);
-CREATE INDEX `project_idx` ON `unkey`.`builds` (`project_id`);
-CREATE INDEX `status_idx` ON `unkey`.`builds` (`status`);
-CREATE INDEX `rootfs_image_idx` ON `unkey`.`builds` (`rootfs_image_id`);
-CREATE INDEX `workspace_idx` ON `unkey`.`versions` (`workspace_id`);
-CREATE INDEX `project_idx` ON `unkey`.`versions` (`project_id`);
-CREATE INDEX `branch_idx` ON `unkey`.`versions` (`branch_id`);
-CREATE INDEX `status_idx` ON `unkey`.`versions` (`status`);
-CREATE INDEX `rootfs_image_idx` ON `unkey`.`versions` (`rootfs_image_id`);
-CREATE INDEX `workspace_idx` ON `unkey`.`routes` (`workspace_id`);
-CREATE INDEX `project_idx` ON `unkey`.`routes` (`project_id`);
-CREATE INDEX `version_idx` ON `unkey`.`routes` (`version_id`);
-CREATE INDEX `workspace_idx` ON `unkey`.`hostnames` (`workspace_id`);
-CREATE INDEX `project_idx` ON `unkey`.`hostnames` (`project_id`);
-CREATE INDEX `verification_status_idx` ON `unkey`.`hostnames` (`verification_status`);
-CREATE INDEX `certificate_idx` ON `unkey`.`hostnames` (`certificate_id`);
+CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
+CREATE INDEX `workspace_id_idx` ON `permissions` (`workspace_id`);
+CREATE INDEX `workspace_id_idx` ON `roles` (`workspace_id`);
+CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`);
+CREATE INDEX `idx_keys_on_for_workspace_id` ON `keys` (`for_workspace_id`);
+CREATE INDEX `owner_id_idx` ON `keys` (`owner_id`);
+CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`);
+CREATE INDEX `deleted_at_idx` ON `keys` (`deleted_at_m`);
+CREATE INDEX `name_idx` ON `ratelimits` (`name`);
+CREATE INDEX `identity_id_idx` ON `ratelimits` (`identity_id`);
+CREATE INDEX `key_id_idx` ON `ratelimits` (`key_id`);
+CREATE INDEX `workspace_id_idx` ON `audit_log` (`workspace_id`);
+CREATE INDEX `bucket_id_idx` ON `audit_log` (`bucket_id`);
+CREATE INDEX `bucket_idx` ON `audit_log` (`bucket`);
+CREATE INDEX `event_idx` ON `audit_log` (`event`);
+CREATE INDEX `actor_id_idx` ON `audit_log` (`actor_id`);
+CREATE INDEX `time_idx` ON `audit_log` (`time`);
+CREATE INDEX `bucket` ON `audit_log_target` (`bucket`);
+CREATE INDEX `audit_log_id` ON `audit_log_target` (`audit_log_id`);
+CREATE INDEX `id_idx` ON `audit_log_target` (`id`);
+CREATE INDEX `status_idx` ON `partitions` (`status`);
+CREATE INDEX `workspace_idx` ON `projects` (`workspace_id`);
+CREATE INDEX `partition_idx` ON `projects` (`partition_id`);
+CREATE INDEX `workspace_idx` ON `branches` (`workspace_id`);
+CREATE INDEX `project_idx` ON `branches` (`project_id`);
+CREATE INDEX `workspace_idx` ON `rootfs_images` (`workspace_id`);
+CREATE INDEX `project_idx` ON `rootfs_images` (`project_id`);
+CREATE INDEX `workspace_idx` ON `builds` (`workspace_id`);
+CREATE INDEX `project_idx` ON `builds` (`project_id`);
+CREATE INDEX `status_idx` ON `builds` (`status`);
+CREATE INDEX `rootfs_image_idx` ON `builds` (`rootfs_image_id`);
+CREATE INDEX `workspace_idx` ON `versions` (`workspace_id`);
+CREATE INDEX `project_idx` ON `versions` (`project_id`);
+CREATE INDEX `branch_idx` ON `versions` (`branch_id`);
+CREATE INDEX `status_idx` ON `versions` (`status`);
+CREATE INDEX `rootfs_image_idx` ON `versions` (`rootfs_image_id`);
+CREATE INDEX `workspace_idx` ON `routes` (`workspace_id`);
+CREATE INDEX `project_idx` ON `routes` (`project_id`);
+CREATE INDEX `version_idx` ON `routes` (`version_id`);
+CREATE INDEX `workspace_idx` ON `hostnames` (`workspace_id`);
+CREATE INDEX `project_idx` ON `hostnames` (`project_id`);
+CREATE INDEX `verification_status_idx` ON `hostnames` (`verification_status`);
+CREATE INDEX `certificate_idx` ON `hostnames` (`certificate_id`);
