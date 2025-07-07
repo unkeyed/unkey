@@ -3,24 +3,17 @@ import { StackPerspective2 } from "@unkey/icons";
 import { useState } from "react";
 import { type OnboardingStep, OnboardingWizard } from "./components/onboarding-wizard";
 import { stepInfos } from "./constants";
+import { useKeyCreationStep } from "./hooks/use-key-creation-step";
 import { useWorkspaceStep } from "./hooks/use-workspace-step";
 
 export default function OnboardingPage() {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
   const workspaceStep = useWorkspaceStep();
+  const keyCreationStep = useKeyCreationStep();
   const steps: OnboardingStep[] = [
     workspaceStep,
-    {
-      name: "API Key",
-      icon: <StackPerspective2 size="sm-regular" className="text-gray-11" />,
-      body: <div>API Key form content</div>,
-      kind: "required" as const,
-      validFieldCount: 0,
-      requiredFieldCount: 1,
-      description: "Next: you’ll create your first API key",
-      buttonText: "Continue",
-    },
+    keyCreationStep,
     {
       name: "Dashboard",
       icon: <StackPerspective2 size="sm-regular" className="text-gray-11" />,
