@@ -54,7 +54,12 @@ func New(t *testing.T, config Config) *Harness {
 	})
 	require.NoError(t, err)
 
-	mysqlHostDSN, mysqlDockerDSN := containerMgr.RunMySQL()
+	mysqlHostCfg, mysqlDockerCfg := containerMgr.RunMySQL()
+	mysqlHostCfg.DBName = "unkey"
+	mysqlHostDSN := mysqlHostCfg.FormatDSN()
+
+	mysqlDockerCfg.DBName = "unkey"
+	mysqlDockerDSN := mysqlDockerCfg.FormatDSN()
 	db, err := db.New(db.Config{
 		Logger:      logging.NewNoop(),
 		PrimaryDSN:  mysqlHostDSN,
