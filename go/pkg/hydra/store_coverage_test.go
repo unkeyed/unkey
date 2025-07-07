@@ -139,7 +139,6 @@ func TestSQLCQueryCoverage(t *testing.T) {
 			ID:                stepID,
 			ExecutionID:       workflowID,
 			StepName:          "test-step",
-			StepOrder:         1,
 			Status:            store.WorkflowStepsStatusRunning,
 			OutputData:        []byte{},
 			ErrorMessage:      sql.NullString{Valid: false},

@@ -87,10 +87,10 @@ func Sleep(ctx WorkflowContext, duration time.Duration) error {
 	stepID := uid.New(uid.StepPrefix)
 	result, err := wctx.db.ExecContext(wctx.ctx, `
 		INSERT INTO workflow_steps (
-		    id, execution_id, step_name, step_order, status, output_data, error_message,
+		    id, execution_id, step_name, status, output_data, error_message,
 		    started_at, completed_at, max_attempts, remaining_attempts, namespace
 		) 
-		SELECT ?, ?, ?, ?, ?, ?, ?,
+		SELECT ?, ?, ?, ?, ?, ?,
 		       ?, ?, ?, ?, ?
 		WHERE EXISTS (
 		    SELECT 1 FROM leases 
@@ -100,7 +100,6 @@ func Sleep(ctx WorkflowContext, duration time.Duration) error {
 		stepID,
 		wctx.ExecutionID(),
 		stepName,
-		wctx.getNextStepOrder(),
 		store.WorkflowStepsStatusRunning,
 		[]byte{},
 		sql.NullString{String: "", Valid: false},

@@ -455,7 +455,6 @@ func (w *worker) executeWorkflow(ctx context.Context, e *store.WorkflowExecution
 		marshaller:      w.engine.marshaller,
 		stepTimeout:     5 * time.Minute, // Default step timeout
 		stepMaxAttempts: 3,               // Default step max attempts
-		stepOrder:       0,
 	}
 
 	err = wf.Run(wctx, payload)

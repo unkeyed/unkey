@@ -105,7 +105,6 @@ type workflowContext struct {
 	marshaller      Marshaller
 	stepTimeout     time.Duration
 	stepMaxAttempts int32
-	stepOrder       int
 }
 
 func (w *workflowContext) Context() context.Context {
@@ -118,11 +117,6 @@ func (w *workflowContext) ExecutionID() string {
 
 func (w *workflowContext) WorkflowName() string {
 	return w.workflowName
-}
-
-func (w *workflowContext) getNextStepOrder() int32 {
-	w.stepOrder++
-	return int32(w.stepOrder) // nolint:gosec // Overflow is extremely unlikely in practice
 }
 
 func (w *workflowContext) markStepCompleted(stepName string, outputData []byte) error {

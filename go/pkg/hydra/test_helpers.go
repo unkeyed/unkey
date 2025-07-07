@@ -4,11 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/hydra/store"
@@ -23,33 +21,21 @@ func newTestEngineWithClock(t *testing.T, clk clock.Clock) *Engine {
 
 	// Use containerized MySQL for testing
 	containersClient := containers.New(t)
-	hostDsn, _ := containersClient.RunMySQL()
+	mysqlCfg, _ := containersClient.RunMySQL()
+	mysqlCfg.DBName = "hydra"
+	hydraDsn := mysqlCfg.FormatDSN()
 
 	// Load the hydra schema into the database
-	db, err := sql.Open("mysql", hostDsn)
+	db, err := sql.Open("mysql", hydraDsn)
 	require.NoError(t, err)
 	defer db.Close()
-
-	// Execute the hydra schema
-	queries := strings.Split(string(store.Schema), ";")
-	for _, query := range queries {
-		query = strings.TrimSpace(query)
-		if query == "" {
-			continue
-		}
-		// Add the semicolon back
-		query += ";"
-
-		_, err = db.Exec(query)
-		require.NoError(t, err)
-	}
 
 	// Create a unique namespace for this test to avoid data pollution
 	testNamespace := fmt.Sprintf("test_%s_%s", t.Name(), uid.New(uid.Prefix("test")))
 
 	// Create the engine with the properly configured database
 	engine, err := New(Config{
-		DSN:        hostDsn,
+		DSN:        hydraDsn,
 		Namespace:  testNamespace,
 		Clock:      clk,
 		Logger:     logging.NewNoop(),

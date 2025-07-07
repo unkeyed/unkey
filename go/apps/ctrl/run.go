@@ -185,7 +185,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Wait for signal and handle shutdown
 	logger.Info("Ctrl server started successfully")
-	if err := shutdowns.WaitForSignal(30 * time.Second); err != nil {
+	if err := shutdowns.WaitForSignal(ctx); err != nil {
 		logger.Error("Shutdown failed", "error", err)
 		return err
 	}

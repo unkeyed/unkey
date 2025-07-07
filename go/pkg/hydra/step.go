@@ -138,10 +138,10 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 		now := time.Now().UnixMilli()
 		createResult, createErr := wctx.db.ExecContext(wctx.ctx, `
 			INSERT INTO workflow_steps (
-			    id, execution_id, step_name, step_order, status, output_data, error_message,
+			    id, execution_id, step_name, status, output_data, error_message,
 			    started_at, completed_at, max_attempts, remaining_attempts, namespace
 			) 
-			SELECT ?, ?, ?, ?, ?, ?, ?,
+			SELECT ?, ?, ?, ?, ?, ?,
 			       ?, ?, ?, ?, ?
 			WHERE EXISTS (
 			    SELECT 1 FROM leases 
@@ -151,7 +151,6 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 			stepID,
 			wctx.ExecutionID(),
 			stepName,
-			wctx.getNextStepOrder(),
 			store.WorkflowStepsStatusRunning,
 			[]byte{},
 			sql.NullString{String: "", Valid: false},

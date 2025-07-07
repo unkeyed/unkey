@@ -119,10 +119,10 @@ func (q *Queries) CreateLease(ctx context.Context, db DBTX, arg CreateLeaseParam
 
 const createStep = `-- name: CreateStep :exec
 INSERT INTO workflow_steps (
-    id, execution_id, step_name, step_order, status, output_data, error_message,
+    id, execution_id, step_name, status, output_data, error_message,
     started_at, completed_at, max_attempts, remaining_attempts, namespace
 ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?,
+    ?, ?, ?, ?, ?, ?,
     ?, ?, ?, ?, ?
 )
 `
@@ -131,7 +131,6 @@ type CreateStepParams struct {
 	ID                string              `db:"id" json:"id"`
 	ExecutionID       string              `db:"execution_id" json:"execution_id"`
 	StepName          string              `db:"step_name" json:"step_name"`
-	StepOrder         int32               `db:"step_order" json:"step_order"`
 	Status            WorkflowStepsStatus `db:"status" json:"status"`
 	OutputData        []byte              `db:"output_data" json:"output_data"`
 	ErrorMessage      sql.NullString      `db:"error_message" json:"error_message"`
@@ -147,7 +146,6 @@ func (q *Queries) CreateStep(ctx context.Context, db DBTX, arg CreateStepParams)
 		arg.ID,
 		arg.ExecutionID,
 		arg.StepName,
-		arg.StepOrder,
 		arg.Status,
 		arg.OutputData,
 		arg.ErrorMessage,
@@ -220,7 +218,7 @@ func (q *Queries) CreateWorkflow(ctx context.Context, db DBTX, arg CreateWorkflo
 }
 
 const getCompletedStep = `-- name: GetCompletedStep :one
-SELECT id, execution_id, step_name, step_order, status, output_data, error_message, started_at, completed_at, max_attempts, remaining_attempts, namespace FROM workflow_steps 
+SELECT id, execution_id, step_name, status, output_data, error_message, started_at, completed_at, max_attempts, remaining_attempts, namespace FROM workflow_steps 
 WHERE namespace = ? AND execution_id = ? AND step_name = ? AND status = 'completed'
 `
 
@@ -237,7 +235,6 @@ func (q *Queries) GetCompletedStep(ctx context.Context, db DBTX, arg GetComplete
 		&i.ID,
 		&i.ExecutionID,
 		&i.StepName,
-		&i.StepOrder,
 		&i.Status,
 		&i.OutputData,
 		&i.ErrorMessage,
@@ -575,7 +572,7 @@ func (q *Queries) GetSleepingWorkflows(ctx context.Context, db DBTX, arg GetSlee
 }
 
 const getStep = `-- name: GetStep :one
-SELECT id, execution_id, step_name, step_order, status, output_data, error_message, started_at, completed_at, max_attempts, remaining_attempts, namespace FROM workflow_steps 
+SELECT id, execution_id, step_name, status, output_data, error_message, started_at, completed_at, max_attempts, remaining_attempts, namespace FROM workflow_steps 
 WHERE namespace = ? AND execution_id = ? AND step_name = ?
 `
 
@@ -592,7 +589,6 @@ func (q *Queries) GetStep(ctx context.Context, db DBTX, arg GetStepParams) (Work
 		&i.ID,
 		&i.ExecutionID,
 		&i.StepName,
-		&i.StepOrder,
 		&i.Status,
 		&i.OutputData,
 		&i.ErrorMessage,

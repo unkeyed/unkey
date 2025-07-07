@@ -228,21 +228,11 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}()
 
-	// Handle context cancellation in a separate goroutine
-	go func() {
-		<-ctx.Done()
-		logger.Info("shutting down due to context cancellation")
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Minute)
-		defer cancel()
-		errs := shutdowns.Shutdown(shutdownCtx)
-		for _, err := range errs {
-			logger.Error("Shutdown error", "error", err)
-		}
-	}()
-
 	// Wait for signals and handle shutdown
 	logger.Info("API server started successfully")
-	if err := shutdowns.WaitForSignal(time.Minute); err != nil {
+
+	// Wait for either OS signals or context cancellation, then shutdown
+	if err := shutdowns.WaitForSignal(ctx, time.Minute); err != nil {
 		logger.Error("Shutdown failed", "error", err)
 		return fmt.Errorf("shutdown failed: %w", err)
 	}

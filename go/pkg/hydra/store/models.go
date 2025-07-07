@@ -234,7 +234,6 @@ type WorkflowStep struct {
 	ID                string              `db:"id" json:"id"`
 	ExecutionID       string              `db:"execution_id" json:"execution_id"`
 	StepName          string              `db:"step_name" json:"step_name"`
-	StepOrder         int32               `db:"step_order" json:"step_order"`
 	Status            WorkflowStepsStatus `db:"status" json:"status"`
 	OutputData        []byte              `db:"output_data" json:"output_data"`
 	ErrorMessage      sql.NullString      `db:"error_message" json:"error_message"`

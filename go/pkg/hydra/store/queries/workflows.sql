@@ -68,10 +68,10 @@ WHERE id = ? AND namespace = ?;
 
 -- name: CreateStep :exec
 INSERT INTO workflow_steps (
-    id, execution_id, step_name, step_order, status, output_data, error_message,
+    id, execution_id, step_name, status, output_data, error_message,
     started_at, completed_at, max_attempts, remaining_attempts, namespace
 ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?,
+    ?, ?, ?, ?, ?, ?,
     ?, ?, ?, ?, ?
 );
 

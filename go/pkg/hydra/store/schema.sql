@@ -28,7 +28,6 @@ CREATE TABLE IF NOT EXISTS hydra.workflow_steps (
     id VARCHAR(255) PRIMARY KEY,
     execution_id VARCHAR(255) NOT NULL,
     step_name VARCHAR(255) NOT NULL,
-    step_order INT NOT NULL,
     status ENUM('pending', 'running', 'completed', 'failed') NOT NULL,
     output_data LONGBLOB,
     error_message TEXT,

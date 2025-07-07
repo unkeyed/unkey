@@ -20,7 +20,9 @@ func TestContextCancellation(t *testing.T) {
 
 	// Create a containers instance for database
 	containers := containers.New(t)
-	dbDsn, _ := containers.RunMySQL()
+	mysqlCfg, _ := containers.RunMySQL()
+	mysqlCfg.DBName = "unkey"
+	dbDsn := mysqlCfg.FormatDSN()
 	_, redisUrl, _ := containers.RunRedis()
 	// Get free ports for the node
 	portAllocator := port.New()
@@ -84,7 +86,7 @@ func TestContextCancellation(t *testing.T) {
 		// The Run function should exit without error when context is canceled
 		require.NoError(t, err, "API server should shut down gracefully when context is canceled")
 		t.Log("API server shut down successfully")
-	case <-time.After(30 * time.Second):
+	case <-time.After(90 * time.Second):
 		t.Fatal("API server failed to shut down within the expected time")
 	}
 
