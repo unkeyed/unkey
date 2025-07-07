@@ -6,7 +6,8 @@ INSERT INTO `ratelimits` (
     name,
     `limit`,
     duration,
-    created_at
+    created_at,
+    auto_apply
 ) VALUES (
     sqlc.arg('id'),
     sqlc.arg('workspace_id'),
@@ -14,5 +15,6 @@ INSERT INTO `ratelimits` (
     sqlc.arg('name'),
     sqlc.arg('limit'),
     sqlc.arg('duration'),
-    sqlc.arg('created_at')
+    sqlc.arg('created_at'),
+    sqlc.arg('auto_apply')
 );

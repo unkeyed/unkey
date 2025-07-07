@@ -5,7 +5,7 @@ import {
 } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import type { Roles } from "@/lib/trpc/routers/authorization/roles/query";
+import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { Clone, PenWriting3, Trash } from "@unkey/icons";
 import dynamic from "next/dynamic";
 import { MAX_KEYS_FETCH_LIMIT } from "../../../upsert-role/components/assign-key/hooks/use-fetch-keys";
@@ -24,7 +24,7 @@ const KeysTableActionPopover = dynamic(
 );
 
 type RolesTableActionsProps = {
-  role: Roles;
+  role: RoleBasic;
 };
 
 export const RolesTableActions = ({ role }: RolesTableActionsProps) => {
@@ -35,7 +35,7 @@ export const RolesTableActions = ({ role }: RolesTableActionsProps) => {
 };
 
 const getRolesTableActionItems = (
-  role: Roles,
+  role: RoleBasic,
   trpcUtils: ReturnType<typeof trpc.useUtils>,
 ): MenuItem[] => {
   return [

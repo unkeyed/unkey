@@ -20,7 +20,6 @@ import (
 func TestCreateIdentitySuccessfully(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
-
 	route := &handler.Handler{
 		Logger:      h.Logger,
 		DB:          h.DB,
@@ -149,16 +148,18 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 	t.Run("create identity with ratelimits", func(t *testing.T) {
 		externalTestID := uid.New("test_external_id")
 
-		identityRateLimits := []openapi.Ratelimit{
+		identityRateLimits := []openapi.RatelimitRequest{
 			{
-				Duration: time.Minute.Milliseconds(),
-				Limit:    100,
-				Name:     "test",
+				Duration:  time.Minute.Milliseconds(),
+				Limit:     100,
+				Name:      "test",
+				AutoApply: true,
 			},
 			{
-				Duration: time.Minute.Milliseconds(),
-				Limit:    200,
-				Name:     "test2",
+				Duration:  time.Minute.Milliseconds(),
+				Limit:     200,
+				Name:      "test2",
+				AutoApply: true,
 			},
 		}
 
@@ -205,16 +206,18 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 		meta := &map[string]any{"userId": "user_123", "role": "admin"}
 
-		identityRateLimits := []openapi.Ratelimit{
+		identityRateLimits := []openapi.RatelimitRequest{
 			{
-				Duration: time.Minute.Milliseconds(),
-				Limit:    100,
-				Name:     "requests_per_minute",
+				Duration:  time.Minute.Milliseconds(),
+				Limit:     100,
+				Name:      "requests_per_minute",
+				AutoApply: true,
 			},
 			{
-				Duration: (time.Hour * 24).Milliseconds(),
-				Limit:    1000,
-				Name:     "requests_per_day",
+				Duration:  (time.Hour * 24).Milliseconds(),
+				Limit:     1000,
+				Name:      "requests_per_day",
+				AutoApply: true,
 			},
 		}
 

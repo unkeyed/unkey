@@ -14,6 +14,16 @@ type Querier interface {
 	//
 	//  DELETE FROM identities WHERE id = ?
 	DeleteIdentity(ctx context.Context, db DBTX, id string) error
+	//DeleteKeyByID
+	//
+	//  DELETE k, kp, kr, rl, ek
+	//  FROM `keys` k
+	//  LEFT JOIN keys_permissions kp ON k.id = kp.key_id
+	//  LEFT JOIN keys_roles kr ON k.id = kr.key_id
+	//  LEFT JOIN ratelimits rl ON k.id = rl.key_id
+	//  LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
+	//  WHERE k.id = ?
+	DeleteKeyByID(ctx context.Context, db DBTX, id string) error
 	//DeleteKeyPermissionByKeyAndPermissionID
 	//
 	//  DELETE FROM keys_permissions
@@ -102,6 +112,25 @@ type Querier interface {
 	//  FROM `keys`
 	//  WHERE id = ?
 	FindKeyByID(ctx context.Context, db DBTX, id string) (Key, error)
+	//FindKeyByIdOrHash
+	//
+	//  SELECT
+	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
+	//      ek.encrypted as encrypted_key,
+	//  	ek.encryption_key_id as encryption_key_id
+	//  FROM `keys` k
+	//  JOIN apis a USING(key_auth_id)
+	//  LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
+	//  WHERE (CASE
+	//      WHEN ? IS NOT NULL THEN k.id = ?
+	//      WHEN ? IS NOT NULL THEN k.hash = ?
+	//      ELSE FALSE
+	//  END) AND k.deleted_at_m IS NULL AND a.deleted_at_m IS NULL
+	FindKeyByIdOrHash(ctx context.Context, db DBTX, arg FindKeyByIdOrHashParams) (FindKeyByIdOrHashRow, error)
+	//FindKeyEncryptionByKeyID
+	//
+	//  SELECT workspace_id, key_id, created_at, updated_at, encrypted, encryption_key_id FROM encrypted_keys WHERE key_id = ?
+	FindKeyEncryptionByKeyID(ctx context.Context, db DBTX, keyID string) (EncryptedKey, error)
 	//FindKeyForVerification
 	//
 	//  WITH direct_permissions AS (
@@ -170,8 +199,7 @@ type Querier interface {
 	FindKeyRoleByKeyAndRoleID(ctx context.Context, db DBTX, arg FindKeyRoleByKeyAndRoleIDParams) ([]KeysRole, error)
 	//FindKeyringByID
 	//
-	//  SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth`
-	//  WHERE id = ?
+	//  SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth` WHERE id = ?
 	FindKeyringByID(ctx context.Context, db DBTX, id string) (KeyAuth, error)
 	// Finds a permission record by its ID
 	// Returns: The permission record if found
@@ -365,8 +393,10 @@ type Querier interface {
 	//      name,
 	//      `limit`,
 	//      duration,
-	//      created_at
+	//      created_at,
+	//      auto_apply
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -393,6 +423,8 @@ type Querier interface {
 	//      created_at_m,
 	//      enabled,
 	//      remaining_requests,
+	//      refill_day,
+	//      refill_amount,
 	//      ratelimit_async,
 	//      ratelimit_limit,
 	//      ratelimit_duration,
@@ -415,9 +447,17 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
+	//      ?,
+	//      ?,
 	//      ?
 	//  )
 	InsertKey(ctx context.Context, db DBTX, arg InsertKeyParams) error
+	//InsertKeyEncryption
+	//
+	//  INSERT INTO encrypted_keys
+	//  (workspace_id, key_id, encrypted, encryption_key_id, created_at)
+	//  VALUES (?, ?, ?, ?, ?)
+	InsertKeyEncryption(ctx context.Context, db DBTX, arg InsertKeyEncryptionParams) error
 	//InsertKeyPermission
 	//
 	//  INSERT INTO `keys_permissions` (
@@ -441,8 +481,10 @@ type Querier interface {
 	//      name,
 	//      `limit`,
 	//      duration,
+	//      auto_apply,
 	//      created_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -631,15 +673,19 @@ type Querier interface {
 	ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]Identity, error)
 	//ListIdentityRatelimits
 	//
-	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration
+	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply
 	//  FROM ratelimits
 	//  WHERE identity_id = ?
 	//  ORDER BY id ASC
 	ListIdentityRatelimits(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error)
 	//ListIdentityRatelimitsByID
 	//
-	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration FROM ratelimits WHERE identity_id = ?
+	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply FROM ratelimits WHERE identity_id = ?
 	ListIdentityRatelimitsByID(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error)
+	//ListIdentityRatelimitsByIDs
+	//
+	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply FROM ratelimits WHERE identity_id IN (/*SLICE:ids*/?)
+	ListIdentityRatelimitsByIDs(ctx context.Context, db DBTX, ids []sql.NullString) ([]Ratelimit, error)
 	//ListKeysByKeyAuthID
 	//
 	//  SELECT
@@ -718,6 +764,17 @@ type Querier interface {
 	//      workspace_id = ?
 	//      AND namespace_id = ?
 	ListRatelimitOverridesByNamespaceID(ctx context.Context, db DBTX, arg ListRatelimitOverridesByNamespaceIDParams) ([]RatelimitOverride, error)
+	//ListRatelimitsByKeyID
+	//
+	//  SELECT
+	//    id,
+	//    name,
+	//    `limit`,
+	//    duration,
+	//    auto_apply
+	//  FROM ratelimits
+	//  WHERE key_id = ?
+	ListRatelimitsByKeyID(ctx context.Context, db DBTX, keyID sql.NullString) ([]ListRatelimitsByKeyIDRow, error)
 	//ListRatelimitsByKeyIDs
 	//
 	//  SELECT
@@ -725,7 +782,8 @@ type Querier interface {
 	//    key_id,
 	//    name,
 	//    `limit`,
-	//    duration
+	//    duration,
+	//    auto_apply
 	//  FROM ratelimits
 	//  WHERE key_id IN (/*SLICE:key_ids*/?)
 	//  ORDER BY key_id, id
@@ -768,6 +826,10 @@ type Querier interface {
 	//
 	//  UPDATE identities set deleted = 1 WHERE id = ?
 	SoftDeleteIdentity(ctx context.Context, db DBTX, id string) error
+	//SoftDeleteKeyByID
+	//
+	//  UPDATE `keys` SET deleted_at_m = ? WHERE id = ?
+	SoftDeleteKeyByID(ctx context.Context, db DBTX, arg SoftDeleteKeyByIDParams) error
 	//SoftDeleteManyKeysByKeyAuthID
 	//
 	//  UPDATE `keys`
@@ -811,6 +873,25 @@ type Querier interface {
 	//  WHERE
 	//      id = ?
 	UpdateIdentity(ctx context.Context, db DBTX, arg UpdateIdentityParams) error
+	//UpdateKeyCredits
+	//
+	//  UPDATE `keys`
+	//  SET remaining_requests = CASE
+	//      WHEN ? = 'set' THEN ?
+	//      WHEN ? = 'increment' THEN remaining_requests + ?
+	//      WHEN ? = 'decrement' AND remaining_requests - ? > 0 THEN remaining_requests - ?
+	//      WHEN ? = 'decrement' AND remaining_requests - ? <= 0 THEN 0
+	//  END
+	//  WHERE id = ?
+	UpdateKeyCredits(ctx context.Context, db DBTX, arg UpdateKeyCreditsParams) error
+	//UpdateKeyCreditsRefill
+	//
+	//  UPDATE `keys` SET refill_amount = ?, refill_day = ? WHERE id = ?
+	UpdateKeyCreditsRefill(ctx context.Context, db DBTX, arg UpdateKeyCreditsRefillParams) error
+	//UpdateKeyringKeyEncryption
+	//
+	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?
+	UpdateKeyringKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeyringKeyEncryptionParams) error
 	//UpdateRatelimit
 	//
 	//  UPDATE `ratelimits`
@@ -818,6 +899,7 @@ type Querier interface {
 	//      name = ?,
 	//      `limit` = ?,
 	//      duration = ?,
+	//      auto_apply = ?,
 	//      updated_at = NOW()
 	//  WHERE
 	//      id = ?

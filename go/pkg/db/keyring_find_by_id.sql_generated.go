@@ -10,14 +10,12 @@ import (
 )
 
 const findKeyringByID = `-- name: FindKeyringByID :one
-SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM ` + "`" + `key_auth` + "`" + `
-WHERE id = ?
+SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM ` + "`" + `key_auth` + "`" + ` WHERE id = ?
 `
 
 // FindKeyringByID
 //
-//	SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth`
-//	WHERE id = ?
+//	SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth` WHERE id = ?
 func (q *Queries) FindKeyringByID(ctx context.Context, db DBTX, id string) (KeyAuth, error) {
 	row := db.QueryRowContext(ctx, findKeyringByID, id)
 	var i KeyAuth

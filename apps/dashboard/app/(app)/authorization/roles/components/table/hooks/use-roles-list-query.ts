@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc/client";
-import type { Roles } from "@/lib/trpc/routers/authorization/roles/query";
+import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { useEffect, useMemo, useState } from "react";
 import { rolesFilterFieldConfig, rolesListFilterFieldNames } from "../../../filters.schema";
 import { useFilters } from "../../../hooks/use-filters";
@@ -7,7 +7,7 @@ import type { RolesQueryPayload } from "../query-logs.schema";
 
 export function useRolesListQuery() {
   const [totalCount, setTotalCount] = useState(0);
-  const [rolesMap, setRolesMap] = useState(() => new Map<string, Roles>());
+  const [rolesMap, setRolesMap] = useState(() => new Map<string, RoleBasic>());
   const { filters } = useFilters();
 
   const rolesList = useMemo(() => Array.from(rolesMap.values()), [rolesMap]);
@@ -54,7 +54,7 @@ export function useRolesListQuery() {
 
   useEffect(() => {
     if (rolesData) {
-      const newMap = new Map<string, Roles>();
+      const newMap = new Map<string, RoleBasic>();
 
       rolesData.pages.forEach((page) => {
         page.roles.forEach((role) => {
