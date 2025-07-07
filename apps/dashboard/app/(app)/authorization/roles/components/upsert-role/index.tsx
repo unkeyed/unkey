@@ -11,6 +11,7 @@ import { PenWriting3, Plus } from "@unkey/icons";
 import { Button, DialogContainer, FormInput, FormTextarea } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { Controller, FormProvider } from "react-hook-form";
+import { useRoleLimits } from "../table/hooks/use-role-limits";
 import { KeyField } from "./components/assign-key/key-field";
 import { PermissionField } from "./components/assign-permission/permissions-field";
 import { useUpsertRole } from "./hooks/use-upsert-role";
@@ -35,7 +36,7 @@ const getDefaultValues = (existingRole?: ExistingRole): Partial<FormValues> => {
       roleName: existingRole.name,
       roleDescription: existingRole.description || "",
       keyIds: existingRole.keyIds || [],
-      permissionIds: existingRole.permissionIds,
+      permissionIds: existingRole.permissionIds || [],
     };
   }
 
@@ -62,6 +63,8 @@ export const UpsertRoleDialog = ({
 }: UpsertRoleDialogProps) => {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isEditMode = Boolean(existingRole?.id);
+
+  const { calculateLimits } = useRoleLimits(existingRole?.id);
 
   // Use external state if provided, otherwise use internal state
   const isDialogOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
@@ -126,7 +129,16 @@ export const UpsertRoleDialog = ({
   });
 
   const onSubmit = async (data: FormValues) => {
-    upsertRoleMutation.mutate(data);
+    // Calculate limits with current form data
+    const { hasKeyWarning, hasPermWarning } = calculateLimits(data.keyIds, data.permissionIds);
+
+    const submissionData: FormValues = {
+      ...data,
+      keyIds: hasKeyWarning ? undefined : data.keyIds,
+      permissionIds: hasPermWarning ? undefined : data.permissionIds,
+    };
+
+    upsertRoleMutation.mutate(submissionData);
   };
 
   const handleDialogToggle = (open: boolean) => {
@@ -213,6 +225,7 @@ export const UpsertRoleDialog = ({
                 control={control}
                 render={({ field, fieldState }) => (
                   <KeyField
+                    roleId={existingRole?.id}
                     value={field.value ?? []}
                     onChange={field.onChange}
                     error={fieldState.error?.message}
@@ -226,6 +239,7 @@ export const UpsertRoleDialog = ({
                 control={control}
                 render={({ field, fieldState }) => (
                   <PermissionField
+                    roleId={existingRole?.id}
                     value={field.value ?? []}
                     onChange={field.onChange}
                     error={fieldState.error?.message}
