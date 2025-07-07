@@ -69,36 +69,60 @@ Each button variant can be combined with different color schemes to convey the n
 #### Danger Variants
 Solid background danger variant for destructive actions that should be clearly highlighted.
 
+***Primary***
+
 <DangerPrimaryExample />
 
+***Outline***
+
 <DangerOutlineExample />
+
+***Ghost***
 
 <DangerGhostExample />
 
 #### Warning Variants
 Warning variant with solid background for actions that require caution but aren't destructive.
 
+***Primary***
+
 <WarningPrimaryExample />
 
+***Outline***
+
 <WarningOutlineExample />
+
+***Ghost***
 
 <WarningGhostExample />
 
 #### Success Variants
 Success variant with solid background for positive or confirming actions.
 
+***Primary***
+
 <SuccessPrimaryExample />
 
+***Outline***
+
 <SuccessOutlineExample />
+
+***Ghost***
 
 <SuccessGhostExample />
 
 #### Info Variants
 Info variant with solid background for purely informational actions.
 
+***Primary***
+
 <InfoPrimaryExample />
 
+***Outline***
+
 <InfoOutlineExample />
+
+***Ghost***
 
 <InfoGhostExample />
 
@@ -134,17 +158,23 @@ For special layouts, buttons can use the `shape` prop.
 
 ## Props
 
-<AutoTypeTable
-  name="DocumentedButtonProps"
-  path="../../internal/ui/src/components/buttons/button.tsx"
-/>
-
-### KeyboardConfig
-| Prop | Type | Description |
-|------|------|-------------|
-| `display` | `string` | Text to display for the keyboard shortcut |
-| `trigger` | `(e: KeyboardEvent) => boolean` | Function to determine when shortcut is triggered |
-| `callback` | `() => void` | Function to call when shortcut is triggered |
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `variant` | `"primary" \| "outline" \| "ghost"` | `"primary"` | The variant style to use for the button |
+| `color` | `"default" \| "success" \| "warning" \| "danger" \| "info"` | `"default"` | The color scheme to use for the button |
+| `size` | `"sm" \| "md" \| "lg" \| "xlg" \| "2xlg"` | `"sm"` | The size of the button |
+| `shape` | `"square"` | - | Special shape variant for the button |
+| `loading` | `boolean` | - | Display a loading spinner instead of the children |
+| `disabled` | `boolean` | - | Disables the button |
+| `keyboard` | `object` | - | Keyboard shortcut configuration |
+| `keyboard.display` | `string` | - | The shortcut displayed on the button |
+| `keyboard.trigger` | `(e: KeyboardEvent) => boolean` | - | Function to decide whether the button should be pressed |
+| `keyboard.callback` | `(e: KeyboardEvent) => void \| Promise<void>` | - | The function to be called when triggered |
+| `asChild` | `boolean` | - | Allows you to use your own component as a button |
+| `loadingLabel` | `string` | `"Loading, please wait"` | Optional label for screen readers when in loading state |
+| `onClick` | `(event: React.MouseEvent<HTMLButtonElement>) => void` | - | Callback triggered when button is clicked |
+| `type` | `"button" \| "submit" \| "reset"` | `"button"` | The type of button |
+| `className` | `string` | - | Additional CSS classes to apply |
 
 ## Variants
 

@@ -109,10 +109,29 @@ Example of a FormInput with multiple props configured for a specific use case.
 
 The FormInput component extends the standard Input component props with additional form-specific properties:
 
-<AutoTypeTable
-    name="DocumentedFormInputProps"
-    path="../../internal/ui/src/components/form/form-input.tsx"
-/>
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `label` | `string` | - | The label text to display above the input |
+| `description` | `string \| React.ReactNode` | - | Optional helper text displayed below the input |
+| `required` | `boolean` | - | Whether the field is required. Adds a "Required" indicator |
+| `optional` | `boolean` | - | Whether the field is optional. Adds an "Optional" indicator |
+| `error` | `string` | - | Error message to display. Overrides description and applies error styling |
+| `variant` | `"default" \| "success" \| "warning" \| "error"` | `"default"` | The variant style to use for the input |
+| `leftIcon` | `React.ReactNode` | - | Icon to display on the left side of the input |
+| `rightIcon` | `React.ReactNode` | - | Icon to display on the right side of the input |
+| `wrapperClassName` | `string` | - | Additional CSS classes for the input wrapper |
+| `type` | `string` | `"text"` | The HTML input type (text, email, password, etc.) |
+| `placeholder` | `string` | - | Placeholder text displayed when input is empty |
+| `value` | `string` | - | The current value of the input |
+| `defaultValue` | `string` | - | Default value when uncontrolled |
+| `disabled` | `boolean` | - | Whether the input is disabled |
+| `readOnly` | `boolean` | - | Whether the input is read-only |
+| `name` | `string` | - | Name of the input for form submission |
+| `onChange` | `(event: React.ChangeEvent<HTMLInputElement>) => void` | - | Callback triggered when input value changes |
+| `onFocus` | `(event: React.FocusEvent<HTMLInputElement>) => void` | - | Callback triggered when input gains focus |
+| `onBlur` | `(event: React.FocusEvent<HTMLInputElement>) => void` | - | Callback triggered when input loses focus |
+| `className` | `string` | - | Additional CSS classes to apply |
+| `id` | `string` | - | Unique identifier for the input. Auto-generated if not provided |
 
 ## Variants
 

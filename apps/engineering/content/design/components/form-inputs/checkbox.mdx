@@ -67,30 +67,54 @@ Checkbox with no background when unchecked and subtle hover states. Perfect for 
 Each checkbox variant can be combined with different color schemes to convey the nature of the selection:
 
 #### Danger Variants
+***Primary***
+
 <CheckboxDangerPrimary />
 
+***Outline***
+
 <CheckboxDangerOutline />
+
+***Ghost***
 
 <CheckboxDangerGhost />
 
 #### Warning Variants
+***Primary***
+
 <CheckboxWarningPrimary />
 
+***Outline***
+
 <CheckboxWarningOutline />
+
+***Ghost***
 
 <CheckboxWarningGhost />
 
 #### Success Variants
+***Primary***
+
 <CheckboxSuccessPrimary />
 
+***Outline***
+
 <CheckboxSuccessOutline />
+
+***Ghost***
 
 <CheckboxSuccessGhost />
 
 #### Info Variants
+***Primary***
+
 <CheckboxInfoPrimary />
 
+***Outline***
+
 <CheckboxInfoOutline />
+
+***Ghost***
 
 <CheckboxInfoGhost />
 
@@ -124,10 +148,19 @@ Checkboxes can be grouped together for related selection options.
 
 The Checkbox component accepts all standard HTML input attributes plus the following:
 
-<AutoTypeTable
-  name="DocumentedCheckboxProps"
-  path="../../internal/ui/src/components/form/checkbox.tsx"
-/>
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `variant` | `"primary" \| "outline" \| "ghost"` | `"primary"` | The variant style to use for the checkbox |
+| `color` | `"default" \| "success" \| "warning" \| "danger" \| "info"` | `"default"` | The color scheme to use for the checkbox |
+| `size` | `"sm" \| "md" \| "lg" \| "xlg"` | `"md"` | The size of the checkbox |
+| `checked` | `boolean` | - | Whether the checkbox is checked |
+| `defaultChecked` | `boolean` | - | Default checked state when uncontrolled |
+| `disabled` | `boolean` | - | Whether the checkbox is disabled |
+| `required` | `boolean` | - | Required state for the checkbox |
+| `name` | `string` | - | Name of the checkbox for form submission |
+| `value` | `string` | - | Value of the checkbox for form submission |
+| `onCheckedChange` | `(checked: boolean) => void` | - | Callback triggered when checkbox state changes |
+| `className` | `string` | - | Additional CSS classes to apply |
 
 ## Variants
 

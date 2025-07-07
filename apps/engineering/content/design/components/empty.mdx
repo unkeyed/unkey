@@ -43,16 +43,6 @@ A complete empty state with icon, title, description, and action button.
 - **Responsive Design**: Adapts to different screen sizes
 - **Consistent Styling**: Matches design system standards
 
-## Structure
-
-The Empty component is composed of several sub-components that work together:
-
-1. **Empty** - The main container component
-2. **Empty.Icon** - Default UFO icon with styling
-3. **Empty.Title** - Main heading text for emphasis
-4. **Empty.Description** - Explanatory text about the empty state
-5. **Empty.Actions** - Container for action buttons or links
-
 ## Props
 
 ### Empty (Main Container)
@@ -83,6 +73,16 @@ The Empty component is composed of several sub-components that work together:
 |------|------|---------|-------------|
 | `children` | `React.ReactNode` | - | Action buttons or links |
 | `className` | `string` | `undefined` | Additional CSS classes |
+
+## Structure
+
+The Empty component is composed of several sub-components that work together:
+
+1. **Empty** - The main container component
+2. **Empty.Icon** - Default UFO icon with styling
+3. **Empty.Title** - Main heading text for emphasis
+4. **Empty.Description** - Explanatory text about the empty state
+5. **Empty.Actions** - Container for action buttons or links
 
 ## Styling
 
@@ -121,12 +121,3 @@ The Empty component is built with accessibility in mind:
 - **Focus Management**: Logical tab order for action buttons
 - **High Contrast**: Maintains proper contrast ratios
 - **Descriptive Content**: Clear explanations of empty states
-
-## Best Practices
-
-- **Clear Context**: Use descriptive titles and explanations
-- **Actionable Content**: Provide clear next steps in the actions area
-- **Consistent Usage**: Use the same empty state pattern across your application
-- **Filter Context**: When showing empty states due to filters, provide options to clear filters
-- **Helpful Actions**: Include relevant actions that help users resolve the empty state
-- **Visual Hierarchy**: Use the title for emphasis and description for explanation
