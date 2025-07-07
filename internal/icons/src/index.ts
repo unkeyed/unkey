@@ -83,6 +83,7 @@ export * from "./icons/sidebar-left-hide";
 export * from "./icons/sidebar-left-show";
 export * from "./icons/sliders";
 export * from "./icons/sparkle-3";
+export * from "./icons/stack-perspective-2";
 export * from "./icons/storage";
 export * from "./icons/sun";
 export * from "./icons/tag";
