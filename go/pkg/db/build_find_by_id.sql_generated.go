@@ -16,15 +16,17 @@ SELECT
     project_id,
     version_id,
     rootfs_image_id,
+    git_commit_sha,
+    git_branch,
     status,
+    build_tool,
     error_message,
     started_at,
     completed_at,
-    created_at_m,
-    updated_at_m,
-    deleted_at_m
+    created_at,
+    updated_at
 FROM ` + "`" + `builds` + "`" + `
-WHERE id = ? AND deleted_at_m IS NULL
+WHERE id = ?
 `
 
 // FindBuildById
@@ -35,15 +37,17 @@ WHERE id = ? AND deleted_at_m IS NULL
 //	    project_id,
 //	    version_id,
 //	    rootfs_image_id,
+//	    git_commit_sha,
+//	    git_branch,
 //	    status,
+//	    build_tool,
 //	    error_message,
 //	    started_at,
 //	    completed_at,
-//	    created_at_m,
-//	    updated_at_m,
-//	    deleted_at_m
+//	    created_at,
+//	    updated_at
 //	FROM `builds`
-//	WHERE id = ? AND deleted_at_m IS NULL
+//	WHERE id = ?
 func (q *Queries) FindBuildById(ctx context.Context, db DBTX, id string) (Build, error) {
 	row := db.QueryRowContext(ctx, findBuildById, id)
 	var i Build
@@ -53,13 +57,15 @@ func (q *Queries) FindBuildById(ctx context.Context, db DBTX, id string) (Build,
 		&i.ProjectID,
 		&i.VersionID,
 		&i.RootfsImageID,
+		&i.GitCommitSha,
+		&i.GitBranch,
 		&i.Status,
+		&i.BuildTool,
 		&i.ErrorMessage,
 		&i.StartedAt,
 		&i.CompletedAt,
-		&i.CreatedAtM,
-		&i.UpdatedAtM,
-		&i.DeletedAtM,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

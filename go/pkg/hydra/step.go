@@ -83,8 +83,12 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 		attribute.String("hydra.namespace", wctx.namespace),
 	)
 
-	existing, err := wctx.getCompletedStep(stepName)
-	if err == nil && existing != nil {
+	existing, err := store.Query.GetCompletedStep(wctx.ctx, wctx.db, store.GetCompletedStepParams{
+		Namespace:   wctx.namespace,
+		ExecutionID: wctx.ExecutionID(),
+		StepName:    stepName,
+	})
+	if err == nil {
 		// Record cached step hit
 		metrics.StepsCachedTotal.WithLabelValues(wctx.namespace, wctx.workflowName, stepName).Inc()
 		span.SetAttributes(attribute.Bool("hydra.step.cached", true))
@@ -97,9 +101,9 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 			var ok bool
 			response, ok = responseValue.Interface().(TResponse)
 			if !ok {
-				err := fmt.Errorf("failed to convert response to expected type")
-				tracing.RecordError(span, err)
-				return zero, err
+				conversionErr := fmt.Errorf("failed to convert response to expected type")
+				tracing.RecordError(span, conversionErr)
+				return zero, conversionErr
 			}
 		}
 
@@ -117,67 +121,110 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 
 	span.SetAttributes(attribute.Bool("hydra.step.cached", false))
 
-	existingStep, err := wctx.getAnyStep(stepName)
+	_, err = store.Query.GetStep(wctx.ctx, wctx.db, store.GetStepParams{
+		Namespace:   wctx.namespace,
+		ExecutionID: wctx.ExecutionID(),
+		StepName:    stepName,
+	})
 	var stepToUse *store.WorkflowStep
-	shouldCreateNewStep := true
-
-	if err == nil && existingStep != nil {
-		stepToUse = existingStep
-		shouldCreateNewStep = false
-	}
+	shouldCreateNewStep := err != nil // sql.ErrNoRows means step doesn't exist, so create new one
 
 	stepStartTime := time.Now()
 
 	if shouldCreateNewStep {
 		stepID := uid.New(uid.StepPrefix)
 
-		// Create step using Query pattern
-		err = store.Query.CreateStep(wctx.ctx, wctx.db, store.CreateStepParams{
-			ID:                stepID,
-			ExecutionID:       wctx.ExecutionID(),
-			StepName:          stepName,
-			StepOrder:         wctx.getNextStepOrder(),
-			Status:            store.WorkflowStepsStatusRunning,
-			OutputData:        []byte{},
-			ErrorMessage:      sql.NullString{Valid: false},
-			StartedAt:         sql.NullInt64{Int64: stepStartTime.UnixMilli(), Valid: true},
-			CompletedAt:       sql.NullInt64{Valid: false},
-			MaxAttempts:       wctx.stepMaxAttempts,
-			RemainingAttempts: wctx.stepMaxAttempts,
-			Namespace:         wctx.namespace,
-		})
-		if err != nil {
-			metrics.RecordError(wctx.namespace, "step", "create_failed")
-			tracing.RecordError(span, err)
-			return zero, fmt.Errorf("failed to create step: %w", err)
+		// Create step with lease validation - only if worker holds valid lease
+		now := time.Now().UnixMilli()
+		createResult, createErr := wctx.db.ExecContext(wctx.ctx, `
+			INSERT INTO workflow_steps (
+			    id, execution_id, step_name, step_order, status, output_data, error_message,
+			    started_at, completed_at, max_attempts, remaining_attempts, namespace
+			) 
+			SELECT ?, ?, ?, ?, ?, ?, ?,
+			       ?, ?, ?, ?, ?
+			WHERE EXISTS (
+			    SELECT 1 FROM leases 
+			    WHERE resource_id = ? AND kind = 'workflow' 
+			    AND worker_id = ? AND expires_at > ?
+			)`,
+			stepID,
+			wctx.ExecutionID(),
+			stepName,
+			wctx.getNextStepOrder(),
+			store.WorkflowStepsStatusRunning,
+			[]byte{},
+			sql.NullString{String: "", Valid: false},
+			sql.NullInt64{Int64: stepStartTime.UnixMilli(), Valid: true},
+			sql.NullInt64{Int64: 0, Valid: false},
+			wctx.stepMaxAttempts,
+			wctx.stepMaxAttempts,
+			wctx.namespace,
+			wctx.ExecutionID(), // resource_id for lease check
+			wctx.workerID,      // worker_id for lease check
+			now,                // expires_at check
+		)
+		if createErr != nil {
+			return zero, fmt.Errorf("failed to create step: %w", createErr)
 		}
 
-		// Get the created step for further use
-		step, err := store.Query.GetStep(wctx.ctx, wctx.db, store.GetStepParams{
+		// Check if the step creation actually happened (lease validation)
+		rowsAffected, rowsErr := createResult.RowsAffected()
+		if rowsErr != nil {
+			return zero, fmt.Errorf("failed to check step creation result: %w", rowsErr)
+		}
+		if rowsAffected == 0 {
+			return zero, fmt.Errorf("step creation failed: lease expired or invalid")
+		}
+
+		// Step created successfully
+		span.SetAttributes(attribute.Bool("hydra.step.new", true))
+	} else {
+		// Update existing step to running status with lease validation
+		now := time.Now().UnixMilli()
+		updateResult, updateErr := wctx.db.ExecContext(wctx.ctx, `
+			UPDATE workflow_steps 
+			SET status = ?, completed_at = ?, output_data = ?, error_message = ?
+			WHERE workflow_steps.namespace = ? AND execution_id = ? AND step_name = ?
+			  AND EXISTS (
+			    SELECT 1 FROM leases 
+			    WHERE resource_id = ? AND kind = 'workflow' 
+			    AND worker_id = ? AND expires_at > ?
+			  )`,
+			store.WorkflowStepsStatusRunning,
+			sql.NullInt64{Int64: 0, Valid: false},
+			[]byte{},
+			sql.NullString{String: "", Valid: false},
+			wctx.namespace,
+			wctx.ExecutionID(),
+			stepName,
+			wctx.ExecutionID(), // resource_id for lease check
+			wctx.workerID,      // worker_id for lease check
+			now,                // expires_at check
+		)
+		if updateErr != nil {
+			return zero, fmt.Errorf("failed to update step status: %w", updateErr)
+		}
+
+		// Check if the update actually happened (lease validation)
+		rowsAffected, rowsErr := updateResult.RowsAffected()
+		if rowsErr != nil {
+			return zero, fmt.Errorf("failed to check step update result: %w", rowsErr)
+		}
+		if rowsAffected == 0 {
+			return zero, fmt.Errorf("step update failed: lease expired or invalid")
+		}
+
+		// Get the step after successful update
+		stepResult, getErr := store.Query.GetStep(wctx.ctx, wctx.db, store.GetStepParams{
 			Namespace:   wctx.namespace,
 			ExecutionID: wctx.ExecutionID(),
 			StepName:    stepName,
 		})
-		stepToUse = &step
-		if err != nil {
-			return zero, fmt.Errorf("failed to retrieve created step: %w", err)
+		stepToUse = &stepResult
+		if getErr != nil {
+			return zero, fmt.Errorf("failed to retrieve updated step: %w", getErr)
 		}
-		span.SetAttributes(attribute.Bool("hydra.step.new", true))
-	} else {
-		// Update existing step to running status - using Query pattern
-		err = store.Query.UpdateStepStatus(wctx.ctx, wctx.db, store.UpdateStepStatusParams{
-			Status:       store.WorkflowStepsStatusRunning,
-			CompletedAt:  sql.NullInt64{Valid: false},
-			OutputData:   []byte{},
-			ErrorMessage: sql.NullString{Valid: false},
-			Namespace:    wctx.namespace,
-			ExecutionID:  wctx.ExecutionID(),
-			StepName:     stepName,
-		})
-		if err != nil {
-			return zero, fmt.Errorf("failed to update step status: %w", err)
-		}
-		stepToUse.CompletedAt = sql.NullInt64{Valid: false}
 
 		// Record step retry
 		if stepToUse.RemainingAttempts < stepToUse.MaxAttempts {

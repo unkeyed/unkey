@@ -1,10 +1,10 @@
 import { relations } from "drizzle-orm";
 import { boolean, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
-import { lifecycleDatesMigration } from "./util/lifecycle_dates";
-import { workspaces } from "./workspaces";
-import { projects } from "./projects";
-import { versions } from "./versions";
 import { hostnames } from "./hostnames";
+import { projects } from "./projects";
+import { lifecycleDates } from "./util/lifecycle_dates";
+import { versions } from "./versions";
+import { workspaces } from "./workspaces";
 export const routes = mysqlTable(
   "routes",
   {
@@ -21,7 +21,7 @@ export const routes = mysqlTable(
     // Route status
     isEnabled: boolean("is_enabled").notNull().default(true),
 
-    ...lifecycleDatesMigration,
+    ...lifecycleDates,
   },
   (table) => ({
     workspaceIdx: index("workspace_idx").on(table.workspaceId),

@@ -131,6 +131,17 @@
 //
 //	fmt.Printf("Started workflow execution: %s\n", executionID)
 //
+// # Marshalling Options
+//
+// Hydra supports multiple marshalling formats for workflow payloads and step results:
+//
+// JSON Marshaller (Default):
+//
+//	engine, err := hydra.NewEngine(hydra.Config{
+//	    Marshaller: hydra.NewJSONMarshaller(), // Default if not specified
+//	    // ... other config
+//	})
+//
 // # Advanced Features
 //
 // Sleep States: Workflows can suspend execution and resume after a specified

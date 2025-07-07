@@ -8,6 +8,3 @@ GRANT ALL PRIVILEGES ON unkey.* TO 'unkey'@'%';
 GRANT ALL PRIVILEGES ON hydra.* TO 'unkey'@'%';
 GRANT ALL PRIVILEGES ON partition_001.* TO 'unkey'@'%';
 FLUSH PRIVILEGES;
-
--- Switch to main database for the main schema (schema.sql will be applied here)
-USE unkey;

@@ -7,8 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
-	"encoding/json"
 )
 
 const findVersionById = `-- name: FindVersionById :one
@@ -16,39 +14,18 @@ SELECT
     id,
     workspace_id,
     project_id,
-    environment_id,
     branch_id,
     build_id,
     rootfs_image_id,
     git_commit_sha,
     git_branch,
     config_snapshot,
-    topology_config,
     status,
-    created_at_m,
-    updated_at_m,
-    deleted_at_m
+    created_at,
+    updated_at
 FROM ` + "`" + `versions` + "`" + `
-WHERE id = ? AND deleted_at_m IS NULL
+WHERE id = ?
 `
-
-type FindVersionByIdRow struct {
-	ID             string          `db:"id"`
-	WorkspaceID    string          `db:"workspace_id"`
-	ProjectID      string          `db:"project_id"`
-	EnvironmentID  string          `db:"environment_id"`
-	BranchID       sql.NullString  `db:"branch_id"`
-	BuildID        sql.NullString  `db:"build_id"`
-	RootfsImageID  string          `db:"rootfs_image_id"`
-	GitCommitSha   sql.NullString  `db:"git_commit_sha"`
-	GitBranch      sql.NullString  `db:"git_branch"`
-	ConfigSnapshot json.RawMessage `db:"config_snapshot"`
-	TopologyConfig json.RawMessage `db:"topology_config"`
-	Status         VersionsStatus  `db:"status"`
-	CreatedAtM     int64           `db:"created_at_m"`
-	UpdatedAtM     sql.NullInt64   `db:"updated_at_m"`
-	DeletedAtM     sql.NullInt64   `db:"deleted_at_m"`
-}
 
 // FindVersionById
 //
@@ -56,39 +33,33 @@ type FindVersionByIdRow struct {
 //	    id,
 //	    workspace_id,
 //	    project_id,
-//	    environment_id,
 //	    branch_id,
 //	    build_id,
 //	    rootfs_image_id,
 //	    git_commit_sha,
 //	    git_branch,
 //	    config_snapshot,
-//	    topology_config,
 //	    status,
-//	    created_at_m,
-//	    updated_at_m,
-//	    deleted_at_m
+//	    created_at,
+//	    updated_at
 //	FROM `versions`
-//	WHERE id = ? AND deleted_at_m IS NULL
-func (q *Queries) FindVersionById(ctx context.Context, db DBTX, id string) (FindVersionByIdRow, error) {
+//	WHERE id = ?
+func (q *Queries) FindVersionById(ctx context.Context, db DBTX, id string) (Version, error) {
 	row := db.QueryRowContext(ctx, findVersionById, id)
-	var i FindVersionByIdRow
+	var i Version
 	err := row.Scan(
 		&i.ID,
 		&i.WorkspaceID,
 		&i.ProjectID,
-		&i.EnvironmentID,
 		&i.BranchID,
 		&i.BuildID,
 		&i.RootfsImageID,
 		&i.GitCommitSha,
 		&i.GitBranch,
 		&i.ConfigSnapshot,
-		&i.TopologyConfig,
 		&i.Status,
-		&i.CreatedAtM,
-		&i.UpdatedAtM,
-		&i.DeletedAtM,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

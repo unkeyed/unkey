@@ -16,25 +16,29 @@ INSERT INTO builds (
     project_id,
     version_id,
     rootfs_image_id,
+    git_commit_sha,
+    git_branch,
     status,
+    build_tool,
     error_message,
     started_at,
     completed_at,
-    created_at_m,
-    updated_at_m,
-    deleted_at_m
+    created_at,
+    updated_at
 ) VALUES (
     ?,
     ?,
     ?,
     ?,
     NULL,
+    NULL,
+    NULL,
     'pending',
+    'docker',
     NULL,
     NULL,
     NULL,
     ?,
-    NULL,
     NULL
 )
 `
@@ -55,25 +59,29 @@ type InsertBuildParams struct {
 //	    project_id,
 //	    version_id,
 //	    rootfs_image_id,
+//	    git_commit_sha,
+//	    git_branch,
 //	    status,
+//	    build_tool,
 //	    error_message,
 //	    started_at,
 //	    completed_at,
-//	    created_at_m,
-//	    updated_at_m,
-//	    deleted_at_m
+//	    created_at,
+//	    updated_at
 //	) VALUES (
 //	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
 //	    NULL,
+//	    NULL,
+//	    NULL,
 //	    'pending',
+//	    'docker',
 //	    NULL,
 //	    NULL,
 //	    NULL,
 //	    ?,
-//	    NULL,
 //	    NULL
 //	)
 func (q *Queries) InsertBuild(ctx context.Context, db DBTX, arg InsertBuildParams) error {

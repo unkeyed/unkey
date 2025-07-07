@@ -13,7 +13,7 @@ import (
 const updateBuildStatus = `-- name: UpdateBuildStatus :exec
 UPDATE builds SET 
     status = ?,
-    updated_at_m = ?
+    updated_at = ?
 WHERE id = ?
 `
 
@@ -27,7 +27,7 @@ type UpdateBuildStatusParams struct {
 //
 //	UPDATE builds SET
 //	    status = ?,
-//	    updated_at_m = ?
+//	    updated_at = ?
 //	WHERE id = ?
 func (q *Queries) UpdateBuildStatus(ctx context.Context, db DBTX, arg UpdateBuildStatusParams) error {
 	_, err := db.ExecContext(ctx, updateBuildStatus, arg.Status, arg.Now, arg.ID)

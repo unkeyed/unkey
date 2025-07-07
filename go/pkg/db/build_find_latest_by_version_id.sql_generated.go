@@ -16,16 +16,18 @@ SELECT
     project_id,
     version_id,
     rootfs_image_id,
+    git_commit_sha,
+    git_branch,
     status,
+    build_tool,
     error_message,
     started_at,
     completed_at,
-    created_at_m,
-    updated_at_m,
-    deleted_at_m
+    created_at,
+    updated_at
 FROM ` + "`" + `builds` + "`" + `
-WHERE version_id = ? AND deleted_at_m IS NULL
-ORDER BY created_at_m DESC
+WHERE version_id = ?
+ORDER BY created_at DESC
 LIMIT 1
 `
 
@@ -37,16 +39,18 @@ LIMIT 1
 //	    project_id,
 //	    version_id,
 //	    rootfs_image_id,
+//	    git_commit_sha,
+//	    git_branch,
 //	    status,
+//	    build_tool,
 //	    error_message,
 //	    started_at,
 //	    completed_at,
-//	    created_at_m,
-//	    updated_at_m,
-//	    deleted_at_m
+//	    created_at,
+//	    updated_at
 //	FROM `builds`
-//	WHERE version_id = ? AND deleted_at_m IS NULL
-//	ORDER BY created_at_m DESC
+//	WHERE version_id = ?
+//	ORDER BY created_at DESC
 //	LIMIT 1
 func (q *Queries) FindLatestBuildByVersionId(ctx context.Context, db DBTX, versionID string) (Build, error) {
 	row := db.QueryRowContext(ctx, findLatestBuildByVersionId, versionID)
@@ -57,13 +61,15 @@ func (q *Queries) FindLatestBuildByVersionId(ctx context.Context, db DBTX, versi
 		&i.ProjectID,
 		&i.VersionID,
 		&i.RootfsImageID,
+		&i.GitCommitSha,
+		&i.GitBranch,
 		&i.Status,
+		&i.BuildTool,
 		&i.ErrorMessage,
 		&i.StartedAt,
 		&i.CompletedAt,
-		&i.CreatedAtM,
-		&i.UpdatedAtM,
-		&i.DeletedAtM,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

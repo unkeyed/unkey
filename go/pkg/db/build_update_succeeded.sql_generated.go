@@ -14,7 +14,7 @@ const updateBuildSucceeded = `-- name: UpdateBuildSucceeded :exec
 UPDATE builds SET 
     status = 'succeeded',
     completed_at = ?,
-    updated_at_m = ?
+    updated_at = ?
 WHERE id = ?
 `
 
@@ -28,7 +28,7 @@ type UpdateBuildSucceededParams struct {
 //	UPDATE builds SET
 //	    status = 'succeeded',
 //	    completed_at = ?,
-//	    updated_at_m = ?
+//	    updated_at = ?
 //	WHERE id = ?
 func (q *Queries) UpdateBuildSucceeded(ctx context.Context, db DBTX, arg UpdateBuildSucceededParams) error {
 	_, err := db.ExecContext(ctx, updateBuildSucceeded, arg.Now, arg.Now, arg.ID)

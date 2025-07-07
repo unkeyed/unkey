@@ -130,7 +130,6 @@ func createAction(ctx context.Context, cmd *cli.Command) error {
 
 // Styles for clean output
 var (
-	headerStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("15")).MarginTop(1).MarginBottom(1)
 	sectionName = lipgloss.NewStyle().Bold(true)
 	metaText    = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 	errorText   = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
@@ -165,16 +164,6 @@ var (
 		"Good things come to those who wait...",
 		"Counting sheep until build starts...",
 		"Build is doing pre-flight checks...",
-	}
-
-	buildRunningMessages = []string{
-		"Assembling bits and bytes...",
-		"Compiling dreams into reality...",
-		"Teaching code to behave...",
-		"Negotiating with Docker layers...",
-		"Convincing dependencies to play nice...",
-		"Building the eighth wonder of the world...",
-		"Crafting digital masterpieces...",
 	}
 )
 
@@ -221,7 +210,7 @@ func runDeploymentSteps(ctx context.Context, cmd *cli.Command, workspace, projec
 		fmt.Printf("%s\n", sectionName.Render("Building"))
 
 		// Generate image tag using Git info when available
-		imageTag := branch
+		var imageTag string
 		if gitInfo.ShortSHA != "" {
 			imageTag = fmt.Sprintf("%s-%s", branch, gitInfo.ShortSHA)
 		} else {
@@ -265,8 +254,8 @@ func runDeploymentSteps(ctx context.Context, cmd *cli.Command, workspace, projec
 		}
 
 		// Start the build command
-		if err := buildCmd.Start(); err != nil {
-			return fmt.Errorf("failed to start docker build: %w", err)
+		if startErr := buildCmd.Start(); startErr != nil {
+			return fmt.Errorf("failed to start docker build: %w", startErr)
 		}
 
 		// Capture all output for error reporting
@@ -430,18 +419,26 @@ func pollVersionStatus(ctx context.Context, logger logging.Logger, client ctrlv1
 			// Show version status updates with section headers
 			if currentVersionStatus != lastVersionStatus {
 				switch version.GetStatus() {
+				case ctrlv1.VersionStatus_VERSION_STATUS_UNSPECIFIED:
+					// Skip unspecified status, no display needed
+				case ctrlv1.VersionStatus_VERSION_STATUS_PENDING:
+					fmt.Printf("%s\n", sectionName.Render("Pending"))
+					message := buildQueuedMessages[rand.Intn(len(buildQueuedMessages))] // nolint:gosec // Weak random is acceptable for UI messages
+					fmt.Printf("  %s\n", metaText.Render(message))
 				case ctrlv1.VersionStatus_VERSION_STATUS_BUILDING:
 					fmt.Printf("%s\n", sectionName.Render("Building"))
-					message := buildingMessages[rand.Intn(len(buildingMessages))]
+					message := buildingMessages[rand.Intn(len(buildingMessages))] // nolint:gosec // Weak random is acceptable for UI messages
 					fmt.Printf("  %s\n", metaText.Render(message))
 				case ctrlv1.VersionStatus_VERSION_STATUS_DEPLOYING:
 					fmt.Printf("%s\n", sectionName.Render("Deploying"))
-					message := deployingMessages[rand.Intn(len(deployingMessages))]
+					message := deployingMessages[rand.Intn(len(deployingMessages))] // nolint:gosec // Weak random is acceptable for UI messages
 					fmt.Printf("  %s\n", metaText.Render(message))
 				case ctrlv1.VersionStatus_VERSION_STATUS_ACTIVE:
 					// Will be handled after the polling loop
 				case ctrlv1.VersionStatus_VERSION_STATUS_FAILED:
 					fmt.Printf("  %s: Deployment failed\n", errorText.Render("Error"))
+				case ctrlv1.VersionStatus_VERSION_STATUS_ARCHIVED:
+					fmt.Printf("  %s: Version archived\n", metaText.Render("Info"))
 				}
 				lastVersionStatus = currentVersionStatus
 			}
@@ -456,48 +453,6 @@ func pollVersionStatus(ctx context.Context, logger logging.Logger, client ctrlv1
 				return fmt.Errorf("deployment failed")
 			}
 		}
-	}
-}
-
-// getStatusDisplayName converts a version status to a human-readable display name
-func getStatusDisplayName(status ctrlv1.VersionStatus) string {
-	switch status {
-	case ctrlv1.VersionStatus_VERSION_STATUS_UNSPECIFIED:
-		return "Status unknown"
-	case ctrlv1.VersionStatus_VERSION_STATUS_PENDING:
-		return "Queuing deployment"
-	case ctrlv1.VersionStatus_VERSION_STATUS_BUILDING:
-		return "Building"
-	case ctrlv1.VersionStatus_VERSION_STATUS_DEPLOYING:
-		return "Deploying"
-	case ctrlv1.VersionStatus_VERSION_STATUS_ACTIVE:
-		return "Ready and serving traffic"
-	case ctrlv1.VersionStatus_VERSION_STATUS_FAILED:
-		return "Deployment failed"
-	case ctrlv1.VersionStatus_VERSION_STATUS_ARCHIVED:
-		return "Deployment archived"
-	default:
-		return "Unknown status"
-	}
-}
-
-// getBuildStatusDisplayName converts a build status to a human-readable display name
-func getBuildStatusDisplayName(status ctrlv1.BuildStatus) string {
-	switch status {
-	case ctrlv1.BuildStatus_BUILD_STATUS_UNSPECIFIED:
-		return "Build status unknown"
-	case ctrlv1.BuildStatus_BUILD_STATUS_PENDING:
-		return "Build queued"
-	case ctrlv1.BuildStatus_BUILD_STATUS_RUNNING:
-		return "Building Docker image..."
-	case ctrlv1.BuildStatus_BUILD_STATUS_SUCCEEDED:
-		return "Build completed"
-	case ctrlv1.BuildStatus_BUILD_STATUS_FAILED:
-		return "Build failed"
-	case ctrlv1.BuildStatus_BUILD_STATUS_CANCELLED:
-		return "Build cancelled"
-	default:
-		return "Unknown build status"
 	}
 }
 

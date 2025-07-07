@@ -219,140 +219,6 @@ func (q *Queries) CreateWorkflow(ctx context.Context, db DBTX, arg CreateWorkflo
 	return err
 }
 
-const failWorkflowFinal = `-- name: FailWorkflowFinal :exec
-UPDATE workflow_executions 
-SET status = 'failed', error_message = ?, remaining_attempts = remaining_attempts - 1, completed_at = ?, next_retry_at = NULL
-WHERE id = ? AND namespace = ?
-`
-
-type FailWorkflowFinalParams struct {
-	ErrorMessage sql.NullString `db:"error_message" json:"error_message"`
-	CompletedAt  sql.NullInt64  `db:"completed_at" json:"completed_at"`
-	ID           string         `db:"id" json:"id"`
-	Namespace    string         `db:"namespace" json:"namespace"`
-}
-
-func (q *Queries) FailWorkflowFinal(ctx context.Context, db DBTX, arg FailWorkflowFinalParams) error {
-	_, err := db.ExecContext(ctx, failWorkflowFinal,
-		arg.ErrorMessage,
-		arg.CompletedAt,
-		arg.ID,
-		arg.Namespace,
-	)
-	return err
-}
-
-const failWorkflowWithRetry = `-- name: FailWorkflowWithRetry :exec
-UPDATE workflow_executions 
-SET status = 'failed', error_message = ?, remaining_attempts = remaining_attempts - 1, next_retry_at = ?
-WHERE id = ? AND namespace = ?
-`
-
-type FailWorkflowWithRetryParams struct {
-	ErrorMessage sql.NullString `db:"error_message" json:"error_message"`
-	NextRetryAt  sql.NullInt64  `db:"next_retry_at" json:"next_retry_at"`
-	ID           string         `db:"id" json:"id"`
-	Namespace    string         `db:"namespace" json:"namespace"`
-}
-
-func (q *Queries) FailWorkflowWithRetry(ctx context.Context, db DBTX, arg FailWorkflowWithRetryParams) error {
-	_, err := db.ExecContext(ctx, failWorkflowWithRetry,
-		arg.ErrorMessage,
-		arg.NextRetryAt,
-		arg.ID,
-		arg.Namespace,
-	)
-	return err
-}
-
-const getAllSteps = `-- name: GetAllSteps :many
-SELECT id, execution_id, step_name, step_order, status, output_data, error_message, started_at, completed_at, max_attempts, remaining_attempts, namespace FROM workflow_steps 
-WHERE namespace = ?
-`
-
-func (q *Queries) GetAllSteps(ctx context.Context, db DBTX, namespace string) ([]WorkflowStep, error) {
-	rows, err := db.QueryContext(ctx, getAllSteps, namespace)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []WorkflowStep{}
-	for rows.Next() {
-		var i WorkflowStep
-		if err := rows.Scan(
-			&i.ID,
-			&i.ExecutionID,
-			&i.StepName,
-			&i.StepOrder,
-			&i.Status,
-			&i.OutputData,
-			&i.ErrorMessage,
-			&i.StartedAt,
-			&i.CompletedAt,
-			&i.MaxAttempts,
-			&i.RemainingAttempts,
-			&i.Namespace,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getAllWorkflows = `-- name: GetAllWorkflows :many
-SELECT id, workflow_name, status, input_data, output_data, error_message, created_at, started_at, completed_at, max_attempts, remaining_attempts, next_retry_at, namespace, trigger_type, trigger_source, sleep_until, trace_id, span_id FROM workflow_executions 
-WHERE namespace = ?
-`
-
-func (q *Queries) GetAllWorkflows(ctx context.Context, db DBTX, namespace string) ([]WorkflowExecution, error) {
-	rows, err := db.QueryContext(ctx, getAllWorkflows, namespace)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []WorkflowExecution{}
-	for rows.Next() {
-		var i WorkflowExecution
-		if err := rows.Scan(
-			&i.ID,
-			&i.WorkflowName,
-			&i.Status,
-			&i.InputData,
-			&i.OutputData,
-			&i.ErrorMessage,
-			&i.CreatedAt,
-			&i.StartedAt,
-			&i.CompletedAt,
-			&i.MaxAttempts,
-			&i.RemainingAttempts,
-			&i.NextRetryAt,
-			&i.Namespace,
-			&i.TriggerType,
-			&i.TriggerSource,
-			&i.SleepUntil,
-			&i.TraceID,
-			&i.SpanID,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getCompletedStep = `-- name: GetCompletedStep :one
 SELECT id, execution_id, step_name, step_order, status, output_data, error_message, started_at, completed_at, max_attempts, remaining_attempts, namespace FROM workflow_steps 
 WHERE namespace = ? AND execution_id = ? AND step_name = ? AND status = 'completed'
@@ -481,47 +347,6 @@ func (q *Queries) GetDueCronJobs(ctx context.Context, db DBTX, arg GetDueCronJob
 			&i.UpdatedAt,
 			&i.LastRunAt,
 			&i.NextRunAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getExpiredLeases = `-- name: GetExpiredLeases :many
-SELECT resource_id, kind, namespace, worker_id, acquired_at, expires_at, heartbeat_at FROM leases 
-WHERE namespace = ? AND expires_at < ?
-`
-
-type GetExpiredLeasesParams struct {
-	Namespace string `db:"namespace" json:"namespace"`
-	ExpiresAt int64  `db:"expires_at" json:"expires_at"`
-}
-
-func (q *Queries) GetExpiredLeases(ctx context.Context, db DBTX, arg GetExpiredLeasesParams) ([]Lease, error) {
-	rows, err := db.QueryContext(ctx, getExpiredLeases, arg.Namespace, arg.ExpiresAt)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []Lease{}
-	for rows.Next() {
-		var i Lease
-		if err := rows.Scan(
-			&i.ResourceID,
-			&i.Kind,
-			&i.Namespace,
-			&i.WorkerID,
-			&i.AcquiredAt,
-			&i.ExpiresAt,
-			&i.HeartbeatAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1005,25 +830,96 @@ func (q *Queries) UpdateStepStatus(ctx context.Context, db DBTX, arg UpdateStepS
 	return err
 }
 
-const updateWorkflowStatus = `-- name: UpdateWorkflowStatus :exec
-UPDATE workflow_executions 
-SET status = ?, error_message = ?
-WHERE id = ? AND namespace = ?
+const updateStepStatusWithLease = `-- name: UpdateStepStatusWithLease :exec
+UPDATE workflow_steps 
+SET status = ?, completed_at = ?, output_data = ?, error_message = ?
+WHERE workflow_steps.namespace = ? AND execution_id = ? AND step_name = ?
+  AND EXISTS (
+    SELECT 1 FROM leases 
+    WHERE resource_id = ? AND kind = 'workflow' 
+    AND worker_id = ? AND expires_at > ?
+  )
 `
 
-type UpdateWorkflowStatusParams struct {
-	Status       WorkflowExecutionsStatus `db:"status" json:"status"`
-	ErrorMessage sql.NullString           `db:"error_message" json:"error_message"`
-	ID           string                   `db:"id" json:"id"`
-	Namespace    string                   `db:"namespace" json:"namespace"`
+type UpdateStepStatusWithLeaseParams struct {
+	Status       WorkflowStepsStatus `db:"status" json:"status"`
+	CompletedAt  sql.NullInt64       `db:"completed_at" json:"completed_at"`
+	OutputData   []byte              `db:"output_data" json:"output_data"`
+	ErrorMessage sql.NullString      `db:"error_message" json:"error_message"`
+	Namespace    string              `db:"namespace" json:"namespace"`
+	ExecutionID  string              `db:"execution_id" json:"execution_id"`
+	StepName     string              `db:"step_name" json:"step_name"`
+	ResourceID   string              `db:"resource_id" json:"resource_id"`
+	WorkerID     string              `db:"worker_id" json:"worker_id"`
+	ExpiresAt    int64               `db:"expires_at" json:"expires_at"`
 }
 
-func (q *Queries) UpdateWorkflowStatus(ctx context.Context, db DBTX, arg UpdateWorkflowStatusParams) error {
-	_, err := db.ExecContext(ctx, updateWorkflowStatus,
+func (q *Queries) UpdateStepStatusWithLease(ctx context.Context, db DBTX, arg UpdateStepStatusWithLeaseParams) error {
+	_, err := db.ExecContext(ctx, updateStepStatusWithLease,
+		arg.Status,
+		arg.CompletedAt,
+		arg.OutputData,
+		arg.ErrorMessage,
+		arg.Namespace,
+		arg.ExecutionID,
+		arg.StepName,
+		arg.ResourceID,
+		arg.WorkerID,
+		arg.ExpiresAt,
+	)
+	return err
+}
+
+const updateWorkflowFields = `-- name: UpdateWorkflowFields :exec
+UPDATE workflow_executions 
+SET 
+  status = COALESCE(?, status),
+  error_message = COALESCE(?, error_message),
+  completed_at = COALESCE(?, completed_at),
+  started_at = COALESCE(?, started_at),
+  output_data = COALESCE(?, output_data),
+  remaining_attempts = COALESCE(?, remaining_attempts),
+  next_retry_at = COALESCE(?, next_retry_at),
+  sleep_until = COALESCE(?, sleep_until)
+WHERE id = ? AND workflow_executions.namespace = ?
+  AND EXISTS (
+    SELECT 1 FROM leases 
+    WHERE resource_id = ? AND kind = 'workflow' 
+    AND worker_id = ? AND expires_at > ?
+  )
+`
+
+type UpdateWorkflowFieldsParams struct {
+	Status            WorkflowExecutionsStatus `db:"status" json:"status"`
+	ErrorMessage      sql.NullString           `db:"error_message" json:"error_message"`
+	CompletedAt       sql.NullInt64            `db:"completed_at" json:"completed_at"`
+	StartedAt         sql.NullInt64            `db:"started_at" json:"started_at"`
+	OutputData        []byte                   `db:"output_data" json:"output_data"`
+	RemainingAttempts int32                    `db:"remaining_attempts" json:"remaining_attempts"`
+	NextRetryAt       sql.NullInt64            `db:"next_retry_at" json:"next_retry_at"`
+	SleepUntil        sql.NullInt64            `db:"sleep_until" json:"sleep_until"`
+	ID                string                   `db:"id" json:"id"`
+	Namespace         string                   `db:"namespace" json:"namespace"`
+	ResourceID        string                   `db:"resource_id" json:"resource_id"`
+	WorkerID          string                   `db:"worker_id" json:"worker_id"`
+	ExpiresAt         int64                    `db:"expires_at" json:"expires_at"`
+}
+
+func (q *Queries) UpdateWorkflowFields(ctx context.Context, db DBTX, arg UpdateWorkflowFieldsParams) error {
+	_, err := db.ExecContext(ctx, updateWorkflowFields,
 		arg.Status,
 		arg.ErrorMessage,
+		arg.CompletedAt,
+		arg.StartedAt,
+		arg.OutputData,
+		arg.RemainingAttempts,
+		arg.NextRetryAt,
+		arg.SleepUntil,
 		arg.ID,
 		arg.Namespace,
+		arg.ResourceID,
+		arg.WorkerID,
+		arg.ExpiresAt,
 	)
 	return err
 }
@@ -1033,16 +929,31 @@ UPDATE workflow_executions
 SET status = 'running', 
     started_at = CASE WHEN started_at IS NULL THEN ? ELSE started_at END,
     sleep_until = NULL
-WHERE id = ? AND namespace = ?
+WHERE id = ? AND workflow_executions.namespace = ?
+  AND EXISTS (
+    SELECT 1 FROM leases 
+    WHERE resource_id = ? AND kind = 'workflow' 
+    AND worker_id = ? AND expires_at > ?
+  )
 `
 
 type UpdateWorkflowToRunningParams struct {
-	StartedAt sql.NullInt64 `db:"started_at" json:"started_at"`
-	ID        string        `db:"id" json:"id"`
-	Namespace string        `db:"namespace" json:"namespace"`
+	StartedAt  sql.NullInt64 `db:"started_at" json:"started_at"`
+	ID         string        `db:"id" json:"id"`
+	Namespace  string        `db:"namespace" json:"namespace"`
+	ResourceID string        `db:"resource_id" json:"resource_id"`
+	WorkerID   string        `db:"worker_id" json:"worker_id"`
+	ExpiresAt  int64         `db:"expires_at" json:"expires_at"`
 }
 
 func (q *Queries) UpdateWorkflowToRunning(ctx context.Context, db DBTX, arg UpdateWorkflowToRunningParams) error {
-	_, err := db.ExecContext(ctx, updateWorkflowToRunning, arg.StartedAt, arg.ID, arg.Namespace)
+	_, err := db.ExecContext(ctx, updateWorkflowToRunning,
+		arg.StartedAt,
+		arg.ID,
+		arg.Namespace,
+		arg.ResourceID,
+		arg.WorkerID,
+		arg.ExpiresAt,
+	)
 	return err
 }

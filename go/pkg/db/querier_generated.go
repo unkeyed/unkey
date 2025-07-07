@@ -91,15 +91,17 @@ type Querier interface {
 	//      project_id,
 	//      version_id,
 	//      rootfs_image_id,
+	//      git_commit_sha,
+	//      git_branch,
 	//      status,
+	//      build_tool,
 	//      error_message,
 	//      started_at,
 	//      completed_at,
-	//      created_at_m,
-	//      updated_at_m,
-	//      deleted_at_m
+	//      created_at,
+	//      updated_at
 	//  FROM `builds`
-	//  WHERE id = ? AND deleted_at_m IS NULL
+	//  WHERE id = ?
 	FindBuildById(ctx context.Context, db DBTX, id string) (Build, error)
 	//FindIdentityByExternalID
 	//
@@ -217,16 +219,18 @@ type Querier interface {
 	//      project_id,
 	//      version_id,
 	//      rootfs_image_id,
+	//      git_commit_sha,
+	//      git_branch,
 	//      status,
+	//      build_tool,
 	//      error_message,
 	//      started_at,
 	//      completed_at,
-	//      created_at_m,
-	//      updated_at_m,
-	//      deleted_at_m
+	//      created_at,
+	//      updated_at
 	//  FROM `builds`
-	//  WHERE version_id = ? AND deleted_at_m IS NULL
-	//  ORDER BY created_at_m DESC
+	//  WHERE version_id = ?
+	//  ORDER BY created_at DESC
 	//  LIMIT 1
 	FindLatestBuildByVersionId(ctx context.Context, db DBTX, versionID string) (Build, error)
 	// Finds a permission record by its ID
@@ -309,21 +313,18 @@ type Querier interface {
 	//      id,
 	//      workspace_id,
 	//      project_id,
-	//      environment_id,
 	//      branch_id,
 	//      build_id,
 	//      rootfs_image_id,
 	//      git_commit_sha,
 	//      git_branch,
 	//      config_snapshot,
-	//      topology_config,
 	//      status,
-	//      created_at_m,
-	//      updated_at_m,
-	//      deleted_at_m
+	//      created_at,
+	//      updated_at
 	//  FROM `versions`
-	//  WHERE id = ? AND deleted_at_m IS NULL
-	FindVersionById(ctx context.Context, db DBTX, id string) (FindVersionByIdRow, error)
+	//  WHERE id = ?
+	FindVersionById(ctx context.Context, db DBTX, id string) (Version, error)
 	//FindWorkspaceByID
 	//
 	//  SELECT id, org_id, name, partition_id, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
@@ -423,25 +424,29 @@ type Querier interface {
 	//      project_id,
 	//      version_id,
 	//      rootfs_image_id,
+	//      git_commit_sha,
+	//      git_branch,
 	//      status,
+	//      build_tool,
 	//      error_message,
 	//      started_at,
 	//      completed_at,
-	//      created_at_m,
-	//      updated_at_m,
-	//      deleted_at_m
+	//      created_at,
+	//      updated_at
 	//  ) VALUES (
 	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
 	//      NULL,
+	//      NULL,
+	//      NULL,
 	//      'pending',
+	//      'docker',
 	//      NULL,
 	//      NULL,
 	//      NULL,
 	//      ?,
-	//      NULL,
 	//      NULL
 	//  )
 	InsertBuild(ctx context.Context, db DBTX, arg InsertBuildParams) error
@@ -713,21 +718,17 @@ type Querier interface {
 	//      id,
 	//      workspace_id,
 	//      project_id,
-	//      environment_id,
 	//      branch_id,
 	//      build_id,
 	//      rootfs_image_id,
 	//      git_commit_sha,
 	//      git_branch,
 	//      config_snapshot,
-	//      topology_config,
 	//      status,
-	//      created_at_m,
-	//      updated_at_m
+	//      created_at,
+	//      updated_at
 	//  )
 	//  VALUES (
-	//      ?,
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -980,14 +981,14 @@ type Querier interface {
 	//      status = 'failed',
 	//      completed_at = ?,
 	//      error_message = ?,
-	//      updated_at_m = ?
+	//      updated_at = ?
 	//  WHERE id = ?
 	UpdateBuildFailed(ctx context.Context, db DBTX, arg UpdateBuildFailedParams) error
 	//UpdateBuildStatus
 	//
 	//  UPDATE builds SET
 	//      status = ?,
-	//      updated_at_m = ?
+	//      updated_at = ?
 	//  WHERE id = ?
 	UpdateBuildStatus(ctx context.Context, db DBTX, arg UpdateBuildStatusParams) error
 	//UpdateBuildSucceeded
@@ -995,7 +996,7 @@ type Querier interface {
 	//  UPDATE builds SET
 	//      status = 'succeeded',
 	//      completed_at = ?,
-	//      updated_at_m = ?
+	//      updated_at = ?
 	//  WHERE id = ?
 	UpdateBuildSucceeded(ctx context.Context, db DBTX, arg UpdateBuildSucceededParams) error
 	//UpdateIdentity
@@ -1037,7 +1038,7 @@ type Querier interface {
 	//
 	//  UPDATE versions SET
 	//      status = ?,
-	//      updated_at_m = ?
+	//      updated_at = ?
 	//  WHERE id = ?
 	UpdateVersionStatus(ctx context.Context, db DBTX, arg UpdateVersionStatusParams) error
 	//UpdateWorkspaceEnabled

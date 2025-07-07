@@ -1,7 +1,7 @@
 import { relations } from "drizzle-orm";
 import { index, mysqlEnum, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
 import { deleteProtection } from "./util/delete_protection";
-import { lifecycleDatesMigration } from "./util/lifecycle_dates";
+import { lifecycleDates } from "./util/lifecycle_dates";
 
 export const partitions = mysqlTable(
   "partitions",
@@ -14,7 +14,7 @@ export const partitions = mysqlTable(
     awsAccountId: varchar("aws_account_id", { length: 256 }).notNull(),
     region: varchar("region", { length: 256 }).notNull(), // Primary AWS region
 
-    // Network configuration
+    // ips from global accelerator
     ipV4Address: varchar("ip_v4_address", { length: 15 }),
     ipV6Address: varchar("ip_v6_address", { length: 39 }),
 
@@ -22,7 +22,7 @@ export const partitions = mysqlTable(
     status: mysqlEnum("status", ["active", "draining", "inactive"]).notNull().default("active"),
 
     ...deleteProtection,
-    ...lifecycleDatesMigration,
+    ...lifecycleDates,
   },
   (table) => ({
     statusIdx: index("status_idx").on(table.status),

@@ -16,21 +16,17 @@ INSERT INTO ` + "`" + `versions` + "`" + ` (
     id,
     workspace_id,
     project_id,
-    environment_id,
     branch_id,
     build_id,
     rootfs_image_id,
     git_commit_sha,
     git_branch,
     config_snapshot,
-    topology_config,
     status,
-    created_at_m,
-    updated_at_m
+    created_at,
+    updated_at
 )
 VALUES (
-    ?,
-    ?,
     ?,
     ?,
     ?,
@@ -50,17 +46,15 @@ type InsertVersionParams struct {
 	ID             string          `db:"id"`
 	WorkspaceID    string          `db:"workspace_id"`
 	ProjectID      string          `db:"project_id"`
-	EnvironmentID  string          `db:"environment_id"`
 	BranchID       sql.NullString  `db:"branch_id"`
 	BuildID        sql.NullString  `db:"build_id"`
 	RootfsImageID  string          `db:"rootfs_image_id"`
 	GitCommitSha   sql.NullString  `db:"git_commit_sha"`
 	GitBranch      sql.NullString  `db:"git_branch"`
 	ConfigSnapshot json.RawMessage `db:"config_snapshot"`
-	TopologyConfig json.RawMessage `db:"topology_config"`
 	Status         VersionsStatus  `db:"status"`
-	CreatedAtM     int64           `db:"created_at_m"`
-	UpdatedAtM     sql.NullInt64   `db:"updated_at_m"`
+	CreatedAt      int64           `db:"created_at"`
+	UpdatedAt      sql.NullInt64   `db:"updated_at"`
 }
 
 // InsertVersion
@@ -69,21 +63,17 @@ type InsertVersionParams struct {
 //	    id,
 //	    workspace_id,
 //	    project_id,
-//	    environment_id,
 //	    branch_id,
 //	    build_id,
 //	    rootfs_image_id,
 //	    git_commit_sha,
 //	    git_branch,
 //	    config_snapshot,
-//	    topology_config,
 //	    status,
-//	    created_at_m,
-//	    updated_at_m
+//	    created_at,
+//	    updated_at
 //	)
 //	VALUES (
-//	    ?,
-//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -102,17 +92,15 @@ func (q *Queries) InsertVersion(ctx context.Context, db DBTX, arg InsertVersionP
 		arg.ID,
 		arg.WorkspaceID,
 		arg.ProjectID,
-		arg.EnvironmentID,
 		arg.BranchID,
 		arg.BuildID,
 		arg.RootfsImageID,
 		arg.GitCommitSha,
 		arg.GitBranch,
 		arg.ConfigSnapshot,
-		arg.TopologyConfig,
 		arg.Status,
-		arg.CreatedAtM,
-		arg.UpdatedAtM,
+		arg.CreatedAt,
+		arg.UpdatedAt,
 	)
 	return err
 }

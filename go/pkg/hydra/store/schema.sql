@@ -1,8 +1,4 @@
--- Hydra Workflow Orchestration Schema for MySQL
--- Using ENUMs for type safety and removing step input_data
-
--- Workflow Executions Table
-CREATE TABLE IF NOT EXISTS workflow_executions (
+CREATE TABLE IF NOT EXISTS hydra.workflow_executions (
     id VARCHAR(255) PRIMARY KEY,
     workflow_name VARCHAR(255) NOT NULL,
     status ENUM('pending', 'running', 'sleeping', 'completed', 'failed') NOT NULL,
@@ -28,14 +24,13 @@ CREATE TABLE IF NOT EXISTS workflow_executions (
     span_id VARCHAR(255)
 );
 
--- Workflow Steps Table (no input_data, only output_data)
-CREATE TABLE IF NOT EXISTS workflow_steps (
+CREATE TABLE IF NOT EXISTS hydra.workflow_steps (
     id VARCHAR(255) PRIMARY KEY,
     execution_id VARCHAR(255) NOT NULL,
     step_name VARCHAR(255) NOT NULL,
     step_order INT NOT NULL,
     status ENUM('pending', 'running', 'completed', 'failed') NOT NULL,
-    output_data MEDIUMBLOB,  -- Medium binary data for step outputs
+    output_data LONGBLOB,
     error_message TEXT,
     
     started_at BIGINT,
@@ -48,7 +43,7 @@ CREATE TABLE IF NOT EXISTS workflow_steps (
 );
 
 -- Cron Jobs Table
-CREATE TABLE IF NOT EXISTS cron_jobs (
+CREATE TABLE IF NOT EXISTS hydra.cron_jobs (
     id VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     cron_spec VARCHAR(255) NOT NULL,
@@ -62,7 +57,7 @@ CREATE TABLE IF NOT EXISTS cron_jobs (
 );
 
 -- Leases Table (step kind included for GORM compatibility, though unused)
-CREATE TABLE IF NOT EXISTS leases (
+CREATE TABLE IF NOT EXISTS hydra.leases (
     resource_id VARCHAR(255) PRIMARY KEY,
     kind ENUM('workflow', 'step', 'cron_job') NOT NULL,
     namespace VARCHAR(255) NOT NULL,

@@ -5,24 +5,28 @@ INSERT INTO builds (
     project_id,
     version_id,
     rootfs_image_id,
+    git_commit_sha,
+    git_branch,
     status,
+    build_tool,
     error_message,
     started_at,
     completed_at,
-    created_at_m,
-    updated_at_m,
-    deleted_at_m
+    created_at,
+    updated_at
 ) VALUES (
     sqlc.arg(id),
     sqlc.arg(workspace_id),
     sqlc.arg(project_id),
     sqlc.arg(version_id),
     NULL,
+    NULL,
+    NULL,
     'pending',
+    'docker',
     NULL,
     NULL,
     NULL,
     sqlc.arg(created_at),
-    NULL,
     NULL
 );

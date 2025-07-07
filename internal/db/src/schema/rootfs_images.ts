@@ -1,7 +1,7 @@
 import { relations } from "drizzle-orm";
 import { bigint, index, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { projects } from "./projects";
-import { lifecycleDatesMigration } from "./util/lifecycle_dates";
+import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 export const rootfsImages = mysqlTable(
@@ -19,7 +19,7 @@ export const rootfsImages = mysqlTable(
     // Metadata
     sizeBytes: bigint("size_bytes", { mode: "number" }).notNull(),
 
-    ...lifecycleDatesMigration,
+    ...lifecycleDates,
   },
   (table) => ({
     workspaceIdx: index("workspace_idx").on(table.workspaceId),

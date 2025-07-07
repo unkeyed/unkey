@@ -38,24 +38,32 @@ WHERE namespace = ?
 ORDER BY created_at ASC 
 LIMIT ?;
 
--- name: UpdateWorkflowStatus :exec
+-- name: UpdateWorkflowFields :exec
 UPDATE workflow_executions 
-SET status = ?, error_message = ?
-WHERE id = ? AND namespace = ?;
+SET 
+  status = COALESCE(?, status),
+  error_message = COALESCE(?, error_message),
+  completed_at = COALESCE(?, completed_at),
+  started_at = COALESCE(?, started_at),
+  output_data = COALESCE(?, output_data),
+  remaining_attempts = COALESCE(?, remaining_attempts),
+  next_retry_at = COALESCE(?, next_retry_at),
+  sleep_until = COALESCE(?, sleep_until)
+WHERE id = ? AND workflow_executions.namespace = ?
+  AND EXISTS (
+    SELECT 1 FROM leases 
+    WHERE resource_id = ? AND kind = 'workflow' 
+    AND worker_id = ? AND expires_at > ?
+  );
 
--- name: CompleteWorkflow :exec
-UPDATE workflow_executions 
-SET status = 'completed', completed_at = ?, output_data = ?
-WHERE id = ? AND namespace = ?;
+-- name: UpdateStepStatus :exec
+UPDATE workflow_steps 
+SET status = ?, completed_at = ?, output_data = ?, error_message = ?
+WHERE namespace = ? AND execution_id = ? AND step_name = ?;
 
--- name: FailWorkflowFinal :exec
+-- name: SleepWorkflow :exec
 UPDATE workflow_executions 
-SET status = 'failed', error_message = ?, remaining_attempts = remaining_attempts - 1, completed_at = ?, next_retry_at = NULL
-WHERE id = ? AND namespace = ?;
-
--- name: FailWorkflowWithRetry :exec
-UPDATE workflow_executions 
-SET status = 'failed', error_message = ?, remaining_attempts = remaining_attempts - 1, next_retry_at = ?
+SET status = 'sleeping', sleep_until = ?
 WHERE id = ? AND namespace = ?;
 
 -- name: CreateStep :exec
@@ -75,10 +83,15 @@ WHERE namespace = ? AND execution_id = ? AND step_name = ?;
 SELECT * FROM workflow_steps 
 WHERE namespace = ? AND execution_id = ? AND step_name = ? AND status = 'completed';
 
--- name: UpdateStepStatus :exec
+-- name: UpdateStepStatusWithLease :exec
 UPDATE workflow_steps 
 SET status = ?, completed_at = ?, output_data = ?, error_message = ?
-WHERE namespace = ? AND execution_id = ? AND step_name = ?;
+WHERE workflow_steps.namespace = ? AND execution_id = ? AND step_name = ?
+  AND EXISTS (
+    SELECT 1 FROM leases 
+    WHERE resource_id = ? AND kind = 'workflow' 
+    AND worker_id = ? AND expires_at > ?
+  );
 
 -- name: GetLease :one
 SELECT * FROM leases 
@@ -101,11 +114,16 @@ UPDATE workflow_executions
 SET status = 'running', 
     started_at = CASE WHEN started_at IS NULL THEN ? ELSE started_at END,
     sleep_until = NULL
-WHERE id = ? AND namespace = ?;
+WHERE id = ? AND workflow_executions.namespace = ?
+  AND EXISTS (
+    SELECT 1 FROM leases 
+    WHERE resource_id = ? AND kind = 'workflow' 
+    AND worker_id = ? AND expires_at > ?
+  );
 
--- name: SleepWorkflow :exec
+-- name: CompleteWorkflow :exec
 UPDATE workflow_executions 
-SET status = 'sleeping', sleep_until = ?
+SET status = 'completed', completed_at = ?, output_data = ?
 WHERE id = ? AND namespace = ?;
 
 -- name: HeartbeatLease :exec
@@ -156,9 +174,6 @@ WHERE id = ? AND namespace = ?;
 DELETE FROM leases 
 WHERE namespace = ? AND expires_at < ?;
 
--- name: GetExpiredLeases :many
-SELECT * FROM leases 
-WHERE namespace = ? AND expires_at < ?;
 
 -- name: ResetOrphanedWorkflows :exec
 UPDATE workflow_executions 
@@ -171,10 +186,3 @@ WHERE workflow_executions.namespace = ?
     WHERE kind = 'workflow' AND leases.namespace = ?
   );
 
--- name: GetAllWorkflows :many
-SELECT * FROM workflow_executions 
-WHERE namespace = ?;
-
--- name: GetAllSteps :many
-SELECT * FROM workflow_steps 
-WHERE namespace = ?;

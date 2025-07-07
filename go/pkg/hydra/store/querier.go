@@ -15,15 +15,10 @@ type Querier interface {
 	CreateLease(ctx context.Context, db DBTX, arg CreateLeaseParams) error
 	CreateStep(ctx context.Context, db DBTX, arg CreateStepParams) error
 	CreateWorkflow(ctx context.Context, db DBTX, arg CreateWorkflowParams) error
-	FailWorkflowFinal(ctx context.Context, db DBTX, arg FailWorkflowFinalParams) error
-	FailWorkflowWithRetry(ctx context.Context, db DBTX, arg FailWorkflowWithRetryParams) error
-	GetAllSteps(ctx context.Context, db DBTX, namespace string) ([]WorkflowStep, error)
-	GetAllWorkflows(ctx context.Context, db DBTX, namespace string) ([]WorkflowExecution, error)
 	GetCompletedStep(ctx context.Context, db DBTX, arg GetCompletedStepParams) (WorkflowStep, error)
 	GetCronJob(ctx context.Context, db DBTX, arg GetCronJobParams) (CronJob, error)
 	GetCronJobs(ctx context.Context, db DBTX, namespace string) ([]CronJob, error)
 	GetDueCronJobs(ctx context.Context, db DBTX, arg GetDueCronJobsParams) ([]CronJob, error)
-	GetExpiredLeases(ctx context.Context, db DBTX, arg GetExpiredLeasesParams) ([]Lease, error)
 	GetLease(ctx context.Context, db DBTX, arg GetLeaseParams) (Lease, error)
 	GetPendingWorkflows(ctx context.Context, db DBTX, arg GetPendingWorkflowsParams) ([]WorkflowExecution, error)
 	GetPendingWorkflowsFiltered(ctx context.Context, db DBTX, arg GetPendingWorkflowsFilteredParams) ([]WorkflowExecution, error)
@@ -38,7 +33,8 @@ type Querier interface {
 	UpdateCronJobLastRun(ctx context.Context, db DBTX, arg UpdateCronJobLastRunParams) error
 	UpdateLease(ctx context.Context, db DBTX, arg UpdateLeaseParams) error
 	UpdateStepStatus(ctx context.Context, db DBTX, arg UpdateStepStatusParams) error
-	UpdateWorkflowStatus(ctx context.Context, db DBTX, arg UpdateWorkflowStatusParams) error
+	UpdateStepStatusWithLease(ctx context.Context, db DBTX, arg UpdateStepStatusWithLeaseParams) error
+	UpdateWorkflowFields(ctx context.Context, db DBTX, arg UpdateWorkflowFieldsParams) error
 	UpdateWorkflowToRunning(ctx context.Context, db DBTX, arg UpdateWorkflowToRunningParams) error
 }
 

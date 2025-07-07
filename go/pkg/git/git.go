@@ -71,19 +71,15 @@ func getCurrentBranch() string {
 	// If we're in detached HEAD state, try to get branch from describe
 	if branch == "HEAD" {
 		cmd = exec.Command("git", "describe", "--contains", "--all", "HEAD")
-		output, err = cmd.Output()
-		if err != nil {
+		describeOutput, describeErr := cmd.Output()
+		if describeErr != nil {
 			return ""
 		}
-		branch = strings.TrimSpace(string(output))
+		branch = strings.TrimSpace(string(describeOutput))
 
 		// Clean up the output (remove refs/heads/ prefix if present)
-		if strings.HasPrefix(branch, "heads/") {
-			branch = strings.TrimPrefix(branch, "heads/")
-		}
-		if strings.HasPrefix(branch, "remotes/origin/") {
-			branch = strings.TrimPrefix(branch, "remotes/origin/")
-		}
+		branch = strings.TrimPrefix(branch, "heads/")
+		branch = strings.TrimPrefix(branch, "remotes/origin/")
 	}
 
 	return branch
@@ -115,10 +111,10 @@ func isWorkingDirDirty() bool {
 
 	// Check for untracked files
 	cmd = exec.Command("git", "ls-files", "--others", "--exclude-standard")
-	output, err := cmd.Output()
-	if err != nil {
+	untrackedOutput, untrackedErr := cmd.Output()
+	if untrackedErr != nil {
 		return false // Assume clean if we can't check
 	}
 
-	return strings.TrimSpace(string(output)) != ""
+	return strings.TrimSpace(string(untrackedOutput)) != ""
 }

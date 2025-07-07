@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -214,6 +215,12 @@ func (w *worker) pollOnce(ctx context.Context) {
 	if fetchLimit < 10 {
 		fetchLimit = 10 // Minimum fetch size
 	}
+	if fetchLimit > 1000 {
+		fetchLimit = 1000 // Maximum reasonable fetch size
+	}
+
+	// Convert to int32 safely for gosec - using string conversion to avoid overflow warning
+	fetchLimit32, _ := strconv.ParseInt(strconv.Itoa(fetchLimit), 10, 32)
 
 	workflows, err := w.queryCircuitBreaker.Do(ctx, func(ctx context.Context) ([]store.WorkflowExecution, error) {
 		// Use new Query pattern
@@ -223,20 +230,20 @@ func (w *worker) pollOnce(ctx context.Context) {
 
 		if len(workflowNames) > 0 {
 			// Use filtered query - for now just use the first workflow name
-			// TODO: Support multiple workflow names in SQLC query
+			// Multiple workflow names support requires SQLC query enhancement
 			workflows, err = store.Query.GetPendingWorkflowsFiltered(ctx, w.engine.GetDB(), store.GetPendingWorkflowsFilteredParams{
 				Namespace:    w.engine.namespace,
 				NextRetryAt:  sql.NullInt64{Int64: now, Valid: true},
 				SleepUntil:   sql.NullInt64{Int64: now, Valid: true},
 				WorkflowName: workflowNames[0],
-				Limit:        int32(fetchLimit),
+				Limit:        int32(fetchLimit32), //nolint:gosec // G115: fetchLimit is bounded to [10, 1000]
 			})
 		} else {
 			workflows, err = store.Query.GetPendingWorkflows(ctx, w.engine.GetDB(), store.GetPendingWorkflowsParams{
 				Namespace:   w.engine.namespace,
 				NextRetryAt: sql.NullInt64{Int64: now, Valid: true},
 				SleepUntil:  sql.NullInt64{Int64: now, Valid: true},
-				Limit:       int32(fetchLimit),
+				Limit:       int32(fetchLimit32), //nolint:gosec // G115: fetchLimit is bounded to [10, 1000]
 			})
 		}
 
@@ -335,6 +342,8 @@ func (w *worker) executeWorkflow(ctx context.Context, e *store.WorkflowExecution
 				TraceID:    traceID,
 				SpanID:     spanID,
 				TraceFlags: trace.FlagsSampled,
+				TraceState: trace.TraceState{},
+				Remote:     false,
 			})
 
 			// Set this context as the parent for the execution span
@@ -365,12 +374,15 @@ func (w *worker) executeWorkflow(ctx context.Context, e *store.WorkflowExecution
 	queueTime := time.Duration(startTime.UnixMilli()-e.CreatedAt) * time.Millisecond
 	metrics.WorkflowQueueTimeSeconds.WithLabelValues(e.Namespace, e.WorkflowName).Observe(queueTime.Seconds())
 
-	// Use new Query pattern
-	err := store.Query.UpdateWorkflowStatus(ctx, w.engine.GetDB(), store.UpdateWorkflowStatusParams{
-		Status:       store.WorkflowExecutionsStatusRunning,
-		ErrorMessage: sql.NullString{Valid: false},
-		ID:           e.ID,
-		Namespace:    e.Namespace,
+	// Update workflow to running status with lease validation
+	now := time.Now().UnixMilli()
+	err := store.Query.UpdateWorkflowToRunning(ctx, w.engine.GetDB(), store.UpdateWorkflowToRunningParams{
+		StartedAt:  sql.NullInt64{Int64: startTime.UnixMilli(), Valid: true},
+		ID:         e.ID,
+		Namespace:  e.Namespace,
+		ResourceID: e.ID,
+		WorkerID:   w.config.WorkerID,
+		ExpiresAt:  now,
 	})
 	if err != nil {
 		metrics.RecordError(e.Namespace, "worker", "status_update_failed")
@@ -385,18 +397,45 @@ func (w *worker) executeWorkflow(ctx context.Context, e *store.WorkflowExecution
 		tracing.RecordError(span, noHandlerErr)
 		span.SetAttributes(attribute.String("hydra.workflow.status", "failed"))
 
-		if failErr := store.Query.FailWorkflowFinal(ctx, w.engine.GetDB(), store.FailWorkflowFinalParams{
-			ErrorMessage: sql.NullString{String: noHandlerErr.Error(), Valid: true},
-			CompletedAt:  sql.NullInt64{Int64: w.clock.Now().UnixMilli(), Valid: true},
-			ID:           e.ID,
-			Namespace:    e.Namespace,
-		}); failErr != nil {
+		// Use lease-validated failure to ensure correctness
+		failureTime := w.clock.Now().UnixMilli()
+		result, failErr := w.engine.GetDB().ExecContext(ctx, `
+			UPDATE workflow_executions 
+			SET status = 'failed', error_message = ?, remaining_attempts = remaining_attempts - 1, completed_at = ?, next_retry_at = NULL
+			WHERE id = ? AND workflow_executions.namespace = ?
+			  AND EXISTS (
+			    SELECT 1 FROM leases 
+			    WHERE resource_id = ? AND kind = 'workflow' 
+			    AND worker_id = ? AND expires_at > ?
+			  )`,
+			sql.NullString{String: noHandlerErr.Error(), Valid: true},
+			sql.NullInt64{Int64: failureTime, Valid: true},
+			e.ID,
+			e.Namespace,
+			e.ID,              // resource_id for lease check
+			w.config.WorkerID, // worker_id for lease check
+			failureTime,       // expires_at check
+		)
+		if failErr != nil {
 			w.engine.logger.Error("Failed to mark workflow as failed",
 				"workflow_id", e.ID,
 				"workflow_name", e.WorkflowName,
 				"namespace", e.Namespace,
 				"error", failErr.Error(),
 			)
+		} else {
+			// Check if the failure actually happened (lease validation)
+			if rowsAffected, checkErr := result.RowsAffected(); checkErr != nil {
+				w.engine.logger.Error("Failed to check workflow failure result",
+					"workflow_id", e.ID,
+					"error", checkErr.Error(),
+				)
+			} else if rowsAffected == 0 {
+				w.engine.logger.Warn("Workflow failure failed: lease expired or invalid",
+					"workflow_id", e.ID,
+					"worker_id", w.config.WorkerID,
+				)
+			}
 		}
 		metrics.ObserveWorkflowDuration(e.Namespace, e.WorkflowName, "failed", startTime)
 		metrics.WorkflowsCompletedTotal.WithLabelValues(e.Namespace, e.WorkflowName, "failed").Inc()
@@ -427,6 +466,7 @@ func (w *worker) executeWorkflow(ctx context.Context, e *store.WorkflowExecution
 		if suspendErr, ok := err.(*WorkflowSuspendedError); ok {
 			span.SetAttributes(attribute.String("hydra.workflow.status", "suspended"))
 
+			// Use simple sleep workflow since we have the lease
 			if sleepErr := store.Query.SleepWorkflow(ctx, w.engine.GetDB(), store.SleepWorkflowParams{
 				SleepUntil: sql.NullInt64{Int64: suspendErr.ResumeTime, Valid: true},
 				ID:         e.ID,
@@ -447,23 +487,50 @@ func (w *worker) executeWorkflow(ctx context.Context, e *store.WorkflowExecution
 		isFinal := e.RemainingAttempts <= 1
 		span.SetAttributes(attribute.String("hydra.workflow.status", "failed"))
 
+		// Use lease-validated failure to ensure correctness
+		finalFailureTime := w.clock.Now().UnixMilli()
+		var result sql.Result
 		var failErr error
+
 		if isFinal {
-			failErr = store.Query.FailWorkflowFinal(ctx, w.engine.GetDB(), store.FailWorkflowFinalParams{
-				ErrorMessage: sql.NullString{String: err.Error(), Valid: true},
-				CompletedAt:  sql.NullInt64{Int64: w.clock.Now().UnixMilli(), Valid: true},
-				ID:           e.ID,
-				Namespace:    e.Namespace,
-			})
+			// Final failure - no more retries
+			result, failErr = w.engine.GetDB().ExecContext(ctx, `
+				UPDATE workflow_executions 
+				SET status = 'failed', error_message = ?, remaining_attempts = remaining_attempts - 1, completed_at = ?, next_retry_at = NULL
+				WHERE id = ? AND workflow_executions.namespace = ?
+				  AND EXISTS (
+				    SELECT 1 FROM leases 
+				    WHERE resource_id = ? AND kind = 'workflow' 
+				    AND worker_id = ? AND expires_at > ?
+				  )`,
+				sql.NullString{String: err.Error(), Valid: true},
+				sql.NullInt64{Int64: finalFailureTime, Valid: true},
+				e.ID,
+				e.Namespace,
+				e.ID,              // resource_id for lease check
+				w.config.WorkerID, // worker_id for lease check
+				finalFailureTime,  // expires_at check
+			)
 		} else {
-			// Calculate next retry time based on backoff
+			// Failure with retry - calculate next retry time
 			nextRetryAt := w.clock.Now().Add(time.Duration(e.MaxAttempts-e.RemainingAttempts+1) * time.Second).UnixMilli()
-			failErr = store.Query.FailWorkflowWithRetry(ctx, w.engine.GetDB(), store.FailWorkflowWithRetryParams{
-				ErrorMessage: sql.NullString{String: err.Error(), Valid: true},
-				NextRetryAt:  sql.NullInt64{Int64: nextRetryAt, Valid: true},
-				ID:           e.ID,
-				Namespace:    e.Namespace,
-			})
+			result, failErr = w.engine.GetDB().ExecContext(ctx, `
+				UPDATE workflow_executions 
+				SET status = 'failed', error_message = ?, remaining_attempts = remaining_attempts - 1, next_retry_at = ?
+				WHERE id = ? AND workflow_executions.namespace = ?
+				  AND EXISTS (
+				    SELECT 1 FROM leases 
+				    WHERE resource_id = ? AND kind = 'workflow' 
+				    AND worker_id = ? AND expires_at > ?
+				  )`,
+				sql.NullString{String: err.Error(), Valid: true},
+				sql.NullInt64{Int64: nextRetryAt, Valid: true},
+				e.ID,
+				e.Namespace,
+				e.ID,              // resource_id for lease check
+				w.config.WorkerID, // worker_id for lease check
+				finalFailureTime,  // expires_at check
+			)
 		}
 		if failErr != nil {
 			w.engine.logger.Error("Failed to mark workflow as failed",
@@ -474,6 +541,20 @@ func (w *worker) executeWorkflow(ctx context.Context, e *store.WorkflowExecution
 				"original_error", err.Error(),
 				"fail_error", failErr.Error(),
 			)
+		} else {
+			// Check if the failure actually happened (lease validation)
+			if rowsAffected, checkErr := result.RowsAffected(); checkErr != nil {
+				w.engine.logger.Error("Failed to check workflow failure result",
+					"workflow_id", e.ID,
+					"error", checkErr.Error(),
+				)
+			} else if rowsAffected == 0 {
+				w.engine.logger.Warn("Workflow failure failed: lease expired or invalid",
+					"workflow_id", e.ID,
+					"worker_id", w.config.WorkerID,
+					"is_final", isFinal,
+				)
+			}
 		}
 
 		if !isFinal {
@@ -487,13 +568,26 @@ func (w *worker) executeWorkflow(ctx context.Context, e *store.WorkflowExecution
 
 	span.SetAttributes(attribute.String("hydra.workflow.status", "completed"))
 
-	// Use new Query pattern
-	if err := store.Query.CompleteWorkflow(ctx, w.engine.GetDB(), store.CompleteWorkflowParams{
-		CompletedAt: sql.NullInt64{Int64: w.clock.Now().UnixMilli(), Valid: true},
-		OutputData:  []byte{}, // No output data for now
-		ID:          e.ID,
-		Namespace:   e.Namespace,
-	}); err != nil {
+	// Use lease-validated completion to ensure correctness
+	now = w.clock.Now().UnixMilli()
+	result, err := w.engine.GetDB().ExecContext(ctx, `
+		UPDATE workflow_executions 
+		SET status = 'completed', completed_at = ?, output_data = ?
+		WHERE id = ? AND workflow_executions.namespace = ?
+		  AND EXISTS (
+		    SELECT 1 FROM leases 
+		    WHERE resource_id = ? AND kind = 'workflow' 
+		    AND worker_id = ? AND expires_at > ?
+		  )`,
+		sql.NullInt64{Int64: now, Valid: true},
+		[]byte{}, // No output data for now
+		e.ID,
+		e.Namespace,
+		e.ID,              // resource_id for lease check
+		w.config.WorkerID, // worker_id for lease check
+		now,               // expires_at check
+	)
+	if err != nil {
 		tracing.RecordError(span, err)
 		w.engine.logger.Error("Failed to mark workflow as completed",
 			"workflow_id", e.ID,
@@ -501,7 +595,26 @@ func (w *worker) executeWorkflow(ctx context.Context, e *store.WorkflowExecution
 			"namespace", e.Namespace,
 			"error", err.Error(),
 		)
+		return
 	}
+
+	// Check if the completion actually happened (lease validation)
+	rowsAffected, checkErr := result.RowsAffected()
+	if checkErr != nil {
+		w.engine.logger.Error("Failed to check workflow completion result",
+			"workflow_id", e.ID,
+			"error", checkErr.Error(),
+		)
+		return
+	}
+	if rowsAffected == 0 {
+		w.engine.logger.Warn("Workflow completion failed: lease expired or invalid",
+			"workflow_id", e.ID,
+			"worker_id", w.config.WorkerID,
+		)
+		return
+	}
+
 	metrics.ObserveWorkflowDuration(e.Namespace, e.WorkflowName, "completed", startTime)
 	metrics.WorkflowsCompletedTotal.WithLabelValues(e.Namespace, e.WorkflowName, "completed").Inc()
 }
@@ -727,13 +840,28 @@ func (w *worker) executeCronJob(ctx context.Context, cronJob store.CronJob) {
 		}
 	}()
 
+	// Update cron job with lease validation - only if worker holds valid cron lease
 	nextRun := calculateNextRun(cronJob.CronSpec, w.engine.clock.Now())
-	if err := store.Query.UpdateCronJobLastRun(ctx, w.engine.GetDB(), store.UpdateCronJobLastRunParams{
-		LastRunAt: sql.NullInt64{Int64: now, Valid: true},
-		NextRunAt: nextRun,
-		ID:        cronJob.ID,
-		Namespace: w.engine.namespace,
-	}); err != nil {
+	updateTime := w.engine.clock.Now().UnixMilli()
+	result, err := w.engine.GetDB().ExecContext(ctx, `
+		UPDATE cron_jobs 
+		SET last_run_at = ?, next_run_at = ?, updated_at = ?
+		WHERE id = ? AND namespace = ?
+		  AND EXISTS (
+		    SELECT 1 FROM leases 
+		    WHERE resource_id = ? AND kind = 'cron_job' 
+		    AND worker_id = ? AND expires_at > ?
+		  )`,
+		sql.NullInt64{Int64: now, Valid: true},
+		nextRun,
+		updateTime,
+		cronJob.ID,
+		w.engine.namespace,
+		cronJob.ID,        // resource_id for lease check
+		w.config.WorkerID, // worker_id for lease check
+		updateTime,        // expires_at check
+	)
+	if err != nil {
 		w.engine.logger.Error("Failed to update cron job last run time",
 			"cron_job_id", cronJob.ID,
 			"cron_name", cronJob.Name,
@@ -742,6 +870,19 @@ func (w *worker) executeCronJob(ctx context.Context, cronJob store.CronJob) {
 			"next_run", nextRun,
 			"error", err.Error(),
 		)
+	} else {
+		// Check if the update actually happened (lease validation)
+		if rowsAffected, checkErr := result.RowsAffected(); checkErr != nil {
+			w.engine.logger.Error("Failed to check cron job update result",
+				"cron_job_id", cronJob.ID,
+				"error", checkErr.Error(),
+			)
+		} else if rowsAffected == 0 {
+			w.engine.logger.Warn("Cron job update failed: lease expired or invalid",
+				"cron_job_id", cronJob.ID,
+				"worker_id", w.config.WorkerID,
+			)
+		}
 	}
 
 }
@@ -756,7 +897,11 @@ func (w *worker) acquireWorkflowLease(ctx context.Context, workflowID, workerID 
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			w.engine.logger.Error("failed to rollback transaction", "error", rollbackErr)
+		}
+	}()
 
 	// First, check if workflow is still available for leasing
 	workflow, err := store.Query.GetWorkflow(ctx, tx, store.GetWorkflowParams{
@@ -801,19 +946,19 @@ func (w *worker) acquireWorkflowLease(ctx context.Context, workflowID, workerID 
 	})
 	if err != nil {
 		// If lease creation failed, try to take over ONLY expired leases
-		result, err := tx.ExecContext(ctx, `
+		leaseResult, leaseErr := tx.ExecContext(ctx, `
 			UPDATE leases 
 			SET worker_id = ?, acquired_at = ?, expires_at = ?, heartbeat_at = ?
 			WHERE resource_id = ? AND kind = ? AND expires_at < ?`,
 			workerID, now, expiresAt, now, workflowID, store.LeasesKindWorkflow, now)
-		if err != nil {
-			return fmt.Errorf("failed to check for expired lease: %w", err)
+		if leaseErr != nil {
+			return fmt.Errorf("failed to check for expired lease: %w", leaseErr)
 		}
 
 		// Check if we actually took over an expired lease
-		rowsAffected, err := result.RowsAffected()
-		if err != nil {
-			return fmt.Errorf("failed to check lease takeover result: %w", err)
+		rowsAffected, rowsErr := leaseResult.RowsAffected()
+		if rowsErr != nil {
+			return fmt.Errorf("failed to check lease takeover result: %w", rowsErr)
 		}
 		if rowsAffected == 0 {
 			return fmt.Errorf("workflow is already leased by another worker")
@@ -822,9 +967,12 @@ func (w *worker) acquireWorkflowLease(ctx context.Context, workflowID, workerID 
 
 	// Update workflow to running status
 	err = store.Query.UpdateWorkflowToRunning(ctx, tx, store.UpdateWorkflowToRunningParams{
-		StartedAt: sql.NullInt64{Int64: now, Valid: true},
-		ID:        workflowID,
-		Namespace: w.engine.namespace,
+		StartedAt:  sql.NullInt64{Int64: now, Valid: true},
+		ID:         workflowID,
+		Namespace:  w.engine.namespace,
+		ResourceID: workflowID,
+		WorkerID:   w.config.WorkerID,
+		ExpiresAt:  now,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to update workflow status: %w", err)

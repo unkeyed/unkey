@@ -2,8 +2,10 @@ package hydra
 
 import (
 	"context"
+	"database/sql"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/hydra/store"
 )
@@ -42,11 +44,18 @@ func TestSQLCQueryAccess(t *testing.T) {
 
 		// Test that we can perform a basic query
 		ctx := context.Background()
-		workflows, err := store.Query.GetAllWorkflows(ctx, db, engine.GetNamespace())
+		// GetAllWorkflows was removed as debug-only query
+		// Test basic query functionality instead
+		pendingWorkflows, err := store.Query.GetPendingWorkflows(ctx, db, store.GetPendingWorkflowsParams{
+			Namespace:   engine.GetNamespace(),
+			NextRetryAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+			SleepUntil:  sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+			Limit:       10,
+		})
 		if err != nil {
 			t.Fatalf("Should be able to query workflows: %v", err)
 		}
-		t.Logf("Found %d workflows", len(workflows))
+		t.Logf("Found %d pending workflows", len(pendingWorkflows))
 	})
 
 	t.Run("NoStoreAbstraction", func(t *testing.T) {

@@ -25,9 +25,9 @@ func (s *Service) GetVersion(
 		Id:                   version.ID,
 		WorkspaceId:          version.WorkspaceID,
 		ProjectId:            version.ProjectID,
-		EnvironmentId:        version.EnvironmentID,
+		EnvironmentId:        "", // No longer in schema
 		Status:               convertDbStatusToProto(string(version.Status)),
-		CreatedAt:            timestamppb.New(time.UnixMilli(version.CreatedAtM)),
+		CreatedAt:            timestamppb.New(time.UnixMilli(version.CreatedAt)),
 		GitCommitSha:         "",
 		GitBranch:            "",
 		ErrorMessage:         "",
@@ -45,8 +45,8 @@ func (s *Service) GetVersion(
 	if version.GitBranch.Valid {
 		protoVersion.GitBranch = version.GitBranch.String
 	}
-	if version.UpdatedAtM.Valid {
-		protoVersion.UpdatedAt = timestamppb.New(time.UnixMilli(version.UpdatedAtM.Int64))
+	if version.UpdatedAt.Valid {
+		protoVersion.UpdatedAt = timestamppb.New(time.UnixMilli(version.UpdatedAt.Int64))
 	}
 	if version.RootfsImageID != "" {
 		protoVersion.RootfsImageId = version.RootfsImageID

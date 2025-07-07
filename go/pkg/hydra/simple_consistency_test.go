@@ -84,12 +84,15 @@ func TestSimpleDataConsistency(t *testing.T) {
 	}
 
 	// Verify database consistency
-	allWorkflows, err := store.Query.GetAllWorkflows(context.Background(), engine.GetDB(), engine.GetNamespace())
-	require.NoError(t, err)
-
+	// GetAllWorkflows was removed - check completed workflows indirectly
+	// Since we know we created specific workflows, verify them individually
 	completedInDB := 0
-	for _, wf := range allWorkflows {
-		if wf.Status == store.WorkflowExecutionsStatusCompleted {
+	for _, id := range workflowIDs {
+		wf, err := store.Query.GetWorkflow(context.Background(), engine.GetDB(), store.GetWorkflowParams{
+			ID:        id,
+			Namespace: engine.GetNamespace(),
+		})
+		if err == nil && wf.Status == store.WorkflowExecutionsStatusCompleted {
 			completedInDB++
 		}
 	}
@@ -197,12 +200,15 @@ func TestConcurrentWorkerConsistency(t *testing.T) {
 	require.Equal(t, 0, duplicateCompletions, "Should have zero duplicate workflow completions")
 
 	// Verify database consistency
-	allWorkflows, err := store.Query.GetAllWorkflows(context.Background(), engine.GetDB(), engine.GetNamespace())
-	require.NoError(t, err)
-
+	// GetAllWorkflows was removed - check completed workflows indirectly
+	// Since we know we created specific workflows, verify them individually
 	completedInDB := 0
-	for _, wf := range allWorkflows {
-		if wf.Status == store.WorkflowExecutionsStatusCompleted {
+	for _, id := range workflowIDs {
+		wf, err := store.Query.GetWorkflow(context.Background(), engine.GetDB(), store.GetWorkflowParams{
+			ID:        id,
+			Namespace: engine.GetNamespace(),
+		})
+		if err == nil && wf.Status == store.WorkflowExecutionsStatusCompleted {
 			completedInDB++
 		}
 	}

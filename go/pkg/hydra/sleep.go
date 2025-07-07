@@ -53,42 +53,82 @@ func Sleep(ctx WorkflowContext, duration time.Duration) error {
 
 	stepName := fmt.Sprintf("sleep-%d", duration.Milliseconds())
 
-	existing, err := wctx.getCompletedStep(stepName)
-	if err == nil && existing != nil {
+	_, err := store.Query.GetCompletedStep(wctx.ctx, wctx.db, store.GetCompletedStepParams{
+		Namespace:   wctx.namespace,
+		ExecutionID: wctx.ExecutionID(),
+		StepName:    stepName,
+	})
+	if err == nil {
 		return nil
 	}
 
 	now := time.Now().UnixMilli()
-	existingStep, err := wctx.getAnyStep(stepName)
-	if err == nil && existingStep != nil && existingStep.StartedAt.Valid {
+	existingStep, err := store.Query.GetStep(wctx.ctx, wctx.db, store.GetStepParams{
+		Namespace:   wctx.namespace,
+		ExecutionID: wctx.ExecutionID(),
+		StepName:    stepName,
+	})
+	if err == nil && existingStep.StartedAt.Valid {
 		sleepUntil := existingStep.StartedAt.Int64 + duration.Milliseconds()
 
 		if sleepUntil <= now {
 			return wctx.markStepCompleted(existingStep.ID, []byte("{}"))
 		}
-		return wctx.suspendWorkflowForSleep(sleepUntil)
+		return store.Query.SleepWorkflow(wctx.ctx, wctx.db, store.SleepWorkflowParams{
+			SleepUntil: sql.NullInt64{Int64: sleepUntil, Valid: true},
+			ID:         wctx.ExecutionID(),
+			Namespace:  wctx.namespace,
+		})
 	}
 
 	sleepUntil := now + duration.Milliseconds()
 
-	// Use new Query pattern - create step directly
-	err = store.Query.CreateStep(wctx.ctx, wctx.db, store.CreateStepParams{
-		ID:                uid.New(uid.StepPrefix),
-		ExecutionID:       wctx.ExecutionID(),
-		StepName:          stepName,
-		StepOrder:         wctx.getNextStepOrder(),
-		Status:            store.WorkflowStepsStatusRunning,
-		OutputData:        []byte{},
-		ErrorMessage:      sql.NullString{Valid: false},
-		StartedAt:         sql.NullInt64{Int64: now, Valid: true},
-		CompletedAt:       sql.NullInt64{Valid: false},
-		MaxAttempts:       1, // Sleep doesn't need retries
-		RemainingAttempts: 1,
-		Namespace:         wctx.namespace,
-	})
+	// Create sleep step with lease validation - only if worker holds valid lease
+	stepID := uid.New(uid.StepPrefix)
+	result, err := wctx.db.ExecContext(wctx.ctx, `
+		INSERT INTO workflow_steps (
+		    id, execution_id, step_name, step_order, status, output_data, error_message,
+		    started_at, completed_at, max_attempts, remaining_attempts, namespace
+		) 
+		SELECT ?, ?, ?, ?, ?, ?, ?,
+		       ?, ?, ?, ?, ?
+		WHERE EXISTS (
+		    SELECT 1 FROM leases 
+		    WHERE resource_id = ? AND kind = 'workflow' 
+		    AND worker_id = ? AND expires_at > ?
+		)`,
+		stepID,
+		wctx.ExecutionID(),
+		stepName,
+		wctx.getNextStepOrder(),
+		store.WorkflowStepsStatusRunning,
+		[]byte{},
+		sql.NullString{String: "", Valid: false},
+		sql.NullInt64{Int64: now, Valid: true},
+		sql.NullInt64{Int64: 0, Valid: false},
+		1, // Sleep doesn't need retries
+		1,
+		wctx.namespace,
+		wctx.ExecutionID(), // resource_id for lease check
+		wctx.workerID,      // worker_id for lease check
+		now,                // expires_at check
+	)
 	if err != nil {
 		return fmt.Errorf("failed to create sleep step: %w", err)
 	}
 
-	return wctx.suspendWorkflowForSleep(sleepUntil)
+	// Check if the step creation actually happened (lease validation)
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check step creation result: %w", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("sleep step creation failed: lease expired or invalid")
+	}
+
+	return store.Query.SleepWorkflow(wctx.ctx, wctx.db, store.SleepWorkflowParams{
+		SleepUntil: sql.NullInt64{Int64: sleepUntil, Valid: true},
+		ID:         wctx.ExecutionID(),
+		Namespace:  wctx.namespace,
+	})
 }

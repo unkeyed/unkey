@@ -15,7 +15,7 @@ UPDATE builds SET
     status = 'failed',
     completed_at = ?,
     error_message = ?,
-    updated_at_m = ?
+    updated_at = ?
 WHERE id = ?
 `
 
@@ -31,7 +31,7 @@ type UpdateBuildFailedParams struct {
 //	    status = 'failed',
 //	    completed_at = ?,
 //	    error_message = ?,
-//	    updated_at_m = ?
+//	    updated_at = ?
 //	WHERE id = ?
 func (q *Queries) UpdateBuildFailed(ctx context.Context, db DBTX, arg UpdateBuildFailedParams) error {
 	_, err := db.ExecContext(ctx, updateBuildFailed,

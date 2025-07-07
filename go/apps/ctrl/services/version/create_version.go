@@ -25,17 +25,15 @@ func (s *Service) CreateVersion(
 		ID:             versionID,
 		WorkspaceID:    req.Msg.GetWorkspaceId(),
 		ProjectID:      req.Msg.GetProjectId(),
-		EnvironmentID:  req.Msg.GetEnvironmentId(),
-		BranchID:       sql.NullString{String: "", Valid: false}, // TODO: resolve branch
-		BuildID:        sql.NullString{String: "", Valid: false}, // TODO: create build if needed
-		RootfsImageID:  "",                                       // TODO: handle image
+		BranchID:       sql.NullString{String: "", Valid: false}, // Branch resolution not implemented yet
+		BuildID:        sql.NullString{String: "", Valid: false}, // Build creation handled separately
+		RootfsImageID:  "",                                       // Image handling not implemented yet
 		GitCommitSha:   sql.NullString{String: req.Msg.GetGitCommitSha(), Valid: req.Msg.GetGitCommitSha() != ""},
 		GitBranch:      sql.NullString{String: req.Msg.GetBranch(), Valid: req.Msg.GetBranch() != ""},
-		ConfigSnapshot: []byte("{}"), // TODO: build config
-		TopologyConfig: []byte("{}"), // TODO: build topology
+		ConfigSnapshot: []byte("{}"), // Configuration snapshot placeholder
 		Status:         db.VersionsStatusPending,
-		CreatedAtM:     now,
-		UpdatedAtM:     sql.NullInt64{Int64: now, Valid: true},
+		CreatedAt:      now,
+		UpdatedAt:      sql.NullInt64{Int64: now, Valid: true},
 	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)

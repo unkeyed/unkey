@@ -125,47 +125,13 @@ func (w *workflowContext) getNextStepOrder() int32 {
 	return int32(w.stepOrder) // nolint:gosec // Overflow is extremely unlikely in practice
 }
 
-func (w *workflowContext) getCompletedStep(stepName string) (*store.WorkflowStep, error) {
-	// Use new Query pattern - return SQLC types directly
-	sqlcStep, err := store.Query.GetCompletedStep(w.ctx, w.db, store.GetCompletedStepParams{
-		Namespace:   w.namespace,
-		ExecutionID: w.executionID,
-		StepName:    stepName,
-	})
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("step not found")
-		}
-		return nil, err
-	}
-
-	return &sqlcStep, nil
-}
-
-func (w *workflowContext) getAnyStep(stepName string) (*store.WorkflowStep, error) {
-	// Use new Query pattern - return SQLC types directly
-	sqlcStep, err := store.Query.GetStep(w.ctx, w.db, store.GetStepParams{
-		Namespace:   w.namespace,
-		ExecutionID: w.executionID,
-		StepName:    stepName,
-	})
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("step not found")
-		}
-		return nil, err
-	}
-
-	return &sqlcStep, nil
-}
-
 func (w *workflowContext) markStepCompleted(stepName string, outputData []byte) error {
-	// Use new Query pattern
+	// Use simple step update - we're already in workflow execution context
 	return store.Query.UpdateStepStatus(w.ctx, w.db, store.UpdateStepStatusParams{
 		Status:       store.WorkflowStepsStatusCompleted,
 		CompletedAt:  sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 		OutputData:   outputData,
-		ErrorMessage: sql.NullString{Valid: false},
+		ErrorMessage: sql.NullString{String: "", Valid: false},
 		Namespace:    w.namespace,
 		ExecutionID:  w.executionID,
 		StepName:     stepName,
@@ -173,7 +139,7 @@ func (w *workflowContext) markStepCompleted(stepName string, outputData []byte) 
 }
 
 func (w *workflowContext) markStepFailed(stepName string, errorMsg string) error {
-	// Use new Query pattern
+	// Use simple step update - we're already in workflow execution context
 	return store.Query.UpdateStepStatus(w.ctx, w.db, store.UpdateStepStatusParams{
 		Status:       store.WorkflowStepsStatusFailed,
 		CompletedAt:  sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
@@ -182,15 +148,6 @@ func (w *workflowContext) markStepFailed(stepName string, errorMsg string) error
 		Namespace:    w.namespace,
 		ExecutionID:  w.executionID,
 		StepName:     stepName,
-	})
-}
-
-func (w *workflowContext) suspendWorkflowForSleep(sleepUntil int64) error {
-	// Use new Query pattern
-	return store.Query.SleepWorkflow(w.ctx, w.db, store.SleepWorkflowParams{
-		SleepUntil: sql.NullInt64{Int64: sleepUntil, Valid: true},
-		ID:         w.executionID,
-		Namespace:  w.namespace,
 	})
 }
 

@@ -1,5 +1,3 @@
-import { exec } from "node:child_process";
-import path from "node:path";
 import { mysqlDrizzle, schema } from "@unkey/db";
 import mysql from "mysql2/promise";
 import { task } from "./util";
@@ -12,43 +10,12 @@ const ROW_IDS = {
   webhookApi: "api_local_webhook_keys",
 };
 
-export async function prepareDatabase(url?: string): Promise<{
+export async function prepareDatabase(): Promise<{
   workspace: { id: string };
   api: { id: string };
   webhooksApi: { id: string };
 }> {
   const db = await connectDatabase();
-  await task("migrating tables", async (s) => {
-    const cwd = path.join(__dirname, "../../../internal/db");
-
-    await new Promise((resolve, reject) => {
-      let stdoutData = "";
-      const p = exec("pnpm drizzle-kit push", {
-        env: {
-          DRIZZLE_DATABASE_URL: url ?? "mysql://unkey:password@localhost:3306/unkey",
-          ...process.env,
-        },
-        cwd,
-      });
-
-      p.stdout?.on("data", (data) => {
-        stdoutData += data;
-      });
-
-      p.on("exit", (code) => {
-        if (code === 0) {
-          if (stdoutData.includes("Error")) {
-            reject(new Error(`Migration failed with MySQL error:\n${stdoutData}`));
-          }
-
-          resolve(code);
-        } else {
-          reject(code);
-        }
-      });
-    });
-    s.stop("table migration complete");
-  });
 
   return await task("Seeding database", async (s) => {
     // root workspace

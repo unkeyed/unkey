@@ -1,7 +1,7 @@
 import { relations } from "drizzle-orm";
 import { index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { deleteProtection } from "./util/delete_protection";
-import { lifecycleDatesMigration } from "./util/lifecycle_dates";
+import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { partitions } from "./partitions";
@@ -20,7 +20,7 @@ export const projects = mysqlTable(
     gitRepositoryUrl: varchar("git_repository_url", { length: 500 }),
 
     ...deleteProtection,
-    ...lifecycleDatesMigration,
+    ...lifecycleDates,
   },
   (table) => ({
     workspaceIdx: index("workspace_idx").on(table.workspaceId),

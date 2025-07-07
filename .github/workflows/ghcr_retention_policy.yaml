@@ -17,5 +17,6 @@ jobs:
           token: ${{ secrets.PAT }}
           image-names: "unkey agent"
           image-tags: "!latest"
+          keep-n-most-recent: 10
           cut-off: 4w
-          dry-run: false
+          dry-run: true

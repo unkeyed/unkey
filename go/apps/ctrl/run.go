@@ -93,6 +93,7 @@ func Run(ctx context.Context, cfg Config) error {
 		PollInterval:      2 * time.Second, // Less aggressive polling
 		HeartbeatInterval: 30 * time.Second,
 		ClaimTimeout:      30 * time.Minute, // Handle long builds
+		CronInterval:      1 * time.Minute,  // Standard cron interval
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create hydra worker: %w", err)

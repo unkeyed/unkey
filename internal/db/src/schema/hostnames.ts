@@ -8,7 +8,7 @@ import {
   uniqueIndex,
   varchar,
 } from "drizzle-orm/mysql-core";
-import { lifecycleDatesMigration } from "./util/lifecycle_dates";
+import { lifecycleDates } from "./util/lifecycle_dates";
 
 export const hostnames = mysqlTable(
   "hostnames",
@@ -51,7 +51,7 @@ export const hostnames = mysqlTable(
       autoUpdate?: boolean; // Whether to update when new versions are created
     }>(),
 
-    ...lifecycleDatesMigration,
+    ...lifecycleDates,
   },
   (table) => ({
     workspaceIdx: index("workspace_idx").on(table.workspaceId),

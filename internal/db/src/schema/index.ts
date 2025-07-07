@@ -13,7 +13,6 @@ export * from "./audit_logs";
 // Deployment platform tables
 export * from "./partitions";
 export * from "./projects";
-export * from "./environments";
 export * from "./branches";
 export * from "./rootfs_images";
 export * from "./builds";
@@ -22,4 +21,3 @@ export * from "./versions";
 // Routing and traffic management
 export * from "./routes";
 export * from "./hostnames";
-export * from "./certificates";

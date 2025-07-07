@@ -88,15 +88,15 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 	// Step 4: Insert build into database
 	_, err = hydra.Step(ctx, "insert-build", func(stepCtx context.Context) (*struct{}, error) {
-		err := db.Query.InsertBuild(stepCtx, w.db.RW(), db.InsertBuildParams{
+		insertErr := db.Query.InsertBuild(stepCtx, w.db.RW(), db.InsertBuildParams{
 			ID:          buildID,
 			WorkspaceID: req.WorkspaceID,
 			ProjectID:   req.ProjectID,
 			VersionID:   req.VersionID,
 			CreatedAt:   time.Now().UnixMilli(),
 		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to create build record: %w", err)
+		if insertErr != nil {
+			return nil, fmt.Errorf("failed to create build record: %w", insertErr)
 		}
 		return &struct{}{}, nil
 	})
@@ -107,13 +107,13 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 	// Step 5: Update version status to building
 	_, err = hydra.Step(ctx, "update-version-building", func(stepCtx context.Context) (*struct{}, error) {
-		err := db.Query.UpdateVersionStatus(stepCtx, w.db.RW(), db.UpdateVersionStatusParams{
+		updateErr := db.Query.UpdateVersionStatus(stepCtx, w.db.RW(), db.UpdateVersionStatusParams{
 			ID:     req.VersionID,
 			Status: db.VersionsStatusBuilding,
 			Now:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to update version status to building: %w", err)
+		if updateErr != nil {
+			return nil, fmt.Errorf("failed to update version status to building: %w", updateErr)
 		}
 		return &struct{}{}, nil
 	})
@@ -128,9 +128,9 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			"build_id", buildID,
 			"docker_image", req.DockerImage)
 
-		err := w.builderService.SubmitBuild(stepCtx, buildID, req.DockerImage)
-		if err != nil {
-			return nil, fmt.Errorf("failed to submit build to builder service: %w", err)
+		submitErr := w.builderService.SubmitBuild(stepCtx, buildID, req.DockerImage)
+		if submitErr != nil {
+			return nil, fmt.Errorf("failed to submit build to builder service: %w", submitErr)
 		}
 
 		return &struct{}{}, nil
@@ -154,9 +154,9 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			case <-stepCtx.Done():
 				return nil, stepCtx.Err()
 			case <-ticker.C:
-				buildStatus, err := w.builderService.GetBuildStatus(stepCtx, buildID)
-				if err != nil {
-					w.logger.Error("failed to get build status", "build_id", buildID, "error", err)
+				buildStatus, statusErr := w.builderService.GetBuildStatus(stepCtx, buildID)
+				if statusErr != nil {
+					w.logger.Error("failed to get build status", "build_id", buildID, "error", statusErr)
 					continue
 				}
 
@@ -174,43 +174,47 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 					now := time.Now().UnixMilli()
 
 					switch buildStatus.Status {
+					case builder.BuildStatusQueued:
+						// Build is queued, no update needed yet
+						// Continue polling without database update
+
 					case builder.BuildStatusRunning:
-						err := db.Query.UpdateBuildStatus(updateCtx, w.db.RW(), db.UpdateBuildStatusParams{
+						runningErr := db.Query.UpdateBuildStatus(updateCtx, w.db.RW(), db.UpdateBuildStatusParams{
 							ID:     buildID,
 							Status: db.BuildsStatusRunning,
 							Now:    sql.NullInt64{Valid: true, Int64: now},
 						})
-						if err != nil {
-							return nil, fmt.Errorf("failed to update build status to running: %w", err)
+						if runningErr != nil {
+							return nil, fmt.Errorf("failed to update build status to running: %w", runningErr)
 						}
 
 					case builder.BuildStatusSuccess:
-						err := db.Query.UpdateBuildSucceeded(updateCtx, w.db.RW(), db.UpdateBuildSucceededParams{
+						successErr := db.Query.UpdateBuildSucceeded(updateCtx, w.db.RW(), db.UpdateBuildSucceededParams{
 							ID:  buildID,
 							Now: sql.NullInt64{Valid: true, Int64: now},
 						})
-						if err != nil {
-							return nil, fmt.Errorf("failed to update build status to succeeded: %w", err)
+						if successErr != nil {
+							return nil, fmt.Errorf("failed to update build status to succeeded: %w", successErr)
 						}
 
 					case builder.BuildStatusFailed:
-						err := db.Query.UpdateBuildFailed(updateCtx, w.db.RW(), db.UpdateBuildFailedParams{
+						failedErr := db.Query.UpdateBuildFailed(updateCtx, w.db.RW(), db.UpdateBuildFailedParams{
 							ID:           buildID,
 							ErrorMessage: sql.NullString{String: buildStatus.ErrorMsg, Valid: buildStatus.ErrorMsg != ""},
 							Now:          sql.NullInt64{Valid: true, Int64: now},
 						})
-						if err != nil {
-							return nil, fmt.Errorf("failed to update build status to failed: %w", err)
+						if failedErr != nil {
+							return nil, fmt.Errorf("failed to update build status to failed: %w", failedErr)
 						}
 
 						// Also update version status to failed
-						err = db.Query.UpdateVersionStatus(updateCtx, w.db.RW(), db.UpdateVersionStatusParams{
+						versionErr := db.Query.UpdateVersionStatus(updateCtx, w.db.RW(), db.UpdateVersionStatusParams{
 							ID:     req.VersionID,
 							Status: db.VersionsStatusFailed,
 							Now:    sql.NullInt64{Valid: true, Int64: now},
 						})
-						if err != nil {
-							return nil, fmt.Errorf("failed to update version status to failed: %w", err)
+						if versionErr != nil {
+							return nil, fmt.Errorf("failed to update version status to failed: %w", versionErr)
 						}
 					}
 
@@ -225,10 +229,19 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 				// Return appropriate result based on final status
 				switch buildStatus.Status {
+				case builder.BuildStatusQueued:
+					// Continue polling, build is still queued
+					continue
+
+				case builder.BuildStatusRunning:
+					// Continue polling, build is still running
+					continue
+
 				case builder.BuildStatusSuccess:
 					return &BuildResult{
-						BuildID: buildID,
-						Status:  "succeeded",
+						BuildID:  buildID,
+						Status:   "succeeded",
+						ErrorMsg: "",
 					}, nil
 
 				case builder.BuildStatusFailed:
@@ -253,13 +266,13 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		_, err = hydra.Step(ctx, "update-version-deploying", func(stepCtx context.Context) (*struct{}, error) {
 			w.logger.Info("starting deployment", "version_id", req.VersionID)
 
-			err := db.Query.UpdateVersionStatus(stepCtx, w.db.RW(), db.UpdateVersionStatusParams{
+			deployingErr := db.Query.UpdateVersionStatus(stepCtx, w.db.RW(), db.UpdateVersionStatusParams{
 				ID:     req.VersionID,
 				Status: db.VersionsStatusDeploying,
 				Now:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
-			if err != nil {
-				return nil, fmt.Errorf("failed to update version status to deploying: %w", err)
+			if deployingErr != nil {
+				return nil, fmt.Errorf("failed to update version status to deploying: %w", deployingErr)
 			}
 			return &struct{}{}, nil
 		})
@@ -290,13 +303,13 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 		// Step 8e: Update version status to active
 		_, err = hydra.Step(ctx, "update-version-active", func(stepCtx context.Context) (*DeploymentResult, error) {
-			err := db.Query.UpdateVersionStatus(stepCtx, w.db.RW(), db.UpdateVersionStatusParams{
+			activeErr := db.Query.UpdateVersionStatus(stepCtx, w.db.RW(), db.UpdateVersionStatusParams{
 				ID:     req.VersionID,
 				Status: db.VersionsStatusActive,
 				Now:    sql.NullInt64{Valid: true, Int64: completionTime},
 			})
-			if err != nil {
-				return nil, fmt.Errorf("failed to update version status to active: %w", err)
+			if activeErr != nil {
+				return nil, fmt.Errorf("failed to update version status to active: %w", activeErr)
 			}
 
 			w.logger.Info("deployment complete", "version_id", req.VersionID)

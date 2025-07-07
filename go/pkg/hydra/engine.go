@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/hydra/store"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
+	"github.com/unkeyed/unkey/go/pkg/retry"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	"go.opentelemetry.io/otel/attribute"
 
@@ -110,14 +111,36 @@ func New(config Config) (*Engine, error) {
 		return nil, err
 	}
 
-	// Open direct database connection
-	db, err := sql.Open("mysql", config.DSN)
+	var db *sql.DB
+	err = retry.New(
+		retry.Attempts(10),
+		retry.Backoff(func(n int) time.Duration {
+			return time.Duration(n) * time.Second
+		}),
+	).Do(func() error {
+		var openErr error
+		db, openErr = sql.Open("mysql", config.DSN)
+		if openErr != nil {
+			config.Logger.Info("mysql not ready yet, retrying...", "error", openErr.Error())
+		}
+		return openErr
+
+	})
+
 	if err != nil {
 		return nil, fmt.Errorf("hydra: failed to open database connection: %w", err)
 	}
 
+	err = retry.New(
+		retry.Attempts(10),
+		retry.Backoff(func(n int) time.Duration {
+			return time.Duration(n) * time.Second
+		}),
+	).Do(func() error {
+		return db.Ping()
+	})
 	// Test the connection
-	if err := db.Ping(); err != nil {
+	if err != nil {
 		db.Close()
 		return nil, fmt.Errorf("hydra: failed to ping database: %v", err)
 	}
@@ -171,11 +194,11 @@ func (e *Engine) RegisterCron(cronSpec, name string, handler CronHandler) error 
 		Name:         name,
 		CronSpec:     cronSpec,
 		Namespace:    e.namespace,
-		WorkflowName: sql.NullString{Valid: false}, // Empty since this uses a handler, not a workflow
+		WorkflowName: sql.NullString{String: "", Valid: false}, // Empty since this uses a handler, not a workflow
 		Enabled:      true,
 		CreatedAt:    e.clock.Now().UnixMilli(),
 		UpdatedAt:    e.clock.Now().UnixMilli(),
-		LastRunAt:    sql.NullInt64{Valid: false},
+		LastRunAt:    sql.NullInt64{Int64: 0, Valid: false},
 		NextRunAt:    calculateNextRun(cronSpec, e.clock.Now()),
 	})
 }
@@ -264,17 +287,17 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowName string, payload
 		Status:            store.WorkflowExecutionsStatusPending,
 		InputData:         data,
 		OutputData:        []byte{},
-		ErrorMessage:      sql.NullString{Valid: false},
+		ErrorMessage:      sql.NullString{String: "", Valid: false},
 		CreatedAt:         e.clock.Now().UnixMilli(),
-		StartedAt:         sql.NullInt64{Valid: false},
-		CompletedAt:       sql.NullInt64{Valid: false},
-		MaxAttempts:       int32(config.MaxAttempts),
-		RemainingAttempts: int32(config.MaxAttempts), // Start with full attempts available
-		NextRetryAt:       sql.NullInt64{Valid: false},
+		StartedAt:         sql.NullInt64{Int64: 0, Valid: false},
+		CompletedAt:       sql.NullInt64{Int64: 0, Valid: false},
+		MaxAttempts:       config.MaxAttempts,
+		RemainingAttempts: config.MaxAttempts, // Start with full attempts available
+		NextRetryAt:       sql.NullInt64{Int64: 0, Valid: false},
 		Namespace:         e.namespace,
-		TriggerType:       store.NullWorkflowExecutionsTriggerType{Valid: false}, // TODO: Convert trigger type
-		TriggerSource:     sql.NullString{Valid: false},
-		SleepUntil:        sql.NullInt64{Valid: false},
+		TriggerType:       store.NullWorkflowExecutionsTriggerType{WorkflowExecutionsTriggerType: store.WorkflowExecutionsTriggerTypeApi, Valid: false}, // Trigger type conversion not implemented
+		TriggerSource:     sql.NullString{String: "", Valid: false},
+		SleepUntil:        sql.NullInt64{Int64: 0, Valid: false},
 		TraceID:           sql.NullString{String: traceID, Valid: traceID != ""},
 		SpanID:            sql.NullString{String: spanID, Valid: spanID != ""},
 	})

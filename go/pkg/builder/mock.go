@@ -56,7 +56,10 @@ func (m *MockService) SubmitBuild(ctx context.Context, buildID, dockerImage stri
 		BuildID:     buildID,
 		DockerImage: dockerImage,
 		Status:      BuildStatusQueued,
+		ErrorMsg:    "",
 		CreatedAt:   now,
+		StartedAt:   nil,
+		CompletedAt: nil,
 	}
 
 	// Simulate async processing by starting a goroutine that updates status
@@ -85,7 +88,7 @@ func (m *MockService) simulateBuild(buildID string) {
 	}
 
 	// Queue for 1-3 seconds
-	time.Sleep(time.Duration(1+rand.Intn(3)) * time.Second)
+	time.Sleep(time.Duration(1+rand.Intn(3)) * time.Second) // nolint:gosec // Weak random is acceptable for mock simulation
 
 	// Start building
 	now := time.Now()
@@ -93,14 +96,14 @@ func (m *MockService) simulateBuild(buildID string) {
 	build.StartedAt = &now
 
 	// Build for 8-15 seconds
-	buildDuration := time.Duration(8+rand.Intn(8)) * time.Second
+	buildDuration := time.Duration(8+rand.Intn(8)) * time.Second // nolint:gosec // Weak random is acceptable for mock simulation
 	time.Sleep(buildDuration)
 
 	// Complete (90% success rate)
 	completedAt := time.Now()
 	build.CompletedAt = &completedAt
 
-	if rand.Float32() < 0.9 {
+	if rand.Float32() < 0.9 { // nolint:gosec // Weak random is acceptable for mock simulation
 		build.Status = BuildStatusSuccess
 	} else {
 		build.Status = BuildStatusFailed

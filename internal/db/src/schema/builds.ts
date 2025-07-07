@@ -2,15 +2,16 @@ import { relations } from "drizzle-orm";
 import { bigint, index, mysqlEnum, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
 import { projects } from "./projects";
 import { rootfsImages } from "./rootfs_images";
-import { lifecycleDatesMigration } from "./util/lifecycle_dates";
+import { lifecycleDates } from "./util/lifecycle_dates";
+import { versions } from "./versions";
 import { workspaces } from "./workspaces";
-
 export const builds = mysqlTable(
   "builds",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     projectId: varchar("project_id", { length: 256 }).notNull(),
+    versionId: varchar("version_id", { length: 256 }).notNull(),
 
     // Build result
     rootfsImageId: varchar("rootfs_image_id", { length: 256 }), // Null until build completes
@@ -34,7 +35,7 @@ export const builds = mysqlTable(
     startedAt: bigint("started_at", { mode: "number" }),
     completedAt: bigint("completed_at", { mode: "number" }),
 
-    ...lifecycleDatesMigration,
+    ...lifecycleDates,
   },
   (table) => ({
     workspaceIdx: index("workspace_idx").on(table.workspaceId),
@@ -57,5 +58,5 @@ export const buildsRelations = relations(builds, ({ one }) => ({
     fields: [builds.rootfsImageId],
     references: [rootfsImages.id],
   }),
-  // version: one(versions), // Version that triggered this build
+  version: one(versions),
 }));

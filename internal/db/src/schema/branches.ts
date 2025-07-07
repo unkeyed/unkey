@@ -1,10 +1,9 @@
 import { relations } from "drizzle-orm";
 import { boolean, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
-import { environments } from "./environments";
 import { projects } from "./projects";
-import { lifecycleDatesMigration } from "./util/lifecycle_dates";
+import { lifecycleDates } from "./util/lifecycle_dates";
+import { versions } from "./versions";
 import { workspaces } from "./workspaces";
-
 export const branches = mysqlTable(
   "branches",
   {
@@ -13,22 +12,20 @@ export const branches = mysqlTable(
     projectId: varchar("project_id", { length: 256 }).notNull(),
 
     name: varchar("name", { length: 256 }).notNull(), // Git branch name
-    environmentId: varchar("environment_id", { length: 256 }).notNull(), // Which environment this branch deploys to
 
     // Is this the main/production branch for the project
     isProduction: boolean("is_production").notNull().default(false),
 
-    ...lifecycleDatesMigration,
+    ...lifecycleDates,
   },
   (table) => ({
     workspaceIdx: index("workspace_idx").on(table.workspaceId),
     projectIdx: index("project_idx").on(table.projectId),
-    environmentIdx: index("environment_idx").on(table.environmentId),
     projectNameIdx: uniqueIndex("project_name_idx").on(table.projectId, table.name),
   }),
 );
 
-export const branchesRelations = relations(branches, ({ one }) => ({
+export const branchesRelations = relations(branches, ({ one, many }) => ({
   workspace: one(workspaces, {
     fields: [branches.workspaceId],
     references: [workspaces.id],
@@ -37,9 +34,5 @@ export const branchesRelations = relations(branches, ({ one }) => ({
     fields: [branches.projectId],
     references: [projects.id],
   }),
-  environment: one(environments, {
-    fields: [branches.environmentId],
-    references: [environments.id],
-  }),
-  // versions: many(versions),
+  versions: many(versions),
 }));
