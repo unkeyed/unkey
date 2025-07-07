@@ -25,14 +25,12 @@ on:
 jobs:
   check-runbook-freshness:
     runs-on: ubuntu-latest
-    
     # Security: Set timeout to prevent runaway workflows
     timeout-minutes: 10
-    
+
     # Security: Restrict environment access
     environment: 
       name: runbook-maintenance
-    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
