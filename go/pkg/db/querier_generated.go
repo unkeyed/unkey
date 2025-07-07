@@ -14,6 +14,16 @@ type Querier interface {
 	//
 	//  DELETE FROM identities WHERE id = ?
 	DeleteIdentity(ctx context.Context, db DBTX, id string) error
+	//DeleteKeyByID
+	//
+	//  DELETE k, kp, kr, rl, ek
+	//  FROM `keys` k
+	//  LEFT JOIN keys_permissions kp ON k.id = kp.key_id
+	//  LEFT JOIN keys_roles kr ON k.id = kr.key_id
+	//  LEFT JOIN ratelimits rl ON k.id = rl.key_id
+	//  LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
+	//  WHERE k.id = ?
+	DeleteKeyByID(ctx context.Context, db DBTX, id string) error
 	//DeleteKeyPermissionByKeyAndPermissionID
 	//
 	//  DELETE FROM keys_permissions
@@ -941,6 +951,10 @@ type Querier interface {
 	//
 	//  UPDATE identities set deleted = 1 WHERE id = ?
 	SoftDeleteIdentity(ctx context.Context, db DBTX, id string) error
+	//SoftDeleteKeyByID
+	//
+	//  UPDATE `keys` SET deleted_at_m = ? WHERE id = ?
+	SoftDeleteKeyByID(ctx context.Context, db DBTX, arg SoftDeleteKeyByIDParams) error
 	//SoftDeleteManyKeysByKeyAuthID
 	//
 	//  UPDATE `keys`

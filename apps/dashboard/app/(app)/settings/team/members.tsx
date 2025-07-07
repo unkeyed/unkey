@@ -108,7 +108,7 @@ export const Members = memo<MembersProps>(({ organization, user, userMembership 
                   onConfirm={async () => {
                     try {
                       await removeMember.mutateAsync({
-                        orgId: organization!.id,
+                        orgId: organization.id,
                         membershipId: id,
                       });
                     } catch (error) {

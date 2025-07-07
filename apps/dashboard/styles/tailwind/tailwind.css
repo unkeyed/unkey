@@ -6,7 +6,8 @@
 
     --white: 0 0% 100%;
     --black: 0 0% 0%;
-    --background: 60 9% 98%;
+
+    --background: 0 0% 100%;
     --background-subtle: 60 9% 94%;
 
     --brand: 262 93% 58%;
@@ -42,7 +43,7 @@
     --white: 0 0% 100%;
     --black: 0 0% 0%;
 
-    --background: 20 14% 2%;
+    --background: 0 0% 0%;
     --background-subtle: 24 10% 10%;
 
     --brand: 25 95% 53%;
