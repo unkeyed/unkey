@@ -6,8 +6,9 @@ description: Troubleshooting agent service deployment failures and GHCR image is
 ## GHCR Image Missing - Service Returns 503 Errors
 
 ### Symptoms
+- Incident.io pages on-call engineer for 5XX alerts
 - API returns 500 errors for specific endpoints (e.g., listing keys)
-- Incident.io pages on-call engineer
+- Underlying cause: Agent service returns 503 Service Temporarily Unavailable
 - Agent service appears to be down
 
 ### Investigation Steps
@@ -21,6 +22,8 @@ description: Troubleshooting agent service deployment failures and GHCR image is
    </body>
    </html>
    ```
+   
+   **Note**: The API receives a 503 from the agent service, which causes the API to return 500 to clients. Your 5XX alerts trigger on the API's 500 response, but the root cause is the agent's 503.
 
 2. **Log into AWS Console**
    - [AWS SSO Login](https://unkey.awsapps.com/start)
