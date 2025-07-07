@@ -141,6 +141,8 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
               : "Enabling this prevents the API from being deleted. This setting can be disabled at any time. "}
             <InlineLink
               label="Learn more"
+              target="_blank"
+              rel="noopener noreferrer"
               href="https://www.unkey.com/docs/security/delete-protection"
               icon={<ArrowUpRight size="sm-thin" />}
             />

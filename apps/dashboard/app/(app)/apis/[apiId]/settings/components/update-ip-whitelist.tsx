@@ -75,6 +75,8 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
             restrict access to trusted sources.{" "}
             <InlineLink
               label="Learn more"
+              target="_blank"
+              rel="noopener noreferrer"
               href="https://www.unkey.com/docs/apis/features/whitelist#ip-whitelisting"
               icon={<ArrowUpRight size="sm-thin" />}
             />

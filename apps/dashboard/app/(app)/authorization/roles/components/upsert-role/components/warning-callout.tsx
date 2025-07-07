@@ -21,6 +21,8 @@ export const RoleWarningCallout = ({ count, type }: RoleWarningCalloutProps) => 
         assigned. Use the{" "}
         <InlineLink
           className="underline"
+          target="_blank"
+          rel="noopener noreferrer"
           href="https://www.unkey.com/docs/api-reference/overview"
           label="API"
         />{" "}
