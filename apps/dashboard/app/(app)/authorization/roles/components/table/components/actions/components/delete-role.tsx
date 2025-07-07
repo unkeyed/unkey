@@ -1,6 +1,5 @@
 import { ConfirmPopover } from "@/components/confirmation-popover";
-import type { ActionComponentProps } from "@/components/logs/table-action.popover";
-import type { Roles } from "@/lib/trpc/routers/authorization/roles/query";
+import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TriangleWarning2 } from "@unkey/icons";
 import { Button, DialogContainer, FormCheckbox } from "@unkey/ui";
@@ -9,6 +8,7 @@ import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useDeleteRole } from "./hooks/use-delete-role";
 import { RoleInfo } from "./role-info";
+import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 
 const deleteRoleFormSchema = z.object({
   confirmDeletion: z.boolean().refine((val) => val === true, {
@@ -18,7 +18,7 @@ const deleteRoleFormSchema = z.object({
 
 type DeleteRoleFormValues = z.infer<typeof deleteRoleFormSchema>;
 
-type DeleteRoleProps = { roleDetails: Roles } & ActionComponentProps;
+type DeleteRoleProps = { roleDetails: RoleBasic } & ActionComponentProps;
 
 export const DeleteRole = ({ roleDetails, isOpen, onClose }: DeleteRoleProps) => {
   const [isConfirmPopoverOpen, setIsConfirmPopoverOpen] = useState(false);

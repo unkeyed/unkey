@@ -18,8 +18,10 @@ INSERT INTO ` + "`" + `ratelimits` + "`" + ` (
     name,
     ` + "`" + `limit` + "`" + `,
     duration,
-    created_at
+    created_at,
+    auto_apply
 ) VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -38,6 +40,7 @@ type InsertIdentityRatelimitParams struct {
 	Limit       int32          `db:"limit"`
 	Duration    int64          `db:"duration"`
 	CreatedAt   int64          `db:"created_at"`
+	AutoApply   bool           `db:"auto_apply"`
 }
 
 // InsertIdentityRatelimit
@@ -49,8 +52,10 @@ type InsertIdentityRatelimitParams struct {
 //	    name,
 //	    `limit`,
 //	    duration,
-//	    created_at
+//	    created_at,
+//	    auto_apply
 //	) VALUES (
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -68,6 +73,7 @@ func (q *Queries) InsertIdentityRatelimit(ctx context.Context, db DBTX, arg Inse
 		arg.Limit,
 		arg.Duration,
 		arg.CreatedAt,
+		arg.AutoApply,
 	)
 	return err
 }

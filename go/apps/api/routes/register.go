@@ -1,6 +1,7 @@
 package routes
 
 import (
+	openapi "github.com/unkeyed/unkey/go/apps/api/routes/openapi"
 	"github.com/unkeyed/unkey/go/apps/api/routes/reference"
 	v2Liveness "github.com/unkeyed/unkey/go/apps/api/routes/v2_liveness"
 
@@ -33,10 +34,12 @@ import (
 	v2KeysAddPermissions "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_add_permissions"
 	v2KeysAddRoles "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_add_roles"
 	v2KeysCreateKey "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_create_key"
+	v2KeysGetKey "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_get_key"
 	v2KeysRemovePermissions "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_remove_permissions"
 	v2KeysRemoveRoles "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_remove_roles"
 	v2KeysSetPermissions "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_set_permissions"
 	v2KeysSetRoles "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_set_roles"
+	v2KeysUpdateCredits "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_update_credits"
 
 	zen "github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -344,6 +347,32 @@ func Register(srv *zen.Server, svc *Services) {
 			Keys:        svc.Keys,
 			Permissions: svc.Permissions,
 			Auditlogs:   svc.Auditlogs,
+			Vault:       svc.Vault,
+		},
+	)
+
+	// v2/keys.getKey
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v2KeysGetKey.Handler{
+			Logger:      svc.Logger,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Permissions: svc.Permissions,
+			Auditlogs:   svc.Auditlogs,
+			Vault:       svc.Vault,
+		},
+	)
+
+	// v2/keys.updateCredits
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v2KeysUpdateCredits.Handler{
+			Logger:      svc.Logger,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Permissions: svc.Permissions,
+			Auditlogs:   svc.Auditlogs,
 		},
 	)
 
@@ -427,6 +456,14 @@ func Register(srv *zen.Server, svc *Services) {
 		withLogging,
 		withErrorHandling,
 	}, &reference.Handler{
+		Logger: svc.Logger,
+	})
+	srv.RegisterRoute([]zen.Middleware{
+		withTracing,
+		withMetrics,
+		withLogging,
+		withErrorHandling,
+	}, &openapi.Handler{
 		Logger: svc.Logger,
 	})
 

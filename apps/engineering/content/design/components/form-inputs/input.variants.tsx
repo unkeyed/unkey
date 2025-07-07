@@ -87,3 +87,36 @@ export const InputWithBothIcons = () => {
     </RenderComponentWithSnippet>
   );
 };
+
+export const InputWithPrefix = () => {
+  return (
+    <RenderComponentWithSnippet>
+      <Input prefix="https://" placeholder="example.com" />
+    </RenderComponentWithSnippet>
+  );
+};
+
+export const InputWithPrefixAndIcon = () => {
+  return (
+    <RenderComponentWithSnippet>
+      <Input
+        prefix="$"
+        placeholder="0.00"
+        rightIcon={<span className="text-xs opacity-60">USD</span>}
+      />
+    </RenderComponentWithSnippet>
+  );
+};
+
+export const InputWithPrefixVariants = () => {
+  return (
+    <RenderComponentWithSnippet>
+      <div className="flex flex-col gap-4">
+        <Input prefix="@" placeholder="username" />
+        <Input prefix="+" placeholder="1 (555) 123-4567" variant="success" />
+        <Input prefix="ref_" placeholder="transaction_id" variant="warning" />
+        <Input prefix="key_" placeholder="api_key_here" variant="error" />
+      </div>
+    </RenderComponentWithSnippet>
+  );
+};

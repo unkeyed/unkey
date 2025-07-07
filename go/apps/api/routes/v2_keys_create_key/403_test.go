@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_create_key"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -39,6 +40,12 @@ func Test_CreateKey_Forbidden(t *testing.T) {
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false, String: ""},
 		DefaultBytes:  sql.NullInt32{Valid: false, Int32: 0},
+	})
+	require.NoError(t, err)
+
+	err = db.Query.UpdateKeyringKeyEncryption(ctx, h.DB.RW(), db.UpdateKeyringKeyEncryptionParams{
+		ID:                 keyAuthID,
+		StoreEncryptedKeys: true,
 	})
 	require.NoError(t, err)
 
@@ -153,6 +160,25 @@ func Test_CreateKey_Forbidden(t *testing.T) {
 	t.Run("partial permission match", func(t *testing.T) {
 		// Create root key with permission that partially matches but isn't sufficient
 		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.create")
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
+		require.Equal(t, 403, res.Status)
+		require.NotNil(t, res.Body)
+	})
+
+	t.Run("create recoverable key without perms", func(t *testing.T) {
+		// Create root key with permission that partially matches but isn't sufficient
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
+
+		req := handler.Request{
+			ApiId:       apiID,
+			Recoverable: ptr.P(true),
+		}
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},

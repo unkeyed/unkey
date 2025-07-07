@@ -1,5 +1,6 @@
 import { useFilters } from "@/app/(app)/audit/hooks/use-filters";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
+import { shortenId } from "@/lib/shorten-id";
 
 export const RootKeysFilter = ({
   rootKeys,
@@ -37,10 +38,5 @@ export const RootKeysFilter = ({
 // This is to avoid displaying the full id in the filter.
 const getRootKeyLabel = (rootKey: { id: string; name: string | null }) => {
   const id = rootKey.id;
-  const prefix = id.substring(0, id.indexOf("_") + 1);
-  const obfuscatedMiddle =
-    id.substring(id.indexOf("_") + 1, id.indexOf("_") + 5).length > 0 ? "..." : "";
-  const nextFour = id.substring(id.indexOf("_") + 1, id.indexOf("_") + 5);
-  const lastFour = id.substring(id.length - 4);
-  return rootKey.name ?? prefix + nextFour + obfuscatedMiddle + lastFour;
+  return rootKey.name ?? shortenId(id);
 };

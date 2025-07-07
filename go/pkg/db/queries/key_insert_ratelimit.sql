@@ -6,6 +6,7 @@ INSERT INTO `ratelimits` (
     name,
     `limit`,
     duration,
+    auto_apply,
     created_at
 ) VALUES (
     sqlc.arg('id'),
@@ -14,5 +15,6 @@ INSERT INTO `ratelimits` (
     sqlc.arg('name'),
     sqlc.arg('limit'),
     sqlc.arg('duration'),
+    sqlc.arg('auto_apply'),
     sqlc.arg('created_at')
 );
