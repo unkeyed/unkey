@@ -258,13 +258,13 @@ export const MediumFormCheckboxVariant = () => {
       customCodeSnippet={`<FormCheckbox
   label="I confirm that all information is correct"
   description="Please verify before submission"
-  size="sm"
+  size="md"
 />`}
     >
       <FormCheckbox
         label="I confirm that all information is correct"
         description="Please verify before submission"
-        size="sm"
+        size="md"
       />
     </RenderComponentWithSnippet>
   );
