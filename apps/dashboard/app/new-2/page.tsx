@@ -35,13 +35,13 @@ export default function OnboardingPage() {
   const currentStepInfo = stepInfos[currentStepIndex];
 
   return (
-    <div className="min-h-screen flex flex-col items-center pt-6">
+    <div className="h-screen flex flex-col items-center pt-6 overflow-hidden">
       {/* Unkey Logo */}
       <div className="text-2xl font-medium text-gray-12 leading-7">Unkey</div>
       {/* Spacer */}
       <div className="mt-[72px]" />
       {/* Onboarding part. This will be a step wizard*/}
-      <div className="flex flex-col w-full max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl">
+      <div className="flex flex-col w-full max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl ">
         {/* Explanation part - Fixed height to prevent layout shifts */}
         <div className="flex flex-col items-center h-[140px] justify-start">
           <div className="bg-grayA-3 rounded-full w-fit">
@@ -60,12 +60,13 @@ export default function OnboardingPage() {
         </div>
         <div className="mt-10" />
         {/* Form part */}
-        <OnboardingWizard
-          steps={steps}
-          onComplete={handleComplete}
-          onStepChange={handleStepChange}
-        />
-        <div className="mb-10" />
+        <div className="flex-1 min-h-0">
+          <OnboardingWizard
+            steps={steps}
+            onComplete={handleComplete}
+            onStepChange={handleStepChange}
+          />
+        </div>
       </div>
     </div>
   );

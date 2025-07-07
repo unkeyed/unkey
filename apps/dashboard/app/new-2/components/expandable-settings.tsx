@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 type ExpandableSettingsProps = {
   icon: ReactNode;
   title: string;
-  children: ReactNode;
+  children: ReactNode | ((enabled: boolean) => ReactNode);
   defaultChecked?: boolean;
   onCheckedChange?: (checked: boolean) => void;
 };
@@ -51,7 +51,6 @@ export const ExpandableSettings = ({
           thumbClassName="h-[14px] w-[14px] data-[state=unchecked]:bg-grayA-9 data-[state=checked]:bg-white"
         />
       </div>
-
       {/* Expandable Content */}
       {isEnabled && (
         <div className="relative -mb-3">
@@ -60,7 +59,9 @@ export const ExpandableSettings = ({
             style={{ left: `${14 + 4}px` }}
           />
           {/* Content */}
-          <div className="py-6 px-10">{children}</div>
+          <div className="py-6 px-10">
+            {typeof children === "function" ? children(isEnabled) : children}
+          </div>
         </div>
       )}
     </div>
