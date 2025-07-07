@@ -44,9 +44,15 @@ export const transformKey = (key: KeyWithRoles) => ({
   id: key.id,
   name: key.name,
   roles: key.roles
-    .filter((keyRole) => keyRole.role !== null)
+    .filter(
+      (
+        keyRole,
+      ): keyRole is typeof keyRole & {
+        role: NonNullable<typeof keyRole.role>;
+      } => keyRole.role !== null,
+    )
     .map((keyRole) => ({
-      id: keyRole.role!.id,
-      name: keyRole.role!.name,
+      id: keyRole.role.id,
+      name: keyRole.role.name,
     })),
 });

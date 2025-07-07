@@ -1,6 +1,6 @@
 import type { ActionComponentProps } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover";
 import { ConfirmPopover } from "@/components/confirmation-popover";
-import type { Roles } from "@/lib/trpc/routers/authorization/roles/query";
+import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TriangleWarning2 } from "@unkey/icons";
 import { Button, DialogContainer, FormCheckbox } from "@unkey/ui";
@@ -18,7 +18,7 @@ const deleteRoleFormSchema = z.object({
 
 type DeleteRoleFormValues = z.infer<typeof deleteRoleFormSchema>;
 
-type DeleteRoleProps = { roleDetails: Roles } & ActionComponentProps;
+type DeleteRoleProps = { roleDetails: RoleBasic } & ActionComponentProps;
 
 export const DeleteRole = ({ roleDetails, isOpen, onClose }: DeleteRoleProps) => {
   const [isConfirmPopoverOpen, setIsConfirmPopoverOpen] = useState(false);
