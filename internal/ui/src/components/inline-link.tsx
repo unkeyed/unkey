@@ -25,9 +25,10 @@ type InlineLinkProps = {
    */
   className?: string;
   /**
-   * Whether to open the link in a new tab.
+   * The target attribute for the link. Standard HTML values: "_blank", "_self", "_parent", "_top", or a frame name.
    */
-  target?: boolean;
+  target?: "_blank" | "_self" | "_parent" | "_top";
+  
 };
 const InlineLink: React.FC<InlineLinkProps> = ({
   className,
@@ -42,8 +43,8 @@ const InlineLink: React.FC<InlineLinkProps> = ({
     <a
       href={href}
       className={cn(className, "underline inline-flex hover:opacity-70")}
-      target={target ? "_blank" : undefined}
-      rel={target ? "noopener noreferrer" : undefined}
+      target={target}
+      rel={target === "_blank" ? "noopener noreferrer" : undefined}
       {...props}
     >
       <span className="inline-flex gap-x-1 items-center">
