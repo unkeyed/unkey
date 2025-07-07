@@ -28,6 +28,7 @@ jobs:
         uses: ./.github/actions/install
         with:
           ts: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Build
         if: ${{ matrix.path != './apps/dashboard' }}
         run: pnpm turbo run build --filter=${{matrix.path}}
