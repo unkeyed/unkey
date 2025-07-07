@@ -16,7 +16,7 @@ test(
       where: (table, { eq }) => eq(table.id, keyId),
     });
     expect(keyInDb).toBeDefined();
-    expect(keyInDb!.updatedAtM).toBeNull();
+    expect(keyInDb?.updatedAtM).toBeNull();
 
     const updateRes = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
       url: "/v1/keys.updateKey",
@@ -36,8 +36,11 @@ test(
       where: (table, { eq }) => eq(table.id, keyId),
     });
     expect(keyInDbAfterUpdate).toBeDefined();
-    expect(keyInDbAfterUpdate!.updatedAtM).not.toBeNull();
-    expect(keyInDbAfterUpdate!.updatedAtM).toBeGreaterThan(keyInDbAfterUpdate!.createdAtM);
+    expect(keyInDbAfterUpdate?.updatedAtM).not.toBeNull();
+    expect(keyInDbAfterUpdate?.updatedAtM).toBeGreaterThan(
+      // biome-ignore lint/style/noNonNullAssertion: Safe to leave
+      keyInDbAfterUpdate!.createdAtM,
+    );
 
     const returnedKey = await h.get<V1KeysGetKeyResponse>({
       url: `/v1/keys.getKey?keyId=${keyId}`,
@@ -48,7 +51,7 @@ test(
     });
 
     expect(returnedKey.status).toEqual(200);
-    expect(returnedKey.body.updatedAt).toEqual(keyInDbAfterUpdate!.updatedAtM);
+    expect(returnedKey.body.updatedAt).toEqual(keyInDbAfterUpdate?.updatedAtM);
   },
   { timeout: 30_000 },
 );

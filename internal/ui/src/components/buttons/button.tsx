@@ -342,11 +342,11 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         return;
       }
       const down = (e: KeyboardEvent) => {
-        if (!props.keyboard!.trigger(e)) {
+        if (!props.keyboard?.trigger(e)) {
           return;
         }
         e.preventDefault();
-        props.keyboard!.callback(e);
+        props.keyboard?.callback(e);
       };
       document.addEventListener("keydown", down);
       return () => document.removeEventListener("keydown", down);

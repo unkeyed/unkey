@@ -46,19 +46,15 @@
 //
 // Creating an engine and worker:
 //
-//	// Set up the storage layer
-//	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
-//	if err != nil {
-//	    return err
-//	}
-//	store := gorm.NewGORMStore(db, clock.New())
-//
-//	// Create the engine
-//	engine := hydra.New(hydra.Config{
-//	    Store:     store,
+//	// Create the engine with database DSN
+//	engine, err := hydra.NewEngine(hydra.Config{
+//	    DSN:       "user:password@tcp(localhost:3306)/hydra",
 //	    Namespace: "production",
 //	    Logger:    logger,
 //	})
+//	if err != nil {
+//	    return err
+//	}
 //
 //	// Create and configure a worker
 //	worker, err := hydra.NewWorker(engine, hydra.WorkerConfig{
@@ -134,6 +130,17 @@
 //	}
 //
 //	fmt.Printf("Started workflow execution: %s\n", executionID)
+//
+// # Marshalling Options
+//
+// Hydra supports multiple marshalling formats for workflow payloads and step results:
+//
+// JSON Marshaller (Default):
+//
+//	engine, err := hydra.NewEngine(hydra.Config{
+//	    Marshaller: hydra.NewJSONMarshaller(), // Default if not specified
+//	    // ... other config
+//	})
 //
 // # Advanced Features
 //
@@ -212,7 +219,7 @@
 // - leases: Manages worker coordination and exclusive access
 // - cron_jobs: Stores scheduled workflow definitions
 //
-// The schema automatically migrates when using the GORM store implementation.
+// The schema should be created using the provided schema.sql file.
 //
 // # Error Handling
 //

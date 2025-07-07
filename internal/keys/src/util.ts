@@ -9,7 +9,10 @@ export async function newKey(opts: {
   hash: string;
   start: string;
 }> {
-  const key = new KeyV1({ byteLength: opts.byteLength, prefix: opts.prefix! }).toString();
+  const key = new KeyV1({
+    byteLength: opts.byteLength,
+    prefix: opts.prefix,
+  }).toString();
   const start = key.slice(0, (opts.prefix?.length ?? 0) + 5);
   const hash = await sha256(key);
 

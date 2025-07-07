@@ -20,7 +20,11 @@ export async function migrateKey(
     username: env.DATABASE_USERNAME,
     password: env.DATABASE_PASSWORD,
     retry: 3,
-    logger: new ConsoleLogger({ requestId: "", application: "api", environment: env.ENVIRONMENT }),
+    logger: new ConsoleLogger({
+      requestId: "",
+      application: "api",
+      environment: env.ENVIRONMENT,
+    }),
   });
 
   const keyId = newId("key");
@@ -31,7 +35,7 @@ export async function migrateKey(
   if (message.roles && message.roles.length > 0) {
     const found = await db.query.roles.findMany({
       where: (table, { inArray, and, eq }) =>
-        and(eq(table.workspaceId, message.workspaceId), inArray(table.name, message.roles!)),
+        and(eq(table.workspaceId, message.workspaceId), inArray(table.name, message.roles ?? [])),
     });
     const missingRoles = message.roles.filter((name) => !found.some((role) => role.name === name));
     if (missingRoles.length > 0) {
@@ -51,7 +55,10 @@ export async function migrateKey(
   if (message.permissions && message.permissions.length > 0) {
     const found = await db.query.permissions.findMany({
       where: (table, { inArray, and, eq }) =>
-        and(eq(table.workspaceId, message.workspaceId), inArray(table.name, message.permissions!)),
+        and(
+          eq(table.workspaceId, message.workspaceId),
+          inArray(table.name, message.permissions ?? []),
+        ),
     });
     const missingRoles = message.permissions.filter(
       (name) => !found.some((permission) => permission.name === name),

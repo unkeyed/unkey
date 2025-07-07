@@ -1,6 +1,8 @@
 package hydra
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 // Marshaller defines the interface for serializing workflow payloads and step results.
 //

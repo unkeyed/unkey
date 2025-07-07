@@ -2,10 +2,13 @@ package hydra
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/hydra/store"
+	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // Workflow defines the interface for typed workflows.
@@ -63,6 +66,11 @@ type Workflow[TReq any] interface {
 // or when the payload type is not known at compile time.
 type GenericWorkflow = Workflow[any]
 
+// RawPayload represents raw workflow input data that needs to be unmarshalled
+type RawPayload struct {
+	Data []byte
+}
+
 // WorkflowContext provides access to workflow execution context and utilities.
 //
 // The context is passed to workflow Run() methods and provides access to:
@@ -93,11 +101,10 @@ type workflowContext struct {
 	workflowName    string
 	namespace       string
 	workerID        string
-	store           store.Store
+	db              *sql.DB
 	marshaller      Marshaller
 	stepTimeout     time.Duration
 	stepMaxAttempts int32
-	stepOrder       int
 }
 
 func (w *workflowContext) Context() context.Context {
@@ -112,29 +119,30 @@ func (w *workflowContext) WorkflowName() string {
 	return w.workflowName
 }
 
-func (w *workflowContext) getNextStepOrder() int32 {
-	w.stepOrder++
-	return int32(w.stepOrder) // nolint:gosec // Overflow is extremely unlikely in practice
-}
-
-func (w *workflowContext) getCompletedStep(stepName string) (*store.WorkflowStep, error) {
-	return w.store.GetCompletedStep(w.ctx, w.namespace, w.executionID, stepName)
-}
-
-func (w *workflowContext) getAnyStep(stepName string) (*store.WorkflowStep, error) {
-	return w.store.GetStep(w.ctx, w.namespace, w.executionID, stepName)
-}
-
 func (w *workflowContext) markStepCompleted(stepName string, outputData []byte) error {
-	return w.store.UpdateStepStatus(w.ctx, w.namespace, w.executionID, stepName, store.StepStatusCompleted, outputData, "")
+	// Use simple step update - we're already in workflow execution context
+	return store.Query.UpdateStepStatus(w.ctx, w.db, store.UpdateStepStatusParams{
+		Status:       store.WorkflowStepsStatusCompleted,
+		CompletedAt:  sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		OutputData:   outputData,
+		ErrorMessage: sql.NullString{String: "", Valid: false},
+		Namespace:    w.namespace,
+		ExecutionID:  w.executionID,
+		StepName:     stepName,
+	})
 }
 
 func (w *workflowContext) markStepFailed(stepName string, errorMsg string) error {
-	return w.store.UpdateStepStatus(w.ctx, w.namespace, w.executionID, stepName, store.StepStatusFailed, nil, errorMsg)
-}
-
-func (w *workflowContext) suspendWorkflowForSleep(sleepUntil int64) error {
-	return w.store.SleepWorkflow(w.ctx, w.namespace, w.executionID, sleepUntil)
+	// Use simple step update - we're already in workflow execution context
+	return store.Query.UpdateStepStatus(w.ctx, w.db, store.UpdateStepStatusParams{
+		Status:       store.WorkflowStepsStatusFailed,
+		CompletedAt:  sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		OutputData:   []byte{},
+		ErrorMessage: sql.NullString{String: errorMsg, Valid: errorMsg != ""},
+		Namespace:    w.namespace,
+		ExecutionID:  w.executionID,
+		StepName:     stepName,
+	})
 }
 
 // RegisterWorkflow registers a typed workflow with a worker.
@@ -203,22 +211,49 @@ func (w *workflowWrapper[TReq]) Name() string {
 }
 
 func (w *workflowWrapper[TReq]) Run(ctx WorkflowContext, req any) error {
-	// Extract the raw payload and unmarshal it to the correct type
-	rawPayload, ok := req.(*RawPayload)
-	if !ok {
-		return fmt.Errorf("expected RawPayload, got %T", req)
-	}
-
-	var typedReq TReq
 	wctx, ok := ctx.(*workflowContext)
 	if !ok {
 		return fmt.Errorf("invalid context type, expected *workflowContext")
 	}
+
+	// Start tracing span for workflow execution
+	workflowCtx, span := tracing.Start(wctx.ctx, fmt.Sprintf("hydra.workflow.%s", w.wrapped.Name()))
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("hydra.workflow.name", w.wrapped.Name()),
+		attribute.String("hydra.execution.id", wctx.executionID),
+		attribute.String("hydra.namespace", wctx.namespace),
+		attribute.String("hydra.worker.id", wctx.workerID),
+	)
+
+	// Update the workflow context to use the traced context
+	wctx.ctx = workflowCtx
+
+	// Extract the raw payload and unmarshal it to the correct type
+	rawPayload, ok := req.(*RawPayload)
+	if !ok {
+		err := fmt.Errorf("expected RawPayload, got %T", req)
+		tracing.RecordError(span, err)
+		return err
+	}
+
+	var typedReq TReq
 	if err := wctx.marshaller.Unmarshal(rawPayload.Data, &typedReq); err != nil {
+		tracing.RecordError(span, err)
 		return fmt.Errorf("failed to unmarshal workflow request: %w", err)
 	}
 
-	return w.wrapped.Run(ctx, typedReq)
+	// Pass the updated workflow context (with traced context) to the workflow implementation
+	err := w.wrapped.Run(wctx, typedReq)
+	if err != nil {
+		tracing.RecordError(span, err)
+		span.SetAttributes(attribute.String("hydra.workflow.status", "failed"))
+	} else {
+		span.SetAttributes(attribute.String("hydra.workflow.status", "completed"))
+	}
+
+	return err
 }
 
 // WorkflowOption defines a function that configures workflow execution
@@ -232,7 +267,7 @@ type WorkflowConfig struct {
 
 	RetryBackoff time.Duration
 
-	TriggerType   TriggerType
+	TriggerType   store.WorkflowExecutionsTriggerType
 	TriggerSource *string
 }
 
@@ -258,7 +293,7 @@ func WithRetryBackoff(backoff time.Duration) WorkflowOption {
 }
 
 // WithTrigger sets the trigger type and source for a workflow
-func WithTrigger(triggerType TriggerType, triggerSource *string) WorkflowOption {
+func WithTrigger(triggerType store.WorkflowExecutionsTriggerType, triggerSource *string) WorkflowOption {
 	return func(c *WorkflowConfig) {
 		c.TriggerType = triggerType
 		c.TriggerSource = triggerSource

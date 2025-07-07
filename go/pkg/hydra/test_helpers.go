@@ -2,105 +2,76 @@ package hydra
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/hydra/store"
-	"github.com/unkeyed/unkey/go/pkg/hydra/store/gorm"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/go/pkg/uid"
-	"gorm.io/driver/mysql"
-	gormlib "gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
-// Test helper functions
-
-// newTestEngine creates an engine instance for testing with MySQL
-func newTestEngine(t *testing.T) *Engine {
-	return newTestEngineWithClock(t, clock.New())
-}
-
-// newTestEngineWithClock creates an engine instance with a controllable test clock and MySQL
+// newTestEngineWithClock creates a test engine with the specified clock
 func newTestEngineWithClock(t *testing.T, clk clock.Clock) *Engine {
 	t.Helper()
 
-	// Use MySQL container for testing
+	// Use containerized MySQL for testing
 	containersClient := containers.New(t)
-	hostDsn, _ := containersClient.RunMySQL()
+	mysqlCfg, _ := containersClient.RunMySQL()
+	mysqlCfg.DBName = "hydra"
+	hydraDsn := mysqlCfg.FormatDSN()
 
-	// Open MySQL database with GORM
-	db, err := gormlib.Open(mysql.Open(hostDsn), &gormlib.Config{
-		Logger: logger.Discard,
-	})
+	// Load the hydra schema into the database
+	db, err := sql.Open("mysql", hydraDsn)
 	require.NoError(t, err)
+	defer db.Close()
 
-	// Auto-migrate the hydra schema
-	err = db.AutoMigrate(
-		&store.WorkflowExecution{
-			ID: "", WorkflowName: "", Status: "", InputData: nil, OutputData: nil,
-			ErrorMessage: "", CreatedAt: 0, StartedAt: nil, CompletedAt: nil,
-			MaxAttempts: 0, RemainingAttempts: 0, NextRetryAt: nil, Namespace: "",
-			TriggerType: "", TriggerSource: nil, SleepUntil: nil, TraceID: "",
-		},
-		&store.WorkflowStep{
-			ID: "", ExecutionID: "", StepName: "", StepOrder: 0, Status: "",
-			OutputData: nil, ErrorMessage: "", StartedAt: nil, CompletedAt: nil,
-			MaxAttempts: 0, RemainingAttempts: 0, Namespace: "",
-		},
-		&store.CronJob{
-			ID: "", Name: "", CronSpec: "", Namespace: "", WorkflowName: "",
-			Enabled: false, CreatedAt: 0, UpdatedAt: 0, LastRunAt: nil, NextRunAt: 0,
-		},
-		&store.Lease{
-			ResourceID: "", Kind: "", Namespace: "", WorkerID: "",
-			AcquiredAt: 0, ExpiresAt: 0, HeartbeatAt: 0,
-		},
-	)
-	require.NoError(t, err)
+	// Create a unique namespace for this test to avoid data pollution
+	testNamespace := fmt.Sprintf("test_%s_%s", t.Name(), uid.New(uid.Prefix("test")))
 
-	// Create the store
-	gormStore := gorm.NewGORMStore(db, clk)
-
-	// Create engine with unique namespace for test isolation
-	testNamespace := uid.New(uid.TestPrefix)
-
-	engine := New(Config{
-		Store:      gormStore,
+	// Create the engine with the properly configured database
+	engine, err := New(Config{
+		DSN:        hydraDsn,
 		Namespace:  testNamespace,
 		Clock:      clk,
-		Logger:     nil,
-		Marshaller: nil,
+		Logger:     logging.NewNoop(),
+		Marshaller: NewJSONMarshaller(),
 	})
+	if err != nil {
+		t.Fatalf("Failed to create test engine: %v", err)
+	}
 
 	return engine
 }
 
-// waitForWorkflowCompletion waits until a workflow reaches a terminal state (completed or failed)
-func waitForWorkflowCompletion(t *testing.T, e *Engine, executionID string, timeout time.Duration) *store.WorkflowExecution {
+// newTestEngine creates a test engine with default clock
+func newTestEngine(t *testing.T) *Engine {
+	return newTestEngineWithClock(t, clock.New())
+}
+
+// waitForWorkflowCompletion waits for a workflow to complete and returns the final workflow state
+func waitForWorkflowCompletion(t *testing.T, engine *Engine, workflowID string, timeout time.Duration) *store.WorkflowExecution {
 	t.Helper()
 
-	var workflow *store.WorkflowExecution
+	var workflow store.WorkflowExecution
+	var err error
 
 	require.Eventually(t, func() bool {
-		var err error
-		workflow, err = e.GetStore().GetWorkflow(context.Background(), e.GetNamespace(), executionID)
+		workflow, err = store.Query.GetWorkflow(context.Background(), engine.GetDB(), store.GetWorkflowParams{
+			ID:        workflowID,
+			Namespace: engine.GetNamespace(),
+		})
 		if err != nil {
-			t.Logf("Error getting workflow %s: %v", executionID, err)
 			return false
 		}
-
-		isComplete := workflow.Status == store.WorkflowStatusCompleted ||
-			workflow.Status == store.WorkflowStatusFailed
-
-		if !isComplete {
-			t.Logf("Workflow %s status: %s", executionID, workflow.Status)
-		}
-
-		return isComplete
+		return workflow.Status == store.WorkflowExecutionsStatusCompleted ||
+			workflow.Status == store.WorkflowExecutionsStatusFailed
 	}, timeout, 100*time.Millisecond, "Workflow should complete within timeout")
 
-	return workflow
+	require.NoError(t, err)
+	return &workflow
 }
