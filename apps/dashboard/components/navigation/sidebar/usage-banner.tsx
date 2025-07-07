@@ -8,7 +8,7 @@ import type React from "react";
 import { FlatNavItem } from "./app-sidebar/components/nav-items/flat-nav-item";
 
 type Props = {
-  quotas: Quotas;
+  quotas: Quotas | null;
 };
 
 export const UsageBanner: React.FC<Props> = ({ quotas }) => {
@@ -18,27 +18,30 @@ export const UsageBanner: React.FC<Props> = ({ quotas }) => {
   });
 
   const current = usage.data?.billableTotal ?? 0;
-  const max = quotas.requestsPerMonth;
+  const max = quotas?.requestsPerMonth;
 
-  const shouldUpgrade = current / max > 0.9;
+  if (max === undefined || max === null) {
+    console.error("UsageBanner: quotas.requestsPerMonth is undefined or null");
+    return null;
+  }
+
+  if (max <= 0) {
+    console.error("UsageBanner: quotas.requestsPerMonth must be greater than 0, got:", max);
+    return null;
+  }
+
+  const percentage = (current / max) * 100;
+  const shouldUpgrade = percentage > 90;
 
   return (
     <FlatNavItem
       item={{
         tooltip: "Usage",
         icon: () => (
-          <ProgressCircle
-            value={current}
-            max={max}
-            color={
-              shouldUpgrade
-                ? "#DD4527" // error-9
-                : "#0A9B8B" // success-9
-            }
-          />
+          <ProgressCircle value={current} max={max} color={shouldUpgrade ? "#DD4527" : "#0A9B8B"} />
         ),
         href: "/settings/billing",
-        label: `Usage ${Math.round((current / max) * 100).toLocaleString()}%`,
+        label: `Usage ${Math.round(percentage).toLocaleString()}%`,
         tag: shouldUpgrade ? (
           <Link href="/settings/billing">
             <Button variant="primary" size="sm">

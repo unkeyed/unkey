@@ -25,7 +25,7 @@
       },
       "style": {
         "useBlockStatements": "error",
-        "noNonNullAssertion": "off",
+        "noNonNullAssertion": "error",
         "useConst": "error",
         "noUselessElse": "error",
         "useImportType": "error",
@@ -127,12 +127,23 @@
       }
     },
     {
-      "include": ["**/*.test.*", "**/*.spec.*", "**/__tests__/**", "**/test/**", "**/tests/**"],
+      "include": [
+        "**/*.test.*",
+        "**/*.spec.*",
+        "**/__tests__/**",
+        "**/test/**",
+        "**/tests/**",
+        "**/tools/**",
+        "**/v1_*.ts"
+      ],
       "linter": {
         "rules": {
           "suspicious": {
             "noConsoleLog": "off",
             "noExplicitAny": "off"
+          },
+          "style": {
+            "noNonNullAssertion": "off"
           }
         }
       }

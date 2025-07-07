@@ -55,8 +55,12 @@ class AuthProvider {
   public static getInstance(): BaseAuthProvider {
     if (!AuthProvider.instance) {
       AuthProvider.initialize();
+
+      if (!AuthProvider.instance) {
+        throw new Error("Failed to initialize AuthProvider. Check your configuration.");
+      }
     }
-    return AuthProvider.instance!;
+    return AuthProvider.instance;
   }
 }
 

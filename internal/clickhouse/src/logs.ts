@@ -277,7 +277,11 @@ function createTimeseriesQuery(interval: TimeInterval, whereClause: string) {
     MONTH: 2592000_000,
   }[interval.step];
 
-  const stepMs = msPerUnit! * interval.stepSize;
+  if (!msPerUnit) {
+    throw new Error("Unknown interval in 'createTimeseriesQuery'");
+  }
+
+  const stepMs = msPerUnit * interval.stepSize;
 
   return `
     SELECT

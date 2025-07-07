@@ -2,5 +2,5 @@
   "title": "Infrastructure",
   "description": "Setting up infrastructure for Unkey",
   "root": false,
-  "pages": ["aws"]
+  "pages": ["index", "aws", "stripe"]
 }

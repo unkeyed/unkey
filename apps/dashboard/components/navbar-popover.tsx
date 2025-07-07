@@ -167,10 +167,10 @@ export const QuickNavPopover = ({
               <div
                 className="relative w-full"
                 style={{
-                  height: `${rowVirtualizer!.getTotalSize()}px`,
+                  height: `${rowVirtualizer?.getTotalSize()}px`,
                 }}
               >
-                {rowVirtualizer!.getVirtualItems().map((virtualRow) => {
+                {rowVirtualizer?.getVirtualItems().map((virtualRow) => {
                   const item = items[virtualRow.index];
                   const isActive = Boolean(item.href && checkIsActive(item.href, pathname));
 
