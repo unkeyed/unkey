@@ -59,7 +59,7 @@ export const InlineLinkWithTarget = () => {
     href="https://unkey.com"
     label="new tab"
     icon={<ExternalLink size={14} />}
-    target
+    target="_blank"
   />
   .
 </p>`}
@@ -70,7 +70,7 @@ export const InlineLinkWithTarget = () => {
           href="https://unkey.com"
           label="new tab"
           icon={<ExternalLink size={14} />}
-          target
+          target="_blank"
         />
         .
       </p>
