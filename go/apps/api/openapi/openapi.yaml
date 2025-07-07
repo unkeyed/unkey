@@ -995,11 +995,11 @@ components:
           "$ref": "#/components/schemas/Meta"
         data:
           "$ref": "#/components/schemas/V2KeysSetRolesResponseData"
-    V2KeysUpdateRemainingRequestBody:
+    V2KeysUpdateCreditsRequestBody:
       type: object
       required:
         - keyId
-        - remaining
+        - operation
       properties:
         keyId:
           type: string
@@ -1010,103 +1010,39 @@ components:
             will be updated.
           example: key_2cGKbMxRyIzhCxo1Idjz8q
           minLength: 3
-        remaining:
+        value:
           type: integer
           format: int64
           nullable: true
           minimum: 0
-          description: |-
+          maximum: 9223372036854775807 # Max int64 value for future-proofing
+          description: |
             The new value for the remaining credits. This is an absolute value replacement, not an increment or decrement operation.
 
             Key behaviors:
-            - This completely replaces the current remaining credits value
-            - To add credits, first get the current value and then set remaining = current + additional
-            - To make a key unlimited, set remaining = null
+            - This completely replaces the current remaining credits value when operation is set to 'set'
+            - To add credits, either replace the current value with the new value or increment the current value by a new value
+            - To make a key unlimited, set value = null
             - To make a key with unlimited usage have a specific limit, set remaining to a positive number
+            - If a decrement would result in a negative value, the remaining credits are set to zero
             - Credits are decremented each time the key is successfully verified (by the cost value, default 1)
             - When credits reach zero, verification fails with code=USAGE_EXCEEDED
 
             This field is useful for implementing usage-based pricing, subscription tiers, trial periods, or consumption quotas.
           example: 1000
-        overwriteRefillSettings:
-          type: boolean
-          description: |-
-            When true, any existing automatic refill settings will be removed from the key.
-
-            Use cases:
-            - Convert a key with automatic periodic refills to a one-time credit allocation
-            - Remove subscription-like behavior in favor of manually controlled credits
-            - Downgrade from an automatic plan to a fixed allocation
-            - Simplify credit management by removing automated refills
-
-            When false or omitted, existing refill settings are preserved, and only the current remaining value is updated. This lets you adjust the current balance without changing the refill schedule.
-          default: false
+        operation:
+          type: string
+          enum:
+            - set
+            - increment
+            - decrement
+          description: |
+            The operation to perform on the remaining credits. This can be one of:
+            - set: Replace the current remaining credits value with the specified value.
+            - increment: Add the specified value to the current remaining credits value.
+            - decrement: Subtract the specified value from the current remaining credits value.
       additionalProperties: false
-    KeysUpdateRemainingResponseData:
-      type: object
-      required:
-        - remaining
-      properties:
-        remaining:
-          type: integer
-          format: int64
-          description:
-            The updated remaining credits value for the key after the operation
-            completes. This reflects the exact value that was set in the request.
-            A value of null indicates unlimited usage, meaning the key can be used an
-            unlimited number of times without being rejected for credit exhaustion.
-            This field is guaranteed to be present in every response.
-          example: 1000
-        refillSettings:
-          type: object
-          nullable: true
-          properties:
-            interval:
-              type: string
-              enum:
-                - daily
-                - weekly
-                - monthly
-                - never
-              description:
-                The interval at which credits are automatically refilled.
-                'daily' resets at midnight UTC, 'weekly' resets on the specified weekday
-                (where 1=Monday, 7=Sunday), 'monthly' resets on the specified day
-                of month, and 'never' means no automatic refills occur.
-            amount:
-              type: integer
-              format: int64
-              minimum: 1
-              description:
-                The number of credits added during each automatic refill.
-                This is the quota that gets renewed each period, making it useful
-                for implementing subscription tiers with different usage limits (e.g.,
-                Basic=100/month, Pro=1000/month).
-            refillDay:
-              type: integer
-              minimum: 1
-              maximum: 31
-              description:
-                For monthly refills, the day of the month on which to refill
-                (1-31). For weekly refills, the day of the week (1=Monday, 7=Sunday).
-                This allows aligning refills with billing cycles, subscription periods,
-                or other business-relevant schedules.
-            lastRefillAt:
-              type: string
-              format: date-time
-              description:
-                The timestamp when the last automatic refill occurred.
-                This helps track when credits were last replenished and understand
-                when the next refill will occur. The timestamp is in ISO 8601 format
-                (YYYY-MM-DDTHH:MM:SSZ).
-          description:
-            If the key has automatic refill settings, they are included
-            here with their current configuration. If null, the key does not have
-            automatic refills configured (either because they were removed with overwriteRefillSettings=true
-            or because they were never set up). Refill settings create subscription-like
-            behavior where the key automatically receives new credits on a regular
-            schedule.
-    V2KeysUpdateRemainingResponse:
+    V2KeysUpdateCreditsResponse:
       type: object
       required:
         - meta
@@ -1115,7 +1051,7 @@ components:
         meta:
           "$ref": "#/components/schemas/Meta"
         data:
-          "$ref": "#/components/schemas/KeysUpdateRemainingResponseData"
+          "$ref": "#/components/schemas/KeyCreditsData"
     V2KeysCreateKeyRequestBody:
       type: object
       required:
@@ -4785,7 +4721,7 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/InternalServerErrorResponse"
-  "/v2/keys.updateRemaining":
+  "/v2/keys.updateCredits":
     post:
       tags:
         - keys
@@ -4796,8 +4732,8 @@ paths:
         The credits feature provides globally consistent usage limiting where each successful verification decrements the counter by the specified cost value (default 1). When credits reach zero, verification fails with `code=USAGE_EXCEEDED`, making this ideal for monetization models where accuracy is critical compared to rate limits which control frequency.
 
         This endpoint works alongside `createKey` for setting initial credits and the automatic refill system for periodic replenishment. You can optionally remove automatic refill settings from the key, effectively converting it from periodic refills to fixed credit allocation. Common scenarios include implementing free trial extensions, granting bonus credits as incentives, or converting between subscription models.
-      operationId: updateRemaining
-      x-speakeasy-name-override: updateRemaining
+      operationId: updateCredits
+      x-speakeasy-name-override: updateCredits
       security:
         - rootKey: []
       requestBody:
@@ -4805,54 +4741,46 @@ paths:
         content:
           application/json:
             schema:
-              "$ref": "#/components/schemas/V2KeysUpdateRemainingRequestBody"
+              "$ref": "#/components/schemas/V2KeysUpdateCreditsRequestBody"
             examples:
-              setCredits:
-                summary: Set remaining credits
-                description:
-                  This sets an absolute value of 1000 credits for the key.
-                  If the key previously had 200 credits, it will now have 1000 (not
-                  1200). If it previously had unlimited usage, it will now be limited
-                  to 1000 credits.
-                value:
-                  keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-                  remaining: 1000
               setUnlimited:
                 summary: Set unlimited usage
                 description:
                   Setting remaining to null makes the key usable an unlimited
                   number of times. This is useful for premium tiers, trusted partners,
-                  or internal applications where usage counting isn't needed.
+                  or internal applications where usage counting isn't needed. Any previous refill settings will be removed.
                 value:
                   keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-                  remaining: null
-              removeRefills:
-                summary: Remove refill settings
-                description:
-                  This sets 500 credits and removes any automatic refill
-                  configuration, effectively converting a key from a subscription-like
-                  model to a one-time credit allocation. Useful when downgrading from
-                  an automatic plan to a fixed allocation.
+                  value: null
+                  operation: set
+              setCredits:
+                summary: Set credits
+                description: To set credits, first get the current value using keys.getKey, then add the amount.
                 value:
                   keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-                  remaining: 500
-                  overwriteRefillSettings: true
-              addPurchasedCredits:
-                summary: Add purchased credits
-                description:
-                  To add credits to the existing balance, first get the
-                  current value using keys.getKey, then add the purchased amount.
-                  Any existing refill settings are preserved.
+                  value: 2500
+                  operation: set
+              incrementCredits:
+                summary: Increment credits
+                description: To increment credits to the existing balance, just specify the increment operation and the amount to add.
                 value:
                   keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-                  remaining: 2500
+                  value: 2500
+                  operation: increment
+              decrementCredits:
+                summary: Decrement credits
+                description: To decrement credits to the existing balance, just specify the decrement operation and the amount to subtract.
+                value:
+                  keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+                  value: 2500
+                  operation: decrement
       responses:
         "200":
           description: Remaining credits successfully updated
           content:
             application/json:
               schema:
-                "$ref": "#/components/schemas/V2KeysUpdateRemainingResponse"
+                "$ref": "#/components/schemas/V2KeysUpdateCreditsResponse"
               examples:
                 withRefills:
                   summary: Updated with refill settings preserved
@@ -4865,7 +4793,6 @@ paths:
                         interval: monthly
                         amount: 1000
                         refillDay: 1
-                        lastRefillAt: "2023-01-01T00:00:00Z"
                 withoutRefills:
                   summary: Updated with refills removed
                   value:

@@ -1,6 +1,7 @@
 "use client";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
+import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { useQueryTime } from "@/providers/query-time-provider";
@@ -311,6 +312,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
                 log.tags.slice(0, 3).map((tag) => (
                   <InfoTooltip
                     variant="inverted"
+                    className="px-2 py-1"
                     key={tag}
                     content={
                       <div className="max-w-xs">
@@ -329,7 +331,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
                             </div>
                           </div>
                         ) : (
-                          <div className="flex justify-between items-start gap-1.5">
+                          <div className="flex justify-between items-center gap-1.5">
                             <div className="break-all max-w-[300px] truncate">{tag}</div>
                             {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
                             <div
@@ -353,7 +355,11 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
                           : "",
                       )}
                     >
-                      {tag.length > 15 ? `${tag.substring(0, 12)}...` : tag}
+                      {shortenId(tag, {
+                        endChars: 0,
+                        minLength: 14,
+                        startChars: 10,
+                      })}
                     </Badge>
                   </InfoTooltip>
                 ))
