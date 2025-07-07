@@ -15,6 +15,9 @@ import {
   OutlineFormCheckboxVariant,
   GhostFormCheckboxVariant,
   LargeFormCheckboxVariant,
+  MediumFormCheckboxVariant,
+  SmallFormCheckboxVariant,
+  XLargeFormCheckboxVariant,
   ComplexFormCheckboxVariant
 } from "./form-checkbox.variants"
 
@@ -41,73 +44,89 @@ export default function MyComponent() {
 ## Examples
 
 ### Default FormCheckbox
+
 The default FormCheckbox includes a label and optional description text, providing clear context for users.
 
 <DefaultFormCheckboxVariant />
 
 ### Required Field
+
 Use the required prop to indicate mandatory fields. This automatically adds a "Required" tag to the label.
 
 <RequiredFormCheckboxVariant />
 
 ### Required Field with Error
+
 When a required field has an error, the "Required" tag changes to error styling to draw more attention.
 
 <RequiredWithErrorFormCheckboxVariant />
 
 ### Optional Field
+
 Use the optional prop to explicitly indicate non-mandatory fields. This adds an "Optional" badge to the label.
 
 <OptionalFormCheckboxVariant />
 
 ### Success State
+
 Indicates successful validation or acceptance of selection. The success icon and text provide positive feedback.
 
 <SuccessFormCheckboxVariant />
 
 ### Warning State
+
 Used for potentially impactful selections that should be made with caution. Includes a warning icon and explanatory text.
 
 <WarningFormCheckboxVariant />
 
 ### Error State
+
 Shows validation errors or other issues that need user attention. Features prominent error styling and message.
 
 <ErrorFormCheckboxVariant />
 
 ### Disabled State
+
 Apply when the field should be non-interactive, such as during form submission or based on other field values.
 
 <DisabledFormCheckboxVariant />
 
 ### Checked State
+
 Pre-selected checkbox with an initial checked state that users can toggle.
 
 <CheckedFormCheckboxVariant />
 
 ### Outline Variant
+
 A subtler alternative to the primary variant with transparent background when checked.
 
 <OutlineFormCheckboxVariant />
 
 ### Ghost Variant
+
 The most minimal styling for checkboxes that need less visual emphasis.
 
 <GhostFormCheckboxVariant />
 
 ### Different Sizes
+
 Checkboxes can be sized appropriately for different UI needs.
 
 #### Small
+
 <SmallFormCheckboxVariant />
 
 #### Medium
+
 <MediumFormCheckboxVariant />
 
 #### Large
+
 <LargeFormCheckboxVariant />
 
 #### XLarge
+
 <XLargeFormCheckboxVariant />
 
 ### Complex Usage
