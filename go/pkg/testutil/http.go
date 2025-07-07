@@ -58,7 +58,9 @@ func NewHarness(t *testing.T) *Harness {
 
 	cont := containers.New(t)
 
-	mysqlDSN, _ := cont.RunMySQL()
+	mysqlCfg, _ := cont.RunMySQL()
+	mysqlCfg.DBName = "unkey"
+	mysqlDSN := mysqlCfg.FormatDSN()
 
 	_, redisUrl, _ := cont.RunRedis()
 
