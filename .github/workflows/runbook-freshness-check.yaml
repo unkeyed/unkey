@@ -19,7 +19,7 @@ permissions:
 on:
   schedule:
     # Run daily at 9 AM UTC
-    - cron: '0 9 * * *'
+    - cron: '0 0 1 * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
