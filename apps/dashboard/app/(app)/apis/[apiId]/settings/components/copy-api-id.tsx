@@ -15,7 +15,6 @@ export const CopyApiId = ({ apiId }: { apiId: string }) => {
       <div className="flex flex-row justify-end items-center">
         <div
           className="justify-between flex items-center min-w-[327px] focus:ring-0 focus:ring-offset-0 h-9 w-full pl-4 pr-3 py-2 bg-white dark:bg-black border rounded-lg border-grayA-5"
-          defaultValue={apiId}
         >
           {apiId}
           <button
