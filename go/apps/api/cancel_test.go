@@ -19,10 +19,10 @@ import (
 func TestContextCancellation(t *testing.T) {
 
 	// Use testcontainers for dynamic service management
-	mysqlCfg, _ := containers.MySQL(t)
+	mysqlCfg := containers.MySQL(t)
 	mysqlCfg.DBName = "unkey"
 	dbDsn := mysqlCfg.FormatDSN()
-	_, redisUrl, _ := containers.Redis(t)
+	redisUrl := containers.Redis(t)
 	// Get free ports for the node
 	portAllocator := port.New()
 	httpPort := portAllocator.Get()
