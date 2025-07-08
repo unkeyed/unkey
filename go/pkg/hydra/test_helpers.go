@@ -20,7 +20,7 @@ func newTestEngineWithClock(t *testing.T, clk clock.Clock) *Engine {
 	t.Helper()
 
 	// Use testcontainers for MySQL
-	mysqlCfg, _ := containers.MySQL(t)
+	mysqlCfg := containers.MySQL(t)
 	mysqlCfg.DBName = "hydra"
 	hydraDsn := mysqlCfg.FormatDSN()
 

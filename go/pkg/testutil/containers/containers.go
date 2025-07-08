@@ -1,236 +1,187 @@
 package containers
 
 import (
-	"context"
-	"fmt"
-	"path/filepath"
-	"runtime"
-	"strconv"
-	"sync"
 	"testing"
 
-	"github.com/docker/go-connections/nat"
-	"github.com/go-redis/redis/v8"
 	mysql "github.com/go-sql-driver/mysql"
-	"github.com/stretchr/testify/require"
-	"github.com/testcontainers/testcontainers-go/modules/compose"
 )
 
-// S3Config holds S3/MinIO connection configuration
+// S3Config holds S3/MinIO connection configuration for testing.
+//
+// This configuration provides both host and docker URLs to support different
+// connection scenarios in integration tests. The host URL is used when connecting
+// from test runners, while the docker URL is used for services running inside
+// the docker-compose network.
+//
+// The access credentials are configured to match the default MinIO setup
+// in the docker-compose configuration.
 type S3Config struct {
-	HostURL         string
-	DockerURL       string
-	AccessKeyID     string
+	// HostURL is the S3/MinIO endpoint accessible from the test runner.
+	// Uses localhost with the mapped port for external connections.
+	HostURL string
+
+	// DockerURL is the S3/MinIO endpoint accessible from within docker-compose network.
+	// Uses the service name for internal docker-compose service communication.
+	DockerURL string
+
+	// AccessKeyID is the S3 access key for authentication.
+	// Matches the MinIO root user configured in docker-compose.
+	AccessKeyID string
+
+	// AccessKeySecret is the S3 secret key for authentication.
+	// Matches the MinIO root password configured in docker-compose.
 	AccessKeySecret string
 }
 
-// OTELConfig holds OTEL service configuration
+// OTELConfig holds OpenTelemetry service configuration for testing.
+//
+// Provides endpoints for both HTTP and gRPC OTEL collectors, plus the Grafana
+// dashboard URL for observability during testing. All endpoints use localhost
+// with mapped ports for access from test runners.
 type OTELConfig struct {
+	// HTTPEndpoint is the OTEL collector HTTP endpoint for sending telemetry data.
+	// Uses the standard OTEL HTTP port 4318 mapped to localhost.
 	HTTPEndpoint string
+
+	// GRPCEndpoint is the OTEL collector gRPC endpoint for sending telemetry data.
+	// Uses the standard OTEL gRPC port 4317 mapped to localhost.
 	GRPCEndpoint string
-	GrafanaURL   string
+
+	// GrafanaURL is the Grafana dashboard URL for viewing telemetry data.
+	// Useful for debugging and monitoring during integration tests.
+	GrafanaURL string
 }
 
-var (
-	composeInstance *compose.DockerCompose
-	composeOnce     sync.Once
-)
-
-// getSharedCompose returns a shared docker-compose instance using singleton pattern
-func getSharedCompose(t *testing.T) *compose.DockerCompose {
-	composeOnce.Do(func() {
-		_, currentFilePath, _, _ := runtime.Caller(0)
-		
-		// We're going from go/pkg/testutil/containers/ up to unkey/deployment/docker-compose.yaml
-		composeFilePath := filepath.Join(filepath.Dir(currentFilePath), "../../../../deployment/docker-compose.yaml")
-		
-		composeStack, err := compose.NewDockerComposeWith(compose.WithStackFiles(composeFilePath), compose.StackIdentifier("go-test"))
-		require.NoError(t, err)
-		
-		composeInstance = composeStack
-	})
-	return composeInstance
+// StartAllServices is a no-op placeholder for service initialization.
+//
+// This function exists for compatibility with testing frameworks that expect
+// a service startup function, but does not actually start any services.
+// Services are expected to be running via docker-compose before tests execute.
+//
+// In a typical workflow:
+//  1. Start services: docker-compose up -d
+//  2. Run tests: go test ./...
+//  3. Stop services: docker-compose down
+//
+// The function is safe to call multiple times and from multiple test functions.
+func StartAllServices(t *testing.T) {
+	// Services are managed externally via docker-compose.
+	// This is intentionally a no-op.
 }
 
-// MySQL returns MySQL configuration with dynamically discovered ports
-func MySQL(t *testing.T) (hostCfg, dockerCfg *mysql.Config) {
-	ctx := context.Background()
-	dockerCompose := getSharedCompose(t)
-	
-	// Start MySQL service
-	err := dockerCompose.Up(ctx, compose.Wait(true), compose.RunServices("mysql"))
-	require.NoError(t, err)
+// MySQL returns MySQL database configuration for integration testing.
+//
+// Returns a configuration for connecting from test runners to localhost:3306.
+// Uses standard credentials (unkey/password) with parse time enabled and
+// logging disabled to reduce test output noise.
+//
+// Database name is intentionally left empty - tests should create and use
+// specific database names to avoid conflicts between test runs.
+//
+// Example usage:
+//
+//	cfg := containers.MySQL(t)
+//	cfg.DBName = "unkey"
+//	db, err := sql.Open("mysql", cfg.FormatDSN())
+//	require.NoError(t, err)
+//	defer db.Close()
+func MySQL(t *testing.T) *mysql.Config {
+	cfg := mysql.NewConfig()
+	cfg.User = "unkey"
+	cfg.Passwd = "password"
+	cfg.Net = "tcp"
+	cfg.Addr = "localhost:3306"
+	cfg.DBName = ""
+	cfg.ParseTime = true
+	cfg.Logger = &mysql.NopLogger{}
 
-	// Get the MySQL service container
-	mysqlContainer, err := dockerCompose.ServiceContainer(ctx, "mysql")
-	require.NoError(t, err)
-
-	// Get the mapped port
-	mysqlPort, err := mysqlContainer.MappedPort(ctx, "3306/tcp")
-	require.NoError(t, err)
-
-	// Get the container IP for docker network access
-	containerIP, err := mysqlContainer.ContainerIP(ctx)
-	require.NoError(t, err)
-
-	// Host configuration (from test runner)
-	hostCfg = mysql.NewConfig()
-	hostCfg.User = "unkey"
-	hostCfg.Passwd = "password"
-	hostCfg.Net = "tcp"
-	hostCfg.Addr = fmt.Sprintf("localhost:%s", mysqlPort.Port())
-	hostCfg.DBName = ""
-	hostCfg.ParseTime = true
-	hostCfg.Logger = &mysql.NopLogger{}
-
-	// Docker configuration (from within containers)
-	dockerCfg = mysql.NewConfig()
-	dockerCfg.User = "unkey"
-	dockerCfg.Passwd = "password"
-	dockerCfg.Net = "tcp"
-	dockerCfg.Addr = fmt.Sprintf("%s:3306", containerIP)
-	dockerCfg.DBName = ""
-	dockerCfg.ParseTime = true
-	dockerCfg.Logger = &mysql.NopLogger{}
-
-	return hostCfg, dockerCfg
+	return cfg
 }
 
-// Redis returns Redis client and connection strings with dynamically discovered ports
-func Redis(t *testing.T) (client *redis.Client, hostAddr, dockerAddr string) {
-	ctx := context.Background()
-	dockerCompose := getSharedCompose(t)
-	
-	// Start Redis service
-	err := dockerCompose.Up(ctx, compose.Wait(true), compose.RunServices("redis"))
-	require.NoError(t, err)
-
-	// Get the Redis service container
-	redisContainer, err := dockerCompose.ServiceContainer(ctx, "redis")
-	require.NoError(t, err)
-
-	// Get the mapped port
-	redisPort, err := redisContainer.MappedPort(ctx, "6379/tcp")
-	require.NoError(t, err)
-
-	// Get the container IP
-	containerIP, err := redisContainer.ContainerIP(ctx)
-	require.NoError(t, err)
-
-	hostAddr = fmt.Sprintf("redis://localhost:%s", redisPort.Port())
-	dockerAddr = fmt.Sprintf("redis://%s:6379", containerIP)
-
-	// Create Redis client for host connection
-	client = redis.NewClient(&redis.Options{
-		Addr: fmt.Sprintf("localhost:%s", redisPort.Port()),
-	})
-
-	return client, hostAddr, dockerAddr
+// Redis returns Redis connection URL for integration testing.
+//
+// Returns a Redis URL configured for connecting from test runners to localhost:6379.
+//
+// Example usage:
+//
+//	redisURL := containers.Redis(t)
+//	// Use redisURL with your Redis client
+func Redis(t *testing.T) string {
+	return "redis://localhost:6379"
 }
 
-// ClickHouse returns ClickHouse DSN strings with dynamically discovered ports
-func ClickHouse(t *testing.T) (hostDsn, dockerDsn string) {
-	ctx := context.Background()
-	dockerCompose := getSharedCompose(t)
-	
-	// Start ClickHouse service
-	err := dockerCompose.Up(ctx, compose.Wait(true), compose.RunServices("clickhouse"))
-	require.NoError(t, err)
-
-	// Get the ClickHouse service container
-	chContainer, err := dockerCompose.ServiceContainer(ctx, "clickhouse")
-	require.NoError(t, err)
-
-	// Get the mapped port for native protocol (9000)
-	clickhousePort, err := chContainer.MappedPort(ctx, "9000/tcp")
-	require.NoError(t, err)
-
-	// Get the container IP
-	containerIP, err := chContainer.ContainerIP(ctx)
-	require.NoError(t, err)
-
-	hostDsn = fmt.Sprintf("clickhouse://default:password@localhost:%s?secure=false&skip_verify=true&dial_timeout=10s", clickhousePort.Port())
-	dockerDsn = fmt.Sprintf("clickhouse://default:password@%s:9000?secure=false&skip_verify=true&dial_timeout=10s", containerIP)
-
-	return hostDsn, dockerDsn
+// ClickHouse returns ClickHouse database connection string for integration testing.
+//
+// Returns a Data Source Name (DSN) configured for connecting from test runners
+// to localhost:9000 with:
+//   - User: default (ClickHouse default user)
+//   - Password: password (matches docker-compose configuration)
+//   - Security disabled for testing (secure=false, skip_verify=true)
+//   - Extended timeout for slower test environments (dial_timeout=10s)
+//
+// Example usage:
+//
+//	dsn := containers.ClickHouse(t)
+//	conn, err := clickhouse.Open(&clickhouse.Options{
+//	    Addr: []string{dsn},
+//	})
+//	require.NoError(t, err)
+//	defer conn.Close()
+func ClickHouse(t *testing.T) string {
+	return "clickhouse://default:password@localhost:9000?secure=false&skip_verify=true&dial_timeout=10s"
 }
 
-// S3 returns S3/MinIO configuration with dynamically discovered ports
+// S3 returns S3/MinIO configuration for integration testing.
+//
+// Returns a complete [S3Config] with endpoints and credentials configured
+// for the MinIO service running in docker-compose. The configuration includes
+// both host and docker URLs to support different connection scenarios.
+//
+// Credentials are set to the default MinIO root user configuration:
+//   - Access Key: minio_root_user
+//   - Secret Key: minio_root_password
+//
+// These credentials must match the MINIO_ROOT_USER and MINIO_ROOT_PASSWORD
+// environment variables in your docker-compose.yaml.
+//
+// Example usage:
+//
+//	s3Config := containers.S3(t)
+//	client := minio.New(s3Config.HostURL, &minio.Options{
+//	    Creds: credentials.NewStaticV4(s3Config.AccessKeyID, s3Config.AccessKeySecret, ""),
+//	})
 func S3(t *testing.T) S3Config {
-	ctx := context.Background()
-	dockerCompose := getSharedCompose(t)
-	
-	// Start S3 service
-	err := dockerCompose.Up(ctx, compose.Wait(true), compose.RunServices("s3"))
-	require.NoError(t, err)
-
-	// Get the S3 service container
-	s3Container, err := dockerCompose.ServiceContainer(ctx, "s3")
-	require.NoError(t, err)
-
-	// Get the mapped port for API (3902)
-	s3Port, err := s3Container.MappedPort(ctx, "3902/tcp")
-	require.NoError(t, err)
-
-	// Get the container IP
-	containerIP, err := s3Container.ContainerIP(ctx)
-	require.NoError(t, err)
-
 	return S3Config{
-		HostURL:         fmt.Sprintf("http://localhost:%s", s3Port.Port()),
-		DockerURL:       fmt.Sprintf("http://%s:3902", containerIP),
+		HostURL:         "http://localhost:3902",
+		DockerURL:       "http://s3:3902",
 		AccessKeyID:     "minio_root_user",
 		AccessKeySecret: "minio_root_password",
 	}
 }
 
-// OTEL returns OTEL endpoint configuration with dynamically discovered ports
+// OTEL returns OpenTelemetry service configuration for integration testing.
+//
+// Returns an [OTELConfig] with all OTEL-related endpoints configured for
+// localhost access. This includes both the OTEL collector endpoints (HTTP and gRPC)
+// and the Grafana dashboard URL for observability during testing.
+//
+// The configuration supports different OTEL export scenarios:
+//   - HTTP endpoint: For OTLP over HTTP (port 4318)
+//   - gRPC endpoint: For OTLP over gRPC (port 4317)
+//   - Grafana URL: For viewing traces and metrics (port 3000)
+//
+// Example usage:
+//
+//	otelConfig := containers.OTEL(t)
+//	exporter, err := otlptracehttp.New(ctx,
+//	    otlptracehttp.WithEndpoint(otelConfig.HTTPEndpoint),
+//	    otlptracehttp.WithInsecure(),
+//	)
+//	require.NoError(t, err)
 func OTEL(t *testing.T) OTELConfig {
-	ctx := context.Background()
-	dockerCompose := getSharedCompose(t)
-	
-	// Start OTEL service
-	err := dockerCompose.Up(ctx, compose.Wait(true), compose.RunServices("otel"))
-	require.NoError(t, err)
-
-	// Get the OTEL service container
-	otelContainer, err := dockerCompose.ServiceContainer(ctx, "otel")
-	require.NoError(t, err)
-
-	// Get the mapped ports
-	httpPort, err := otelContainer.MappedPort(ctx, "4318/tcp")
-	require.NoError(t, err)
-
-	grpcPort, err := otelContainer.MappedPort(ctx, "4317/tcp")
-	require.NoError(t, err)
-
-	grafanaPort, err := otelContainer.MappedPort(ctx, "3000/tcp")
-	require.NoError(t, err)
-
 	return OTELConfig{
-		HTTPEndpoint: fmt.Sprintf("http://localhost:%s", httpPort.Port()),
-		GRPCEndpoint: fmt.Sprintf("http://localhost:%s", grpcPort.Port()),
-		GrafanaURL:   fmt.Sprintf("http://localhost:%s", grafanaPort.Port()),
+		HTTPEndpoint: "http://localhost:4318",
+		GRPCEndpoint: "http://localhost:4317",
+		GrafanaURL:   "http://localhost:3000",
 	}
-}
-
-// GetServicePort returns the mapped port for any service
-func GetServicePort(t *testing.T, serviceName, containerPort string) int {
-	ctx := context.Background()
-	dockerCompose := getSharedCompose(t)
-	
-	// Start the specific service
-	err := dockerCompose.Up(ctx, compose.Wait(true), compose.RunServices(serviceName))
-	require.NoError(t, err)
-
-	container, err := dockerCompose.ServiceContainer(ctx, serviceName)
-	require.NoError(t, err)
-
-	mappedPort, err := container.MappedPort(ctx, nat.Port(containerPort))
-	require.NoError(t, err)
-
-	port, err := strconv.Atoi(mappedPort.Port())
-	require.NoError(t, err)
-
-	return port
 }

@@ -33,8 +33,8 @@ type Harness struct {
 
 	Clock *clock.TestClock
 
-	srv        *zen.Server
-	validator  *validation.Validator
+	srv       *zen.Server
+	validator *validation.Validator
 
 	middleware []zen.Middleware
 
@@ -55,11 +55,14 @@ func NewHarness(t *testing.T) *Harness {
 
 	logger := logging.New()
 
-	mysqlCfg, _ := containers.MySQL(t)
+	// Start all services in parallel first
+	containers.StartAllServices(t)
+
+	mysqlCfg := containers.MySQL(t)
 	mysqlCfg.DBName = "unkey"
 	mysqlDSN := mysqlCfg.FormatDSN()
 
-	_, redisUrl, _ := containers.Redis(t)
+	redisUrl := containers.Redis(t)
 
 	db, err := db.New(db.Config{
 		Logger:      logger,
@@ -93,7 +96,7 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	// Get ClickHouse connection string
-	chDSN, _ := containers.ClickHouse(t)
+	chDSN := containers.ClickHouse(t)
 
 	// Create real ClickHouse client
 	ch, err := clickhouse.New(clickhouse.Config{
@@ -131,7 +134,7 @@ func NewHarness(t *testing.T) *Harness {
 	vaultStorage, err := storage.NewS3(storage.S3Config{
 		S3URL:             s3.HostURL,
 		S3Bucket:          "test",
-		S3AccessKeyId:     s3.AccessKeyID,
+		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.AccessKeySecret,
 		Logger:            logger,
 	})

@@ -3,16 +3,19 @@ package integration
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"testing"
 	"time"
 
 	"github.com/ory/dockertest/v3"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/apps/api"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
+	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/port"
-	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
@@ -36,7 +39,6 @@ type Harness struct {
 	cancel        context.CancelFunc
 	instanceAddrs []string
 	ports         *port.FreePort
-	services      *testutil.TestServices
 	Seed          *seed.Seeder
 	dbDSN         string
 	DB            db.Database
@@ -57,10 +59,8 @@ func New(t *testing.T, config Config) *Harness {
 	require.Greater(t, config.NumNodes, 0)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	services := testutil.NewTestServices()
-
-	// Get ClickHouse connection strings
-	clickhouseHostDSN, clickhouseDockerDSN := services.ClickHouse()
+	// Get service configurations
+	clickhouseHostDSN := containers.ClickHouse(t)
 
 	// Create real ClickHouse client
 	ch, err := clickhouse.New(clickhouse.Config{
@@ -69,10 +69,13 @@ func New(t *testing.T, config Config) *Harness {
 	})
 	require.NoError(t, err)
 
-	mysqlHostCfg, mysqlDockerCfg := services.MySQL()
+	mysqlHostCfg := containers.MySQL(t)
 	mysqlHostCfg.DBName = "unkey"
 	mysqlHostDSN := mysqlHostCfg.FormatDSN()
 
+	// For docker DSN, use docker service name
+	mysqlDockerCfg := containers.MySQL(t)
+	mysqlDockerCfg.Addr = "mysql:3306"
 	mysqlDockerCfg.DBName = "unkey"
 	mysqlDockerDSN := mysqlDockerCfg.FormatDSN()
 	db, err := db.New(db.Config{
@@ -87,15 +90,18 @@ func New(t *testing.T, config Config) *Harness {
 		ctx:           ctx,
 		cancel:        cancel,
 		ports:         port.New(),
-		services:      services,
 		instanceAddrs: []string{},
 		Seed:          seed.New(t, db),
 		dbDSN:         mysqlHostDSN,
 		DB:            db,
 		CH:            ch,
+		apiCluster:    nil, // Will be set later
 	}
 
 	h.Seed.Seed(ctx)
+
+	// For docker DSN, use docker service name
+	clickhouseDockerDSN := "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true&dial_timeout=10s"
 
 	// Create dynamic API container cluster for chaos testing
 	cluster := h.RunAPI(ApiConfig{
@@ -114,75 +120,104 @@ func (h *Harness) Resources() seed.Resources {
 
 // RunAPI creates a cluster of API containers for chaos testing
 func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
-	// Create Docker pool for dynamic container management
-	pool, err := dockertest.NewPool("")
-	require.NoError(h.t, err)
-
-	err = pool.Client.Ping()
-	require.NoError(h.t, err)
-
-	// Get or create the test network
-	networks, err := pool.NetworksByName("unkey_default")
-	require.NoError(h.t, err)
-
-	var network *dockertest.Network
-	for _, found := range networks {
-		if found.Network.Name == "unkey_default" {
-			network = &found
-			break
-		}
-	}
-	if network == nil {
-		network, err = pool.CreateNetwork("unkey_default")
-		require.NoError(h.t, err)
-	}
-
 	cluster := &ApiCluster{
 		Addrs:     make([]string, config.Nodes),
-		Resources: make([]*dockertest.Resource, config.Nodes),
+		Resources: make([]*dockertest.Resource, config.Nodes), // Not used but kept for compatibility
 	}
 
-	// Create API container instances
+	// Start each API node as a goroutine
 	for i := 0; i < config.Nodes; i++ {
-		containerName := fmt.Sprintf("unkey-api-test-%d", i)
+		// Find an available port
+		portFinder := port.New()
+		nodePort := portFinder.Get()
 
-		runOpts := &dockertest.RunOptions{
-			Name:       containerName,
-			Repository: "apiv2", // Built by make build-docker
-			Tag:        "latest",
-			Networks:   []*dockertest.Network{network},
-			Env: []string{
-				"UNKEY_HTTP_PORT=7070",
-				fmt.Sprintf("UNKEY_DATABASE_PRIMARY=%s", config.MysqlDSN),
-				fmt.Sprintf("UNKEY_CLICKHOUSE_URL=%s", config.ClickhouseDSN),
-				"UNKEY_REDIS_URL=redis://redis:6379",
-			},
-			Cmd: []string{"run", "api"},
+		cluster.Addrs[i] = fmt.Sprintf("http://localhost:%d", nodePort)
+
+		// Create API config for this node using host connections
+		mysqlHostCfg := containers.MySQL(h.t)
+		mysqlHostCfg.DBName = "unkey" // Set the database name
+		clickhouseHostDSN := containers.ClickHouse(h.t)
+		redisHostAddr := containers.Redis(h.t)
+
+		apiConfig := api.Config{
+			Platform:                "test",
+			Image:                   "test",
+			HttpPort:                nodePort,
+			DatabasePrimary:         mysqlHostCfg.FormatDSN(),
+			DatabaseReadonlyReplica: "",
+			ClickhouseURL:           clickhouseHostDSN,
+			RedisUrl:                redisHostAddr,
+			Region:                  "test",
+			InstanceID:              fmt.Sprintf("test-node-%d", i),
+			Clock:                   clock.New(),
+			TestMode:                true,
+			OtelEnabled:             false,
+			OtelTraceSamplingRate:   0.0,
+			PrometheusPort:          0,
+			TLSConfig:               nil,
+			VaultMasterKeys:         []string{"Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="}, // Test key from docker-compose
 		}
 
-		// Try to create container, with retry logic for race conditions
-		var resource *dockertest.Resource
-		for attempt := 0; attempt < 10; attempt++ {
-			existing, exists := pool.ContainerByName(containerName)
-			if exists {
-				resource = existing
-				break
-			}
+		// Start API server in goroutine
+		ctx, cancel := context.WithCancel(context.Background())
 
-			resource, err = pool.RunWithOptions(runOpts)
+		// Channel to get startup result
+		startupResult := make(chan error, 1)
+
+		go func(nodeID int, cfg api.Config) {
+			defer func() {
+				if r := recover(); r != nil {
+					h.t.Logf("API server %d panicked: %v", nodeID, r)
+					startupResult <- fmt.Errorf("panic: %v", r)
+				}
+			}()
+
+			// Give some time for the server to indicate it's starting
+			go func() {
+				time.Sleep(500 * time.Millisecond)
+				startupResult <- nil // Indicate startup attempt
+			}()
+
+			err := api.Run(ctx, cfg)
+			if err != nil && ctx.Err() == nil {
+				h.t.Logf("API server %d failed: %v", nodeID, err)
+				select {
+				case startupResult <- err:
+				default:
+				}
+			}
+		}(i, apiConfig)
+
+		// Wait for startup indication
+		select {
+		case err := <-startupResult:
+			if err != nil {
+				require.NoError(h.t, err, "API server %d startup failed", i)
+			}
+		case <-time.After(2 * time.Second):
+			require.Fail(h.t, "API server %d startup timeout", i)
+		}
+
+		// Wait for server to start
+		maxAttempts := 30
+		for attempt := 0; attempt < maxAttempts; attempt++ {
+			resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v2/liveness", nodePort))
 			if err == nil {
-				break
+				resp.Body.Close()
+				if resp.StatusCode == http.StatusOK {
+					h.t.Logf("API server %d started on port %d", i, nodePort)
+					break
+				}
 			}
-			time.Sleep(time.Duration(attempt) * time.Second)
+			if attempt == maxAttempts-1 {
+				require.NoError(h.t, err, "API server %d failed to start", i)
+			}
+			time.Sleep(100 * time.Millisecond)
 		}
-		require.NoError(h.t, err, "Failed to create API container %d", i)
-
-		cluster.Resources[i] = resource
-		cluster.Addrs[i] = fmt.Sprintf("http://%s:7070", resource.GetIPInNetwork(network))
 
 		// Register cleanup
 		h.t.Cleanup(func() {
-			_ = pool.Purge(resource)
+			cancel()
 		})
 	}
 
