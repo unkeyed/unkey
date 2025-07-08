@@ -1,8 +1,7 @@
 import { ChevronLeft, ChevronRight } from "@unkey/icons";
 import { format } from "date-fns";
-import { useState } from "react";
-// biome-ignore lint/correctness/noUnusedImports: otherwise biome complains
-import React from "react";
+// biome-ignore lint/correctness/noUnusedImports: Biome is not happy
+import React, { useRef } from "react";
 import {
   type CaptionProps,
   type DateRange,
@@ -63,7 +62,7 @@ const styleClassNames = {
   cell: "border-none h-8 w-8 text-center text-gray-12 rounded rounded-3 text-sm p-0 relative focus:outline-none focus:ring-0 [&:has([aria-selected].day-outside)]:bg-gray-4 [&:has([aria-selected])]:bg-gray-4 focus-within:relative focus-within:z-20",
   day: cn(
     buttonVariants({ variant: "ghost" }),
-    "h-8 w-8 p-0 font-normal aria-selected:opacity-100 text-[13px] flex items-center justify-center hover:bg-gray-3 text-gray-12 rounded rounded-3 focus:outline-none focus:ring-0",
+    "h-8 w-8 p-0 font-normal aria-selected:opacity-100 text-[13px] flex items-center justify-center hover:bg-gray-3 text-gray-12 rounded rounded-3 text-sm focus:outline-none focus:ring-0",
   ),
   day_range_start: "hover:bg-gray-3 focus:bg-gray-5 text-gray-12",
   day_range_middle: "",
@@ -99,51 +98,63 @@ export const Calendar = ({
   ...props
 }: CalendarProps) => {
   const { date, onDateChange, minDate, maxDate } = useDateTimeContext();
-  const [singleDay, setSingleDay] = useState<Date | undefined>(date?.from);
 
-  const handleChange = (newDate: DateRange | undefined) => {
-    //  No date selected (user cleared the selection)
-    if (!newDate) {
+  const handleDayClick = (clickedDate: Date) => {
+    const clickedTime = clickedDate.getTime();
+
+    if (mode === "single") {
+      // Toggle selection if same date clicked
+      if (date?.from && date.from.getTime() === clickedTime) {
+        onDateChange({ from: undefined, to: undefined });
+        return;
+      }
+      onDateChange({ from: clickedDate, to: undefined });
+      return;
+    }
+
+    // Range mode logic
+    if (!date?.from) {
+      // No selection, start new range
+      onDateChange({ from: clickedDate, to: undefined });
+      return;
+    }
+
+    if (!date.to) {
+      // We have start date, complete the range
+      const fromTime = date.from.getTime();
+
+      if (clickedTime === fromTime) {
+        // Clicked same start date, clear selection
+        onDateChange({ from: undefined, to: undefined });
+        return;
+      }
+
+      // Complete the range
+      if (clickedTime < fromTime) {
+        onDateChange({ from: clickedDate, to: date.from });
+      } else {
+        onDateChange({ from: date.from, to: clickedDate });
+      }
+      return;
+    }
+
+    // We have a complete range, start new selection
+    onDateChange({ from: clickedDate, to: undefined });
+  };
+
+  // Only handle clears. User clicks are handled by handleDayClick
+  // because react-day-picker's onSelect reconstructs ranges from the original start date
+  // when clicking inside existing ranges, ignoring the actual clicked date.
+  const handleRangeChange = (newRange: DateRange | undefined) => {
+    if (!newRange) {
       onDateChange({ from: undefined, to: undefined });
-      return;
     }
-
-    //  End date was moved later than current end date
-    // This resets the "from" date while keeping the new "to" date
-    if (
-      date?.from &&
-      date?.to &&
-      newDate?.to instanceof Date &&
-      newDate.to.getTime() > date.to.getTime()
-    ) {
-      onDateChange({ from: undefined, to: newDate.to });
-      return;
-    }
-
-    // User clicked on either boundary of existing range
-    // This resets the entire range when clicking on start or end date
-    if (
-      date?.from &&
-      date?.to &&
-      (newDate.from?.getTime() === date.from.getTime() ||
-        newDate.from?.getTime() === date.to.getTime())
-    ) {
-      onDateChange({ from: undefined, to: undefined });
-      return;
-    }
-
-    // Update with the new date range as is
-    onDateChange(newDate);
   };
 
   const handleSingleChange = (newDate: Date | undefined) => {
-    if (singleDay && newDate && singleDay.getTime() === newDate.getTime()) {
-      setSingleDay(undefined);
+    if (!newDate) {
       onDateChange({ from: undefined, to: undefined });
-      return;
     }
-    onDateChange({ from: newDate, to: undefined });
-    setSingleDay(newDate);
   };
 
   const getDisabledMatcher = (): Matcher | Matcher[] | undefined => {
@@ -157,8 +168,8 @@ export const Calendar = ({
       matchers.push({ after: maxDate });
     }
 
-    if (disabledDates && disabledDates.length > 0) {
-      disabledDates.forEach((dateRange) => {
+    if (disabledDates?.length) {
+      for (const dateRange of disabledDates) {
         if (dateRange.from && dateRange.to) {
           matchers.push({ from: dateRange.from, to: dateRange.to });
         } else if (dateRange.before) {
@@ -166,7 +177,7 @@ export const Calendar = ({
         } else if (dateRange.after) {
           matchers.push({ after: dateRange.after });
         }
-      });
+      }
     }
 
     return matchers.length > 0 ? matchers : undefined;
@@ -183,26 +194,15 @@ export const Calendar = ({
       Caption: CustomCaptionComponent,
     },
     disabled: getDisabledMatcher(),
+    onDayClick: handleDayClick,
     ...props,
   };
 
   if (mode === "range") {
-    return (
-      <DayPicker
-        {...commonProps}
-        mode="range"
-        selected={date}
-        onSelect={(date: DateRange | undefined) => (date ? handleChange(date) : undefined)}
-      />
-    );
+    return <DayPicker {...commonProps} mode="range" selected={date} onSelect={handleRangeChange} />;
   }
 
   return (
-    <DayPicker
-      {...commonProps}
-      mode="single"
-      selected={singleDay}
-      onSelect={(date: Date | undefined) => handleSingleChange(date)}
-    />
+    <DayPicker {...commonProps} mode="single" selected={date?.from} onSelect={handleSingleChange} />
   );
 };
