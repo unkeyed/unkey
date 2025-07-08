@@ -9,8 +9,8 @@ type XOR<T, U> = T | U extends object ? (Without<T, U> & U) | (Without<U, T> & T
 type OneOf<T extends any[]> = T extends [infer Only]
   ? Only
   : T extends [infer A, infer B, ...infer Rest]
-  ? OneOf<[XOR<A, B>, ...Rest]>
-  : never;
+    ? OneOf<[XOR<A, B>, ...Rest]>
+    : never;
 
 export interface paths {
   "/v1/liveness": {
@@ -571,15 +571,15 @@ export interface components {
        * @enum {string}
        */
       code:
-      | "VALID"
-      | "NOT_FOUND"
-      | "FORBIDDEN"
-      | "USAGE_EXCEEDED"
-      | "RATE_LIMITED"
-      | "UNAUTHORIZED"
-      | "DISABLED"
-      | "INSUFFICIENT_PERMISSIONS"
-      | "EXPIRED";
+        | "VALID"
+        | "NOT_FOUND"
+        | "FORBIDDEN"
+        | "USAGE_EXCEEDED"
+        | "RATE_LIMITED"
+        | "UNAUTHORIZED"
+        | "DISABLED"
+        | "INSUFFICIENT_PERMISSIONS"
+        | "EXPIRED";
       /** @description Sets the key to be enabled or disabled. Disabled keys will not verify. */
       enabled?: boolean;
       /**
@@ -4812,21 +4812,21 @@ export interface operations {
         start?: number | null;
         end?: number | null;
         groupBy?:
-        | ("key" | "identity" | "tags" | "tag" | "month" | "day" | "hour")
-        | ("key" | "identity" | "tags" | "tag" | "month" | "day" | "hour")[];
+          | ("key" | "identity" | "tags" | "tag" | "month" | "day" | "hour")
+          | ("key" | "identity" | "tags" | "tag" | "month" | "day" | "hour")[];
         limit?: number;
         orderBy?:
-        | "time"
-        | "valid"
-        | "notFound"
-        | "forbidden"
-        | "usageExceeded"
-        | "rateLimited"
-        | "unauthorized"
-        | "disabled"
-        | "insufficientPermissions"
-        | "expired"
-        | "total";
+          | "time"
+          | "valid"
+          | "notFound"
+          | "forbidden"
+          | "usageExceeded"
+          | "rateLimited"
+          | "unauthorized"
+          | "disabled"
+          | "insufficientPermissions"
+          | "expired"
+          | "total";
         order?: "asc" | "desc";
       };
     };
@@ -5176,14 +5176,14 @@ export interface operations {
              * @enum {string}
              */
             code?:
-            | "NOT_FOUND"
-            | "FORBIDDEN"
-            | "USAGE_EXCEEDED"
-            | "RATE_LIMITED"
-            | "UNAUTHORIZED"
-            | "DISABLED"
-            | "INSUFFICIENT_PERMISSIONS"
-            | "EXPIRED";
+              | "NOT_FOUND"
+              | "FORBIDDEN"
+              | "USAGE_EXCEEDED"
+              | "RATE_LIMITED"
+              | "UNAUTHORIZED"
+              | "DISABLED"
+              | "INSUFFICIENT_PERMISSIONS"
+              | "EXPIRED";
           };
         };
       };
