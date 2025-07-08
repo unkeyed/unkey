@@ -8,6 +8,10 @@ on:
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
+permissions:
+  contents: write # allow pushing commit & tags
+  pull-requests: write # allow opening the version PR
+
 jobs:
   pr:
     name: Release Packages
@@ -20,6 +24,7 @@ jobs:
         uses: ./.github/actions/install
         with:
           ts: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build packages
         run: pnpm turbo run build --filter='./packages/*'
