@@ -1,3 +1,6 @@
+CREATE DATABASE IF NOT EXISTS `unkey`;
+USE `unkey`;
+
 CREATE TABLE `apis` (
 	`id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
@@ -180,6 +183,7 @@ CREATE TABLE `workspaces` (
 	`id` varchar(256) NOT NULL,
 	`org_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
+	`partition_id` varchar(256),
 	`plan` enum('free','pro','enterprise') DEFAULT 'free',
 	`tier` varchar(256) DEFAULT 'Free',
 	`stripe_customer_id` varchar(256),
@@ -228,8 +232,10 @@ CREATE TABLE `ratelimits` (
 	`identity_id` varchar(256),
 	`limit` int NOT NULL,
 	`duration` bigint NOT NULL,
+	`auto_apply` boolean NOT NULL DEFAULT false,
 	CONSTRAINT `ratelimits_id` PRIMARY KEY(`id`),
-	CONSTRAINT `unique_name_idx` UNIQUE(`name`,`key_id`,`identity_id`)
+	CONSTRAINT `unique_name_per_key_idx` UNIQUE(`name`,`key_id`),
+	CONSTRAINT `unique_name_per_identity_idx` UNIQUE(`name`,`identity_id`)
 );
 
 CREATE TABLE `quota` (
@@ -287,6 +293,123 @@ CREATE TABLE `audit_log_target` (
 	CONSTRAINT `audit_log_target_audit_log_id_id_pk` PRIMARY KEY(`audit_log_id`,`id`)
 );
 
+CREATE TABLE `partitions` (
+	`id` varchar(256) NOT NULL,
+	`name` varchar(256) NOT NULL,
+	`description` text,
+	`aws_account_id` varchar(256) NOT NULL,
+	`region` varchar(256) NOT NULL,
+	`ip_v4_address` varchar(15),
+	`ip_v6_address` varchar(39),
+	`status` enum('active','draining','inactive') NOT NULL DEFAULT 'active',
+	`delete_protection` boolean DEFAULT false,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `partitions_id` PRIMARY KEY(`id`)
+);
+
+CREATE TABLE `projects` (
+	`id` varchar(256) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`partition_id` varchar(256) NOT NULL,
+	`name` varchar(256) NOT NULL,
+	`slug` varchar(256) NOT NULL,
+	`git_repository_url` varchar(500),
+	`delete_protection` boolean DEFAULT false,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `projects_id` PRIMARY KEY(`id`),
+	CONSTRAINT `workspace_slug_idx` UNIQUE(`workspace_id`,`slug`)
+);
+
+CREATE TABLE `branches` (
+	`id` varchar(256) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`project_id` varchar(256) NOT NULL,
+	`name` varchar(256) NOT NULL,
+	`is_production` boolean NOT NULL DEFAULT false,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `branches_id` PRIMARY KEY(`id`),
+	CONSTRAINT `project_name_idx` UNIQUE(`project_id`,`name`)
+);
+
+CREATE TABLE `rootfs_images` (
+	`id` varchar(256) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`project_id` varchar(256) NOT NULL,
+	`s3_bucket` varchar(256) NOT NULL,
+	`s3_key` varchar(500) NOT NULL,
+	`size_bytes` bigint NOT NULL,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `rootfs_images_id` PRIMARY KEY(`id`)
+);
+
+CREATE TABLE `builds` (
+	`id` varchar(256) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`project_id` varchar(256) NOT NULL,
+	`version_id` varchar(256) NOT NULL,
+	`rootfs_image_id` varchar(256),
+	`git_commit_sha` varchar(40),
+	`git_branch` varchar(256),
+	`status` enum('pending','running','succeeded','failed','cancelled') NOT NULL DEFAULT 'pending',
+	`build_tool` enum('docker','depot','custom') NOT NULL DEFAULT 'docker',
+	`error_message` text,
+	`started_at` bigint,
+	`completed_at` bigint,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `builds_id` PRIMARY KEY(`id`)
+);
+
+CREATE TABLE `versions` (
+	`id` varchar(256) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`project_id` varchar(256) NOT NULL,
+	`branch_id` varchar(256),
+	`build_id` varchar(256),
+	`rootfs_image_id` varchar(256) NOT NULL,
+	`git_commit_sha` varchar(40),
+	`git_branch` varchar(256),
+	`config_snapshot` json NOT NULL,
+	`status` enum('pending','building','deploying','active','failed','archived') NOT NULL DEFAULT 'pending',
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `versions_id` PRIMARY KEY(`id`)
+);
+
+CREATE TABLE `routes` (
+	`id` varchar(256) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`project_id` varchar(256) NOT NULL,
+	`hostname` varchar(256) NOT NULL,
+	`version_id` varchar(256) NOT NULL,
+	`is_enabled` boolean NOT NULL DEFAULT true,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `routes_id` PRIMARY KEY(`id`),
+	CONSTRAINT `hostname_idx` UNIQUE(`hostname`)
+);
+
+CREATE TABLE `hostnames` (
+	`id` varchar(256) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`project_id` varchar(256) NOT NULL,
+	`hostname` varchar(256) NOT NULL,
+	`is_custom_domain` boolean NOT NULL DEFAULT false,
+	`certificate_id` varchar(256),
+	`verification_status` enum('pending','verified','failed','expired') DEFAULT 'pending',
+	`verification_token` varchar(256),
+	`verification_method` enum('dns_txt','dns_cname','file_upload','automatic'),
+	`subdomain_config` json,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `hostnames_id` PRIMARY KEY(`id`),
+	CONSTRAINT `hostname_idx` UNIQUE(`hostname`)
+);
+
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
 CREATE INDEX `workspace_id_idx` ON `permissions` (`workspace_id`);
 CREATE INDEX `workspace_id_idx` ON `roles` (`workspace_id`);
@@ -307,3 +430,26 @@ CREATE INDEX `time_idx` ON `audit_log` (`time`);
 CREATE INDEX `bucket` ON `audit_log_target` (`bucket`);
 CREATE INDEX `audit_log_id` ON `audit_log_target` (`audit_log_id`);
 CREATE INDEX `id_idx` ON `audit_log_target` (`id`);
+CREATE INDEX `status_idx` ON `partitions` (`status`);
+CREATE INDEX `workspace_idx` ON `projects` (`workspace_id`);
+CREATE INDEX `partition_idx` ON `projects` (`partition_id`);
+CREATE INDEX `workspace_idx` ON `branches` (`workspace_id`);
+CREATE INDEX `project_idx` ON `branches` (`project_id`);
+CREATE INDEX `workspace_idx` ON `rootfs_images` (`workspace_id`);
+CREATE INDEX `project_idx` ON `rootfs_images` (`project_id`);
+CREATE INDEX `workspace_idx` ON `builds` (`workspace_id`);
+CREATE INDEX `project_idx` ON `builds` (`project_id`);
+CREATE INDEX `status_idx` ON `builds` (`status`);
+CREATE INDEX `rootfs_image_idx` ON `builds` (`rootfs_image_id`);
+CREATE INDEX `workspace_idx` ON `versions` (`workspace_id`);
+CREATE INDEX `project_idx` ON `versions` (`project_id`);
+CREATE INDEX `branch_idx` ON `versions` (`branch_id`);
+CREATE INDEX `status_idx` ON `versions` (`status`);
+CREATE INDEX `rootfs_image_idx` ON `versions` (`rootfs_image_id`);
+CREATE INDEX `workspace_idx` ON `routes` (`workspace_id`);
+CREATE INDEX `project_idx` ON `routes` (`project_id`);
+CREATE INDEX `version_idx` ON `routes` (`version_id`);
+CREATE INDEX `workspace_idx` ON `hostnames` (`workspace_id`);
+CREATE INDEX `project_idx` ON `hostnames` (`project_id`);
+CREATE INDEX `verification_status_idx` ON `hostnames` (`verification_status`);
+CREATE INDEX `certificate_idx` ON `hostnames` (`certificate_id`);

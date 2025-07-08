@@ -143,10 +143,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			},
 		})
 		if err != nil {
-			return "", fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database failed to insert audit logs"), fault.Public("Failed to insert audit logs"),
-			)
+			return "", err
 		}
 
 		return overrideID, nil

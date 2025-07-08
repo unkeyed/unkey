@@ -1,7 +1,7 @@
-import { LogsLLMSearch } from "@/components/logs/llm-search";
-import { transformStructuredOutputToFilters } from "@/components/logs/validation/utils/transform-structured-output-filter-format";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { LLMSearch } from "@unkey/ui";
+import { transformStructuredOutputToFilters } from "@unkey/ui";
 import { useFilters } from "../../../../hooks/use-filters";
 
 export const RolesSearch = () => {
@@ -14,7 +14,6 @@ export const RolesSearch = () => {
           "Please provide more specific search criteria. Your query requires additional details for accurate results.",
           {
             duration: 8000,
-            important: true,
             position: "top-right",
             style: {
               whiteSpace: "pre-line",
@@ -32,7 +31,6 @@ export const RolesSearch = () => {
       } Please try again or refine your search criteria.`;
       toast.error(errorMessage, {
         duration: 8000,
-        important: true,
         position: "top-right",
         style: {
           whiteSpace: "pre-line",
@@ -43,7 +41,7 @@ export const RolesSearch = () => {
   });
 
   return (
-    <LogsLLMSearch
+    <LLMSearch
       exampleQueries={[
         "Find admin and moderator roles",
         "Show roles with api.read permissions",

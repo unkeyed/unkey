@@ -1,7 +1,6 @@
-import { LogsLLMSearch } from "@/components/logs/llm-search";
-import { transformStructuredOutputToFilters } from "@/components/logs/validation/utils/transform-structured-output-filter-format";
 import { trpc } from "@/lib/trpc/client";
-import { toast } from "@unkey/ui";
+import { LLMSearch, toast, transformStructuredOutputToFilters } from "@unkey/ui";
+
 import { useFilters } from "../../../../hooks/use-filters";
 
 export const LogsSearch = ({ keyspaceId }: { keyspaceId: string }) => {
@@ -13,7 +12,6 @@ export const LogsSearch = ({ keyspaceId }: { keyspaceId: string }) => {
           "Please provide more specific search criteria. Your query requires additional details for accurate results.",
           {
             duration: 8000,
-            important: true,
             position: "top-right",
             style: {
               whiteSpace: "pre-line",
@@ -32,7 +30,6 @@ export const LogsSearch = ({ keyspaceId }: { keyspaceId: string }) => {
 
       toast.error(errorMessage, {
         duration: 8000,
-        important: true,
         position: "top-right",
         style: {
           whiteSpace: "pre-line",
@@ -43,7 +40,7 @@ export const LogsSearch = ({ keyspaceId }: { keyspaceId: string }) => {
   });
 
   return (
-    <LogsLLMSearch
+    <LLMSearch
       exampleQueries={[
         "Find key exactly key_abc123xyz",
         "Show keys with ID containing 'test'",

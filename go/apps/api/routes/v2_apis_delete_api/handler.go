@@ -155,10 +155,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			UserAgent: s.UserAgent(),
 		}})
 		if err != nil {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("audit log error"), fault.Public("Failed to create audit log for API deletion."),
-			)
+			return err
 		}
 
 		return nil

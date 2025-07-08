@@ -62,13 +62,14 @@ export class Invoicing extends WorkflowEntrypoint<Env, Params> {
     const month = t.getUTCMonth() + 1; // months are 0 indexed
 
     for (const workspace of workspaces) {
-      if (!workspace.stripeCustomerId) {
+      const stripeCustomerId = workspace.stripeCustomerId;
+      if (!stripeCustomerId) {
         throw new Error(`workspace ${workspace.id} has no stripe customer id`);
       }
 
       const paymentMethodId = await step.do(`list payment method for ${workspace.id}`, async () => {
         const methods = await stripe.paymentMethods.list({
-          customer: workspace.stripeCustomerId!,
+          customer: stripeCustomerId,
           limit: 1,
         });
         const primaryMethod = methods.data.at(0);
@@ -80,7 +81,7 @@ export class Invoicing extends WorkflowEntrypoint<Env, Params> {
 
       const invoiceId = await step.do(`create invoice for ${workspace.id}`, async () => {
         const invoice = await stripe.invoices.create({
-          customer: workspace.stripeCustomerId!,
+          customer: stripeCustomerId,
           default_payment_method: paymentMethodId,
           auto_advance: false,
           custom_fields: [
@@ -126,14 +127,15 @@ export class Invoicing extends WorkflowEntrypoint<Env, Params> {
         console.info("prorating", { start, end, prorate });
       }
 
-      if (workspace.subscriptions?.plan) {
+      const stripeSubscriptionPlan = workspace.subscriptions?.plan;
+      if (stripeSubscriptionPlan) {
         await step.do(`add pro plan to invoice for ${workspace.id}`, () =>
           createFixedCostInvoiceItem({
             stripe,
             invoiceId: invoiceId,
-            stripeCustomerId: workspace.stripeCustomerId!,
+            stripeCustomerId: stripeCustomerId,
             name: "Pro plan",
-            sub: workspace.subscriptions!.plan!,
+            sub: stripeSubscriptionPlan,
             prorate,
           }),
         );
@@ -142,7 +144,8 @@ export class Invoicing extends WorkflowEntrypoint<Env, Params> {
       /**
        * Verifications
        */
-      if (workspace.subscriptions?.verifications) {
+      const stripeSubscriptionVerification = workspace.subscriptions?.verifications;
+      if (stripeSubscriptionVerification) {
         const verifications = await step.do(`query verifications for ${workspace.id}`, () =>
           clickhouse.billing.billableVerifications({
             workspaceId: workspace.id,
@@ -155,9 +158,9 @@ export class Invoicing extends WorkflowEntrypoint<Env, Params> {
           createTieredInvoiceItem({
             stripe,
             invoiceId: invoiceId,
-            stripeCustomerId: workspace.stripeCustomerId!,
+            stripeCustomerId: stripeCustomerId,
             name: "Verifications",
-            sub: workspace.subscriptions!.verifications!,
+            sub: stripeSubscriptionVerification,
             usage: verifications,
           }),
         );
@@ -166,7 +169,8 @@ export class Invoicing extends WorkflowEntrypoint<Env, Params> {
       /**
        * Ratelimits
        */
-      if (workspace.subscriptions?.ratelimits) {
+      const stripeSubscriptionRatelimits = workspace.subscriptions?.ratelimits;
+      if (stripeSubscriptionRatelimits) {
         const ratelimits = await step.do(`query ratelimits for ${workspace.id}`, () =>
           clickhouse.billing.billableRatelimits({
             workspaceId: workspace.id,
@@ -179,9 +183,9 @@ export class Invoicing extends WorkflowEntrypoint<Env, Params> {
           createTieredInvoiceItem({
             stripe,
             invoiceId: invoiceId,
-            stripeCustomerId: workspace.stripeCustomerId!,
+            stripeCustomerId: stripeCustomerId,
             name: "Ratelimits",
-            sub: workspace.subscriptions!.ratelimits!,
+            sub: stripeSubscriptionRatelimits,
             usage: ratelimits,
           }),
         );
@@ -190,14 +194,16 @@ export class Invoicing extends WorkflowEntrypoint<Env, Params> {
       /**
        * Support
        */
-      if (workspace.subscriptions?.support) {
+
+      const stripeSubscriptionSupport = workspace.subscriptions?.support;
+      if (stripeSubscriptionSupport) {
         await step.do(`add support to invoice ${invoiceId} for ${workspace.id}`, () =>
           createFixedCostInvoiceItem({
             stripe,
             invoiceId: invoiceId,
-            stripeCustomerId: workspace.stripeCustomerId!,
+            stripeCustomerId: stripeCustomerId,
             name: "Professional Support",
-            sub: workspace.subscriptions!.support!,
+            sub: stripeSubscriptionSupport,
             prorate,
           }),
         );
@@ -292,7 +298,7 @@ async function createTieredInvoiceItem({
         price_data: {
           currency: "usd",
           product: sub.productId,
-          unit_amount_decimal: tier.centsPerUnit!,
+          unit_amount_decimal: tier.centsPerUnit,
         },
         currency: "usd",
         description,

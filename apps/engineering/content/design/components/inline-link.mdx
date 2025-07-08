@@ -5,10 +5,6 @@ description: A component for creating inline links with optional icons and styli
 
 import { InlineLinkBasic, InlineLinkWithIcon, InlineLinkWithTarget, InlineLinkWithCustomClass } from "./inline-link.example"
 
-## InlineLink
-
-The InlineLink component provides a consistent way to create inline links within text content. It supports icons, custom styling, and target attributes.
-
 ## Basic Usage
 
 The basic InlineLink includes a label and href.
@@ -39,19 +35,21 @@ Apply custom styling to the link.
 - Optional icon support
 - Configurable icon position
 - Custom styling support
-- Target attribute for new tab opening
+- Target attribute for new tab opening (defaults to "_blank")
+- Security attributes (rel="noopener noreferrer" by default)
 - Accessible by default
+- Extends all standard HTML anchor attributes
 
 ## Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | href | string | required | The URL the link points to |
-| label | string | required | The text content of the link |
+| label | string | undefined | The text content of the link (optional) |
 | icon | React.ReactNode | undefined | Optional icon to display with the link |
 | iconPosition | "left" \| "right" | "right" | Position of the icon relative to the label |
 | className | string | undefined | Additional CSS classes |
-| target | boolean | undefined | Whether to open the link in a new tab |
+| ...props | React.AnchorHTMLAttributes&lt;HTMLAnchorElement&gt; | - | All standard HTML anchor element attributes |
 
 ## Accessibility
 
@@ -61,3 +59,4 @@ Apply custom styling to the link.
 - Clear focus indicators
 - Semantic HTML structure
 - Descriptive link text
+- Security attributes for external links

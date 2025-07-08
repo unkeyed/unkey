@@ -34,6 +34,10 @@ const route = createRoute({
               description: "The name of the permission.",
               example: "domain.record.manager",
             }),
+            slug: z.string().openapi({
+              description: "The slug of the permission",
+              example: "domain-record-manager",
+            }),
             description: z.string().optional().openapi({
               description:
                 "The description of what this permission does. This is just for your team, your users will not see this.",
@@ -75,6 +79,7 @@ export const registerV1PermissionsGetPermission = (app: App) =>
     return c.json({
       id: permission.id,
       name: permission.name,
+      slug: permission.slug,
       description: permission.description ?? undefined,
     });
   });

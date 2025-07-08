@@ -2,7 +2,8 @@
 title: Input
 description: A text input field component with different states, validations, and icon support.
 ---
-import { RenderComponentWithSnippet } from "@/app/components/render"
+
+import { RenderComponentWithSnippet } from "@/app/components/render";
 import {
   InputDefaultVariant,
   InputSuccessVariant,
@@ -11,9 +12,11 @@ import {
   InputDisabledVariant,
   InputWithDefaultValue,
   InputWithPasswordToggle,
-  InputWithBothIcons
-} from "./input.variants.tsx"
-
+  InputWithBothIcons,
+  InputWithPrefix,
+  InputWithPrefixAndIcon,
+  InputWithPrefixVariants,
+} from "./input.variants.tsx";
 
 ## Default
 
@@ -69,16 +72,29 @@ Example of an input with both leading and trailing icons for enhanced functional
 
 <InputWithBothIcons />
 
+### Prefix Support
+
+Basic Prefix
+Add a prefix to provide context or format guidance to users.
+
+<InputWithPrefix />
+Prefix with Icon Combine prefixes with icons for enhanced visual context.
+
+<InputWithPrefixAndIcon />
+Prefix with Different Variants Prefixes work with all input variants and maintain
+consistent styling.
+
+<InputWithPrefixVariants />
+
 ## Props
 
 The Input component accepts all standard HTML input attributes plus the following:
 
   <AutoTypeTable
       name="DocumentedInputProps"
-      path="../../internal/ui/src/components/input.tsx"
+      path="../../internal/ui/src/components/form/input.tsx"
 
     />
-
 
 ## Icon Guidelines
 

@@ -24,6 +24,7 @@ jobs:
         with:
           go: true
           ts: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Login to image repository
         uses: docker/login-action@v3

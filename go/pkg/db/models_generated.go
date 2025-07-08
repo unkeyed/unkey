@@ -53,6 +53,225 @@ func (ns NullApisAuthType) Value() (driver.Value, error) {
 	return string(ns.ApisAuthType), nil
 }
 
+type BuildsBuildTool string
+
+const (
+	BuildsBuildToolDocker BuildsBuildTool = "docker"
+	BuildsBuildToolDepot  BuildsBuildTool = "depot"
+	BuildsBuildToolCustom BuildsBuildTool = "custom"
+)
+
+func (e *BuildsBuildTool) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = BuildsBuildTool(s)
+	case string:
+		*e = BuildsBuildTool(s)
+	default:
+		return fmt.Errorf("unsupported scan type for BuildsBuildTool: %T", src)
+	}
+	return nil
+}
+
+type NullBuildsBuildTool struct {
+	BuildsBuildTool BuildsBuildTool
+	Valid           bool // Valid is true if BuildsBuildTool is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullBuildsBuildTool) Scan(value interface{}) error {
+	if value == nil {
+		ns.BuildsBuildTool, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.BuildsBuildTool.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullBuildsBuildTool) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.BuildsBuildTool), nil
+}
+
+type BuildsStatus string
+
+const (
+	BuildsStatusPending   BuildsStatus = "pending"
+	BuildsStatusRunning   BuildsStatus = "running"
+	BuildsStatusSucceeded BuildsStatus = "succeeded"
+	BuildsStatusFailed    BuildsStatus = "failed"
+	BuildsStatusCancelled BuildsStatus = "cancelled"
+)
+
+func (e *BuildsStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = BuildsStatus(s)
+	case string:
+		*e = BuildsStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for BuildsStatus: %T", src)
+	}
+	return nil
+}
+
+type NullBuildsStatus struct {
+	BuildsStatus BuildsStatus
+	Valid        bool // Valid is true if BuildsStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullBuildsStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.BuildsStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.BuildsStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullBuildsStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.BuildsStatus), nil
+}
+
+type HostnamesVerificationMethod string
+
+const (
+	HostnamesVerificationMethodDnsTxt     HostnamesVerificationMethod = "dns_txt"
+	HostnamesVerificationMethodDnsCname   HostnamesVerificationMethod = "dns_cname"
+	HostnamesVerificationMethodFileUpload HostnamesVerificationMethod = "file_upload"
+	HostnamesVerificationMethodAutomatic  HostnamesVerificationMethod = "automatic"
+)
+
+func (e *HostnamesVerificationMethod) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = HostnamesVerificationMethod(s)
+	case string:
+		*e = HostnamesVerificationMethod(s)
+	default:
+		return fmt.Errorf("unsupported scan type for HostnamesVerificationMethod: %T", src)
+	}
+	return nil
+}
+
+type NullHostnamesVerificationMethod struct {
+	HostnamesVerificationMethod HostnamesVerificationMethod
+	Valid                       bool // Valid is true if HostnamesVerificationMethod is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullHostnamesVerificationMethod) Scan(value interface{}) error {
+	if value == nil {
+		ns.HostnamesVerificationMethod, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.HostnamesVerificationMethod.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullHostnamesVerificationMethod) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.HostnamesVerificationMethod), nil
+}
+
+type HostnamesVerificationStatus string
+
+const (
+	HostnamesVerificationStatusPending  HostnamesVerificationStatus = "pending"
+	HostnamesVerificationStatusVerified HostnamesVerificationStatus = "verified"
+	HostnamesVerificationStatusFailed   HostnamesVerificationStatus = "failed"
+	HostnamesVerificationStatusExpired  HostnamesVerificationStatus = "expired"
+)
+
+func (e *HostnamesVerificationStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = HostnamesVerificationStatus(s)
+	case string:
+		*e = HostnamesVerificationStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for HostnamesVerificationStatus: %T", src)
+	}
+	return nil
+}
+
+type NullHostnamesVerificationStatus struct {
+	HostnamesVerificationStatus HostnamesVerificationStatus
+	Valid                       bool // Valid is true if HostnamesVerificationStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullHostnamesVerificationStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.HostnamesVerificationStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.HostnamesVerificationStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullHostnamesVerificationStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.HostnamesVerificationStatus), nil
+}
+
+type PartitionsStatus string
+
+const (
+	PartitionsStatusActive   PartitionsStatus = "active"
+	PartitionsStatusDraining PartitionsStatus = "draining"
+	PartitionsStatusInactive PartitionsStatus = "inactive"
+)
+
+func (e *PartitionsStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PartitionsStatus(s)
+	case string:
+		*e = PartitionsStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PartitionsStatus: %T", src)
+	}
+	return nil
+}
+
+type NullPartitionsStatus struct {
+	PartitionsStatus PartitionsStatus
+	Valid            bool // Valid is true if PartitionsStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPartitionsStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.PartitionsStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PartitionsStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPartitionsStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PartitionsStatus), nil
+}
+
 type RatelimitOverridesSharding string
 
 const (
@@ -179,6 +398,52 @@ func (ns NullVercelBindingsResourceType) Value() (driver.Value, error) {
 	return string(ns.VercelBindingsResourceType), nil
 }
 
+type VersionsStatus string
+
+const (
+	VersionsStatusPending   VersionsStatus = "pending"
+	VersionsStatusBuilding  VersionsStatus = "building"
+	VersionsStatusDeploying VersionsStatus = "deploying"
+	VersionsStatusActive    VersionsStatus = "active"
+	VersionsStatusFailed    VersionsStatus = "failed"
+	VersionsStatusArchived  VersionsStatus = "archived"
+)
+
+func (e *VersionsStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = VersionsStatus(s)
+	case string:
+		*e = VersionsStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for VersionsStatus: %T", src)
+	}
+	return nil
+}
+
+type NullVersionsStatus struct {
+	VersionsStatus VersionsStatus
+	Valid          bool // Valid is true if VersionsStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullVersionsStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.VersionsStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.VersionsStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullVersionsStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.VersionsStatus), nil
+}
+
 type WorkspacesPlan string
 
 const (
@@ -277,6 +542,33 @@ type AuditLogTarget struct {
 	UpdatedAt   sql.NullInt64  `db:"updated_at"`
 }
 
+type Branch struct {
+	ID           string        `db:"id"`
+	WorkspaceID  string        `db:"workspace_id"`
+	ProjectID    string        `db:"project_id"`
+	Name         string        `db:"name"`
+	IsProduction bool          `db:"is_production"`
+	CreatedAt    int64         `db:"created_at"`
+	UpdatedAt    sql.NullInt64 `db:"updated_at"`
+}
+
+type Build struct {
+	ID            string          `db:"id"`
+	WorkspaceID   string          `db:"workspace_id"`
+	ProjectID     string          `db:"project_id"`
+	VersionID     string          `db:"version_id"`
+	RootfsImageID sql.NullString  `db:"rootfs_image_id"`
+	GitCommitSha  sql.NullString  `db:"git_commit_sha"`
+	GitBranch     sql.NullString  `db:"git_branch"`
+	Status        BuildsStatus    `db:"status"`
+	BuildTool     BuildsBuildTool `db:"build_tool"`
+	ErrorMessage  sql.NullString  `db:"error_message"`
+	StartedAt     sql.NullInt64   `db:"started_at"`
+	CompletedAt   sql.NullInt64   `db:"completed_at"`
+	CreatedAt     int64           `db:"created_at"`
+	UpdatedAt     sql.NullInt64   `db:"updated_at"`
+}
+
 type EncryptedKey struct {
 	WorkspaceID     string        `db:"workspace_id"`
 	KeyID           string        `db:"key_id"`
@@ -284,6 +576,21 @@ type EncryptedKey struct {
 	UpdatedAt       sql.NullInt64 `db:"updated_at"`
 	Encrypted       string        `db:"encrypted"`
 	EncryptionKeyID string        `db:"encryption_key_id"`
+}
+
+type Hostname struct {
+	ID                 string                          `db:"id"`
+	WorkspaceID        string                          `db:"workspace_id"`
+	ProjectID          string                          `db:"project_id"`
+	Hostname           string                          `db:"hostname"`
+	IsCustomDomain     bool                            `db:"is_custom_domain"`
+	CertificateID      sql.NullString                  `db:"certificate_id"`
+	VerificationStatus NullHostnamesVerificationStatus `db:"verification_status"`
+	VerificationToken  sql.NullString                  `db:"verification_token"`
+	VerificationMethod NullHostnamesVerificationMethod `db:"verification_method"`
+	SubdomainConfig    []byte                          `db:"subdomain_config"`
+	CreatedAt          int64                           `db:"created_at"`
+	UpdatedAt          sql.NullInt64                   `db:"updated_at"`
 }
 
 type Identity struct {
@@ -361,6 +668,20 @@ type KeysRole struct {
 	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
 }
 
+type Partition struct {
+	ID               string           `db:"id"`
+	Name             string           `db:"name"`
+	Description      sql.NullString   `db:"description"`
+	AwsAccountID     string           `db:"aws_account_id"`
+	Region           string           `db:"region"`
+	IpV4Address      sql.NullString   `db:"ip_v4_address"`
+	IpV6Address      sql.NullString   `db:"ip_v6_address"`
+	Status           PartitionsStatus `db:"status"`
+	DeleteProtection sql.NullBool     `db:"delete_protection"`
+	CreatedAt        int64            `db:"created_at"`
+	UpdatedAt        sql.NullInt64    `db:"updated_at"`
+}
+
 type Permission struct {
 	ID          string         `db:"id"`
 	WorkspaceID string         `db:"workspace_id"`
@@ -369,6 +690,18 @@ type Permission struct {
 	Description sql.NullString `db:"description"`
 	CreatedAtM  int64          `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64  `db:"updated_at_m"`
+}
+
+type Project struct {
+	ID               string         `db:"id"`
+	WorkspaceID      string         `db:"workspace_id"`
+	PartitionID      string         `db:"partition_id"`
+	Name             string         `db:"name"`
+	Slug             string         `db:"slug"`
+	GitRepositoryUrl sql.NullString `db:"git_repository_url"`
+	DeleteProtection sql.NullBool   `db:"delete_protection"`
+	CreatedAt        int64          `db:"created_at"`
+	UpdatedAt        sql.NullInt64  `db:"updated_at"`
 }
 
 type Quotum struct {
@@ -389,6 +722,7 @@ type Ratelimit struct {
 	IdentityID  sql.NullString `db:"identity_id"`
 	Limit       int32          `db:"limit"`
 	Duration    int64          `db:"duration"`
+	AutoApply   bool           `db:"auto_apply"`
 }
 
 type RatelimitNamespace struct {
@@ -431,6 +765,28 @@ type RolesPermission struct {
 	UpdatedAtM   sql.NullInt64 `db:"updated_at_m"`
 }
 
+type RootfsImage struct {
+	ID          string        `db:"id"`
+	WorkspaceID string        `db:"workspace_id"`
+	ProjectID   string        `db:"project_id"`
+	S3Bucket    string        `db:"s3_bucket"`
+	S3Key       string        `db:"s3_key"`
+	SizeBytes   int64         `db:"size_bytes"`
+	CreatedAt   int64         `db:"created_at"`
+	UpdatedAt   sql.NullInt64 `db:"updated_at"`
+}
+
+type Route struct {
+	ID          string        `db:"id"`
+	WorkspaceID string        `db:"workspace_id"`
+	ProjectID   string        `db:"project_id"`
+	Hostname    string        `db:"hostname"`
+	VersionID   string        `db:"version_id"`
+	IsEnabled   bool          `db:"is_enabled"`
+	CreatedAt   int64         `db:"created_at"`
+	UpdatedAt   sql.NullInt64 `db:"updated_at"`
+}
+
 type VercelBinding struct {
 	ID            string                     `db:"id"`
 	IntegrationID string                     `db:"integration_id"`
@@ -456,10 +812,26 @@ type VercelIntegration struct {
 	DeletedAtM  sql.NullInt64  `db:"deleted_at_m"`
 }
 
+type Version struct {
+	ID             string          `db:"id"`
+	WorkspaceID    string          `db:"workspace_id"`
+	ProjectID      string          `db:"project_id"`
+	BranchID       sql.NullString  `db:"branch_id"`
+	BuildID        sql.NullString  `db:"build_id"`
+	RootfsImageID  string          `db:"rootfs_image_id"`
+	GitCommitSha   sql.NullString  `db:"git_commit_sha"`
+	GitBranch      sql.NullString  `db:"git_branch"`
+	ConfigSnapshot json.RawMessage `db:"config_snapshot"`
+	Status         VersionsStatus  `db:"status"`
+	CreatedAt      int64           `db:"created_at"`
+	UpdatedAt      sql.NullInt64   `db:"updated_at"`
+}
+
 type Workspace struct {
 	ID                   string             `db:"id"`
 	OrgID                string             `db:"org_id"`
 	Name                 string             `db:"name"`
+	PartitionID          sql.NullString     `db:"partition_id"`
 	Plan                 NullWorkspacesPlan `db:"plan"`
 	Tier                 sql.NullString     `db:"tier"`
 	StripeCustomerID     sql.NullString     `db:"stripe_customer_id"`

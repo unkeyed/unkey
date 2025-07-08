@@ -1,7 +1,5 @@
-import { LogsLLMSearch } from "@/components/logs/llm-search";
-import { transformStructuredOutputToFilters } from "@/components/logs/validation/utils/transform-structured-output-filter-format";
 import { trpc } from "@/lib/trpc/client";
-import { toast } from "@unkey/ui";
+import { LLMSearch, toast, transformStructuredOutputToFilters } from "@unkey/ui";
 import { useFilters } from "../../../../hooks/use-filters";
 
 export const LogsSearch = ({ apiId }: { apiId: string }) => {
@@ -13,7 +11,6 @@ export const LogsSearch = ({ apiId }: { apiId: string }) => {
           "Please provide more specific search criteria. Your query requires additional details for accurate results.",
           {
             duration: 8000,
-            important: true,
             position: "top-right",
             style: {
               whiteSpace: "pre-line",
@@ -32,7 +29,6 @@ export const LogsSearch = ({ apiId }: { apiId: string }) => {
 
       toast.error(errorMessage, {
         duration: 8000,
-        important: true,
         position: "top-right",
         style: {
           whiteSpace: "pre-line",
@@ -43,7 +39,7 @@ export const LogsSearch = ({ apiId }: { apiId: string }) => {
   });
 
   return (
-    <LogsLLMSearch
+    <LLMSearch
       exampleQueries={[
         "Show rate limited outcomes",
         "Show identity that starts with test_",

@@ -30,5 +30,6 @@ test("return all permissions", async (t) => {
   expect(res.body.length).toBe(1);
   expect(res.body[0].id).toEqual(permission.id);
   expect(res.body[0].name).toEqual(permission.name);
+  expect(res.body[0].slug).toEqual(permission.slug);
   expect(res.body[0].description).toBeUndefined();
 });

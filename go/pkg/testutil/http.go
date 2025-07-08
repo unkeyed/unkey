@@ -58,7 +58,9 @@ func NewHarness(t *testing.T) *Harness {
 
 	cont := containers.New(t)
 
-	mysqlDSN, _ := cont.RunMySQL()
+	mysqlCfg, _ := cont.RunMySQL()
+	mysqlCfg.DBName = "unkey"
+	mysqlDSN := mysqlCfg.FormatDSN()
 
 	_, redisUrl, _ := cont.RunRedis()
 
@@ -199,6 +201,7 @@ func (h *Harness) Register(route zen.Route, middleware ...zen.Middleware) {
 func (h *Harness) CreateRootKey(workspaceID string, permissions ...string) string {
 	return h.seeder.CreateRootKey(context.Background(), workspaceID, permissions...)
 }
+
 func (h *Harness) CreateWorkspace() db.Workspace {
 	return h.seeder.CreateWorkspace(context.Background())
 }
