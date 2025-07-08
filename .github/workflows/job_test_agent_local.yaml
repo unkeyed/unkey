@@ -15,7 +15,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build
-        run: task build
+        run: make build
         working-directory: apps/agent
 
       - name: Test
