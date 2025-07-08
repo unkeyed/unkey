@@ -111,7 +111,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Permission check
-	auth, err = auth.WithPermissions(ctx, rbac.Or(
+	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   "*",
@@ -122,7 +122,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   key.Api.ID,
 			Action:       rbac.ReadKey,
 		}),
-	)).Result()
+	)))
 	if err != nil {
 		return err
 	}
@@ -145,7 +145,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	var plaintext *string
 	if decrypt {
 		// Permission check
-		auth, err = auth.WithPermissions(ctx, rbac.Or(
+		err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Api,
 				ResourceID:   "*",
@@ -156,7 +156,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ResourceID:   key.Api.ID,
 				Action:       rbac.DecryptKey,
 			}),
-		)).Result()
+		)))
 		if err != nil {
 			return err
 		}

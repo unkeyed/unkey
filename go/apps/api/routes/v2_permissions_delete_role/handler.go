@@ -55,16 +55,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// 3. Permission check
-	auth, err = auth.WithPermissions(
-		ctx,
-		rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Rbac,
-				ResourceID:   "*",
-				Action:       rbac.DeleteRole,
-			}),
-		),
-	).Result()
+	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Rbac,
+			ResourceID:   "*",
+			Action:       rbac.DeleteRole,
+		}),
+	)))
 	if err != nil {
 		return err
 	}

@@ -58,7 +58,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	auth, err = auth.WithPermissions(ctx, rbac.Or(
+	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   "*",
@@ -69,8 +69,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   req.ApiId,
 			Action:       rbac.DeleteAPI,
 		}),
-	)).Result()
-
+	)))
 	if err != nil {
 		return err
 	}
@@ -109,7 +108,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if api.DeleteProtection.Valid && api.DeleteProtection.Bool {
 		return fault.New("delete protected",
 			fault.Code(codes.App.Protection.ProtectedResource.URN()),
-			fault.Internal("api is protected from deletion"), fault.Public("This API has delete protection enabled. Disable it before attempting to delete."),
+			fault.Internal("api is protected from deletion"),
+			fault.Public("This API has delete protection enabled. Disable it before attempting to delete."),
 		)
 	}
 

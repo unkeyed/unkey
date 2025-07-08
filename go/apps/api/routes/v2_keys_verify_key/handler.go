@@ -78,7 +78,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return s.JSON(http.StatusOK, res)
 	}
 
-	auth, err = auth.WithPermissions(ctx, rbac.Or(
+	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   "*",
@@ -89,7 +89,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   key.Key.ApiID,
 			Action:       rbac.VerifyKey,
 		}),
-	)).Result()
+	)))
 	if err != nil {
 		// The Root Key is in the same workspace as the API so we can show that it does not have permission to verify keys.
 		// (I think so?)
@@ -100,15 +100,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// req.Permissions
 
-	auth, err = key.
-		WithCredits(ctx, 1).
-		WithIPWhitelist().
-		WithPermissions(ctx, rbac.PermissionQuery{}).
-		// WithRateLimits(ctx, req.Ratelimits).
-		Result()
+	err = key.Verify(ctx,
+		keys.WithCredits(1),
+		keys.WithIPWhitelist(),
+		keys.WithPermissions(rbac.PermissionQuery{}),
+		// keys.WithRateLimits(req.Ratelimits),
+	)
+	if err != nil {
+		return err
+	}
 
-	res.Data.Code = auth.Status
-	res.Data.Valid = auth.Valid
+	res.Data.Code = key.Status
+	res.Data.Valid = key.Valid
 
 	return s.JSON(http.StatusOK, res)
 }

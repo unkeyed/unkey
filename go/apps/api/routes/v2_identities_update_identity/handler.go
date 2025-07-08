@@ -83,21 +83,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		identityIdForPermissions = *req.IdentityId
 	}
 
-	auth, err = auth.WithPermissions(
-		ctx,
-		rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Identity,
-				ResourceID:   "*",
-				Action:       rbac.UpdateIdentity,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Identity,
-				ResourceID:   identityIdForPermissions,
-				Action:       rbac.UpdateIdentity,
-			}),
-		),
-	).Result()
+	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Identity,
+			ResourceID:   "*",
+			Action:       rbac.UpdateIdentity,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Identity,
+			ResourceID:   identityIdForPermissions,
+			Action:       rbac.UpdateIdentity,
+		}),
+	)))
 	if err != nil {
 		return err
 	}

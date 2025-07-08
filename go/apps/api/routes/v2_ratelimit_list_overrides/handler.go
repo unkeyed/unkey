@@ -70,7 +70,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	auth, err = auth.WithPermissions(ctx, rbac.Or(
+	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Ratelimit,
 			ResourceID:   namespace.ID,
@@ -81,7 +81,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   "*",
 			Action:       rbac.ReadOverride,
 		}),
-	)).Result()
+	)))
 	if err != nil {
 		return err
 	}

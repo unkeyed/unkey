@@ -54,14 +54,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	auth, err = auth.WithPermissions(
-		ctx,
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Rbac,
-			ResourceID:   "*",
-			Action:       rbac.CreatePermission,
-		}),
-	).Result()
+	err = auth.Verify(ctx, keys.WithPermissions(rbac.T(rbac.Tuple{
+		ResourceType: rbac.Rbac,
+		ResourceID:   "*",
+		Action:       rbac.CreatePermission,
+	})))
 	if err != nil {
 		return err
 	}

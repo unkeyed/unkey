@@ -137,7 +137,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}))
 	}
 
-	auth, err = auth.WithPermissions(ctx, rbac.Or(checks...)).Result()
+	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(checks...)))
 	if err != nil {
 		return err
 	}

@@ -93,7 +93,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}),
 		)
 
-		auth, err = auth.WithPermissions(ctx, permissionCheck).Result()
+		err = auth.Verify(ctx, keys.WithPermissions(permissionCheck))
 		if err != nil {
 			return err
 		}

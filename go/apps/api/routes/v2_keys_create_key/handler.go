@@ -64,7 +64,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// 3. Permission check
-	auth, err = auth.WithPermissions(ctx, rbac.Or(
+	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   req.ApiId,
@@ -75,7 +75,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   "*",
 			Action:       rbac.CreateKey,
 		}),
-	)).Result()
+	)))
 	if err != nil {
 		return err
 	}
@@ -132,21 +132,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	encrypt := ptr.SafeDeref(req.Recoverable, false)
 	var encryption *vaultv1.EncryptResponse
 	if encrypt {
-		auth, err = auth.WithPermissions(
-			ctx,
-			rbac.Or(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   "*",
-					Action:       rbac.EncryptKey,
-				}),
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   api.ID,
-					Action:       rbac.EncryptKey,
-				}),
-			),
-		).Result()
+		err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   "*",
+				Action:       rbac.EncryptKey,
+			}),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   api.ID,
+				Action:       rbac.EncryptKey,
+			}),
+		)))
 		if err != nil {
 			return err
 		}

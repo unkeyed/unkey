@@ -115,7 +115,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	ratelimits := result.Ratelimits
 
 	// Check permissions using either wildcard or the specific identity ID
-	auth, err = auth.WithPermissions(ctx, rbac.Or(
+	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Identity,
 			ResourceID:   "*",
@@ -126,7 +126,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   identity.ID,
 			Action:       rbac.ReadIdentity,
 		}),
-	)).Result()
+	)))
 	if err != nil {
 		return err
 	}

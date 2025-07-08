@@ -3,11 +3,13 @@ package keys
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/pkg/assert"
+	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/hash"
@@ -70,7 +72,6 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		// By default we assume the key is valid unless proven otherwise
 		Valid:       true,
 		Status:      openapi.VALID,
-		error:       nil,
 		Ratelimits:  ratelimits,
 		Roles:       roles,
 		Permissions: permissions,
@@ -85,21 +86,23 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 	if !key.Enabled {
 		kv.Status = openapi.DISABLED
 		kv.Valid = false
+		kv.message = "the key is disabled"
 		return kv, nil
 	}
 
-	// if !key.WorkspaceEnabled || (key.ForWorkspaceEnabled.Valid && !key.ForWorkspaceEnabled.Bool) {
-	// 	return VerifyResponse{}, fault.New(
-	// 		"workspace is disabled",
-	// 		fault.Code(codes.Auth.Authorization.WorkspaceDisabled.URN()),
-	// 		fault.Internal("workspace disabled"),
-	// 		fault.Public("The workspace is disabled."),
-	// 	)
-	// }
+	if !key.WorkspaceEnabled || (key.ForWorkspaceEnabled.Valid && !key.ForWorkspaceEnabled.Bool) {
+		return nil, fault.New(
+			"workspace is disabled",
+			fault.Code(codes.Auth.Authorization.WorkspaceDisabled.URN()),
+			fault.Internal("workspace disabled"),
+			fault.Public("The workspace is disabled."),
+		)
+	}
 
 	if key.Expires.Valid && time.Now().After(key.Expires.Time) {
 		kv.Status = openapi.EXPIRED
 		kv.Valid = false
+		kv.message = fmt.Sprintf("the key has expired on %s", key.Expires.Time.Format(time.RFC3339))
 	}
 
 	return kv, nil

@@ -418,6 +418,9 @@ type Permission struct {
 	// Use clear, semantic names that reflect the resources or actions being permitted.
 	// Names must be unique within your workspace to avoid confusion and conflicts.
 	Name string `json:"name"`
+
+	// Slug The URL-safe identifier when this permission was created.
+	Slug string `json:"slug"`
 }
 
 // PermissionsCreatePermissionResponseData defines model for PermissionsCreatePermissionResponseData.
