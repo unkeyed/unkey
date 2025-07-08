@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.37.0
+
+### Minor Changes
+
+- 0b489a9: feat: return permission slugs
+
 ## 0.35.0
 
 ### Minor Changes
