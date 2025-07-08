@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.38.0
+
+### Minor Changes
+
+- a4636e6: feat: add listPermissions and listRoles
+
 ## 0.37.0
 
 ### Minor Changes
