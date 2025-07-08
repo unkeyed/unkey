@@ -4,12 +4,15 @@ import { useState } from "react";
 import { type OnboardingStep, OnboardingWizard } from "./components/onboarding-wizard";
 import { stepInfos } from "./constants";
 import { useKeyCreationStep } from "./hooks/use-key-creation-step";
+import { useWorkspaceStep } from "./hooks/use-workspace-step";
 
 export default function OnboardingPage() {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
+  const workspaceStep = useWorkspaceStep();
   const keyCreationStep = useKeyCreationStep();
   const steps: OnboardingStep[] = [
+    workspaceStep,
     keyCreationStep,
     {
       name: "Dashboard",
