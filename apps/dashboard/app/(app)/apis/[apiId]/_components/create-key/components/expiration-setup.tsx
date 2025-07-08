@@ -39,7 +39,11 @@ const EXPIRATION_OPTIONS = [
   },
 ];
 
-export const ExpirationSetup = () => {
+export const ExpirationSetup = ({
+  overrideEnabled = false,
+}: {
+  overrideEnabled?: boolean;
+}) => {
   const {
     register,
     formState: { errors },
@@ -134,14 +138,16 @@ export const ExpirationSetup = () => {
 
   return (
     <div className="space-y-5 px-2 py-1">
-      <ProtectionSwitch
-        description="Turn on to set an expiration date. When reached, the key will be automatically disabled."
-        title="Expiration"
-        icon={<Clock className="text-gray-12" size="sm-regular" />}
-        checked={expirationEnabled}
-        onCheckedChange={handleSwitchChange}
-        {...register("expiration.enabled")}
-      />
+      {!overrideEnabled && (
+        <ProtectionSwitch
+          description="Turn on to set an expiration date. When reached, the key will be automatically disabled."
+          title="Expiration"
+          icon={<Clock className="text-gray-12" size="sm-regular" />}
+          checked={expirationEnabled}
+          onCheckedChange={handleSwitchChange}
+          {...register("expiration.enabled")}
+        />
+      )}
 
       <Controller
         control={control}

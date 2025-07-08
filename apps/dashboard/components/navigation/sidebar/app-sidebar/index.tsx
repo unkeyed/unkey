@@ -28,7 +28,9 @@ import { useRatelimitNavigation } from "./hooks/use-ratelimit-navigation";
 
 export function AppSidebar({
   ...props
-}: React.ComponentProps<typeof Sidebar> & { workspace: Workspace & { quotas?: Quotas } }) {
+}: React.ComponentProps<typeof Sidebar> & {
+  workspace: Workspace & { quotas: Quotas | null };
+}) {
   const segments = useSelectedLayoutSegments() ?? [];
   const router = useRouter();
 
@@ -120,7 +122,7 @@ export function AppSidebar({
         </SidebarGroup>
 
         <SidebarGroup>
-          <UsageBanner quotas={props.workspace.quotas!} />
+          <UsageBanner quotas={props.workspace.quotas} />
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>

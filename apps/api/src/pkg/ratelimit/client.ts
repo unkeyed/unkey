@@ -132,6 +132,7 @@ export class AgentRatelimiter implements RateLimiter {
       }
     }
     if (res.length > 0) {
+      // biome-ignore lint/style/noNonNullAssertion: Safe to leave
       return Ok(res[0].val!);
     }
 

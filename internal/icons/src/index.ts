@@ -4,6 +4,8 @@ export * from "./icons/arrow-dotted-rotate-anticlockwise";
 export * from "./icons/arrow-opposite-direction-y";
 export * from "./icons/arrow-right";
 export * from "./icons/arrow-up-right";
+export * from "./icons/arrows-to-all-directions";
+export * from "./icons/arrows-to-center";
 export * from "./icons/ban";
 export * from "./icons/bars-filter";
 export * from "./icons/bolt";

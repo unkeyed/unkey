@@ -1,0 +1,14 @@
+{
+  "title": "Contributing",
+  "description": "oss/acc",
+  "icon": "GitPullRequest",
+  "root": false,
+  "pages": [
+    "index",
+    "sdk-development",
+    "testing",
+    "client-structure",
+    "seeding-db-and-clickhouse",
+    "pull-request-checks"
+  ]
+}

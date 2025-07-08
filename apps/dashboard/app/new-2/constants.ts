@@ -10,8 +10,9 @@ export const stepInfos: StepInfo[] = [
       "Customize your workspace name, logo, and handle. This is how it’ll appear in your dashboard and URLs.",
   },
   {
-    title: "Set up your first API key",
-    description: "Create an API key to start authenticating requests to your application.",
+    title: "Create your first API key",
+    description:
+      "Generate a key for your public API. You’ll be able to verify, revoke, and track usage — all globally distributed with built-in analytics.",
   },
   {
     title: "Configure your dashboard",
