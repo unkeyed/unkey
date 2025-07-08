@@ -17,6 +17,7 @@ export const CopyApiId = ({ apiId }: { apiId: string }) => {
           {apiId}
           <button
             type="button"
+            aria-label="Copy API ID to clipboard"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
