@@ -1,4 +1,4 @@
-.PHONY: install fmt test-unit test-full build generate lint pull build-docker
+.PHONY: install fmt test-unit test-full build generate lint build-docker pull
 
 install:
 	go mod tidy
@@ -7,12 +7,10 @@ fmt: lint
 	@go fmt ./...
 
 pull:
-	docker pull mysql:latest
-	docker pull redis:latest
-	docker pull grafana/otel-lgtm:latest
+	@docker compose -f ../deployment/docker-compose.yaml pull 
 
 build-docker:
-	docker build -t apiv2:latest .
+	@docker compose -f ../deployment/docker-compose.yaml build mysql 
 
 test-full: pull build-docker
 	@export INTEGRATION_TEST=true && \
@@ -20,7 +18,7 @@ test-full: pull build-docker
 	echo "Running full tests... this can take more than 30min... run 'make test-unit' for faster tests" && \
 	go test -failfast -timeout=60m -shuffle=on -v -json ./... | tparse -all -progress -smallscreen
 
-test-unit:
+test-unit: pull build-docker
 	go test -json -race -failfast -timeout=30m ./... | tparse -all -progress -smallscreen
 
 build:

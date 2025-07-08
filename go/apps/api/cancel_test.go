@@ -18,12 +18,11 @@ import (
 // TestContextCancellation verifies that the API server responds properly to context cancellation
 func TestContextCancellation(t *testing.T) {
 
-	// Create a containers instance for database
-	containers := containers.New(t)
-	mysqlCfg, _ := containers.RunMySQL()
+	// Use testcontainers for dynamic service management
+	mysqlCfg, _ := containers.MySQL(t)
 	mysqlCfg.DBName = "unkey"
 	dbDsn := mysqlCfg.FormatDSN()
-	_, redisUrl, _ := containers.RunRedis()
+	_, redisUrl, _ := containers.Redis(t)
 	// Get free ports for the node
 	portAllocator := port.New()
 	httpPort := portAllocator.Get()
