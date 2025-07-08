@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { useKeyboardShortcut } from "../../hooks/use-keyboard-shortcut";
 import { cn } from "../../lib/utils";
