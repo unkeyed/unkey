@@ -1,6 +1,5 @@
 "use client";
-
-import type * as React from "react";
+import React from "react";
 import { useEffect, useRef, useState } from "react";
 import { useKeyboardShortcut } from "../../hooks/use-keyboard-shortcut";
 import { cn } from "../../lib/utils";
@@ -121,7 +120,7 @@ const LLMSearch = ({
   };
 
   // Clean up timers on unmount
-  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+  // biome-ignore lint/correctness/useExhaustiveDependencies: clearDebounceTimer is stable and doesn't need to be in dependencies
   useEffect(() => {
     return clearDebounceTimer();
   }, []);
