@@ -42,8 +42,7 @@ const LLMSearch = ({
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const isClearing = isClearingState;
-  const isProcessing = isLoading || isClearing;
+  const isProcessing = isLoading || isClearingState;
 
   const { debouncedSearch, throttledSearch, executeSearch, clearDebounceTimer, resetSearchState } =
     useSearchStrategy(onSearch, debounceTime);
@@ -56,6 +55,7 @@ const LLMSearch = ({
     clearDebounceTimer();
     setIsClearingState(true);
 
+    // Defer to next tick to ensure state updates are batched properly
     setTimeout(() => {
       onClear?.();
       setSearchText("");
@@ -126,7 +126,7 @@ const LLMSearch = ({
   }, []);
 
   return (
-    <div className="group relative flex-1" data-testid="logs-llm-search">
+    <div className="group relative flex-1" data-testid="llm-search">
       <div
         className={cn(
           "group-data-[state=open]:bg-gray-4 px-2 flex items-center flex-1 md:w-80 gap-2 border rounded-lg py-1 h-8 border-none cursor-pointer hover:bg-gray-3",
