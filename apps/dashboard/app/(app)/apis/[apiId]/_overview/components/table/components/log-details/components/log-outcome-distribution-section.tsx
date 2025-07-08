@@ -1,8 +1,7 @@
 import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 import { Clone } from "@unkey/icons";
-import { Button, Card, CardContent } from "@unkey/ui";
-import { toast } from "sonner";
+import { Button, Card, CardContent, toast } from "@unkey/ui";
 import { formatOutcomeName, getOutcomeColor } from "../../../../../utils";
 
 export const OutcomeDistributionSection = ({
