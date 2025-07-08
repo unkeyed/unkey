@@ -14,7 +14,7 @@ import (
 
 func TestRedisCounter(t *testing.T) {
 	ctx := context.Background()
-	_, redisURL, _ := containers.Redis(t)
+	redisURL := containers.Redis(t)
 
 	// Create a Redis counter
 	ctr, err := NewRedis(RedisConfig{
@@ -324,7 +324,7 @@ func TestRedisCounterConnection(t *testing.T) {
 
 func TestRedisCounterMultiGet(t *testing.T) {
 	ctx := context.Background()
-	_, redisURL, _ := containers.Redis(t)
+	redisURL := containers.Redis(t)
 
 	// Create a Redis counter
 	ctr, err := NewRedis(RedisConfig{
