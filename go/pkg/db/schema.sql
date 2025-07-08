@@ -1,3 +1,4 @@
+CREATE DATABASE IF NOT EXISTS `unkey`;
 USE `unkey`;
 
 CREATE TABLE `apis` (

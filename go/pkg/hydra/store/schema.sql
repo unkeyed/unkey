@@ -1,5 +1,5 @@
-
-USE hydra;
+CREATE DATABASE IF NOT EXISTS `hydra`;
+USE `hydra`;
 
 CREATE TABLE IF NOT EXISTS workflow_executions (
     id VARCHAR(255) PRIMARY KEY,
@@ -8,21 +8,21 @@ CREATE TABLE IF NOT EXISTS workflow_executions (
     input_data LONGBLOB,  -- Large binary data for workflow inputs
     output_data MEDIUMBLOB,  -- Medium binary data for workflow outputs
     error_message TEXT,
-    
+
     created_at BIGINT NOT NULL,
     started_at BIGINT,
     completed_at BIGINT,
     max_attempts INT NOT NULL,
     remaining_attempts INT NOT NULL,
     next_retry_at BIGINT,
-    
+
     namespace VARCHAR(255) NOT NULL,
-    
+
     trigger_type ENUM('manual', 'cron', 'event', 'api'),
     trigger_source VARCHAR(255),
-    
+
     sleep_until BIGINT,
-    
+
     trace_id VARCHAR(255),
     span_id VARCHAR(255)
 );
@@ -34,13 +34,13 @@ CREATE TABLE IF NOT EXISTS workflow_steps (
     status ENUM('pending', 'running', 'completed', 'failed') NOT NULL,
     output_data LONGBLOB,
     error_message TEXT,
-    
+
     started_at BIGINT,
     completed_at BIGINT,
-    
+
     max_attempts INT NOT NULL,
     remaining_attempts INT NOT NULL,
-    
+
     namespace VARCHAR(255) NOT NULL
 );
 
