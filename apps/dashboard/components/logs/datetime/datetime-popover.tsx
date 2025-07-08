@@ -154,17 +154,14 @@ export const DatetimePopover = ({
 
   // Initialize with appropriate date based on constraints
   const getInitialRange = (): Range => {
-    let fromDate = startTime ? new Date(startTime) : new Date();
-    if (minDate || maxDate) {
-      fromDate = ensureValidDate(fromDate);
+    let fromDate = undefined;
+    if (startTime && (minDate || maxDate)) {
+      fromDate = ensureValidDate(new Date(startTime));
     }
 
     let toDate = undefined;
-    if (!singleDateMode && endTime) {
-      toDate = new Date(endTime);
-      if (minDate || maxDate) {
-        toDate = ensureValidDate(toDate);
-      }
+    if (!singleDateMode && endTime && (minDate || maxDate)) {
+      toDate = ensureValidDate(new Date(endTime));
     }
 
     return {
