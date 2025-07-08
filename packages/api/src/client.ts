@@ -506,6 +506,30 @@ export class Unkey {
           query: req,
         });
       },
+      listPermissions: async (): Promise<
+        Result<
+          paths["/v1/permissions.listPermissions"]["get"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "permissions.listPermissions"],
+          method: "GET",
+          query: undefined,
+        });
+      },
+
+      listRoles: async (): Promise<
+        Result<
+          paths["/v1/permissions.listRoles"]["get"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "permissions.listRoles"],
+          method: "GET",
+          query: undefined,
+        });
+      },
+
       deletePermission: async (
         req: paths["/v1/permissions.deletePermission"]["post"]["requestBody"]["content"]["application/json"],
       ): Promise<
