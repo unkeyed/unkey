@@ -1,9 +1,9 @@
 "use client";
 import type { MenuItem } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover";
 import { KeysTableActionPopover } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover";
-import { toast } from "@/components/ui/toaster";
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
 import { Clone, PenWriting3, Trash } from "@unkey/icons";
+import { toast } from "@unkey/ui";
 import { DeletePermission } from "./components/delete-permission";
 import { EditPermission } from "./components/edit-permission";
 

@@ -3,10 +3,10 @@ import {
   KeysTableActionPopoverDefaultTrigger,
   type MenuItem,
 } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover";
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { Clone, PenWriting3, Trash } from "@unkey/icons";
+import { toast } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { MAX_KEYS_FETCH_LIMIT } from "../../../upsert-role/components/assign-key/hooks/use-fetch-keys";
 import { MAX_PERMS_FETCH_LIMIT } from "../../../upsert-role/components/assign-permission/hooks/use-fetch-permissions";
