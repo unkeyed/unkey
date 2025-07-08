@@ -18,6 +18,7 @@ import (
 type Resources struct {
 	RootWorkspace db.Workspace
 	RootKeyring   db.KeyAuth
+	RootApi       db.Api
 	UserWorkspace db.Workspace
 }
 
@@ -56,29 +57,41 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 
 // Seed initializes the database with test data
 func (s *Seeder) Seed(ctx context.Context) {
-	// Insert root workspace
-
-	s.Resources.RootWorkspace = s.CreateWorkspace(ctx)
-
-	// Insert root keyring
-	insertRootKeyringParams := db.InsertKeyringParams{
-		ID:                 uid.New("test_kr"),
-		WorkspaceID:        s.Resources.RootWorkspace.ID,
-		StoreEncryptedKeys: false,
-		DefaultPrefix:      sql.NullString{String: "test", Valid: true},
-		DefaultBytes:       sql.NullInt32{Int32: 8, Valid: true},
-		CreatedAtM:         time.Now().UnixMilli(),
-	}
-
-	err := db.Query.InsertKeyring(ctx, s.DB.RW(), insertRootKeyringParams)
-	require.NoError(s.t, err)
-
-	s.Resources.RootKeyring, err = db.Query.FindKeyringByID(ctx, s.DB.RW(), insertRootKeyringParams.ID)
-	require.NoError(s.t, err)
-
 	s.Resources.UserWorkspace = s.CreateWorkspace(ctx)
-
+	s.Resources.RootWorkspace = s.CreateWorkspace(ctx)
+	s.Resources.RootApi = s.CreateAPI(ctx, s.Resources.RootWorkspace.ID, false)
+	keyring, err := db.Query.FindKeyringByID(ctx, s.DB.RW(), s.Resources.RootApi.KeyAuthID.String)
 	require.NoError(s.t, err)
+	s.Resources.RootKeyring = keyring
+}
+
+func (s *Seeder) CreateAPI(ctx context.Context, workspaceID string, encryptedKeys bool) db.Api {
+	keyAuthID := uid.New(uid.KeyAuthPrefix)
+	err := db.Query.InsertKeyring(ctx, s.DB.RW(), db.InsertKeyringParams{
+		ID:                 keyAuthID,
+		WorkspaceID:        workspaceID,
+		CreatedAtM:         time.Now().UnixMilli(),
+		DefaultPrefix:      sql.NullString{Valid: false},
+		DefaultBytes:       sql.NullInt32{Valid: false},
+		StoreEncryptedKeys: encryptedKeys,
+	})
+	require.NoError(s.t, err)
+
+	apiID := uid.New("api")
+	err = db.Query.InsertApi(ctx, s.DB.RW(), db.InsertApiParams{
+		ID:          apiID,
+		Name:        "test-api-db",
+		WorkspaceID: workspaceID,
+		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
+		KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
+		CreatedAtM:  time.Now().UnixMilli(),
+	})
+	require.NoError(s.t, err)
+
+	api, err := db.Query.FindApiByID(ctx, s.DB.RW(), apiID)
+	require.NoError(s.t, err)
+
+	return api
 }
 
 // CreateRootKey creates a root key with optional permissions
@@ -144,3 +157,23 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 
 	return key
 }
+
+func (s *Seeder) CreateKey(ctx context.Context, workspaceID, keyAuthID string) {
+	keyID := uid.New(uid.KeyPrefix)
+	err := db.Query.InsertKey(ctx, s.DB.RW(), db.InsertKeyParams{
+		ID:          keyID,
+		KeyringID:   keyAuthID,
+		WorkspaceID: workspaceID,
+		CreatedAtM:  time.Now().UnixMilli(),
+		// Add other required fields based on your schema
+		Hash:  hash.Sha256(uid.New(uid.TestPrefix)),
+		Start: "teststart",
+	})
+	require.NoError(s.t, err)
+}
+
+// // Todo allow role creation
+// func (s *Seeder) CreateRole(ctx context.Context)
+
+// // Todo allow permission creation
+// func (s *Seeder) CreatePermission(ctx context.Context)

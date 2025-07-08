@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
@@ -16,9 +15,28 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 	"golang.org/x/exp/slices"
+
+	"github.com/unkeyed/unkey/go/apps/api/openapi"
+)
+
+// KeyStatus represents the validation status of a key
+type KeyStatus string
+
+const (
+	StatusValid                   KeyStatus = "VALID"
+	StatusNotFound                KeyStatus = "NOT_FOUND"
+	StatusDisabled                KeyStatus = "DISABLED"
+	StatusExpired                 KeyStatus = "EXPIRED"
+	StatusForbidden               KeyStatus = "FORBIDDEN"
+	StatusInsufficientPermissions KeyStatus = "INSUFFICIENT_PERMISSIONS"
+	StatusRateLimited             KeyStatus = "RATE_LIMITED"
+	StatusUsageExceeded           KeyStatus = "USAGE_EXCEEDED"
+	StatusWorkspaceDisabled       KeyStatus = "WORKSPACE_DISABLED"
+	StatusWorkspaceNotFound       KeyStatus = "WORKSPACE_NOT_FOUND"
 )
 
 type KeyVerifier struct {
@@ -28,7 +46,7 @@ type KeyVerifier struct {
 	Permissions []string
 
 	Valid                 bool
-	Status                openapi.KeysVerifyKeyResponseDataCode
+	Status                KeyStatus
 	AuthorizedWorkspaceID string
 	IsRootKey             bool
 
@@ -38,6 +56,7 @@ type KeyVerifier struct {
 	usageLimiter usagelimiter.Service
 	rBAC         *rbac.RBAC
 	clickhouse   clickhouse.ClickHouse
+	logger       logging.Logger
 
 	// Private field to store specific error messages from failed validations
 	message string
@@ -89,8 +108,19 @@ func WithRateLimits(limits []string) VerifyOption {
 	}
 }
 
-// Verify performs key verification with the given options
+// Verify performs key verification with the given options.
+// For root keys: returns fault errors for validation failures.
+// For normal keys: returns error only for system problems, check k.Valid and k.Status for validation results.
 func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
+	// Skip verification if key is already invalid
+	if !k.Valid {
+		// For root keys, auto-return validation failures as fault errors
+		if k.IsRootKey {
+			return k.ToFault()
+		}
+		return nil
+	}
+
 	config := &verifyConfig{}
 	for _, opt := range opts {
 		if err := opt(config); err != nil {
@@ -135,7 +165,12 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 		Tags:        []string{},
 	})
 
-	return k.toError()
+	// For root keys, auto-return validation failures as fault errors
+	if k.IsRootKey && !k.Valid {
+		return k.ToFault()
+	}
+
+	return nil
 }
 
 // Internal validation methods (private)
@@ -156,7 +191,8 @@ func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
 	k.Key.RemainingRequests = sql.NullInt32{Int32: usage.Remaining, Valid: true}
 	if !usage.Valid {
 		k.Valid = false
-		k.Status = openapi.USAGEEXCEEDED
+		k.Status = StatusUsageExceeded
+		k.message = "Key usage limit exceeded."
 	}
 	return nil
 }
@@ -170,17 +206,28 @@ func (k *KeyVerifier) withIPWhitelist(ctx context.Context) error {
 		return nil
 	}
 
+	// Get client IP from headers as per TypeScript implementation
+	// Checks "True-Client-IP" then "CF-Connecting-IP"
 	clientIP := k.session.Location()
 	if clientIP == "" {
-		return errors.New("client IP is required for IP whitelist validation")
+		k.Valid = false
+		k.Status = StatusForbidden
+		k.message = "client IP is required for IP whitelist validation"
+		return nil
 	}
 
 	allowedIPs := strings.Split(k.Key.IpWhitelist.String, ",")
+	// Trim whitespace from each IP as per TypeScript implementation
+	for i, ip := range allowedIPs {
+		allowedIPs[i] = strings.TrimSpace(ip)
+	}
+
 	if !slices.Contains(allowedIPs, clientIP) {
 		k.Valid = false
-		k.Status = openapi.FORBIDDEN
+		k.Status = StatusForbidden
 		k.message = fmt.Sprintf("client IP %s is not in the whitelist", clientIP)
 	}
+
 	return nil
 }
 
@@ -196,7 +243,7 @@ func (k *KeyVerifier) withPermissions(ctx context.Context, query rbac.Permission
 
 	if !allowed.Valid {
 		k.Valid = false
-		k.Status = openapi.FORBIDDEN
+		k.Status = StatusInsufficientPermissions
 		k.message = allowed.Message
 	}
 
@@ -212,82 +259,125 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []stri
 	return nil
 }
 
-// ToError converts the verification result to an appropriate fault error for root keys
-func (k *KeyVerifier) toError() error {
+// ToFault converts the verification result to an appropriate fault error.
+// This matches the error messages from both TypeScript service and old_keys service.
+func (k *KeyVerifier) ToFault() error {
 	if k.Valid {
 		return nil
 	}
 
-	// For root keys, return structured fault errors
-	if k.IsRootKey {
-		switch k.Status {
-		case openapi.FORBIDDEN:
-			// Use specific permission message if available
-			publicMsg := "Insufficient permissions to access this resource."
-			internalMsg := "key verification failed permission check"
-			if k.message != "" {
-				publicMsg = k.message
-				internalMsg = k.message
-			}
-			return fault.New("insufficient permissions",
-				fault.Code(codes.Auth.Authorization.InsufficientPermissions.URN()),
-				fault.Internal(internalMsg),
-				fault.Public(publicMsg),
-			)
-		case openapi.DISABLED:
-			// Use specific message if available
-			publicMsg := "The key is disabled."
-			internalMsg := "key is disabled"
-			if k.message != "" {
-				publicMsg = k.message
-				internalMsg = k.message
-			}
-			return fault.New("key is disabled",
-				fault.Code(codes.Auth.Authorization.KeyDisabled.URN()),
-				fault.Internal(internalMsg),
-				fault.Public(publicMsg),
-			)
-		case openapi.NOTFOUND:
-			return fault.New("key not found",
-				fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
-				fault.Internal("key does not exist"),
-				fault.Public("We could not find the requested key."),
-			)
-		case openapi.EXPIRED:
-			// Use specific message if available
-			publicMsg := "The key has expired."
-			internalMsg := "key has expired"
-			if k.message != "" {
-				publicMsg = k.message
-				internalMsg = k.message
-			}
-			return fault.New("key has expired",
-				fault.Code(codes.Auth.Authorization.Forbidden.URN()),
-				fault.Internal(internalMsg),
-				fault.Public(publicMsg),
-			)
-		case openapi.USAGEEXCEEDED:
-			// Use specific message if available
-			publicMsg := "Key usage limit exceeded."
-			internalMsg := "key usage limit exceeded"
-			if k.message != "" {
-				publicMsg = k.message
-				internalMsg = k.message
-			}
-			return fault.New("key usage limit exceeded",
-				fault.Code(codes.Auth.Authorization.Forbidden.URN()),
-				fault.Internal(internalMsg),
-				fault.Public(publicMsg),
-			)
-		default:
-			return fault.New("key verification failed",
-				fault.Code(codes.Auth.Authorization.Forbidden.URN()),
-				fault.Internal("key verification failed with unknown status"),
-				fault.Public("Key verification failed."),
-			)
+	switch k.Status {
+	case StatusNotFound:
+		return fault.New("key does not exist",
+			fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
+			fault.Internal("key does not exist"),
+			fault.Public("We could not find the requested key."),
+		)
+	case StatusDisabled:
+		message := k.message
+		if message == "" {
+			message = "the key is disabled"
 		}
+		return fault.New("key is disabled",
+			fault.Code(codes.Auth.Authorization.KeyDisabled.URN()),
+			fault.Internal(message),
+			fault.Public("The key is disabled."),
+		)
+	case StatusExpired:
+		message := k.message
+		if message == "" {
+			message = "the key has expired"
+		}
+		return fault.New("key has expired",
+			fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+			fault.Internal(message),
+			fault.Public(message),
+		)
+	case StatusWorkspaceDisabled:
+		return fault.New("workspace is disabled",
+			fault.Code(codes.Auth.Authorization.WorkspaceDisabled.URN()),
+			fault.Internal("workspace disabled"),
+			fault.Public("The workspace is disabled."),
+		)
+	case StatusWorkspaceNotFound:
+		return fault.New("workspace not found",
+			fault.Code(codes.Data.Workspace.NotFound.URN()),
+			fault.Internal("workspace disabled"),
+			fault.Public("The requested workspace does not exist."),
+		)
+	case StatusForbidden:
+		message := k.message
+		if message == "" {
+			message = "Forbidden"
+		}
+		return fault.New("forbidden",
+			fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+			fault.Internal(message),
+			fault.Public(message),
+		)
+	case StatusInsufficientPermissions:
+		message := k.message
+		if message == "" {
+			message = "Insufficient permissions to access this resource."
+		}
+		return fault.New("insufficient permissions",
+			fault.Code(codes.Auth.Authorization.InsufficientPermissions.URN()),
+			fault.Internal(message),
+			fault.Public(message),
+		)
+	case StatusUsageExceeded:
+		message := k.message
+		if message == "" {
+			message = "Key usage limit exceeded."
+		}
+		return fault.New("key usage limit exceeded",
+			fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+			fault.Internal(message),
+			fault.Public(message),
+		)
+	case StatusRateLimited:
+		message := k.message
+		if message == "" {
+			message = "Rate limit exceeded"
+		}
+		return fault.New("rate limit exceeded",
+			fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+			fault.Internal(message),
+			fault.Public(message),
+		)
+	default:
+		return fault.New("key verification failed",
+			fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+			fault.Internal("key verification failed with unknown status"),
+			fault.Public("Key verification failed."),
+		)
 	}
+}
 
-	// For normal keys, return nil (no error) - they handle invalid state internally
-	return nil
+// ToOpenAPIStatus converts our KeyStatus to the OpenAPI status type
+func (k *KeyVerifier) ToOpenAPIStatus() openapi.KeysVerifyKeyResponseDataCode {
+	switch k.Status {
+	case StatusValid:
+		return openapi.VALID
+	case StatusNotFound:
+		return openapi.NOTFOUND
+	case StatusDisabled:
+		return openapi.DISABLED
+	case StatusExpired:
+		return openapi.EXPIRED
+	case StatusForbidden:
+		return openapi.FORBIDDEN
+	case StatusInsufficientPermissions:
+		return openapi.INSUFFICIENTPERMISSIONS
+	case StatusUsageExceeded:
+		return openapi.USAGEEXCEEDED
+	case StatusRateLimited:
+		// OpenAPI doesn't have RATE_LIMITED, so use FORBIDDEN
+		return openapi.FORBIDDEN
+	case StatusWorkspaceDisabled:
+		// OpenAPI doesn't have WORKSPACE_DISABLED, so use FORBIDDEN
+		return openapi.FORBIDDEN
+	default:
+		return openapi.FORBIDDEN
+	}
 }

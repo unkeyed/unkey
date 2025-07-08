@@ -1,22 +1,18 @@
 package handler_test
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_get_api"
-	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestGetApiInsufficientPermissions(t *testing.T) {
-	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
@@ -27,15 +23,7 @@ func TestGetApiInsufficientPermissions(t *testing.T) {
 
 	h.Register(route)
 
-	// Create a test API
-	apiID := uid.New(uid.APIPrefix)
-	err := db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-		ID:          apiID,
-		Name:        "test-api-permissions",
-		WorkspaceID: h.Resources().UserWorkspace.ID,
-		CreatedAtM:  time.Now().UnixMilli(),
-	})
-	require.NoError(t, err)
+	api := h.CreateApi(h.Resources().UserWorkspace.ID, false)
 
 	testCases := []struct {
 		name        string
@@ -55,7 +43,7 @@ func TestGetApiInsufficientPermissions(t *testing.T) {
 		},
 		{
 			name:        "wrong scope for specific api",
-			permissions: []string{fmt.Sprintf("api.%s.create_api", apiID)},
+			permissions: []string{fmt.Sprintf("api.%s.create_api", api.ID)},
 		},
 		{
 			name:        "permission for different api",
@@ -80,7 +68,7 @@ func TestGetApiInsufficientPermissions(t *testing.T) {
 				route,
 				headers,
 				handler.Request{
-					ApiId: apiID,
+					ApiId: api.ID,
 				},
 			)
 
@@ -107,7 +95,7 @@ func TestGetApiInsufficientPermissions(t *testing.T) {
 			route,
 			headers,
 			handler.Request{
-				ApiId: apiID,
+				ApiId: api.ID,
 			},
 		)
 

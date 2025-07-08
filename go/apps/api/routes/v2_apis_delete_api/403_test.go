@@ -1,23 +1,18 @@
 package handler_test
 
 import (
-	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_delete_api"
-	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestAuthorizationErrors(t *testing.T) {
-	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
@@ -33,29 +28,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	// Create a workspace
 	workspace := h.Resources().UserWorkspace
 
-	// Create an API for testing
-
-	keyAuthID := uid.New(uid.KeyAuthPrefix)
-	err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-		ID:                 keyAuthID,
-		WorkspaceID:        h.Resources().UserWorkspace.ID,
-		CreatedAtM:         h.Clock.Now().UnixMilli(),
-		DefaultPrefix:      sql.NullString{Valid: false, String: ""},
-		DefaultBytes:       sql.NullInt32{Valid: false, Int32: 0},
-		StoreEncryptedKeys: false,
-	})
-	require.NoError(t, err)
-
-	apiID := uid.New(uid.APIPrefix)
-	err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-		ID:          apiID,
-		Name:        "Test API",
-		WorkspaceID: h.Resources().UserWorkspace.ID,
-		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
-		CreatedAtM:  time.Now().UnixMilli(),
-	})
-	require.NoError(t, err)
+	api := h.CreateApi(h.Resources().UserWorkspace.ID, false)
 
 	// Test case for insufficient permissions - missing delete_api
 	t.Run("missing delete_api permission", func(t *testing.T) {
@@ -68,7 +41,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ApiId: apiID,
+			ApiId: api.ID,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
@@ -99,7 +72,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ApiId: apiID, // Using the test API, not the one we have permission for
+			ApiId: api.ID,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
@@ -117,10 +90,7 @@ func TestAuthorizationErrors(t *testing.T) {
 
 	// Test case for wrong workspace
 	t.Run("wrong workspace", func(t *testing.T) {
-		// Create a different workspace
-
-		// Create a root key for the other workspace
-		rootKey := h.CreateRootKey(uid.New(uid.TestPrefix), "api.*.delete_api")
+		rootKey := h.CreateRootKey(uid.New(uid.WorkspacePrefix), "api.*.delete_api")
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -128,7 +98,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ApiId: apiID, // API is in the original workspace
+			ApiId: api.ID,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](

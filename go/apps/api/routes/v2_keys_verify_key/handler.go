@@ -110,7 +110,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	res.Data.Code = key.Status
+	res.Data.Code = key.ToOpenAPIStatus()
 	res.Data.Valid = key.Valid
 
 	return s.JSON(http.StatusOK, res)

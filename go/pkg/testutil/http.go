@@ -208,6 +208,10 @@ func (h *Harness) CreateWorkspace() db.Workspace {
 	return h.seeder.CreateWorkspace(context.Background())
 }
 
+func (h *Harness) CreateApi(workspaceID string, encrypted bool) db.Api {
+	return h.seeder.CreateAPI(context.Background(), workspaceID, encrypted)
+}
+
 func (h *Harness) Resources() seed.Resources {
 	return h.seeder.Resources
 }

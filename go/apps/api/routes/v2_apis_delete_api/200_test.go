@@ -44,38 +44,18 @@ func TestSuccess(t *testing.T) {
 
 	// Test case for deleting an API without keys
 	t.Run("delete api without keys", func(t *testing.T) {
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        h.Resources().UserWorkspace.ID,
-			CreatedAtM:         time.Now().UnixMilli(),
-			DefaultPrefix:      sql.NullString{Valid: false, String: ""},
-			DefaultBytes:       sql.NullInt32{Valid: false, Int32: 0},
-			StoreEncryptedKeys: false,
-		})
-		require.NoError(t, err)
-
-		apiID := uid.New(uid.APIPrefix)
-		err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-			ID:          apiID,
-			Name:        "Test API",
-			WorkspaceID: h.Resources().UserWorkspace.ID,
-			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-			KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
-			CreatedAtM:  time.Now().UnixMilli(),
-		})
-		require.NoError(t, err)
+		api := h.CreateApi(h.Resources().UserWorkspace.ID, false)
 
 		// Ensure API exists before deletion
-		apiBeforeDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
+		apiBeforeDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), api.ID)
 		require.NoError(t, err)
 
-		require.Equal(t, apiID, apiBeforeDelete.ID)
+		require.Equal(t, api.ID, apiBeforeDelete.ID)
 		require.False(t, apiBeforeDelete.DeletedAtM.Valid)
 
 		// Delete the API
 		req := handler.Request{
-			ApiId: apiID,
+			ApiId: api.ID,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -90,42 +70,20 @@ func TestSuccess(t *testing.T) {
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 
 		// Verify API is marked as deleted
-		apiAfterDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
+		apiAfterDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), api.ID)
 		require.NoError(t, err) // Should still find it, just marked as deleted
 		require.True(t, apiAfterDelete.DeletedAtM.Valid)
 	})
 
 	// Test case for deleting an API with active keys
 	t.Run("delete api with active keys", func(t *testing.T) {
-		// Create keyring for the API
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        h.Resources().UserWorkspace.ID,
-			CreatedAtM:         time.Now().UnixMilli(),
-			DefaultPrefix:      sql.NullString{Valid: false, String: ""},
-			DefaultBytes:       sql.NullInt32{Valid: false, Int32: 0},
-			StoreEncryptedKeys: false,
-		})
-		require.NoError(t, err)
-
-		// Create the API
-		apiID := uid.New(uid.APIPrefix)
-		err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-			ID:          apiID,
-			Name:        "Test API With Keys",
-			WorkspaceID: h.Resources().UserWorkspace.ID,
-			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-			KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
-			CreatedAtM:  time.Now().UnixMilli(),
-		})
-		require.NoError(t, err)
+		api := h.CreateApi(h.Resources().UserWorkspace.ID, false)
 
 		// Create a key associated with this API
 		keyID := uid.New(uid.KeyPrefix)
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
+		err := db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 			ID:          keyID,
-			KeyringID:   keyAuthID,
+			KeyringID:   api.KeyAuthID.String,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			CreatedAtM:  time.Now().UnixMilli(),
 			// Add other required fields based on your schema
@@ -135,14 +93,14 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		// Ensure API exists before deletion
-		apiBeforeDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
+		apiBeforeDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), api.ID)
 		require.NoError(t, err)
-		require.Equal(t, apiID, apiBeforeDelete.ID)
+		require.Equal(t, api.ID, apiBeforeDelete.ID)
 		require.False(t, apiBeforeDelete.DeletedAtM.Valid)
 
 		// Delete the API
 		req := handler.Request{
-			ApiId: apiID,
+			ApiId: api.ID,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -157,7 +115,7 @@ func TestSuccess(t *testing.T) {
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 
 		// Verify API is marked as deleted
-		apiAfterDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
+		apiAfterDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), api.ID)
 		require.NoError(t, err)
 		require.True(t, apiAfterDelete.DeletedAtM.Valid)
 
@@ -181,29 +139,18 @@ func TestSuccess(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// Create the API
-		apiID := uid.New(uid.APIPrefix)
-		apiName := "Test Immediate Delete API"
-		err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-			ID:          apiID,
-			Name:        apiName,
-			WorkspaceID: h.Resources().UserWorkspace.ID,
-			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-			KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
-			CreatedAtM:  time.Now().UnixMilli(),
-		})
-		require.NoError(t, err)
+		api := h.CreateApi(h.Resources().UserWorkspace.ID, false)
 
 		// Verify the API was created
-		apiBeforeDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
+		apiBeforeDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), api.ID)
 		require.NoError(t, err)
-		require.Equal(t, apiID, apiBeforeDelete.ID)
-		require.Equal(t, apiName, apiBeforeDelete.Name)
+		require.Equal(t, api.ID, apiBeforeDelete.ID)
+		require.Equal(t, api.Name, apiBeforeDelete.Name)
 		require.False(t, apiBeforeDelete.DeletedAtM.Valid)
 
 		// Immediately delete the API without any delay
 		req := handler.Request{
-			ApiId: apiID,
+			ApiId: api.ID,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -218,7 +165,7 @@ func TestSuccess(t *testing.T) {
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 
 		// Verify API is marked as deleted
-		apiAfterDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
+		apiAfterDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), api.ID)
 		require.NoError(t, err)
 		require.True(t, apiAfterDelete.DeletedAtM.Valid)
 	})
