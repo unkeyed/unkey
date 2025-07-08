@@ -1,7 +1,6 @@
 import { ChevronLeft, ChevronRight } from "@unkey/icons";
 import { format } from "date-fns";
-import { useState } from "react";
-// biome-ignore lint/correctness/noUnusedImports: otherwise biome complains
+// biome-ignore lint/correctness/noUnusedImports: Biome is not happy
 import React from "react";
 import {
   type CaptionProps,
@@ -99,51 +98,77 @@ export const Calendar = ({
   ...props
 }: CalendarProps) => {
   const { date, onDateChange, minDate, maxDate } = useDateTimeContext();
-  const [singleDay, setSingleDay] = useState<Date | undefined>(date?.from);
 
-  const handleChange = (newDate: DateRange | undefined) => {
-    //  No date selected (user cleared the selection)
+  const handleRangeChange = (newRange: DateRange | undefined) => {
+    // Clear selection
+    if (!newRange) {
+      onDateChange({ from: undefined, to: undefined });
+      return;
+    }
+
+    const { from, to } = newRange;
+
+    // shouldn't happen
+    if (!from) {
+      onDateChange({ from: undefined, to: undefined });
+      return;
+    }
+
+    // First click or incomplete range, just set start date
+    if (!to) {
+      onDateChange({ from, to: undefined });
+      return;
+    }
+
+    // We have both from and to dates
+    const fromTime = from.getTime();
+    const toTime = to.getTime();
+
+    // If dates are the same, this is the first click of range selection
+    // react-day-picker sets both from/to to same date initially
+    if (fromTime === toTime) {
+      // Check if this is actually a double-click on existing selection
+      if (date?.from && date.from.getTime() === fromTime && !date.to) {
+        // User clicked same date twice, clear selection
+        onDateChange({ from: undefined, to: undefined });
+        return;
+      }
+
+      // First click of range, set start date
+      onDateChange({ from, to: undefined });
+      return;
+    }
+
+    // Different dates, complete the range
+    // Check if user clicked on existing boundary to start new selection
+    if (date?.from && date?.to) {
+      const existingStart = date.from.getTime();
+      const existingEnd = date.to.getTime();
+
+      if (fromTime === existingStart || fromTime === existingEnd) {
+        // Clicked existing boundary, start new selection
+        onDateChange({ from, to: undefined });
+        return;
+      }
+    }
+
+    // Normal range completion
+    onDateChange({ from, to });
+  };
+
+  const handleSingleChange = (newDate: Date | undefined) => {
     if (!newDate) {
       onDateChange({ from: undefined, to: undefined });
       return;
     }
 
-    //  End date was moved later than current end date
-    // This resets the "from" date while keeping the new "to" date
-    if (
-      date?.from &&
-      date?.to &&
-      newDate?.to instanceof Date &&
-      newDate.to.getTime() > date.to.getTime()
-    ) {
-      onDateChange({ from: undefined, to: newDate.to });
-      return;
-    }
-
-    // User clicked on either boundary of existing range
-    // This resets the entire range when clicking on start or end date
-    if (
-      date?.from &&
-      date?.to &&
-      (newDate.from?.getTime() === date.from.getTime() ||
-        newDate.from?.getTime() === date.to.getTime())
-    ) {
+    // Toggle selection if same date clicked
+    if (date?.from && date.from.getTime() === newDate.getTime()) {
       onDateChange({ from: undefined, to: undefined });
       return;
     }
 
-    // Update with the new date range as is
-    onDateChange(newDate);
-  };
-
-  const handleSingleChange = (newDate: Date | undefined) => {
-    if (singleDay && newDate && singleDay.getTime() === newDate.getTime()) {
-      setSingleDay(undefined);
-      onDateChange({ from: undefined, to: undefined });
-      return;
-    }
     onDateChange({ from: newDate, to: undefined });
-    setSingleDay(newDate);
   };
 
   const getDisabledMatcher = (): Matcher | Matcher[] | undefined => {
@@ -157,8 +182,8 @@ export const Calendar = ({
       matchers.push({ after: maxDate });
     }
 
-    if (disabledDates && disabledDates.length > 0) {
-      disabledDates.forEach((dateRange) => {
+    if (disabledDates?.length) {
+      for (const dateRange of disabledDates) {
         if (dateRange.from && dateRange.to) {
           matchers.push({ from: dateRange.from, to: dateRange.to });
         } else if (dateRange.before) {
@@ -166,7 +191,7 @@ export const Calendar = ({
         } else if (dateRange.after) {
           matchers.push({ after: dateRange.after });
         }
-      });
+      }
     }
 
     return matchers.length > 0 ? matchers : undefined;
@@ -187,22 +212,10 @@ export const Calendar = ({
   };
 
   if (mode === "range") {
-    return (
-      <DayPicker
-        {...commonProps}
-        mode="range"
-        selected={date}
-        onSelect={(date: DateRange | undefined) => (date ? handleChange(date) : undefined)}
-      />
-    );
+    return <DayPicker {...commonProps} mode="range" selected={date} onSelect={handleRangeChange} />;
   }
 
   return (
-    <DayPicker
-      {...commonProps}
-      mode="single"
-      selected={singleDay}
-      onSelect={(date: Date | undefined) => handleSingleChange(date)}
-    />
+    <DayPicker {...commonProps} mode="single" selected={date?.from} onSelect={handleSingleChange} />
   );
 };
