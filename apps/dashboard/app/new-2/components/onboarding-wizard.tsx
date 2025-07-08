@@ -87,7 +87,7 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
   };
 
   return (
-    <div className="border-gray-5 border rounded-2xl">
+    <div className="border-gray-5 border rounded-2xl flex flex-col h-auto max-h-[400px] sm:max-h-[500px] md:max-h-[600px] lg:max-h-[700px] xl:max-h-[800px]">
       {/* Navigation part */}
       <div className="pl-2 pr-[14px] py-3 h-10 bg-gray-2 rounded-t-[15px] flex items-center">
         {/* Back button and current step name*/}
@@ -147,28 +147,31 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
           )}
         </div>
       </div>
-      <div className="border-t border-gray-5 p-10">
-        {/* Step content */}
-        {currentStep.body}
+      <div className="border-t border-gray-5 p-10 flex flex-col flex-1 min-h-0">
+        {/* Scrollable step content */}
+        <div className="flex-1 overflow-y-auto min-h-0 scrollbar-hide">{currentStep.body}</div>
 
         <div className="mt-8" />
         <Separator className="my-2" />
         <div className="mb-8" />
 
-        <Button
-          size="xlg"
-          className="w-full rounded-lg"
-          onClick={handleNext}
-          disabled={
-            currentStep.kind === "required"
-              ? currentStep.validFieldCount !== currentStep.requiredFieldCount
-              : false
-          }
-        >
-          {currentStep.buttonText}
-        </Button>
-        <div className="text-gray-9 leading-6 text-xs text-center mt-2">
-          {currentStep.description}
+        {/* Fixed footer */}
+        <div className="flex-shrink-0">
+          <Button
+            size="xlg"
+            className="w-full rounded-lg"
+            onClick={handleNext}
+            disabled={
+              currentStep.kind === "required"
+                ? currentStep.validFieldCount !== currentStep.requiredFieldCount
+                : false
+            }
+          >
+            {currentStep.buttonText}
+          </Button>
+          <div className="text-gray-9 leading-6 text-xs text-center mt-2">
+            {currentStep.description}
+          </div>
         </div>
       </div>
     </div>
