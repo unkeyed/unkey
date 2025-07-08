@@ -1,11 +1,9 @@
 name: Deploy API Canary
 on:
   workflow_call:
-    secrets: 
-      CLOUDFLARE_API_TOKEN: 
+    secrets:
+      CLOUDFLARE_API_TOKEN:
         required: true
-
-    
 
 jobs:
   deploy:
@@ -18,6 +16,7 @@ jobs:
         uses: ./.github/actions/install
         with:
           ts: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build
         run: pnpm turbo run build --filter='./apps/api'

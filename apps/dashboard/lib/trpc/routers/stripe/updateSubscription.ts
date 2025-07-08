@@ -17,7 +17,10 @@ export const updateSubscription = t.procedure
   .mutation(async ({ ctx, input }) => {
     const e = stripeEnv();
     if (!e) {
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Stripe is not set up" });
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Stripe is not set up",
+      });
     }
 
     const stripe = new Stripe(e.STRIPE_SECRET_KEY, {
@@ -66,7 +69,11 @@ export const updateSubscription = t.procedure
       });
     }
 
-    const item = sub.items.data.find((i) => i.plan.product!.toString() === oldProduct.id);
+    const item = sub.items.data.find((i) => {
+      const product = i.plan.product;
+      return product && product.toString() === oldProduct.id;
+    });
+
     if (!item) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
@@ -74,8 +81,22 @@ export const updateSubscription = t.procedure
       });
     }
 
-    await stripe.subscriptionItems.update(item.id!, {
-      price: newProduct.default_price!.toString(),
+    if (!item.id) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Subscription item is missing an ID.",
+      });
+    }
+
+    if (!newProduct.default_price) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: `Product ${newProduct.id} is missing a default price.`,
+      });
+    }
+
+    await stripe.subscriptionItems.update(item.id, {
+      price: newProduct.default_price.toString(),
       proration_behavior: "always_invoice",
     });
 

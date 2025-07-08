@@ -1,4 +1,4 @@
-import type { Roles } from "@/lib/trpc/routers/authorization/roles/query";
+import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { cn } from "@/lib/utils";
 
 export type StatusStyle = {
@@ -23,9 +23,9 @@ export const STATUS_STYLES = {
   focusRing: "focus:ring-accent-7",
 };
 
-export const getRowClassName = (log: Roles, selectedLog: Roles | null) => {
+export const getRowClassName = (role: RoleBasic, selectedLog: RoleBasic | null) => {
   const style = STATUS_STYLES;
-  const isSelected = log.roleId === selectedLog?.roleId;
+  const isSelected = role.roleId === selectedLog?.roleId;
 
   return cn(
     style.base,

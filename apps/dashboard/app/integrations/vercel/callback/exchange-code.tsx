@@ -19,14 +19,22 @@ export async function exchangeCode(code: string): Promise<
 > {
   const url = "https://api.vercel.com/v2/oauth/access_token";
   const method = "POST";
+
+  const env = vercelIntegrationEnv();
+  if (!env?.VERCEL_INTEGRATION_CLIENT_ID || !env?.VERCEL_INTEGRATION_CLIENT_SECRET) {
+    throw new Error(
+      "Vercel integration environment variables are not configured. Check VERCEL_INTEGRATION_CLIENT_ID and VERCEL_INTEGRATION_CLIENT_SECRET.",
+    );
+  }
+
   const res = await fetch(url, {
     method,
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: new URLSearchParams({
-      client_id: vercelIntegrationEnv()!.VERCEL_INTEGRATION_CLIENT_ID,
-      client_secret: vercelIntegrationEnv()!.VERCEL_INTEGRATION_CLIENT_SECRET,
+      client_id: env.VERCEL_INTEGRATION_CLIENT_ID,
+      client_secret: env.VERCEL_INTEGRATION_CLIENT_SECRET,
       code,
       redirect_uri: "http://localhost:3000/integrations/vercel/callback",
     }),

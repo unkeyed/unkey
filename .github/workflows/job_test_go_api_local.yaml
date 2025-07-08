@@ -18,6 +18,7 @@ jobs:
         uses: ./.github/actions/install
         with:
           go: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Test
         run: go test -shuffle=on -timeout=60m $(go run ./scripts/shard-test ${{ matrix.shard }})
