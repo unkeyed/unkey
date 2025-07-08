@@ -29,6 +29,7 @@ test("create with permissions", async (t) => {
     permissions: ["domain.create", "dns.record.create"],
   });
   expect(create.error).toBeUndefined();
+  // biome-ignore lint/style/noNonNullAssertion: Safe to leave
   const key = create.result!.key;
 
   const verify = await sdk.keys.verify({
@@ -42,5 +43,5 @@ test("create with permissions", async (t) => {
   expect(verify.error).toBeUndefined();
   expect(verify.result).toBeDefined();
 
-  expect(verify.result!.valid).toBe(true);
+  expect(verify.result?.valid).toBe(true);
 }, 10_000);

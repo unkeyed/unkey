@@ -54,6 +54,7 @@ export async function upsertPermission(
       });
     await insertAuditLogs(tx, {
       workspaceId,
+      // biome-ignore lint/style/noNonNullAssertion: Safe to leave
       actor: { type: "user", id: ctx.user!.id },
       event: "permission.create",
       description: `Created ${permission.id}`,

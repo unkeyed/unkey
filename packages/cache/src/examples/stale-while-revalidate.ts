@@ -23,7 +23,9 @@ const memory = new MemoryStore({ persistentMap: new Map() });
  */
 const cloudflare = new CloudflareStore({
   domain: "cache.unkey.dev",
+  // biome-ignore lint/style/noNonNullAssertion: <explanation>
   zoneId: process.env.CLOUDFLARE_ZONE_ID!,
+  // biome-ignore lint/style/noNonNullAssertion: <explanation>
   cloudflareApiKey: process.env.CLOUDFLARE_API_KEY!,
 });
 

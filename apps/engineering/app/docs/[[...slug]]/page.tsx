@@ -17,18 +17,6 @@ export default async function Page(props: {
     notFound();
   }
 
-  if (page.slugs.length === 0) {
-    return (
-      <div className="min-h-screen border text-center -mt-16 pt-16 flex items-center w-screen justify-center ">
-        <div>
-          <h1 className="text-7xl md:text-8xl font-bold  leading-none  uppercase tracking-tight">
-            Docs
-          </h1>
-          <p className="text-xl mt-8 font-light ">Check the sidebar</p>
-        </div>
-      </div>
-    );
-  }
   const MDX = page.data.body;
 
   return (
