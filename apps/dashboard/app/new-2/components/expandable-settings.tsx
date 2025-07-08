@@ -84,7 +84,7 @@ export const ExpandableSettings = ({
               style={{ left: `${14 + 4}px` }}
             />
             {/* Content */}
-            <div className="py-6 px-10">
+            <div className="py-6 px-10 text-start">
               {typeof children === "function" ? children(isEnabled) : children}
             </div>
           </div>

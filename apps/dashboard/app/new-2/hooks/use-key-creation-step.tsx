@@ -1,7 +1,10 @@
 import { UsageSetup } from "@/app/(app)/apis/[apiId]/_components/create-key/components/credits-setup";
 import { ExpirationSetup } from "@/app/(app)/apis/[apiId]/_components/create-key/components/expiration-setup";
 import { GeneralSetup } from "@/app/(app)/apis/[apiId]/_components/create-key/components/general-setup";
-import { MetadataSetup } from "@/app/(app)/apis/[apiId]/_components/create-key/components/metadata-setup";
+import {
+  EXAMPLE_JSON,
+  MetadataSetup,
+} from "@/app/(app)/apis/[apiId]/_components/create-key/components/metadata-setup";
 import { RatelimitSetup } from "@/app/(app)/apis/[apiId]/_components/create-key/components/ratelimit-setup";
 import {
   type FormValues,
@@ -11,6 +14,7 @@ import { getDefaultValues } from "@/app/(app)/apis/[apiId]/_components/create-ke
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarClock, ChartPie, Code, Gauge, Key2, StackPerspective2 } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
+import { addDays } from "date-fns";
 import { useRef } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -118,6 +122,11 @@ export const useKeyCreationStep = (): OnboardingStep => {
                   defaultChecked={methods.watch("expiration.enabled")}
                   onCheckedChange={(checked) => {
                     methods.setValue("expiration.enabled", checked);
+                    const currentExpiryDate = methods.getValues("expiration.data");
+                    // Set default expiry date (1 day) when enabling if not already set
+                    if (checked && !currentExpiryDate) {
+                      methods.setValue("expiration.data", addDays(new Date(), 1));
+                    }
                     methods.trigger("expiration");
                   }}
                 >
@@ -132,6 +141,11 @@ export const useKeyCreationStep = (): OnboardingStep => {
                   defaultChecked={methods.watch("metadata.enabled")}
                   onCheckedChange={(checked) => {
                     methods.setValue("metadata.enabled", checked);
+                    const currentMetadata = methods.getValues("metadata.data");
+                    if (checked && !currentMetadata) {
+                      methods.setValue("metadata.data", JSON.stringify(EXAMPLE_JSON, null, 2));
+                    }
+
                     methods.trigger("metadata");
                   }}
                 >
