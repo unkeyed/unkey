@@ -157,43 +157,34 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 	// Wait for build completion with polling (max 150 attempts = 5 minutes)
 	w.logger.Info("starting build status polling", "build_id", buildID, "max_attempts", 150)
-	var buildResult *BuildResult
-	lastStatus := ""
-
-	for attempt := 1; attempt <= 150; attempt++ {
-		w.logger.Info("checking build status", "build_id", buildID, "attempt", attempt)
+	
+	buildResult, err := hydra.Step(ctx, "poll-build-status", func(stepCtx context.Context) (*BuildResult, error) {
+		var lastStatus string
 		
-		currentBuildStatus, err := hydra.Step(ctx, fmt.Sprintf("check-build-status-%d", attempt), func(stepCtx context.Context) (*builder.BuildInfo, error) {
+		for attempt := 1; attempt <= 150; attempt++ {
+			w.logger.Info("checking build status", "build_id", buildID, "attempt", attempt)
+			
 			buildStatus, statusErr := w.builderService.GetBuildStatus(stepCtx, buildID)
 			if statusErr != nil {
+				w.logger.Error("failed to get build status", "error", statusErr, "build_id", buildID, "attempt", attempt)
 				return nil, fmt.Errorf("failed to get build status: %w", statusErr)
 			}
 
-			w.logger.Info("build status check", "build_id", buildID, "status", string(buildStatus.Status), "attempt", attempt)
-			return buildStatus, nil
-		})
-		if err != nil {
-			w.logger.Error("failed to check build status", "error", err, "build_id", buildID, "attempt", attempt)
-			return err
-		}
+			currentStatus := string(buildStatus.Status)
+			w.logger.Info("build status check", "build_id", buildID, "status", currentStatus, "attempt", attempt)
 
-		currentStatus := string(currentBuildStatus.Status)
-
-		// Skip database update if status hasn't changed
-		if currentStatus == lastStatus {
-			w.logger.Info("build status unchanged, skipping database update", "build_id", buildID, "status", currentStatus, "attempt", attempt)
-		} else {
-			w.logger.Info("build status changed, updating database", "build_id", buildID, "old_status", lastStatus, "new_status", currentStatus, "attempt", attempt)
-			_, err = hydra.Step(ctx, fmt.Sprintf("update-build-status-%d", attempt), func(updateCtx context.Context) (*struct{}, error) {
+			// Update database if status has changed
+			if currentStatus != lastStatus {
+				w.logger.Info("build status changed, updating database", "build_id", buildID, "old_status", lastStatus, "new_status", currentStatus, "attempt", attempt)
 				now := time.Now().UnixMilli()
 
-				switch currentBuildStatus.Status {
+				switch buildStatus.Status {
 				case builder.BuildStatusQueued:
 					w.logger.Info("build is queued, no database update needed", "build_id", buildID)
 
 				case builder.BuildStatusRunning:
 					w.logger.Info("updating build status to running", "build_id", buildID)
-					runningErr := db.Query.UpdateBuildStatus(updateCtx, w.db.RW(), db.UpdateBuildStatusParams{
+					runningErr := db.Query.UpdateBuildStatus(stepCtx, w.db.RW(), db.UpdateBuildStatusParams{
 						ID:     buildID,
 						Status: db.BuildsStatusRunning,
 						Now:    sql.NullInt64{Valid: true, Int64: now},
@@ -205,7 +196,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 				case builder.BuildStatusSuccess:
 					w.logger.Info("updating build status to succeeded", "build_id", buildID)
-					successErr := db.Query.UpdateBuildSucceeded(updateCtx, w.db.RW(), db.UpdateBuildSucceededParams{
+					successErr := db.Query.UpdateBuildSucceeded(stepCtx, w.db.RW(), db.UpdateBuildSucceededParams{
 						ID:  buildID,
 						Now: sql.NullInt64{Valid: true, Int64: now},
 					})
@@ -215,10 +206,10 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 					w.logger.Info("build status updated to succeeded", "build_id", buildID)
 
 				case builder.BuildStatusFailed:
-					w.logger.Info("updating build status to failed", "build_id", buildID, "error", currentBuildStatus.ErrorMsg)
-					failedErr := db.Query.UpdateBuildFailed(updateCtx, w.db.RW(), db.UpdateBuildFailedParams{
+					w.logger.Info("updating build status to failed", "build_id", buildID, "error", buildStatus.ErrorMsg)
+					failedErr := db.Query.UpdateBuildFailed(stepCtx, w.db.RW(), db.UpdateBuildFailedParams{
 						ID:           buildID,
-						ErrorMessage: sql.NullString{String: currentBuildStatus.ErrorMsg, Valid: currentBuildStatus.ErrorMsg != ""},
+						ErrorMessage: sql.NullString{String: buildStatus.ErrorMsg, Valid: buildStatus.ErrorMsg != ""},
 						Now:          sql.NullInt64{Valid: true, Int64: now},
 					})
 					if failedErr != nil {
@@ -228,7 +219,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 					// Also update version status to failed
 					w.logger.Info("updating version status to failed", "version_id", req.VersionID)
-					versionErr := db.Query.UpdateVersionStatus(updateCtx, w.db.RW(), db.UpdateVersionStatusParams{
+					versionErr := db.Query.UpdateVersionStatus(stepCtx, w.db.RW(), db.UpdateVersionStatusParams{
 						ID:     req.VersionID,
 						Status: db.VersionsStatusFailed,
 						Now:    sql.NullInt64{Valid: true, Int64: now},
@@ -238,53 +229,48 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 					}
 					w.logger.Info("version status updated to failed", "version_id", req.VersionID)
 				}
-
-				return &struct{}{}, nil
-			})
-			if err != nil {
-				w.logger.Error("failed to update build status", "error", err, "status", currentStatus, "attempt", attempt)
-				return err
+				lastStatus = currentStatus
+			} else {
+				w.logger.Info("build status unchanged, skipping database update", "build_id", buildID, "status", currentStatus, "attempt", attempt)
 			}
-			lastStatus = currentStatus
-		}
 
-		// Check if build is complete
-		switch currentBuildStatus.Status {
-		case builder.BuildStatusSuccess:
-			w.logger.Info("build completed successfully", "build_id", buildID, "attempt", attempt)
-			buildResult = &BuildResult{
-				BuildID:  buildID,
-				Status:   "succeeded",
-				ErrorMsg: "",
-			}
-			goto buildComplete
+			// Check if build is complete
+			switch buildStatus.Status {
+			case builder.BuildStatusSuccess:
+				w.logger.Info("build completed successfully", "build_id", buildID, "attempt", attempt)
+				return &BuildResult{
+					BuildID:  buildID,
+					Status:   "succeeded",
+					ErrorMsg: "",
+				}, nil
 
-		case builder.BuildStatusFailed:
-			w.logger.Info("build failed", "build_id", buildID, "attempt", attempt, "error", currentBuildStatus.ErrorMsg)
-			buildResult = &BuildResult{
-				BuildID:  buildID,
-				Status:   "failed",
-				ErrorMsg: currentBuildStatus.ErrorMsg,
-			}
-			goto buildComplete
+			case builder.BuildStatusFailed:
+				w.logger.Info("build failed", "build_id", buildID, "attempt", attempt, "error", buildStatus.ErrorMsg)
+				return &BuildResult{
+					BuildID:  buildID,
+					Status:   "failed",
+					ErrorMsg: buildStatus.ErrorMsg,
+				}, nil
 
-		default:
-			// Still building, sleep before next attempt (except on last attempt)
-			if attempt < 150 {
-				w.logger.Info("build still in progress, sleeping before next check", "build_id", buildID, "status", currentStatus, "attempt", attempt, "sleep_duration", "2s")
-				err = hydra.Sleep(ctx, 2*time.Second)
-				if err != nil {
-					w.logger.Error("failed to sleep between build checks", "error", err, "attempt", attempt)
-					return err
+			default:
+				// Build is still in progress (queued, running, or other status)
+				w.logger.Info("build still in progress", "build_id", buildID, "status", currentStatus, "attempt", attempt)
+				
+				// Sleep before next attempt (except on last attempt)
+				if attempt < 150 {
+					w.logger.Info("sleeping before next build status check", "build_id", buildID, "status", currentStatus, "attempt", attempt, "sleep_duration", "2s")
+					time.Sleep(2 * time.Second)
 				}
 			}
 		}
+
+		// If we reach here, we exceeded max attempts
+		return nil, fmt.Errorf("build polling timed out after 150 attempts (5 minutes)")
+	})
+	if err != nil {
+		w.logger.Error("build polling failed", "error", err, "build_id", buildID)
+		return err
 	}
-
-	// If we reach here, we exceeded max attempts
-	return fmt.Errorf("build polling timed out after 150 attempts (5 minutes)")
-
-buildComplete:
 
 	// Handle build failure
 	if buildResult.Status == "failed" {
@@ -395,49 +381,43 @@ buildComplete:
 
 		// Check VM readiness (max 30 attempts = 30 seconds)
 		w.logger.Info("starting VM status polling", "vm_id", createResult.VmId, "max_attempts", 30)
-		for attempt := 1; attempt <= 30; attempt++ {
-			w.logger.Info("checking VM status", "vm_id", createResult.VmId, "attempt", attempt)
-			
-			vmInfo, err := hydra.Step(ctx, fmt.Sprintf("check-vm-status-%d", attempt), func(stepCtx context.Context) (*vmprovisionerv1.GetVmInfoResponse, error) {
+		
+		_, err = hydra.Step(ctx, "poll-vm-status", func(stepCtx context.Context) (*struct{}, error) {
+			for attempt := 1; attempt <= 30; attempt++ {
+				w.logger.Info("checking VM status", "vm_id", createResult.VmId, "attempt", attempt)
+				
 				w.logger.Info("sending VM status request to metald", "vm_id", createResult.VmId)
 				resp, getErr := w.metaldClient.GetVmInfo(stepCtx, connect.NewRequest(&vmprovisionerv1.GetVmInfoRequest{
 					VmId: createResult.VmId,
 				}))
 				if getErr != nil {
-					w.logger.Error("metald VM status request failed", "error", getErr, "vm_id", createResult.VmId)
+					w.logger.Error("metald VM status request failed", "error", getErr, "vm_id", createResult.VmId, "attempt", attempt)
 					return nil, fmt.Errorf("failed to get VM info: %w", getErr)
 				}
 
 				w.logger.Info("VM status check", "vm_id", createResult.VmId, "state", resp.Msg.State.String(), "attempt", attempt)
-				return resp.Msg, nil
-			})
-			if err != nil {
-				w.logger.Error("failed to check VM status", "error", err, "vm_id", createResult.VmId, "attempt", attempt)
-				return err
-			}
 
-			// Check if VM is ready for boot
-			if vmInfo.State == vmprovisionerv1.VmState_VM_STATE_CREATED ||
-				vmInfo.State == vmprovisionerv1.VmState_VM_STATE_RUNNING {
-				w.logger.Info("VM is ready", "vm_id", createResult.VmId, "state", vmInfo.State.String())
-				goto vmReady
-			}
+				// Check if VM is ready for boot
+				if resp.Msg.State == vmprovisionerv1.VmState_VM_STATE_CREATED ||
+					resp.Msg.State == vmprovisionerv1.VmState_VM_STATE_RUNNING {
+					w.logger.Info("VM is ready", "vm_id", createResult.VmId, "state", resp.Msg.State.String())
+					return &struct{}{}, nil
+				}
 
-			// Sleep before next attempt (except on last attempt)
-			if attempt < 30 {
-				w.logger.Info("VM not ready yet, sleeping before next check", "vm_id", createResult.VmId, "state", vmInfo.State.String(), "attempt", attempt, "sleep_duration", "1s")
-				err = hydra.Sleep(ctx, 1*time.Second)
-				if err != nil {
-					w.logger.Error("failed to sleep between VM checks", "error", err, "attempt", attempt)
-					return err
+				// Sleep before next attempt (except on last attempt)
+				if attempt < 30 {
+					w.logger.Info("VM not ready yet, sleeping before next check", "vm_id", createResult.VmId, "state", resp.Msg.State.String(), "attempt", attempt, "sleep_duration", "1s")
+					time.Sleep(1 * time.Second)
 				}
 			}
+
+			// If we reach here, we exceeded max attempts
+			return nil, fmt.Errorf("VM polling timed out after 30 attempts (30 seconds)")
+		})
+		if err != nil {
+			w.logger.Error("VM status polling failed", "error", err, "vm_id", createResult.VmId)
+			return err
 		}
-
-		// If we reach here, VM never became ready
-		return fmt.Errorf("VM polling timed out after 30 attempts (30 seconds)")
-
-	vmReady:
 
 		// Boot VM
 		_, err = hydra.Step(ctx, "boot-vm", func(stepCtx context.Context) (*vmprovisionerv1.BootVmResponse, error) {
