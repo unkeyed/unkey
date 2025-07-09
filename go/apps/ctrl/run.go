@@ -10,7 +10,9 @@ import (
 
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/version"
+	deployTLS "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
+	"github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1/vmprovisionerv1connect"
 	"github.com/unkeyed/unkey/go/pkg/builder"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hydra"
@@ -102,9 +104,28 @@ func Run(ctx context.Context, cfg Config) error {
 	// Create the mock builder service for demo
 	builderService := builder.NewMockService()
 
+	// Create metald client for VM operations with SPIRE authentication
+	tlsConfig := deployTLS.Config{
+		Mode:             deployTLS.ModeSPIFFE,
+		SPIFFESocketPath: cfg.SPIFFESocketPath,
+	}
+	
+	tlsProvider, err := deployTLS.NewProvider(ctx, tlsConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create TLS provider for metald: %w", err)
+	}
+	
+	httpClient := tlsProvider.HTTPClient()
+	httpClient.Timeout = 30 * time.Second
+	
+	metaldClient := vmprovisionerv1connect.NewVmServiceClient(
+		httpClient,
+		cfg.MetaldAddress,
+	)
+	logger.Info("metald client configured with SPIRE authentication", "address", cfg.MetaldAddress, "spiffe_socket", cfg.SPIFFESocketPath)
+
 	// Register deployment workflow with Hydra worker
-	// TODO: Replace nil with actual metald client when available
-	deployWorkflow := version.NewDeployWorkflow(database, logger, builderService, nil)
+	deployWorkflow := version.NewDeployWorkflow(database, logger, builderService, metaldClient)
 	err = hydra.RegisterWorkflow(hydraWorker, deployWorkflow)
 	if err != nil {
 		return fmt.Errorf("unable to register deployment workflow: %w", err)
