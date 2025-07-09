@@ -1,8 +1,12 @@
+import { toast } from "@/components/ui/toaster";
+import { setCookie } from "@/lib/auth/cookies";
+import { UNKEY_SESSION_COOKIE } from "@/lib/auth/types";
+import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { StackPerspective2 } from "@unkey/icons";
-import { FormInput } from "@unkey/ui";
+import { Button, FormInput } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useRef } from "react";
+import { useRef, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import type { OnboardingStep } from "../components/onboarding-wizard";
@@ -29,6 +33,8 @@ export const useWorkspaceStep = (): OnboardingStep => {
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+  const workspaceIdRef = useRef<string | null>(null);
 
   const form = useForm<WorkspaceFormData>({
     resolver: zodResolver(workspaceSchema),
@@ -38,13 +44,70 @@ export const useWorkspaceStep = (): OnboardingStep => {
     mode: "onChange",
   });
 
+  const switchOrgMutation = trpc.user.switchOrg.useMutation({
+    onSuccess: async (sessionData) => {
+      if (!sessionData.expiresAt) {
+        console.error("Missing session data: ", sessionData);
+        toast.error(`Failed to switch organizations: ${sessionData.error}`);
+        return;
+      }
+
+      await setCookie({
+        name: UNKEY_SESSION_COOKIE,
+        value: sessionData.token,
+        options: {
+          httpOnly: true,
+          secure: true,
+          sameSite: "strict",
+          path: "/",
+          maxAge: Math.floor((sessionData.expiresAt.getTime() - Date.now()) / 1000),
+        },
+      }).then(() => {
+        startTransition(() => {
+          router.push(`/new?workspaceId=${workspaceIdRef.current}`);
+        });
+      });
+    },
+    onError: (error) => {
+      toast.error(`Failed to load new workspace: ${error.message}`);
+    },
+  });
+
+  const createWorkspace = trpc.workspace.create.useMutation({
+    onSuccess: async ({ workspace, organizationId }) => {
+      workspaceIdRef.current = workspace.id;
+      switchOrgMutation.mutate(organizationId);
+    },
+    onError: (error) => {
+      if (error.data?.code === "METHOD_NOT_SUPPORTED") {
+        toast.error("", {
+          style: {
+            display: "flex",
+            flexDirection: "column",
+          },
+          duration: 20000,
+          description: error.message,
+          action: (
+            <div className="mx-auto pt-2">
+              <Button
+                onClick={() => {
+                  toast.dismiss();
+                  router.push("/apis");
+                }}
+              >
+                Return to APIs
+              </Button>
+            </div>
+          ),
+        });
+      } else {
+        toast.error(`Failed to create workspace: ${error.message}`);
+      }
+    },
+  });
+
   const onSubmit = (data: WorkspaceFormData) => {
-    console.info("Workspace form submitted:", data);
-    // Save workspace name to URL and proceed to next step
-    const params = new URLSearchParams(searchParams?.toString());
-    params.set("workspaceName", data.workspaceName);
-    router.push(`?${params.toString()}`);
-    // The onboarding wizard will handle moving to the next step
+    createWorkspace.mutate({ name: data.workspaceName });
   };
 
   const validFieldCount = Object.keys(form.getValues()).filter((field) => {
@@ -53,6 +116,8 @@ export const useWorkspaceStep = (): OnboardingStep => {
     const hasValue = Boolean(form.getValues(fieldName));
     return !hasError && hasValue;
   }).length;
+
+  const isLoading = createWorkspace.isLoading || isPending;
 
   return {
     name: "Workspace",
@@ -104,6 +169,7 @@ export const useWorkspaceStep = (): OnboardingStep => {
               // }}
               required
               error={form.formState.errors.workspaceName?.message}
+              disabled={isLoading}
             />
             {/* <FormInput */}
             {/*   {...form.register("workspaceUrl")} */}
@@ -123,11 +189,15 @@ export const useWorkspaceStep = (): OnboardingStep => {
     buttonText: "Continue",
     description: "Set up your workspace to get started",
     onStepNext: () => {
+      if (isLoading) {
+        return;
+      }
       formRef.current?.requestSubmit();
     },
     onStepBack: () => {
       console.info("Going back from workspace step");
     },
+    isLoading,
   };
 };
 

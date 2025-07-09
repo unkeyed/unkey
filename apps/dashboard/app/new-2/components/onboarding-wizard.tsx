@@ -18,6 +18,8 @@ export type OnboardingStep = {
   description: string;
   /** Text displayed on the primary action button */
   buttonText: string;
+  /** Whether this step is currently loading (e.g., submitting form data) */
+  isLoading?: boolean;
 } & (
   | {
       /** Step type - no validation required, can be skipped */
@@ -59,15 +61,20 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
   const currentStep = steps[currentStepIndex];
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === steps.length - 1;
+  const isLoading = currentStep.isLoading || false;
 
   const handleBack = () => {
-    if (!isFirstStep) {
+    if (!isFirstStep && !isLoading) {
       currentStep.onStepBack?.(currentStepIndex);
       setCurrentStepIndex(currentStepIndex - 1);
     }
   };
 
   const handleNext = () => {
+    if (isLoading) {
+      return;
+    }
+
     if (isLastStep) {
       currentStep.onStepNext?.(currentStepIndex);
       onComplete?.();
@@ -78,12 +85,28 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
   };
 
   const handleSkip = () => {
+    if (isLoading) {
+      return;
+    }
+
     // For non-required steps, skip to next step
     if (isLastStep) {
       onComplete?.();
     } else {
       setCurrentStepIndex(currentStepIndex + 1);
     }
+  };
+
+  const isNextButtonDisabled = () => {
+    if (isLoading) {
+      return true;
+    }
+
+    if (currentStep.kind === "required") {
+      return currentStep.validFieldCount !== currentStep.requiredFieldCount;
+    }
+
+    return false;
   };
 
   return (
@@ -96,7 +119,7 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
             className="rounded-lg bg-grayA-3 hover:bg-grayA-4 h-[22px]"
             variant="outline"
             onClick={handleBack}
-            disabled={isFirstStep}
+            disabled={isFirstStep || isLoading}
           >
             <div className="flex items-center gap-1">
               <ChevronLeft size="sm-regular" className="text-gray-12 !w-3 !h-3 flex-shrink-0" />
@@ -134,6 +157,7 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
                 className="rounded-lg bg-grayA-3 hover:bg-grayA-4 h-[22px]"
                 variant="outline"
                 onClick={handleSkip}
+                disabled={isLoading}
               >
                 <div className="flex items-center gap-1">
                   <span className="font-medium text-gray-12 text-xs">Skip step</span>
@@ -161,11 +185,8 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
             size="xlg"
             className="w-full rounded-lg"
             onClick={handleNext}
-            disabled={
-              currentStep.kind === "required"
-                ? currentStep.validFieldCount !== currentStep.requiredFieldCount
-                : false
-            }
+            disabled={isNextButtonDisabled()}
+            loading={isLoading}
           >
             {currentStep.buttonText}
           </Button>
