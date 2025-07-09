@@ -112,18 +112,18 @@ Multiple cards in a responsive grid layout for dashboard-style interfaces.
 | `className` | `string` | `undefined` | Additional CSS classes |
 | `children` | `React.ReactNode` | `undefined` | Footer content |
 
-The component accepts all standard Card props.
+`<Card>` inherits all common HTML `<div>` attributes (e.g. `id`, `style`) in addition to the props listed above.
 
 ## Structure
 
 The Card system is composed of several subcomponents that work together:
 
-1. **Card** - The main container component
-2. **CardHeader** - Container for title and description
-3. **CardTitle** - Main heading text (h2 element)
-4. **CardDescription** - Subtitle or description text
-5. **CardContent** - Main content area
-6. **CardFooter** - Footer area with border separator
+1. **Card**: Main container component  
+2. **CardHeader**: Container for title and description  
+3. **CardTitle**: Main heading text (`h2`)  
+4. **CardDescription**: Subtitle or description text  
+5. **CardContent**: Main content area  
+6. **CardFooter**: Footer section with optional separator
 
 ## Styling
 
