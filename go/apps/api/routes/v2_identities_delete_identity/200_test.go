@@ -31,7 +31,7 @@ func createTestIdentity(t *testing.T, h *testutil.Harness, numberOfRatelimits in
 		ID:          identityID,
 		ExternalID:  externalID,
 		WorkspaceID: h.Resources().UserWorkspace.ID,
-		Meta:        nil,
+		Meta:        []byte("{}"),
 		CreatedAt:   time.Now().UnixMilli(),
 		Environment: "default",
 	})
@@ -269,7 +269,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 			ID:          newIdentityID,
 			ExternalID:  testIdentity.ExternalID,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			Meta:        nil,
+			Meta:        []byte("{}"),
 			CreatedAt:   time.Now().UnixMilli(),
 			Environment: "default",
 		})

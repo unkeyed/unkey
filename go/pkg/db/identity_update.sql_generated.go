@@ -7,27 +7,28 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 )
 
 const updateIdentity = `-- name: UpdateIdentity :exec
-UPDATE ` + "`" + `identities` + "`" + ` 
-SET 
-    meta = ?,
+UPDATE ` + "`" + `identities` + "`" + `
+SET
+    meta = CAST(? AS JSON),
     updated_at = NOW()
-WHERE 
+WHERE
     id = ?
 `
 
 type UpdateIdentityParams struct {
-	Meta []byte `db:"meta"`
-	ID   string `db:"id"`
+	Meta json.RawMessage `db:"meta"`
+	ID   string          `db:"id"`
 }
 
 // UpdateIdentity
 //
 //	UPDATE `identities`
 //	SET
-//	    meta = ?,
+//	    meta = CAST(? AS JSON),
 //	    updated_at = NOW()
 //	WHERE
 //	    id = ?

@@ -74,7 +74,7 @@ func TestSuccess(t *testing.T) {
 		WorkspaceID: workspaceID,
 		Environment: "default",
 		CreatedAt:   time.Now().UnixMilli(),
-		Meta:        nil,
+		Meta:        []byte("{}"),
 	})
 	require.NoError(t, err)
 

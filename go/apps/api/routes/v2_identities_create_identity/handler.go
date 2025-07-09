@@ -76,7 +76,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	var meta []byte
+	meta := []byte("{}")
 	if req.Meta != nil {
 		rawMeta, metaErr := json.Marshal(req.Meta)
 		if metaErr != nil {

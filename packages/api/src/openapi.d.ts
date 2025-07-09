@@ -3839,6 +3839,11 @@ export interface operations {
              */
             name: string;
             /**
+             * @description The slug of the permission
+             * @example domain-record-manager
+             */
+            slug: string;
+            /**
              * @description The description of what this permission does. This is just for your team, your users will not see this.
              * @example Can manage dns records
              */
@@ -3912,6 +3917,11 @@ export interface operations {
              * @example domain.record.manager
              */
             name: string;
+            /**
+             * @description The slug of the permission
+             * @example domain-record-manager
+             */
+            slug: string;
             /**
              * @description The description of what this permission does. This is just for your team, your users will not see this.
              * @example Can manage dns records

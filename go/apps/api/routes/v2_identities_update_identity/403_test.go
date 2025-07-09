@@ -88,6 +88,7 @@ func TestForbidden(t *testing.T) {
 			WorkspaceID: workspaceID,
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
+			Meta:        []byte("{}"),
 		})
 		require.NoError(t, err)
 		err = tx.Commit()

@@ -59,6 +59,7 @@ func TestCrossWorkspaceForbidden(t *testing.T) {
 		WorkspaceID: workspaceB,
 		Environment: "default",
 		CreatedAt:   time.Now().UnixMilli(),
+		Meta:        []byte("{}"),
 	})
 	require.NoError(t, err)
 

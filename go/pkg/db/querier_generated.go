@@ -496,7 +496,7 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//      ?
+	//      CAST(? AS JSON)
 	//  )
 	InsertIdentity(ctx context.Context, db DBTX, arg InsertIdentityParams) error
 	//InsertIdentityRatelimit
@@ -1030,7 +1030,7 @@ type Querier interface {
 	//
 	//  UPDATE `identities`
 	//  SET
-	//      meta = ?,
+	//      meta = CAST(? AS JSON),
 	//      updated_at = NOW()
 	//  WHERE
 	//      id = ?
