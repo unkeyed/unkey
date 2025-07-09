@@ -1,6 +1,24 @@
 version: '3.8'
 
 services:
+  mysql:
+    container_name: ctrl-mysql
+    build:
+      context: ../../../
+      dockerfile: deployment/Dockerfile.mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: unkey
+      MYSQL_USER: unkey
+      MYSQL_PASSWORD: password
+    command: ["--max_connections=1000"]
+    ports:
+      - 3306:3306
+    volumes:
+      - mysql:/var/lib/mysql
+      - ../../../deployment/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
+
   ctrl:
     build:
       context: ../../
@@ -10,10 +28,12 @@ services:
     container_name: unkey-ctrl
     ports:
       - "8084:8084"
+    depends_on:
+      - mysql
     environment:
-      # Database configuration (pass through from host env)
+      # Database configuration 
       UNKEY_DATABASE_PRIMARY: ${UNKEY_DATABASE_PRIMARY}
-      UNKEY_DATABASE_HYDRA: ${UNKEY_DATABASE_HYDRA}
+      UNKEY_DATABASE_HYDRA: "unkey:password@tcp(mysql:3306)/hydra?parseTime=true"
       
       # Control plane configuration
       UNKEY_HTTP_PORT: "8084"
@@ -41,3 +61,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+volumes:
+  mysql:
