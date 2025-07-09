@@ -5,14 +5,9 @@ import { z } from "zod";
 import { requireUser, t } from "../../trpc";
 import { createApiCore } from "../api/create";
 import { createKeyCore } from "../key/create";
-import { createWorkspaceCore } from "../workspace/create";
 
 const createWorkspaceWithApiAndKeyInputSchema = z.object({
-  workspaceName: z
-    .string()
-    .trim()
-    .min(3, "Workspace name must be at least 3 characters")
-    .max(50, "Workspace name must not exceed 50 characters"),
+  workspaceId: z.string(),
   apiName: z
     .string()
     .min(3, "API name must be at least 3 characters")
@@ -24,17 +19,39 @@ export const onboardingKeyCreation = t.procedure
   .use(requireUser)
   .input(createWorkspaceWithApiAndKeyInputSchema)
   .mutation(async ({ input, ctx }) => {
-    const { workspaceName, apiName, ...keyInput } = input;
+    const { workspaceId, apiName, ...keyInput } = input;
 
     try {
       return await db.transaction(async (tx) => {
-        //  Create workspace first
-        const workspaceResult = await createWorkspaceCore({ name: workspaceName }, ctx, tx);
+        // Validate that the workspace exists and user has access to it
+        const workspace = await tx.query.workspaces
+          .findFirst({
+            where: (table, { and, eq, isNull }) =>
+              and(
+                eq(table.id, workspaceId),
+                eq(table.orgId, ctx.tenant.id),
+                isNull(table.deletedAtM),
+              ),
+          })
+          .catch((_err) => {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message:
+                "Failed to validate workspace access. If this issue persists, please contact support@unkey.dev",
+            });
+          });
+
+        if (!workspace) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Workspace not found or you don't have access to it",
+          });
+        }
 
         // Create workspace context for API and key creation
         const workspaceCtx = {
           ...ctx,
-          workspace: { id: workspaceResult.workspace.id },
+          workspace: { id: workspaceId },
         };
 
         // Create API
@@ -57,8 +74,6 @@ export const onboardingKeyCreation = t.procedure
         );
 
         return {
-          workspace: workspaceResult.workspace,
-          organizationId: workspaceResult.organizationId,
           apiId: apiResult.id,
           keyId: keyResult.keyId,
           key: keyResult.key,

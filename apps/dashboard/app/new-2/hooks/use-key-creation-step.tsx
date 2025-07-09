@@ -14,12 +14,11 @@ import {
   formValuesToApiInput,
   getDefaultValues,
 } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.utils";
-import { setCookie } from "@/lib/auth/cookies";
-import { UNKEY_SESSION_COOKIE } from "@/lib/auth/types";
+import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarClock, ChartPie, Code, Gauge, Key2, StackPerspective2 } from "@unkey/icons";
-import { FormInput, toast } from "@unkey/ui";
+import { FormInput } from "@unkey/ui";
 import { addDays } from "date-fns";
 import { useSearchParams } from "next/navigation";
 import { useRef } from "react";
@@ -41,16 +40,23 @@ const extendedFormSchema = formSchema.and(
 export const useKeyCreationStep = (): OnboardingStep => {
   const formRef = useRef<HTMLFormElement>(null);
   const searchParams = useSearchParams();
-  const workspaceName = searchParams?.get("workspaceName") || "";
+  const workspaceId = searchParams?.get("workspaceId") || "";
 
-  const createWorkspaceWithApiAndKey = trpc.workspace.onboarding.useMutation({
+  const createApiAndKey = trpc.workspace.onboarding.useMutation({
     onSuccess: (data) => {
-      console.info("Successfully created workspace, API and key:", data);
-      switchOrgMutation.mutate(data.organizationId);
+      console.info("Successfully created API and key:", data);
+      //TODO: We'll get rid of this in the following PR
+      toast.success("API and key created successfully!");
     },
     onError: (error) => {
-      console.error("Failed to create workspace, API and key:", error);
-      // Handle error - show toast notification
+      console.error("Failed to create API and key:", error);
+
+      if (error.data?.code === "NOT_FOUND") {
+        // In case users try to feed tRPC with weird workspaceId or non existing one
+        toast.error("Invalid workspace. Please go back and create a new workspace.");
+      } else {
+        toast.error(`Failed to create API and key: ${error.message}`);
+      }
     },
   });
 
@@ -72,36 +78,10 @@ export const useKeyCreationStep = (): OnboardingStep => {
     formState: { errors },
   } = methods;
 
-  const switchOrgMutation = trpc.user.switchOrg.useMutation({
-    onSuccess: async (sessionData) => {
-      if (!sessionData.expiresAt) {
-        console.error("Missing session data: ", sessionData);
-        toast.error(`Failed to switch organizations: ${sessionData.error}`);
-        return;
-      }
-
-      await setCookie({
-        name: UNKEY_SESSION_COOKIE,
-        value: sessionData.token,
-        options: {
-          httpOnly: true,
-          secure: true,
-          sameSite: "strict",
-          path: "/",
-          maxAge: Math.floor((sessionData.expiresAt.getTime() - Date.now()) / 1000),
-        },
-      });
-    },
-    onError: (error) => {
-      toast.error(`Failed to load new workspace: ${error.message}`);
-    },
-  });
-
   const onSubmit = async (data: FormValues & { apiName: string }) => {
-    console.info("Submitting onboarding data:", data);
-
-    if (!workspaceName) {
-      console.error("Workspace name not found in URL parameters");
+    if (!isValidWorkspaceId) {
+      console.error("Invalid workspace ID in URL parameters");
+      toast.error("Invalid workspace ID. Please go back and create a new workspace.");
       return;
     }
 
@@ -110,19 +90,25 @@ export const useKeyCreationStep = (): OnboardingStep => {
       const { keyAuthId, ...keyInputWithoutAuthId } = keyInput; // Remove keyAuthId
 
       const submitData = {
-        workspaceName,
+        workspaceId,
         apiName: data.apiName,
         ...keyInputWithoutAuthId,
       };
 
-      await createWorkspaceWithApiAndKey.mutateAsync(submitData);
+      await createApiAndKey.mutateAsync(submitData);
     } catch (error) {
       console.error("Submit error:", error);
     }
   };
 
+  // Check if workspaceId looks like a valid workspace ID format
+  const isValidWorkspaceId = workspaceId && /^ws_[a-zA-Z0-9_-]+$/.test(workspaceId);
+
   const apiNameValue = watch("apiName");
-  const isFormReady = Boolean(workspaceName && apiNameValue);
+  const isFormReady = Boolean(isValidWorkspaceId && apiNameValue);
+  const isLoading = createApiAndKey.isLoading;
+
+  const validFieldCount = apiNameValue ? 1 : 0;
 
   return {
     name: "API key",
@@ -139,7 +125,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
                 description="Choose a name for your API that helps you identify it"
                 label="API name"
                 className="w-full"
-                disabled={!workspaceName || createWorkspaceWithApiAndKey.isLoading}
+                disabled={!isValidWorkspaceId || isLoading}
               />
 
               <div className="mt-8" />
@@ -152,7 +138,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
 
               <div className="flex flex-col gap-3 w-full">
                 <ExpandableSettings
-                  disabled={!isFormReady || createWorkspaceWithApiAndKey.isLoading}
+                  disabled={!isFormReady || isLoading}
                   icon={<Key2 className="text-gray-9 flex-shrink-0" size="sm-regular" />}
                   title="General Setup"
                   description="Configure basic API key settings like prefix, byte length, and External ID"
@@ -161,7 +147,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
                 </ExpandableSettings>
 
                 <ExpandableSettings
-                  disabled={!isFormReady || createWorkspaceWithApiAndKey.isLoading}
+                  disabled={!isFormReady || isLoading}
                   icon={<Gauge className="text-gray-9 flex-shrink-0" size="sm-regular" />}
                   title="Ratelimit"
                   description="Set request limits per time window to control API usage frequency"
@@ -175,7 +161,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
                 </ExpandableSettings>
 
                 <ExpandableSettings
-                  disabled={!isFormReady || createWorkspaceWithApiAndKey.isLoading}
+                  disabled={!isFormReady || isLoading}
                   icon={<ChartPie className="text-gray-9 flex-shrink-0" size="sm-regular" />}
                   title="Credits"
                   description="Set usage limits based on credits or quota to control consumption"
@@ -189,7 +175,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
                 </ExpandableSettings>
 
                 <ExpandableSettings
-                  disabled={!isFormReady || createWorkspaceWithApiAndKey.isLoading}
+                  disabled={!isFormReady || isLoading}
                   icon={<CalendarClock className="text-gray-9 flex-shrink-0" size="sm-regular" />}
                   title="Expiration"
                   description="Set when this API key should automatically expire and become invalid"
@@ -207,7 +193,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
                 </ExpandableSettings>
 
                 <ExpandableSettings
-                  disabled={!isFormReady || createWorkspaceWithApiAndKey.isLoading}
+                  disabled={!isFormReady || isLoading}
                   icon={<Code className="text-gray-9 flex-shrink-0" size="sm-regular" />}
                   title="Metadata"
                   description="Add custom key-value pairs to store additional information with your API key"
@@ -229,16 +215,17 @@ export const useKeyCreationStep = (): OnboardingStep => {
         </FormProvider>
       </div>
     ),
-    kind: "non-required" as const,
-    buttonText: createWorkspaceWithApiAndKey.isLoading
-      ? "Creating workspace..."
-      : workspaceName
-        ? "Create API & Key"
-        : "Go Back",
+    kind: "required" as const,
+    validFieldCount,
+    requiredFieldCount: 1,
+    buttonText: isLoading ? "Creating API & Key..." : "Create API & Key",
     description: "Setup your API with an initial key and advanced configurations",
     onStepNext: () => {
-      if (!workspaceName) {
-        // Handle going back if workspace name is missing
+      if (!isValidWorkspaceId) {
+        toast.error("Invalid workspace ID. Please go back and create a new workspace.");
+        return;
+      }
+      if (isLoading) {
         return;
       }
       formRef.current?.requestSubmit();
@@ -246,5 +233,6 @@ export const useKeyCreationStep = (): OnboardingStep => {
     onStepBack: () => {
       console.info("Going back from API key creation step");
     },
+    isLoading,
   };
 };

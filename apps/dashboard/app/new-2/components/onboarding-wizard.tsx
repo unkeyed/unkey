@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight } from "@unkey/icons";
 import { Button, Separator } from "@unkey/ui";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CircleProgress } from "./circle-progress";
 
 export type OnboardingStep = {
@@ -49,19 +49,33 @@ const CIRCLE_PROGRESS_STROKE_WIDTH = 1.5;
 
 export const OnboardingWizard = ({ steps, onComplete, onStepChange }: OnboardingWizardProps) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const previousLoadingRef = useRef<boolean>(false);
 
   if (steps.length === 0) {
     throw new Error("OnboardingWizard requires at least one step");
   }
 
-  useEffect(() => {
-    onStepChange?.(currentStepIndex);
-  }, [currentStepIndex, onStepChange]);
-
   const currentStep = steps[currentStepIndex];
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === steps.length - 1;
   const isLoading = currentStep.isLoading || false;
+
+  // Auto-advance when loading ends
+  useEffect(() => {
+    if (previousLoadingRef.current && !isLoading) {
+      // Loading just ended, advance to next step
+      if (isLastStep) {
+        onComplete?.();
+      } else {
+        setCurrentStepIndex(currentStepIndex + 1);
+      }
+    }
+    previousLoadingRef.current = isLoading;
+  }, [isLoading, isLastStep, currentStepIndex, onComplete]);
+
+  useEffect(() => {
+    onStepChange?.(currentStepIndex);
+  }, [currentStepIndex, onStepChange]);
 
   const handleBack = () => {
     if (!isFirstStep && !isLoading) {
@@ -75,13 +89,8 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
       return;
     }
 
-    if (isLastStep) {
-      currentStep.onStepNext?.(currentStepIndex);
-      onComplete?.();
-    } else {
-      currentStep.onStepNext?.(currentStepIndex);
-      setCurrentStepIndex(currentStepIndex + 1);
-    }
+    // Only trigger the callback, don't advance automatically
+    currentStep.onStepNext?.(currentStepIndex);
   };
 
   const handleSkip = () => {

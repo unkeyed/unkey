@@ -64,7 +64,12 @@ export const useWorkspaceStep = (): OnboardingStep => {
         },
       }).then(() => {
         startTransition(() => {
-          router.push(`/new?workspaceId=${workspaceIdRef.current}`);
+          const params = new URLSearchParams(searchParams?.toString());
+          if (!workspaceIdRef.current) {
+            throw new Error("WorkspaceId cannot be null");
+          }
+          params.set("workspaceId", workspaceIdRef.current);
+          router.push(`?${params.toString()}`);
         });
       });
     },
@@ -106,8 +111,8 @@ export const useWorkspaceStep = (): OnboardingStep => {
     },
   });
 
-  const onSubmit = (data: WorkspaceFormData) => {
-    createWorkspace.mutate({ name: data.workspaceName });
+  const onSubmit = async (data: WorkspaceFormData) => {
+    createWorkspace.mutateAsync({ name: data.workspaceName });
   };
 
   const validFieldCount = Object.keys(form.getValues()).filter((field) => {
