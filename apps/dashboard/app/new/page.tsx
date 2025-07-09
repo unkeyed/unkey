@@ -1,210 +1,148 @@
-import { PageHeader } from "@/components/dashboard/page-header";
-import { getAuth } from "@/lib/auth/get-auth";
-import { db } from "@/lib/db";
-import { Separator } from "@unkey/ui";
-import { Button } from "@unkey/ui";
-import { ArrowRight, GlobeLock, KeySquare } from "lucide-react";
-import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { CreateApi } from "./create-api";
-import { CreateRatelimit } from "./create-ratelimit";
-import { CreateWorkspace } from "./create-workspace";
-import { Keys } from "./keys";
+"use client";
+import { Key2, StackPerspective2 } from "@unkey/icons";
+import { FormInput } from "@unkey/ui";
+import { Suspense, useState } from "react";
+import { OnboardingSuccessStep } from "./components/onboarding-success-step";
+import { type OnboardingStep, OnboardingWizard } from "./components/onboarding-wizard";
+import { stepInfos } from "./constants";
+import { useKeyCreationStep } from "./hooks/use-key-creation-step";
+import { useWorkspaceStep } from "./hooks/use-workspace-step";
 
-export const dynamic = "force-dynamic";
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<OnboardingFallback />}>
+      <OnboardingContent />
+    </Suspense>
+  );
+}
 
-type Props = {
-  searchParams: {
-    workspaceId?: string;
-    apiId?: string;
-    ratelimitNamespaceId?: string;
-    product?: "keys" | "ratelimit";
-  };
-};
-
-export default async function (props: Props) {
-  // ensure we have an authenticated user
-  // we don't actually need any user data though
-  await getAuth();
-  const apiId = props.searchParams.apiId;
-
-  if (apiId) {
-    const api = await db.query.apis.findFirst({
-      where: (table, { eq }) => eq(table.id, apiId),
-    });
-
-    if (!api) {
-      return notFound();
-    }
-
-    if (!api.keyAuthId) {
-      console.error(`API ${api.id} is missing keyAuthId`);
-      return notFound(); // or redirect to error page
-    }
-
-    return (
-      <div className="container m-16 mx-auto">
-        <PageHeader
-          title="Unkey"
-          description="Create your first key"
-          actions={[
-            <Link
-              key="skip"
-              href="/"
-              className="flex items-center gap-1 text-sm duration-200 text-content-subtle hover:text-foreground"
-            >
-              Skip <ArrowRight className="w-4 h-4" />{" "}
-            </Link>,
-          ]}
-        />
-        <Separator className="my-8" />
-        <Keys keyAuthId={api.keyAuthId} apiId={api.id} />
-      </div>
-    );
-  }
-
-  const workspaceId = props.searchParams.workspaceId;
-  if (workspaceId && !props.searchParams.product) {
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, workspaceId), isNull(table.deletedAtM)),
-    });
-
-    if (!workspace) {
-      return redirect("/new");
-    }
-
-    return (
-      <div className="container m-16 mx-auto">
-        <PageHeader
-          title="Unkey"
-          description="Choose your adventure"
-          actions={[
-            <Link
-              key="skip"
-              href="/"
-              className="flex items-center gap-1 text-sm duration-200 text-content-subtle hover:text-foreground"
-            >
-              Skip <ArrowRight className="w-4 h-4" />{" "}
-            </Link>,
-          ]}
-        />
-        <Separator className="my-8" />
-        <div className="grid grid-cols-1 gap-8 md::grid-cols-2">
-          <div className="flex flex-col gap-4 lg:gap-10 p-8 duration-200 border rounded-lg border-border hover:border-primary justify-between">
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-center p-4 border rounded-lg bg-primary/5">
-                <KeySquare className="w-6 h-6 text-primary" />
-              </div>
-              <h4 className="text-lg font-medium">I need API keys</h4>
-              <p className="text-sm text-content-subtle">
-                Create, verify, revoke keys for your public API.
-              </p>
-              <ol className="ml-2 space-y-1 text-sm list-disc list-outside text-content-subtle">
-                <li>Globally distributed in 300+ locations</li>
-                <li>Key and API analytics </li>
-                <li>Scale to millions of requests</li>
-              </ol>
-            </div>
-
-            <Link href={`/new?workspaceId=${workspace.id}&product=keys`}>
-              <Button variant="primary" type="button" className="w-full">
-                Create API
-              </Button>
-            </Link>
+function OnboardingFallback() {
+  return (
+    <div className="h-screen flex flex-col items-center pt-6 overflow-hidden">
+      {/* Unkey Logo */}
+      <div className="text-2xl font-medium text-gray-12 leading-7">Unkey</div>
+      {/* Spacer */}
+      <div className="mt-[72px]" />
+      {/* Static content while loading */}
+      <div className="flex flex-col w-full max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl">
+        <div className="flex flex-col items-center h-[140px] justify-start">
+          <div className="bg-grayA-3 rounded-full w-fit">
+            <span className="px-3 text-xs leading-6 text-gray-12 font-medium tabular-nums">
+              Step 1 of 3
+            </span>
           </div>
-          <div className="flex flex-col gap-4 lg:gap-10 p-8 duration-200 border rounded-lg border-border hover:border-primary justify-between">
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-center p-4 border rounded-lg bg-primary/5">
-                <GlobeLock className="w-6 h-6 text-primary" />
-              </div>
-              <h4 className="text-lg font-medium">I want to ratelimit something</h4>
-              <p className="text-sm text-content-subtle">
-                Global low latency ratelimiting for your application.
-              </p>
-              <ol className="ml-2 space-y-1 text-sm list-disc list-outside text-content-subtle">
-                <li>Low latency</li>
-                <li>Globally consistent</li>
-                <li>Powerful analytics</li>
-              </ol>
-            </div>
-            <Link href={`/new?workspaceId=${workspace.id}&product=ratelimit`}>
-              <Button variant="primary" type="button" className="w-full">
-                Create Ratelimit
-              </Button>
-            </Link>
+          <div className="mt-5" />
+          <div className="text-gray-12 font-semibold text-lg leading-8 text-center h-8 flex items-center">
+            Create workspace
+          </div>
+          <div className="mt-2" />
+          <div className="text-gray-9 font-normal text-[13px] leading-6 text-center px-4 h-[60px] flex items-start overflow-hidden">
+            Set up your workspace to get started with Unkey
           </div>
         </div>
+        <div className="mt-10" />
+        <div className="flex-1 min-h-0">
+          <OnboardingWizard
+            steps={[
+              {
+                name: "Workspace",
+                icon: <StackPerspective2 size="sm-regular" className="text-gray-11" />,
+                body: (
+                  <form>
+                    <div className="flex flex-col">
+                      <div className="space-y-4 p-1">
+                        <FormInput
+                          value="Acme Corp"
+                          placeholder="Enter workspace name"
+                          label="Workspace name"
+                          required
+                          disabled
+                        />
+                      </div>
+                    </div>
+                  </form>
+                ),
+                kind: "required" as const,
+                validFieldCount: 0,
+                requiredFieldCount: 1,
+                buttonText: "Continue",
+                description: "Set up your workspace to get started",
+                onStepNext: () => {},
+                onStepBack: () => {},
+              },
+            ]}
+            onComplete={() => {}}
+            onStepChange={() => {}}
+          />
+        </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
-  if (props.searchParams.product === "keys" && workspaceId) {
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, workspaceId), isNull(table.deletedAtM)),
-    });
-    if (!workspace) {
-      return redirect("/new");
-    }
-    return (
-      <div className="container m-16 mx-auto">
-        <PageHeader
-          title="Unkey"
-          description="Create your API"
-          actions={[
-            <Link
-              key="skip"
-              href="/"
-              className="flex items-center gap-1 text-sm duration-200 text-content-subtle hover:text-foreground"
-            >
-              Skip <ArrowRight className="w-4 h-4" />{" "}
-            </Link>,
-          ]}
-        />
+function OnboardingContent() {
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const workspaceStep = useWorkspaceStep();
+  const keyCreationStep = useKeyCreationStep();
 
-        <Separator className="my-8" />
+  const steps: OnboardingStep[] = [
+    workspaceStep,
+    keyCreationStep,
+    {
+      name: "API key",
+      icon: <Key2 size="sm-regular" className="text-gray-11" />,
+      body: (
+        <OnboardingSuccessStep isConfirmOpen={isConfirmOpen} setIsConfirmOpen={setIsConfirmOpen} />
+      ),
+      kind: "non-required" as const,
+      description: "You're all set! Your workspace and API key are ready",
+      buttonText: "Continue to dashboard",
+      onStepNext: () => {
+        setIsConfirmOpen(true);
+      },
+      onStepSkip: () => {
+        setIsConfirmOpen(true);
+      },
+    },
+  ];
 
-        <CreateApi workspace={workspace} />
-      </div>
-    );
-  }
-  if (props.searchParams.product === "ratelimit" && workspaceId) {
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, workspaceId), isNull(table.deletedAtM)),
-    });
-    if (!workspace) {
-      return redirect("/new");
-    }
-    return (
-      <div className="container m-16 mx-auto">
-        <PageHeader
-          title="Unkey"
-          description="Create your ratelimit namespace"
-          actions={[
-            <Link
-              key="skip"
-              href="/"
-              className="flex items-center gap-1 text-sm duration-200 text-content-subtle hover:text-foreground"
-            >
-              Skip <ArrowRight className="w-4 h-4" />{" "}
-            </Link>,
-          ]}
-        />
+  const handleStepChange = (newStepIndex: number) => {
+    setCurrentStepIndex(newStepIndex);
+  };
 
-        <Separator className="my-8" />
-
-        <CreateRatelimit workspace={workspace} />
-      </div>
-    );
-  }
+  const currentStepInfo = stepInfos[currentStepIndex];
 
   return (
-    <div className="container m-16 mx-auto">
-      <PageHeader title="Unkey" description="Create your workspace" />
-      <Separator className="my-8" />
-      <CreateWorkspace />
+    <div className="h-screen flex flex-col items-center pt-6 overflow-hidden">
+      {/* Unkey Logo */}
+      <div className="text-2xl font-medium text-gray-12 leading-7">Unkey</div>
+      {/* Spacer */}
+      <div className="mt-[72px]" />
+      {/* Onboarding part. This will be a step wizard*/}
+      <div className="flex flex-col w-full max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl ">
+        {/* Explanation part - Fixed height to prevent layout shifts */}
+        <div className="flex flex-col items-center h-[140px] justify-start">
+          <div className="bg-grayA-3 rounded-full w-fit">
+            <span className="px-3 text-xs leading-6 text-gray-12 font-medium tabular-nums">
+              Step {currentStepIndex + 1} of {steps.length}
+            </span>
+          </div>
+          <div className="mt-5" />
+          <div className="text-gray-12 font-semibold text-lg leading-8 text-center h-8 flex items-center">
+            {currentStepInfo.title}
+          </div>
+          <div className="mt-2" />
+          <div className="text-gray-9 font-normal text-[13px] leading-6 text-center px-4 h-[60px] flex items-start overflow-hidden">
+            {currentStepInfo.description}
+          </div>
+        </div>
+        <div className="mt-10" />
+        {/* Form part */}
+        <div className="flex-1 min-h-0">
+          <OnboardingWizard steps={steps} onStepChange={handleStepChange} />
+        </div>
+      </div>
     </div>
   );
 }

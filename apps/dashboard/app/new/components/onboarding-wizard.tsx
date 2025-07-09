@@ -79,6 +79,14 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
     onStepChange?.(currentStepIndex);
   }, [currentStepIndex, onStepChange]);
 
+  const advanceStep = () => {
+    if (isLastStep) {
+      onComplete?.();
+    } else {
+      setCurrentStepIndex(currentStepIndex + 1);
+    }
+  };
+
   const handleBack = () => {
     if (!isFirstStep && !isLoading) {
       currentStep.onStepBack?.(currentStepIndex);
@@ -91,8 +99,15 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
       return;
     }
 
-    // Only trigger the callback, don't advance automatically
-    currentStep.onStepNext?.(currentStepIndex);
+    // If no callback provided, advance immediately
+    if (!currentStep.onStepNext) {
+      advanceStep();
+      return;
+    }
+
+    // Trigger callback, step should handle its own advancement via loading state
+    // or by calling the wizard's advance function passed to the callback
+    currentStep.onStepNext(currentStepIndex);
   };
 
   const handleSkip = () => {
@@ -126,7 +141,7 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
             className="rounded-lg bg-grayA-3 hover:bg-grayA-4 h-[22px]"
             variant="outline"
             onClick={handleBack}
-            disabled={isFirstStep || isLoading}
+            disabled={isFirstStep || isLoading || isLastStep}
           >
             <div className="flex items-center gap-1">
               <ChevronLeft size="sm-regular" className="text-gray-12 !w-3 !h-3 flex-shrink-0" />

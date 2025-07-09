@@ -1,4 +1,5 @@
 import { Switch } from "@/components/ui/switch";
+
 import { CircleInfo } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
 import { useState } from "react";
@@ -12,6 +13,7 @@ type ExpandableSettingsProps = {
   defaultChecked?: boolean;
   onCheckedChange?: (checked: boolean) => void;
   disabled?: boolean;
+  disabledTooltip?: string;
 };
 
 export const ExpandableSettings = ({
@@ -22,6 +24,7 @@ export const ExpandableSettings = ({
   defaultChecked = false,
   onCheckedChange,
   disabled = false,
+  disabledTooltip = "You need to have a valid API name",
 }: ExpandableSettingsProps) => {
   const [isEnabled, setIsEnabled] = useState(defaultChecked);
 
@@ -32,13 +35,19 @@ export const ExpandableSettings = ({
     setIsEnabled(checked);
     onCheckedChange?.(checked);
   };
+  const handleSwitchClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
 
-  const handleHeaderClick = () => {
+  const handleHeaderClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     handleCheckedChange(!isEnabled);
   };
 
   return (
-    <InfoTooltip content="You need to have a valid API name" disabled={!disabled}>
+    <InfoTooltip content={disabledTooltip} disabled={!disabled} asChild>
       <div className={disabled ? "opacity-50 pointer-events-none" : ""}>
         {/* Header */}
         <button
@@ -56,7 +65,7 @@ export const ExpandableSettings = ({
             )}
           </div>
           {/* biome-ignore lint/a11y/useKeyWithClickEvents: no need */}
-          <div onClick={(e) => e.stopPropagation()} className="ml-auto">
+          <div onClick={handleSwitchClick} className="ml-auto">
             <Switch
               checked={isEnabled}
               onCheckedChange={handleCheckedChange}

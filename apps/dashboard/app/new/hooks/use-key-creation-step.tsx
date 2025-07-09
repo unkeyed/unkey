@@ -21,7 +21,7 @@ import { CalendarClock, ChartPie, Code, Gauge, Key2, StackPerspective2 } from "@
 import { FormInput } from "@unkey/ui";
 import { addDays } from "date-fns";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useRef, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import { ExpandableSettings } from "../components/expandable-settings";
@@ -39,6 +39,7 @@ const extendedFormSchema = formSchema.and(
 );
 
 export const useKeyCreationStep = (): OnboardingStep => {
+  const [apiCreated, setApiCreated] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -47,7 +48,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
 
   const createApiAndKey = trpc.workspace.onboarding.useMutation({
     onSuccess: (data) => {
-      // Add apiId and keyId to URL parameters
+      setApiCreated(true);
       startTransition(() => {
         const params = new URLSearchParams(searchParams?.toString());
         params.set(API_ID_PARAM, data.apiId);
@@ -74,7 +75,6 @@ export const useKeyCreationStep = (): OnboardingStep => {
     shouldUnregister: true,
     defaultValues: {
       ...getDefaultValues(),
-      apiName: "",
     },
   });
 
@@ -115,6 +115,12 @@ export const useKeyCreationStep = (): OnboardingStep => {
   const isFormReady = Boolean(isValidWorkspaceId && apiNameValue);
   const isLoading = createApiAndKey.isLoading || isPending;
 
+  const tooltipContent = apiCreated
+    ? "API already created - settings cannot be modified"
+    : isFormReady
+      ? "Settings are currently disabled"
+      : "You need to have a valid API name";
+
   return {
     name: "API key",
     icon: <StackPerspective2 size="sm-regular" className="text-gray-11" />,
@@ -130,7 +136,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
                 description="Choose a name for your API that helps you identify it"
                 label="API name"
                 className="w-full"
-                disabled={!isValidWorkspaceId || isLoading}
+                disabled={!isValidWorkspaceId || isLoading || apiCreated}
               />
 
               <div className="mt-8" />
@@ -143,7 +149,8 @@ export const useKeyCreationStep = (): OnboardingStep => {
 
               <div className="flex flex-col gap-3 w-full">
                 <ExpandableSettings
-                  disabled={!isFormReady || isLoading}
+                  disabled={!isFormReady || isLoading || apiCreated}
+                  disabledTooltip={tooltipContent}
                   icon={<Key2 className="text-gray-9 flex-shrink-0" size="sm-regular" />}
                   title="General Setup"
                   description="Configure basic API key settings like prefix, byte length, and External ID"
@@ -152,7 +159,8 @@ export const useKeyCreationStep = (): OnboardingStep => {
                 </ExpandableSettings>
 
                 <ExpandableSettings
-                  disabled={!isFormReady || isLoading}
+                  disabled={!isFormReady || isLoading || apiCreated}
+                  disabledTooltip={tooltipContent}
                   icon={<Gauge className="text-gray-9 flex-shrink-0" size="sm-regular" />}
                   title="Ratelimit"
                   description="Set request limits per time window to control API usage frequency"
@@ -166,7 +174,8 @@ export const useKeyCreationStep = (): OnboardingStep => {
                 </ExpandableSettings>
 
                 <ExpandableSettings
-                  disabled={!isFormReady || isLoading}
+                  disabled={!isFormReady || isLoading || apiCreated}
+                  disabledTooltip={tooltipContent}
                   icon={<ChartPie className="text-gray-9 flex-shrink-0" size="sm-regular" />}
                   title="Credits"
                   description="Set usage limits based on credits or quota to control consumption"
@@ -180,7 +189,8 @@ export const useKeyCreationStep = (): OnboardingStep => {
                 </ExpandableSettings>
 
                 <ExpandableSettings
-                  disabled={!isFormReady || isLoading}
+                  disabled={!isFormReady || isLoading || apiCreated}
+                  disabledTooltip={tooltipContent}
                   icon={<CalendarClock className="text-gray-9 flex-shrink-0" size="sm-regular" />}
                   title="Expiration"
                   description="Set when this API key should automatically expire and become invalid"
@@ -198,7 +208,8 @@ export const useKeyCreationStep = (): OnboardingStep => {
                 </ExpandableSettings>
 
                 <ExpandableSettings
-                  disabled={!isFormReady || isLoading}
+                  disabled={!isFormReady || isLoading || apiCreated}
+                  disabledTooltip={tooltipContent}
                   icon={<Code className="text-gray-9 flex-shrink-0" size="sm-regular" />}
                   title="Metadata"
                   description="Add custom key-value pairs to store additional information with your API key"
@@ -221,24 +232,25 @@ export const useKeyCreationStep = (): OnboardingStep => {
       </div>
     ),
     kind: "non-required" as const,
-    buttonText: isLoading ? "Creating API & Key..." : "Create API & Key",
-    description: "Setup your API with an initial key and advanced configurations",
+    buttonText: apiCreated ? "Continue" : isLoading ? "Creating API & Key..." : "Create API & Key",
+    description: apiCreated
+      ? "API and key created successfully, continue to next step"
+      : "Setup your API with an initial key and advanced configurations",
     onStepSkip: () => {
       router.push("/apis");
     },
-    onStepNext: () => {
-      if (!isValidWorkspaceId) {
-        toast.error("Invalid workspace ID. Please go back and create a new workspace.");
-        return;
-      }
-      if (isLoading) {
-        return;
-      }
-      formRef.current?.requestSubmit();
-    },
-    onStepBack: () => {
-      console.info("Going back from API key creation step");
-    },
+    onStepNext: apiCreated
+      ? undefined
+      : () => {
+          if (!isValidWorkspaceId) {
+            toast.error("Invalid workspace ID. Please go back and create a new workspace.");
+            return;
+          }
+          if (isLoading) {
+            return;
+          }
+          formRef.current?.requestSubmit();
+        },
     isLoading,
   };
 };
