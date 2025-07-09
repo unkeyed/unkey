@@ -124,6 +124,7 @@ func Run(ctx context.Context, cfg Config) error {
 		cfg.MetaldAddress,
 		connect.WithInterceptors(connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
 			return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+				logger.Info("Adding auth header to metald request", "procedure", req.Spec().Procedure)
 				req.Header().Set("Authorization", "Bearer dev_user_ctrl")
 				return next(ctx, req)
 			}
