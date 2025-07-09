@@ -121,6 +121,12 @@ func Run(ctx context.Context, cfg Config) error {
 	metaldClient := vmprovisionerv1connect.NewVmServiceClient(
 		httpClient,
 		cfg.MetaldAddress,
+		connect.WithInterceptors(connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
+			return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+				req.Header().Set("Authorization", "Bearer dev_user_ctrl")
+				return next(ctx, req)
+			}
+		})),
 	)
 	logger.Info("metald client configured with SPIRE authentication", "address", cfg.MetaldAddress, "spiffe_socket", cfg.SPIFFESocketPath)
 
