@@ -1,0 +1,156 @@
+package keys
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/unkeyed/unkey/go/apps/api/openapi"
+	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
+	"github.com/unkeyed/unkey/go/pkg/rbac"
+	"golang.org/x/exp/slices"
+)
+
+// withCredits validates that the key has sufficient usage credits and deducts the specified cost.
+// It updates the key's remaining request count and marks the key as invalid if the limit is exceeded.
+func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
+	ctx, span := tracing.Start(ctx, "verify.withCredits")
+	defer span.End()
+
+	if !k.Valid {
+		return nil
+	}
+
+	usage, err := k.usageLimiter.Limit(ctx, usagelimiter.UsageRequest{
+		KeyId: k.Key.ID,
+		Cost:  cost,
+	})
+	if err != nil {
+		return err
+	}
+
+	k.Key.RemainingRequests = sql.NullInt32{Int32: usage.Remaining, Valid: true}
+	if !usage.Valid {
+		k.setInvalid(StatusUsageExceeded, "Key usage limit exceeded.")
+	}
+
+	return nil
+}
+
+// withIPWhitelist validates that the client IP address is in the key's IP whitelist.
+// If no whitelist is configured, this validation is skipped.
+func (k *KeyVerifier) withIPWhitelist() error {
+	if !k.Valid {
+		return nil
+	}
+
+	if !k.Key.IpWhitelist.Valid {
+		return nil
+	}
+
+	clientIP := k.session.Location()
+	if clientIP == "" {
+		k.Valid = false
+		k.Status = StatusForbidden
+		k.message = "client IP is required for IP whitelist validation"
+		return nil
+	}
+
+	allowedIPs := strings.Split(k.Key.IpWhitelist.String, ",")
+	for i, ip := range allowedIPs {
+		allowedIPs[i] = strings.TrimSpace(ip)
+	}
+
+	if !slices.Contains(allowedIPs, clientIP) {
+		k.setInvalid(StatusForbidden, fmt.Sprintf("client IP %s is not in the whitelist", clientIP))
+	}
+
+	return nil
+}
+
+// withPermissions validates that the key has the required RBAC permissions.
+// It uses the configured RBAC system to evaluate the permission query against the key's permissions.
+func (k *KeyVerifier) withPermissions(ctx context.Context, query rbac.PermissionQuery) error {
+	ctx, span := tracing.Start(ctx, "verify.withPermissions")
+	defer span.End()
+
+	if !k.Valid {
+		return nil
+	}
+
+	allowed, err := k.rBAC.EvaluatePermissions(query, k.Permissions)
+	if err != nil {
+		return err
+	}
+
+	if !allowed.Valid {
+		k.setInvalid(StatusInsufficientPermissions, allowed.Message)
+	}
+
+	return nil
+}
+
+// withRateLimits validates the key against both auto-applied and specified rate limits.
+// Auto-applied limits come from the key or identity configuration, while specified limits
+// are provided at verification time. All limits must pass for the key to be valid.
+func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []openapi.KeysVerifyKeyRatelimit) error {
+	ctx, span := tracing.Start(ctx, "verify.withRateLimits")
+	defer span.End()
+
+	if !k.Valid {
+		return nil
+	}
+
+	ratelimitsMap := make(map[string]ratelimit.RatelimitRequest)
+	// Ratelimits that have been auto applied on the identity or the key itself
+	for _, rl := range k.Ratelimits {
+		if !rl.AutoApply {
+			continue
+		}
+
+		identifier := rl.KeyID.String
+
+		if rl.IdentityID.Valid {
+			identifier = rl.IdentityID.String
+		}
+
+		ratelimitsMap[rl.Name] = ratelimit.RatelimitRequest{
+			Identifier: identifier,
+			Limit:      int64(rl.Limit),
+			Duration:   time.Duration(rl.Duration) * time.Millisecond,
+			Cost:       1,
+		}
+	}
+
+	for _, rl := range specifiedLimits {
+		if rl.Limit != nil && rl.Duration != nil {
+			ratelimitsMap[rl.Name] = ratelimit.RatelimitRequest{
+				Identifier: k.Key.ID,
+				Limit:      int64(*rl.Limit),
+				Duration:   time.Duration(*rl.Duration) * time.Millisecond,
+				Cost:       int64(ptr.SafeDeref(rl.Cost, 1)),
+			}
+		}
+	}
+
+	for _, limit := range ratelimitsMap {
+		response, err := k.rateLimiter.Ratelimit(ctx, limit)
+		if err != nil {
+			return err
+		}
+
+		k.RatelimitResponses = append(k.RatelimitResponses, response)
+		if !response.Success {
+			k.setInvalid(StatusRateLimited, "")
+			return nil
+		}
+	}
+
+	return nil
+}
+

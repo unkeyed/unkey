@@ -417,7 +417,7 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//      ?,
+	//      CAST(? AS JSON),
 	//      ?
 	//  )
 	InsertAuditLog(ctx context.Context, db DBTX, arg InsertAuditLogParams) error
@@ -443,7 +443,7 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//      ?,
+	//      CAST(? AS JSON),
 	//      ?
 	//  )
 	InsertAuditLogTarget(ctx context.Context, db DBTX, arg InsertAuditLogTargetParams) error

@@ -320,6 +320,21 @@ type KeysDeleteKeyResponseData = map[string]interface{}
 // KeysUpdateKeyResponseData Empty response object by design. A successful response indicates the key was updated successfully. The endpoint doesn't return the updated key to reduce response size and avoid exposing sensitive information. Changes may take up to 30 seconds to propagate to all regions due to cache invalidation delays. If you need the updated key state, use a subsequent call to `keys.getKey`.
 type KeysUpdateKeyResponseData = map[string]interface{}
 
+// KeysVerifyKeyRatelimit defines model for KeysVerifyKeyRatelimit.
+type KeysVerifyKeyRatelimit struct {
+	// Cost Optionally override how expensive this operation is and how many tokens are deducted from the current limit.
+	Cost *int `json:"cost,omitempty"`
+
+	// Duration Optionally override the duration of the rate limit window duration.
+	Duration *int `json:"duration,omitempty"`
+
+	// Limit Optionally override the maximum number of requests allowed within the specified interval.
+	Limit *int `json:"limit,omitempty"`
+
+	// Name References an existing ratelimit by its name. Key Ratelimits will take precedence over identifier-based limits.
+	Name string `json:"name"`
+}
+
 // KeysVerifyKeyResponseData defines model for KeysVerifyKeyResponseData.
 type KeysVerifyKeyResponseData struct {
 	// Code A machine-readable code indicating the verification status or failure reason. Values: `VALID` (key is valid), `NOT_FOUND` (key doesn't exist), `FORBIDDEN` (key exists but belongs to a different API), `USAGE_EXCEEDED` (key has no more credits), `RATE_LIMITED` (key exceeded rate limits), `UNAUTHORIZED` (key can't be used for this action), `DISABLED` (key was explicitly disabled), `INSUFFICIENT_PERMISSIONS` (key lacks required permissions), `EXPIRED` (key has passed its expiration date).
@@ -1700,7 +1715,7 @@ type V2KeysVerifyKeyRequestBody struct {
 	// Omitting this field skips rate limit checks entirely, relying only on configured key rate limits.
 	// Multiple rate limits can be checked simultaneously, each with different costs and temporary overrides.
 	// Rate limit checks are optimized for performance but may allow brief bursts during high concurrency.
-	Ratelimits *[]RatelimitRequest `json:"ratelimits,omitempty"`
+	Ratelimits *[]KeysVerifyKeyRatelimit `json:"ratelimits,omitempty"`
 
 	// Tags Attaches metadata tags for analytics and monitoring without affecting verification outcomes.
 	// Enables segmentation of API usage in dashboards by endpoint, client version, region, or custom dimensions.

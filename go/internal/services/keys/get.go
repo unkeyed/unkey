@@ -15,6 +15,9 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
+// GetRootKey retrieves and validates a root key from the session's Authorization header.
+// Root keys are special administrative keys that can access workspace-level operations.
+// Validation failures are immediately converted to fault errors for root keys.
 func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifier, error) {
 	ctx, span := tracing.Start(ctx, "keys.GetRootKey")
 	defer span.End()
@@ -44,6 +47,9 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 	return key, nil
 }
 
+// Get retrieves a key from the database and performs basic validation checks.
+// It returns a KeyVerifier that can be used for further validation with specific options.
+// For normal keys, validation failures are indicated by KeyVerifier.Valid=false.
 func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*KeyVerifier, error) {
 	ctx, span := tracing.Start(ctx, "keys.Get")
 	defer span.End()
@@ -114,7 +120,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		session:               sess,
 		logger:                s.logger,
 		message:               "",
-		IsRootKey:             key.ForWorkspaceID.Valid,
+		isRootKey:             key.ForWorkspaceID.Valid,
 		// By default we assume the key is valid unless proven otherwise
 		Valid:       true,
 		Status:      StatusValid,
@@ -124,23 +130,18 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 	}
 
 	if key.DeletedAtM.Valid {
-		kv.Status = StatusNotFound
-		kv.Valid = false
-		kv.message = "key is deleted"
+		kv.setInvalid(StatusNotFound, "key is deleted")
 		return kv, nil
 	}
 
 	if !key.Enabled {
-		kv.Status = StatusDisabled
-		kv.Valid = false
-		kv.message = "the key is disabled"
+		kv.setInvalid(StatusDisabled, "key is disabled")
 		return kv, nil
 	}
 
 	if key.Expires.Valid && time.Now().After(key.Expires.Time) {
-		kv.Status = StatusExpired
-		kv.Valid = false
-		kv.message = fmt.Sprintf("the key has expired on %s", key.Expires.Time.Format(time.RFC3339))
+		kv.setInvalid(StatusExpired, fmt.Sprintf("the key has expired on %s", key.Expires.Time.Format(time.RFC3339)))
+		return kv, nil
 	}
 
 	return kv, nil
