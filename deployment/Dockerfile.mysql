@@ -1,4 +1,4 @@
-FROM mysql:8.0
+FROM mysql:latest
 
 # Copy database initialization script
 COPY deployment/init-databases.sql /docker-entrypoint-initdb.d/00-init-databases.sql
