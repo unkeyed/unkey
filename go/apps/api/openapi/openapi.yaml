@@ -3411,6 +3411,8 @@ components:
             Essential for implementing fine-grained authorization in multi-tenant or privilege-separated APIs.
         credits:
           type: object
+          required:
+            - cost
           properties:
             cost:
               type: integer
@@ -3509,13 +3511,6 @@ components:
             The human-readable name assigned to this key during creation.
             This is useful for displaying in logs or admin interfaces to identify
             the key's purpose or owner.
-        externalId:
-          type: string
-          description:
-            Your user/tenant identifier that was associated with this key
-            during creation. This allows you to connect the key back to your user
-            without additional database lookups, making it ideal for implementing
-            user-based authorization in stateless services.
         meta:
           type: object
           additionalProperties: true

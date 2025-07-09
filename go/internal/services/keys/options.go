@@ -57,4 +57,3 @@ func WithRateLimits(limits []openapi.KeysVerifyKeyRatelimit) VerifyOption {
 		return nil
 	}
 }
-

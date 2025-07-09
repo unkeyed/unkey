@@ -2,13 +2,12 @@ package v2RatelimitLimit
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
+	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/pkg/cache"
@@ -78,18 +77,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	namespace, err := h.RatelimitNamespaceByNameCache.SWR(ctx, findNamespaceArgs, func(ctx context.Context) (db.RatelimitNamespace, error) {
 		return db.Query.FindRatelimitNamespaceByName(ctx, h.DB.RO(), findNamespaceArgs)
-	}, func(err error) cache.Op {
-		if err == nil {
-			// everything went well and we have a namespace response
-			return cache.WriteValue
-		}
-		if errors.Is(err, sql.ErrNoRows) {
-			// the response is empty, we need to store that the namespace does not exist
-			return cache.WriteNull
-		}
-		// this is a noop in the cache
-		return cache.Noop
-	})
+	}, caches.DefaultFindFirstOp)
 
 	span.End()
 	if db.IsNotFound(err) {
@@ -158,6 +146,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		duration   = req.Duration
 		overrideId = ""
 	)
+
 	for _, override := range overrides {
 		if override.DeletedAtM.Valid {
 			continue

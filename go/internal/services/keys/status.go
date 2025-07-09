@@ -154,4 +154,3 @@ func (k *KeyVerifier) setInvalid(status KeyStatus, message string) {
 	k.message = message
 	k.Valid = false
 }
-

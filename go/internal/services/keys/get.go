@@ -100,9 +100,18 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 	var roles, permissions []string
 	var ratelimitArr [][]string
 	var ratelimits []db.KeyFindForVerificationRatelimit
-	json.Unmarshal(key.Roles.([]byte), &roles)
-	json.Unmarshal(key.Permissions.([]byte), &permissions)
-	json.Unmarshal(key.Ratelimits.([]byte), &ratelimitArr)
+	err = json.Unmarshal(key.Roles.([]byte), &roles)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(key.Permissions.([]byte), &permissions)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(key.Ratelimits.([]byte), &ratelimitArr)
+	if err != nil {
+		return nil, err
+	}
 
 	authorizedWorkspaceID := key.WorkspaceID
 	if key.ForWorkspaceID.Valid {

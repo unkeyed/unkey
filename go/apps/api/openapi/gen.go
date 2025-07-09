@@ -347,11 +347,8 @@ type KeysVerifyKeyResponseData struct {
 	Enabled *bool `json:"enabled,omitempty"`
 
 	// Expires Unix timestamp (in milliseconds) when the key will expire. If null or not present, the key has no expiration. You can use this to warn users about upcoming expirations or to understand the validity period.
-	Expires *int64 `json:"expires,omitempty"`
-
-	// ExternalId Your user/tenant identifier that was associated with this key during creation. This allows you to connect the key back to your user without additional database lookups, making it ideal for implementing user-based authorization in stateless services.
-	ExternalId *string   `json:"externalId,omitempty"`
-	Identity   *Identity `json:"identity,omitempty"`
+	Expires  *int64    `json:"expires,omitempty"`
+	Identity *Identity `json:"identity,omitempty"`
 
 	// KeyId The unique identifier of the verified key in Unkey's system. Use this ID for operations like updating or revoking the key. This field is returned for both valid and invalid keys (except when `code=NOT_FOUND`).
 	KeyId *string `json:"keyId,omitempty"`
@@ -1696,7 +1693,7 @@ type V2KeysVerifyKeyRequestBody struct {
 		// Use 0 for read-only operations or free tier access, higher values for premium features.
 		// Credits are deducted immediately upon verification, even if the key lacks required permissions.
 		// Essential for implementing usage-based pricing with different operation costs.
-		Cost *int64 `json:"cost,omitempty"`
+		Cost int64 `json:"cost"`
 	} `json:"credits,omitempty"`
 
 	// Key The complete API key string provided by your user, including any prefix.

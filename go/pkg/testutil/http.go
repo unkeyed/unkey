@@ -12,13 +12,14 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
-	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/counter"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/vault"
@@ -38,16 +39,15 @@ type Harness struct {
 
 	middleware []zen.Middleware
 
-	DB          db.Database
-	Caches      caches.Caches
-	Logger      logging.Logger
-	Keys        keys.KeyService
-	Permissions permissions.PermissionService
-	Auditlogs   auditlogs.AuditLogService
-	ClickHouse  clickhouse.ClickHouse
-	Ratelimit   ratelimit.Service
-	Vault       *vault.Service
-	seeder      *seed.Seeder
+	DB         db.Database
+	Caches     caches.Caches
+	Logger     logging.Logger
+	Keys       keys.KeyService
+	Auditlogs  auditlogs.AuditLogService
+	ClickHouse clickhouse.ClickHouse
+	Ratelimit  ratelimit.Service
+	Vault      *vault.Service
+	seeder     *seed.Seeder
 }
 
 func NewHarness(t *testing.T) *Harness {
@@ -86,15 +86,6 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
-	keyService, err := keys.New(keys.Config{
-		Logger:         logger,
-		DB:             db,
-		Clock:          clk,
-		KeyCache:       caches.KeyByHash,
-		WorkspaceCache: caches.WorkspaceByID,
-	})
-	require.NoError(t, err)
-
 	// Get ClickHouse connection string
 	chDSN := containers.ClickHouse(t)
 
@@ -108,14 +99,6 @@ func NewHarness(t *testing.T) *Harness {
 	validator, err := validation.New()
 	require.NoError(t, err)
 
-	permissionService, err := permissions.New(permissions.Config{
-		DB:     db,
-		Logger: logger,
-		Clock:  clk,
-		Cache:  caches.PermissionsByKeyId,
-	})
-	require.NoError(t, err)
-
 	ctr, err := counter.NewRedis(counter.RedisConfig{
 		RedisURL: redisUrl,
 		Logger:   logger,
@@ -126,6 +109,23 @@ func NewHarness(t *testing.T) *Harness {
 		Logger:  logger,
 		Clock:   clk,
 		Counter: ctr,
+	})
+	require.NoError(t, err)
+
+	usageLimiterService, err := usagelimiter.New(usagelimiter.Config{
+		Logger: logger,
+		DB:     db,
+	})
+	require.NoError(t, err)
+
+	keyService, err := keys.New(keys.Config{
+		Logger:       logger,
+		DB:           db,
+		KeyCache:     caches.VerificationKeyByHash,
+		RateLimiter:  ratelimitService,
+		UsageLimiter: usageLimiterService,
+		RBAC:         rbac.New(),
+		Clickhouse:   ch,
 	})
 	require.NoError(t, err)
 
@@ -155,18 +155,17 @@ func NewHarness(t *testing.T) *Harness {
 	seeder.Seed(context.Background())
 
 	h := Harness{
-		t:           t,
-		Logger:      logger,
-		srv:         srv,
-		validator:   validator,
-		Keys:        keyService,
-		Permissions: permissionService,
-		Ratelimit:   ratelimitService,
-		Vault:       v,
-		ClickHouse:  ch,
-		DB:          db,
-		seeder:      seeder,
-		Clock:       clk,
+		t:          t,
+		Logger:     logger,
+		srv:        srv,
+		validator:  validator,
+		Keys:       keyService,
+		Ratelimit:  ratelimitService,
+		Vault:      v,
+		ClickHouse: ch,
+		DB:         db,
+		seeder:     seeder,
+		Clock:      clk,
 		Auditlogs: auditlogs.New(auditlogs.Config{
 			DB:     db,
 			Logger: logger,
@@ -203,6 +202,10 @@ func (h *Harness) CreateRootKey(workspaceID string, permissions ...string) strin
 
 func (h *Harness) CreateWorkspace() db.Workspace {
 	return h.seeder.CreateWorkspace(context.Background())
+}
+
+func (h *Harness) CreateApi(workspaceID string, encryptedKeys bool) db.Api {
+	return h.seeder.CreateAPI(context.Background(), workspaceID, encryptedKeys)
 }
 
 func (h *Harness) Resources() seed.Resources {

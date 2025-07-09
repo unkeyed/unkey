@@ -2,14 +2,18 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
+	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -66,8 +70,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// key.WithPermissions(ctx, query rbac.PermissionQuery)
-
 	// Validate key belongs to authorized workspace
 	if key.Key.WorkspaceID != auth.AuthorizedWorkspaceID {
 		return s.JSON(http.StatusOK, res)
@@ -91,27 +93,83 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 	)))
 	if err != nil {
-		// The Root Key is in the same workspace as the API so we can show that it does not have permission to verify keys.
-		// (I think so?)
 		return err
 	}
 
-	// rbac
+	opts := []keys.VerifyOption{keys.WithIPWhitelist()}
+	if req.Ratelimits != nil {
+		opts = append(opts, keys.WithRateLimits(*req.Ratelimits))
+	}
 
-	// req.Permissions
+	if req.Credits != nil {
+		opts = append(opts, keys.WithCredits(int32(req.Credits.Cost)))
+	}
 
-	err = key.Verify(ctx,
-		keys.WithCredits(1),
-		keys.WithIPWhitelist(),
-		keys.WithPermissions(rbac.PermissionQuery{}),
-		// keys.WithRateLimits(req.Ratelimits),
-	)
+	if req.Permissions != nil {
+		opts = append(opts, keys.WithPermissions(rbac.PermissionQuery{
+			// Permissions: req.Permissions,
+		}))
+	}
+
+	err = key.Verify(ctx, opts...)
 	if err != nil {
 		return err
 	}
 
-	res.Data.Code = key.ToOpenAPIStatus()
-	res.Data.Valid = key.Valid
+	res.Data = openapi.KeysVerifyKeyResponseData{
+		Code:        key.ToOpenAPIStatus(),
+		Valid:       key.Valid,
+		Enabled:     ptr.P(key.Key.Enabled),
+		Name:        ptr.P(key.Key.Name.String),
+		Permissions: ptr.P(key.Permissions),
+		Roles:       ptr.P(key.Roles),
+		KeyId:       ptr.P(key.Key.ID),
+
+		Credits:    nil,
+		Expires:    nil,
+		Identity:   nil,
+		Meta:       nil,
+		Ratelimits: nil,
+	}
+
+	if key.Key.RemainingRequests.Valid {
+		res.Data.Credits = ptr.P(key.Key.RemainingRequests.Int32)
+	}
+
+	if key.Key.Expires.Valid {
+		res.Data.Expires = ptr.P(key.Key.Expires.Time.UnixMilli())
+	}
+
+	if key.Key.Meta.Valid {
+		err = json.Unmarshal([]byte(key.Key.Meta.String), &res.Data.Meta)
+		if err != nil {
+			return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
+				fault.Internal("unable to unmarshal key meta"),
+				fault.Public("We encountered an error while trying to unmarshal the key meta data."),
+			)
+		}
+	}
+
+	if key.Key.IdentityID.Valid {
+		// identityRatelimits := make([]openapi.RatelimitResponse, 0)
+
+		res.Data.Identity = &openapi.Identity{
+			ExternalId: key.Key.ExternalID.String,
+			Id:         key.Key.IdentityID.String,
+			Ratelimits: nil,
+			Meta:       nil,
+		}
+
+		if len(key.Key.IdentityMeta) > 0 {
+			err = json.Unmarshal([]byte(key.Key.IdentityMeta), &res.Data.Identity.Meta)
+			if err != nil {
+				return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
+					fault.Internal("unable to unmarshal identity meta"),
+					fault.Public("We encountered an error while trying to unmarshal the identity meta data."),
+				)
+			}
+		}
+	}
 
 	return s.JSON(http.StatusOK, res)
 }
