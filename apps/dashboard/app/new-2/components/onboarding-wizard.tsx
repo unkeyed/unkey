@@ -50,6 +50,7 @@ const CIRCLE_PROGRESS_STROKE_WIDTH = 1.5;
 export const OnboardingWizard = ({ steps, onComplete, onStepChange }: OnboardingWizardProps) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const previousLoadingRef = useRef<boolean>(false);
+  const [shouldAdvance, setShouldAdvance] = useState(false);
 
   if (steps.length === 0) {
     throw new Error("OnboardingWizard requires at least one step");
@@ -60,18 +61,27 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
   const isLastStep = currentStepIndex === steps.length - 1;
   const isLoading = currentStep.isLoading || false;
 
-  // Auto-advance when loading ends
+  // Auto-advance logic
   useEffect(() => {
-    if (previousLoadingRef.current && !isLoading) {
-      // Loading just ended, advance to next step
+    if (shouldAdvance) {
+      setShouldAdvance(false);
+
       if (isLastStep) {
         onComplete?.();
       } else {
         setCurrentStepIndex(currentStepIndex + 1);
       }
     }
+  }, [shouldAdvance, isLastStep, currentStepIndex, onComplete]);
+
+  // Handle loading state changes
+  useEffect(() => {
+    if (previousLoadingRef.current && !isLoading) {
+      // Loading just ended, trigger advance
+      setShouldAdvance(true);
+    }
     previousLoadingRef.current = isLoading;
-  }, [isLoading, isLastStep, currentStepIndex, onComplete]);
+  }, [isLoading]);
 
   useEffect(() => {
     onStepChange?.(currentStepIndex);
@@ -89,8 +99,12 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
       return;
     }
 
-    // Only trigger the callback, don't advance automatically
     currentStep.onStepNext?.(currentStepIndex);
+
+    // If not loading, advance immediately
+    if (!isLoading) {
+      setShouldAdvance(true);
+    }
   };
 
   const handleSkip = () => {
@@ -99,11 +113,8 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
     }
 
     // For non-required steps, skip to next step
-    if (isLastStep) {
-      onComplete?.();
-    } else {
-      setCurrentStepIndex(currentStepIndex + 1);
-    }
+    currentStep.onStepNext?.(currentStepIndex);
+    setShouldAdvance(true);
   };
 
   const isNextButtonDisabled = () => {

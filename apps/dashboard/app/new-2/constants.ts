@@ -5,17 +5,18 @@ export type StepInfo = {
 
 export const stepInfos: StepInfo[] = [
   {
-    title: "Create company workspace",
+    title: "Create Company Workspace",
     description:
       "Customize your workspace name, logo, and handle. This is how it’ll appear in your dashboard and URLs.",
   },
   {
-    title: "Create your first API key",
+    title: "Create Your First API Key",
     description:
       "Generate a key for your public API. You’ll be able to verify, revoke, and track usage — all globally distributed with built-in analytics.",
   },
   {
-    title: "Configure your dashboard",
-    description: "Customize your dashboard settings and invite team members to collaborate.",
+    title: "Your API Key is Ready",
+    description:
+      "Use the code snippet below to start authenticating requests. You can always manage or rotate your keys from the dashboard.",
   },
 ];

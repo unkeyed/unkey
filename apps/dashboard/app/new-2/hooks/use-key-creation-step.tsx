@@ -108,8 +108,6 @@ export const useKeyCreationStep = (): OnboardingStep => {
   const isFormReady = Boolean(isValidWorkspaceId && apiNameValue);
   const isLoading = createApiAndKey.isLoading;
 
-  const validFieldCount = apiNameValue ? 1 : 0;
-
   return {
     name: "API key",
     icon: <StackPerspective2 size="sm-regular" className="text-gray-11" />,
@@ -215,9 +213,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
         </FormProvider>
       </div>
     ),
-    kind: "required" as const,
-    validFieldCount,
-    requiredFieldCount: 1,
+    kind: "non-required" as const,
     buttonText: isLoading ? "Creating API & Key..." : "Create API & Key",
     description: "Setup your API with an initial key and advanced configurations",
     onStepNext: () => {
