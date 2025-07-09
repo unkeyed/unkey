@@ -58,36 +58,31 @@ stop: ## Stop and remove Docker container
 logs: ## Follow container logs
 	@docker logs -f unkey-$(SERVICE_NAME)
 
-spire-register: ## Register Docker container with SPIRE
+spire-register: ## Register Docker container with SPIRE (stable selectors)
 	@echo "$(BLUE)Registering ctrl container with SPIRE...$(NC)"
 	@echo "Trust Domain: $(YELLOW)$(TRUST_DOMAIN)$(NC)"
 	@if [ ! -S "$(SPIRE_SOCKET)" ]; then \
 		echo "$(RED)Error: SPIRE server socket not available at $(SPIRE_SOCKET)$(NC)"; \
 		exit 1; \
 	fi
-	@CONTAINER_ID=$$(docker ps -q -f name=unkey-$(SERVICE_NAME)); \
-	if [ -z "$$CONTAINER_ID" ]; then \
-		echo "$(RED)Error: ctrl container not running$(NC)"; \
-		echo "Start it with: make run"; \
-		exit 1; \
-	fi; \
-	echo "$(BLUE)Container ID: $$CONTAINER_ID$(NC)"; \
-	PARENT_ID="spiffe://$(TRUST_DOMAIN)/agent/node1"; \
+	@PARENT_ID="spiffe://$(TRUST_DOMAIN)/agent/node1"; \
 	SPIFFE_ID="spiffe://$(TRUST_DOMAIN)/service/$(SERVICE_NAME)"; \
-	if sudo $(SPIRE_DIR)/bin/spire-server entry show -socketPath "$(SPIRE_SOCKET)" -spiffeID "$$SPIFFE_ID" 2>/dev/null | grep -q "SPIFFE ID"; then \
-		echo "$(YELLOW)✓ $(SERVICE_NAME) already registered$(NC)"; \
-	else \
-		IMAGE_ID=$$(docker inspect --format='{{.Image}}' $$CONTAINER_ID); \
-		sudo $(SPIRE_DIR)/bin/spire-server entry create \
-			-socketPath "$(SPIRE_SOCKET)" \
-			-parentID "$$PARENT_ID" \
-			-spiffeID "$$SPIFFE_ID" \
-			-selector "docker:label:com.docker.compose.service:$(SERVICE_NAME)" \
-			-selector "docker:image_id:$$IMAGE_ID" \
-			-x509SVIDTTL 3600 \
-			&& echo "$(GREEN)✓ $(SERVICE_NAME) registered with SPIRE$(NC)" \
-			|| (echo "$(RED)✗ Failed to register $(SERVICE_NAME)$(NC)" && exit 1); \
-	fi
+	echo "$(BLUE)Cleaning up any existing registrations...$(NC)"; \
+	sudo $(SPIRE_DIR)/bin/spire-server entry show -socketPath "$(SPIRE_SOCKET)" -spiffeID "$$SPIFFE_ID" 2>/dev/null | grep "Entry ID" | awk '{print $$4}' | while read entry_id; do \
+		if [ ! -z "$$entry_id" ]; then \
+			echo "$(YELLOW)Deleting existing entry: $$entry_id$(NC)"; \
+			sudo $(SPIRE_DIR)/bin/spire-server entry delete -socketPath "$(SPIRE_SOCKET)" -entryID "$$entry_id" 2>/dev/null || true; \
+		fi; \
+	done; \
+	echo "$(BLUE)Creating new stable registration...$(NC)"; \
+	sudo $(SPIRE_DIR)/bin/spire-server entry create \
+		-socketPath "$(SPIRE_SOCKET)" \
+		-parentID "$$PARENT_ID" \
+		-spiffeID "$$SPIFFE_ID" \
+		-selector "docker:label:com.docker.compose.service:$(SERVICE_NAME)" \
+		-x509SVIDTTL 3600 \
+		&& echo "$(GREEN)✓ $(SERVICE_NAME) registered with SPIRE using stable selectors$(NC)" \
+		|| (echo "$(RED)✗ Failed to register $(SERVICE_NAME)$(NC)" && exit 1)
 
 clean: ## Remove Docker image
 	@echo "$(BLUE)Cleaning up...$(NC)"
