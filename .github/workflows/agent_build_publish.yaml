@@ -15,17 +15,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Get Version
         run: |
           # Extract everything after "agent/"
           # For example, from "agent/v1.2.3" we get "v1.2.3"
           VERSION=${GITHUB_REF#refs/tags/agent/}
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-
       - name: Get tags
         run: echo "TAGS=ghcr.io/unkeyed/agent:${{env.VERSION}},ghcr.io/unkeyed/agent:latest" >> $GITHUB_ENV
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
@@ -36,7 +33,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
-
       - name: Build and push
         uses: docker/build-push-action@v6
         with:

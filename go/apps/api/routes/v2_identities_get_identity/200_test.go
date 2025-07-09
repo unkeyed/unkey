@@ -171,7 +171,7 @@ func TestSuccess(t *testing.T) {
 
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
-			Meta:        nil,
+			Meta:        []byte("{}"),
 		})
 		require.NoError(t, err)
 
@@ -206,7 +206,7 @@ func TestSuccess(t *testing.T) {
 
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
-			Meta:        nil,
+			Meta:        []byte("{}"),
 		})
 		require.NoError(t, err)
 
@@ -240,7 +240,7 @@ func TestSuccess(t *testing.T) {
 
 			Environment: customEnvironment,
 			CreatedAt:   time.Now().UnixMilli(),
-			Meta:        nil,
+			Meta:        []byte("{}"),
 		})
 		require.NoError(t, err)
 
@@ -374,7 +374,7 @@ func TestSuccess(t *testing.T) {
 
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
-			Meta:        nil,
+			Meta:        []byte("{}"),
 		})
 		require.NoError(t, err)
 
@@ -454,7 +454,7 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Environment: "default",
 			CreatedAt:   creationTime,
-			Meta:        nil,
+			Meta:        []byte("{}"),
 		})
 		require.NoError(t, err)
 
@@ -491,7 +491,7 @@ func TestSuccess(t *testing.T) {
 
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
-			Meta:        nil,
+			Meta:        []byte("{}"),
 		})
 		require.NoError(t, err)
 
