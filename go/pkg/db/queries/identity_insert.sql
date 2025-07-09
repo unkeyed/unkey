@@ -12,5 +12,5 @@ INSERT INTO `identities` (
     sqlc.arg('workspace_id'),
     sqlc.arg('environment'),
     sqlc.arg('created_at'),
-    sqlc.arg('meta')
+    CAST(sqlc.arg('meta') AS JSON)
 );
