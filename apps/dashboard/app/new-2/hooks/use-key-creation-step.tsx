@@ -20,12 +20,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarClock, ChartPie, Code, Gauge, Key2, StackPerspective2 } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
 import { addDays } from "date-fns";
-import { useSearchParams } from "next/navigation";
-import { useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useRef, useTransition } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import { ExpandableSettings } from "../components/expandable-settings";
 import type { OnboardingStep } from "../components/onboarding-wizard";
+import { API_ID_PARAM, KEY_PARAM } from "../constants";
 
 const extendedFormSchema = formSchema.and(
   z.object({
@@ -39,14 +40,20 @@ const extendedFormSchema = formSchema.and(
 
 export const useKeyCreationStep = (): OnboardingStep => {
   const formRef = useRef<HTMLFormElement>(null);
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
   const workspaceId = searchParams?.get("workspaceId") || "";
 
   const createApiAndKey = trpc.workspace.onboarding.useMutation({
     onSuccess: (data) => {
-      console.info("Successfully created API and key:", data);
-      //TODO: We'll get rid of this in the following PR
-      toast.success("API and key created successfully!");
+      // Add apiId and keyId to URL parameters
+      startTransition(() => {
+        const params = new URLSearchParams(searchParams?.toString());
+        params.set(API_ID_PARAM, data.apiId);
+        params.set(KEY_PARAM, data.key);
+        router.push(`?${params.toString()}`);
+      });
     },
     onError: (error) => {
       console.error("Failed to create API and key:", error);
@@ -106,7 +113,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
 
   const apiNameValue = watch("apiName");
   const isFormReady = Boolean(isValidWorkspaceId && apiNameValue);
-  const isLoading = createApiAndKey.isLoading;
+  const isLoading = createApiAndKey.isLoading || isPending;
 
   return {
     name: "API key",
@@ -216,6 +223,9 @@ export const useKeyCreationStep = (): OnboardingStep => {
     kind: "non-required" as const,
     buttonText: isLoading ? "Creating API & Key..." : "Create API & Key",
     description: "Setup your API with an initial key and advanced configurations",
+    onStepSkip: () => {
+      router.push("/apis");
+    },
     onStepNext: () => {
       if (!isValidWorkspaceId) {
         toast.error("Invalid workspace ID. Please go back and create a new workspace.");

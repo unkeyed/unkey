@@ -1,9 +1,8 @@
 "use client";
-import { ConfirmPopover } from "@/components/confirmation-popover";
-import { CircleInfo, Key2, StackPerspective2 } from "@unkey/icons";
-import { Code, CopyButton, FormInput, VisibleButton } from "@unkey/ui";
-import { Suspense, useRef, useState } from "react";
-import { SecretKey } from "../(app)/apis/[apiId]/_components/create-key/components/secret-key";
+import { Key2, StackPerspective2 } from "@unkey/icons";
+import { FormInput } from "@unkey/ui";
+import { Suspense, useState } from "react";
+import { OnboardingSuccessStep } from "./components/onboarding-success-step";
 import { type OnboardingStep, OnboardingWizard } from "./components/onboarding-wizard";
 import { stepInfos } from "./constants";
 import { useKeyCreationStep } from "./hooks/use-key-creation-step";
@@ -105,10 +104,6 @@ function OnboardingContent() {
     },
   ];
 
-  const handleComplete = () => {
-    console.info("Onboarding completed!");
-  };
-
   const handleStepChange = (newStepIndex: number) => {
     setCurrentStepIndex(newStepIndex);
   };
@@ -142,99 +137,9 @@ function OnboardingContent() {
         <div className="mt-10" />
         {/* Form part */}
         <div className="flex-1 min-h-0">
-          <OnboardingWizard
-            steps={steps}
-            onComplete={handleComplete}
-            onStepChange={handleStepChange}
-          />
+          <OnboardingWizard steps={steps} onStepChange={handleStepChange} />
         </div>
       </div>
     </div>
   );
 }
-
-type OnboardingSuccessStepProps = {
-  isConfirmOpen: boolean;
-  setIsConfirmOpen: (open: boolean) => void;
-};
-
-const OnboardingSuccessStep = ({ isConfirmOpen, setIsConfirmOpen }: OnboardingSuccessStepProps) => {
-  const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
-  const anchorRef = useRef<HTMLDivElement>(null);
-
-  const keyData = { key: "key_data" };
-  const apiId = "api_id";
-  const split = keyData.key.split("_") ?? [];
-  const maskedKey =
-    split.length >= 2
-      ? `${split.at(0)}_${"*".repeat(split.at(1)?.length ?? 0)}`
-      : "*".repeat(split.at(0)?.length ?? 0);
-
-  const snippet = `curl -XPOST '${
-    process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"
-  }/v1/keys.verifyKey' \\
-  -H 'Content-Type: application/json' \\
-  -d '{
-    "key": "${keyData.key}",
-    "apiId": "${apiId}"
-  }'`;
-
-  return (
-    <>
-      <div>
-        <span className="text-gray-11 text-[13px] leading-6" ref={anchorRef}>
-          Run this command to verify your new API key against the API ID. This ensures your key is
-          ready for authenticated requests.
-        </span>
-        <div className="flex flex-col gap-2 items-start w-full mt-6">
-          <div className="text-gray-12 text-sm font-medium">Key Secret</div>
-          <SecretKey value={keyData.key} title="API Key" className="bg-gray-2" />
-          <div className="text-gray-9 text-[13px] flex items-center gap-1.5">
-            <CircleInfo className="text-accent-9" size="sm-regular" />
-            <span>
-              Copy and save this key secret as it won't be shown again.{" "}
-              <a
-                href="https://www.unkey.com/docs/security/recovering-keys"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-info-11 hover:underline"
-              >
-                Learn more
-              </a>
-            </span>
-          </div>
-        </div>
-        <div className="flex flex-col gap-2 items-start w-full mt-8">
-          <div className="text-gray-12 text-sm font-medium">Try It Out</div>
-          <Code
-            className="bg-gray-2"
-            visibleButton={
-              <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
-            }
-            copyButton={<CopyButton value={snippet} />}
-          >
-            {showKeyInSnippet ? snippet : snippet.replace(keyData.key, maskedKey)}
-          </Code>
-        </div>
-      </div>
-      <ConfirmPopover
-        isOpen={isConfirmOpen}
-        onOpenChange={setIsConfirmOpen}
-        onConfirm={() => setIsConfirmOpen(false)}
-        triggerRef={anchorRef}
-        title="You won't see this secret key again!"
-        description="Make sure to copy your secret key before closing. It cannot be retrieved later."
-        confirmButtonText="Close anyway"
-        cancelButtonText="Dismiss"
-        variant="warning"
-        popoverProps={{
-          side: "right",
-          align: "end",
-          sideOffset: 5,
-          alignOffset: 30,
-          onOpenAutoFocus: (e) => e.preventDefault(),
-        }}
-      />
-    </>
-  );
-};

@@ -14,6 +14,8 @@ export type OnboardingStep = {
   onStepNext?: (currentStep: number) => void;
   /** Callback fired when user clicks back button */
   onStepBack?: (currentStep: number) => void;
+  /** Callback fired when user clicks skip button (only for non-required steps) */
+  onStepSkip?: (currentStep: number) => void;
   /** Description text shown below the main button */
   description: string;
   /** Text displayed on the primary action button */
@@ -50,7 +52,6 @@ const CIRCLE_PROGRESS_STROKE_WIDTH = 1.5;
 export const OnboardingWizard = ({ steps, onComplete, onStepChange }: OnboardingWizardProps) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const previousLoadingRef = useRef<boolean>(false);
-  const [shouldAdvance, setShouldAdvance] = useState(false);
 
   if (steps.length === 0) {
     throw new Error("OnboardingWizard requires at least one step");
@@ -61,27 +62,18 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
   const isLastStep = currentStepIndex === steps.length - 1;
   const isLoading = currentStep.isLoading || false;
 
-  // Auto-advance logic
+  // Auto-advance when loading ends
   useEffect(() => {
-    if (shouldAdvance) {
-      setShouldAdvance(false);
-
+    if (previousLoadingRef.current && !isLoading) {
+      // Loading just ended, advance to next step
       if (isLastStep) {
         onComplete?.();
       } else {
         setCurrentStepIndex(currentStepIndex + 1);
       }
     }
-  }, [shouldAdvance, isLastStep, currentStepIndex, onComplete]);
-
-  // Handle loading state changes
-  useEffect(() => {
-    if (previousLoadingRef.current && !isLoading) {
-      // Loading just ended, trigger advance
-      setShouldAdvance(true);
-    }
     previousLoadingRef.current = isLoading;
-  }, [isLoading]);
+  }, [isLoading, isLastStep, currentStepIndex, onComplete]);
 
   useEffect(() => {
     onStepChange?.(currentStepIndex);
@@ -99,12 +91,8 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
       return;
     }
 
+    // Only trigger the callback, don't advance automatically
     currentStep.onStepNext?.(currentStepIndex);
-
-    // If not loading, advance immediately
-    if (!isLoading) {
-      setShouldAdvance(true);
-    }
   };
 
   const handleSkip = () => {
@@ -112,9 +100,8 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
       return;
     }
 
-    // For non-required steps, skip to next step
-    currentStep.onStepNext?.(currentStepIndex);
-    setShouldAdvance(true);
+    // Only trigger the callback, let parent handle navigation
+    currentStep.onStepSkip?.(currentStepIndex);
   };
 
   const isNextButtonDisabled = () => {

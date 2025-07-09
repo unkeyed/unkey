@@ -10,6 +10,7 @@ import { useRef, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import type { OnboardingStep } from "../components/onboarding-wizard";
+import { WORKSPACE_ID_PARAM } from "../constants";
 
 const workspaceSchema = z.object({
   workspaceName: z
@@ -38,9 +39,6 @@ export const useWorkspaceStep = (): OnboardingStep => {
 
   const form = useForm<WorkspaceFormData>({
     resolver: zodResolver(workspaceSchema),
-    defaultValues: {
-      workspaceName: searchParams?.get("workspaceName") || "",
-    },
     mode: "onChange",
   });
 
@@ -68,7 +66,7 @@ export const useWorkspaceStep = (): OnboardingStep => {
           if (!workspaceIdRef.current) {
             throw new Error("WorkspaceId cannot be null");
           }
-          params.set("workspaceId", workspaceIdRef.current);
+          params.set(WORKSPACE_ID_PARAM, workspaceIdRef.current);
           router.push(`?${params.toString()}`);
         });
       });
