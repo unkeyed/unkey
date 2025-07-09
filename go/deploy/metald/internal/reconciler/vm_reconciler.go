@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	metaldv1 "github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/database"
+	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1"
 )
 
 // VMReconciler handles VM state reconciliation between database and reality

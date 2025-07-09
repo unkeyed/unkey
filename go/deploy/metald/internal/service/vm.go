@@ -7,12 +7,12 @@ import (
 	"math"
 	"time"
 
-	metaldv1 "github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
-	"github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1/vmprovisionerv1connect"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/billing"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/database"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/observability"
+	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1"
+	"github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1/vmprovisionerv1connect"
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
