@@ -1,6 +1,6 @@
-import { LogsLLMSearch } from "@/components/logs/llm-search";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { LLMSearch } from "@unkey/ui";
 import { transformStructuredOutputToFilters } from "@unkey/ui";
 import { useFilters } from "../../../../hooks/use-filters";
 
@@ -41,7 +41,7 @@ export const LogsSearch = ({ keyspaceId }: { keyspaceId: string }) => {
   });
 
   return (
-    <LogsLLMSearch
+    <LLMSearch
       exampleQueries={[
         "Find key exactly key_abc123xyz",
         "Show keys with ID containing 'test'",
