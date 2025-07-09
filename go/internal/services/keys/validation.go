@@ -10,6 +10,8 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/go/pkg/codes"
+	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
@@ -73,6 +75,16 @@ func (k *KeyVerifier) withIPWhitelist() error {
 	return nil
 }
 
+func (k *KeyVerifier) WithApiID(apiID string) {
+	if !k.Valid {
+		return
+	}
+
+	if k.Key.ApiID != apiID {
+		k.setInvalid(StatusForbidden, fmt.Sprintf("The key does not belong to %s", apiID))
+	}
+}
+
 // withPermissions validates that the key has the required RBAC permissions.
 // It uses the configured RBAC system to evaluate the permission query against the key's permissions.
 func (k *KeyVerifier) withPermissions(ctx context.Context, query rbac.PermissionQuery) error {
@@ -106,50 +118,99 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 		return nil
 	}
 
-	ratelimitsMap := make(map[string]ratelimit.RatelimitRequest)
-	// Ratelimits that have been auto applied on the identity or the key itself
-	for _, rl := range k.Ratelimits {
-		if !rl.AutoApply {
-			continue
-		}
+	ratelimitsToCheck := make(map[string]RatelimitConfigAndResult)
+	for name, rl := range k.ratelimitConfigs {
+		if rl.AutoApply {
+			// Determine identifier from DB config
+			identifier := k.Key.ID
+			if rl.IdentityID.Valid {
+				identifier = rl.IdentityID.String
+			} else if rl.KeyID.Valid {
+				identifier = rl.KeyID.String
+			}
 
-		identifier := rl.KeyID.String
-
-		if rl.IdentityID.Valid {
-			identifier = rl.IdentityID.String
-		}
-
-		ratelimitsMap[rl.Name] = ratelimit.RatelimitRequest{
-			Identifier: identifier,
-			Limit:      int64(rl.Limit),
-			Duration:   time.Duration(rl.Duration) * time.Millisecond,
-			Cost:       1,
+			ratelimitsToCheck[name] = RatelimitConfigAndResult{
+				Cost:       1,
+				Name:       rl.Name,
+				Duration:   time.Duration(rl.Duration) * time.Millisecond,
+				Limit:      int64(rl.Limit),
+				AutoApply:  rl.AutoApply,
+				Identifier: identifier,
+				Response:   nil,
+			}
 		}
 	}
 
 	for _, rl := range specifiedLimits {
 		if rl.Limit != nil && rl.Duration != nil {
-			ratelimitsMap[rl.Name] = ratelimit.RatelimitRequest{
-				Identifier: k.Key.ID,
-				Limit:      int64(*rl.Limit),
-				Duration:   time.Duration(*rl.Duration) * time.Millisecond,
+			ratelimitsToCheck[rl.Name] = RatelimitConfigAndResult{
 				Cost:       int64(ptr.SafeDeref(rl.Cost, 1)),
+				Name:       rl.Name,
+				Duration:   time.Duration(*rl.Duration) * time.Millisecond,
+				Limit:      int64(*rl.Limit),
+				AutoApply:  false,
+				Identifier: k.Key.ID, // Specified limits use key ID
+				Response:   nil,
 			}
+
+			continue
+		}
+
+		dbRl, exists := k.ratelimitConfigs[rl.Name]
+		if !exists {
+			errorMsg := "ratelimit %q was requested but does not exist for key %q"
+			if k.Key.IdentityID.Valid {
+				errorMsg += " or identity ID: %q external ID: %q"
+			} else {
+				errorMsg += " and there is no identity connected."
+			}
+
+			errorMsg = fmt.Sprintf(errorMsg, rl.Name, k.Key.ID, k.Key.IdentityID.String, k.Key.ExternalID.String)
+			return fault.New("invalid ratelimit requested",
+				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+				fault.Public(errorMsg),
+			)
+		}
+
+		identifier := k.Key.ID
+		if dbRl.IdentityID.Valid {
+			identifier = dbRl.IdentityID.String
+		}
+
+		ratelimitsToCheck[rl.Name] = RatelimitConfigAndResult{
+			Name:       dbRl.Name,
+			Duration:   time.Duration(dbRl.Duration) * time.Millisecond,
+			Cost:       int64(ptr.SafeDeref(rl.Cost, 1)),
+			Limit:      int64(dbRl.Limit),
+			AutoApply:  dbRl.AutoApply,
+			Identifier: identifier,
+			Response:   nil,
 		}
 	}
 
-	for _, limit := range ratelimitsMap {
-		response, err := k.rateLimiter.Ratelimit(ctx, limit)
+	for name, config := range ratelimitsToCheck {
+		response, err := k.rateLimiter.Ratelimit(ctx, ratelimit.RatelimitRequest{
+			Identifier: config.Identifier, // Use the pre-determined identifier
+			Limit:      config.Limit,
+			Duration:   config.Duration,
+			Cost:       config.Cost,
+		})
 		if err != nil {
 			return err
 		}
 
-		k.RatelimitResponses = append(k.RatelimitResponses, response)
+		config.Response = &response
+		ratelimitsToCheck[name] = config
+
+		// If rate limit exceeded, stop processing
 		if !response.Success {
-			k.setInvalid(StatusRateLimited, "")
-			return nil
+			k.setInvalid(StatusRateLimited, fmt.Sprintf("key exceeded rate limit %s", name))
+			break
 		}
 	}
+
+	// Store the final results
+	k.RatelimitResults = ratelimitsToCheck
 
 	return nil
 }

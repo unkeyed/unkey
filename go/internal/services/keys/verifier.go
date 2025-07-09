@@ -14,25 +14,41 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
+// RatelimitConfigAndResult holds both the configuration and result for a rate limit
+type RatelimitConfigAndResult struct {
+	Cost       int64
+	Name       string
+	Duration   time.Duration
+	Limit      int64
+	AutoApply  bool
+	Identifier string                       // The identifier to use for this rate limit
+	Response   *ratelimit.RatelimitResponse // nil until rate limit is checked
+}
+
 // KeyVerifier represents a key that has been loaded from the database and is ready for verification.
 // It contains all the necessary information and services to perform various validation checks.
 type KeyVerifier struct {
-	Key                   db.FindKeyForVerificationRow         // The key data from the database
-	Ratelimits            []db.KeyFindForVerificationRatelimit // Rate limits configured for this key
-	Roles                 []string                             // RBAC roles assigned to this key
-	Permissions           []string                             // RBAC permissions assigned to this key
-	Valid                 bool                                 // Whether the key passed all validation checks
-	Status                KeyStatus                            // The current validation status
-	AuthorizedWorkspaceID string                               // The workspace ID this key is authorized for
-	RatelimitResponses    []ratelimit.RatelimitResponse        // Responses from rate limit checks
-	isRootKey             bool                                 // Whether this is a root key (special handling)
-	session               *zen.Session                         // The current request session
-	rateLimiter           ratelimit.Service                    // Rate limiting service
-	usageLimiter          usagelimiter.Service                 // Usage limiting service
-	rBAC                  *rbac.RBAC                           // Role-based access control service
-	clickhouse            clickhouse.ClickHouse                // Clickhouse for telemetry
-	logger                logging.Logger                       // Logger for verification operations
-	message               string                               // Internal message for validation failures
+	Key                   db.FindKeyForVerificationRow                  // The key data from the database
+	ratelimitConfigs      map[string]db.KeyFindForVerificationRatelimit // Rate limits configured for this key (name -> config)
+	Roles                 []string                                      // RBAC roles assigned to this key
+	Permissions           []string                                      // RBAC permissions assigned to this key
+	Valid                 bool                                          // Whether the key passed all validation checks
+	Status                KeyStatus                                     // The current validation status
+	AuthorizedWorkspaceID string                                        // The workspace ID this key is authorized for
+	RatelimitResults      map[string]RatelimitConfigAndResult           // Combined config and results for rate limits (name -> config+result)
+	isRootKey             bool                                          // Whether this is a root key (special handling)
+	session               *zen.Session                                  // The current request session
+	rateLimiter           ratelimit.Service                             // Rate limiting service
+	usageLimiter          usagelimiter.Service                          // Usage limiting service
+	rBAC                  *rbac.RBAC                                    // Role-based access control service
+	clickhouse            clickhouse.ClickHouse                         // Clickhouse for telemetry
+	logger                logging.Logger                                // Logger for verification operations
+	message               string                                        // Internal message for validation failures
+}
+
+// GetRatelimitConfigs returns the rate limit configurations (for internal use)
+func (k *KeyVerifier) GetRatelimitConfigs() map[string]db.KeyFindForVerificationRatelimit {
+	return k.ratelimitConfigs
 }
 
 // Verify performs key verification with the given options.
@@ -77,6 +93,10 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 		}
 	}
 
+	if config.apiID != nil {
+		k.WithApiID(*config.apiID)
+	}
+
 	if len(config.ratelimits) > 0 {
 		err = k.withRateLimits(ctx, config.ratelimits)
 		if err != nil {
@@ -84,8 +104,6 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 		}
 	}
 
-	// Do this somewhere else lol
-	// Buffer telemetry data
 	k.clickhouse.BufferKeyVerification(schema.KeyVerificationRequestV1{
 		RequestID:   k.session.RequestID(),
 		WorkspaceID: k.session.AuthorizedWorkspaceID(),
@@ -95,7 +113,7 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 		KeySpaceID:  k.Key.KeyAuthID,
 		KeyID:       k.Key.ID,
 		IdentityID:  k.Key.IdentityID.String,
-		Tags:        []string{},
+		Tags:        config.tags,
 	})
 
 	// For root keys, auto-return validation failures as fault errors

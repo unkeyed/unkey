@@ -3,11 +3,14 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
+
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
+
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
@@ -80,6 +83,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return s.JSON(http.StatusOK, res)
 	}
 
+	// We are leaking a keys existance here...
+	// We should only do that if the key lies in the same workspace as our rootKey ?
 	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
@@ -96,7 +101,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	opts := []keys.VerifyOption{keys.WithIPWhitelist()}
+	opts := []keys.VerifyOption{keys.WithIPWhitelist(), keys.WithApiID(req.ApiId)}
 	if req.Ratelimits != nil {
 		opts = append(opts, keys.WithRateLimits(*req.Ratelimits))
 	}
@@ -106,9 +111,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if req.Permissions != nil {
-		opts = append(opts, keys.WithPermissions(rbac.PermissionQuery{
-			// Permissions: req.Permissions,
-		}))
+		query, err := convertPermissionsToQuery(*req.Permissions)
+		if err != nil {
+			return err
+		}
+
+		opts = append(opts, keys.WithPermissions(query))
 	}
 
 	err = key.Verify(ctx, opts...)
@@ -132,8 +140,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Ratelimits: nil,
 	}
 
-	if key.Key.RemainingRequests.Valid {
-		res.Data.Credits = ptr.P(key.Key.RemainingRequests.Int32)
+	remaining := key.Key.RemainingRequests
+	// -1 being unlimited credits.
+	if remaining.Valid && remaining.Int32 != -1 {
+		res.Data.Credits = ptr.P(remaining.Int32)
 	}
 
 	if key.Key.Expires.Valid {
@@ -151,13 +161,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if key.Key.IdentityID.Valid {
-		// identityRatelimits := make([]openapi.RatelimitResponse, 0)
-
+		identityRatelimits := make([]openapi.RatelimitResponse, 0)
 		res.Data.Identity = &openapi.Identity{
 			ExternalId: key.Key.ExternalID.String,
 			Id:         key.Key.IdentityID.String,
 			Ratelimits: nil,
 			Meta:       nil,
+		}
+
+		for _, ratelimit := range key.GetRatelimitConfigs() {
+			if !ratelimit.IdentityID.Valid {
+				continue
+			}
+
+			identityRatelimits = append(identityRatelimits, openapi.RatelimitResponse{
+				AutoApply: ratelimit.AutoApply,
+				Duration:  int64(ratelimit.Duration),
+				Id:        ratelimit.ID,
+				Limit:     int64(ratelimit.Limit),
+				Name:      ratelimit.Name,
+			})
 		}
 
 		if len(key.Key.IdentityMeta) > 0 {
@@ -171,5 +194,59 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
+	if len(key.RatelimitResults) > 0 {
+		ratelimitResponse := make([]openapi.VerifyKeyRatelimitData, 0)
+		for _, result := range key.RatelimitResults {
+			if result.Response != nil {
+				exceeded := !result.Response.Success
+				ratelimitResponse = append(ratelimitResponse, openapi.VerifyKeyRatelimitData{
+					AutoApply: result.AutoApply,
+					Duration:  result.Duration.Milliseconds(),
+					Exceeded:  &exceeded,
+					Id:        result.Name,
+					Limit:     result.Limit,
+					Name:      result.Name,
+					Remaining: result.Response.Remaining,
+					Reset:     result.Response.Reset.UnixMilli(),
+				})
+			}
+		}
+
+		if len(ratelimitResponse) > 0 {
+			res.Data.Ratelimits = ptr.P(ratelimitResponse)
+		}
+	}
+
 	return s.JSON(http.StatusOK, res)
+}
+
+// convertPermissionsToQuery converts OpenAPI permissions to rbac.PermissionQuery
+func convertPermissionsToQuery(permissions openapi.V2KeysVerifyKeyRequestBody_Permissions) (rbac.PermissionQuery, error) {
+	// Try to unmarshal as string first (single permission)
+	if perm, err := permissions.AsV2KeysVerifyKeyRequestBodyPermissions0(); err == nil {
+		return rbac.S(perm), nil
+	}
+
+	// Try to unmarshal as object (multiple permissions with operator)
+	if obj, err := permissions.AsV2KeysVerifyKeyRequestBodyPermissions1(); err == nil {
+		if len(obj.Permissions) == 0 {
+			return rbac.PermissionQuery{}, fmt.Errorf("permissions array cannot be empty")
+		}
+
+		queries := make([]rbac.PermissionQuery, 0, len(obj.Permissions))
+		for _, perm := range obj.Permissions {
+			queries = append(queries, rbac.S(perm))
+		}
+
+		switch obj.Type {
+		case openapi.And:
+			return rbac.And(queries...), nil
+		case openapi.Or:
+			return rbac.Or(queries...), nil
+		default:
+			return rbac.PermissionQuery{}, fmt.Errorf("unsupported operator: %s", obj.Type)
+		}
+	}
+
+	return rbac.PermissionQuery{}, fmt.Errorf("invalid permissions format")
 }

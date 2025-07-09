@@ -13,10 +13,12 @@ type VerifyOption func(*verifyConfig) error
 
 // verifyConfig holds the internal configuration for verification options.
 type verifyConfig struct {
+	ipWhitelist bool
 	credits     *int32
+	apiID       *string
+	tags        []string
 	permissions *rbac.PermissionQuery
 	ratelimits  []openapi.KeysVerifyKeyRatelimit
-	ipWhitelist bool
 }
 
 // WithCredits validates that the key has sufficient usage credits and deducts the specified cost.
@@ -54,6 +56,21 @@ func WithPermissions(query rbac.PermissionQuery) VerifyOption {
 func WithRateLimits(limits []openapi.KeysVerifyKeyRatelimit) VerifyOption {
 	return func(config *verifyConfig) error {
 		config.ratelimits = limits
+		return nil
+	}
+}
+
+// WithTags adds given tags to the key verification.
+func WithTags(tags []string) VerifyOption {
+	return func(config *verifyConfig) error {
+		config.tags = tags
+		return nil
+	}
+}
+
+func WithApiID(apiID string) VerifyOption {
+	return func(config *verifyConfig) error {
+		config.apiID = &apiID
 		return nil
 	}
 }

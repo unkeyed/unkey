@@ -98,8 +98,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 
 	// The DB returns this in array format and an empty array if not found
 	var roles, permissions []string
-	var ratelimitArr [][]string
-	var ratelimits []db.KeyFindForVerificationRatelimit
+	var ratelimitArr []db.KeyFindForVerificationRatelimit
 	err = json.Unmarshal(key.Roles.([]byte), &roles)
 	if err != nil {
 		return nil, err
@@ -111,6 +110,21 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 	err = json.Unmarshal(key.Ratelimits.([]byte), &ratelimitArr)
 	if err != nil {
 		return nil, err
+	}
+
+	// Convert rate limits array to map (key name -> config)
+	// Key rate limits take precedence over identity rate limits
+	ratelimitConfigs := make(map[string]db.KeyFindForVerificationRatelimit)
+	for _, rl := range ratelimitArr {
+		existing, exists := ratelimitConfigs[rl.Name]
+		if !exists {
+			ratelimitConfigs[rl.Name] = rl
+			continue
+		}
+
+		if rl.KeyID.Valid && existing.IdentityID.Valid {
+			ratelimitConfigs[rl.Name] = rl
+		}
 	}
 
 	authorizedWorkspaceID := key.WorkspaceID
@@ -131,11 +145,11 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		message:               "",
 		isRootKey:             key.ForWorkspaceID.Valid,
 		// By default we assume the key is valid unless proven otherwise
-		Valid:       true,
-		Status:      StatusValid,
-		Ratelimits:  ratelimits,
-		Roles:       roles,
-		Permissions: permissions,
+		Valid:            true,
+		Status:           StatusValid,
+		ratelimitConfigs: ratelimitConfigs,
+		Roles:            roles,
+		Permissions:      permissions,
 	}
 
 	if key.DeletedAtM.Valid {

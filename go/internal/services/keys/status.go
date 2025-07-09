@@ -1,6 +1,8 @@
 package keys
 
 import (
+	"log"
+
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -139,7 +141,7 @@ func (k *KeyVerifier) ToOpenAPIStatus() openapi.KeysVerifyKeyResponseDataCode {
 	case StatusUsageExceeded:
 		return openapi.USAGEEXCEEDED
 	case StatusRateLimited:
-		return openapi.FORBIDDEN
+		return openapi.RATELIMITED
 	case StatusWorkspaceDisabled:
 		return openapi.FORBIDDEN
 	default:
@@ -150,6 +152,7 @@ func (k *KeyVerifier) ToOpenAPIStatus() openapi.KeysVerifyKeyResponseDataCode {
 // setInvalid marks the key as invalid with the specified status and message.
 // This is used internally by validation methods to indicate validation failures.
 func (k *KeyVerifier) setInvalid(status KeyStatus, message string) {
+	log.Printf("Key verification failed: %s %s", string(status), message)
 	k.Status = status
 	k.message = message
 	k.Valid = false

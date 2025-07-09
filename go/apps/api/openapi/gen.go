@@ -360,8 +360,8 @@ type KeysVerifyKeyResponseData struct {
 	Name *string `json:"name,omitempty"`
 
 	// Permissions A list of all permission names assigned to this key, either directly or through roles. These permissions determine what actions the key can perform. Only returned when permissions were checked during verification or when the key fails with `code=INSUFFICIENT_PERMISSIONS`.
-	Permissions *[]string            `json:"permissions,omitempty"`
-	Ratelimits  *[]RatelimitResponse `json:"ratelimits,omitempty"`
+	Permissions *[]string                 `json:"permissions,omitempty"`
+	Ratelimits  *[]VerifyKeyRatelimitData `json:"ratelimits,omitempty"`
 
 	// Roles A list of all role names assigned to this key. Roles are collections of permissions that grant access to specific functionality. Only returned when permissions were checked during verification.
 	Roles *[]string `json:"roles,omitempty"`
@@ -2199,6 +2199,34 @@ type ValidationError struct {
 
 	// Message Detailed error message explaining what validation rule was violated. This provides specific information about why the field or parameter was rejected, such as format errors, invalid values, or constraint violations.
 	Message string `json:"message"`
+}
+
+// VerifyKeyRatelimitData defines model for VerifyKeyRatelimitData.
+type VerifyKeyRatelimitData struct {
+	// AutoApply Whether this rate limit should be automatically applied when verifying keys.
+	// When true, we will automatically apply this limit during verification without it being explicitly listed.
+	AutoApply bool `json:"autoApply"`
+
+	// Duration Rate limit window duration in milliseconds.
+	Duration int64 `json:"duration"`
+
+	// Exceeded Whether the rate limit was exceeded.
+	Exceeded *bool `json:"exceeded,omitempty"`
+
+	// Id Unique identifier for this rate limit configuration.
+	Id string `json:"id"`
+
+	// Limit Maximum requests allowed within the time window.
+	Limit int64 `json:"limit"`
+
+	// Name Human-readable name for this rate limit.
+	Name string `json:"name"`
+
+	// Remaining Rate limit remaining requests within the time window.
+	Remaining int64 `json:"remaining"`
+
+	// Reset Rate limit reset duration in milliseconds.
+	Reset int64 `json:"reset"`
 }
 
 // CreateApiJSONRequestBody defines body for CreateApi for application/json ContentType.

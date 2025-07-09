@@ -101,8 +101,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		permission := openapi.Permission{
 			Id:          perm.ID,
 			Name:        perm.Name,
-			Description: nil,
+			Slug:        perm.Slug,
 			CreatedAt:   perm.CreatedAtM,
+			Description: nil,
 		}
 
 		// Add description only if it's valid
@@ -117,9 +118,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	roleResponse := openapi.RoleWithPermissions{
 		Id:          role.ID,
 		Name:        role.Name,
-		Description: nil,
 		CreatedAt:   role.CreatedAtM,
 		Permissions: permissions,
+		Description: nil,
 	}
 
 	// Add description only if it's valid
