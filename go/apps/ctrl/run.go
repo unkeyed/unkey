@@ -8,6 +8,7 @@ import (
 
 	"log/slog"
 
+	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/version"
 	deployTLS "github.com/unkeyed/unkey/go/deploy/pkg/tls"
