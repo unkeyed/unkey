@@ -23,6 +23,7 @@ jobs:
         uses: ./.github/actions/install
         with:
           go: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build CLI
         working-directory: ./go

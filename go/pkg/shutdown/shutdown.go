@@ -3,7 +3,11 @@ package shutdown
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
+	"time"
 )
 
 // ShutdownCtx is a function type for context-aware shutdown handlers.
@@ -192,4 +196,56 @@ func (s *Shutdowns) Shutdown(ctx context.Context) []error {
 
 	return []error{}
 
+}
+
+// WaitForSignal waits for SIGINT, SIGTERM, or context cancellation and then executes shutdown.
+// This is a convenience method that reduces boilerplate for signal handling in server applications.
+// Returns a ShutdownError if any shutdown functions fail, or nil if all succeed.
+//
+// The shutdownTimeout parameter is optional - if not provided or zero, defaults to 30 seconds.
+//
+// Example usage:
+//
+//	ctx, cancel := context.WithCancel(context.Background())
+//	shutdowns := shutdown.New()
+//	shutdowns.RegisterCtx(server.Shutdown)
+//	shutdowns.Register(database.Close)
+//
+//	// Wait for signals or context cancellation with default 30s timeout
+//	if err := shutdowns.WaitForSignal(ctx); err != nil {
+//		logger.Error("Shutdown failed", "error", err)
+//	}
+//
+//	// Or with custom timeout
+//	if err := shutdowns.WaitForSignal(ctx, time.Minute); err != nil {
+//		logger.Error("Shutdown failed", "error", err)
+//	}
+func (s *Shutdowns) WaitForSignal(ctx context.Context, shutdownTimeout ...time.Duration) error {
+	// Default timeout to 30 seconds if not provided
+	timeout := 30 * time.Second
+	if len(shutdownTimeout) > 0 && shutdownTimeout[0] > 0 {
+		timeout = shutdownTimeout[0]
+	}
+
+	// Wait for interrupt signal or context cancellation
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(sigChan)
+
+	select {
+	case <-sigChan:
+		// OS signal received
+	case <-ctx.Done():
+		// Context was cancelled
+	}
+
+	// Graceful shutdown with timeout
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	errs := s.Shutdown(shutdownCtx)
+	if len(errs) > 0 {
+		return &ShutdownError{Errors: errs}
+	}
+	return nil
 }

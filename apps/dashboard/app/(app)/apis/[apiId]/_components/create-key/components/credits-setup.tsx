@@ -13,7 +13,11 @@ import { Controller, useFormContext, useWatch } from "react-hook-form";
 import type { CreditsFormValues } from "../create-key.schema";
 import { ProtectionSwitch } from "./protection-switch";
 
-export const UsageSetup = () => {
+export const UsageSetup = ({
+  overrideEnabled = false,
+}: {
+  overrideEnabled?: boolean;
+}) => {
   const {
     register,
     formState: { errors },
@@ -99,15 +103,18 @@ export const UsageSetup = () => {
 
   return (
     <div className="space-y-5 px-2 py-1">
-      <ProtectionSwitch
-        description="Turn on to limit how many times this key can be used. Once the limit
+      {!overrideEnabled && (
+        <ProtectionSwitch
+          description="Turn on to limit how many times this key can be used. Once the limit
             is reached, the key will be disabled."
-        title="Credits"
-        icon={<ChartPie className="text-gray-12" size="sm-regular" />}
-        checked={limitEnabled}
-        onCheckedChange={handleSwitchChange}
-        {...register("limit.enabled")}
-      />
+          title="Credits"
+          icon={<ChartPie className="text-gray-12" size="sm-regular" />}
+          checked={limitEnabled}
+          onCheckedChange={handleSwitchChange}
+          {...register("limit.enabled")}
+        />
+      )}
+
       <FormInput
         className="[&_input:first-of-type]:h-[36px]"
         placeholder="100"
