@@ -21,14 +21,13 @@ import (
 func TestMigrateDeks(t *testing.T) {
 
 	logger := logging.NewNoop()
-	c := containers.New(t)
 	data := make(map[string]string)
-	s3 := c.RunS3(t)
+	s3 := containers.S3(t)
 
 	storage, err := storage.NewS3(storage.S3Config{
 		S3URL:             s3.HostURL,
 		S3Bucket:          fmt.Sprintf("%d", time.Now().Unix()),
-		S3AccessKeyId:     s3.AccessKeyId,
+		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.AccessKeySecret,
 		Logger:            logger,
 	})

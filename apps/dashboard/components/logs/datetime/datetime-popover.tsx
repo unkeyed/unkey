@@ -135,42 +135,35 @@ export const DatetimePopover = ({
     setOpen(false);
   };
 
-  // Ensure initial date is valid based on constraints
-  const ensureValidDate = (date: Date): Date => {
-    let validDate = new Date(date);
-
-    // Apply minimum date constraint if needed
-    if (minDate && validDate < minDate) {
-      validDate = new Date(minDate);
+  const isDateInRange = (date: Date): boolean => {
+    if (minDate && date < minDate) {
+      return false;
     }
-
-    // Apply maximum date constraint if needed
-    if (maxDate && validDate > maxDate) {
-      validDate = new Date(maxDate);
+    if (maxDate && date > maxDate) {
+      return false;
     }
-
-    return validDate;
+    return true;
   };
 
-  // Initialize with appropriate date based on constraints
   const getInitialRange = (): Range => {
-    let fromDate = startTime ? new Date(startTime) : new Date();
-    if (minDate || maxDate) {
-      fromDate = ensureValidDate(fromDate);
+    let fromDate = undefined;
+    if (startTime) {
+      const date = new Date(startTime);
+      // Only use if valid, otherwise start clean
+      if (isDateInRange(date)) {
+        fromDate = date;
+      }
     }
 
     let toDate = undefined;
     if (!singleDateMode && endTime) {
-      toDate = new Date(endTime);
-      if (minDate || maxDate) {
-        toDate = ensureValidDate(toDate);
+      const date = new Date(endTime);
+      if (isDateInRange(date)) {
+        toDate = date;
       }
     }
 
-    return {
-      from: fromDate,
-      to: toDate,
-    };
+    return { from: fromDate, to: toDate };
   };
 
   const initialRange = getInitialRange();

@@ -44,7 +44,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 			ID:          identityID,
 			ExternalID:  externalTestID,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			Meta:        nil,
+			Meta:        []byte("{}"),
 			CreatedAt:   time.Now().UnixMilli(),
 			Environment: "default",
 		})
@@ -66,7 +66,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 			ID:          identityID,
 			ExternalID:  externalTestID,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			Meta:        nil,
+			Meta:        []byte("{}"),
 			CreatedAt:   time.Now().UnixMilli(),
 			Environment: "default",
 		})
