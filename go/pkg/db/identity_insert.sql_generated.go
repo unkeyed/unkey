@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 )
 
 const insertIdentity = `-- name: InsertIdentity :exec
@@ -23,17 +24,17 @@ INSERT INTO ` + "`" + `identities` + "`" + ` (
     ?,
     ?,
     ?,
-    ?
+    CAST(? AS JSON)
 )
 `
 
 type InsertIdentityParams struct {
-	ID          string `db:"id"`
-	ExternalID  string `db:"external_id"`
-	WorkspaceID string `db:"workspace_id"`
-	Environment string `db:"environment"`
-	CreatedAt   int64  `db:"created_at"`
-	Meta        []byte `db:"meta"`
+	ID          string          `db:"id"`
+	ExternalID  string          `db:"external_id"`
+	WorkspaceID string          `db:"workspace_id"`
+	Environment string          `db:"environment"`
+	CreatedAt   int64           `db:"created_at"`
+	Meta        json.RawMessage `db:"meta"`
 }
 
 // InsertIdentity
@@ -51,7 +52,7 @@ type InsertIdentityParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
-//	    ?
+//	    CAST(? AS JSON)
 //	)
 func (q *Queries) InsertIdentity(ctx context.Context, db DBTX, arg InsertIdentityParams) error {
 	_, err := db.ExecContext(ctx, insertIdentity,
