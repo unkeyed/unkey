@@ -390,12 +390,6 @@ github.com/tklauser/numcpus v0.10.0 h1:18njr6LDBk1zuna922MgdjQuJFjrdppsZG60sHGfj
 github.com/tklauser/numcpus v0.10.0/go.mod h1:BiTKazU708GQTYF4mB+cmlpT2Is1gLk7XVuEeem8LsQ=
 github.com/ugorji/go/codec v1.2.11 h1:BMaWp1Bb6fHwEtbplGBGJ498wD+LKlNSl25MjdZY4dU=
 github.com/ugorji/go/codec v1.2.11/go.mod h1:UNopzCgEMSXjBc6AOMqYvWC1ktqTAfzJZUZgYf6w6lg=
-github.com/unkeyed/unkey/go/deploy/assetmanagerd v0.0.0-20250709084132-0dd195e4c51b h1:102XGZQrY3viWW78AQ/piW0rwSPSMljGmz6QgiNLYrw=
-github.com/unkeyed/unkey/go/deploy/assetmanagerd v0.0.0-20250709084132-0dd195e4c51b/go.mod h1:0FGpQCOhGyvLQyCawTdYnLOY/1/mtPSSWndCwgaMnkc=
-github.com/unkeyed/unkey/go/deploy/billaged v0.0.0-20250709084132-0dd195e4c51b h1:xrwqIkZSBoeHEG633k9gFneN3WcZbOTVSaxs+TgknLk=
-github.com/unkeyed/unkey/go/deploy/billaged v0.0.0-20250709084132-0dd195e4c51b/go.mod h1:E88GqmQBLAmuRWX8bRG7Pf56Cfmut6YQApUpFVe7PuQ=
-github.com/unkeyed/unkey/go/deploy/builderd v0.0.0-20250709084132-0dd195e4c51b h1:nyFQrGeZyvt5Nbcz5n9YDzUC4S2gezRoIWWKrwdLCik=
-github.com/unkeyed/unkey/go/deploy/builderd v0.0.0-20250709084132-0dd195e4c51b/go.mod h1:yEwRt1cVfgrHF09ZynWIWV2MSj0tIGysTuLGBJR5TTM=
 github.com/urfave/cli/v3 v3.3.3 h1:byCBaVdIXuLPIDm5CYZRVG6NvT7tv1ECqdU4YzlEa3I=
 github.com/urfave/cli/v3 v3.3.3/go.mod h1:FJSKtM/9AiiTOJL4fJ6TbMUkxBXn7GO9guZqoZtpYpo=
 github.com/vmware-labs/yaml-jsonpath v0.3.2 h1:/5QKeCBGdsInyDCyVNLbXyilb61MXGi9NP674f9Hobk=

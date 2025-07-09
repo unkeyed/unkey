@@ -109,15 +109,15 @@ func Run(ctx context.Context, cfg Config) error {
 		Mode:             deployTLS.ModeSPIFFE,
 		SPIFFESocketPath: cfg.SPIFFESocketPath,
 	}
-	
+
 	tlsProvider, err := deployTLS.NewProvider(ctx, tlsConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create TLS provider for metald: %w", err)
 	}
-	
+
 	httpClient := tlsProvider.HTTPClient()
 	httpClient.Timeout = 30 * time.Second
-	
+
 	metaldClient := vmprovisionerv1connect.NewVmServiceClient(
 		httpClient,
 		cfg.MetaldAddress,

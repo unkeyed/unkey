@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  ctrl:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      args:
+        VERSION: "latest"
+    container_name: unkey-ctrl
+    ports:
+      - "8084:8084"
+    environment:
+      # Database configuration (pass through from host env)
+      UNKEY_DATABASE_PRIMARY: ${UNKEY_DATABASE_PRIMARY}
+      UNKEY_DATABASE_HYDRA: ${UNKEY_DATABASE_HYDRA}
+      
+      # Control plane configuration
+      UNKEY_HTTP_PORT: "8084"
+      UNKEY_METALD_ADDRESS: ${UNKEY_METALD_ADDRESS:-https://host.docker.internal:8080}
+      
+      # Instance configuration
+      UNKEY_PLATFORM: "docker"
+      UNKEY_REGION: "docker"
+      UNKEY_OTEL: "true"
+      UNKEY_SPIFFE_SOCKET_PATH: "/var/lib/spire/agent/agent.sock"
+    
+    volumes:
+      # Mount SPIFFE agent socket from host
+      - /var/lib/spire/agent/agent.sock:/var/lib/spire/agent/agent.sock
+    
+    restart: unless-stopped
+    
+    # Override the entrypoint to run ctrl command
+    command: ["run", "ctrl"]
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8084/_/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

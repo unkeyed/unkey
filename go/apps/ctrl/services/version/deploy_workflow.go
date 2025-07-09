@@ -316,14 +316,14 @@ buildComplete:
 					ConsoleType: "serial",
 				},
 				Metadata: map[string]string{
-					"template":      "standard",
-					"purpose":       "general",
-					"docker_image":  req.DockerImage,
-					"runtime":       "docker",
-					"version_id":    req.VersionID,
-					"workspace_id":  req.WorkspaceID,
-					"project_id":    req.ProjectID,
-					"created_by":    "deploy-workflow",
+					"template":     "standard",
+					"purpose":      "general",
+					"docker_image": req.DockerImage,
+					"runtime":      "docker",
+					"version_id":   req.VersionID,
+					"workspace_id": req.WorkspaceID,
+					"project_id":   req.ProjectID,
+					"created_by":   "deploy-workflow",
 				},
 			}
 
@@ -380,8 +380,8 @@ buildComplete:
 			}
 
 			// Check if VM is ready for boot
-			if vmInfo.State == vmprovisionerv1.VmState_VM_STATE_CREATED || 
-			   vmInfo.State == vmprovisionerv1.VmState_VM_STATE_RUNNING {
+			if vmInfo.State == vmprovisionerv1.VmState_VM_STATE_CREATED ||
+				vmInfo.State == vmprovisionerv1.VmState_VM_STATE_RUNNING {
 				w.logger.Info("VM is ready", "vm_id", createResult.VmId, "state", vmInfo.State.String())
 				goto vmReady
 			}
@@ -399,7 +399,7 @@ buildComplete:
 		// If we reach here, VM never became ready
 		return fmt.Errorf("VM polling timed out after 30 attempts (30 seconds)")
 
-vmReady:
+	vmReady:
 
 		// Boot VM
 		_, err = hydra.Step(ctx, "boot-vm", func(stepCtx context.Context) (*vmprovisionerv1.BootVmResponse, error) {
