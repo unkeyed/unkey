@@ -27,6 +27,6 @@ INSERT INTO `audit_log` (
     sqlc.arg(actor_type),
     sqlc.arg(actor_id),
     sqlc.arg(actor_name),
-    sqlc.arg(actor_meta),
+    CAST(sqlc.arg(actor_meta) AS JSON),
     sqlc.arg(created_at)
 );
