@@ -30,6 +30,8 @@ services:
       - "8084:8084"
     depends_on:
       - mysql
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       # Database configuration 
       UNKEY_DATABASE_PRIMARY: ${UNKEY_DATABASE_PRIMARY}
