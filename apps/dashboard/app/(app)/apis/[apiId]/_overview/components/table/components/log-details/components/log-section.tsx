@@ -33,7 +33,6 @@ export const LogSection = ({
     return textToCopy;
   };
 
-
   // Helper function to extract text from React elements
   // This is used to extract text from React elements like TimestampInfo and Link components
   const extractTextFromReactElement = (element: React.ReactNode): string => {

@@ -43,11 +43,6 @@ export const SettingsClient = ({ namespaceId }: Props) => {
     },
   });
 
-  const handleCopy = () => {
-    toast.success("Copied to clipboard", {
-      description: namespace.id,
-    });
-  };
   const handleUpdateName = async () => {
     if (!data?.namespace) {
       return;
@@ -125,16 +120,7 @@ export const SettingsClient = ({ namespaceId }: Props) => {
                   <pre className="flex-1 text-xs text-left overflow-x-auto">
                     <code>{namespace.id}</code>
                   </pre>
-                  <CopyButton
-                    value={namespace.id}
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      toast.success("Copied to clipboard", {
-                        description: namespace.id,
-                      });
-                    }}
-                  />
+                  <CopyButton value={namespace.id} variant="ghost" size="sm" />
                 </div>
               </SettingCard>
             </div>
@@ -157,7 +143,7 @@ export const SettingsClient = ({ namespaceId }: Props) => {
                     variant="outline"
                     color="danger"
                     size="lg"
-                    onClick={handleCopy}
+                    onClick={() => setIsNamespaceNameDeleteModalOpen(true)}
                   >
                     Delete Namespace
                   </Button>
