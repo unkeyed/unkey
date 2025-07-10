@@ -1,0 +1,15 @@
+version: v2
+modules:
+  - path: proto
+    name: buf.build/local/billaged
+lint:
+  use:
+    - STANDARD
+  except:
+    - FIELD_LOWER_SNAKE_CASE
+  rpc_allow_same_request_response: true
+  rpc_allow_google_protobuf_empty_requests: true
+  rpc_allow_google_protobuf_empty_responses: true
+breaking:
+  use:
+    - FILE

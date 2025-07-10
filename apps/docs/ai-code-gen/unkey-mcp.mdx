@@ -1,0 +1,366 @@
+---
+title: Unkey MCP (Model Context Protocol)
+description: Connect AI tools to Unkey's APIs using Model Context Protocol
+---
+
+The Unkey Model Context Protocol (MCP) servers provide direct integration between AI tools and Unkey's APIs. This allows you to interact with your Unkey workspace directly, enabling AI-powered API key management, rate limiting configuration, and analytics queries.
+
+## What is MCP?
+
+Model Context Protocol (MCP) is an open standard that allows AI applications to securely access external data and services. Unkey's MCP servers give Claude Desktop direct access to your Unkey APIs, enabling intelligent assistance with API key management and rate limiting.
+
+## Available MCP Servers
+
+Unkey provides two MCP servers:
+
+<CardGroup cols={2}>
+  <Card
+    title="Unkey API MCP"
+    icon="key"
+    href="#unkey-api-mcp"
+  >
+    Full access to Unkey's API management capabilities
+  </Card>
+  <Card
+    title="Unkey Rate Limiting MCP"
+    icon="gauge"
+    href="#unkey-rate-limiting-mcp"
+  >
+    Specialized server for rate limiting operations
+  </Card>
+</CardGroup>
+
+## Prerequisites
+
+- [Unkey account](https://app.unkey.com/auth/sign-up) created
+- Unkey root key with appropriate permissions
+- Node.js installed (for npx command)
+
+## Installation
+
+Below is an example of using Unkey MCP with Claude but it can also be used with other AI applications.
+
+### Unkey API MCP
+
+The main Unkey MCP server provides access to the complete Unkey API:
+
+1. **Open Claude Desktop Configuration**
+
+   Navigate to your Claude Desktop configuration file:
+   - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+2. **Add the MCP Server Configuration**
+
+   Add the following configuration to your `claude_desktop_config.json`:
+
+   ```json
+   {
+     "mcpServers": {
+       "Unkey": {
+         "command": "npx",
+         "args": [
+           "mcp-remote",
+           "https://mcp.unkey.com/mcp/v1",
+           "--header",
+           "MCP-UNKEY-BEARER-AUTH:${UNKEY_ROOT_KEY}"
+         ]
+       }
+     }
+   }
+   ```
+
+3. **Set Environment Variable**
+
+   Set your Unkey root key as an environment variable:
+
+   ```bash
+   # macOS/Linux
+   export UNKEY_ROOT_KEY="unkey_xxx"
+
+   # Windows
+   set UNKEY_ROOT_KEY=unkey_xxx
+   ```
+
+4. **Restart Claude Desktop**
+
+   Close and restart Claude Desktop to load the MCP server.
+
+### Unkey Rate Limiting MCP
+
+For specialized rate limiting operations, use the dedicated rate limiting MCP server:
+
+1. **Add Rate Limiting MCP Configuration**
+
+   Add this configuration to your `claude_desktop_config.json`:
+
+   ```json
+   {
+     "mcpServers": {
+       "UnkeyRateLimiting": {
+         "command": "npx",
+         "args": [
+           "mcp-remote",
+           "https://mcp.unkey.com/mcp/ratelimits/",
+           "--header",
+           "MCP-UNKEY-V2-ROOT-KEY:${UNKEY_ROOT_KEY}"
+         ]
+       }
+     }
+   }
+   ```
+
+2. **Use Both Servers**
+
+   You can configure both MCP servers simultaneously:
+
+   ```json
+   {
+     "mcpServers": {
+       "Unkey": {
+         "command": "npx",
+         "args": [
+           "mcp-remote",
+           "https://mcp.unkey.com/mcp/v1",
+           "--header",
+           "MCP-UNKEY-BEARER-AUTH:${UNKEY_ROOT_KEY}"
+         ]
+       },
+       "UnkeyRateLimiting": {
+         "command": "npx",
+         "args": [
+           "mcp-remote",
+           "https://mcp.unkey.com/mcp/ratelimits/",
+           "--header",
+           "MCP-UNKEY-V2-ROOT-KEY:${UNKEY_ROOT_KEY}"
+         ]
+       }
+     }
+   }
+   ```
+
+## Getting Your Root Key
+
+To use the MCP servers, you need a Unkey root key with appropriate permissions:
+
+<Steps>
+<Step title="Navigate to Root Keys" stepNumber={1}>
+Go to [Settings > Root Keys](https://app.unkey.com/settings/root-keys) in your Unkey dashboard.
+</Step>
+
+<Step title="Create New Root Key" stepNumber={2}>
+Click "Create New Root Key" and select the permissions you need:
+- **API Key Management**: For creating, updating, and deleting API keys
+- **Rate Limiting**: For configuring rate limits
+- **Analytics**: For querying usage data
+</Step>
+
+<Step title="Copy and Secure Your Key" stepNumber={3}>
+Copy your root key and store it securely. You'll use this as your environment variable.
+</Step>
+</Steps>
+
+## Using MCP with Claude Desktop
+
+Once configured, you can interact with your Unkey workspace directly through Claude Desktop:
+
+### API Key Management
+
+Ask Claude to help with API key operations:
+
+```
+Can you create a new API key for my mobile app with the following settings:
+- Name: "Mobile App Production"
+- Rate limit: 1000 requests per hour
+- Expiration: 90 days from now
+- Metadata: {"app": "mobile", "version": "1.0", "environment": "production"}
+```
+
+### Rate Limiting Configuration
+
+Configure rate limits through natural language:
+
+```
+I need to set up rate limiting for my API with these tiers:
+- Free tier: 100 requests per hour
+- Pro tier: 1000 requests per hour
+- Enterprise tier: 10000 requests per hour
+
+Can you help me configure these limits?
+```
+
+### Analytics and Monitoring
+
+Query your API usage data:
+
+```
+Show me the API usage statistics for the last 7 days, including:
+- Total requests
+- Top 5 API keys by usage
+- Error rates
+- Geographic distribution of requests
+```
+
+### Troubleshooting
+
+Get help with common issues:
+
+```
+I'm seeing 401 errors for API key verification. Can you help me debug this?
+The API key is: uk_xxx
+The API ID is: api_xxx
+```
+
+## Available Commands
+
+### API Key Operations
+
+- **Create API Key**: Generate new API keys with custom settings
+- **List API Keys**: View all API keys in your workspace
+- **Update API Key**: Modify existing API key properties
+- **Delete API Key**: Remove API keys from your workspace
+- **Verify API Key**: Check if an API key is valid and active
+
+### Rate Limiting Operations
+
+- **Configure Rate Limits**: Set up rate limiting rules
+- **Check Rate Limit Status**: Monitor current rate limit usage
+- **Update Rate Limits**: Modify existing rate limit configurations
+- **Delete Rate Limits**: Remove rate limiting rules
+
+### Analytics and Monitoring
+
+- **Usage Analytics**: Query API usage statistics
+- **Error Analysis**: Investigate API errors and issues
+- **Performance Metrics**: Monitor API performance data
+- **Usage Reports**: Generate custom usage reports
+
+## Example Conversations
+
+### Creating an API Key
+
+**You**: "Create a new API key for my development environment with a rate limit of 500 requests per hour and set it to expire in 30 days."
+
+**Claude**: "I'll create a new API key for your development environment with the specified settings. Let me use the Unkey MCP to create this key with a 500 requests/hour rate limit and 30-day expiration."
+
+### Analyzing API Usage
+
+**You**: "What are my top 3 API keys by usage this month?"
+
+**Claude**: "Let me query your Unkey analytics to find your top 3 API keys by usage this month. I'll pull the usage data and provide you with detailed statistics."
+
+### Debugging Issues
+
+**You**: "I'm getting rate limit errors but I thought my limit was higher. Can you check my current rate limit configuration?"
+
+**Claude**: "I'll check your current rate limit configuration using the Unkey MCP. Let me examine your rate limiting settings and current usage to help diagnose the issue."
+
+## Security Best Practices
+
+### Environment Variables
+
+- Store your root key in environment variables, never in configuration files
+- Use different root keys for different environments (development, staging, production)
+- Regularly rotate your root keys
+
+### Permissions
+
+- Grant only the minimum required permissions to your root keys
+- Use separate root keys for different operations when possible
+- Monitor root key usage through audit logs
+
+### Access Control
+
+- Limit access to your Claude Desktop configuration
+- Use secure storage for your root keys
+- Implement proper backup and recovery procedures
+
+## Troubleshooting
+
+### Common Issues
+
+1. **MCP Server Not Loading**
+   - Check that Node.js is installed and accessible
+   - Verify your configuration file syntax
+   - Ensure environment variables are set correctly
+
+2. **Authentication Errors**
+   - Verify your root key is correct and has proper permissions
+   - Check that the environment variable is set
+   - Confirm your root key hasn't expired
+
+3. **Connection Issues**
+   - Ensure you have internet connectivity
+   - Check if your firewall is blocking connections
+   - Verify the MCP server URLs are correct
+
+### Getting Help
+
+If you encounter issues:
+
+1. Check the Claude Desktop logs for error messages
+2. Verify your configuration matches the examples exactly
+3. Test your root key directly with the Unkey API
+4. Join the [Unkey Discord](https://go.unkey.com/discord) for community support
+
+## Advanced Configuration
+
+### Custom Environment Variables
+
+You can use custom environment variable names:
+
+```json
+{
+  "mcpServers": {
+    "Unkey": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://mcp.unkey.com/mcp/v1",
+        "--header",
+        "MCP-UNKEY-BEARER-AUTH:${MY_CUSTOM_UNKEY_KEY}"
+      ]
+    }
+  }
+}
+```
+
+### Multiple Workspaces
+
+Configure multiple Unkey workspaces:
+
+```json
+{
+  "mcpServers": {
+    "UnkeyProduction": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://mcp.unkey.com/mcp/v1",
+        "--header",
+        "MCP-UNKEY-BEARER-AUTH:${UNKEY_PROD_KEY}"
+      ]
+    },
+    "UnkeyStaging": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://mcp.unkey.com/mcp/v1",
+        "--header",
+        "MCP-UNKEY-BEARER-AUTH:${UNKEY_STAGING_KEY}"
+      ]
+    }
+  }
+}
+```
+
+## Next Steps
+
+- Explore [Cursor with Unkey](/ai-code-gen/cursor) for IDE-based AI assistance
+- Check out [Windsurf with Unkey](/ai-code-gen/windsurf) for collaborative development
+
+## Resources
+
+- [Unkey API Reference](/api-reference/authentication)
+- [Unkey Dashboard](https://app.unkey.com)
+- [Community Discord](https://go.unkey.com/discord)

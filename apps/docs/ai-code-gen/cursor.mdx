@@ -1,0 +1,130 @@
+---
+title: Using Cursor with Unkey
+description: Leverage Cursor's AI capabilities to build applications with Unkey's APIs
+---
+
+Cursor is an AI-powered code editor that can help you build applications faster. When combined with Unkey's APIs, you can quickly generate secure, scalable applications with API key management and rate limiting.
+
+## Prerequisites
+
+## Getting Started
+
+### 1. Set Up Your Unkey Workspace
+
+First, create your Unkey workspace and get your API keys:
+
+<Steps>
+<Step title="Create an API" stepNumber={1}>
+Navigate to the [Unkey Dashboard](https://app.unkey.com/apis) and create a new API for your project.
+</Step>
+
+<Step title="Get Your Root Key" stepNumber={2}>
+Go to [Settings > Root Keys](https://app.unkey.com/settings/root-keys) and create a new root key with the necessary permissions.
+</Step>
+
+<Step title="Note Your API ID" stepNumber={3}>
+Copy your API ID from the dashboard - you'll need this for generating API keys.
+</Step>
+</Steps>
+
+### 2. Set Up Unkey MCP Server (Optional)
+
+Cursor supports the Model Context Protocol (MCP) which allows you to connect directly to Unkey's APIs. This gives Cursor access to your Unkey workspace for more intelligent suggestions.
+
+#### Install Unkey MCP Server
+
+1. **Configure the MCP Server**
+
+   Create or update your Cursor configuration file with the Unkey MCP server:
+
+   ```json
+   {
+     "mcpServers": {
+       "Unkey": {
+         "command": "npx",
+         "args": [
+           "mcp-remote",
+           "https://mcp.unkey.com/mcp/v1",
+           "--header",
+           "MCP-UNKEY-BEARER-AUTH:${UNKEY_ROOT_KEY}"
+         ]
+       }
+     }
+   }
+   ```
+
+   For rate limiting specific operations, you can also add:
+
+   ```json
+   {
+     "mcpServers": {
+       "UnkeyRateLimiting": {
+         "command": "npx",
+         "args": [
+           "mcp-remote",
+           "https://mcp.unkey.com/mcp/ratelimits/",
+           "--header",
+           "MCP-UNKEY-V2-ROOT-KEY:${UNKEY_ROOT_KEY}"
+         ]
+       }
+     }
+   }
+   ```
+
+2. **Set Environment Variable**
+
+   ```bash
+   export UNKEY_ROOT_KEY="your_root_key_here"
+   ```
+
+3. **Restart Cursor**
+
+   Restart Cursor to load the MCP server configuration.
+
+## Tips and Tricks for Cursor with Unkey
+
+### 1. Keep Your Requests Small
+
+When working with Cursor, break down complex tasks into smaller, focused requests:
+
+**Good:**
+```
+Create a function to verify an API key with Unkey that returns a boolean
+```
+
+**Better:**
+```
+Create a TypeScript function that:
+- Takes an API key string as input
+- Uses @unkey/api to verify the key
+- Returns a boolean indicating if the key is valid
+- Includes proper error handling
+```
+
+### 2. Update and Reference Your README.md
+
+Keep your project's README.md updated with Unkey-specific information. Cursor uses this context to provide better suggestions:
+
+```markdown
+# My Project
+
+This project uses Unkey for API authentication and rate limiting.
+
+## Environment Variables
+- `UNKEY_ROOT_KEY`: Your Unkey root key
+- `UNKEY_API_ID`: Your API ID from the Unkey dashboard
+
+## API Routes
+- `/api/protected` - Requires valid API key
+- `/api/keys` - Manage API keys (admin only)
+
+## Rate Limiting
+- Free tier: 100 requests/hour
+- Pro tier: 1000 requests/hour
+```
+
+## Add Unkey Documentation Context
+
+Adding Unkey docs can let you specifically refer to Unkey features when building your app.
+
+From Cursor Settings > Features > Docs add new doc, use the URL "https://unkey.com/docs"

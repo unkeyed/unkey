@@ -468,8 +468,8 @@ importers:
         specifier: ^2.0.1
         version: 2.0.1(@types/react-dom@18.3.0)(@types/react@18.3.11)(fumadocs-ui@14.4.0)(react-dom@18.3.1)(react@18.3.1)(shiki@1.29.2)(typescript@5.7.3)
       fumadocs-typescript:
-        specifier: ^3.0.2
-        version: 3.0.2(typescript@5.7.3)
+        specifier: ^4.0.6
+        version: 4.0.6(@types/react@18.3.11)(typescript@5.7.3)
       fumadocs-ui:
         specifier: 14.4.0
         version: 14.4.0(@types/react-dom@18.3.0)(@types/react@18.3.11)(next@14.2.15)(react-dom@18.3.1)(react@18.3.1)(tailwindcss@3.4.15)
@@ -4563,6 +4563,18 @@ packages:
     dependencies:
       '@types/node': 22.14.0
     dev: true
+
+  /@isaacs/balanced-match@4.0.1:
+    resolution: {integrity: sha512-yzMTt9lEb8Gv7zRioUilSglI0c0smZ9k5D65677DLWLtWJaXIS3CqcGyUFByYKlnUj6TkjLVs54fBl6+TiGQDQ==}
+    engines: {node: 20 || >=22}
+    dev: false
+
+  /@isaacs/brace-expansion@5.0.0:
+    resolution: {integrity: sha512-ZT55BDLV0yv0RBm2czMiZ+SqCGO7AvmOM3G/w2xhVPH+te0aKgFjmBvGlL1dH+ql2tgGO3MVrbb3jCKyvpgnxA==}
+    engines: {node: 20 || >=22}
+    dependencies:
+      '@isaacs/balanced-match': 4.0.1
+    dev: false
 
   /@isaacs/cliui@8.0.2:
     resolution: {integrity: sha512-O8jcjabXaleOG9DQ0+ARXWZBTfnP4WNAqzuiJK7ll44AmxGKv/J2M4TPjxjY3znBCfvBXFzucm1twdyFybFqEA==}
@@ -9301,7 +9313,6 @@ packages:
       '@shikijs/vscode-textmate': 10.0.2
       '@types/hast': 3.0.4
       hast-util-to-html: 9.0.5
-    dev: true
 
   /@shikijs/engine-javascript@1.29.2:
     resolution: {integrity: sha512-iNEZv4IrLYPv64Q6k7EPpOCE/nuvGiKl7zxdq0WFuRPF5PAE9PRo2JGq/d8crLusM59BRemJ4eOqrFrC4wiQ+A==}
@@ -9317,7 +9328,6 @@ packages:
       '@shikijs/types': 3.7.0
       '@shikijs/vscode-textmate': 10.0.2
       oniguruma-to-es: 4.3.3
-    dev: true
 
   /@shikijs/engine-oniguruma@1.29.2:
     resolution: {integrity: sha512-7iiOx3SG8+g1MnlzZVDYiaeHe7Ez2Kf2HrJzdmGwkRisT7r4rak0e655AcM/tF9JG/kg5fMNYlLLKglbN7gBqA==}
@@ -9331,7 +9341,6 @@ packages:
     dependencies:
       '@shikijs/types': 3.7.0
       '@shikijs/vscode-textmate': 10.0.2
-    dev: true
 
   /@shikijs/langs@1.29.2:
     resolution: {integrity: sha512-FIBA7N3LZ+223U7cJDUYd5shmciFQlYkFXlkKVaHsCPgfVLiO+e12FmQE6Tf9vuyEsFe3dIl8qGWKXgEHL9wmQ==}
@@ -9343,7 +9352,6 @@ packages:
     resolution: {integrity: sha512-1zYtdfXLr9xDKLTGy5kb7O0zDQsxXiIsw1iIBcNOO8Yi5/Y1qDbJ+0VsFoqTlzdmneO8Ij35g7QKF8kcLyznCQ==}
     dependencies:
       '@shikijs/types': 3.7.0
-    dev: true
 
   /@shikijs/rehype@1.29.2:
     resolution: {integrity: sha512-sxi53HZe5XDz0s2UqF+BVN/kgHPMS9l6dcacM4Ra3ZDzCJa5rDGJ+Ukpk4LxdD1+MITBM6hoLbPfGv9StV8a5Q==}
@@ -9366,7 +9374,6 @@ packages:
     resolution: {integrity: sha512-VJx8497iZPy5zLiiCTSIaOChIcKQwR0FebwE9S3rcN0+J/GTWwQ1v/bqhTbpbY3zybPKeO8wdammqkpXc4NVjQ==}
     dependencies:
       '@shikijs/types': 3.7.0
-    dev: true
 
   /@shikijs/twoslash@1.29.2(typescript@5.7.3):
     resolution: {integrity: sha512-2S04ppAEa477tiaLfGEn1QJWbZUmbk8UoPbAEw4PifsrxkBXtAtOflIZJNtuCwz8ptc/TPxy7CO7gW4Uoi6o/g==}
@@ -9391,7 +9398,6 @@ packages:
     dependencies:
       '@shikijs/vscode-textmate': 10.0.2
       '@types/hast': 3.0.4
-    dev: true
 
   /@shikijs/vscode-textmate@10.0.2:
     resolution: {integrity: sha512-83yeghZ2xxin3Nj8z1NMd/NCuca+gsYXswywDy5bHvwlWL8tpTQmzGeUuHd9FC3E/SBEMvzJRwWEOz5gGes9Qg==}
@@ -9980,12 +9986,12 @@ packages:
     resolution: {integrity: sha512-wOrSThNNE4HUnuhJG6PfDRp4L2009KDVxsd+2VYH8ro6o/7/jwYZ8Uu5j+VaW+mOmc8EHerHzGcdbGNQSAUPgg==}
     dev: false
 
-  /@ts-morph/common@0.25.0:
-    resolution: {integrity: sha512-kMnZz+vGGHi4GoHnLmMhGNjm44kGtKUXGnOvrKmMwAuvNjM/PgKVGfUnL7IDvK7Jb2QQ82jq3Zmp04Gy+r3Dkg==}
+  /@ts-morph/common@0.27.0:
+    resolution: {integrity: sha512-Wf29UqxWDpc+i61k3oIOzcUfQt79PIT9y/MWfAGlrkjg6lBC1hwDECLXPVJAhWjiGbfBCxZd65F/LIZF3+jeJQ==}
     dependencies:
-      minimatch: 9.0.5
+      fast-glob: 3.3.3
+      minimatch: 10.0.3
       path-browserify: 1.0.1
-      tinyglobby: 0.2.14
     dev: false
 
   /@tsconfig/node10@1.0.11:
@@ -10288,12 +10294,6 @@ packages:
     dependencies:
       undici-types: 6.19.8
     dev: true
-
-  /@types/node@22.8.1:
-    resolution: {integrity: sha512-k6Gi8Yyo8EtrNtkHXutUu2corfDf9su95VYVP10aGYMMROM6SAItZi0w1XszA6RtWTHSVp5OeFof37w0IEqCQg==}
-    dependencies:
-      undici-types: 6.19.8
-    dev: false
 
   /@types/prismjs@1.26.5:
     resolution: {integrity: sha512-AUZTa7hQ2KY5L7AmtSiqxlhWxb4ina0yd8hNbl4TWuqnv/pFP0nDMb3YrfSBf4hJVGLh2YEIBfKaBW/9UEl6IQ==}
@@ -14657,20 +14657,26 @@ packages:
       - typescript
     dev: false
 
-  /fumadocs-typescript@3.0.2(typescript@5.7.3):
-    resolution: {integrity: sha512-SqYJy+NxjjuQQeom7wLpODYiWtIKWfndguHL3XKXaMUvhlsjmsWWTaXJWKaqIfOStiYJQlGWrXxFA2Rrpbx63Q==}
+  /fumadocs-typescript@4.0.6(@types/react@18.3.11)(typescript@5.7.3):
+    resolution: {integrity: sha512-cr2GPMH1TSHQJXRBDbxWGMXpOd7F5uLU8Y2xMOXMc6kQqEpvM2KYlq+QJ/lHTfXmhNgJBr/iKZJtQ2xHSWxaaQ==}
     peerDependencies:
+      '@types/react': '*'
       typescript: '*'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
     dependencies:
-      '@types/node': 22.8.1
-      fast-glob: 3.3.3
+      '@types/react': 18.3.11
+      estree-util-value-to-estree: 3.4.0
+      hast-util-to-estree: 3.1.3
       hast-util-to-jsx-runtime: 2.3.6
-      mdast-util-from-markdown: 2.0.2
-      mdast-util-gfm: 3.1.0
-      mdast-util-to-hast: 13.2.0
-      shiki: 1.29.2
-      ts-morph: 24.0.0
+      remark: 15.0.1
+      remark-rehype: 11.1.2
+      shiki: 3.7.0
+      tinyglobby: 0.2.14
+      ts-morph: 26.0.0
       typescript: 5.7.3
+      unist-util-visit: 5.0.0
     transitivePeerDependencies:
       - supports-color
     dev: false
@@ -17358,6 +17364,13 @@ packages:
       - utf-8-validate
     dev: true
 
+  /minimatch@10.0.3:
+    resolution: {integrity: sha512-IPZ167aShDZZUMdRk66cyQAW3qr0WzbHkPdMYa8bzZhlHhO3jALbKdxcaak7W9FfT2rZNpQuUu4Od7ILEpXSaw==}
+    engines: {node: 20 || >=22}
+    dependencies:
+      '@isaacs/brace-expansion': 5.0.0
+    dev: false
+
   /minimatch@3.1.2:
     resolution: {integrity: sha512-J7p63hRiAjw1NDEww1W7i37+ByIrOWO5XQQAzZ3VOcL0PNybwpfmV/N05zFAzwQ9USyEcX6t3UO+K5aqBQOIHw==}
     dependencies:
@@ -18175,7 +18188,6 @@ packages:
 
   /oniguruma-parser@0.12.1:
     resolution: {integrity: sha512-8Unqkvk1RYc6yq2WBYRj4hdnsAxVze8i7iPfQr8e4uSP3tRv0rpZcbGUDvxfQQcdwHt/e9PrMvGCsa8OqG9X3w==}
-    dev: true
 
   /oniguruma-to-es@2.3.0:
     resolution: {integrity: sha512-bwALDxriqfKGfUufKGGepCzu9x7nJQuoRoAFp4AnwehhC2crqrDIAP/uN2qdlsAvSMpeRC3+Yzhqc7hLmle5+g==}
@@ -18191,7 +18203,6 @@ packages:
       oniguruma-parser: 0.12.1
       regex: 6.0.1
       regex-recursion: 6.0.2
-    dev: true
 
   /open@8.4.0:
     resolution: {integrity: sha512-XgFPPM+B28FtCCgSb9I+s9szOC1vZRSwgWsRUA5ylIxRTgKozqjOCrVOqGsYABPYK5qnfqClxZTFBa8PKt2v6Q==}
@@ -19635,7 +19646,6 @@ packages:
     resolution: {integrity: sha512-0YCaSCq2VRIebiaUviZNs0cBz1kg5kVS2UKUfNIx8YVs1cN3AV7NTctO5FOKBA+UT2BPJIWZauYHPqJODG50cg==}
     dependencies:
       regex-utilities: 2.3.0
-    dev: true
 
   /regex-utilities@2.3.0:
     resolution: {integrity: sha512-8VhliFJAWRaUiVvREIiW2NXXTmHs4vMNnSzuJVhscgmGav3g9VDxLrQndI3dZZVVdp0ZO/5v0xmX516/7M9cng==}
@@ -19650,7 +19660,6 @@ packages:
     resolution: {integrity: sha512-uorlqlzAKjKQZ5P+kTJr3eeJGSVroLKoHmquUj4zHWuR+hEyNqlXsSKlYYF5F4NI6nl7tWCs0apKJ0lmfsXAPA==}
     dependencies:
       regex-utilities: 2.3.0
-    dev: true
 
   /regexp.prototype.flags@1.5.4:
     resolution: {integrity: sha512-dYqgNSZbDwkaJ2ceRd9ojCGjBq+mOm9LmtXnAnEGyHhN/5R7iDW2TRw3h+o/jCFxus3P2LfWIIiwowAjANm7IA==}
@@ -20343,7 +20352,6 @@ packages:
       '@shikijs/types': 3.7.0
       '@shikijs/vscode-textmate': 10.0.2
       '@types/hast': 3.0.4
-    dev: true
 
   /shimmer@1.2.1:
     resolution: {integrity: sha512-sQTKC1Re/rM6XyFM6fIAGHRPVGvyXfgzIDvzoq608vM+jeyVD0Tu1E6Np0Kc2zAIFWIj963V2800iF/9LPieQw==}
@@ -21525,10 +21533,10 @@ packages:
   /ts-interface-checker@0.1.13:
     resolution: {integrity: sha512-Y/arvbn+rrz3JCKl9C4kVNfTfSm2/mEp5FSz5EsZSANGPSlQrpRI5M4PKF+mJnE52jOO90PnPSc3Ur3bTQw0gA==}
 
-  /ts-morph@24.0.0:
-    resolution: {integrity: sha512-2OAOg/Ob5yx9Et7ZX4CvTCc0UFoZHwLEJ+dpDPSUi5TgwwlTlX47w+iFRrEwzUZwYACjq83cgjS/Da50Ga37uw==}
+  /ts-morph@26.0.0:
+    resolution: {integrity: sha512-ztMO++owQnz8c/gIENcM9XfCEzgoGphTv+nKpYNM1bgsdOVC/jRZuEBf6N+mLLDNg68Kl+GgUZfOySaRiG1/Ug==}
     dependencies:
-      '@ts-morph/common': 0.25.0
+      '@ts-morph/common': 0.27.0
       code-block-writer: 13.0.3
     dev: false
 
@@ -21914,6 +21922,7 @@ packages:
 
   /undici-types@6.19.8:
     resolution: {integrity: sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw==}
+    dev: true
 
   /undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
