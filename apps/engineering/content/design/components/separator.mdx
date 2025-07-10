@@ -1,8 +1,12 @@
 ---
 title: Separator
-description: A visual divider that separates content either horizontally or vertically.
+description: A flexible separator component for creating visual divisions between content with horizontal and vertical orientations.
 ---
 import { HorizontalSeparator, VerticalSeparator, DecorativeSeparator } from "./separator.example";
+
+## Overview
+
+The Separator component provides a consistent way to create visual divisions between content sections. It's designed to improve content organization and readability with flexible orientation options and customizable styling.
 
 ## Usage
 
@@ -12,9 +16,15 @@ import { Separator } from "@unkey/ui";
 export default function MyComponent() {
   return (
     <div>
-      <div>Above the separator</div>
+      <p>Content above</p>
       <Separator />
-      <div>Below the separator</div>
+      <p>Content below</p>
+      
+      <div className="flex">
+        <p>Left content</p>
+        <Separator orientation="vertical" />
+        <p>Right content</p>
+      </div>
     </div>
   );
 }
@@ -22,27 +32,89 @@ export default function MyComponent() {
 
 ## Examples
 
-### Horizontal
+### Horizontal Separator
+
+Standard horizontal separator for dividing content sections.
+
 <HorizontalSeparator />
 
-### Vertical
+### Vertical Separator
+
+Divider for horizontal layouts such as toolbars or side-by-side content.  
+
 <VerticalSeparator />
 
-### Decorative
+### Decorative Separator
+
+Shows a separator with custom decorative styling.  
+
 <DecorativeSeparator />
+
+## Features
+
+- **Multiple Orientations**: Horizontal and vertical separator options
+- **Customizable Styling**: Extensive styling options through className prop
+- **Accessibility**: Built-in accessibility support with proper ARIA attributes
+- **Responsive Design**: Adapts to different screen sizes
+- **Dark Mode Support**: Consistent appearance in light and dark themes
+- **Flexible Usage**: Can be used in various layout contexts
 
 ## Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `orientation` | `"horizontal" \| "vertical"` | `"horizontal"` | The orientation of the separator. |
-| `decorative` | `boolean` | `false` | Whether the separator is decorative and should not be visible to screen readers. |
+| `orientation` | `"horizontal" \| "vertical"` | `"horizontal"` | The orientation of the separator |
+| `className` | `string` | `undefined` | Additional CSS classes to apply |
+| `decorative` | `boolean` | `false` | Whether the separator is purely decorative |
 
+The component also accepts all standard HTML hr/div element props.
+
+## Variants
+
+### Horizontal
+- Default orientation for most use cases
+- Creates visual breaks between content sections
+- Ideal for separating different content areas
+- Uses semantic `<hr>` element
+
+### Vertical
+- Divides content in horizontal layouts
+- Useful for sidebar navigation or content columns
+- Maintains consistent spacing
+- Uses `<div>` element with vertical styling
+
+## Structure
+
+The Separator component is a simple, self-contained component that renders as either an `<hr>` element (horizontal) or `<div>` element (vertical) with appropriate styling and accessibility attributes.
+
+## Styling
+
+The Separator component includes default styling with:
+
+- Consistent border styling and colors
+- Proper spacing and margins
+- Dark mode support
+- Responsive design
+- Focus states for accessibility
+- Customizable through className prop
+
+### Custom Styling
+
+You can customize the appearance using the className prop:
+
+```tsx
+<Separator 
+  orientation="horizontal"
+  className="custom-separator-class border-2 border-blue-500"
+/>
+```
 
 ## Accessibility
 
-The Separator component is built on top of the [Radix UI Separator](https://www.radix-ui.com/primitives/docs/components/separator) primitive and follows WAI-ARIA guidelines:
+The Separator component is built with accessibility in mind:
 
-- Uses `role="separator"` to indicate its semantic meaning
-- Can be marked as decorative using the `decorative` prop
-- Maintains proper spacing and visual contrast for accessibility 
+- **Semantic HTML**: Uses appropriate HTML elements (`<hr>` for horizontal)
+- **ARIA Attributes**: Proper ARIA labels for screen readers
+- **Screen Reader Support**: Announces separator presence appropriately
+- **High Contrast**: Maintains proper contrast ratios
+- **Focus Management**: Proper focus handling in interactive contexts

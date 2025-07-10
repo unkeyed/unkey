@@ -1,49 +1,102 @@
 ---
-title: Id
+title: ID
+description: A specialized component for displaying and formatting ID values with truncation, width control, and consistent styling for technical content.
 ---
-
-import { ValueTruncateExample } from "./id.valueTruncate"
-import { WidthExample } from "./id.width"
-import { TypeTable } from 'fumadocs-ui/components/type-table';
-
-<TypeTable
-  type={{
-    value: {
-      description:
-        'The identifier to display.',
-      type: 'string',
-    },
-    truncate: {
-      description:
-        'Number of characters to show before truncating.',
-      type: 'number | undefined',
-      default: undefined
-    },
-    className: {
-      description:
-        'A className applied to the component to override the styling.',
-      type: 'string | undefined',
-      default: undefined
-    },
-  }}
-/>
-
-
+import { ValueTruncateExample } from "./id.valueTruncate";
+import { WidthExample } from "./id.width";
 
 ## Overview
 
-For the `<Id />` component to be used, the `<TooltipProvider>` must be used at the root of the application or somewhere higher in the scope. This is to ensure that the tooltip is rendered correctly.
+The ID component provides a specialized way to display and format ID values throughout your application. It's designed to handle technical content like API keys, user IDs, or other identifier strings with consistent styling, truncation options, and width control for optimal display.
 
-## Truncate & Value
+## Usage
 
-`Id` should be used to display a unique identifier. The `Id` value is passed into the `value` prop. If the value needs to be truncated, a number should be passed to the `truncate` prop.
+```tsx
+import { ID } from "@unkey/ui";
+
+export default function MyComponent() {
+  return (
+    <div>
+      <ID value="uk_1234567890abcdef" />
+      <ID value="user_987654321" truncate />
+      <ID value="api_key_long_string" width="w-32" />
+    </div>
+  );
+}
+```
+
+## Examples
+
+### Value Truncation
+Examples showing different truncation options for long ID values.
+
 <ValueTruncateExample />
 
-## Container Width Full
+### Width Control
+Examples demonstrating width control for different display contexts.
 
 <WidthExample />
 
+## Features
 
+- **Value Display**: Consistent formatting for ID values
+- **Truncation Support**: Optional truncation for long values
+- **Width Control**: Configurable width for different display contexts
+- **Consistent Styling**: Monospace font and consistent appearance
+- **Accessibility**: Proper ARIA attributes and screen reader support
+- **Responsive Design**: Adapts to different screen sizes
+- **Dark Mode Support**: Consistent appearance in light and dark themes
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `value` | `string` | **Required** | The ID value to display |
+| `truncate` | `boolean` | `false` | Whether to truncate long values |
+| `width` | `string` | - | CSS width class for the component |
+| `className` | `string` | - | Additional CSS classes |
+
+## Structure
+
+The ID component is a simple, self-contained component that renders as a single span element with:
+
+1. **Value Display** - The main ID value with optional truncation
+2. **Styling Container** - Consistent styling and width control
+3. **Accessibility Features** - ARIA attributes and screen reader support
+
+## Styling
+
+The component includes default styling with:
+
+- Monospace font for consistent ID display
+- Consistent padding and spacing
+- Truncation with ellipsis for long values
+- Dark mode support with appropriate color schemes
+- Focus states for accessibility
+- Customizable through className and width props
+
+### Custom Styling
+
+You can customize the appearance using the className and width props:
+
+```tsx
+<ID
+  value="custom_id_value"
+  width="w-48"
+  className="custom-id-class"
+  truncate={true}
+/>
+```
+
+## Accessibility
+
+The ID component is built with accessibility in mind:
+
+- **Semantic HTML**: Uses appropriate HTML elements for ID display
+- **ARIA Attributes**: Proper ARIA labels for screen readers
+- **Screen Reader Support**: Announces ID values appropriately
+- **High Contrast**: Maintains proper contrast ratios
+- **Focus Management**: Clear focus indicators when interactive
 
 
 
