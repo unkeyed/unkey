@@ -1,39 +1,118 @@
 ---
-title: InfoTooltip
-description: The Info Tooltip is a specialized tooltip component that provides contextual information about elements in a consistent and accessible way. It's built on top of the base Tooltip component with additional styling and positioning options.
+title: "InfoTooltip"
+description: "A specialized tooltip component that provides contextual information about elements in a consistent and accessible way. It's built on top of the base Tooltip component with additional styling and positioning options."
 ---
 import { InfoTooltipExample } from "./info-tooltip.example"
 
-## Features
+## Overview
 
-- Customizable positioning (top, right, bottom, left)
-- Alignment control (start, center, end)
-- Side offset adjustment
-- Disabled state support
-- Child element support via `asChild` prop
+The InfoTooltip component provides contextual information and help text for UI elements. It's designed to enhance user experience by offering additional context without cluttering the interface, built on top of the base Tooltip component with enhanced positioning and styling capabilities.
 
 ## Usage
 
+```tsx
+import { InfoTooltip } from "@unkey/ui";
+
+export default function MyComponent() {
+  return (
+    <InfoTooltip
+      content="This field is required for account verification"
+      position={{ side: "top", align: "center" }}
+    >
+      <button>Submit</button>
+    </InfoTooltip>
+  );
+}
+```
+
+## Examples
+
+### Basic Usage
+A simple example showing the most common use case.
+
 <InfoTooltipExample />
+
+## Features
+
+- **Customizable Positioning**: Control tooltip placement (top, right, bottom, left)
+- **Alignment Control**: Fine-tune alignment (start, center, end)
+- **Side Offset Adjustment**: Precise positioning with pixel-level control
+- **Disabled State Support**: Conditionally disable tooltip functionality
+- **Child Element Support**: Render trigger as child element via `asChild` prop
+- **Accessibility**: Built-in accessibility support with proper ARIA attributes
+- **Responsive**: Adapts to different screen sizes and viewports
+- **Customizable**: Extensive styling options through className and variant props
 
 ## Props
 
-| Prop      | Type                    | Default   | Description                                      |
-|-----------|-------------------------|-----------|--------------------------------------------------|
-| content   | React.ReactNode         | -         | The content to display in the tooltip            |
-| position  | TooltipPosition         | -         | Configuration for tooltip positioning            |
-| disabled  | boolean                 | false     | Whether the tooltip is disabled                  |
-| asChild   | boolean                 | false     | Whether to render the trigger as a child element |
-| delayDuration | number             | -         | Delay before showing the tooltip in milliseconds |
-| variant   | string                  | -         | Styling variant for the tooltip                  |
-| className | string                  | -         | Additional CSS classes for the tooltip           |
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `React.ReactNode` | `-` | The trigger element that activates the tooltip |
+| `content` | `React.ReactNode` | `-` | The content to display in the tooltip |
+| `variant` | `"primary" \| "inverted" \| "secondary" \| "muted"` | `"primary"` | The visual style variant for the tooltip |
+| `delayDuration` | `number` | `undefined` | Delay before showing the tooltip in milliseconds |
+| `position` | `TooltipPosition` | `{ side: "right", align: "center" }` | Configuration for tooltip positioning |
+| `disabled` | `boolean` | `false` | Whether the tooltip is disabled |
+| `asChild` | `boolean` | `false` | Whether to render the trigger as a child element |
+| `className` | `string` | `undefined` | Additional CSS classes for the tooltip content |
+| `triggerClassName` | `string` | `undefined` | Additional CSS classes for the trigger element |
 
 ## Position Configuration
 
 The `position` prop accepts an object with the following properties:
 
-| Property    | Type                    | Default   | Description                                      |
-|-------------|-------------------------|-----------|--------------------------------------------------|
-| side        | "top" \| "right" \| "bottom" \| "left" | "right" | The side where the tooltip appears |
-| align       | "start" \| "center" \| "end" | "center" | The alignment of the tooltip |
-| sideOffset  | number                  | -         | The offset from the side in pixels               | 
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `side` | `"top" \| "right" \| "bottom" \| "left"` | `"right"` | The side where the tooltip appears |
+| `align` | `"start" \| "center" \| "end"` | `"center"` | The alignment of the tooltip |
+| `sideOffset` | `number` | `-` | The offset from the side in pixels |
+
+### Default
+The standard tooltip appearance with consistent styling.
+
+### Custom Styling
+Apply custom styles using the `variant` prop or `className` for specific design requirements.
+
+## Structure
+
+The InfoTooltip is composed of several elements that work together:
+
+1. **InfoTooltip** - The main container component
+2. **Trigger Element** - The element that activates the tooltip (button, icon, etc.)
+3. **Tooltip Content** - The contextual information displayed
+4. **Positioning System** - Handles tooltip placement and alignment
+
+## Styling
+
+The component includes default styling with:
+
+- Consistent spacing and typography
+- Dark mode support
+- Responsive design
+- Customizable through className props
+- Focus states for accessibility
+
+### Custom Styling
+
+You can customize the appearance using className props:
+
+```tsx
+<InfoTooltip 
+  content="Custom styled tooltip"
+  className="custom-tooltip-class"
+  position={{ side: "bottom", align: "start" }}
+>
+  <button className="trigger-button">Hover me</button>
+</InfoTooltip>
+```
+
+## Accessibility
+
+The InfoTooltip component is built with accessibility in mind:
+
+- **Keyboard Navigation**: Full keyboard support for tooltip activation
+- **Screen Reader Support**: Proper ARIA labels and announcements
+- **Focus Management**: Clear focus indicators and logical tab order
+- **High Contrast**: Maintains proper contrast ratios
+- **Semantic HTML**: Uses appropriate HTML elements and roles
+- **Timing Control**: Configurable delay duration for better UX 

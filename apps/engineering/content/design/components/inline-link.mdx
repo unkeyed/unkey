@@ -1,44 +1,68 @@
 ---
 title: InlineLink
-description: A component for creating inline links with optional icons and styling.
+description: A versatile inline link component with customizable styling, icon support, and target options for creating consistent link experiences throughout your application.
 ---
+import { InlineLinkBasic, InlineLinkWithIcon, InlineLinkWithTarget, InlineLinkWithCustomClass } from "./inline-link.example";
 
-import { InlineLinkBasic, InlineLinkWithIcon, InlineLinkWithTarget, InlineLinkWithCustomClass } from "./inline-link.example"
+## Overview
 
-## Basic Usage
+The InlineLink component provides a consistent way to create inline links within text content. It supports icons, custom styling, and target attributes. The component extends all standard HTML anchor element attributes for maximum flexibility.
 
-The basic InlineLink includes a label and href.
+## Usage
+
+```tsx
+import { InlineLink } from "@unkey/ui";
+
+export default function MyComponent() {
+  return (
+    <div>
+      <InlineLink href="/docs">Documentation</InlineLink>
+      <InlineLink href="https://example.com" target="_blank">
+        External Link
+      </InlineLink>
+      <InlineLink href="/help" icon={<HelpIcon />}>
+        Help Center
+      </InlineLink>
+    </div>
+  );
+}
+```
+
+## Examples
+
+### Basic Usage
+
+Simple inline links with different styling options.
 
 <InlineLinkBasic />
 
-## With Icon
+### With Icons
 
-Add an icon to the link, positioned either on the left or right.
+Inline links with icon support for enhanced visual meaning.
 
 <InlineLinkWithIcon />
 
-## With Target
+### With Target Options
 
-Open the link in a new tab.
+Links with different target configurations for external and internal navigation.
 
 <InlineLinkWithTarget />
 
-## With Custom Styling
+### Custom Styling
 
-Apply custom styling to the link.
+Inline links with custom styling classes for specific design requirements.
 
 <InlineLinkWithCustomClass />
 
 ## Features
 
-- Consistent link styling
-- Optional icon support
-- Configurable icon position
-- Custom styling support
-- Target attribute for new tab opening (defaults to "_blank")
-- Security attributes (rel="noopener noreferrer" by default)
-- Accessible by default
-- Extends all standard HTML anchor attributes
+- **Consistent Styling**: Uniform link appearance across your application with customizable themes
+- **Icon Support**: Optional icon integration with configurable positioning (left or right)
+- **Flexible Styling**: Extensive customization options through className prop and CSS variables
+- **Accessibility**: Built-in accessibility support with proper ARIA attributes and keyboard navigation
+- **Target Options**: Support for internal and external links with appropriate security attributes
+- **Responsive Design**: Adapts seamlessly to different screen sizes and device types
+- **Dark Mode Support**: Consistent appearance in both light and dark themes
 
 ## Props
 
@@ -53,10 +77,13 @@ Apply custom styling to the link.
 
 ## Accessibility
 
-- Proper ARIA attributes
-- Keyboard navigation support
-- High contrast text for readability
-- Clear focus indicators
-- Semantic HTML structure
-- Descriptive link text
-- Security attributes for external links
+The InlineLink component is built with accessibility in mind:
+
+- **Semantic HTML**: Uses proper `<a>` elements with appropriate href attributes
+- **ARIA Attributes**: Includes proper ARIA labels and roles for screen readers
+- **Keyboard Navigation**: Full keyboard support with logical tab order and focus management
+- **High Contrast**: Maintains proper contrast ratios for text readability
+- **Focus Indicators**: Clear visual focus states for keyboard navigation
+- **Screen Reader Support**: Announces link purpose and destination appropriately
+- **Security Attributes**: Automatically adds `rel="noopener noreferrer"` for external links
+- **Descriptive Text**: Encourages meaningful link text that describes the destination
