@@ -1,5 +1,4 @@
-import { Clone } from "@unkey/icons";
-import { Button, Card, CardContent, toast } from "@unkey/ui";
+import { Card, CardContent, CopyButton, toast } from "@unkey/ui";
 
 type Role = {
   name: string;
@@ -57,15 +56,14 @@ export const RolesSection: React.FC<RolesSectionProps> = ({ roles }) => {
               ) : (
                 <div className="text-accent-9 mt-2 text-xs italic">No description</div>
               )}
-              <Button
+              <CopyButton
+                value={JSON.stringify(role)}
                 shape="square"
                 onClick={() => handleCopy(role)}
-                variant="outline"
-                className="absolute bottom-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity rounded-sm"
+                variant="primary"
+                className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-md p-4"
                 aria-label={`Copy ${role.name}`}
-              >
-                <Clone />
-              </Button>
+              />
             </CardContent>
           </Card>
         ))}
@@ -140,15 +138,14 @@ export const PermissionsSection = ({ permissions }: PermissionsSectionProps) => 
           Permissions ({permissions.length})
         </span>
         {permissions.length > 1 && (
-          <Button
+          <CopyButton
+            value={"JSON.stringify(permissions)"}
             shape="square"
             onClick={handleCopyAll}
-            variant="outline"
+            variant="primary"
             className="h-6 w-6 rounded-sm"
             aria-label="Copy all permissions"
-          >
-            <Clone />
-          </Button>
+          />
         )}
       </div>
       <div className="space-y-2">
@@ -166,15 +163,14 @@ export const PermissionsSection = ({ permissions }: PermissionsSectionProps) => 
               ) : (
                 <div className="text-accent-9 mt-2 text-xs italic">No description</div>
               )}
-              <Button
+              <CopyButton
+                value={""}
                 shape="square"
                 onClick={() => handleCopy(permission)}
-                variant="outline"
-                className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity rounded-sm"
+                variant="primary"
+                className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-md p-4"
                 aria-label={`Copy ${permission.name}`}
-              >
-                <Clone />
-              </Button>
+              />
             </CardContent>
           </Card>
         ))}

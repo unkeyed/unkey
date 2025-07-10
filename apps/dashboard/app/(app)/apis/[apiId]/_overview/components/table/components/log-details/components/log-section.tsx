@@ -122,13 +122,14 @@ export const LogSection = ({
                 })
               : details}
           </pre>
+
           <CopyButton
             value={getTextToCopy()}
             shape="square"
             onClick={handleClick}
-            variant="outline"
+            variant="primary"
             size="2xlg"
-            className="absolute bottom-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity rounded-sm p-4"
+            className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-md p-4"
             aria-label="Copy content"
           />
         </CardContent>
