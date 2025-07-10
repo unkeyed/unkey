@@ -1,8 +1,9 @@
 "use client";
+
 import {
-  KeysTableActionPopoverDefaultTrigger,
   type MenuItem,
-} from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover";
+  TableActionPopoverDefaultTrigger,
+} from "@/components/logs/table-action.popover";
 import { trpc } from "@/lib/trpc/client";
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { Clone, PenWriting3, Trash } from "@unkey/icons";
@@ -14,12 +15,9 @@ import { DeleteRole } from "./components/delete-role";
 import { EditRole } from "./components/edit-role";
 
 const KeysTableActionPopover = dynamic(
-  () =>
-    import(
-      "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover"
-    ).then((mod) => mod.KeysTableActionPopover),
+  () => import("@/components/logs/table-action.popover").then((mod) => mod.TableActionPopover),
   {
-    loading: KeysTableActionPopoverDefaultTrigger,
+    loading: TableActionPopoverDefaultTrigger,
   },
 );
 
