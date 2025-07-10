@@ -2,6 +2,7 @@
 import { TaskChecked, TaskUnchecked } from "@unkey/icons";
 import * as React from "react";
 import { cn } from "../../lib/utils";
+import { toast } from "../toaster";
 import { Button, type ButtonProps } from "./button";
 
 type CopyButtonProps = ButtonProps & {
@@ -13,6 +14,10 @@ type CopyButtonProps = ButtonProps & {
    * Source component for analytics
    */
   src?: string;
+  /**
+   * toast message to show when copied
+   */
+  toastMessage?: string;
 };
 
 async function copyToClipboardWithMeta(value: string, _meta?: Record<string, unknown>) {
@@ -20,7 +25,7 @@ async function copyToClipboardWithMeta(value: string, _meta?: Record<string, unk
 }
 
 export const CopyButton = React.forwardRef<HTMLButtonElement, CopyButtonProps>(
-  ({ value, src, variant = "outline", className, onClick, ...props }, ref) => {
+  ({ value, src, variant = "outline", className, toastMessage, ...props }, ref) => {
     const [copied, setCopied] = React.useState(false);
 
     React.useEffect(() => {
@@ -45,9 +50,18 @@ export const CopyButton = React.forwardRef<HTMLButtonElement, CopyButtonProps>(
         onClick={(e) => {
           if (!e.defaultPrevented) {
             e.stopPropagation(); // Prevent triggering parent button click
-            copyToClipboardWithMeta(value, {
-              component: src,
-            });
+            try {
+              copyToClipboardWithMeta(value, {
+                component: src,
+              });
+              toast.success("Copied to clipboard", {
+                description: toastMessage,
+              });
+            } catch (e) {
+              toast.error("Failed to copy to clipboard", {
+                description: e instanceof Error ? e.message : "Unknown error",
+              });
+            }
             setCopied(true);
           }
         }}

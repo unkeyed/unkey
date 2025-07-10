@@ -1,5 +1,5 @@
 "use client";
-import { Card, CardContent, CopyButton, toast } from "@unkey/ui";
+import { Card, CardContent, CopyButton } from "@unkey/ui";
 import React from "react";
 
 export const LogSection = ({
@@ -31,21 +31,6 @@ export const LogSection = ({
         .join("\n");
     }
     return textToCopy;
-  };
-
-  // Handle the copy button click
-  const handleClick = () => {
-    const textToCopy = getTextToCopy();
-
-    navigator.clipboard
-      .writeText(textToCopy)
-      .then(() => {
-        toast.success(`${title} copied to clipboard`);
-      })
-      .catch((error) => {
-        console.error("Failed to copy to clipboard:", error);
-        toast.error("Failed to copy to clipboard");
-      });
   };
 
   // Helper function to extract text from React elements
@@ -126,7 +111,6 @@ export const LogSection = ({
           <CopyButton
             value={getTextToCopy()}
             shape="square"
-            onClick={handleClick}
             variant="primary"
             size="2xlg"
             className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-md p-4"

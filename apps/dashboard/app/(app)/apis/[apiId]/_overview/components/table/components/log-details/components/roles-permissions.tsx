@@ -1,4 +1,4 @@
-import { Card, CardContent, CopyButton, toast } from "@unkey/ui";
+import { Card, CardContent, CopyButton } from "@unkey/ui";
 
 type Role = {
   name: string;
@@ -10,19 +10,6 @@ type RolesSectionProps = {
 };
 
 export const RolesSection: React.FC<RolesSectionProps> = ({ roles }) => {
-  const handleCopy = (role: Role) => {
-    const content = `${role.name}${role.description ? `\n${role.description}` : ""}`;
-    navigator.clipboard
-      .writeText(content)
-      .then(() => {
-        toast.success(`Role ${role.name} copied to clipboard`);
-      })
-      .catch((error) => {
-        console.error("Failed to copy to clipboard:", error);
-        toast.error("Failed to copy to clipboard");
-      });
-  };
-
   if (!roles || roles.length === 0) {
     return (
       <div className="flex flex-col gap-1 mt-[16px]">
@@ -57,9 +44,9 @@ export const RolesSection: React.FC<RolesSectionProps> = ({ roles }) => {
                 <div className="text-accent-9 mt-2 text-xs italic">No description</div>
               )}
               <CopyButton
-                value={JSON.stringify(role)}
+                value={`${role.name}${role.description ? `\n${role.description}` : ""}`}
                 shape="square"
-                onClick={() => handleCopy(role)}
+                toastMessage={`${role.name}${role.description ? `\n${role.description}` : ""}`}
                 variant="primary"
                 className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-md p-4"
                 aria-label={`Copy ${role.name}`}
@@ -82,40 +69,6 @@ type PermissionsSectionProps = {
 };
 
 export const PermissionsSection = ({ permissions }: PermissionsSectionProps) => {
-  const handleCopy = (permission: Permission) => {
-    const content = `${permission.name}${
-      permission.description ? `\n${permission.description}` : ""
-    }`;
-    navigator.clipboard
-      .writeText(content)
-      .then(() => {
-        toast.success(`Permission ${permission.name} copied to clipboard`);
-      })
-      .catch((error) => {
-        console.error("Failed to copy to clipboard:", error);
-        toast.error("Failed to copy to clipboard");
-      });
-  };
-
-  const handleCopyAll = () => {
-    const content = permissions
-      .map(
-        (permission) =>
-          `${permission.name}${permission.description ? `\n${permission.description}` : ""}`,
-      )
-      .join("\n\n");
-
-    navigator.clipboard
-      .writeText(content)
-      .then(() => {
-        toast.success("All permissions copied to clipboard");
-      })
-      .catch((error) => {
-        console.error("Failed to copy to clipboard:", error);
-        toast.error("Failed to copy to clipboard");
-      });
-  };
-
   if (!permissions || permissions.length === 0) {
     return (
       <div className="flex flex-col gap-1 mt-[16px]">
@@ -139,9 +92,13 @@ export const PermissionsSection = ({ permissions }: PermissionsSectionProps) => 
         </span>
         {permissions.length > 1 && (
           <CopyButton
-            value={"JSON.stringify(permissions)"}
+            value={permissions
+              .map(
+                (permission) =>
+                  `${permission.name}${permission.description ? `\n${permission.description}` : ""}`,
+              )
+              .join("\n\n")}
             shape="square"
-            onClick={handleCopyAll}
             variant="primary"
             className="h-6 w-6 rounded-sm"
             aria-label="Copy all permissions"
@@ -164,9 +121,8 @@ export const PermissionsSection = ({ permissions }: PermissionsSectionProps) => 
                 <div className="text-accent-9 mt-2 text-xs italic">No description</div>
               )}
               <CopyButton
-                value={""}
+                value={`${permission.name}${permission.description ? `\n${permission.description}` : ""}`}
                 shape="square"
-                onClick={() => handleCopy(permission)}
                 variant="primary"
                 className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-md p-4"
                 aria-label={`Copy ${permission.name}`}

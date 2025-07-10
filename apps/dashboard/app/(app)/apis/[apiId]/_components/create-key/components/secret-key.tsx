@@ -29,7 +29,7 @@ export const SecretKey = ({
         className,
       )}
     >
-      <div className="flex items-center justify-between w-full gap-3">
+      <div className="flex items-center justify-between w-full gap-3 pointer-events-auto">
         <div className="flex-shrink-0">
           <CircleLock size="sm-regular" className="text-gray-12" />
         </div>
@@ -39,7 +39,7 @@ export const SecretKey = ({
             {displayValue}
           </p>
         </div>
-        <div className="flex items-center justify-between gap-2 flex-shrink-0">
+        <div className="flex items-center justify-between gap-2 flex-shrink-0 pointer-events-auto">
           <VisibleButton
             isVisible={isVisible}
             setIsVisible={(visible) => setIsVisible(visible)}
