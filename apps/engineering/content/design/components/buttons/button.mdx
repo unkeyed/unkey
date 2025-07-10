@@ -23,179 +23,241 @@ import {
   ShapeVariantsExample,
 } from "./button.examples";
 
-## Basic Variants
+## Overview
 
-Button comes in three basic variants that serve different UI purposes:
+The Button component provides a comprehensive button system for creating interactive elements throughout your application. It's designed to handle various use cases with multiple variants, color schemes, sizes, and states while maintaining accessibility and consistent styling.
 
-### Primary
+## Usage
 
+```tsx
+import { Button } from "@unkey/ui";
+
+export default function MyComponent() {
+  return (
+    <div>
+      <Button>Primary Action</Button>
+      <Button variant="outline">Secondary Action</Button>
+      <Button variant="ghost" color="danger">Destructive Action</Button>
+    </div>
+  );
+}
+```
+
+## Examples
+
+### Basic Variants
+The Button comes in three basic variants
+
+#### Primary
 The default button style with a solid background. Use for primary actions and main call-to-actions.
 
 <PrimaryExample />
 
-### Outline
-
+#### Outline
 Button with transparent background and visible border. Ideal for secondary actions that don't require as much visual emphasis.
 
 <OutlineExample />
 
-### Ghost
-
+#### Ghost
 Button with no background or border until interacted with. Perfect for tertiary actions or when space is limited.
 
 <GhostExample />
 
-## Color Variants
+### Color Variants
+Each button variant can be combined with different color schemes to convey the nature of the action.
 
-Each button variant can be combined with different color schemes to convey the nature of the action:
-
-### Danger - Primary
-
+#### Danger Variants
 Solid background danger variant for destructive actions that should be clearly highlighted.
+
+***Primary***
 
 <DangerPrimaryExample />
 
-### Danger - Outline
-
-Danger variant with outline style. Use for destructive actions that require less visual prominence.
+***Outline***
 
 <DangerOutlineExample />
 
-### Danger - Ghost
-
-Minimal danger variant. Suitable for destructive actions in tight UI spaces or alongside other content.
+***Ghost***
 
 <DangerGhostExample />
 
-### Warning - Primary
-
+#### Warning Variants
 Warning variant with solid background for actions that require caution but aren't destructive.
+
+***Primary***
 
 <WarningPrimaryExample />
 
-### Warning - Outline
-
-Warning variant with outline style for secondary cautionary actions.
+***Outline***
 
 <WarningOutlineExample />
 
-### Warning - Ghost
-
-Warning variant with ghost style for tertiary cautionary actions.
+***Ghost***
 
 <WarningGhostExample />
 
-### Success - Primary
-
+#### Success Variants
 Success variant with solid background for positive or confirming actions.
+
+***Primary***
 
 <SuccessPrimaryExample />
 
-### Success - Outline
-
-Success variant with outline style for secondary positive actions.
+***Outline***
 
 <SuccessOutlineExample />
 
-### Success - Ghost
-
-Success variant with ghost style for subtle positive actions.
+***Ghost***
 
 <SuccessGhostExample />
 
-### Info - Primary
-
+#### Info Variants
 Info variant with solid background for purely informational actions.
+
+***Primary***
 
 <InfoPrimaryExample />
 
-### Info - Outline
-
-Info variant with outline style for secondary informational actions.
+***Outline***
 
 <InfoOutlineExample />
 
-### Info - Ghost
-
-Info variant with ghost style for subtle informational actions.  
+***Ghost***
 
 <InfoGhostExample />
 
-## Size Variants
-
+### Size Variants
 All button variants and color schemes can be combined with different sizes to fit various UI contexts.
 
 <SizeVariantsExample />
 
-## Special Features
+### Special Features
+Button includes additional features that enhance usability and interaction.
 
-Button includes additional features that enhance usability and interaction:
-
-### With Icons
-
+#### With Icons
 Buttons can include icons from the Lucide library for enhanced visual meaning. Icons can be placed before or after text.
 
 <WithIconsExample />
 
-### With Keyboard Shortcuts
-
-Buttons can display and respond to keyboard shortcuts for improved accessibility and power-user workflows.
-
-## Additional Features
-
-The Button component includes some additional features not shown in the examples above:
-
-### Legacy Variant Support
-
-For backward compatibility, the component supports legacy variants:
-
-- `default` will be mapped to `primary` variant
-- `destructive` will be mapped to `primary` variant with `danger` color
-
-### Shape Variants
-
-For special layouts, buttons can use the `shape` prop:
+#### Shape Variants
+For special layouts, buttons can use the `shape` prop.
 
 <ShapeVariantsExample />
 
+## Features
+
+- **Multiple Variants**: Three basic variants (primary, outline, ghost) with different visual emphasis
+- **Color Schemes**: Five color options (default, danger, warning, success, info) for semantic meaning
+- **Size Options**: Five sizes (sm, md, lg, xlg, 2xlg) for different contexts
+- **Interactive States**: Loading, disabled, hover, and focus states
+- **Icon Support**: Built-in support for Lucide icons
+- **Accessibility**: Full accessibility support with proper ARIA attributes
+- **Responsive Design**: Adapts to different screen sizes
+- **Dark Mode Support**: Consistent appearance in light and dark themes
+- **Keyboard Support**: Full keyboard navigation and shortcuts
+
 ## Props
 
-The Button component accepts all standard HTML button attributes plus the following:
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `variant` | `"primary" \| "outline" \| "ghost"` | `"primary"` | The variant style to use for the button |
+| `color` | `"default" \| "success" \| "warning" \| "danger" \| "info"` | `"default"` | The color scheme to use for the button |
+| `size` | `"sm" \| "md" \| "lg" \| "xlg" \| "2xlg"` | `"sm"` | The size of the button |
+| `shape` | `"square"` | - | Special shape variant for the button |
+| `loading` | `boolean` | - | Display a loading spinner instead of the children |
+| `disabled` | `boolean` | - | Disables the button |
+| `keyboard` | `object` | - | Keyboard shortcut configuration |
+| `keyboard.display` | `string` | - | The shortcut displayed on the button |
+| `keyboard.trigger` | `(e: KeyboardEvent) => boolean` | - | Function to decide whether the button should be pressed |
+| `keyboard.callback` | `(e: KeyboardEvent) => void \| Promise<void>` | - | The function to be called when triggered |
+| `asChild` | `boolean` | - | Allows you to use your own component as a button |
+| `loadingLabel` | `string` | `"Loading, please wait"` | Optional label for screen readers when in loading state |
+| `onClick` | `(event: React.MouseEvent<HTMLButtonElement>) => void` | - | Callback triggered when button is clicked |
+| `type` | `"button" \| "submit" \| "reset"` | `"button"` | The type of button |
+| `className` | `string` | - | Additional CSS classes to apply |
 
-<AutoTypeTable
-  name="DocumentedButtonProps"
-  path="../../internal/ui/src/components/buttons/button.tsx"
-/>
+## Variants
 
-## Usage Guidelines
+### Primary
+- Solid background with high visual emphasis
+- Use for main actions and primary call-to-actions
+- Default variant for most use cases
 
-When using the Button component:
+### Outline
+- Transparent background with visible border
+- Secondary actions with moderate emphasis
+- Good for forms and secondary actions
 
-- **Hierarchy**: Maintain a clear visual hierarchy with your button choices
-  - Use **primary** buttons for main actions and primary call-to-actions
-  - Use **outline** buttons for secondary actions
-  - Use **ghost** buttons for tertiary actions or in dense UIs
-- **Color semantics**: Apply color variants based on the action's impact:
-  - **Default** for neutral or standard actions
-  - **Success** for positive, confirming, or creative actions
-  - **Warning** for cautionary actions that require attention
-  - **Danger** for destructive or irreversible actions
-- **Interaction states**:
-  - Ensure **loading** state is shown during asynchronous operations to prevent multiple submissions
-  - Use **disabled** state appropriately for actions that are currently unavailable
-  - Test that focus states are clearly visible for keyboard navigation
-- **Sizing and spacing**:
-  - Use appropriate **size** based on the button's importance and the available space
-  - Maintain consistent spacing between buttons in a group (recommend 16px/1rem)
-  - For button groups, maintain consistent sizing within the group
-- **Content guidelines**:
-  - Use concise, action-oriented text (e.g., "Save changes" instead of "Submit")
-  - Add icons to enhance meaning, but avoid overloading buttons with too many elements
-  - For destructive actions, consider using explicit verbs ("Delete" instead of "Remove")
-- **Accessibility**:
-  - Consider adding keyboard shortcuts for frequently used actions
-  - Ensure sufficient color contrast between text and background (WCAG AA minimum)
-  - Add appropriate aria attributes for complex button behaviors
-- **Responsive behavior**:
-  - On mobile, ensure buttons are at least 44×44px (touch target size)
-  - Consider stacking buttons vertically on very small screens
+### Ghost
+- No background or border until interacted with
+- Tertiary actions or minimal visual impact
+- Perfect for dense UIs or subtle interactions
+
+## Color Schemes
+
+### Default
+- Neutral styling for general actions
+- Gray/blue color scheme
+- Most common choice for standard actions
+
+### Danger
+- Red color scheme for destructive actions
+- Use for delete, remove, or destructive operations
+- Should be used sparingly and with clear intent
+
+### Warning
+- Yellow/orange color scheme for cautionary actions
+- Use for actions that require attention but aren't destructive
+- Good for confirmations or warnings
+
+### Success
+- Green color scheme for positive actions
+- Use for save, confirm, or successful operations
+- Encourages positive user actions
+
+### Info
+- Blue color scheme for informational actions
+- Use for help, info, or neutral operations
+- Good for educational or informational contexts
+
+## Structure
+
+The Button component is a self-contained component that renders as a single button element with appropriate styling, accessibility attributes, and optional icon support.
+
+## Styling
+
+The Button component includes default styling with:
+
+- Consistent padding and border radius across variants
+- Color-coded schemes for semantic meaning
+- Smooth transitions for state changes
+- Dark mode support
+- Responsive design
+- Focus states for accessibility
+- Customizable through className prop
+
+### Custom Styling
+
+You can customize the appearance using the className prop:
+
+```tsx
+<Button 
+  variant="primary"
+  color="success"
+  className="custom-button-class"
+>
+  Custom Button
+</Button>
+```
+
+## Accessibility
+
+The Button component is built with accessibility in mind:
+
+- **Semantic HTML**: Uses proper button element with appropriate roles
+- **ARIA Attributes**: Proper ARIA labels and states for screen readers
+- **Keyboard Navigation**: Full keyboard support including Enter and Space
+- **Focus Management**: Clear focus indicators and logical tab order
+- **Loading States**: Proper ARIA attributes for loading states
+- **Screen Reader Support**: Announces button states and actions appropriately
+- **High Contrast**: Maintains proper contrast ratios across all variants

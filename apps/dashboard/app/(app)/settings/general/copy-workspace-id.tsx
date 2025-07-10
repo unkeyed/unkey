@@ -1,8 +1,5 @@
 "use client";
-
-import { toast } from "@/components/ui/toaster";
-import { Clone } from "@unkey/icons";
-import { Input, SettingCard } from "@unkey/ui";
+import { CopyButton, SettingCard } from "@unkey/ui";
 
 export const CopyWorkspaceId = ({ workspaceId }: { workspaceId: string }) => {
   return (
@@ -13,25 +10,14 @@ export const CopyWorkspaceId = ({ workspaceId }: { workspaceId: string }) => {
       contentWidth="w-full lg:w-[420px] justify-end items-end"
     >
       <div className="flex flex-row justify-end items-center">
-        <Input
-          className="min-w-[25.1rem] self-end"
-          readOnly
-          defaultValue={workspaceId}
-          placeholder="Workspace ID"
-          rightIcon={
-            <button
-              type="button"
-              onClick={() => {
-                navigator.clipboard.writeText(workspaceId);
-                toast.success("Copied to clipboard", {
-                  description: workspaceId,
-                });
-              }}
-            >
-              <Clone size="md-regular" />
-            </button>
+        <div
+          className={
+            "flex flex-row justify-between min-w-[395px] pl-4 pr-2 py-1.5 bg-gray-2 dark:bg-black border rounded-lg border-grayA-5"
           }
-        />
+        >
+          <div className="text-sm text-gray-11">{workspaceId}</div>
+          <CopyButton value={workspaceId} variant="ghost" toastMessage={workspaceId} />
+        </div>
       </div>
     </SettingCard>
   );
