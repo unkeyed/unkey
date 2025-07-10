@@ -49,6 +49,8 @@ export const CopyButton = React.forwardRef<HTMLButtonElement, CopyButtonProps>(
               component: src,
             });
             setCopied(true);
+            // Call the onClick prop if provided
+            onClick?.(e);
           }
         }}
         aria-label="Copy to clipboard"

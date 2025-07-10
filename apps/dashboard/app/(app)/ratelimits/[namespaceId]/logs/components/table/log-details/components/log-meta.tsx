@@ -1,5 +1,4 @@
-import { toast } from "@/components/ui/toaster";
-import { Button, Card, CardContent } from "@unkey/ui";
+import { Button, Card, CardContent, toast } from "@unkey/ui";
 import { Copy } from "lucide-react";
 
 export const LogMetaSection = ({ content }: { content: string }) => {

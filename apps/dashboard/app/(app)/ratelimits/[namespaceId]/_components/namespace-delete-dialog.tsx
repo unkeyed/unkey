@@ -1,9 +1,8 @@
 "use client";
 
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, DialogContainer, Input } from "@unkey/ui";
+import { Button, DialogContainer, Input, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";

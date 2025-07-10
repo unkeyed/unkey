@@ -5,8 +5,8 @@ import {
   TableActionPopover,
 } from "@/app/(app)/ratelimits/[namespaceId]/_components/table-action-popover";
 import type { OverrideDetails } from "@/app/(app)/ratelimits/[namespaceId]/types";
-import { toast } from "@/components/ui/toaster";
 import { Clone, Layers3, PenWriting3, Trash } from "@unkey/icons";
+import { toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useFilters } from "../../../../hooks/use-filters";

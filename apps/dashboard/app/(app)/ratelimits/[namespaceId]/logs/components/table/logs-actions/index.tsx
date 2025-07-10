@@ -1,5 +1,5 @@
-import { toast } from "@/components/ui/toaster";
 import { Clone, InputSearch } from "@unkey/icons";
+import { toast } from "@unkey/ui";
 import { type MenuItem, TableActionPopover } from "../../../../_components/table-action-popover";
 import { useFilters } from "../../../hooks/use-filters";
 

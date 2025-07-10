@@ -1,7 +1,7 @@
 "use client";
 
-import { toast } from "@/components/ui/toaster";
 import { Clone, PenWriting3, Trash } from "@unkey/icons";
+import { toast } from "@unkey/ui";
 import { useState } from "react";
 import { DeleteDialog } from "../../_components/delete-dialog";
 import { IdentifierDialog } from "../../_components/identifier-dialog";
