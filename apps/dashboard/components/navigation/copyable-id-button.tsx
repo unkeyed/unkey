@@ -1,4 +1,5 @@
-import { Button, CopyButton } from "@unkey/ui";
+"use client";
+import { Button, CopyButton, toast } from "@unkey/ui";
 import { useRef } from "react";
 
 type CopyableIDButtonProps = {
@@ -51,6 +52,9 @@ export const CopyableIDButton = ({ value, className = "" }: CopyableIDButtonProp
     } else {
       // Programmatically click the CopyButton if text isn't selected
       copyButtonRef.current?.click();
+      toast.success("Copied to clipboard", {
+        description: value,
+      });
     }
   };
 
@@ -72,6 +76,13 @@ export const CopyableIDButton = ({ value, className = "" }: CopyableIDButtonProp
           variant="ghost"
           value={value}
           ref={copyButtonRef}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toast.success("Copied to clipboard", {
+              description: value,
+            });
+          }}
           className="pointer-events-none flex-shrink-0"
         />
       </div>
