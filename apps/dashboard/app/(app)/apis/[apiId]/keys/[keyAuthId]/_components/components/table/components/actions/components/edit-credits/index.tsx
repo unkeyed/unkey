@@ -3,6 +3,7 @@ import {
   type CreditsFormValues,
   creditsSchema,
 } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.schema";
+import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import { toast } from "@/components/ui/toaster";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { trpc } from "@/lib/trpc/client";
@@ -11,7 +12,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer } from "@unkey/ui";
 import { useEffect } from "react";
 import { FormProvider } from "react-hook-form";
-import type { ActionComponentProps } from "../../keys-table-action.popover";
 import { useEditCredits } from "../hooks/use-edit-credits";
 import { KeyInfo } from "../key-info";
 import { getKeyLimitDefaults } from "./utils";
