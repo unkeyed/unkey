@@ -2,19 +2,15 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_delete_api"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
-	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestSuccess(t *testing.T) {
@@ -80,18 +76,10 @@ func TestSuccess(t *testing.T) {
 	t.Run("delete api with active keys", func(t *testing.T) {
 		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID})
 
-		// Create a key associated with this API
-		keyID := uid.New(uid.KeyPrefix)
-		err := db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:          keyID,
-			KeyringID:   api.KeyAuthID.String,
+		createKey := h.CreateKey(seed.CreateKeyRequest{
+			KeyAuthID:   api.KeyAuthID.String,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			CreatedAtM:  time.Now().UnixMilli(),
-			// Add other required fields based on your schema
-			Hash:  hash.Sha256(uid.New(uid.TestPrefix)),
-			Start: "teststart",
 		})
-		require.NoError(t, err)
 
 		// Ensure API exists before deletion
 		apiBeforeDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), api.ID)
@@ -121,25 +109,13 @@ func TestSuccess(t *testing.T) {
 		require.True(t, apiAfterDelete.DeletedAtM.Valid)
 
 		// Check that the key is still accessible (soft delete doesn't cascade to keys)
-		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyID)
+		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), createKey.KeyID)
 		require.NoError(t, err)
-		require.Equal(t, keyID, key.ID)
+		require.Equal(t, createKey.KeyID, key.ID)
 	})
 
 	// Test case for deleting an API immediately after creation
 	t.Run("delete api immediately after creation", func(t *testing.T) {
-		// Create keyring for the API
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        h.Resources().UserWorkspace.ID,
-			CreatedAtM:         time.Now().UnixMilli(),
-			DefaultPrefix:      sql.NullString{Valid: false, String: ""},
-			DefaultBytes:       sql.NullInt32{Valid: false, Int32: 0},
-			StoreEncryptedKeys: false,
-		})
-		require.NoError(t, err)
-
 		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID})
 
 		// Verify the API was created

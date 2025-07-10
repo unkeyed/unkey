@@ -67,10 +67,6 @@ func TestGetApiInvalidRequest(t *testing.T) {
 		require.NotEmpty(t, res.Body.Error)
 	})
 
-	// We're unable to directly test invalid JSON types using CallRoute as Go's type system will prevent it
-
-	// We're unable to directly test non-JSON content using CallRoute
-
 	// Test with a valid apiId
 	t.Run("valid request", func(t *testing.T) {
 		// Create a test API in the database

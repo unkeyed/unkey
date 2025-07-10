@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestSuccess(t *testing.T) {
@@ -342,24 +343,54 @@ func TestSuccess(t *testing.T) {
 	})
 
 	t.Run("returns correct information", func(t *testing.T) {
-		t.Run("key permissions", func(t *testing.T) {
+		externalId := uid.New("ext")
+		identity := h.CreateIdentity(seed.CreateIdentityRequest{WorkspaceID: workspace.ID, ExternalID: externalId, Meta: nil, Ratelimits: nil})
+		keyName := "valid-info"
 
+		key := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+			IdentityID:  ptr.P(identity),
+			Name:        ptr.P(keyName),
+			Roles: []seed.CreateRoleRequest{{
+				Name:        "read-writer",
+				Description: nil,
+				WorkspaceID: workspace.ID,
+				Permissions: []seed.CreatePermissionRequest{{
+					Name:        "domain.write",
+					Slug:        "domain.write",
+					Description: nil,
+					WorkspaceID: workspace.ID,
+				}, {
+					Name:        "domain.read",
+					Slug:        "domain.read",
+					Description: nil,
+					WorkspaceID: workspace.ID,
+				}},
+			}},
+			Permissions: []seed.CreatePermissionRequest{{
+				Name:        "domain.editor",
+				Slug:        "domain.editor",
+				Description: nil,
+				WorkspaceID: workspace.ID,
+			}},
 		})
 
-		t.Run("key roles", func(t *testing.T) {
+		req := handler.Request{
+			ApiId: api.ID,
+			Key:   key.Key,
+		}
 
-		})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.NotNil(t, res.Body)
+		require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
+		require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
+		require.Len(t, ptr.SafeDeref(res.Body.Data.Roles), 1, "Key should have 1 role")
+		require.Len(t, ptr.SafeDeref(res.Body.Data.Permissions), 3, "Key should have 3 permissions")
+		require.EqualValues(t, openapi.Identity{ExternalId: externalId, Id: identity, Meta: nil, Ratelimits: nil}, res.Body.Data.Identity)
+		require.Equal(t, keyName, ptr.SafeDeref(res.Body.Data.Name), "Key should have the same name")
 
-		t.Run("key identity", func(t *testing.T) {
-
-		})
-
-		t.Run("key meta", func(t *testing.T) {
-
-		})
-
-		t.Run("key name", func(t *testing.T) {
-
-		})
+		// todo: add ratelimits to both key and identity
 	})
 }

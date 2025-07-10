@@ -70,6 +70,10 @@ type CreateApiRequest struct {
 	WorkspaceID   string
 	IpWhitelist   string
 	EncryptedKeys bool
+	Name          *string
+	CreatedAt     *int64
+	DefaultPrefix *string
+	DefaultBytes  *int32
 }
 
 func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
@@ -78,8 +82,8 @@ func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
 		ID:                 keyAuthID,
 		WorkspaceID:        req.WorkspaceID,
 		CreatedAtM:         time.Now().UnixMilli(),
-		DefaultPrefix:      sql.NullString{Valid: false},
-		DefaultBytes:       sql.NullInt32{Valid: false},
+		DefaultPrefix:      sql.NullString{String: ptr.SafeDeref(req.DefaultPrefix), Valid: req.DefaultPrefix != nil},
+		DefaultBytes:       sql.NullInt32{Int32: ptr.SafeDeref(req.DefaultBytes), Valid: req.DefaultBytes != nil},
 		StoreEncryptedKeys: req.EncryptedKeys,
 	})
 	require.NoError(s.t, err)
@@ -87,12 +91,12 @@ func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
 	apiID := uid.New("api")
 	err = db.Query.InsertApi(ctx, s.DB.RW(), db.InsertApiParams{
 		ID:          apiID,
-		Name:        "test-api-db",
+		Name:        ptr.SafeDeref(req.Name, "test-api"),
 		WorkspaceID: req.WorkspaceID,
 		IpWhitelist: sql.NullString{String: req.IpWhitelist, Valid: req.IpWhitelist != ""},
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 		KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
-		CreatedAtM:  time.Now().UnixMilli(),
+		CreatedAtM:  ptr.SafeDeref(req.CreatedAt, time.Now().UnixMilli()),
 	})
 	require.NoError(s.t, err)
 
@@ -174,9 +178,11 @@ type CreateKeyRequest struct {
 	IdentityID  *string
 	Meta        *string
 	Expires     *time.Time
+	Name        *string
 
 	Permissions []CreatePermissionRequest
 	Roles       []CreateRoleRequest
+	Ratelimits  []CreateRatelimitRequest
 }
 
 type CreateKeyResponse struct {
@@ -197,7 +203,7 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 		Hash:              hash.Sha256(key),
 		Enabled:           !req.Disabled,
 		Start:             start,
-		Name:              sql.NullString{String: "test-key", Valid: true},
+		Name:              sql.NullString{String: ptr.SafeDeref(req.Name, "test-key"), Valid: true},
 		ForWorkspaceID:    sql.NullString{String: "", Valid: false},
 		Meta:              sql.NullString{String: ptr.SafeDeref(req.Meta, ""), Valid: req.Meta != nil},
 		IdentityID:        sql.NullString{String: ptr.SafeDeref(req.IdentityID, ""), Valid: req.IdentityID != nil},
@@ -231,28 +237,89 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 		require.NoError(s.t, err)
 	}
 
+	for _, ratelimit := range req.Ratelimits {
+		ratelimit.KeyID = ptr.P(keyID)
+		s.CreateRatelimit(ctx, ratelimit)
+	}
+
 	return CreateKeyResponse{
 		KeyID: keyID,
 		Key:   key,
 	}
 }
 
-func (s *Seeder) CreateIdentity(ctx context.Context, workspaceId, externalId string, meta []byte) string {
+type CreateRatelimitRequest struct {
+	Name        string
+	WorkspaceID string
+	AutoApply   bool
+	Duration    int64
+	Limit       int32
+	IdentityID  *string
+	KeyID       *string
+}
+
+func (s *Seeder) CreateRatelimit(ctx context.Context, req CreateRatelimitRequest) string {
+	ratelimitID := uid.New(uid.RatelimitPrefix)
+	var err error
+	if req.IdentityID != nil {
+		err = db.Query.InsertIdentityRatelimit(ctx, s.DB.RW(), db.InsertIdentityRatelimitParams{
+			ID:          ratelimitID,
+			WorkspaceID: req.WorkspaceID,
+			IdentityID:  sql.NullString{String: *req.IdentityID, Valid: true},
+			Name:        req.Name,
+			Limit:       req.Limit,
+			Duration:    req.Duration,
+			AutoApply:   req.AutoApply,
+			CreatedAt:   time.Now().UnixMilli(),
+		})
+	}
+
+	if req.KeyID != nil {
+		err = db.Query.InsertKeyRatelimit(ctx, s.DB.RW(), db.InsertKeyRatelimitParams{
+			ID:          ratelimitID,
+			WorkspaceID: req.WorkspaceID,
+			KeyID:       sql.NullString{String: *req.KeyID, Valid: true},
+			Name:        req.Name,
+			Limit:       req.Limit,
+			Duration:    req.Duration,
+			AutoApply:   req.AutoApply,
+			CreatedAt:   time.Now().UnixMilli(),
+		})
+	}
+
+	require.NoError(s.t, err)
+
+	return ratelimitID
+}
+
+type CreateIdentityRequest struct {
+	WorkspaceID string
+	ExternalID  string
+	Meta        []byte
+	Ratelimits  []CreateRatelimitRequest
+}
+
+func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) string {
 	metaBytes := []byte("{}")
-	if len(meta) > 0 {
-		metaBytes = []byte(meta)
+	if len(req.Meta) > 0 {
+		metaBytes = []byte(req.Meta)
 	}
 
 	identityId := uid.New(uid.IdentityPrefix)
 	err := db.Query.InsertIdentity(ctx, s.DB.RW(), db.InsertIdentityParams{
 		ID:          identityId,
-		ExternalID:  externalId,
-		WorkspaceID: workspaceId,
+		ExternalID:  req.ExternalID,
+		WorkspaceID: req.WorkspaceID,
 		Environment: "",
 		CreatedAt:   time.Now().UnixMilli(),
 		Meta:        metaBytes,
 	})
 	require.NoError(s.t, err)
+
+	for _, ratelimit := range req.Ratelimits {
+		ratelimit.IdentityID = ptr.P(identityId)
+		s.CreateRatelimit(ctx, ratelimit)
+	}
 
 	return identityId
 }

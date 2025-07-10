@@ -13,6 +13,7 @@ import (
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_get_api"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -57,22 +58,14 @@ func TestGetApiNotFound(t *testing.T) {
 		// Create a different workspace
 		otherWorkspaceID := uid.New(uid.WorkspacePrefix)
 
-		// Create API in the different workspace
-		apiID := uid.New(uid.APIPrefix)
-		err := db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-			ID:          apiID,
-			Name:        "other-workspace-api",
-			WorkspaceID: otherWorkspaceID,
-			CreatedAtM:  time.Now().UnixMilli(),
-		})
-		require.NoError(t, err)
+		diffApi := h.CreateApi(seed.CreateApiRequest{WorkspaceID: otherWorkspaceID})
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
 			h,
 			route,
 			headers,
 			handler.Request{
-				ApiId: apiID,
+				ApiId: diffApi.ID,
 			},
 		)
 
@@ -83,31 +76,23 @@ func TestGetApiNotFound(t *testing.T) {
 
 	// Test with soft-deleted API
 	t.Run("deleted api", func(t *testing.T) {
-		// Create an API
-		apiID := uid.New(uid.APIPrefix)
-		err := db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-			ID:          apiID,
-			Name:        "to-be-deleted-api",
-			WorkspaceID: h.Resources().UserWorkspace.ID,
-			CreatedAtM:  time.Now().UnixMilli(),
-		})
-		require.NoError(t, err)
+		diffApi := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID})
 
 		// Verify it exists
-		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
+		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), diffApi.ID)
 		require.NoError(t, err)
-		require.Equal(t, apiID, api.ID)
+		require.Equal(t, diffApi.ID, api.ID)
 		require.False(t, api.DeletedAtM.Valid)
 
 		// Mark API as deleted by setting DeletedAtM
 		err = db.Query.SoftDeleteApi(ctx, h.DB.RW(), db.SoftDeleteApiParams{
-			ApiID: apiID,
+			ApiID: diffApi.ID,
 			Now:   sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		require.NoError(t, err)
 
 		// Verify it's marked as deleted
-		deletedApi, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
+		deletedApi, err := db.Query.FindApiByID(ctx, h.DB.RO(), diffApi.ID)
 		require.NoError(t, err)
 		require.True(t, deletedApi.DeletedAtM.Valid)
 
@@ -117,7 +102,7 @@ func TestGetApiNotFound(t *testing.T) {
 			route,
 			headers,
 			handler.Request{
-				ApiId: apiID,
+				ApiId: diffApi.ID,
 			},
 		)
 

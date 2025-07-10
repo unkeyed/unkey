@@ -212,8 +212,20 @@ func (h *Harness) CreateKey(req seed.CreateKeyRequest) seed.CreateKeyResponse {
 	return h.seeder.CreateKey(context.Background(), req)
 }
 
-func (h *Harness) CreateIdentity(ctx context.Context, workspaceId, externalId string, meta []byte) string {
-	return h.seeder.CreateIdentity(ctx, workspaceId, externalId, meta)
+func (h *Harness) CreateIdentity(req seed.CreateIdentityRequest) string {
+	return h.seeder.CreateIdentity(context.Background(), req)
+}
+
+func (h *Harness) CreateRatelimit(req seed.CreateRatelimitRequest) string {
+	return h.seeder.CreateRatelimit(context.Background(), req)
+}
+
+func (h *Harness) CreateRole(req seed.CreateRoleRequest) string {
+	return h.seeder.CreateRole(context.Background(), req)
+}
+
+func (h *Harness) CreatePermission(req seed.CreatePermissionRequest) string {
+	return h.seeder.CreatePermission(context.Background(), req)
 }
 
 func (h *Harness) Resources() seed.Resources {
