@@ -1,6 +1,6 @@
 import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
-import { Card, CardContent, CopyButton, toast } from "@unkey/ui";
+import { Card, CardContent, CopyButton } from "@unkey/ui";
 import { formatOutcomeName, getOutcomeColor } from "../../../../../utils";
 
 export const OutcomeDistributionSection = ({
@@ -18,20 +18,6 @@ export const OutcomeDistributionSection = ({
     return outcomeEntries
       .map(([outcome, count]) => `${formatOutcomeName(outcome)}: ${count}`)
       .join("\n");
-  };
-
-  const handleClick = () => {
-    const textToCopy = getTextToCopy();
-
-    navigator.clipboard
-      .writeText(textToCopy)
-      .then(() => {
-        toast.success("Outcomes  copied to clipboard");
-      })
-      .catch((error) => {
-        console.error("Failed to copy to clipboard:", error);
-        toast.error("Failed to copy to clipboard");
-      });
   };
 
   return (
@@ -64,7 +50,6 @@ export const OutcomeDistributionSection = ({
           <CopyButton
             value={getTextToCopy()}
             shape="square"
-            onClick={handleClick}
             variant="primary"
             size="2xlg"
             className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-md p-4"

@@ -56,9 +56,9 @@ export default function RootLayout({
       </Suspense>
       <PHProvider>
         <body className="min-h-full antialiased">
-          <Toaster />
           <ReactQueryProvider>
             <ThemeProvider attribute="class">
+              <Toaster />
               {children}
               <CommandMenu />
               <Suspense>

@@ -1,5 +1,4 @@
-import { Button, Card, CardContent, toast } from "@unkey/ui";
-import { Copy } from "lucide-react";
+import { Card, CardContent, CopyButton } from "@unkey/ui";
 
 export const LogSection = ({
   details,
@@ -8,18 +7,6 @@ export const LogSection = ({
   details: string | string[];
   title: string;
 }) => {
-  const handleClick = () => {
-    navigator.clipboard
-      .writeText(getFormattedContent(details))
-      .then(() => {
-        toast.success(`${title} copied to clipboard`);
-      })
-      .catch((error) => {
-        console.error("Failed to copy to clipboard:", error);
-        toast.error("Failed to copy to clipboard");
-      });
-  };
-
   return (
     <div className="flex flex-col gap-1 mt-[16px]">
       <div className="flex justify-between items-center">
@@ -41,14 +28,14 @@ export const LogSection = ({
                 })
               : details}
           </pre>
-          <Button
+          <CopyButton
+            value={getFormattedContent(details)}
             shape="square"
-            onClick={handleClick}
-            className="absolute bottom-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
+            variant="primary"
+            size="2xlg"
+            className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-md p-4"
             aria-label="Copy content"
-          >
-            <Copy size={14} />
-          </Button>
+          />
         </CardContent>
       </Card>
     </div>
