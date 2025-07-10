@@ -101,18 +101,30 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create hydra worker: %w", err)
 	}
 
-	// Create metald client for VM operations with SPIRE authentication
-	tlsConfig := deployTLS.Config{
-		Mode:             deployTLS.ModeSPIFFE,
-		SPIFFESocketPath: cfg.SPIFFESocketPath,
+	// Create metald client for VM operations
+	var httpClient *http.Client
+	var authMode string
+
+	if cfg.SPIFFESocketPath != "" {
+		// Use SPIRE authentication when socket path is provided
+		tlsConfig := deployTLS.Config{
+			Mode:             deployTLS.ModeSPIFFE,
+			SPIFFESocketPath: cfg.SPIFFESocketPath,
+		}
+
+		tlsProvider, err := deployTLS.NewProvider(ctx, tlsConfig)
+		if err != nil {
+			return fmt.Errorf("failed to create TLS provider for metald: %w", err)
+		}
+
+		httpClient = tlsProvider.HTTPClient()
+		authMode = "SPIRE"
+	} else {
+		// Fall back to plain HTTP for local development
+		httpClient = &http.Client{}
+		authMode = "plain HTTP"
 	}
 
-	tlsProvider, err := deployTLS.NewProvider(ctx, tlsConfig)
-	if err != nil {
-		return fmt.Errorf("failed to create TLS provider for metald: %w", err)
-	}
-
-	httpClient := tlsProvider.HTTPClient()
 	httpClient.Timeout = 30 * time.Second
 
 	metaldClient := vmprovisionerv1connect.NewVmServiceClient(
@@ -127,7 +139,7 @@ func Run(ctx context.Context, cfg Config) error {
 			}
 		})),
 	)
-	logger.Info("metald client configured with SPIRE authentication", "address", cfg.MetaldAddress, "spiffe_socket", cfg.SPIFFESocketPath)
+	logger.Info("metald client configured", "address", cfg.MetaldAddress, "auth_mode", authMode)
 
 	// Register deployment workflow with Hydra worker
 	deployWorkflow := version.NewDeployWorkflow(database, logger, metaldClient)

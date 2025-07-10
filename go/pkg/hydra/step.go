@@ -274,3 +274,37 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 
 	return response, nil
 }
+
+// StepVoid executes a named step within a workflow that performs side effects but doesn't return a value.
+//
+// This is a convenience wrapper around Step for functions that only return an error.
+// It's perfect for steps that perform database updates, send notifications, or other
+// side effects where the result itself isn't needed by subsequent steps.
+//
+// Parameters:
+// - ctx: The workflow context from the workflow's Run() method
+// - stepName: A unique name for this step within the workflow
+// - fn: The function to execute, which should be idempotent and only return an error
+//
+// Example usage:
+//
+//	// Database update step
+//	err := hydra.StepVoid(ctx, "update-user-status", func(stepCtx context.Context) error {
+//	    return userService.UpdateStatus(stepCtx, userID, "active")
+//	})
+//
+//	// Notification step
+//	err := hydra.StepVoid(ctx, "send-email", func(stepCtx context.Context) error {
+//	    return emailService.SendWelcomeEmail(stepCtx, userEmail)
+//	})
+//
+// Returns only an error if the step execution fails.
+func StepVoid(ctx WorkflowContext, stepName string, fn func(context.Context) error) error {
+	_, err := Step(ctx, stepName, func(stepCtx context.Context) (*struct{}, error) {
+		if err := fn(stepCtx); err != nil {
+			return nil, err
+		}
+		return &struct{}{}, nil
+	})
+	return err
+}

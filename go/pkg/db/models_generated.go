@@ -398,6 +398,55 @@ func (ns NullVercelBindingsResourceType) Value() (driver.Value, error) {
 	return string(ns.VercelBindingsResourceType), nil
 }
 
+type VersionStepsStatus string
+
+const (
+	VersionStepsStatusPending                VersionStepsStatus = "pending"
+	VersionStepsStatusDownloadingDockerImage VersionStepsStatus = "downloading_docker_image"
+	VersionStepsStatusBuildingRootfs         VersionStepsStatus = "building_rootfs"
+	VersionStepsStatusUploadingRootfs        VersionStepsStatus = "uploading_rootfs"
+	VersionStepsStatusCreatingVm             VersionStepsStatus = "creating_vm"
+	VersionStepsStatusBootingVm              VersionStepsStatus = "booting_vm"
+	VersionStepsStatusAssigningDomains       VersionStepsStatus = "assigning_domains"
+	VersionStepsStatusCompleted              VersionStepsStatus = "completed"
+	VersionStepsStatusFailed                 VersionStepsStatus = "failed"
+)
+
+func (e *VersionStepsStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = VersionStepsStatus(s)
+	case string:
+		*e = VersionStepsStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for VersionStepsStatus: %T", src)
+	}
+	return nil
+}
+
+type NullVersionStepsStatus struct {
+	VersionStepsStatus VersionStepsStatus
+	Valid              bool // Valid is true if VersionStepsStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullVersionStepsStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.VersionStepsStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.VersionStepsStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullVersionStepsStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.VersionStepsStatus), nil
+}
+
 type VersionsStatus string
 
 const (
@@ -825,6 +874,14 @@ type Version struct {
 	Status         VersionsStatus  `db:"status"`
 	CreatedAt      int64           `db:"created_at"`
 	UpdatedAt      sql.NullInt64   `db:"updated_at"`
+}
+
+type VersionStep struct {
+	VersionID    string             `db:"version_id"`
+	Status       VersionStepsStatus `db:"status"`
+	Message      sql.NullString     `db:"message"`
+	ErrorMessage sql.NullString     `db:"error_message"`
+	CreatedAt    int64              `db:"created_at"`
 }
 
 type Workspace struct {

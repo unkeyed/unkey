@@ -364,6 +364,16 @@ CREATE TABLE `builds` (
 	CONSTRAINT `builds_id` PRIMARY KEY(`id`)
 );
 
+CREATE TABLE `version_steps` (
+	`version_id` varchar(256) NOT NULL,
+	`status` enum('pending','downloading_docker_image','building_rootfs','uploading_rootfs','creating_vm','booting_vm','assigning_domains','completed','failed') NOT NULL,
+	`message` text,
+	`error_message` text,
+	`created_at` bigint NOT NULL,
+	CONSTRAINT `version_steps_pk` PRIMARY KEY(`version_id`, `status`),
+	INDEX `idx_version_id_created_at` (`version_id`, `created_at`)
+);
+
 CREATE TABLE `versions` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,

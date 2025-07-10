@@ -4,8 +4,6 @@ package ctrl.v1;
 
 option go_package = "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1";
 
-import "google/protobuf/timestamp.proto";
-
 // Version status enum
 enum VersionStatus {
   VERSION_STATUS_UNSPECIFIED = 0;
@@ -75,8 +73,8 @@ message Version {
   Topology topology = 10;
   
   // Timestamps
-  google.protobuf.Timestamp created_at = 11;
-  google.protobuf.Timestamp updated_at = 12;
+  int64 created_at = 11;
+  int64 updated_at = 12;
   
   // Associated hostnames for this version
   repeated string hostnames = 13;
@@ -84,6 +82,16 @@ message Version {
   // Build information
   string rootfs_image_id = 14;
   string build_id = 15;
+  
+  // Deployment steps
+  repeated VersionStep steps = 16;
+}
+
+message VersionStep {
+  string status = 1;
+  string message = 2;
+  string error_message = 3;
+  int64 created_at = 4;
 }
 
 message Topology {
