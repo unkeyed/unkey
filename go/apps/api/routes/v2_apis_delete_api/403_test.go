@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_delete_api"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -28,7 +29,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	// Create a workspace
 	workspace := h.Resources().UserWorkspace
 
-	api := h.CreateApi(h.Resources().UserWorkspace.ID, false)
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID})
 
 	// Test case for insufficient permissions - missing delete_api
 	t.Run("missing delete_api permission", func(t *testing.T) {

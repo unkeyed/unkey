@@ -3410,28 +3410,7 @@ components:
             When provided, verification fails unless the key has the specified permissions through direct assignment or role inheritance.
             Essential for implementing fine-grained authorization in multi-tenant or privilege-separated APIs.
         credits:
-          type: object
-          required:
-            - cost
-          properties:
-            cost:
-              type: integer
-              format: int64
-              minimum: 0
-              maximum: 1000 # Reasonable upper bound for operation costs
-              default: 1
-              description: |
-                Sets how many credits to deduct for this verification request.
-                Use 0 for read-only operations or free tier access, higher values for premium features.
-                Credits are deducted immediately upon verification, even if the key lacks required permissions.
-                Essential for implementing usage-based pricing with different operation costs.
-              example: 5
-          additionalProperties: false
-          description: |
-            Controls credit consumption for usage-based billing and quota enforcement.
-            Omitting this field uses the default cost of 1 credit per verification.
-            Credits provide globally consistent usage tracking, essential for paid APIs with strict quotas.
-            Verification can succeed while credit deduction fails if the key has insufficient credits.
+          "$ref": "#/components/schemas/KeysVerifyKeyCredits"
         ratelimits:
           type: array
           items:
@@ -3442,6 +3421,27 @@ components:
             Multiple rate limits can be checked simultaneously, each with different costs and temporary overrides.
             Rate limit checks are optimized for performance but may allow brief bursts during high concurrency.
       additionalProperties: false
+    KeysVerifyKeyCredits:
+      type: object
+      required:
+        - cost
+      properties:
+        cost:
+          type: integer
+          format: int64
+
+          description: |
+            Sets how many credits to deduct for this verification request.
+            Use 0 for read-only operations or free tier access, higher values for premium features.
+            Credits are deducted immediately upon verification, even if the key lacks required permissions.
+            Essential for implementing usage-based pricing with different operation costs.
+          example: 5
+      additionalProperties: false
+      description: |
+        Controls credit consumption for usage-based billing and quota enforcement.
+        Omitting this field uses the default cost of 1 credit per verification.
+        Credits provide globally consistent usage tracking, essential for paid APIs with strict quotas.
+        Verification can succeed while credit deduction fails if the key has insufficient credits.
     KeysVerifyKeyRatelimit:
       type: object
       required:

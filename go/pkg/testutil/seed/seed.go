@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hash"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -59,21 +60,27 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 func (s *Seeder) Seed(ctx context.Context) {
 	s.Resources.UserWorkspace = s.CreateWorkspace(ctx)
 	s.Resources.RootWorkspace = s.CreateWorkspace(ctx)
-	s.Resources.RootApi = s.CreateAPI(ctx, s.Resources.RootWorkspace.ID, false)
+	s.Resources.RootApi = s.CreateAPI(ctx, CreateApiRequest{WorkspaceID: s.Resources.RootWorkspace.ID})
 	keyring, err := db.Query.FindKeyringByID(ctx, s.DB.RW(), s.Resources.RootApi.KeyAuthID.String)
 	require.NoError(s.t, err)
 	s.Resources.RootKeyring = keyring
 }
 
-func (s *Seeder) CreateAPI(ctx context.Context, workspaceID string, encryptedKeys bool) db.Api {
+type CreateApiRequest struct {
+	WorkspaceID   string
+	IpWhitelist   string
+	EncryptedKeys bool
+}
+
+func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
 	keyAuthID := uid.New(uid.KeyAuthPrefix)
 	err := db.Query.InsertKeyring(ctx, s.DB.RW(), db.InsertKeyringParams{
 		ID:                 keyAuthID,
-		WorkspaceID:        workspaceID,
+		WorkspaceID:        req.WorkspaceID,
 		CreatedAtM:         time.Now().UnixMilli(),
 		DefaultPrefix:      sql.NullString{Valid: false},
 		DefaultBytes:       sql.NullInt32{Valid: false},
-		StoreEncryptedKeys: encryptedKeys,
+		StoreEncryptedKeys: req.EncryptedKeys,
 	})
 	require.NoError(s.t, err)
 
@@ -81,7 +88,8 @@ func (s *Seeder) CreateAPI(ctx context.Context, workspaceID string, encryptedKey
 	err = db.Query.InsertApi(ctx, s.DB.RW(), db.InsertApiParams{
 		ID:          apiID,
 		Name:        "test-api-db",
-		WorkspaceID: workspaceID,
+		WorkspaceID: req.WorkspaceID,
+		IpWhitelist: sql.NullString{String: req.IpWhitelist, Valid: req.IpWhitelist != ""},
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 		KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
 		CreatedAtM:  time.Now().UnixMilli(),
@@ -159,24 +167,27 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 }
 
 type CreateKeyRequest struct {
-	WorkspaceID, KeyAuthID string
-	Expires                *time.Time
-	Disabled               bool
+	Disabled    bool
+	WorkspaceID string
+	KeyAuthID   string
+	Remaining   *int32
+	IdentityID  *string
+	Meta        *string
+	Expires     *time.Time
+
+	Permissions []CreatePermissionRequest
+	Roles       []CreateRoleRequest
 }
 
 type CreateKeyResponse struct {
-	KeyID, Key string
+	KeyID string
+	Key   string
 }
 
 func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyResponse {
 	keyID := uid.New(uid.KeyPrefix)
 	key := uid.New("")
 	start := key[:4]
-
-	expires := time.Now()
-	if req.Expires != nil {
-		expires = *req.Expires
-	}
 
 	err := db.Query.InsertKey(ctx, s.DB.RW(), db.InsertKeyParams{
 		ID:                keyID,
@@ -188,18 +199,115 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 		Start:             start,
 		Name:              sql.NullString{String: "test-key", Valid: true},
 		ForWorkspaceID:    sql.NullString{String: "", Valid: false},
-		IdentityID:        sql.NullString{String: "", Valid: false},
-		Meta:              sql.NullString{String: "", Valid: false},
-		Expires:           sql.NullTime{Time: expires, Valid: req.Expires != nil},
-		RemainingRequests: sql.NullInt32{Int32: 0, Valid: false},
+		Meta:              sql.NullString{String: ptr.SafeDeref(req.Meta, ""), Valid: req.Meta != nil},
+		IdentityID:        sql.NullString{String: ptr.SafeDeref(req.IdentityID, ""), Valid: req.IdentityID != nil},
+		Expires:           sql.NullTime{Time: ptr.SafeDeref(req.Expires, time.Now()), Valid: req.Expires != nil},
+		RemainingRequests: sql.NullInt32{Int32: ptr.SafeDeref(req.Remaining, 0), Valid: req.Remaining != nil},
 		RefillAmount:      sql.NullInt32{Int32: 0, Valid: false},
 		RefillDay:         sql.NullInt16{Int16: 0, Valid: false},
 	})
-
 	require.NoError(s.t, err)
+
+	for _, role := range req.Roles {
+		roleID := s.CreateRole(ctx, role)
+		err = db.Query.InsertKeyRole(ctx, s.DB.RW(), db.InsertKeyRoleParams{
+			KeyID:       keyID,
+			RoleID:      roleID,
+			WorkspaceID: req.WorkspaceID,
+			CreatedAtM:  time.Now().UnixMilli(),
+		})
+		require.NoError(s.t, err)
+	}
+
+	for _, permission := range req.Permissions {
+		permissionID := s.CreatePermission(ctx, permission)
+		err = db.Query.InsertKeyPermission(ctx, s.DB.RW(), db.InsertKeyPermissionParams{
+			KeyID:        keyID,
+			PermissionID: permissionID,
+			WorkspaceID:  req.WorkspaceID,
+			CreatedAt:    time.Now().UnixMilli(),
+		})
+
+		require.NoError(s.t, err)
+	}
 
 	return CreateKeyResponse{
 		KeyID: keyID,
 		Key:   key,
 	}
+}
+
+func (s *Seeder) CreateIdentity(ctx context.Context, workspaceId, externalId string, meta []byte) string {
+	metaBytes := []byte("{}")
+	if len(meta) > 0 {
+		metaBytes = []byte(meta)
+	}
+
+	identityId := uid.New(uid.IdentityPrefix)
+	err := db.Query.InsertIdentity(ctx, s.DB.RW(), db.InsertIdentityParams{
+		ID:          identityId,
+		ExternalID:  externalId,
+		WorkspaceID: workspaceId,
+		Environment: "",
+		CreatedAt:   time.Now().UnixMilli(),
+		Meta:        metaBytes,
+	})
+	require.NoError(s.t, err)
+
+	return identityId
+}
+
+type CreateRoleRequest struct {
+	Name        string
+	Description *string
+	WorkspaceID string
+
+	Permissions []CreatePermissionRequest
+}
+
+func (s *Seeder) CreateRole(ctx context.Context, req CreateRoleRequest) string {
+	roleID := uid.New(uid.PermissionPrefix)
+
+	err := db.Query.InsertRole(ctx, s.DB.RW(), db.InsertRoleParams{
+		RoleID:      roleID,
+		WorkspaceID: req.WorkspaceID,
+		Name:        req.Name,
+		CreatedAt:   time.Now().UnixMilli(),
+		Description: sql.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},
+	})
+	require.NoError(s.t, err)
+
+	for _, permission := range req.Permissions {
+		permissionID := s.CreatePermission(ctx, permission)
+		err = db.Query.InsertRolePermission(ctx, s.DB.RW(), db.InsertRolePermissionParams{
+			RoleID:       roleID,
+			PermissionID: permissionID,
+			WorkspaceID:  req.WorkspaceID,
+			CreatedAtM:   time.Now().UnixMilli(),
+		})
+		require.NoError(s.t, err)
+	}
+
+	return roleID
+}
+
+type CreatePermissionRequest struct {
+	Name        string
+	Slug        string
+	Description *string
+	WorkspaceID string
+}
+
+func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionRequest) string {
+	permissionID := uid.New(uid.PermissionPrefix)
+	err := db.Query.InsertPermission(ctx, s.DB.RW(), db.InsertPermissionParams{
+		PermissionID: permissionID,
+		WorkspaceID:  req.WorkspaceID,
+		Name:         req.Name,
+		Slug:         req.Slug,
+		Description:  sql.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},
+	})
+	require.NoError(s.t, err)
+
+	return permissionID
 }

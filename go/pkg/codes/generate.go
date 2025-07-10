@@ -124,7 +124,7 @@ func processErrorDomain(f *os.File, systemName string, domainValue reflect.Value
 	domainType := domainValue.Type()
 	domainName := domainType.Name()
 	f.WriteString("// ----------------\n")
-	f.WriteString(fmt.Sprintf("// %s\n", domainName))
+	fmt.Fprintf(f, "// %s\n", domainName)
 	f.WriteString("// ----------------\n")
 	f.WriteString("\n")
 
@@ -133,7 +133,7 @@ func processErrorDomain(f *os.File, systemName string, domainValue reflect.Value
 		categoryField := domainValue.Field(i)
 		categoryName := domainType.Field(i).Name
 
-		f.WriteString(fmt.Sprintf("// %s\n\n", categoryName))
+		fmt.Fprintf(f, "// %s\n\n", categoryName)
 
 		// Iterate through error codes in this category
 		processCategory(f, systemName, domainName, categoryName, categoryField)

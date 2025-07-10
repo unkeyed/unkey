@@ -33,7 +33,7 @@ func TestSuccess(t *testing.T) {
 	// Create a root key with appropriate permissions
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.verify_key")
 
-	api := h.CreateApi(workspace.ID, false)
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 
 	// Set up request headers
 	headers := http.Header{
@@ -54,7 +54,7 @@ func TestSuccess(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
-		require.Equal(t, res.Body.Data.Code, openapi.VALID, "Key should be valid but got %s", res.Body.Data.Code)
+		require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
 		require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
 	})
 
@@ -72,7 +72,7 @@ func TestSuccess(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
-		require.Equal(t, res.Body.Data.Code, openapi.VALID, "Key should be valid but got %s", res.Body.Data.Code)
+		require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
 		require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
 
 		time.Sleep(time.Second * 3)
@@ -80,7 +80,7 @@ func TestSuccess(t *testing.T) {
 		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
-		require.Equal(t, res.Body.Data.Code, openapi.EXPIRED, "Key should be expired but got %s", res.Body.Data.Code)
+		require.Equal(t, openapi.EXPIRED, res.Body.Data.Code, "Key should be expired but got %s", res.Body.Data.Code)
 		require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
 	})
 
@@ -98,13 +98,268 @@ func TestSuccess(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
-		require.Equal(t, res.Body.Data.Code, openapi.DISABLED, "Key should be disabled but got %s", res.Body.Data.Code)
+		require.Equal(t, openapi.DISABLED, res.Body.Data.Code, "Key should be disabled but got %s", res.Body.Data.Code)
 		require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
 	})
 
-	// returns metadata returns identity
-	// ratelimit check
-	// ratelimit override
-	// with cost
+	t.Run("key with cost", func(t *testing.T) {
+		t.Run("allowed default cost", func(t *testing.T) {
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID: workspace.ID,
+				KeyAuthID:   api.KeyAuthID.String,
+				Remaining:   ptr.P(int32(5)),
+			})
 
+			req := handler.Request{
+				ApiId: api.ID,
+				Key:   key.Key,
+			}
+
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
+			require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(4), "Key should have 4 credits but got %d", res.Body.Data.Credits)
+		})
+
+		t.Run("exceeding with default cost", func(t *testing.T) {
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID: workspace.ID,
+				KeyAuthID:   api.KeyAuthID.String,
+				Remaining:   ptr.P(int32(0)),
+			})
+
+			req := handler.Request{
+				ApiId: api.ID,
+				Key:   key.Key,
+			}
+
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.USAGEEXCEEDED, res.Body.Data.Code, "Key should show usage exceeded but got %s", res.Body.Data.Code)
+			require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(0), "Key should have 0 credits but got %d", res.Body.Data.Credits)
+		})
+
+		t.Run("allowed custom cost", func(t *testing.T) {
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID: workspace.ID,
+				KeyAuthID:   api.KeyAuthID.String,
+				Remaining:   ptr.P(int32(5)),
+			})
+
+			req := handler.Request{
+				ApiId: api.ID,
+				Key:   key.Key,
+				Credits: &openapi.KeysVerifyKeyCredits{
+					Cost: 5,
+				},
+			}
+
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
+			require.True(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(0), "Key should have 0 credits remaining but got %d", res.Body.Data.Credits)
+		})
+
+		t.Run("exceeding with custom cost", func(t *testing.T) {
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID: workspace.ID,
+				KeyAuthID:   api.KeyAuthID.String,
+				Remaining:   ptr.P(int32(5)),
+			})
+
+			req := handler.Request{
+				ApiId: api.ID,
+				Key:   key.Key,
+				Credits: &openapi.KeysVerifyKeyCredits{
+					Cost: 15,
+				},
+			}
+
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.USAGEEXCEEDED, res.Body.Data.Code, "Key should be usage exceeded but got %s", res.Body.Data.Code)
+			require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(0), "Key should have 0 credits remaining but got %d", res.Body.Data.Credits)
+		})
+
+		t.Run("allow cost 0 even when remaining 0", func(t *testing.T) {
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID: workspace.ID,
+				KeyAuthID:   api.KeyAuthID.String,
+				Remaining:   ptr.P(int32(0)),
+			})
+
+			req := handler.Request{
+				ApiId: api.ID,
+				Key:   key.Key,
+				Credits: &openapi.KeysVerifyKeyCredits{
+					Cost: 0,
+				},
+			}
+
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be code valid but got %s", res.Body.Data.Code)
+			require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(0), "Key should have 0 credits remaining but got %d", res.Body.Data.Credits)
+		})
+	})
+
+	t.Run("with ip whitelist", func(t *testing.T) {
+		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, IpWhitelist: "127.0.0.1"})
+		key := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+		})
+
+		req := handler.Request{
+			ApiId: api.ID,
+			Key:   key.Key,
+		}
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.NotNil(t, res.Body)
+		require.Equal(t, openapi.FORBIDDEN, res.Body.Data.Code, "Key should be forbidden but got %s", res.Body.Data.Code)
+		require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
+	})
+
+	t.Run("key with permissions", func(t *testing.T) {
+		t.Run("with role permission valid", func(t *testing.T) {
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID: workspace.ID,
+				KeyAuthID:   api.KeyAuthID.String,
+				Roles: []seed.CreateRoleRequest{{
+					Name:        "test-role",
+					Description: nil,
+					WorkspaceID: workspace.ID,
+					Permissions: []seed.CreatePermissionRequest{{
+						Name:        "domain.write",
+						Slug:        "domain.write",
+						Description: nil,
+						WorkspaceID: workspace.ID,
+					}},
+				}},
+			})
+
+			perms := &openapi.V2KeysVerifyKeyRequestBody_Permissions{}
+			perms.FromV2KeysVerifyKeyRequestBodyPermissions0(openapi.V2KeysVerifyKeyRequestBodyPermissions0("domain.write"))
+
+			req := handler.Request{
+				ApiId:       api.ID,
+				Key:         key.Key,
+				Permissions: perms,
+			}
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
+			require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
+			require.Len(t, ptr.SafeDeref(res.Body.Data.Permissions), 1, "Key should be have a single permission attached")
+		})
+
+		t.Run("with direct permission valid", func(t *testing.T) {
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID: workspace.ID,
+				KeyAuthID:   api.KeyAuthID.String,
+				Permissions: []seed.CreatePermissionRequest{{
+					Name:        "domain.read",
+					Slug:        "domain.read",
+					Description: nil,
+					WorkspaceID: workspace.ID,
+				}},
+			})
+
+			perms := &openapi.V2KeysVerifyKeyRequestBody_Permissions{}
+			perms.FromV2KeysVerifyKeyRequestBodyPermissions0(openapi.V2KeysVerifyKeyRequestBodyPermissions0("domain.read"))
+
+			req := handler.Request{
+				ApiId:       api.ID,
+				Key:         key.Key,
+				Permissions: perms,
+			}
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
+			require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
+			require.Len(t, ptr.SafeDeref(res.Body.Data.Permissions), 1, "Key should be have a single permission attached")
+		})
+
+		t.Run("missing permissions", func(t *testing.T) {
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID: workspace.ID,
+				KeyAuthID:   api.KeyAuthID.String,
+				Permissions: []seed.CreatePermissionRequest{{
+					Name:        "domain.edit",
+					Slug:        "domain.edit",
+					Description: nil,
+					WorkspaceID: workspace.ID,
+				}},
+			})
+
+			perms := &openapi.V2KeysVerifyKeyRequestBody_Permissions{}
+			perms.FromV2KeysVerifyKeyRequestBodyPermissions0(openapi.V2KeysVerifyKeyRequestBodyPermissions0("domain.write"))
+
+			req := handler.Request{
+				ApiId:       api.ID,
+				Key:         key.Key,
+				Permissions: perms,
+			}
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.INSUFFICIENTPERMISSIONS, res.Body.Data.Code, "Key should be no perms but got %s", res.Body.Data.Code)
+			require.False(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
+		})
+	})
+
+	t.Run("key with ratelimit", func(t *testing.T) {
+		t.Run("with key ratelimit valid", func(t *testing.T) {
+		})
+
+		t.Run("with key ratelimit exceeded", func(t *testing.T) {
+		})
+
+		t.Run("with key custom ratelimit valid", func(t *testing.T) {
+		})
+
+		t.Run("with key custom ratelimit exceeded", func(t *testing.T) {
+		})
+
+		t.Run("with identity ratelimit valid", func(t *testing.T) {
+		})
+
+		t.Run("with identity ratelimit exceeded", func(t *testing.T) {
+		})
+	})
+
+	t.Run("returns correct information", func(t *testing.T) {
+		t.Run("key permissions", func(t *testing.T) {
+
+		})
+
+		t.Run("key roles", func(t *testing.T) {
+
+		})
+
+		t.Run("key identity", func(t *testing.T) {
+
+		})
+
+		t.Run("key meta", func(t *testing.T) {
+
+		})
+
+		t.Run("key name", func(t *testing.T) {
+
+		})
+	})
 }

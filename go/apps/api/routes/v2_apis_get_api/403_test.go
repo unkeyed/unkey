@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_get_api"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -23,7 +24,7 @@ func TestGetApiInsufficientPermissions(t *testing.T) {
 
 	h.Register(route)
 
-	api := h.CreateApi(h.Resources().UserWorkspace.ID, false)
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID})
 
 	testCases := []struct {
 		name        string

@@ -319,6 +319,18 @@ type KeysDeleteKeyResponseData = map[string]interface{}
 // KeysUpdateKeyResponseData Empty response object by design. A successful response indicates the key was updated successfully. The endpoint doesn't return the updated key to reduce response size and avoid exposing sensitive information. Changes may take up to 30 seconds to propagate to all regions due to cache invalidation delays. If you need the updated key state, use a subsequent call to `keys.getKey`.
 type KeysUpdateKeyResponseData = map[string]interface{}
 
+// KeysVerifyKeyCredits Controls credit consumption for usage-based billing and quota enforcement.
+// Omitting this field uses the default cost of 1 credit per verification.
+// Credits provide globally consistent usage tracking, essential for paid APIs with strict quotas.
+// Verification can succeed while credit deduction fails if the key has insufficient credits.
+type KeysVerifyKeyCredits struct {
+	// Cost Sets how many credits to deduct for this verification request.
+	// Use 0 for read-only operations or free tier access, higher values for premium features.
+	// Credits are deducted immediately upon verification, even if the key lacks required permissions.
+	// Essential for implementing usage-based pricing with different operation costs.
+	Cost int64 `json:"cost"`
+}
+
 // KeysVerifyKeyRatelimit defines model for KeysVerifyKeyRatelimit.
 type KeysVerifyKeyRatelimit struct {
 	// Cost Optionally override how expensive this operation is and how many tokens are deducted from the current limit.
@@ -1687,13 +1699,7 @@ type V2KeysVerifyKeyRequestBody struct {
 	// Omitting this field uses the default cost of 1 credit per verification.
 	// Credits provide globally consistent usage tracking, essential for paid APIs with strict quotas.
 	// Verification can succeed while credit deduction fails if the key has insufficient credits.
-	Credits *struct {
-		// Cost Sets how many credits to deduct for this verification request.
-		// Use 0 for read-only operations or free tier access, higher values for premium features.
-		// Credits are deducted immediately upon verification, even if the key lacks required permissions.
-		// Essential for implementing usage-based pricing with different operation costs.
-		Cost int64 `json:"cost"`
-	} `json:"credits,omitempty"`
+	Credits *KeysVerifyKeyCredits `json:"credits,omitempty"`
 
 	// Key The complete API key string provided by your user, including any prefix.
 	// Verification uses secure hashing algorithms without storing plaintext values.

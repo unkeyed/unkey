@@ -6,9 +6,13 @@ import (
 	"math"
 
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 )
 
 func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, error) {
+	ctx, span := tracing.Start(ctx, "usagelimiter.Limit")
+	defer span.End()
+
 	limit, err := db.Query.FindKeyCredits(ctx, s.db.RW(), req.KeyId)
 	if err != nil {
 		if db.IsNotFound(err) {

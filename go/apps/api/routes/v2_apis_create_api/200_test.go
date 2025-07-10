@@ -10,6 +10,7 @@ import (
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_create_api"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -40,7 +41,7 @@ func TestCreateApiSuccessfully(t *testing.T) {
 	// This test validates that the underlying database queries work correctly
 	// by bypassing the HTTP handler and directly testing the DB operations.
 	t.Run("insert api via DB", func(t *testing.T) {
-		createdAPI := h.CreateApi(h.Resources().UserWorkspace.ID, false)
+		createdAPI := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID})
 
 		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), createdAPI.ID)
 		require.NoError(t, err)

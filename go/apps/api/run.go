@@ -60,12 +60,15 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.InstanceID != "" {
 		logger = logger.With(slog.String("instanceID", cfg.InstanceID))
 	}
+
 	if cfg.Platform != "" {
 		logger = logger.With(slog.String("platform", cfg.Platform))
 	}
+
 	if cfg.Region != "" {
 		logger = logger.With(slog.String("region", cfg.Region))
 	}
+
 	if version.Version != "" {
 		logger = logger.With(slog.String("version", version.Version))
 	}
@@ -143,8 +146,8 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)
-
 	}
+
 	shutdowns.RegisterCtx(srv.Shutdown)
 
 	validator, err := validation.New()

@@ -104,15 +104,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	opts := []keys.VerifyOption{keys.WithIPWhitelist(), keys.WithApiID(req.ApiId)}
-	if req.Ratelimits != nil {
-		opts = append(opts, keys.WithRateLimits(*req.Ratelimits))
-	}
-
 	// If a custom cost was specified, use it, otherwise use a DefaultCost of 1
 	if req.Credits != nil {
 		opts = append(opts, keys.WithCredits(int32(req.Credits.Cost)))
 	} else if key.Key.RemainingRequests.Valid {
 		opts = append(opts, keys.WithCredits(DefaultCost))
+	}
+
+	if req.Ratelimits != nil {
+		opts = append(opts, keys.WithRateLimits(*req.Ratelimits))
 	}
 
 	if req.Permissions != nil {
@@ -146,8 +146,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	remaining := key.Key.RemainingRequests
-	// -1 being unlimited credits.
-	if remaining.Valid && remaining.Int32 != -1 {
+	if remaining.Valid {
 		res.Data.Credits = ptr.P(remaining.Int32)
 	}
 

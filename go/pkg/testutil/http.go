@@ -204,12 +204,16 @@ func (h *Harness) CreateWorkspace() db.Workspace {
 	return h.seeder.CreateWorkspace(context.Background())
 }
 
-func (h *Harness) CreateApi(workspaceID string, encryptedKeys bool) db.Api {
-	return h.seeder.CreateAPI(context.Background(), workspaceID, encryptedKeys)
+func (h *Harness) CreateApi(req seed.CreateApiRequest) db.Api {
+	return h.seeder.CreateAPI(context.Background(), req)
 }
 
 func (h *Harness) CreateKey(req seed.CreateKeyRequest) seed.CreateKeyResponse {
 	return h.seeder.CreateKey(context.Background(), req)
+}
+
+func (h *Harness) CreateIdentity(ctx context.Context, workspaceId, externalId string, meta []byte) string {
+	return h.seeder.CreateIdentity(ctx, workspaceId, externalId, meta)
 }
 
 func (h *Harness) Resources() seed.Resources {

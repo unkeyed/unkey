@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -44,7 +45,7 @@ func TestSuccess(t *testing.T) {
 
 	// Test case for deleting an API without keys
 	t.Run("delete api without keys", func(t *testing.T) {
-		api := h.CreateApi(h.Resources().UserWorkspace.ID, false)
+		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID})
 
 		// Ensure API exists before deletion
 		apiBeforeDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), api.ID)
@@ -77,7 +78,7 @@ func TestSuccess(t *testing.T) {
 
 	// Test case for deleting an API with active keys
 	t.Run("delete api with active keys", func(t *testing.T) {
-		api := h.CreateApi(h.Resources().UserWorkspace.ID, false)
+		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID})
 
 		// Create a key associated with this API
 		keyID := uid.New(uid.KeyPrefix)
@@ -139,7 +140,7 @@ func TestSuccess(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		api := h.CreateApi(h.Resources().UserWorkspace.ID, false)
+		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID})
 
 		// Verify the API was created
 		apiBeforeDelete, err := db.Query.FindApiByID(ctx, h.DB.RO(), api.ID)
