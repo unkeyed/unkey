@@ -21,13 +21,21 @@ export const createKey = t.procedure
   .use(requireWorkspace)
   .input(createKeyInputSchema)
   .mutation(async ({ input, ctx }) => {
-    const keyAuth = await db.query.keyAuth.findFirst({
-      where: (table, { and, eq }) =>
-        and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.keyAuthId)),
-      with: {
-        api: true,
-      },
-    });
+    const keyAuth = await db.query.keyAuth
+      .findFirst({
+        where: (table, { and, eq }) =>
+          and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.keyAuthId)),
+        with: {
+          api: true,
+        },
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We were unable to create a key for this API. Please try again or contact support@unkey.dev.",
+        });
+      });
 
     if (!keyAuth) {
       throw new TRPCError({
@@ -39,7 +47,15 @@ export const createKey = t.procedure
 
     try {
       return await db.transaction(async (tx) => {
-        return await createKeyCore(input, ctx, tx, keyAuth);
+        return await createKeyCore(
+          {
+            ...input,
+            storeEncryptedKeys: keyAuth.storeEncryptedKeys,
+            keyAuthId: keyAuth.id,
+          },
+          ctx,
+          tx,
+        );
       });
     } catch (_err) {
       throw new TRPCError({
@@ -58,18 +74,12 @@ type CreateKeyContext = {
   };
 };
 
-type KeyAuth = {
-  id: string;
-  storeEncryptedKeys: boolean;
-};
-
 type DatabaseTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export async function createKeyCore(
-  input: CreateKeyInput,
+  input: CreateKeyInput & { storeEncryptedKeys: boolean },
   ctx: CreateKeyContext,
   tx: DatabaseTransaction,
-  keyAuth: KeyAuth,
 ) {
   const keyId = newId("key");
   const { key, hash, start } = await newKey({
@@ -79,7 +89,7 @@ export async function createKeyCore(
 
   await tx.insert(schema.keys).values({
     id: keyId,
-    keyAuthId: keyAuth.id,
+    keyAuthId: input.keyAuthId,
     name: input.name,
     hash,
     start,
@@ -99,7 +109,7 @@ export async function createKeyCore(
     environment: input.environment,
   });
 
-  if (keyAuth.storeEncryptedKeys) {
+  if (input.storeEncryptedKeys) {
     const { encrypted, keyId: encryptionKeyId } = await vault.encrypt({
       keyring: ctx.workspace.id,
       data: key,
