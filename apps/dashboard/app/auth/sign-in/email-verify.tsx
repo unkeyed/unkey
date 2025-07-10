@@ -1,11 +1,10 @@
 "use client";
 
 import * as React from "react";
-
-import { toast } from "@/components/ui/toaster";
+  
 import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
 import { cn } from "@/lib/utils";
-import { Loading } from "@unkey/ui";
+import { Loading, toast } from "@unkey/ui";
 import { OTPInput, type SlotProps } from "input-otp";
 import { useSignUp } from "../hooks/useSignUp";
 
