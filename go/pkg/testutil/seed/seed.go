@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
@@ -188,6 +189,9 @@ type CreateKeyRequest struct {
 type CreateKeyResponse struct {
 	KeyID string
 	Key   string
+
+	RolesIds      []string
+	PermissionIds []string
 }
 
 func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyResponse {
@@ -214,6 +218,11 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 	})
 	require.NoError(s.t, err)
 
+	res := CreateKeyResponse{
+		KeyID: keyID,
+		Key:   key,
+	}
+
 	for _, role := range req.Roles {
 		roleID := s.CreateRole(ctx, role)
 		err = db.Query.InsertKeyRole(ctx, s.DB.RW(), db.InsertKeyRoleParams{
@@ -223,6 +232,7 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 			CreatedAtM:  time.Now().UnixMilli(),
 		})
 		require.NoError(s.t, err)
+		res.RolesIds = append(res.RolesIds, roleID)
 	}
 
 	for _, permission := range req.Permissions {
@@ -235,6 +245,7 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 		})
 
 		require.NoError(s.t, err)
+		res.PermissionIds = append(res.PermissionIds, permissionID)
 	}
 
 	for _, ratelimit := range req.Ratelimits {
@@ -242,10 +253,7 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 		s.CreateRatelimit(ctx, ratelimit)
 	}
 
-	return CreateKeyResponse{
-		KeyID: keyID,
-		Key:   key,
-	}
+	return res
 }
 
 type CreateRatelimitRequest struct {
@@ -305,6 +313,9 @@ func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) 
 		metaBytes = []byte(req.Meta)
 	}
 
+	require.NoError(s.t, assert.NotEmpty(req.ExternalID, "Identity ExternalID must be set"))
+	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "Identity WorkspaceID must be set"))
+
 	identityId := uid.New(uid.IdentityPrefix)
 	err := db.Query.InsertIdentity(ctx, s.DB.RW(), db.InsertIdentityParams{
 		ID:          identityId,
@@ -333,6 +344,9 @@ type CreateRoleRequest struct {
 }
 
 func (s *Seeder) CreateRole(ctx context.Context, req CreateRoleRequest) string {
+	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "Role WorkspaceID must be set"))
+	require.NoError(s.t, assert.NotEmpty(req.Name, "Role Name must be set"))
+
 	roleID := uid.New(uid.PermissionPrefix)
 
 	err := db.Query.InsertRole(ctx, s.DB.RW(), db.InsertRoleParams{
@@ -366,6 +380,10 @@ type CreatePermissionRequest struct {
 }
 
 func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionRequest) string {
+	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "Permission WorkspaceID must be set"))
+	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "Permission Name must be set"))
+	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "Permission Slug must be set"))
+
 	permissionID := uid.New(uid.PermissionPrefix)
 	err := db.Query.InsertPermission(ctx, s.DB.RW(), db.InsertPermissionParams{
 		PermissionID: permissionID,

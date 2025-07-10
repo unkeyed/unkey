@@ -28,6 +28,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		DB:        h.DB,
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
+		KeyCache:  h.Caches.VerificationKeyByHash,
 	}
 
 	h.Register(route)

@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -298,12 +299,6 @@ func TestSuccess(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeyAuthID:   api.KeyAuthID.String,
-				Permissions: []seed.CreatePermissionRequest{{
-					Name:        "domain.edit",
-					Slug:        "domain.edit",
-					Description: nil,
-					WorkspaceID: workspace.ID,
-				}},
 			})
 
 			perms := &openapi.V2KeysVerifyKeyRequestBody_Permissions{}
@@ -343,8 +338,13 @@ func TestSuccess(t *testing.T) {
 	})
 
 	t.Run("returns correct information", func(t *testing.T) {
+		meta := map[string]interface{}{"key": "value"}
+
+		raw, err := json.Marshal(meta)
+		require.NoError(t, err)
+
 		externalId := uid.New("ext")
-		identity := h.CreateIdentity(seed.CreateIdentityRequest{WorkspaceID: workspace.ID, ExternalID: externalId, Meta: nil, Ratelimits: nil})
+		identity := h.CreateIdentity(seed.CreateIdentityRequest{WorkspaceID: workspace.ID, ExternalID: externalId, Meta: raw, Ratelimits: nil})
 		keyName := "valid-info"
 
 		key := h.CreateKey(seed.CreateKeyRequest{
@@ -357,20 +357,20 @@ func TestSuccess(t *testing.T) {
 				Description: nil,
 				WorkspaceID: workspace.ID,
 				Permissions: []seed.CreatePermissionRequest{{
-					Name:        "domain.write",
-					Slug:        "domain.write",
+					Name:        "domain.delete",
+					Slug:        "domain.delete",
 					Description: nil,
 					WorkspaceID: workspace.ID,
 				}, {
-					Name:        "domain.read",
-					Slug:        "domain.read",
+					Name:        "domain.edit",
+					Slug:        "domain.edit",
 					Description: nil,
 					WorkspaceID: workspace.ID,
 				}},
 			}},
 			Permissions: []seed.CreatePermissionRequest{{
-				Name:        "domain.editor",
-				Slug:        "domain.editor",
+				Name:        "domain.create",
+				Slug:        "domain.create",
 				Description: nil,
 				WorkspaceID: workspace.ID,
 			}},
@@ -388,7 +388,7 @@ func TestSuccess(t *testing.T) {
 		require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
 		require.Len(t, ptr.SafeDeref(res.Body.Data.Roles), 1, "Key should have 1 role")
 		require.Len(t, ptr.SafeDeref(res.Body.Data.Permissions), 3, "Key should have 3 permissions")
-		require.EqualValues(t, openapi.Identity{ExternalId: externalId, Id: identity, Meta: nil, Ratelimits: nil}, res.Body.Data.Identity)
+		require.EqualValues(t, openapi.Identity{ExternalId: externalId, Id: identity, Meta: &meta, Ratelimits: nil}, ptr.SafeDeref(res.Body.Data.Identity))
 		require.Equal(t, keyName, ptr.SafeDeref(res.Body.Data.Name), "Key should have the same name")
 
 		// todo: add ratelimits to both key and identity

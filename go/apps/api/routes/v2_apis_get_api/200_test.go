@@ -226,6 +226,7 @@ func TestGetApiSuccessfully(t *testing.T) {
 		api := h.CreateApi(seed.CreateApiRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Name:        &apiName,
+			CreatedAt:   &creationTime,
 		})
 
 		// Immediately retrieve the API

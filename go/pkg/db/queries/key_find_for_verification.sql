@@ -13,6 +13,7 @@ select k.id,
        k.enabled,
        k.remaining_requests,
        a.ip_whitelist,
+       a.workspace_id  as api_workspace_id,
        a.id            as api_id,
        a.deleted_at_m  as api_deleted_at_m,
 

@@ -28,6 +28,7 @@ func Test_GetKey_Forbidden(t *testing.T) {
 		Keys:      h.Keys,
 		Logger:    h.Logger,
 		Auditlogs: h.Auditlogs,
+		Vault:     h.Vault,
 	}
 
 	h.Register(route)
