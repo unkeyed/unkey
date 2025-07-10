@@ -43,6 +43,7 @@ Different usage patterns and variants of the CopyButton component.
 - **Analytics Support**: Optional src prop for tracking
 - **Event Prevention**: Prevents event propagation to parent elements
 - **TypeScript Support**: Full TypeScript support with proper typing
+- **Toast Message Support**: Optional toastMessage prop (default is "Copied to clipboard")
 
 ## Props
 
@@ -50,6 +51,7 @@ Different usage patterns and variants of the CopyButton component.
 |------|------|---------|-------------|
 | `value` | `string` | **Required** | The text content to be copied to clipboard |
 | `src` | `string?` | `undefined` | Optional source identifier for analytics tracking |
+| `toastMessage` | `string?` | `undefined` | Custom toast message to show when copied successfully |
 | `variant` | `ButtonVariant` | `"outline"` | Button variant (outline, ghost, primary, etc.) |
 | `className` | `string?` | `undefined` | Additional CSS classes to apply to the button |
 

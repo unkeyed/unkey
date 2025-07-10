@@ -7,8 +7,8 @@ import { LogHeader } from "@/app/(app)/logs/components/table/log-details/compone
 import { LogSection } from "@/app/(app)/logs/components/table/log-details/components/log-section";
 import { DEFAULT_DRAGGABLE_WIDTH } from "@/app/(app)/logs/constants";
 import { safeParseJson } from "@/app/(app)/logs/utils";
-import { toast } from "@/components/ui/toaster";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
+import { toast } from "@unkey/ui";
 import { useFetchRequestDetails } from "./components/hooks/use-logs-query";
 
 const createPanelStyle = (distanceToTop: number) => ({
