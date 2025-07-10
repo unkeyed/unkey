@@ -132,7 +132,7 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
   };
 
   return (
-    <div className="border-gray-5 border rounded-2xl flex flex-col h-auto max-h-[400px] sm:max-h-[500px] md:max-h-[600px] lg:max-h-[700px] xl:max-h-[800px]">
+    <div className="border-gray-5 border rounded-2xl flex flex-col h-auto max-h-[500px] sm:max-h-[500px] md:max-h-[600px] lg:max-h-[700px] xl:max-h-[800px]">
       {/* Navigation part */}
       <div className="pl-2 pr-[14px] py-3 h-10 bg-gray-2 rounded-t-[15px] flex items-center">
         {/* Back button and current step name*/}

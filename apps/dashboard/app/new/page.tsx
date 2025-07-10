@@ -1,4 +1,6 @@
 "use client";
+import { HelpButton } from "@/components/navigation/sidebar/help-button";
+import { UserButton } from "@/components/navigation/sidebar/user-button";
 import { Key2, StackPerspective2 } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
 import { Suspense, useState } from "react";
@@ -114,7 +116,7 @@ function OnboardingContent() {
   const currentStepInfo = stepInfos[currentStepIndex];
 
   return (
-    <div className="h-screen flex flex-col items-center pt-6 overflow-hidden">
+    <div className="h-screen flex flex-col items-center pt-6 overflow-hidden relative">
       {/* Unkey Logo */}
       <div className="text-2xl font-medium text-gray-12 leading-7">Unkey</div>
       {/* Spacer */}
@@ -142,6 +144,12 @@ function OnboardingContent() {
         <div className="flex-1 min-h-0">
           <OnboardingWizard steps={steps} onStepChange={handleStepChange} />
         </div>
+      </div>
+      <div className="absolute bottom-4 left-4">
+        <UserButton />
+      </div>
+      <div className="absolute bottom-4 right-4">
+        <HelpButton />
       </div>
     </div>
   );
