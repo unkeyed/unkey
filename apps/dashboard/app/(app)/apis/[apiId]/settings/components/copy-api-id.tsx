@@ -9,7 +9,7 @@ export const CopyApiId = ({ apiId }: { apiId: string }) => {
         <div className="max-w-[380px]">An identifier for the API, used in some API calls.</div>
       }
       border="bottom"
-      contentWidth="w-full lg:w-[420px] justify-end items-center"
+      contentWidth="w-full lg:w-[420px] justify-end"
     >
       {/* TODO: make this a Code component in UI for CopyKeys with optional hidden button like in Code.*/}
       <div className="flex flex-row justify-end items-center">
