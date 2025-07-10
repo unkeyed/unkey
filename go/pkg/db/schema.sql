@@ -315,6 +315,7 @@ CREATE TABLE `projects` (
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
 	`git_repository_url` varchar(500),
+	`default_branch` varchar(256) DEFAULT 'main',
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
@@ -327,7 +328,6 @@ CREATE TABLE `branches` (
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
-	`is_production` boolean NOT NULL DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `branches_id` PRIMARY KEY(`id`),
@@ -390,7 +390,7 @@ CREATE TABLE `versions` (
 	CONSTRAINT `versions_id` PRIMARY KEY(`id`)
 );
 
-CREATE TABLE `routes` (
+CREATE TABLE `hostname_routes` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
@@ -399,11 +399,11 @@ CREATE TABLE `routes` (
 	`is_enabled` boolean NOT NULL DEFAULT true,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `routes_id` PRIMARY KEY(`id`),
+	CONSTRAINT `hostname_routes_id` PRIMARY KEY(`id`),
 	CONSTRAINT `hostname_idx` UNIQUE(`hostname`)
 );
 
-CREATE TABLE `hostnames` (
+CREATE TABLE `domains` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
@@ -416,7 +416,7 @@ CREATE TABLE `hostnames` (
 	`subdomain_config` json,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `hostnames_id` PRIMARY KEY(`id`),
+	CONSTRAINT `domains_id` PRIMARY KEY(`id`),
 	CONSTRAINT `hostname_idx` UNIQUE(`hostname`)
 );
 
@@ -456,10 +456,10 @@ CREATE INDEX `project_idx` ON `versions` (`project_id`);
 CREATE INDEX `branch_idx` ON `versions` (`branch_id`);
 CREATE INDEX `status_idx` ON `versions` (`status`);
 CREATE INDEX `rootfs_image_idx` ON `versions` (`rootfs_image_id`);
-CREATE INDEX `workspace_idx` ON `routes` (`workspace_id`);
-CREATE INDEX `project_idx` ON `routes` (`project_id`);
-CREATE INDEX `version_idx` ON `routes` (`version_id`);
-CREATE INDEX `workspace_idx` ON `hostnames` (`workspace_id`);
-CREATE INDEX `project_idx` ON `hostnames` (`project_id`);
-CREATE INDEX `verification_status_idx` ON `hostnames` (`verification_status`);
-CREATE INDEX `certificate_idx` ON `hostnames` (`certificate_id`);
+CREATE INDEX `workspace_idx` ON `hostname_routes` (`workspace_id`);
+CREATE INDEX `project_idx` ON `hostname_routes` (`project_id`);
+CREATE INDEX `version_idx` ON `hostname_routes` (`version_id`);
+CREATE INDEX `workspace_idx` ON `domains` (`workspace_id`);
+CREATE INDEX `project_idx` ON `domains` (`project_id`);
+CREATE INDEX `verification_status_idx` ON `domains` (`verification_status`);
+CREATE INDEX `certificate_idx` ON `domains` (`certificate_id`);

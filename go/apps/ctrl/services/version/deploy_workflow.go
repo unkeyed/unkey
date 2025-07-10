@@ -473,7 +473,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		
 		// Create route entry
 		routeID := uid.New("route")
-		insertErr := db.Query.InsertRoute(stepCtx, w.db.RW(), db.InsertRouteParams{
+		insertErr := db.Query.InsertHostnameRoute(stepCtx, w.db.RW(), db.InsertHostnameRouteParams{
 			ID:          routeID,
 			WorkspaceID: req.WorkspaceID,
 			ProjectID:   req.ProjectID,

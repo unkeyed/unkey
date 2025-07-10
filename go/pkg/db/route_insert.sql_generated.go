@@ -10,8 +10,8 @@ import (
 	"database/sql"
 )
 
-const insertRoute = `-- name: InsertRoute :exec
-INSERT INTO routes (
+const insertHostnameRoute = `-- name: InsertHostnameRoute :exec
+INSERT INTO hostname_routes (
     id,
     workspace_id,
     project_id,
@@ -25,7 +25,7 @@ INSERT INTO routes (
 )
 `
 
-type InsertRouteParams struct {
+type InsertHostnameRouteParams struct {
 	ID          string        `db:"id"`
 	WorkspaceID string        `db:"workspace_id"`
 	ProjectID   string        `db:"project_id"`
@@ -36,9 +36,9 @@ type InsertRouteParams struct {
 	UpdatedAt   sql.NullInt64 `db:"updated_at"`
 }
 
-// InsertRoute
+// InsertHostnameRoute
 //
-//	INSERT INTO routes (
+//	INSERT INTO hostname_routes (
 //	    id,
 //	    workspace_id,
 //	    project_id,
@@ -50,8 +50,8 @@ type InsertRouteParams struct {
 //	) VALUES (
 //	    ?, ?, ?, ?, ?, ?, ?, ?
 //	)
-func (q *Queries) InsertRoute(ctx context.Context, db DBTX, arg InsertRouteParams) error {
-	_, err := db.ExecContext(ctx, insertRoute,
+func (q *Queries) InsertHostnameRoute(ctx context.Context, db DBTX, arg InsertHostnameRouteParams) error {
+	_, err := db.ExecContext(ctx, insertHostnameRoute,
 		arg.ID,
 		arg.WorkspaceID,
 		arg.ProjectID,

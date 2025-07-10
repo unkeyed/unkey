@@ -182,7 +182,7 @@ services:
       dockerfile: Dockerfile
       args:
         VERSION: "latest"
-    container_name: unkey-ctrl
+    container_name: ctrl
     command: ["run", "ctrl"]
     ports:
       - "7091:7091"
@@ -204,7 +204,7 @@ services:
     container_name: otel
     hostname: otel
     ports:
-      - 3000:3000
+      - 3001:3000
       - 4317:4317
       - 4318:4318
 
@@ -217,6 +217,39 @@ services:
       - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
     depends_on:
       - apiv2
+
+  dashboard:
+    build:
+      context: ..
+      dockerfile: ./apps/dashboard/Dockerfile
+    container_name: unkey-dashboard
+    ports:
+      - "3000:3000"
+    depends_on:
+      - planetscale
+      - agent
+    environment:
+      # Database configuration
+      DATABASE_HOST: "planetscale:3900"
+      DATABASE_USERNAME: "unkey"
+      DATABASE_PASSWORD: "password"
+
+      # Auth configuration
+      AUTH_PROVIDER: "local"
+
+      # Agent configuration
+      AGENT_URL: "http://agent:8080"
+      AGENT_TOKEN: "agent-auth-secret"
+
+      # Clickhouse configuration
+      CLICKHOUSE_URL: "http://default:password@clickhouse:8123"
+
+      # Environment
+      NODE_ENV: "production"
+
+      # Bootstrap workspace/API IDs
+      UNKEY_WORKSPACE_ID: "ws_local_root"
+      UNKEY_API_ID: "api_local_root_keys"
 
 volumes:
   mysql:

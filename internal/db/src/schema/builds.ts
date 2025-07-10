@@ -1,5 +1,13 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, mysqlEnum, mysqlTable, primaryKey, text, varchar } from "drizzle-orm/mysql-core";
+import {
+  bigint,
+  index,
+  mysqlEnum,
+  mysqlTable,
+  primaryKey,
+  text,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { projects } from "./projects";
 import { rootfsImages } from "./rootfs_images";
 import { lifecycleDates } from "./util/lifecycle_dates";
@@ -49,7 +57,17 @@ export const versionSteps = mysqlTable(
   "version_steps",
   {
     versionId: varchar("version_id", { length: 256 }).notNull(),
-    status: mysqlEnum("status", ["pending", "downloading_docker_image", "building_rootfs", "uploading_rootfs", "creating_vm", "booting_vm", "assigning_domains", "completed", "failed"]).notNull(),
+    status: mysqlEnum("status", [
+      "pending",
+      "downloading_docker_image",
+      "building_rootfs",
+      "uploading_rootfs",
+      "creating_vm",
+      "booting_vm",
+      "assigning_domains",
+      "completed",
+      "failed",
+    ]).notNull(),
     message: text("message"),
     errorMessage: text("error_message"),
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
