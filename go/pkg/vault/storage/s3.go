@@ -42,7 +42,6 @@ func NewS3(config S3Config) (Storage, error) {
 			URL:               config.S3URL,
 			HostnameImmutable: true,
 		}, nil
-
 	})
 
 	cfg, err := awsConfig.LoadDefaultConfig(context.Background(),

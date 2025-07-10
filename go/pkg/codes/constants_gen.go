@@ -114,4 +114,13 @@ const (
 
 	// PreconditionFailed indicates a precondition check failed.
 	UnkeyAppErrorsPreconditionPreconditionFailed URN = "err:unkey:application:precondition_failed"
+
+	// ----------------
+	// UnkeyVaultErrors
+	// ----------------
+
+	// Precondition
+
+	// PreconditionFailed indicates a precondition check failed.
+	UnkeyVaultErrorsPreconditionPreconditionFailed URN = "err:unkey:vault:precondition_failed"
 )

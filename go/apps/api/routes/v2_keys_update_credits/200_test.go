@@ -172,6 +172,12 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.True(t, currentKey.RemainingRequests.Valid)
 		currentCredits := int64(currentKey.RemainingRequests.Int32)
 
+		// If we are decreasing credits into the negative, it will be automatically set to 0
+		shouldBeRemaining := int64(0)
+		if currentCredits-decreaseBy > 0 {
+			shouldBeRemaining = currentCredits - decreaseBy
+		}
+
 		req := handler.Request{
 			KeyId:     keyID,
 			Operation: openapi.Decrement,
@@ -184,12 +190,12 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, remaining, currentCredits-decreaseBy)
+		require.Equal(t, remaining, shouldBeRemaining)
 
 		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.NotNil(t, key)
 		require.Equal(t, key.RemainingRequests.Valid, true)
-		require.EqualValues(t, key.RemainingRequests.Int32, currentCredits-decreaseBy)
+		require.EqualValues(t, key.RemainingRequests.Int32, shouldBeRemaining)
 	})
 }

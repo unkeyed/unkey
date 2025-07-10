@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
-	"unicode"
 
 	"github.com/unkeyed/unkey/go/pkg/codes"
 )
@@ -50,6 +49,7 @@ func main() {
 	processErrorDomain(f, "Unkey", reflect.ValueOf(codes.Auth))
 	processErrorDomain(f, "Unkey", reflect.ValueOf(codes.Data))
 	processErrorDomain(f, "Unkey", reflect.ValueOf(codes.App))
+	processErrorDomain(f, "Unkey", reflect.ValueOf(codes.Vault))
 
 	f.WriteString(")\n")
 
@@ -177,16 +177,4 @@ func processCategory(f *os.File, systemName, domainName, categoryName string, ca
 		// Write the constant
 		f.WriteString(fmt.Sprintf("\t%s URN = \"%s\"\n", constName, codeStr))
 	}
-}
-
-// toSnakeCase converts a string from PascalCase to snake_case
-func toSnakeCase(s string) string {
-	var result strings.Builder
-	for i, r := range s {
-		if i > 0 && unicode.IsUpper(r) {
-			result.WriteRune('_')
-		}
-		result.WriteRune(unicode.ToLower(r))
-	}
-	return result.String()
 }

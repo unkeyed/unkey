@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"log"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
@@ -129,8 +128,6 @@ func (s *service) insertLogs(ctx context.Context, tx db.DBTX, logs []auditlog.Au
 		if err != nil {
 			return err
 		}
-
-		log.Printf("Meta: %s", string(actorMeta))
 
 		auditLogs = append(auditLogs, db.InsertAuditLogParams{
 			ID:          auditLogID,
