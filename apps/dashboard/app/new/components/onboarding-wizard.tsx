@@ -1,3 +1,4 @@
+"use client";
 import { ChevronLeft, ChevronRight } from "@unkey/icons";
 import { Button, Separator } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";

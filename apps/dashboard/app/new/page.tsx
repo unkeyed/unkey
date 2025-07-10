@@ -1,156 +1,17 @@
-"use client";
-import { HelpButton } from "@/components/navigation/sidebar/help-button";
-import { UserButton } from "@/components/navigation/sidebar/user-button";
-import { Key2, StackPerspective2 } from "@unkey/icons";
-import { FormInput } from "@unkey/ui";
-import { Suspense, useState } from "react";
-import { OnboardingSuccessStep } from "./components/onboarding-success-step";
-import { type OnboardingStep, OnboardingWizard } from "./components/onboarding-wizard";
-import { stepInfos } from "./constants";
-import { useKeyCreationStep } from "./hooks/use-key-creation-step";
-import { useWorkspaceStep } from "./hooks/use-workspace-step";
+"use server";
+import { getAuth } from "@/lib/auth";
+import { Suspense } from "react";
+import { OnboardingContent } from "./components/onboarding-content";
+import { OnboardingFallback } from "./components/onboarding-fallback";
 
-export default function OnboardingPage() {
+export default async function OnboardingPage() {
+  // ensure we have an authenticated user
+  // we don't actually need any user data though
+  await getAuth();
+
   return (
     <Suspense fallback={<OnboardingFallback />}>
       <OnboardingContent />
     </Suspense>
-  );
-}
-
-function OnboardingFallback() {
-  return (
-    <div className="h-screen flex flex-col items-center pt-6 overflow-hidden">
-      {/* Unkey Logo */}
-      <div className="text-2xl font-medium text-gray-12 leading-7">Unkey</div>
-      {/* Spacer */}
-      <div className="mt-[72px]" />
-      {/* Static content while loading */}
-      <div className="flex flex-col w-full max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl">
-        <div className="flex flex-col items-center h-[140px] justify-start">
-          <div className="bg-grayA-3 rounded-full w-fit">
-            <span className="px-3 text-xs leading-6 text-gray-12 font-medium tabular-nums">
-              Step 1 of 3
-            </span>
-          </div>
-          <div className="mt-5" />
-          <div className="text-gray-12 font-semibold text-lg leading-8 text-center h-8 flex items-center">
-            Create workspace
-          </div>
-          <div className="mt-2" />
-          <div className="text-gray-9 font-normal text-[13px] leading-6 text-center px-4 h-[60px] flex items-start overflow-hidden">
-            Set up your workspace to get started with Unkey
-          </div>
-        </div>
-        <div className="mt-10" />
-        <div className="flex-1 min-h-0">
-          <OnboardingWizard
-            steps={[
-              {
-                name: "Workspace",
-                icon: <StackPerspective2 size="sm-regular" className="text-gray-11" />,
-                body: (
-                  <form>
-                    <div className="flex flex-col">
-                      <div className="space-y-4 p-1">
-                        <FormInput
-                          value="Acme Corp"
-                          placeholder="Enter workspace name"
-                          label="Workspace name"
-                          required
-                          disabled
-                        />
-                      </div>
-                    </div>
-                  </form>
-                ),
-                kind: "required" as const,
-                validFieldCount: 0,
-                requiredFieldCount: 1,
-                buttonText: "Continue",
-                description: "Set up your workspace to get started",
-                onStepNext: () => {},
-                onStepBack: () => {},
-              },
-            ]}
-            onComplete={() => {}}
-            onStepChange={() => {}}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function OnboardingContent() {
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const workspaceStep = useWorkspaceStep();
-  const keyCreationStep = useKeyCreationStep();
-
-  const steps: OnboardingStep[] = [
-    workspaceStep,
-    keyCreationStep,
-    {
-      name: "API key",
-      icon: <Key2 size="sm-regular" className="text-gray-11" />,
-      body: (
-        <OnboardingSuccessStep isConfirmOpen={isConfirmOpen} setIsConfirmOpen={setIsConfirmOpen} />
-      ),
-      kind: "non-required" as const,
-      description: "You're all set! Your workspace and API key are ready",
-      buttonText: "Continue to dashboard",
-      onStepNext: () => {
-        setIsConfirmOpen(true);
-      },
-      onStepSkip: () => {
-        setIsConfirmOpen(true);
-      },
-    },
-  ];
-
-  const handleStepChange = (newStepIndex: number) => {
-    setCurrentStepIndex(newStepIndex);
-  };
-
-  const currentStepInfo = stepInfos[currentStepIndex];
-
-  return (
-    <div className="h-screen flex flex-col items-center pt-6 overflow-hidden relative">
-      {/* Unkey Logo */}
-      <div className="text-2xl font-medium text-gray-12 leading-7">Unkey</div>
-      {/* Spacer */}
-      <div className="mt-[72px]" />
-      {/* Onboarding part. This will be a step wizard*/}
-      <div className="flex flex-col w-full max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl ">
-        {/* Explanation part - Fixed height to prevent layout shifts */}
-        <div className="flex flex-col items-center h-[140px] justify-start">
-          <div className="bg-grayA-3 rounded-full w-fit">
-            <span className="px-3 text-xs leading-6 text-gray-12 font-medium tabular-nums">
-              Step {currentStepIndex + 1} of {steps.length}
-            </span>
-          </div>
-          <div className="mt-5" />
-          <div className="text-gray-12 font-semibold text-lg leading-8 text-center h-8 flex items-center">
-            {currentStepInfo.title}
-          </div>
-          <div className="mt-2" />
-          <div className="text-gray-9 font-normal text-[13px] leading-6 text-center px-4 h-[60px] flex items-start overflow-hidden">
-            {currentStepInfo.description}
-          </div>
-        </div>
-        <div className="mt-10" />
-        {/* Form part */}
-        <div className="flex-1 min-h-0">
-          <OnboardingWizard steps={steps} onStepChange={handleStepChange} />
-        </div>
-      </div>
-      <div className="absolute bottom-4 left-4">
-        <UserButton />
-      </div>
-      <div className="absolute bottom-4 right-4">
-        <HelpButton />
-      </div>
-    </div>
   );
 }

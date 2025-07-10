@@ -64,11 +64,7 @@ export const UserButton: React.FC<UserButtonProps> = ({
           ) : null}
         </div>
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        side="bottom"
-        className="flex w-min-44 flex-col gap-2"
-        align={isMobile ? "center" : "start"}
-      >
+      <DropdownMenuContent side="bottom" className="flex w-min-44 flex-col gap-2" align="start">
         <DropdownMenuGroup className="w-full">
           <DropdownMenuLabel>Theme</DropdownMenuLabel>
           <Tabs value={theme} onValueChange={setTheme}>
