@@ -1,5 +1,5 @@
-import type { ActionComponentProps } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover";
 import { ConfirmPopover } from "@/components/confirmation-popover";
+import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TriangleWarning2 } from "@unkey/icons";
