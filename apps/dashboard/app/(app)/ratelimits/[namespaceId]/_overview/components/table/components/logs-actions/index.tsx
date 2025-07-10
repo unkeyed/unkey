@@ -5,8 +5,8 @@ import { DeleteDialog } from "@/app/(app)/ratelimits/[namespaceId]/_components/d
 import { IdentifierDialog } from "@/app/(app)/ratelimits/[namespaceId]/_components/identifier-dialog";
 import type { OverrideDetails } from "@/app/(app)/ratelimits/[namespaceId]/types";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import { toast } from "@/components/ui/toaster";
 import { Clone, Layers3, PenWriting3, Trash } from "@unkey/icons";
+import { toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useFilters } from "../../../../hooks/use-filters";
 

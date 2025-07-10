@@ -1,8 +1,8 @@
 "use client";
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import { toast } from "@/components/ui/toaster";
 import { Clone, PenWriting3, Trash } from "@unkey/icons";
+import { toast } from "@unkey/ui";
 import { DeleteDialog } from "../../_components/delete-dialog";
 import { IdentifierDialog } from "../../_components/identifier-dialog";
 import type { OverrideDetails } from "../../types";
