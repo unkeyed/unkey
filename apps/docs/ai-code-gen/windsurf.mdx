@@ -1,0 +1,83 @@
+---
+title: Using Windsurf with Unkey
+description: Build applications with Windsurf's AI-powered development environment and Unkey's APIs
+mode: "wide"
+---
+
+# Using Windsurf with Unkey
+
+Windsurf is an AI-powered development environment that combines the power of AI assistance with a full-featured IDE. When integrated with Unkey's APIs, you can rapidly build secure, scalable applications with intelligent code generation and real-time collaboration features.
+
+## Getting Started
+
+### 1. Set Up Your Unkey Environment
+
+Before working with Windsurf, ensure you have your Unkey credentials ready:
+
+<Steps>
+<Step title="Create Your API" stepNumber={1}>
+Navigate to the [Unkey Dashboard](https://app.unkey.com/apis) and create a new API for your project.
+</Step>
+
+<Step title="Generate Root Key" stepNumber={2}>
+Go to [Settings > Root Keys](https://app.unkey.com/settings/root-keys) and create a new root key with appropriate permissions.
+</Step>
+
+<Step title="Copy API Details" stepNumber={3}>
+Note down your API ID and root key - you'll need these for your application.
+</Step>
+</Steps>
+
+### 2. Set Up Unkey MCP Server (Optional)
+
+Windsurf supports the Model Context Protocol (MCP) which allows you to connect directly to Unkey's APIs. This gives Windsurf access to your Unkey workspace for more intelligent suggestions.
+
+#### Install Unkey MCP Server
+
+To get started with Windsurf, open "Windsurf Settings > Cascade > Model Context Protocol (MCP) Servers", click on "Add Server", click "Add custom server", and add the following configuration for Convex.
+
+1. **Configure the MCP Server**
+
+   ```json
+   {
+     "mcpServers": {
+       "Unkey": {
+         "command": "npx",
+         "args": [
+           "mcp-remote",
+           "https://mcp.unkey.com/mcp/v1",
+           "--header",
+           "MCP-UNKEY-BEARER-AUTH:${UNKEY_ROOT_KEY}"
+         ]
+       }
+     }
+   }
+   ```
+
+   For rate limiting specific operations, you can also add:
+
+   ```json
+   {
+     "mcpServers": {
+       "UnkeyRateLimiting": {
+         "command": "npx",
+         "args": [
+           "mcp-remote",
+           "https://mcp.unkey.com/mcp/ratelimits/",
+           "--header",
+           "MCP-UNKEY-V2-ROOT-KEY:${UNKEY_ROOT_KEY}"
+         ]
+       }
+     }
+   }
+   ```
+
+2. **Set Environment Variable**
+
+   ```bash
+   export UNKEY_ROOT_KEY="your_root_key_here"
+   ```
+
+3. **Restart Windsurf**
+
+   Restart Windsurf to load the MCP server configuration.
