@@ -1,6 +1,5 @@
-import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
-import { InfoTooltip } from "@unkey/ui";
+import { InfoTooltip, toast } from "@unkey/ui";
 import type { ReactNode } from "react";
 
 type Field<T> = {

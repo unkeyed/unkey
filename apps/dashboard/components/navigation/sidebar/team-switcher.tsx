@@ -11,12 +11,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSidebar } from "@/components/ui/sidebar";
-import { toast } from "@/components/ui/toaster";
 import { setSessionCookie } from "@/lib/auth/cookies";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { ChevronExpandY } from "@unkey/icons";
-import { InfoTooltip, Loading } from "@unkey/ui";
+import { InfoTooltip, Loading, toast } from "@unkey/ui";
 import { Check, Plus, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";

@@ -8,10 +8,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { toast } from "@/components/ui/toaster";
 import type { AuthenticatedUser, Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
-import { Button, Empty, Loading } from "@unkey/ui";
+import { Button, Empty, Loading, toast } from "@unkey/ui";
 import { memo } from "react";
 import { InviteButton } from "./invite";
 import { StatusBadge } from "./status-badge";
