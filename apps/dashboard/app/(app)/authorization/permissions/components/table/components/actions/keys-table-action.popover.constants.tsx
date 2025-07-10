@@ -1,8 +1,8 @@
 "use client";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import { toast } from "@/components/ui/toaster";
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
 import { Clone, PenWriting3, Trash } from "@unkey/icons";
+import { toast } from "@unkey/ui";
 import { DeletePermission } from "./components/delete-permission";
 import { EditPermission } from "./components/edit-permission";
 
