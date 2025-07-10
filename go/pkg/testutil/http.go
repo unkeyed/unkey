@@ -208,6 +208,10 @@ func (h *Harness) CreateApi(workspaceID string, encryptedKeys bool) db.Api {
 	return h.seeder.CreateAPI(context.Background(), workspaceID, encryptedKeys)
 }
 
+func (h *Harness) CreateKey(req seed.CreateKeyRequest) seed.CreateKeyResponse {
+	return h.seeder.CreateKey(context.Background(), req)
+}
+
 func (h *Harness) Resources() seed.Resources {
 	return h.seeder.Resources
 }

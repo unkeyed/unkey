@@ -158,22 +158,48 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 	return key
 }
 
-func (s *Seeder) CreateKey(ctx context.Context, workspaceID, keyAuthID string) {
-	keyID := uid.New(uid.KeyPrefix)
-	err := db.Query.InsertKey(ctx, s.DB.RW(), db.InsertKeyParams{
-		ID:          keyID,
-		KeyringID:   keyAuthID,
-		WorkspaceID: workspaceID,
-		CreatedAtM:  time.Now().UnixMilli(),
-		// Add other required fields based on your schema
-		Hash:  hash.Sha256(uid.New(uid.TestPrefix)),
-		Start: "teststart",
-	})
-	require.NoError(s.t, err)
+type CreateKeyRequest struct {
+	WorkspaceID, KeyAuthID string
+	Expires                *time.Time
+	Disabled               bool
 }
 
-// // Todo allow role creation
-// func (s *Seeder) CreateRole(ctx context.Context)
+type CreateKeyResponse struct {
+	KeyID, Key string
+}
 
-// // Todo allow permission creation
-// func (s *Seeder) CreatePermission(ctx context.Context)
+func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyResponse {
+	keyID := uid.New(uid.KeyPrefix)
+	key := uid.New("")
+	start := key[:4]
+
+	expires := time.Now()
+	if req.Expires != nil {
+		expires = *req.Expires
+	}
+
+	err := db.Query.InsertKey(ctx, s.DB.RW(), db.InsertKeyParams{
+		ID:                keyID,
+		KeyringID:         req.KeyAuthID,
+		WorkspaceID:       req.WorkspaceID,
+		CreatedAtM:        time.Now().UnixMilli(),
+		Hash:              hash.Sha256(key),
+		Enabled:           !req.Disabled,
+		Start:             start,
+		Name:              sql.NullString{String: "test-key", Valid: true},
+		ForWorkspaceID:    sql.NullString{String: "", Valid: false},
+		IdentityID:        sql.NullString{String: "", Valid: false},
+		Meta:              sql.NullString{String: "", Valid: false},
+		Expires:           sql.NullTime{Time: expires, Valid: req.Expires != nil},
+		RemainingRequests: sql.NullInt32{Int32: 0, Valid: false},
+		RefillAmount:      sql.NullInt32{Int32: 0, Valid: false},
+		RefillDay:         sql.NullInt16{Int16: 0, Valid: false},
+	})
+
+	require.NoError(s.t, err)
+
+	return CreateKeyResponse{
+		KeyID: keyID,
+		Key:   key,
+	}
+}

@@ -45,7 +45,6 @@ func (h *Handler) Path() string {
 // The current implementation queries the database directly without caching, which may impact performance.
 // Consider implementing cache with optional bypass via revalidateKeysCache parameter.
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-
 	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
@@ -145,6 +144,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if ptr.SafeDeref(req.Decrypt, false) {
+		if h.Vault == nil {
+			return fault.New("vault missing",
+				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+				fault.Public("Vault hasn't been set up."),
+			)
+		}
+
 		err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Api,

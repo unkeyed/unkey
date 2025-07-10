@@ -21,25 +21,13 @@ type Caches struct {
 	// Keys are db.ListRatelimitOverrideMatchesParams and values are slices of db.RatelimitOverride.
 	RatelimitOverridesMatch cache.Cache[db.ListRatelimitOverrideMatchesParams, []db.RatelimitOverride]
 
-	// KeyByHash caches API key lookups by their hash.
-	// Keys are string (hash) and values are db.Key.
-	KeyByHash cache.Cache[string, db.Key]
-
 	// VerificationKeyByHash caches verification key lookups by their hash.
 	// Keys are string (hash) and values are db.VerificationKey.
 	VerificationKeyByHash cache.Cache[string, db.FindKeyForVerificationRow]
 
-	// PermissionsByKeyId caches permission strings for a given key ID.
-	// Keys are string (key ID) and values are slices of string representing permissions.
-	PermissionsByKeyId cache.Cache[string, []string]
-
-	// WorkspaceByID caches workspace lookups by their ID.
-	// Keys are string (workspace ID) and values are db.Workspace.
-	WorkspaceByID cache.Cache[string, db.Workspace]
-
+	// ApiByID caches API lookups by their ID.
+	// Keys are string (ID) and values are db.Api.
 	ApiByID cache.Cache[string, db.Api]
-
-	IdentityByID cache.Cache[string, db.Identity]
 }
 
 // Config defines the configuration options for initializing caches.
@@ -105,52 +93,12 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
-	keyByHash, err := cache.New(cache.Config[string, db.Key]{
-		Fresh:   10 * time.Second,
-		Stale:   24 * time.Hour,
-		Logger:  config.Logger,
-		MaxSize: 1_000_000,
-
-		Resource: "key_by_hash",
-		Clock:    config.Clock,
-	})
-	if err != nil {
-		return Caches{}, err
-	}
-
 	verificationKeyByHash, err := cache.New(cache.Config[string, db.FindKeyForVerificationRow]{
-		Fresh:   10 * time.Second,
-		Stale:   24 * time.Hour,
-		Logger:  config.Logger,
-		MaxSize: 1_000_000,
-
+		Fresh:    30 * time.Second,
+		Stale:    24 * time.Hour,
+		Logger:   config.Logger,
+		MaxSize:  1_000_000,
 		Resource: "verification_key_by_hash",
-		Clock:    config.Clock,
-	})
-	if err != nil {
-		return Caches{}, err
-	}
-
-	permissionsByKeyId, err := cache.New(cache.Config[string, []string]{
-		Fresh:   10 * time.Second,
-		Stale:   24 * time.Hour,
-		Logger:  config.Logger,
-		MaxSize: 1_000_000,
-
-		Resource: "permissions_by_key_id",
-		Clock:    config.Clock,
-	})
-	if err != nil {
-		return Caches{}, err
-	}
-
-	workspaceByID, err := cache.New(cache.Config[string, db.Workspace]{
-		Fresh:   10 * time.Second,
-		Stale:   24 * time.Hour,
-		Logger:  config.Logger,
-		MaxSize: 1_000_000,
-
-		Resource: "workspace_by_id",
 		Clock:    config.Clock,
 	})
 	if err != nil {
@@ -170,27 +118,10 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
-	identityByID, err := cache.New(cache.Config[string, db.Identity]{
-		Fresh:   10 * time.Second,
-		Stale:   24 * time.Hour,
-		Logger:  config.Logger,
-		MaxSize: 1_000_000,
-
-		Resource: "identity_by_id",
-		Clock:    config.Clock,
-	})
-	if err != nil {
-		return Caches{}, err
-	}
-
 	return Caches{
 		RatelimitNamespaceByName: middleware.WithTracing(ratelimitNamespace),
 		RatelimitOverridesMatch:  middleware.WithTracing(ratelimitOverridesMatch),
-		KeyByHash:                middleware.WithTracing(keyByHash),
-		PermissionsByKeyId:       middleware.WithTracing(permissionsByKeyId),
-		WorkspaceByID:            middleware.WithTracing(workspaceByID),
 		ApiByID:                  middleware.WithTracing(apiById),
-		IdentityByID:             middleware.WithTracing(identityByID),
 		VerificationKeyByHash:    middleware.WithTracing(verificationKeyByHash),
 	}, nil
 }

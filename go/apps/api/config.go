@@ -54,7 +54,14 @@ type Config struct {
 	// TLSConfig provides HTTPS support when set
 	TLSConfig *tls.Config
 
+	// Vault Configuration
 	VaultMasterKeys []string
+
+	// S3 Configuration
+	S3URL             string
+	S3Bucket          string
+	S3AccessKeyID     string
+	S3SecretAccessKey string
 }
 
 func (c Config) Validate() error {

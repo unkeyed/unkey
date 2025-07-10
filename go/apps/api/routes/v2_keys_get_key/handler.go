@@ -144,6 +144,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	decrypt := ptr.SafeDeref(req.Decrypt, false)
 	var plaintext *string
 	if decrypt {
+		if h.Vault == nil {
+			return fault.New("vault missing",
+				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+				fault.Public("Vault hasn't been set up."),
+			)
+		}
+
 		// Permission check
 		err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
 			rbac.T(rbac.Tuple{

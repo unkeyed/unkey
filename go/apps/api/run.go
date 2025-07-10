@@ -190,20 +190,39 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create key service: %w", err)
 	}
 
-	vaultStorage, err := storage.NewMemory(storage.MemoryConfig{
-		Logger: logger,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create vault storage: %w", err)
-	}
+	var vaultSvc *vault.Service
+	if len(cfg.VaultMasterKeys) > 0 {
+		var vaultStorage storage.Storage
+		if cfg.S3URL != "" {
+			logger.Info("Starting Vault service with persistent S3 backed storage")
+			vaultStorage, err = storage.NewS3(storage.S3Config{
+				Logger:            logger,
+				S3URL:             cfg.S3URL,
+				S3Bucket:          cfg.S3Bucket,
+				S3AccessKeyID:     cfg.S3AccessKeyID,
+				S3AccessKeySecret: cfg.S3SecretAccessKey,
+			})
+			if err != nil {
+				return fmt.Errorf("unable to create vault s3 storage: %w", err)
+			}
+		} else {
+			logger.Info("Starting Vault service with temporary memory storage")
+			vaultStorage, err = storage.NewMemory(storage.MemoryConfig{
+				Logger: logger,
+			})
+			if err != nil {
+				return fmt.Errorf("unable to create vault memory storage: %w", err)
+			}
+		}
 
-	vaultSvc, err := vault.New(vault.Config{
-		Logger:     logger,
-		Storage:    vaultStorage,
-		MasterKeys: cfg.VaultMasterKeys,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create vault service: %w", err)
+		vaultSvc, err = vault.New(vault.Config{
+			Logger:     logger,
+			Storage:    vaultStorage,
+			MasterKeys: cfg.VaultMasterKeys,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create vault service: %w", err)
+		}
 	}
 
 	auditlogSvc := auditlogs.New(auditlogs.Config{

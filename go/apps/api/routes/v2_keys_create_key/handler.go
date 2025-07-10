@@ -132,6 +132,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	encrypt := ptr.SafeDeref(req.Recoverable, false)
 	var encryption *vaultv1.EncryptResponse
 	if encrypt {
+		if h.Vault == nil {
+			return fault.New("vault missing",
+				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+				fault.Public("Vault hasn't been set up."),
+			)
+		}
+
 		err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Api,

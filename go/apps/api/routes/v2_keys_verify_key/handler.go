@@ -24,6 +24,8 @@ import (
 type Request = openapi.V2KeysVerifyKeyRequestBody
 type Response = openapi.V2KeysVerifyKeyResponseBody
 
+const DefaultCost = 1
+
 // Handler implements zen.Route interface for the v2 keys.verify endpoint
 type Handler struct {
 	Logger     logging.Logger
@@ -106,8 +108,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		opts = append(opts, keys.WithRateLimits(*req.Ratelimits))
 	}
 
+	// If a custom cost was specified, use it, otherwise use a DefaultCost of 1
 	if req.Credits != nil {
 		opts = append(opts, keys.WithCredits(int32(req.Credits.Cost)))
+	} else if key.Key.RemainingRequests.Valid {
+		opts = append(opts, keys.WithCredits(DefaultCost))
 	}
 
 	if req.Permissions != nil {

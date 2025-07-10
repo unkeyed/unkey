@@ -132,11 +132,43 @@ var Cmd = &cli.Command{
 			Value:    0,
 			Required: false,
 		},
+
+		// Vault Configuration
 		&cli.StringSliceFlag{
 			Name:     "vault-master-keys",
 			Usage:    "Vault master keys for encryption",
 			Sources:  cli.EnvVars("UNKEY_VAULT_MASTER_KEYS"),
 			Value:    []string{},
+			Required: false,
+		},
+
+		// S3 Configuration
+		&cli.StringFlag{
+			Name:     "s3-url",
+			Usage:    "S3 Compatible Endpoint URL ",
+			Sources:  cli.EnvVars("UNKEY_S3_URL"),
+			Value:    "",
+			Required: false,
+		},
+		&cli.StringFlag{
+			Name:     "s3-bucket",
+			Usage:    "S3 bucket name",
+			Sources:  cli.EnvVars("UNKEY_S3_BUCKET"),
+			Value:    "",
+			Required: false,
+		},
+		&cli.StringFlag{
+			Name:     "s3-access-key-id",
+			Usage:    "S3 access key ID",
+			Sources:  cli.EnvVars("UNKEY_S3_ACCESS_KEY_ID"),
+			Value:    "",
+			Required: false,
+		},
+		&cli.StringFlag{
+			Name:     "s3-secret-access-key",
+			Usage:    "S3 secret access key",
+			Sources:  cli.EnvVars("UNKEY_S3_SECRET_ACCESS_KEY"),
+			Value:    "",
 			Required: false,
 		},
 	},
@@ -189,7 +221,14 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		Clock:          clock.New(),
 		TestMode:       cmd.Bool("test-mode"),
 
+		// Vault configuration
 		VaultMasterKeys: cmd.StringSlice("vault-master-keys"),
+
+		// S3 configuration
+		S3URL:             cmd.String("s3-url"),
+		S3Bucket:          cmd.String("s3-bucket"),
+		S3AccessKeyID:     cmd.String("s3-access-key-id"),
+		S3SecretAccessKey: cmd.String("s3-secret-access-key"),
 	}
 
 	err := config.Validate()

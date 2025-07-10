@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
+	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -26,11 +27,11 @@ type Response = openapi.V2KeysSetPermissionsResponse
 
 // Handler implements zen.Route interface for the v2 keys set permissions endpoint
 type Handler struct {
-	// Services as public fields
 	Logger    logging.Logger
 	DB        db.Database
 	Keys      keys.KeyService
 	Auditlogs auditlogs.AuditLogService
+	KeyCache  cache.Cache[string, db.FindKeyForVerificationRow]
 }
 
 // Method returns the HTTP method this route responds to
@@ -331,6 +332,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
+
+	h.KeyCache.Remove(ctx, key.Hash)
 
 	// 10. Get final state of permissions and build response
 	finalPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), req.KeyId)

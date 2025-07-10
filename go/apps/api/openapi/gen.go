@@ -29,7 +29,6 @@ const (
 	INSUFFICIENTPERMISSIONS KeysVerifyKeyResponseDataCode = "INSUFFICIENT_PERMISSIONS"
 	NOTFOUND                KeysVerifyKeyResponseDataCode = "NOT_FOUND"
 	RATELIMITED             KeysVerifyKeyResponseDataCode = "RATE_LIMITED"
-	UNAUTHORIZED            KeysVerifyKeyResponseDataCode = "UNAUTHORIZED"
 	USAGEEXCEEDED           KeysVerifyKeyResponseDataCode = "USAGE_EXCEEDED"
 	VALID                   KeysVerifyKeyResponseDataCode = "VALID"
 )

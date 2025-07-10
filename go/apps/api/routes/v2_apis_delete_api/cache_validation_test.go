@@ -69,9 +69,7 @@ func TestCacheInvalidation(t *testing.T) {
 
 		// Get API to ensure it's in the cache
 		_, err = h.Caches.ApiByID.SWR(ctx, apiID, func(ctx context.Context) (db.Api, error) {
-
 			return db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
-
 		}, caches.DefaultFindFirstOp)
 		require.NoError(t, err)
 		// Delete the API
