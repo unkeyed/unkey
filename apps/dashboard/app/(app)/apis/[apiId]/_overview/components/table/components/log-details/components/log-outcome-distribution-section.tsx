@@ -1,7 +1,6 @@
 import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
-import { Clone } from "@unkey/icons";
-import { Button, Card, CardContent, toast } from "@unkey/ui";
+import { Card, CardContent, CopyButton, toast } from "@unkey/ui";
 import { formatOutcomeName, getOutcomeColor } from "../../../../../utils";
 
 export const OutcomeDistributionSection = ({
@@ -15,13 +14,17 @@ export const OutcomeDistributionSection = ({
     return null;
   }
 
-  const handleClick = () => {
-    const formattedContent = outcomeEntries
+  const getTextToCopy = () => {
+    return outcomeEntries
       .map(([outcome, count]) => `${formatOutcomeName(outcome)}: ${count}`)
       .join("\n");
+  };
+
+  const handleClick = () => {
+    const textToCopy = getTextToCopy();
 
     navigator.clipboard
-      .writeText(formattedContent)
+      .writeText(textToCopy)
       .then(() => {
         toast.success("Outcomes  copied to clipboard");
       })
@@ -58,15 +61,15 @@ export const OutcomeDistributionSection = ({
               </div>
             ))}
           </div>
-          <Button
+          <CopyButton
+            value={getTextToCopy()}
             shape="square"
             onClick={handleClick}
-            variant="outline"
-            className="absolute bottom-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity rounded-sm"
+            variant="primary"
+            size="2xlg"
+            className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-md p-4"
             aria-label="Copy content"
-          >
-            <Clone />
-          </Button>
+          />
         </CardContent>
       </Card>
     </div>
