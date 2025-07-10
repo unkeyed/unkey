@@ -25,7 +25,7 @@ async function copyToClipboardWithMeta(value: string, _meta?: Record<string, unk
 }
 
 export const CopyButton = React.forwardRef<HTMLButtonElement, CopyButtonProps>(
-  ({ value, src, variant = "outline", className, toastMessage, ...props }, ref) => {
+  ({ value, src, variant = "outline", className, toastMessage, onClick, ...props }, ref) => {
     const [copied, setCopied] = React.useState(false);
 
     React.useEffect(() => {
@@ -63,6 +63,8 @@ export const CopyButton = React.forwardRef<HTMLButtonElement, CopyButtonProps>(
               });
             }
             setCopied(true);
+            // Call the onClick prop if provided
+            onClick?.(e);
           }
         }}
         aria-label="Copy to clipboard"
