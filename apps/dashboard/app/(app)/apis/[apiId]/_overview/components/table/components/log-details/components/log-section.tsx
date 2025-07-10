@@ -33,56 +33,6 @@ export const LogSection = ({
     return textToCopy;
   };
 
-  // Helper function to extract text from React elements
-  // This is used to extract text from React elements like TimestampInfo and Link components
-  const extractTextFromReactElement = (element: React.ReactNode): string => {
-    if (typeof element === "string" || typeof element === "number") {
-      return String(element);
-    }
-
-    if (element === null || element === undefined) {
-      return "";
-    }
-
-    // Handle React elements
-    if (React.isValidElement(element)) {
-      const reactElement = element as React.ReactElement<{
-        value?: string | Date | number;
-        children?: React.ReactNode;
-        href?: string;
-        title?: string;
-      }>;
-
-      // For TimestampInfo and similar components, check for a 'value' prop first
-      if (reactElement.props.value) {
-        // If value is a date/timestamp, format it appropriately
-        if (reactElement.props.value instanceof Date) {
-          return reactElement.props.value.toISOString();
-        }
-        return String(reactElement.props.value);
-      }
-
-      // Then check for children
-      if (reactElement.props.children) {
-        if (typeof reactElement.props.children === "string") {
-          return reactElement.props.children;
-        }
-        if (Array.isArray(reactElement.props.children)) {
-          return reactElement.props.children
-            .map((child: React.ReactNode) => extractTextFromReactElement(child))
-            .join("");
-        }
-        return extractTextFromReactElement(reactElement.props.children);
-      }
-
-      // For Link components, check for href or title
-      if (reactElement.props.href || reactElement.props.title) {
-        return reactElement.props.title || reactElement.props.href || "";
-      }
-    }
-
-    return String(element);
-  };
 
   // Helper function to extract text from React elements
   // This is used to extract text from React elements like TimestampInfo and Link components
