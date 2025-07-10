@@ -1,9 +1,10 @@
 "use client";
 
 import { QuickNavPopover } from "@/components/navbar-popover";
+import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { ChevronExpandY, Gear } from "@unkey/icons";
-import { Badge, Button, CopyButton } from "@unkey/ui";
+import { Button } from "@unkey/ui";
 import Link from "next/link";
 
 const settingsNavbar = [
@@ -67,14 +68,7 @@ export const WorkspaceNavbar = ({
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
           {activePage.href === "general" && (
-            <Badge
-              variant="secondary"
-              className="max-w-[160px] truncate whitespace-nowrap"
-              title={workspace.id}
-            >
-              {workspace.id}
-              <CopyButton value={workspace.id} />
-            </Badge>
+            <CopyableIDButton value={workspace.id} />
           )}
           {activePage.href === "root-keys" && (
             <Link key="create-root-key" href="/settings/root-keys/new">
