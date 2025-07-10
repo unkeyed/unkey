@@ -317,24 +317,139 @@ func TestSuccess(t *testing.T) {
 		})
 	})
 
-	t.Run("key with ratelimit", func(t *testing.T) {
-		t.Run("with key ratelimit valid", func(t *testing.T) {
+	t.Run("key with auto applied ratelimit", func(t *testing.T) {
+		key := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+			Ratelimits: []seed.CreateRatelimitRequest{
+				{
+					Name:        "auto-apply",
+					WorkspaceID: workspace.ID,
+					AutoApply:   true,
+					Duration:    time.Minute.Milliseconds(),
+					Limit:       1,
+				},
+			},
 		})
 
-		t.Run("with key ratelimit exceeded", func(t *testing.T) {
+		req := handler.Request{
+			ApiId: api.ID,
+			Key:   key.Key,
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.NotNil(t, res.Body)
+		require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
+		require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
+
+		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.NotNil(t, res.Body)
+		require.Equal(t, openapi.RATELIMITED, res.Body.Data.Code, "Key should be ratelimited but got %s", res.Body.Data.Code)
+		require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
+	})
+
+	t.Run("key with specified ratelimit", func(t *testing.T) {
+		key := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+			Ratelimits: []seed.CreateRatelimitRequest{
+				{
+					Name:        "requests",
+					WorkspaceID: workspace.ID,
+					AutoApply:   false,
+					Duration:    time.Minute.Milliseconds(),
+					Limit:       1,
+				},
+			},
 		})
 
-		t.Run("with key custom ratelimit valid", func(t *testing.T) {
+		req := handler.Request{
+			ApiId:      api.ID,
+			Key:        key.Key,
+			Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{{Name: "requests"}},
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.NotNil(t, res.Body)
+		require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
+		require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
+
+		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.NotNil(t, res.Body)
+		require.Equal(t, openapi.RATELIMITED, res.Body.Data.Code, "Key should be ratelimited but got %s", res.Body.Data.Code)
+		require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
+	})
+
+	t.Run("key with custom ratelimit", func(t *testing.T) {
+		key := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
 		})
 
-		t.Run("with key custom ratelimit exceeded", func(t *testing.T) {
+		req := handler.Request{
+			ApiId:      api.ID,
+			Key:        key.Key,
+			Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{{Name: "requests", Cost: ptr.P(15), Duration: ptr.P(int(time.Minute.Milliseconds())), Limit: ptr.P(20)}},
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.NotNil(t, res.Body)
+		require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
+		require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
+
+		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.NotNil(t, res.Body)
+		require.Equal(t, openapi.RATELIMITED, res.Body.Data.Code, "Key should be ratelimited but got %s", res.Body.Data.Code)
+		require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
+	})
+
+	t.Run("key with identity ratelimit", func(t *testing.T) {
+		identity := h.CreateIdentity(seed.CreateIdentityRequest{
+			WorkspaceID: workspace.ID,
+			ExternalID:  "test-123",
+			Ratelimits: []seed.CreateRatelimitRequest{
+				{
+					Name:        "tokens",
+					WorkspaceID: workspace.ID,
+					AutoApply:   false,
+					Duration:    (time.Minute * 30).Milliseconds(),
+					Limit:       4,
+					// Will be set later
+					IdentityID: nil,
+					KeyID:      nil,
+				},
+			},
 		})
 
-		t.Run("with identity ratelimit valid", func(t *testing.T) {
+		key := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+			IdentityID:  ptr.P(identity),
 		})
 
-		t.Run("with identity ratelimit exceeded", func(t *testing.T) {
-		})
+		req := handler.Request{
+			ApiId:      api.ID,
+			Key:        key.Key,
+			Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{{Name: "tokens", Cost: ptr.P(4)}},
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.NotNil(t, res.Body)
+		require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
+		require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
+
+		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.NotNil(t, res.Body)
+		require.Equal(t, openapi.RATELIMITED, res.Body.Data.Code, "Key should be ratelimited but got %s", res.Body.Data.Code)
+		require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
 	})
 
 	t.Run("returns correct information", func(t *testing.T) {
@@ -390,7 +505,5 @@ func TestSuccess(t *testing.T) {
 		require.Len(t, ptr.SafeDeref(res.Body.Data.Permissions), 3, "Key should have 3 permissions")
 		require.EqualValues(t, openapi.Identity{ExternalId: externalId, Id: identity, Meta: &meta, Ratelimits: nil}, ptr.SafeDeref(res.Body.Data.Identity))
 		require.Equal(t, keyName, ptr.SafeDeref(res.Body.Data.Name), "Key should have the same name")
-
-		// todo: add ratelimits to both key and identity
 	})
 }

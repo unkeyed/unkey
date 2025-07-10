@@ -171,6 +171,7 @@ type Querier interface {
 	//         k.enabled,
 	//         k.remaining_requests,
 	//         a.ip_whitelist,
+	//         a.workspace_id  as api_workspace_id,
 	//         a.id            as api_id,
 	//         a.deleted_at_m  as api_deleted_at_m,
 	//
@@ -201,7 +202,8 @@ type Querier interface {
 	//         )               as permissions,
 	//
 	//         coalesce(
-	//                 (select json_arrayagg(json_object(
+	//                 (select json_arrayagg(
+	//                      json_object(
 	//                         'id', rl.id,
 	//                         'name', rl.name,
 	//                         'key_id', rl.key_id,
@@ -209,12 +211,13 @@ type Querier interface {
 	//                         'limit', rl.limit,
 	//                         'duration', rl.duration,
 	//                         'auto_apply', rl.auto_apply
-	//                                       ))
+	//                      )
+	//                  )
 	//                  from `ratelimits` rl
 	//                  where rl.key_id = k.id
 	//                     OR rl.identity_id = i.id),
 	//                 json_array()
-	//         ) as `ratelimits`,
+	//         ) as ratelimits,
 	//
 	//         i.id as identity_id,
 	//         i.external_id,

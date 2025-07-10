@@ -120,24 +120,23 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 
 	ratelimitsToCheck := make(map[string]RatelimitConfigAndResult)
 	for name, rl := range k.ratelimitConfigs {
-		if rl.AutoApply {
-			// Determine identifier from DB config
-			identifier := k.Key.ID
-			if rl.IdentityID.Valid {
-				identifier = rl.IdentityID.String
-			} else if rl.KeyID.Valid {
-				identifier = rl.KeyID.String
-			}
+		if rl.AutoApply == 0 {
+			continue
+		}
 
-			ratelimitsToCheck[name] = RatelimitConfigAndResult{
-				Cost:       1,
-				Name:       rl.Name,
-				Duration:   time.Duration(rl.Duration) * time.Millisecond,
-				Limit:      int64(rl.Limit),
-				AutoApply:  rl.AutoApply,
-				Identifier: identifier,
-				Response:   nil,
-			}
+		identifier := k.Key.ID
+		if rl.IdentityID != "" {
+			identifier = rl.IdentityID
+		}
+
+		ratelimitsToCheck[name] = RatelimitConfigAndResult{
+			Cost:       1,
+			Name:       rl.Name,
+			Duration:   time.Duration(rl.Duration) * time.Millisecond,
+			Limit:      int64(rl.Limit),
+			AutoApply:  rl.AutoApply == 1,
+			Identifier: identifier,
+			Response:   nil,
 		}
 	}
 
@@ -173,8 +172,8 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 		}
 
 		identifier := k.Key.ID
-		if dbRl.IdentityID.Valid {
-			identifier = dbRl.IdentityID.String
+		if dbRl.IdentityID != "" {
+			identifier = dbRl.IdentityID
 		}
 
 		ratelimitsToCheck[rl.Name] = RatelimitConfigAndResult{
@@ -182,10 +181,14 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 			Duration:   time.Duration(dbRl.Duration) * time.Millisecond,
 			Cost:       int64(ptr.SafeDeref(rl.Cost, 1)),
 			Limit:      int64(dbRl.Limit),
-			AutoApply:  dbRl.AutoApply,
+			AutoApply:  dbRl.AutoApply == 1,
 			Identifier: identifier,
 			Response:   nil,
 		}
+	}
+
+	if len(ratelimitsToCheck) == 0 {
+		return nil
 	}
 
 	for name, config := range ratelimitsToCheck {

@@ -25,6 +25,7 @@ select k.id,
        k.enabled,
        k.remaining_requests,
        a.ip_whitelist,
+       a.workspace_id  as api_workspace_id,
        a.id            as api_id,
        a.deleted_at_m  as api_deleted_at_m,
 
@@ -55,7 +56,8 @@ select k.id,
        )               as permissions,
 
        coalesce(
-               (select json_arrayagg(json_object(
+               (select json_arrayagg(
+                    json_object(
                        'id', rl.id,
                        'name', rl.name,
                        'key_id', rl.key_id,
@@ -63,12 +65,13 @@ select k.id,
                        'limit', rl.limit,
                        'duration', rl.duration,
                        'auto_apply', rl.auto_apply
-                                     ))
+                    )
+                )
                 from ` + "`" + `ratelimits` + "`" + ` rl
                 where rl.key_id = k.id
                    OR rl.identity_id = i.id),
                json_array()
-       ) as ` + "`" + `ratelimits` + "`" + `,
+       ) as ratelimits,
 
        i.id as identity_id,
        i.external_id,
@@ -101,6 +104,7 @@ type FindKeyForVerificationRow struct {
 	Enabled             bool           `db:"enabled"`
 	RemainingRequests   sql.NullInt32  `db:"remaining_requests"`
 	IpWhitelist         sql.NullString `db:"ip_whitelist"`
+	ApiWorkspaceID      string         `db:"api_workspace_id"`
 	ApiID               string         `db:"api_id"`
 	ApiDeletedAtM       sql.NullInt64  `db:"api_deleted_at_m"`
 	Roles               interface{}    `db:"roles"`
@@ -130,6 +134,7 @@ type FindKeyForVerificationRow struct {
 //	       k.enabled,
 //	       k.remaining_requests,
 //	       a.ip_whitelist,
+//	       a.workspace_id  as api_workspace_id,
 //	       a.id            as api_id,
 //	       a.deleted_at_m  as api_deleted_at_m,
 //
@@ -160,7 +165,8 @@ type FindKeyForVerificationRow struct {
 //	       )               as permissions,
 //
 //	       coalesce(
-//	               (select json_arrayagg(json_object(
+//	               (select json_arrayagg(
+//	                    json_object(
 //	                       'id', rl.id,
 //	                       'name', rl.name,
 //	                       'key_id', rl.key_id,
@@ -168,12 +174,13 @@ type FindKeyForVerificationRow struct {
 //	                       'limit', rl.limit,
 //	                       'duration', rl.duration,
 //	                       'auto_apply', rl.auto_apply
-//	                                     ))
+//	                    )
+//	                )
 //	                from `ratelimits` rl
 //	                where rl.key_id = k.id
 //	                   OR rl.identity_id = i.id),
 //	               json_array()
-//	       ) as `ratelimits`,
+//	       ) as ratelimits,
 //
 //	       i.id as identity_id,
 //	       i.external_id,
@@ -207,6 +214,7 @@ func (q *Queries) FindKeyForVerification(ctx context.Context, db DBTX, hash stri
 		&i.Enabled,
 		&i.RemainingRequests,
 		&i.IpWhitelist,
+		&i.ApiWorkspaceID,
 		&i.ApiID,
 		&i.ApiDeletedAtM,
 		&i.Roles,

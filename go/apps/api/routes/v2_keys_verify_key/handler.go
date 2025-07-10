@@ -113,6 +113,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	if req.Ratelimits != nil {
 		opts = append(opts, keys.WithRateLimits(*req.Ratelimits))
+	} else {
+		// check auto applied ratelimits
+		opts = append(opts, keys.WithRateLimits(nil))
 	}
 
 	if req.Permissions != nil {
@@ -174,12 +177,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		for _, ratelimit := range key.GetRatelimitConfigs() {
-			if !ratelimit.IdentityID.Valid {
+			if ratelimit.IdentityID != "" {
 				continue
 			}
 
 			identityRatelimits = append(identityRatelimits, openapi.RatelimitResponse{
-				AutoApply: ratelimit.AutoApply,
+				AutoApply: ratelimit.AutoApply == 1,
 				Duration:  int64(ratelimit.Duration),
 				Id:        ratelimit.ID,
 				Limit:     int64(ratelimit.Limit),

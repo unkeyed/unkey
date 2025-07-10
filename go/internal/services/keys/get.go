@@ -122,7 +122,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 			continue
 		}
 
-		if rl.KeyID.Valid && existing.IdentityID.Valid {
+		if rl.KeyID != "" && existing.IdentityID != "" {
 			ratelimitConfigs[rl.Name] = rl
 		}
 	}

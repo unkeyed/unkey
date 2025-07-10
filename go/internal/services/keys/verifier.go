@@ -97,11 +97,9 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 		k.WithApiID(*config.apiID)
 	}
 
-	if len(config.ratelimits) > 0 {
-		err = k.withRateLimits(ctx, config.ratelimits)
-		if err != nil {
-			return err
-		}
+	err = k.withRateLimits(ctx, config.ratelimits)
+	if err != nil {
+		return err
 	}
 
 	k.clickhouse.BufferKeyVerification(schema.KeyVerificationRequestV1{
