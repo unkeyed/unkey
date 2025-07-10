@@ -67,9 +67,7 @@ export const WorkspaceNavbar = ({
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
-          {activePage.href === "general" && (
-            <CopyableIDButton value={workspace.id} />
-          )}
+          {activePage.href === "general" && <CopyableIDButton value={workspace.id} />}
           {activePage.href === "root-keys" && (
             <Link key="create-root-key" href="/settings/root-keys/new">
               <Button variant="primary">Create New Root Key</Button>
