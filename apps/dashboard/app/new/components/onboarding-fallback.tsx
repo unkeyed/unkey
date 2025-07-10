@@ -1,3 +1,4 @@
+"use client";
 import { StackPerspective2 } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
 import { OnboardingWizard } from "./onboarding-wizard";

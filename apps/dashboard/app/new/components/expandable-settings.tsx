@@ -1,3 +1,4 @@
+"use client";
 import { Switch } from "@/components/ui/switch";
 
 import { CircleInfo } from "@unkey/icons";

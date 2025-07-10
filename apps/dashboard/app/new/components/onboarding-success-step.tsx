@@ -1,3 +1,4 @@
+"use client";
 import { SecretKey } from "@/app/(app)/apis/[apiId]/_components/create-key/components/secret-key";
 import { ConfirmPopover } from "@/components/confirmation-popover";
 import { CircleInfo, TriangleWarning } from "@unkey/icons";
