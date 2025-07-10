@@ -1,16 +1,12 @@
 ---
 title: VisibleButton
-description: A toggle button that switches between visible and hidden states, commonly used for showing/hiding sensitive information.
+description: A toggle button that switches between visible and hidden states, commonly used for showing/hiding sensitive information like passwords or API keys.
 ---
 import { VisibleButtonDemo } from "./visual-button.examples"
 
-## Features
+## Overview
 
-- Toggle between visible/hidden states.
-- Accessible with screen readers.
-- Dark mode support.
-- Customizable styling through `className` prop.
-- Configurable button `variant`.
+The VisibleButton component provides a toggle button that switches between visible and hidden states. It's designed to be commonly used for showing/hiding sensitive information like passwords, API keys, or other confidential data with proper accessibility support.
 
 ## Usage
 
@@ -37,7 +33,19 @@ function Example() {
 
 ## Examples
 
+### Basic Usage
+Examples showing different variants and use cases for the VisibleButton component.
+
 <VisibleButtonDemo />
+
+## Features
+
+- **Toggle Functionality**: Switches between visible/hidden states with icon changes
+- **Accessibility**: Built-in accessibility with screen reader support
+- **Dark Mode Support**: Consistent appearance in light and dark themes
+- **Customizable Styling**: Extensive styling options through className prop
+- **Configurable Variants**: Supports different button variants
+- **State Management**: Integrates with React state for controlled behavior
 
 ## Props
 
@@ -49,25 +57,52 @@ function Example() {
 | `title` | `string` | Text used for accessibility labels and tooltip |
 | `variant` | `ButtonProps["variant"]` | Optional button variant (defaults to "outline") |
 
-Additional props are forwarded to the underlying `Button` component. See [Button component](/design/components/buttons/button) for more details. 
+Additional props are forwarded to the underlying `Button` component. See [Button component](/design/components/buttons/button) for more details.
 
-## Behavior
+## Variants
 
-1. Clicking the button toggles between visible (Eye icon) and hidden (EyeSlash icon) states.
-2. The button's aria-label and title attributes update based on the current state and provided title prop.
+The component accepts all standard Button props.
+
+## Structure
+
+The VisibleButton component is a specialized button that:
+
+1. **Renders as Button**: Uses the base Button component for styling and behavior
+2. **Icon Management**: Switches between Eye and EyeSlash icons based on state
+3. **State Integration**: Integrates with external state management
+4. **Accessibility**: Provides proper ARIA labels and descriptions
+
+## Styling
+
+The button features:
+
+- A minimal, circular design for subtle appearance
+- Icon-based state indication (Eye/EyeSlash)
+- Hover and focus states for better interaction
+- Dark mode support with appropriate color schemes
+- Responsive sizing (inherits from Button component)
+- Customizable through className prop
+
+### Custom Styling
+
+You can customize the appearance using the className prop:
+
+```tsx
+<VisibleButton
+  isVisible={isVisible}
+  setIsVisible={setIsVisible}
+  title="API Key"
+  variant="ghost"
+  className="custom-visible-button"
+/>
+```
 
 ## Accessibility
 
-- Includes dynamic aria-labels based on the title prop.
-- Uses semantic button element with proper ARIA attributes.
-- Maintains focus states for keyboard navigation.
-- Shows tooltip on hover with current action.
+The component includes comprehensive accessibility features:
 
-## Design
-
-The button features:
-- A minimal, circular design.
-- Icon-based state indication (Eye/EyeSlash).
-- Hover and focus states.
-- Dark mode support.
-- Responsive sizing (inherits from Button component).
+- **Dynamic ARIA Labels**: aria-labels based on the title prop and current state
+- **Semantic Button**: Uses semantic button element with proper ARIA attributes
+- **Focus Management**: Maintains focus states for keyboard navigation
+- **Tooltip Support**: Shows tooltip on hover with current action
+- **Screen Reader Support**: Announces state changes appropriately

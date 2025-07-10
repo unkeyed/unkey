@@ -4,6 +4,10 @@ description: A versatile badge component for displaying status, categories, or l
 ---
 import { DefaultVariants, SizeVariants, MonoFont, StatusBadges, InteractiveBadges } from "./badge.example";
 
+## Overview
+
+The Badge component provides a consistent way to display status indicators, categories, or labels throughout your application. It's designed to provide quick visual context with multiple styling options and accessibility features.
+
 ## Usage
 
 ```tsx
@@ -23,19 +27,38 @@ export default function MyComponent() {
 ## Examples
 
 ### Default Variants
+All available variants for different use cases.
 <DefaultVariants />
 
 ### Size Variants
+Different sizes available for the badge component.
+
 <SizeVariants />
 
 ### Monospace Font
+Badges with monospace font for technical content like IDs or codes.
+
 <MonoFont />
 
 ### Status Badges
+Common status indicators used in applications.
+
 <StatusBadges />
 
 ### Interactive Badges
+
+Interactive styling with hover effects.
+
 <InteractiveBadges />
+
+## Features
+
+- **Multiple Variants**: Six different visual styles (primary, secondary, success, warning, blocked, error)
+- **Size Options**: Default and small sizes for different contexts
+- **Font Options**: Support for monospace font for technical content
+- **Accessibility**: Built-in accessibility support with proper contrast ratios
+- **Customizable**: Extensive styling options through className prop
+- **Responsive**: Adapts to different screen sizes
 
 ## Props
 
@@ -55,19 +78,40 @@ export default function MyComponent() {
 - **blocked**: Orange styling for blocked or restricted states
 - **error**: Red styling for errors or negative states
 
+## Structure
+
+The Badge component is a simple, self-contained component that doesn't require sub-components. It renders as a single span element with appropriate styling and accessibility attributes.
+
+## Styling
+
+The Badge component includes default styling with:
+
+- Consistent padding and border radius
+- Color-coded variants for semantic meaning
+- Dark mode support
+- Hover states for interactive badges
+- Focus states for accessibility
+- Responsive design
+
+### Custom Styling
+
+You can customize the appearance using the className prop:
+
+```tsx
+<Badge 
+  variant="primary" 
+  className="custom-badge-class hover:bg-blue-500"
+>
+  Custom Badge
+</Badge>
+```
+
 ## Accessibility
 
 The Badge component follows accessibility best practices:
 
-- Uses semantic HTML with proper color contrast ratios
-- Text is readable and meets WCAG guidelines
-- Can be used with screen readers without issues
-- Hover states provide visual feedback for interactive elements
-
-## Best Practices
-
-- Use badges to provide quick visual context about status or categories
-- Choose appropriate variants that match the semantic meaning
-- Keep badge text concise and descriptive
-- Use consistent badge styling across your application
-- Consider using the monospace font for technical content like IDs or codes 
+- **Semantic HTML**: Uses semantic HTML with proper color contrast ratios
+- **Text Readability**: Text is readable and meets WCAG guidelines
+- **Screen Reader Support**: Can be used with screen readers without issues
+- **Visual Feedback**: Hover states provide visual feedback for interactive elements
+- **Focus Management**: Proper focus states for keyboard navigation
