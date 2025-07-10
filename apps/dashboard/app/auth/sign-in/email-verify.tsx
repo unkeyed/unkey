@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-  
+
 import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
 import { cn } from "@/lib/utils";
 import { Loading, toast } from "@unkey/ui";

@@ -9,7 +9,15 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { trpc } from "@/lib/trpc/client";
 import type { Api, VercelBinding } from "@unkey/db";
-import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, toast } from "@unkey/ui";
+import {
+  Button,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  toast,
+} from "@unkey/ui";
 import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
