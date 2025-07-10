@@ -73,7 +73,6 @@ export const CopyableIDButton = ({ value, className = "" }: CopyableIDButtonProp
           variant="ghost"
           value={value}
           ref={copyButtonRef}
-          onClick={() => handleClick}
           toastMessage={value}
           className="pointer-events-none flex-shrink-0"
         />
