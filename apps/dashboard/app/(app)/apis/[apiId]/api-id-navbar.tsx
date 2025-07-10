@@ -23,9 +23,9 @@ const CreateKeyDialog = dynamic(
 
 const KeysTableActionPopover = dynamic(
   () =>
-    import(
-      "./keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover"
-    ).then((mod) => mod.KeysTableActionPopover),
+    import("@/components/logs/table-action.popover").then((mod) => ({
+      default: mod.TableActionPopover,
+    })),
   {
     ssr: false,
   },
