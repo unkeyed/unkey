@@ -1,7 +1,5 @@
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { LLMSearch } from "@unkey/ui";
-import { transformStructuredOutputToFilters } from "@unkey/ui";
+import { LLMSearch, toast, transformStructuredOutputToFilters } from "@unkey/ui";
 import type { KeyDetailsFilterValue } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 

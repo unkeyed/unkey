@@ -1,6 +1,6 @@
-import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import { CircleLock } from "@unkey/icons";
+import { toast } from "@unkey/ui";
 
 export const HiddenValueCell = ({
   value,

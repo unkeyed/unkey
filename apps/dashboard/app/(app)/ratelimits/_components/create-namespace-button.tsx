@@ -2,10 +2,9 @@
 
 import { revalidate } from "@/app/actions";
 import { NavbarActionButton } from "@/components/navigation/action-button";
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, DialogContainer, FormInput } from "@unkey/ui";
+import { Button, DialogContainer, FormInput, toast } from "@unkey/ui";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -47,11 +46,11 @@ export const CreateNamespaceButton = ({
 
   const create = trpc.ratelimit.namespace.create.useMutation({
     async onSuccess(res) {
-      toast.success("Your Namespace has been created");
       router.refresh();
       await revalidate("/ratelimits");
       ratelimit.namespace.query.invalidate();
       router.push(`/ratelimits/${res.id}`);
+      toast.success("Your Namespace has been created");
       setIsOpen(false);
     },
     onError(err) {

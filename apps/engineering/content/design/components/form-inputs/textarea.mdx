@@ -1,8 +1,7 @@
 ---
 title: Textarea
-description: A multi-line text input component with different states, validations, and icon support.
+description: A multi-line text input component with different states, validations, and icon support for creating accessible, user-friendly text areas.
 ---
-import { RenderComponentWithSnippet } from "@/app/components/render"
 import {
   TextareaDefaultVariant,
   TextareaSuccessVariant,
@@ -14,77 +13,174 @@ import {
   TextareaWithBothIcons
 } from "./textarea.variants.tsx"
 
+## Overview
 
-## Default
+The Textarea component provides a versatile multi-line text input system that supports various states, validations, and icon placements. It's designed to collect longer user input with appropriate visual feedback and enhanced usability through icons, while maintaining accessibility and consistent design patterns.
 
+## Usage
+
+```tsx
+import { Textarea } from "@unkey/ui";
+
+export default function MyComponent() {
+  return (
+    <Textarea
+      placeholder="Enter your message here..."
+      rows={4}
+      variant="default"
+      leftIcon={<MessageIcon />}
+    />
+  );
+}
+```
+
+## Examples
+
+### Default Textarea
 The default textarea style with neutral colors. Can include optional icons for better visual context.
 
 <TextareaDefaultVariant />
 
-## States
-
-Textarea components can reflect different states through visual styling:
-
 ### Success State
-
 Use the success state to indicate valid input or successful validation. The checkmark icon provides immediate visual feedback.
 
 <TextareaSuccessVariant />
 
 ### Warning State
-
 The warning state can be used to show potential issues that don't prevent form submission. The alert icon draws attention to the warning state.
 
 <TextareaWarningVariant />
 
 ### Error State
-
 Use the error state to indicate invalid input that needs correction. The alert icon emphasizes the error state.
 
 <TextareaErrorVariant />
 
 ### Disabled State
-
 Use the disabled state when user interaction should be prevented, such as during form submission or when the input depends on other conditions.
 
 <TextareaDisabledVariant />
 
-### With Default Value State
-
+### With Default Value
 Textarea pre-populated with an initial value that users can modify or build upon.
 
 <TextareaWithDefaultValue />
 
-## Interactive Elements
-
 ### Character Count
-
 Example of a textarea with character count functionality to help users stay within length limits.
 
 <TextareaWithCharacterCount />
 
-### Textarea with Icons
+### With Icons
 
 Example of a textarea with both leading and trailing icons for enhanced functionality.
 
 <TextareaWithBothIcons />
 
+## Features
+
+- **Multiple States**: Different visual styles (default, success, warning, error, disabled) for semantic meaning
+- **Icon Support**: Left and right icon positioning for enhanced visual context
+- **Character Count**: Built-in character counting functionality
+- **Resizable**: Users can resize textareas to fit their content needs
+- **Accessibility**: Full accessibility support with proper ARIA attributes
+- **Responsive Design**: Adapts to different screen sizes
+- **Dark Mode Support**: Consistent appearance in light and dark themes
+- **Customizable**: Extensive styling options through className props
+
 ## Props
 
 The Textarea component accepts all standard HTML textarea attributes plus the following:
 
-<AutoTypeTable
-    name="DocumentedTextareaProps"
-    path="../../internal/ui/src/components/form/textarea.tsx"
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `variant` | `"default" \| "success" \| "warning" \| "error"` | `"default"` | The variant style to use for the textarea |
+| `leftIcon` | `React.ReactNode` | - | Icon to display on the left side of the textarea |
+| `rightIcon` | `React.ReactNode` | - | Icon to display on the right side of the textarea |
+| `wrapperClassName` | `string` | - | Additional CSS classes for the textarea wrapper |
+| `placeholder` | `string` | - | Placeholder text displayed when textarea is empty |
+| `value` | `string` | - | The current value of the textarea |
+| `defaultValue` | `string` | - | Default value when uncontrolled |
+| `rows` | `number` | - | Number of visible text lines |
+| `cols` | `number` | - | Number of visible text columns |
+| `disabled` | `boolean` | - | Whether the textarea is disabled |
+| `readOnly` | `boolean` | - | Whether the textarea is read-only |
+| `name` | `string` | - | Name of the textarea for form submission |
+| `onChange` | `(event: React.ChangeEvent<HTMLTextAreaElement>) => void` | - | Callback triggered when textarea value changes |
+| `onFocus` | `(event: React.FocusEvent<HTMLTextAreaElement>) => void` | - | Callback triggered when textarea gains focus |
+| `onBlur` | `(event: React.FocusEvent<HTMLTextAreaElement>) => void` | - | Callback triggered when textarea loses focus |
+| `className` | `string` | - | Additional CSS classes to apply |
+
+## Variants
+
+### Default
+- Standard textarea with neutral colors
+- Use for most multi-line text inputs
+- Balanced visual weight and accessibility
+
+### Success
+- Green styling for positive validation states
+- Use for successfully validated inputs
+- Encourages positive user feedback
+
+### Warning
+- Yellow/orange styling for cautionary states
+- Use for inputs that need attention but aren't errors
+- Indicates potential issues
+
+### Error
+- Red styling for validation errors
+- Use for failed validation or critical issues
+- Clearly indicates problems that need resolution
+
+### Disabled
+- Grayed out styling for non-interactive state
+- Use when user interaction should be prevented
+- Clear visual indication of unavailability
+
+## Structure
+
+The Textarea component is composed of:
+
+1. **Textarea Container** - Main wrapper with styling and positioning
+2. **Left Icon** - Optional icon on the left side
+3. **Textarea Element** - The actual textarea field
+4. **Right Icon** - Optional icon on the right side
+5. **Character Count** - Optional character counting display
+
+## Styling
+
+The component includes default styling with:
+
+- Consistent padding and border radius
+- Color-coded variants for semantic meaning
+- Smooth transitions for state changes
+- Resizable behavior for user flexibility
+- Dark mode support with appropriate color schemes
+- Focus states for accessibility
+- Customizable through className props
+
+### Custom Styling
+
+You can customize the appearance using the className prop:
+
+```tsx
+<Textarea
+  placeholder="Custom styled textarea"
+  className="custom-textarea-class"
+  variant="success"
+  rows={6}
 />
+```
 
-## Icon Guidelines
+## Accessibility
 
-When using icons with the Textarea component:
+The Textarea component is built with accessibility in mind:
 
-- Icons should be sized appropriately (recommended: 16x16px using `h-4 w-4` classes)
-- Icons inherit colors based on the textarea's variant state
-- Interactive icons should be wrapped in buttons
-- Avoid using too many icons which might clutter the interface
-- Left icons are typically used for input type indication (notes, description, etc.)
-- Right icons are commonly used for interactive elements (expand/collapse, character count toggle, etc.)
+- **Semantic HTML**: Uses proper textarea elements with appropriate attributes
+- **ARIA Attributes**: Proper ARIA labels and descriptions for screen readers
+- **Keyboard Navigation**: Full keyboard support including Tab navigation
+- **Focus Management**: Clear focus indicators and logical tab order
+- **Screen Reader Support**: Announces textarea states and validation appropriately
+- **High Contrast**: Maintains proper contrast ratios across all variants
+- **Resize Support**: Proper handling of textarea resize functionality

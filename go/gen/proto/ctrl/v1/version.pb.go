@@ -9,7 +9,6 @@ package ctrlv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -386,13 +385,15 @@ type Version struct {
 	// Topology configuration
 	Topology *Topology `protobuf:"bytes,10,opt,name=topology,proto3" json:"topology,omitempty"`
 	// Timestamps
-	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	CreatedAt int64 `protobuf:"varint,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt int64 `protobuf:"varint,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	// Associated hostnames for this version
 	Hostnames []string `protobuf:"bytes,13,rep,name=hostnames,proto3" json:"hostnames,omitempty"`
 	// Build information
 	RootfsImageId string `protobuf:"bytes,14,opt,name=rootfs_image_id,json=rootfsImageId,proto3" json:"rootfs_image_id,omitempty"`
 	BuildId       string `protobuf:"bytes,15,opt,name=build_id,json=buildId,proto3" json:"build_id,omitempty"`
+	// Deployment steps
+	Steps         []*VersionStep `protobuf:"bytes,16,rep,name=steps,proto3" json:"steps,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -497,18 +498,18 @@ func (x *Version) GetTopology() *Topology {
 	return nil
 }
 
-func (x *Version) GetCreatedAt() *timestamppb.Timestamp {
+func (x *Version) GetCreatedAt() int64 {
 	if x != nil {
 		return x.CreatedAt
 	}
-	return nil
+	return 0
 }
 
-func (x *Version) GetUpdatedAt() *timestamppb.Timestamp {
+func (x *Version) GetUpdatedAt() int64 {
 	if x != nil {
 		return x.UpdatedAt
 	}
-	return nil
+	return 0
 }
 
 func (x *Version) GetHostnames() []string {
@@ -532,6 +533,81 @@ func (x *Version) GetBuildId() string {
 	return ""
 }
 
+func (x *Version) GetSteps() []*VersionStep {
+	if x != nil {
+		return x.Steps
+	}
+	return nil
+}
+
+type VersionStep struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	ErrorMessage  string                 `protobuf:"bytes,3,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	CreatedAt     int64                  `protobuf:"varint,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *VersionStep) Reset() {
+	*x = VersionStep{}
+	mi := &file_proto_ctrl_v1_version_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *VersionStep) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VersionStep) ProtoMessage() {}
+
+func (x *VersionStep) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_ctrl_v1_version_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VersionStep.ProtoReflect.Descriptor instead.
+func (*VersionStep) Descriptor() ([]byte, []int) {
+	return file_proto_ctrl_v1_version_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *VersionStep) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *VersionStep) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *VersionStep) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
+func (x *VersionStep) GetCreatedAt() int64 {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return 0
+}
+
 type Topology struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	CpuMillicores int32                  `protobuf:"varint,1,opt,name=cpu_millicores,json=cpuMillicores,proto3" json:"cpu_millicores,omitempty"`
@@ -548,7 +624,7 @@ type Topology struct {
 
 func (x *Topology) Reset() {
 	*x = Topology{}
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[5]
+	mi := &file_proto_ctrl_v1_version_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -560,7 +636,7 @@ func (x *Topology) String() string {
 func (*Topology) ProtoMessage() {}
 
 func (x *Topology) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[5]
+	mi := &file_proto_ctrl_v1_version_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -573,7 +649,7 @@ func (x *Topology) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Topology.ProtoReflect.Descriptor instead.
 func (*Topology) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_version_proto_rawDescGZIP(), []int{5}
+	return file_proto_ctrl_v1_version_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Topology) GetCpuMillicores() int32 {
@@ -629,7 +705,7 @@ type RegionalConfig struct {
 
 func (x *RegionalConfig) Reset() {
 	*x = RegionalConfig{}
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[6]
+	mi := &file_proto_ctrl_v1_version_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -641,7 +717,7 @@ func (x *RegionalConfig) String() string {
 func (*RegionalConfig) ProtoMessage() {}
 
 func (x *RegionalConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[6]
+	mi := &file_proto_ctrl_v1_version_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -654,7 +730,7 @@ func (x *RegionalConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegionalConfig.ProtoReflect.Descriptor instead.
 func (*RegionalConfig) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_version_proto_rawDescGZIP(), []int{6}
+	return file_proto_ctrl_v1_version_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *RegionalConfig) GetRegion() string {
@@ -682,7 +758,7 @@ var File_proto_ctrl_v1_version_proto protoreflect.FileDescriptor
 
 const file_proto_ctrl_v1_version_proto_rawDesc = "" +
 	"\n" +
-	"\x1bproto/ctrl/v1/version.proto\x12\actrl.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9d\x02\n" +
+	"\x1bproto/ctrl/v1/version.proto\x12\actrl.v1\"\x9d\x02\n" +
 	"\x14CreateVersionRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
@@ -701,7 +777,7 @@ const file_proto_ctrl_v1_version_proto_rawDesc = "" +
 	"\n" +
 	"version_id\x18\x01 \x01(\tR\tversionId\"@\n" +
 	"\x12GetVersionResponse\x12*\n" +
-	"\aversion\x18\x01 \x01(\v2\x10.ctrl.v1.VersionR\aversion\"\xcc\x05\n" +
+	"\aversion\x18\x01 \x01(\v2\x10.ctrl.v1.VersionR\aversion\"\xc0\x05\n" +
 	"\aVersion\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\fworkspace_id\x18\x02 \x01(\tR\vworkspaceId\x12\x1d\n" +
@@ -715,17 +791,24 @@ const file_proto_ctrl_v1_version_proto_rawDesc = "" +
 	"\rerror_message\x18\b \x01(\tR\ferrorMessage\x12_\n" +
 	"\x15environment_variables\x18\t \x03(\v2*.ctrl.v1.Version.EnvironmentVariablesEntryR\x14environmentVariables\x12-\n" +
 	"\btopology\x18\n" +
-	" \x01(\v2\x11.ctrl.v1.TopologyR\btopology\x129\n" +
+	" \x01(\v2\x11.ctrl.v1.TopologyR\btopology\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"created_at\x18\v \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x1c\n" +
+	"updated_at\x18\f \x01(\x03R\tupdatedAt\x12\x1c\n" +
 	"\thostnames\x18\r \x03(\tR\thostnames\x12&\n" +
 	"\x0frootfs_image_id\x18\x0e \x01(\tR\rrootfsImageId\x12\x19\n" +
-	"\bbuild_id\x18\x0f \x01(\tR\abuildId\x1aG\n" +
+	"\bbuild_id\x18\x0f \x01(\tR\abuildId\x12*\n" +
+	"\x05steps\x18\x10 \x03(\v2\x14.ctrl.v1.VersionStepR\x05steps\x1aG\n" +
 	"\x19EnvironmentVariablesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xf3\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x83\x01\n" +
+	"\vVersionStep\x12\x16\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12#\n" +
+	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x04 \x01(\x03R\tcreatedAt\"\xf3\x01\n" +
 	"\bTopology\x12%\n" +
 	"\x0ecpu_millicores\x18\x01 \x01(\x05R\rcpuMillicores\x12\x1b\n" +
 	"\tmemory_mb\x18\x02 \x01(\x05R\bmemoryMb\x121\n" +
@@ -768,7 +851,7 @@ func file_proto_ctrl_v1_version_proto_rawDescGZIP() []byte {
 }
 
 var file_proto_ctrl_v1_version_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_proto_ctrl_v1_version_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_proto_ctrl_v1_version_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_proto_ctrl_v1_version_proto_goTypes = []any{
 	(VersionStatus)(0),            // 0: ctrl.v1.VersionStatus
 	(SourceType)(0),               // 1: ctrl.v1.SourceType
@@ -777,30 +860,29 @@ var file_proto_ctrl_v1_version_proto_goTypes = []any{
 	(*GetVersionRequest)(nil),     // 4: ctrl.v1.GetVersionRequest
 	(*GetVersionResponse)(nil),    // 5: ctrl.v1.GetVersionResponse
 	(*Version)(nil),               // 6: ctrl.v1.Version
-	(*Topology)(nil),              // 7: ctrl.v1.Topology
-	(*RegionalConfig)(nil),        // 8: ctrl.v1.RegionalConfig
-	nil,                           // 9: ctrl.v1.Version.EnvironmentVariablesEntry
-	(*timestamppb.Timestamp)(nil), // 10: google.protobuf.Timestamp
+	(*VersionStep)(nil),           // 7: ctrl.v1.VersionStep
+	(*Topology)(nil),              // 8: ctrl.v1.Topology
+	(*RegionalConfig)(nil),        // 9: ctrl.v1.RegionalConfig
+	nil,                           // 10: ctrl.v1.Version.EnvironmentVariablesEntry
 }
 var file_proto_ctrl_v1_version_proto_depIdxs = []int32{
 	1,  // 0: ctrl.v1.CreateVersionRequest.source_type:type_name -> ctrl.v1.SourceType
 	0,  // 1: ctrl.v1.CreateVersionResponse.status:type_name -> ctrl.v1.VersionStatus
 	6,  // 2: ctrl.v1.GetVersionResponse.version:type_name -> ctrl.v1.Version
 	0,  // 3: ctrl.v1.Version.status:type_name -> ctrl.v1.VersionStatus
-	9,  // 4: ctrl.v1.Version.environment_variables:type_name -> ctrl.v1.Version.EnvironmentVariablesEntry
-	7,  // 5: ctrl.v1.Version.topology:type_name -> ctrl.v1.Topology
-	10, // 6: ctrl.v1.Version.created_at:type_name -> google.protobuf.Timestamp
-	10, // 7: ctrl.v1.Version.updated_at:type_name -> google.protobuf.Timestamp
-	8,  // 8: ctrl.v1.Topology.regions:type_name -> ctrl.v1.RegionalConfig
-	2,  // 9: ctrl.v1.VersionService.CreateVersion:input_type -> ctrl.v1.CreateVersionRequest
-	4,  // 10: ctrl.v1.VersionService.GetVersion:input_type -> ctrl.v1.GetVersionRequest
-	3,  // 11: ctrl.v1.VersionService.CreateVersion:output_type -> ctrl.v1.CreateVersionResponse
-	5,  // 12: ctrl.v1.VersionService.GetVersion:output_type -> ctrl.v1.GetVersionResponse
-	11, // [11:13] is the sub-list for method output_type
-	9,  // [9:11] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	10, // 4: ctrl.v1.Version.environment_variables:type_name -> ctrl.v1.Version.EnvironmentVariablesEntry
+	8,  // 5: ctrl.v1.Version.topology:type_name -> ctrl.v1.Topology
+	7,  // 6: ctrl.v1.Version.steps:type_name -> ctrl.v1.VersionStep
+	9,  // 7: ctrl.v1.Topology.regions:type_name -> ctrl.v1.RegionalConfig
+	2,  // 8: ctrl.v1.VersionService.CreateVersion:input_type -> ctrl.v1.CreateVersionRequest
+	4,  // 9: ctrl.v1.VersionService.GetVersion:input_type -> ctrl.v1.GetVersionRequest
+	3,  // 10: ctrl.v1.VersionService.CreateVersion:output_type -> ctrl.v1.CreateVersionResponse
+	5,  // 11: ctrl.v1.VersionService.GetVersion:output_type -> ctrl.v1.GetVersionResponse
+	10, // [10:12] is the sub-list for method output_type
+	8,  // [8:10] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_proto_ctrl_v1_version_proto_init() }
@@ -814,7 +896,7 @@ func file_proto_ctrl_v1_version_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_ctrl_v1_version_proto_rawDesc), len(file_proto_ctrl_v1_version_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

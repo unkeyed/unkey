@@ -15,9 +15,9 @@ CYAN := \033[36m
 RESET := \033[0m
 
 # Targets (alphabetically ordered)
-.PHONY: build build-linux check ci clean clean-gen debug deps dev fmt generate health help install install-tools lint lint-proto metrics proto-breaking release run service-logs service-logs-full service-restart service-start service-status service-stop setup test test-coverage test-short uninstall version vet
+.PHONY: build build-linux check ci clean debug deps dev fmt health help install install-tools lint metrics release run service-logs service-logs-full service-restart service-start service-status service-stop setup test test-coverage test-short uninstall version vet
 
-build: generate deps ## Build the binary
+build: deps ## Build the binary
 	@mkdir -p $(BUILD_DIR)
 	@go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/metald
 
@@ -27,14 +27,12 @@ build-linux: ## Build Linux binary for deployment
 
 check: fmt vet lint test ## Run all checks (fmt, vet, lint with proto, test)
 
-ci: deps generate lint vet test build ## Run CI pipeline locally
+ci: deps lint vet test build ## Run CI pipeline locally
 
 clean: ## Clean build artifacts
 	@rm -rf $(BUILD_DIR)
 	@rm -f coverage.out coverage.html
 
-clean-gen: ## Clean generated protobuf code
-	@rm -rf gen/
 
 debug: build ## Run with debug logging
 	@UNKEY_METALD_OTEL_ENABLED=true ./$(BUILD_DIR)/$(BINARY_NAME)
@@ -49,9 +47,6 @@ dev: ## Run the service in development mode
 fmt: ## Format Go code
 	@goimports -w .
 
-generate: ## Generate protobuf code
-	@buf generate
-	@buf lint
 
 health: ## Check service health
 	@curl -s http://localhost:8080/_/health | jq . || echo "Health check failed"
@@ -73,18 +68,13 @@ install: build ## Install metald binary and systemd service
 	@echo "✓ metald installed and started"
 
 
-lint: lint-proto ## Run linting tools (includes protobuf linting)
+lint: ## Run linting tools
 	@which golangci-lint >/dev/null || (echo "golangci-lint not found, install from https://golangci-lint.run/usage/install/" && exit 1)
 	@golangci-lint run --disable=godox
-
-lint-proto: ## Run protobuf linter
-	@buf lint
 
 metrics: ## Check Prometheus metrics
 	@curl -s http://localhost:9464/metrics | grep -E "^(vm_|process_|jailer_)" || echo "No VM metrics found"
 
-proto-breaking: ## Check for breaking changes in protobuf files
-	@buf breaking --against '.git#branch=main'
 
 release: clean ci build-linux ## Prepare release build
 	@echo "✓ Release build: $(BUILD_DIR)/$(BINARY_NAME)-linux"
@@ -113,7 +103,7 @@ service-stop: ## Stop metald service
 	@sudo systemctl stop metald
 	@echo "✓ metald stopped"
 
-setup: deps generate ## Complete development setup
+setup: deps ## Complete development setup
 
 test: ## Run all tests
 	@go test ./... -v
