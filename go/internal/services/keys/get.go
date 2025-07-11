@@ -161,6 +161,11 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		return kv, nil
 	}
 
+	if key.ApiDeletedAtM.Valid {
+		kv.setInvalid(StatusNotFound, "key is deleted")
+		return kv, nil
+	}
+
 	if !key.Enabled {
 		kv.setInvalid(StatusDisabled, "key is disabled")
 		return kv, nil

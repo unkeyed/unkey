@@ -103,7 +103,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	opts := []keys.VerifyOption{keys.WithIPWhitelist(), keys.WithApiID(req.ApiId)}
+	opts := []keys.VerifyOption{keys.WithIPWhitelist(), keys.WithApiID(req.ApiId), keys.WithTags(ptr.SafeDeref(req.Tags))}
+
 	// If a custom cost was specified, use it, otherwise use a DefaultCost of 1
 	if req.Credits != nil {
 		opts = append(opts, keys.WithCredits(req.Credits.Cost))
@@ -203,19 +204,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if len(key.RatelimitResults) > 0 {
 		ratelimitResponse := make([]openapi.VerifyKeyRatelimitData, 0)
 		for _, result := range key.RatelimitResults {
-			if result.Response != nil {
-				exceeded := !result.Response.Success
-				ratelimitResponse = append(ratelimitResponse, openapi.VerifyKeyRatelimitData{
-					AutoApply: result.AutoApply,
-					Duration:  result.Duration.Milliseconds(),
-					Exceeded:  &exceeded,
-					Id:        result.Name,
-					Limit:     result.Limit,
-					Name:      result.Name,
-					Remaining: result.Response.Remaining,
-					Reset:     result.Response.Reset.UnixMilli(),
-				})
+			if result.Response == nil {
+				continue
 			}
+
+			exceeded := !result.Response.Success
+			ratelimitResponse = append(ratelimitResponse, openapi.VerifyKeyRatelimitData{
+				AutoApply: result.AutoApply,
+				Duration:  result.Duration.Milliseconds(),
+				Exceeded:  &exceeded,
+				Id:        result.Name,
+				Limit:     result.Limit,
+				Name:      result.Name,
+				Remaining: result.Response.Remaining,
+				Reset:     result.Response.Reset.UnixMilli(),
+			})
 		}
 
 		if len(ratelimitResponse) > 0 {
