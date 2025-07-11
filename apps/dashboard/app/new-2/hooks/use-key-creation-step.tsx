@@ -1,37 +1,74 @@
 import { UsageSetup } from "@/app/(app)/apis/[apiId]/_components/create-key/components/credits-setup";
 import { ExpirationSetup } from "@/app/(app)/apis/[apiId]/_components/create-key/components/expiration-setup";
 import { GeneralSetup } from "@/app/(app)/apis/[apiId]/_components/create-key/components/general-setup";
-import { MetadataSetup } from "@/app/(app)/apis/[apiId]/_components/create-key/components/metadata-setup";
+import {
+  EXAMPLE_JSON,
+  MetadataSetup,
+} from "@/app/(app)/apis/[apiId]/_components/create-key/components/metadata-setup";
 import { RatelimitSetup } from "@/app/(app)/apis/[apiId]/_components/create-key/components/ratelimit-setup";
 import {
   type FormValues,
   formSchema,
 } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.schema";
-import { getDefaultValues } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.utils";
+import {
+  formValuesToApiInput,
+  getDefaultValues,
+} from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.utils";
+import { toast } from "@/components/ui/toaster";
+import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarClock, ChartPie, Code, Gauge, Key2, StackPerspective2 } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
+import { addDays } from "date-fns";
+import { useSearchParams } from "next/navigation";
 import { useRef } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import { ExpandableSettings } from "../components/expandable-settings";
 import type { OnboardingStep } from "../components/onboarding-wizard";
 
-const apiName = z.object({
-  apiName: z.string().trim().min(3, "API name must be at least 3 characters long").max(50),
-});
-
-const extendedFormSchema = formSchema.and(apiName);
+const extendedFormSchema = formSchema.and(
+  z.object({
+    apiName: z
+      .string()
+      .trim()
+      .min(3, "API name must be at least 3 characters long")
+      .max(50, "API name must not exceed 50 characters"),
+  }),
+);
 
 export const useKeyCreationStep = (): OnboardingStep => {
   const formRef = useRef<HTMLFormElement>(null);
+  const searchParams = useSearchParams();
+  const workspaceId = searchParams?.get("workspaceId") || "";
+
+  const createApiAndKey = trpc.workspace.onboarding.useMutation({
+    onSuccess: (data) => {
+      console.info("Successfully created API and key:", data);
+      //TODO: We'll get rid of this in the following PR
+      toast.success("API and key created successfully!");
+    },
+    onError: (error) => {
+      console.error("Failed to create API and key:", error);
+
+      if (error.data?.code === "NOT_FOUND") {
+        // In case users try to feed tRPC with weird workspaceId or non existing one
+        toast.error("Invalid workspace. Please go back and create a new workspace.");
+      } else {
+        toast.error(`Failed to create API and key: ${error.message}`);
+      }
+    },
+  });
 
   const methods = useForm<FormValues & { apiName: string }>({
     resolver: zodResolver(extendedFormSchema),
     mode: "onChange",
     shouldFocusError: true,
     shouldUnregister: true,
-    defaultValues: getDefaultValues(),
+    defaultValues: {
+      ...getDefaultValues(),
+      apiName: "",
+    },
   });
 
   const {
@@ -40,16 +77,39 @@ export const useKeyCreationStep = (): OnboardingStep => {
     watch,
     formState: { errors },
   } = methods;
-  const onSubmit = async (data: FormValues) => {
-    console.info("DATA", data);
+
+  const onSubmit = async (data: FormValues & { apiName: string }) => {
+    if (!isValidWorkspaceId) {
+      console.error("Invalid workspace ID in URL parameters");
+      toast.error("Invalid workspace ID. Please go back and create a new workspace.");
+      return;
+    }
+
     try {
-    } catch {
-      // `useCreateKey` already shows a toast, but we still need to
-      // prevent unhandled‐rejection noise in the console.
+      const keyInput = formValuesToApiInput(data, ""); // Empty keyAuthId since we'll create it
+      const { keyAuthId, ...keyInputWithoutAuthId } = keyInput; // Remove keyAuthId
+
+      const submitData = {
+        workspaceId,
+        apiName: data.apiName,
+        ...keyInputWithoutAuthId,
+      };
+
+      await createApiAndKey.mutateAsync(submitData);
+    } catch (error) {
+      console.error("Submit error:", error);
     }
   };
 
+  // Check if workspaceId looks like a valid workspace ID format
+  const isValidWorkspaceId = workspaceId && /^ws_[a-zA-Z0-9_-]+$/.test(workspaceId);
+
   const apiNameValue = watch("apiName");
+  const isFormReady = Boolean(isValidWorkspaceId && apiNameValue);
+  const isLoading = createApiAndKey.isLoading;
+
+  const validFieldCount = apiNameValue ? 1 : 0;
+
   return {
     name: "API key",
     icon: <StackPerspective2 size="sm-regular" className="text-gray-11" />,
@@ -61,20 +121,24 @@ export const useKeyCreationStep = (): OnboardingStep => {
               <FormInput
                 {...register("apiName")}
                 error={errors.apiName?.message}
-                placeholder="Enter API key name"
-                description="This is just a human readable name for you and not visible to anyone else"
-                label="API key name"
-                optional
+                placeholder="Enter API name"
+                description="Choose a name for your API that helps you identify it"
+                label="API name"
                 className="w-full"
+                disabled={!isValidWorkspaceId || isLoading}
               />
+
               <div className="mt-8" />
+
               <div className="text-gray-11 text-[13px] leading-6">
                 Fine-tune your API key by enabling additional options
               </div>
+
               <div className="mt-5" />
+
               <div className="flex flex-col gap-3 w-full">
                 <ExpandableSettings
-                  disabled={!apiNameValue}
+                  disabled={!isFormReady || isLoading}
                   icon={<Key2 className="text-gray-9 flex-shrink-0" size="sm-regular" />}
                   title="General Setup"
                   description="Configure basic API key settings like prefix, byte length, and External ID"
@@ -83,7 +147,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
                 </ExpandableSettings>
 
                 <ExpandableSettings
-                  disabled={!apiNameValue}
+                  disabled={!isFormReady || isLoading}
                   icon={<Gauge className="text-gray-9 flex-shrink-0" size="sm-regular" />}
                   title="Ratelimit"
                   description="Set request limits per time window to control API usage frequency"
@@ -97,7 +161,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
                 </ExpandableSettings>
 
                 <ExpandableSettings
-                  disabled={!apiNameValue}
+                  disabled={!isFormReady || isLoading}
                   icon={<ChartPie className="text-gray-9 flex-shrink-0" size="sm-regular" />}
                   title="Credits"
                   description="Set usage limits based on credits or quota to control consumption"
@@ -111,13 +175,17 @@ export const useKeyCreationStep = (): OnboardingStep => {
                 </ExpandableSettings>
 
                 <ExpandableSettings
-                  disabled={!apiNameValue}
+                  disabled={!isFormReady || isLoading}
                   icon={<CalendarClock className="text-gray-9 flex-shrink-0" size="sm-regular" />}
                   title="Expiration"
                   description="Set when this API key should automatically expire and become invalid"
                   defaultChecked={methods.watch("expiration.enabled")}
                   onCheckedChange={(checked) => {
                     methods.setValue("expiration.enabled", checked);
+                    const currentExpiryDate = methods.getValues("expiration.data");
+                    if (checked && !currentExpiryDate) {
+                      methods.setValue("expiration.data", addDays(new Date(), 1));
+                    }
                     methods.trigger("expiration");
                   }}
                 >
@@ -125,13 +193,17 @@ export const useKeyCreationStep = (): OnboardingStep => {
                 </ExpandableSettings>
 
                 <ExpandableSettings
-                  disabled={!apiNameValue}
+                  disabled={!isFormReady || isLoading}
                   icon={<Code className="text-gray-9 flex-shrink-0" size="sm-regular" />}
                   title="Metadata"
                   description="Add custom key-value pairs to store additional information with your API key"
                   defaultChecked={methods.watch("metadata.enabled")}
                   onCheckedChange={(checked) => {
                     methods.setValue("metadata.enabled", checked);
+                    const currentMetadata = methods.getValues("metadata.data");
+                    if (checked && !currentMetadata) {
+                      methods.setValue("metadata.data", JSON.stringify(EXAMPLE_JSON, null, 2));
+                    }
                     methods.trigger("metadata");
                   }}
                 >
@@ -143,14 +215,24 @@ export const useKeyCreationStep = (): OnboardingStep => {
         </FormProvider>
       </div>
     ),
-    kind: "non-required" as const,
-    buttonText: "Continue",
-    description: "Setup your API key with extended configurations",
+    kind: "required" as const,
+    validFieldCount,
+    requiredFieldCount: 1,
+    buttonText: isLoading ? "Creating API & Key..." : "Create API & Key",
+    description: "Setup your API with an initial key and advanced configurations",
     onStepNext: () => {
+      if (!isValidWorkspaceId) {
+        toast.error("Invalid workspace ID. Please go back and create a new workspace.");
+        return;
+      }
+      if (isLoading) {
+        return;
+      }
       formRef.current?.requestSubmit();
     },
     onStepBack: () => {
-      console.info("Going back from workspace step");
+      console.info("Going back from API key creation step");
     },
+    isLoading,
   };
 };
