@@ -28,6 +28,9 @@ require (
 	github.com/shirou/gopsutil/v4 v4.25.5
 	github.com/sqlc-dev/sqlc v1.28.0
 	github.com/stretchr/testify v1.10.0
+	github.com/unkeyed/unkey/go/deploy/assetmanagerd v0.0.0-20250711080112-1c7ca7d7e699
+	github.com/unkeyed/unkey/go/deploy/billaged v0.0.0-20250711080112-1c7ca7d7e699
+	github.com/unkeyed/unkey/go/deploy/builderd v0.0.0-20250711080112-1c7ca7d7e699
 	github.com/unkeyed/unkey/go/deploy/pkg/tls v0.0.0-00010101000000-000000000000
 	github.com/urfave/cli/v3 v3.3.3
 	go.opentelemetry.io/contrib/bridges/otelslog v0.11.0
