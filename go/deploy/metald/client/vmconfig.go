@@ -3,7 +3,7 @@ package client
 import (
 	"fmt"
 
-	vmprovisionerv1 "github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
+	vmprovisionerv1 "github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1"
 )
 
 // AIDEV-NOTE: VM configuration builder for customizable VM creation

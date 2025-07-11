@@ -73,6 +73,7 @@ import {
   updateMembership,
 } from "./org";
 import { createPlainIssue } from "./plain";
+import { projectRouter } from "./project";
 import { createNamespace } from "./ratelimit/createNamespace";
 import { createOverride } from "./ratelimit/createOverride";
 import { deleteNamespace } from "./ratelimit/deleteNamespace";
@@ -109,6 +110,7 @@ import { uncancelSubscription } from "./stripe/uncancelSubscription";
 import { updateSubscription } from "./stripe/updateSubscription";
 import { getCurrentUser, listMemberships, switchOrg } from "./user";
 import { vercelRouter } from "./vercel";
+import { versionRouter } from "./version";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
 import { optWorkspaceIntoBeta } from "./workspace/optIntoBeta";
@@ -302,6 +304,8 @@ export const router = t.router({
     query: queryIdentities,
     search: searchIdentities,
   }),
+  project: projectRouter,
+  version: versionRouter,
 });
 
 // export type definition of API

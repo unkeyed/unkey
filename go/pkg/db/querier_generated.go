@@ -93,6 +93,18 @@ type Querier interface {
 	//  JOIN audit_log ON audit_log.id = audit_log_target.audit_log_id
 	//  WHERE audit_log_target.id = ?
 	FindAuditLogTargetByID(ctx context.Context, db DBTX, id string) ([]FindAuditLogTargetByIDRow, error)
+	//FindBranchByProjectName
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      name,
+	//      created_at,
+	//      updated_at
+	//  FROM branches
+	//  WHERE project_id = ? AND name = ?
+	FindBranchByProjectName(ctx context.Context, db DBTX, arg FindBranchByProjectNameParams) (Branch, error)
 	//FindBuildById
 	//
 	//  SELECT
@@ -113,6 +125,21 @@ type Querier interface {
 	//  FROM `builds`
 	//  WHERE id = ?
 	FindBuildById(ctx context.Context, db DBTX, id string) (Build, error)
+	//FindHostnameRoutesByVersionId
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      hostname,
+	//      version_id,
+	//      is_enabled,
+	//      created_at,
+	//      updated_at
+	//  FROM hostname_routes
+	//  WHERE version_id = ? AND is_enabled = true
+	//  ORDER BY created_at ASC
+	FindHostnameRoutesByVersionId(ctx context.Context, db DBTX, versionID string) ([]HostnameRoute, error)
 	//FindIdentityByExternalID
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at FROM identities WHERE workspace_id = ? AND external_id = ? AND deleted = ?
@@ -291,6 +318,38 @@ type Querier interface {
 	//  AND workspace_id = ?
 	//  LIMIT 1
 	FindPermissionBySlugAndWorkspaceID(ctx context.Context, db DBTX, arg FindPermissionBySlugAndWorkspaceIDParams) (Permission, error)
+	//FindProjectById
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      partition_id,
+	//      name,
+	//      slug,
+	//      git_repository_url,
+	//      default_branch,
+	//      delete_protection,
+	//      created_at,
+	//      updated_at
+	//  FROM projects
+	//  WHERE id = ?
+	FindProjectById(ctx context.Context, db DBTX, id string) (Project, error)
+	//FindProjectByWorkspaceSlug
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      partition_id,
+	//      name,
+	//      slug,
+	//      git_repository_url,
+	//      default_branch,
+	//      delete_protection,
+	//      created_at,
+	//      updated_at
+	//  FROM projects
+	//  WHERE workspace_id = ? AND slug = ?
+	FindProjectByWorkspaceSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceSlugParams) (Project, error)
 	//FindRatelimitNamespaceByID
 	//
 	//  SELECT id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m FROM `ratelimit_namespaces`
@@ -359,6 +418,18 @@ type Querier interface {
 	//  FROM `versions`
 	//  WHERE id = ?
 	FindVersionById(ctx context.Context, db DBTX, id string) (Version, error)
+	//FindVersionStepsByVersionId
+	//
+	//  SELECT
+	//      version_id,
+	//      status,
+	//      message,
+	//      error_message,
+	//      created_at
+	//  FROM version_steps
+	//  WHERE version_id = ?
+	//  ORDER BY created_at ASC
+	FindVersionStepsByVersionId(ctx context.Context, db DBTX, versionID string) ([]VersionStep, error)
 	//FindWorkspaceByID
 	//
 	//  SELECT id, org_id, name, partition_id, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
@@ -452,6 +523,19 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertAuditLogTarget(ctx context.Context, db DBTX, arg InsertAuditLogTargetParams) error
+	//InsertBranch
+	//
+	//  INSERT INTO branches (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      name,
+	//      created_at,
+	//      updated_at
+	//  ) VALUES (
+	//      ?, ?, ?, ?, ?, ?
+	//  )
+	InsertBranch(ctx context.Context, db DBTX, arg InsertBranchParams) error
 	//InsertBuild
 	//
 	//  INSERT INTO builds (
@@ -486,6 +570,21 @@ type Querier interface {
 	//      NULL
 	//  )
 	InsertBuild(ctx context.Context, db DBTX, arg InsertBuildParams) error
+	//InsertHostnameRoute
+	//
+	//  INSERT INTO hostname_routes (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      hostname,
+	//      version_id,
+	//      is_enabled,
+	//      created_at,
+	//      updated_at
+	//  ) VALUES (
+	//      ?, ?, ?, ?, ?, ?, ?, ?
+	//  )
+	InsertHostnameRoute(ctx context.Context, db DBTX, arg InsertHostnameRouteParams) error
 	//InsertIdentity
 	//
 	//  INSERT INTO `identities` (
@@ -662,6 +761,23 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertPermission(ctx context.Context, db DBTX, arg InsertPermissionParams) error
+	//InsertProject
+	//
+	//  INSERT INTO projects (
+	//      id,
+	//      workspace_id,
+	//      partition_id,
+	//      name,
+	//      slug,
+	//      git_repository_url,
+	//      default_branch,
+	//      delete_protection,
+	//      created_at,
+	//      updated_at
+	//  ) VALUES (
+	//      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+	//  )
+	InsertProject(ctx context.Context, db DBTX, arg InsertProjectParams) error
 	//InsertRatelimitNamespace
 	//
 	//  INSERT INTO
@@ -771,6 +887,22 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertVersion(ctx context.Context, db DBTX, arg InsertVersionParams) error
+	//InsertVersionStep
+	//
+	//  INSERT INTO version_steps (
+	//      version_id,
+	//      status,
+	//      message,
+	//      error_message,
+	//      created_at
+	//  ) VALUES (
+	//      ?, ?, ?, ?, ?
+	//  )
+	//  ON DUPLICATE KEY UPDATE
+	//      message = VALUES(message),
+	//      error_message = VALUES(error_message),
+	//      created_at = VALUES(created_at)
+	InsertVersionStep(ctx context.Context, db DBTX, arg InsertVersionStepParams) error
 	//InsertWorkspace
 	//
 	//  INSERT INTO `workspaces` (
@@ -1100,6 +1232,20 @@ type Querier interface {
 	//  SET plan = ?
 	//  WHERE id = ?
 	UpdateWorkspacePlan(ctx context.Context, db DBTX, arg UpdateWorkspacePlanParams) (sql.Result, error)
+	//UpsertBranch
+	//
+	//  INSERT INTO branches (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      name,
+	//      created_at,
+	//      updated_at
+	//  ) VALUES (
+	//      ?, ?, ?, ?, ?, ?
+	//  ) ON DUPLICATE KEY UPDATE
+	//      updated_at = VALUES(updated_at)
+	UpsertBranch(ctx context.Context, db DBTX, arg UpsertBranchParams) error
 }
 
 var _ Querier = (*Queries)(nil)

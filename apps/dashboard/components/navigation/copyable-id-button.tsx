@@ -1,3 +1,4 @@
+"use client";
 import { Button, CopyButton } from "@unkey/ui";
 import { useRef } from "react";
 
@@ -72,6 +73,7 @@ export const CopyableIDButton = ({ value, className = "" }: CopyableIDButtonProp
           variant="ghost"
           value={value}
           ref={copyButtonRef}
+          toastMessage={value}
           className="pointer-events-none flex-shrink-0"
         />
       </div>

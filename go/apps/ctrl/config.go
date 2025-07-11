@@ -39,6 +39,12 @@ type Config struct {
 	// AuthToken is the authentication token for control plane API access
 	AuthToken string
 
+	// MetaldAddress is the full URL of the metald service for VM operations (e.g., "https://metald.example.com:8080")
+	MetaldAddress string
+
+	// SPIFFESocketPath is the path to the SPIFFE agent socket for mTLS authentication
+	SPIFFESocketPath string
+
 	Clock clock.Clock
 }
 

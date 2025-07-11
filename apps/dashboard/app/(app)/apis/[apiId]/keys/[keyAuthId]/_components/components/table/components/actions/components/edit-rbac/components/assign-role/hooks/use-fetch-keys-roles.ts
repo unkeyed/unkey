@@ -1,6 +1,6 @@
 "use client";
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { toast } from "@unkey/ui";
 import { useMemo } from "react";
 
 // No need to fetch more than 10 items, because combobox allows seeing 6 items at a time so even if users scroll 10 items are more than enough.

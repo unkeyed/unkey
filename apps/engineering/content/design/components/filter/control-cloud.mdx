@@ -1,6 +1,6 @@
 ---
 title: ControlCloud
-description: A dynamic filter display component that shows active filters as interactive pills with keyboard navigation and removal capabilities.
+description: A dynamic filter display component that shows active filters as interactive pills with keyboard navigation and removal capabilities for enhanced data filtering interfaces.
 ---
 import { 
   BasicControlCloud, 
@@ -9,6 +9,10 @@ import {
   EmptyState, 
   InteractiveExample 
 } from "./control-cloud.examples";
+
+## Overview
+
+The ControlCloud component provides a dynamic way to display active filters as interactive pills. It's designed to show users what filters are currently applied to their data, with keyboard navigation, removal capabilities, and customizable formatting for enhanced data filtering interfaces.
 
 ## Usage
 
@@ -106,6 +110,40 @@ type FilterValue = {
 };
 ```
 
+## Structure
+
+The ControlCloud component is composed of:
+
+1. **Filter Pills Container** - Wrapper for all filter pills
+2. **Individual Filter Pills** - Each filter displayed as a removable pill
+3. **Keyboard Navigation System** - Handles focus and navigation
+4. **Time Display Components** - Special formatting for time-based filters
+
+## Styling
+
+The component includes default styling with:
+
+- Consistent pill styling with hover and focus states
+- Color-coded filter types for visual distinction
+- Responsive design that adapts to container width
+- Dark mode support with appropriate color schemes
+- Focus indicators for keyboard navigation
+- Customizable through className props
+
+### Custom Styling
+
+You can customize the appearance using the className prop:
+
+```tsx
+<ControlCloud
+  filters={filters}
+  removeFilter={removeFilter}
+  updateFilters={updateFilters}
+  formatFieldName={formatFieldName}
+  className="custom-control-cloud"
+/>
+```
+
 ## Keyboard Navigation
 
 The ControlCloud component provides comprehensive keyboard navigation:
@@ -125,43 +163,6 @@ The ControlCloud component provides comprehensive keyboard navigation:
 - **`⌥+⇧+D`**: Clear all filters and set a default time range (endTime = now, startTime = now - historicalWindow)
 - **`⌥+⇧+C`**: Focus the first filter pill for keyboard navigation
 
-## Customization
-
-### Field Name Formatting
-
-Customize how field names are displayed:
-
-```tsx
-const formatFieldName = (field: string): string => {
-  switch (field) {
-    case "startTime":
-      return "Start time";
-    case "endTime":
-      return "End time";
-    case "status":
-      return "Status";
-    default:
-      return field.charAt(0).toUpperCase() + field.slice(1);
-  }
-};
-```
-
-### Value Formatting
-
-Customize how values are displayed:
-
-```tsx
-const formatValue = (value: string | number, field: string): string => {
-  if (field === "duration") {
-    return `${value}ms`;
-  }
-  if (field === "status") {
-    return `HTTP ${value}`;
-  }
-  return String(value);
-};
-```
-
 ## Accessibility
 
 The ControlCloud component is built with accessibility in mind:
@@ -171,28 +172,3 @@ The ControlCloud component is built with accessibility in mind:
 - **Focus Management**: Clear focus indicators and logical tab order
 - **High Contrast**: Maintains proper contrast ratios
 - **Semantic HTML**: Uses appropriate HTML elements and roles
-
-## Best Practices
-
-- **Consistent Field Names**: Use consistent field name formatting across your application
-- **Clear Value Display**: Format values in a user-friendly way
-- **Keyboard Shortcuts**: Document keyboard shortcuts for power users
-- **Empty State**: Handle the empty state gracefully (component is hidden when no filters)
-- **Filter Management**: Implement proper filter state management in your application
-- **Time Windows**: Set appropriate historical windows for time-based shortcuts
-- **Performance**: Consider memoizing format functions for large filter arrays
-
-## Integration
-
-The ControlCloud component is commonly used with:
-
-- **Data Tables**: Display active filters above table content
-- **Log Viewers**: Show applied log filters
-- **Analytics Dashboards**: Display metric filters
-- **Search Interfaces**: Show active search criteria
-
-## Related Components
-
-- **ControlPill**: Individual filter pill component (internal)
-- **TimestampInfo**: Time display component for time-based filters
-- **KeyboardButton**: Keyboard shortcut display component 
