@@ -14,11 +14,10 @@ import {
   formValuesToApiInput,
   getDefaultValues,
 } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.utils";
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarClock, ChartPie, Code, Gauge, Key2, StackPerspective2 } from "@unkey/icons";
-import { FormInput } from "@unkey/ui";
+import { FormInput, toast } from "@unkey/ui";
 import { addDays } from "date-fns";
 import { useSearchParams } from "next/navigation";
 import { useRef } from "react";
