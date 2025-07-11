@@ -5,6 +5,7 @@ export * from "./components/buttons/keyboard-button";
 export * from "./components/buttons/refresh-button";
 export * from "./components/buttons/visible-button";
 export * from "./components/card";
+export * from "./components/circle-progress";
 export * from "./components/code";
 export * from "./components/logs/control-cloud";
 export * from "./validation/utils/transform-structured-output-filter-format";

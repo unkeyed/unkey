@@ -79,7 +79,7 @@ export function AppSidebar({
     [],
   );
 
-  const { state, isMobile, toggleSidebar } = useSidebar();
+  const { state, isMobile, toggleSidebar, openMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
 
   const headerContent = useMemo(
@@ -132,7 +132,11 @@ export function AppSidebar({
             "flex-row": state === "expanded",
           })}
         >
-          <UserButton />
+          <UserButton
+            isCollapsed={(state === "collapsed" || isMobile) && !(isMobile && openMobile)}
+            isMobile={isMobile}
+            isMobileSidebarOpen={openMobile}
+          />
 
           <HelpButton />
         </div>

@@ -6,8 +6,9 @@ import type { Workspace } from "@unkey/db";
 import { SidebarLeftShow } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { HelpButton } from "./help-button";
+
 export const SidebarMobile = ({ workspace }: { workspace: Workspace }) => {
-  const { isMobile, setOpenMobile } = useSidebar();
+  const { isMobile, setOpenMobile, state, openMobile } = useSidebar();
 
   if (!isMobile) {
     return null;
@@ -21,7 +22,11 @@ export const SidebarMobile = ({ workspace }: { workspace: Workspace }) => {
       <WorkspaceSwitcher workspace={workspace} />
       <div className="flex gap-4 items-center">
         <HelpButton />
-        <UserButton />
+        <UserButton
+          isCollapsed={(state === "collapsed" || isMobile) && !(isMobile && openMobile)}
+          isMobile={isMobile}
+          isMobileSidebarOpen={openMobile}
+        />
       </div>
     </div>
   );

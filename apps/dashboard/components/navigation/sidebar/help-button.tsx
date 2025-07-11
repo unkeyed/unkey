@@ -12,6 +12,7 @@ import type React from "react";
 import { useFeedback } from "@/components/dashboard/feedback-component";
 import { Book2, BracketsCurly, Chats, CircleCaretRight, CircleQuestion } from "@unkey/icons";
 import { useState } from "react";
+
 export const HelpButton: React.FC = () => {
   const [_, openFeedback] = useFeedback();
   const [open, setOpen] = useState(false);
@@ -24,7 +25,7 @@ export const HelpButton: React.FC = () => {
       >
         <CircleQuestion className="text-gray-9 group-hover/help:text-gray-12 size-5" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="bottom" className="flex w-44 flex-col gap-3">
+      <DropdownMenuContent side="bottom" className="flex w-44 flex-col gap-3" align="end">
         <DropdownMenuGroup className="w-full">
           <Link href="/new">
             <DropdownMenuItem className="cursor-pointer w-full">

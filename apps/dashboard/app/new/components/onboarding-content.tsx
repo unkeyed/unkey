@@ -1,32 +1,40 @@
 "use client";
-import { StackPerspective2 } from "@unkey/icons";
+import { HelpButton } from "@/components/navigation/sidebar/help-button";
+import { UserButton } from "@/components/navigation/sidebar/user-button";
+import { Key2 } from "@unkey/icons";
 import { useState } from "react";
-import { type OnboardingStep, OnboardingWizard } from "./components/onboarding-wizard";
-import { stepInfos } from "./constants";
-import { useKeyCreationStep } from "./hooks/use-key-creation-step";
-import { useWorkspaceStep } from "./hooks/use-workspace-step";
+import { stepInfos } from "../constants";
+import { useKeyCreationStep } from "../hooks/use-key-creation-step";
+import { useWorkspaceStep } from "../hooks/use-workspace-step";
+import { OnboardingSuccessStep } from "./onboarding-success-step";
+import { type OnboardingStep, OnboardingWizard } from "./onboarding-wizard";
 
-export default function OnboardingPage() {
+export function OnboardingContent() {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const workspaceStep = useWorkspaceStep();
   const keyCreationStep = useKeyCreationStep();
+
   const steps: OnboardingStep[] = [
     workspaceStep,
     keyCreationStep,
     {
-      name: "Dashboard",
-      icon: <StackPerspective2 size="sm-regular" className="text-gray-11" />,
-      body: <div>Dashboard setup content</div>,
+      name: "API key",
+      icon: <Key2 size="sm-regular" className="text-gray-11" />,
+      body: (
+        <OnboardingSuccessStep isConfirmOpen={isConfirmOpen} setIsConfirmOpen={setIsConfirmOpen} />
+      ),
       kind: "non-required" as const,
-      description: "Next: you’ll create your first API key",
-      buttonText: "Continue",
+      description: "You're all set! Your workspace and API key are ready",
+      buttonText: "Continue to dashboard",
+      onStepNext: () => {
+        setIsConfirmOpen(true);
+      },
+      onStepSkip: () => {
+        setIsConfirmOpen(true);
+      },
     },
   ];
-
-  const handleComplete = () => {
-    console.info("Onboarding completed!");
-  };
 
   const handleStepChange = (newStepIndex: number) => {
     setCurrentStepIndex(newStepIndex);
@@ -35,7 +43,7 @@ export default function OnboardingPage() {
   const currentStepInfo = stepInfos[currentStepIndex];
 
   return (
-    <div className="h-screen flex flex-col items-center pt-6 overflow-hidden">
+    <div className="h-screen flex flex-col items-center pt-6 overflow-hidden relative">
       {/* Unkey Logo */}
       <div className="text-2xl font-medium text-gray-12 leading-7">Unkey</div>
       {/* Spacer */}
@@ -61,12 +69,14 @@ export default function OnboardingPage() {
         <div className="mt-10" />
         {/* Form part */}
         <div className="flex-1 min-h-0">
-          <OnboardingWizard
-            steps={steps}
-            onComplete={handleComplete}
-            onStepChange={handleStepChange}
-          />
+          <OnboardingWizard steps={steps} onStepChange={handleStepChange} />
         </div>
+      </div>
+      <div className="absolute bottom-4 left-4">
+        <UserButton />
+      </div>
+      <div className="absolute bottom-4 right-4">
+        <HelpButton />
       </div>
     </div>
   );
