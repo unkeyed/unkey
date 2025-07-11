@@ -176,7 +176,7 @@ CREATE TABLE `ratelimit_overrides` (
 	`updated_at_m` bigint,
 	`deleted_at_m` bigint,
 	CONSTRAINT `ratelimit_overrides_id` PRIMARY KEY(`id`),
-	CONSTRAINT `unique_identifier_per_namespace_idx` UNIQUE(`namespace_i`,`identifier`)
+	CONSTRAINT `unique_identifier_per_namespace_idx` UNIQUE(`identifier`,`namespace_id`)
 );
 
 CREATE TABLE `workspaces` (
