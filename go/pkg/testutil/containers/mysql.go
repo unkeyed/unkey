@@ -105,6 +105,7 @@ func (c *Containers) RunMySQL() (hostCfg, dockerCfg *mysql.Config) {
 	cfg.Addr = fmt.Sprintf("localhost:%s", resource.GetPort("3306/tcp"))
 	cfg.DBName = "" // Explicitly no database name in base DSN
 	cfg.ParseTime = true
+	cfg.InterpolateParams = true
 	cfg.Logger = &mysql.NopLogger{}
 
 	var conn *sql.DB

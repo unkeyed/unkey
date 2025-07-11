@@ -21,13 +21,12 @@ func TestReuseDEKsForSameKeyring(t *testing.T) {
 
 	logger := logging.NewNoop()
 
-	c := containers.New(t)
-	s3 := c.RunS3(t)
+	s3 := containers.S3(t)
 
 	storage, err := storage.NewS3(storage.S3Config{
 		S3URL:             s3.HostURL,
 		S3Bucket:          fmt.Sprintf("%d", time.Now().UnixMilli()),
-		S3AccessKeyId:     s3.AccessKeyId,
+		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.AccessKeySecret,
 		Logger:            logger,
 	})
@@ -65,13 +64,12 @@ func TestIndividualDEKsPerKeyring(t *testing.T) {
 
 	logger := logging.NewNoop()
 
-	c := containers.New(t)
-	s3 := c.RunS3(t)
+	s3 := containers.S3(t)
 
 	storage, err := storage.NewS3(storage.S3Config{
 		S3URL:             s3.HostURL,
 		S3Bucket:          fmt.Sprintf("%d", time.Now().UnixMilli()),
-		S3AccessKeyId:     s3.AccessKeyId,
+		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.AccessKeySecret,
 		Logger:            logger,
 	})

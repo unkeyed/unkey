@@ -1,5 +1,5 @@
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { toast } from "@unkey/ui";
 
 export const useDeleteRole = (
   onSuccess: (data: { roleIds: string[] | string; message: string }) => void,

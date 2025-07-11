@@ -1,6 +1,5 @@
 "use client";
 
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleInfo } from "@unkey/icons";
@@ -14,6 +13,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  toast,
 } from "@unkey/ui";
 import type { PropsWithChildren } from "react";
 import { Controller, useForm } from "react-hook-form";

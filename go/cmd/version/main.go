@@ -34,6 +34,8 @@ Versions are immutable snapshots of your code, configuration, and infrastructure
 		getCmd,
 		listCmd,
 		rollbackCmd,
+		// TODO: Remove this bootstrap command once we have a proper UI
+		bootstrapProjectCmd, // defined in bootstrap.go
 	},
 }
 

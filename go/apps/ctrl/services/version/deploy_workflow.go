@@ -73,6 +73,7 @@ type DeploymentResult struct {
 	Status    string `json:"status"`
 }
 
+
 // Run executes the complete build and deployment workflow
 func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) error {
 	w.logger.Info("starting deployment workflow",
@@ -488,7 +489,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		// Replace underscores with dashes for valid hostname format
 		cleanIdentifier := strings.ReplaceAll(identifier, "_", "-")
 		hostname := fmt.Sprintf("%s-%s-%s.unkey.app", branch, cleanIdentifier, req.WorkspaceID)
-
 		// Create route entry
 		routeID := uid.New("route")
 		insertErr := db.Query.InsertHostnameRoute(stepCtx, w.db.RW(), db.InsertHostnameRouteParams{
