@@ -70,6 +70,8 @@ linters:
         - ^github.com/unkeyed/unkey/go/apps/api/openapi.Meta$
         - ^gorm.io/gorm.Config$
         - ^gorm.io/gorm.*$
+        - ^github.com/redis/go-redis/v9.Options$
+        - ^github.com/go-redis/redis/v8.Options$
     funlen:
       lines: 100
       statements: 50
@@ -91,6 +93,9 @@ linters:
               recommendations:
                 - github.com/gofrs/uuid/v5
               reason: gofrs' package was not go module before v5
+    goconst:
+      min-len: 4
+      min-occurrences: 5
     govet:
       disable:
         - fieldalignment

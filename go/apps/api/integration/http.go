@@ -7,6 +7,7 @@ import (
 	"io"
 	"math/rand/v2"
 	"net/http"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -61,7 +62,11 @@ func CallNode[Req any, Res any](t *testing.T, addr, method string, path string, 
 		return TestResponse[Res]{}, err
 	}
 
-	httpReq, err := http.NewRequest(method, fmt.Sprintf("http://%s%s", addr, path), body)
+	url := addr
+	if !strings.HasPrefix(addr, "http://") && !strings.HasPrefix(addr, "https://") {
+		url = fmt.Sprintf("http://%s", addr)
+	}
+	httpReq, err := http.NewRequest(method, fmt.Sprintf("%s%s", url, path), body)
 	if err != nil {
 		return TestResponse[Res]{}, err
 	}

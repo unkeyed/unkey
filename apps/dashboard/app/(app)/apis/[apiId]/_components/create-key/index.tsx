@@ -14,10 +14,10 @@ import {
   NavigableDialogHeader,
   NavigableDialogNav,
   NavigableDialogRoot,
+  toast,
 } from "@unkey/ui";
 import { type FC, useEffect, useState } from "react";
 import { FormProvider } from "react-hook-form";
-import { toast } from "sonner";
 import { KeyCreatedSuccessDialog } from "./components/key-created-success-dialog";
 import { SectionLabel } from "./components/section-label";
 import { type DialogSectionName, SECTIONS } from "./create-key.constants";

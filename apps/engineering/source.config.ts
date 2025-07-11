@@ -4,6 +4,11 @@ import {
   defineDocs,
   frontmatterSchema,
 } from "fumadocs-mdx/config";
+
+import { createGenerator, remarkAutoTypeTable } from "fumadocs-typescript";
+
+const generator = createGenerator();
+
 export const { docs, meta } = defineDocs();
 
 export const components = defineCollections({
@@ -14,4 +19,7 @@ export const components = defineCollections({
 
 export default defineConfig({
   lastModifiedTime: "git",
+  mdxOptions: {
+    remarkPlugins: [[remarkAutoTypeTable, { generator }]],
+  },
 });

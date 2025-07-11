@@ -1,16 +1,44 @@
 ---
-title: 'KeyboardButton'
-description: 'A component for displaying keyboard shortcuts with optional modifier keys'
+title: KeyboardButton
+description: A component for displaying keyboard shortcuts with optional modifier keys in a visually appealing and accessible format.
 ---
 import { Default } from "./keyboard-button.examples"
 
+## Overview
+
+The KeyboardButton component is designed to display keyboard shortcuts in a visually appealing and accessible way. It's built to support both regular keys and modifier keys (like ⌘, ⇧, CTRL, ⌥) in a consistent format that matches design system standards.
+
+## Usage
+
+```tsx
+import { KeyboardButton } from "@unkey/ui";
+
+export default function MyComponent() {
+  return (
+    <div>
+      <KeyboardButton shortcut="D" />
+      <KeyboardButton modifierKey="⌘" shortcut="K" />
+      <KeyboardButton modifierKey="⇧" shortcut="S" />
+    </div>
+  );
+}
+```
+
+## Examples
+
+### Default and Modifier Key
+Examples showing both regular keys and modifier key combinations.
+
+<Default />
+
 ## Features
 
-- Displays keyboard shortcuts with optional modifier keys
-- Accessible with proper ARIA attributes
-- Supports both light and dark themes
-- Responsive design with mobile considerations
-- Customizable through className prop
+- **Modifier Key Support**: Displays modifier keys (⌘, ⇧, CTRL, ⌥) with main shortcuts
+- **Accessibility**: Built-in accessibility with proper ARIA attributes
+- **Theme Support**: Supports both light and dark themes
+- **Responsive Design**: Adapts to different screen sizes with mobile considerations
+- **Customizable**: Extensive styling options through className prop
+- **Consistent Formatting**: Maintains consistent visual appearance across the app
 
 ## Props
 
@@ -20,26 +48,45 @@ import { Default } from "./keyboard-button.examples"
 | `modifierKey` | `"⌘" \| "⇧" \| "CTRL" \| "⌥" \| null` | Optional modifier key to be displayed before the main shortcut |
 | `className` | `string` | Additional CSS classes to customize the component |
 
-The component also accepts all standard HTML div element props.
+The component also accepts all standard HTML span element props.
 
-## Usage
+## Structure
 
-Default and Modifier Key
+The KeyboardButton component is a simple, self-contained component that renders as a single span element with:
 
-<Default />
+1. **Modifier Key Display**: Optional modifier key with proper spacing
+2. **Main Shortcut**: The primary key being displayed
+3. **Styling Container**: Consistent padding and visual treatment
+
+## Styling
+
+The component features:
+
+- Consistent padding and sizing across all instances
+- Drop shadow effects for depth and visual separation
+- Hover and focus states for better interaction
+- Dark mode support with appropriate color schemes
+- Responsive behavior (hidden on mobile devices)
+- Customizable through className prop
+
+### Custom Styling
+
+You can customize the appearance using the className prop:
+
+```tsx
+<KeyboardButton 
+  modifierKey="⌘" 
+  shortcut="K"
+  className="custom-keyboard-button"
+/>
+```
 
 ## Accessibility
 
 The component includes:
-- Proper ARIA labels for screen readers
-- Keyboard focus management
-- Descriptive title attributes for tooltips
 
-## Design
-
-The component features:
-- Consistent padding and sizing
-- Drop shadow effects
-- Hover and focus states
-- Dark mode support
-- Responsive behavior (hidden on mobile devices)
+- **ARIA Labels**: Proper ARIA labels for screen readers
+- **Keyboard Focus**: Keyboard focus management
+- **Descriptive Titles**: Title attributes for tooltips
+- **Semantic Structure**: Uses appropriate HTML elements
+- **Screen Reader Support**: Announces keyboard shortcuts appropriately

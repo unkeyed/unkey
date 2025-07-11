@@ -1,43 +1,56 @@
-import { toast } from "@/components/ui/toaster";
+"use client";
+
+import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { Clone, InputSearch } from "@unkey/icons";
-import { type MenuItem, TableActionPopover } from "../../../../_components/table-action-popover";
+import { toast } from "@unkey/ui";
 import { useFilters } from "../../../hooks/use-filters";
 
 export const LogsTableAction = ({ identifier }: { identifier: string }) => {
   const { filters, updateFilters } = useFilters();
 
-  const items: MenuItem[] = [
-    {
-      id: "copy",
-      label: "Copy identifier",
-      icon: <Clone size="md-regular" />,
-      onClick: (e) => {
-        e.stopPropagation();
-        navigator.clipboard.writeText(identifier);
-        toast.success("Copied to clipboard", {
-          description: identifier,
-        });
+  const getLogsTableActionItems = (): MenuItem[] => {
+    return [
+      {
+        id: "copy",
+        label: "Copy identifier",
+        icon: <Clone size="md-regular" />,
+        onClick: (e) => {
+          e.stopPropagation();
+          navigator.clipboard
+            .writeText(identifier)
+            .then(() => {
+              toast.success("Copied to clipboard", {
+                description: identifier,
+              });
+            })
+            .catch((error) => {
+              console.error("Failed to copy to clipboard:", error);
+              toast.error("Failed to copy to clipboard");
+            });
+        },
       },
-    },
-    {
-      id: "filter",
-      label: "Filter for identifier",
-      icon: <InputSearch />,
-      onClick: (e) => {
-        e.stopPropagation();
-        const newFilter = {
-          id: crypto.randomUUID(),
-          field: "identifiers" as const,
-          operator: "is" as const,
-          value: identifier,
-        };
-        const existingFilters = filters.filter(
-          (f) => !(f.field === "identifiers" && f.value === identifier),
-        );
-        updateFilters([...existingFilters, newFilter]);
+      {
+        id: "filter",
+        label: "Filter for identifier",
+        icon: <InputSearch size="md-regular" />,
+        onClick: (e) => {
+          e.stopPropagation();
+          const newFilter = {
+            id: crypto.randomUUID(),
+            field: "identifiers" as const,
+            operator: "is" as const,
+            value: identifier,
+          };
+          const existingFilters = filters.filter(
+            (f) => !(f.field === "identifiers" && f.value === identifier),
+          );
+          updateFilters([...existingFilters, newFilter]);
+        },
       },
-    },
-  ];
+    ];
+  };
 
-  return <TableActionPopover items={items} align="start" />;
+  const menuItems = getLogsTableActionItems();
+
+  return <TableActionPopover items={menuItems} align="start" />;
 };
