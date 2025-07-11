@@ -4,8 +4,8 @@ import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { StackPerspective2 } from "@unkey/icons";
 import { Button, FormInput, toast } from "@unkey/ui";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useRef, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import type { OnboardingStep } from "../components/onboarding-wizard";
@@ -29,17 +29,12 @@ type WorkspaceFormData = z.infer<typeof workspaceSchema>;
 
 export const useWorkspaceStep = (): OnboardingStep => {
   // const [isSlugGenerated, setIsSlugGenerated] = useState(false);
+  const [workspaceCreated, setWorkspaceCreated] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
-  const workspaceIdRef = useRef<string | null>(null);
 
   const form = useForm<WorkspaceFormData>({
     resolver: zodResolver(workspaceSchema),
-    defaultValues: {
-      workspaceName: searchParams?.get("workspaceName") || "",
-    },
     mode: "onChange",
   });
 
@@ -61,15 +56,6 @@ export const useWorkspaceStep = (): OnboardingStep => {
           path: "/",
           maxAge: Math.floor((sessionData.expiresAt.getTime() - Date.now()) / 1000),
         },
-      }).then(() => {
-        startTransition(() => {
-          const params = new URLSearchParams(searchParams?.toString());
-          if (!workspaceIdRef.current) {
-            throw new Error("WorkspaceId cannot be null");
-          }
-          params.set("workspaceId", workspaceIdRef.current);
-          router.push(`?${params.toString()}`);
-        });
       });
     },
     onError: (error) => {
@@ -78,8 +64,8 @@ export const useWorkspaceStep = (): OnboardingStep => {
   });
 
   const createWorkspace = trpc.workspace.create.useMutation({
-    onSuccess: async ({ workspace, organizationId }) => {
-      workspaceIdRef.current = workspace.id;
+    onSuccess: async ({ organizationId }) => {
+      setWorkspaceCreated(true);
       switchOrgMutation.mutate(organizationId);
     },
     onError: (error) => {
@@ -111,6 +97,10 @@ export const useWorkspaceStep = (): OnboardingStep => {
   });
 
   const onSubmit = async (data: WorkspaceFormData) => {
+    if (workspaceCreated) {
+      // Workspace already created, just proceed
+      return;
+    }
     createWorkspace.mutateAsync({ name: data.workspaceName });
   };
 
@@ -121,7 +111,7 @@ export const useWorkspaceStep = (): OnboardingStep => {
     return !hasError && hasValue;
   }).length;
 
-  const isLoading = createWorkspace.isLoading || isPending;
+  const isLoading = createWorkspace.isLoading;
 
   return {
     name: "Workspace",
@@ -173,7 +163,7 @@ export const useWorkspaceStep = (): OnboardingStep => {
               // }}
               required
               error={form.formState.errors.workspaceName?.message}
-              disabled={isLoading}
+              disabled={isLoading || workspaceCreated}
             />
             {/* <FormInput */}
             {/*   {...form.register("workspaceUrl")} */}
@@ -190,14 +180,19 @@ export const useWorkspaceStep = (): OnboardingStep => {
     kind: "required" as const,
     validFieldCount,
     requiredFieldCount: 1,
-    buttonText: "Continue",
-    description: "Set up your workspace to get started",
-    onStepNext: () => {
-      if (isLoading) {
-        return;
-      }
-      formRef.current?.requestSubmit();
-    },
+    buttonText: workspaceCreated ? "Continue" : "Create workspace",
+    description: workspaceCreated
+      ? "Workspace created successfully, continue to next step"
+      : "Set up your workspace to get started",
+    onStepNext: workspaceCreated
+      ? undefined
+      : () => {
+          if (isLoading) {
+            return;
+          }
+
+          formRef.current?.requestSubmit();
+        },
     onStepBack: () => {
       console.info("Going back from workspace step");
     },
