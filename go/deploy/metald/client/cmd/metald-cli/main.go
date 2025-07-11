@@ -562,7 +562,7 @@ func handleCreateAndBoot(ctx context.Context, metaldClient *client.Client, optio
 		VMID:   vmID,
 		Config: config,
 	}
-
+	log.Printf("createReq: %+v/n", createReq)
 	createResp, err := metaldClient.CreateVM(ctx, createReq)
 	if err != nil {
 		log.Fatalf("Failed to create VM: %v", err)

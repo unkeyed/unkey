@@ -4,7 +4,7 @@ go 1.24.4
 
 require (
 	connectrpc.com/connect v1.18.1
-	github.com/unkeyed/unkey/go/deploy/metald v0.0.0
+	github.com/unkeyed/unkey/go v0.0.0-00010101000000-000000000000
 	github.com/unkeyed/unkey/go/deploy/pkg/tls v0.0.0
 )
 
@@ -28,3 +28,5 @@ replace github.com/unkeyed/unkey/go/deploy/metald => ..
 replace github.com/unkeyed/unkey/go/deploy/pkg/tls => ../../pkg/tls
 
 replace github.com/unkeyed/unkey/go/deploy/pkg/spiffe => ../../pkg/spiffe
+
+replace github.com/unkeyed/unkey/go => ../../..
