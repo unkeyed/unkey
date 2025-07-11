@@ -63,7 +63,6 @@ func TestRateLimitAccuracy(t *testing.T) {
 										ClickHouse:                    h.ClickHouse,
 										Ratelimit:                     h.Ratelimit,
 										RatelimitNamespaceByNameCache: h.Caches.RatelimitNamespaceByName,
-										RatelimitOverrideMatchesCache: h.Caches.RatelimitOverridesMatch,
 									}
 									h.Register(route)
 									ctx := context.Background()

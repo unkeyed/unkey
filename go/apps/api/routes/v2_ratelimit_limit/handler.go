@@ -2,8 +2,11 @@ package v2RatelimitLimit
 
 import (
 	"context"
+	"database/sql"
+	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -16,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/match"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
@@ -33,8 +37,7 @@ type Handler struct {
 	DB                            db.Database
 	ClickHouse                    clickhouse.Bufferer
 	Ratelimit                     ratelimit.Service
-	RatelimitNamespaceByNameCache cache.Cache[db.FindRatelimitNamespaceByNameParams, db.RatelimitNamespace]
-	RatelimitOverrideMatchesCache cache.Cache[db.ListRatelimitOverrideMatchesParams, []db.RatelimitOverride]
+	RatelimitNamespaceByNameCache cache.Cache[string, db.FindRatelimitNamespace]
 	TestMode                      bool
 }
 
@@ -69,26 +72,56 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		cost = *req.Cost
 	}
 
-	ctx, span := tracing.Start(ctx, "FindRatelimitNamespaceByName")
+	ctx, span := tracing.Start(ctx, "FindRatelimitNamespace")
+	namespace, err := h.RatelimitNamespaceByNameCache.SWR(ctx, req.Namespace, func(ctx context.Context) (db.FindRatelimitNamespace, error) {
+		response, err := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+			Name:        sql.NullString{String: req.Namespace, Valid: true},
+		})
+		result := db.FindRatelimitNamespace{}
+		if err != nil {
+			return result, err
+		}
 
-	findNamespaceArgs := db.FindRatelimitNamespaceByNameParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
-		Name:        req.Namespace,
-	}
-	namespace, err := h.RatelimitNamespaceByNameCache.SWR(ctx, findNamespaceArgs, func(ctx context.Context) (db.RatelimitNamespace, error) {
-		return db.Query.FindRatelimitNamespaceByName(ctx, h.DB.RO(), findNamespaceArgs)
+		result = db.FindRatelimitNamespace{
+			ID:                response.ID,
+			WorkspaceID:       response.WorkspaceID,
+			Name:              response.Name,
+			CreatedAtM:        response.CreatedAtM,
+			UpdatedAtM:        response.UpdatedAtM,
+			DeletedAtM:        response.DeletedAtM,
+			DirectOverrides:   make(map[string]db.FindRatelimitNamespaceLimitOverride),
+			WildcardOverrides: make([]db.FindRatelimitNamespaceLimitOverride, 0),
+		}
+
+		overrides := make([]db.FindRatelimitNamespaceLimitOverride, 0)
+		err = json.Unmarshal(response.Overrides.([]byte), &overrides)
+		if err != nil {
+			return result, err
+		}
+
+		for _, override := range overrides {
+			result.DirectOverrides[override.Identifier] = override
+			if strings.Contains(override.Identifier, "*") {
+				result.WildcardOverrides = append(result.WildcardOverrides, override)
+			}
+		}
+
+		return result, nil
 	}, caches.DefaultFindFirstOp)
-
 	span.End()
-	if db.IsNotFound(err) {
-		return fault.New("namespace was deleted",
-			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-			fault.Internal("namespace not found"), fault.Public("This namespace does not exist."),
-		)
-	}
+
 	if err != nil {
+		if db.IsNotFound(err) {
+			return fault.New("namespace was deleted",
+				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+				fault.Internal("namespace not found"), fault.Public("This namespace does not exist."),
+			)
+		}
+
 		return err
 	}
+
 	if namespace.DeletedAtM.Valid {
 		return fault.New("namespace was deleted",
 			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
@@ -113,33 +146,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	findOverrideMatchesArgs := db.ListRatelimitOverrideMatchesParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
-		NamespaceID: namespace.ID,
-		Identifier:  req.Identifier,
-	}
-	ctx, overridesSpan := tracing.Start(ctx, "ListRatelimitOverrideMatches")
-	overrides, err := h.RatelimitOverrideMatchesCache.SWR(ctx, findOverrideMatchesArgs, func(ctx context.Context) ([]db.RatelimitOverride, error) {
-		return db.Query.ListRatelimitOverrideMatches(ctx, h.DB.RO(), findOverrideMatchesArgs)
-	}, func(err error) cache.Op {
-		if err == nil {
-			// everything went well and we have a namespace response
-			return cache.WriteValue
-		}
-		// this is a noop in the cache
-		return cache.Noop
-	})
-
-	overridesSpan.End()
-	if db.IsNotFound(err) {
-		return fault.New("namespace was deleted",
-			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-			fault.Internal("namespace not found"), fault.Public("This namespace does not exist."),
-		)
-	}
-	if err != nil {
-		return err
-	}
 	// Determine limit and duration from override or request
 	var (
 		limit      = req.Limit
@@ -147,18 +153,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		overrideId = ""
 	)
 
-	for _, override := range overrides {
-		if override.DeletedAtM.Valid {
-			continue
-		}
+	found, override := matchOverride(req.Identifier, namespace)
+	if found {
 		limit = int64(override.Limit)
 		duration = int64(override.Duration)
 		overrideId = override.ID
-
-		if override.Identifier == req.Identifier {
-			// Exact match takes precedence
-			break
-		}
 	}
 
 	// Apply rate limit
@@ -210,9 +209,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			OverrideId: nil,
 		},
 	}
+
 	if overrideId != "" {
 		res.Data.OverrideId = &overrideId
 	}
+
 	// Return success response
 	return s.JSON(http.StatusOK, res)
+}
+
+func matchOverride(identifier string, namespace db.FindRatelimitNamespace) (bool, db.FindRatelimitNamespaceLimitOverride) {
+	// First check for exact match in direct overrides
+	if override, ok := namespace.DirectOverrides[identifier]; ok {
+		return true, override
+	}
+
+	// Then check wildcard overrides
+	for _, override := range namespace.WildcardOverrides {
+		if match.Wildcard(identifier, override.Identifier) {
+			return true, override
+		}
+	}
+
+	return false, db.FindRatelimitNamespaceLimitOverride{}
 }

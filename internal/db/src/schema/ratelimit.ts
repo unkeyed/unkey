@@ -15,8 +15,8 @@ export const ratelimitNamespaces = mysqlTable(
   (table) => {
     return {
       uniqueNamePerWorkspaceIdx: unique("unique_name_per_workspace_idx").on(
-        table.name,
         table.workspaceId,
+        table.name,
       ),
     };
   },
@@ -59,9 +59,9 @@ export const ratelimitOverrides = mysqlTable(
   },
   (table) => {
     return {
-      uniqueIdentifierPerNamespace: unique("unique_identifier_per_namespace_idx").on(
-        table.identifier,
+      uniqueIdentifierPerNamespace: unique("unique_namespace_identifier_idx").on(
         table.namespaceId,
+        table.identifier,
       ),
     };
   },

@@ -2,14 +2,20 @@ package handler
 
 import (
 	"context"
+	"database/sql"
+	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
+	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/match"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -20,9 +26,10 @@ type Response = openapi.V2RatelimitGetOverrideResponseBody
 // Handler implements zen.Route interface for the v2 ratelimit get override endpoint
 type Handler struct {
 	// Services as public fields
-	Logger logging.Logger
-	DB     db.Database
-	Keys   keys.KeyService
+	Logger                        logging.Logger
+	DB                            db.Database
+	Keys                          keys.KeyService
+	RatelimitNamespaceByNameCache cache.Cache[string, db.FindRatelimitNamespace]
 }
 
 // Method returns the HTTP method this route responds to
@@ -51,18 +58,50 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	namespace, err := getNamespace(ctx, h, auth.AuthorizedWorkspaceID, req)
-
+	response, err := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
+		WorkspaceID: auth.AuthorizedWorkspaceID,
+		Name:        sql.NullString{String: ptr.SafeDeref(req.NamespaceName), Valid: req.NamespaceName != nil},
+		ID:          sql.NullString{String: ptr.SafeDeref(req.NamespaceId), Valid: req.NamespaceId != nil},
+	})
 	if err != nil {
-		// already handled correctly in getNamespace
-		return err
+		if db.IsNotFound(err) {
+			return fault.New("namespace not found",
+				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+				fault.Internal("namespace not found"), fault.Public("The namespace was not found."),
+			)
+		}
+
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database failed to find the namespace"), fault.Public("Error finding the ratelimit namespace."),
+		)
 	}
 
-	if namespace.WorkspaceID != auth.AuthorizedWorkspaceID {
-		return fault.New("namespace not found",
-			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-			fault.Internal("namespace was deleted"), fault.Public("This namespace does not exist."),
+	namespace := db.FindRatelimitNamespace{
+		ID:                response.ID,
+		WorkspaceID:       response.WorkspaceID,
+		Name:              response.Name,
+		CreatedAtM:        response.CreatedAtM,
+		UpdatedAtM:        response.UpdatedAtM,
+		DeletedAtM:        response.DeletedAtM,
+		DirectOverrides:   make(map[string]db.FindRatelimitNamespaceLimitOverride),
+		WildcardOverrides: make([]db.FindRatelimitNamespaceLimitOverride, 0),
+	}
+
+	overrides := make([]db.FindRatelimitNamespaceLimitOverride, 0)
+	err = json.Unmarshal(response.Overrides.([]byte), &overrides)
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Internal("unable to unmarshal ratelimit overrides"),
+			fault.Public("We're unable to parse the ratelimits overrides."),
 		)
+	}
+
+	for _, override := range overrides {
+		namespace.DirectOverrides[override.Identifier] = override
+		if strings.Contains(override.Identifier, "*") {
+			namespace.WildcardOverrides = append(namespace.WildcardOverrides, override)
+		}
 	}
 
 	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
@@ -81,22 +120,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	override, err := db.Query.FindRatelimitOverrideByIdentifier(ctx, h.DB.RO(), db.FindRatelimitOverrideByIdentifierParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
-		NamespaceID: namespace.ID,
-		Identifier:  req.Identifier,
-	})
-
-	if db.IsNotFound(err) {
+	found, override := matchOverride(req.Identifier, namespace)
+	if !found {
 		return fault.New("override not found",
 			fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
-			fault.Internal("override not found"), fault.Public("This override does not exist."),
-		)
-	}
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to find the override"), fault.Public("Error finding the ratelimit override."),
+			fault.Internal("override not found"),
+			fault.Public("This override does not exist."),
 		)
 	}
 
@@ -105,52 +134,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RequestId: s.RequestID(),
 		},
 		Data: openapi.RatelimitOverride{
-
 			OverrideId:  override.ID,
 			Duration:    int64(override.Duration),
 			Identifier:  override.Identifier,
-			NamespaceId: override.NamespaceID,
+			NamespaceId: namespace.ID,
 			Limit:       int64(override.Limit),
 		},
 	})
 }
 
-func getNamespace(ctx context.Context, h *Handler, workspaceID string, req Request) (namespace db.RatelimitNamespace, err error) {
-
-	switch {
-	case req.NamespaceId != nil:
-		{
-			namespace, err = db.Query.FindRatelimitNamespaceByID(ctx, h.DB.RO(), *req.NamespaceId)
-			break
-		}
-	case req.NamespaceName != nil:
-		{
-			namespace, err = db.Query.FindRatelimitNamespaceByName(ctx, h.DB.RO(), db.FindRatelimitNamespaceByNameParams{
-				WorkspaceID: workspaceID,
-				Name:        *req.NamespaceName,
-			})
-			break
-		}
-	default:
-		return db.RatelimitNamespace{}, fault.New("namespace id or name required",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal("namespace id or name required"), fault.Public("You must provide either a namespace ID or name."),
-		)
+func matchOverride(identifier string, namespace db.FindRatelimitNamespace) (bool, db.FindRatelimitNamespaceLimitOverride) {
+	// First check for exact match in direct overrides
+	if override, ok := namespace.DirectOverrides[identifier]; ok {
+		return true, override
 	}
 
-	if err != nil {
-
-		if db.IsNotFound(err) {
-			return db.RatelimitNamespace{}, fault.New("namespace not found",
-				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-				fault.Internal("namespace not found"), fault.Public("The namespace was not found."),
-			)
+	// Then check wildcard overrides
+	for _, override := range namespace.WildcardOverrides {
+		if match.Wildcard(identifier, override.Identifier) {
+			return true, override
 		}
-
-		return db.RatelimitNamespace{}, fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to find the namespace"), fault.Public("Error finding the ratelimit namespace."),
-		)
 	}
-	return namespace, nil
+
+	return false, db.FindRatelimitNamespaceLimitOverride{}
 }

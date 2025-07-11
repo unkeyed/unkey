@@ -25,7 +25,6 @@ func TestBadRequests(t *testing.T) {
 		Logger:                        h.Logger,
 		Ratelimit:                     h.Ratelimit,
 		RatelimitNamespaceByNameCache: h.Caches.RatelimitNamespaceByName,
-		RatelimitOverrideMatchesCache: h.Caches.RatelimitOverridesMatch,
 	}
 
 	h.Register(route)

@@ -16,7 +16,7 @@ func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, e
 	limit, err := db.Query.FindKeyCredits(ctx, s.db.RW(), req.KeyId)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return UsageResponse{}, nil
+			return UsageResponse{Valid: false, Remaining: 0}, nil
 		}
 
 		return UsageResponse{Valid: false, Remaining: 0}, err

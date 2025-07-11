@@ -350,6 +350,27 @@ type Querier interface {
 	//  FROM projects
 	//  WHERE workspace_id = ? AND slug = ?
 	FindProjectByWorkspaceSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceSlugParams) (Project, error)
+	//FindRatelimitNamespace
+	//
+	//  SELECT id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,
+	//         coalesce(
+	//                 (select json_arrayagg(
+	//                                 json_object(
+	//                                         'id', ro.id,
+	//                                         'identifier', ro.identifier,
+	//                                         'limit', ro.limit,
+	//                                         'duration', ro.duration
+	//                                 )
+	//                         )
+	//                  from ratelimit_overrides ro where ro.namespace_id = ns.id AND ro.deleted_at_m IS NULL),
+	//                 json_array()
+	//         ) as overrides
+	//  FROM `ratelimit_namespaces` ns
+	//  WHERE ns.workspace_id = ?
+	//  AND CASE WHEN ? IS NOT NULL THEN ns.name = ?
+	//  WHEN ? IS NOT NULL THEN ns.id = ?
+	//  ELSE false END
+	FindRatelimitNamespace(ctx context.Context, db DBTX, arg FindRatelimitNamespaceParams) (FindRatelimitNamespaceRow, error)
 	//FindRatelimitNamespaceByID
 	//
 	//  SELECT id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m FROM `ratelimit_namespaces`
@@ -1020,18 +1041,6 @@ type Querier interface {
 	//  WHERE rp.role_id = ?
 	//  ORDER BY p.slug
 	ListPermissionsByRoleID(ctx context.Context, db DBTX, roleID string) ([]Permission, error)
-	//ListRatelimitOverrideMatches
-	//
-	//  SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
-	//  WHERE
-	//      workspace_id = ?
-	//      AND namespace_id = ?
-	//      AND ? LIKE
-	//            REPLACE(
-	//              REPLACE(identifier, '*', '%'), -- Replace * with % wildcard
-	//              '_', '\\_'                              -- Escape underscore literals
-	//            )
-	ListRatelimitOverrideMatches(ctx context.Context, db DBTX, arg ListRatelimitOverrideMatchesParams) ([]RatelimitOverride, error)
 	//ListRatelimitOverridesByNamespaceID
 	//
 	//  SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides

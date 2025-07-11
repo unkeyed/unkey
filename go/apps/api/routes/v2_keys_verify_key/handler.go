@@ -64,6 +64,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
+		// nolint:exhaustruct
 		Data: openapi.KeysVerifyKeyResponseData{
 			Code:  openapi.NOTFOUND,
 			Valid: false,
@@ -85,8 +86,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return s.JSON(http.StatusOK, res)
 	}
 
-	// We are leaking a keys existance here...
-	// We should only do that if the key lies in the same workspace as our rootKey ?
+	// FIXME: We are leaking a keys existance here... by telling the user that he doesn't have perms
 	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
@@ -168,7 +168,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if key.Key.IdentityID.Valid {
-		identityRatelimits := make([]openapi.RatelimitResponse, 0)
 		res.Data.Identity = &openapi.Identity{
 			ExternalId: key.Key.ExternalID.String,
 			Id:         key.Key.IdentityID.String,
@@ -181,7 +180,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				continue
 			}
 
-			identityRatelimits = append(identityRatelimits, openapi.RatelimitResponse{
+			res.Data.Identity.Ratelimits = append(res.Data.Identity.Ratelimits, openapi.RatelimitResponse{
 				AutoApply: ratelimit.AutoApply == 1,
 				Duration:  int64(ratelimit.Duration),
 				Id:        ratelimit.ID,
@@ -191,7 +190,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if len(key.Key.IdentityMeta) > 0 {
-			err = json.Unmarshal([]byte(key.Key.IdentityMeta), &res.Data.Identity.Meta)
+			err = json.Unmarshal(key.Key.IdentityMeta, &res.Data.Identity.Meta)
 			if err != nil {
 				return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
 					fault.Internal("unable to unmarshal identity meta"),

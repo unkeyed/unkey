@@ -99,6 +99,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		permission := openapi.Permission{
 			Id:          perm.ID,
 			Name:        perm.Name,
+			Slug:        perm.Slug,
 			Description: nil,
 			CreatedAt:   perm.CreatedAtM,
 		}

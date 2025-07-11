@@ -15,11 +15,7 @@ import (
 type Caches struct {
 	// RatelimitNamespaceByName caches ratelimit namespace lookups by name.
 	// Keys are db.FindRatelimitNamespaceByNameParams and values are db.RatelimitNamespace.
-	RatelimitNamespaceByName cache.Cache[db.FindRatelimitNamespaceByNameParams, db.RatelimitNamespace]
-
-	// RatelimitOverridesMatch caches ratelimit override matches for specific criteria.
-	// Keys are db.ListRatelimitOverrideMatchesParams and values are slices of db.RatelimitOverride.
-	RatelimitOverridesMatch cache.Cache[db.ListRatelimitOverrideMatchesParams, []db.RatelimitOverride]
+	RatelimitNamespaceByName cache.Cache[string, db.FindRatelimitNamespace]
 
 	// VerificationKeyByHash caches verification key lookups by their hash.
 	// Keys are string (hash) and values are db.VerificationKey.
@@ -69,24 +65,12 @@ type Config struct {
 //	// Use the caches
 //	key, err := caches.KeyByHash.Get(ctx, "some-hash")
 func New(config Config) (Caches, error) {
-	ratelimitNamespace, err := cache.New(cache.Config[db.FindRatelimitNamespaceByNameParams, db.RatelimitNamespace]{
+	ratelimitNamespace, err := cache.New(cache.Config[string, db.FindRatelimitNamespace]{
 		Fresh:    time.Minute,
 		Stale:    24 * time.Hour,
 		Logger:   config.Logger,
 		MaxSize:  1_000_000,
-		Resource: "ratelimit_namespace_by_name",
-		Clock:    config.Clock,
-	})
-	if err != nil {
-		return Caches{}, err
-	}
-
-	ratelimitOverridesMatch, err := cache.New(cache.Config[db.ListRatelimitOverrideMatchesParams, []db.RatelimitOverride]{
-		Fresh:    time.Minute,
-		Stale:    24 * time.Hour,
-		Logger:   config.Logger,
-		MaxSize:  1_000_000,
-		Resource: "ratelimit_overrides",
+		Resource: "ratelimit_namespace",
 		Clock:    config.Clock,
 	})
 	if err != nil {
@@ -120,7 +104,6 @@ func New(config Config) (Caches, error) {
 
 	return Caches{
 		RatelimitNamespaceByName: middleware.WithTracing(ratelimitNamespace),
-		RatelimitOverridesMatch:  middleware.WithTracing(ratelimitOverridesMatch),
 		ApiByID:                  middleware.WithTracing(apiById),
 		VerificationKeyByHash:    middleware.WithTracing(verificationKeyByHash),
 	}, nil

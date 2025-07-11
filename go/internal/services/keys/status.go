@@ -33,6 +33,8 @@ func (k *KeyVerifier) ToFault() error {
 	}
 
 	switch k.Status {
+	case StatusValid:
+		return nil
 	case StatusNotFound:
 		return fault.New("key does not exist",
 			fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
@@ -140,6 +142,8 @@ func (k *KeyVerifier) ToOpenAPIStatus() openapi.KeysVerifyKeyResponseDataCode {
 		return openapi.USAGEEXCEEDED
 	case StatusRateLimited:
 		return openapi.RATELIMITED
+	case StatusWorkspaceNotFound:
+		return openapi.NOTFOUND
 	case StatusWorkspaceDisabled:
 		return openapi.FORBIDDEN
 	default:

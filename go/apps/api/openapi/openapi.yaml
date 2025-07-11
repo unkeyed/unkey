@@ -1931,6 +1931,13 @@ components:
       required:
         - identifier
       type: object
+      oneOf:
+        - required:
+            - namespaceName
+            - identifier
+        - required:
+            - namespaceId
+            - identifier
     V2RatelimitGetOverrideResponseBody:
       type: object
       required:

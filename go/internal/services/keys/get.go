@@ -65,6 +65,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
 		if db.IsNotFound(err) {
+			// nolint:exhaustruct
 			return &KeyVerifier{
 				Valid:   false,
 				Status:  StatusNotFound,
@@ -81,6 +82,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 
 	// ForWorkspace set but that doesn't exist
 	if key.ForWorkspaceID.Valid && !key.ForWorkspaceEnabled.Valid {
+		// nolint:exhaustruct
 		return &KeyVerifier{
 			Valid:   false,
 			Status:  StatusWorkspaceNotFound,
@@ -89,6 +91,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 	}
 
 	if !key.WorkspaceEnabled || (key.ForWorkspaceEnabled.Valid && !key.ForWorkspaceEnabled.Bool) {
+		// nolint:exhaustruct
 		return &KeyVerifier{
 			Valid:   false,
 			Status:  StatusWorkspaceDisabled,
@@ -150,6 +153,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		ratelimitConfigs: ratelimitConfigs,
 		Roles:            roles,
 		Permissions:      permissions,
+		RatelimitResults: nil,
 	}
 
 	if key.DeletedAtM.Valid {

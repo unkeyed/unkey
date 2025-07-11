@@ -11,12 +11,12 @@ import (
 )
 
 var (
-	// VerificationsTotal tracks the number of key verifications handled, labeled by some data.
+	// KeyVerificationsTotal tracks the number of key verifications handled, labeled by some data.
 	// Use this counter to monitor API traffic patterns and error rates.
 	//
 	// Example usage:
 	//   metrics.VerificationsTotal.WithLabelValues("GET", "/users", "200").Inc()
-	VerificationsTotal = promauto.NewCounterVec(
+	KeyVerificationsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Subsystem:   "key",
 			Name:        "verifications_total",
@@ -26,15 +26,16 @@ var (
 		[]string{"workspaceId", "apiId", "keyId", "valid", "code"},
 	)
 
-	// CreditsSpentTotal tracks the total credits spent by keys, labeled by workspace ID, key ID, and identity ID.
+	// KeyCreditsSpentTotal tracks the total credits spent by keys, labeled by workspace ID, key ID, and identity ID.
 	// Use this counter to monitor credit usage patterns and error rates.
 	//
 	// Example usage:
 	//   metrics.CreditsSpentTotal.WithLabelValues("workspace1", "key1", "identity1").Inc()
-	CreditsSpentTotal = promauto.NewCounterVec(
+	KeyCreditsSpentTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "unkey_credits_spent_total",
-			Help: "Total credits spent by keys",
+			Subsystem: "key",
+			Name:      "credits_spent_total",
+			Help:      "Total credits spent by keys",
 		},
 		[]string{"workspace_id", "key_id", "identity_id"},
 	)

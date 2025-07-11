@@ -216,14 +216,14 @@ func TestSuccess(t *testing.T) {
 	})
 
 	t.Run("with ip whitelist", func(t *testing.T) {
-		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, IpWhitelist: "127.0.0.1"})
+		ipWhitelistApi := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, IpWhitelist: "127.0.0.1"})
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeyAuthID:   api.KeyAuthID.String,
 		})
 
 		req := handler.Request{
-			ApiId: api.ID,
+			ApiId: ipWhitelistApi.ID,
 			Key:   key.Key,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)

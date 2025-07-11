@@ -111,6 +111,7 @@ func (k *KeyVerifier) withPermissions(ctx context.Context, query rbac.Permission
 // Auto-applied limits come from the key or identity configuration, while specified limits
 // are provided at verification time. All limits must pass for the key to be valid.
 func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []openapi.KeysVerifyKeyRatelimit) error {
+	// nolint:ineffassign
 	ctx, span := tracing.Start(ctx, "verify.withRateLimits")
 	defer span.End()
 
@@ -197,6 +198,7 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 			Limit:      config.Limit,
 			Duration:   config.Duration,
 			Cost:       config.Cost,
+			Time:       time.Now(),
 		})
 		if err != nil {
 			return err

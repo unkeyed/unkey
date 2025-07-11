@@ -323,7 +323,7 @@ type CreateIdentityRequest struct {
 func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) string {
 	metaBytes := []byte("{}")
 	if len(req.Meta) > 0 {
-		metaBytes = []byte(req.Meta)
+		metaBytes = req.Meta
 	}
 
 	require.NoError(s.t, assert.NotEmpty(req.ExternalID, "Identity ExternalID must be set"))
@@ -404,6 +404,7 @@ func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionReque
 		Name:         req.Name,
 		Slug:         req.Slug,
 		Description:  sql.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},
+		CreatedAtM:   time.Now().UnixMilli(),
 	})
 	require.NoError(s.t, err)
 
