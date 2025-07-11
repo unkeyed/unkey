@@ -59,7 +59,7 @@ export const ratelimitOverrides = mysqlTable(
   },
   (table) => {
     return {
-      uniqueIdentifierPerNamespace: unique("unique_namespace_identifier_idx").on(
+      uniqueIdentifierPerNamespace: unique("unique_identifier_per_namespace_idx").on(
         table.namespaceId,
         table.identifier,
       ),

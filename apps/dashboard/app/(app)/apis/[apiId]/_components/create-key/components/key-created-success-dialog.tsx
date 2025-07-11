@@ -2,12 +2,12 @@
 
 import { ConfirmPopover } from "@/components/confirmation-popover";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ArrowRight, Check, CircleInfo, Key2, Plus } from "@unkey/icons";
-import { Button, Code, CopyButton, InfoTooltip, VisibleButton, toast } from "@unkey/ui";
+import { ArrowRight, Check, Key2, Plus } from "@unkey/icons";
+import { Button, InfoTooltip, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { UNNAMED_KEY } from "../create-key.constants";
-import { SecretKey } from "./secret-key";
+import { KeySecretSection } from "./key-secret-section";
 
 export const KeyCreatedSuccessDialog = ({
   isOpen,
@@ -24,7 +24,6 @@ export const KeyCreatedSuccessDialog = ({
   keyspaceId?: string | null;
   onCreateAnother?: () => void;
 }) => {
-  const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<
     "close" | "create-another" | "go-to-details" | null
@@ -52,21 +51,6 @@ export const KeyCreatedSuccessDialog = ({
   if (!keyData) {
     return null;
   }
-
-  const split = keyData.key.split("_") ?? [];
-  const maskedKey =
-    split.length >= 2
-      ? `${split.at(0)}_${"*".repeat(split.at(1)?.length ?? 0)}`
-      : "*".repeat(split.at(0)?.length ?? 0);
-
-  const snippet = `curl -XPOST '${
-    process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"
-  }/v1/keys.verifyKey' \\
-  -H 'Content-Type: application/json' \\
-  -d '{
-    "key": "${keyData.key}",
-    "apiId": "${apiId}"
-  }'`;
 
   const handleCloseAttempt = (action: "close" | "create-another" | "go-to-details" = "close") => {
     setPendingAction(action);
@@ -199,36 +183,12 @@ export const KeyCreatedSuccessDialog = ({
                 </div>
               </div>
             </div>
-            <div className="flex flex-col gap-2 items-start w-full mt-6">
-              <div className="text-gray-12 text-sm font-semibold">Key Secret</div>
-              <SecretKey value={keyData.key} title="API Key" className="bg-white dark:bg-black " />
-              <div className="text-gray-9 text-[13px] flex items-center gap-1.5">
-                <CircleInfo className="text-accent-9" size="sm-regular" />
-                <span>
-                  Copy and save this key secret as it won't be shown again.{" "}
-                  <a
-                    href="https://www.unkey.com/docs/security/recovering-keys"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-info-11 hover:underline"
-                  >
-                    Learn more
-                  </a>
-                </span>
-              </div>
-            </div>
-            <div className="flex flex-col gap-2 items-start w-full mt-8">
-              <div className="text-gray-12 text-sm font-semibold">Try It Out</div>
-
-              <Code
-                visibleButton={
-                  <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
-                }
-                copyButton={<CopyButton value={snippet} />}
-              >
-                {showKeyInSnippet ? snippet : snippet.replace(keyData.key, maskedKey)}
-              </Code>
-            </div>
+            <KeySecretSection
+              keyValue={keyData.key}
+              apiId={apiId}
+              className="mt-6 w-full"
+              secretKeyClassName="bg-white dark:bg-black"
+            />
             <div className="mt-6">
               <div className="mt-4 text-center text-gray-10 text-xs leading-6">
                 All set! You can now create another key or explore the docs to learn more

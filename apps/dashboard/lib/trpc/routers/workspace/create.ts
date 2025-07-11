@@ -7,6 +7,7 @@ import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
 import { requireUser, t } from "../../trpc";
+
 export const createWorkspace = t.procedure
   .use(requireUser)
   .input(

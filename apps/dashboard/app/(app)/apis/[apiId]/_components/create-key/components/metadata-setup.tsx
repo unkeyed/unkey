@@ -5,7 +5,7 @@ import { useFormContext, useWatch } from "react-hook-form";
 import type { MetadataFormValues } from "../create-key.schema";
 import { ProtectionSwitch } from "./protection-switch";
 
-const EXAMPLE_JSON = {
+export const EXAMPLE_JSON = {
   user: {
     id: "user_123456",
     role: "admin",
