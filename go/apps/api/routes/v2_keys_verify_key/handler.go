@@ -106,7 +106,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	opts := []keys.VerifyOption{keys.WithIPWhitelist(), keys.WithApiID(req.ApiId)}
 	// If a custom cost was specified, use it, otherwise use a DefaultCost of 1
 	if req.Credits != nil {
-		opts = append(opts, keys.WithCredits(int32(req.Credits.Cost)))
+		opts = append(opts, keys.WithCredits(req.Credits.Cost))
 	} else if key.Key.RemainingRequests.Valid {
 		opts = append(opts, keys.WithCredits(DefaultCost))
 	}
@@ -119,9 +119,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if req.Permissions != nil {
-		query, err := convertPermissionsToQuery(*req.Permissions)
-		if err != nil {
-			return err
+		query, queryErr := convertPermissionsToQuery(*req.Permissions)
+		if queryErr != nil {
+			return queryErr
 		}
 
 		opts = append(opts, keys.WithPermissions(query))

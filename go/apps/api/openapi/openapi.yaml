@@ -1764,9 +1764,7 @@ components:
           example: 3600000
         autoApply:
           type: boolean
-          description: |
-            Whether this rate limit should be automatically applied when verifying keys.
-            When true, we will automatically apply this limit during verification without it being explicitly listed.
+          description: Whether this rate limit was automatically applied when verifying the key.
           example: true
       required:
         - id
@@ -3435,7 +3433,7 @@ components:
       properties:
         cost:
           type: integer
-          format: int64
+          format: int32
           minimum: 0
           maximum: 1000000000
           description: |

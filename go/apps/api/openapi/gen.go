@@ -328,7 +328,7 @@ type KeysVerifyKeyCredits struct {
 	// Use 0 for read-only operations or free tier access, higher values for premium features.
 	// Credits are deducted immediately upon verification, even if the key lacks required permissions.
 	// Essential for implementing usage-based pricing with different operation costs.
-	Cost int64 `json:"cost"`
+	Cost int32 `json:"cost"`
 }
 
 // KeysVerifyKeyRatelimit defines model for KeysVerifyKeyRatelimit.
@@ -614,8 +614,7 @@ type RatelimitRequest struct {
 
 // RatelimitResponse defines model for RatelimitResponse.
 type RatelimitResponse struct {
-	// AutoApply Whether this rate limit should be automatically applied when verifying keys.
-	// When true, we will automatically apply this limit during verification without it being explicitly listed.
+	// AutoApply Whether this rate limit was automatically applied when verifying the key.
 	AutoApply bool `json:"autoApply"`
 
 	// Duration Rate limit window duration in milliseconds.

@@ -135,10 +135,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		},
 		Data: openapi.RatelimitOverride{
 			OverrideId:  override.ID,
-			Duration:    int64(override.Duration),
-			Identifier:  override.Identifier,
 			NamespaceId: namespace.ID,
-			Limit:       int64(override.Limit),
+			Limit:       override.Limit,
+			Duration:    override.Duration,
+			Identifier:  override.Identifier,
 		},
 	})
 }
@@ -156,5 +156,5 @@ func matchOverride(identifier string, namespace db.FindRatelimitNamespace) (bool
 		}
 	}
 
-	return false, db.FindRatelimitNamespaceLimitOverride{}
+	return false, db.FindRatelimitNamespaceLimitOverride{} // nolint:exhaustruct
 }

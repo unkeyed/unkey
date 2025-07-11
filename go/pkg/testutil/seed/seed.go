@@ -61,7 +61,15 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 func (s *Seeder) Seed(ctx context.Context) {
 	s.Resources.UserWorkspace = s.CreateWorkspace(ctx)
 	s.Resources.RootWorkspace = s.CreateWorkspace(ctx)
-	s.Resources.RootApi = s.CreateAPI(ctx, CreateApiRequest{WorkspaceID: s.Resources.RootWorkspace.ID})
+	s.Resources.RootApi = s.CreateAPI(ctx, CreateApiRequest{
+		WorkspaceID:   s.Resources.RootWorkspace.ID,
+		IpWhitelist:   "",
+		EncryptedKeys: false,
+		Name:          nil,
+		CreatedAt:     nil,
+		DefaultPrefix: nil,
+		DefaultBytes:  nil,
+	})
 	keyring, err := db.Query.FindKeyringByID(ctx, s.DB.RW(), s.Resources.RootApi.KeyAuthID.String)
 	require.NoError(s.t, err)
 	s.Resources.RootKeyring = keyring

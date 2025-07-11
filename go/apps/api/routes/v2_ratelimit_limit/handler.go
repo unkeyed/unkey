@@ -77,8 +77,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		response, err := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			Name:        sql.NullString{String: req.Namespace, Valid: true},
+			ID:          sql.NullString{String: "", Valid: false},
 		})
-		result := db.FindRatelimitNamespace{}
+		result := db.FindRatelimitNamespace{} // nolint:exhaustruct
 		if err != nil {
 			return result, err
 		}
@@ -155,8 +156,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	found, override := matchOverride(req.Identifier, namespace)
 	if found {
-		limit = int64(override.Limit)
-		duration = int64(override.Duration)
+		limit = override.Limit
+		duration = override.Duration
 		overrideId = override.ID
 	}
 
