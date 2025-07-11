@@ -73,7 +73,6 @@ type DeploymentResult struct {
 	Status    string `json:"status"`
 }
 
-
 // Run executes the complete build and deployment workflow
 func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) error {
 	w.logger.Info("starting deployment workflow",
@@ -248,14 +247,14 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		// MOCK: Bypassing metald CreateVm call due to missing VM infrastructure
 		// TODO: Remove this mock and use real metald call once VM assets are available
 		w.logger.Info("MOCK: Simulating VM creation request", "docker_image", req.DockerImage)
-		
+
 		// Generate realistic mock VM ID and response
 		mockVMID := uid.New("vm") // Generate mock VM ID
 		resp := &vmprovisionerv1.CreateVmResponse{
 			VmId:  mockVMID,
 			State: vmprovisionerv1.VmState_VM_STATE_CREATED,
 		}
-		
+
 		w.logger.Info("MOCK: VM creation simulated successfully", "vm_id", mockVMID, "docker_image", req.DockerImage)
 
 		w.logger.Info("VM created successfully", "vm_id", resp.VmId, "state", resp.State.String(), "docker_image", req.DockerImage)
@@ -361,7 +360,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			// MOCK: Bypassing metald GetVmInfo call - simulating realistic VM preparation
 			// TODO: Remove this mock and use real metald call once VM assets are available
 			w.logger.Info("MOCK: Simulating VM status request", "vm_id", createResult.VmId, "attempt", attempt)
-			
+
 			// Simulate realistic VM preparation progression
 			var mockState vmprovisionerv1.VmState
 			if attempt <= 2 {
@@ -371,9 +370,9 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 				mockState = vmprovisionerv1.VmState_VM_STATE_CREATED
 				w.logger.Info("MOCK: VM preparation complete", "vm_id", createResult.VmId, "attempt", attempt)
 			}
-			
+
 			resp := &vmprovisionerv1.GetVmInfoResponse{
-				VmId: createResult.VmId,
+				VmId:  createResult.VmId,
 				State: mockState,
 			}
 
@@ -408,13 +407,13 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		// MOCK: Bypassing metald BootVm call - simulating successful boot
 		// TODO: Remove this mock and use real metald call once VM assets are available
 		w.logger.Info("MOCK: Simulating VM boot request", "vm_id", createResult.VmId)
-		
+
 		// Simulate successful VM boot
 		resp := &vmprovisionerv1.BootVmResponse{
 			Success: true,
 			State:   vmprovisionerv1.VmState_VM_STATE_RUNNING,
 		}
-		
+
 		w.logger.Info("MOCK: VM boot simulated successfully", "vm_id", createResult.VmId)
 
 		if !resp.Success {
@@ -454,9 +453,9 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		// Generate hostnames for this deployment
 		// Use Git info for hostname generation
 		gitInfo := git.GetInfo()
-		branch := "main" // Default branch
+		branch := "main"            // Default branch
 		identifier := req.VersionID // Use full version ID as identifier
-		
+
 		if gitInfo.IsRepo {
 			if gitInfo.Branch != "" {
 				branch = gitInfo.Branch
@@ -470,7 +469,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		// Replace underscores with dashes for valid hostname format
 		cleanIdentifier := strings.ReplaceAll(identifier, "_", "-")
 		hostname := fmt.Sprintf("%s-%s-%s.unkey.app", branch, cleanIdentifier, req.WorkspaceID)
-		
+
 		// Create route entry
 		routeID := uid.New("route")
 		insertErr := db.Query.InsertRoute(stepCtx, w.db.RW(), db.InsertRouteParams{
