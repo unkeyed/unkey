@@ -1,10 +1,9 @@
 "use client";
-import { SecretKey } from "@/app/(app)/apis/[apiId]/_components/create-key/components/secret-key";
+import { KeySecretSection } from "@/app/(app)/apis/[apiId]/_components/create-key/components/key-secret-section";
 import { ConfirmPopover } from "@/components/confirmation-popover";
-import { CircleInfo, TriangleWarning } from "@unkey/icons";
-import { Code, CopyButton, VisibleButton } from "@unkey/ui";
+import { TriangleWarning } from "@unkey/icons";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { API_ID_PARAM, KEY_PARAM } from "../constants";
 
 type OnboardingSuccessStepProps = {
@@ -17,7 +16,6 @@ export const OnboardingSuccessStep = ({
   setIsConfirmOpen,
 }: OnboardingSuccessStepProps) => {
   const router = useRouter();
-  const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
   const anchorRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
 
@@ -38,59 +36,19 @@ export const OnboardingSuccessStep = ({
     );
   }
 
-  const split = key.split("_") ?? [];
-  const maskedKey =
-    split.length >= 2
-      ? `${split.at(0)}_${"*".repeat(split.at(1)?.length ?? 0)}`
-      : "*".repeat(split.at(0)?.length ?? 0);
-
-  const snippet = `curl -XPOST '${
-    process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"
-  }/v1/keys.verifyKey' \\
-  -H 'Content-Type: application/json' \\
-  -d '{
-    "key": "${key}",
-    "apiId": "${apiId}"
-  }'`;
-
   return (
-    <>
-      <div>
-        <span className="text-gray-11 text-[13px] leading-6" ref={anchorRef}>
-          Run this command to verify your new API key against the API ID. This ensures your key is
-          ready for authenticated requests.
-        </span>
-        <div className="flex flex-col gap-2 items-start w-full mt-6">
-          <div className="text-gray-12 text-sm font-medium">Key Secret</div>
-          <SecretKey value={key} title="API Key" className="bg-gray-2" />
-          <div className="text-gray-9 text-[13px] flex items-center gap-1.5">
-            <CircleInfo className="text-accent-9" size="sm-regular" />
-            <span>
-              Copy and save this key secret as it won't be shown again.{" "}
-              <a
-                href="https://www.unkey.com/docs/security/recovering-keys"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-info-11 hover:underline"
-              >
-                Learn more
-              </a>
-            </span>
-          </div>
-        </div>
-        <div className="flex flex-col gap-2 items-start w-full mt-8">
-          <div className="text-gray-12 text-sm font-medium">Try It Out</div>
-          <Code
-            className="bg-gray-2"
-            visibleButton={
-              <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
-            }
-            copyButton={<CopyButton value={snippet} />}
-          >
-            {showKeyInSnippet ? snippet : snippet.replace(key, maskedKey)}
-          </Code>
-        </div>
-      </div>
+    <div>
+      <span className="text-gray-11 text-[13px] leading-6" ref={anchorRef}>
+        Run this command to verify your new API key against the API ID. This ensures your key is
+        ready for authenticated requests.
+      </span>
+      <KeySecretSection
+        keyValue={key}
+        apiId={apiId}
+        className="mt-6"
+        secretKeyClassName="bg-gray-2"
+        codeClassName="bg-gray-2"
+      />
       <ConfirmPopover
         isOpen={isConfirmOpen}
         onOpenChange={setIsConfirmOpen}
@@ -113,6 +71,6 @@ export const OnboardingSuccessStep = ({
           onOpenAutoFocus: (e) => e.preventDefault(),
         }}
       />
-    </>
+    </div>
   );
 };
