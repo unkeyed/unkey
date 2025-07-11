@@ -57,21 +57,23 @@ export const RoleSwitcher = memo<RoleSwitcherProps>(
 
     if (isAdmin) {
       return (
-        <Select
-          value={role}
-          disabled={(Boolean(user) && member.id === user?.id) || updateMember.isLoading}
-          onValueChange={handleRoleUpdate}
-        >
-          <SelectTrigger className="w-[180px] max-sm:w-36">
-            {updateMember.isLoading ? <Loading /> : <SelectValue />}
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="basic_member">Member</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+        <div className="w-fit">
+          <Select
+            value={role}
+            disabled={(Boolean(user) && member.id === user?.id) || updateMember.isLoading}
+            onValueChange={handleRoleUpdate}
+          >
+            <SelectTrigger className="w-[180px] max-sm:w-36">
+              {updateMember.isLoading ? <Loading /> : <SelectValue />}
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="basic_member">Member</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
       );
     }
 
