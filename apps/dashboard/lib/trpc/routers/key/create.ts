@@ -50,8 +50,8 @@ export const createKey = t.procedure
         return await createKeyCore(
           {
             ...input,
-            storeEncryptedKeys: keyAuth.storeEncryptedKeys,
             keyAuthId: keyAuth.id,
+            storeEncryptedKeys: keyAuth.storeEncryptedKeys,
           },
           ctx,
           tx,

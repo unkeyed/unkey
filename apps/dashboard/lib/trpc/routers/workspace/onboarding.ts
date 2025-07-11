@@ -7,7 +7,6 @@ import { createApiCore } from "../api/create";
 import { createKeyCore } from "../key/create";
 
 const createWorkspaceWithApiAndKeyInputSchema = z.object({
-  workspaceId: z.string(),
   apiName: z
     .string()
     .min(3, "API name must be at least 3 characters")
@@ -27,13 +26,15 @@ export const onboardingKeyCreation = t.procedure
         // Create API
         const apiResult = await createApiCore({ name: apiName }, ctx, tx);
 
-        // Create key using the keyAuthId from the API
-        const keyAuth = {
-          keyAuthId: apiResult.keyAuthId,
-          storeEncryptedKeys: false, // Default for new APIs. Can be activated by unkey with a support ticket.
-        };
-
-        const keyResult = await createKeyCore({ ...keyInput, ...keyAuth }, ctx, tx);
+        const keyResult = await createKeyCore(
+          {
+            ...keyInput,
+            keyAuthId: apiResult.keyAuthId,
+            storeEncryptedKeys: false, // Default for new APIs. Can be activated by unkey with a support ticket.
+          },
+          ctx,
+          tx,
+        );
 
         return {
           apiId: apiResult.id,
