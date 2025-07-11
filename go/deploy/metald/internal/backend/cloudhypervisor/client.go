@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	metaldv1 "github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
+	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
