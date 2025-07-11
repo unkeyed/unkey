@@ -37,9 +37,8 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { Button, Input } from "@unkey/ui";
+import { Button, Input, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 interface DataTableProps<TData, TValue> {

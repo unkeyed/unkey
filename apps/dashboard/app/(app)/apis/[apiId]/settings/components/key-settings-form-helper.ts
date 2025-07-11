@@ -1,6 +1,6 @@
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "@unkey/ui";
 import type { z } from "zod";
 
 const createInvalidationHelper = () => {

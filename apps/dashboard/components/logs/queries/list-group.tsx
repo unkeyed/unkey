@@ -1,7 +1,6 @@
-import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import { Bookmark, CircleCheck, Layers2 } from "@unkey/icons";
-import { InfoTooltip } from "@unkey/ui";
+import { InfoTooltip, toast } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { useQueries } from "./queries-context";
 import { QueriesItemRow } from "./queries-item-row";
