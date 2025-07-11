@@ -103,7 +103,8 @@ func Run(ctx context.Context, cfg Config) error {
 	builderService := builder.NewMockService()
 
 	// Register deployment workflow with Hydra worker
-	deployWorkflow := version.NewDeployWorkflow(database, logger, builderService)
+	// TODO: Replace nil with actual metald client when available
+	deployWorkflow := version.NewDeployWorkflow(database, logger, builderService, nil)
 	err = hydra.RegisterWorkflow(hydraWorker, deployWorkflow)
 	if err != nil {
 		return fmt.Errorf("unable to register deployment workflow: %w", err)
