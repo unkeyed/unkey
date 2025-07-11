@@ -1,0 +1,167 @@
+---
+title: CircleProgress
+description: A circular progress indicator with completion checkmark for displaying progress and validation states.
+---
+
+import {
+  BasicProgress,
+  VariantExamples,
+  SizeExamples,
+  CompletionStates,
+  FormValidation,
+} from "./circle-progress.example";
+
+## Overview
+
+The CircleProgress component provides a visual representation of progress completion using a circular arc. When progress reaches 100%, it smoothly transitions to display a checkmark, making it ideal for form validation, step completion, and task progress indicators.
+
+## Usage
+
+```tsx
+import { CircleProgress } from "@unkey/ui";
+
+export default function MyComponent() {
+  return (
+    <div>
+      <CircleProgress value={3} total={5} />
+      <CircleProgress
+        value={validFields}
+        total={requiredFields}
+        variant="success"
+      />
+      <CircleProgress value={100} total={100} size="lg-bold" />
+    </div>
+  );
+}
+```
+
+## Examples
+
+### Basic Progress
+
+Simple progress indicators showing different completion states.
+
+<BasicProgress />
+
+### Variant Examples
+
+Different color variants for various use cases and themes.
+
+<VariantExamples />
+
+### Size Examples
+
+All available sizes using the icon sizing system.
+
+<SizeExamples />
+
+### Completion States
+
+Progress indicators transitioning from incomplete to complete with checkmark.
+
+<CompletionStates />
+
+### Form Validation
+
+Real-world example showing form field validation progress.
+
+<FormValidation />
+
+## Features
+
+- **Smooth Animations**: Animated progress arc with smooth transitions to completion state
+- **Completion Checkmark**: Automatically displays checkmark when value >= total
+- **Icon Sizing System**: Uses the same sizing system as icons for consistency
+- **Multiple Variants**: Five different color schemes (primary, secondary, success, warning, error)
+- **Accessibility**: Proper ARIA attributes and screen reader support
+- **Customizable**: Extensive styling options through className prop
+- **Error Handling**: Built-in validation with descriptive error messages
+
+## Props
+
+| Prop        | Type                                                            | Default        | Description                                                 |
+| ----------- | --------------------------------------------------------------- | -------------- | ----------------------------------------------------------- |
+| `value`     | `number`                                                        | -              | Current progress value (e.g., 3 completed items).           |
+| `total`     | `number`                                                        | -              | Total/maximum value representing 100% completion.           |
+| `size`      | `IconSize`                                                      | `"md-regular"` | Size using icon system format (e.g., "sm-thin", "lg-bold"). |
+| `variant`   | `"primary" \| "secondary" \| "success" \| "warning" \| "error"` | `"primary"`    | The visual variant/color scheme.                            |
+| `className` | `string`                                                        | -              | Additional CSS classes to apply to the container.           |
+
+## Variants
+
+- **primary**: Default styling with gray progress and green completion
+- **secondary**: Subtle styling with lighter gray progress indicator
+- **success**: Green styling throughout for positive validation states
+- **warning**: Yellow/orange styling for warnings or cautions
+- **error**: Red styling for errors or failed validation states
+
+## Size System
+
+CircleProgress uses the same sizing system as icons, providing consistency across components:
+
+| Size    | Dimensions | Stroke Options                                        |
+| ------- | ---------- | ----------------------------------------------------- |
+| `sm-*`  | 12px       | thin (1px), regular (2px), medium (1.5px), bold (3px) |
+| `md-*`  | 14px       | thin (1px), regular (2px), medium (1.5px), bold (3px) |
+| `lg-*`  | 16px       | thin (1px), regular (2px), medium (1.5px), bold (3px) |
+| `xl-*`  | 18px       | thin (1px), regular (2px), medium (1.5px), bold (3px) |
+| `2xl-*` | 30px       | thin (1px), regular (2px), medium (1.5px), bold (3px) |
+
+## Common Use Cases
+
+### Form Validation
+
+Perfect for showing field completion in multi-step forms:
+
+```tsx
+<CircleProgress
+  value={validFieldCount}
+  total={requiredFieldCount}
+  variant="success"
+  size="sm-medium"
+/>
+```
+
+### Task Progress
+
+Show completion of tasks or checklist items:
+
+```tsx
+<CircleProgress value={completedTasks} total={totalTasks} size="md-regular" />
+```
+
+### Loading States
+
+Indicate progress during loading or processing:
+
+```tsx
+<CircleProgress
+  value={loadedItems}
+  total={totalItems}
+  variant="primary"
+  size="lg-medium"
+/>
+```
+
+## Styling
+
+### Custom Styling
+
+Customize appearance using the className prop:
+
+```tsx
+<CircleProgress
+  value={progress}
+  total={100}
+  className="opacity-75 hover:opacity-100"
+  variant="success"
+/>
+```
+
+### Theme Integration
+
+The component uses CSS custom properties that adapt to your theme:
+
+- `text-grayA-6` for background circle
+- `text-grayA-9` / `text-successA-9` etc. for progress colors
+- Automatic dark mode support through color tokens
