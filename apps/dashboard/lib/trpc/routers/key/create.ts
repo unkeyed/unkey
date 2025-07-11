@@ -29,11 +29,11 @@ export const createKey = t.procedure
           api: true,
         },
       })
-      .catch(() => {
+      .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to find the keyAuth. Please try again or contact support@unkey.dev",
+            "We were unable to create a key for this API. Please try again or contact support@unkey.dev.",
         });
       });
 
