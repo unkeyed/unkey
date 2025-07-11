@@ -1,5 +1,5 @@
--- name: InsertRoute :exec
-INSERT INTO routes (
+-- name: InsertHostnameRoute :exec
+INSERT INTO hostname_routes (
     id,
     workspace_id,
     project_id,

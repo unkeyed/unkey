@@ -80,7 +80,7 @@ func (s *Service) GetVersion(
 	}
 
 	// Fetch routes (hostnames) for this version
-	routes, err := db.Query.FindRoutesByVersionId(ctx, s.db.RO(), version.ID)
+	routes, err := db.Query.FindHostnameRoutesByVersionId(ctx, s.db.RO(), version.ID)
 	if err != nil {
 		s.logger.Warn("failed to fetch routes for version", "error", err, "version_id", version.ID)
 		// Continue without hostnames rather than failing the entire request
