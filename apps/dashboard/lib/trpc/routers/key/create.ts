@@ -39,7 +39,15 @@ export const createKey = t.procedure
 
     try {
       return await db.transaction(async (tx) => {
-        return await createKeyCore(input, ctx, tx, keyAuth);
+        return await createKeyCore(
+          {
+            ...input,
+            keyAuthId: keyAuth.id,
+            storeEncryptedKeys: keyAuth.storeEncryptedKeys,
+          },
+          ctx,
+          tx,
+        );
       });
     } catch (_err) {
       throw new TRPCError({
@@ -58,18 +66,12 @@ type CreateKeyContext = {
   };
 };
 
-type KeyAuth = {
-  id: string;
-  storeEncryptedKeys: boolean;
-};
-
 type DatabaseTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export async function createKeyCore(
-  input: CreateKeyInput,
+  input: CreateKeyInput & { storeEncryptedKeys: boolean },
   ctx: CreateKeyContext,
   tx: DatabaseTransaction,
-  keyAuth: KeyAuth,
 ) {
   const keyId = newId("key");
   const { key, hash, start } = await newKey({
@@ -79,7 +81,7 @@ export async function createKeyCore(
 
   await tx.insert(schema.keys).values({
     id: keyId,
-    keyAuthId: keyAuth.id,
+    keyAuthId: input.keyAuthId,
     name: input.name,
     hash,
     start,
@@ -99,7 +101,7 @@ export async function createKeyCore(
     environment: input.environment,
   });
 
-  if (keyAuth.storeEncryptedKeys) {
+  if (input.storeEncryptedKeys) {
     const { encrypted, keyId: encryptionKeyId } = await vault.encrypt({
       keyring: ctx.workspace.id,
       data: key,

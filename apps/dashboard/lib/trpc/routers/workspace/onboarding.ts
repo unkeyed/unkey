@@ -2,12 +2,11 @@ import { createKeyInputSchema } from "@/app/(app)/apis/[apiId]/_components/creat
 import { db } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { requireUser, t } from "../../trpc";
+import { requireUser, requireWorkspace, t } from "../../trpc";
 import { createApiCore } from "../api/create";
 import { createKeyCore } from "../key/create";
 
 const createWorkspaceWithApiAndKeyInputSchema = z.object({
-  workspaceId: z.string(),
   apiName: z
     .string()
     .min(3, "API name must be at least 3 characters")
@@ -17,9 +16,10 @@ const createWorkspaceWithApiAndKeyInputSchema = z.object({
 
 export const onboardingKeyCreation = t.procedure
   .use(requireUser)
+  .use(requireWorkspace)
   .input(createWorkspaceWithApiAndKeyInputSchema)
   .mutation(async ({ input, ctx }) => {
-    const { workspaceId, apiName, ...keyInput } = input;
+    const { apiName, ...keyInput } = input;
 
     try {
       return await db.transaction(async (tx) => {
@@ -28,7 +28,7 @@ export const onboardingKeyCreation = t.procedure
           .findFirst({
             where: (table, { and, eq, isNull }) =>
               and(
-                eq(table.id, workspaceId),
+                eq(table.id, ctx.workspace.id),
                 eq(table.orgId, ctx.tenant.id),
                 isNull(table.deletedAtM),
               ),
@@ -48,29 +48,17 @@ export const onboardingKeyCreation = t.procedure
           });
         }
 
-        // Create workspace context for API and key creation
-        const workspaceCtx = {
-          ...ctx,
-          workspace: { id: workspaceId },
-        };
-
         // Create API
-        const apiResult = await createApiCore({ name: apiName }, workspaceCtx, tx);
-
-        // Create key using the keyAuthId from the API
-        const keyAuth = {
-          id: apiResult.keyAuthId,
-          storeEncryptedKeys: false, // Default for new APIs. Can be activated by unkey with a support ticket.
-        };
+        const apiResult = await createApiCore({ name: apiName }, ctx, tx);
 
         const keyResult = await createKeyCore(
           {
             ...keyInput,
             keyAuthId: apiResult.keyAuthId,
+            storeEncryptedKeys: false, // Default for new APIs. Can be activated by unkey with a support ticket.
           },
-          workspaceCtx,
+          ctx,
           tx,
-          keyAuth,
         );
 
         return {

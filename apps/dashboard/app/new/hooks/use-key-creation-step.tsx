@@ -14,11 +14,10 @@ import {
   formValuesToApiInput,
   getDefaultValues,
 } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.utils";
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarClock, ChartPie, Code, Gauge, Key2, StackPerspective2 } from "@unkey/icons";
-import { FormInput } from "@unkey/ui";
+import { FormInput, toast } from "@unkey/ui";
 import { addDays } from "date-fns";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
@@ -44,7 +43,6 @@ export const useKeyCreationStep = (): OnboardingStep => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
-  const workspaceId = searchParams?.get("workspaceId") || "";
 
   const createApiAndKey = trpc.workspace.onboarding.useMutation({
     onSuccess: (data) => {
@@ -86,18 +84,11 @@ export const useKeyCreationStep = (): OnboardingStep => {
   } = methods;
 
   const onSubmit = async (data: FormValues & { apiName: string }) => {
-    if (!isValidWorkspaceId) {
-      console.error("Invalid workspace ID in URL parameters");
-      toast.error("Invalid workspace ID. Please go back and create a new workspace.");
-      return;
-    }
-
     try {
       const keyInput = formValuesToApiInput(data, ""); // Empty keyAuthId since we'll create it
       const { keyAuthId, ...keyInputWithoutAuthId } = keyInput; // Remove keyAuthId
 
       const submitData = {
-        workspaceId,
         apiName: data.apiName,
         ...keyInputWithoutAuthId,
       };
@@ -108,11 +99,8 @@ export const useKeyCreationStep = (): OnboardingStep => {
     }
   };
 
-  // Check if workspaceId looks like a valid workspace ID format
-  const isValidWorkspaceId = workspaceId && /^ws_[a-zA-Z0-9_-]+$/.test(workspaceId);
-
   const apiNameValue = watch("apiName");
-  const isFormReady = Boolean(isValidWorkspaceId && apiNameValue);
+  const isFormReady = Boolean(apiNameValue);
   const isLoading = createApiAndKey.isLoading || isPending;
 
   const tooltipContent = apiCreated
@@ -136,7 +124,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
                 description="Choose a name for your API that helps you identify it"
                 label="API name"
                 className="w-full"
-                disabled={!isValidWorkspaceId || isLoading || apiCreated}
+                disabled={isLoading || apiCreated}
               />
 
               <div className="mt-8" />
@@ -242,10 +230,6 @@ export const useKeyCreationStep = (): OnboardingStep => {
     onStepNext: apiCreated
       ? undefined
       : () => {
-          if (!isValidWorkspaceId) {
-            toast.error("Invalid workspace ID. Please go back and create a new workspace.");
-            return;
-          }
           if (isLoading) {
             return;
           }

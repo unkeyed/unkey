@@ -1,16 +1,14 @@
-import { toast } from "@/components/ui/toaster";
 import { setCookie } from "@/lib/auth/cookies";
 import { UNKEY_SESSION_COOKIE } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { StackPerspective2 } from "@unkey/icons";
-import { Button, FormInput } from "@unkey/ui";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { Button, FormInput, toast } from "@unkey/ui";
+import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import type { OnboardingStep } from "../components/onboarding-wizard";
-import { WORKSPACE_ID_PARAM } from "../constants";
 
 const workspaceSchema = z.object({
   workspaceName: z
@@ -34,9 +32,6 @@ export const useWorkspaceStep = (): OnboardingStep => {
   const [workspaceCreated, setWorkspaceCreated] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
-  const workspaceIdRef = useRef<string | null>(null);
 
   const form = useForm<WorkspaceFormData>({
     resolver: zodResolver(workspaceSchema),
@@ -61,15 +56,6 @@ export const useWorkspaceStep = (): OnboardingStep => {
           path: "/",
           maxAge: Math.floor((sessionData.expiresAt.getTime() - Date.now()) / 1000),
         },
-      }).then(() => {
-        startTransition(() => {
-          const params = new URLSearchParams(searchParams?.toString());
-          if (!workspaceIdRef.current) {
-            throw new Error("WorkspaceId cannot be null");
-          }
-          params.set(WORKSPACE_ID_PARAM, workspaceIdRef.current);
-          router.push(`?${params.toString()}`);
-        });
       });
     },
     onError: (error) => {
@@ -78,8 +64,7 @@ export const useWorkspaceStep = (): OnboardingStep => {
   });
 
   const createWorkspace = trpc.workspace.create.useMutation({
-    onSuccess: async ({ workspace, organizationId }) => {
-      workspaceIdRef.current = workspace.id;
+    onSuccess: async ({ organizationId }) => {
       setWorkspaceCreated(true);
       switchOrgMutation.mutate(organizationId);
     },
@@ -126,7 +111,7 @@ export const useWorkspaceStep = (): OnboardingStep => {
     return !hasError && hasValue;
   }).length;
 
-  const isLoading = createWorkspace.isLoading || isPending;
+  const isLoading = createWorkspace.isLoading;
 
   return {
     name: "Workspace",

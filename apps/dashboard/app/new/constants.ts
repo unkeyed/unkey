@@ -1,4 +1,3 @@
-export const WORKSPACE_ID_PARAM = "workspaceId";
 export const KEY_PARAM = "key";
 export const API_ID_PARAM = "apiId";
 
