@@ -2,18 +2,15 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_add_permissions"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
-	"github.com/unkeyed/unkey/go/pkg/uid"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
 func TestSuccess(t *testing.T) {
@@ -41,48 +38,32 @@ func TestSuccess(t *testing.T) {
 	}
 
 	t.Run("add single permission by ID", func(t *testing.T) {
-		// Create a test keyring
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        workspace.ID,
-			StoreEncryptedKeys: false,
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			CreatedAtM:         time.Now().UnixMilli(),
+		// Create API with keyring using testutil helper
+		defaultPrefix := "test"
+		defaultBytes := int32(16)
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   workspace.ID,
+			DefaultPrefix: &defaultPrefix,
+			DefaultBytes:  &defaultBytes,
 		})
-		require.NoError(t, err)
 
-		// Create a test key
-		keyID := uid.New(uid.KeyPrefix)
-		keyString := "test_" + uid.New("")
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(keyString),
-			Start:             keyString[:4],
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Test Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
+		// Create a test key using testutil helper
+		keyName := "Test Key"
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+			Name:        &keyName,
 		})
-		require.NoError(t, err)
+		keyID := keyResponse.KeyID
 
-		// Create a permission
-		permissionID := uid.New(uid.TestPrefix)
-		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			PermissionID: permissionID,
-			WorkspaceID:  workspace.ID,
-			Name:         "documents.read.single.id",
-			Slug:         "documents.read.single.id",
-			Description:  sql.NullString{Valid: true, String: "Read documents permission"},
+		// Create a permission using testutil helper
+		permissionDescription := "Read documents permission"
+		permissionID := h.CreatePermission(seed.CreatePermissionRequest{
+			WorkspaceID: workspace.ID,
+			Name:        "documents.read.single.id",
+			Slug:        "documents.read.single.id",
+			Description: &permissionDescription,
 		})
-		require.NoError(t, err)
 
 		// Verify key has no permissions initially
 		currentPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), keyID)
@@ -137,49 +118,33 @@ func TestSuccess(t *testing.T) {
 	})
 
 	t.Run("add single permission by name", func(t *testing.T) {
-		// Create a test keyring
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        workspace.ID,
-			StoreEncryptedKeys: false,
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			CreatedAtM:         time.Now().UnixMilli(),
+		// Create API with keyring using testutil helper
+		defaultPrefix := "test"
+		defaultBytes := int32(16)
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   workspace.ID,
+			DefaultPrefix: &defaultPrefix,
+			DefaultBytes:  &defaultBytes,
 		})
-		require.NoError(t, err)
 
-		// Create a test key
-		keyID := uid.New(uid.KeyPrefix)
-		keyString := "test_" + uid.New("")
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(keyString),
-			Start:             keyString[:4],
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Test Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
+		// Create a test key using testutil helper
+		keyName := "Test Key"
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+			Name:        &keyName,
 		})
-		require.NoError(t, err)
+		keyID := keyResponse.KeyID
 
-		// Create a permission
-		permissionID := uid.New(uid.TestPrefix)
+		// Create a permission using testutil helper
 		permissionSlug := "documents.write.single.name"
-		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			PermissionID: permissionID,
-			WorkspaceID:  workspace.ID,
-			Name:         permissionSlug,
-			Slug:         permissionSlug,
-			Description:  sql.NullString{Valid: true, String: "Write documents permission"},
+		permissionDescription := "Write documents permission"
+		permissionID := h.CreatePermission(seed.CreatePermissionRequest{
+			WorkspaceID: workspace.ID,
+			Name:        permissionSlug,
+			Slug:        permissionSlug,
+			Description: &permissionDescription,
 		})
-		require.NoError(t, err)
 
 		// Verify key has no permissions initially
 		currentPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), keyID)
@@ -219,60 +184,42 @@ func TestSuccess(t *testing.T) {
 	})
 
 	t.Run("add multiple permissions", func(t *testing.T) {
-		// Create a test keyring
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        workspace.ID,
-			StoreEncryptedKeys: false,
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			CreatedAtM:         time.Now().UnixMilli(),
+		// Create API with keyring using testutil helper
+		defaultPrefix := "test"
+		defaultBytes := int32(16)
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   workspace.ID,
+			DefaultPrefix: &defaultPrefix,
+			DefaultBytes:  &defaultBytes,
 		})
-		require.NoError(t, err)
 
-		// Create a test key
-		keyID := uid.New(uid.KeyPrefix)
-		keyString := "test_" + uid.New("")
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(keyString),
-			Start:             keyString[:4],
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Test Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
+		// Create a test key using testutil helper
+		keyName := "Test Key"
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+			Name:        &keyName,
 		})
-		require.NoError(t, err)
+		keyID := keyResponse.KeyID
 
-		// Create permissions
-		permission1ID := uid.New(uid.TestPrefix)
+		// Create permissions using testutil helper
 		permission1Name := "documents.read.multiple"
-		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			PermissionID: permission1ID,
-			WorkspaceID:  workspace.ID,
-			Name:         permission1Name,
-			Slug:         permission1Name,
-			Description:  sql.NullString{Valid: true, String: "Read documents permission"},
+		permissionDescription1 := "Read documents permission"
+		permission1ID := h.CreatePermission(seed.CreatePermissionRequest{
+			WorkspaceID: workspace.ID,
+			Name:        permission1Name,
+			Slug:        permission1Name,
+			Description: &permissionDescription1,
 		})
-		require.NoError(t, err)
 
-		permission2ID := uid.New(uid.TestPrefix)
 		permission2Slug := "documents.write.multiple"
-		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			PermissionID: permission2ID,
-			WorkspaceID:  workspace.ID,
-			Name:         permission2Slug,
-			Slug:         permission2Slug,
-			Description:  sql.NullString{Valid: true, String: "Write documents permission"},
+		permissionDescription2 := "Write documents permission"
+		permission2ID := h.CreatePermission(seed.CreatePermissionRequest{
+			WorkspaceID: workspace.ID,
+			Name:        permission2Slug,
+			Slug:        permission2Slug,
+			Description: &permissionDescription2,
 		})
-		require.NoError(t, err)
 
 		req := handler.Request{
 			KeyId: keyID,
@@ -311,48 +258,32 @@ func TestSuccess(t *testing.T) {
 	})
 
 	t.Run("idempotent operation - adding same permission twice", func(t *testing.T) {
-		// Create a test keyring
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        workspace.ID,
-			StoreEncryptedKeys: false,
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			CreatedAtM:         time.Now().UnixMilli(),
+		// Create API with keyring using testutil helper
+		defaultPrefix := "test"
+		defaultBytes := int32(16)
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   workspace.ID,
+			DefaultPrefix: &defaultPrefix,
+			DefaultBytes:  &defaultBytes,
 		})
-		require.NoError(t, err)
 
-		// Create a test key
-		keyID := uid.New(uid.KeyPrefix)
-		keyString := "test_" + uid.New("")
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(keyString),
-			Start:             keyString[:4],
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Test Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
+		// Create a test key using testutil helper
+		keyName := "Test Key"
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+			Name:        &keyName,
 		})
-		require.NoError(t, err)
+		keyID := keyResponse.KeyID
 
-		// Create a permission
-		permissionID := uid.New(uid.TestPrefix)
-		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			PermissionID: permissionID,
-			WorkspaceID:  workspace.ID,
-			Name:         "documents.read.idempotent",
-			Slug:         "documents.read.idempotent",
-			Description:  sql.NullString{Valid: true, String: "Read documents permission"},
+		// Create a permission using testutil helper
+		permissionDescription := "Read documents permission"
+		permissionID := h.CreatePermission(seed.CreatePermissionRequest{
+			WorkspaceID: workspace.ID,
+			Name:        "documents.read.idempotent",
+			Slug:        "documents.read.idempotent",
+			Description: &permissionDescription,
 		})
-		require.NoError(t, err)
 
 		req := handler.Request{
 			KeyId: keyID,
@@ -398,67 +329,41 @@ func TestSuccess(t *testing.T) {
 	})
 
 	t.Run("add permissions to key that already has permissions", func(t *testing.T) {
-		// Create a test keyring
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        workspace.ID,
-			StoreEncryptedKeys: false,
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			CreatedAtM:         time.Now().UnixMilli(),
+		// Create API with keyring using testutil helper
+		defaultPrefix := "test"
+		defaultBytes := int32(16)
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   workspace.ID,
+			DefaultPrefix: &defaultPrefix,
+			DefaultBytes:  &defaultBytes,
 		})
-		require.NoError(t, err)
 
-		// Create a test key
-		keyID := uid.New(uid.KeyPrefix)
-		keyString := "test_" + uid.New("")
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(keyString),
-			Start:             keyString[:4],
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Test Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
+		// Create permissions using testutil helper
+		existingPermissionDescription := "Read documents permission"
+		newPermissionDescription := "Write documents permission"
+		newPermissionID := h.CreatePermission(seed.CreatePermissionRequest{
+			WorkspaceID: workspace.ID,
+			Name:        "documents.write.existing",
+			Slug:        "documents.write.existing",
+			Description: &newPermissionDescription,
 		})
-		require.NoError(t, err)
 
-		// Create permissions
-		existingPermissionID := uid.New(uid.TestPrefix)
-		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			PermissionID: existingPermissionID,
-			WorkspaceID:  workspace.ID,
-			Name:         "documents.read.existing",
-			Slug:         "documents.read.existing",
-			Description:  sql.NullString{Valid: true, String: "Read documents permission"},
+		// Create a test key with existing permission using testutil helper
+		keyName := "Test Key"
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+			Name:        &keyName,
+			Permissions: []seed.CreatePermissionRequest{
+				{
+					WorkspaceID: workspace.ID,
+					Name:        "documents.read.existing",
+					Slug:        "documents.read.existing",
+					Description: &existingPermissionDescription,
+				},
+			},
 		})
-		require.NoError(t, err)
-
-		newPermissionID := uid.New(uid.TestPrefix)
-		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			PermissionID: newPermissionID,
-			WorkspaceID:  workspace.ID,
-			Name:         "documents.write.existing",
-			Slug:         "documents.write.existing",
-			Description:  sql.NullString{Valid: true, String: "Write documents permission"},
-		})
-		require.NoError(t, err)
-
-		// Add existing permission to key first
-		err = db.Query.InsertKeyPermission(ctx, h.DB.RW(), db.InsertKeyPermissionParams{
-			KeyID:        keyID,
-			PermissionID: existingPermissionID,
-			WorkspaceID:  workspace.ID,
-			CreatedAt:    time.Now().UnixMilli(),
-		})
-		require.NoError(t, err)
+		keyID := keyResponse.KeyID
 
 		req := handler.Request{
 			KeyId: keyID,
@@ -488,7 +393,7 @@ func TestSuccess(t *testing.T) {
 		for _, p := range res.Body.Data {
 			permissionIDs[p.Id] = true
 		}
-		require.True(t, permissionIDs[existingPermissionID])
+		require.True(t, permissionIDs[keyResponse.PermissionIds[0]])
 		require.True(t, permissionIDs[newPermissionID])
 
 		// Verify permissions in database

@@ -12,8 +12,8 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_remove_permissions"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -34,46 +34,32 @@ func TestAuthorizationErrors(t *testing.T) {
 	// Create a workspace
 	workspace := h.Resources().UserWorkspace
 
-	// Create test data
-	keyAuthID := uid.New(uid.KeyAuthPrefix)
-	err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-		ID:                 keyAuthID,
-		WorkspaceID:        workspace.ID,
-		StoreEncryptedKeys: false,
-		DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-		DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-		CreatedAtM:         time.Now().UnixMilli(),
+	// Create test data using testutil helper
+	defaultPrefix := "test"
+	defaultBytes := int32(16)
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID:   workspace.ID,
+		DefaultPrefix: &defaultPrefix,
+		DefaultBytes:  &defaultBytes,
 	})
-	require.NoError(t, err)
 
-	keyID := uid.New(uid.KeyPrefix)
-	keyString := "test_" + uid.New("")
-	err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-		ID:                keyID,
-		KeyringID:         keyAuthID,
-		Hash:              hash.Sha256(keyString),
-		Start:             keyString[:4],
-		WorkspaceID:       workspace.ID,
-		ForWorkspaceID:    sql.NullString{Valid: false},
-		Name:              sql.NullString{Valid: true, String: "Test Key"},
-		CreatedAtM:        time.Now().UnixMilli(),
-		Enabled:           true,
-		IdentityID:        sql.NullString{Valid: false},
-		Meta:              sql.NullString{Valid: false},
-		Expires:           sql.NullTime{Valid: false},
-		RemainingRequests: sql.NullInt32{Valid: false},
+	keyName := "Test Key"
+	permissionDescription := "Read documents permission"
+	keyResponse := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeyAuthID:   api.KeyAuthID.String,
+		Name:        &keyName,
+		Permissions: []seed.CreatePermissionRequest{
+			{
+				WorkspaceID: workspace.ID,
+				Name:        "documents.read.remove.auth403",
+				Slug:        "documents.read.remove.auth403",
+				Description: &permissionDescription,
+			},
+		},
 	})
-	require.NoError(t, err)
-
-	permissionID := uid.New(uid.TestPrefix)
-	err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-		PermissionID: permissionID,
-		WorkspaceID:  workspace.ID,
-		Name:         "documents.read.remove.auth403",
-		Slug:         "documents.read.remove.auth403",
-		Description:  sql.NullString{Valid: true, String: "Read documents permission"},
-	})
-	require.NoError(t, err)
+	keyID := keyResponse.KeyID
+	permissionID := keyResponse.PermissionIds[0]
 
 	req := handler.Request{
 		KeyId: keyID,
@@ -138,37 +124,22 @@ func TestAuthorizationErrors(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// Create keyring in other workspace
-		otherKeyAuthID := uid.New(uid.KeyAuthPrefix)
-		err = db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 otherKeyAuthID,
-			WorkspaceID:        otherWorkspaceID,
-			StoreEncryptedKeys: false,
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			CreatedAtM:         time.Now().UnixMilli(),
+		// Create API and key in other workspace using testutil helper
+		otherApiName := "Other Workspace API"
+		otherApi := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   otherWorkspaceID,
+			Name:          &otherApiName,
+			DefaultPrefix: &defaultPrefix,
+			DefaultBytes:  &defaultBytes,
 		})
-		require.NoError(t, err)
 
-		// Create key in other workspace
-		otherKeyID := uid.New(uid.KeyPrefix)
-		otherKeyString := "test_" + uid.New("")
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                otherKeyID,
-			KeyringID:         otherKeyAuthID,
-			Hash:              hash.Sha256(otherKeyString),
-			Start:             otherKeyString[:4],
-			WorkspaceID:       otherWorkspaceID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Other Workspace Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
+		otherKeyName := "Other Workspace Key"
+		otherKeyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: otherWorkspaceID,
+			KeyAuthID:   otherApi.KeyAuthID.String,
+			Name:        &otherKeyName,
 		})
-		require.NoError(t, err)
+		otherKeyID := otherKeyResponse.KeyID
 
 		// Create root key for original workspace (authorized for workspace.ID, not otherWorkspaceID)
 		authorizedRootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")

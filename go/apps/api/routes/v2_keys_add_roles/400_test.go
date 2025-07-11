@@ -1,24 +1,18 @@
 package handler_test
 
 import (
-	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_add_roles"
-	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
-	"github.com/unkeyed/unkey/go/pkg/uid"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
 func TestValidationErrors(t *testing.T) {
-	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
@@ -41,36 +35,22 @@ func TestValidationErrors(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	// Create a test key for valid requests
-	keyAuthID := uid.New(uid.KeyAuthPrefix)
-	err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-		ID:                 keyAuthID,
-		WorkspaceID:        workspace.ID,
-		StoreEncryptedKeys: false,
-		DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-		DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-		CreatedAtM:         time.Now().UnixMilli(),
+	// Create a test API and key for valid requests using testutil helper
+	defaultPrefix := "test"
+	defaultBytes := int32(16)
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID:   workspace.ID,
+		DefaultPrefix: &defaultPrefix,
+		DefaultBytes:  &defaultBytes,
 	})
-	require.NoError(t, err)
 
-	validKeyID := uid.New(uid.KeyPrefix)
-	keyString := "test_" + uid.New("")
-	err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-		ID:                validKeyID,
-		KeyringID:         keyAuthID,
-		Hash:              hash.Sha256(keyString),
-		Start:             keyString[:4],
-		WorkspaceID:       workspace.ID,
-		ForWorkspaceID:    sql.NullString{Valid: false},
-		Name:              sql.NullString{Valid: true, String: "Test Key"},
-		CreatedAtM:        time.Now().UnixMilli(),
-		Enabled:           true,
-		IdentityID:        sql.NullString{Valid: false},
-		Meta:              sql.NullString{Valid: false},
-		Expires:           sql.NullTime{Valid: false},
-		RemainingRequests: sql.NullInt32{Valid: false},
+	keyName := "Test Key"
+	keyResponse := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeyAuthID:   api.KeyAuthID.String,
+		Name:        &keyName,
 	})
-	require.NoError(t, err)
+	validKeyID := keyResponse.KeyID
 
 	// Test case for missing keyId
 	t.Run("missing keyId", func(t *testing.T) {

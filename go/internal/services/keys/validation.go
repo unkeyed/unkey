@@ -159,7 +159,7 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 		if !exists {
 			errorMsg := "ratelimit %q was requested but does not exist for key %q"
 			if k.Key.IdentityID.Valid {
-				errorMsg += " or identity ID: %q external ID: %q"
+				errorMsg += " nor identity: %q external ID: %q"
 			} else {
 				errorMsg += " and there is no identity connected."
 			}

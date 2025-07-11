@@ -180,6 +180,10 @@ type CreateKeyRequest struct {
 	Meta        *string
 	Expires     *time.Time
 	Name        *string
+	Deleted     bool
+
+	RefillAmount *int32
+	RefillDay    *int16
 
 	Permissions []CreatePermissionRequest
 	Roles       []CreateRoleRequest
@@ -213,14 +217,23 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 		IdentityID:        sql.NullString{String: ptr.SafeDeref(req.IdentityID, ""), Valid: req.IdentityID != nil},
 		Expires:           sql.NullTime{Time: ptr.SafeDeref(req.Expires, time.Now()), Valid: req.Expires != nil},
 		RemainingRequests: sql.NullInt32{Int32: ptr.SafeDeref(req.Remaining, 0), Valid: req.Remaining != nil},
-		RefillAmount:      sql.NullInt32{Int32: 0, Valid: false},
-		RefillDay:         sql.NullInt16{Int16: 0, Valid: false},
+		RefillAmount:      sql.NullInt32{Int32: ptr.SafeDeref(req.RefillAmount, 0), Valid: req.RefillAmount != nil},
+		RefillDay:         sql.NullInt16{Int16: ptr.SafeDeref(req.RefillDay, 0), Valid: req.RefillDay != nil},
 	})
 	require.NoError(s.t, err)
 
 	res := CreateKeyResponse{
 		KeyID: keyID,
 		Key:   key,
+	}
+
+	if req.Deleted {
+		err = db.Query.SoftDeleteKeyByID(ctx, s.DB.RW(), db.SoftDeleteKeyByIDParams{
+			Now: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+			ID:  keyID,
+		})
+
+		require.NoError(s.t, err)
 	}
 
 	for _, role := range req.Roles {

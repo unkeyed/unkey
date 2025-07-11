@@ -1,25 +1,20 @@
 package handler_test
 
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_update_credits"
-	"github.com/unkeyed/unkey/go/internal/services/keys"
-	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
-	"github.com/unkeyed/unkey/go/pkg/uid"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
 func TestKeyUpdateCreditsBadRequest(t *testing.T) {
 	h := testutil.NewHarness(t)
-	ctx := t.Context()
 
 	route := &handler.Handler{
 		DB:        h.DB,
@@ -34,52 +29,20 @@ func TestKeyUpdateCreditsBadRequest(t *testing.T) {
 	// Create a workspace and user
 	workspace := h.Resources().UserWorkspace
 
-	// Create a keyAuth (keyring) for the API
-	keyAuthID := uid.New(uid.KeyAuthPrefix)
-	err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-		ID:            keyAuthID,
-		WorkspaceID:   workspace.ID,
-		CreatedAtM:    time.Now().UnixMilli(),
-		DefaultPrefix: sql.NullString{Valid: false},
-		DefaultBytes:  sql.NullInt32{Valid: false},
-	})
-	require.NoError(t, err)
-
-	// Create a test API
-	apiID := uid.New("api")
-	err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-		ID:          apiID,
-		Name:        "Test API",
+	// Create a test API and key using testutil helper
+	apiName := "Test API"
+	api := h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID: workspace.ID,
-		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
-		CreatedAtM:  time.Now().UnixMilli(),
-	})
-	require.NoError(t, err)
-
-	keyID := uid.New(uid.KeyPrefix)
-	key, _ := h.Keys.CreateKey(ctx, keys.CreateKeyRequest{
-		Prefix:     "test",
-		ByteLength: 16,
+		Name:        &apiName,
 	})
 
-	insertParams := db.InsertKeyParams{
-		ID:                keyID,
-		KeyringID:         keyAuthID,
-		Hash:              key.Hash,
-		Start:             key.Start,
-		WorkspaceID:       workspace.ID,
-		ForWorkspaceID:    sql.NullString{Valid: false},
-		Name:              sql.NullString{Valid: true, String: "test-key"},
-		Expires:           sql.NullTime{Valid: false},
-		CreatedAtM:        time.Now().UnixMilli(),
-		Enabled:           true,
-		IdentityID:        sql.NullString{Valid: false, String: ""},
-		RemainingRequests: sql.NullInt32{Int32: 0, Valid: false},
-	}
-
-	err = db.Query.InsertKey(ctx, h.DB.RW(), insertParams)
-	require.NoError(t, err)
+	keyName := "test-key"
+	keyResponse := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeyAuthID:   api.KeyAuthID.String,
+		Name:        &keyName,
+	})
+	keyID := keyResponse.KeyID
 
 	// Create root key with read permissions
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.update_key")

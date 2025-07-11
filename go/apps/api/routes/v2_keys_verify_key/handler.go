@@ -177,7 +177,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		for _, ratelimit := range key.GetRatelimitConfigs() {
-			if ratelimit.IdentityID != "" {
+			if ratelimit.IdentityID == "" {
 				continue
 			}
 

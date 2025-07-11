@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -35,12 +36,10 @@ func TestSuccess(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	// Setup test data
+	// Setup test data using testutil helper
 	ctx := context.Background()
 
-	identityID := uid.New(uid.IdentityPrefix)
 	externalID := "test_user_123"
-
 	// Create metadata
 	metaMap := map[string]interface{}{
 		"name":    "Test User",
@@ -51,41 +50,26 @@ func TestSuccess(t *testing.T) {
 	metaBytes, err := json.Marshal(metaMap)
 	require.NoError(t, err)
 
-	// Insert test identity
-	err = db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
-		ID:          identityID,
+	// Create identity with ratelimits using testutil helper
+	identityID := h.CreateIdentity(seed.CreateIdentityRequest{
+		WorkspaceID: h.Resources().UserWorkspace.ID,
 		ExternalID:  externalID,
-		WorkspaceID: h.Resources().UserWorkspace.ID,
-		Environment: "default",
-		CreatedAt:   time.Now().UnixMilli(),
 		Meta:        metaBytes,
+		Ratelimits: []seed.CreateRatelimitRequest{
+			{
+				WorkspaceID: h.Resources().UserWorkspace.ID,
+				Name:        "api_calls",
+				Limit:       100,
+				Duration:    60000,
+			},
+			{
+				WorkspaceID: h.Resources().UserWorkspace.ID,
+				Name:        "special_feature",
+				Limit:       10,
+				Duration:    3600000,
+			},
+		},
 	})
-	require.NoError(t, err)
-
-	// Insert test ratelimits
-	ratelimitID1 := uid.New(uid.RatelimitPrefix)
-	err = db.Query.InsertIdentityRatelimit(ctx, h.DB.RW(), db.InsertIdentityRatelimitParams{
-		ID:          ratelimitID1,
-		WorkspaceID: h.Resources().UserWorkspace.ID,
-		IdentityID:  sql.NullString{String: identityID, Valid: true},
-		Name:        "api_calls",
-		Limit:       100,
-		Duration:    60000, // 1 minute
-		CreatedAt:   time.Now().UnixMilli(),
-	})
-	require.NoError(t, err)
-
-	ratelimitID2 := uid.New(uid.RatelimitPrefix)
-	err = db.Query.InsertIdentityRatelimit(ctx, h.DB.RW(), db.InsertIdentityRatelimitParams{
-		ID:          ratelimitID2,
-		WorkspaceID: h.Resources().UserWorkspace.ID,
-		IdentityID:  sql.NullString{String: identityID, Valid: true},
-		Name:        "special_feature",
-		Limit:       10,
-		Duration:    3600000, // 1 hour
-		CreatedAt:   time.Now().UnixMilli(),
-	})
-	require.NoError(t, err)
 
 	// No need to set up permissions since we already gave the key the required permission
 

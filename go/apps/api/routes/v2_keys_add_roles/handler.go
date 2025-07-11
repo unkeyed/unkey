@@ -92,6 +92,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	if key.DeletedAtM.Valid {
+		return fault.New("key not found",
+			fault.Code(codes.Data.Key.NotFound.URN()),
+			fault.Internal("key is deleted"), fault.Public("The specified key was not found."),
+		)
+	}
+
 	// 5. Get current roles for the key
 	currentRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {

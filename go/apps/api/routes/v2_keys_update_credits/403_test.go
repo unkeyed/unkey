@@ -1,27 +1,21 @@
 package handler_test
 
 import (
-	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_update_credits"
-	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/hash"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
-	"github.com/unkeyed/unkey/go/pkg/uid"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
 func TestKeyUpdateCreditsForbidden(t *testing.T) {
-
 	h := testutil.NewHarness(t)
-	ctx := context.Background()
 
 	route := &handler.Handler{
 		DB:        h.DB,
@@ -33,96 +27,26 @@ func TestKeyUpdateCreditsForbidden(t *testing.T) {
 
 	h.Register(route)
 
-	// Create API for testing
-	keyAuthID := uid.New(uid.KeyAuthPrefix)
-	err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-		ID:            keyAuthID,
-		WorkspaceID:   h.Resources().UserWorkspace.ID,
-		CreatedAtM:    time.Now().UnixMilli(),
-		DefaultPrefix: sql.NullString{Valid: false, String: ""},
-		DefaultBytes:  sql.NullInt32{Valid: false, Int32: 0},
-	})
-	require.NoError(t, err)
-
-	apiID := uid.New(uid.APIPrefix)
-	err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-		ID:          apiID,
-		Name:        "test-api",
+	// Create API for testing using testutil helper
+	apiName := "test-api"
+	api := h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
-		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
-		CreatedAtM:  time.Now().UnixMilli(),
+		Name:        &apiName,
 	})
-	require.NoError(t, err)
 
-	// Create another API for cross-API testing
-	otherKeyAuthID := uid.New(uid.KeyAuthPrefix)
-	err = db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-		ID:            otherKeyAuthID,
-		WorkspaceID:   h.Resources().UserWorkspace.ID,
-		CreatedAtM:    time.Now().UnixMilli(),
-		DefaultPrefix: sql.NullString{Valid: false, String: ""},
-		DefaultBytes:  sql.NullInt32{Valid: false, Int32: 0},
-	})
-	require.NoError(t, err)
-
-	otherApiID := uid.New(uid.APIPrefix)
-	err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-		ID:          otherApiID,
-		Name:        "other-api",
+	diffApi := h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
-		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: otherKeyAuthID},
-		CreatedAtM:  time.Now().UnixMilli(),
+		Name:        &apiName,
 	})
-	require.NoError(t, err)
 
-	// Create another Workspace for cross-API testing
-	otherWorkspace := h.CreateWorkspace()
-
-	otherWsKeyAuthID := uid.New(uid.KeyAuthPrefix)
-	err = db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-		ID:            otherWsKeyAuthID,
-		WorkspaceID:   otherWorkspace.ID,
-		CreatedAtM:    time.Now().UnixMilli(),
-		DefaultPrefix: sql.NullString{Valid: false, String: ""},
-		DefaultBytes:  sql.NullInt32{Valid: false, Int32: 0},
+	key := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: api.WorkspaceID,
+		KeyAuthID:   api.KeyAuthID.String,
+		Remaining:   ptr.P(int32(100)),
 	})
-	require.NoError(t, err)
-
-	otherWsApiID := uid.New(uid.APIPrefix)
-	err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-		ID:          otherWsApiID,
-		Name:        "test-api",
-		WorkspaceID: otherWorkspace.ID,
-		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: otherWsKeyAuthID},
-		CreatedAtM:  time.Now().UnixMilli(),
-	})
-	require.NoError(t, err)
-
-	// Create a test key
-	keyID := uid.New(uid.KeyPrefix)
-	keyString := "test_" + uid.New("")
-	err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-		ID:                keyID,
-		KeyringID:         keyAuthID,
-		Hash:              hash.Sha256(keyString),
-		Start:             keyString[:4],
-		WorkspaceID:       h.Resources().UserWorkspace.ID,
-		ForWorkspaceID:    sql.NullString{Valid: false},
-		Name:              sql.NullString{Valid: true, String: "Test Key"},
-		CreatedAtM:        time.Now().UnixMilli(),
-		Enabled:           true,
-		IdentityID:        sql.NullString{Valid: false},
-		Meta:              sql.NullString{Valid: false},
-		Expires:           sql.NullTime{Valid: false},
-		RemainingRequests: sql.NullInt32{Valid: true, Int32: 100},
-	})
-	require.NoError(t, err)
 
 	req := handler.Request{
-		KeyId:     keyID,
+		KeyId:     key.KeyID,
 		Operation: openapi.Increment,
 		Value:     nullable.NewNullableWithValue(int64(10)),
 	}
@@ -174,7 +98,7 @@ func TestKeyUpdateCreditsForbidden(t *testing.T) {
 
 	t.Run("cross api access", func(t *testing.T) {
 		// Create root key with read permission for a single api
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("api.%s.update_key", otherApiID))
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("api.%s.update_key", diffApi.ID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},

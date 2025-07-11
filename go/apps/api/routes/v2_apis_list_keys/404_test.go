@@ -13,6 +13,7 @@ import (
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_list_keys"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -242,28 +243,13 @@ func TestNotFoundErrors(t *testing.T) {
 
 	// Test case for API that exists but has no keys (should return 200 with empty array)
 	t.Run("API exists but has no keys", func(t *testing.T) {
-		// Create a keyAuth for the API
-		emptyKeyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:            emptyKeyAuthID,
-			WorkspaceID:   workspace1.ID,
-			CreatedAtM:    time.Now().UnixMilli(),
-			DefaultPrefix: sql.NullString{Valid: false},
-			DefaultBytes:  sql.NullInt32{Valid: false},
-		})
-		require.NoError(t, err)
-
-		// Create API with no keys
-		emptyApiID := uid.New("api")
-		err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-			ID:          emptyApiID,
-			Name:        "API with no keys",
+		// Create API with no keys using testutil helper
+		apiName := "API with no keys"
+		emptyApi := h.CreateApi(seed.CreateApiRequest{
 			WorkspaceID: workspace1.ID,
-			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-			KeyAuthID:   sql.NullString{Valid: true, String: emptyKeyAuthID},
-			CreatedAtM:  time.Now().UnixMilli(),
+			Name:        &apiName,
 		})
-		require.NoError(t, err)
+		emptyApiID := emptyApi.ID
 
 		req := handler.Request{
 			ApiId: emptyApiID,

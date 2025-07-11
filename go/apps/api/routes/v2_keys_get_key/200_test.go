@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -15,11 +14,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_get_key"
-	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
-	"github.com/unkeyed/unkey/go/pkg/uid"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
 func TestGetKeyByKeyID(t *testing.T) {
@@ -39,83 +37,41 @@ func TestGetKeyByKeyID(t *testing.T) {
 	// Create a workspace and user
 	workspace := h.Resources().UserWorkspace
 
-	// Create a keyAuth (keyring) for the API
-	keyAuthID := uid.New(uid.KeyAuthPrefix)
-	err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-		ID:            keyAuthID,
+	// Create a test API with encrypted keys using testutil helper
+	apiName := "Test API"
+	api := h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID:   workspace.ID,
-		CreatedAtM:    time.Now().UnixMilli(),
-		DefaultPrefix: sql.NullString{Valid: false},
-		DefaultBytes:  sql.NullInt32{Valid: false},
+		Name:          &apiName,
+		EncryptedKeys: true,
 	})
-	require.NoError(t, err)
 
-	err = db.Query.UpdateKeyringKeyEncryption(ctx, h.DB.RW(), db.UpdateKeyringKeyEncryptionParams{
-		ID:                 keyAuthID,
-		StoreEncryptedKeys: true,
-	})
-	require.NoError(t, err)
-
-	// Create a test API
-	apiID := uid.New("api")
-	err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-		ID:          apiID,
-		Name:        "Test API",
+	// Create test identity with ratelimit using testutil helper
+	identityID := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
-		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
-		CreatedAtM:  time.Now().UnixMilli(),
-	})
-	require.NoError(t, err)
-
-	// Create test identities
-	identityID := uid.New("identity")
-	identityExternalID := "test_user"
-	err = db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
-		ID:          identityID,
-		ExternalID:  identityExternalID,
-		WorkspaceID: workspace.ID,
-		Environment: "",
-		CreatedAt:   time.Now().UnixMilli(),
+		ExternalID:  "test_user",
 		Meta:        []byte(`{"role": "admin"}`),
-	})
-	require.NoError(t, err)
-
-	ratelimitID := uid.New(uid.RatelimitPrefix)
-	err = db.Query.InsertIdentityRatelimit(ctx, h.DB.RW(), db.InsertIdentityRatelimitParams{
-		ID:          ratelimitID,
-		WorkspaceID: h.Resources().UserWorkspace.ID,
-		IdentityID:  sql.NullString{String: identityID, Valid: true},
-		Name:        "api_calls",
-		Limit:       100,
-		Duration:    60000, // 1 minute
-		CreatedAt:   time.Now().UnixMilli(),
-	})
-	require.NoError(t, err)
-
-	keyID := uid.New(uid.KeyPrefix)
-	key, _ := h.Keys.CreateKey(ctx, keys.CreateKeyRequest{
-		Prefix:     "test",
-		ByteLength: 16,
+		Ratelimits: []seed.CreateRatelimitRequest{
+			{
+				WorkspaceID: workspace.ID,
+				Name:        "api_calls",
+				Limit:       100,
+				Duration:    60000,
+			},
+		},
 	})
 
-	insertParams := db.InsertKeyParams{
-		ID:             keyID,
-		KeyringID:      keyAuthID,
-		Hash:           key.Hash,
-		Start:          key.Start,
-		WorkspaceID:    workspace.ID,
-		ForWorkspaceID: sql.NullString{Valid: false},
-		Name:           sql.NullString{Valid: true, String: "test-key"},
-		Expires:        sql.NullTime{Valid: false},
-		CreatedAtM:     time.Now().UnixMilli(),
-		Enabled:        true,
-		IdentityID:     sql.NullString{Valid: true, String: identityID},
-	}
+	// Create test key with identity and encryption using testutil helper
+	keyName := "test-key"
+	key := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeyAuthID:   api.KeyAuthID.String,
+		Name:        &keyName,
+		IdentityID:  &identityID,
+	})
+	keyID := key.KeyID
+	// key := keyResponse.Key
 
-	err = db.Query.InsertKey(ctx, h.DB.RW(), insertParams)
-	require.NoError(t, err)
-
+	// Add encryption for the key since API has encrypted keys enabled
 	encryption, err := h.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
 		Keyring: workspace.ID,
 		Data:    key.Key,
@@ -189,8 +145,6 @@ func TestGetKeyByKeyID(t *testing.T) {
 
 func TestGetKey_AdditionalScenarios(t *testing.T) {
 	h := testutil.NewHarness(t)
-	ctx := context.Background()
-
 	route := &handler.Handler{
 		Logger:    h.Logger,
 		DB:        h.DB,
@@ -203,28 +157,12 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 
-	// Create keyAuth (keyring) for the API
-	keyAuthID := uid.New(uid.KeyAuthPrefix)
-	err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-		ID:            keyAuthID,
-		WorkspaceID:   workspace.ID,
-		CreatedAtM:    time.Now().UnixMilli(),
-		DefaultPrefix: sql.NullString{Valid: false},
-		DefaultBytes:  sql.NullInt32{Valid: false},
-	})
-	require.NoError(t, err)
-
-	// Create test API
-	apiID := uid.New("api")
-	err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-		ID:          apiID,
-		Name:        "Test API",
+	// Create test API using testutil helper
+	apiName := "Test API"
+	api := h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID: workspace.ID,
-		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
-		CreatedAtM:  time.Now().UnixMilli(),
+		Name:        &apiName,
 	})
-	require.NoError(t, err)
 
 	// Create root key with appropriate permissions
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key")
@@ -234,12 +172,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 	}
 
 	t.Run("key with complex meta data", func(t *testing.T) {
-		keyID := uid.New(uid.KeyPrefix)
-		key, _ := h.Keys.CreateKey(ctx, keys.CreateKeyRequest{
-			Prefix:     "test",
-			ByteLength: 16,
-		})
-
+		// Create test key with complex meta using testutil helper
 		complexMeta := map[string]interface{}{
 			"user_id":    12345,
 			"plan":       "premium",
@@ -251,19 +184,15 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 			},
 		}
 		metaBytes, _ := json.Marshal(complexMeta)
-
-		err := db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:          keyID,
-			KeyringID:   keyAuthID,
-			Hash:        key.Hash,
-			Start:       key.Start,
+		metaString := string(metaBytes)
+		keyName := "complex-meta-key"
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			Name:        sql.NullString{Valid: true, String: "complex-meta-key"},
-			Meta:        sql.NullString{Valid: true, String: string(metaBytes)},
-			CreatedAtM:  time.Now().UnixMilli(),
-			Enabled:     true,
+			KeyAuthID:   api.KeyAuthID.String,
+			Name:        &keyName,
+			Meta:        &metaString,
 		})
-		require.NoError(t, err)
+		keyID := keyResponse.KeyID
 
 		req := handler.Request{
 			KeyId:   ptr.P(keyID),
@@ -282,28 +211,15 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 	})
 
 	t.Run("key with expiration date", func(t *testing.T) {
-		keyID := uid.New(uid.KeyPrefix)
-		key, _ := h.Keys.CreateKey(ctx, keys.CreateKeyRequest{
-			Prefix:     "test",
-			ByteLength: 16,
-		})
-
 		futureDate := time.Now().Add(24 * time.Hour).Truncate(time.Hour)
-		err := db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:          keyID,
-			KeyringID:   keyAuthID,
-			Hash:        key.Hash,
-			Start:       key.Start,
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			Name:        sql.NullString{Valid: true, String: "expiring-key"},
-			Expires:     sql.NullTime{Valid: true, Time: futureDate},
-			CreatedAtM:  time.Now().UnixMilli(),
-			Enabled:     true,
+			KeyAuthID:   api.KeyAuthID.String,
+			Expires:     &futureDate,
 		})
-		require.NoError(t, err)
 
 		req := handler.Request{
-			KeyId:   ptr.P(keyID),
+			KeyId:   ptr.P(keyResponse.KeyID),
 			Decrypt: ptr.P(false),
 		}
 
@@ -315,29 +231,15 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 	})
 
 	t.Run("key with credits and daily refill", func(t *testing.T) {
-		keyID := uid.New(uid.KeyPrefix)
-		key, _ := h.Keys.CreateKey(ctx, keys.CreateKeyRequest{
-			Prefix:     "test",
-			ByteLength: 16,
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID:  workspace.ID,
+			KeyAuthID:    api.KeyAuthID.String,
+			Remaining:    ptr.P(int32(50)),
+			RefillAmount: ptr.P(int32(100)),
 		})
-
-		err := db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyAuthID,
-			Hash:              key.Hash,
-			Start:             key.Start,
-			WorkspaceID:       workspace.ID,
-			Name:              sql.NullString{Valid: true, String: "credits-key"},
-			RemainingRequests: sql.NullInt32{Valid: true, Int32: 50},
-			RefillAmount:      sql.NullInt32{Valid: true, Int32: 100},
-			RefillDay:         sql.NullInt16{Valid: false, Int16: 0},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-		})
-		require.NoError(t, err)
 
 		req := handler.Request{
-			KeyId:   ptr.P(keyID),
+			KeyId:   ptr.P(keyResponse.KeyID),
 			Decrypt: ptr.P(false),
 		}
 
@@ -352,29 +254,16 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 	})
 
 	t.Run("key with monthly refill", func(t *testing.T) {
-		keyID := uid.New(uid.KeyPrefix)
-		key, _ := h.Keys.CreateKey(ctx, keys.CreateKeyRequest{
-			Prefix:     "test",
-			ByteLength: 16,
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID:  workspace.ID,
+			KeyAuthID:    api.KeyAuthID.String,
+			Remaining:    ptr.P(int32(50)),
+			RefillAmount: ptr.P(int32(100)),
+			RefillDay:    ptr.P(int16(1)),
 		})
-
-		err := db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyAuthID,
-			Hash:              key.Hash,
-			Start:             key.Start,
-			WorkspaceID:       workspace.ID,
-			Name:              sql.NullString{Valid: true, String: "monthly-refill-key"},
-			RemainingRequests: sql.NullInt32{Valid: true, Int32: 1000},
-			RefillAmount:      sql.NullInt32{Valid: true, Int32: 2000},
-			RefillDay:         sql.NullInt16{Valid: true, Int16: 1}, // 1st of month
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-		})
-		require.NoError(t, err)
 
 		req := handler.Request{
-			KeyId:   ptr.P(keyID),
+			KeyId:   ptr.P(keyResponse.KeyID),
 			Decrypt: ptr.P(false),
 		}
 
@@ -388,80 +277,29 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 	})
 
 	t.Run("key with roles and permissions", func(t *testing.T) {
-		keyID := uid.New(uid.KeyPrefix)
-		key, _ := h.Keys.CreateKey(ctx, keys.CreateKeyRequest{
-			Prefix:     "test",
-			ByteLength: 16,
-		})
-
-		err := db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:          keyID,
-			KeyringID:   keyAuthID,
-			Hash:        key.Hash,
-			Start:       key.Start,
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			Name:        sql.NullString{Valid: true, String: "rbac-key"},
-			CreatedAtM:  time.Now().UnixMilli(),
-			Enabled:     true,
+			KeyAuthID:   api.KeyAuthID.String,
+			Permissions: []seed.CreatePermissionRequest{{
+				Name:        "read_data",
+				Slug:        "read_data",
+				Description: nil,
+				WorkspaceID: workspace.ID,
+			}, {
+				Name:        "write_data",
+				Slug:        "write_data",
+				Description: nil,
+				WorkspaceID: workspace.ID,
+			}},
+			Roles: []seed.CreateRoleRequest{{
+				Name:        "data_admin",
+				Description: nil,
+				WorkspaceID: workspace.ID,
+			}},
 		})
-		require.NoError(t, err)
-
-		// Create permissions
-		perm1ID := uid.New(uid.PermissionPrefix)
-		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			PermissionID: perm1ID,
-			WorkspaceID:  workspace.ID,
-			Name:         "read_data",
-			Slug:         "read_data",
-			CreatedAtM:   time.Now().UnixMilli(),
-		})
-		require.NoError(t, err)
-
-		perm2ID := uid.New(uid.PermissionPrefix)
-		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			PermissionID: perm2ID,
-			WorkspaceID:  workspace.ID,
-			Name:         "write_data",
-			Slug:         "write_data",
-			CreatedAtM:   time.Now().UnixMilli(),
-		})
-		require.NoError(t, err)
-
-		// Create role
-		roleID := uid.New(uid.RolePrefix)
-		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-			RoleID:      roleID,
-			WorkspaceID: workspace.ID,
-			Name:        "data_admin",
-		})
-		require.NoError(t, err)
-
-		// Assign permissions to key
-		err = db.Query.InsertKeyPermission(ctx, h.DB.RW(), db.InsertKeyPermissionParams{
-			KeyID:        keyID,
-			PermissionID: perm1ID,
-			WorkspaceID:  workspace.ID,
-		})
-		require.NoError(t, err)
-
-		err = db.Query.InsertKeyPermission(ctx, h.DB.RW(), db.InsertKeyPermissionParams{
-			KeyID:        keyID,
-			PermissionID: perm2ID,
-			WorkspaceID:  workspace.ID,
-		})
-		require.NoError(t, err)
-
-		// Assign role to key
-		err = db.Query.InsertKeyRole(ctx, h.DB.RW(), db.InsertKeyRoleParams{
-			KeyID:       keyID,
-			RoleID:      roleID,
-			WorkspaceID: workspace.ID,
-			CreatedAtM:  time.Now().UnixMilli(),
-		})
-		require.NoError(t, err)
 
 		req := handler.Request{
-			KeyId:   ptr.P(keyID),
+			KeyId:   ptr.P(keyResponse.KeyID),
 			Decrypt: ptr.P(false),
 		}
 
@@ -482,52 +320,33 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 	})
 
 	t.Run("key with ratelimits", func(t *testing.T) {
-		keyID := uid.New(uid.KeyPrefix)
-		key, _ := h.Keys.CreateKey(ctx, keys.CreateKeyRequest{
-			Prefix:     "test",
-			ByteLength: 16,
-		})
-
-		err := db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:          keyID,
-			KeyringID:   keyAuthID,
-			Hash:        key.Hash,
-			Start:       key.Start,
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			Name:        sql.NullString{Valid: true, String: "ratelimited-key"},
-			CreatedAtM:  time.Now().UnixMilli(),
-			Enabled:     true,
+			KeyAuthID:   api.KeyAuthID.String,
+			Ratelimits: []seed.CreateRatelimitRequest{
+				{
+					Name:        "api_calls",
+					WorkspaceID: workspace.ID,
+					AutoApply:   false,
+					Duration:    60000, // 1minute
+					Limit:       100,
+					IdentityID:  nil,
+					KeyID:       nil,
+				},
+				{
+					Name:        "data_transfer",
+					WorkspaceID: workspace.ID,
+					AutoApply:   true,
+					Duration:    3600000, // 1 hour
+					Limit:       1000,
+					IdentityID:  nil,
+					KeyID:       nil,
+				},
+			},
 		})
-		require.NoError(t, err)
-
-		// Create ratelimits for the key
-		rl1ID := uid.New(uid.RatelimitPrefix)
-		err = db.Query.InsertKeyRatelimit(ctx, h.DB.RW(), db.InsertKeyRatelimitParams{
-			ID:          rl1ID,
-			WorkspaceID: workspace.ID,
-			KeyID:       sql.NullString{Valid: true, String: keyID},
-			Name:        "api_calls",
-			Limit:       100,
-			Duration:    60000, // 1 minute
-			CreatedAt:   time.Now().UnixMilli(),
-		})
-		require.NoError(t, err)
-
-		rl2ID := uid.New(uid.RatelimitPrefix)
-		err = db.Query.InsertKeyRatelimit(ctx, h.DB.RW(), db.InsertKeyRatelimitParams{
-			ID:          rl2ID,
-			WorkspaceID: workspace.ID,
-			KeyID:       sql.NullString{Valid: true, String: keyID},
-			Name:        "data_transfer",
-			Limit:       1000,
-			Duration:    3600000, // 1 hour
-			AutoApply:   true,
-			CreatedAt:   time.Now().UnixMilli(),
-		})
-		require.NoError(t, err)
 
 		req := handler.Request{
-			KeyId:   ptr.P(keyID),
+			KeyId:   ptr.P(keyResponse.KeyID),
 			Decrypt: ptr.P(false),
 		}
 
@@ -562,26 +381,14 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 	})
 
 	t.Run("disabled key", func(t *testing.T) {
-		keyID := uid.New(uid.KeyPrefix)
-		key, _ := h.Keys.CreateKey(ctx, keys.CreateKeyRequest{
-			Prefix:     "test",
-			ByteLength: 16,
-		})
-
-		err := db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:          keyID,
-			KeyringID:   keyAuthID,
-			Hash:        key.Hash,
-			Start:       key.Start,
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			Name:        sql.NullString{Valid: true, String: "disabled-key"},
-			CreatedAtM:  time.Now().UnixMilli(),
-			Enabled:     false, // Key is disabled
+			KeyAuthID:   api.KeyAuthID.String,
+			Disabled:    true,
 		})
-		require.NoError(t, err)
 
 		req := handler.Request{
-			KeyId:   ptr.P(keyID),
+			KeyId:   ptr.P(keyResponse.KeyID),
 			Decrypt: ptr.P(false),
 		}
 
