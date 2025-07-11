@@ -89,7 +89,7 @@ export const queryKeysOverviewLogs = t.procedure
         ...log,
         key_details: keyDetailsMap.get(log.key_id) || null,
       }));
-
+    console.log(keysOverviewLogs);
     const response: KeysOverviewLogsResponse = {
       keysOverviewLogs,
       hasMore: logs.length === input.limit && keysOverviewLogs.length > 0,

@@ -20,6 +20,7 @@ export const useFetchActiveKeysTimeseries = (apiId: string | null) => {
       outcomes: { filters: [] },
       names: { filters: [] },
       identities: { filters: [] },
+      tags: [],
       apiId: apiId ?? "",
       since: "",
     };
@@ -96,6 +97,13 @@ export const useFetchActiveKeysTimeseries = (apiId: string | null) => {
               operator: "is",
               value: filter.value as ValidOutcome,
             });
+          }
+          break;
+        }
+
+        case "tags": {
+          if (typeof filter.value === "string" && filter.value.trim()) {
+            params.tags?.push(filter.value);
           }
           break;
         }

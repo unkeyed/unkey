@@ -34,6 +34,7 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
       outcomes: [],
       identities: [],
       names: [],
+      tags: [],
       apiId,
       since: "",
       sorts: sorts.length > 0 ? sorts : null,
@@ -79,6 +80,16 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
             params.outcomes?.push({
               operator: "is",
               value: filter.value as ValidOutcome,
+            });
+          }
+          break;
+        }
+
+        case "tags": {
+          if (typeof filter.value === "string" && filter.value.trim()) {
+            params.tags?.push({
+              operator,
+              value: filter.value
             });
           }
           break;

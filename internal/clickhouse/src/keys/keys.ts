@@ -93,6 +93,7 @@ export const keyDetailsResponseSchema = z.object({
   workspace_id: z.string(),
   identity: identitySchema.nullable(),
   roles: z.array(roleSchema),
+  tags: z.array(z.string()),
   permissions: z.array(permissionSchema),
 });
 export type KeyDetailsResponse = z.infer<typeof keyDetailsResponseSchema>;

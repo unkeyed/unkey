@@ -50,6 +50,7 @@ export const keysOverviewQueryTimeseriesPayload = z.object({
       ),
     })
     .nullable(),
+  tags: z.array(z.string()).nullable(),
 });
 
 export type KeysOverviewQueryTimeseriesPayload = z.infer<typeof keysOverviewQueryTimeseriesPayload>;

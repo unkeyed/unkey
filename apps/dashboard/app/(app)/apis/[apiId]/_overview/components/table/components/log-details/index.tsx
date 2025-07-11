@@ -93,6 +93,8 @@ export const KeysOverviewLogDetails = ({
         : "Unlimited",
   };
 
+  const tags = log.key_details.tags ? { Tags: log.key_details.tags.join(", ") } : { "No tags": null };
+
   const identity = log.key_details.identity
     ? { "External ID": log.key_details.identity.external_id || "N/A" }
     : { "No identity connected": null };
@@ -111,6 +113,7 @@ export const KeysOverviewLogDetails = ({
       <LogSection title="Limits" details={limits} />
       <LogSection title="Identifiers" details={identifiers} />
       <LogSection title="Identity" details={identity} />
+      <LogSection title="Tags" details={tags} />
       <RolesSection roles={log.key_details.roles || []} />
       <PermissionsSection permissions={log.key_details.permissions || []} />
       <LogSection title="Meta" details={metaString} />
