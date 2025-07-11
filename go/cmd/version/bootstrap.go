@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/urfave/cli/v3"
-	_ "github.com/go-sql-driver/mysql"
 )
 
 // TODO: REMOVE THIS ENTIRE FILE - This is a temporary bootstrap helper
@@ -101,7 +101,7 @@ func bootstrapProjectAction(ctx context.Context, cmd *cli.Command) error {
 
 	// Generate project ID
 	projectID := uid.New("proj")
-	
+
 	// Create project
 	now := time.Now().UnixMilli()
 	err = db.Query.InsertProject(ctx, sqlDB, db.InsertProjectParams{
@@ -125,13 +125,13 @@ func bootstrapProjectAction(ctx context.Context, cmd *cli.Command) error {
 	fmt.Printf("   Workspace ID: %s\n", workspaceID)
 	fmt.Printf("   Project Slug: %s\n", projectSlug)
 	fmt.Println()
-	
+
 	fmt.Printf("📋 Use these values for deployment:\n")
 	fmt.Printf("   unkey-cli create --workspace-id=%s --project-id=%s\n", workspaceID, projectID)
 	fmt.Printf("\n")
 	fmt.Printf("🗑️  Remember to remove this bootstrap command once we have proper UI!\n")
 
-	logger.Info("bootstrap project created", 
+	logger.Info("bootstrap project created",
 		"project_id", projectID,
 		"workspace_id", workspaceID,
 		"project_slug", projectSlug)

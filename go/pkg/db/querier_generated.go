@@ -376,21 +376,6 @@ type Querier interface {
 	//  WHERE role_id = ?
 	//    AND permission_id = ?
 	FindRolePermissionByRoleAndPermissionID(ctx context.Context, db DBTX, arg FindRolePermissionByRoleAndPermissionIDParams) ([]RolesPermission, error)
-	//FindRoutesByVersionId
-	//
-	//  SELECT
-	//      id,
-	//      workspace_id,
-	//      project_id,
-	//      hostname,
-	//      version_id,
-	//      is_enabled,
-	//      created_at,
-	//      updated_at
-	//  FROM routes
-	//  WHERE version_id = ? AND is_enabled = true
-	//  ORDER BY created_at ASC
-	FindRoutesByVersionId(ctx context.Context, db DBTX, versionID string) ([]Route, error)
 	//FindVersionById
 	//
 	//  SELECT
@@ -853,21 +838,6 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertRolePermission(ctx context.Context, db DBTX, arg InsertRolePermissionParams) error
-	//InsertRoute
-	//
-	//  INSERT INTO routes (
-	//      id,
-	//      workspace_id,
-	//      project_id,
-	//      hostname,
-	//      version_id,
-	//      is_enabled,
-	//      created_at,
-	//      updated_at
-	//  ) VALUES (
-	//      ?, ?, ?, ?, ?, ?, ?, ?
-	//  )
-	InsertRoute(ctx context.Context, db DBTX, arg InsertRouteParams) error
 	//InsertVersion
 	//
 	//  INSERT INTO `versions` (
