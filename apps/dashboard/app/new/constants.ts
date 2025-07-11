@@ -9,8 +9,7 @@ export type StepInfo = {
 export const stepInfos: StepInfo[] = [
   {
     title: "Create Company Workspace",
-    description:
-      "Customize your workspace name, logo, and handle. This is how it’ll appear in your dashboard and URLs.",
+    description: "Customize your workspace name. This is how it’ll appear in your dashboard.",
   },
   {
     title: "Create Your First API Key",
