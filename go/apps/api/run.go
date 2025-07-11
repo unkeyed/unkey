@@ -194,13 +194,13 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	var vaultSvc *vault.Service
-	if len(cfg.VaultMasterKeys) > 0 && cfg.S3URL != "" {
+	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3 != nil {
 		vaultStorage, err := storage.NewS3(storage.S3Config{
 			Logger:            logger,
-			S3URL:             cfg.S3URL,
-			S3Bucket:          cfg.S3Bucket,
-			S3AccessKeyID:     cfg.S3AccessKeyID,
-			S3AccessKeySecret: cfg.S3SecretAccessKey,
+			S3URL:             cfg.VaultS3.URL,
+			S3Bucket:          cfg.VaultS3.Bucket,
+			S3AccessKeyID:     cfg.VaultS3.AccessKeyID,
+			S3AccessKeySecret: cfg.VaultS3.SecretAccessKey,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to create vault storage: %w", err)

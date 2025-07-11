@@ -5,10 +5,17 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/tls"
 )
 
-type Config struct {
+type S3Config struct {
+	URL             string
+	Bucket          string
+	AccessKeyID     string
+	SecretAccessKey string
+}
 
+type Config struct {
 	// InstanceID is the unique identifier for this instance of the API server
 	InstanceID string
+
 	// Platform identifies the cloud platform where the node is running (e.g., aws, gcp, hetzner)
 	Platform string
 
@@ -56,12 +63,7 @@ type Config struct {
 
 	// Vault Configuration
 	VaultMasterKeys []string
-
-	// S3 Configuration
-	S3URL             string
-	S3Bucket          string
-	S3AccessKeyID     string
-	S3SecretAccessKey string
+	VaultS3         *S3Config
 }
 
 func (c Config) Validate() error {

@@ -144,30 +144,30 @@ var Cmd = &cli.Command{
 
 		// S3 Configuration
 		&cli.StringFlag{
-			Name:     "s3-url",
+			Name:     "vault-s3-url",
 			Usage:    "S3 Compatible Endpoint URL ",
-			Sources:  cli.EnvVars("UNKEY_S3_URL"),
+			Sources:  cli.EnvVars("UNKEY_VAULT_S3_URL"),
 			Value:    "",
 			Required: false,
 		},
 		&cli.StringFlag{
-			Name:     "s3-bucket",
+			Name:     "vault-s3-bucket",
 			Usage:    "S3 bucket name",
-			Sources:  cli.EnvVars("UNKEY_S3_BUCKET"),
+			Sources:  cli.EnvVars("UNKEY_VAULT_S3_BUCKET"),
 			Value:    "",
 			Required: false,
 		},
 		&cli.StringFlag{
-			Name:     "s3-access-key-id",
+			Name:     "vault-s3-access-key-id",
 			Usage:    "S3 access key ID",
-			Sources:  cli.EnvVars("UNKEY_S3_ACCESS_KEY_ID"),
+			Sources:  cli.EnvVars("UNKEY_VAULT_S3_ACCESS_KEY_ID"),
 			Value:    "",
 			Required: false,
 		},
 		&cli.StringFlag{
-			Name:     "s3-secret-access-key",
+			Name:     "vault-s3-secret-access-key",
 			Usage:    "S3 secret access key",
-			Sources:  cli.EnvVars("UNKEY_S3_SECRET_ACCESS_KEY"),
+			Sources:  cli.EnvVars("UNKEY_VAULT_S3_SECRET_ACCESS_KEY"),
 			Value:    "",
 			Required: false,
 		},
@@ -191,6 +191,16 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		tlsConfig, err = tls.NewFromFiles(tlsCertFile, tlsKeyFile)
 		if err != nil {
 			return cli.Exit("Failed to load TLS configuration: "+err.Error(), 1)
+		}
+	}
+
+	var vaultS3Config *api.S3Config
+	if cmd.String("vault-s3-url") != "" {
+		vaultS3Config = &api.S3Config{
+			URL:             cmd.String("vault-s3-url"),
+			Bucket:          cmd.String("vault-s3-bucket"),
+			AccessKeyID:     cmd.String("vault-s3-access-key-id"),
+			SecretAccessKey: cmd.String("vault-s3-secret-access-key"),
 		}
 	}
 
@@ -223,12 +233,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		// Vault configuration
 		VaultMasterKeys: cmd.StringSlice("vault-master-keys"),
-
-		// S3 configuration
-		S3URL:             cmd.String("s3-url"),
-		S3Bucket:          cmd.String("s3-bucket"),
-		S3AccessKeyID:     cmd.String("s3-access-key-id"),
-		S3SecretAccessKey: cmd.String("s3-secret-access-key"),
+		VaultS3:         vaultS3Config,
 	}
 
 	err := config.Validate()
