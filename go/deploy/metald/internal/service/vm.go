@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"math"
@@ -65,6 +66,14 @@ func (s *VMService) CreateVm(ctx context.Context, req *connect.Request[metaldv1.
 	}
 
 	config := req.Msg.GetConfig()
+	
+	// DEBUG: Log full request config for debugging
+	if config != nil {
+		configJSON, _ := json.Marshal(config)
+		s.logger.LogAttrs(ctx, slog.LevelInfo, "DEBUG: Full VM config received",
+			slog.String("config_json", string(configJSON)),
+		)
+	}
 	if config == nil {
 		err := fmt.Errorf("vm config is required")
 		span.RecordError(err)

@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, mysqlEnum, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlEnum, mysqlTable, primaryKey, text, varchar } from "drizzle-orm/mysql-core";
 import { projects } from "./projects";
 import { rootfsImages } from "./rootfs_images";
 import { lifecycleDates } from "./util/lifecycle_dates";
@@ -45,6 +45,21 @@ export const builds = mysqlTable(
   }),
 );
 
+export const versionSteps = mysqlTable(
+  "version_steps",
+  {
+    versionId: varchar("version_id", { length: 256 }).notNull(),
+    status: mysqlEnum("status", ["pending", "downloading_docker_image", "building_rootfs", "uploading_rootfs", "creating_vm", "booting_vm", "assigning_domains", "completed", "failed"]).notNull(),
+    message: text("message"),
+    errorMessage: text("error_message"),
+    createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.versionId, table.status] }),
+    versionIdCreatedAtIdx: index("idx_version_id_created_at").on(table.versionId, table.createdAt),
+  }),
+);
+
 export const buildsRelations = relations(builds, ({ one }) => ({
   workspace: one(workspaces, {
     fields: [builds.workspaceId],
@@ -59,4 +74,11 @@ export const buildsRelations = relations(builds, ({ one }) => ({
     references: [rootfsImages.id],
   }),
   version: one(versions),
+}));
+
+export const versionStepsRelations = relations(versionSteps, ({ one }) => ({
+  version: one(versions, {
+    fields: [versionSteps.versionId],
+    references: [versions.id],
+  }),
 }));

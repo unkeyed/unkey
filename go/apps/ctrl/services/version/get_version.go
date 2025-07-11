@@ -2,12 +2,10 @@ package version
 
 import (
 	"context"
-	"time"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func (s *Service) GetVersion(
@@ -27,16 +25,17 @@ func (s *Service) GetVersion(
 		ProjectId:            version.ProjectID,
 		EnvironmentId:        "", // No longer in schema
 		Status:               convertDbStatusToProto(string(version.Status)),
-		CreatedAt:            timestamppb.New(time.UnixMilli(version.CreatedAt)),
+		CreatedAt:            version.CreatedAt,
 		GitCommitSha:         "",
 		GitBranch:            "",
 		ErrorMessage:         "",
 		EnvironmentVariables: nil,
 		Topology:             nil,
-		UpdatedAt:            nil,
+		UpdatedAt:            0,
 		Hostnames:            nil,
 		RootfsImageId:        "",
 		BuildId:              "",
+		Steps:                nil,
 	}
 
 	if version.GitCommitSha.Valid {
@@ -46,7 +45,7 @@ func (s *Service) GetVersion(
 		protoVersion.GitBranch = version.GitBranch.String
 	}
 	if version.UpdatedAt.Valid {
-		protoVersion.UpdatedAt = timestamppb.New(time.UnixMilli(version.UpdatedAt.Int64))
+		protoVersion.UpdatedAt = version.UpdatedAt.Int64
 	}
 	if version.RootfsImageID != "" {
 		protoVersion.RootfsImageId = version.RootfsImageID
@@ -56,6 +55,41 @@ func (s *Service) GetVersion(
 	build, err := db.Query.FindLatestBuildByVersionId(ctx, s.db.RO(), version.ID)
 	if err == nil {
 		protoVersion.BuildId = build.ID
+	}
+
+	// Fetch version steps
+	versionSteps, err := db.Query.FindVersionStepsByVersionId(ctx, s.db.RO(), version.ID)
+	if err != nil {
+		s.logger.Warn("failed to fetch version steps", "error", err, "version_id", version.ID)
+		// Continue without steps rather than failing the entire request
+	} else {
+		protoSteps := make([]*ctrlv1.VersionStep, len(versionSteps))
+		for i, step := range versionSteps {
+			protoSteps[i] = &ctrlv1.VersionStep{
+				Status:    string(step.Status),
+				CreatedAt: step.CreatedAt,
+			}
+			if step.Message.Valid {
+				protoSteps[i].Message = step.Message.String
+			}
+			if step.ErrorMessage.Valid {
+				protoSteps[i].ErrorMessage = step.ErrorMessage.String
+			}
+		}
+		protoVersion.Steps = protoSteps
+	}
+
+	// Fetch routes (hostnames) for this version
+	routes, err := db.Query.FindRoutesByVersionId(ctx, s.db.RO(), version.ID)
+	if err != nil {
+		s.logger.Warn("failed to fetch routes for version", "error", err, "version_id", version.ID)
+		// Continue without hostnames rather than failing the entire request
+	} else {
+		hostnames := make([]string, len(routes))
+		for i, route := range routes {
+			hostnames[i] = route.Hostname
+		}
+		protoVersion.Hostnames = hostnames
 	}
 
 	res := connect.NewResponse(&ctrlv1.GetVersionResponse{

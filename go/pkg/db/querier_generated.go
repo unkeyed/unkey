@@ -317,6 +317,21 @@ type Querier interface {
 	//  WHERE role_id = ?
 	//    AND permission_id = ?
 	FindRolePermissionByRoleAndPermissionID(ctx context.Context, db DBTX, arg FindRolePermissionByRoleAndPermissionIDParams) ([]RolesPermission, error)
+	//FindRoutesByVersionId
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      hostname,
+	//      version_id,
+	//      is_enabled,
+	//      created_at,
+	//      updated_at
+	//  FROM routes
+	//  WHERE version_id = ? AND is_enabled = true
+	//  ORDER BY created_at ASC
+	FindRoutesByVersionId(ctx context.Context, db DBTX, versionID string) ([]Route, error)
 	//FindVersionById
 	//
 	//  SELECT
@@ -335,6 +350,18 @@ type Querier interface {
 	//  FROM `versions`
 	//  WHERE id = ?
 	FindVersionById(ctx context.Context, db DBTX, id string) (Version, error)
+	//FindVersionStepsByVersionId
+	//
+	//  SELECT
+	//      version_id,
+	//      status,
+	//      message,
+	//      error_message,
+	//      created_at
+	//  FROM version_steps
+	//  WHERE version_id = ?
+	//  ORDER BY created_at ASC
+	FindVersionStepsByVersionId(ctx context.Context, db DBTX, versionID string) ([]VersionStep, error)
 	//FindWorkspaceByID
 	//
 	//  SELECT id, org_id, name, partition_id, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
@@ -722,6 +749,21 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertRolePermission(ctx context.Context, db DBTX, arg InsertRolePermissionParams) error
+	//InsertRoute
+	//
+	//  INSERT INTO routes (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      hostname,
+	//      version_id,
+	//      is_enabled,
+	//      created_at,
+	//      updated_at
+	//  ) VALUES (
+	//      ?, ?, ?, ?, ?, ?, ?, ?
+	//  )
+	InsertRoute(ctx context.Context, db DBTX, arg InsertRouteParams) error
 	//InsertVersion
 	//
 	//  INSERT INTO `versions` (
@@ -753,6 +795,22 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertVersion(ctx context.Context, db DBTX, arg InsertVersionParams) error
+	//InsertVersionStep
+	//
+	//  INSERT INTO version_steps (
+	//      version_id,
+	//      status,
+	//      message,
+	//      error_message,
+	//      created_at
+	//  ) VALUES (
+	//      ?, ?, ?, ?, ?
+	//  )
+	//  ON DUPLICATE KEY UPDATE
+	//      message = VALUES(message),
+	//      error_message = VALUES(error_message),
+	//      created_at = VALUES(created_at)
+	InsertVersionStep(ctx context.Context, db DBTX, arg InsertVersionStepParams) error
 	//InsertWorkspace
 	//
 	//  INSERT INTO `workspaces` (

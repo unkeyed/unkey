@@ -28,9 +28,10 @@ require (
 	github.com/shirou/gopsutil/v4 v4.25.5
 	github.com/sqlc-dev/sqlc v1.28.0
 	github.com/stretchr/testify v1.10.0
-	github.com/unkeyed/unkey/go/deploy/assetmanagerd v0.0.0-20250709084132-0dd195e4c51b
-	github.com/unkeyed/unkey/go/deploy/billaged v0.0.0-20250709084132-0dd195e4c51b
-	github.com/unkeyed/unkey/go/deploy/builderd v0.0.0-20250709084132-0dd195e4c51b
+	github.com/unkeyed/unkey/go/deploy/assetmanagerd v0.0.0-20250710211506-eee7a93abd66
+	github.com/unkeyed/unkey/go/deploy/billaged v0.0.0-20250710211506-eee7a93abd66
+	github.com/unkeyed/unkey/go/deploy/builderd v0.0.0-20250710211506-eee7a93abd66
+	github.com/unkeyed/unkey/go/deploy/pkg/tls v0.0.0-00010101000000-000000000000
 	github.com/urfave/cli/v3 v3.3.3
 	go.opentelemetry.io/contrib/bridges/otelslog v0.11.0
 	go.opentelemetry.io/contrib/bridges/prometheus v0.61.0
@@ -104,6 +105,7 @@ require (
 	github.com/getkin/kin-openapi v0.131.0 // indirect
 	github.com/go-faster/city v1.0.1 // indirect
 	github.com/go-faster/errors v0.7.1 // indirect
+	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
@@ -168,10 +170,12 @@ require (
 	github.com/speakeasy-api/openapi-overlay v0.9.0 // indirect
 	github.com/spf13/cobra v1.9.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
+	github.com/spiffe/go-spiffe/v2 v2.5.0 // indirect
 	github.com/stoewer/go-strcase v1.2.0 // indirect
 	github.com/tetratelabs/wazero v1.8.2 // indirect
 	github.com/tklauser/go-sysconf v0.3.15 // indirect
 	github.com/tklauser/numcpus v0.10.0 // indirect
+	github.com/unkeyed/unkey/go/deploy/pkg/spiffe v0.0.0-00010101000000-000000000000 // indirect
 	github.com/vmware-labs/yaml-jsonpath v0.3.2 // indirect
 	github.com/wasilibs/go-pgquery v0.0.0-20240606042535-c0843d6592cc // indirect
 	github.com/wasilibs/wazero-helpers v0.0.0-20240604052452-61d7981e9a38 // indirect
@@ -181,6 +185,7 @@ require (
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
+	github.com/zeebo/errs v1.4.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.37.0 // indirect
 	go.opentelemetry.io/otel/log v0.12.2 // indirect
@@ -206,5 +211,9 @@ require (
 	modernc.org/memory v1.9.1 // indirect
 	modernc.org/sqlite v1.36.2 // indirect
 )
+
+replace github.com/unkeyed/unkey/go/deploy/pkg/tls => ./deploy/pkg/tls
+
+replace github.com/unkeyed/unkey/go/deploy/pkg/spiffe => ./deploy/pkg/spiffe
 
 tool github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen

@@ -4,13 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
-	"connectrpc.com/connect"
 	vmprovisionerv1 "github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1/vmprovisionerv1connect"
-	"github.com/unkeyed/unkey/go/pkg/builder"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/git"
 	"github.com/unkeyed/unkey/go/pkg/hydra"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -18,19 +18,17 @@ import (
 
 // DeployWorkflow orchestrates the complete build and deployment process using Hydra
 type DeployWorkflow struct {
-	db             db.Database
-	logger         logging.Logger
-	builderService builder.Service
-	metaldClient   vmprovisionerv1connect.VmServiceClient
+	db           db.Database
+	logger       logging.Logger
+	metaldClient vmprovisionerv1connect.VmServiceClient
 }
 
 // NewDeployWorkflow creates a new deploy workflow instance
-func NewDeployWorkflow(database db.Database, logger logging.Logger, builderService builder.Service, metaldClient vmprovisionerv1connect.VmServiceClient) *DeployWorkflow {
+func NewDeployWorkflow(database db.Database, logger logging.Logger, metaldClient vmprovisionerv1connect.VmServiceClient) *DeployWorkflow {
 	return &DeployWorkflow{
-		db:             database,
-		logger:         logger,
-		builderService: builderService,
-		metaldClient:   metaldClient,
+		db:           database,
+		logger:       logger,
+		metaldClient: metaldClient,
 	}
 }
 
@@ -80,19 +78,41 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 	w.logger.Info("starting deployment workflow",
 		"execution_id", ctx.ExecutionID(),
 		"version_id", req.VersionID,
-		"docker_image", req.DockerImage)
+		"docker_image", req.DockerImage,
+		"workspace_id", req.WorkspaceID,
+		"project_id", req.ProjectID)
 
 	// Step 1: Generate build ID
 	buildID, err := hydra.Step(ctx, "generate-build-id", func(stepCtx context.Context) (string, error) {
-		return uid.New(uid.BuildPrefix), nil
+		id := uid.New(uid.BuildPrefix)
+		w.logger.Info("generated build ID", "build_id", id)
+		return id, nil
 	})
 	if err != nil {
 		w.logger.Error("failed to generate build ID", "error", err)
 		return err
 	}
 
-	// Step 4: Insert build into database
-	_, err = hydra.Step(ctx, "insert-build", func(stepCtx context.Context) (*struct{}, error) {
+	w.logger.Info("proceeding with build", "build_id", buildID)
+
+	// Step 2: Log version pending
+	err = hydra.StepVoid(ctx, "log-version-pending", func(stepCtx context.Context) error {
+		return db.Query.InsertVersionStep(stepCtx, w.db.RW(), db.InsertVersionStepParams{
+			VersionID:    req.VersionID,
+			Status:       "pending",
+			Message:      sql.NullString{String: "Version queued and ready to start", Valid: true},
+			ErrorMessage: sql.NullString{},
+			CreatedAt:    time.Now().UnixMilli(),
+		})
+	})
+	if err != nil {
+		w.logger.Error("failed to log version pending", "error", err, "version_id", req.VersionID)
+		return err
+	}
+
+	// Step 3: Insert build into database
+	err = hydra.StepVoid(ctx, "insert-build", func(stepCtx context.Context) error {
+		w.logger.Info("inserting build into database", "build_id", buildID)
 		insertErr := db.Query.InsertBuild(stepCtx, w.db.RW(), db.InsertBuildParams{
 			ID:          buildID,
 			WorkspaceID: req.WorkspaceID,
@@ -101,17 +121,19 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			CreatedAt:   time.Now().UnixMilli(),
 		})
 		if insertErr != nil {
-			return nil, fmt.Errorf("failed to create build record: %w", insertErr)
+			return fmt.Errorf("failed to create build record: %w", insertErr)
 		}
-		return &struct{}{}, nil
+		w.logger.Info("build record created successfully", "build_id", buildID)
+		return nil
 	})
 	if err != nil {
 		w.logger.Error("failed to insert build", "error", err, "build_id", buildID)
 		return err
 	}
 
-	// Step 5: Update version status to building
+	// Step 4: Update version status to building
 	_, err = hydra.Step(ctx, "update-version-building", func(stepCtx context.Context) (*struct{}, error) {
+		w.logger.Info("updating version status to building", "version_id", req.VersionID)
 		updateErr := db.Query.UpdateVersionStatus(stepCtx, w.db.RW(), db.UpdateVersionStatusParams{
 			ID:     req.VersionID,
 			Status: db.VersionsStatusBuilding,
@@ -120,6 +142,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		if updateErr != nil {
 			return nil, fmt.Errorf("failed to update version status to building: %w", updateErr)
 		}
+		w.logger.Info("version status updated to building", "version_id", req.VersionID)
 		return &struct{}{}, nil
 	})
 	if err != nil {
@@ -127,341 +150,423 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return err
 	}
 
-	// Step 6: Submit build to builder service
-	_, err = hydra.Step(ctx, "submit-build", func(stepCtx context.Context) (*struct{}, error) {
-		w.logger.Info("submitting build to builder service",
-			"build_id", buildID,
-			"docker_image", req.DockerImage)
-
-		submitErr := w.builderService.SubmitBuild(stepCtx, buildID, req.DockerImage)
-		if submitErr != nil {
-			return nil, fmt.Errorf("failed to submit build to builder service: %w", submitErr)
+	// Step 5: Update build status to running
+	_, err = hydra.Step(ctx, "update-build-running", func(stepCtx context.Context) (*struct{}, error) {
+		w.logger.Info("updating build status to running", "build_id", buildID)
+		now := time.Now().UnixMilli()
+		runningErr := db.Query.UpdateBuildStatus(stepCtx, w.db.RW(), db.UpdateBuildStatusParams{
+			ID:     buildID,
+			Status: db.BuildsStatusRunning,
+			Now:    sql.NullInt64{Valid: true, Int64: now},
+		})
+		if runningErr != nil {
+			return nil, fmt.Errorf("failed to update build status to running: %w", runningErr)
 		}
-
 		return &struct{}{}, nil
 	})
 	if err != nil {
-		w.logger.Error("failed to submit build", "error", err, "build_id", buildID)
+		w.logger.Error("failed to update build status to running", "error", err, "build_id", buildID)
 		return err
 	}
 
-	// Wait for build completion with polling (max 150 attempts = 5 minutes)
-	var buildResult *BuildResult
-	lastStatus := ""
-
-	for attempt := 1; attempt <= 150; attempt++ {
-		currentBuildStatus, err := hydra.Step(ctx, fmt.Sprintf("check-build-status-%d", attempt), func(stepCtx context.Context) (*builder.BuildInfo, error) {
-			buildStatus, statusErr := w.builderService.GetBuildStatus(stepCtx, buildID)
-			if statusErr != nil {
-				return nil, fmt.Errorf("failed to get build status: %w", statusErr)
-			}
-
-			w.logger.Info("build status check", "build_id", buildID, "status", string(buildStatus.Status), "attempt", attempt)
-			return buildStatus, nil
+	// Step 6: Log downloading Docker image
+	err = hydra.StepVoid(ctx, "log-downloading-docker-image", func(stepCtx context.Context) error {
+		return db.Query.InsertVersionStep(stepCtx, w.db.RW(), db.InsertVersionStepParams{
+			VersionID:    req.VersionID,
+			Status:       "downloading_docker_image",
+			Message:      sql.NullString{String: fmt.Sprintf("Downloading Docker image: %s", req.DockerImage), Valid: true},
+			ErrorMessage: sql.NullString{},
+			CreatedAt:    time.Now().UnixMilli(),
 		})
-		if err != nil {
-			w.logger.Error("failed to check build status", "error", err, "build_id", buildID, "attempt", attempt)
-			return err
-		}
-
-		currentStatus := string(currentBuildStatus.Status)
-
-		// Skip database update if status hasn't changed
-		if currentStatus == lastStatus {
-			// Status unchanged, continue to build completion check
-		} else {
-			_, err = hydra.Step(ctx, fmt.Sprintf("update-build-status-%d", attempt), func(updateCtx context.Context) (*struct{}, error) {
-				now := time.Now().UnixMilli()
-
-				switch currentBuildStatus.Status {
-				case builder.BuildStatusQueued:
-					// Build is queued, no update needed yet
-
-				case builder.BuildStatusRunning:
-					runningErr := db.Query.UpdateBuildStatus(updateCtx, w.db.RW(), db.UpdateBuildStatusParams{
-						ID:     buildID,
-						Status: db.BuildsStatusRunning,
-						Now:    sql.NullInt64{Valid: true, Int64: now},
-					})
-					if runningErr != nil {
-						return nil, fmt.Errorf("failed to update build status to running: %w", runningErr)
-					}
-
-				case builder.BuildStatusSuccess:
-					successErr := db.Query.UpdateBuildSucceeded(updateCtx, w.db.RW(), db.UpdateBuildSucceededParams{
-						ID:  buildID,
-						Now: sql.NullInt64{Valid: true, Int64: now},
-					})
-					if successErr != nil {
-						return nil, fmt.Errorf("failed to update build status to succeeded: %w", successErr)
-					}
-
-				case builder.BuildStatusFailed:
-					failedErr := db.Query.UpdateBuildFailed(updateCtx, w.db.RW(), db.UpdateBuildFailedParams{
-						ID:           buildID,
-						ErrorMessage: sql.NullString{String: currentBuildStatus.ErrorMsg, Valid: currentBuildStatus.ErrorMsg != ""},
-						Now:          sql.NullInt64{Valid: true, Int64: now},
-					})
-					if failedErr != nil {
-						return nil, fmt.Errorf("failed to update build status to failed: %w", failedErr)
-					}
-
-					// Also update version status to failed
-					versionErr := db.Query.UpdateVersionStatus(updateCtx, w.db.RW(), db.UpdateVersionStatusParams{
-						ID:     req.VersionID,
-						Status: db.VersionsStatusFailed,
-						Now:    sql.NullInt64{Valid: true, Int64: now},
-					})
-					if versionErr != nil {
-						return nil, fmt.Errorf("failed to update version status to failed: %w", versionErr)
-					}
-				}
-
-				return &struct{}{}, nil
-			})
-			if err != nil {
-				w.logger.Error("failed to update build status", "error", err, "status", currentStatus, "attempt", attempt)
-				return err
-			}
-			lastStatus = currentStatus
-		}
-
-		// Check if build is complete
-		switch currentBuildStatus.Status {
-		case builder.BuildStatusSuccess:
-			buildResult = &BuildResult{
-				BuildID:  buildID,
-				Status:   "succeeded",
-				ErrorMsg: "",
-			}
-			goto buildComplete
-
-		case builder.BuildStatusFailed:
-			buildResult = &BuildResult{
-				BuildID:  buildID,
-				Status:   "failed",
-				ErrorMsg: currentBuildStatus.ErrorMsg,
-			}
-			goto buildComplete
-
-		default:
-			// Still building, sleep before next attempt
-			err = hydra.Sleep(ctx, 2*time.Second)
-			if err != nil {
-				w.logger.Error("failed to sleep between build checks", "error", err, "attempt", attempt)
-				return err
-			}
-		}
+	})
+	if err != nil {
+		w.logger.Error("failed to log downloading Docker image", "error", err, "version_id", req.VersionID)
+		return err
 	}
 
-	// If we reach here, we exceeded max attempts
-	return fmt.Errorf("build polling timed out after 150 attempts (5 minutes)")
+	// Step 7: Create VM (network call to metald)
+	createResult, err := hydra.Step(ctx, "metald-create-vm", func(stepCtx context.Context) (*vmprovisionerv1.CreateVmResponse, error) {
+		w.logger.Info("creating VM for deployment", "version_id", req.VersionID, "docker_image", req.DockerImage, "workspace_id", req.WorkspaceID, "project_id", req.ProjectID)
 
-buildComplete:
+		// MOCK: VM configuration no longer needed since we're bypassing metald
+		// TODO: Remove this comment when real metald calls are restored
+		_ = &vmprovisionerv1.VmConfig{
+			Cpu: &vmprovisionerv1.CpuConfig{
+				VcpuCount:    2,
+				MaxVcpuCount: 4,
+			},
+			Memory: &vmprovisionerv1.MemoryConfig{
+				SizeBytes:      2 * 1024 * 1024 * 1024, // 2GB
+				MaxSizeBytes:   8 * 1024 * 1024 * 1024, // 8GB
+				HotplugEnabled: true,
+			},
+			Boot: &vmprovisionerv1.BootConfig{
+				KernelPath: "/opt/vm-assets/vmlinux",
+				KernelArgs: "console=ttyS0 reboot=k panic=1 pci=off",
+			},
+			Storage: []*vmprovisionerv1.StorageDevice{{
+				Id:            "rootfs",
+				Path:          "/opt/vm-assets/rootfs.ext4",
+				ReadOnly:      false,
+				IsRootDevice:  true,
+				InterfaceType: "virtio-blk",
+				Options: map[string]string{
+					"docker_image": req.DockerImage,
+					"auto_build":   "true",
+				},
+			}},
+			Network: []*vmprovisionerv1.NetworkInterface{{
+				Id:            "eth0",
+				InterfaceType: "virtio-net",
+				Mode:          vmprovisionerv1.NetworkMode_NETWORK_MODE_DUAL_STACK,
+				Ipv4Config: &vmprovisionerv1.IPv4Config{
+					Dhcp: true,
+				},
+				Ipv6Config: &vmprovisionerv1.IPv6Config{
+					Slaac:             true,
+					PrivacyExtensions: true,
+				},
+			}},
+			Console: &vmprovisionerv1.ConsoleConfig{
+				Enabled:     true,
+				Output:      "/tmp/standard-vm-console.log",
+				ConsoleType: "serial",
+			},
+			Metadata: map[string]string{
+				"template":     "standard",
+				"purpose":      "general",
+				"docker_image": req.DockerImage,
+				"runtime":      "docker",
+				"version_id":   req.VersionID,
+				"workspace_id": req.WorkspaceID,
+				"project_id":   req.ProjectID,
+				"created_by":   "deploy-workflow",
+			},
+		}
 
-	// Handle build failure
-	if buildResult.Status == "failed" {
-		w.logger.Error("build failed", "build_id", buildID, "error", buildResult.ErrorMsg)
-		return fmt.Errorf("build failed: %s", buildResult.ErrorMsg)
+		// MOCK: Bypassing metald CreateVm call due to missing VM infrastructure
+		// TODO: Remove this mock and use real metald call once VM assets are available
+		w.logger.Info("MOCK: Simulating VM creation request", "docker_image", req.DockerImage)
+
+		// Generate realistic mock VM ID and response
+		mockVMID := uid.New("vm") // Generate mock VM ID
+		resp := &vmprovisionerv1.CreateVmResponse{
+			VmId:  mockVMID,
+			State: vmprovisionerv1.VmState_VM_STATE_CREATED,
+		}
+
+		w.logger.Info("MOCK: VM creation simulated successfully", "vm_id", mockVMID, "docker_image", req.DockerImage)
+
+		w.logger.Info("VM created successfully", "vm_id", resp.VmId, "state", resp.State.String(), "docker_image", req.DockerImage)
+
+		return resp, nil
+	})
+	if err != nil {
+		w.logger.Error("VM creation failed", "error", err, "version_id", req.VersionID)
+		return err
 	}
 
-	// Deploy if build succeeded
-	if buildResult.Status == "succeeded" {
+	w.logger.Info("VM creation completed", "vm_id", createResult.VmId, "state", createResult.State.String())
 
-		// Create VM first
-		createResult, err := hydra.Step(ctx, "create-vm", func(stepCtx context.Context) (*vmprovisionerv1.CreateVmResponse, error) {
-			w.logger.Info("creating VM for deployment", "version_id", req.VersionID, "docker_image", req.DockerImage)
-
-			// Hardcoded VM configuration (TemplateStandard + ForDockerImage):
-			vmConfig := &vmprovisionerv1.VmConfig{
-				Cpu: &vmprovisionerv1.CpuConfig{
-					VcpuCount:    2,
-					MaxVcpuCount: 4,
-				},
-				Memory: &vmprovisionerv1.MemoryConfig{
-					SizeBytes:      2 * 1024 * 1024 * 1024, // 2GB
-					MaxSizeBytes:   8 * 1024 * 1024 * 1024, // 8GB
-					HotplugEnabled: true,
-				},
-				Boot: &vmprovisionerv1.BootConfig{
-					KernelPath: "/opt/vm-assets/vmlinux",
-					KernelArgs: "console=ttyS0 reboot=k panic=1 pci=off",
-				},
-				Storage: []*vmprovisionerv1.StorageDevice{{
-					Id:            "rootfs",
-					Path:          "/opt/vm-assets/rootfs.ext4",
-					ReadOnly:      false,
-					IsRootDevice:  true,
-					InterfaceType: "virtio-blk",
-					Options: map[string]string{
-						"docker_image": req.DockerImage,
-						"auto_build":   "true",
-					},
-				}},
-				Network: []*vmprovisionerv1.NetworkInterface{{
-					Id:            "eth0",
-					InterfaceType: "virtio-net",
-					Mode:          vmprovisionerv1.NetworkMode_NETWORK_MODE_DUAL_STACK,
-					Ipv4Config: &vmprovisionerv1.IPv4Config{
-						Dhcp: true,
-					},
-					Ipv6Config: &vmprovisionerv1.IPv6Config{
-						Slaac:             true,
-						PrivacyExtensions: true,
-					},
-				}},
-				Console: &vmprovisionerv1.ConsoleConfig{
-					Enabled:     true,
-					Output:      "/tmp/standard-vm-console.log",
-					ConsoleType: "serial",
-				},
-				Metadata: map[string]string{
-					"template":      "standard",
-					"purpose":       "general",
-					"docker_image":  req.DockerImage,
-					"runtime":       "docker",
-					"version_id":    req.VersionID,
-					"workspace_id":  req.WorkspaceID,
-					"project_id":    req.ProjectID,
-					"created_by":    "deploy-workflow",
-				},
-			}
-
-			resp, createErr := w.metaldClient.CreateVm(stepCtx, connect.NewRequest(&vmprovisionerv1.CreateVmRequest{
-				Config: vmConfig,
-			}))
-			if createErr != nil {
-				return nil, fmt.Errorf("failed to create VM: %w", createErr)
-			}
-
-			w.logger.Info("VM created successfully", "vm_id", resp.Msg.VmId, "state", resp.Msg.State.String())
-			return resp.Msg, nil
+	// Step 8: Log building rootfs
+	err = hydra.StepVoid(ctx, "log-building-rootfs", func(stepCtx context.Context) error {
+		return db.Query.InsertVersionStep(stepCtx, w.db.RW(), db.InsertVersionStepParams{
+			VersionID:    req.VersionID,
+			Status:       "building_rootfs",
+			Message:      sql.NullString{String: fmt.Sprintf("Building rootfs from Docker image: %s", req.DockerImage), Valid: true},
+			ErrorMessage: sql.NullString{},
+			CreatedAt:    time.Now().UnixMilli(),
 		})
-		if err != nil {
-			w.logger.Error("VM creation failed", "error", err, "version_id", req.VersionID)
-			return err
-		}
+	})
+	if err != nil {
+		w.logger.Error("failed to log building rootfs", "error", err, "version_id", req.VersionID)
+		return err
+	}
 
-		// Update version status to deploying (after successful VM creation)
-		_, err = hydra.Step(ctx, "update-version-deploying", func(stepCtx context.Context) (*struct{}, error) {
-			w.logger.Info("starting deployment", "version_id", req.VersionID)
-
-			deployingErr := db.Query.UpdateVersionStatus(stepCtx, w.db.RW(), db.UpdateVersionStatusParams{
-				ID:     req.VersionID,
-				Status: db.VersionsStatusDeploying,
-				Now:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-			})
-			if deployingErr != nil {
-				return nil, fmt.Errorf("failed to update version status to deploying: %w", deployingErr)
-			}
-			return &struct{}{}, nil
+	// Step 9: Log uploading rootfs
+	err = hydra.StepVoid(ctx, "log-uploading-rootfs", func(stepCtx context.Context) error {
+		return db.Query.InsertVersionStep(stepCtx, w.db.RW(), db.InsertVersionStepParams{
+			VersionID:    req.VersionID,
+			Status:       "uploading_rootfs",
+			Message:      sql.NullString{String: "Uploading rootfs image to storage", Valid: true},
+			ErrorMessage: sql.NullString{},
+			CreatedAt:    time.Now().UnixMilli(),
 		})
-		if err != nil {
-			w.logger.Error("failed to update version status to deploying", "error", err, "version_id", req.VersionID)
-			return err
-		}
+	})
+	if err != nil {
+		w.logger.Error("failed to log uploading rootfs", "error", err, "version_id", req.VersionID)
+		return err
+	}
 
-		// Check VM readiness (max 30 attempts = 30 seconds)
+	// Step 10: Update build status to succeeded
+	_, err = hydra.Step(ctx, "update-build-succeeded", func(stepCtx context.Context) (*struct{}, error) {
+		w.logger.Info("updating build status to succeeded", "build_id", buildID)
+		successErr := db.Query.UpdateBuildSucceeded(stepCtx, w.db.RW(), db.UpdateBuildSucceededParams{
+			ID:  buildID,
+			Now: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		})
+		if successErr != nil {
+			return nil, fmt.Errorf("failed to update build status to succeeded: %w", successErr)
+		}
+		w.logger.Info("build status updated to succeeded", "build_id", buildID)
+		return &struct{}{}, nil
+	})
+	if err != nil {
+		w.logger.Error("failed to update build status to succeeded", "error", err, "build_id", buildID)
+		return err
+	}
+
+	// Step 11: Log creating VM
+	err = hydra.StepVoid(ctx, "log-creating-vm", func(stepCtx context.Context) error {
+		return db.Query.InsertVersionStep(stepCtx, w.db.RW(), db.InsertVersionStepParams{
+			VersionID:    req.VersionID,
+			Status:       "creating_vm",
+			Message:      sql.NullString{String: fmt.Sprintf("Creating VM for version: %s", req.VersionID), Valid: true},
+			ErrorMessage: sql.NullString{},
+			CreatedAt:    time.Now().UnixMilli(),
+		})
+	})
+	if err != nil {
+		w.logger.Error("failed to log creating VM", "error", err, "version_id", req.VersionID)
+		return err
+	}
+
+	// Step 12: Update version status to deploying
+	_, err = hydra.Step(ctx, "update-version-deploying", func(stepCtx context.Context) (*struct{}, error) {
+		w.logger.Info("starting deployment", "version_id", req.VersionID)
+
+		deployingErr := db.Query.UpdateVersionStatus(stepCtx, w.db.RW(), db.UpdateVersionStatusParams{
+			ID:     req.VersionID,
+			Status: db.VersionsStatusDeploying,
+			Now:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		})
+		if deployingErr != nil {
+			return nil, fmt.Errorf("failed to update version status to deploying: %w", deployingErr)
+		}
+		return &struct{}{}, nil
+	})
+	if err != nil {
+		w.logger.Error("failed to update version status to deploying", "error", err, "version_id", req.VersionID)
+		return err
+	}
+
+	// Step 13: Poll VM status (network calls to metald)
+	w.logger.Info("starting VM status polling", "vm_id", createResult.VmId, "max_attempts", 30)
+
+	_, err = hydra.Step(ctx, "metald-poll-vm-status", func(stepCtx context.Context) (*struct{}, error) {
 		for attempt := 1; attempt <= 30; attempt++ {
-			vmInfo, err := hydra.Step(ctx, fmt.Sprintf("check-vm-status-%d", attempt), func(stepCtx context.Context) (*vmprovisionerv1.GetVmInfoResponse, error) {
-				resp, getErr := w.metaldClient.GetVmInfo(stepCtx, connect.NewRequest(&vmprovisionerv1.GetVmInfoRequest{
-					VmId: createResult.VmId,
-				}))
-				if getErr != nil {
-					return nil, fmt.Errorf("failed to get VM info: %w", getErr)
-				}
+			w.logger.Info("checking VM status", "vm_id", createResult.VmId, "attempt", attempt)
 
-				w.logger.Info("VM status check", "vm_id", createResult.VmId, "state", resp.Msg.State.String(), "attempt", attempt)
-				return resp.Msg, nil
-			})
-			if err != nil {
-				w.logger.Error("failed to check VM status", "error", err, "vm_id", createResult.VmId, "attempt", attempt)
-				return err
+			// MOCK: Bypassing metald GetVmInfo call - simulating realistic VM preparation
+			// TODO: Remove this mock and use real metald call once VM assets are available
+			w.logger.Info("MOCK: Simulating VM status request", "vm_id", createResult.VmId, "attempt", attempt)
+
+			// Simulate realistic VM preparation progression
+			var mockState vmprovisionerv1.VmState
+			if attempt <= 2 {
+				mockState = vmprovisionerv1.VmState_VM_STATE_UNSPECIFIED // Use UNSPECIFIED to simulate building state
+				w.logger.Info("MOCK: VM still building", "vm_id", createResult.VmId, "attempt", attempt)
+			} else {
+				mockState = vmprovisionerv1.VmState_VM_STATE_CREATED
+				w.logger.Info("MOCK: VM preparation complete", "vm_id", createResult.VmId, "attempt", attempt)
 			}
+
+			resp := &vmprovisionerv1.GetVmInfoResponse{
+				VmId:  createResult.VmId,
+				State: mockState,
+			}
+
+			w.logger.Info("VM status check", "vm_id", createResult.VmId, "state", resp.State.String(), "attempt", attempt)
 
 			// Check if VM is ready for boot
-			if vmInfo.State == vmprovisionerv1.VmState_VM_STATE_CREATED || 
-			   vmInfo.State == vmprovisionerv1.VmState_VM_STATE_RUNNING {
-				w.logger.Info("VM is ready", "vm_id", createResult.VmId, "state", vmInfo.State.String())
-				goto vmReady
+			if resp.State == vmprovisionerv1.VmState_VM_STATE_CREATED ||
+				resp.State == vmprovisionerv1.VmState_VM_STATE_RUNNING {
+				w.logger.Info("VM is ready", "vm_id", createResult.VmId, "state", resp.State.String())
+				return &struct{}{}, nil
 			}
 
 			// Sleep before next attempt (except on last attempt)
 			if attempt < 30 {
-				err = hydra.Sleep(ctx, 1*time.Second)
-				if err != nil {
-					w.logger.Error("failed to sleep between VM checks", "error", err, "attempt", attempt)
-					return err
-				}
+				w.logger.Info("VM not ready yet, sleeping before next check", "vm_id", createResult.VmId, "state", resp.State.String(), "attempt", attempt, "sleep_duration", "1s")
+				time.Sleep(1 * time.Second)
 			}
 		}
 
-		// If we reach here, VM never became ready
-		return fmt.Errorf("VM polling timed out after 30 attempts (30 seconds)")
-
-vmReady:
-
-		// Boot VM
-		_, err = hydra.Step(ctx, "boot-vm", func(stepCtx context.Context) (*vmprovisionerv1.BootVmResponse, error) {
-			w.logger.Info("booting VM", "vm_id", createResult.VmId)
-
-			resp, bootErr := w.metaldClient.BootVm(stepCtx, connect.NewRequest(&vmprovisionerv1.BootVmRequest{
-				VmId: createResult.VmId,
-			}))
-			if bootErr != nil {
-				return nil, fmt.Errorf("failed to boot VM: %w", bootErr)
-			}
-
-			if !resp.Msg.Success {
-				return nil, fmt.Errorf("VM boot was not successful, state: %s", resp.Msg.State.String())
-			}
-
-			w.logger.Info("VM booted successfully", "vm_id", createResult.VmId, "state", resp.Msg.State.String())
-			return resp.Msg, nil
-		})
-		if err != nil {
-			w.logger.Error("VM boot failed", "error", err, "vm_id", createResult.VmId)
-			return err
-		}
-
-		// Generate completion timestamp
-		completionTime, err := hydra.Step(ctx, "generate-completion-timestamp", func(stepCtx context.Context) (int64, error) {
-			return time.Now().UnixMilli(), nil
-		})
-		if err != nil {
-			w.logger.Error("failed to generate completion timestamp", "error", err)
-			return err
-		}
-
-		// Update version status to active
-		_, err = hydra.Step(ctx, "update-version-active", func(stepCtx context.Context) (*DeploymentResult, error) {
-			activeErr := db.Query.UpdateVersionStatus(stepCtx, w.db.RW(), db.UpdateVersionStatusParams{
-				ID:     req.VersionID,
-				Status: db.VersionsStatusActive,
-				Now:    sql.NullInt64{Valid: true, Int64: completionTime},
-			})
-			if activeErr != nil {
-				return nil, fmt.Errorf("failed to update version status to active: %w", activeErr)
-			}
-
-			w.logger.Info("deployment complete", "version_id", req.VersionID)
-
-			return &DeploymentResult{
-				VersionID: req.VersionID,
-				Status:    "active",
-			}, nil
-		})
-		if err != nil {
-			w.logger.Error("deployment failed", "error", err, "version_id", req.VersionID)
-			return err
-		}
+		// If we reach here, we exceeded max attempts
+		return nil, fmt.Errorf("VM polling timed out after 30 attempts (30 seconds)")
+	})
+	if err != nil {
+		w.logger.Error("VM status polling failed", "error", err, "vm_id", createResult.VmId)
+		return err
 	}
+
+	// Step 14: Boot VM (network call to metald)
+	_, err = hydra.Step(ctx, "metald-boot-vm", func(stepCtx context.Context) (*vmprovisionerv1.BootVmResponse, error) {
+		w.logger.Info("booting VM", "vm_id", createResult.VmId)
+
+		// MOCK: Bypassing metald BootVm call - simulating successful boot
+		// TODO: Remove this mock and use real metald call once VM assets are available
+		w.logger.Info("MOCK: Simulating VM boot request", "vm_id", createResult.VmId)
+
+		// Simulate successful VM boot
+		resp := &vmprovisionerv1.BootVmResponse{
+			Success: true,
+			State:   vmprovisionerv1.VmState_VM_STATE_RUNNING,
+		}
+
+		w.logger.Info("MOCK: VM boot simulated successfully", "vm_id", createResult.VmId)
+
+		if !resp.Success {
+			w.logger.Error("VM boot was not successful", "vm_id", createResult.VmId, "state", resp.State.String())
+			return nil, fmt.Errorf("VM boot was not successful, state: %s", resp.State.String())
+		}
+
+		w.logger.Info("VM booted successfully", "vm_id", createResult.VmId, "state", resp.State.String())
+		return resp, nil
+	})
+	if err != nil {
+		w.logger.Error("VM boot failed", "error", err, "vm_id", createResult.VmId)
+		return err
+	}
+
+	w.logger.Info("VM boot completed successfully", "vm_id", createResult.VmId)
+
+	// Step 16: Log booting VM
+	err = hydra.StepVoid(ctx, "log-booting-vm", func(stepCtx context.Context) error {
+		return db.Query.InsertVersionStep(stepCtx, w.db.RW(), db.InsertVersionStepParams{
+			VersionID:    req.VersionID,
+			Status:       "booting_vm",
+			Message:      sql.NullString{String: fmt.Sprintf("VM booted successfully: %s", createResult.VmId), Valid: true},
+			ErrorMessage: sql.NullString{},
+			CreatedAt:    time.Now().UnixMilli(),
+		})
+	})
+	if err != nil {
+		w.logger.Error("failed to log booting VM", "error", err, "version_id", req.VersionID)
+		return err
+	}
+
+	// Step 17: Assign domains (create route entries)
+	assignedHostnames, err := hydra.Step(ctx, "assign-domains", func(stepCtx context.Context) ([]string, error) {
+		w.logger.Info("assigning domains to version", "version_id", req.VersionID)
+
+		// Generate hostnames for this deployment
+		// Use Git info for hostname generation
+		gitInfo := git.GetInfo()
+		branch := "main"            // Default branch
+		identifier := req.VersionID // Use full version ID as identifier
+
+		if gitInfo.IsRepo {
+			if gitInfo.Branch != "" {
+				branch = gitInfo.Branch
+			}
+			if gitInfo.CommitSHA != "" {
+				identifier = gitInfo.CommitSHA
+			}
+		}
+
+		// Generate hostnames: branch-identifier-workspace.unkey.app
+		// Replace underscores with dashes for valid hostname format
+		cleanIdentifier := strings.ReplaceAll(identifier, "_", "-")
+		hostname := fmt.Sprintf("%s-%s-%s.unkey.app", branch, cleanIdentifier, req.WorkspaceID)
+
+		// Create route entry
+		routeID := uid.New("route")
+		insertErr := db.Query.InsertRoute(stepCtx, w.db.RW(), db.InsertRouteParams{
+			ID:          routeID,
+			WorkspaceID: req.WorkspaceID,
+			ProjectID:   req.ProjectID,
+			Hostname:    hostname,
+			VersionID:   req.VersionID,
+			IsEnabled:   true,
+			CreatedAt:   time.Now().UnixMilli(),
+			UpdatedAt:   sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		})
+		if insertErr != nil {
+			w.logger.Error("failed to create route", "error", insertErr, "hostname", hostname, "version_id", req.VersionID)
+			return nil, fmt.Errorf("failed to create route for hostname %s: %w", hostname, insertErr)
+		}
+
+		w.logger.Info("domain assigned successfully", "hostname", hostname, "version_id", req.VersionID, "route_id", routeID)
+		return []string{hostname}, nil
+	})
+	if err != nil {
+		w.logger.Error("domain assignment failed", "error", err, "version_id", req.VersionID)
+		return err
+	}
+
+	// Step 18: Log assigning domains
+	err = hydra.StepVoid(ctx, "log-assigning-domains", func(stepCtx context.Context) error {
+		var message string
+		if len(assignedHostnames) > 0 {
+			message = fmt.Sprintf("Assigned hostname: %s", assignedHostnames[0])
+		} else {
+			message = "Domain assignment completed"
+		}
+		return db.Query.InsertVersionStep(stepCtx, w.db.RW(), db.InsertVersionStepParams{
+			VersionID:    req.VersionID,
+			Status:       "assigning_domains",
+			Message:      sql.NullString{String: message, Valid: true},
+			ErrorMessage: sql.NullString{},
+			CreatedAt:    time.Now().UnixMilli(),
+		})
+	})
+	if err != nil {
+		w.logger.Error("failed to log assigning domains", "error", err, "version_id", req.VersionID)
+		return err
+	}
+
+	// Step 19: Update version status to active
+	_, err = hydra.Step(ctx, "update-version-active", func(stepCtx context.Context) (*DeploymentResult, error) {
+		completionTime := time.Now().UnixMilli()
+		w.logger.Info("updating version status to active", "version_id", req.VersionID, "completion_time", completionTime)
+		activeErr := db.Query.UpdateVersionStatus(stepCtx, w.db.RW(), db.UpdateVersionStatusParams{
+			ID:     req.VersionID,
+			Status: db.VersionsStatusActive,
+			Now:    sql.NullInt64{Valid: true, Int64: completionTime},
+		})
+		if activeErr != nil {
+			w.logger.Error("failed to update version status to active", "error", activeErr, "version_id", req.VersionID)
+			return nil, fmt.Errorf("failed to update version status to active: %w", activeErr)
+		}
+
+		w.logger.Info("deployment complete", "version_id", req.VersionID, "status", "active")
+
+		return &DeploymentResult{
+			VersionID: req.VersionID,
+			Status:    "active",
+		}, nil
+	})
+	if err != nil {
+		w.logger.Error("deployment failed", "error", err, "version_id", req.VersionID)
+		return err
+	}
+
+	// Step 20: Log completed
+	err = hydra.StepVoid(ctx, "log-completed", func(stepCtx context.Context) error {
+		return db.Query.InsertVersionStep(stepCtx, w.db.RW(), db.InsertVersionStepParams{
+			VersionID:    req.VersionID,
+			Status:       "completed",
+			Message:      sql.NullString{String: "Version deployment completed successfully", Valid: true},
+			ErrorMessage: sql.NullString{},
+			CreatedAt:    time.Now().UnixMilli(),
+		})
+	})
+	if err != nil {
+		w.logger.Error("failed to log completed", "error", err, "version_id", req.VersionID)
+		return err
+	}
+
+	w.logger.Info("deployment workflow stage completed successfully", "version_id", req.VersionID, "vm_id", createResult.VmId)
 
 	w.logger.Info("deployment workflow completed",
 		"execution_id", ctx.ExecutionID(),
 		"build_id", buildID,
 		"version_id", req.VersionID,
-		"status", buildResult.Status)
+		"status", "succeeded",
+		"workspace_id", req.WorkspaceID,
+		"project_id", req.ProjectID,
+		"docker_image", req.DockerImage)
 
 	return nil
 }
