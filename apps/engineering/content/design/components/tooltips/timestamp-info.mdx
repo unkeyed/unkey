@@ -1,66 +1,112 @@
 ---
-title: TimestampInfo
-description: A component that renders a timestamp with a tooltip that displays additional information.
+title: "TimestampInfo"
+description: "A component that renders a timestamp with a tooltip that displays additional information in a user-friendly format."
 ---
 import { TimestampExampleLocalTime, TimestampExampleUTC, TimestampExampleRelative } from "./timestamp-example"
 
-## TimestampInfo
+## Overview
 
-The TimestampInfo component displays a timestamp in a human-readable format with a tooltip showing additional information. It's useful for displaying dates and times in a user-friendly way while maintaining precision.
+The TimestampInfo component displays timestamps in human-readable formats with comprehensive tooltip information. It's designed to enhance user experience by presenting date and time data in an intuitive way while maintaining precision and providing access to multiple time formats.
 
 ## Usage
 
-### Local displayType
+```tsx
+import { TimestampInfo } from "@unkey/ui";
+
+export default function MyComponent() {
+  return (
+    <TimestampInfo
+      value={1704063045}
+      displayType="local"
+      className="custom-timestamp"
+    />
+  );
+}
+```
+
+## Examples
+
+### Local Display Type
+Shows time in the user's local timezone for better readability.
 
 <TimestampExampleLocalTime />
 
-### UTC displayType
+### UTC Display Type
+Displays time in UTC format for consistency across timezones.
 
 <TimestampExampleUTC />
 
-### Relative displayType
+### Relative Display Type
+Presents time in relative format for better context.
 
 <TimestampExampleRelative />
 
 ## Features
 
-- Human-readable date and time display
-- Tooltip with UTC, local time, relative time, and raw timestamp
-- Automatic timezone handling
-- Multiple display formats (local, UTC, relative)
-- Copy to clipboard functionality
-- Responsive design
+- **Human-Readable Display**: Converts timestamps to user-friendly formats
+- **Comprehensive Tooltip**: Shows UTC, local time, relative time, and raw timestamp
+- **Automatic Timezone Handling**: Seamlessly manages timezone conversions
+- **Multiple Display Formats**: Supports local, UTC, and relative time display
+- **Copy to Clipboard**: One-click copying of timestamp values
+- **Responsive Design**: Adapts to different screen sizes and viewports
+- **Accessibility**: Built-in accessibility support with proper ARIA attributes
+- **Customizable**: Extensive styling options through className props
 
 ## Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| value | string \| number | required | Unix timestamp in seconds or microseconds |
-| displayType | "local" \| "utc" \| "relative" | "local" | How to display the timestamp |
-| className | string | undefined | Additional CSS classes |
-| triggerRef | `React.RefObject<HTMLElement>` | undefined | External trigger reference |
-| open | boolean | undefined | Controlled open state |
-| onOpenChange | (open: boolean) => void | undefined | Callback for open state changes |
+| `value` | `string \| number` | Unix timestamp in seconds or microseconds |
+| `displayType` | `"local" \| "utc" \| "relative"` | `"local"` | How to display the timestamp |
+| `className` | `string` | `undefined` | Additional CSS classes |
+| `triggerRef` | `React.RefObject<HTMLElement>` | `undefined` | External trigger reference |
+| `open` | `boolean` | `undefined` | Controlled open state |
+| `onOpenChange` | `(open: boolean) => void` | `undefined` | Callback for open state changes |
 
-## Display Types
+## Structure
 
-- `local`: Shows time in the user's local timezone (e.g., "Jan 1 14:30:45")
-- `utc`: Shows time in UTC (e.g., "Jan 1,2024 14:30:45")
-- `relative`: Shows relative time (e.g., "2 hours ago")
+The TimestampInfo is composed of several elements that work together:
 
-## Tooltip Information
+1. **TimestampInfo** - The main container component
+2. **Display Element** - The visible timestamp text
+3. **Tooltip Trigger** - Activates the tooltip on hover/focus
+4. **Tooltip Content** - Comprehensive timestamp information
+5. **Copy Functionality** - Interactive elements for copying values
 
-The tooltip shows:
-- UTC time
-- Local time with timezone
-- Relative time
-- Raw timestamp value
+## Styling
 
-Each value can be copied to clipboard by clicking on it.
+The component includes default styling with:
+
+- Consistent typography and spacing
+- Dark mode support
+- Responsive design
+- Customizable through className props
+- Focus states for accessibility
+- Hover effects for interactive elements
+
+### Custom Styling
+
+You can customize the appearance using className props:
+
+```tsx
+<TimestampInfo 
+  value={1704063045}
+  displayType="local"
+  className="custom-timestamp-class"
+  triggerRef={customRef}
+>
+  Custom styled timestamp
+</TimestampInfo>
+```
 
 ## Accessibility
 
-- The component is keyboard accessible
-- Tooltips are screen reader friendly
-- Timestamps are machine-readable
-- Copy functionality is available via click
+The TimestampInfo component is built with accessibility in mind:
+
+- **Keyboard Navigation**: Full keyboard support for tooltip activation and copy functionality
+- **Screen Reader Support**: Proper ARIA labels and announcements for timestamp information
+- **Focus Management**: Clear focus indicators and logical tab order
+- **High Contrast**: Maintains proper contrast ratios for all text elements
+- **Semantic HTML**: Uses appropriate HTML elements and roles
+- **Machine Readable**: Timestamps are properly formatted for assistive technologies
+- **Copy Functionality**: Accessible copy operations with clear feedback

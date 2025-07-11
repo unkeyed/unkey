@@ -1,5 +1,5 @@
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { toast } from "@unkey/ui";
 
 export const useEditMetadata = (onSuccess?: () => void) => {
   const trpcUtils = trpc.useUtils();

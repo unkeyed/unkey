@@ -1,50 +1,130 @@
 ---
 title: SettingCard
-description: The SettingCard component provides a consistent layout for settings sections in your application. It includes a title, description, and content area with optional styling options.
+description: A card component for settings options with consistent layout, optional borders, and configurable content width for settings interfaces.
 ---
 import { SettingsCardBasic, SettingsCardsWithSharedEdge, SettingsCardsWithSquareEdge, SettingsCardsWithDivider } from "./settings-card.example"
 
-## Basic Usage
+## Overview
 
-The basic SettingCard includes a title, description, and content area.
+The SettingCard component provides a consistent layout for settings sections in your application. It's designed to include a title, description, and content area with optional styling options for creating cohesive settings interfaces.
+
+## Usage
+
+```tsx
+import { SettingCard } from "@unkey/ui";
+
+export default function MyComponent() {
+  return (
+    <SettingCard
+      title="Setting Title"
+      description="Setting description text"
+      border="both"
+      contentWidth="w-full lg:w-1/2"
+    >
+      <div>Setting content goes here</div>
+    </SettingCard>
+  );
+}
+```
+
+## Examples
+
+### Basic SettingCard
+The basic SettingCard includes a title, description, and content area with border styling.
 
 <SettingsCardBasic />
 
-## Settings Cards With Shared Edge
-
-Two SettingCard components sharing a common edge. Useful when settings might be related or make sense visualy together. 
+### Settings Cards With Shared Edge
+Two SettingCard components share a common edge for related settings.
 
 <SettingsCardsWithSharedEdge />
 
-## Settings Cards With seperating border
-
-Same as above with a border set. 
+### Settings Cards With Separating Border
+Same as above with a border separator for visual distinction.
 
 <SettingsCardsWithDivider />
 
-## Square Corners
-
-Single SettingCard with no border prop set. 
+### Square Corners
+Single SettingCard with no border prop set for rounded corners.
 
 <SettingsCardsWithSquareEdge />
 
 ## Features
 
-- Consistent layout for settings sections
-- Built-in title and description handling
-- Optional border and divider styling
-- Configurable content width
-- Responsive design
-- Accessible by default
+- **Consistent Layout**: Standardized structure for settings sections
+- **Built-in Typography**: Title and description handling with proper hierarchy
+- **Optional Borders**: Configurable border and divider styling
+- **Content Width**: Flexible content width configuration
+- **Responsive Design**: Adapts to different screen sizes
+- **Accessibility**: Built-in accessibility support
+- **Dark Mode Support**: Consistent appearance in light and dark themes
 
 ## Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| title | string | required | The title of the settings section |
-| description | string | required | Description text for the settings section |
-| children | React.ReactNode | required | Card content |
-| className | string | undefined | Additional CSS classes |
-| border | boolean | undefined | Whether to show a border around the card |
-| contentWidth | "default" \| "full" | "default" | Width of the content area |
+| `title` | `string` | **Required** | The title of the settings section |
+| `description` | `string` | **Required** | Description text for the settings section |
+| `children` | `React.ReactNode` | **Required** | Card content |
+| `className` | `string` | `undefined` | Additional CSS classes |
+| `border` | `"top" \| "bottom" \| "both"` | `undefined` | Border styling options |
+| `contentWidth` | `"default" \| "full" \| string` | `"default"` | Width of the content area |
+
+## Structure
+
+The SettingCard component is composed of:
+
+1. **Container** - Main wrapper with border and spacing
+2. **Header Section** - Title and description area
+3. **Content Area** - Flexible content container
+4. **Border System** - Optional border styling
+
+## Styling
+
+The SettingCard component includes default styling with:
+
+- Consistent spacing and typography
+- Border options for visual separation
+- Responsive design that adapts to container size
+- Dark mode support with appropriate color schemes
+- Focus states for accessibility
+- Customizable through className prop
+
+### Border Options
+
+- **`"top"`**: Only shows a top border
+- **`"bottom"`**: Only shows a bottom border  
+- **`"both"`**: Shows both top and bottom borders
+- **`undefined`**: No borders (rounded corners)
+
+### Content Width Options
+
+- **`"default"`**: Standard content width
+- **`"full"`**: Full width content
+- **Custom classes**: Any Tailwind width class (e.g., `"w-full lg:w-1/2"`)
+
+### Custom Styling
+
+You can customize the appearance using the className prop:
+
+```tsx
+<SettingCard
+  title="Custom Setting"
+  description="Custom description"
+  className="custom-setting-card"
+  contentWidth="w-full lg:w-1/3"
+>
+  Custom content
+</SettingCard>
+```
+
+## Accessibility
+
+The SettingCard component is built with accessibility in mind:
+
+- **Semantic HTML**: Uses appropriate HTML elements for structure
+- **Heading Hierarchy**: Maintains proper heading hierarchy for screen readers
+- **Color Contrast**: Provides sufficient color contrast between text and background
+- **Keyboard Navigation**: Supports keyboard navigation through focusable elements
+- **Screen Reader Support**: Announces card structure and content appropriately
 

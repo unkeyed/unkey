@@ -1,9 +1,7 @@
 ---
 title: "Checkbox"
-description: "A versatile checkbox component with multiple variants, states, and sizes"
+description: "A versatile checkbox component with multiple variants, states, and sizes for creating accessible, user-friendly selection inputs."
 ---
-import { RenderComponentWithSnippet } from "@/app/components/render";
-import { Check } from "@unkey/icons";
 import {
   CheckboxBasicVariants,
   CheckboxOutlineVariants,
@@ -25,162 +23,224 @@ import {
   CheckboxGroupExample,
 } from "./checkbox.examples";
 
-## Basic Variants
+## Overview
 
+The Checkbox component provides a versatile checkbox system that supports various styles, states, and interactive features. It's built with accessibility in mind and provides consistent interaction patterns across all variants, making it adaptable to any UI context while maintaining proper focus states and keyboard interactions.
+
+## Usage
+
+```tsx
+import { Checkbox } from "@unkey/ui";
+
+export default function MyComponent() {
+  return (
+    <div>
+      <Checkbox variant="primary" color="success" />
+      <Checkbox variant="outline" color="danger" />
+      <Checkbox variant="ghost" size="lg" />
+    </div>
+  );
+}
+```
+
+## Examples
+
+### Basic Variants
 Checkbox comes in three basic variants that serve different UI purposes:
 
-### Primary
-
+#### Primary
 The default checkbox style with a solid background when checked. Use for primary selection actions.
 
 <CheckboxBasicVariants />
 
-### Outline
-
+#### Outline
 Checkbox with transparent background and visible border when checked. Ideal for secondary selection actions that don't require as much visual emphasis.
 
 <CheckboxOutlineVariants />
 
-### Ghost
-
+#### Ghost
 Checkbox with no background when unchecked and subtle hover states. Perfect for tertiary selection actions or when space is limited.
 
 <CheckboxGhostVariants />
 
-## Color Variants
-
+### Color Variants
 Each checkbox variant can be combined with different color schemes to convey the nature of the selection:
 
-### Danger - Primary
+#### Danger Variants
+***Primary***
 
 <CheckboxDangerPrimary />
 
-### Danger - Outline
+***Outline***
 
 <CheckboxDangerOutline />
 
-### Danger - Ghost
+***Ghost***
 
 <CheckboxDangerGhost />
 
-### Warning - Primary
+#### Warning Variants
+***Primary***
 
 <CheckboxWarningPrimary />
 
-### Warning - Outline
+***Outline***
 
 <CheckboxWarningOutline />
 
-### Warning - Ghost
+***Ghost***
 
 <CheckboxWarningGhost />
 
-### Success - Primary
+#### Success Variants
+***Primary***
 
 <CheckboxSuccessPrimary />
 
-### Success - Outline
+***Outline***
 
 <CheckboxSuccessOutline />
 
-### Success - Ghost
+***Ghost***
 
 <CheckboxSuccessGhost />
 
-### Info - Primary
+#### Info Variants
+***Primary***
 
 <CheckboxInfoPrimary />
 
-### Info - Outline
+***Outline***
 
 <CheckboxInfoOutline />
 
-### Info - Ghost
+***Ghost***
 
 <CheckboxInfoGhost />
 
-## Size Variants
-
+### Size Variants
 All checkbox variants and color schemes can be combined with different sizes to fit various UI contexts.
 
 <CheckboxSizeVariants />
 
-## With Labels
-
+### With Labels
 Checkbox components can be combined with labels for better user experience.
 
 <CheckboxWithLabels />
 
-## Checkbox Group Example
-
+### Checkbox Group
 Checkboxes can be grouped together for related selection options.
 
 <CheckboxGroupExample />
 
-## Additional Features
+## Features
 
-The Checkbox component includes some additional features not shown in all examples above:
-
-### Legacy Variant Support
-
-For backward compatibility, the component supports legacy variants:
-- `default` will be mapped to `primary` variant
-- `destructive` will be mapped to `primary` variant with `danger` color
-
-### Customizing Indicator
-
-The Checkbox uses the `Check` component from `@unkey/icons` as the default indicator when checked. The icon size adapts automatically to the size of the checkbox.
+- **Multiple Variants**: Three basic variants (primary, outline, ghost) with different visual emphasis
+- **Color Schemes**: Five color options (default, danger, warning, success, info) for semantic meaning
+- **Size Options**: Multiple sizes for different contexts and touch targets
+- **Interactive States**: Hover, focus, checked, and disabled states
+- **Accessibility**: Full accessibility support with proper ARIA attributes
+- **Responsive Design**: Adapts to different screen sizes
+- **Dark Mode Support**: Consistent appearance in light and dark themes
+- **Keyboard Support**: Full keyboard navigation and shortcuts
 
 ## Props
 
 The Checkbox component accepts all standard HTML input attributes plus the following:
 
-<AutoTypeTable
-  name="DocumentedCheckboxProps"
-  path="../../internal/ui/src/components/form/checkbox.tsx"
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `variant` | `"primary" \| "outline" \| "ghost"` | `"primary"` | The variant style to use for the checkbox |
+| `color` | `"default" \| "success" \| "warning" \| "danger" \| "info"` | `"default"` | The color scheme to use for the checkbox |
+| `size` | `"sm" \| "md" \| "lg" \| "xlg"` | `"md"` | The size of the checkbox |
+| `checked` | `boolean` | - | Whether the checkbox is checked |
+| `defaultChecked` | `boolean` | - | Default checked state when uncontrolled |
+| `disabled` | `boolean` | - | Whether the checkbox is disabled |
+| `required` | `boolean` | - | Required state for the checkbox |
+| `name` | `string` | - | Name of the checkbox for form submission |
+| `value` | `string` | - | Value of the checkbox for form submission |
+| `onCheckedChange` | `(checked: boolean) => void` | - | Callback triggered when checkbox state changes |
+| `className` | `string` | - | Additional CSS classes to apply |
+
+## Variants
+
+### Primary
+- Solid background when checked
+- Use for primary selection actions
+- Default variant for most use cases
+
+### Outline
+- Transparent background with visible border when checked
+- Secondary selection actions with moderate emphasis
+- Good for forms and secondary actions
+
+### Ghost
+- No background when unchecked and subtle hover states
+- Tertiary selection actions or minimal visual impact
+- Perfect for dense UIs or subtle interactions
+
+## Color Schemes
+
+### Default
+- Neutral styling for general selections
+- Gray/blue color scheme
+- Most common choice for standard selections
+
+### Danger
+- Red color scheme for critical selections
+- Use for potentially destructive or critical operations
+- Should be used sparingly and with clear intent
+
+### Warning
+- Yellow/orange color scheme for cautionary selections
+- Use for selections that require attention but aren't destructive
+- Good for confirmations or warnings
+
+### Success
+- Green color scheme for positive selections
+- Use for confirming or positive operations
+- Encourages positive user actions
+
+### Info
+- Blue color scheme for informational selections
+- Use for neutral or informational operations
+- Good for educational or informational contexts
+
+## Structure
+
+The Checkbox component is a self-contained component that renders as a single checkbox element with appropriate styling, accessibility attributes, and optional icon support.
+
+## Styling
+
+The Checkbox component includes default styling with:
+
+- Consistent sizing and border radius across variants
+- Color-coded schemes for semantic meaning
+- Smooth transitions for state changes
+- Dark mode support
+- Responsive design
+- Focus states for accessibility
+- Customizable through className prop
+
+### Custom Styling
+
+You can customize the appearance using the className prop:
+
+```tsx
+<Checkbox 
+  variant="primary"
+  color="success"
+  className="custom-checkbox-class"
 />
+```
 
-## Implementation Details
+## Accessibility
 
-The Checkbox component is built with Radix UI's `@radix-ui/react-checkbox` primitive for accessibility and proper keyboard navigation. It includes:
+The Checkbox component is built with accessibility in mind:
 
-- Custom styling for all states: unchecked, checked, disabled, and focus
-- Support for different variants through CSS variable variants
-- Automatic icon size adjustment based on checkbox size
-- Proper ARIA attributes for screen readers
-
-## Usage Guidelines
-
-When using the Checkbox component:
-
-- **Semantic meaning**: Choose appropriate colors to match the semantic meaning of your checkboxes
-  - Use **default** for standard selections without specific connotations
-  - Use **success** for positive or confirming selections
-  - Use **warning** for cautionary selections that require attention
-  - Use **danger** for critical or potentially destructive selections
-  - Use **info** for informational or neutral selections
-
-- **Accessibility**:
-  - Always pair checkboxes with visible labels that clearly describe the selection
-  - Ensure sufficient color contrast between the checkbox and its background
-  - Group related checkboxes together with a descriptive group label
-  - Test keyboard navigation (Tab to focus, Space to toggle)
-
-- **Interaction design**:
-  - Use appropriate sizing based on the context and target devices (consider touch targets for mobile)
-  - Maintain consistent spacing between checkboxes in a group
-  - Provide clear visual feedback for all states (hover, focus, checked, disabled)
-
-- **Content guidelines**:
-  - Write clear, concise labels that describe the option being selected
-  - Use sentence case for checkbox labels
-  - For groups of checkboxes, use a descriptive heading that explains the purpose of the group
-
-- **Form design**:
-  - Consider using the `required` attribute when a checkbox must be checked to proceed
-  - For lengthy terms and conditions, consider linking to the full text rather than showing it all
-  - For mutually exclusive options, consider using radio buttons instead
-
-- **Responsive design**:
-  - Ensure checkboxes and their labels are properly sized and spaced on all devices
-  - Consider stacking checkboxes vertically on smaller screens for better touch targets
+- **Semantic HTML**: Uses proper checkbox element with appropriate roles
+- **ARIA Attributes**: Proper ARIA labels and states for screen readers
+- **Keyboard Navigation**: Full keyboard support including Tab and Space
+- **Focus Management**: Clear focus indicators and logical tab order
+- **Screen Reader Support**: Announces checkbox states and actions appropriately
+- **High Contrast**: Maintains proper contrast ratios across all variants

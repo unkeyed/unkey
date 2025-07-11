@@ -1,166 +1,132 @@
 ---
 title: Tooltip
-description: The Tooltip component provides contextual information that appears when users hover over or focus on an element. It's built on top of Radix UI's tooltip primitive and offers flexible positioning and styling options.
+description: A flexible tooltip component with multiple positioning options, customizable content, and accessibility features for providing contextual information.
 ---
 import { OnHoverExample } from "./tooltip.onHover"
 
-## Tooltip
+## Overview
 
-The Tooltip component is a fundamental UI element that displays additional information when users interact with elements. It's perfect for providing context, explanations, or supplementary details without cluttering the interface.
+The Tooltip component provides a flexible way to display contextual information when users hover over or focus on elements. It's designed to offer multiple positioning options, customizable content, and comprehensive accessibility features for enhanced user experience.
 
-## Basic Usage
+## Usage
+
+```tsx
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+
+export default function MyComponent() {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button>Hover me</Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>This is a helpful tooltip</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+```
+
+## Examples
+
+### On Hover
+Examples showing different tooltip configurations and positioning options.
 
 <OnHoverExample />
 
 ## Features
 
-- **Flexible Positioning**: Position tooltips on any side (top, right, bottom, left)
-- **Automatic Positioning**: Smart positioning that adjusts based on available space
-- **Accessible**: Built on Radix UI primitives with full keyboard and screen reader support
-- **Customizable Styling**: Easy to customize appearance with CSS classes
-- **Animation**: Smooth enter/exit animations
-- **Delay Control**: Configurable delay before showing/hiding tooltips
-
-## Components
-
-The Tooltip system consists of several components that work together:
-
-### TooltipProvider
-Wraps your application to provide tooltip context and configuration.
-
-### Tooltip
-The root component that manages the tooltip state.
-
-### TooltipTrigger
-The element that triggers the tooltip when hovered or focused.
-
-### TooltipContent
-The actual tooltip content that appears.
+- **Multiple Positions**: Flexible positioning (top, bottom, left, right, and corners)
+- **Customizable Content**: Rich content support with text, icons, and components
+- **Accessibility**: Full accessibility support with proper ARIA attributes
+- **Keyboard Navigation**: Keyboard support for focus-based tooltips
+- **Responsive Design**: Adapts to different screen sizes and viewports
+- **Dark Mode Support**: Consistent appearance in light and dark themes
+- **Customizable Styling**: Extensive styling options through className props
+- **Delay Control**: Configurable show/hide delays for better UX
 
 ## Props
 
-### TooltipProvider Props
+### TooltipProvider
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| delayDuration | number | 700 | Delay before showing the tooltip in milliseconds |
-| skipDelayDuration | number | 300 | Delay before hiding the tooltip in milliseconds |
-| children | ReactNode | - | The content to render |
+| `children` | `ReactNode` | - | Tooltip components |
+| `delayDuration` | `number` | `700` | Delay before showing tooltip (ms) |
+| `skipDelayDuration` | `number` | `300` | Delay before hiding tooltip (ms) |
 
-### Tooltip Props
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| defaultOpen | boolean | false | Whether the tooltip is open by default |
-| open | boolean | - | Controlled open state |
-| onOpenChange | (open: boolean) => void | - | Callback when open state changes |
-| delayDuration | number | - | Override provider delay duration |
-| disableHoverableContent | boolean | false | Whether to disable hoverable content |
-
-### TooltipTrigger Props
+### Tooltip
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| asChild | boolean | false | Whether to render as a child element |
-| children | ReactNode | - | The trigger element |
-| className | string | - | Additional CSS classes |
+| `defaultOpen` | `boolean` | `false` | Whether tooltip is open by default |
+| `open` | `boolean` | - | Controlled open state |
+| `onOpenChange` | `(open: boolean) => void` | - | Callback when open state changes |
+| `delayDuration` | `number` | - | Override delay duration |
+| `disableHoverableContent` | `boolean` | `false` | Disable hover on tooltip content |
 
-### TooltipContent Props
+### TooltipTrigger
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| side | "top" \| "right" \| "bottom" \| "left" | "top" | The side where the tooltip appears |
-| align | "start" \| "center" \| "end" | "center" | The alignment of the tooltip |
-| sideOffset | number | 4 | The offset from the side in pixels |
-| alignOffset | number | 0 | The offset from the alignment in pixels |
-| avoidCollisions | boolean | true | Whether to avoid collisions with viewport edges |
-| collisionBoundary | Boundary | [] | The boundary for collision detection |
-| collisionPadding | number \| Padding | 0 | The padding for collision detection |
-| arrowPadding | number | 0 | The padding for arrow collision detection |
-| sticky | "partial" \| "always" | "partial" | The sticky behavior |
-| hideWhenDetached | boolean | false | Whether to hide when detached |
-| className | string | - | Additional CSS classes |
-| children | ReactNode | - | The tooltip content |
+| `asChild` | `boolean` | `false` | Whether to render as child element |
+| `children` | `ReactNode` | - | The trigger element |
 
-## Examples
+### TooltipContent
 
-### Basic Tooltip
-```tsx
-<TooltipProvider>
-  <Tooltip>
-    <TooltipTrigger>
-      <button>Hover me</button>
-    </TooltipTrigger>
-    <TooltipContent>
-      This is a basic tooltip
-    </TooltipContent>
-  </Tooltip>
-</TooltipProvider>
-```
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `side` | `"top" \| "right" \| "bottom" \| "left"` | `"top"` | Preferred side for tooltip |
+| `sideOffset` | `number` | `4` | Distance from trigger element |
+| `align` | `"start" \| "center" \| "end"` | `"center"` | Alignment relative to trigger |
+| `alignOffset` | `number` | `0` | Offset from alignment |
+| `avoidCollisions` | `boolean` | `true` | Whether to avoid viewport collisions |
+| `collisionBoundary` | `Boundary` | - | Boundary for collision detection |
+| `collisionPadding` | `number \| Padding` | `0` | Padding for collision detection |
+| `arrowPadding` | `number` | `0` | Padding for arrow positioning |
+| `sticky` | `"partial" \| "always"` | `"partial"` | Sticky behavior on collision |
+| `hideWhenDetached` | `boolean` | `false` | Hide when trigger is detached |
+| `className` | `string` | - | Additional CSS classes |
 
-### Custom Positioning
-```tsx
-<TooltipProvider>
-  <Tooltip>
-    <TooltipTrigger>
-      <button>Hover me</button>
-    </TooltipTrigger>
-    <TooltipContent side="right" align="start" sideOffset={8}>
-      Tooltip on the right
-    </TooltipContent>
-  </Tooltip>
-</TooltipProvider>
-```
+## Structure
+
+The Tooltip system is composed of several components that work together:
+
+1. **TooltipProvider** - Context provider for tooltip management
+2. **Tooltip** - The root component that manages tooltip state
+3. **TooltipTrigger** - The element that triggers the tooltip
+4. **TooltipContent** - The actual tooltip content container
+
+## Styling
+
+The component includes default styling with:
+
+- Consistent padding and border radius
+- Drop shadow for visual separation
+- Smooth animations for show/hide
+- Dark mode support with appropriate color schemes
+- Focus states for accessibility
+- Customizable through className props
 
 ### Custom Styling
-```tsx
-<TooltipProvider>
-  <Tooltip>
-    <TooltipTrigger>
-      <button>Hover me</button>
-    </TooltipTrigger>
-    <TooltipContent className="bg-blue-500 text-white border-blue-600">
-      Custom styled tooltip
-    </TooltipContent>
-  </Tooltip>
-</TooltipProvider>
-```
 
-### Controlled State
-```tsx
-const [open, setOpen] = useState(false);
+You can customize the appearance using className props:
 
-<TooltipProvider>
-  <Tooltip open={open} onOpenChange={setOpen}>
-    <TooltipTrigger>
-      <button>Click me</button>
-    </TooltipTrigger>
-    <TooltipContent>
-      Controlled tooltip
-    </TooltipContent>
-  </Tooltip>
-</TooltipProvider>
+```tsx
+<TooltipContent className="custom-tooltip-class">
+  <p>Custom styled tooltip content</p>
+</TooltipContent>
 ```
 
 ## Accessibility
 
-The Tooltip component follows accessibility best practices:
+The Tooltip component is built with accessibility in mind:
 
-- **Keyboard Navigation**: Tooltips can be triggered and dismissed using keyboard
-- **Screen Reader Support**: Proper ARIA attributes and announcements
-- **Focus Management**: Automatic focus handling for keyboard users
-- **High Contrast**: Compatible with high contrast mode
-- **Reduced Motion**: Respects user's motion preferences
-
-## Best Practices
-
-1. **Keep content concise**: Tooltips should provide quick, helpful information
-2. **Use appropriate timing**: Default delays work well for most cases
-3. **Position thoughtfully**: Consider the user's reading flow and available space
-4. **Test with keyboard**: Ensure tooltips work for keyboard-only users
-5. **Avoid overuse**: Don't use tooltips for essential information
-
-## Related Components
-
-- **[InfoTooltip](./info-tooltip.mdx)**: A specialized tooltip for informational content
-- **[TimestampInfo](./timestamp-info.mdx)**: A tooltip component for displaying timestamp information
+- **ARIA Attributes**: Proper ARIA labels and descriptions for screen readers
+- **Keyboard Support**: Full keyboard navigation and activation
+- **Focus Management**: Proper focus handling and announcements
+- **Screen Reader Support**: Announces tooltip content appropriately
+- **High Contrast**: Maintains proper contrast ratios
+- **Semantic HTML**: Uses appropriate HTML elements and roles
