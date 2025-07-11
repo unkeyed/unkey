@@ -1,3 +1,4 @@
+"use client";
 import { ChevronLeft, ChevronRight } from "@unkey/icons";
 import { Button, Separator } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
@@ -14,6 +15,8 @@ export type OnboardingStep = {
   onStepNext?: (currentStep: number) => void;
   /** Callback fired when user clicks back button */
   onStepBack?: (currentStep: number) => void;
+  /** Callback fired when user clicks skip button (only for non-required steps) */
+  onStepSkip?: (currentStep: number) => void;
   /** Description text shown below the main button */
   description: string;
   /** Text displayed on the primary action button */
@@ -77,6 +80,14 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
     onStepChange?.(currentStepIndex);
   }, [currentStepIndex, onStepChange]);
 
+  const advanceStep = () => {
+    if (isLastStep) {
+      onComplete?.();
+    } else {
+      setCurrentStepIndex(currentStepIndex + 1);
+    }
+  };
+
   const handleBack = () => {
     if (!isFirstStep && !isLoading) {
       currentStep.onStepBack?.(currentStepIndex);
@@ -89,8 +100,15 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
       return;
     }
 
-    // Only trigger the callback, don't advance automatically
-    currentStep.onStepNext?.(currentStepIndex);
+    // If no callback provided, advance immediately
+    if (!currentStep.onStepNext) {
+      advanceStep();
+      return;
+    }
+
+    // Trigger callback, step should handle its own advancement via loading state
+    // or by calling the wizard's advance function passed to the callback
+    currentStep.onStepNext(currentStepIndex);
   };
 
   const handleSkip = () => {
@@ -98,12 +116,8 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
       return;
     }
 
-    // For non-required steps, skip to next step
-    if (isLastStep) {
-      onComplete?.();
-    } else {
-      setCurrentStepIndex(currentStepIndex + 1);
-    }
+    // Only trigger the callback, let parent handle navigation
+    currentStep.onStepSkip?.(currentStepIndex);
   };
 
   const isNextButtonDisabled = () => {
@@ -119,7 +133,7 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
   };
 
   return (
-    <div className="border-gray-5 border rounded-2xl flex flex-col h-auto max-h-[400px] sm:max-h-[500px] md:max-h-[600px] lg:max-h-[700px] xl:max-h-[800px]">
+    <div className="border-gray-5 border rounded-2xl flex flex-col h-auto max-h-[500px] sm:max-h-[500px] md:max-h-[600px] lg:max-h-[700px] xl:max-h-[800px]">
       {/* Navigation part */}
       <div className="pl-2 pr-[14px] py-3 h-10 bg-gray-2 rounded-t-[15px] flex items-center">
         {/* Back button and current step name*/}
@@ -128,7 +142,7 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
             className="rounded-lg bg-grayA-3 hover:bg-grayA-4 h-[22px]"
             variant="outline"
             onClick={handleBack}
-            disabled={isFirstStep || isLoading}
+            disabled={isFirstStep || isLoading || isLastStep}
           >
             <div className="flex items-center gap-1">
               <ChevronLeft size="sm-regular" className="text-gray-12 !w-3 !h-3 flex-shrink-0" />
