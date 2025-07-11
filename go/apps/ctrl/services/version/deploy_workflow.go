@@ -73,7 +73,6 @@ type DeploymentResult struct {
 	Status    string `json:"status"`
 }
 
-
 // Run executes the complete build and deployment workflow
 func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) error {
 	w.logger.Info("starting deployment workflow",
