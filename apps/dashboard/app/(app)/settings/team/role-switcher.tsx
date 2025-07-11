@@ -1,6 +1,10 @@
 "use client";
 
-import type { AuthenticatedUser, Membership, Organization } from "@/lib/auth/types";
+import type {
+  AuthenticatedUser,
+  Membership,
+  Organization,
+} from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import {
   Loading,
@@ -57,26 +61,35 @@ export const RoleSwitcher = memo<RoleSwitcherProps>(
 
     if (isAdmin) {
       return (
-        <Select
-          value={role}
-          disabled={(Boolean(user) && member.id === user?.id) || updateMember.isLoading}
-          onValueChange={handleRoleUpdate}
-        >
-          <SelectTrigger className="w-[180px] max-sm:w-36">
-            {updateMember.isLoading ? <Loading /> : <SelectValue />}
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="basic_member">Member</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+        <div className="w-fit">
+          <Select
+            value={role}
+            disabled={
+              (Boolean(user) && member.id === user?.id) ||
+              updateMember.isLoading
+            }
+            onValueChange={handleRoleUpdate}
+          >
+            <SelectTrigger className="w-[180px] max-sm:w-36">
+              {updateMember.isLoading ? <Loading /> : <SelectValue />}
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="basic_member">Member</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
       );
     }
 
-    return <span className="text-content">{role === "admin" ? "Admin" : "Member"}</span>;
-  },
+    return (
+      <span className="text-content">
+        {role === "admin" ? "Admin" : "Member"}
+      </span>
+    );
+  }
 );
 
 RoleSwitcher.displayName = "RoleSwitcher";
