@@ -1,5 +1,6 @@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dots } from "@unkey/icons";
+import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { type FC, type PropsWithChildren, useEffect, useRef, useState } from "react";
 
@@ -25,7 +26,7 @@ type BaseTableActionPopoverProps = PropsWithChildren<{
   align?: "start" | "end";
 }>;
 
-export const KeysTableActionPopover = ({
+export const TableActionPopover = ({
   items,
   align = "end",
   children,
@@ -76,7 +77,7 @@ export const KeysTableActionPopover = ({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger onClick={(e) => e.stopPropagation()}>
-        {children ? children : <KeysTableActionPopoverDefaultTrigger />}
+        {children ? children : <TableActionPopoverDefaultTrigger />}
       </PopoverTrigger>
       <PopoverContent
         className="min-w-60 max-w-full bg-gray-1 dark:bg-black drop-shadow-2xl border-gray-6 rounded-lg p-0"
@@ -103,13 +104,8 @@ export const KeysTableActionPopover = ({
           {items.map((item, index) => (
             <div key={item.id}>
               <div className="px-2">
-                {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
-                <div
-                  ref={(el) => {
-                    if (el) {
-                      menuItems.current[index] = el;
-                    }
-                  }}
+                <button
+                  type="button"
                   role="menuitem"
                   aria-disabled={item.disabled}
                   tabIndex={!item.disabled && focusIndex === index ? 0 : -1}
@@ -137,7 +133,7 @@ export const KeysTableActionPopover = ({
                     {item.icon}
                   </div>
                   <span className="text-[13px] font-medium">{item.label}</span>
-                </div>
+                </button>
               </div>
               {item.divider && <div className="h-[1px] bg-grayA-3 w-full my-2" />}
               {item.ActionComponent && enabledItem === item.id && (
@@ -151,16 +147,10 @@ export const KeysTableActionPopover = ({
   );
 };
 
-export const KeysTableActionPopoverDefaultTrigger = () => {
+export const TableActionPopoverDefaultTrigger = () => {
   return (
-    <button
-      type="button"
-      className={cn(
-        "group-data-[state=open]:bg-gray-6 group-hover:bg-gray-6 group size-5 p-0 rounded m-0 items-center flex justify-center",
-        "border border-gray-6 group-hover:border-gray-8 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-7",
-      )}
-    >
+    <Button variant="outline" className="size-5 [&_svg]:size-3 rounded">
       <Dots className="group-hover:text-gray-12 text-gray-11" size="sm-regular" />
-    </button>
+    </Button>
   );
 };

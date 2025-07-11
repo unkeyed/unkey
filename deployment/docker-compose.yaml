@@ -70,11 +70,13 @@ services:
       # UNKEY_PROMETHEUS_PORT: 2112
 
   redis:
+    container_name: redis
     image: redis:latest
     ports:
       - 6379:6379
 
   agent:
+    container_name: agent
     command: ["/usr/local/bin/unkey", "agent", "--config", "config.docker.json"]
     build:
       context: ../apps/agent
@@ -97,6 +99,7 @@ services:
       CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000"
 
   chproxy:
+    container_name: chproxy
     build:
       context: ../apps/chproxy
       dockerfile: Dockerfile
@@ -126,6 +129,7 @@ services:
       - clickhouse:/bitnami/clickhouse
 
   clickhouse_migrator:
+    container_name: clickhouse_migrator
     build:
       context: ../internal/clickhouse
       dockerfile: ./Dockerfile
@@ -147,6 +151,7 @@ services:
       - s3:/data
 
   api:
+    container_name: api
     build:
       context: ..
       dockerfile: ./apps/api/Dockerfile.dev

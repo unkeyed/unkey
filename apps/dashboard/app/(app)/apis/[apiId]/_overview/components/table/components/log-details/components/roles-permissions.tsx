@@ -1,6 +1,4 @@
-import { toast } from "@/components/ui/toaster";
-import { Clone } from "@unkey/icons";
-import { Button, Card, CardContent } from "@unkey/ui";
+import { Card, CardContent, CopyButton } from "@unkey/ui";
 
 type Role = {
   name: string;
@@ -12,19 +10,6 @@ type RolesSectionProps = {
 };
 
 export const RolesSection: React.FC<RolesSectionProps> = ({ roles }) => {
-  const handleCopy = (role: Role) => {
-    const content = `${role.name}${role.description ? `\n${role.description}` : ""}`;
-    navigator.clipboard
-      .writeText(content)
-      .then(() => {
-        toast.success(`Role ${role.name} copied to clipboard`);
-      })
-      .catch((error) => {
-        console.error("Failed to copy to clipboard:", error);
-        toast.error("Failed to copy to clipboard");
-      });
-  };
-
   if (!roles || roles.length === 0) {
     return (
       <div className="flex flex-col gap-1 mt-[16px]">
@@ -58,15 +43,14 @@ export const RolesSection: React.FC<RolesSectionProps> = ({ roles }) => {
               ) : (
                 <div className="text-accent-9 mt-2 text-xs italic">No description</div>
               )}
-              <Button
+              <CopyButton
+                value={`${role.name}${role.description ? `\n${role.description}` : ""}`}
                 shape="square"
-                onClick={() => handleCopy(role)}
-                variant="outline"
-                className="absolute bottom-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity rounded-sm"
+                toastMessage={`${role.name}${role.description ? `\n${role.description}` : ""}`}
+                variant="primary"
+                className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-md p-4"
                 aria-label={`Copy ${role.name}`}
-              >
-                <Clone />
-              </Button>
+              />
             </CardContent>
           </Card>
         ))}
@@ -85,40 +69,6 @@ type PermissionsSectionProps = {
 };
 
 export const PermissionsSection = ({ permissions }: PermissionsSectionProps) => {
-  const handleCopy = (permission: Permission) => {
-    const content = `${permission.name}${
-      permission.description ? `\n${permission.description}` : ""
-    }`;
-    navigator.clipboard
-      .writeText(content)
-      .then(() => {
-        toast.success(`Permission ${permission.name} copied to clipboard`);
-      })
-      .catch((error) => {
-        console.error("Failed to copy to clipboard:", error);
-        toast.error("Failed to copy to clipboard");
-      });
-  };
-
-  const handleCopyAll = () => {
-    const content = permissions
-      .map(
-        (permission) =>
-          `${permission.name}${permission.description ? `\n${permission.description}` : ""}`,
-      )
-      .join("\n\n");
-
-    navigator.clipboard
-      .writeText(content)
-      .then(() => {
-        toast.success("All permissions copied to clipboard");
-      })
-      .catch((error) => {
-        console.error("Failed to copy to clipboard:", error);
-        toast.error("Failed to copy to clipboard");
-      });
-  };
-
   if (!permissions || permissions.length === 0) {
     return (
       <div className="flex flex-col gap-1 mt-[16px]">
@@ -141,15 +91,18 @@ export const PermissionsSection = ({ permissions }: PermissionsSectionProps) => 
           Permissions ({permissions.length})
         </span>
         {permissions.length > 1 && (
-          <Button
+          <CopyButton
+            value={permissions
+              .map(
+                (permission) =>
+                  `${permission.name}${permission.description ? `\n${permission.description}` : ""}`,
+              )
+              .join("\n\n")}
             shape="square"
-            onClick={handleCopyAll}
-            variant="outline"
+            variant="primary"
             className="h-6 w-6 rounded-sm"
             aria-label="Copy all permissions"
-          >
-            <Clone />
-          </Button>
+          />
         )}
       </div>
       <div className="space-y-2">
@@ -167,15 +120,13 @@ export const PermissionsSection = ({ permissions }: PermissionsSectionProps) => 
               ) : (
                 <div className="text-accent-9 mt-2 text-xs italic">No description</div>
               )}
-              <Button
+              <CopyButton
+                value={`${permission.name}${permission.description ? `\n${permission.description}` : ""}`}
                 shape="square"
-                onClick={() => handleCopy(permission)}
-                variant="outline"
-                className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity rounded-sm"
+                variant="primary"
+                className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-md p-4"
                 aria-label={`Copy ${permission.name}`}
-              >
-                <Clone />
-              </Button>
+              />
             </CardContent>
           </Card>
         ))}

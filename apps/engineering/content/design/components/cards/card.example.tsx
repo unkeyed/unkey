@@ -1,15 +1,7 @@
 "use client";
 import { RenderComponentWithSnippet } from "@/app/components/render";
 import { Button } from "@unkey/ui";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-  MetricCardTitle,
-} from "@unkey/ui";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@unkey/ui";
 
 export function BasicCard() {
   return (
@@ -112,33 +104,6 @@ export function CompleteCard() {
   );
 }
 
-export function MetricCard() {
-  return (
-    <RenderComponentWithSnippet>
-      <div className="w-full max-w-md">
-        <Card>
-          <CardHeader>
-            <CardDescription>Total API Calls</CardDescription>
-            <MetricCardTitle>1,234,567</MetricCardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>This month</span>
-                <span className="text-green-600">+12.5%</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>This week</span>
-                <span className="text-green-600">+8.2%</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </RenderComponentWithSnippet>
-  );
-}
-
 export function CardGrid() {
   return (
     <RenderComponentWithSnippet>
@@ -165,11 +130,11 @@ export function CardGrid() {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm">Requests</span>
-                <MetricCardTitle>45.2K</MetricCardTitle>
+                <span>45.2K</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">Success Rate</span>
-                <MetricCardTitle>99.9%</MetricCardTitle>
+                <span>99.9%</span>
               </div>
             </div>
           </CardContent>

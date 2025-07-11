@@ -126,8 +126,6 @@ func createAction(ctx context.Context, cmd *cli.Command) error {
 	return runDeploymentSteps(ctx, cmd, workspaceID, projectID, branch, dockerImage, dockerfile, buildContext, commit, logger)
 }
 
-
-
 func printDeploymentComplete(versionID, workspace, branch, commit string) {
 	// Use actual Git info for hostname generation
 	gitInfo := git.GetInfo()
@@ -391,12 +389,10 @@ func pollVersionStatus(ctx context.Context, logger logging.Logger, client ctrlv1
 // displayVersionStep shows a version step with appropriate formatting
 func displayVersionStep(step *ctrlv1.VersionStep) {
 	message := step.GetMessage()
-	
 	// Display only the actual message from the database, indented under "Creating Version"
 	if message != "" {
 		fmt.Printf("  %s\n", message)
 	}
-	
 	// Show error message if present
 	if step.GetErrorMessage() != "" {
 		fmt.Printf("  Error: %s\n", step.GetErrorMessage())

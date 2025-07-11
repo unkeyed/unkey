@@ -254,6 +254,8 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		resp := &vmprovisionerv1.CreateVmResponse{
 			VmId:  mockVMID,
 			State: vmprovisionerv1.VmState_VM_STATE_CREATED,
+=======
+
 		}
 		
 		w.logger.Info("MOCK: VM creation simulated successfully", "vm_id", mockVMID, "docker_image", req.DockerImage)
@@ -361,7 +363,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			// MOCK: Bypassing metald GetVmInfo call - simulating realistic VM preparation
 			// TODO: Remove this mock and use real metald call once VM assets are available
 			w.logger.Info("MOCK: Simulating VM status request", "vm_id", createResult.VmId, "attempt", attempt)
-			
 			// Simulate realistic VM preparation progression
 			var mockState vmprovisionerv1.VmState
 			if attempt <= 2 {

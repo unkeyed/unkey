@@ -47,6 +47,7 @@ func TestForbidden(t *testing.T) {
 		WorkspaceID: workspaceID,
 		Environment: "default",
 		CreatedAt:   time.Now().UnixMilli(),
+		Meta:        []byte("{}"),
 	})
 	require.NoError(t, err)
 
@@ -58,6 +59,7 @@ func TestForbidden(t *testing.T) {
 		WorkspaceID: workspaceID,
 		Environment: "production",
 		CreatedAt:   time.Now().UnixMilli(),
+		Meta:        []byte("{}"),
 	})
 	require.NoError(t, err)
 
@@ -69,6 +71,7 @@ func TestForbidden(t *testing.T) {
 		WorkspaceID: workspaceID,
 		Environment: "staging",
 		CreatedAt:   time.Now().UnixMilli(),
+		Meta:        []byte("{}"),
 	})
 	require.NoError(t, err)
 
