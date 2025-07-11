@@ -66,8 +66,10 @@ func (s *Service) GetVersion(
 		protoSteps := make([]*ctrlv1.VersionStep, len(versionSteps))
 		for i, step := range versionSteps {
 			protoSteps[i] = &ctrlv1.VersionStep{
-				Status:    string(step.Status),
-				CreatedAt: step.CreatedAt,
+				Status:       string(step.Status),
+				CreatedAt:    step.CreatedAt,
+				Message:      "",
+				ErrorMessage: "",
 			}
 			if step.Message.Valid {
 				protoSteps[i].Message = step.Message.String
