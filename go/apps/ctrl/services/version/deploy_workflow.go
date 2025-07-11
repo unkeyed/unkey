@@ -73,7 +73,6 @@ type DeploymentResult struct {
 	Status    string `json:"status"`
 }
 
-
 // Run executes the complete build and deployment workflow
 func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) error {
 	w.logger.Info("starting deployment workflow",
@@ -102,7 +101,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			VersionID:    req.VersionID,
 			Status:       "pending",
 			Message:      sql.NullString{String: "Version queued and ready to start", Valid: true},
-			ErrorMessage: sql.NullString{},
+			ErrorMessage: sql.NullString{String: "", Valid: false},
 			CreatedAt:    time.Now().UnixMilli(),
 		})
 	})
@@ -176,7 +175,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			VersionID:    req.VersionID,
 			Status:       "downloading_docker_image",
 			Message:      sql.NullString{String: fmt.Sprintf("Downloading Docker image: %s", req.DockerImage), Valid: true},
-			ErrorMessage: sql.NullString{},
+			ErrorMessage: sql.NullString{String: "", Valid: false},
 			CreatedAt:    time.Now().UnixMilli(),
 		})
 	})
@@ -195,15 +194,20 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			Cpu: &vmprovisionerv1.CpuConfig{
 				VcpuCount:    2,
 				MaxVcpuCount: 4,
+				Topology:     nil,
+				Features:     nil,
 			},
 			Memory: &vmprovisionerv1.MemoryConfig{
 				SizeBytes:      2 * 1024 * 1024 * 1024, // 2GB
 				MaxSizeBytes:   8 * 1024 * 1024 * 1024, // 8GB
 				HotplugEnabled: true,
+				Backing:        nil,
 			},
 			Boot: &vmprovisionerv1.BootConfig{
-				KernelPath: "/opt/vm-assets/vmlinux",
-				KernelArgs: "console=ttyS0 reboot=k panic=1 pci=off",
+				KernelPath:  "/opt/vm-assets/vmlinux",
+				KernelArgs:  "console=ttyS0 reboot=k panic=1 pci=off",
+				InitrdPath:  "",
+				BootOptions: nil,
 			},
 			Storage: []*vmprovisionerv1.StorageDevice{{
 				Id:            "rootfs",
@@ -221,16 +225,26 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 				InterfaceType: "virtio-net",
 				Mode:          vmprovisionerv1.NetworkMode_NETWORK_MODE_DUAL_STACK,
 				Ipv4Config: &vmprovisionerv1.IPv4Config{
-					Dhcp: true,
+					Dhcp:       true,
+					Address:    "",
+					Netmask:    "",
+					Gateway:    "",
+					DnsServers: nil,
 				},
 				Ipv6Config: &vmprovisionerv1.IPv6Config{
 					Slaac:             true,
 					PrivacyExtensions: true,
+					Address:           "",
+					PrefixLength:      0,
+					Gateway:           "",
+					DnsServers:        nil,
+					LinkLocal:         "",
 				},
 			}},
 			Console: &vmprovisionerv1.ConsoleConfig{
 				Enabled:     true,
 				Output:      "/tmp/standard-vm-console.log",
+				Input:       "",
 				ConsoleType: "serial",
 			},
 			Metadata: map[string]string{
@@ -248,17 +262,17 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		// MOCK: Bypassing metald CreateVm call due to missing VM infrastructure
 		// TODO: Remove this mock and use real metald call once VM assets are available
 		w.logger.Info("MOCK: Simulating VM creation request", "docker_image", req.DockerImage)
-		
+
 		// Generate realistic mock VM ID and response
 		mockVMID := uid.New("vm") // Generate mock VM ID
 		resp := &vmprovisionerv1.CreateVmResponse{
 			VmId:  mockVMID,
 			State: vmprovisionerv1.VmState_VM_STATE_CREATED,
 		}
-		
+
 		w.logger.Info("MOCK: VM creation simulated successfully", "vm_id", mockVMID, "docker_image", req.DockerImage)
 
-		w.logger.Info("VM created successfully", "vm_id", resp.VmId, "state", resp.State.String(), "docker_image", req.DockerImage)
+		w.logger.Info("VM created successfully", "vm_id", resp.GetVmId(), "state", resp.GetState().String(), "docker_image", req.DockerImage)
 
 		return resp, nil
 	})
@@ -267,7 +281,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return err
 	}
 
-	w.logger.Info("VM creation completed", "vm_id", createResult.VmId, "state", createResult.State.String())
+	w.logger.Info("VM creation completed", "vm_id", createResult.GetVmId(), "state", createResult.GetState().String())
 
 	// Step 8: Log building rootfs
 	err = hydra.StepVoid(ctx, "log-building-rootfs", func(stepCtx context.Context) error {
@@ -275,7 +289,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			VersionID:    req.VersionID,
 			Status:       "building_rootfs",
 			Message:      sql.NullString{String: fmt.Sprintf("Building rootfs from Docker image: %s", req.DockerImage), Valid: true},
-			ErrorMessage: sql.NullString{},
+			ErrorMessage: sql.NullString{String: "", Valid: false},
 			CreatedAt:    time.Now().UnixMilli(),
 		})
 	})
@@ -290,7 +304,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			VersionID:    req.VersionID,
 			Status:       "uploading_rootfs",
 			Message:      sql.NullString{String: "Uploading rootfs image to storage", Valid: true},
-			ErrorMessage: sql.NullString{},
+			ErrorMessage: sql.NullString{String: "", Valid: false},
 			CreatedAt:    time.Now().UnixMilli(),
 		})
 	})
@@ -323,7 +337,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			VersionID:    req.VersionID,
 			Status:       "creating_vm",
 			Message:      sql.NullString{String: fmt.Sprintf("Creating VM for version: %s", req.VersionID), Valid: true},
-			ErrorMessage: sql.NullString{},
+			ErrorMessage: sql.NullString{String: "", Valid: false},
 			CreatedAt:    time.Now().UnixMilli(),
 		})
 	})
@@ -352,43 +366,47 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 	}
 
 	// Step 13: Poll VM status (network calls to metald)
-	w.logger.Info("starting VM status polling", "vm_id", createResult.VmId, "max_attempts", 30)
+	w.logger.Info("starting VM status polling", "vm_id", createResult.GetVmId(), "max_attempts", 30)
 
 	_, err = hydra.Step(ctx, "metald-poll-vm-status", func(stepCtx context.Context) (*struct{}, error) {
 		for attempt := 1; attempt <= 30; attempt++ {
-			w.logger.Info("checking VM status", "vm_id", createResult.VmId, "attempt", attempt)
+			w.logger.Info("checking VM status", "vm_id", createResult.GetVmId(), "attempt", attempt)
 
 			// MOCK: Bypassing metald GetVmInfo call - simulating realistic VM preparation
 			// TODO: Remove this mock and use real metald call once VM assets are available
-			w.logger.Info("MOCK: Simulating VM status request", "vm_id", createResult.VmId, "attempt", attempt)
-			
+			w.logger.Info("MOCK: Simulating VM status request", "vm_id", createResult.GetVmId(), "attempt", attempt)
+
 			// Simulate realistic VM preparation progression
 			var mockState vmprovisionerv1.VmState
 			if attempt <= 2 {
 				mockState = vmprovisionerv1.VmState_VM_STATE_UNSPECIFIED // Use UNSPECIFIED to simulate building state
-				w.logger.Info("MOCK: VM still building", "vm_id", createResult.VmId, "attempt", attempt)
+				w.logger.Info("MOCK: VM still building", "vm_id", createResult.GetVmId(), "attempt", attempt)
 			} else {
 				mockState = vmprovisionerv1.VmState_VM_STATE_CREATED
-				w.logger.Info("MOCK: VM preparation complete", "vm_id", createResult.VmId, "attempt", attempt)
-			}
-			
-			resp := &vmprovisionerv1.GetVmInfoResponse{
-				VmId: createResult.VmId,
-				State: mockState,
+				w.logger.Info("MOCK: VM preparation complete", "vm_id", createResult.GetVmId(), "attempt", attempt)
 			}
 
-			w.logger.Info("VM status check", "vm_id", createResult.VmId, "state", resp.State.String(), "attempt", attempt)
+			resp := &vmprovisionerv1.GetVmInfoResponse{
+				VmId:        createResult.GetVmId(),
+				State:       mockState,
+				Config:      nil,
+				Metrics:     nil,
+				BackendInfo: nil,
+				NetworkInfo: nil,
+			}
+
+			w.logger.Info("VM status check", "vm_id", createResult.GetVmId(), "state", resp.GetState().String(), "attempt", attempt)
 
 			// Check if VM is ready for boot
-			if resp.State == vmprovisionerv1.VmState_VM_STATE_CREATED ||
-				resp.State == vmprovisionerv1.VmState_VM_STATE_RUNNING {
-				w.logger.Info("VM is ready", "vm_id", createResult.VmId, "state", resp.State.String())
+			if resp.GetState() == vmprovisionerv1.VmState_VM_STATE_CREATED ||
+				resp.GetState() == vmprovisionerv1.VmState_VM_STATE_RUNNING {
+				w.logger.Info("VM is ready", "vm_id", createResult.GetVmId(), "state", resp.GetState().String())
 				return &struct{}{}, nil
 			}
 
 			// Sleep before next attempt (except on last attempt)
 			if attempt < 30 {
-				w.logger.Info("VM not ready yet, sleeping before next check", "vm_id", createResult.VmId, "state", resp.State.String(), "attempt", attempt, "sleep_duration", "1s")
+				w.logger.Info("VM not ready yet, sleeping before next check", "vm_id", createResult.GetVmId(), "state", resp.GetState().String(), "attempt", attempt, "sleep_duration", "1s")
 				time.Sleep(1 * time.Second)
 			}
 		}
@@ -397,48 +415,48 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return nil, fmt.Errorf("VM polling timed out after 30 attempts (30 seconds)")
 	})
 	if err != nil {
-		w.logger.Error("VM status polling failed", "error", err, "vm_id", createResult.VmId)
+		w.logger.Error("VM status polling failed", "error", err, "vm_id", createResult.GetVmId())
 		return err
 	}
 
 	// Step 14: Boot VM (network call to metald)
 	_, err = hydra.Step(ctx, "metald-boot-vm", func(stepCtx context.Context) (*vmprovisionerv1.BootVmResponse, error) {
-		w.logger.Info("booting VM", "vm_id", createResult.VmId)
+		w.logger.Info("booting VM", "vm_id", createResult.GetVmId())
 
 		// MOCK: Bypassing metald BootVm call - simulating successful boot
 		// TODO: Remove this mock and use real metald call once VM assets are available
-		w.logger.Info("MOCK: Simulating VM boot request", "vm_id", createResult.VmId)
-		
+		w.logger.Info("MOCK: Simulating VM boot request", "vm_id", createResult.GetVmId())
+
 		// Simulate successful VM boot
 		resp := &vmprovisionerv1.BootVmResponse{
 			Success: true,
 			State:   vmprovisionerv1.VmState_VM_STATE_RUNNING,
 		}
-		
-		w.logger.Info("MOCK: VM boot simulated successfully", "vm_id", createResult.VmId)
 
-		if !resp.Success {
-			w.logger.Error("VM boot was not successful", "vm_id", createResult.VmId, "state", resp.State.String())
-			return nil, fmt.Errorf("VM boot was not successful, state: %s", resp.State.String())
+		w.logger.Info("MOCK: VM boot simulated successfully", "vm_id", createResult.GetVmId())
+
+		if !resp.GetSuccess() {
+			w.logger.Error("VM boot was not successful", "vm_id", createResult.GetVmId(), "state", resp.GetState().String())
+			return nil, fmt.Errorf("VM boot was not successful, state: %s", resp.GetState().String())
 		}
 
-		w.logger.Info("VM booted successfully", "vm_id", createResult.VmId, "state", resp.State.String())
+		w.logger.Info("VM booted successfully", "vm_id", createResult.GetVmId(), "state", resp.GetState().String())
 		return resp, nil
 	})
 	if err != nil {
-		w.logger.Error("VM boot failed", "error", err, "vm_id", createResult.VmId)
+		w.logger.Error("VM boot failed", "error", err, "vm_id", createResult.GetVmId())
 		return err
 	}
 
-	w.logger.Info("VM boot completed successfully", "vm_id", createResult.VmId)
+	w.logger.Info("VM boot completed successfully", "vm_id", createResult.GetVmId())
 
 	// Step 16: Log booting VM
 	err = hydra.StepVoid(ctx, "log-booting-vm", func(stepCtx context.Context) error {
 		return db.Query.InsertVersionStep(stepCtx, w.db.RW(), db.InsertVersionStepParams{
 			VersionID:    req.VersionID,
 			Status:       "booting_vm",
-			Message:      sql.NullString{String: fmt.Sprintf("VM booted successfully: %s", createResult.VmId), Valid: true},
-			ErrorMessage: sql.NullString{},
+			Message:      sql.NullString{String: fmt.Sprintf("VM booted successfully: %s", createResult.GetVmId()), Valid: true},
+			ErrorMessage: sql.NullString{String: "", Valid: false},
 			CreatedAt:    time.Now().UnixMilli(),
 		})
 	})
@@ -454,9 +472,9 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		// Generate hostnames for this deployment
 		// Use Git info for hostname generation
 		gitInfo := git.GetInfo()
-		branch := "main" // Default branch
+		branch := "main"            // Default branch
 		identifier := req.VersionID // Use full version ID as identifier
-		
+
 		if gitInfo.IsRepo {
 			if gitInfo.Branch != "" {
 				branch = gitInfo.Branch
@@ -470,7 +488,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		// Replace underscores with dashes for valid hostname format
 		cleanIdentifier := strings.ReplaceAll(identifier, "_", "-")
 		hostname := fmt.Sprintf("%s-%s-%s.unkey.app", branch, cleanIdentifier, req.WorkspaceID)
-		
+
 		// Create route entry
 		routeID := uid.New("route")
 		insertErr := db.Query.InsertHostnameRoute(stepCtx, w.db.RW(), db.InsertHostnameRouteParams{
@@ -508,7 +526,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			VersionID:    req.VersionID,
 			Status:       "assigning_domains",
 			Message:      sql.NullString{String: message, Valid: true},
-			ErrorMessage: sql.NullString{},
+			ErrorMessage: sql.NullString{String: "", Valid: false},
 			CreatedAt:    time.Now().UnixMilli(),
 		})
 	})
@@ -549,7 +567,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			VersionID:    req.VersionID,
 			Status:       "completed",
 			Message:      sql.NullString{String: "Version deployment completed successfully", Valid: true},
-			ErrorMessage: sql.NullString{},
+			ErrorMessage: sql.NullString{String: "", Valid: false},
 			CreatedAt:    time.Now().UnixMilli(),
 		})
 	})
@@ -558,7 +576,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return err
 	}
 
-	w.logger.Info("deployment workflow stage completed successfully", "version_id", req.VersionID, "vm_id", createResult.VmId)
+	w.logger.Info("deployment workflow stage completed successfully", "version_id", req.VersionID, "vm_id", createResult.GetVmId())
 
 	w.logger.Info("deployment workflow completed",
 		"execution_id", ctx.ExecutionID(),

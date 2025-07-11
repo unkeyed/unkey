@@ -108,13 +108,19 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.SPIFFESocketPath != "" {
 		// Use SPIRE authentication when socket path is provided
 		tlsConfig := deployTLS.Config{
-			Mode:             deployTLS.ModeSPIFFE,
-			SPIFFESocketPath: cfg.SPIFFESocketPath,
+			Mode:              deployTLS.ModeSPIFFE,
+			SPIFFESocketPath:  cfg.SPIFFESocketPath,
+			CertFile:          "",
+			KeyFile:           "",
+			CAFile:            "",
+			SPIFFETimeout:     "",
+			EnableCertCaching: false,
+			CertCacheTTL:      0,
 		}
 
-		tlsProvider, err := deployTLS.NewProvider(ctx, tlsConfig)
-		if err != nil {
-			return fmt.Errorf("failed to create TLS provider for metald: %w", err)
+		tlsProvider, tlsErr := deployTLS.NewProvider(ctx, tlsConfig)
+		if tlsErr != nil {
+			return fmt.Errorf("failed to create TLS provider for metald: %w", tlsErr)
 		}
 
 		httpClient = tlsProvider.HTTPClient()

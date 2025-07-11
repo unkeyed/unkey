@@ -21,7 +21,7 @@ func (s *Service) CreateVersion(
 	_, err := db.Query.FindWorkspaceByID(ctx, s.db.RO(), req.Msg.GetWorkspaceId())
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, connect.NewError(connect.CodeNotFound, 
+			return nil, connect.NewError(connect.CodeNotFound,
 				fmt.Errorf("workspace not found: %s", req.Msg.GetWorkspaceId()))
 		}
 		return nil, connect.NewError(connect.CodeInternal, err)
@@ -31,7 +31,7 @@ func (s *Service) CreateVersion(
 	project, err := db.Query.FindProjectById(ctx, s.db.RO(), req.Msg.GetProjectId())
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, connect.NewError(connect.CodeNotFound, 
+			return nil, connect.NewError(connect.CodeNotFound,
 				fmt.Errorf("project not found: %s", req.Msg.GetProjectId()))
 		}
 		return nil, connect.NewError(connect.CodeInternal, err)
@@ -39,8 +39,8 @@ func (s *Service) CreateVersion(
 
 	// Verify project belongs to the specified workspace
 	if project.WorkspaceID != req.Msg.GetWorkspaceId() {
-		return nil, connect.NewError(connect.CodeInvalidArgument, 
-			fmt.Errorf("project %s does not belong to workspace %s", 
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("project %s does not belong to workspace %s",
 				req.Msg.GetProjectId(), req.Msg.GetWorkspaceId()))
 	}
 
@@ -71,7 +71,7 @@ func (s *Service) CreateVersion(
 				UpdatedAt:   sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 			})
 			if err != nil {
-				return nil, connect.NewError(connect.CodeInternal, 
+				return nil, connect.NewError(connect.CodeInternal,
 					fmt.Errorf("failed to create branch: %w", err))
 			}
 			s.logger.Info("created new branch", "branch_id", branchID, "name", branchName, "project_id", req.Msg.GetProjectId())
