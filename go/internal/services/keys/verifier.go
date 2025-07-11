@@ -2,6 +2,7 @@ package keys
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
@@ -10,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -114,6 +116,15 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 		IdentityID:  k.Key.IdentityID.String,
 		Tags:        config.tags,
 	})
+
+	// Emit Prometheus metrics for key verification
+	metrics.KeyVerificationsTotal.WithLabelValues(
+		k.AuthorizedWorkspaceID,          // workspaceId
+		k.Key.ApiID,                      // apiId
+		k.Key.ID,                         // keyId
+		strconv.FormatBool(k.Valid),      // valid
+		string(k.Status),                 // code
+	).Inc()
 
 	// For root keys, auto-return validation failures as fault errors
 	if k.isRootKey && !k.Valid {

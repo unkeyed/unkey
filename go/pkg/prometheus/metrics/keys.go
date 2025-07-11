@@ -37,6 +37,6 @@ var (
 			Name:      "credits_spent_total",
 			Help:      "Total credits spent by keys",
 		},
-		[]string{"workspace_id", "key_id", "identity_id"},
+		[]string{"workspace_id", "key_id", "identity_id", "deducted"},
 	)
 )
