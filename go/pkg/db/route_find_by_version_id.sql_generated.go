@@ -9,7 +9,7 @@ import (
 	"context"
 )
 
-const findRoutesByVersionId = `-- name: FindRoutesByVersionId :many
+const findHostnameRoutesByVersionId = `-- name: FindHostnameRoutesByVersionId :many
 SELECT 
     id,
     workspace_id,
@@ -19,12 +19,12 @@ SELECT
     is_enabled,
     created_at,
     updated_at
-FROM routes 
+FROM hostname_routes 
 WHERE version_id = ? AND is_enabled = true
 ORDER BY created_at ASC
 `
 
-// FindRoutesByVersionId
+// FindHostnameRoutesByVersionId
 //
 //	SELECT
 //	    id,
@@ -35,18 +35,18 @@ ORDER BY created_at ASC
 //	    is_enabled,
 //	    created_at,
 //	    updated_at
-//	FROM routes
+//	FROM hostname_routes
 //	WHERE version_id = ? AND is_enabled = true
 //	ORDER BY created_at ASC
-func (q *Queries) FindRoutesByVersionId(ctx context.Context, db DBTX, versionID string) ([]Route, error) {
-	rows, err := db.QueryContext(ctx, findRoutesByVersionId, versionID)
+func (q *Queries) FindHostnameRoutesByVersionId(ctx context.Context, db DBTX, versionID string) ([]HostnameRoute, error) {
+	rows, err := db.QueryContext(ctx, findHostnameRoutesByVersionId, versionID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Route
+	var items []HostnameRoute
 	for rows.Next() {
-		var i Route
+		var i HostnameRoute
 		if err := rows.Scan(
 			&i.ID,
 			&i.WorkspaceID,

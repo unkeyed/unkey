@@ -34,6 +34,8 @@ Versions are immutable snapshots of your code, configuration, and infrastructure
 		getCmd,
 		listCmd,
 		rollbackCmd,
+		// TODO: Remove this bootstrap command once we have a proper UI
+		bootstrapProjectCmd, // defined in bootstrap.go
 	},
 }
 
@@ -83,16 +85,14 @@ var createCmd = &cli.Command{
 			Required: false,
 		},
 		&cli.StringFlag{
-			Name:     "workspace",
+			Name:     "workspace-id",
 			Usage:    "Workspace ID",
-			Value:    "acme",
-			Required: false,
+			Required: true,
 		},
 		&cli.StringFlag{
-			Name:     "project",
+			Name:     "project-id",
 			Usage:    "Project ID",
-			Value:    "my-api",
-			Required: false,
+			Required: true,
 		},
 	},
 	Action: createAction,
@@ -101,9 +101,9 @@ var createCmd = &cli.Command{
 func createAction(ctx context.Context, cmd *cli.Command) error {
 	logger := logging.New()
 
-	// Hardcoded for demo
-	workspace := "acme"
-	project := "my-api"
+	// Get workspace and project IDs from CLI flags
+	workspaceID := cmd.String("workspace-id")
+	projectID := cmd.String("project-id")
 
 	// Get Git information automatically
 	gitInfo := git.GetInfo()
@@ -123,7 +123,7 @@ func createAction(ctx context.Context, cmd *cli.Command) error {
 	dockerfile := cmd.String("dockerfile")
 	buildContext := cmd.String("context")
 
-	return runDeploymentSteps(ctx, cmd, workspace, project, branch, dockerImage, dockerfile, buildContext, commit, logger)
+	return runDeploymentSteps(ctx, cmd, workspaceID, projectID, branch, dockerImage, dockerfile, buildContext, commit, logger)
 }
 
 func printDeploymentComplete(versionID, workspace, branch, commit string) {
@@ -389,12 +389,10 @@ func pollVersionStatus(ctx context.Context, logger logging.Logger, client ctrlv1
 // displayVersionStep shows a version step with appropriate formatting
 func displayVersionStep(step *ctrlv1.VersionStep) {
 	message := step.GetMessage()
-
 	// Display only the actual message from the database, indented under "Creating Version"
 	if message != "" {
 		fmt.Printf("  %s\n", message)
 	}
-
 	// Show error message if present
 	if step.GetErrorMessage() != "" {
 		fmt.Printf("  Error: %s\n", step.GetErrorMessage())

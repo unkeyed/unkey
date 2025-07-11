@@ -141,92 +141,92 @@ func (ns NullBuildsStatus) Value() (driver.Value, error) {
 	return string(ns.BuildsStatus), nil
 }
 
-type HostnamesVerificationMethod string
+type DomainsVerificationMethod string
 
 const (
-	HostnamesVerificationMethodDnsTxt     HostnamesVerificationMethod = "dns_txt"
-	HostnamesVerificationMethodDnsCname   HostnamesVerificationMethod = "dns_cname"
-	HostnamesVerificationMethodFileUpload HostnamesVerificationMethod = "file_upload"
-	HostnamesVerificationMethodAutomatic  HostnamesVerificationMethod = "automatic"
+	DomainsVerificationMethodDnsTxt     DomainsVerificationMethod = "dns_txt"
+	DomainsVerificationMethodDnsCname   DomainsVerificationMethod = "dns_cname"
+	DomainsVerificationMethodFileUpload DomainsVerificationMethod = "file_upload"
+	DomainsVerificationMethodAutomatic  DomainsVerificationMethod = "automatic"
 )
 
-func (e *HostnamesVerificationMethod) Scan(src interface{}) error {
+func (e *DomainsVerificationMethod) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = HostnamesVerificationMethod(s)
+		*e = DomainsVerificationMethod(s)
 	case string:
-		*e = HostnamesVerificationMethod(s)
+		*e = DomainsVerificationMethod(s)
 	default:
-		return fmt.Errorf("unsupported scan type for HostnamesVerificationMethod: %T", src)
+		return fmt.Errorf("unsupported scan type for DomainsVerificationMethod: %T", src)
 	}
 	return nil
 }
 
-type NullHostnamesVerificationMethod struct {
-	HostnamesVerificationMethod HostnamesVerificationMethod
-	Valid                       bool // Valid is true if HostnamesVerificationMethod is not NULL
+type NullDomainsVerificationMethod struct {
+	DomainsVerificationMethod DomainsVerificationMethod
+	Valid                     bool // Valid is true if DomainsVerificationMethod is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullHostnamesVerificationMethod) Scan(value interface{}) error {
+func (ns *NullDomainsVerificationMethod) Scan(value interface{}) error {
 	if value == nil {
-		ns.HostnamesVerificationMethod, ns.Valid = "", false
+		ns.DomainsVerificationMethod, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.HostnamesVerificationMethod.Scan(value)
+	return ns.DomainsVerificationMethod.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullHostnamesVerificationMethod) Value() (driver.Value, error) {
+func (ns NullDomainsVerificationMethod) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.HostnamesVerificationMethod), nil
+	return string(ns.DomainsVerificationMethod), nil
 }
 
-type HostnamesVerificationStatus string
+type DomainsVerificationStatus string
 
 const (
-	HostnamesVerificationStatusPending  HostnamesVerificationStatus = "pending"
-	HostnamesVerificationStatusVerified HostnamesVerificationStatus = "verified"
-	HostnamesVerificationStatusFailed   HostnamesVerificationStatus = "failed"
-	HostnamesVerificationStatusExpired  HostnamesVerificationStatus = "expired"
+	DomainsVerificationStatusPending  DomainsVerificationStatus = "pending"
+	DomainsVerificationStatusVerified DomainsVerificationStatus = "verified"
+	DomainsVerificationStatusFailed   DomainsVerificationStatus = "failed"
+	DomainsVerificationStatusExpired  DomainsVerificationStatus = "expired"
 )
 
-func (e *HostnamesVerificationStatus) Scan(src interface{}) error {
+func (e *DomainsVerificationStatus) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = HostnamesVerificationStatus(s)
+		*e = DomainsVerificationStatus(s)
 	case string:
-		*e = HostnamesVerificationStatus(s)
+		*e = DomainsVerificationStatus(s)
 	default:
-		return fmt.Errorf("unsupported scan type for HostnamesVerificationStatus: %T", src)
+		return fmt.Errorf("unsupported scan type for DomainsVerificationStatus: %T", src)
 	}
 	return nil
 }
 
-type NullHostnamesVerificationStatus struct {
-	HostnamesVerificationStatus HostnamesVerificationStatus
-	Valid                       bool // Valid is true if HostnamesVerificationStatus is not NULL
+type NullDomainsVerificationStatus struct {
+	DomainsVerificationStatus DomainsVerificationStatus
+	Valid                     bool // Valid is true if DomainsVerificationStatus is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullHostnamesVerificationStatus) Scan(value interface{}) error {
+func (ns *NullDomainsVerificationStatus) Scan(value interface{}) error {
 	if value == nil {
-		ns.HostnamesVerificationStatus, ns.Valid = "", false
+		ns.DomainsVerificationStatus, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.HostnamesVerificationStatus.Scan(value)
+	return ns.DomainsVerificationStatus.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullHostnamesVerificationStatus) Value() (driver.Value, error) {
+func (ns NullDomainsVerificationStatus) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.HostnamesVerificationStatus), nil
+	return string(ns.DomainsVerificationStatus), nil
 }
 
 type PartitionsStatus string
@@ -592,13 +592,12 @@ type AuditLogTarget struct {
 }
 
 type Branch struct {
-	ID           string        `db:"id"`
-	WorkspaceID  string        `db:"workspace_id"`
-	ProjectID    string        `db:"project_id"`
-	Name         string        `db:"name"`
-	IsProduction bool          `db:"is_production"`
-	CreatedAt    int64         `db:"created_at"`
-	UpdatedAt    sql.NullInt64 `db:"updated_at"`
+	ID          string        `db:"id"`
+	WorkspaceID string        `db:"workspace_id"`
+	ProjectID   string        `db:"project_id"`
+	Name        string        `db:"name"`
+	CreatedAt   int64         `db:"created_at"`
+	UpdatedAt   sql.NullInt64 `db:"updated_at"`
 }
 
 type Build struct {
@@ -618,6 +617,21 @@ type Build struct {
 	UpdatedAt     sql.NullInt64   `db:"updated_at"`
 }
 
+type Domain struct {
+	ID                 string                        `db:"id"`
+	WorkspaceID        string                        `db:"workspace_id"`
+	ProjectID          string                        `db:"project_id"`
+	Hostname           string                        `db:"hostname"`
+	IsCustomDomain     bool                          `db:"is_custom_domain"`
+	CertificateID      sql.NullString                `db:"certificate_id"`
+	VerificationStatus NullDomainsVerificationStatus `db:"verification_status"`
+	VerificationToken  sql.NullString                `db:"verification_token"`
+	VerificationMethod NullDomainsVerificationMethod `db:"verification_method"`
+	SubdomainConfig    []byte                        `db:"subdomain_config"`
+	CreatedAt          int64                         `db:"created_at"`
+	UpdatedAt          sql.NullInt64                 `db:"updated_at"`
+}
+
 type EncryptedKey struct {
 	WorkspaceID     string        `db:"workspace_id"`
 	KeyID           string        `db:"key_id"`
@@ -627,19 +641,15 @@ type EncryptedKey struct {
 	EncryptionKeyID string        `db:"encryption_key_id"`
 }
 
-type Hostname struct {
-	ID                 string                          `db:"id"`
-	WorkspaceID        string                          `db:"workspace_id"`
-	ProjectID          string                          `db:"project_id"`
-	Hostname           string                          `db:"hostname"`
-	IsCustomDomain     bool                            `db:"is_custom_domain"`
-	CertificateID      sql.NullString                  `db:"certificate_id"`
-	VerificationStatus NullHostnamesVerificationStatus `db:"verification_status"`
-	VerificationToken  sql.NullString                  `db:"verification_token"`
-	VerificationMethod NullHostnamesVerificationMethod `db:"verification_method"`
-	SubdomainConfig    []byte                          `db:"subdomain_config"`
-	CreatedAt          int64                           `db:"created_at"`
-	UpdatedAt          sql.NullInt64                   `db:"updated_at"`
+type HostnameRoute struct {
+	ID          string        `db:"id"`
+	WorkspaceID string        `db:"workspace_id"`
+	ProjectID   string        `db:"project_id"`
+	Hostname    string        `db:"hostname"`
+	VersionID   string        `db:"version_id"`
+	IsEnabled   bool          `db:"is_enabled"`
+	CreatedAt   int64         `db:"created_at"`
+	UpdatedAt   sql.NullInt64 `db:"updated_at"`
 }
 
 type Identity struct {
@@ -748,6 +758,7 @@ type Project struct {
 	Name             string         `db:"name"`
 	Slug             string         `db:"slug"`
 	GitRepositoryUrl sql.NullString `db:"git_repository_url"`
+	DefaultBranch    sql.NullString `db:"default_branch"`
 	DeleteProtection sql.NullBool   `db:"delete_protection"`
 	CreatedAt        int64          `db:"created_at"`
 	UpdatedAt        sql.NullInt64  `db:"updated_at"`
@@ -821,17 +832,6 @@ type RootfsImage struct {
 	S3Bucket    string        `db:"s3_bucket"`
 	S3Key       string        `db:"s3_key"`
 	SizeBytes   int64         `db:"size_bytes"`
-	CreatedAt   int64         `db:"created_at"`
-	UpdatedAt   sql.NullInt64 `db:"updated_at"`
-}
-
-type Route struct {
-	ID          string        `db:"id"`
-	WorkspaceID string        `db:"workspace_id"`
-	ProjectID   string        `db:"project_id"`
-	Hostname    string        `db:"hostname"`
-	VersionID   string        `db:"version_id"`
-	IsEnabled   bool          `db:"is_enabled"`
 	CreatedAt   int64         `db:"created_at"`
 	UpdatedAt   sql.NullInt64 `db:"updated_at"`
 }
