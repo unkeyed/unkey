@@ -1,7 +1,7 @@
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import type { TRPCClientErrorLike } from "@trpc/client";
 import type { TRPCErrorShape } from "@trpc/server/rpc";
+import { toast } from "@unkey/ui";
 
 const handleKeyUpdateError = (err: TRPCClientErrorLike<TRPCErrorShape>) => {
   const errorMessage = err.message || "";

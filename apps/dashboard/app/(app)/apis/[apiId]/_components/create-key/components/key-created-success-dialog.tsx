@@ -2,9 +2,8 @@
 
 import { ConfirmPopover } from "@/components/confirmation-popover";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { toast } from "@/components/ui/toaster";
 import { ArrowRight, Check, CircleInfo, Key2, Plus } from "@unkey/icons";
-import { Button, Code, CopyButton, InfoTooltip, VisibleButton } from "@unkey/ui";
+import { Button, Code, CopyButton, InfoTooltip, VisibleButton, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { UNNAMED_KEY } from "../create-key.constants";

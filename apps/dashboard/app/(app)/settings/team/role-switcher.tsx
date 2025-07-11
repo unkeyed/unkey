@@ -1,6 +1,5 @@
 "use client";
 
-import { toast } from "@/components/ui/toaster";
 import type { AuthenticatedUser, Membership, Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import {
@@ -11,6 +10,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  toast,
 } from "@unkey/ui";
 import { memo, useState } from "react";
 

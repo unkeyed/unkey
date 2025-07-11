@@ -1,6 +1,5 @@
 "use client";
 
-import { toast } from "@/components/ui/toaster";
 import type { AuthenticatedUser, Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,6 +13,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  toast,
 } from "@unkey/ui";
 import type React from "react";
 import { useState } from "react";

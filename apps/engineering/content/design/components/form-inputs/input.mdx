@@ -1,108 +1,170 @@
 ---
 title: Input
-description: A text input field component with different states, validations, and icon support.
+description: A versatile input component with multiple variants, states, and styling options for creating consistent form inputs throughout your application.
 ---
+import { 
+  InputDefaultVariant, 
+  InputSuccessVariant, 
+  InputWarningVariant, 
+  InputErrorVariant, 
+  InputDisabledVariant, 
+  InputWithDefaultValue, 
+  InputWithPasswordToggle, 
+  InputWithBothIcons 
+} from "./input.variants";
 
-import { RenderComponentWithSnippet } from "@/app/components/render";
-import {
-  InputDefaultVariant,
-  InputSuccessVariant,
-  InputWarningVariant,
-  InputErrorVariant,
-  InputDisabledVariant,
-  InputWithDefaultValue,
-  InputWithPasswordToggle,
-  InputWithBothIcons,
-  InputWithPrefix,
-  InputWithPrefixAndIcon,
-  InputWithPrefixVariants,
-} from "./input.variants.tsx";
+## Overview
 
-## Default
+The Input component provides a comprehensive input system for creating form fields throughout your application. It's designed to handle various input types with multiple variants, states, and styling options while maintaining accessibility and consistent design patterns.
 
-The default input style with neutral colors. Can include optional icons for better visual context.
+## Usage
+
+```tsx
+import { Input } from "@unkey/ui";
+
+export default function MyComponent() {
+  return (
+    <div>
+      <Input placeholder="Enter text..." />
+      <Input variant="success" placeholder="Success state" />
+      <Input variant="error" placeholder="Error state" />
+      <Input disabled placeholder="Disabled input" />
+    </div>
+  );
+}
+```
+
+## Examples
+
+### Default Variant
+Standard input with default styling and behavior.
 
 <InputDefaultVariant />
 
-## States
-
-Input components can reflect different states through visual styling:
-
-### Success State
-
-Use the success state to indicate valid input or successful validation. The checkmark icon provides immediate visual feedback.
+### Success Variant
+Input with success styling for positive validation states.
 
 <InputSuccessVariant />
 
-### Warning State
-
-The warning state can be used to show potential issues that don't prevent form submission. The alert icon draws attention to the warning state.
+### Warning Variant
+Input with warning styling for cautionary states.
 
 <InputWarningVariant />
 
-### Error State
-
-Use the error state to indicate invalid input that needs correction. The alert icon emphasizes the error state.
+### Error Variant
+Input with error styling for validation errors.
 
 <InputErrorVariant />
 
-### Disabled State
-
-Use the disabled state when user interaction should be prevented, such as during form submission or when the input depends on other conditions.
+### Disabled Variant
+Input in disabled state for unavailable interactions.
 
 <InputDisabledVariant />
 
-### With Default Value State
-
-Input pre-populated with an initial value that users can modify or build upon.
+### With Default Value
+Input with a pre-filled default value.
 
 <InputWithDefaultValue />
 
-## Interactive Elements
-
-### Password Toggle
-
-Example of an input with a clickable icon to toggle password visibility.
+### With Password Toggle
+Input with password visibility toggle functionality.
 
 <InputWithPasswordToggle />
 
-### Search with Icons
-
-Example of an input with both leading and trailing icons for enhanced functionality.
+### With Both Icons
+Input with both left and right icons for enhanced functionality.
 
 <InputWithBothIcons />
 
-### Prefix Support
+## Features
 
-Basic Prefix
-Add a prefix to provide context or format guidance to users.
-
-<InputWithPrefix />
-Prefix with Icon Combine prefixes with icons for enhanced visual context.
-
-<InputWithPrefixAndIcon />
-Prefix with Different Variants Prefixes work with all input variants and maintain
-consistent styling.
-
-<InputWithPrefixVariants />
+- **Multiple Variants**: Different visual styles (default, success, warning, error)
+- **Interactive States**: Hover, focus, and disabled states
+- **Icon Support**: Left and right icon positioning
+- **Password Toggle**: Built-in password visibility toggle
+- **Accessibility**: Full accessibility support with proper ARIA attributes
+- **Responsive Design**: Adapts to different screen sizes
+- **Dark Mode Support**: Consistent appearance in light and dark themes
+- **Customizable**: Extensive styling options through className prop
 
 ## Props
 
-The Input component accepts all standard HTML input attributes plus the following:
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `variant` | `"default" \| "success" \| "warning" \| "error"` | `"default"` | The visual variant of the input |
+| `size` | `"sm" \| "md" \| "lg"` | `"md"` | The size of the input |
+| `disabled` | `boolean` | `false` | Whether the input is disabled |
+| `placeholder` | `string` | - | Placeholder text for the input |
+| `value` | `string` | - | Controlled value for the input |
+| `defaultValue` | `string` | - | Default value for uncontrolled input |
+| `leftIcon` | `React.ReactNode` | - | Icon to display on the left side |
+| `rightIcon` | `React.ReactNode` | - | Icon to display on the right side |
+| `className` | `string` | - | Additional CSS classes |
 
-  <AutoTypeTable
-      name="DocumentedInputProps"
-      path="../../internal/ui/src/components/form/input.tsx"
+The component also accepts all standard HTML input element props.
 
-    />
+## Variants
 
-## Icon Guidelines
+### Default
+- Standard input styling with neutral colors
+- Use for most form inputs
+- Balanced visual weight
 
-When using icons with the Input component:
+### Success
+- Green color scheme for positive states
+- Use for validated or successful inputs
+- Encourages positive user feedback
 
-- Icons should be sized appropriately (recommended: 16x16px using `h-4 w-4` classes)
-- Icons inherit colors based on the input's variant state
-- Interactive icons (like password toggle) should be wrapped in buttons
-- Avoid using too many icons which might clutter the interface
-- Left icons are typically used for input type indication (search, email, etc.)
-- Right icons are commonly used for interactive elements (password toggle, clear button, etc.)
+### Warning
+- Yellow/orange color scheme for cautionary states
+- Use for inputs that need attention
+- Indicates potential issues
+
+### Error
+- Red color scheme for error states
+- Use for validation errors or failed inputs
+- Clearly indicates problems
+
+## Structure
+
+The Input component is composed of:
+
+1. **Input Container** - Main wrapper with styling and positioning
+2. **Left Icon** - Optional icon on the left side
+3. **Input Element** - The actual input field
+4. **Right Icon** - Optional icon on the right side
+5. **Password Toggle** - Optional password visibility toggle
+
+## Styling
+
+The component includes default styling with:
+
+- Consistent padding and border radius
+- Color-coded variants for semantic meaning
+- Smooth transitions for state changes
+- Dark mode support with appropriate color schemes
+- Focus states for accessibility
+- Customizable through className prop
+
+### Custom Styling
+
+You can customize the appearance using the className prop:
+
+```tsx
+<Input
+  placeholder="Custom styled input"
+  className="custom-input-class"
+  variant="success"
+/>
+```
+
+## Accessibility
+
+The Input component is built with accessibility in mind:
+
+- **Semantic HTML**: Uses proper input elements with appropriate attributes
+- **ARIA Attributes**: Proper ARIA labels and descriptions for screen readers
+- **Keyboard Navigation**: Full keyboard support including Tab navigation
+- **Focus Management**: Clear focus indicators and logical tab order
+- **Screen Reader Support**: Announces input states and validation appropriately
+- **High Contrast**: Maintains proper contrast ratios across all variants

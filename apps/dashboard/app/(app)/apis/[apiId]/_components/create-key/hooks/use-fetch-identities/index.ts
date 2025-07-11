@@ -1,7 +1,7 @@
 "use client";
 
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { toast } from "@unkey/ui";
 import { useMemo } from "react";
 
 const MAX_IDENTITY_FETCH_LIMIT = 10;

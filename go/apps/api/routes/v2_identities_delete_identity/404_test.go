@@ -71,7 +71,7 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
-			Meta:        nil,
+			Meta:        []byte("{}"),
 		})
 		require.NoError(t, err)
 
@@ -115,7 +115,7 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
-			Meta:        nil,
+			Meta:        []byte("{}"),
 		})
 		require.NoError(t, err)
 
@@ -150,7 +150,7 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
-			Meta:        nil,
+			Meta:        []byte("{}"),
 		})
 		require.NoError(t, err)
 
@@ -198,7 +198,7 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 			WorkspaceID: differentWorkspace.ID,
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
-			Meta:        nil,
+			Meta:        []byte("{}"),
 		})
 		require.NoError(t, err)
 
