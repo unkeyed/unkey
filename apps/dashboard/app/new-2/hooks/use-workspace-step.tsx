@@ -1,10 +1,9 @@
-import { toast } from "@/components/ui/toaster";
 import { setCookie } from "@/lib/auth/cookies";
 import { UNKEY_SESSION_COOKIE } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { StackPerspective2 } from "@unkey/icons";
-import { Button, FormInput } from "@unkey/ui";
+import { Button, FormInput, toast } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useTransition } from "react";
 import { useForm } from "react-hook-form";
