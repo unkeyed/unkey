@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/deploy/metald/client"
-	vmprovisionerv1 "github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
+	vmprovisionerv1 "github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1"
 )
 
 // AIDEV-NOTE: CLI tool demonstrating metald client usage with SPIFFE integration
