@@ -10,8 +10,8 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
-	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
+	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -26,11 +26,11 @@ type Response = openapi.V2KeysDeleteKeyResponseBody
 
 // Handler implements zen.Route interface for the v2 keys.deleteKey endpoint
 type Handler struct {
-	Logger      logging.Logger
-	DB          db.Database
-	Keys        keys.KeyService
-	Permissions permissions.PermissionService
-	Auditlogs   auditlogs.AuditLogService
+	Logger    logging.Logger
+	DB        db.Database
+	Keys      keys.KeyService
+	Auditlogs auditlogs.AuditLogService
+	KeyCache  cache.Cache[string, db.FindKeyForVerificationRow]
 }
 
 // Method returns the HTTP method this route responds to
@@ -47,7 +47,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.deleteKey")
 
 	// Authentication
-	auth, err := h.Keys.VerifyRootKey(ctx, s)
+	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -92,22 +92,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Permission check
-	err = h.Permissions.Check(
-		ctx,
-		auth.KeyID,
-		rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   "*",
-				Action:       rbac.DeleteKey,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   key.Api.ID,
-				Action:       rbac.DeleteKey,
-			}),
-		),
-	)
+	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   "*",
+			Action:       rbac.DeleteKey,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   key.Api.ID,
+			Action:       rbac.DeleteKey,
+		}),
+	)))
 	if err != nil {
 		return err
 	}
@@ -137,7 +133,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Event:       auditlog.KeyDeleteEvent,
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				ActorType:   auditlog.RootKeyActor,
-				ActorID:     auth.KeyID,
+				ActorID:     auth.Key.ID,
 				ActorName:   "root key",
 				ActorMeta:   map[string]any{},
 				Display:     fmt.Sprintf("%s %s", description, key.ID),
@@ -157,10 +153,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		return err
 	})
-
 	if err != nil {
 		return err
 	}
+
+	h.KeyCache.Remove(ctx, key.Hash)
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{

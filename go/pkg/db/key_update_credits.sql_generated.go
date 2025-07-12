@@ -12,7 +12,8 @@ import (
 
 const updateKeyCredits = `-- name: UpdateKeyCredits :exec
 UPDATE ` + "`" + `keys` + "`" + `
-SET remaining_requests = CASE
+SET remaining_requests =
+CASE
     WHEN ? = 'set' THEN ?
     WHEN ? = 'increment' THEN remaining_requests + ?
     WHEN ? = 'decrement' AND remaining_requests - ? > 0 THEN remaining_requests - ?
@@ -30,7 +31,8 @@ type UpdateKeyCreditsParams struct {
 // UpdateKeyCredits
 //
 //	UPDATE `keys`
-//	SET remaining_requests = CASE
+//	SET remaining_requests =
+//	CASE
 //	    WHEN ? = 'set' THEN ?
 //	    WHEN ? = 'increment' THEN remaining_requests + ?
 //	    WHEN ? = 'decrement' AND remaining_requests - ? > 0 THEN remaining_requests - ?

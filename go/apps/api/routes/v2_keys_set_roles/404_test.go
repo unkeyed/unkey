@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -22,11 +23,11 @@ func TestNotFoundErrors(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Logger:      h.Logger,
-		Permissions: h.Permissions,
-		Auditlogs:   h.Auditlogs,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Logger:    h.Logger,
+		Auditlogs: h.Auditlogs,
+		KeyCache:  h.Caches.VerificationKeyByHash,
 	}
 
 	h.Register(route)
@@ -43,46 +44,27 @@ func TestNotFoundErrors(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	// Create test data
-	// Create a keyring and valid key
-	keyAuthID := uid.New(uid.KeyAuthPrefix)
-	err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-		ID:                 keyAuthID,
-		WorkspaceID:        workspace.ID,
-		StoreEncryptedKeys: false,
-		DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-		DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-		CreatedAtM:         time.Now().UnixMilli(),
+	// Create test data using testutil helper
+	defaultPrefix := "test"
+	defaultBytes := int32(16)
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID:   workspace.ID,
+		DefaultPrefix: &defaultPrefix,
+		DefaultBytes:  &defaultBytes,
 	})
-	require.NoError(t, err)
 
-	validKeyID := uid.New(uid.KeyPrefix)
-	keyString := "test_" + uid.New("")
-	err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-		ID:                validKeyID,
-		KeyringID:         keyAuthID,
-		Hash:              hash.Sha256(keyString),
-		Start:             keyString[:4],
-		WorkspaceID:       workspace.ID,
-		ForWorkspaceID:    sql.NullString{Valid: false},
-		Name:              sql.NullString{Valid: true, String: "Valid Test Key"},
-		CreatedAtM:        time.Now().UnixMilli(),
-		Enabled:           true,
-		IdentityID:        sql.NullString{Valid: false},
-		Meta:              sql.NullString{Valid: false},
-		Expires:           sql.NullTime{Valid: false},
-		RemainingRequests: sql.NullInt32{Valid: false},
-		RatelimitAsync:    sql.NullBool{Valid: false},
-		RatelimitLimit:    sql.NullInt32{Valid: false},
-		RatelimitDuration: sql.NullInt64{Valid: false},
-		Environment:       sql.NullString{Valid: false},
+	keyName := "Valid Test Key"
+	keyResponse := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeyAuthID:   api.KeyAuthID.String,
+		Name:        &keyName,
 	})
-	require.NoError(t, err)
+	validKeyID := keyResponse.KeyID
 
 	// Create a valid role
 	validRoleID := uid.New(uid.TestPrefix)
 	validRoleName := "valid-test-role"
-	err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+	err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 		RoleID:      validRoleID,
 		WorkspaceID: workspace.ID,
 		Name:        validRoleName,
@@ -217,10 +199,6 @@ func TestNotFoundErrors(t *testing.T) {
 			Meta:              sql.NullString{Valid: false},
 			Expires:           sql.NullTime{Valid: false},
 			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
 		})
 		require.NoError(t, err)
 

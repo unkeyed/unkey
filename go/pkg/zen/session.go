@@ -347,7 +347,6 @@ func (s *Session) JSON(status int, body any) error {
 //
 // Unlike [JSON], this method does not set any Content-Type header automatically.
 func (s *Session) Send(status int, body []byte) error {
-
 	return s.send(status, body)
 }
 

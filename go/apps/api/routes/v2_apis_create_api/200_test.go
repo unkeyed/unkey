@@ -2,16 +2,15 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_create_api"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -24,11 +23,10 @@ func TestCreateApiSuccessfully(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		Logger:      h.Logger,
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Permissions: h.Permissions,
-		Auditlogs:   h.Auditlogs,
+		Logger:    h.Logger,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
 	}
 
 	h.Register(route)
@@ -43,34 +41,13 @@ func TestCreateApiSuccessfully(t *testing.T) {
 	// This test validates that the underlying database queries work correctly
 	// by bypassing the HTTP handler and directly testing the DB operations.
 	t.Run("insert api via DB", func(t *testing.T) {
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:            keyAuthID,
-			WorkspaceID:   h.Resources().UserWorkspace.ID,
-			CreatedAtM:    time.Now().UnixMilli(),
-			DefaultPrefix: sql.NullString{Valid: false, String: ""},
-			DefaultBytes:  sql.NullInt32{Valid: false, Int32: 0},
-		})
-		require.NoError(t, err)
+		createdAPI := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID})
 
-		apiID := uid.New(uid.APIPrefix)
-		apiName := "test-api-db"
-		err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-			ID:          apiID,
-			Name:        apiName,
-			WorkspaceID: h.Resources().UserWorkspace.ID,
-			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-			KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
-			CreatedAtM:  time.Now().UnixMilli(),
-		})
+		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), createdAPI.ID)
 		require.NoError(t, err)
-
-		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
-		require.NoError(t, err)
-		require.Equal(t, apiName, api.Name)
 		require.Equal(t, h.Resources().UserWorkspace.ID, api.WorkspaceID)
 		require.True(t, api.KeyAuthID.Valid)
-		require.Equal(t, keyAuthID, api.KeyAuthID.String)
+		require.Equal(t, createdAPI.KeyAuthID.String, api.KeyAuthID.String)
 	})
 
 	// Test creating a basic API

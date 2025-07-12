@@ -90,6 +90,7 @@ type Config struct {
 	Logger logging.Logger
 
 	Clock clock.Clock
+
 	// If provided, use this counter implementation instead of creating a Redis counter
 	Counter counter.Counter
 }
@@ -225,7 +226,6 @@ func (s *service) calculateRateLimit(req RatelimitRequest, currentWindow, previo
 //	        time.UnixMilli(resp.Reset))
 //	}
 func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (RatelimitResponse, error) {
-
 	_, span := tracing.Start(ctx, "Ratelimit")
 	defer span.End()
 
@@ -264,7 +264,6 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 		// Check if we can reject based on local data alone
 		exceeded, effectiveCount, remaining := s.calculateRateLimit(req, currentWindow, previousWindow)
 		if exceeded {
-
 			b.strictUntil = req.Time.Add(req.Duration)
 
 			// Record the denied request

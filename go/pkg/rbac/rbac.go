@@ -2,6 +2,7 @@ package rbac
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -69,11 +70,10 @@ func (r *RBAC) EvaluatePermissions(query PermissionQuery, permissions []string) 
 func (r *RBAC) evaluateQueryV1(query PermissionQuery, permissions []string) (EvaluationResult, error) {
 	// Handle simple permission check
 	if query.Value != "" {
-		for _, p := range permissions {
-			if p == query.Value {
-				return EvaluationResult{Valid: true, Message: ""}, nil
-			}
+		if slices.Contains(permissions, query.Value) {
+			return EvaluationResult{Valid: true, Message: ""}, nil
 		}
+
 		return EvaluationResult{
 			Valid:   false,
 			Message: fmt.Sprintf("Missing permission: '%s'", query.Value),
@@ -107,6 +107,7 @@ func (r *RBAC) evaluateQueryV1(query PermissionQuery, permissions []string) (Eva
 			}
 			missingPerms = append(missingPerms, fmt.Sprintf("'%v'", child))
 		}
+
 		return EvaluationResult{
 			Valid: false,
 			Message: fmt.Sprintf("Missing one of these permissions: [%s], have: [%s]",
@@ -120,8 +121,10 @@ func (r *RBAC) evaluateQueryV1(query PermissionQuery, permissions []string) (Eva
 
 func formatPermissions(permissions []string) []string {
 	formatted := make([]string, len(permissions))
+
 	for i, p := range permissions {
 		formatted[i] = fmt.Sprintf("'%s'", p)
 	}
+
 	return formatted
 }

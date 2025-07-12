@@ -78,13 +78,11 @@ export const ratelimits = mysqlTable(
   },
   (table) => ({
     nameIdx: index("name_idx").on(table.name),
-    uniqueNamePerKey: uniqueIndex("unique_name_per_key_idx").on(table.name, table.keyId),
+    uniqueNamePerKey: uniqueIndex("unique_name_per_key_idx").on(table.keyId, table.name),
     uniqueNamePerIdentity: uniqueIndex("unique_name_per_identity_idx").on(
-      table.name,
       table.identityId,
+      table.name,
     ),
-    identityId: index("identity_id_idx").on(table.identityId),
-    keyId: index("key_id_idx").on(table.keyId),
   }),
 );
 

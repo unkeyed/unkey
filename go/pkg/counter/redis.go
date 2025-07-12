@@ -124,9 +124,11 @@ func (r *redisCounter) Get(ctx context.Context, key string) (int64, error) {
 		// Key doesn't exist, return 0 without error
 		return 0, nil
 	}
+
 	if err != nil {
 		return 0, err
 	}
+
 	return strconv.ParseInt(res, 10, 64)
 }
 

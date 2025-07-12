@@ -1,32 +1,26 @@
 package handler_test
 
 import (
-	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_set_permissions"
-	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
-	"github.com/unkeyed/unkey/go/pkg/uid"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
 func TestBadRequest(t *testing.T) {
-	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Logger:      h.Logger,
-		Permissions: h.Permissions,
-		Auditlogs:   h.Auditlogs,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Logger:    h.Logger,
+		Auditlogs: h.Auditlogs,
+		KeyCache:  h.Caches.VerificationKeyByHash,
 	}
 
 	h.Register(route)
@@ -60,40 +54,22 @@ func TestBadRequest(t *testing.T) {
 	})
 
 	t.Run("missing permissions field", func(t *testing.T) {
-		// Create test data
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        workspace.ID,
-			StoreEncryptedKeys: false,
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			CreatedAtM:         time.Now().UnixMilli(),
+		// Create test data using testutil helpers
+		defaultPrefix := "test"
+		defaultBytes := int32(16)
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   workspace.ID,
+			DefaultPrefix: &defaultPrefix,
+			DefaultBytes:  &defaultBytes,
 		})
-		require.NoError(t, err)
 
-		keyID := uid.New(uid.KeyPrefix)
-		keyString := "test_" + uid.New("")
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(keyString),
-			Start:             keyString[:4],
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Test Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
+		keyName := "Test Key"
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+			Name:        &keyName,
 		})
-		require.NoError(t, err)
+		keyID := keyResponse.KeyID
 
 		req := map[string]interface{}{
 			"keyId": keyID,
@@ -151,40 +127,22 @@ func TestBadRequest(t *testing.T) {
 	})
 
 	t.Run("permission with neither id nor name", func(t *testing.T) {
-		// Create test data
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        workspace.ID,
-			StoreEncryptedKeys: false,
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			CreatedAtM:         time.Now().UnixMilli(),
+		// Create test data using testutil helpers
+		defaultPrefix := "test"
+		defaultBytes := int32(16)
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   workspace.ID,
+			DefaultPrefix: &defaultPrefix,
+			DefaultBytes:  &defaultBytes,
 		})
-		require.NoError(t, err)
 
-		keyID := uid.New(uid.KeyPrefix)
-		keyString := "test_" + uid.New("")
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(keyString),
-			Start:             keyString[:4],
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Test Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
+		keyName := "Test Key"
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+			Name:        &keyName,
 		})
-		require.NoError(t, err)
+		keyID := keyResponse.KeyID
 
 		req := handler.Request{
 			KeyId: keyID,
@@ -211,40 +169,22 @@ func TestBadRequest(t *testing.T) {
 	})
 
 	t.Run("permission with empty string id and name", func(t *testing.T) {
-		// Create test data
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        workspace.ID,
-			StoreEncryptedKeys: false,
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			CreatedAtM:         time.Now().UnixMilli(),
+		// Create test data using testutil helpers
+		defaultPrefix := "test"
+		defaultBytes := int32(16)
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   workspace.ID,
+			DefaultPrefix: &defaultPrefix,
+			DefaultBytes:  &defaultBytes,
 		})
-		require.NoError(t, err)
 
-		keyID := uid.New(uid.KeyPrefix)
-		keyString := "test_" + uid.New("")
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(keyString),
-			Start:             keyString[:4],
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Test Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
+		keyName := "Test Key"
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+			Name:        &keyName,
 		})
-		require.NoError(t, err)
+		keyID := keyResponse.KeyID
 
 		emptyString := ""
 		req := handler.Request{
@@ -275,40 +215,22 @@ func TestBadRequest(t *testing.T) {
 	})
 
 	t.Run("permission not found - invalid format", func(t *testing.T) {
-		// Create test data
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        workspace.ID,
-			StoreEncryptedKeys: false,
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			CreatedAtM:         time.Now().UnixMilli(),
+		// Create test data using testutil helpers
+		defaultPrefix := "test"
+		defaultBytes := int32(16)
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   workspace.ID,
+			DefaultPrefix: &defaultPrefix,
+			DefaultBytes:  &defaultBytes,
 		})
-		require.NoError(t, err)
 
-		keyID := uid.New(uid.KeyPrefix)
-		keyString := "test_" + uid.New("")
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(keyString),
-			Start:             keyString[:4],
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Test Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
+		keyName := "Test Key"
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+			Name:        &keyName,
 		})
-		require.NoError(t, err)
+		keyID := keyResponse.KeyID
 
 		invalidID := "invalid_permission_id"
 		req := handler.Request{
@@ -361,40 +283,22 @@ func TestBadRequest(t *testing.T) {
 	})
 
 	t.Run("permissions as string instead of array", func(t *testing.T) {
-		// Create test data
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        workspace.ID,
-			StoreEncryptedKeys: false,
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			CreatedAtM:         time.Now().UnixMilli(),
+		// Create test data using testutil helpers
+		defaultPrefix := "test"
+		defaultBytes := int32(16)
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   workspace.ID,
+			DefaultPrefix: &defaultPrefix,
+			DefaultBytes:  &defaultBytes,
 		})
-		require.NoError(t, err)
 
-		keyID := uid.New(uid.KeyPrefix)
-		keyString := "test_" + uid.New("")
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(keyString),
-			Start:             keyString[:4],
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Test Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
+		keyName := "Test Key"
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+			Name:        &keyName,
 		})
-		require.NoError(t, err)
+		keyID := keyResponse.KeyID
 
 		req := map[string]interface{}{
 			"keyId":       keyID,
