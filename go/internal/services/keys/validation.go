@@ -38,7 +38,7 @@ func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
 		return err
 	}
 
-	k.Key.RemainingRequests = sql.NullInt32{Int32: usage.Remaining, Valid: usage.Remaining != -1}
+	k.Key.RemainingRequests = sql.NullInt32{Int32: usage.Remaining, Valid: usage.Remaining >= 0}
 	if !usage.Valid {
 		k.setInvalid(StatusUsageExceeded, "Key usage limit exceeded.")
 	}
@@ -48,20 +48,20 @@ func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
 	if k.Key.IdentityID.Valid {
 		identityID = k.Key.IdentityID.String
 	}
-	
+
 	// Credits are deducted when usage is valid AND cost > 0
 	deducted := usage.Valid && cost > 0
 	actualCostDeducted := int32(0)
 	if deducted {
 		actualCostDeducted = cost
 	}
-	
+
 	metrics.KeyCreditsSpentTotal.WithLabelValues(
-		k.AuthorizedWorkspaceID,           // workspace_id
-		k.Key.ID,                          // key_id
-		identityID,                        // identity_id
-		strconv.FormatBool(deducted),      // deducted - whether credits were actually deducted
-	).Add(float64(actualCostDeducted))     // Add the actual amount deducted, not the requested cost
+		k.AuthorizedWorkspaceID,      // workspace_id
+		k.Key.ID,                     // key_id
+		identityID,                   // identity_id
+		strconv.FormatBool(deducted), // deducted - whether credits were actually deducted
+	).Add(float64(actualCostDeducted)) // Add the actual amount deducted, not the requested cost
 
 	return nil
 }

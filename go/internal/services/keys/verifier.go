@@ -48,7 +48,7 @@ type KeyVerifier struct {
 	message               string                                        // Internal message for validation failures
 }
 
-// GetRatelimitConfigs returns the rate limit configurations (for internal use)
+// GetRatelimitConfigs returns the rate limit configurations
 func (k *KeyVerifier) GetRatelimitConfigs() map[string]db.KeyFindForVerificationRatelimit {
 	return k.ratelimitConfigs
 }
@@ -119,11 +119,11 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 
 	// Emit Prometheus metrics for key verification
 	metrics.KeyVerificationsTotal.WithLabelValues(
-		k.AuthorizedWorkspaceID,          // workspaceId
-		k.Key.ApiID,                      // apiId
-		k.Key.ID,                         // keyId
-		strconv.FormatBool(k.Valid),      // valid
-		string(k.Status),                 // code
+		k.AuthorizedWorkspaceID,     // workspaceId
+		k.Key.ApiID,                 // apiId
+		k.Key.ID,                    // keyId
+		strconv.FormatBool(k.Valid), // valid
+		string(k.Status),            // code
 	).Inc()
 
 	// For root keys, auto-return validation failures as fault errors

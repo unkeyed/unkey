@@ -12,7 +12,6 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
-	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/counter"
@@ -172,22 +171,13 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create ratelimit service: %w", err)
 	}
 
-	ulSvc, err := usagelimiter.New(usagelimiter.Config{
-		Logger: logger,
-		DB:     db,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create usage limiter service: %w", err)
-	}
-
 	keySvc, err := keys.New(keys.Config{
-		Logger:       logger,
-		DB:           db,
-		KeyCache:     caches.VerificationKeyByHash,
-		RateLimiter:  rlSvc,
-		UsageLimiter: ulSvc,
-		RBAC:         rbac.New(),
-		Clickhouse:   ch,
+		Logger:      logger,
+		DB:          db,
+		KeyCache:    caches.VerificationKeyByHash,
+		RateLimiter: rlSvc,
+		RBAC:        rbac.New(),
+		Clickhouse:  ch,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)

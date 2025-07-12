@@ -120,7 +120,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if (req.Operation == openapi.Decrement || req.Operation == openapi.Increment) && (!req.Value.IsSpecified() || req.Value.IsNull()) {
 		return fault.New("wrong operation usage",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal("wrong operation usage"),
 			fault.Public("When specifying an increment or decrement operation, a value must be provided."),
 		)
 	}
@@ -128,7 +127,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if (req.Operation == openapi.Decrement || req.Operation == openapi.Increment) && !key.RemainingRequests.Valid {
 		return fault.New("wrong operation usage",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal("wrong operation usage"),
 			fault.Public("You cannot increment or decrement a key with unlimited credits."),
 		)
 	}

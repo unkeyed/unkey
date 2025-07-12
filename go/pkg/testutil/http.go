@@ -13,7 +13,6 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
-	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/counter"
@@ -112,20 +111,13 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
-	usageLimiterService, err := usagelimiter.New(usagelimiter.Config{
-		Logger: logger,
-		DB:     db,
-	})
-	require.NoError(t, err)
-
 	keyService, err := keys.New(keys.Config{
-		Logger:       logger,
-		DB:           db,
-		KeyCache:     caches.VerificationKeyByHash,
-		RateLimiter:  ratelimitService,
-		UsageLimiter: usageLimiterService,
-		RBAC:         rbac.New(),
-		Clickhouse:   ch,
+		Logger:      logger,
+		DB:          db,
+		KeyCache:    caches.VerificationKeyByHash,
+		RateLimiter: ratelimitService,
+		RBAC:        rbac.New(),
+		Clickhouse:  ch,
 	})
 	require.NoError(t, err)
 

@@ -1,6 +1,10 @@
 package match
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 func TestWildcard(t *testing.T) {
 	tests := []struct {
@@ -109,7 +113,8 @@ func TestWildcard(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := Wildcard(tt.s, tt.pattern)
+			result, err := Wildcard(tt.s, tt.pattern)
+			require.NoError(t, err)
 			if result != tt.expected {
 				t.Errorf("Wildcard(%q, %q) = %v, want %v", tt.s, tt.pattern, result, tt.expected)
 			}

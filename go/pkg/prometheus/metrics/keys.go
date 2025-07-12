@@ -15,7 +15,7 @@ var (
 	// Use this counter to monitor API traffic patterns and error rates.
 	//
 	// Example usage:
-	//   metrics.VerificationsTotal.WithLabelValues("GET", "/users", "200").Inc()
+	//   metrics.KeyVerificationsTotal.WithLabelValues("ws_1234", "api_5678", "key_abcd", "true", "VALID").Inc()
 	KeyVerificationsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Subsystem:   "key",
@@ -30,7 +30,7 @@ var (
 	// Use this counter to monitor credit usage patterns and error rates.
 	//
 	// Example usage:
-	//   metrics.CreditsSpentTotal.WithLabelValues("workspace1", "key1", "identity1").Inc()
+	//   metrics.KeyCreditsSpentTotal.WithLabelValues("ws_1234", "key_abcd", "identity_xyz", "5").Add(5)
 	KeyCreditsSpentTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Subsystem: "key",

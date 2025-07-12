@@ -122,7 +122,7 @@ func TestSuccess(t *testing.T) {
 			require.NotNil(t, res.Body)
 			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
 			require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
-			require.EqualValues(t, *res.Body.Data.Credits, int32(4), "Key should have 4 credits but got %d", res.Body.Data.Credits)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(4), "Key should have 4 credits but got %d", *res.Body.Data.Credits)
 		})
 
 		t.Run("exceeding with default cost", func(t *testing.T) {
@@ -142,7 +142,7 @@ func TestSuccess(t *testing.T) {
 			require.NotNil(t, res.Body)
 			require.Equal(t, openapi.USAGEEXCEEDED, res.Body.Data.Code, "Key should show usage exceeded but got %s", res.Body.Data.Code)
 			require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
-			require.EqualValues(t, *res.Body.Data.Credits, int32(0), "Key should have 0 credits but got %d", res.Body.Data.Credits)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(0), "Key should have 0 credits but got %d", *res.Body.Data.Credits)
 		})
 
 		t.Run("allowed custom cost", func(t *testing.T) {
@@ -165,7 +165,7 @@ func TestSuccess(t *testing.T) {
 			require.NotNil(t, res.Body)
 			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
 			require.True(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
-			require.EqualValues(t, *res.Body.Data.Credits, int32(0), "Key should have 0 credits remaining but got %d", res.Body.Data.Credits)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(0), "Key should have 0 credits remaining but got %d", *res.Body.Data.Credits)
 		})
 
 		t.Run("exceeding with custom cost", func(t *testing.T) {
@@ -188,7 +188,7 @@ func TestSuccess(t *testing.T) {
 			require.NotNil(t, res.Body)
 			require.Equal(t, openapi.USAGEEXCEEDED, res.Body.Data.Code, "Key should be usage exceeded but got %s", res.Body.Data.Code)
 			require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
-			require.EqualValues(t, *res.Body.Data.Credits, int32(0), "Key should have 0 credits remaining but got %d", res.Body.Data.Credits)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(0), "Key should have 0 credits remaining but got %d", *res.Body.Data.Credits)
 		})
 
 		t.Run("allow cost 0 even when remaining 0", func(t *testing.T) {
@@ -211,7 +211,7 @@ func TestSuccess(t *testing.T) {
 			require.NotNil(t, res.Body)
 			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be code valid but got %s", res.Body.Data.Code)
 			require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
-			require.EqualValues(t, *res.Body.Data.Credits, int32(0), "Key should have 0 credits remaining but got %d", res.Body.Data.Credits)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(0), "Key should have 0 credits remaining but got %d", *res.Body.Data.Credits)
 		})
 	})
 

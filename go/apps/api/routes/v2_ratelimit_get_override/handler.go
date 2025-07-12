@@ -120,11 +120,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	found, override := matchOverride(req.Identifier, namespace)
+	override, found, err := matchOverride(req.Identifier, namespace)
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Internal("error matching overrides"), fault.Public("Error matching ratelimit override"),
+		)
+	}
+
 	if !found {
 		return fault.New("override not found",
 			fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
-			fault.Internal("override not found"),
 			fault.Public("This override does not exist."),
 		)
 	}
@@ -143,18 +149,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 }
 
-func matchOverride(identifier string, namespace db.FindRatelimitNamespace) (bool, db.FindRatelimitNamespaceLimitOverride) {
-	// First check for exact match in direct overrides
+func matchOverride(identifier string, namespace db.FindRatelimitNamespace) (db.FindRatelimitNamespaceLimitOverride, bool, error) {
 	if override, ok := namespace.DirectOverrides[identifier]; ok {
-		return true, override
+		return override, true, nil
 	}
 
-	// Then check wildcard overrides
 	for _, override := range namespace.WildcardOverrides {
-		if match.Wildcard(identifier, override.Identifier) {
-			return true, override
+		ok, err := match.Wildcard(identifier, override.Identifier)
+		if err != nil {
+			return db.FindRatelimitNamespaceLimitOverride{}, false, err
 		}
+
+		if !ok {
+			continue
+		}
+
+		return override, true, nil
 	}
 
-	return false, db.FindRatelimitNamespaceLimitOverride{} // nolint:exhaustruct
+	return db.FindRatelimitNamespaceLimitOverride{}, false, nil
 }

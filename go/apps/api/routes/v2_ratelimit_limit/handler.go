@@ -116,7 +116,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if db.IsNotFound(err) {
 			return fault.New("namespace was deleted",
 				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-				fault.Internal("namespace not found"), fault.Public("This namespace does not exist."),
+				fault.Public("This namespace does not exist."),
 			)
 		}
 
@@ -126,7 +126,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if namespace.DeletedAtM.Valid {
 		return fault.New("namespace was deleted",
 			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-			fault.Internal("namespace not found"), fault.Public("This namespace does not exist."),
+			fault.Public("This namespace does not exist."),
 		)
 	}
 
@@ -154,7 +154,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		overrideId = ""
 	)
 
-	found, override := matchOverride(req.Identifier, namespace)
+	override, found, err := matchOverride(req.Identifier, namespace)
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Internal("error matching overrides"), fault.Public("Error matching ratelimit override"),
+		)
+	}
+
 	if found {
 		limit = override.Limit
 		duration = override.Duration
@@ -184,7 +191,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	result, err := h.Ratelimit.Ratelimit(ctx, limitReq)
 	if err != nil {
 		return fault.Wrap(err,
-			fault.Internal("rate limit failed"), fault.Public("We're unable to process the rate limit request."),
+			fault.Internal("rate limit failed"),
+			fault.Public("We're unable to process the rate limit request."),
 		)
 	}
 
@@ -219,18 +227,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	return s.JSON(http.StatusOK, res)
 }
 
-func matchOverride(identifier string, namespace db.FindRatelimitNamespace) (bool, db.FindRatelimitNamespaceLimitOverride) {
-	// First check for exact match in direct overrides
+func matchOverride(identifier string, namespace db.FindRatelimitNamespace) (db.FindRatelimitNamespaceLimitOverride, bool, error) {
 	if override, ok := namespace.DirectOverrides[identifier]; ok {
-		return true, override
+		return override, true, nil
 	}
 
-	// Then check wildcard overrides
 	for _, override := range namespace.WildcardOverrides {
-		if match.Wildcard(identifier, override.Identifier) {
-			return true, override
+		ok, err := match.Wildcard(identifier, override.Identifier)
+		if err != nil {
+			return db.FindRatelimitNamespaceLimitOverride{}, false, err
 		}
+
+		if !ok {
+			continue
+		}
+
+		return override, true, nil
 	}
 
-	return false, db.FindRatelimitNamespaceLimitOverride{}
+	return db.FindRatelimitNamespaceLimitOverride{}, false, nil
 }

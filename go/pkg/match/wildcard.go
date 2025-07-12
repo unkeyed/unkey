@@ -14,10 +14,10 @@ import (
 //   - Wildcard("hello world", "hello*") returns true
 //   - Wildcard("hello world", "*world") returns true
 //   - Wildcard("hello world", "h*d") returns true
-func Wildcard(s, pattern string) bool {
+func Wildcard(s, pattern string) (bool, error) {
 	// Fast path for patterns without wildcards
 	if !strings.Contains(pattern, "*") {
-		return s == pattern
+		return s == pattern, nil
 	}
 
 	// Convert wildcard pattern to regex pattern
@@ -39,6 +39,6 @@ func Wildcard(s, pattern string) bool {
 	regexPattern = "^" + regexPattern + "$"
 
 	// Check if the pattern matches
-	matched, _ := regexp.MatchString(regexPattern, s)
-	return matched
+	matched, err := regexp.MatchString(regexPattern, s)
+	return matched, err
 }
