@@ -16,16 +16,6 @@ jobs:
     secrets:
       GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
 
-  agent_production_deployment:
-    needs:
-      - build_agent_image
-      - api_preview_test
-      - agent_staging_deployment
-    uses: ./.github/workflows/job_deploy_agent_production.yaml
-    secrets:
-      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-      AXIOM_TOKEN: ${{ secrets.AXIOM_TOKEN }}
-
   api_local_test:
     name: Test API
     uses: ./.github/workflows/job_test_api_local.yaml
@@ -36,13 +26,6 @@ jobs:
     uses: ./.github/workflows/job_deploy_api_staging.yaml
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-
-  agent_staging_deployment:
-    needs:
-      - build_agent_image
-    uses: ./.github/workflows/job_deploy_agent_staging.yaml
-    secrets:
-      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
   api_preview_test:
     needs:
@@ -77,53 +60,6 @@ jobs:
       DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
       DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
       CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
-
-  # api_canary_benchmark:
-  #   if: ${{false}}
-  #   environment: Canary
-  #   needs:
-  #     - api_canary_deployment
-  #     - agent_production_deployment
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       region: [
-  #           "us-east-1",
-  #           "us-east-2",
-  #           "us-west-1",
-  #           "us-west-2",
-  #           "ap-south-2",
-  #           "ap-southeast-3",
-  #           "ap-southeast-4",
-  #           "ap-south-1",
-  #           "ap-northeast-3",
-  #           "ap-northeast-2",
-  #           "ap-southeast-1",
-  #           "ap-southeast-2", # sydney
-  #           "ca-central-1", # Canada
-  #           "eu-central-1", # Frankfurt
-  #           "eu-west-2", # London
-  #           "sa-east-1", # Sao Paulo,
-  #         ]
-  #   name: Artillery in ${{ matrix.region }}
-
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Prepare
-  #       shell: bash
-  #       run: |
-  #         cat <<EOF > .keys.csv
-  #         ${{ secrets.ARTILLERY_KEYS_CSV }}
-  #         EOF
-  #       working-directory: tools/artillery
-
-  #     - name: Run
-  #       run: npx artillery@latest run-lambda --record --key=${{ secrets.ARTILLERY_CLOUD_KEY }} --region ${{ matrix.region }} --count=5 --target=https://canary.unkey.dev  ./keys.verifyKey.yaml
-  #       working-directory: tools/artillery
-  #       env:
-  #         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  #         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   api_production_deployment:
     needs:
@@ -161,9 +97,6 @@ jobs:
     uses: ./.github/workflows/job_deploy_workflows.yaml
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-
-  # trigger_production_deployment:
-  #   uses: ./.github/workflows/deploy_trigger.yaml
 
   deploy-enterprise-worker:
     needs: api_production_deployment
