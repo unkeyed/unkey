@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/unkeyed/unkey/go/cmd/cli/commands"
+	"github.com/unkeyed/unkey/go/cmd/cli/commands/deploy"
 )
 
 // CLI represents our command line interface
@@ -45,7 +46,7 @@ func (c *CLI) Run(ctx context.Context) error {
 	case "init":
 		return commands.Init(c.args[2:], c.env)
 	case "deploy":
-		return commands.Deploy(ctx, c.args[2:], c.env)
+		return deploy.Deploy(ctx, c.args[2:], c.env)
 	case "version":
 		return commands.Version(ctx, c.args[2:], c.env)
 	case "help", "-h", "--help":
@@ -71,7 +72,7 @@ func (c *CLI) runHelp() error {
 	case "init":
 		commands.PrintInitHelp()
 	case "deploy":
-		commands.PrintDeployHelp()
+		deploy.PrintDeployHelp()
 	case "version":
 		commands.PrintVersionHelp()
 	default:

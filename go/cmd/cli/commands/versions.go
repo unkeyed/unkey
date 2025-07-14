@@ -4,6 +4,8 @@ import (
 	"context"
 	"flag"
 	"fmt"
+
+	"github.com/unkeyed/unkey/go/cmd/cli/commands/deploy"
 )
 
 // VersionListOptions holds options for version list command
@@ -39,13 +41,7 @@ func Version(ctx context.Context, args []string, env map[string]string) error {
 
 // VersionCreate handles version create (same as deploy)
 func VersionCreate(ctx context.Context, args []string, env map[string]string) error {
-	opts, err := parseDeployFlags("version create", args, env)
-	if err != nil {
-		return err
-	}
-
-	// Reuse deploy logic
-	return executeDeploy(ctx, opts)
+	return deploy.Deploy(ctx, args, env)
 }
 
 // VersionList handles version list command
