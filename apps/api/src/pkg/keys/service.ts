@@ -608,7 +608,6 @@ export class KeyService {
       });
     }
 
-    console.warn("ABC");
     let remaining: number | undefined = undefined;
     if (data.key.remaining !== null) {
       const t0 = performance.now();
