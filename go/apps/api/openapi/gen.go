@@ -2222,7 +2222,7 @@ type VerifyKeyRatelimitData struct {
 	Duration int64 `json:"duration"`
 
 	// Exceeded Whether the rate limit was exceeded.
-	Exceeded *bool `json:"exceeded,omitempty"`
+	Exceeded bool `json:"exceeded"`
 
 	// Id Unique identifier for this rate limit configuration.
 	Id string `json:"id"`

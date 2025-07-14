@@ -3633,6 +3633,7 @@ components:
           example: true
       required:
         - id
+        - exceeded
         - name
         - limit
         - duration

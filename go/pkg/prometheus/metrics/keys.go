@@ -30,7 +30,7 @@ var (
 	// Use this counter to monitor credit usage patterns and error rates.
 	//
 	// Example usage:
-	//   metrics.KeyCreditsSpentTotal.WithLabelValues("ws_1234", "key_abcd", "identity_xyz", "5").Add(5)
+	//   metrics.KeyCreditsSpentTotal.WithLabelValues("ws_1234", "key_abcd", "identity_xyz", "true").Add(5)
 	KeyCreditsSpentTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Subsystem: "key",

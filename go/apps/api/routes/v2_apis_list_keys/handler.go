@@ -146,7 +146,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if ptr.SafeDeref(req.Decrypt, false) {
 		if h.Vault == nil {
 			return fault.New("vault missing",
-				fault.Code(codes.Vault.Precondition.PreconditionFailed.URN()),
+				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 				fault.Public("Vault hasn't been set up."),
 			)
 		}

@@ -72,8 +72,7 @@ func TestRatelimitResponse(t *testing.T) {
 		require.Equal(t, int64(5), rl.Limit, "Rate limit limit should match")
 		require.Equal(t, time.Minute.Milliseconds(), rl.Duration, "Rate limit duration should match")
 		require.True(t, rl.AutoApply, "Rate limit should be auto-applied")
-		require.NotNil(t, rl.Exceeded, "Exceeded field should be present")
-		require.False(t, *rl.Exceeded, "Rate limit should not be exceeded")
+		require.False(t, rl.Exceeded, "Rate limit should not be exceeded")
 		require.Equal(t, int64(4), rl.Remaining, "Should have 4 remaining requests")
 		require.Greater(t, rl.Reset, time.Now().UnixMilli(), "Reset time should be in the future")
 	})
@@ -114,8 +113,7 @@ func TestRatelimitResponse(t *testing.T) {
 		require.Len(t, ratelimits, 1, "Should have one rate limit")
 
 		rl := ratelimits[0]
-		require.NotNil(t, rl.Exceeded, "Exceeded field should be present")
-		require.True(t, *rl.Exceeded, "Rate limit should be exceeded")
+		require.True(t, rl.Exceeded, "Rate limit should be exceeded")
 		require.Equal(t, int64(0), rl.Remaining, "Should have 0 remaining requests")
 	})
 

@@ -143,8 +143,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				})
 
 			// Precondition Failed
-			case codes.UnkeyAppErrorsPreconditionPreconditionFailed,
-				codes.UnkeyVaultErrorsPreconditionPreconditionFailed:
+			case codes.UnkeyAppErrorsPreconditionPreconditionFailed:
 				return s.JSON(http.StatusPreconditionFailed, openapi.PreconditionFailedErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),

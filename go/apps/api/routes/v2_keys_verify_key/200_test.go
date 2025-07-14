@@ -104,8 +104,8 @@ func TestSuccess(t *testing.T) {
 		require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
 	})
 
-	t.Run("key with cost", func(t *testing.T) {
-		t.Run("allowed default cost", func(t *testing.T) {
+	t.Run("key with credits", func(t *testing.T) {
+		t.Run("allowed default credit cost", func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeyAuthID:   api.KeyAuthID.String,
@@ -125,7 +125,7 @@ func TestSuccess(t *testing.T) {
 			require.EqualValues(t, *res.Body.Data.Credits, int32(4), "Key should have 4 credits but got %d", *res.Body.Data.Credits)
 		})
 
-		t.Run("exceeding with default cost", func(t *testing.T) {
+		t.Run("exceeding with default credit cost", func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeyAuthID:   api.KeyAuthID.String,
@@ -145,7 +145,7 @@ func TestSuccess(t *testing.T) {
 			require.EqualValues(t, *res.Body.Data.Credits, int32(0), "Key should have 0 credits but got %d", *res.Body.Data.Credits)
 		})
 
-		t.Run("allowed custom cost", func(t *testing.T) {
+		t.Run("allowed custom credit cost", func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeyAuthID:   api.KeyAuthID.String,
@@ -168,7 +168,7 @@ func TestSuccess(t *testing.T) {
 			require.EqualValues(t, *res.Body.Data.Credits, int32(0), "Key should have 0 credits remaining but got %d", *res.Body.Data.Credits)
 		})
 
-		t.Run("exceeding with custom cost", func(t *testing.T) {
+		t.Run("exceeding with custom credit cost", func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeyAuthID:   api.KeyAuthID.String,
@@ -191,7 +191,7 @@ func TestSuccess(t *testing.T) {
 			require.EqualValues(t, *res.Body.Data.Credits, int32(0), "Key should have 0 credits remaining but got %d", *res.Body.Data.Credits)
 		})
 
-		t.Run("allow cost 0 even when remaining 0", func(t *testing.T) {
+		t.Run("allow credits 0 even when remaining 0", func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeyAuthID:   api.KeyAuthID.String,

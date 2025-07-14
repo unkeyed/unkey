@@ -49,7 +49,6 @@ func main() {
 	processErrorDomain(f, "Unkey", reflect.ValueOf(codes.Auth))
 	processErrorDomain(f, "Unkey", reflect.ValueOf(codes.Data))
 	processErrorDomain(f, "Unkey", reflect.ValueOf(codes.App))
-	processErrorDomain(f, "Unkey", reflect.ValueOf(codes.Vault))
 
 	f.WriteString(")\n")
 

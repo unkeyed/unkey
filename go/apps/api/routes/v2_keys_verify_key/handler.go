@@ -60,17 +60,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	res := Response{
-		Meta: openapi.Meta{
-			RequestId: s.RequestID(),
-		},
-		// nolint:exhaustruct
-		Data: openapi.KeysVerifyKeyResponseData{
-			Code:  openapi.NOTFOUND,
-			Valid: false,
-		},
-	}
-
 	key, err := h.Keys.Get(ctx, s, req.Key)
 	if err != nil {
 		return err
@@ -78,12 +67,30 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Validate key belongs to authorized workspace
 	if key.Key.WorkspaceID != auth.AuthorizedWorkspaceID {
-		return s.JSON(http.StatusOK, res)
+		return s.JSON(http.StatusOK, Response{
+			Meta: openapi.Meta{
+				RequestId: s.RequestID(),
+			},
+			// nolint:exhaustruct
+			Data: openapi.KeysVerifyKeyResponseData{
+				Code:  openapi.NOTFOUND,
+				Valid: false,
+			},
+		})
 	}
 
 	// Check if API is deleted
 	if key.Key.ApiDeletedAtM.Valid {
-		return s.JSON(http.StatusOK, res)
+		return s.JSON(http.StatusOK, Response{
+			Meta: openapi.Meta{
+				RequestId: s.RequestID(),
+			},
+			// nolint:exhaustruct
+			Data: openapi.KeysVerifyKeyResponseData{
+				Code:  openapi.NOTFOUND,
+				Valid: false,
+			},
+		})
 	}
 
 	// FIXME: We are leaking a keys existance here... by telling the user that he doesn't have perms
@@ -133,20 +140,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	res.Data = openapi.KeysVerifyKeyResponseData{
-		Code:        key.ToOpenAPIStatus(),
-		Valid:       key.Valid,
-		Enabled:     ptr.P(key.Key.Enabled),
-		Name:        ptr.P(key.Key.Name.String),
-		Permissions: ptr.P(key.Permissions),
-		Roles:       ptr.P(key.Roles),
-		KeyId:       ptr.P(key.Key.ID),
-
-		Credits:    nil,
-		Expires:    nil,
-		Identity:   nil,
-		Meta:       nil,
-		Ratelimits: nil,
+	res := Response{
+		Meta: openapi.Meta{
+			RequestId: s.RequestID(),
+		},
+		// nolint:exhaustruct
+		Data: openapi.KeysVerifyKeyResponseData{
+			Code:        key.ToOpenAPIStatus(),
+			Valid:       key.Valid,
+			Enabled:     ptr.P(key.Key.Enabled),
+			Name:        ptr.P(key.Key.Name.String),
+			Permissions: ptr.P(key.Permissions),
+			Roles:       ptr.P(key.Roles),
+			KeyId:       ptr.P(key.Key.ID),
+			Credits:     nil,
+			Expires:     nil,
+			Identity:    nil,
+			Meta:        nil,
+			Ratelimits:  nil,
+		},
 	}
 
 	remaining := key.Key.RemainingRequests
@@ -208,11 +220,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				continue
 			}
 
-			exceeded := !result.Response.Success
 			ratelimitResponse = append(ratelimitResponse, openapi.VerifyKeyRatelimitData{
 				AutoApply: result.AutoApply,
 				Duration:  result.Duration.Milliseconds(),
-				Exceeded:  &exceeded,
+				Exceeded:  !result.Response.Success,
 				Id:        result.Name,
 				Limit:     result.Limit,
 				Name:      result.Name,
