@@ -22,11 +22,11 @@ func TestValidationErrors(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Logger:      h.Logger,
-		Permissions: h.Permissions,
-		Auditlogs:   h.Auditlogs,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Logger:    h.Logger,
+		Auditlogs: h.Auditlogs,
+		KeyCache:  h.Caches.VerificationKeyByHash,
 	}
 
 	h.Register(route)
@@ -69,10 +69,6 @@ func TestValidationErrors(t *testing.T) {
 		Meta:              sql.NullString{Valid: false},
 		Expires:           sql.NullTime{Valid: false},
 		RemainingRequests: sql.NullInt32{Valid: false},
-		RatelimitAsync:    sql.NullBool{Valid: false},
-		RatelimitLimit:    sql.NullInt32{Valid: false},
-		RatelimitDuration: sql.NullInt64{Valid: false},
-		Environment:       sql.NullString{Valid: false},
 	})
 	require.NoError(t, err)
 

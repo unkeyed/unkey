@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -11,9 +10,9 @@ import (
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_add_roles"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/hash"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
-	"github.com/unkeyed/unkey/go/pkg/uid"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
 func TestSuccess(t *testing.T) {
@@ -21,11 +20,11 @@ func TestSuccess(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		Logger:      h.Logger,
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Permissions: h.Permissions,
-		Auditlogs:   h.Auditlogs,
+		Logger:    h.Logger,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
+		KeyCache:  h.Caches.VerificationKeyByHash,
 	}
 
 	h.Register(route)
@@ -41,64 +40,35 @@ func TestSuccess(t *testing.T) {
 	}
 
 	t.Run("add single role by ID", func(t *testing.T) {
-		// Create a test keyring
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        workspace.ID,
-			StoreEncryptedKeys: false,
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			CreatedAtM:         time.Now().UnixMilli(),
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   workspace.ID,
+			EncryptedKeys: false,
 		})
-		require.NoError(t, err)
 
-		// Create a test key
-		keyID := uid.New(uid.KeyPrefix)
-		keyString := "test_" + uid.New("")
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(keyString),
-			Start:             keyString[:4],
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Test Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
+		key := h.CreateKey(seed.CreateKeyRequest{
+			KeyAuthID:   api.KeyAuthID.String,
+			WorkspaceID: workspace.ID,
 		})
-		require.NoError(t, err)
 
-		// Create a role
-		roleID := uid.New(uid.TestPrefix)
-		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-			RoleID:      roleID,
+		roleId := h.CreateRole(seed.CreateRoleRequest{
+
 			WorkspaceID: workspace.ID,
 			Name:        "admin_single_id",
-			Description: sql.NullString{Valid: true, String: "Admin role"},
+			Description: ptr.P("Admin Role"),
 		})
-		require.NoError(t, err)
 
 		// Verify key has no roles initially
-		currentRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
+		currentRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), key.KeyID)
 		require.NoError(t, err)
 		require.Empty(t, currentRoles)
 
 		req := handler.Request{
-			KeyId: keyID,
+			KeyId: key.KeyID,
 			Roles: []struct {
 				Id   *string `json:"id,omitempty"`
 				Name *string `json:"name,omitempty"`
 			}{
-				{Id: &roleID},
+				{Id: &roleId},
 			},
 		}
 
@@ -113,17 +83,17 @@ func TestSuccess(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data)
 		require.Len(t, res.Body.Data, 1)
-		require.Equal(t, roleID, res.Body.Data[0].Id)
+		require.Equal(t, roleId, res.Body.Data[0].Id)
 		require.Equal(t, "admin_single_id", res.Body.Data[0].Name)
 
 		// Verify role was added to key
-		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
+		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), key.KeyID)
 		require.NoError(t, err)
 		require.Len(t, finalRoles, 1)
-		require.Equal(t, roleID, finalRoles[0].ID)
+		require.Equal(t, roleId, finalRoles[0].ID)
 
 		// Verify audit log was created
-		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), keyID)
+		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), key.KeyID)
 		require.NoError(t, err)
 		require.NotEmpty(t, auditLogs)
 
@@ -139,55 +109,26 @@ func TestSuccess(t *testing.T) {
 	})
 
 	t.Run("add single role by name", func(t *testing.T) {
-		// Create a test keyring
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        workspace.ID,
-			StoreEncryptedKeys: false,
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			CreatedAtM:         time.Now().UnixMilli(),
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   workspace.ID,
+			EncryptedKeys: false,
 		})
-		require.NoError(t, err)
 
-		// Create a test key
-		keyID := uid.New(uid.KeyPrefix)
-		keyString := "test_" + uid.New("")
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(keyString),
-			Start:             keyString[:4],
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Test Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
-		})
-		require.NoError(t, err)
-
-		// Create a role
-		roleID := uid.New(uid.TestPrefix)
 		roleName := "editor_single_name"
-		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-			RoleID:      roleID,
+		key := h.CreateKey(seed.CreateKeyRequest{
+			KeyAuthID:   api.KeyAuthID.String,
 			WorkspaceID: workspace.ID,
-			Name:        roleName,
-			Description: sql.NullString{Valid: true, String: "Editor role"},
+			Roles: []seed.CreateRoleRequest{
+				{
+					WorkspaceID: workspace.ID,
+					Name:        "editor_single_name",
+					Description: ptr.P(roleName),
+				},
+			},
 		})
-		require.NoError(t, err)
 
 		req := handler.Request{
-			KeyId: keyID,
+			KeyId: key.KeyID,
 			Roles: []struct {
 				Id   *string `json:"id,omitempty"`
 				Name *string `json:"name,omitempty"`
@@ -207,91 +148,52 @@ func TestSuccess(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data)
 		require.Len(t, res.Body.Data, 1)
-		require.Equal(t, roleID, res.Body.Data[0].Id)
+		require.Equal(t, key.RolesIds[0], res.Body.Data[0].Id)
 		require.Equal(t, roleName, res.Body.Data[0].Name)
 
 		// Verify role was added to key
-		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
+		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), key.KeyID)
 		require.NoError(t, err)
 		require.Len(t, finalRoles, 1)
-		require.Equal(t, roleID, finalRoles[0].ID)
+		require.Equal(t, key.RolesIds[0], finalRoles[0].ID)
 	})
 
 	t.Run("add multiple roles mixed references", func(t *testing.T) {
-		// Create a test keyring
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        workspace.ID,
-			StoreEncryptedKeys: false,
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			CreatedAtM:         time.Now().UnixMilli(),
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   workspace.ID,
+			EncryptedKeys: false,
 		})
-		require.NoError(t, err)
 
-		// Create a test key
-		keyID := uid.New(uid.KeyPrefix)
-		keyString := "test_" + uid.New("")
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(keyString),
-			Start:             keyString[:4],
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Test Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
+		key := h.CreateKey(seed.CreateKeyRequest{
+			KeyAuthID:   api.KeyAuthID.String,
+			WorkspaceID: workspace.ID,
 		})
-		require.NoError(t, err)
 
-		// Create multiple roles
-		adminRoleID := uid.New(uid.TestPrefix)
-		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-			RoleID:      adminRoleID,
+		adminRole := h.CreateRole(seed.CreateRoleRequest{
 			WorkspaceID: workspace.ID,
 			Name:        "admin_multi",
-			Description: sql.NullString{Valid: true, String: "Admin role"},
 		})
-		require.NoError(t, err)
 
-		editorRoleID := uid.New(uid.TestPrefix)
-		editorRoleName := "editor_multi"
-		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-			RoleID:      editorRoleID,
-			WorkspaceID: workspace.ID,
-			Name:        editorRoleName,
-			Description: sql.NullString{Valid: true, String: "Editor role"},
-		})
-		require.NoError(t, err)
-
-		viewerRoleID := uid.New(uid.TestPrefix)
-		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-			RoleID:      viewerRoleID,
+		viewerMultiRole := h.CreateRole(seed.CreateRoleRequest{
 			WorkspaceID: workspace.ID,
 			Name:        "viewer_multi",
-			Description: sql.NullString{Valid: true, String: "Viewer role"},
 		})
-		require.NoError(t, err)
+
+		editorRoleName := "editor_multi"
+		h.CreateRole(seed.CreateRoleRequest{
+			WorkspaceID: workspace.ID,
+			Name:        editorRoleName,
+		})
 
 		req := handler.Request{
-			KeyId: keyID,
+			KeyId: key.KeyID,
 			Roles: []struct {
 				Id   *string `json:"id,omitempty"`
 				Name *string `json:"name,omitempty"`
 			}{
-				{Id: &adminRoleID},      // By ID
+				{Id: &adminRole},        // By ID
 				{Name: &editorRoleName}, // By name
-				{Id: &viewerRoleID},     // By ID
+				{Id: &viewerMultiRole},  // By ID
 			},
 		}
 
@@ -312,12 +214,12 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, []string{"admin_multi", "editor_multi", "viewer_multi"}, roleNames)
 
 		// Verify roles were added to key
-		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
+		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), key.KeyID)
 		require.NoError(t, err)
 		require.Len(t, finalRoles, 3)
 
 		// Verify audit logs were created (one for each role)
-		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), keyID)
+		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), key.KeyID)
 		require.NoError(t, err)
 		require.NotEmpty(t, auditLogs)
 
@@ -332,65 +234,31 @@ func TestSuccess(t *testing.T) {
 	})
 
 	t.Run("idempotent behavior - add existing roles", func(t *testing.T) {
-		// Create a test keyring
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        workspace.ID,
-			StoreEncryptedKeys: false,
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			CreatedAtM:         time.Now().UnixMilli(),
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   workspace.ID,
+			EncryptedKeys: false,
 		})
-		require.NoError(t, err)
 
-		// Create a test key
-		keyID := uid.New(uid.KeyPrefix)
-		keyString := "test_" + uid.New("")
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(keyString),
-			Start:             keyString[:4],
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Test Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
+		key := h.CreateKey(seed.CreateKeyRequest{
+			KeyAuthID:   api.KeyAuthID.String,
+			WorkspaceID: workspace.ID,
 		})
-		require.NoError(t, err)
-
-		// Create roles
-		adminRoleID := uid.New(uid.TestPrefix)
-		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-			RoleID:      adminRoleID,
+		adminId := h.CreateRole(seed.CreateRoleRequest{
 			WorkspaceID: workspace.ID,
 			Name:        "admin_idempotent",
-			Description: sql.NullString{Valid: true, String: "Admin role"},
+			Description: ptr.P("admin_idempotent"),
 		})
-		require.NoError(t, err)
 
-		editorRoleID := uid.New(uid.TestPrefix)
-		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-			RoleID:      editorRoleID,
+		editorId := h.CreateRole(seed.CreateRoleRequest{
 			WorkspaceID: workspace.ID,
 			Name:        "editor_idempotent",
-			Description: sql.NullString{Valid: true, String: "Editor role"},
+			Description: ptr.P("editor_idempotent"),
 		})
-		require.NoError(t, err)
 
 		// First, add admin role to the key
-		err = db.Query.InsertKeyRole(ctx, h.DB.RW(), db.InsertKeyRoleParams{
-			KeyID:       keyID,
-			RoleID:      adminRoleID,
+		err := db.Query.InsertKeyRole(ctx, h.DB.RW(), db.InsertKeyRoleParams{
+			KeyID:       key.KeyID,
+			RoleID:      adminId,
 			WorkspaceID: workspace.ID,
 			CreatedAtM:  time.Now().UnixMilli(),
 		})
@@ -398,13 +266,13 @@ func TestSuccess(t *testing.T) {
 
 		// Now try to add both admin (existing) and editor (new) roles
 		req := handler.Request{
-			KeyId: keyID,
+			KeyId: key.KeyID,
 			Roles: []struct {
 				Id   *string `json:"id,omitempty"`
 				Name *string `json:"name,omitempty"`
 			}{
-				{Id: &adminRoleID},  // Already exists
-				{Id: &editorRoleID}, // New role
+				{Id: &adminId},  // Already exists
+				{Id: &editorId}, // New role
 			},
 		}
 
@@ -425,12 +293,12 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, []string{"admin_idempotent", "editor_idempotent"}, roleNames)
 
 		// Verify roles in database
-		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
+		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), key.KeyID)
 		require.NoError(t, err)
 		require.Len(t, finalRoles, 2)
 
 		// Verify audit logs - should only have one new log for the editor role
-		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), keyID)
+		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), key.KeyID)
 		require.NoError(t, err)
 		require.NotEmpty(t, auditLogs)
 
@@ -438,7 +306,7 @@ func TestSuccess(t *testing.T) {
 		editorConnectEvents := 0
 		for _, log := range auditLogs {
 			if log.AuditLog.Event == "authorization.connect_role_and_key" &&
-				log.AuditLog.Display == fmt.Sprintf("Added role editor_idempotent to key %s", keyID) {
+				log.AuditLog.Display == fmt.Sprintf("Added role editor_idempotent to key %s", key.KeyID) {
 				editorConnectEvents++
 			}
 		}
@@ -446,73 +314,31 @@ func TestSuccess(t *testing.T) {
 	})
 
 	t.Run("role reference with both ID and name", func(t *testing.T) {
-		// Create a test keyring
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        workspace.ID,
-			StoreEncryptedKeys: false,
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			CreatedAtM:         time.Now().UnixMilli(),
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   workspace.ID,
+			EncryptedKeys: false,
 		})
-		require.NoError(t, err)
 
-		// Create a test key
-		keyID := uid.New(uid.KeyPrefix)
-		keyString := "test_" + uid.New("")
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(keyString),
-			Start:             keyString[:4],
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Test Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
-		})
-		require.NoError(t, err)
-
-		// Create roles
-		role1ID := uid.New(uid.TestPrefix)
-		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-			RoleID:      role1ID,
+		key := h.CreateKey(seed.CreateKeyRequest{
+			KeyAuthID:   api.KeyAuthID.String,
 			WorkspaceID: workspace.ID,
-			Name:        "admin_both_ref",
-			Description: sql.NullString{Valid: true, String: "Admin role"},
 		})
-		require.NoError(t, err)
 
-		role2ID := uid.New(uid.TestPrefix)
-		role2Name := "editor_both_ref"
-		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-			RoleID:      role2ID,
-			WorkspaceID: workspace.ID,
-			Name:        role2Name,
-			Description: sql.NullString{Valid: true, String: "Editor role"},
-		})
-		require.NoError(t, err)
+		adminID := h.CreateRole(seed.CreateRoleRequest{WorkspaceID: workspace.ID, Name: "admin_both_ref"})
+		editorRoleName := "editor_both_ref"
+		h.CreateRole(seed.CreateRoleRequest{WorkspaceID: workspace.ID, Name: editorRoleName})
 
 		// Request with role reference having both ID and name
 		// ID should take precedence
 		req := handler.Request{
-			KeyId: keyID,
+			KeyId: key.KeyID,
 			Roles: []struct {
 				Id   *string `json:"id,omitempty"`
 				Name *string `json:"name,omitempty"`
 			}{
 				{
-					Id:   &role1ID,
-					Name: &role2Name, // This should be ignored, ID takes precedence
+					Id:   &adminID,
+					Name: &editorRoleName, // This should be ignored, ID takes precedence
 				},
 			},
 		}
@@ -528,13 +354,13 @@ func TestSuccess(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data)
 		require.Len(t, res.Body.Data, 1)
-		require.Equal(t, role1ID, res.Body.Data[0].Id)
+		require.Equal(t, adminID, res.Body.Data[0].Id)
 		require.Equal(t, "admin_both_ref", res.Body.Data[0].Name) // Should be role1, not role2
 
 		// Verify correct role was added
-		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
+		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), key.KeyID)
 		require.NoError(t, err)
 		require.Len(t, finalRoles, 1)
-		require.Equal(t, role1ID, finalRoles[0].ID)
+		require.Equal(t, adminID, finalRoles[0].ID)
 	})
 }
