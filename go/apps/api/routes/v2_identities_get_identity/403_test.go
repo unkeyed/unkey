@@ -19,10 +19,9 @@ import (
 func TestForbidden(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
-		Logger:      h.Logger,
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Permissions: h.Permissions,
+		Logger: h.Logger,
+		DB:     h.DB,
+		Keys:   h.Keys,
 	}
 
 	h.Register(route)
@@ -52,6 +51,7 @@ func TestForbidden(t *testing.T) {
 		WorkspaceID: workspaceID,
 		Environment: "default",
 		CreatedAt:   time.Now().UnixMilli(),
+		Meta:        []byte("{}"),
 	})
 	require.NoError(t, err)
 
@@ -62,6 +62,7 @@ func TestForbidden(t *testing.T) {
 		WorkspaceID: workspaceID,
 		Environment: "default",
 		CreatedAt:   time.Now().UnixMilli(),
+		Meta:        []byte("{}"),
 	})
 	require.NoError(t, err)
 

@@ -20,6 +20,9 @@ jobs:
           go: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Run containers
+        run: make up
+        working-directory: go
       - name: Test
         run: go test -shuffle=on -timeout=60m $(go run ./scripts/shard-test ${{ matrix.shard }})
         working-directory: go

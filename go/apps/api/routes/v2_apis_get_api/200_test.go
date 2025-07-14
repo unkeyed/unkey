@@ -11,8 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_get_api"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
-	"github.com/unkeyed/unkey/go/pkg/uid"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
 func TestGetApiSuccessfully(t *testing.T) {
@@ -20,10 +21,9 @@ func TestGetApiSuccessfully(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		Logger:      h.Logger,
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Permissions: h.Permissions,
+		Logger: h.Logger,
+		DB:     h.DB,
+		Keys:   h.Keys,
 	}
 
 	h.Register(route)
@@ -37,16 +37,11 @@ func TestGetApiSuccessfully(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		// Create a test API
-		apiID := uid.New(uid.APIPrefix)
 		apiName := "test-get-existing-api"
-		err := db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-			ID:          apiID,
-			Name:        apiName,
+		api := h.CreateApi(seed.CreateApiRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			CreatedAtM:  time.Now().UnixMilli(),
+			Name:        &apiName,
 		})
-		require.NoError(t, err)
 
 		// Make the request to get the API
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -54,29 +49,23 @@ func TestGetApiSuccessfully(t *testing.T) {
 			route,
 			headers,
 			handler.Request{
-				ApiId: apiID,
+				ApiId: api.ID,
 			},
 		)
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
-		require.Equal(t, apiID, res.Body.Data.Id)
+		require.Equal(t, api.ID, res.Body.Data.Id)
 		require.Equal(t, apiName, res.Body.Data.Name)
 	})
 
 	// Test with different authorization scopes
 	t.Run("authorization scopes", func(t *testing.T) {
-		// Create a new test API
-		apiName := "test-get-api"
-		apiID := uid.New(uid.APIPrefix)
-
-		err := db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-			ID:          apiID,
-			Name:        apiName,
+		apiName := "test-get-existing-api"
+		api := h.CreateApi(seed.CreateApiRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			CreatedAtM:  time.Now().UnixMilli(),
+			Name:        &apiName,
 		})
-		require.NoError(t, err)
 
 		testCases := []struct {
 			name           string
@@ -95,7 +84,7 @@ func TestGetApiSuccessfully(t *testing.T) {
 			},
 			{
 				name:           "specific api permission",
-				permissions:    []string{fmt.Sprintf("api.%s.read_api", apiID)},
+				permissions:    []string{fmt.Sprintf("api.%s.read_api", api.ID)},
 				expectedStatus: 200,
 			},
 			{
@@ -118,53 +107,18 @@ func TestGetApiSuccessfully(t *testing.T) {
 					route,
 					headers,
 					handler.Request{
-						ApiId: apiID,
+						ApiId: api.ID,
 					},
 				)
 
 				require.Equal(t, tc.expectedStatus, res.Status, "expected %d, received: %#v", tc.expectedStatus, res)
 				if tc.expectedStatus == 200 {
 					require.NotNil(t, res.Body)
-					require.Equal(t, apiID, res.Body.Data.Id)
+					require.Equal(t, api.ID, res.Body.Data.Id)
 					require.Equal(t, apiName, res.Body.Data.Name)
 				}
 			})
 		}
-	})
-
-	// Test with API that has IP whitelist
-	t.Run("get api with ip whitelist", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.read_api")
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		}
-
-		// Create API with IP whitelist
-		apiID := uid.New(uid.APIPrefix)
-		apiName := "api-with-ip-whitelist"
-
-		err := db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-			ID:          apiID,
-			Name:        apiName,
-			WorkspaceID: h.Resources().UserWorkspace.ID,
-			CreatedAtM:  time.Now().UnixMilli(),
-		})
-		require.NoError(t, err)
-
-		res := testutil.CallRoute[handler.Request, handler.Response](
-			h,
-			route,
-			headers,
-			handler.Request{
-				ApiId: apiID,
-			},
-		)
-
-		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
-		require.NotNil(t, res.Body)
-		require.Equal(t, apiID, res.Body.Data.Id)
-		require.Equal(t, apiName, res.Body.Data.Name)
 	})
 
 	// Test API with very long name
@@ -176,29 +130,23 @@ func TestGetApiSuccessfully(t *testing.T) {
 		}
 
 		// Create API with a very long name
-		apiID := uid.New(uid.APIPrefix)
 		apiName := "this-is-a-very-long-api-name-for-testing-the-limits-of-what-the-system-can-handle-when-dealing-with-extremely-verbose-identifiers-that-might-challenge-database-storage-ui-rendering-and-overall-system-performance-with-edge-cases"
-
-		err := db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-			ID:          apiID,
-			Name:        apiName,
+		api := h.CreateApi(seed.CreateApiRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			CreatedAtM:  time.Now().UnixMilli(),
+			Name:        &apiName,
 		})
-		require.NoError(t, err)
-
 		res := testutil.CallRoute[handler.Request, handler.Response](
 			h,
 			route,
 			headers,
 			handler.Request{
-				ApiId: apiID,
+				ApiId: api.ID,
 			},
 		)
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
-		require.Equal(t, apiID, res.Body.Data.Id)
+		require.Equal(t, api.ID, res.Body.Data.Id)
 		require.Equal(t, apiName, res.Body.Data.Name, "The long name should be returned exactly as stored")
 	})
 
@@ -211,29 +159,24 @@ func TestGetApiSuccessfully(t *testing.T) {
 		}
 
 		// Create API with special characters in name
-		apiID := uid.New(uid.APIPrefix)
 		apiName := "special!@#$%^&*()_+-=[]{}|;:,.<>?/~` characters"
-
-		err := db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-			ID:          apiID,
-			Name:        apiName,
+		api := h.CreateApi(seed.CreateApiRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			CreatedAtM:  time.Now().UnixMilli(),
+			Name:        &apiName,
 		})
-		require.NoError(t, err)
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
 			h,
 			route,
 			headers,
 			handler.Request{
-				ApiId: apiID,
+				ApiId: api.ID,
 			},
 		)
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
-		require.Equal(t, apiID, res.Body.Data.Id)
+		require.Equal(t, api.ID, res.Body.Data.Id)
 		require.Equal(t, apiName, res.Body.Data.Name, "Special characters should be preserved in the name")
 	})
 
@@ -246,29 +189,24 @@ func TestGetApiSuccessfully(t *testing.T) {
 		}
 
 		// Create API with Unicode characters in name
-		apiID := uid.New(uid.APIPrefix)
 		apiName := "Unicode 测试 API 名称 🔑 🔒 ✅"
-
-		err := db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-			ID:          apiID,
-			Name:        apiName,
+		api := h.CreateApi(seed.CreateApiRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			CreatedAtM:  time.Now().UnixMilli(),
+			Name:        &apiName,
 		})
-		require.NoError(t, err)
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
 			h,
 			route,
 			headers,
 			handler.Request{
-				ApiId: apiID,
+				ApiId: api.ID,
 			},
 		)
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
-		require.Equal(t, apiID, res.Body.Data.Id)
+		require.Equal(t, api.ID, res.Body.Data.Id)
 		require.Equal(t, apiName, res.Body.Data.Name, "Unicode characters should be preserved in the name")
 	})
 
@@ -284,16 +222,12 @@ func TestGetApiSuccessfully(t *testing.T) {
 		creationTime := time.Now().UnixMilli()
 
 		// Create a new API
-		apiID := uid.New(uid.APIPrefix)
 		apiName := "recent-api"
-
-		err := db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-			ID:          apiID,
-			Name:        apiName,
+		api := h.CreateApi(seed.CreateApiRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			CreatedAtM:  creationTime,
+			Name:        &apiName,
+			CreatedAt:   &creationTime,
 		})
-		require.NoError(t, err)
 
 		// Immediately retrieve the API
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -301,17 +235,17 @@ func TestGetApiSuccessfully(t *testing.T) {
 			route,
 			headers,
 			handler.Request{
-				ApiId: apiID,
+				ApiId: api.ID,
 			},
 		)
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
-		require.Equal(t, apiID, res.Body.Data.Id)
+		require.Equal(t, api.ID, res.Body.Data.Id)
 		require.Equal(t, apiName, res.Body.Data.Name)
 
 		// Verify in database that timestamp is correct
-		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
+		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), api.ID)
 		require.NoError(t, err)
 		require.Equal(t, creationTime, api.CreatedAtM, "Creation timestamp should match")
 	})
@@ -324,36 +258,20 @@ func TestGetApiSuccessfully(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		// Create keyring for the API
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        h.Resources().UserWorkspace.ID,
-			CreatedAtM:         time.Now().UnixMilli(),
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test_"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			StoreEncryptedKeys: true,
-		})
-		require.NoError(t, err)
-
-		// Create API with all fields populated and delete protection enabled
-		apiID := uid.New(uid.APIPrefix)
 		apiName := "complete-verification-api"
 		creationTime := time.Now().UnixMilli()
-
-		err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-			ID:          apiID,
-			Name:        apiName,
-			WorkspaceID: h.Resources().UserWorkspace.ID,
-			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-			KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
-			CreatedAtM:  creationTime,
+		createdApi := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   h.Resources().UserWorkspace.ID,
+			Name:          &apiName,
+			EncryptedKeys: true,
+			CreatedAt:     &creationTime,
+			DefaultPrefix: ptr.P("test_"),
+			DefaultBytes:  ptr.P(int32(16)),
 		})
-		require.NoError(t, err)
 
 		// Set delete protection after API creation
-		err = db.Query.UpdateApiDeleteProtection(ctx, h.DB.RW(), db.UpdateApiDeleteProtectionParams{
-			ApiID:            apiID,
+		err := db.Query.UpdateApiDeleteProtection(ctx, h.DB.RW(), db.UpdateApiDeleteProtectionParams{
+			ApiID:            createdApi.ID,
 			DeleteProtection: sql.NullBool{Valid: true, Bool: true},
 		})
 		require.NoError(t, err)
@@ -364,17 +282,17 @@ func TestGetApiSuccessfully(t *testing.T) {
 			route,
 			headers,
 			handler.Request{
-				ApiId: apiID,
+				ApiId: createdApi.ID,
 			},
 		)
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
-		require.Equal(t, apiID, res.Body.Data.Id)
+		require.Equal(t, createdApi.ID, res.Body.Data.Id)
 		require.Equal(t, apiName, res.Body.Data.Name)
 
 		// Verify database record matches exactly what's returned
-		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), apiID)
+		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), createdApi.ID)
 		require.NoError(t, err)
 
 		// Verify core fields
@@ -387,7 +305,7 @@ func TestGetApiSuccessfully(t *testing.T) {
 		require.True(t, api.AuthType.Valid)
 		require.Equal(t, db.ApisAuthTypeKey, api.AuthType.ApisAuthType)
 		require.True(t, api.KeyAuthID.Valid)
-		require.Equal(t, keyAuthID, api.KeyAuthID.String)
+		require.Equal(t, createdApi.KeyAuthID.String, api.KeyAuthID.String)
 		require.Equal(t, creationTime, api.CreatedAtM)
 		require.True(t, api.DeleteProtection.Valid)
 		require.True(t, api.DeleteProtection.Bool)

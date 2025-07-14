@@ -1,77 +1,113 @@
 ---
 title: Loading
-description: The Loading component provides sleek, animated loading indicators featuring either an 8-segment circular spinner or animated dots. It's designed to provide visual feedback during asynchronous operations or loading states in your application.
+description: A versatile loading component with multiple animation styles and customizable appearance for indicating loading states.
 ---
 import { LoadingExample, CustomSizeAndDuration, DotsLineExample } from "./loading/loading.example";
+
+## Overview
+
+The Loading component provides a consistent way to display loading states throughout your application. It's designed to give users clear feedback when content is being loaded or processed, with multiple animation styles and customizable options.
 
 ## Usage
 
 ```tsx
-import React, { useState, useEffect } from "react";
 import { Loading } from "@unkey/ui";
-function MyComponent() {
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, []);
-  return <div>
-    {isLoading && <Loading />}
-    {!isLoading && <p>Loading complete</p>}
-  </div>;
+export default function MyComponent() {
+  return (
+    <div>
+      <Loading />
+      <Loading size="lg" />
+      <Loading variant="dots" />
+    </div>
+  );
 }
 ```
 
 ## Examples
 
-### Default
+### Basic Loading
+Default loading spinner with standard animation.
 
 <LoadingExample />
 
-### Size and Segment duration
+### Custom Size and Duration
+Loading components with different sizes and animation durations.
 
 <CustomSizeAndDuration />
 
-### Dots Loading
+### Dots Line Animation
+Alternative loading animation using dots in a line pattern.
 
 <DotsLineExample />
 
-### Customization
+## Features
 
-The Loading component is highly customizable:
-
-- **Color**: Inherits the text color of its parent element through the `fill-current` class
-- **Size**: Adjustable through width and height props
-- **Animation Speed**: Configurable animation duration
-- **Responsive**: Adapts seamlessly to different container sizes
+- **Multiple Variants**: Different animation styles (spinner, dots)
+- **Size Options**: Multiple sizes for different contexts
+- **Customizable Duration**: Configurable animation speed
+- **Accessibility**: Built-in accessibility support with proper ARIA attributes
+- **Responsive Design**: Adapts to different screen sizes
+- **Dark Mode Support**: Consistent appearance in light and dark themes
+- **Customizable Styling**: Extensive styling options through className prop
 
 ## Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `size` | `number` | `18` (spinner), `24` (dots) | Sets both width and height of the loading indicator |
-| `duration` | `string` | `"125ms"` | Animation duration in milliseconds per segment (for spinner type) or "0.75s" for dots type |
-| `type` | `"spinner" \| "dots"` | `"spinner"` | Type of loading animation to display |
+| `variant` | `"spinner" \| "dots"` | `"spinner"` | The animation style of the loading component |
+| `size` | `"sm" \| "md" \| "lg"` | `"md"` | The size of the loading component |
+| `duration` | `number` | `1000` | Animation duration in milliseconds |
 | `className` | `string` | `undefined` | Additional CSS classes to apply |
 
-The component also accepts all standard SVG element props.
+## Variants
+
+### Spinner
+- Circular spinning animation
+- Default variant for most use cases
+- Smooth, continuous rotation
+- Ideal for general loading states
+
+### Dots
+- Animated dots in a line pattern
+- Alternative visual style
+- Sequential animation
+- Good for text-based loading contexts
+
+## Structure
+
+The Loading component is a simple, self-contained component that renders as a single div element with appropriate styling and accessibility attributes.
+
+## Styling
+
+The Loading component includes default styling with:
+
+- Consistent sizing across variants
+- Smooth CSS animations
+- Dark mode support
+- Responsive design
+- Focus states for accessibility
+- Customizable through className prop
+
+### Custom Styling
+
+You can customize the appearance using the className prop:
+
+```tsx
+<Loading 
+  variant="spinner"
+  size="lg"
+  className="custom-loading-class"
+/>
+```
 
 ## Accessibility
 
 The Loading component is built with accessibility in mind:
-- Includes appropriate ARIA attributes
-- Provides visual feedback without relying on color alone
-- Maintains good contrast ratios
 
-## Best Practices
-
-- Use consistent sizes within the same context
-- Place the loader in a logical location relative to the content being loaded
-- Consider using a minimum display duration to prevent flickering
-- Ensure sufficient contrast between the loader and its background 
+- **ARIA Attributes**: Proper ARIA labels for screen readers
+- **Live Regions**: Announces loading state changes
+- **Focus Management**: Maintains focus context during loading
+- **High Contrast**: Maintains proper contrast ratios
+- **Semantic HTML**: Uses appropriate HTML elements and roles
+- **Screen Reader Support**: Announces loading status appropriately

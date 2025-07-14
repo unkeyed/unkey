@@ -2,17 +2,18 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"math"
 	"time"
 
-	metaldv1 "github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
-	"github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1/vmprovisionerv1connect"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/billing"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/database"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/observability"
+	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1"
+	"github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1/vmprovisionerv1connect"
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
@@ -65,6 +66,14 @@ func (s *VMService) CreateVm(ctx context.Context, req *connect.Request[metaldv1.
 	}
 
 	config := req.Msg.GetConfig()
+	
+	// DEBUG: Log full request config for debugging
+	if config != nil {
+		configJSON, _ := json.Marshal(config)
+		s.logger.LogAttrs(ctx, slog.LevelInfo, "DEBUG: Full VM config received",
+			slog.String("config_json", string(configJSON)),
+		)
+	}
 	if config == nil {
 		err := fmt.Errorf("vm config is required")
 		span.RecordError(err)

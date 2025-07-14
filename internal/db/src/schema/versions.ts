@@ -1,10 +1,9 @@
 import { relations } from "drizzle-orm";
-import { index, json, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, json, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { branches } from "./branches";
 import { builds } from "./builds";
 import { projects } from "./projects";
 import { rootfsImages } from "./rootfs_images";
-import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 export const versions = mysqlTable(
@@ -45,7 +44,8 @@ export const versions = mysqlTable(
       .notNull()
       .default("pending"),
 
-    ...lifecycleDates,
+    createdAt: bigint("created_at", { mode: "number" }).notNull(),
+    updatedAt: bigint("updated_at", { mode: "number" }),
   },
   (table) => ({
     workspaceIdx: index("workspace_idx").on(table.workspaceId),

@@ -216,6 +216,24 @@ export const GhostFormCheckboxVariant = () => {
 };
 
 // Different size variant
+export const XLargeFormCheckboxVariant = () => {
+  return (
+    <RenderComponentWithSnippet
+      customCodeSnippet={`<FormCheckbox
+  label="I confirm that all information is correct"
+  description="Please verify before submission"
+  size="xlg"
+/>`}
+    >
+      <FormCheckbox
+        label="I confirm that all information is correct"
+        description="Please verify before submission"
+        size="xlg"
+      />
+    </RenderComponentWithSnippet>
+  );
+};
+
 export const LargeFormCheckboxVariant = () => {
   return (
     <RenderComponentWithSnippet
@@ -229,6 +247,42 @@ export const LargeFormCheckboxVariant = () => {
         label="I confirm that all information is correct"
         description="Please verify before submission"
         size="lg"
+      />
+    </RenderComponentWithSnippet>
+  );
+};
+
+export const MediumFormCheckboxVariant = () => {
+  return (
+    <RenderComponentWithSnippet
+      customCodeSnippet={`<FormCheckbox
+  label="I confirm that all information is correct"
+  description="Please verify before submission"
+  size="md"
+/>`}
+    >
+      <FormCheckbox
+        label="I confirm that all information is correct"
+        description="Please verify before submission"
+        size="md"
+      />
+    </RenderComponentWithSnippet>
+  );
+};
+
+export const SmallFormCheckboxVariant = () => {
+  return (
+    <RenderComponentWithSnippet
+      customCodeSnippet={`<FormCheckbox
+  label="I confirm that all information is correct"
+  description="Please verify before submission"
+  size="sm"
+/>`}
+    >
+      <FormCheckbox
+        label="I confirm that all information is correct"
+        description="Please verify before submission"
+        size="sm"
       />
     </RenderComponentWithSnippet>
   );

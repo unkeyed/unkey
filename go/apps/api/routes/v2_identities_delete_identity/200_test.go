@@ -31,7 +31,7 @@ func createTestIdentity(t *testing.T, h *testutil.Harness, numberOfRatelimits in
 		ID:          identityID,
 		ExternalID:  externalID,
 		WorkspaceID: h.Resources().UserWorkspace.ID,
-		Meta:        nil,
+		Meta:        []byte("{}"),
 		CreatedAt:   time.Now().UnixMilli(),
 		Environment: "default",
 	})
@@ -65,11 +65,10 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		Logger:      h.Logger,
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Permissions: h.Permissions,
-		Auditlogs:   h.Auditlogs,
+		Logger:    h.Logger,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
 	}
 
 	h.Register(route)
@@ -270,7 +269,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 			ID:          newIdentityID,
 			ExternalID:  testIdentity.ExternalID,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			Meta:        nil,
+			Meta:        []byte("{}"),
 			CreatedAt:   time.Now().UnixMilli(),
 			Environment: "default",
 		})

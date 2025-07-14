@@ -109,7 +109,6 @@ func WithLogger(logger logging.Logger) applyConfig {
 type applyConfig func(*config)
 
 func New[Res any](name string, applyConfigs ...applyConfig) *CB[Res] {
-
 	cfg := &config{
 		name:         name,
 		maxRequests:  10,
