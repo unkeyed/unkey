@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
+	"github.com/unkeyed/unkey/go/cmd/cli/progress"
 	"github.com/unkeyed/unkey/go/pkg/git"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
@@ -55,49 +57,111 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 		opts.Commit = gitInfo.CommitSHA
 	}
 
-	// Print source information
-	printDeploymentSource(gitInfo, opts)
+	tracker := progress.NewTracker("Unkey Deploy Progress")
+	tracker.AddStep("source", "Source information")
+	tracker.AddStep("prepare", "Preparing deployment")
+	tracker.AddStep("build", "Building Docker image")
+	tracker.AddStep("push", "Publishing to registry")
+	tracker.AddStep("deploy", "Deploying to infrastructure")
+	tracker.AddStep("activate", "Activating version")
+	tracker.AddStep("complete", "Deployment summary")
+	tracker.Start()
+	defer tracker.Stop()
 
-	// Build or use existing Docker image
+	tracker.StartStep("source", "Gathering source information")
+	sourceInfo := buildSourceInfo(gitInfo, opts)
+	tracker.CompleteStep("source", sourceInfo)
+
+	// Step 1: Prepare - validate environment and get Docker image
+	tracker.StartStep("prepare", "Validating deployment environment")
+
 	dockerImage := opts.DockerImage
 	if dockerImage == "" {
-		var err error
-		dockerImage, err = buildDockerImage(ctx, opts, gitInfo)
-		if err != nil {
-			return fmt.Errorf("docker build failed: %w", err)
+		if !isDockerAvailable() {
+			tracker.FailStep("prepare", "Docker command not found - please install Docker")
+			return ErrDockerNotFound
 		}
+
+		imageTag := generateImageTag(opts, gitInfo)
+		dockerImage = fmt.Sprintf("%s:%s", opts.Registry, imageTag)
 	}
 
-	if err := notifyControlPlane(ctx, logger, opts, dockerImage); err != nil {
+	tracker.CompleteStep("prepare", "Environment validated")
+
+	// Step 2: Build - only if we need to build an image
+	if opts.DockerImage == "" {
+		tracker.StartStep("build", fmt.Sprintf("Building %s", dockerImage))
+
+		if err := buildImage(ctx, opts, dockerImage); err != nil {
+			tracker.FailStep("build", fmt.Sprintf("Build failed: %v", err))
+			return fmt.Errorf("docker build failed: %w", err)
+		}
+
+		tracker.CompleteStep("build", "Docker image built successfully")
+	} else {
+		tracker.SkipStep("build", "Using pre-built Docker image")
+	}
+
+	// Step 3: Push - publish to registry
+	if opts.SkipPush {
+		tracker.SkipStep("push", "Push skipped (--skip-push enabled)")
+	} else if opts.DockerImage == "" { // Only push if we built the image
+		tracker.StartStep("push", "Publishing to registry")
+
+		if err := pushImage(ctx, dockerImage, opts.Registry); err != nil {
+			// Push failure shouldn't be fatal in development
+			tracker.FailStep("push", fmt.Sprintf("Push failed: %v", err))
+			fmt.Printf("Push failed but continuing with deployment\n")
+		} else {
+			tracker.CompleteStep("push", "Image published successfully")
+		}
+	} else {
+		tracker.SkipStep("push", "Using external Docker image")
+	}
+
+	// Step 4: Deploy - notify control plane and start deployment
+	tracker.StartStep("deploy", "Starting deployment")
+
+	if err := notifyControlPlane(ctx, logger, opts, dockerImage, tracker); err != nil {
+		tracker.FailStep("deploy", fmt.Sprintf("Deployment failed: %v", err))
 		return fmt.Errorf("deployment failed: %w", err)
 	}
 
+	// Step 5: Activate - this will be completed by notifyControlPlane
+	// when the version becomes active
 	return nil
 }
 
-func printDeploymentSource(gitInfo git.Info, opts *DeployOptions) {
-	fmt.Println("Source")
-	fmt.Printf("  Branch: %s\n", opts.Branch)
+func buildSourceInfo(gitInfo git.Info, opts *DeployOptions) string {
+	var parts []string
 
+	// Branch
+	parts = append(parts, fmt.Sprintf("Branch: %s", opts.Branch))
+
+	// Commit info
 	if gitInfo.IsRepo && gitInfo.CommitSHA != "" {
 		shortSHA := gitInfo.CommitSHA
 		if len(shortSHA) > 7 {
 			shortSHA = shortSHA[:7]
 		}
-		fmt.Printf("  Commit: %s\n", shortSHA)
-
+		commitInfo := fmt.Sprintf("Commit: %s", shortSHA)
 		if gitInfo.IsDirty {
-			fmt.Printf("  Status: Working directory has uncommitted changes\n")
+			commitInfo += " (dirty)"
 		}
+		parts = append(parts, commitInfo)
 	} else if !gitInfo.IsRepo {
-		fmt.Printf("  Status: Not a git repository\n")
+		parts = append(parts, "Not a git repository")
 	}
 
-	fmt.Printf("  Context: %s\n", opts.Context)
+	// Context
+	parts = append(parts, fmt.Sprintf("Context: %s", opts.Context))
+
+	// Docker image if pre-built
 	if opts.DockerImage != "" {
-		fmt.Printf("  Docker Image: %s\n", opts.DockerImage)
+		parts = append(parts, fmt.Sprintf("Image: %s", opts.DockerImage))
 	}
-	fmt.Println()
+
+	return strings.Join(parts, " | ")
 }
 
 // PrintDeployHelp prints detailed help for deploy command

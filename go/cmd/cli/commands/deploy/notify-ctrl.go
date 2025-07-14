@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"connectrpc.com/connect"
+	"github.com/unkeyed/unkey/go/cmd/cli/progress"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/go/pkg/codes"
@@ -16,7 +18,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
-func notifyControlPlane(ctx context.Context, logger logging.Logger, opts *DeployOptions, dockerImage string) error {
+func notifyControlPlane(ctx context.Context, logger logging.Logger, opts *DeployOptions, dockerImage string, tracker *progress.Tracker) error {
 	// Create control plane client
 	httpClient := &http.Client{}
 	client := ctrlv1connect.NewVersionServiceClient(httpClient, opts.ControlPlaneURL)
@@ -38,66 +40,99 @@ func notifyControlPlane(ctx context.Context, logger logging.Logger, opts *Deploy
 	// Call the API
 	createResp, err := client.CreateVersion(ctx, createReq)
 	if err != nil {
-		// Check if it's a connection error
-		if strings.Contains(err.Error(), "connection refused") {
-			return fault.Wrap(err,
-				fault.Code(codes.UnkeyAppErrorsInternalServiceUnavailable),
-				fault.Internal(fmt.Sprintf("Failed to connect to control plane at %s", opts.ControlPlaneURL)),
-				fault.Public("Unable to connect to control plane. Is it running?"),
-			)
-		}
-
-		// Check if it's an auth error
-		if connectErr := new(connect.Error); errors.As(err, &connectErr) {
-			if connectErr.Code() == connect.CodeUnauthenticated {
-				return fault.Wrap(err,
-					fault.Code(codes.UnkeyAuthErrorsAuthenticationMalformed),
-					fault.Internal(fmt.Sprintf("Authentication failed with token: %s", opts.AuthToken)),
-					fault.Public("Authentication failed. Check your auth token."),
-				)
-			}
-		}
-
-		// Generic API error
-		return fault.Wrap(err,
-			fault.Code(codes.UnkeyAppErrorsInternalUnexpectedError),
-			fault.Internal(fmt.Sprintf("CreateVersion API call failed: %v", err)),
-			fault.Public("Failed to create version. Please try again."),
-		)
+		return handleCreateVersionError(err, opts)
 	}
 
 	versionId := createResp.Msg.GetVersionId()
 	if versionId != "" {
-		fmt.Printf("  Version ID: %s\n", versionId)
+		tracker.UpdateStep("deploy", fmt.Sprintf("Version created: %s", versionId))
 	}
 
-	// Poll for version status updates
-	if err := pollVersionStatus(ctx, logger, client, opts.AuthToken, versionId); err != nil {
-		return fmt.Errorf("deployment failed: %w", err)
+	// Poll for version status updates with integrated progress tracking
+	if err := pollVersionStatus(ctx, logger, client, opts.AuthToken, versionId, tracker); err != nil {
+		return err
 	}
 
-	printDeploymentComplete(versionId, opts.WorkspaceID, opts.Branch)
+	tracker.StartStep("complete", "Generating deployment summary")
+	gitInfo := git.GetInfo()
+	completionInfo := buildCompletionInfo(versionId, opts.WorkspaceID, opts.Branch, gitInfo)
+	tracker.CompleteStep("complete", completionInfo)
+
+	// Give the animation loop time to render the completed state
+	// TODO: Improve this later
+	select {
+	case <-time.After(200 * time.Millisecond):
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 	return nil
 }
 
-func printDeploymentComplete(versionId, workspace, branch string) {
-	// Use Git info for hostname generation
-	gitInfo := git.GetInfo()
+func buildCompletionInfo(versionId, workspace, branch string, gitInfo git.Info) string {
+	var parts []string
+
+	// Version ID
+	parts = append(parts, fmt.Sprintf("Version: %s", versionId))
+
+	// Status
+	parts = append(parts, "Status: Ready")
+
+	// Environment
+	parts = append(parts, "Env: Production")
+
+	// Main domain
 	identifier := versionId
 	if gitInfo.ShortSHA != "" {
 		identifier = gitInfo.ShortSHA
 	}
-
-	fmt.Println()
-	fmt.Println("Deployment Complete")
-	fmt.Printf("  Version ID: %s\n", versionId)
-	fmt.Printf("  Status: Ready\n")
-	fmt.Printf("  Environment: Production\n")
-	fmt.Println()
-	fmt.Println("Domains")
-
-	// Replace underscores with dashes for valid hostname format
 	cleanIdentifier := strings.ReplaceAll(identifier, "_", "-")
-	fmt.Printf("  https://%s-%s-%s.unkey.app\n", branch, cleanIdentifier, workspace)
-	fmt.Printf("  https://api.acme.com\n")
+	domain := fmt.Sprintf("https://%s-%s-%s.unkey.app", branch, cleanIdentifier, workspace)
+	parts = append(parts, fmt.Sprintf("URL: %s", domain))
+
+	return strings.Join(parts, " | ")
+}
+
+func handleCreateVersionError(err error, opts *DeployOptions) error {
+	// Check if it's a connection error
+	if strings.Contains(err.Error(), "connection refused") {
+		return fault.Wrap(err,
+			fault.Code(codes.UnkeyAppErrorsInternalServiceUnavailable),
+			fault.Internal(fmt.Sprintf("Failed to connect to control plane at %s", opts.ControlPlaneURL)),
+			fault.Public("Unable to connect to control plane. Is it running?"),
+		)
+	}
+
+	// Check if it's an auth error
+	if connectErr := new(connect.Error); errors.As(err, &connectErr) {
+		if connectErr.Code() == connect.CodeUnauthenticated {
+			return fault.Wrap(err,
+				fault.Code(codes.UnkeyAuthErrorsAuthenticationMalformed),
+				fault.Internal(fmt.Sprintf("Authentication failed with token: %s", opts.AuthToken)),
+				fault.Public("Authentication failed. Check your auth token."),
+			)
+		}
+	}
+
+	// Generic API error
+	return fault.Wrap(err,
+		fault.Code(codes.UnkeyAppErrorsInternalUnexpectedError),
+		fault.Internal(fmt.Sprintf("CreateVersion API call failed: %v", err)),
+		fault.Public("Failed to create version. Please try again."),
+	)
+}
+
+// getFailureMessage extracts failure message from version
+func getFailureMessage(version *ctrlv1.Version) string {
+	if version.GetErrorMessage() != "" {
+		return version.GetErrorMessage()
+	}
+
+	// Check for error in steps
+	for _, step := range version.GetSteps() {
+		if step.GetErrorMessage() != "" {
+			return step.GetErrorMessage()
+		}
+	}
+
+	return "Unknown deployment error"
 }

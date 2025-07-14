@@ -10,31 +10,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/git"
 )
 
-func buildDockerImage(ctx context.Context, opts *DeployOptions, gitInfo git.Info) (string, error) {
-	if !isDockerAvailable() {
-		return "", ErrDockerNotFound
-	}
-
-	imageTag := generateImageTag(opts, gitInfo)
-	dockerImage := fmt.Sprintf("%s:%s", opts.Registry, imageTag)
-
-	if err := buildImage(ctx, opts, dockerImage); err != nil {
-		return "", err
-	}
-
-	if opts.SkipPush {
-		fmt.Printf("Skipping Docker push (--skip-push enabled)\n")
-		return dockerImage, nil
-	}
-
-	// Push failure shouldn't be fatal in development
-	if err := pushImage(ctx, dockerImage, opts.Registry); err != nil {
-		fmt.Printf("Push failed but continuing: %v\n", err)
-	}
-
-	return dockerImage, nil
-}
-
 func generateImageTag(opts *DeployOptions, gitInfo git.Info) string {
 	if gitInfo.ShortSHA != "" {
 		return fmt.Sprintf("%s-%s", opts.Branch, gitInfo.ShortSHA)
@@ -43,8 +18,6 @@ func generateImageTag(opts *DeployOptions, gitInfo git.Info) string {
 }
 
 func buildImage(ctx context.Context, opts *DeployOptions, dockerImage string) error {
-	fmt.Printf("Building Docker image %s...\n", dockerImage)
-
 	buildArgs := []string{"build"}
 	if opts.Dockerfile != "Dockerfile" {
 		buildArgs = append(buildArgs, "-f", opts.Dockerfile)
@@ -64,13 +37,10 @@ func buildImage(ctx context.Context, opts *DeployOptions, dockerImage string) er
 		return ErrDockerBuildFailed
 	}
 
-	fmt.Printf("%s\n", string(output))
 	return nil
 }
 
 func pushImage(ctx context.Context, dockerImage, registry string) error {
-	fmt.Printf("\nPublishing Docker image...\n")
-
 	cmd := exec.CommandContext(ctx, "docker", "push", dockerImage)
 	output, err := cmd.CombinedOutput()
 	if err != nil {

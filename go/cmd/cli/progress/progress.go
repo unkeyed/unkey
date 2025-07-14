@@ -21,10 +21,8 @@ const (
 
 // Animation characters
 var (
-	SpinnerChars  = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
-	DotsChars     = []string{"", ".", "..", "..."}
-	ProgressChars = []string{"▱", "▰"}
-	PulseChars    = []string{"◐", "◓", "◑", "◒"}
+	SpinnerChars = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+	DotsChars    = []string{"", ".", "..", "..."}
 )
 
 // Status represents the state of a tracked item
@@ -49,22 +47,22 @@ type Step struct {
 	EndTime   time.Time
 	Active    bool
 	Progress  float64 // 0.0 to 1.0 for progress bars
-	metadata  map[string]interface{}
+	metadata  map[string]any
 	mu        sync.RWMutex
 }
 
 // SetMetadata sets custom metadata for the step
-func (s *Step) SetMetadata(key string, value interface{}) {
+func (s *Step) SetMetadata(key string, value any) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.metadata == nil {
-		s.metadata = make(map[string]interface{})
+		s.metadata = make(map[string]any)
 	}
 	s.metadata[key] = value
 }
 
 // GetMetadata gets custom metadata for the step
-func (s *Step) GetMetadata(key string) (interface{}, bool) {
+func (s *Step) GetMetadata(key string) (any, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if s.metadata == nil {
@@ -269,12 +267,6 @@ func (t *Tracker) Stop() {
 	t.mu.Unlock()
 
 	close(t.done)
-
-	if t.options.ClearOnDone {
-		t.renderFinalState()
-	} else {
-		t.render(true) // Render final state without animation
-	}
 }
 
 // animationLoop runs the animation updates
@@ -285,6 +277,12 @@ func (t *Tracker) animationLoop() {
 	for {
 		select {
 		case <-t.done:
+			// Render final state before exiting
+			if t.options.ClearOnDone {
+				t.renderFinalState()
+			} else {
+				t.render(true) // Final render without animation
+			}
 			return
 		case <-ticker.C:
 			t.updateAnimation()
@@ -381,24 +379,25 @@ func (t *Tracker) renderStep(step *Step, final bool) {
 }
 
 // getStepIcon returns the appropriate icon and color for a step
+
 func (t *Tracker) getStepIcon(step *Step, final bool) (string, string) {
 	switch step.Status {
 	case StatusPending:
-		return t.colorize("⏳", ColorYellow), t.color(ColorYellow)
+		return t.colorize("[ ]", ColorYellow), t.color(ColorYellow)
 	case StatusRunning:
 		if step.Active && !final {
 			char := SpinnerChars[t.animation.frame%len(SpinnerChars)]
 			return t.colorize(char, ColorCyan), t.color(ColorCyan)
 		}
-		return t.colorize("⚙️", ColorCyan), t.color(ColorCyan)
+		return t.colorize("[*]", ColorCyan), t.color(ColorCyan)
 	case StatusCompleted:
-		return t.colorize("✅", ColorGreen), t.color(ColorGreen)
+		return t.colorize("[✔]", ColorGreen), t.color(ColorGreen)
 	case StatusFailed:
-		return t.colorize("❌", ColorRed), t.color(ColorRed)
+		return t.colorize("[✘]", ColorRed), t.color(ColorRed)
 	case StatusSkipped:
-		return t.colorize("⏭️", ColorGray), t.color(ColorGray)
+		return t.colorize("[-]", ColorGray), t.color(ColorGray)
 	default:
-		return t.colorize("⏳", ColorYellow), t.color(ColorYellow)
+		return t.colorize("[ ]", ColorYellow), t.color(ColorYellow)
 	}
 }
 
@@ -462,34 +461,4 @@ func (t *Tracker) colorize(text, color string) string {
 		return text
 	}
 	return color + text + ColorReset
-}
-
-func BuildProgress(target string) *Tracker {
-	opts := DefaultOptions()
-	opts.ClearOnDone = false // Don't clear screen when done
-	opts.ShowElapsed = true
-	opts.ShowDuration = true
-
-	tracker := NewTracker(fmt.Sprintf("Building %s", target), opts)
-	tracker.AddStep("prepare", "Preparing build environment")
-	tracker.AddStep("dependencies", "Installing dependencies")
-	tracker.AddStep("compile", "Compiling")
-	tracker.AddStep("package", "Packaging")
-	tracker.AddStep("verify", "Verifying build")
-	tracker.Start()
-	return tracker
-}
-
-func DeployProgress() *Tracker {
-	opts := DefaultOptions()
-	opts.ShowElapsed = true
-	opts.ShowDuration = true
-
-	tracker := NewTracker("Deployment Progress", opts)
-	tracker.AddStep("pending", "Version queued")
-	tracker.AddStep("building", "Building deployment")
-	tracker.AddStep("deploying", "Deploying to infrastructure")
-	tracker.AddStep("active", "Activation complete")
-	tracker.Start()
-	return tracker
 }
