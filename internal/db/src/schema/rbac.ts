@@ -27,14 +27,13 @@ export const permissions = mysqlTable(
   },
   (table) => {
     return {
-      workspaceIdIdx: index("workspace_id_idx").on(table.workspaceId),
       uniqueNamePerWorkspaceIdx: unique("unique_name_per_workspace_idx").on(
-        table.name,
         table.workspaceId,
+        table.name,
       ),
       uniqueSlugPerWorkspaceIdx: unique("unique_slug_per_workspace_idx").on(
-        table.slug,
         table.workspaceId,
+        table.slug,
       ),
     };
   },

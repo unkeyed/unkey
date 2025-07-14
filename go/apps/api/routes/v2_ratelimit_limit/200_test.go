@@ -26,10 +26,8 @@ func TestLimitSuccessfully(t *testing.T) {
 		Keys:                          h.Keys,
 		Logger:                        h.Logger,
 		ClickHouse:                    h.ClickHouse,
-		Permissions:                   h.Permissions,
 		Ratelimit:                     h.Ratelimit,
 		RatelimitNamespaceByNameCache: h.Caches.RatelimitNamespaceByName,
-		RatelimitOverrideMatchesCache: h.Caches.RatelimitOverridesMatch,
 	}
 
 	h.Register(route)
