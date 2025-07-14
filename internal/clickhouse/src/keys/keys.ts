@@ -22,7 +22,7 @@ export const keysOverviewLogsParams = z.object({
       z.object({
         value: z.enum(KEY_VERIFICATION_OUTCOMES),
         operator: z.literal("is"),
-      }),
+      })
     )
     .nullable(),
   names: z
@@ -30,7 +30,7 @@ export const keysOverviewLogsParams = z.object({
       z.object({
         operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
         value: z.string(),
-      }),
+      })
     )
     .nullable(),
   identities: z
@@ -38,7 +38,7 @@ export const keysOverviewLogsParams = z.object({
       z.object({
         operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
         value: z.string(),
-      }),
+      })
     )
     .nullable(),
   keyIds: z
@@ -46,7 +46,7 @@ export const keysOverviewLogsParams = z.object({
       z.object({
         operator: z.enum(["is", "contains"]),
         value: z.string(),
-      }),
+      })
     )
     .nullable(),
   cursorTime: z.number().int().nullable(),
@@ -55,7 +55,7 @@ export const keysOverviewLogsParams = z.object({
       z.object({
         column: z.enum(["time", "valid", "invalid"]),
         direction: z.enum(["asc", "desc"]),
-      }),
+      })
     )
     .nullable(),
 });
@@ -93,7 +93,6 @@ export const keyDetailsResponseSchema = z.object({
   workspace_id: z.string(),
   identity: identitySchema.nullable(),
   roles: z.array(roleSchema),
-  tags: z.array(z.string()),
   permissions: z.array(permissionSchema),
 });
 export type KeyDetailsResponse = z.infer<typeof keyDetailsResponseSchema>;
@@ -105,6 +104,7 @@ export const rawKeysOverviewLogs = z.object({
   valid_count: z.number().int(),
   error_count: z.number().int(),
   outcome_counts: z.record(z.string(), z.number().int()),
+  tags: z.array(z.string()).optional(),
 });
 
 export const keysOverviewLogs = rawKeysOverviewLogs.extend({
@@ -175,7 +175,8 @@ export function getKeysOverviewLogs(ch: Querier) {
             // Only add to ORDER BY if it's an allowed column to prevent injection
             if (column) {
               const direction =
-                sort.direction.toUpperCase() === "ASC" || sort.direction.toUpperCase() === "DESC"
+                sort.direction.toUpperCase() === "ASC" ||
+                sort.direction.toUpperCase() === "DESC"
                   ? sort.direction.toUpperCase()
                   : "DESC";
               acc.push(`${column} ${direction}`);
@@ -198,15 +199,18 @@ export function getKeysOverviewLogs(ch: Querier) {
     const timeDirection = hasCustomSort
       ? "ASC"
       : timeSort?.direction.toUpperCase() === "ASC"
-        ? "ASC"
-        : "DESC";
+      ? "ASC"
+      : "DESC";
 
     // Remove any existing time sort from the orderBy array
-    const orderByWithoutTime = orderBy.filter((clause) => !clause.startsWith("time"));
+    const orderByWithoutTime = orderBy.filter(
+      (clause) => !clause.startsWith("time")
+    );
 
     // Construct final ORDER BY clause with only time at the end
     const orderByClause =
-      [...orderByWithoutTime, `time ${timeDirection}`].join(", ") || "time DESC"; // Fallback if empty
+      [...orderByWithoutTime, `time ${timeDirection}`].join(", ") ||
+      "time DESC"; // Fallback if empty
 
     // Create cursor condition based on time direction
     let cursorCondition: string;
@@ -229,7 +233,8 @@ export function getKeysOverviewLogs(ch: Querier) {
       `;
     }
 
-    const extendedParamsSchema = keysOverviewLogsParams.extend(paramSchemaExtension);
+    const extendedParamsSchema =
+      keysOverviewLogsParams.extend(paramSchemaExtension);
     const query = ch.query({
       query: `
 WITH
@@ -239,6 +244,7 @@ WITH
           request_id,
           time,
           key_id,
+          tags,
           outcome
       FROM verifications.raw_key_verifications_v1
       WHERE workspace_id = {workspaceId: String}

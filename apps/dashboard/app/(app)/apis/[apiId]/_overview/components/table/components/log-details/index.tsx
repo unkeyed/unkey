@@ -104,11 +104,9 @@ export const KeysOverviewLogDetails = ({
         : "Unlimited",
   };
 
-  // Tags are currently stored in key_details (even though they should be at log level)
-  // This is a temporary solution until ClickHouse schema is updated
   const tags =
-    log.key_details?.tags && log.key_details.tags.length > 0
-      ? { Tags: log.key_details.tags.join(", ") }
+    log.tags && log.tags.length > 0
+      ? { Tags: log.tags.join(", ") }
       : { "No tags": null };
 
   const identity = log.key_details.identity

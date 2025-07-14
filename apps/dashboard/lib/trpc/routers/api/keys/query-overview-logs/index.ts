@@ -1,6 +1,12 @@
 import { keysQueryOverviewLogsPayload } from "@/app/(app)/apis/[apiId]/_overview/components/table/query-logs.schema";
 import { clickhouse } from "@/lib/clickhouse";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import {
+  ratelimit,
+  requireUser,
+  requireWorkspace,
+  t,
+  withRatelimit,
+} from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { keysOverviewLogs as keysLogs } from "@unkey/clickhouse/src/keys/keys";
 import { z } from "zod";
@@ -93,7 +99,8 @@ export const queryKeysOverviewLogs = t.procedure
     const response: KeysOverviewLogsResponse = {
       keysOverviewLogs,
       hasMore: logs.length === input.limit && keysOverviewLogs.length > 0,
-      nextCursor: logs.length === input.limit ? logs[logs.length - 1].time : undefined,
+      nextCursor:
+        logs.length === input.limit ? logs[logs.length - 1].time : undefined,
     };
 
     return response;

@@ -48,7 +48,6 @@ type KeyDetails = {
   remaining_requests: DatabaseKey["remaining"];
   environment: DatabaseKey["environment"];
   workspace_id: DatabaseKey["workspaceId"];
-  tags: string[];
   identity: { external_id: string } | null;
   roles: {
     name: BaseRole["name"];
@@ -373,7 +372,6 @@ export function createKeyDetailsMap(
       remaining_requests: key.remaining,
       environment: key.environment,
       workspace_id: key.workspaceId,
-      tags: [],
       identity: identityData,
       roles: rolesData,
       permissions: permissionsData,
