@@ -8,7 +8,10 @@ import { useMemo } from "react";
 import { LogHeader } from "./components/log-header";
 import { OutcomeDistributionSection } from "./components/log-outcome-distribution-section";
 import { LogSection } from "./components/log-section";
-import { PermissionsSection, RolesSection } from "./components/roles-permissions";
+import {
+  PermissionsSection,
+  RolesSection,
+} from "./components/roles-permissions";
 
 type StyleObject = {
   top: string;
@@ -37,7 +40,10 @@ export const KeysOverviewLogDetails = ({
   setSelectedLog,
   apiId,
 }: KeysOverviewLogDetailsProps) => {
-  const panelStyle = useMemo(() => createPanelStyle(distanceToTop), [distanceToTop]);
+  const panelStyle = useMemo(
+    () => createPanelStyle(distanceToTop),
+    [distanceToTop]
+  );
 
   if (!log) {
     return null;
@@ -56,7 +62,9 @@ export const KeysOverviewLogDetails = ({
         style={panelStyle}
       >
         <LogHeader log={log} onClose={handleClose} />
-        <div className="py-4 text-center text-accent-9">No key details available</div>
+        <div className="py-4 text-center text-accent-9">
+          No key details available
+        </div>
       </ResizablePanel>
     );
   }
@@ -79,7 +87,10 @@ export const KeysOverviewLogDetails = ({
   const usage = {
     Created: metaData?.createdAt ? metaData.createdAt : "N/A",
     "Last Used": log.time ? (
-      <TimestampInfo value={log.time} className="font-mono underline decoration-dotted" />
+      <TimestampInfo
+        value={log.time}
+        className="font-mono underline decoration-dotted"
+      />
     ) : (
       "N/A"
     ),
@@ -93,13 +104,20 @@ export const KeysOverviewLogDetails = ({
         : "Unlimited",
   };
 
-  const tags = log.key_details.tags ? { Tags: log.key_details.tags.join(", ") } : { "No tags": null };
+  // Tags are currently stored in key_details (even though they should be at log level)
+  // This is a temporary solution until ClickHouse schema is updated
+  const tags =
+    log.key_details?.tags && log.key_details.tags.length > 0
+      ? { Tags: log.key_details.tags.join(", ") }
+      : { "No tags": null };
 
   const identity = log.key_details.identity
     ? { "External ID": log.key_details.identity.external_id || "N/A" }
     : { "No identity connected": null };
 
-  const metaString = metaData ? JSON.stringify(metaData, null, 2) : { "No meta available": "" };
+  const metaString = metaData
+    ? JSON.stringify(metaData, null, 2)
+    : { "No meta available": "" };
 
   return (
     <ResizablePanel
@@ -109,7 +127,9 @@ export const KeysOverviewLogDetails = ({
     >
       <LogHeader log={log} onClose={handleClose} />
       <LogSection title="Usage" details={usage} />
-      {log.outcome_counts && <OutcomeDistributionSection outcomeCounts={log.outcome_counts} />}
+      {log.outcome_counts && (
+        <OutcomeDistributionSection outcomeCounts={log.outcome_counts} />
+      )}
       <LogSection title="Limits" details={limits} />
       <LogSection title="Identifiers" details={identifiers} />
       <LogSection title="Identity" details={identity} />
