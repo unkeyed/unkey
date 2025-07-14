@@ -55,7 +55,9 @@ curl -X POST https://api.unkey.dev/v1/keys.createKey \
     "apiId": "api_123",
     "ratelimits": [
       {
-        "name": "expensive-operations"
+        "name": "expensive-operations",
+        "limit": 5,
+        "duration": 60000
       }
     ]
   }'

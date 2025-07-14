@@ -7,14 +7,12 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"math/rand"
 	"net/http"
 	"os/exec"
 	"strings"
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/charmbracelet/lipgloss"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/go/pkg/codes"
@@ -36,6 +34,8 @@ Versions are immutable snapshots of your code, configuration, and infrastructure
 		getCmd,
 		listCmd,
 		rollbackCmd,
+		// TODO: Remove this bootstrap command once we have a proper UI
+		bootstrapProjectCmd, // defined in bootstrap.go
 	},
 }
 
@@ -85,16 +85,14 @@ var createCmd = &cli.Command{
 			Required: false,
 		},
 		&cli.StringFlag{
-			Name:     "workspace",
+			Name:     "workspace-id",
 			Usage:    "Workspace ID",
-			Value:    "acme",
-			Required: false,
+			Required: true,
 		},
 		&cli.StringFlag{
-			Name:     "project",
+			Name:     "project-id",
 			Usage:    "Project ID",
-			Value:    "my-api",
-			Required: false,
+			Required: true,
 		},
 	},
 	Action: createAction,
@@ -103,9 +101,9 @@ var createCmd = &cli.Command{
 func createAction(ctx context.Context, cmd *cli.Command) error {
 	logger := logging.New()
 
-	// Hardcoded for demo
-	workspace := "acme"
-	project := "my-api"
+	// Get workspace and project IDs from CLI flags
+	workspaceID := cmd.String("workspace-id")
+	projectID := cmd.String("project-id")
 
 	// Get Git information automatically
 	gitInfo := git.GetInfo()
@@ -125,79 +123,29 @@ func createAction(ctx context.Context, cmd *cli.Command) error {
 	dockerfile := cmd.String("dockerfile")
 	buildContext := cmd.String("context")
 
-	return runDeploymentSteps(ctx, cmd, workspace, project, branch, dockerImage, dockerfile, buildContext, commit, logger)
+	return runDeploymentSteps(ctx, cmd, workspaceID, projectID, branch, dockerImage, dockerfile, buildContext, commit, logger)
 }
 
-// Styles for clean output
-var (
-	sectionName = lipgloss.NewStyle().Bold(true)
-	metaText    = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
-	errorText   = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
-)
-
-// Fun loading messages for different deployment phases
-var (
-	buildingMessages = []string{
-		"Transforming containers into pure magic...",
-		"Teaching Docker images to fly...",
-		"Compressing pixels and dreams...",
-		"Turning containers inside out...",
-		"Extracting the essence of your code...",
-		"Squishing containers flat like pancakes...",
-		"Converting Docker to VM-speak...",
+func printDeploymentComplete(versionID, workspace, branch string) {
+	// Use actual Git info for hostname generation
+	gitInfo := git.GetInfo()
+	identifier := versionID
+	if gitInfo.IsRepo && gitInfo.CommitSHA != "" {
+		identifier = gitInfo.CommitSHA
 	}
 
-	deployingMessages = []string{
-		"Waking up sleepy virtual machines...",
-		"Teaching VMs to dance with your code...",
-		"Summoning compute spirits from the cloud...",
-		"Bribing CPUs with electricity...",
-		"Convincing VMs to get out of bed...",
-		"Herding virtual cats into formation...",
-		"Rolling out the red carpet for your app...",
-	}
-
-	buildQueuedMessages = []string{
-		"Waiting in line behind the other builds...",
-		"Taking a number at the build deli...",
-		"Patience, young padawan...",
-		"Good things come to those who wait...",
-		"Counting sheep until build starts...",
-		"Build is doing pre-flight checks...",
-	}
-)
-
-func printDeploymentComplete(versionID, workspace, branch, commit string) {
 	fmt.Println()
-	fmt.Printf("%s\n", sectionName.Render("Deployment Complete"))
-	fmt.Printf("  Version ID: %s\n", metaText.Render(versionID))
+	fmt.Println("Deployment Complete")
+	fmt.Printf("  Version ID: %s\n", versionID)
 	fmt.Printf("  Status: Ready\n")
 	fmt.Printf("  Environment: Production\n")
 
 	fmt.Println()
-	fmt.Printf("%s\n", sectionName.Render("Domains"))
-
-	// Use actual Git info for hostname generation
-	gitInfo := git.GetInfo()
-	shortSHA := "unknown"
-	if gitInfo.ShortSHA != "" {
-		shortSHA = gitInfo.ShortSHA
-	} else if commit != "" && len(commit) >= 7 {
-		shortSHA = commit[:7]
-	}
-
-	fmt.Printf("  %s\n", metaText.Render(fmt.Sprintf("https://%s-%s-%s.unkey.app", branch, shortSHA, workspace)))
-	fmt.Printf("  %s\n", metaText.Render("https://api.acme.com"))
-
-	fmt.Println()
-	fmt.Printf("%s\n", sectionName.Render("Source"))
-	fmt.Printf("  Branch: %s\n", branch)
-	if gitInfo.ShortSHA != "" {
-		fmt.Printf("  Commit: %s\n", gitInfo.ShortSHA)
-		if gitInfo.IsDirty {
-			fmt.Printf("  Status: %s\n", metaText.Render("Working directory has uncommitted changes"))
-		}
-	}
+	fmt.Println("Domains")
+	// Replace underscores with dashes for valid hostname format
+	cleanIdentifier := strings.ReplaceAll(identifier, "_", "-")
+	fmt.Printf("  https://%s-%s-%s.unkey.app\n", branch, cleanIdentifier, workspace)
+	fmt.Printf("  https://api.acme.com\n")
 }
 
 func runDeploymentSteps(ctx context.Context, cmd *cli.Command, workspace, project, branch, dockerImage, dockerfile, buildContext, commit string, logger logging.Logger) error {
@@ -205,10 +153,19 @@ func runDeploymentSteps(ctx context.Context, cmd *cli.Command, workspace, projec
 	// Get Git info for better image tagging
 	gitInfo := git.GetInfo()
 
+	// Print source information immediately
+	fmt.Println("Source")
+	fmt.Printf("  Branch: %s\n", branch)
+	if gitInfo.CommitSHA != "" {
+		fmt.Printf("  Commit: %s\n", gitInfo.CommitSHA)
+		if gitInfo.IsDirty {
+			fmt.Printf("  Status: Working directory has uncommitted changes\n")
+		}
+	}
+	fmt.Println()
+
 	// If no docker image provided, build one
 	if dockerImage == "" {
-		fmt.Printf("%s\n", sectionName.Render("Building"))
-
 		// Generate image tag using Git info when available
 		var imageTag string
 		if gitInfo.ShortSHA != "" {
@@ -220,11 +177,7 @@ func runDeploymentSteps(ctx context.Context, cmd *cli.Command, workspace, projec
 		}
 		dockerImage = fmt.Sprintf("ghcr.io/unkeyed/deploy-wip:%s", imageTag)
 
-		fmt.Printf("  Image tag: %s\n", metaText.Render(dockerImage))
-		fmt.Printf("  Build context: %s\n", metaText.Render(buildContext))
-
-		// Docker build steps
-		fmt.Printf("  Building Docker image...\n")
+		fmt.Printf("Building Docker image %s...\n", dockerImage)
 
 		// Build the Docker image with minimal output
 		var buildArgs []string
@@ -271,25 +224,24 @@ func runDeploymentSteps(ctx context.Context, cmd *cli.Command, workspace, projec
 			allOutput.WriteString(line + "\n")
 
 			// Print all docker build output
-			fmt.Printf("    %s\n", metaText.Render(line))
+			fmt.Printf("    %s\n", line)
 		}
 
 		// Wait for the build to complete
 		err = buildCmd.Wait()
 
 		if err != nil {
-			fmt.Printf("  %s: Docker build failed\n", errorText.Render("Error"))
+			fmt.Printf("Docker build failed\n")
 			// Show the full build output on failure
 			for _, line := range strings.Split(allOutput.String(), "\n") {
 				if strings.TrimSpace(line) != "" {
-					fmt.Printf("    %s\n", line)
+					fmt.Printf("  %s\n", line)
 				}
 			}
 			return fmt.Errorf("docker build failed: %w", err)
 		}
 
-		// Publishing section
-		fmt.Printf("%s\n", sectionName.Render("Publishing"))
+		fmt.Printf("Publishing Docker image...\n")
 
 		pushCmd := exec.CommandContext(ctx, "docker", "push", dockerImage)
 
@@ -300,19 +252,18 @@ func runDeploymentSteps(ctx context.Context, cmd *cli.Command, workspace, projec
 
 		// Run the push
 		if err := pushCmd.Run(); err != nil {
-			fmt.Printf("  %s: Docker push failed\n", errorText.Render("Error"))
+			fmt.Printf("Docker push failed\n")
 			// Show the push output on failure
 			for _, line := range strings.Split(pushOutput.String(), "\n") {
 				if strings.TrimSpace(line) != "" {
-					fmt.Printf("    %s\n", line)
+					fmt.Printf("  %s\n", line)
 				}
 			}
-			return fmt.Errorf("docker push failed: %w", err)
+
+			fmt.Println("ignore push errors for now")
+			// return err
 		}
 	}
-
-	// Creating Version section
-	fmt.Printf("%s\n", sectionName.Render("Creating Version"))
 
 	// Create control plane client
 	controlPlaneURL := cmd.String("control-plane-url")
@@ -369,36 +320,35 @@ func runDeploymentSteps(ctx context.Context, cmd *cli.Command, workspace, projec
 	}
 
 	versionID := createResp.Msg.GetVersionId()
-	fmt.Printf("  Version ID: %s\n", metaText.Render(versionID))
-	fmt.Printf("  Image: %s\n", metaText.Render(dockerImage))
-	fmt.Printf("  Branch: %s\n", metaText.Render(branch))
+	fmt.Printf("Creating Version\n")
+	fmt.Printf("  Version ID: %s\n", versionID)
 
 	// Poll for version status updates
 	if err := pollVersionStatus(ctx, logger, client, versionID); err != nil {
 		return fmt.Errorf("deployment failed: %w", err)
 	}
 
-	printDeploymentComplete(versionID, workspace, branch, commit)
+	printDeploymentComplete(versionID, workspace, branch)
 
 	return nil
 }
 
-// pollVersionStatus polls the control plane API for version status updates
+// pollVersionStatus polls the control plane API and displays deployment steps as they occur
 func pollVersionStatus(ctx context.Context, logger logging.Logger, client ctrlv1connect.VersionServiceClient, versionID string) error {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 
-	timeout := time.NewTimer(30 * time.Second) // 30 second timeout
+	timeout := time.NewTimer(300 * time.Second) // 5 minute timeout for full deployment
 	defer timeout.Stop()
 
-	lastVersionStatus := ""
+	displayedSteps := make(map[string]bool)
 
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-timeout.C:
-			fmt.Printf("Error: Deployment timeout after 30 seconds\n")
+			fmt.Printf("Error: Deployment timeout after 5 minutes\n")
 			return fmt.Errorf("deployment timeout")
 		case <-ticker.C:
 			// Always poll version status
@@ -414,33 +364,15 @@ func pollVersionStatus(ctx context.Context, logger logging.Logger, client ctrlv1
 			}
 
 			version := getResp.Msg.GetVersion()
-			currentVersionStatus := version.GetStatus().String()
 
-			// Show version status updates with section headers
-			if currentVersionStatus != lastVersionStatus {
-				switch version.GetStatus() {
-				case ctrlv1.VersionStatus_VERSION_STATUS_UNSPECIFIED:
-					// Skip unspecified status, no display needed
-				case ctrlv1.VersionStatus_VERSION_STATUS_PENDING:
-					fmt.Printf("%s\n", sectionName.Render("Pending"))
-					message := buildQueuedMessages[rand.Intn(len(buildQueuedMessages))] // nolint:gosec // Weak random is acceptable for UI messages
-					fmt.Printf("  %s\n", metaText.Render(message))
-				case ctrlv1.VersionStatus_VERSION_STATUS_BUILDING:
-					fmt.Printf("%s\n", sectionName.Render("Building"))
-					message := buildingMessages[rand.Intn(len(buildingMessages))] // nolint:gosec // Weak random is acceptable for UI messages
-					fmt.Printf("  %s\n", metaText.Render(message))
-				case ctrlv1.VersionStatus_VERSION_STATUS_DEPLOYING:
-					fmt.Printf("%s\n", sectionName.Render("Deploying"))
-					message := deployingMessages[rand.Intn(len(deployingMessages))] // nolint:gosec // Weak random is acceptable for UI messages
-					fmt.Printf("  %s\n", metaText.Render(message))
-				case ctrlv1.VersionStatus_VERSION_STATUS_ACTIVE:
-					// Will be handled after the polling loop
-				case ctrlv1.VersionStatus_VERSION_STATUS_FAILED:
-					fmt.Printf("  %s: Deployment failed\n", errorText.Render("Error"))
-				case ctrlv1.VersionStatus_VERSION_STATUS_ARCHIVED:
-					fmt.Printf("  %s: Version archived\n", metaText.Render("Info"))
+			// Display version steps in real-time
+			steps := version.GetSteps()
+			for _, step := range steps {
+				stepKey := step.GetStatus()
+				if !displayedSteps[stepKey] {
+					displayVersionStep(step)
+					displayedSteps[stepKey] = true
 				}
-				lastVersionStatus = currentVersionStatus
 			}
 
 			// Check if deployment is complete
@@ -453,6 +385,21 @@ func pollVersionStatus(ctx context.Context, logger logging.Logger, client ctrlv1
 				return fmt.Errorf("deployment failed")
 			}
 		}
+	}
+}
+
+// displayVersionStep shows a version step with appropriate formatting
+func displayVersionStep(step *ctrlv1.VersionStep) {
+	message := step.GetMessage()
+
+	// Display only the actual message from the database, indented under "Creating Version"
+	if message != "" {
+		fmt.Printf("  %s\n", message)
+	}
+
+	// Show error message if present
+	if step.GetErrorMessage() != "" {
+		fmt.Printf("  Error: %s\n", step.GetErrorMessage())
 	}
 }
 

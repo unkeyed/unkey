@@ -1,6 +1,5 @@
 import { MAX_KEYS_FETCH_LIMIT } from "@/app/(app)/authorization/roles/components/upsert-role/components/assign-key/hooks/use-fetch-keys";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import {
@@ -16,6 +15,7 @@ import {
   Tag,
   Trash,
 } from "@unkey/icons";
+import { toast } from "@unkey/ui";
 import { DeleteKey } from "./components/delete-key";
 import { UpdateKeyStatus } from "./components/disable-key";
 import { EditCredits } from "./components/edit-credits";

@@ -1,8 +1,8 @@
 "use client";
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import { toast } from "@/components/ui/toaster";
 import { Clone, InputSearch } from "@unkey/icons";
+import { toast } from "@unkey/ui";
 import { useFilters } from "../../../hooks/use-filters";
 
 export const LogsTableAction = ({ identifier }: { identifier: string }) => {

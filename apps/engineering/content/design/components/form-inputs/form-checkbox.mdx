@@ -1,0 +1,261 @@
+---
+title: FormCheckbox
+description: A form checkbox component with built-in label, description, and error handling capabilities for creating accessible, user-friendly selection inputs.
+---
+import {
+  DefaultFormCheckboxVariant,
+  RequiredFormCheckboxVariant,
+  RequiredWithErrorFormCheckboxVariant,
+  OptionalFormCheckboxVariant,
+  SuccessFormCheckboxVariant,
+  WarningFormCheckboxVariant,
+  ErrorFormCheckboxVariant,
+  DisabledFormCheckboxVariant,
+  CheckedFormCheckboxVariant,
+  OutlineFormCheckboxVariant,
+  GhostFormCheckboxVariant,
+  LargeFormCheckboxVariant,
+  MediumFormCheckboxVariant,
+  SmallFormCheckboxVariant,
+  XLargeFormCheckboxVariant,
+  ComplexFormCheckboxVariant
+} from "./form-checkbox.variants"
+
+## Overview
+
+The FormCheckbox component provides a comprehensive checkbox system that combines labels, descriptions, and validation states. It's designed to create accessible, user-friendly forms that require selection inputs with proper labeling, helpful context, and clear validation feedback while maintaining consistency with the design system.
+
+## Usage
+
+```tsx
+import { FormCheckbox } from "@unkey/ui";
+
+export default function MyComponent() {
+  return (
+    <FormCheckbox
+      label="I agree to the terms and conditions"
+      description="By checking this box, you agree to our terms of service."
+      required
+    />
+  );
+}
+```
+
+## Examples
+
+### Default FormCheckbox
+
+The default FormCheckbox includes a label and optional description text, providing clear context for users.
+
+<DefaultFormCheckboxVariant />
+
+### Required Field
+
+Use the required prop to indicate mandatory fields. This automatically adds a "Required" tag to the label.
+
+<RequiredFormCheckboxVariant />
+
+### Required Field with Error
+
+When a required field has an error, the "Required" tag changes to error styling to draw more attention.
+
+<RequiredWithErrorFormCheckboxVariant />
+
+### Optional Field
+
+Use the optional prop to explicitly indicate non-mandatory fields. This adds an "Optional" badge to the label.
+
+<OptionalFormCheckboxVariant />
+
+### Success State
+
+Indicates successful validation or acceptance of selection. The success icon and text provide positive feedback.
+
+<SuccessFormCheckboxVariant />
+
+### Warning State
+
+Used for potentially impactful selections that should be made with caution. Includes a warning icon and explanatory text.
+
+<WarningFormCheckboxVariant />
+
+### Error State
+
+Shows validation errors or other issues that need user attention. Features prominent error styling and message.
+
+<ErrorFormCheckboxVariant />
+
+### Disabled State
+
+Apply when the field should be non-interactive, such as during form submission or based on other field values.
+
+<DisabledFormCheckboxVariant />
+
+### Checked State
+
+Pre-selected checkbox with an initial checked state that users can toggle.
+
+<CheckedFormCheckboxVariant />
+
+### Outline Variant
+
+A subtler alternative to the primary variant with transparent background when checked.
+
+<OutlineFormCheckboxVariant />
+
+### Ghost Variant
+
+The most minimal styling for checkboxes that need less visual emphasis.
+
+<GhostFormCheckboxVariant />
+
+### Different Sizes
+
+Checkboxes can be sized appropriately for different UI needs.
+
+#### Small
+
+<SmallFormCheckboxVariant />
+
+#### Medium
+
+<MediumFormCheckboxVariant />
+
+#### Large
+
+<LargeFormCheckboxVariant />
+
+#### XLarge
+
+<XLargeFormCheckboxVariant />
+
+### Complex Usage
+Example of FormCheckboxes with multiple props configured for a specific use case, such as a cookie consent form.
+
+<ComplexFormCheckboxVariant />
+
+## Features
+
+- **Built-in Labeling**: Automatic label association with proper accessibility
+- **Description Support**: Optional helper text for additional context
+- **Validation States**: Multiple states (success, warning, error) with appropriate styling
+- **Required/Optional Indicators**: Clear visual indicators for field requirements
+- **Multiple Variants**: Different visual styles (default, outline, ghost) for various contexts
+- **Size Options**: Different sizes for different UI needs
+- **Accessibility**: Full accessibility support with proper ARIA attributes
+- **Responsive Design**: Adapts to different screen sizes
+- **Dark Mode Support**: Consistent appearance in light and dark themes
+- **Customizable**: Extensive styling options through className props
+
+## Props
+
+The FormCheckbox component extends the standard Checkbox component props with additional form-specific properties:
+
+| Prop               | Type                                                                     | Default     | Description                                           |  
+|--------------------|--------------------------------------------------------------------------|-------------|-------------------------------------------------------|  
+| `label`            | `string`                                                                 | -           | The label text to display next to the checkbox        |  
+| `description`      | `string \| React.ReactNode`                                              | -           | Optional helper text displayed below the checkbox     |  
+| `required`         | `boolean`                                                                | -           | Whether the field is required. Adds a "Required" indicator |  
+| `optional`         | `boolean`                                                                | -           | Whether the field is optional. Adds an "Optional" indicator |  
+| `error`            | `string`                                                                 | -           | Error message to display. Overrides description and applies error styling |  
+| `variant`          | `"primary" \| "outline" \| "ghost"`                                      | `"primary"` | The variant style to use for the checkbox             |  
+| `color`            | `"default" \| "success" \| "warning" \| "danger" \| "info"`              | `"default"` | The color scheme to use for the checkbox              |  
+| `size`             | `"sm" \| "md" \| "lg" \| "xlg"`                                          | `"md"`      | The size of the checkbox                              |  
+| `checked`          | `boolean`                                                                | `false`     | Whether the checkbox is checked                       |  
+| `defaultChecked`   | `boolean`                                                                | -           | Default checked state when uncontrolled               |  
+| `disabled`         | `boolean`                                                                | -           | Whether the checkbox is disabled                      |  
+| `name`             | `string`                                                                 | -           | Name of the checkbox for form submission              |  
+| `value`            | `string`                                                                 | -           | Value of the checkbox for form submission             |  
+| `onCheckedChange`  | `(checked: boolean) => void`                                             | -           | Callback triggered when checkbox state changes        |  
+| `className`        | `string`                                                                 | -           | Additional CSS classes to apply                       |  
+| `id`               | `string`                                                                 | -           | Unique identifier for the checkbox. Auto-generated if not provided | 
+
+## Variants
+
+### Default
+- Standard checkbox with label and optional description
+- Use for most checkbox inputs
+- Balanced visual weight and accessibility
+
+### Required
+- Includes "Required" indicator for mandatory fields
+- Use for fields that must be completed
+- Clear visual indication of importance
+
+### Optional
+- Includes "Optional" indicator for non-mandatory fields
+- Use for fields that can be left empty
+- Provides clarity in forms with mixed requirements
+
+### Success
+- Green styling for positive validation states
+- Use for successfully validated selections
+- Encourages positive user feedback
+
+### Warning
+- Yellow/orange styling for cautionary states
+- Use for selections that need attention but aren't errors
+- Indicates potential issues
+
+### Error
+- Red styling for validation errors
+- Use for failed validation or critical issues
+- Clearly indicates problems that need resolution
+
+### Outline
+- Subtler styling with transparent background when checked
+- Use for less prominent selections
+- Good for secondary options
+
+### Ghost
+- Minimal styling for checkboxes that need less visual emphasis
+- Use for tertiary or subtle selections
+- Perfect for dense UIs
+
+## Structure
+
+The FormCheckbox component is composed of:
+
+1. **Checkbox Element** - The actual checkbox input with validation states
+2. **Label Container** - Contains the label text and required/optional indicators
+3. **Description Text** - Optional helper text below the checkbox
+4. **Error Message** - Validation error display when applicable
+5. **Status Icons** - Visual indicators for different states
+
+## Styling
+
+The component includes default styling with:
+
+- Consistent spacing and typography from design system
+- Color-coded validation states for semantic meaning
+- Proper label positioning and association
+- Multiple visual variants for different contexts
+- Dark mode support with appropriate color schemes
+- Focus states for accessibility
+- Customizable through className props
+
+### Custom Styling
+
+You can customize the appearance using className props:
+
+```tsx
+<FormCheckbox
+  label="Custom Checkbox"
+  description="Custom description"
+  className="custom-form-checkbox-class"
+  variant="outline"
+/>
+```
+
+## Accessibility
+
+The FormCheckbox component is built with accessibility in mind:
+
+- **Label Association**: Labels are properly associated with checkboxes using htmlFor/id
+- **Error Announcements**: Error messages are announced to screen readers using role="alert"
+- **Required Indicators**: Required fields are marked both visually and via aria-required
+- **Helper Text**: Helper text is linked to checkboxes using aria-describedby
+- **Validation States**: Error states are indicated using aria-invalid
+- **Focus Management**: Checkboxes maintain proper focus states for keyboard navigation
+- **Screen Reader Support**: Announces validation states and requirements appropriately
+- **Keyboard Navigation**: Full keyboard support for all interactions

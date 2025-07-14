@@ -1,9 +1,7 @@
 "use client";
 
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { Clone } from "@unkey/icons";
-import { Button, Input, SettingCard } from "@unkey/ui";
+import { Button, CopyButton, Input, SettingCard, toast } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { DeleteNamespaceDialog } from "../../_components/namespace-delete-dialog";
 import { SettingsClientSkeleton } from "./skeleton";
@@ -66,7 +64,6 @@ export const SettingsClient = ({ namespaceId }: Props) => {
   }
 
   const { namespace } = data;
-
   return (
     <>
       <div className="py-3 w-full flex items-center justify-center">
@@ -119,26 +116,11 @@ export const SettingsClient = ({ namespaceId }: Props) => {
                 border="bottom"
                 contentWidth="w-full lg:w-[320px] h-full justify-end items-end"
               >
-                <div className="flex flex-row justify-end items-center gap-x-2 mt-1 w-full h-9">
-                  <Input
-                    readOnly
-                    defaultValue={namespace.id}
-                    placeholder="Namespace name"
-                    className="w-full focus:ring-0 focus:ring-offset-0 h-full"
-                    rightIcon={
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(namespace.id);
-                          toast.success("Copied to clipboard", {
-                            description: namespace.id,
-                          });
-                        }}
-                      >
-                        <Clone size="md-regular" />
-                      </button>
-                    }
-                  />
+                <div className="flex flex-row justify-end items-center pl-4 pr-3 w-full h-9 border border-gray-5 hover:border-gray-8 bg-gray-2 dark:bg-black rounded-lg min-w-[327px]">
+                  <pre className="flex-1 text-xs text-left overflow-x-auto">
+                    <code>{namespace.id}</code>
+                  </pre>
+                  <CopyButton value={namespace.id} variant="ghost" size="sm" />
                 </div>
               </SettingCard>
             </div>

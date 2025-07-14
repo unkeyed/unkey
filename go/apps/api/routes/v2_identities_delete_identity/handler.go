@@ -74,7 +74,6 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
-	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
@@ -90,11 +89,10 @@ type Response = openapi.V2IdentitiesDeleteIdentityResponseBody
 // Handler implements zen.Route interface for the v2 identities delete identity endpoint
 type Handler struct {
 	// Services as public fields
-	Logger      logging.Logger
-	DB          db.Database
-	Keys        keys.KeyService
-	Permissions permissions.PermissionService
-	Auditlogs   auditlogs.AuditLogService
+	Logger    logging.Logger
+	DB        db.Database
+	Keys      keys.KeyService
+	Auditlogs auditlogs.AuditLogService
 }
 
 // Method returns the HTTP method this route responds to
@@ -109,7 +107,7 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, err := h.Keys.VerifyRootKey(ctx, s)
+	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -139,11 +137,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}))
 	}
 
-	err = h.Permissions.Check(
-		ctx,
-		auth.KeyID,
-		rbac.Or(checks...),
-	)
+	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(checks...)))
 	if err != nil {
 		return err
 	}
@@ -198,7 +192,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.IdentityDeleteEvent,
 				Display:     fmt.Sprintf("Deleted identity %s.", identity.ID),
-				ActorID:     auth.KeyID,
+				ActorID:     auth.Key.ID,
 				ActorType:   auditlog.RootKeyActor,
 				ActorName:   "root key",
 				ActorMeta:   map[string]any{},
@@ -229,7 +223,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.RatelimitDeleteEvent,
 				Display:     fmt.Sprintf("Deleted ratelimit %s.", rl.ID),
-				ActorID:     auth.KeyID,
+				ActorID:     auth.Key.ID,
 				ActorType:   auditlog.RootKeyActor,
 				ActorName:   "root key",
 				ActorMeta:   map[string]any{},

@@ -58,6 +58,7 @@ func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) erro
 	if err != nil {
 		return err
 	}
+
 	key := bucketKey{
 		identifier: req.Identifier,
 		limit:      req.Limit,
@@ -79,8 +80,8 @@ func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) erro
 			req.Cost,
 			currentWindow.duration*3,
 		)
-
 	})
+
 	if err != nil {
 		tracing.RecordError(span, err)
 

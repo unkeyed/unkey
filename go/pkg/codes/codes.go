@@ -60,6 +60,9 @@ const (
 	CategoryUnkeyLimits Category = "limits"
 
 	CategoryUnkeyApplication Category = "application"
+
+	// CategoryUnkeyVault represents vault-related errors.
+	CategoryUnkeyVault Category = "vault"
 )
 
 // Code represents a specific error with its metadata. It contains all components

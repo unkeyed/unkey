@@ -1,7 +1,6 @@
 import { relations } from "drizzle-orm";
-import { boolean, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { projects } from "./projects";
-import { lifecycleDates } from "./util/lifecycle_dates";
 import { versions } from "./versions";
 import { workspaces } from "./workspaces";
 export const branches = mysqlTable(
@@ -13,10 +12,8 @@ export const branches = mysqlTable(
 
     name: varchar("name", { length: 256 }).notNull(), // Git branch name
 
-    // Is this the main/production branch for the project
-    isProduction: boolean("is_production").notNull().default(false),
-
-    ...lifecycleDates,
+    createdAt: bigint("created_at", { mode: "number" }).notNull(),
+    updatedAt: bigint("updated_at", { mode: "number" }),
   },
   (table) => ({
     workspaceIdx: index("workspace_idx").on(table.workspaceId),

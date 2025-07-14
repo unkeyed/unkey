@@ -23,6 +23,7 @@
                   "introduction",
                   {
                     "group": "Quickstart",
+                    "icon": "rocket",
                     "pages": [
                       {
                         "group": "Onboarding",
@@ -57,6 +58,7 @@
                   },
                   {
                     "group": "Security",
+                    "icon": "shield",
                     "pages": [
                       "security/overview",
                       "security/root-keys",
@@ -64,6 +66,16 @@
                       "apis/features/whitelist",
                       "security/github-scanning",
                       "security/delete-protection"
+                    ]
+                  },
+                  {
+                    "group": "AI Code Gen",
+                    "icon": "robot",
+                    "pages": [
+                      "ai-code-gen/overview",
+                      "ai-code-gen/cursor",
+                      "ai-code-gen/windsurf",
+                      "ai-code-gen/unkey-mcp"
                     ]
                   }
                 ]
@@ -83,6 +95,7 @@
                 "pages": [
                   {
                     "group": "Keys",
+                    "icon": "key",
                     "pages": [
                       "apis/introduction",
                       {
@@ -117,6 +130,7 @@
                   },
                   {
                     "group": "Ratelimiting",
+                    "icon": "bolt",
                     "pages": [
                       "ratelimiting/introduction",
                       "ratelimiting/modes",
@@ -126,23 +140,26 @@
                   },
                   {
                     "group": "Audit logs",
+                    "icon": "scroll",
                     "pages": ["audit-log/introduction", "audit-log/types"]
                   },
                   {
                     "group": "Analytics",
+                    "icon": "chart-bar",
                     "pages": ["analytics/overview", "analytics/quickstarts"]
                   }
                 ]
               },
               {
-                "group": "Integrations",
-                "icon": "bolt",
-                "pages": ["integrations/vercel"]
-              },
-              {
                 "group": "Migrations",
-                "icon": "plane-arrival",
-                "pages": ["migrations/introduction", "migrations/keys"]
+
+                "pages": [
+                  {
+                    "icon": "plane",
+                    "group": "Migrating API Keys",
+                    "pages": ["migrations/introduction", "migrations/keys"]
+                  }
+                ]
               }
             ]
           },

@@ -29,7 +29,6 @@ const (
 	INSUFFICIENTPERMISSIONS KeysVerifyKeyResponseDataCode = "INSUFFICIENT_PERMISSIONS"
 	NOTFOUND                KeysVerifyKeyResponseDataCode = "NOT_FOUND"
 	RATELIMITED             KeysVerifyKeyResponseDataCode = "RATE_LIMITED"
-	UNAUTHORIZED            KeysVerifyKeyResponseDataCode = "UNAUTHORIZED"
 	USAGEEXCEEDED           KeysVerifyKeyResponseDataCode = "USAGE_EXCEEDED"
 	VALID                   KeysVerifyKeyResponseDataCode = "VALID"
 )
@@ -320,6 +319,33 @@ type KeysDeleteKeyResponseData = map[string]interface{}
 // KeysUpdateKeyResponseData Empty response object by design. A successful response indicates the key was updated successfully. The endpoint doesn't return the updated key to reduce response size and avoid exposing sensitive information. Changes may take up to 30 seconds to propagate to all regions due to cache invalidation delays. If you need the updated key state, use a subsequent call to `keys.getKey`.
 type KeysUpdateKeyResponseData = map[string]interface{}
 
+// KeysVerifyKeyCredits Controls credit consumption for usage-based billing and quota enforcement.
+// Omitting this field uses the default cost of 1 credit per verification.
+// Credits provide globally consistent usage tracking, essential for paid APIs with strict quotas.
+// Verification can succeed while credit deduction fails if the key has insufficient credits.
+type KeysVerifyKeyCredits struct {
+	// Cost Sets how many credits to deduct for this verification request.
+	// Use 0 for read-only operations or free tier access, higher values for premium features.
+	// Credits are deducted immediately upon verification, even if the key lacks required permissions.
+	// Essential for implementing usage-based pricing with different operation costs.
+	Cost int32 `json:"cost"`
+}
+
+// KeysVerifyKeyRatelimit defines model for KeysVerifyKeyRatelimit.
+type KeysVerifyKeyRatelimit struct {
+	// Cost Optionally override how expensive this operation is and how many tokens are deducted from the current limit.
+	Cost *int `json:"cost,omitempty"`
+
+	// Duration Optionally override the duration of the rate limit window duration.
+	Duration *int `json:"duration,omitempty"`
+
+	// Limit Optionally override the maximum number of requests allowed within the specified interval.
+	Limit *int `json:"limit,omitempty"`
+
+	// Name References an existing ratelimit by its name. Key Ratelimits will take precedence over identifier-based limits.
+	Name string `json:"name"`
+}
+
 // KeysVerifyKeyResponseData defines model for KeysVerifyKeyResponseData.
 type KeysVerifyKeyResponseData struct {
 	// Code A machine-readable code indicating the verification status or failure reason. Values: `VALID` (key is valid), `NOT_FOUND` (key doesn't exist), `FORBIDDEN` (key exists but belongs to a different API), `USAGE_EXCEEDED` (key has no more credits), `RATE_LIMITED` (key exceeded rate limits), `UNAUTHORIZED` (key can't be used for this action), `DISABLED` (key was explicitly disabled), `INSUFFICIENT_PERMISSIONS` (key lacks required permissions), `EXPIRED` (key has passed its expiration date).
@@ -332,11 +358,8 @@ type KeysVerifyKeyResponseData struct {
 	Enabled *bool `json:"enabled,omitempty"`
 
 	// Expires Unix timestamp (in milliseconds) when the key will expire. If null or not present, the key has no expiration. You can use this to warn users about upcoming expirations or to understand the validity period.
-	Expires *int64 `json:"expires,omitempty"`
-
-	// ExternalId Your user/tenant identifier that was associated with this key during creation. This allows you to connect the key back to your user without additional database lookups, making it ideal for implementing user-based authorization in stateless services.
-	ExternalId *string   `json:"externalId,omitempty"`
-	Identity   *Identity `json:"identity,omitempty"`
+	Expires  *int64    `json:"expires,omitempty"`
+	Identity *Identity `json:"identity,omitempty"`
 
 	// KeyId The unique identifier of the verified key in Unkey's system. Use this ID for operations like updating or revoking the key. This field is returned for both valid and invalid keys (except when `code=NOT_FOUND`).
 	KeyId *string `json:"keyId,omitempty"`
@@ -348,8 +371,8 @@ type KeysVerifyKeyResponseData struct {
 	Name *string `json:"name,omitempty"`
 
 	// Permissions A list of all permission names assigned to this key, either directly or through roles. These permissions determine what actions the key can perform. Only returned when permissions were checked during verification or when the key fails with `code=INSUFFICIENT_PERMISSIONS`.
-	Permissions *[]string            `json:"permissions,omitempty"`
-	Ratelimits  *[]RatelimitResponse `json:"ratelimits,omitempty"`
+	Permissions *[]string                 `json:"permissions,omitempty"`
+	Ratelimits  *[]VerifyKeyRatelimitData `json:"ratelimits,omitempty"`
 
 	// Roles A list of all role names assigned to this key. Roles are collections of permissions that grant access to specific functionality. Only returned when permissions were checked during verification.
 	Roles *[]string `json:"roles,omitempty"`
@@ -418,6 +441,9 @@ type Permission struct {
 	// Use clear, semantic names that reflect the resources or actions being permitted.
 	// Names must be unique within your workspace to avoid confusion and conflicts.
 	Name string `json:"name"`
+
+	// Slug The URL-safe identifier when this permission was created.
+	Slug string `json:"slug"`
 }
 
 // PermissionsCreatePermissionResponseData defines model for PermissionsCreatePermissionResponseData.
@@ -588,8 +614,7 @@ type RatelimitRequest struct {
 
 // RatelimitResponse defines model for RatelimitResponse.
 type RatelimitResponse struct {
-	// AutoApply Whether this rate limit should be automatically applied when verifying keys.
-	// When true, we will automatically apply this limit during verification without it being explicitly listed.
+	// AutoApply Whether this rate limit was automatically applied when verifying the key.
 	AutoApply bool `json:"autoApply"`
 
 	// Duration Rate limit window duration in milliseconds.
@@ -1579,7 +1604,7 @@ type V2KeysUpdateCreditsRequestBody struct {
 	// Key behaviors:
 	// - This completely replaces the current remaining credits value when operation is set to 'set'
 	// - To add credits, either replace the current value with the new value or increment the current value by a new value
-	// - To make a key unlimited, set remaining = null
+	// - To make a key unlimited, set value = null
 	// - To make a key with unlimited usage have a specific limit, set remaining to a positive number
 	// - If a decrement would result in a negative value, the remaining credits are set to zero
 	// - Credits are decremented each time the key is successfully verified (by the cost value, default 1)
@@ -1673,13 +1698,7 @@ type V2KeysVerifyKeyRequestBody struct {
 	// Omitting this field uses the default cost of 1 credit per verification.
 	// Credits provide globally consistent usage tracking, essential for paid APIs with strict quotas.
 	// Verification can succeed while credit deduction fails if the key has insufficient credits.
-	Credits *struct {
-		// Cost Sets how many credits to deduct for this verification request.
-		// Use 0 for read-only operations or free tier access, higher values for premium features.
-		// Credits are deducted immediately upon verification, even if the key lacks required permissions.
-		// Essential for implementing usage-based pricing with different operation costs.
-		Cost *int64 `json:"cost,omitempty"`
-	} `json:"credits,omitempty"`
+	Credits *KeysVerifyKeyCredits `json:"credits,omitempty"`
 
 	// Key The complete API key string provided by your user, including any prefix.
 	// Verification uses secure hashing algorithms without storing plaintext values.
@@ -1697,7 +1716,7 @@ type V2KeysVerifyKeyRequestBody struct {
 	// Omitting this field skips rate limit checks entirely, relying only on configured key rate limits.
 	// Multiple rate limits can be checked simultaneously, each with different costs and temporary overrides.
 	// Rate limit checks are optimized for performance but may allow brief bursts during high concurrency.
-	Ratelimits *[]RatelimitRequest `json:"ratelimits,omitempty"`
+	Ratelimits *[]KeysVerifyKeyRatelimit `json:"ratelimits,omitempty"`
 
 	// Tags Attaches metadata tags for analytics and monitoring without affecting verification outcomes.
 	// Enables segmentation of API usage in dashboards by endpoint, client version, region, or custom dimensions.
@@ -2027,7 +2046,14 @@ type V2RatelimitGetOverrideRequestBody struct {
 
 	// NamespaceName The name of the rate limit namespace. Either `namespaceId` or `namespaceName` must be provided, but not both. Using `namespaceName` is more human-readable and easier to work with for manual operations and configurations.
 	NamespaceName *string `json:"namespaceName,omitempty"`
+	union         json.RawMessage
 }
+
+// V2RatelimitGetOverrideRequestBody0 defines model for .
+type V2RatelimitGetOverrideRequestBody0 = interface{}
+
+// V2RatelimitGetOverrideRequestBody1 defines model for .
+type V2RatelimitGetOverrideRequestBody1 = interface{}
 
 // V2RatelimitGetOverrideResponseBody defines model for V2RatelimitGetOverrideResponseBody.
 type V2RatelimitGetOverrideResponseBody struct {
@@ -2184,6 +2210,34 @@ type ValidationError struct {
 
 	// Message Detailed error message explaining what validation rule was violated. This provides specific information about why the field or parameter was rejected, such as format errors, invalid values, or constraint violations.
 	Message string `json:"message"`
+}
+
+// VerifyKeyRatelimitData defines model for VerifyKeyRatelimitData.
+type VerifyKeyRatelimitData struct {
+	// AutoApply Whether this rate limit should be automatically applied when verifying keys.
+	// When true, we will automatically apply this limit during verification without it being explicitly listed.
+	AutoApply bool `json:"autoApply"`
+
+	// Duration Rate limit window duration in milliseconds.
+	Duration int64 `json:"duration"`
+
+	// Exceeded Whether the rate limit was exceeded.
+	Exceeded bool `json:"exceeded"`
+
+	// Id Unique identifier for this rate limit configuration.
+	Id string `json:"id"`
+
+	// Limit Maximum requests allowed within the time window.
+	Limit int64 `json:"limit"`
+
+	// Name Human-readable name for this rate limit.
+	Name string `json:"name"`
+
+	// Remaining Rate limit remaining requests within the time window.
+	Remaining int64 `json:"remaining"`
+
+	// Reset Rate limit reset duration in milliseconds.
+	Reset int64 `json:"reset"`
 }
 
 // CreateApiJSONRequestBody defines body for CreateApi for application/json ContentType.
@@ -2829,5 +2883,127 @@ func (t V2KeysVerifyKeyRequestBody_Permissions) MarshalJSON() ([]byte, error) {
 
 func (t *V2KeysVerifyKeyRequestBody_Permissions) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsV2RatelimitGetOverrideRequestBody0 returns the union data inside the V2RatelimitGetOverrideRequestBody as a V2RatelimitGetOverrideRequestBody0
+func (t V2RatelimitGetOverrideRequestBody) AsV2RatelimitGetOverrideRequestBody0() (V2RatelimitGetOverrideRequestBody0, error) {
+	var body V2RatelimitGetOverrideRequestBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2RatelimitGetOverrideRequestBody0 overwrites any union data inside the V2RatelimitGetOverrideRequestBody as the provided V2RatelimitGetOverrideRequestBody0
+func (t *V2RatelimitGetOverrideRequestBody) FromV2RatelimitGetOverrideRequestBody0(v V2RatelimitGetOverrideRequestBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2RatelimitGetOverrideRequestBody0 performs a merge with any union data inside the V2RatelimitGetOverrideRequestBody, using the provided V2RatelimitGetOverrideRequestBody0
+func (t *V2RatelimitGetOverrideRequestBody) MergeV2RatelimitGetOverrideRequestBody0(v V2RatelimitGetOverrideRequestBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsV2RatelimitGetOverrideRequestBody1 returns the union data inside the V2RatelimitGetOverrideRequestBody as a V2RatelimitGetOverrideRequestBody1
+func (t V2RatelimitGetOverrideRequestBody) AsV2RatelimitGetOverrideRequestBody1() (V2RatelimitGetOverrideRequestBody1, error) {
+	var body V2RatelimitGetOverrideRequestBody1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2RatelimitGetOverrideRequestBody1 overwrites any union data inside the V2RatelimitGetOverrideRequestBody as the provided V2RatelimitGetOverrideRequestBody1
+func (t *V2RatelimitGetOverrideRequestBody) FromV2RatelimitGetOverrideRequestBody1(v V2RatelimitGetOverrideRequestBody1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2RatelimitGetOverrideRequestBody1 performs a merge with any union data inside the V2RatelimitGetOverrideRequestBody, using the provided V2RatelimitGetOverrideRequestBody1
+func (t *V2RatelimitGetOverrideRequestBody) MergeV2RatelimitGetOverrideRequestBody1(v V2RatelimitGetOverrideRequestBody1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t V2RatelimitGetOverrideRequestBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	object["identifier"], err = json.Marshal(t.Identifier)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'identifier': %w", err)
+	}
+
+	if t.NamespaceId != nil {
+		object["namespaceId"], err = json.Marshal(t.NamespaceId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'namespaceId': %w", err)
+		}
+	}
+
+	if t.NamespaceName != nil {
+		object["namespaceName"], err = json.Marshal(t.NamespaceName)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'namespaceName': %w", err)
+		}
+	}
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *V2RatelimitGetOverrideRequestBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["identifier"]; found {
+		err = json.Unmarshal(raw, &t.Identifier)
+		if err != nil {
+			return fmt.Errorf("error reading 'identifier': %w", err)
+		}
+	}
+
+	if raw, found := object["namespaceId"]; found {
+		err = json.Unmarshal(raw, &t.NamespaceId)
+		if err != nil {
+			return fmt.Errorf("error reading 'namespaceId': %w", err)
+		}
+	}
+
+	if raw, found := object["namespaceName"]; found {
+		err = json.Unmarshal(raw, &t.NamespaceName)
+		if err != nil {
+			return fmt.Errorf("error reading 'namespaceName': %w", err)
+		}
+	}
+
 	return err
 }

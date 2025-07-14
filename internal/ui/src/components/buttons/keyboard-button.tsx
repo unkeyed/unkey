@@ -6,7 +6,7 @@ import { cn } from "../../lib/utils";
 
 type ModifierKey = "⌘" | "⇧" | "CTRL" | "⌥";
 
-interface KeyboardButtonProps extends ComponentProps<"div"> {
+interface KeyboardButtonProps extends ComponentProps<"span"> {
   shortcut: string;
   modifierKey?: ModifierKey | null;
 }
