@@ -14,7 +14,7 @@ type VersionListOptions struct {
 }
 
 // Version handles the version command and its subcommands
-func Version(ctx context.Context, args []string) error {
+func Version(ctx context.Context, args []string, env map[string]string) error {
 	if len(args) < 1 {
 		PrintVersionCommandHelp()
 		return fmt.Errorf("version command requires a subcommand")
@@ -23,7 +23,7 @@ func Version(ctx context.Context, args []string) error {
 	subcommand := args[0]
 	switch subcommand {
 	case "create":
-		return VersionCreate(ctx, args[1:])
+		return VersionCreate(ctx, args[1:], env)
 	case "list":
 		return VersionList(args[1:])
 	case "get":
@@ -38,8 +38,8 @@ func Version(ctx context.Context, args []string) error {
 }
 
 // VersionCreate handles version create (same as deploy)
-func VersionCreate(ctx context.Context, args []string) error {
-	opts, err := parseDeployFlags("version create", args)
+func VersionCreate(ctx context.Context, args []string, env map[string]string) error {
+	opts, err := parseDeployFlags("version create", args, env)
 	if err != nil {
 		return err
 	}

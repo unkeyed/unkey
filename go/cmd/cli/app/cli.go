@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/unkeyed/unkey/go/cmd/cli/commands"
 )
@@ -13,15 +14,22 @@ type CLI struct {
 	name    string
 	usage   string
 	version string
+	env     map[string]string
 }
 
 // New creates a new CLI instance
 func New(args []string, name, usage, version string) *CLI {
+	env := map[string]string{
+		"UNKEY_WORKSPACE_ID": os.Getenv("UNKEY_WORKSPACE_ID"),
+		"UNKEY_PROJECT_ID":   os.Getenv("UNKEY_PROJECT_ID"),
+	}
+
 	return &CLI{
 		args:    args,
 		name:    name,
 		usage:   usage,
 		version: version,
+		env:     env,
 	}
 }
 
@@ -35,11 +43,11 @@ func (c *CLI) Run(ctx context.Context) error {
 	command := c.args[1]
 	switch command {
 	case "init":
-		return commands.Init(c.args[2:])
+		return commands.Init(c.args[2:], c.env)
 	case "deploy":
-		return commands.Deploy(ctx, c.args[2:])
+		return commands.Deploy(ctx, c.args[2:], c.env)
 	case "version":
-		return commands.Version(ctx, c.args[2:])
+		return commands.Version(ctx, c.args[2:], c.env)
 	case "help", "-h", "--help":
 		return c.runHelp()
 	case "-v", "--version":
@@ -93,11 +101,19 @@ func (c *CLI) PrintUsage() {
 	fmt.Println("    -h, --help       Show help")
 	fmt.Println("    -v, --version    Show version")
 	fmt.Println("")
+	fmt.Println("ENVIRONMENT VARIABLES:")
+	fmt.Println("    UNKEY_WORKSPACE_ID    Workspace ID (can be overridden by --workspace-id)")
+	fmt.Println("    UNKEY_PROJECT_ID      Project ID (can be overridden by --project-id)")
+	fmt.Println("    UNKEY_API_KEY         API key for authentication")
+	fmt.Println("    UNKEY_BASE_URL        Base URL for API calls")
+	fmt.Println("")
 	fmt.Println("EXAMPLES:")
 	fmt.Printf("    %s help\n", c.name)
 	fmt.Printf("    %s help deploy\n", c.name)
 	fmt.Printf("    %s init\n", c.name)
 	fmt.Printf("    %s deploy --workspace-id=ws_123 --project-id=proj_456\n", c.name)
+	fmt.Printf("    UNKEY_WORKSPACE_ID=ws_123 %s deploy\n", c.name)
+	fmt.Printf("    UNKEY_WORKSPACE_ID=ws_123 UNKEY_PROJECT_ID=proj_456 %s deploy\n", c.name)
 	fmt.Println("")
 	fmt.Printf("For detailed help on a command, use '%s help <command>'\n", c.name)
 }

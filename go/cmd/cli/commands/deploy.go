@@ -20,8 +20,8 @@ type DeployOptions struct {
 }
 
 // Deploy handles the deploy command
-func Deploy(ctx context.Context, args []string) error {
-	opts, err := parseDeployFlags("deploy", args)
+func Deploy(ctx context.Context, args []string, env map[string]string) error {
+	opts, err := parseDeployFlags("deploy", args, env)
 	if err != nil {
 		return err
 	}
@@ -50,14 +50,16 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 }
 
 // parseDeployFlags parses flags for deploy/version create commands
-func parseDeployFlags(commandName string, args []string) (*DeployOptions, error) {
+func parseDeployFlags(commandName string, args []string, env map[string]string) (*DeployOptions, error) {
 	fs := flag.NewFlagSet(commandName, flag.ExitOnError)
-
 	opts := &DeployOptions{}
 
+	defaultWorkspaceID := env["UNKEY_WORKSPACE_ID"]
+	defaultProjectID := env["UNKEY_PROJECT_ID"]
+
 	// Required flags
-	fs.StringVar(&opts.WorkspaceID, "workspace-id", "", "Workspace ID (required)")
-	fs.StringVar(&opts.ProjectID, "project-id", "", "Project ID (required)")
+	fs.StringVar(&opts.WorkspaceID, "workspace-id", defaultWorkspaceID, "Workspace ID (required)")
+	fs.StringVar(&opts.ProjectID, "project-id", defaultProjectID, "Project ID (required)")
 
 	// Optional flags with defaults
 	fs.StringVar(&opts.Context, "context", ".", "Docker context path")
@@ -76,10 +78,10 @@ func parseDeployFlags(commandName string, args []string) (*DeployOptions, error)
 
 	// Validate required fields
 	if opts.WorkspaceID == "" {
-		return nil, fmt.Errorf("--workspace-id is required")
+		return nil, fmt.Errorf("--workspace-id is required (or set UNKEY_WORKSPACE_ID)")
 	}
 	if opts.ProjectID == "" {
-		return nil, fmt.Errorf("--project-id is required")
+		return nil, fmt.Errorf("--project-id is required (or set UNKEY_PROJECT_ID)")
 	}
 
 	return opts, nil

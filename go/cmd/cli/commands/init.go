@@ -5,7 +5,7 @@ import (
 )
 
 // Init handles the init command
-func Init(args []string) error {
+func Init(args []string, env map[string]string) error {
 	fmt.Println("Init command - config file support coming soon!")
 	fmt.Println("For now, use flags directly:")
 	fmt.Println("")
