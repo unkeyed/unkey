@@ -29,7 +29,6 @@ jobs:
 
   api_preview_test:
     needs:
-      - agent_staging_deployment
       - api_preview_deployment
     uses: ./.github/workflows/job_test_api_staging.yaml
     with:
@@ -51,7 +50,6 @@ jobs:
   api_canary_test:
     needs:
       - api_canary_deployment
-      - agent_production_deployment
     uses: ./.github/workflows/job_test_api_canary.yaml
     with:
       UNKEY_BASE_URL: https://canary.unkey.dev
@@ -64,7 +62,6 @@ jobs:
   api_production_deployment:
     needs:
       - api_canary_test
-      - agent_production_deployment
 
     uses: ./.github/workflows/job_deploy_api_production.yaml
     secrets:
@@ -121,7 +118,6 @@ jobs:
     needs:
       - changes
       - api_preview_test
-      - agent_staging_deployment
       - clickhouse_migration_preview
     uses: ./.github/workflows/job_clickhouse_migration_production.yaml
     secrets:
