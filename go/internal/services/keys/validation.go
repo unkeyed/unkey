@@ -26,7 +26,7 @@ func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
 	ctx, span := tracing.Start(ctx, "verify.withCredits")
 	defer span.End()
 
-	if !k.Valid {
+	if k.Status != StatusValid {
 		return nil
 	}
 
@@ -69,7 +69,7 @@ func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
 // withIPWhitelist validates that the client IP address is in the key's IP whitelist.
 // If no whitelist is configured, this validation is skipped.
 func (k *KeyVerifier) withIPWhitelist() error {
-	if !k.Valid {
+	if k.Status != StatusValid {
 		return nil
 	}
 
@@ -79,7 +79,6 @@ func (k *KeyVerifier) withIPWhitelist() error {
 
 	clientIP := k.session.Location()
 	if clientIP == "" {
-		k.Valid = false
 		k.Status = StatusForbidden
 		k.message = "client IP is required for IP whitelist validation"
 		return nil
@@ -98,7 +97,7 @@ func (k *KeyVerifier) withIPWhitelist() error {
 }
 
 func (k *KeyVerifier) WithApiID(apiID string) {
-	if !k.Valid {
+	if k.Status != StatusValid {
 		return
 	}
 
@@ -113,7 +112,7 @@ func (k *KeyVerifier) withPermissions(ctx context.Context, query rbac.Permission
 	ctx, span := tracing.Start(ctx, "verify.withPermissions")
 	defer span.End()
 
-	if !k.Valid {
+	if k.Status != StatusValid {
 		return nil
 	}
 
@@ -137,7 +136,7 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 	ctx, span := tracing.Start(ctx, "verify.withRateLimits")
 	defer span.End()
 
-	if !k.Valid {
+	if k.Status != StatusValid {
 		return nil
 	}
 

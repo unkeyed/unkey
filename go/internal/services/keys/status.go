@@ -28,10 +28,6 @@ const (
 // This method should only be called when k.Valid is false.
 // It provides structured error information that matches the API specification.
 func (k *KeyVerifier) ToFault() error {
-	if k.Valid {
-		return nil
-	}
-
 	switch k.Status {
 	case StatusValid:
 		return nil
@@ -156,5 +152,4 @@ func (k *KeyVerifier) ToOpenAPIStatus() openapi.KeysVerifyKeyResponseDataCode {
 func (k *KeyVerifier) setInvalid(status KeyStatus, message string) {
 	k.Status = status
 	k.message = message
-	k.Valid = false
 }

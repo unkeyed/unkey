@@ -36,7 +36,7 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 	}
 
 	// For root keys, convert validation failures to proper fault errors immediately
-	if !key.Valid {
+	if key.Status != StatusValid {
 		return nil, fault.Wrap(
 			key.ToFault(),
 			fault.Internal("invalid root key"),
@@ -67,7 +67,6 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		if db.IsNotFound(err) {
 			// nolint:exhaustruct
 			return &KeyVerifier{
-				Valid:   false,
 				Status:  StatusNotFound,
 				message: "key does not exist",
 			}, nil
@@ -84,7 +83,6 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 	if key.ForWorkspaceID.Valid && !key.ForWorkspaceEnabled.Valid {
 		// nolint:exhaustruct
 		return &KeyVerifier{
-			Valid:   false,
 			Status:  StatusWorkspaceNotFound,
 			message: "workspace not found",
 		}, nil
@@ -93,7 +91,6 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 	if !key.WorkspaceEnabled || (key.ForWorkspaceEnabled.Valid && !key.ForWorkspaceEnabled.Bool) {
 		// nolint:exhaustruct
 		return &KeyVerifier{
-			Valid:   false,
 			Status:  StatusWorkspaceDisabled,
 			message: "workspace is disabled",
 		}, nil
@@ -147,8 +144,8 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		logger:                s.logger,
 		message:               "",
 		isRootKey:             key.ForWorkspaceID.Valid,
+
 		// By default we assume the key is valid unless proven otherwise
-		Valid:            true,
 		Status:           StatusValid,
 		ratelimitConfigs: ratelimitConfigs,
 		Roles:            roles,

@@ -34,7 +34,6 @@ type KeyVerifier struct {
 	ratelimitConfigs      map[string]db.KeyFindForVerificationRatelimit // Rate limits configured for this key (name -> config)
 	Roles                 []string                                      // RBAC roles assigned to this key
 	Permissions           []string                                      // RBAC permissions assigned to this key
-	Valid                 bool                                          // Whether the key passed all validation checks
 	Status                KeyStatus                                     // The current validation status
 	AuthorizedWorkspaceID string                                        // The workspace ID this key is authorized for
 	RatelimitResults      map[string]RatelimitConfigAndResult           // Combined config and results for rate limits (name -> config+result)
@@ -58,7 +57,7 @@ func (k *KeyVerifier) GetRatelimitConfigs() map[string]db.KeyFindForVerification
 // For normal keys: returns error only for system problems, check k.Valid and k.Status for validation results.
 func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 	// Skip verification if key is already invalid
-	if !k.Valid {
+	if k.Status != StatusValid {
 		// For root keys, auto-return validation failures as fault errors
 		if k.isRootKey {
 			return k.ToFault()
@@ -119,15 +118,15 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 
 	// Emit Prometheus metrics for key verification
 	metrics.KeyVerificationsTotal.WithLabelValues(
-		k.AuthorizedWorkspaceID,     // workspaceId
-		k.Key.ApiID,                 // apiId
-		k.Key.ID,                    // keyId
-		strconv.FormatBool(k.Valid), // valid
-		string(k.Status),            // code
+		k.AuthorizedWorkspaceID, // workspaceId
+		k.Key.ApiID,             // apiId
+		k.Key.ID,                // keyId
+		strconv.FormatBool(k.Status == StatusValid), // valid
+		string(k.Status), // code
 	).Inc()
 
 	// For root keys, auto-return validation failures as fault errors
-	if k.isRootKey && !k.Valid {
+	if k.isRootKey && k.Status != StatusValid {
 		return k.ToFault()
 	}
 

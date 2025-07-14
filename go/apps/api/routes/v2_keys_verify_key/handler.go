@@ -147,7 +147,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// nolint:exhaustruct
 		Data: openapi.KeysVerifyKeyResponseData{
 			Code:        key.ToOpenAPIStatus(),
-			Valid:       key.Valid,
+			Valid:       key.Status == keys.StatusValid,
 			Enabled:     ptr.P(key.Key.Enabled),
 			Name:        ptr.P(key.Key.Name.String),
 			Permissions: ptr.P(key.Permissions),
