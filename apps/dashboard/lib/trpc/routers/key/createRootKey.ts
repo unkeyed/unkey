@@ -1,5 +1,5 @@
 import type { UnkeyAuditLog } from "@/lib/audit";
-import { db, eq, schema } from "@/lib/db";
+import { and, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
@@ -53,7 +53,6 @@ export const createRootKey = t.procedure
     }
 
     const keyId = newId("key");
-
     const { key, hash, start } = await newKey({
       prefix: "unkey",
       byteLength: 16,
@@ -102,13 +101,15 @@ export const createRootKey = t.procedure
         let identityId: string | undefined = undefined;
         await tx.query.identities
           .findFirst({
-            where: (table, { eq }) => eq(table.externalId, ctx.user.id),
+            where: (table, { eq }) =>
+              and(eq(table.workspaceId, ctx.workspace.id), eq(table.externalId, ctx.user.id)),
           })
           .then((res) => {
             if (res) {
               identityId = res.id;
             }
           });
+
         if (!identityId) {
           identityId = newId("identity");
           await tx.insert(schema.identities).values({
@@ -116,6 +117,7 @@ export const createRootKey = t.procedure
             workspaceId: ctx.workspace.id,
             externalId: ctx.user.id,
           });
+
           auditLogs.push({
             workspaceId: ctx.workspace.id,
             actor: { type: "user", id: ctx.user.id },
@@ -133,6 +135,7 @@ export const createRootKey = t.procedure
             },
           });
         }
+
         await tx.update(schema.keys).set({ identityId }).where(eq(schema.keys.id, keyId));
 
         const { permissions, auditLogs: createPermissionLogs } = await upsertPermissions(
@@ -140,8 +143,8 @@ export const createRootKey = t.procedure
           env().UNKEY_WORKSPACE_ID,
           input.permissions,
         );
-        auditLogs.push(...createPermissionLogs);
 
+        auditLogs.push(...createPermissionLogs);
         auditLogs.push(
           ...permissions.map((p) => ({
             workspaceId: ctx.workspace.id,
@@ -174,6 +177,7 @@ export const createRootKey = t.procedure
             workspaceId: env().UNKEY_WORKSPACE_ID,
           })),
         );
+
         await insertAuditLogs(tx, auditLogs);
       });
     } catch (_err) {
