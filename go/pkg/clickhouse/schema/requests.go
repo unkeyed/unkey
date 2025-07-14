@@ -64,7 +64,6 @@ type ApiRequestV1 struct {
 //
 // Fields are mapped to ClickHouse columns using the `ch` struct tags.
 type KeyVerificationRequestV1 struct {
-
 	// RequestID is a unique identifier for this verification request
 	RequestID string `ch:"request_id"`
 

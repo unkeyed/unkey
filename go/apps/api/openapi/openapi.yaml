@@ -1764,9 +1764,7 @@ components:
           example: 3600000
         autoApply:
           type: boolean
-          description: |
-            Whether this rate limit should be automatically applied when verifying keys.
-            When true, we will automatically apply this limit during verification without it being explicitly listed.
+          description: Whether this rate limit was automatically applied when verifying the key.
           example: true
       required:
         - id
@@ -1931,6 +1929,13 @@ components:
       required:
         - identifier
       type: object
+      oneOf:
+        - required:
+            - namespaceName
+            - identifier
+        - required:
+            - namespaceId
+            - identifier
     V2RatelimitGetOverrideResponseBody:
       type: object
       required:
@@ -2504,6 +2509,13 @@ components:
             Use clear, semantic names that reflect the resources or actions being permitted.
             Names must be unique within your workspace to avoid confusion and conflicts.
           example: "users.read"
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 512
+          description: |
+            The URL-safe identifier when this permission was created.
+          example: users-read
         description:
           type: string
           maxLength: 2048
@@ -2526,6 +2538,7 @@ components:
       required:
         - id
         - name
+        - slug
         - createdAt
       additionalProperties: false
     V2PermissionsCreatePermissionRequestBody:
@@ -3361,7 +3374,7 @@ components:
             - type: string
               minLength: 1
               maxLength: 100 # Keep permission names concise and readable
-              pattern: "^[a-zA-Z0-9_]+$"
+              pattern: "^[a-zA-Z0-9_.]+$"
               description: |
                 Checks if the key has this specific permission. Supports hierarchical permissions where
                 `documents.*` grants access to `documents.read` and `documents.write`.
@@ -3384,7 +3397,7 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 100 # Keep permission names concise and readable
-                    pattern: "^[a-zA-Z0-9_]+$"
+                    pattern: "^[a-zA-Z0-9_.]+$"
                   maxItems: 100 # Allow complex permission sets without performance degradation
                   minItems: 1
                   description: |
@@ -3402,36 +3415,67 @@ components:
             When provided, verification fails unless the key has the specified permissions through direct assignment or role inheritance.
             Essential for implementing fine-grained authorization in multi-tenant or privilege-separated APIs.
         credits:
-          type: object
-          properties:
-            cost:
-              type: integer
-              format: int64
-              minimum: 0
-              maximum: 1000 # Reasonable upper bound for operation costs
-              default: 1
-              description: |
-                Sets how many credits to deduct for this verification request.
-                Use 0 for read-only operations or free tier access, higher values for premium features.
-                Credits are deducted immediately upon verification, even if the key lacks required permissions.
-                Essential for implementing usage-based pricing with different operation costs.
-              example: 5
-          additionalProperties: false
-          description: |
-            Controls credit consumption for usage-based billing and quota enforcement.
-            Omitting this field uses the default cost of 1 credit per verification.
-            Credits provide globally consistent usage tracking, essential for paid APIs with strict quotas.
-            Verification can succeed while credit deduction fails if the key has insufficient credits.
+          "$ref": "#/components/schemas/KeysVerifyKeyCredits"
         ratelimits:
           type: array
           items:
-            "$ref": "#/components/schemas/RatelimitRequest"
+            "$ref": "#/components/schemas/KeysVerifyKeyRatelimit"
           description: |
             Enforces time-based rate limiting during verification to prevent abuse and ensure fair usage.
             Omitting this field skips rate limit checks entirely, relying only on configured key rate limits.
             Multiple rate limits can be checked simultaneously, each with different costs and temporary overrides.
             Rate limit checks are optimized for performance but may allow brief bursts during high concurrency.
       additionalProperties: false
+    KeysVerifyKeyCredits:
+      type: object
+      required:
+        - cost
+      properties:
+        cost:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 1000000000
+          description: |
+            Sets how many credits to deduct for this verification request.
+            Use 0 for read-only operations or free tier access, higher values for premium features.
+            Credits are deducted immediately upon verification, even if the key lacks required permissions.
+            Essential for implementing usage-based pricing with different operation costs.
+          example: 5
+      additionalProperties: false
+      description: |
+        Controls credit consumption for usage-based billing and quota enforcement.
+        Omitting this field uses the default cost of 1 credit per verification.
+        Credits provide globally consistent usage tracking, essential for paid APIs with strict quotas.
+        Verification can succeed while credit deduction fails if the key has insufficient credits.
+    KeysVerifyKeyRatelimit:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 255 # Reasonable upper bound for database identifiers
+          pattern: ""
+          description: References an existing ratelimit by its name. Key Ratelimits will take precedence over identifier-based limits.
+          example: tokens
+        cost:
+          type: integer
+          minimum: 0
+          default: 1
+          description: Optionally override how expensive this operation is and how many tokens are deducted from the current limit.
+          example: 2
+        limit:
+          type: integer
+          minimum: 0
+          description: Optionally override the maximum number of requests allowed within the specified interval.
+          example: 50
+        duration:
+          type: integer
+          minimum: 0
+          description: Optionally override the duration of the rate limit window duration.
+          example: 600000
     KeysVerifyKeyResponseData:
       type: object
       properties:
@@ -3449,7 +3493,6 @@ components:
             - FORBIDDEN
             - USAGE_EXCEEDED
             - RATE_LIMITED
-            - UNAUTHORIZED
             - DISABLED
             - INSUFFICIENT_PERMISSIONS
             - EXPIRED
@@ -3473,13 +3516,6 @@ components:
             The human-readable name assigned to this key during creation.
             This is useful for displaying in logs or admin interfaces to identify
             the key's purpose or owner.
-        externalId:
-          type: string
-          description:
-            Your user/tenant identifier that was associated with this key
-            during creation. This allows you to connect the key back to your user
-            without additional database lookups, making it ideal for implementing
-            user-based authorization in stateless services.
         meta:
           type: object
           additionalProperties: true
@@ -3536,14 +3572,75 @@ components:
         ratelimits:
           type: array
           items:
-            "$ref": "#/components/schemas/RatelimitResponse"
-            description:
-              Information about the rate limits applied during verification.
-              Only included when rate limits were checked. If verification failed with
-              `code=RATE_LIMITED`, this will show which specific rate limit was exceeded.
+            "$ref": "#/components/schemas/VerifyKeyRatelimitData"
+            description: The ratelimits that got checked
       required:
         - valid
         - code
+    VerifyKeyRatelimitData:
+      type: object
+      properties:
+        exceeded:
+          type: boolean
+          description: Whether the rate limit was exceeded.
+        id:
+          type: string
+          minLength: 8
+          maxLength: 255
+          pattern: "^rl_[a-zA-Z0-9_]+$"
+          description: Unique identifier for this rate limit configuration.
+          example: rl_1234567890abcdef
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+          description: Human-readable name for this rate limit.
+          example: api_requests
+        limit:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 1000000
+          description: Maximum requests allowed within the time window.
+          example: 1000
+        duration:
+          type: integer
+          format: int64
+          minimum: 1000
+          maximum: 2592000000
+          description: Rate limit window duration in milliseconds.
+          example: 3600000
+        reset:
+          type: integer
+          format: int64
+          minimum: 1000
+          maximum: 2592000000
+          description: Rate limit reset duration in milliseconds.
+          example: 3600000
+        remaining:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 1000000
+          description: Rate limit remaining requests within the time window.
+          example: 999
+        autoApply:
+          type: boolean
+          description: |
+            Whether this rate limit should be automatically applied when verifying keys.
+            When true, we will automatically apply this limit during verification without it being explicitly listed.
+          example: true
+      required:
+        - id
+        - exceeded
+        - name
+        - limit
+        - duration
+        - reset
+        - remaining
+        - autoApply
+      additionalProperties: false
     V2IdentitiesUpdateIdentityRequestBody:
       type: object
       properties:

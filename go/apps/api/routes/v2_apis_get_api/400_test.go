@@ -14,10 +14,9 @@ func TestGetApiInvalidRequest(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		Logger:      h.Logger,
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Permissions: h.Permissions,
+		Logger: h.Logger,
+		DB:     h.DB,
+		Keys:   h.Keys,
 	}
 
 	h.Register(route)
@@ -67,10 +66,6 @@ func TestGetApiInvalidRequest(t *testing.T) {
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.NotEmpty(t, res.Body.Error)
 	})
-
-	// We're unable to directly test invalid JSON types using CallRoute as Go's type system will prevent it
-
-	// We're unable to directly test non-JSON content using CallRoute
 
 	// Test with a valid apiId
 	t.Run("valid request", func(t *testing.T) {
