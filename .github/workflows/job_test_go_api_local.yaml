@@ -7,10 +7,6 @@ jobs:
     name: Test (Shard ${{ matrix.shard }})
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    strategy:
-      matrix:
-        shard: ["1/8", "2/8", "3/8", "4/8", "5/8", "6/8", "7/8", "8/8"]
-      fail-fast: true
     steps:
       - uses: actions/checkout@v4
 
@@ -24,7 +20,7 @@ jobs:
         run: make up
         working-directory: go
       - name: Test
-        run: go test -shuffle=on -timeout=60m $(go run ./scripts/shard-test ${{ matrix.shard }})
+        run: make test-full
         working-directory: go
         env:
           INTEGRATION_TEST: true
