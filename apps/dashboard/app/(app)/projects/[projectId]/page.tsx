@@ -59,7 +59,7 @@ interface Version {
   };
 }
 
-export default function BranchDetailPage(): JSX.Element {
+export default function ProjectDetailPage(): JSX.Element {
   const params = useParams();
   const projectId = params?.projectId as string;
   const [activeTab, setActiveTab] = useState<'overview' | 'branches' | 'versions' | 'settings'>('overview');
