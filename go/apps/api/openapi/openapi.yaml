@@ -223,6 +223,7 @@ components:
     KeysUpdateKeyResponseData:
       type: object
       properties: {}
+      additionalProperties: false
       description: Empty response object by design. A successful response indicates the key was updated successfully.
     V2KeysUpdateKeyResponseBody:
       type: object
@@ -265,6 +266,7 @@ components:
     KeysDeleteKeyResponseData:
       type: object
       properties: {}
+      additionalProperties: false
       description: Empty response object by design. A successful response indicates the key was deleted successfully.
     V2KeysDeleteKeyResponseBody:
       type: object
