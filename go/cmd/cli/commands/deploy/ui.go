@@ -19,13 +19,10 @@ var spinnerChars = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "�
 type UI struct {
 	mu       sync.Mutex
 	spinning bool
-	done     chan struct{}
 }
 
 func NewUI() *UI {
-	return &UI{
-		done: make(chan struct{}),
-	}
+	return &UI{}
 }
 
 func (ui *UI) Print(message string) {
@@ -76,20 +73,16 @@ func (ui *UI) StartSpinner(message string) {
 	go func() {
 		frame := 0
 		for {
-			select {
-			case <-ui.done:
-				return
-			default:
-				ui.mu.Lock()
-				if !ui.spinning {
-					ui.mu.Unlock()
-					return
-				}
-				fmt.Printf("\r%s %s", spinnerChars[frame%len(spinnerChars)], message)
+			ui.mu.Lock()
+			if !ui.spinning {
 				ui.mu.Unlock()
-				frame++
-				time.Sleep(100 * time.Millisecond)
+				return
 			}
+			fmt.Printf("\r%s %s", spinnerChars[frame%len(spinnerChars)], message)
+			ui.mu.Unlock()
+
+			frame++
+			time.Sleep(100 * time.Millisecond)
 		}
 	}()
 }

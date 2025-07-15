@@ -65,6 +65,7 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 	ui.Print("Preparing deployment")
 
 	var dockerImage string
+
 	if opts.DockerImage == "" {
 		if !isDockerAvailable() {
 			ui.PrintError("Docker not found - please install Docker")
@@ -73,11 +74,7 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 		}
 		imageTag := generateImageTag(opts, gitInfo)
 		dockerImage = fmt.Sprintf("%s:%s", opts.Registry, imageTag)
-	} else {
-		dockerImage = opts.DockerImage
-	}
 
-	if opts.DockerImage == "" {
 		ui.Print(fmt.Sprintf("Building image: %s", dockerImage))
 		if err := buildImage(ctx, opts, dockerImage); err != nil {
 			ui.PrintError("Docker build failed")
@@ -86,6 +83,7 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 		}
 		ui.PrintSuccess("Image built successfully")
 	} else {
+		dockerImage = opts.DockerImage
 		ui.Print("Using pre-built Docker image")
 	}
 

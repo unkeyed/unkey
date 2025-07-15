@@ -57,13 +57,13 @@ func classifyPushError(output, registry string) string {
 
 	switch {
 	case strings.Contains(output, "denied"):
-		return fmt.Sprintf("registry access denied. Try: docker login %s", registryHost)
+		return fmt.Sprintf("registry access denied. try: docker login %s", registryHost)
 
 	case strings.Contains(output, "not found") || strings.Contains(output, "404"):
-		return "registry not found. Create repository or use --registry=your-registry/your-app"
+		return "registry not found. create repository or use --registry=your-registry/your-app"
 
 	case strings.Contains(output, "unauthorized"):
-		return fmt.Sprintf("authentication required. Run: docker login %s", registryHost)
+		return fmt.Sprintf("authentication required. run: docker login %s", registryHost)
 
 	default:
 		return output
