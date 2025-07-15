@@ -45,7 +45,7 @@ func pushImage(ctx context.Context, dockerImage, registry string) error {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		detailedMsg := classifyPushError(string(output), registry)
-		return fmt.Errorf("%s", detailedMsg)
+		return fmt.Errorf("%s: %w", detailedMsg, err)
 	}
 	fmt.Printf("%s\n", string(output))
 	return nil

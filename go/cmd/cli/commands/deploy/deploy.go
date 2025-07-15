@@ -16,8 +16,6 @@ const DEBUG_DELAY = 250
 var (
 	ErrDockerNotFound    = errors.New("docker command not found - please install Docker")
 	ErrDockerBuildFailed = errors.New("docker build failed")
-	ErrDockerPushFailed  = errors.New("docker push failed")
-	ErrInvalidImageTag   = errors.New("invalid image tag generated")
 )
 
 type DeployOptions struct {
@@ -70,7 +68,8 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 	if opts.DockerImage == "" {
 		if !isDockerAvailable() {
 			ui.PrintError("Docker not found - please install Docker")
-			return ErrDockerNotFound
+			ui.PrintErrorDetails(ErrDockerNotFound.Error())
+			return nil
 		}
 		imageTag := generateImageTag(opts, gitInfo)
 		dockerImage = fmt.Sprintf("%s:%s", opts.Registry, imageTag)
@@ -82,7 +81,8 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 		ui.Print(fmt.Sprintf("Building image: %s", dockerImage))
 		if err := buildImage(ctx, opts, dockerImage); err != nil {
 			ui.PrintError("Docker build failed")
-			return err
+			ui.PrintErrorDetails(err.Error())
+			return nil
 		}
 		ui.PrintSuccess("Image built successfully")
 	} else {
@@ -107,7 +107,8 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 	versionId, err := controlPlane.CreateVersion(ctx, dockerImage)
 	if err != nil {
 		ui.PrintError("Failed to create version")
-		return err
+		ui.PrintErrorDetails(err.Error())
+		return nil
 	}
 
 	ui.PrintSuccess(fmt.Sprintf("Version created: %s", versionId))
