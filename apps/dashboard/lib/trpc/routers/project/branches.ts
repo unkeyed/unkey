@@ -37,6 +37,9 @@ export const listProjectBranches = t.procedure
           id: project.id,
           name: project.name,
           slug: project.slug,
+          gitRepositoryUrl: project.gitRepositoryUrl,
+          createdAt: project.createdAt,
+          updatedAt: project.updatedAt,
         },
         branches: branches.map((branch) => ({
           id: branch.id,
