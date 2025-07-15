@@ -1,35 +1,31 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
-import { useParams } from "next/navigation";
 import { useState } from "react";
+import { useParams } from "next/navigation";
 import { 
   FolderOpen,
   GitBranch, 
-  Calendar, 
-  ExternalLink, 
-  Github,
-  Search,
-  Filter,
-  Plus,
   ArrowLeft,
   Settings,
   Globe,
-  Code,
   Clock,
-  Users,
   Activity,
-  ChevronRight,
-  GitCommit,
   Tag,
   Eye,
   MoreVertical,
   Play,
-  Pause,
-  RotateCcw
+  RotateCcw,
+  Search,
+  Plus,
+  Github,
+  ExternalLink,
+  ChevronRight,
+  GitCommit
 } from "lucide-react";
 import { Button } from "@unkey/ui";
+import { trpc } from "@/lib/trpc/client";
 
+// Type definitions
 interface Project {
   id: string;
   name: string;
@@ -64,7 +60,6 @@ export default function ProjectDetailPage(): JSX.Element {
   const projectId = params?.projectId as string;
   const [activeTab, setActiveTab] = useState<'overview' | 'branches' | 'versions' | 'settings'>('overview');
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [selectedEnvironment, setSelectedEnvironment] = useState<string>("all");
 
   // Use your existing tRPC query structure
   const { data, isLoading, error } = trpc.project.branches.useQuery(
@@ -72,23 +67,20 @@ export default function ProjectDetailPage(): JSX.Element {
     { enabled: !!projectId }
   );
 
-  // You'll need additional queries for versions if you want the versions tab
-  // const { data: versionsData } = trpc.project.versions.useQuery(
-  //   { projectId },
-  //   { enabled: !!projectId }
-  // );
-
   // Handle invalid project ID
   if (!projectId) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-content mb-2">Invalid Project ID</h1>
           <p className="text-content-subtle mb-4">The project URL is malformed.</p>
-          <Button variant="outline">
-            <ArrowLeft className="w-4 h-4 mr-2" />
+          <a 
+            href="/projects"
+            className="inline-flex items-center gap-2 px-4 py-2 border border-border rounded-lg text-content hover:bg-background-subtle transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
             Back to Projects
-          </Button>
+          </a>
         </div>
       </div>
     );
@@ -112,12 +104,15 @@ export default function ProjectDetailPage(): JSX.Element {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-alert mb-2">Error Loading Project</h1>
-          <p className="text-content-subtle mb-4">Failed to load branches: {error.message}</p>
+          <p className="text-content-subtle mb-4">Failed to load project: {error.message}</p>
           <div className="flex gap-3 justify-center">
-            <Button variant="outline">
-              <ArrowLeft className="w-4 h-4 mr-2" />
+            <a 
+              href="/projects"
+              className="inline-flex items-center gap-2 px-4 py-2 border border-border rounded-lg text-content hover:bg-background-subtle transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
               Back to Projects
-            </Button>
+            </a>
             <Button variant="primary" onClick={() => window.location.reload()}>
               Try Again
             </Button>
@@ -134,10 +129,13 @@ export default function ProjectDetailPage(): JSX.Element {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-content mb-2">Project not found</h1>
           <p className="text-content-subtle mb-4">The project you're looking for doesn't exist.</p>
-          <Button variant="outline">
-            <ArrowLeft className="w-4 h-4 mr-2" />
+          <a 
+            href="/projects"
+            className="inline-flex items-center gap-2 px-4 py-2 border border-border rounded-lg text-content hover:bg-background-subtle transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
             Back to Projects
-          </Button>
+          </a>
         </div>
       </div>
     );
@@ -146,7 +144,7 @@ export default function ProjectDetailPage(): JSX.Element {
   const project = data.project;
   const branches = data.branches || [];
   
-  // Mock versions data - replace with actual tRPC call
+  // Mock versions data - replace with actual tRPC call when available
   const versions: Version[] = [];
 
   const filteredBranches = branches.filter((branch: Branch) =>
@@ -155,18 +153,17 @@ export default function ProjectDetailPage(): JSX.Element {
 
   const filteredVersions = versions.filter((version: Version) =>
     (version.gitBranch?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-     version.gitCommitSha?.toLowerCase().includes(searchTerm.toLowerCase())) &&
-    (selectedEnvironment === "all" || version.environment.name === selectedEnvironment)
+     version.gitCommitSha?.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const getStatusColor = (status: string): string => {
     switch (status) {
-      case 'active': return 'text-green-600 bg-green-50 border-green-200';
-      case 'deploying': return 'text-blue-600 bg-blue-50 border-blue-200';
-      case 'failed': return 'text-red-600 bg-red-50 border-red-200';
-      case 'pending': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      case 'archived': return 'text-gray-600 bg-gray-50 border-gray-200';
-      default: return 'text-gray-600 bg-gray-50 border-gray-200';
+      case 'active': return 'text-success bg-success/10 border-success/20';
+      case 'deploying': return 'text-warn bg-warn/10 border-warn/20';
+      case 'failed': return 'text-alert bg-alert/10 border-alert/20';
+      case 'pending': return 'text-warn bg-warn/10 border-warn/20';
+      case 'archived': return 'text-content-subtle bg-background-subtle border-border';
+      default: return 'text-content-subtle bg-background-subtle border-border';
     }
   };
 
@@ -176,10 +173,13 @@ export default function ProjectDetailPage(): JSX.Element {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="w-4 h-4 mr-2" />
+            <a 
+              href="/projects"
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-content-subtle hover:text-content transition-colors rounded-md hover:bg-background-subtle"
+            >
+              <ArrowLeft className="w-4 h-4" />
               Back to Projects
-            </Button>
+            </a>
           </div>
           
           <div className="flex items-center justify-between">
@@ -198,7 +198,7 @@ export default function ProjectDetailPage(): JSX.Element {
                       href={project.gitRepositoryUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-sm text-content-subtle hover:text-content"
+                      className="flex items-center gap-1 text-sm text-content-subtle hover:text-content transition-colors"
                     >
                       <Github className="w-4 h-4" />
                       Repository
@@ -252,47 +252,47 @@ export default function ProjectDetailPage(): JSX.Element {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Stats Cards */}
             <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-white p-6 rounded-lg border border-gray-200">
+              <div className="bg-white p-6 rounded-lg border border-border">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Total Branches</p>
-                    <p className="text-2xl font-bold text-gray-900">{branches.length}</p>
+                    <p className="text-sm font-medium text-content-subtle">Total Branches</p>
+                    <p className="text-2xl font-bold text-content">{branches.length}</p>
                   </div>
-                  <GitBranch className="w-8 h-8 text-blue-600" />
+                  <GitBranch className="w-8 h-8 text-brand" />
                 </div>
               </div>
               
-              <div className="bg-white p-6 rounded-lg border border-gray-200">
+              <div className="bg-white p-6 rounded-lg border border-border">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Total Versions</p>
-                    <p className="text-2xl font-bold text-gray-900">{versions.length}</p>
+                    <p className="text-sm font-medium text-content-subtle">Total Versions</p>
+                    <p className="text-2xl font-bold text-content">{versions.length}</p>
                   </div>
-                  <Tag className="w-8 h-8 text-green-600" />
+                  <Tag className="w-8 h-8 text-success" />
                 </div>
               </div>
               
-              <div className="bg-white p-6 rounded-lg border border-gray-200">
+              <div className="bg-white p-6 rounded-lg border border-border">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Active Deployments</p>
-                    <p className="text-2xl font-bold text-gray-900">
+                    <p className="text-sm font-medium text-content-subtle">Active Deployments</p>
+                    <p className="text-2xl font-bold text-content">
                       {versions.filter(v => v.status === 'active').length}
                     </p>
                   </div>
-                  <Globe className="w-8 h-8 text-purple-600" />
+                  <Globe className="w-8 h-8 text-brand" />
                 </div>
               </div>
               
-              <div className="bg-white p-6 rounded-lg border border-gray-200">
+              <div className="bg-white p-6 rounded-lg border border-border">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Last Updated</p>
-                    <p className="text-sm font-bold text-gray-900">
+                    <p className="text-sm font-medium text-content-subtle">Last Updated</p>
+                    <p className="text-sm font-bold text-content">
                       {new Date(project.updatedAt || project.createdAt).toLocaleDateString()}
                     </p>
                   </div>
-                  <Clock className="w-8 h-8 text-orange-600" />
+                  <Clock className="w-8 h-8 text-warn" />
                 </div>
               </div>
             </div>
@@ -303,22 +303,29 @@ export default function ProjectDetailPage(): JSX.Element {
               {branches.length > 0 ? (
                 <div className="space-y-4">
                   {branches.slice(0, 5).map((branch: Branch) => (
-                    <div key={branch.id} className="flex items-center justify-between p-3 bg-background-subtle rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <GitBranch className="w-4 h-4 text-content-subtle" />
-                        <div>
-                          <p className="font-medium text-content">{branch.name}</p>
-                          <p className="text-sm text-content-subtle">
-                            Created {new Date(branch.createdAt).toLocaleDateString()}
-                          </p>
+                    <a 
+                      key={branch.id} 
+                      href={`/projects/${projectId}/branches/${encodeURIComponent(branch.name)}`}
+                      className="block"
+                    >
+                      <div className="flex items-center justify-between p-3 bg-background-subtle rounded-lg hover:bg-border transition-colors">
+                        <div className="flex items-center gap-3">
+                          <GitBranch className="w-4 h-4 text-content-subtle" />
+                          <div>
+                            <p className="font-medium text-content">{branch.name}</p>
+                            <p className="text-sm text-content-subtle">
+                              Created {new Date(branch.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-content-subtle">
+                            {new Date(branch.updatedAt || branch.createdAt).toLocaleDateString()}
+                          </span>
+                          <ChevronRight className="w-4 h-4 text-content-subtle" />
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-content-subtle">
-                          {new Date(branch.updatedAt || branch.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
+                    </a>
                   ))}
                 </div>
               ) : (
@@ -330,22 +337,28 @@ export default function ProjectDetailPage(): JSX.Element {
             <div className="bg-white rounded-lg border border-border p-6">
               <h3 className="text-lg font-semibold text-content mb-4">Quick Actions</h3>
               <div className="space-y-3">
-                <Button variant="outline" size="md" className="w-full justify-start">
-                  <Play className="w-4 h-4 mr-2" />
-                  Deploy Latest
-                </Button>
+                <a href={`/projects/${projectId}/deploy`} className="block">
+                  <Button variant="outline" size="md" className="w-full justify-start">
+                    <Play className="w-4 h-4 mr-2" />
+                    Deploy Latest
+                  </Button>
+                </a>
                 <Button variant="outline" size="md" className="w-full justify-start">
                   <RotateCcw className="w-4 h-4 mr-2" />
                   Rollback
                 </Button>
-                <Button variant="outline" size="md" className="w-full justify-start">
-                  <Eye className="w-4 h-4 mr-2" />
-                  View Logs
-                </Button>
-                <Button variant="outline" size="md" className="w-full justify-start">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Configure
-                </Button>
+                <a href={`/projects/${projectId}/logs`} className="block">
+                  <Button variant="outline" size="md" className="w-full justify-start">
+                    <Eye className="w-4 h-4 mr-2" />
+                    View Logs
+                  </Button>
+                </a>
+                <a href={`/projects/${projectId}/settings`} className="block">
+                  <Button variant="outline" size="md" className="w-full justify-start">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Configure
+                  </Button>
+                </a>
               </div>
             </div>
           </div>
@@ -398,10 +411,15 @@ export default function ProjectDetailPage(): JSX.Element {
                     </div>
                     
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1">
-                        <Eye className="w-3 h-3 mr-1" />
-                        View
-                      </Button>
+                      <a 
+                        href={`/projects/${projectId}/branches/${encodeURIComponent(branch.name)}`}
+                        className="flex-1"
+                      >
+                        <Button variant="outline" size="sm" className="w-full">
+                          <Eye className="w-3 h-3 mr-1" />
+                          View
+                        </Button>
+                      </a>
                       <Button variant="primary" size="sm" className="flex-1">
                         <Play className="w-3 h-3 mr-1" />
                         Deploy
@@ -463,9 +481,11 @@ export default function ProjectDetailPage(): JSX.Element {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex items-center gap-2">
-                              <Button variant="ghost" size="sm">
-                                <Eye className="w-3 h-3" />
-                              </Button>
+                              <a href={`/projects/${projectId}/versions/${version.id}`}>
+                                <Button variant="ghost" size="sm">
+                                  <Eye className="w-3 h-3" />
+                                </Button>
+                              </a>
                               <Button variant="ghost" size="sm">
                                 <RotateCcw className="w-3 h-3" />
                               </Button>

@@ -88,8 +88,8 @@ interface BranchLinkingRule {
 // Mock data with static timestamps to avoid hydration issues
 const mockProject: Project = {
   id: "proj_123",
-  name: "API Gateway",
-  slug: "api-gateway"
+  name: "Meg's Demo",
+  slug: "megs-demo"
 };
 
 const mockBranch: Branch = {
@@ -121,7 +121,7 @@ const mockVersions: Version[] = [
     createdAt: 1721048400000, // Static timestamp
     updatedAt: 1721048400000, // Static timestamp
     buildDuration: 180,
-    deploymentUrl: "https://a1b2c3d-api-gateway.unkey.app"
+    deploymentUrl: "https://a1b2c3d-megs-demo.unkey.app"
   },
   {
     id: "ver_2",
