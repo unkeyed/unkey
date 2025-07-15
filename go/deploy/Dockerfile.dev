@@ -1,19 +1,24 @@
 # Dockerfile.dev - Development environment for all Unkey deploy services
 # Based on LOCAL_DEPLOYMENT_GUIDE.md for maximum production parity
 
-# Build stage - compile all services
-FROM fedora:42 AS builder
+# Install stage - install all dependencies once
+FROM fedora:42 AS install
 
-# Install development tools (following LOCAL_DEPLOYMENT_GUIDE.md)
+# Install all dependencies (dev tools + runtime deps + Docker CLI)
 RUN dnf install -y dnf-plugins-core && \
     dnf group install -y development-tools && \
-    dnf install -y git make golang curl wget iptables-legacy && \
+    dnf install -y git make golang curl wget iptables-legacy \
+        systemd systemd-devel procps-ng util-linux && \
+    dnf config-manager addrepo --from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo && \
+    dnf install -y docker-ce-cli && \
     dnf clean all
-    
 
 # Set up Go environment
 ENV GOPATH=/go
 ENV PATH=$PATH:/go/bin:/usr/local/go/bin
+
+# Base build stage with source code
+FROM install AS build-base
 
 # Copy source code
 COPY . /src/go
@@ -21,41 +26,28 @@ WORKDIR /src/go
 
 # Protobuf files are already generated in go/proto/ - no need to generate them again
 
-# Build all services directly using go build (protobufs already generated)
-# Go will download dependencies as needed during build
+# Build assetmanagerd
+FROM build-base AS build-assetmanagerd
 WORKDIR /src/go/deploy/assetmanagerd
 RUN go build -o assetmanagerd ./cmd/assetmanagerd
 
+# Build billaged
+FROM build-base AS build-billaged
 WORKDIR /src/go/deploy/billaged
 RUN go build -o billaged ./cmd/billaged
 
+# Build builderd
+FROM build-base AS build-builderd
 WORKDIR /src/go/deploy/builderd
 RUN go build -o builderd ./cmd/builderd
 
+# Build metald
+FROM build-base AS build-metald
 WORKDIR /src/go/deploy/metald
 RUN go build -o metald ./cmd/metald
 
-# Runtime stage - Fedora with systemd
-FROM fedora:42
-
-# Install runtime dependencies
-RUN dnf update -y && \
-    dnf install -y \
-        systemd \
-        systemd-devel \
-        iptables-legacy \
-        curl \
-        wget \
-        procps-ng \
-        util-linux \
-        && \
-    dnf clean all
-
-# Install Docker CLI for metald Docker backend
-RUN dnf install -y dnf-plugins-core && \
-    dnf config-manager addrepo --from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo && \
-    dnf install -y docker-ce-cli && \
-    dnf clean all
+# Runtime stage - reuse install stage (all deps already installed)
+FROM install AS runtime
 
 # Create billaged user (following systemd service requirements)
 RUN useradd -r -s /bin/false billaged
@@ -72,11 +64,11 @@ RUN mkdir -p /opt/assetmanagerd/{cache,data} && \
 # Set ownership for service directories
 RUN chown -R billaged:billaged /opt/billaged /var/log/billaged
 
-# Copy built binaries from builder stage
-COPY --from=builder /src/go/deploy/assetmanagerd/assetmanagerd /usr/local/bin/
-COPY --from=builder /src/go/deploy/billaged/billaged /usr/local/bin/
-COPY --from=builder /src/go/deploy/builderd/builderd /usr/local/bin/
-COPY --from=builder /src/go/deploy/metald/metald /usr/local/bin/
+# Copy built binaries from respective build stages
+COPY --from=build-assetmanagerd /src/go/deploy/assetmanagerd/assetmanagerd /usr/local/bin/
+COPY --from=build-billaged /src/go/deploy/billaged/billaged /usr/local/bin/
+COPY --from=build-builderd /src/go/deploy/builderd/builderd /usr/local/bin/
+COPY --from=build-metald /src/go/deploy/metald/metald /usr/local/bin/
 
 
 # Make binaries executable
@@ -217,7 +209,7 @@ LABEL org.unkey.component="deploy-services" \
 # AIDEV-NOTE: This Dockerfile follows the LOCAL_DEPLOYMENT_GUIDE.md as closely as possible
 # Key features:
 # 1. Uses Fedora 42 (production parity)
-# 2. Multi-stage build with development tools
+# 2. Multi-stage build with parallel service compilation for faster builds
 # 3. systemd as process manager
 # 4. All services built using existing Makefiles
 # 5. TLS disabled for development
