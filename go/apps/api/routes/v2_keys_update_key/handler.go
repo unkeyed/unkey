@@ -116,20 +116,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		// Prepare update parameters with three-state handling
 		update := db.UpdateKeyParams{
-			ID:                key.ID,
-			Now:               sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-			Name:              sql.NullString{Valid: false},
-			OwnerID:           sql.NullString{Valid: false},
-			IdentityID:        sql.NullString{Valid: false},
-			Enabled:           sql.NullBool{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
-			RefillAmount:      sql.NullInt32{Valid: false},
-			RefillDay:         sql.NullInt16{Valid: false},
+			ID:                         key.ID,
+			Now:                        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			NameSpecified:              0,
+			Name:                       sql.NullString{Valid: false},
+			IdentityIDSpecified:        0,
+			IdentityID:                 sql.NullString{Valid: false},
+			EnabledSpecified:           0,
+			Enabled:                    sql.NullBool{Valid: false},
+			MetaSpecified:              0,
+			Meta:                       sql.NullString{Valid: false},
+			ExpiresSpecified:           0,
+			Expires:                    sql.NullTime{Valid: false},
+			RemainingRequestsSpecified: 0,
+			RemainingRequests:          sql.NullInt32{Valid: false},
+			RefillAmountSpecified:      0,
+			RefillAmount:               sql.NullInt32{Valid: false},
+			RefillDaySpecified:         0,
+			RefillDay:                  sql.NullInt16{Valid: false},
 		}
 
 		if req.Name.IsSpecified() {
+			update.NameSpecified = 1
 			if req.Name.IsNull() {
 				update.Name = sql.NullString{Valid: false}
 			} else {
@@ -138,11 +146,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if req.ExternalId.IsSpecified() {
+			update.IdentityIDSpecified = 1
 			if req.ExternalId.IsNull() {
-				// Set identity_id to NULL to remove identity association
 				update.IdentityID = sql.NullString{Valid: false}
 			} else {
-				// Find or create identity by externalId
 				externalID := req.ExternalId.MustGet()
 
 				// Try to find existing identity
@@ -181,7 +188,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					}
 					update.IdentityID = sql.NullString{Valid: true, String: identityID}
 				} else {
-
 					// Use existing identity
 					update.IdentityID = sql.NullString{Valid: true, String: identity.ID}
 				}
@@ -189,10 +195,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if req.Enabled != nil {
+			update.EnabledSpecified = 1
 			update.Enabled = sql.NullBool{Valid: true, Bool: *req.Enabled}
 		}
 
 		if req.Meta.IsSpecified() {
+			update.MetaSpecified = 1
 			if req.Meta.IsNull() {
 				update.Meta = sql.NullString{Valid: false}
 			} else {
@@ -209,6 +217,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if req.Expires.IsSpecified() {
+			update.ExpiresSpecified = 1
 			if req.Expires.IsNull() {
 				update.Expires = sql.NullTime{Valid: false}
 			} else {
@@ -218,6 +227,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		if req.Credits != nil {
 			if req.Credits.Remaining.IsSpecified() {
+				update.RemainingRequestsSpecified = 1
 				if req.Credits.Remaining.IsNull() {
 					update.RemainingRequests = sql.NullInt32{Valid: false}
 				} else {
@@ -229,11 +239,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if req.Credits.Refill != nil {
+				update.RefillAmountSpecified = 1
 				update.RefillAmount = sql.NullInt32{
 					Valid: true,
 					Int32: int32(req.Credits.Refill.Amount), // nolint:gosec
 				}
 
+				update.RefillDaySpecified = 1
 				switch req.Credits.Refill.Interval {
 				case openapi.Monthly:
 					if req.Credits.Refill.RefillDay == nil {

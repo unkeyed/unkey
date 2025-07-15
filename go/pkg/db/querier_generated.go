@@ -1202,16 +1202,39 @@ type Querier interface {
 	//UpdateKey
 	//
 	//  UPDATE `keys` k SET
-	//  name = COALESCE(?, k.name),
-	//  owner_id = ?,
-	//  identity_id = ?,
-	//  enabled = COALESCE(?, k.enabled),
-	//  meta = COALESCE(?, k.meta),
-	//  expires = COALESCE(?, k.expires),
-	//  remaining_requests = COALESCE(?, k.remaining_requests),
-	//  refill_amount = COALESCE(?, k.refill_amount),
-	//  refill_day = COALESCE(?, k.refill_day),
-	//  updated_at_m = ?
+	//      name = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE k.name
+	//      END,
+	//      identity_id = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE k.identity_id
+	//      END,
+	//      enabled = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE k.enabled
+	//      END,
+	//      meta = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE k.meta
+	//      END,
+	//      expires = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE k.expires
+	//      END,
+	//      remaining_requests = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE k.remaining_requests
+	//      END,
+	//      refill_amount = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE k.refill_amount
+	//      END,
+	//      refill_day = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE k.refill_day
+	//      END,
+	//      updated_at_m = ?
 	//  WHERE id = ?
 	UpdateKey(ctx context.Context, db DBTX, arg UpdateKeyParams) error
 	//UpdateKeyCredits

@@ -128,7 +128,14 @@ func Test_UpdateKey_UpdateAllFields(t *testing.T) {
 	key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
 	require.NoError(t, err)
 	require.Equal(t, "newName", key.Name.String)
-	require.Equal(t, "newExternalId", key.OwnerID.String)
-	require.Equal(t, int64(100), key.RemainingRequests.Int32)
+	require.True(t, key.IdentityID.Valid, "Should have identity ID set")
+	require.Equal(t, int32(100), key.RemainingRequests.Int32)
 	require.Equal(t, int32(50), key.RefillAmount.Int32)
+
+	// Verify identity was created with correct external ID
+	identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+		ID: key.IdentityID.String,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "newExternalId", identity.ExternalID)
 }

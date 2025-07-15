@@ -12,57 +12,117 @@ import (
 
 const updateKey = `-- name: UpdateKey :exec
 UPDATE ` + "`" + `keys` + "`" + ` k SET
-name = COALESCE(?, k.name),
-owner_id = ?,
-identity_id = ?,
-enabled = COALESCE(?, k.enabled),
-meta = COALESCE(?, k.meta),
-expires = COALESCE(?, k.expires),
-remaining_requests = COALESCE(?, k.remaining_requests),
-refill_amount = COALESCE(?, k.refill_amount),
-refill_day = COALESCE(?, k.refill_day),
-updated_at_m = ?
+    name = CASE 
+        WHEN CAST(? AS UNSIGNED) = 1 THEN ? 
+        ELSE k.name 
+    END,
+    identity_id = CASE 
+        WHEN CAST(? AS UNSIGNED) = 1 THEN ? 
+        ELSE k.identity_id 
+    END,
+    enabled = CASE 
+        WHEN CAST(? AS UNSIGNED) = 1 THEN ? 
+        ELSE k.enabled 
+    END,
+    meta = CASE 
+        WHEN CAST(? AS UNSIGNED) = 1 THEN ? 
+        ELSE k.meta 
+    END,
+    expires = CASE 
+        WHEN CAST(? AS UNSIGNED) = 1 THEN ? 
+        ELSE k.expires 
+    END,
+    remaining_requests = CASE 
+        WHEN CAST(? AS UNSIGNED) = 1 THEN ? 
+        ELSE k.remaining_requests 
+    END,
+    refill_amount = CASE 
+        WHEN CAST(? AS UNSIGNED) = 1 THEN ? 
+        ELSE k.refill_amount 
+    END,
+    refill_day = CASE 
+        WHEN CAST(? AS UNSIGNED) = 1 THEN ? 
+        ELSE k.refill_day 
+    END,
+    updated_at_m = ?
 WHERE id = ?
 `
 
 type UpdateKeyParams struct {
-	Name              sql.NullString `db:"name"`
-	OwnerID           sql.NullString `db:"owner_id"`
-	IdentityID        sql.NullString `db:"identity_id"`
-	Enabled           sql.NullBool   `db:"enabled"`
-	Meta              sql.NullString `db:"meta"`
-	Expires           sql.NullTime   `db:"expires"`
-	RemainingRequests sql.NullInt32  `db:"remaining_requests"`
-	RefillAmount      sql.NullInt32  `db:"refill_amount"`
-	RefillDay         sql.NullInt16  `db:"refill_day"`
-	Now               sql.NullInt64  `db:"now"`
-	ID                string         `db:"id"`
+	NameSpecified              int64          `db:"name_specified"`
+	Name                       sql.NullString `db:"name"`
+	IdentityIDSpecified        int64          `db:"identity_id_specified"`
+	IdentityID                 sql.NullString `db:"identity_id"`
+	EnabledSpecified           int64          `db:"enabled_specified"`
+	Enabled                    sql.NullBool   `db:"enabled"`
+	MetaSpecified              int64          `db:"meta_specified"`
+	Meta                       sql.NullString `db:"meta"`
+	ExpiresSpecified           int64          `db:"expires_specified"`
+	Expires                    sql.NullTime   `db:"expires"`
+	RemainingRequestsSpecified int64          `db:"remaining_requests_specified"`
+	RemainingRequests          sql.NullInt32  `db:"remaining_requests"`
+	RefillAmountSpecified      int64          `db:"refill_amount_specified"`
+	RefillAmount               sql.NullInt32  `db:"refill_amount"`
+	RefillDaySpecified         int64          `db:"refill_day_specified"`
+	RefillDay                  sql.NullInt16  `db:"refill_day"`
+	Now                        sql.NullInt64  `db:"now"`
+	ID                         string         `db:"id"`
 }
 
 // UpdateKey
 //
 //	UPDATE `keys` k SET
-//	name = COALESCE(?, k.name),
-//	owner_id = ?,
-//	identity_id = ?,
-//	enabled = COALESCE(?, k.enabled),
-//	meta = COALESCE(?, k.meta),
-//	expires = COALESCE(?, k.expires),
-//	remaining_requests = COALESCE(?, k.remaining_requests),
-//	refill_amount = COALESCE(?, k.refill_amount),
-//	refill_day = COALESCE(?, k.refill_day),
-//	updated_at_m = ?
+//	    name = CASE
+//	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+//	        ELSE k.name
+//	    END,
+//	    identity_id = CASE
+//	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+//	        ELSE k.identity_id
+//	    END,
+//	    enabled = CASE
+//	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+//	        ELSE k.enabled
+//	    END,
+//	    meta = CASE
+//	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+//	        ELSE k.meta
+//	    END,
+//	    expires = CASE
+//	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+//	        ELSE k.expires
+//	    END,
+//	    remaining_requests = CASE
+//	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+//	        ELSE k.remaining_requests
+//	    END,
+//	    refill_amount = CASE
+//	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+//	        ELSE k.refill_amount
+//	    END,
+//	    refill_day = CASE
+//	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+//	        ELSE k.refill_day
+//	    END,
+//	    updated_at_m = ?
 //	WHERE id = ?
 func (q *Queries) UpdateKey(ctx context.Context, db DBTX, arg UpdateKeyParams) error {
 	_, err := db.ExecContext(ctx, updateKey,
+		arg.NameSpecified,
 		arg.Name,
-		arg.OwnerID,
+		arg.IdentityIDSpecified,
 		arg.IdentityID,
+		arg.EnabledSpecified,
 		arg.Enabled,
+		arg.MetaSpecified,
 		arg.Meta,
+		arg.ExpiresSpecified,
 		arg.Expires,
+		arg.RemainingRequestsSpecified,
 		arg.RemainingRequests,
+		arg.RefillAmountSpecified,
 		arg.RefillAmount,
+		arg.RefillDaySpecified,
 		arg.RefillDay,
 		arg.Now,
 		arg.ID,

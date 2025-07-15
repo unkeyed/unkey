@@ -134,9 +134,9 @@ components:
           example: key_2cGKbMxRyIzhCxo1Idjz8q
         name:
           type: string
-          nullable: true
           minLength: 1
-          maxLength: 200 # Human-readable names should be concise but descriptive
+          maxLength: 255
+          nullable: true
           description: |
             Sets a human-readable name for internal organization and identification.
             Omitting this field leaves the current name unchanged, while setting null removes it entirely.
@@ -146,7 +146,7 @@ components:
           type: string
           nullable: true
           minLength: 1
-          maxLength: 255 # Match database varchar limits for external identifiers
+          maxLength: 255
           pattern: "^[a-zA-Z0-9_.-]+$"
           description: |
             Links this key to a user or entity in your system for ownership tracking during verification.
@@ -165,19 +165,19 @@ components:
             Avoid storing sensitive data here as it's returned in verification responses.
             Large metadata objects increase verification latency and should stay under 10KB total size.
           example:
-          plan: enterprise
-          limits:
-          storage: 500GB
-          compute: 1000 minutes/month
-          features: [analytics, exports, webhooks]
-          hasAcceptedTerms: true
-          billing:
-          cycle: monthly
-          next_billing: "2024-01-15"
-          preferences:
-          timezone: "UTC"
-          notifications: true
-          lastBillingDate: "2023-10-15"
+            plan: enterprise
+            limits:
+              storage: 500GB
+              compute: 1000 minutes/month
+            features: [analytics, exports, webhooks]
+            hasAcceptedTerms: true
+            billing:
+              cycle: monthly
+              next_billing: "2024-01-15"
+            preferences:
+              timezone: "UTC"
+              notifications: true
+            lastBillingDate: "2023-10-15"
         expires:
           type: integer
           nullable: true
@@ -204,7 +204,7 @@ components:
           type: array
           maxItems: 50 # Reasonable limit for rate limit configurations per key
           items:
-          "$ref": "#/components/schemas/RatelimitRequest"
+            "$ref": "#/components/schemas/RatelimitRequest"
           description: |
             Defines time-based rate limits that protect against abuse by controlling request frequency.
             Omitting this field preserves existing rate limits, while setting null removes all rate limits.
