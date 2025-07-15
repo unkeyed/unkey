@@ -373,8 +373,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return db.Identity{}, err
 		}
 
-		// nolint:exhaustruct
-		return db.Identity{}, nil
+		return identity, nil
 	})
 	if err != nil {
 		return err
