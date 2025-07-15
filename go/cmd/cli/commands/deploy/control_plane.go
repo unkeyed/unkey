@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/unkeyed/unkey/go/cmd/cli/progress"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/go/pkg/codes"
@@ -17,6 +16,22 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
+// VersionStatusEvent represents a status change event
+type VersionStatusEvent struct {
+	VersionID      string
+	PreviousStatus ctrlv1.VersionStatus
+	CurrentStatus  ctrlv1.VersionStatus
+	Version        *ctrlv1.Version
+}
+
+// VersionStepEvent represents a step update event
+type VersionStepEvent struct {
+	VersionID string
+	Step      *ctrlv1.VersionStep
+	Status    ctrlv1.VersionStatus
+}
+
+// ControlPlaneClient handles API operations with the control plane
 type ControlPlaneClient struct {
 	client ctrlv1connect.VersionServiceClient
 	opts   *DeployOptions
@@ -75,8 +90,14 @@ func (c *ControlPlaneClient) GetVersion(ctx context.Context, versionId string) (
 	return getResp.Msg.GetVersion(), nil
 }
 
-// PollVersionStatus polls the control plane API and displays deployment steps as they occur
-func (c *ControlPlaneClient) PollVersionStatus(ctx context.Context, logger logging.Logger, versionId string, tracker *progress.Tracker) error {
+// PollVersionStatus polls for version changes and calls event handlers
+func (c *ControlPlaneClient) PollVersionStatus(
+	ctx context.Context,
+	logger logging.Logger,
+	versionId string,
+	onStatusChange func(VersionStatusEvent) error,
+	onStepUpdate func(VersionStepEvent) error,
+) error {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 	timeout := time.NewTimer(300 * time.Second)
@@ -91,10 +112,7 @@ func (c *ControlPlaneClient) PollVersionStatus(ctx context.Context, logger loggi
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-timeout.C:
-			if tracker != nil {
-				tracker.FailStep("activate", "deployment timeout after 5 minutes")
-			}
-			return fmt.Errorf("deployment timeout")
+			return fmt.Errorf("deployment timeout after 5 minutes")
 		case <-ticker.C:
 			version, err := c.GetVersion(ctx, versionId)
 			if err != nil {
@@ -106,14 +124,21 @@ func (c *ControlPlaneClient) PollVersionStatus(ctx context.Context, logger loggi
 
 			// Handle version status changes
 			if currentStatus != lastStatus {
-				if err := c.handleStatusTransition(tracker, lastStatus, currentStatus, version); err != nil {
+				event := VersionStatusEvent{
+					VersionID:      versionId,
+					PreviousStatus: lastStatus,
+					CurrentStatus:  currentStatus,
+					Version:        version,
+				}
+
+				if err := onStatusChange(event); err != nil {
 					return err
 				}
 				lastStatus = currentStatus
 			}
 
 			// Process new step updates
-			if err := c.processNewSteps(tracker, version.GetSteps(), processedSteps, currentStatus); err != nil {
+			if err := c.processNewSteps(versionId, version.GetSteps(), processedSteps, currentStatus, onStepUpdate); err != nil {
 				return err
 			}
 
@@ -125,49 +150,14 @@ func (c *ControlPlaneClient) PollVersionStatus(ctx context.Context, logger loggi
 	}
 }
 
-// handleStatusTransition handles version status changes and updates the tracker
-func (c *ControlPlaneClient) handleStatusTransition(tracker *progress.Tracker, lastStatus, currentStatus ctrlv1.VersionStatus, version *ctrlv1.Version) error {
-	if tracker == nil {
-		return nil // Gracefully handle nil tracker
-	}
-
-	switch currentStatus {
-	case ctrlv1.VersionStatus_VERSION_STATUS_PENDING:
-		tracker.UpdateStep("deploy", "Version queued and ready to start")
-
-	case ctrlv1.VersionStatus_VERSION_STATUS_BUILDING:
-		tracker.UpdateStep("deploy", "Building deployment image")
-
-	case ctrlv1.VersionStatus_VERSION_STATUS_DEPLOYING:
-		tracker.CompleteStep("deploy", "Deployment initiated")
-		tracker.StartStep("activate", "Deploying to unkey")
-
-	case ctrlv1.VersionStatus_VERSION_STATUS_ACTIVE:
-		if lastStatus == ctrlv1.VersionStatus_VERSION_STATUS_DEPLOYING {
-			tracker.CompleteStep("activate", "Version is now active")
-		} else {
-			tracker.CompleteStep("deploy", "Deployment completed")
-			tracker.CompleteStep("activate", "Version is now active")
-		}
-
-	case ctrlv1.VersionStatus_VERSION_STATUS_FAILED:
-		errorMsg := c.getFailureMessage(version)
-		if lastStatus == ctrlv1.VersionStatus_VERSION_STATUS_DEPLOYING {
-			tracker.FailStep("activate", errorMsg)
-		} else {
-			tracker.FailStep("deploy", errorMsg)
-		}
-		return fmt.Errorf("deployment failed: %s", errorMsg)
-	}
-	return nil
-}
-
-// processNewSteps processes new deployment steps and updates the tracker
-func (c *ControlPlaneClient) processNewSteps(tracker *progress.Tracker, steps []*ctrlv1.VersionStep, processedSteps map[int64]bool, currentStatus ctrlv1.VersionStatus) error {
-	if tracker == nil {
-		return nil // Gracefully handle nil tracker
-	}
-
+// processNewSteps processes new deployment steps and calls the event handler
+func (c *ControlPlaneClient) processNewSteps(
+	versionId string,
+	steps []*ctrlv1.VersionStep,
+	processedSteps map[int64]bool,
+	currentStatus ctrlv1.VersionStatus,
+	onStepUpdate func(VersionStepEvent) error,
+) error {
 	for _, step := range steps {
 		// Creation timestamp as unique identifier
 		stepTimestamp := step.GetCreatedAt()
@@ -178,32 +168,19 @@ func (c *ControlPlaneClient) processNewSteps(tracker *progress.Tracker, steps []
 
 		// Handle step errors first
 		if step.GetErrorMessage() != "" {
-			errorMsg := step.GetErrorMessage()
-			if currentStatus == ctrlv1.VersionStatus_VERSION_STATUS_DEPLOYING {
-				tracker.FailStep("activate", errorMsg)
-			} else {
-				tracker.FailStep("deploy", errorMsg)
-			}
-			return fmt.Errorf("deployment failed: %s", errorMsg)
+			return fmt.Errorf("deployment failed: %s", step.GetErrorMessage())
 		}
 
-		// Show step updates to user
+		// Call step update handler
 		if step.GetMessage() != "" {
-			message := step.GetMessage()
-
-			// Add status context if helpful
-			if step.GetStatus() != "" {
-				message = fmt.Sprintf("[%s] %s", step.GetStatus(), message)
+			event := VersionStepEvent{
+				VersionID: versionId,
+				Step:      step,
+				Status:    currentStatus,
 			}
 
-			switch currentStatus {
-			case ctrlv1.VersionStatus_VERSION_STATUS_BUILDING:
-				tracker.UpdateStep("deploy", message)
-			case ctrlv1.VersionStatus_VERSION_STATUS_DEPLOYING:
-				tracker.UpdateStep("activate", message)
-			default:
-				// For other statuses, show on deploy step
-				tracker.UpdateStep("deploy", message)
+			if err := onStepUpdate(event); err != nil {
+				return err
 			}
 		}
 

@@ -5,11 +5,17 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/unkeyed/unkey/go/cmd/cli/orchestrator"
+	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/git"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
+
+// INFO: I'll get rid of this in the following iterations now its required for debugging.
+// Don't judge my uppercase constant
+const DEBUG_DELAY = 1500
 
 var (
 	ErrDockerNotFound    = errors.New("docker command not found - please install Docker")
@@ -222,11 +228,74 @@ func (do *DeploymentOrchestrator) deployToUnkey(ctx context.Context) error {
 	do.SetState("versionId", versionId)
 	do.UpdateStepMessage("deploy", fmt.Sprintf("Version created: %s", versionId))
 
-	// Poll for completion - this will update the activate step
-	if err := do.controlPlane.PollVersionStatus(ctx, do.logger, versionId, do.GetTracker()); err != nil {
+	// Poll with event handlers
+	onStatusChange := func(event VersionStatusEvent) error {
+		return do.handleStatusChange(event)
+	}
+
+	onStepUpdate := func(event VersionStepEvent) error {
+		return do.handleStepUpdate(event)
+	}
+
+	if err := do.controlPlane.PollVersionStatus(ctx, do.logger, versionId, onStatusChange, onStepUpdate); err != nil {
 		return fmt.Errorf("deployment polling failed: %w", err)
 	}
 
+	return nil
+}
+
+func (do *DeploymentOrchestrator) handleStatusChange(event VersionStatusEvent) error {
+	tracker := do.GetTracker()
+
+	switch event.CurrentStatus {
+	case ctrlv1.VersionStatus_VERSION_STATUS_PENDING:
+		tracker.UpdateStep("deploy", "Version queued and ready to start")
+	case ctrlv1.VersionStatus_VERSION_STATUS_BUILDING:
+		tracker.UpdateStep("deploy", "Building deployment image")
+	case ctrlv1.VersionStatus_VERSION_STATUS_DEPLOYING:
+		tracker.CompleteStep("deploy", "Deployment initiated")
+		tracker.StartStep("activate", "Deploying to unkey")
+	case ctrlv1.VersionStatus_VERSION_STATUS_ACTIVE:
+		if event.PreviousStatus == ctrlv1.VersionStatus_VERSION_STATUS_DEPLOYING {
+			tracker.CompleteStep("activate", "Version is now active")
+		} else {
+			tracker.CompleteStep("deploy", "Deployment completed")
+			tracker.CompleteStep("activate", "Version is now active")
+		}
+	case ctrlv1.VersionStatus_VERSION_STATUS_FAILED:
+		errorMsg := do.controlPlane.getFailureMessage(event.Version)
+		if event.PreviousStatus == ctrlv1.VersionStatus_VERSION_STATUS_DEPLOYING {
+			tracker.FailStep("activate", errorMsg)
+		} else {
+			tracker.FailStep("deploy", errorMsg)
+		}
+		return fmt.Errorf("deployment failed: %s", errorMsg)
+	}
+
+	return nil
+}
+
+func (do *DeploymentOrchestrator) handleStepUpdate(event VersionStepEvent) error {
+	tracker := do.GetTracker()
+	message := event.Step.GetMessage()
+
+	// Add status context if helpful
+	if event.Step.GetStatus() != "" {
+		message = fmt.Sprintf("[%s] %s", event.Step.GetStatus(), message)
+	}
+
+	switch event.Status {
+	case ctrlv1.VersionStatus_VERSION_STATUS_BUILDING:
+		tracker.UpdateStep("deploy", message)
+	case ctrlv1.VersionStatus_VERSION_STATUS_DEPLOYING:
+		tracker.UpdateStep("activate", message)
+	default:
+		tracker.UpdateStep("deploy", message)
+	}
+
+	if DEBUG_DELAY > 0 {
+		time.Sleep(DEBUG_DELAY * time.Millisecond)
+	}
 	return nil
 }
 
