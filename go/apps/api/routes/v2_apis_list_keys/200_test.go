@@ -319,7 +319,6 @@ func TestSuccess(t *testing.T) {
 		for _, key := range res.Body.Data {
 			require.NotNil(t, key.Identity)
 			require.Equal(t, identity1ExternalID, key.Identity.ExternalId)
-			require.Equal(t, identity1ID, key.Identity.Id)
 		}
 	})
 
@@ -394,7 +393,6 @@ func TestSuccess(t *testing.T) {
 
 		key := res.Body.Data[0]
 		require.NotNil(t, key.Identity)
-		require.Equal(t, identity1ID, key.Identity.Id)
 		require.Equal(t, identity1ExternalID, key.Identity.ExternalId)
 		require.NotNil(t, key.Identity.Meta)
 

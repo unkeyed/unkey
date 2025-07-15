@@ -201,7 +201,7 @@ func (r *VMRepository) UpdateVMStateWithContext(ctx context.Context, vmID string
 		slog.Any("process_id", processID),
 	)
 	query := `
-		UPDATE vms 
+		UPDATE vms
 		SET state = ?, process_id = ?, updated_at = CURRENT_TIMESTAMP
 		WHERE id = ? AND deleted_at IS NULL
 	`
@@ -396,7 +396,7 @@ func (r *VMRepository) DeleteVMWithContext(ctx context.Context, vmID string) err
 		slog.String("vm_id", vmID),
 	)
 	query := `
-		UPDATE vms 
+		UPDATE vms
 		SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
 		WHERE id = ? AND deleted_at IS NULL
 	`
@@ -500,7 +500,7 @@ func (r *VMRepository) UpdateVMPortMappingsWithContext(ctx context.Context, vmID
 	)
 
 	query := `
-		UPDATE vms 
+		UPDATE vms
 		SET port_mappings = ?, updated_at = CURRENT_TIMESTAMP
 		WHERE id = ? AND deleted_at IS NULL
 	`
