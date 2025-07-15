@@ -144,42 +144,44 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			} else {
 				// Find or create identity by externalId
 				externalID := req.ExternalId.MustGet()
-				
+
 				// Try to find existing identity
 				identity, err := db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					ExternalID:  externalID,
 					Deleted:     false,
 				})
-				
+
 				if err != nil {
-					if db.IsNotFound(err) {
-						// Create new identity
-						identityID := uid.New(uid.IdentityPrefix)
-						err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
-							ID:          identityID,
-							ExternalID:  externalID,
-							WorkspaceID: auth.AuthorizedWorkspaceID,
-							Environment: "default",
-							CreatedAt:   time.Now().UnixMilli(),
-							Meta:        []byte("{}"),
-						})
-						if err != nil {
-							return fault.Wrap(err,
-								fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-								fault.Internal("failed to create identity"),
-								fault.Public("Failed to create identity."),
-							)
-						}
-						update.IdentityID = sql.NullString{Valid: true, String: identityID}
-					} else {
+					if !db.IsNotFound(err) {
 						return fault.Wrap(err,
 							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 							fault.Internal("failed to find identity"),
 							fault.Public("Failed to find identity."),
 						)
 					}
+
+					// Create new identity
+					identityID := uid.New(uid.IdentityPrefix)
+					err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
+						ID:          identityID,
+						ExternalID:  externalID,
+						WorkspaceID: auth.AuthorizedWorkspaceID,
+						Environment: "default",
+						CreatedAt:   time.Now().UnixMilli(),
+						Meta:        []byte("{}"),
+					})
+
+					if err != nil {
+						return fault.Wrap(err,
+							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+							fault.Internal("failed to create identity"),
+							fault.Public("Failed to create identity."),
+						)
+					}
+					update.IdentityID = sql.NullString{Valid: true, String: identityID}
 				} else {
+
 					// Use existing identity
 					update.IdentityID = sql.NullString{Valid: true, String: identity.ID}
 				}
@@ -232,7 +234,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					Int32: int32(req.Credits.Refill.Amount), // nolint:gosec
 				}
 
-				if req.Credits.Refill.Interval == openapi.Monthly {
+				switch req.Credits.Refill.Interval {
+				case openapi.Monthly:
 					if req.Credits.Refill.RefillDay == nil {
 						return fault.New("missing refillDay",
 							fault.Code(codes.App.Validation.InvalidInput.URN()),
@@ -240,11 +243,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 							fault.Public("`refillDay` must be provided when the refill interval is `monthly`."),
 						)
 					}
+
 					update.RefillDay = sql.NullInt16{
 						Valid: true,
 						Int16: int16(*req.Credits.Refill.RefillDay), // nolint:gosec
 					}
-				} else if req.Credits.Refill.Interval == openapi.Daily {
+				case openapi.Daily:
 					if req.Credits.Refill.RefillDay != nil {
 						return fault.New("invalid refillDay",
 							fault.Code(codes.App.Validation.InvalidInput.URN()),
@@ -270,7 +274,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		if req.Ratelimits != nil {
 			existingRatelimits, err := db.Query.ListRatelimitsByKeyID(ctx, tx, sql.NullString{String: key.ID, Valid: true})
-			if err != nil && err != sql.ErrNoRows {
+			if err != nil && !db.IsNotFound(err) {
 				return fault.Wrap(err,
 					fault.Internal("unable to fetch ratelimits"),
 					fault.Public("Failed to retrieve key ratelimits."),

@@ -255,12 +255,7 @@ components:
     KeysUpdateKeyResponseData:
       type: object
       properties: {}
-      description:
-        Empty response object by design. A successful response indicates
-        the key was updated successfully. The endpoint doesn't return the updated
-        key to reduce response size and avoid exposing sensitive information. Changes
-        may take up to 30 seconds to propagate to all regions due to cache invalidation
-        delays. If you need the updated key state, use a subsequent call to `keys.getKey`.
+      description: Empty response object by design. A successful response indicates the key was updated successfully.
     V2KeysUpdateKeyResponseBody:
       type: object
       required:
@@ -302,11 +297,7 @@ components:
     KeysDeleteKeyResponseData:
       type: object
       properties: {}
-      description: |
-        Confirms successful key deletion with no additional data returned.
-        Deletion immediately invalidates the key in the primary database but cache propagation across regions may take up to 30 seconds.
-        During this propagation window, some verification attempts might still succeed in certain regions due to eventual consistency.
-        Monitor your application logs during the propagation period to ensure no unexpected authentication successes occur.
+      description: Empty response object by design. A successful response indicates the key was deleted successfully.
     V2KeysDeleteKeyResponseBody:
       type: object
       required:
@@ -350,7 +341,6 @@ components:
             Never log, cache, or store API keys in your system as they provide full access to user resources.
             Include the full key exactly as provided - even minor modifications will cause a not found error.
           example: prefix_f4cc2d765275c206b7d76ff0e92e583067c4e33603fb4055d7ba3031cd7ce36a
-
       additionalProperties: false
       oneOf:
         - required:
@@ -1230,7 +1220,6 @@ components:
             - name: heavy_operations
               limit: 10
               duration: 3600000
-              async: false
         enabled:
           type: boolean
           default: true
@@ -1590,9 +1579,6 @@ components:
     Identity:
       type: object
       properties:
-        id:
-          type: string
-          description: Identity ID
         externalId:
           type: string
           description: External identity ID
@@ -1605,7 +1591,6 @@ components:
             "$ref": "#/components/schemas/RatelimitResponse"
           description: Identity ratelimits
       required:
-        - id
         - externalId
         - ratelimits
     KeyCreditsData:

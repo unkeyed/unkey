@@ -80,7 +80,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				return fault.New("duplicate ratelimit name",
 					fault.Code(codes.App.Validation.InvalidInput.URN()),
 					fault.Internal("duplicate ratelimit name"),
-					fault.Public(fmt.Sprintf("Ratelimit with name \"%s\" is already defined in the request", ratelimit.Name)),
+					fault.Public(fmt.Sprintf("Ratelimit with name %q is already defined in the request", ratelimit.Name)),
 				)
 			}
 			nameSet[ratelimit.Name] = true
@@ -127,26 +127,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	if identity.WorkspaceID != auth.AuthorizedWorkspaceID {
+		return fault.New("identity not found",
+			fault.Code(codes.Data.Identity.NotFound.URN()),
+			fault.Internal("wrong workspace, masking as 404"),
+			fault.Public("Identity not found in this workspace"),
+		)
+	}
+
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		var existingRatelimits []db.Ratelimit
 
-		// Verify workspace
-		if identity.WorkspaceID != auth.AuthorizedWorkspaceID {
-			return fault.New("identity not found",
-				fault.Code(codes.Data.Identity.NotFound.URN()),
-				fault.Internal("wrong workspace, masking as 404"), fault.Public("Identity not found in this workspace"),
-			)
-		}
-
-		// Get existing ratelimits
 		existingRatelimits, err = db.Query.ListIdentityRatelimitsByID(ctx, tx, sql.NullString{String: identity.ID, Valid: true})
-		if err != nil && err != sql.ErrNoRows {
+		if err != nil && !db.IsNotFound(err) {
 			return fault.Wrap(err,
 				fault.Internal("unable to fetch ratelimits"), fault.Public("We're unable to retrieve the identity's ratelimits."),
 			)
 		}
 
-		// Create the base audit log
 		auditLogs := []auditlog.AuditLog{
 			{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
@@ -170,12 +168,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			},
 		}
 
-		// Update metadata if provided
 		if req.Meta != nil {
 			err = db.Query.UpdateIdentity(ctx, tx, db.UpdateIdentityParams{
 				ID:   identity.ID,
 				Meta: metaBytes,
 			})
+
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Internal("unable to update metadata"), fault.Public("We're unable to update the identity's metadata."),
@@ -183,7 +181,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
-		// Handle ratelimits if provided
 		if req.Ratelimits != nil {
 			// Process ratelimits changes
 			// 1. Delete ratelimits that no longer exist
@@ -375,13 +372,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	updatedRatelimits, err := db.Query.ListIdentityRatelimitsByID(ctx, h.DB.RO(), sql.NullString{String: identity.ID, Valid: true})
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil && !db.IsNotFound(err) {
 		return fault.Wrap(err,
 			fault.Internal("unable to fetch updated ratelimits"), fault.Public("We were able to update the identity but unable to retrieve the updated ratelimits."),
 		)
 	}
 
-	// Format ratelimits for response
 	responseRatelimits := make([]openapi.RatelimitResponse, 0, len(updatedRatelimits))
 	for _, r := range updatedRatelimits {
 		responseRatelimits = append(responseRatelimits, openapi.RatelimitResponse{
@@ -393,28 +389,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 	}
 
-	// Parse metadata
-	var responseMeta *map[string]interface{}
-	if len(identity.Meta) > 0 {
-		err = json.Unmarshal(identity.Meta, &responseMeta)
-
-		if err != nil {
-			return fault.Wrap(
-				err,
-				fault.Internal("unable to unmarshal metadata"),
-				fault.Public("We're unable to parse the identity's metadata."),
-			)
-		}
-	}
-
-	// Build response
 	response := Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
 		Data: openapi.IdentitiesUpdateIdentityResponseData{
 			ExternalId: identity.ExternalID,
-			Meta:       responseMeta,
+			Meta:       req.Meta,
 			Ratelimits: &responseRatelimits,
 		},
 	}

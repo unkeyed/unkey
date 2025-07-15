@@ -95,7 +95,7 @@ func bootstrapProjectAction(ctx context.Context, cmd *cli.Command) error {
 	})
 	if err == nil {
 		return fmt.Errorf("project with slug '%s' already exists in workspace '%s'", projectSlug, workspaceID)
-	} else if err != sql.ErrNoRows {
+	} else if !db.IsNotFound(err) {
 		return fmt.Errorf("failed to check existing project: %w", err)
 	}
 

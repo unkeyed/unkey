@@ -395,7 +395,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if key.IdentityID.Valid {
 			k.Identity = &openapi.Identity{
 				ExternalId: key.ExternalID.String,
-				Id:         key.IdentityID.String,
 				Meta:       nil,
 				Ratelimits: nil,
 			}

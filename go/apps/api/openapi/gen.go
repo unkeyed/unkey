@@ -200,9 +200,6 @@ type Identity struct {
 	// ExternalId External identity ID
 	ExternalId string `json:"externalId"`
 
-	// Id Identity ID
-	Id string `json:"id"`
-
 	// Meta Identity metadata
 	Meta *map[string]interface{} `json:"meta,omitempty"`
 
@@ -294,13 +291,10 @@ type KeysCreateKeyResponseData struct {
 	KeyId string `json:"keyId"`
 }
 
-// KeysDeleteKeyResponseData Confirms successful key deletion with no additional data returned.
-// Deletion immediately invalidates the key in the primary database but cache propagation across regions may take up to 30 seconds.
-// During this propagation window, some verification attempts might still succeed in certain regions due to eventual consistency.
-// Monitor your application logs during the propagation period to ensure no unexpected authentication successes occur.
+// KeysDeleteKeyResponseData Empty response object by design. A successful response indicates the key was deleted successfully.
 type KeysDeleteKeyResponseData = map[string]interface{}
 
-// KeysUpdateKeyResponseData Empty response object by design. A successful response indicates the key was updated successfully. The endpoint doesn't return the updated key to reduce response size and avoid exposing sensitive information. Changes may take up to 30 seconds to propagate to all regions due to cache invalidation delays. If you need the updated key state, use a subsequent call to `keys.getKey`.
+// KeysUpdateKeyResponseData Empty response object by design. A successful response indicates the key was updated successfully.
 type KeysUpdateKeyResponseData = map[string]interface{}
 
 // KeysVerifyKeyCredits Controls credit consumption for usage-based billing and quota enforcement.
@@ -1177,10 +1171,7 @@ type V2KeysDeleteKeyRequestBody struct {
 
 // V2KeysDeleteKeyResponseBody defines model for V2KeysDeleteKeyResponseBody.
 type V2KeysDeleteKeyResponseBody struct {
-	// Data Confirms successful key deletion with no additional data returned.
-	// Deletion immediately invalidates the key in the primary database but cache propagation across regions may take up to 30 seconds.
-	// During this propagation window, some verification attempts might still succeed in certain regions due to eventual consistency.
-	// Monitor your application logs during the propagation period to ensure no unexpected authentication successes occur.
+	// Data Empty response object by design. A successful response indicates the key was deleted successfully.
 	Data *KeysDeleteKeyResponseData `json:"data,omitempty"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
@@ -1638,7 +1629,7 @@ type V2KeysUpdateKeyRequestBody struct {
 
 // V2KeysUpdateKeyResponseBody defines model for V2KeysUpdateKeyResponseBody.
 type V2KeysUpdateKeyResponseBody struct {
-	// Data Empty response object by design. A successful response indicates the key was updated successfully. The endpoint doesn't return the updated key to reduce response size and avoid exposing sensitive information. Changes may take up to 30 seconds to propagate to all regions due to cache invalidation delays. If you need the updated key state, use a subsequent call to `keys.getKey`.
+	// Data Empty response object by design. A successful response indicates the key was updated successfully.
 	Data *KeysUpdateKeyResponseData `json:"data,omitempty"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.

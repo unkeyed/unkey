@@ -53,9 +53,10 @@ func TestCrossWorkspaceForbidden(t *testing.T) {
 
 	// Create an identity in workspace B
 	identityB := uid.New(uid.IdentityPrefix)
+	externalID := "user_in_workspace_b"
 	err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
 		ID:          identityB,
-		ExternalID:  "user_in_workspace_b",
+		ExternalID:  externalID,
 		WorkspaceID: workspaceB,
 		Environment: "default",
 		CreatedAt:   time.Now().UnixMilli(),
@@ -78,9 +79,8 @@ func TestCrossWorkspaceForbidden(t *testing.T) {
 
 		// But we should not see any identities from workspace B in the results
 		for _, identity := range res.Body.Data {
-			require.NotEqual(t, identity.Id, identityB, "Identity from workspace B should not be accessible with key from workspace A")
+			require.NotEqual(t, identity.ExternalId, externalID, "Identity from workspace B should not be accessible with key from workspace A")
 		}
-
 	})
 
 }

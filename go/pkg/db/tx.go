@@ -124,12 +124,14 @@ func TxWithResult[T any](ctx context.Context, db *Replica, fn func(context.Conte
 	t, err = fn(ctx, tx)
 	if err != nil {
 		rollbackErr := tx.Rollback()
+
 		if rollbackErr != nil && rollbackErr != sql.ErrTxDone {
 			return t, fault.Wrap(rollbackErr,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database failed to rollback transaction"), fault.Public("Unable to rollback database transaction."),
 			)
 		}
+
 		return t, err
 	}
 
