@@ -11,16 +11,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 	backendtypes "github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
 	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -226,7 +223,7 @@ func (d *DockerBackend) BootVM(ctx context.Context, vmID string) error {
 	)
 
 	// Start container
-	if err := d.dockerClient.ContainerStart(ctx, vm.ContainerID, types.ContainerStartOptions{}); err != nil {
+	if err := d.dockerClient.ContainerStart(ctx, vm.ContainerID, container.StartOptions{}); err != nil {
 		span.RecordError(err)
 		d.vmErrorCounter.Add(ctx, 1, metric.WithAttributes(
 			attribute.String("operation", "boot"),
@@ -298,7 +295,7 @@ func (d *DockerBackend) DeleteVM(ctx context.Context, vmID string) error {
 	)
 
 	// Remove container (force remove)
-	if err := d.dockerClient.ContainerRemove(ctx, vm.ContainerID, types.ContainerRemoveOptions{
+	if err := d.dockerClient.ContainerRemove(ctx, vm.ContainerID, container.RemoveOptions{
 		Force: true,
 	}); err != nil {
 		span.RecordError(err)
@@ -355,8 +352,8 @@ func (d *DockerBackend) ShutdownVMWithOptions(ctx context.Context, vmID string, 
 	)
 
 	// Stop container
-	timeout := time.Duration(timeoutSeconds) * time.Second
-	if err := d.dockerClient.ContainerStop(ctx, vm.ContainerID, &timeout); err != nil {
+	timeoutInt := int(timeoutSeconds)
+	if err := d.dockerClient.ContainerStop(ctx, vm.ContainerID, container.StopOptions{Timeout: &timeoutInt}); err != nil {
 		span.RecordError(err)
 		return fmt.Errorf("failed to stop container: %w", err)
 	}
@@ -541,7 +538,7 @@ func (d *DockerBackend) GetVMMetrics(ctx context.Context, vmID string) (*backend
 	defer stats.Body.Close()
 
 	// Parse stats
-	var dockerStats types.StatsJSON
+	var dockerStats container.StatsResponse
 	if err := json.NewDecoder(stats.Body).Decode(&dockerStats); err != nil {
 		span.RecordError(err)
 		return nil, fmt.Errorf("failed to decode container stats: %w", err)
