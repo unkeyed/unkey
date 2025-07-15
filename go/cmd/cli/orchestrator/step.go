@@ -75,8 +75,8 @@ func (sb *StepBuilder) Optional() *StepBuilder {
 	return sb
 }
 
-// Build returns the constructed step
-func (sb *StepBuilder) Build() *Step {
+// Run returns the constructed step
+func (sb *StepBuilder) Run() *Step {
 	return sb.step
 }
 
@@ -86,5 +86,5 @@ func ConditionalStep(id, name string, fn StepFunc, skipIf func() bool, skipReaso
 		Execute(fn).
 		SkipIf(skipIf).
 		SkipReason(skipReason).
-		Build()
+		Run()
 }

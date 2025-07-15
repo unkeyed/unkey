@@ -97,7 +97,7 @@ func (do *DeploymentOrchestrator) buildPipeline() {
 			OnSuccess(func() string {
 				return do.buildSourceInfo(gitInfo)
 			}).
-			Build(),
+			Run(),
 
 		// Step 2: Prepare deployment environment
 		orchestrator.NewStep("prepare", "Preparing deployment").
@@ -111,7 +111,7 @@ func (do *DeploymentOrchestrator) buildPipeline() {
 				}
 				return fmt.Sprintf("Preparation failed: %v", err)
 			}).
-			Build(),
+			Run(),
 
 		// Step 3: Build Docker image (conditional)
 		orchestrator.ConditionalStep(
@@ -142,14 +142,14 @@ func (do *DeploymentOrchestrator) buildPipeline() {
 			OnError(func(err error) string {
 				return fmt.Sprintf("Deployment failed: %v", err)
 			}).
-			Build(),
+			Run(),
 
 		// Step 6: Activate version (managed by polling)
 		orchestrator.NewStep("activate", "Activating version").
 			Execute(func(ctx context.Context) error {
 				return nil // Managed by polling in deployToUnkey
 			}).
-			Build(),
+			Run(),
 
 		// Step 7: Generate completion summary
 		orchestrator.NewStep("complete", "Deployment summary").
@@ -160,7 +160,7 @@ func (do *DeploymentOrchestrator) buildPipeline() {
 			OnError(func(err error) string {
 				return "Failed to generate deployment summary"
 			}).
-			Build(),
+			Run(),
 	)
 }
 
