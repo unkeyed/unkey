@@ -6,6 +6,14 @@ import (
 	"time"
 )
 
+// Color constants
+const (
+	ColorReset  = "\033[0m"
+	ColorRed    = "\033[31m"
+	ColorGreen  = "\033[32m"
+	ColorYellow = "\033[33m"
+)
+
 var spinnerChars = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 
 type UI struct {
@@ -23,25 +31,37 @@ func NewUI() *UI {
 func (ui *UI) Print(message string) {
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
-	fmt.Printf("• %s\n", message)
+	fmt.Printf("%s•%s %s\n", ColorYellow, ColorReset, message)
 }
 
 func (ui *UI) PrintSuccess(message string) {
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
-	fmt.Printf("✓ %s\n", message)
+	fmt.Printf("%s✓%s %s\n", ColorGreen, ColorReset, message)
 }
 
 func (ui *UI) PrintError(message string) {
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
-	fmt.Printf("✗ %s\n", message)
+	fmt.Printf("%s✗%s %s\n", ColorRed, ColorReset, message)
 }
 
 func (ui *UI) PrintErrorDetails(message string) {
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
-	fmt.Printf("  -> %s\n", message)
+	fmt.Printf("  %s->%s %s\n", ColorRed, ColorReset, message)
+}
+
+func (ui *UI) PrintStepSuccess(message string) {
+	ui.mu.Lock()
+	defer ui.mu.Unlock()
+	fmt.Printf("  %s✓%s %s\n", ColorGreen, ColorReset, message)
+}
+
+func (ui *UI) PrintStepError(message string) {
+	ui.mu.Lock()
+	defer ui.mu.Unlock()
+	fmt.Printf("  %s✗%s %s\n", ColorRed, ColorReset, message)
 }
 
 func (ui *UI) StartSpinner(message string) {
@@ -65,10 +85,8 @@ func (ui *UI) StartSpinner(message string) {
 					ui.mu.Unlock()
 					return
 				}
-
 				fmt.Printf("\r%s %s", spinnerChars[frame%len(spinnerChars)], message)
 				ui.mu.Unlock()
-
 				frame++
 				time.Sleep(100 * time.Millisecond)
 			}
@@ -88,8 +106,8 @@ func (ui *UI) StopSpinner(finalMessage string, success bool) {
 	fmt.Print("\r\033[K")
 
 	if success {
-		fmt.Printf("✓ %s\n", finalMessage)
+		fmt.Printf("%s✓%s %s\n", ColorGreen, ColorReset, finalMessage)
 	} else {
-		fmt.Printf("✗ %s\n", finalMessage)
+		fmt.Printf("%s✗%s %s\n", ColorRed, ColorReset, finalMessage)
 	}
 }

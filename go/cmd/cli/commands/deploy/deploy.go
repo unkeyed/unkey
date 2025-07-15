@@ -157,13 +157,13 @@ func handleStepUpdate(event VersionStepEvent, ui *UI) error {
 	step := event.Step
 
 	if step.GetErrorMessage() != "" {
-		fmt.Printf("  ✗ %s\n", step.GetMessage())
-		fmt.Printf("    -> %s\n", step.GetErrorMessage())
+		ui.PrintStepError(step.GetMessage())
+		ui.PrintErrorDetails(step.GetErrorMessage())
 		return fmt.Errorf("deployment failed: %s", step.GetErrorMessage())
 	}
 
 	if step.GetMessage() != "" {
-		fmt.Printf("  ✓ %s\n", step.GetMessage())
+		ui.PrintStepSuccess(step.GetMessage())
 
 		if DEBUG_DELAY > 0 {
 			time.Sleep(DEBUG_DELAY * time.Millisecond)

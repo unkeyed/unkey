@@ -70,7 +70,6 @@ func classifyPushError(output, registry string) string {
 	}
 }
 
-// ## HELPERS
 func getRegistryHost(registry string) string {
 	parts := strings.Split(registry, "/")
 	if len(parts) > 0 {
