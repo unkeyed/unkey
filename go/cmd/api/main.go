@@ -213,7 +213,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		// Database configuration
 		DatabasePrimary:         cmd.String("database-primary"),
-		DatabaseReadonlyReplica: cmd.String("database-readonly-replica"),
+		DatabaseReadonlyReplica: cmd.String("database-replica"),
 
 		// ClickHouse
 		ClickhouseURL: cmd.String("clickhouse-url"),

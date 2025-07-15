@@ -140,7 +140,7 @@ func (r *VMRepository) GetVMWithContext(ctx context.Context, vmID string) (*VM, 
 	)
 
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if db.IsNotFound(err) {
 			r.logger.DebugContext(ctx, "VM not found",
 				slog.String("vm_id", vmID),
 			)

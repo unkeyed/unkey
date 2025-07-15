@@ -192,7 +192,7 @@ func (r *Registry) GetAsset(id string) (*assetv1.Asset, error) {
 		&asset.BuildId, &asset.SourceImage,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if db.IsNotFound(err) {
 			return nil, fmt.Errorf("asset not found: %s", id)
 		}
 		return nil, fmt.Errorf("failed to get asset: %w", err)
@@ -404,7 +404,7 @@ func (r *Registry) ReleaseLease(leaseID string) error {
 	var assetID string
 	err = tx.QueryRow("SELECT asset_id FROM asset_leases WHERE id = ?", leaseID).Scan(&assetID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if db.IsNotFound(err) {
 			return fmt.Errorf("lease not found: %s", leaseID)
 		}
 		return fmt.Errorf("failed to get lease: %w", err)

@@ -106,47 +106,14 @@ func TestSuccess(t *testing.T) {
 	err = tx.Commit()
 	require.NoError(t, err)
 
-	t.Run("update metadata by identityId", func(t *testing.T) {
-		newMeta := map[string]interface{}{
-			"name":    "Updated User",
-			"email":   "updated@example.com",
-			"plan":    "pro",
-			"credits": 100,
-		}
-
-		req := handler.Request{
-			IdentityId: &identityID,
-			Meta:       &newMeta,
-		}
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status, "expected 200, sent: %+v, received: %s", req, res.RawBody)
-		require.NotNil(t, res.Body)
-
-		// Verify response
-		require.Equal(t, identityID, res.Body.Data.Id)
-		require.Equal(t, externalID, res.Body.Data.ExternalId)
-
-		// Verify metadata
-		require.NotNil(t, res.Body.Data.Meta)
-		meta := *res.Body.Data.Meta
-		assert.Equal(t, "Updated User", meta["name"])
-		assert.Equal(t, "updated@example.com", meta["email"])
-		assert.Equal(t, "pro", meta["plan"])
-		assert.Equal(t, float64(100), meta["credits"])
-
-		// Verify ratelimits remain unchanged
-		require.NotNil(t, res.Body.Data.Ratelimits)
-		require.Len(t, *res.Body.Data.Ratelimits, 2)
-	})
-
-	t.Run("update metadata by externalId", func(t *testing.T) {
+	t.Run("update metadata", func(t *testing.T) {
 		newMeta := map[string]interface{}{
 			"joined": "2023-01-01",
 			"active": true,
 		}
 
 		req := handler.Request{
-			ExternalId: &otherExternalID,
+			ExternalId: otherExternalID,
 			Meta:       &newMeta,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -154,7 +121,6 @@ func TestSuccess(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		// Verify response
-		require.Equal(t, otherIdentityID, res.Body.Data.Id)
 		require.Equal(t, otherExternalID, res.Body.Data.ExternalId)
 
 		// Verify metadata
@@ -190,7 +156,7 @@ func TestSuccess(t *testing.T) {
 		}
 
 		req := handler.Request{
-			IdentityId: &identityID,
+			ExternalId: externalID,
 			Ratelimits: &ratelimits,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -198,7 +164,7 @@ func TestSuccess(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		// Verify response
-		require.Equal(t, identityID, res.Body.Data.Id)
+		require.Equal(t, externalID, res.Body.Data.ExternalId)
 
 		// Verify exactly 2 ratelimits (should have removed 'special_feature')
 		require.NotNil(t, res.Body.Data.Ratelimits)
@@ -237,7 +203,7 @@ func TestSuccess(t *testing.T) {
 		emptyRatelimits := []openapi.RatelimitRequest{}
 
 		req := handler.Request{
-			IdentityId: &identityID,
+			ExternalId: externalID,
 			Ratelimits: &emptyRatelimits,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -245,7 +211,7 @@ func TestSuccess(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		// Verify response
-		require.Equal(t, identityID, res.Body.Data.Id)
+		require.Equal(t, externalID, res.Body.Data.ExternalId)
 
 		// Verify no ratelimits
 		require.NotNil(t, res.Body.Data.Ratelimits)
@@ -257,7 +223,7 @@ func TestSuccess(t *testing.T) {
 		emptyMeta := map[string]interface{}{}
 
 		req := handler.Request{
-			IdentityId: &identityID,
+			ExternalId: externalID,
 			Meta:       &emptyMeta,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -265,7 +231,7 @@ func TestSuccess(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		// Verify response
-		require.Equal(t, identityID, res.Body.Data.Id)
+		require.Equal(t, externalID, res.Body.Data.ExternalId)
 
 		// Verify empty metadata
 		require.NotNil(t, res.Body.Data.Meta)
@@ -288,7 +254,7 @@ func TestSuccess(t *testing.T) {
 		}
 
 		req := handler.Request{
-			IdentityId: &identityID,
+			ExternalId: externalID,
 			Meta:       &newMeta,
 			Ratelimits: &ratelimits,
 		}

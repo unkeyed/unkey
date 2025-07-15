@@ -56,42 +56,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Parse request
-	req := Request{
-		ExternalId: nil,
-		IdentityId: nil,
-		Meta:       nil,
-		Ratelimits: nil,
-	}
-	err = s.BindBody(&req)
+	req, err := zen.BindBody[Request](s)
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
-		)
-	}
-
-	// Validate that at least one of identityID or externalID is provided
-	if req.IdentityId == nil && req.ExternalId == nil {
-		return fault.New("missing required field",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal("missing required field"), fault.Public("Provide either identityId or externalId"),
-		)
-	}
-
-	// Check permissions
-	var identityIdForPermissions string
-	if req.IdentityId != nil {
-		identityIdForPermissions = *req.IdentityId
+		return err
 	}
 
 	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Identity,
 			ResourceID:   "*",
-			Action:       rbac.UpdateIdentity,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Identity,
-			ResourceID:   identityIdForPermissions,
 			Action:       rbac.UpdateIdentity,
 		}),
 	)))
@@ -135,37 +108,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		// Get the identity
-		var identity db.Identity
-		var existingRatelimits []db.Ratelimit
-
-		if req.IdentityId != nil {
-			// Find by identity ID
-			identity, err = db.Query.FindIdentityByID(ctx, tx, db.FindIdentityByIDParams{
-				ID:      *req.IdentityId,
-				Deleted: false,
-			})
-		} else {
-			// Find by external ID
-			identity, err = db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
-				ExternalID:  *req.ExternalId,
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Deleted:     false,
-			})
-		}
-
-		if err != nil {
-			if err == sql.ErrNoRows {
-				return fault.New("identity not found",
-					fault.Code(codes.Data.Identity.NotFound.URN()),
-					fault.Internal("identity not found"), fault.Public("Identity not found in this workspace"),
-				)
-			}
-			return fault.Wrap(err,
-				fault.Internal("unable to find identity"), fault.Public("We're unable to retrieve the identity."),
+	// Find by external ID
+	identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
+		ExternalID:  req.ExternalId,
+		WorkspaceID: auth.AuthorizedWorkspaceID,
+		Deleted:     false,
+	})
+	if err != nil {
+		if db.IsNotFound(err) {
+			return fault.New("identity not found",
+				fault.Code(codes.Data.Identity.NotFound.URN()),
+				fault.Internal("identity not found"), fault.Public("Identity not found in this workspace"),
 			)
 		}
+
+		return fault.Wrap(err,
+			fault.Internal("unable to find identity"), fault.Public("We're unable to retrieve the identity."),
+		)
+	}
+
+	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		var existingRatelimits []db.Ratelimit
 
 		// Verify workspace
 		if identity.WorkspaceID != auth.AuthorizedWorkspaceID {
@@ -411,26 +374,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Get updated identity with ratelimits
-	var identity db.Identity
-	if req.IdentityId != nil {
-		identity, err = db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
-			ID:      *req.IdentityId,
-			Deleted: false,
-		})
-	} else {
-		identity, err = db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
-			ExternalID:  *req.ExternalId,
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Deleted:     false,
-		})
-	}
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Internal("unable to get updated identity"), fault.Public("We were able to update the identity but unable to retrieve the updated data."),
-		)
-	}
-
 	updatedRatelimits, err := db.Query.ListIdentityRatelimitsByID(ctx, h.DB.RO(), sql.NullString{String: identity.ID, Valid: true})
 	if err != nil && err != sql.ErrNoRows {
 		return fault.Wrap(err,
@@ -453,14 +396,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Parse metadata
 	var responseMeta *map[string]interface{}
 	if len(identity.Meta) > 0 {
-		metaMap := make(map[string]interface{})
-		err = json.Unmarshal(identity.Meta, &metaMap)
+		err = json.Unmarshal(identity.Meta, &responseMeta)
+
 		if err != nil {
-			return fault.Wrap(err,
-				fault.Internal("unable to unmarshal metadata"), fault.Public("We're unable to parse the identity's metadata."),
+			return fault.Wrap(
+				err,
+				fault.Internal("unable to unmarshal metadata"),
+				fault.Public("We're unable to parse the identity's metadata."),
 			)
 		}
-		responseMeta = &metaMap
 	}
 
 	// Build response
@@ -469,7 +413,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RequestId: s.RequestID(),
 		},
 		Data: openapi.IdentitiesUpdateIdentityResponseData{
-			Id:         identity.ID,
 			ExternalId: identity.ExternalID,
 			Meta:       responseMeta,
 			Ratelimits: &responseRatelimits,

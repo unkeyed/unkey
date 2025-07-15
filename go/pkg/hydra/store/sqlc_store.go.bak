@@ -279,7 +279,7 @@ func (s *sqlcStore) AcquireWorkflowLease(ctx context.Context, workflowID, namesp
 		Namespace: namespace,
 	})
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if db.IsNotFound(err {
 			return errors.New("workflow not found")
 		}
 		return err
@@ -342,7 +342,7 @@ func (s *sqlcStore) AcquireWorkflowLease(ctx context.Context, workflowID, namesp
 				return err
 			}
 		}
-	case err == sql.ErrNoRows:
+	case db.IsNotFound(err:
 		// Create new lease
 		err = txQueries.CreateLease(ctx, sqlcstore.CreateLeaseParams{
 			ResourceID:  workflowID,
@@ -526,7 +526,7 @@ func (s *sqlcStore) GetStep(ctx context.Context, namespace, executionID, stepNam
 
 	sqlcStep, err := s.queries.GetStep(ctx, params)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if db.IsNotFound(err {
 			return nil, ErrStepNotFound
 		}
 		return nil, err
@@ -560,7 +560,7 @@ func (s *sqlcStore) GetCompletedStep(ctx context.Context, namespace, executionID
 
 	sqlcStep, err := s.queries.GetCompletedStep(ctx, params)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if db.IsNotFound(err {
 			return nil, ErrStepNotFound
 		}
 		return nil, err
@@ -608,7 +608,7 @@ func (s *sqlcStore) UpsertCronJob(ctx context.Context, cronJob *CronJob) error {
 		Name:      cronJob.Name,
 	})
 
-	if err == sql.ErrNoRows {
+	if db.IsNotFound(err {
 		// Create new cron job
 		var lastRunAt sql.NullInt64
 		if cronJob.LastRunAt != nil {
@@ -657,7 +657,7 @@ func (s *sqlcStore) GetCronJob(ctx context.Context, namespace, name string) (*Cr
 
 	sqlcCronJob, err := s.queries.GetCronJob(ctx, params)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if db.IsNotFound(err {
 			return nil, errors.New("cron job not found")
 		}
 		return nil, err
@@ -802,7 +802,7 @@ func (s *sqlcStore) GetLease(ctx context.Context, resourceID string) (*Lease, er
 
 	sqlcLease, err := s.queries.GetLease(ctx, params)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if db.IsNotFound(err {
 			return nil, errors.New("lease not found")
 		}
 		return nil, err

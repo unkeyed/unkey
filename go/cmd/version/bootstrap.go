@@ -67,7 +67,7 @@ func bootstrapProjectAction(ctx context.Context, cmd *cli.Command) error {
 	// Create workspace if it doesn't exist
 	_, err = db.Query.FindWorkspaceByID(ctx, sqlDB, workspaceID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if db.IsNotFound(err) {
 			// Workspace doesn't exist, create it
 			fmt.Printf("📁 Creating workspace: %s\n", workspaceID)
 			now := time.Now().UnixMilli()

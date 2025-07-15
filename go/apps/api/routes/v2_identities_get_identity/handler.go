@@ -60,26 +60,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	result, err := db.TxWithResult(ctx, h.DB.RO(), func(ctx context.Context, tx db.DBTX) (IdentityResult, error) {
 		var identity db.Identity
 
-		// First try to get the identity
-		if req.IdentityId != nil {
-			// Find by IdentityId
-			identity, err = db.Query.FindIdentityByID(ctx, tx, db.FindIdentityByIDParams{
-				ID:      *req.IdentityId,
-				Deleted: false,
-			})
-		} else if req.ExternalId != nil {
-			// Find by ExternalId
-			identity, err = db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
-				ExternalID:  *req.ExternalId,
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Deleted:     false,
-			})
-		} else {
-			return IdentityResult{}, fault.New("invalid request",
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal("either identityId or externalId must be provided"), fault.Public("Either identityId or externalId must be provided."),
-			)
-		}
+		identity, err = db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
+			ExternalID:  req.ExternalId,
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+			Deleted:     false,
+		})
 
 		if err != nil {
 			if db.IsNotFound(err) {
@@ -161,7 +146,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RequestId: s.RequestID(),
 		},
 		Data: openapi.IdentitiesGetIdentityResponseData{
-			Id:         identity.ID,
 			ExternalId: identity.ExternalID,
 			Meta:       &metaMap,
 			Ratelimits: &responseRatelimits,

@@ -2,6 +2,7 @@ package zen
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -16,9 +17,37 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
 			err := next(ctx, s)
-
 			if err == nil {
 				return nil
+			}
+
+			// Handle context cancellation before processing other errors
+			if errors.Is(err, context.Canceled) {
+				// Client closed connection - return 499
+				return s.JSON(499, openapi.InternalServerErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+						Title:  "Client Closed Request",
+						Detail: "The client closed the connection before the request could be completed",
+						Status: 499,
+					},
+				})
+			}
+
+			if errors.Is(err, context.DeadlineExceeded) {
+				// Request timeout - return 408
+				return s.JSON(http.StatusRequestTimeout, openapi.InternalServerErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+						Title:  "Request Timeout",
+						Detail: "The request took too long to complete",
+						Status: http.StatusRequestTimeout,
+					},
+				})
 			}
 
 			// Get the error URN from the error
