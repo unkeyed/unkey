@@ -44,50 +44,34 @@ func pushImage(ctx context.Context, dockerImage, registry string) error {
 	cmd := exec.CommandContext(ctx, "docker", "push", dockerImage)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return classifyPushError(string(output), registry)
+		detailedMsg := classifyPushError(string(output), registry)
+		fmt.Printf("Docker push failed: %s\n", detailedMsg)
+		return fmt.Errorf("%s", detailedMsg)
 	}
-
 	fmt.Printf("%s\n", string(output))
 	return nil
 }
 
-func classifyPushError(output, registry string) error {
+func classifyPushError(output, registry string) string {
 	output = strings.TrimSpace(output)
 	registryHost := getRegistryHost(registry)
 
 	switch {
 	case strings.Contains(output, "denied"):
-		fmt.Printf("Docker push failed: Registry access denied\n")
-		fmt.Printf("  Registry: %s\n", registry)
-		fmt.Printf("  Solutions:\n")
-		fmt.Printf("  • Login: docker login %s\n", registryHost)
-		fmt.Printf("  • Use your own registry: --registry=your-registry/your-app\n")
-		fmt.Printf("  • Skip push: --skip-push\n")
-		return ErrDockerPushFailed
+		return fmt.Sprintf("registry access denied. Try: docker login %s", registryHost)
 
 	case strings.Contains(output, "not found") || strings.Contains(output, "404"):
-		fmt.Printf("Docker push failed: Registry not found\n")
-		fmt.Printf("  Registry: %s\n", registry)
-		fmt.Printf("  Solutions:\n")
-		fmt.Printf("  • Create repository first\n")
-		fmt.Printf("  • Use different registry: --registry=your-registry/your-app\n")
-		fmt.Printf("  • Skip push: --skip-push\n")
-		return ErrDockerPushFailed
+		return "registry not found. Create repository or use --registry=your-registry/your-app"
 
 	case strings.Contains(output, "unauthorized"):
-		fmt.Printf("Docker push failed: Authentication required\n")
-		fmt.Printf("  Run: docker login %s\n", registryHost)
-		fmt.Printf("  Or skip: --skip-push\n")
-		return ErrDockerPushFailed
+		return fmt.Sprintf("authentication required. Run: docker login %s", registryHost)
 
 	default:
-		fmt.Printf("Docker push failed: %s\n", output)
-		return ErrDockerPushFailed
+		return output
 	}
 }
 
 // ## HELPERS
-
 func getRegistryHost(registry string) string {
 	parts := strings.Split(registry, "/")
 	if len(parts) > 0 {

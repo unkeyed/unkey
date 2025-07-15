@@ -87,19 +87,26 @@ func (s *Step) Duration() time.Duration {
 
 // Tracker manages animated progress tracking
 type Tracker struct {
-	title     string
-	steps     map[string]*Step
-	stepOrder []string
-	animation animationState
-	done      chan struct{}
-	running   bool
-	mu        sync.RWMutex
-	options   TrackerOptions
+	title       string
+	steps       map[string]*Step
+	stepOrder   []string
+	animation   animationState
+	done        chan struct{}
+	running     bool
+	mu          sync.RWMutex
+	options     TrackerOptions
+	renderState renderState
+	firstRender bool
 }
 
 type animationState struct {
 	frame      int
 	lastUpdate time.Time
+}
+
+type renderState struct {
+	linesRendered int
+	lastContent   []string
 }
 
 // TrackerOptions configures the tracker behavior
@@ -134,12 +141,13 @@ func NewTracker(title string, opts ...TrackerOptions) *Tracker {
 	}
 
 	return &Tracker{
-		title:     title,
-		steps:     make(map[string]*Step),
-		stepOrder: make([]string, 0),
-		animation: animationState{lastUpdate: time.Now()},
-		done:      make(chan struct{}),
-		options:   options,
+		title:       title,
+		steps:       make(map[string]*Step),
+		stepOrder:   make([]string, 0),
+		animation:   animationState{lastUpdate: time.Now()},
+		done:        make(chan struct{}),
+		options:     options,
+		firstRender: true,
 	}
 }
 
@@ -253,6 +261,9 @@ func (t *Tracker) Start() {
 	t.running = true
 	t.mu.Unlock()
 
+	// Do initial render immediately to avoid race conditions
+	t.render(false)
+
 	go t.animationLoop()
 }
 
@@ -267,6 +278,12 @@ func (t *Tracker) Stop() {
 	t.mu.Unlock()
 
 	close(t.done)
+
+	// Wait a brief moment for the animation loop to finish
+	time.Sleep(50 * time.Millisecond)
+
+	// Ensure final state is rendered
+	t.render(true)
 }
 
 // animationLoop runs the animation updates
@@ -303,55 +320,82 @@ func (t *Tracker) updateAnimation() {
 	}
 }
 
-// render displays the current state
+// render displays the current state with minimal layout shift
 func (t *Tracker) render(final bool) {
-	if !final {
-		// Clear screen and move cursor to top for live updates
-		fmt.Print("\033[H\033[J")
+	// Build the complete content first
+	content := t.buildContent(final)
+
+	if t.firstRender {
+		// First render - just print everything
+		for _, line := range content {
+			fmt.Println(line)
+		}
+		t.firstRender = false
+		t.renderState.linesRendered = len(content)
+		t.renderState.lastContent = make([]string, len(content))
+		copy(t.renderState.lastContent, content)
+		return
 	}
+
+	// Update only changed lines
+	t.updateChangedLines(content)
+
+	// Store current content for next comparison
+	t.renderState.lastContent = make([]string, len(content))
+	copy(t.renderState.lastContent, content)
+}
+
+// buildContent builds the complete content as slice of lines
+func (t *Tracker) buildContent(final bool) []string {
+	var content []string
 
 	// Title
 	titleColor := t.color(ColorBlue)
-	fmt.Printf("%s%s%s\n", titleColor, t.title, t.colorReset())
+	content = append(content, fmt.Sprintf("%s%s%s", titleColor, t.title, t.colorReset()))
 
 	if !t.options.Compact {
-		fmt.Println(strings.Repeat("─", 50))
+		content = append(content, strings.Repeat("─", 50))
 	}
 
-	// Render steps
+	// Build step content
 	t.mu.RLock()
 	for _, stepID := range t.stepOrder {
 		step := t.steps[stepID]
-		t.renderStep(step, final)
+		stepLines := t.buildStepContent(step, final)
+		content = append(content, stepLines...)
 	}
 	t.mu.RUnlock()
 
-	fmt.Println()
+	content = append(content, "") // Empty line at the end
+
+	return content
 }
 
-// renderStep renders a single step
-func (t *Tracker) renderStep(step *Step, final bool) {
+// buildStepContent builds content for a single step
+func (t *Tracker) buildStepContent(step *Step, final bool) []string {
+	var lines []string
+
 	step.mu.RLock()
 	defer step.mu.RUnlock()
 
 	icon, color := t.getStepIcon(step, final)
 
 	// Step name with icon
-	fmt.Printf("%s %s%s%s", icon, color, step.Name, t.colorReset())
+	stepLine := fmt.Sprintf("%s %s%s%s", icon, color, step.Name, t.colorReset())
 
 	// Show elapsed time for running steps
 	if t.options.ShowElapsed && step.Status == StatusRunning && step.Active && !final {
 		elapsed := time.Since(step.StartTime).Truncate(time.Second)
-		fmt.Printf(" %s(%s)%s", t.color(ColorGray), elapsed, t.colorReset())
+		stepLine += fmt.Sprintf(" %s(%s)%s", t.color(ColorGray), elapsed, t.colorReset())
 	}
 
 	// Show duration for completed steps
 	if t.options.ShowDuration && step.Status == StatusCompleted && !step.EndTime.IsZero() {
 		duration := step.EndTime.Sub(step.StartTime).Truncate(time.Millisecond)
-		fmt.Printf(" %s(%s)%s", t.color(ColorGreen), duration, t.colorReset())
+		stepLine += fmt.Sprintf(" %s(%s)%s", t.color(ColorGreen), duration, t.colorReset())
 	}
 
-	fmt.Println()
+	lines = append(lines, stepLine)
 
 	// Show message
 	if step.Message != "" {
@@ -364,45 +408,56 @@ func (t *Tracker) renderStep(step *Step, final bool) {
 			message = message + dots
 		}
 
-		fmt.Printf("%s%s\n", indent, message)
+		lines = append(lines, fmt.Sprintf("%s%s", indent, message))
 	}
 
 	// Show progress bar if available
 	if t.options.ShowProgress && step.Progress > 0 && step.Status == StatusRunning {
-		t.renderProgressBar(step.Progress)
+		progressLine := t.buildProgressBar(step.Progress)
+		lines = append(lines, progressLine)
 	}
 
 	// Show error if present
 	if step.Error != "" {
-		fmt.Printf("  %sError: %s%s\n", t.color(ColorRed), step.Error, t.colorReset())
+		errorLine := fmt.Sprintf("  %s -> Error: %s%s", t.color(ColorRed), step.Error, t.colorReset())
+		lines = append(lines, errorLine)
 	}
+
+	return lines
 }
 
-// getStepIcon returns the appropriate icon and color for a step
+// updateChangedLines updates only the lines that have changed
+func (t *Tracker) updateChangedLines(newContent []string) {
+	maxLines := max(len(t.renderState.lastContent), len(newContent))
 
-func (t *Tracker) getStepIcon(step *Step, final bool) (string, string) {
-	switch step.Status {
-	case StatusPending:
-		return t.colorize("[ ]", ColorYellow), t.color(ColorYellow)
-	case StatusRunning:
-		if step.Active && !final {
-			char := SpinnerChars[t.animation.frame%len(SpinnerChars)]
-			return t.colorize(char, ColorCyan), t.color(ColorCyan)
+	for i := range maxLines {
+		var newLine, oldLine string
+
+		if i < len(newContent) {
+			newLine = newContent[i]
 		}
-		return t.colorize("[*]", ColorCyan), t.color(ColorCyan)
-	case StatusCompleted:
-		return t.colorize("[✔]", ColorGreen), t.color(ColorGreen)
-	case StatusFailed:
-		return t.colorize("[✘]", ColorRed), t.color(ColorRed)
-	case StatusSkipped:
-		return t.colorize("[-]", ColorGray), t.color(ColorGray)
-	default:
-		return t.colorize("[ ]", ColorYellow), t.color(ColorYellow)
+		if i < len(t.renderState.lastContent) {
+			oldLine = t.renderState.lastContent[i]
+		}
+
+		if newLine != oldLine {
+			// Move cursor to the line and clear it
+			fmt.Printf("\033[%d;1H\033[K%s", i+1, newLine)
+		}
 	}
+
+	// If we have fewer lines now, clear the remaining ones
+	if len(newContent) < len(t.renderState.lastContent) {
+		for i := len(newContent); i < len(t.renderState.lastContent); i++ {
+			fmt.Printf("\033[%d;1H\033[K", i+1)
+		}
+	}
+
+	t.renderState.linesRendered = len(newContent)
 }
 
-// renderProgressBar renders a progress bar
-func (t *Tracker) renderProgressBar(progress float64) {
+// buildProgressBar builds a progress bar string
+func (t *Tracker) buildProgressBar(progress float64) string {
 	if progress < 0 {
 		progress = 0
 	}
@@ -415,12 +470,34 @@ func (t *Tracker) renderProgressBar(progress float64) {
 	bar := strings.Repeat("█", filled) + strings.Repeat("░", width-filled)
 	percentage := int(progress * 100)
 
-	fmt.Printf("  %s[%s%s%s] %d%%\n",
+	return fmt.Sprintf("  %s[%s%s%s] %d%%",
 		t.color(ColorCyan),
 		t.color(ColorGreen),
 		bar,
 		t.colorReset(),
 		percentage)
+}
+
+// getStepIcon returns the appropriate icon and color for a step
+func (t *Tracker) getStepIcon(step *Step, final bool) (string, string) {
+	switch step.Status {
+	case StatusPending:
+		return t.colorize("○", ColorYellow), t.color(ColorYellow)
+	case StatusRunning:
+		if step.Active && !final {
+			char := SpinnerChars[t.animation.frame%len(SpinnerChars)]
+			return t.colorize(char, ColorCyan), t.color(ColorCyan)
+		}
+		return t.colorize("●", ColorCyan), t.color(ColorCyan)
+	case StatusCompleted:
+		return t.colorize("✓", ColorGreen), t.color(ColorGreen)
+	case StatusFailed:
+		return t.colorize("✗", ColorRed), t.color(ColorRed)
+	case StatusSkipped:
+		return t.colorize("⊘", ColorGray), t.color(ColorGray)
+	default:
+		return t.colorize("○", ColorYellow), t.color(ColorYellow)
+	}
 }
 
 // renderFinalState shows the final state
@@ -432,7 +509,10 @@ func (t *Tracker) renderFinalState() {
 	t.mu.RLock()
 	for _, stepID := range t.stepOrder {
 		step := t.steps[stepID]
-		t.renderStep(step, true)
+		stepLines := t.buildStepContent(step, true)
+		for _, line := range stepLines {
+			fmt.Println(line)
+		}
 	}
 	t.mu.RUnlock()
 

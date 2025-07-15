@@ -19,23 +19,22 @@ func pollVersionStatus(ctx context.Context, logger logging.Logger, client ctrlv1
 	timeout := time.NewTimer(300 * time.Second)
 	defer timeout.Stop()
 
-	processedSteps := make(map[string]bool)
+	// Track processed steps by creation time to avoid duplicates
+	processedSteps := make(map[int64]bool)
 	lastStatus := ctrlv1.VersionStatus_VERSION_STATUS_UNSPECIFIED
-	deployStepStarted := false
 
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-timeout.C:
-			tracker.FailStep("activate", "Deployment timeout after 5 minutes")
+			tracker.FailStep("activate", "deployment timeout after 5 minutes")
 			return fmt.Errorf("deployment timeout")
 		case <-ticker.C:
 			getReq := connect.NewRequest(&ctrlv1.GetVersionRequest{
 				VersionId: versionId,
 			})
 			getReq.Header().Set("Authorization", "Bearer "+authToken)
-
 			getResp, err := client.GetVersion(ctx, getReq)
 			if err != nil {
 				logger.Debug("Failed to get version status", "error", err, "version_id", versionId)
@@ -47,83 +46,99 @@ func pollVersionStatus(ctx context.Context, logger logging.Logger, client ctrlv1
 
 			// Handle version status changes
 			if currentStatus != lastStatus {
-				switch currentStatus {
-				case ctrlv1.VersionStatus_VERSION_STATUS_PENDING:
-					tracker.UpdateStep("deploy", "Version queued and ready to start")
-
-				case ctrlv1.VersionStatus_VERSION_STATUS_BUILDING:
-					tracker.UpdateStep("deploy", "Building deployment image")
-
-				case ctrlv1.VersionStatus_VERSION_STATUS_DEPLOYING:
-					if !deployStepStarted {
-						tracker.CompleteStep("deploy", "Deployment initiated")
-						tracker.StartStep("activate", "Deploying to unkey")
-						deployStepStarted = true
-					} else {
-						tracker.UpdateStep("activate", "Deploying to unkey")
-					}
-
-				case ctrlv1.VersionStatus_VERSION_STATUS_ACTIVE:
-					if deployStepStarted {
-						tracker.CompleteStep("activate", "Version is now active")
-					} else {
-						tracker.CompleteStep("deploy", "Deployment completed")
-						tracker.CompleteStep("activate", "Version is now active")
-					}
-
-					// Give the animation loop time to render the completed state
-					// TODO: Improve this later
-					select {
-					case <-time.After(200 * time.Millisecond):
-					case <-ctx.Done():
-						return ctx.Err()
-					}
-
-					return nil
-
-				case ctrlv1.VersionStatus_VERSION_STATUS_FAILED:
-					errorMsg := getFailureMessage(version)
-					if deployStepStarted {
-						tracker.FailStep("activate", errorMsg)
-					} else {
-						tracker.FailStep("deploy", errorMsg)
-					}
-					return fmt.Errorf("deployment failed: %s", errorMsg)
+				if err := handleStatusTransition(tracker, lastStatus, currentStatus, version); err != nil {
+					return err
 				}
 				lastStatus = currentStatus
 			}
 
-			// Process deployment steps for additional detail
-			steps := version.GetSteps()
-			for _, step := range steps {
-				stepKey := step.GetStatus()
-				if !processedSteps[stepKey] && step.GetMessage() != "" {
-					// Update the current step with detailed messages
-					switch currentStatus {
-					case ctrlv1.VersionStatus_VERSION_STATUS_BUILDING:
-						tracker.UpdateStep("deploy", step.GetMessage())
-					case ctrlv1.VersionStatus_VERSION_STATUS_DEPLOYING:
-						if deployStepStarted {
-							tracker.UpdateStep("activate", step.GetMessage())
-						} else {
-							tracker.UpdateStep("deploy", step.GetMessage())
-						}
-					}
+			// Process new step updates
+			if err := processNewSteps(tracker, version.GetSteps(), processedSteps, currentStatus); err != nil {
+				return err
+			}
 
-					// Handle step errors
-					if step.GetErrorMessage() != "" {
-						errorMsg := step.GetErrorMessage()
-						if deployStepStarted {
-							tracker.FailStep("activate", errorMsg)
-						} else {
-							tracker.FailStep("deploy", errorMsg)
-						}
-						return fmt.Errorf("deployment failed: %s", errorMsg)
-					}
-
-					processedSteps[stepKey] = true
-				}
+			// Check for completion
+			if currentStatus == ctrlv1.VersionStatus_VERSION_STATUS_ACTIVE {
+				return nil
 			}
 		}
 	}
+}
+
+func handleStatusTransition(tracker *progress.Tracker, lastStatus, currentStatus ctrlv1.VersionStatus, version *ctrlv1.Version) error {
+	switch currentStatus {
+	case ctrlv1.VersionStatus_VERSION_STATUS_PENDING:
+		tracker.UpdateStep("deploy", "Version queued and ready to start")
+
+	case ctrlv1.VersionStatus_VERSION_STATUS_BUILDING:
+		tracker.UpdateStep("deploy", "Building deployment image")
+
+	case ctrlv1.VersionStatus_VERSION_STATUS_DEPLOYING:
+		tracker.CompleteStep("deploy", "Deployment initiated")
+		tracker.StartStep("activate", "Deploying to unkey")
+
+	case ctrlv1.VersionStatus_VERSION_STATUS_ACTIVE:
+		if lastStatus == ctrlv1.VersionStatus_VERSION_STATUS_DEPLOYING {
+			tracker.CompleteStep("activate", "Version is now active")
+		} else {
+			tracker.CompleteStep("deploy", "Deployment completed")
+			tracker.CompleteStep("activate", "Version is now active")
+		}
+
+	case ctrlv1.VersionStatus_VERSION_STATUS_FAILED:
+		errorMsg := getFailureMessage(version)
+		if lastStatus == ctrlv1.VersionStatus_VERSION_STATUS_DEPLOYING {
+			tracker.FailStep("activate", errorMsg)
+		} else {
+			tracker.FailStep("deploy", errorMsg)
+		}
+		return fmt.Errorf("deployment failed: %s", errorMsg)
+	}
+	return nil
+}
+
+func processNewSteps(tracker *progress.Tracker, steps []*ctrlv1.VersionStep, processedSteps map[int64]bool, currentStatus ctrlv1.VersionStatus) error {
+	for _, step := range steps {
+		// Creation timestamp as unique identifier
+		stepTimestamp := step.GetCreatedAt()
+
+		if processedSteps[stepTimestamp] {
+			continue // Already processed this step
+		}
+
+		// Handle step errors first
+		if step.GetErrorMessage() != "" {
+			errorMsg := step.GetErrorMessage()
+			if currentStatus == ctrlv1.VersionStatus_VERSION_STATUS_DEPLOYING {
+				tracker.FailStep("activate", errorMsg)
+			} else {
+				tracker.FailStep("deploy", errorMsg)
+			}
+			return fmt.Errorf("deployment failed: %s", errorMsg)
+		}
+
+		// Show step updates to user
+		if step.GetMessage() != "" {
+			message := step.GetMessage()
+
+			// Add status context if helpful
+			if step.GetStatus() != "" {
+				message = fmt.Sprintf("[%s] %s", step.GetStatus(), message)
+			}
+
+			switch currentStatus {
+			case ctrlv1.VersionStatus_VERSION_STATUS_BUILDING:
+				tracker.UpdateStep("deploy", message)
+			case ctrlv1.VersionStatus_VERSION_STATUS_DEPLOYING:
+				tracker.UpdateStep("activate", message)
+			default:
+				// For other statuses, show on deploy step
+				tracker.UpdateStep("deploy", message)
+			}
+		}
+
+		// Mark this step as processed
+		processedSteps[stepTimestamp] = true
+	}
+	return nil
 }

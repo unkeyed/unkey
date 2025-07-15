@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/go/cmd/cli/progress"
@@ -30,7 +29,7 @@ func notifyControlPlane(ctx context.Context, logger logging.Logger, opts *Deploy
 		Branch:         opts.Branch,
 		SourceType:     ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
 		GitCommitSha:   opts.Commit,
-		EnvironmentId:  "env_prod",
+		EnvironmentId:  "env_prod", // TODO: Make this configurable
 		DockerImageTag: dockerImage,
 	})
 
@@ -44,9 +43,16 @@ func notifyControlPlane(ctx context.Context, logger logging.Logger, opts *Deploy
 	}
 
 	versionId := createResp.Msg.GetVersionId()
-	if versionId != "" {
-		tracker.UpdateStep("deploy", fmt.Sprintf("Version created: %s", versionId))
+	if versionId == "" {
+		return fault.Wrap(
+			fmt.Errorf("empty version ID returned from control plane"),
+			fault.Code(codes.UnkeyAppErrorsInternalUnexpectedError),
+			fault.Internal("CreateVersion API returned empty version ID"),
+			fault.Public("Failed to create version. Please try again."),
+		)
 	}
+
+	tracker.UpdateStep("deploy", fmt.Sprintf("Version created: %s", versionId))
 
 	// Poll for version status updates with integrated progress tracking
 	if err := pollVersionStatus(ctx, logger, client, opts.AuthToken, versionId, tracker); err != nil {
@@ -56,15 +62,20 @@ func notifyControlPlane(ctx context.Context, logger logging.Logger, opts *Deploy
 	tracker.StartStep("complete", "Generating deployment summary")
 	gitInfo := git.GetInfo()
 	completionInfo := buildCompletionInfo(versionId, opts.WorkspaceID, opts.Branch, gitInfo)
+
+	if completionInfo == "" {
+		tracker.FailStep("complete", "failed to generate deployment summary")
+		return fault.Wrap(
+			fmt.Errorf("empty completion info generated"),
+			fault.Code(codes.UnkeyAppErrorsInternalUnexpectedError),
+			fault.Internal("buildCompletionInfo returned empty string"),
+			fault.Public("Failed to generate deployment summary"),
+		)
+	}
+
 	tracker.CompleteStep("complete", completionInfo)
 
-	// Give the animation loop time to render the completed state
-	// TODO: Improve this later
-	select {
-	case <-time.After(200 * time.Millisecond):
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	// Remove this sleep hack - fix it in the tracker instead
 	return nil
 }
 

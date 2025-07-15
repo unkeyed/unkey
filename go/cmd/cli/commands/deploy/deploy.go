@@ -62,7 +62,7 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 	tracker.AddStep("prepare", "Preparing deployment")
 	tracker.AddStep("build", "Building Docker image")
 	tracker.AddStep("push", "Publishing to registry")
-	tracker.AddStep("deploy", "Deploying to infrastructure")
+	tracker.AddStep("deploy", "Deploying to Unkey")
 	tracker.AddStep("activate", "Activating version")
 	tracker.AddStep("complete", "Deployment summary")
 	tracker.Start()
@@ -110,7 +110,7 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 
 		if err := pushImage(ctx, dockerImage, opts.Registry); err != nil {
 			// Push failure shouldn't be fatal in development
-			tracker.FailStep("push", fmt.Sprintf("Push failed: %v", err))
+			tracker.FailStep("push", fmt.Sprintf("push failed: %v", err))
 			fmt.Printf("Push failed but continuing with deployment\n")
 		} else {
 			tracker.CompleteStep("push", "Image published successfully")
@@ -123,7 +123,7 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 	tracker.StartStep("deploy", "Starting deployment")
 
 	if err := notifyControlPlane(ctx, logger, opts, dockerImage, tracker); err != nil {
-		tracker.FailStep("deploy", fmt.Sprintf("Deployment failed: %v", err))
+		tracker.FailStep("deploy", fmt.Sprintf("deployment failed: %v", err))
 		return fmt.Errorf("deployment failed: %w", err)
 	}
 
