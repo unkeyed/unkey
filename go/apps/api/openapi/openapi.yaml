@@ -223,12 +223,7 @@ components:
     KeysUpdateKeyResponseData:
       type: object
       properties: {}
-      description:
-        Empty response object by design. A successful response indicates
-        the key was updated successfully. The endpoint doesn't return the updated
-        key to reduce response size and avoid exposing sensitive information. Changes
-        may take up to 30 seconds to propagate to all regions due to cache invalidation
-        delays. If you need the updated key state, use a subsequent call to `keys.getKey`.
+      description: Empty response object by design. A successful response indicates the key was updated successfully.
     V2KeysUpdateKeyResponseBody:
       type: object
       required:
@@ -251,8 +246,6 @@ components:
           description: |
             Specifies which key to delete using the database identifier returned from `createKey`.
             Do not confuse this with the actual API key string that users include in requests.
-            Deletion immediately invalidates the key, causing all future verification attempts to fail with `code=NOT_FOUND`.
-            Key deletion triggers cache invalidation across all regions but may take up to 30 seconds to fully propagate.
           example: key_2cGKbMxRyIzhCxo1Idjz8q
         permanent:
           type: boolean
@@ -272,9 +265,6 @@ components:
       properties: {}
       description: |
         Confirms successful key deletion with no additional data returned.
-        Deletion immediately invalidates the key in the primary database but cache propagation across regions may take up to 30 seconds.
-        During this propagation window, some verification attempts might still succeed in certain regions due to eventual consistency.
-        Monitor your application logs during the propagation period to ensure no unexpected authentication successes occur.
     V2KeysDeleteKeyResponseBody:
       type: object
       required:
@@ -370,8 +360,6 @@ components:
             Grants additional permissions to the key through direct assignment or automatic creation.
             Duplicate permissions are ignored automatically, making this operation idempotent.
             Use either ID for existing permissions or slug for new permissions with optional auto-creation.
-
-            Permission changes take effect immediately but cache propagation across regions may take up to 30 seconds.
             Adding permissions never removes existing permissions or role-based permissions.
           items:
             type: object
@@ -488,7 +476,6 @@ components:
             Use either ID for existing permissions or name for exact string matching.
 
             After removal, verification checks for these permissions will fail unless granted through roles.
-            Permission changes take effect immediately but cache propagation across regions may take up to 30 seconds.
             Removing all direct permissions does not disable the key, only removes its direct permission grants.
           items:
             type: object
@@ -528,8 +515,6 @@ components:
         - This list does NOT include permissions granted through roles
         - For a complete permission picture, use `/v2/keys.getKey` instead
         - An empty array indicates the key has no direct permissions assigned
-        - Any cached versions of the key are immediately invalidated to ensure consistency
-        - Changes to permissions take effect within seconds for new verifications
         - All permission removals are logged to the audit log for security tracking
       items:
         type: object
@@ -707,7 +692,6 @@ components:
 
             All roles must already exist in the workspace - roles cannot be created automatically.
             Invalid roles cause the entire operation to fail atomically, ensuring consistent state.
-            Role assignments take effect immediately but cache propagation across regions may take up to 30 seconds.
           items:
             type: object
             properties:
@@ -813,7 +797,6 @@ components:
             Use either ID for existing roles or name for exact string matching.
 
             After removal, the key loses access to permissions that were only granted through these roles.
-            Role changes take effect immediately but cache propagation across regions may take up to 30 seconds.
             Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
           items:
             type: object
@@ -855,10 +838,8 @@ components:
         Important notes:
         - The response reflects the current state after the removal operation
         - An empty array indicates the key now has no roles assigned
-        - This only shows direct role assignments
         - Role permissions are not expanded in this response - use keys.getKey for full details
         - All role changes are logged in the audit log for security tracking
-        - Changes take effect immediately for new verifications but cached sessions may retain old permissions briefly
       items:
         type: object
         required:
@@ -915,7 +896,6 @@ components:
             Providing an empty array removes all direct role assignments from the key.
             All roles must already exist in the workspace - roles cannot be created automatically.
             Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
-            Role changes take effect immediately but cache propagation across regions may take up to 30 seconds.
           items:
             type: object
             properties:
@@ -2016,6 +1996,8 @@ components:
             Use descriptive, hierarchical names like 'auth.login', 'api.requests', or 'media.uploads' for clear categorization.
             Namespaces must be unique within your workspace and support segmentation of different API operations.
             Consistent naming conventions across your application improve monitoring and debugging capabilities.
+
+            This namespace has to be created in the dashboard first, before being able to use it.
           example: sms.sign_up
         cost:
           type: integer
@@ -2047,7 +2029,8 @@ components:
           pattern: "^[a-zA-Z0-9_.:/-]+$"
           description: |
             Defines the scope of rate limiting by identifying the entity being limited.
-            Use user IDs for per-user limits, IP addresses for anonymous limiting, or API key IDs for per-key limits.
+            Use user IDs for per-user limits, IP addresses for anonymous limiting.
+
             Accepts letters, numbers, underscores, dots, colons, slashes, and hyphens for flexible identifier formats.
             The same identifier can be used across different namespaces to apply multiple rate limit types.
             Choose identifiers that provide appropriate granularity for your rate limiting strategy.
@@ -2591,20 +2574,6 @@ components:
       additionalProperties: false
     PermissionsCreatePermissionResponseData:
       type: object
-      properties:
-        permissionId:
-          type: string
-          minLength: 3
-          maxLength: 255
-          pattern: "^[a-zA-Z0-9_]+$"
-          description: |
-            The unique identifier assigned to the newly created permission.
-            Use this ID to reference the permission in role assignments, key operations, and other API calls.
-            Always begins with 'perm_' followed by a unique alphanumeric sequence.
-            Store this ID if you need to manage or reference this permission in future operations.
-          example: perm_1234567890abcdef
-      required:
-        - permissionId
       additionalProperties: false
     V2PermissionsCreatePermissionResponseBody:
       type: object
@@ -2619,19 +2588,15 @@ components:
     V2PermissionsGetPermissionRequestBody:
       type: object
       required:
-        - permissionId
+        - slug
       properties:
-        permissionId:
+        slug:
           type: string
           minLength: 3
           maxLength: 255
-          pattern: "^[a-zA-Z0-9_]+$"
-          description: |
-            Specifies which permission to retrieve by its unique identifier.
-            Must be a valid permission ID that begins with 'perm_' and exists within your workspace.
-            Use this endpoint to verify permission details, check its current configuration, or retrieve metadata.
-            Returns detailed information including name, description, and workspace association.
-          example: perm_1234567890abcdef
+          pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+          description: Get permission details by its unique slug.
+          example: users.read
       additionalProperties: false
     PermissionsGetPermissionResponseData:
       type: object
@@ -2641,7 +2606,7 @@ components:
       required:
         - permission
       additionalProperties: false
-      description: Complete permission details including ID, name, and metadata.
+      description: Complete permission details including slug, name, and metadata.
     V2PermissionsGetPermissionResponseBody:
       type: object
       required:
@@ -2775,13 +2740,13 @@ components:
     V2PermissionsDeletePermissionRequestBody:
       type: object
       required:
-        - permissionId
+        - slug
       properties:
-        permissionId:
+        slug:
           type: string
           minLength: 3
           maxLength: 255
-          pattern: "^[a-zA-Z0-9_]+$"
+          pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
           description: |
             Specifies which permission to permanently delete from your workspace.
 
@@ -2795,8 +2760,7 @@ components:
             - Have updated any keys or roles that depend on this permission
             - Have migrated to alternative permissions if needed
             - Have notified affected users about the access changes
-            - Have the correct permission ID (double-check against your permission list)
-          example: perm_1234567890abcdef
+          example: documents.write
       additionalProperties: false
     V2PermissionsDeletePermissionResponseBody:
       type: object
@@ -3349,7 +3313,7 @@ components:
             Verification uses secure hashing algorithms without storing plaintext values.
             Never log, cache, or store API keys in your system as they provide full access to user resources.
             Include the full key exactly as provided - even minor modifications will cause verification failure.
-          example: prefix_f4cc2d765275c206b7d76ff0e92e583067c4e33603fb4055d7ba3031cd7ce36a
+          example: key_4RwSmoJ293yVAjdQ
         tags:
           type: array
           items:
@@ -3764,7 +3728,7 @@ paths:
         - Unlike removePermissions, this sets the complete state rather than removing specific permissions
         - The advantage is atomic replacement in a single operation versus multiple incremental changes
 
-        Only direct permissions are affected - permissions granted through roles remain unchanged. Changes take effect immediately for new verifications, though existing authorized sessions may continue until their cache expires (typically under 30 seconds).
+        Only direct permissions are affected - permissions granted through roles remain unchanged.
       operationId: setPermissions
       x-speakeasy-name-override: setPermissions
       security:
@@ -4043,7 +4007,6 @@ paths:
         - Idempotent operation - removing permissions multiple times has no additional effect
         - Atomic transaction - all permissions are removed or none are (rollback on failure)
         - Immediate effect - new verifications will see changes within seconds
-        - Cache invalidation - all regions eventually reflect the changes
 
         Use cases:
         - Downgrading user access privileges
@@ -4406,7 +4369,6 @@ paths:
         - Idempotent operation - adding the same permission multiple times has no additional effect
         - Atomic transaction - all permissions are added or none are (rollback on failure)
         - Permission creation - optionally create new permissions if they don't exist (with 'create: true')
-        - Cache invalidation - changes take effect immediately for new verifications
         - Hierarchical permissions - during verification, 'documents.*' grants access to both 'documents.read' and 'documents.write'
 
         Unlike setPermissions (which replaces all permissions), this endpoint only adds to the existing set. Use this when incrementally granting new capabilities to existing keys.
@@ -4698,11 +4660,15 @@ paths:
         - keys
       summary: Remove roles from an API key
       description: |-
-        Removes one or more roles from an existing API key, selectively revoking role-based access without affecting other assigned roles. When a role is removed, all permissions granted exclusively through that role are revoked, while permissions also granted through remaining roles or direct assignments remain accessible.
+        Removes one or more roles from an existing API key, selectively revoking role-based access without affecting other assigned roles.
 
-        The operation is idempotent, meaning removing roles multiple times has no additional effect. All specified roles are removed atomically or none are with rollback on failure. Changes take effect immediately for new verifications, though cached sessions may retain old permissions briefly (typically under 30 seconds) due to cache invalidation across all regions.
+        When a role is removed, all permissions granted exclusively through that role are revoked, while permissions also granted through remaining roles or direct assignments remain accessible.
 
-        This endpoint complements addRoles for granting access and setRoles for complete replacement. Use this when you need to selectively revoke specific roles without altering other role assignments, providing precise control over role-based access management.
+        The operation is idempotent, meaning removing roles multiple times has no additional effect. All specified roles are removed atomically or none are with rollback on failure.
+
+        This endpoint complements addRoles for granting access and setRoles for complete replacement.
+
+        Use this when you need to selectively revoke specific roles without altering other role assignments, providing precise control over role-based access management.
       operationId: removeRoles
       x-speakeasy-name-override: removeRoles
       security:
@@ -4951,8 +4917,6 @@ paths:
         Unlike incremental endpoints like addRoles or removeRoles, setRoles performs a wholesale replacement that completely resets a key's roles to the specified set. This makes it ideal for synchronizing key roles with external systems, applying standardized role templates to keys, or implementing role-based access control with predictable outcomes.
 
         All existing direct role assignments not included in the request will be removed, making this a complete replacement operation rather than an incremental update. The operation is atomic where all roles are set or none are with rollback on failure, and changes take effect immediately for new verifications with all role changes logged in the audit log for security tracking.
-
-        After roles are set, cached versions of the key are immediately invalidated to ensure consistency, though existing verification sessions may retain old roles briefly (typically under 30 seconds). Only direct role assignments are affected, not roles granted through other mechanisms.
       operationId: setRoles
       x-speakeasy-name-override: setRoles
       security:
@@ -5066,9 +5030,7 @@ paths:
         - Change key expiration dates
         - Add or update user identifiers
 
-        To explicitly remove/disable a feature, set its field to null. Fields not included in the request remain unchanged. For managing permissions or roles, use the specialized endpoints (keys.addPermissions, keys.removePermissions, etc.) instead.
-
-        Changes may take up to 30 seconds to propagate to all regions due to cache invalidation. For immediate effect in the current region, follow the update with a verification request.
+        To explicitly remove/disable a feature, set its field to null. Fields not included in the request remain unchanged.
       operationId: updateKey
       x-speakeasy-name-override: updateKey
       security:
@@ -5133,10 +5095,7 @@ paths:
                     meta:
                       requestId: req_01H9TQPP77V5E48E9SH0BG0ZQY
                     data: {}
-          description:
-            Key successfully updated. Changes may take up to 30 seconds
-            to propagate to all regions due to cache invalidation. The response is
-            empty by design - use keys.getKey to retrieve the current state if needed.
+          description: Key successfully updated.
         "400":
           description: Bad request
           content:
@@ -5240,9 +5199,7 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/InternalServerErrorResponse"
-          description:
-            Internal server error - Problem with database operations or
-            cache invalidation
+          description: Internal server error - Problem with database operations or another system.
   "/v2/keys.getKey":
     post:
       tags:
@@ -5465,7 +5422,6 @@ paths:
         - Always check the 'success' field to determine if the request should proceed
         - Use the 'reset' time to implement intelligent client-side retry logic
         - Leverage the 'remaining' count to display usage information to users
-        - Store the namespaceId after first use to avoid name lookups in high-volume scenarios
         - Consider using smaller durations for security-critical operations
       operationId: ratelimit.limit
       x-speakeasy-name-override: limit
@@ -7252,7 +7208,7 @@ paths:
         - rootKey: []
       summary: Verify an API key's validity and permissions
       description: |-
-        This is the core endpoint for authenticating and authorizing API key usage in your application. It checks if a key is valid, hasn't expired, has sufficient remaining credits, isn't rate limited, and has the required permissions.
+        This is the core endpoint for authenticating and authorizing API key usage in your application.
 
         When a key is verified, several checks occur:
         - Key existence and format validation
@@ -7261,10 +7217,10 @@ paths:
         - Credits deduction (if configured)
         - Rate limit enforcement (if configured)
         - Permission verification (if requested)
+        - IP Whitelist (if configured)
 
-        This endpoint is designed for high-performance verification with global edge caching. Use it in your API authentication middleware to protect your endpoints. For high-volume applications, consider enabling async rate limiting for improved performance at the cost of slightly reduced accuracy.
-
-        Unlike most other endpoints, this one does not require authentication with a root key.
+        This endpoint is designed for high-performance verification with global edge caching.
+        Use it in your API authentication middleware to protect your endpoints.
       operationId: verifyKey
       x-speakeasy-name-override: verifyKey
       requestBody:
