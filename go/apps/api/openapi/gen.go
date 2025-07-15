@@ -1604,27 +1604,11 @@ type V2KeysUpdateKeyRequestBody struct {
 	// Avoid generic names like "API Key" when managing multiple keys per user or service.
 	Name nullable.Nullable[string] `json:"name,omitempty"`
 
-	// Permissions Grants specific permissions directly to this key without requiring role membership.
-	// Use hierarchical naming patterns like `resource.action` for logical organization.
-	// Wildcard permissions like `documents.*` grant access to all sub-permissions including `documents.read` and `documents.write`.
-	// Direct permissions supplement any permissions inherited from assigned roles.
-	// example:
-	// - documents.read
-	// - documents.write
-	// - settings.view
-	Permissions *[]string `json:"permissions,omitempty"`
-
 	// Ratelimits Defines time-based rate limits that protect against abuse by controlling request frequency.
 	// Omitting this field preserves existing rate limits, while setting null removes all rate limits.
 	// Unlike credits which track total usage, rate limits reset automatically after each window expires.
 	// Multiple rate limits can control different operation types with separate thresholds and windows.
-	Ratelimits *[]RatelimitRequest `json:"ratelimits,omitempty"`
-
-	// Roles Assigns existing roles to this key for permission management through role-based access control.
-	// Roles must already exist in your workspace before assignment.
-	// During verification, all permissions from assigned roles are checked against requested permissions.
-	// Roles provide a convenient way to group permissions and apply consistent access patterns across multiple keys.
-	Roles *[]string `json:"roles,omitempty"`
+	Ratelimits nullable.Nullable[[]RatelimitRequest] `json:"ratelimits,omitempty"`
 }
 
 // V2KeysUpdateKeyResponseBody defines model for V2KeysUpdateKeyResponseBody.

@@ -10,16 +10,6 @@ import (
 )
 
 type Querier interface {
-	//DeleteAllKeyPermissionsByKeyID
-	//
-	//  DELETE FROM keys_permissions
-	//  WHERE key_id = ?
-	DeleteAllKeyPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) error
-	//DeleteAllKeyRolesByKeyID
-	//
-	//  DELETE FROM keys_roles
-	//  WHERE key_id = ?
-	DeleteAllKeyRolesByKeyID(ctx context.Context, db DBTX, keyID string) error
 	//DeleteIdentity
 	//
 	//  DELETE FROM identities WHERE id = ?
@@ -1199,21 +1189,6 @@ type Querier interface {
 	//  WHERE
 	//      id = ?
 	UpdateIdentity(ctx context.Context, db DBTX, arg UpdateIdentityParams) error
-	//UpdateKey
-	//
-	//  UPDATE `keys` k SET
-	//  name = COALESCE(?, k.name),
-	//  owner_id = ?,
-	//  identity_id = ?,
-	//  enabled = COALESCE(?, k.enabled),
-	//  meta = COALESCE(?, k.meta),
-	//  expires = COALESCE(?, k.expires),
-	//  remaining_requests = COALESCE(?, k.remaining_requests),
-	//  refill_amount = COALESCE(?, k.refill_amount),
-	//  refill_day = COALESCE(?, k.refill_day),
-	//  updated_at_m = ?
-	//  WHERE id = ?
-	UpdateKey(ctx context.Context, db DBTX, arg UpdateKeyParams) error
 	//UpdateKeyCredits
 	//
 	//  UPDATE `keys`
