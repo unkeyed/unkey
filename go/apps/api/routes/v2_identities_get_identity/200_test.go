@@ -14,7 +14,6 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_get_identity"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -51,7 +50,7 @@ func TestSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create identity with ratelimits using testutil helper
-	identityID := h.CreateIdentity(seed.CreateIdentityRequest{
+	h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 		ExternalID:  externalID,
 		Meta:        metaBytes,
@@ -72,60 +71,15 @@ func TestSuccess(t *testing.T) {
 	})
 
 	// No need to set up permissions since we already gave the key the required permission
-
-	t.Run("get by identityId", func(t *testing.T) {
-		req := handler.Request{
-			IdentityId: &identityID,
-		}
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status, "expected 200, sent: %+v, received: %s", req, res.RawBody)
-		require.NotNil(t, res.Body)
-
-		// Verify response
-
-		require.Equal(t, identityID, res.Body.Data.Id)
-		require.Equal(t, externalID, res.Body.Data.ExternalId)
-
-		// Verify metadata
-		require.Equal(t, "Test User", (*res.Body.Data.Meta)["name"])
-		require.Equal(t, "test@example.com", (*res.Body.Data.Meta)["email"])
-		require.Equal(t, "pro", (*res.Body.Data.Meta)["plan"])
-		require.Equal(t, float64(100), (*res.Body.Data.Meta)["credits"])
-
-		// Verify ratelimits
-		require.Len(t, *res.Body.Data.Ratelimits, 2)
-
-		// Ratelimits can be in any order, so we need to find the specific ones
-		var apiCallsLimit, specialFeatureLimit *openapi.RatelimitResponse
-		for i := range *res.Body.Data.Ratelimits {
-			switch (*res.Body.Data.Ratelimits)[i].Name {
-			case "api_calls":
-				apiCallsLimit = &(*res.Body.Data.Ratelimits)[i]
-			case "special_feature":
-				specialFeatureLimit = &(*res.Body.Data.Ratelimits)[i]
-			}
-		}
-
-		require.NotNil(t, apiCallsLimit, "api_calls ratelimit not found")
-		require.NotNil(t, specialFeatureLimit, "special_feature ratelimit not found")
-
-		require.Equal(t, int64(100), apiCallsLimit.Limit)
-		require.Equal(t, int64(60000), apiCallsLimit.Duration)
-
-		require.Equal(t, int64(10), specialFeatureLimit.Limit)
-		require.Equal(t, int64(3600000), specialFeatureLimit.Duration)
-	})
-
 	t.Run("get by externalId", func(t *testing.T) {
 		req := handler.Request{
-			ExternalId: &externalID,
+			ExternalId: externalID,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
 		// Verify response
-		require.Equal(t, identityID, res.Body.Data.Id)
 		require.Equal(t, externalID, res.Body.Data.ExternalId)
 
 		// Verify metadata
@@ -162,7 +116,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		req := handler.Request{
-			IdentityId: &identityWithoutMetaID,
+			ExternalId: externalIDWithoutMeta,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
@@ -197,47 +151,13 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		req := handler.Request{
-			IdentityId: &identityWithoutRatelimitsID,
+			ExternalId: externalIDWithoutRatelimits,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
 
 		// Verify ratelimits is an empty array
 		require.Empty(t, *res.Body.Data.Ratelimits)
-	})
-
-	t.Run("verify environment field is returned", func(t *testing.T) {
-		// Create a new identity with a custom environment
-		customEnvIdentityID := uid.New(uid.IdentityPrefix)
-		customEnvExternalID := "test_user_custom_env"
-		customEnvironment := "production"
-
-		tx, err := h.DB.RW().Begin(ctx)
-		require.NoError(t, err)
-		defer tx.Rollback()
-
-		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
-			ID:          customEnvIdentityID,
-			ExternalID:  customEnvExternalID,
-			WorkspaceID: h.Resources().UserWorkspace.ID,
-
-			Environment: customEnvironment,
-			CreatedAt:   time.Now().UnixMilli(),
-			Meta:        []byte("{}"),
-		})
-		require.NoError(t, err)
-
-		err = tx.Commit()
-		require.NoError(t, err)
-
-		req := handler.Request{
-			IdentityId: &customEnvIdentityID,
-		}
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status)
-
-		// Note: Environment field is not returned in the response
-		// This test verifies that we can retrieve an identity with a custom environment
 	})
 
 	t.Run("retrieve identity with large metadata", func(t *testing.T) {
@@ -318,7 +238,7 @@ func TestSuccess(t *testing.T) {
 
 		// Retrieve the identity
 		req := handler.Request{
-			IdentityId: &largeMetaIdentityID,
+			ExternalId: largeMetaExternalID,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
@@ -398,7 +318,7 @@ func TestSuccess(t *testing.T) {
 
 		// Retrieve the identity
 		req := handler.Request{
-			IdentityId: &manyRateLimitsIdentityID,
+			ExternalId: manyRateLimitsExternalID,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
@@ -446,111 +366,12 @@ func TestSuccess(t *testing.T) {
 
 		// Immediately retrieve the identity
 		req := handler.Request{
-			IdentityId: &recentIdentityID,
+			ExternalId: recentExternalID,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
 
 		// Verify it's returned correctly
-		require.Equal(t, recentIdentityID, res.Body.Data.Id)
 		require.Equal(t, recentExternalID, res.Body.Data.ExternalId)
-		// Note: CreatedAt is not returned in the response
-	})
-
-	t.Run("retrieve identity with associated keys", func(t *testing.T) {
-		// Create an identity with associated keys
-		identityWithKeysID := uid.New(uid.IdentityPrefix)
-		identityWithKeysExternalID := "test_user_with_keys"
-
-		tx, err := h.DB.RW().Begin(ctx)
-		require.NoError(t, err)
-		defer tx.Rollback()
-
-		// Insert the identity
-		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
-			ID:          identityWithKeysID,
-			ExternalID:  identityWithKeysExternalID,
-			WorkspaceID: h.Resources().UserWorkspace.ID,
-
-			Environment: "default",
-			CreatedAt:   time.Now().UnixMilli(),
-			Meta:        []byte("{}"),
-		})
-		require.NoError(t, err)
-
-		// Create keyring for associated keys
-		keyringID := uid.New(uid.KeyAuthPrefix)
-		err = db.Query.InsertKeyring(ctx, tx, db.InsertKeyringParams{
-			ID:                 keyringID,
-			WorkspaceID:        h.Resources().UserWorkspace.ID,
-			CreatedAtM:         time.Now().UnixMilli(),
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test_"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			StoreEncryptedKeys: false,
-		})
-		require.NoError(t, err)
-
-		// Create API for the keys
-		apiID := uid.New(uid.APIPrefix)
-		err = db.Query.InsertApi(ctx, tx, db.InsertApiParams{
-			ID:          apiID,
-			Name:        "Test API for Identity Keys",
-			WorkspaceID: h.Resources().UserWorkspace.ID,
-
-			AuthType:   db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-			KeyAuthID:  sql.NullString{Valid: true, String: keyringID},
-			CreatedAtM: time.Now().UnixMilli(),
-		})
-		require.NoError(t, err)
-
-		// Create associated keys
-		key1ID := uid.New(uid.KeyPrefix)
-		key2ID := uid.New(uid.KeyPrefix)
-
-		// Insert first key
-		err = db.Query.InsertKey(ctx, tx, db.InsertKeyParams{
-			ID:          key1ID,
-			KeyringID:   keyringID,
-			WorkspaceID: h.Resources().UserWorkspace.ID,
-
-			IdentityID: sql.NullString{Valid: true, String: identityWithKeysID},
-			CreatedAtM: time.Now().UnixMilli(),
-			Hash:       hash.Sha256(uid.New(uid.TestPrefix)),
-			Start:      "test_key1",
-			Name:       sql.NullString{Valid: true, String: "First Key"},
-		})
-		require.NoError(t, err)
-
-		// Insert second key
-		err = db.Query.InsertKey(ctx, tx, db.InsertKeyParams{
-			ID:          key2ID,
-			KeyringID:   keyringID,
-			WorkspaceID: h.Resources().UserWorkspace.ID,
-
-			IdentityID: sql.NullString{Valid: true, String: identityWithKeysID},
-			CreatedAtM: time.Now().UnixMilli(),
-			Hash:       hash.Sha256(uid.New(uid.TestPrefix)),
-			Start:      "test_key2",
-			Name:       sql.NullString{Valid: true, String: "Second Key"},
-		})
-		require.NoError(t, err)
-
-		err = tx.Commit()
-		require.NoError(t, err)
-
-		// Retrieve the identity
-		req := handler.Request{
-			IdentityId: &identityWithKeysID,
-		}
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status)
-
-		// Verify identity data
-		require.Equal(t, identityWithKeysID, res.Body.Data.Id)
-		require.Equal(t, identityWithKeysExternalID, res.Body.Data.ExternalId)
-
-		// Note: The current implementation might not return the associated keys directly
-		// This test verifies that we can retrieve an identity that has associated keys
-		// If the implementation is updated to return keys, this test should be updated
 	})
 }

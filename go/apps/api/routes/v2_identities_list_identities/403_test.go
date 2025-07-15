@@ -109,7 +109,7 @@ func TestForbidden(t *testing.T) {
 		foundProd := false
 		for _, identity := range res.Body.Data {
 			// Should be able to see production identity
-			if identity.Id == prodIdentityID {
+			if identity.ExternalId == "test_user_prod" {
 				foundProd = true
 			}
 		}
@@ -141,13 +141,13 @@ func TestForbidden(t *testing.T) {
 		foundStaging := false
 
 		for _, identity := range res.Body.Data {
-			if identity.Id == defaultIdentityID {
+			if identity.ExternalId == "test_user_default" {
 				foundDefault = true
 			}
-			if identity.Id == prodIdentityID {
+			if identity.ExternalId == "test_user_prod" {
 				foundProd = true
 			}
-			if identity.Id == stagingIdentityID {
+			if identity.ExternalId == "test_user_staging" {
 				foundStaging = true
 			}
 		}

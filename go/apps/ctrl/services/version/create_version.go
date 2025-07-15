@@ -20,7 +20,7 @@ func (s *Service) CreateVersion(
 	// Validate workspace exists
 	_, err := db.Query.FindWorkspaceByID(ctx, s.db.RO(), req.Msg.GetWorkspaceId())
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound,
 				fmt.Errorf("workspace not found: %s", req.Msg.GetWorkspaceId()))
 		}
@@ -30,7 +30,7 @@ func (s *Service) CreateVersion(
 	// Validate project exists and belongs to workspace
 	project, err := db.Query.FindProjectById(ctx, s.db.RO(), req.Msg.GetProjectId())
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound,
 				fmt.Errorf("project not found: %s", req.Msg.GetProjectId()))
 		}
@@ -59,7 +59,7 @@ func (s *Service) CreateVersion(
 		Name:      branchName,
 	})
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if db.IsNotFound(err) {
 			// Branch doesn't exist, create it
 			branchID = uid.New("branch")
 			err = db.Query.InsertBranch(ctx, s.db.RW(), db.InsertBranchParams{
