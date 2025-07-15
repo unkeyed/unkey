@@ -473,10 +473,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				existingRoleMap[r.Name] = r
 			}
 
-			// Create missing roles in bulk and build final list
-			rolesToCreate := []db.InsertRoleParams{}
 			requestedRoles := []db.FindRolesByNamesRow{}
-
 			for _, requestedName := range *req.Roles {
 				existingRole, exists := existingRoleMap[requestedName]
 				if exists {
@@ -484,33 +481,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					continue
 				}
 
-				newRoleID := uid.New(uid.RolePrefix)
-				rolesToCreate = append(rolesToCreate, db.InsertRoleParams{
-					RoleID:      newRoleID,
-					WorkspaceID: auth.AuthorizedWorkspaceID,
-					Name:        requestedName,
-					Description: sql.NullString{String: fmt.Sprintf("Auto-created role: %s", requestedName), Valid: true},
-					CreatedAt:   time.Now().UnixMilli(),
-				})
-
-				requestedRoles = append(requestedRoles, db.FindRolesByNamesRow{
-					ID:   newRoleID,
-					Name: requestedName,
-				})
-			}
-
-			if len(rolesToCreate) > 0 {
-				err = db.BulkInsert(ctx, tx,
-					"INSERT INTO roles (id, workspace_id, name, description, created_at_m) VALUES (?, ?, ?, ?, ?)",
-					rolesToCreate,
+				return fault.New("role not found",
+					fault.Code(codes.Data.Role.NotFound.URN()),
+					fault.Internal("role not found"),
+					fault.Public(fmt.Sprintf("Role %q was not found.", requestedName)),
 				)
-				if err != nil {
-					return fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("database error"),
-						fault.Public("Failed to create roles."),
-					)
-				}
 			}
 
 			err = db.Query.DeleteAllKeyRolesByKeyID(ctx, tx, key.ID)
