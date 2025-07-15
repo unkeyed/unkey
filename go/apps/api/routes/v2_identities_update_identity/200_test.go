@@ -37,14 +37,11 @@ func TestSuccess(t *testing.T) {
 
 	// Setup test data
 	ctx := context.Background()
-	tx, err := h.DB.RW().Begin(ctx)
-	require.NoError(t, err)
-	defer tx.Rollback()
 
 	workspaceID := h.Resources().UserWorkspace.ID
 	identityID := uid.New(uid.IdentityPrefix)
-	externalID := "test_user_123"
 	otherIdentityID := uid.New(uid.IdentityPrefix)
+	externalID := "test_user_123"
 	otherExternalID := "test_user_456"
 
 	// Create initial metadata
@@ -58,7 +55,7 @@ func TestSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	// Insert test identities
-	err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
+	err = db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
 		ID:          identityID,
 		ExternalID:  externalID,
 		WorkspaceID: workspaceID,
@@ -68,7 +65,7 @@ func TestSuccess(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
+	err = db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
 		ID:          otherIdentityID,
 		ExternalID:  otherExternalID,
 		WorkspaceID: workspaceID,
@@ -80,7 +77,7 @@ func TestSuccess(t *testing.T) {
 
 	// Insert test ratelimits for the first identity
 	ratelimitID1 := uid.New(uid.RatelimitPrefix)
-	err = db.Query.InsertIdentityRatelimit(ctx, tx, db.InsertIdentityRatelimitParams{
+	err = db.Query.InsertIdentityRatelimit(ctx, h.DB.RW(), db.InsertIdentityRatelimitParams{
 		ID:          ratelimitID1,
 		WorkspaceID: workspaceID,
 		IdentityID:  sql.NullString{String: identityID, Valid: true},
@@ -92,7 +89,7 @@ func TestSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	ratelimitID2 := uid.New(uid.RatelimitPrefix)
-	err = db.Query.InsertIdentityRatelimit(ctx, tx, db.InsertIdentityRatelimitParams{
+	err = db.Query.InsertIdentityRatelimit(ctx, h.DB.RW(), db.InsertIdentityRatelimitParams{
 		ID:          ratelimitID2,
 		WorkspaceID: workspaceID,
 		IdentityID:  sql.NullString{String: identityID, Valid: true},
@@ -101,9 +98,6 @@ func TestSuccess(t *testing.T) {
 		Duration:    3600000, // 1 hour
 		CreatedAt:   time.Now().UnixMilli(),
 	})
-	require.NoError(t, err)
-
-	err = tx.Commit()
 	require.NoError(t, err)
 
 	t.Run("update metadata", func(t *testing.T) {
@@ -139,7 +133,6 @@ func TestSuccess(t *testing.T) {
 		// 1. Update 'api_calls' limit from 100 to 200
 		// 2. Add a new 'new_feature' limit
 		// 3. Delete 'special_feature' limit (by not including it)
-
 		ratelimits := []openapi.RatelimitRequest{
 			{
 				Name:      "api_calls",
