@@ -7,13 +7,15 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
-	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_get_key"
+	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_update_key"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
-	"github.com/unkeyed/unkey/go/pkg/uid"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
-func TestGetKeyNotFound(t *testing.T) {
+func TestUpdateKeyNotFound(t *testing.T) {
+	t.Parallel()
+
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
@@ -21,23 +23,21 @@ func TestGetKeyNotFound(t *testing.T) {
 		Keys:      h.Keys,
 		Logger:    h.Logger,
 		Auditlogs: h.Auditlogs,
-		Vault:     h.Vault,
 	}
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.read_key")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.update_key")
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	t.Run("nonexistent keyId", func(t *testing.T) {
-		nonexistentKeyID := uid.New(uid.KeyPrefix)
+	t.Run("when the key does not exist", func(t *testing.T) {
 		req := handler.Request{
-			KeyId:   ptr.P(nonexistentKeyID),
-			Decrypt: ptr.P(false),
+			KeyId:   "nonexistent_key",
+			Enabled: ptr.P(false),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
@@ -46,10 +46,23 @@ func TestGetKeyNotFound(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "We could not find the requested key")
 	})
 
-	t.Run("nonexistent raw key", func(t *testing.T) {
-		nonexistentKey := uid.New("api")
+	t.Run("when the key has been deleted", func(t *testing.T) {
+		// Create API using helper
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+		})
+
+		// Create key using helper then delete it
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+			Name:        ptr.P("test"),
+			Deleted:     true, // This will mark the key as deleted
+		})
+
 		req := handler.Request{
-			Key: ptr.P(nonexistentKey),
+			KeyId:   keyResponse.KeyID,
+			Enabled: ptr.P(false),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
