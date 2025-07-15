@@ -24,7 +24,7 @@ func TestUnauthorized(t *testing.T) {
 	h.Register(route)
 
 	t.Run("missing Authorization header", func(t *testing.T) {
-		externalID := uid.New(uid.IdentityPrefix)
+		externalID := uid.New(uid.TestPrefix)
 		meta := map[string]interface{}{
 			"test": "value",
 		}
@@ -44,7 +44,7 @@ func TestUnauthorized(t *testing.T) {
 	})
 
 	t.Run("malformed Authorization header", func(t *testing.T) {
-		externalID := uid.New(uid.IdentityPrefix)
+		externalID := uid.New(uid.TestPrefix)
 		meta := map[string]interface{}{
 			"test": "value",
 		}
@@ -64,7 +64,7 @@ func TestUnauthorized(t *testing.T) {
 	})
 
 	t.Run("invalid root key", func(t *testing.T) {
-		externalID := uid.New(uid.IdentityPrefix)
+		externalID := uid.New(uid.TestPrefix)
 		meta := map[string]interface{}{
 			"test": "value",
 		}
@@ -84,7 +84,7 @@ func TestUnauthorized(t *testing.T) {
 	})
 
 	t.Run("empty bearer token", func(t *testing.T) {
-		externalID := uid.New(uid.IdentityPrefix)
+		externalID := uid.New(uid.TestPrefix)
 		meta := map[string]interface{}{
 			"test": "value",
 		}
@@ -109,7 +109,7 @@ func TestUnauthorized(t *testing.T) {
 		// Create a root key for different workspace
 		differentWorkspaceKey := h.CreateRootKey(differentWorkspace.ID, "identity.*.update_identity")
 
-		externalID := uid.New(uid.IdentityPrefix)
+		externalID := uid.New(uid.TestPrefix)
 		meta := map[string]interface{}{
 			"test": "value",
 		}

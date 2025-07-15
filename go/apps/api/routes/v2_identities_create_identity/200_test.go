@@ -333,7 +333,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 			uid.New("test_external_id_2"),
 			uid.New("test_external_id_3"),
 		}
-		identityIDs := make([]string, len(externalIDs))
+		identityIDs := make([]string, 0)
 
 		for _, externalID := range externalIDs {
 			req := handler.Request{ExternalId: externalID}

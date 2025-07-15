@@ -34,12 +34,12 @@ func TestForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
 		}
 
-		identityID := uid.New(uid.IdentityPrefix)
+		externalID := uid.New(uid.TestPrefix)
 		meta := map[string]interface{}{
 			"test": "value",
 		}
 		req := handler.Request{
-			ExternalId: identityID,
+			ExternalId: externalID,
 			Meta:       &meta,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
@@ -56,12 +56,12 @@ func TestForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
 		}
 
-		identityID := uid.New(uid.IdentityPrefix)
+		externalID := uid.New(uid.TestPrefix)
 		meta := map[string]interface{}{
 			"test": "value",
 		}
 		req := handler.Request{
-			ExternalId: identityID,
+			ExternalId: externalID,
 			Meta:       &meta,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
