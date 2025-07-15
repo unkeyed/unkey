@@ -359,16 +359,15 @@ export default function ProjectsPage(): JSX.Element {
                     <Plus className="w-4 h-4 mr-2" />
                     Create Your First Project
                   </Button>
-                  <Button variant="outline" size="md" asChild>
-                    <a
-                      href="https://docs.unkey.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Documentation
-                    </a>
-                  </Button>
+                  <a
+                    href="https://docs.unkey.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 border border-border rounded-lg text-content hover:bg-background-subtle transition-colors duration-200 font-medium text-sm"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Documentation
+                  </a>
                 </div>
               )}
             </div>
