@@ -1602,13 +1602,10 @@ type V2KeysUpdateKeyRequestBody struct {
 	// Name Sets a human-readable name for internal organization and identification.
 	// Omitting this field leaves the current name unchanged, while setting null removes it entirely.
 	// Avoid generic names like "API Key" when managing multiple keys per user or service.
-	Name nullable.Nullable[string] `json:"name,omitempty"`
-
-	// Ratelimits Defines time-based rate limits that protect against abuse by controlling request frequency.
-	// Omitting this field preserves existing rate limits, while setting null removes all rate limits.
-	// Unlike credits which track total usage, rate limits reset automatically after each window expires.
-	// Multiple rate limits can control different operation types with separate thresholds and windows.
-	Ratelimits nullable.Nullable[[]RatelimitRequest] `json:"ratelimits,omitempty"`
+	Name        nullable.Nullable[string] `json:"name,omitempty"`
+	Permissions *[]string                 `json:"permissions,omitempty"`
+	Ratelimits  *RatelimitRequest         `json:"ratelimits,omitempty"`
+	Roles       *[]string                 `json:"roles,omitempty"`
 }
 
 // V2KeysUpdateKeyResponseBody defines model for V2KeysUpdateKeyResponseBody.
