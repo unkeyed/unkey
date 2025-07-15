@@ -30,9 +30,6 @@ func Version(ctx context.Context, args []string, env map[string]string) error {
 		return VersionList(args[1:])
 	case "get":
 		return VersionGet(args[1:])
-	case "help", "-h", "--help":
-		PrintVersionHelp()
-		return nil
 	default:
 		PrintVersionCommandHelp()
 		return fmt.Errorf("unknown version subcommand: %s", subcommand)

@@ -29,7 +29,6 @@ func PrintDeployHelp() {
 	fmt.Println("ENVIRONMENT VARIABLES:")
 	fmt.Println("    UNKEY_WORKSPACE_ID     Default workspace ID")
 	fmt.Println("    UNKEY_PROJECT_ID       Default project ID")
-	fmt.Println("    UNKEY_DOCKER_REGISTRY  Default Docker registry")
 	fmt.Println("")
 	fmt.Println("EXAMPLES:")
 	fmt.Println("    # Basic deployment")

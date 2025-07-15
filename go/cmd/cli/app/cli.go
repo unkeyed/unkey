@@ -105,8 +105,6 @@ func (c *CLI) PrintUsage() {
 	fmt.Println("ENVIRONMENT VARIABLES:")
 	fmt.Println("    UNKEY_WORKSPACE_ID    Workspace ID (can be overridden by --workspace-id)")
 	fmt.Println("    UNKEY_PROJECT_ID      Project ID (can be overridden by --project-id)")
-	fmt.Println("    UNKEY_API_KEY         API key for authentication")
-	fmt.Println("    UNKEY_BASE_URL        Base URL for API calls")
 	fmt.Println("")
 	fmt.Println("EXAMPLES:")
 	fmt.Printf("    %s help\n", c.name)

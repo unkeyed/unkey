@@ -41,6 +41,11 @@ type DeployOptions struct {
 
 // Deploy handles the deploy command
 func Deploy(ctx context.Context, args []string, env map[string]string) error {
+	if len(args) < 1 {
+		PrintDeployHelp()
+		return fmt.Errorf("deploy command requires a subcommand")
+	}
+
 	opts, err := parseDeployFlags(args, env)
 	if err != nil {
 		return err
