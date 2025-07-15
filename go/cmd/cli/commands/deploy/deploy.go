@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/unkeyed/unkey/go/cmd/cli/progress"
+	"github.com/unkeyed/unkey/go/cmd/cli/orchestrator"
 	"github.com/unkeyed/unkey/go/pkg/git"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
@@ -42,103 +42,211 @@ func Deploy(ctx context.Context, args []string, env map[string]string) error {
 	return executeDeploy(ctx, opts)
 }
 
-// executeDeploy performs the actual deployment with Docker building and Git integration
+// executeDeploy - clean and focused using the orchestrator pattern
 func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 	logger := logging.New()
 
-	// Get Git info for enhanced deployment tracking
+	// Create and execute deployment orchestrator
+	orchestrator := NewDeploymentOrchestrator(ctx, opts, logger)
+	return orchestrator.Execute()
+}
+
+// DeploymentOrchestrator wraps the generic orchestrator with deployment-specific logic
+type DeploymentOrchestrator struct {
+	*orchestrator.Orchestrator
+	opts         *DeployOptions
+	logger       logging.Logger
+	controlPlane *ControlPlaneClient
+}
+
+// NewDeploymentOrchestrator creates a new deployment orchestrator
+func NewDeploymentOrchestrator(ctx context.Context, opts *DeployOptions, logger logging.Logger) *DeploymentOrchestrator {
+	orch := orchestrator.New(ctx, "Unkey Deploy Progress")
+
+	do := &DeploymentOrchestrator{
+		Orchestrator: orch,
+		opts:         opts,
+		logger:       logger,
+		controlPlane: NewControlPlaneClient(opts),
+	}
+
+	// Build the deployment pipeline
+	do.buildPipeline()
+
+	return do
+}
+
+// buildPipeline constructs the deployment steps
+func (do *DeploymentOrchestrator) buildPipeline() {
 	gitInfo := git.GetInfo()
 
 	// Auto-detect Git values if not provided
-	if opts.Branch == "main" && gitInfo.IsRepo && gitInfo.Branch != "" {
-		opts.Branch = gitInfo.Branch
+	if do.opts.Branch == "main" && gitInfo.IsRepo && gitInfo.Branch != "" {
+		do.opts.Branch = gitInfo.Branch
 	}
-	if opts.Commit == "" && gitInfo.CommitSHA != "" {
-		opts.Commit = gitInfo.CommitSHA
+	if do.opts.Commit == "" && gitInfo.CommitSHA != "" {
+		do.opts.Commit = gitInfo.CommitSHA
 	}
 
-	tracker := progress.NewTracker("Unkey Deploy Progress")
-	tracker.AddStep("source", "Source information")
-	tracker.AddStep("prepare", "Preparing deployment")
-	tracker.AddStep("build", "Building Docker image")
-	tracker.AddStep("push", "Publishing to registry")
-	tracker.AddStep("deploy", "Deploying to Unkey")
-	tracker.AddStep("activate", "Activating version")
-	tracker.AddStep("complete", "Deployment summary")
-	tracker.Start()
-	defer tracker.Stop()
+	do.AddSteps(
+		// Step 1: Gather source information
+		orchestrator.NewStep("source", "Source information").
+			Execute(func(ctx context.Context) error {
+				return nil // Just gathering info
+			}).
+			OnSuccess(func() string {
+				return do.buildSourceInfo(gitInfo)
+			}).
+			Build(),
 
-	tracker.StartStep("source", "Gathering source information")
-	sourceInfo := buildSourceInfo(gitInfo, opts)
-	tracker.CompleteStep("source", sourceInfo)
+		// Step 2: Prepare deployment environment
+		orchestrator.NewStep("prepare", "Preparing deployment").
+			Execute(do.prepareDeployment).
+			OnSuccess(func() string {
+				return "Environment validated"
+			}).
+			OnError(func(err error) string {
+				if err == ErrDockerNotFound {
+					return "docker command not found - please install Docker"
+				}
+				return fmt.Sprintf("Preparation failed: %v", err)
+			}).
+			Build(),
 
-	// Step 1: Prepare - validate environment and get Docker image
-	tracker.StartStep("prepare", "Validating deployment environment")
+		// Step 3: Build Docker image (conditional)
+		orchestrator.ConditionalStep(
+			"build",
+			"Building Docker image",
+			do.buildImage,
+			func() bool { return do.opts.DockerImage != "" }, // Skip if using pre-built image
+			func() string { return "Using pre-built Docker image" },
+		),
 
-	dockerImage := opts.DockerImage
-	if dockerImage == "" {
+		// Step 4: Push to registry (conditional)
+		orchestrator.ConditionalStep(
+			"push",
+			"Publishing to registry",
+			do.pushImage,
+			func() bool { return do.opts.SkipPush || do.opts.DockerImage != "" },
+			func() string {
+				if do.opts.SkipPush {
+					return "Push skipped (--skip-push enabled)"
+				}
+				return "Using external Docker image"
+			},
+		),
+
+		// Step 5: Deploy to Unkey
+		orchestrator.NewStep("deploy", "Deploying to Unkey").
+			Execute(do.deployToUnkey).
+			OnError(func(err error) string {
+				return fmt.Sprintf("Deployment failed: %v", err)
+			}).
+			Build(),
+
+		// Step 6: Activate version (managed by polling)
+		orchestrator.NewStep("activate", "Activating version").
+			Execute(func(ctx context.Context) error {
+				return nil // Managed by polling in deployToUnkey
+			}).
+			Build(),
+
+		// Step 7: Generate completion summary
+		orchestrator.NewStep("complete", "Deployment summary").
+			Execute(do.generateSummary).
+			OnSuccess(func() string {
+				return do.buildCompletionInfo(gitInfo)
+			}).
+			OnError(func(err error) string {
+				return "Failed to generate deployment summary"
+			}).
+			Build(),
+	)
+}
+
+// Step implementations
+func (do *DeploymentOrchestrator) prepareDeployment(ctx context.Context) error {
+	if do.opts.DockerImage == "" {
 		if !isDockerAvailable() {
-			tracker.FailStep("prepare", "Docker command not found - please install Docker")
 			return ErrDockerNotFound
 		}
 
-		imageTag := generateImageTag(opts, gitInfo)
-		dockerImage = fmt.Sprintf("%s:%s", opts.Registry, imageTag)
-	}
-
-	tracker.CompleteStep("prepare", "Environment validated")
-
-	// Step 2: Build - only if we need to build an image
-	if opts.DockerImage == "" {
-		tracker.StartStep("build", fmt.Sprintf("Building %s", dockerImage))
-
-		if err := buildImage(ctx, opts, dockerImage); err != nil {
-			tracker.FailStep("build", fmt.Sprintf("Build failed: %v", err))
-			return fmt.Errorf("docker build failed: %w", err)
-		}
-
-		tracker.CompleteStep("build", "Docker image built successfully")
+		gitInfo := git.GetInfo()
+		imageTag := generateImageTag(do.opts, gitInfo)
+		dockerImage := fmt.Sprintf("%s:%s", do.opts.Registry, imageTag)
+		do.SetState("dockerImage", dockerImage)
 	} else {
-		tracker.SkipStep("build", "Using pre-built Docker image")
+		do.SetState("dockerImage", do.opts.DockerImage)
 	}
 
-	// Step 3: Push - publish to registry
-	if opts.SkipPush {
-		tracker.SkipStep("push", "Push skipped (--skip-push enabled)")
-	} else if opts.DockerImage == "" { // Only push if we built the image
-		tracker.StartStep("push", "Publishing to registry")
-
-		if err := pushImage(ctx, dockerImage, opts.Registry); err != nil {
-			// Push failure shouldn't be fatal in development
-			tracker.FailStep("push", fmt.Sprintf("push failed: %v", err))
-			fmt.Printf("Push failed but continuing with deployment\n")
-		} else {
-			tracker.CompleteStep("push", "Image published successfully")
-		}
-	} else {
-		tracker.SkipStep("push", "Using external Docker image")
-	}
-
-	// Step 4: Deploy - notify control plane and start deployment
-	tracker.StartStep("deploy", "Starting deployment")
-
-	if err := notifyControlPlane(ctx, logger, opts, dockerImage, tracker); err != nil {
-		tracker.FailStep("deploy", fmt.Sprintf("deployment failed: %v", err))
-		return fmt.Errorf("deployment failed: %w", err)
-	}
-
-	// Step 5: Activate - this will be completed by notifyControlPlane
-	// when the version becomes active
 	return nil
 }
 
-func buildSourceInfo(gitInfo git.Info, opts *DeployOptions) string {
+func (do *DeploymentOrchestrator) buildImage(ctx context.Context) error {
+	dockerImage := orchestrator.MustStateAs[string](do.Orchestrator, "dockerImage")
+
+	do.UpdateStepMessage("build", fmt.Sprintf("Building %s", dockerImage))
+
+	if err := buildImage(ctx, do.opts, dockerImage); err != nil {
+		return fmt.Errorf("docker build failed: %w", err)
+	}
+
+	return nil
+}
+
+func (do *DeploymentOrchestrator) pushImage(ctx context.Context) error {
+	dockerImage := orchestrator.MustStateAs[string](do.Orchestrator, "dockerImage")
+
+	do.UpdateStepMessage("push", "Publishing to registry")
+
+	if err := pushImage(ctx, dockerImage, do.opts.Registry); err != nil {
+		// For push failures, we continue deployment but log the error
+		fmt.Printf("Push failed but continuing with deployment\n")
+		return nil // Don't fail the step
+	}
+
+	return nil
+}
+
+func (do *DeploymentOrchestrator) deployToUnkey(ctx context.Context) error {
+	dockerImage := orchestrator.MustStateAs[string](do.Orchestrator, "dockerImage")
+
+	do.UpdateStepMessage("deploy", "Starting deployment")
+
+	// Create version
+	versionId, err := do.controlPlane.CreateVersion(ctx, dockerImage)
+	if err != nil {
+		return fmt.Errorf("failed to create version: %w", err)
+	}
+
+	do.SetState("versionId", versionId)
+	do.UpdateStepMessage("deploy", fmt.Sprintf("Version created: %s", versionId))
+
+	// Poll for completion - this will update the activate step
+	if err := do.controlPlane.PollVersionStatus(ctx, do.logger, versionId, do.GetTracker()); err != nil {
+		return fmt.Errorf("deployment polling failed: %w", err)
+	}
+
+	return nil
+}
+
+func (do *DeploymentOrchestrator) generateSummary(ctx context.Context) error {
+	versionId, ok := orchestrator.StateAs[string](do.Orchestrator, "versionId")
+	if !ok {
+		return fmt.Errorf("no version ID available for summary")
+	}
+	if versionId == "" {
+		return fmt.Errorf("empty version ID")
+	}
+	return nil
+}
+
+// Helper methods for building display information
+func (do *DeploymentOrchestrator) buildSourceInfo(gitInfo git.Info) string {
 	var parts []string
 
-	// Branch
-	parts = append(parts, fmt.Sprintf("Branch: %s", opts.Branch))
+	parts = append(parts, fmt.Sprintf("Branch: %s", do.opts.Branch))
 
-	// Commit info
 	if gitInfo.IsRepo && gitInfo.CommitSHA != "" {
 		shortSHA := gitInfo.CommitSHA
 		if len(shortSHA) > 7 {
@@ -153,69 +261,35 @@ func buildSourceInfo(gitInfo git.Info, opts *DeployOptions) string {
 		parts = append(parts, "Not a git repository")
 	}
 
-	// Context
-	parts = append(parts, fmt.Sprintf("Context: %s", opts.Context))
+	parts = append(parts, fmt.Sprintf("Context: %s", do.opts.Context))
 
-	// Docker image if pre-built
-	if opts.DockerImage != "" {
-		parts = append(parts, fmt.Sprintf("Image: %s", opts.DockerImage))
+	if do.opts.DockerImage != "" {
+		parts = append(parts, fmt.Sprintf("Image: %s", do.opts.DockerImage))
 	}
 
 	return strings.Join(parts, " | ")
 }
 
-// PrintDeployHelp prints detailed help for deploy command
-func PrintDeployHelp() {
-	fmt.Println("unkey deploy - Deploy a new version")
-	fmt.Println("")
-	fmt.Println("USAGE:")
-	fmt.Println("    unkey deploy [FLAGS]")
-	fmt.Println("")
-	fmt.Println("DESCRIPTION:")
-	fmt.Println("    Build and deploy a new version of your application.")
-	fmt.Println("    Builds a Docker image from the specified context and")
-	fmt.Println("    deploys it to the Unkey platform.")
-	fmt.Println("")
-	fmt.Println("REQUIRED FLAGS:")
-	fmt.Println("    --workspace-id <id>    Workspace ID")
-	fmt.Println("    --project-id <id>      Project ID")
-	fmt.Println("")
-	fmt.Println("OPTIONAL FLAGS:")
-	fmt.Println("    --context <path>       Docker context path (default: .)")
-	fmt.Println("    --branch <name>        Git branch (default: main)")
-	fmt.Println("    --docker-image <tag>   Pre-built docker image")
-	fmt.Println("    --dockerfile <path>    Path to Dockerfile (default: Dockerfile)")
-	fmt.Println("    --commit <sha>         Git commit SHA")
-	fmt.Println("    --registry <registry>  Docker registry (default: ghcr.io/unkeyed/deploy)")
-	fmt.Println("    --skip-push            Skip pushing to registry")
-	fmt.Println("")
-	fmt.Println("ENVIRONMENT VARIABLES:")
-	fmt.Println("    UNKEY_WORKSPACE_ID     Default workspace ID")
-	fmt.Println("    UNKEY_PROJECT_ID       Default project ID")
-	fmt.Println("    UNKEY_DOCKER_REGISTRY  Default Docker registry")
-	fmt.Println("")
-	fmt.Println("EXAMPLES:")
-	fmt.Println("    # Basic deployment")
-	fmt.Println("    unkey deploy \\")
-	fmt.Println("      --workspace-id=ws_4QgQsKsKfdm3nGeC \\")
-	fmt.Println("      --project-id=proj_9aiaks2dzl6mcywnxjf \\")
-	fmt.Println("      --context=./demo_api")
-	fmt.Println("")
-	fmt.Println("    # Deploy with your own registry")
-	fmt.Println("    unkey deploy \\")
-	fmt.Println("      --workspace-id=ws_4QgQsKsKfdm3nGeC \\")
-	fmt.Println("      --project-id=proj_9aiaks2dzl6mcywnxjf \\")
-	fmt.Println("      --registry=docker.io/mycompany/myapp")
-	fmt.Println("")
-	fmt.Println("    # Local development (skip push)")
-	fmt.Println("    unkey deploy \\")
-	fmt.Println("      --workspace-id=ws_4QgQsKsKfdm3nGeC \\")
-	fmt.Println("      --project-id=proj_9aiaks2dzl6mcywnxjf \\")
-	fmt.Println("      --skip-push")
-	fmt.Println("")
-	fmt.Println("    # Deploy pre-built image")
-	fmt.Println("    unkey deploy \\")
-	fmt.Println("      --workspace-id=ws_4QgQsKsKfdm3nGeC \\")
-	fmt.Println("      --project-id=proj_9aiaks2dzl6mcywnxjf \\")
-	fmt.Println("      --docker-image=ghcr.io/user/app:v1.0.0")
+func (do *DeploymentOrchestrator) buildCompletionInfo(gitInfo git.Info) string {
+	versionId := orchestrator.MustStateAs[string](do.Orchestrator, "versionId")
+
+	if versionId == "" || do.opts.WorkspaceID == "" || do.opts.Branch == "" {
+		return ""
+	}
+
+	var parts []string
+
+	parts = append(parts, fmt.Sprintf("Version: %s", versionId))
+	parts = append(parts, "Status: Ready")
+	parts = append(parts, "Env: Production")
+
+	identifier := versionId
+	if gitInfo.ShortSHA != "" {
+		identifier = gitInfo.ShortSHA
+	}
+
+	domain := fmt.Sprintf("https://%s-%s-%s.unkey.app", do.opts.Branch, identifier, do.opts.WorkspaceID)
+	parts = append(parts, fmt.Sprintf("URL: %s", domain))
+
+	return strings.Join(parts, " | ")
 }
