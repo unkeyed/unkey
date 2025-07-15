@@ -45,7 +45,6 @@ func pushImage(ctx context.Context, dockerImage, registry string) error {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		detailedMsg := classifyPushError(string(output), registry)
-		fmt.Printf("Docker push failed: %s\n", detailedMsg)
 		return fmt.Errorf("%s", detailedMsg)
 	}
 	fmt.Printf("%s\n", string(output))
