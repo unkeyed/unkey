@@ -85,7 +85,7 @@ interface BranchLinkingRule {
   environmentId: string;
 }
 
-// Mock data
+// Mock data with static timestamps to avoid hydration issues
 const mockProject: Project = {
   id: "proj_123",
   name: "API Gateway",
@@ -98,8 +98,8 @@ const mockBranch: Branch = {
   projectId: "proj_123",
   environmentId: "env_preview",
   isProduction: false,
-  createdAt: Date.now() - 86400000 * 3,
-  updatedAt: Date.now() - 3600000,
+  createdAt: 1721044800000, // Static timestamp
+  updatedAt: 1721048400000, // Static timestamp
   environment: {
     id: "env_preview",
     name: "preview",
@@ -108,7 +108,7 @@ const mockBranch: Branch = {
   lastCommitSha: "a1b2c3d",
   lastCommitMessage: "Add OAuth2 integration with refresh token support",
   lastCommitAuthor: "john.doe",
-  lastCommitDate: Date.now() - 3600000
+  lastCommitDate: 1721048400000 // Static timestamp
 };
 
 const mockVersions: Version[] = [
@@ -118,8 +118,8 @@ const mockVersions: Version[] = [
     gitBranch: "feature/auth-improvements",
     gitCommitMessage: "Add OAuth2 integration with refresh token support",
     status: "active",
-    createdAt: Date.now() - 3600000,
-    updatedAt: Date.now() - 3600000,
+    createdAt: 1721048400000, // Static timestamp
+    updatedAt: 1721048400000, // Static timestamp
     buildDuration: 180,
     deploymentUrl: "https://a1b2c3d-api-gateway.unkey.app"
   },
@@ -129,8 +129,8 @@ const mockVersions: Version[] = [
     gitBranch: "feature/auth-improvements",
     gitCommitMessage: "Fix token validation edge cases",
     status: "archived",
-    createdAt: Date.now() - 86400000,
-    updatedAt: Date.now() - 86400000,
+    createdAt: 1720962000000, // Static timestamp
+    updatedAt: 1720962000000, // Static timestamp
     buildDuration: 165
   },
   {
@@ -139,8 +139,8 @@ const mockVersions: Version[] = [
     gitBranch: "feature/auth-improvements",
     gitCommitMessage: "Initial OAuth implementation",
     status: "failed",
-    createdAt: Date.now() - 86400000 * 2,
-    updatedAt: Date.now() - 86400000 * 2,
+    createdAt: 1720875600000, // Static timestamp
+    updatedAt: 1720875600000, // Static timestamp
     buildDuration: 45
   }
 ];
@@ -213,12 +213,13 @@ export default function BranchDetailPage(): JSX.Element {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
-            <Button variant="ghost" size="sm" asChild>
-              <a href={`/projects/${projectId}`}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to {project.name}
-              </a>
-            </Button>
+            <a 
+              href={`/projects/${projectId}`}
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-content-subtle hover:text-content transition-colors rounded-md hover:bg-background-subtle"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to {project.name}
+            </a>
           </div>
           
           <div className="flex items-center justify-between">
