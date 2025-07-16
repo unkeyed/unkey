@@ -69,6 +69,7 @@ type BackendType string
 const (
 	BackendTypeCloudHypervisor BackendType = "cloudhypervisor"
 	BackendTypeFirecracker     BackendType = "firecracker"
+	BackendTypeDocker          BackendType = "docker"
 )
 
 // VMMetrics contains VM resource usage data for billing
