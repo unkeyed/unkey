@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { and, db } from "@/lib/db";
 import { ratelimit, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { KeysResponse, keysQueryPayload, transformKey } from "./schema-with-helpers";
@@ -13,25 +13,38 @@ export const queryKeys = t.procedure
     const workspaceId = ctx.workspace.id;
 
     try {
-      const keysQuery = await db.query.keys.findMany({
-        where: (key, { and, eq, lt, isNull }) => {
-          const conditions = [
-            eq(key.workspaceId, workspaceId),
-            isNull(key.deletedAtM), // Only non-deleted keys
-          ];
-
-          if (cursor) {
-            conditions.push(lt(key.id, cursor));
-          }
-
-          return and(...conditions);
-        },
-        limit: limit + 1, // Fetch one extra to determine if there are more results
-        orderBy: (keys, { desc }) => desc(keys.id),
+      const apisQuery = await db.query.apis.findMany({
+        where: (api, { eq, isNull }) =>
+          and(eq(api.workspaceId, workspaceId), isNull(api.deletedAtM)),
         with: {
-          roles: {
+          keyAuth: {
             with: {
-              role: {
+              keys: {
+                where: (key, { and, lt, isNull }) => {
+                  const conditions = [
+                    isNull(key.deletedAtM), // Only non-deleted keys
+                  ];
+
+                  if (cursor) {
+                    conditions.push(lt(key.id, cursor));
+                  }
+
+                  return and(...conditions);
+                },
+                limit: limit + 1,
+                orderBy: (keys, { desc }) => desc(keys.id),
+                with: {
+                  roles: {
+                    with: {
+                      role: {
+                        columns: {
+                          id: true,
+                          name: true,
+                        },
+                      },
+                    },
+                  },
+                },
                 columns: {
                   id: true,
                   name: true,
@@ -40,17 +53,17 @@ export const queryKeys = t.procedure
             },
           },
         },
-        columns: {
-          id: true,
-          name: true,
-        },
       });
 
+      const allKeys = apisQuery
+        .flatMap((api) => api.keyAuth?.keys || [])
+        .sort((a, b) => b.id.localeCompare(a.id));
+
       // Determine if there are more results
-      const hasMore = keysQuery.length > limit;
+      const hasMore = allKeys.length > limit;
 
       // Remove the extra item if it exists
-      const keys = hasMore ? keysQuery.slice(0, limit) : keysQuery;
+      const keys = hasMore ? allKeys.slice(0, limit) : allKeys;
       const nextCursor = hasMore && keys.length > 0 ? keys[keys.length - 1].id : undefined;
 
       return {
