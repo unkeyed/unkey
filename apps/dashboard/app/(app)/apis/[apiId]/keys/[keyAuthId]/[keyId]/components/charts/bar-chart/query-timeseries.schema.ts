@@ -1,6 +1,6 @@
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
-import { TAG_OPERATORS } from "../../../filters.schema";
 import { z } from "zod";
+import { TAG_OPERATORS } from "../../../filters.schema";
 
 export const MAX_KEYID_COUNT = 1;
 export const keyDetailsQueryTimeseriesPayload = z.object({
@@ -21,12 +21,10 @@ export const keyDetailsQueryTimeseriesPayload = z.object({
         z.object({
           value: z.enum(KEY_VERIFICATION_OUTCOMES),
           operator: z.literal("is"),
-        })
+        }),
       ),
     })
     .nullable(),
 });
 
-export type KeyDetailsQueryTimeseriesPayload = z.infer<
-  typeof keyDetailsQueryTimeseriesPayload
->;
+export type KeyDetailsQueryTimeseriesPayload = z.infer<typeof keyDetailsQueryTimeseriesPayload>;

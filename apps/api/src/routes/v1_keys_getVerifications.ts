@@ -17,13 +17,11 @@ const route = createRoute({
   request: {
     query: z.object({
       keyId: z.string().optional().openapi({
-        description:
-          "The id of the key to fetch, either `keyId` or `ownerId` must be provided",
+        description: "The id of the key to fetch, either `keyId` or `ownerId` must be provided",
         example: "key_1234",
       }),
       ownerId: z.string().optional().openapi({
-        description:
-          "The owner id to fetch keys for, either `keyId` or `ownerId` must be provided",
+        description: "The owner id to fetch keys for, either `keyId` or `ownerId` must be provided",
         example: "chronark",
       }),
       start: z.coerce.number().int().optional().openapi({
@@ -64,11 +62,10 @@ const route = createRoute({
                   example: 10,
                 }),
                 usageExceeded: z.number().int().openapi({
-                  description:
-                    "The number of requests that exceeded the usage limit",
+                  description: "The number of requests that exceeded the usage limit",
                   example: 0,
                 }),
-              })
+              }),
             ),
           }),
         },
@@ -98,8 +95,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
     if (keyId) {
       const data = await cache.keyById.swr(keyId, async (keyId) => {
         const dbRes = await db.readonly.query.keys.findFirst({
-          where: (table, { eq, and, isNull }) =>
-            and(eq(table.id, keyId), isNull(table.deletedAtM)),
+          where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAtM)),
           with: {
             identity: true,
             encrypted: true,
@@ -196,7 +192,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
           apiId: api.id,
           keySpaceId: api.keyAuthId!,
           workspaceId: key.workspaceId,
-        }))
+        })),
       );
     }
 
@@ -217,13 +213,11 @@ export const registerV1KeysGetVerifications = (app: App) =>
           and(
             ...apiIds.map(
               (apiId) =>
-                `api.${apiId}.read_key` satisfies z.infer<
-                  typeof unkeyPermissionValidation
-                >
-            )
-          )
-        )
-      )
+                `api.${apiId}.read_key` satisfies z.infer<typeof unkeyPermissionValidation>,
+            ),
+          ),
+        ),
+      ),
     );
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     if (ids.some(({ workspaceId }) => workspaceId !== authorizedWorkspaceId)) {
@@ -236,30 +230,27 @@ export const registerV1KeysGetVerifications = (app: App) =>
 
     const verificationsFromAllKeys = await Promise.all(
       ids.map(({ keyId, keySpaceId }) => {
-        return cache.verificationsByKeyId.swr(
-          `${keyId}:${start}-${end}`,
-          async () => {
-            const res = await analytics
-              .getVerificationsDaily({
-                workspaceId: authorizedWorkspaceId,
-                keyspaceId: keySpaceId,
-                keyId: keyId,
-                startTime: start ? start : now - 24 * 60 * 60 * 1000,
-                endTime: end ? end : now,
-                identities: null,
-                keyIds: null,
-                outcomes: null,
-                names: null,
-                tags: null,
-              })
-              .catch((err) => {
-                throw new Error(err.message);
-              });
+        return cache.verificationsByKeyId.swr(`${keyId}:${start}-${end}`, async () => {
+          const res = await analytics
+            .getVerificationsDaily({
+              workspaceId: authorizedWorkspaceId,
+              keyspaceId: keySpaceId,
+              keyId: keyId,
+              startTime: start ? start : now - 24 * 60 * 60 * 1000,
+              endTime: end ? end : now,
+              identities: null,
+              keyIds: null,
+              outcomes: null,
+              names: null,
+              tags: null,
+            })
+            .catch((err) => {
+              throw new Error(err.message);
+            });
 
-            return transformData(res);
-          }
-        );
-      })
+          return transformData(res);
+        });
+      }),
     );
 
     const verifications: {
@@ -299,11 +290,9 @@ export const registerV1KeysGetVerifications = (app: App) =>
     // really ugly hack to return an emoty array in case there wasn't a single verification
     // this became necessary when we switched to clickhouse, due to the different responses
     if (
-      Object.values(verifications).every(
-        ({ success, rateLimited, usageExceeded }) => {
-          return success + rateLimited + usageExceeded === 0;
-        }
-      )
+      Object.values(verifications).every(({ success, rateLimited, usageExceeded }) => {
+        return success + rateLimited + usageExceeded === 0;
+      })
     ) {
       return c.json({ verifications: [] });
     }
@@ -314,13 +303,13 @@ export const registerV1KeysGetVerifications = (app: App) =>
           success,
           rateLimited,
           usageExceeded,
-        })
+        }),
       ),
     });
   });
 
 function transformData(
-  data: VerificationTimeseriesDataPoint[] | undefined
+  data: VerificationTimeseriesDataPoint[] | undefined,
 ): CacheNamespaces["verificationsByKeyId"] {
   if (!data || !data.length) {
     return [];

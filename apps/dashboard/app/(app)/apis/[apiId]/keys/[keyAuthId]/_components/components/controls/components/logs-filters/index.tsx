@@ -40,9 +40,7 @@ export const LogsFilters = () => {
               defaultOption={activeNameFilter?.operator}
               defaultText={activeNameFilter?.value as string}
               onApply={(id, text) => {
-                const activeFiltersWithoutNames = filters.filter(
-                  (f) => f.field !== "names"
-                );
+                const activeFiltersWithoutNames = filters.filter((f) => f.field !== "names");
                 updateFilters([
                   ...activeFiltersWithoutNames,
                   {
@@ -67,9 +65,7 @@ export const LogsFilters = () => {
               defaultOption={activeIdentityFilter?.operator}
               defaultText={activeIdentityFilter?.value as string}
               onApply={(id, text) => {
-                const activeFiltersWithoutNames = filters.filter(
-                  (f) => f.field !== "identities"
-                );
+                const activeFiltersWithoutNames = filters.filter((f) => f.field !== "identities");
                 updateFilters([
                   ...activeFiltersWithoutNames,
                   {
@@ -94,9 +90,7 @@ export const LogsFilters = () => {
               defaultOption={activeKeyIdsFilter?.operator}
               defaultText={activeKeyIdsFilter?.value as string}
               onApply={(id, text) => {
-                const activeFiltersWithoutKeyIds = filters.filter(
-                  (f) => f.field !== "keyIds"
-                );
+                const activeFiltersWithoutKeyIds = filters.filter((f) => f.field !== "keyIds");
                 updateFilters([
                   ...activeFiltersWithoutKeyIds,
                   {
@@ -121,9 +115,7 @@ export const LogsFilters = () => {
               defaultOption={activeTagsFilter?.operator}
               defaultText={activeTagsFilter?.value as string}
               onApply={(id, text) => {
-                const activeFiltersWithoutTags = filters.filter(
-                  (f) => f.field !== "tags"
-                );
+                const activeFiltersWithoutTags = filters.filter((f) => f.field !== "tags");
                 updateFilters([
                   ...activeFiltersWithoutTags,
                   {
@@ -145,7 +137,7 @@ export const LogsFilters = () => {
           variant="ghost"
           className={cn(
             "group-data-[state=open]:bg-gray-4 px-2 rounded-lg",
-            filters.length > 0 ? "bg-gray-4" : ""
+            filters.length > 0 ? "bg-gray-4" : "",
           )}
           aria-label="Filter logs"
           aria-haspopup="true"
