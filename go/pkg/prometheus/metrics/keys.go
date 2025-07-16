@@ -11,11 +11,12 @@ import (
 )
 
 var (
-	// KeyVerificationsTotal tracks the number of key verifications handled, labeled by some data.
+	// KeyVerificationsTotal tracks the number of key verifications handled, labeled by type and outcome.
+	// The type should be either "root_key" or "key"
 	// Use this counter to monitor API traffic patterns and error rates.
 	//
 	// Example usage:
-	//   metrics.KeyVerificationsTotal.WithLabelValues("ws_1234", "api_5678", "key_abcd", "true", "VALID").Inc()
+	//   metrics.KeyVerificationsTotal.WithLabelValues("root_key", "VALID").Inc()
 	KeyVerificationsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Subsystem:   "key",
@@ -23,7 +24,7 @@ var (
 			Help:        "Total number of Key verifications processed.",
 			ConstLabels: constLabels,
 		},
-		[]string{"workspaceId", "apiId", "keyId", "valid", "code"},
+		[]string{"type", "code"},
 	)
 
 	// KeyCreditsSpentTotal tracks the total credits spent by keys, labeled by workspace ID, key ID, and identity ID.
