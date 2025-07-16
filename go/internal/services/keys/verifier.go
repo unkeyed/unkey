@@ -2,7 +2,6 @@ package keys
 
 import (
 	"context"
-	"strconv"
 	"time"
 
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
@@ -116,12 +115,13 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 		Tags:        config.tags,
 	})
 
+	keyType := "key"
+	if k.isRootKey {
+		keyType = "root_key"
+	}
 	// Emit Prometheus metrics for key verification
 	metrics.KeyVerificationsTotal.WithLabelValues(
-		k.AuthorizedWorkspaceID, // workspaceId
-		k.Key.ApiID,             // apiId
-		k.Key.ID,                // keyId
-		strconv.FormatBool(k.Status == StatusValid), // valid
+		keyType,
 		string(k.Status), // code
 	).Inc()
 
