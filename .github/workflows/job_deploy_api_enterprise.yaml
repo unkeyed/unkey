@@ -1,4 +1,6 @@
 name: Deploy API Enterprise
+permissions:
+  contents: read
 on:
   workflow_call:
     secrets:

@@ -10,11 +10,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 )
 
-// Helper function for creating string pointers
-func strPtr(s string) *string {
-	return &s
-}
-
 func TestUnauthorized(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
@@ -27,7 +22,7 @@ func TestUnauthorized(t *testing.T) {
 
 	t.Run("invalid root key", func(t *testing.T) {
 		req := handler.Request{
-			IdentityId: strPtr("identity_123"),
+			ExternalId: "identity_123",
 		}
 
 		// Non-existent key

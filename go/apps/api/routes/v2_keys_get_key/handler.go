@@ -270,7 +270,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		k.Identity = &openapi.Identity{
 			ExternalId: identity.ExternalID,
-			Id:         identity.ID,
 			Meta:       nil,
 			Ratelimits: nil,
 		}

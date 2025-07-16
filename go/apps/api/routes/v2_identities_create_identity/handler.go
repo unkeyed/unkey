@@ -56,13 +56,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// nolint:exhaustruct
-	req := Request{}
-	err = s.BindBody(&req)
+	req, err := zen.BindBody[Request](s)
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
-		)
+		return err
 	}
 
 	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
@@ -97,7 +93,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		meta = rawMeta
 	}
 
-	identityID, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
+	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		identityID := uid.New(uid.IdentityPrefix)
 		args := db.InsertIdentityParams{
 			ID:          identityID,
@@ -107,17 +103,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        meta,
 		}
-		err = db.Query.InsertIdentity(ctx, tx, args)
 
+		err = db.Query.InsertIdentity(ctx, tx, args)
 		if err != nil {
 			if db.IsDuplicateKeyError(err) {
-				return "", fault.Wrap(err,
+				return fault.Wrap(err,
 					fault.Code(codes.Data.Identity.Duplicate.URN()),
 					fault.Internal("identity already exists"), fault.Public(fmt.Sprintf("Identity with externalId \"%s\" already exists in this workspace.", req.ExternalId)),
 				)
 			}
 
-			return "", fault.Wrap(err,
+			return fault.Wrap(err,
 				fault.Internal("unable to create identity"), fault.Public("We're unable to create the identity and its ratelimits."),
 			)
 		}
@@ -196,7 +192,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				rateLimitsToInsert,
 			)
 			if err != nil {
-				return "", fault.Wrap(err,
+				return fault.Wrap(err,
 					fault.Internal("unable to create ratelimit"), fault.Public("We're unable to create a ratelimit for the identity."),
 				)
 			}
@@ -204,10 +200,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 		if err != nil {
-			return "", err
+			return err
 		}
 
-		return identityID, nil
+		return nil
 	})
 	if err != nil {
 		return err
@@ -217,8 +213,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.IdentitiesCreateIdentityResponseData{
-			IdentityId: identityID,
-		},
+		Data: openapi.IdentitiesCreateIdentityResponseData{},
 	})
 }

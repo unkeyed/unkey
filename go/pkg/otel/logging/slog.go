@@ -18,11 +18,11 @@ func init() {
 	}
 
 	handler = tint.NewHandler(os.Stdout, &tint.Options{
-		AddSource:   false,
+		AddSource:   true,
 		Level:       level,
 		ReplaceAttr: nil,
 		TimeFormat:  time.StampMilli,
-		NoColor:     true,
+		NoColor:     false,
 	})
 }
 
@@ -88,22 +88,22 @@ func (l *logger) WithAttrs(attrs ...slog.Attr) Logger {
 
 // Debug logs a message at debug level with key-value pairs.
 func (l *logger) Debug(msg string, args ...any) {
-	l.logger.Debug(msg, withSource(args)...)
+	l.logger.Debug(msg, args...)
 }
 
 // Info logs a message at info level with key-value pairs.
 func (l *logger) Info(msg string, args ...any) {
-	l.logger.Info(msg, withSource(args)...)
+	l.logger.Info(msg, args...)
 }
 
 // Warn logs a message at warn level with key-value pairs.
 func (l *logger) Warn(msg string, args ...any) {
-	l.logger.Warn(msg, withSource(args)...)
+	l.logger.Warn(msg, args...)
 }
 
 // Error logs a message at error level with key-value pairs.
 func (l *logger) Error(msg string, args ...any) {
-	l.logger.Error(msg, withSource(args)...)
+	l.logger.Error(msg, args...)
 }
 
 // ---- Context-aware logging methods ----

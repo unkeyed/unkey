@@ -10,6 +10,7 @@ import (
 
 	"github.com/unkeyed/unkey/go/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hydra/metrics"
 	"github.com/unkeyed/unkey/go/pkg/hydra/store"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
@@ -400,12 +401,12 @@ func (w *worker) executeWorkflow(ctx context.Context, e *store.WorkflowExecution
 		// Use lease-validated failure to ensure correctness
 		failureTime := w.clock.Now().UnixMilli()
 		result, failErr := w.engine.GetDB().ExecContext(ctx, `
-			UPDATE workflow_executions 
+			UPDATE workflow_executions
 			SET status = 'failed', error_message = ?, remaining_attempts = remaining_attempts - 1, completed_at = ?, next_retry_at = NULL
 			WHERE id = ? AND workflow_executions.namespace = ?
 			  AND EXISTS (
-			    SELECT 1 FROM leases 
-			    WHERE resource_id = ? AND kind = 'workflow' 
+			    SELECT 1 FROM leases
+			    WHERE resource_id = ? AND kind = 'workflow'
 			    AND worker_id = ? AND expires_at > ?
 			  )`,
 			sql.NullString{String: noHandlerErr.Error(), Valid: true},
@@ -494,12 +495,12 @@ func (w *worker) executeWorkflow(ctx context.Context, e *store.WorkflowExecution
 		if isFinal {
 			// Final failure - no more retries
 			result, failErr = w.engine.GetDB().ExecContext(ctx, `
-				UPDATE workflow_executions 
+				UPDATE workflow_executions
 				SET status = 'failed', error_message = ?, remaining_attempts = remaining_attempts - 1, completed_at = ?, next_retry_at = NULL
 				WHERE id = ? AND workflow_executions.namespace = ?
 				  AND EXISTS (
-				    SELECT 1 FROM leases 
-				    WHERE resource_id = ? AND kind = 'workflow' 
+				    SELECT 1 FROM leases
+				    WHERE resource_id = ? AND kind = 'workflow'
 				    AND worker_id = ? AND expires_at > ?
 				  )`,
 				sql.NullString{String: err.Error(), Valid: true},
@@ -514,12 +515,12 @@ func (w *worker) executeWorkflow(ctx context.Context, e *store.WorkflowExecution
 			// Failure with retry - calculate next retry time
 			nextRetryAt := w.clock.Now().Add(time.Duration(e.MaxAttempts-e.RemainingAttempts+1) * time.Second).UnixMilli()
 			result, failErr = w.engine.GetDB().ExecContext(ctx, `
-				UPDATE workflow_executions 
+				UPDATE workflow_executions
 				SET status = 'failed', error_message = ?, remaining_attempts = remaining_attempts - 1, next_retry_at = ?
 				WHERE id = ? AND workflow_executions.namespace = ?
 				  AND EXISTS (
-				    SELECT 1 FROM leases 
-				    WHERE resource_id = ? AND kind = 'workflow' 
+				    SELECT 1 FROM leases
+				    WHERE resource_id = ? AND kind = 'workflow'
 				    AND worker_id = ? AND expires_at > ?
 				  )`,
 				sql.NullString{String: err.Error(), Valid: true},
@@ -570,12 +571,12 @@ func (w *worker) executeWorkflow(ctx context.Context, e *store.WorkflowExecution
 	// Use lease-validated completion to ensure correctness
 	now = w.clock.Now().UnixMilli()
 	result, err := w.engine.GetDB().ExecContext(ctx, `
-		UPDATE workflow_executions 
+		UPDATE workflow_executions
 		SET status = 'completed', completed_at = ?, output_data = ?
 		WHERE id = ? AND workflow_executions.namespace = ?
 		  AND EXISTS (
-		    SELECT 1 FROM leases 
-		    WHERE resource_id = ? AND kind = 'workflow' 
+		    SELECT 1 FROM leases
+		    WHERE resource_id = ? AND kind = 'workflow'
 		    AND worker_id = ? AND expires_at > ?
 		  )`,
 		sql.NullInt64{Int64: now, Valid: true},
@@ -843,12 +844,12 @@ func (w *worker) executeCronJob(ctx context.Context, cronJob store.CronJob) {
 	nextRun := calculateNextRun(cronJob.CronSpec, w.engine.clock.Now())
 	updateTime := w.engine.clock.Now().UnixMilli()
 	result, err := w.engine.GetDB().ExecContext(ctx, `
-		UPDATE cron_jobs 
+		UPDATE cron_jobs
 		SET last_run_at = ?, next_run_at = ?, updated_at = ?
 		WHERE id = ? AND namespace = ?
 		  AND EXISTS (
-		    SELECT 1 FROM leases 
-		    WHERE resource_id = ? AND kind = 'cron_job' 
+		    SELECT 1 FROM leases
+		    WHERE resource_id = ? AND kind = 'cron_job'
 		    AND worker_id = ? AND expires_at > ?
 		  )`,
 		sql.NullInt64{Int64: now, Valid: true},
@@ -908,7 +909,7 @@ func (w *worker) acquireWorkflowLease(ctx context.Context, workflowID, workerID 
 		Namespace: w.engine.namespace,
 	})
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if db.IsNotFound(err) {
 			return fmt.Errorf("workflow not found")
 		}
 		return err
@@ -946,7 +947,7 @@ func (w *worker) acquireWorkflowLease(ctx context.Context, workflowID, workerID 
 	if err != nil {
 		// If lease creation failed, try to take over ONLY expired leases
 		leaseResult, leaseErr := tx.ExecContext(ctx, `
-			UPDATE leases 
+			UPDATE leases
 			SET worker_id = ?, acquired_at = ?, expires_at = ?, heartbeat_at = ?
 			WHERE resource_id = ? AND kind = ? AND expires_at < ?`,
 			workerID, now, expiresAt, now, workflowID, store.LeasesKindWorkflow, now)

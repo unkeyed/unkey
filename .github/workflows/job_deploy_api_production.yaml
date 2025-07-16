@@ -7,6 +7,9 @@ on:
 
 jobs:
   deploy:
+    permissions:
+      contents: read
+      deployments: write
     environment: Production
     runs-on: ubuntu-latest
     steps:
