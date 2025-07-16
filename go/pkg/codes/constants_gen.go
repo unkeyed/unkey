@@ -123,7 +123,4 @@ const (
 
 	// PreconditionFailed indicates a precondition check failed.
 	UnkeyAppErrorsPreconditionPreconditionFailed URN = "err:unkey:application:precondition_failed"
-
-// Limits
-
 )

@@ -30,10 +30,6 @@ type appPrecondition struct {
 	PreconditionFailed Code
 }
 
-// appLimits defines errors related to limits and quotas.
-type appLimits struct {
-}
-
 // UnkeyAppErrors defines all application-level errors in the Unkey system.
 // These errors generally relate to the application's operation rather than
 // specific domain entities.
@@ -49,9 +45,6 @@ type UnkeyAppErrors struct {
 
 	// Precondition contains errors related to resource preconditions.
 	Precondition appPrecondition
-
-	// Limits contains errors related to limits and quotas.
-	Limits appLimits
 }
 
 // App contains all predefined application-level error codes.
@@ -75,6 +68,4 @@ var App = UnkeyAppErrors{
 	Precondition: appPrecondition{
 		PreconditionFailed: Code{SystemUnkey, CategoryUnkeyApplication, "precondition_failed"},
 	},
-
-	Limits: appLimits{},
 }
