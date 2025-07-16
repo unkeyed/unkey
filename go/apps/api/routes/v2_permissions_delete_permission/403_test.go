@@ -34,13 +34,13 @@ func TestAuthorizationErrors(t *testing.T) {
 
 	// Create a test permission to try to delete
 	permissionID := uid.New(uid.PermissionPrefix)
-	permissionName := "test.permission.delete.auth"
+	permissionNameSlug := "test.permission.delete.auth"
 
 	err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 		PermissionID: permissionID,
 		WorkspaceID:  workspace.ID,
-		Name:         permissionName,
-		Slug:         "test-permission-delete-auth",
+		Name:         permissionNameSlug,
+		Slug:         permissionNameSlug,
 		Description:  sql.NullString{Valid: true, String: "Test permission for authorization tests"},
 		CreatedAtM:   time.Now().UnixMilli(),
 	})
@@ -57,7 +57,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		}
 
 		req := handler.Request{
-			PermissionId: permissionID,
+			Slug: permissionNameSlug,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
@@ -92,7 +92,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		}
 
 		req := handler.Request{
-			PermissionId: permissionID, // Permission is in the original workspace
+			Slug: permissionNameSlug, // Permission is in the original workspace
 		}
 
 		// When accessing from wrong workspace, the behavior should be a 404 Not Found

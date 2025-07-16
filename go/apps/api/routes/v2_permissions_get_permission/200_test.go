@@ -42,15 +42,14 @@ func TestSuccess(t *testing.T) {
 	// Test case for getting a permission
 	t.Run("get permission with all fields", func(t *testing.T) {
 		// First, create a permission to retrieve
-		permissionID := uid.New(uid.PermissionPrefix)
-		permissionName := "test.get.permission"
+		permissionNameSlug := "test.get.permission"
 		permissionDesc := "Test permission for get endpoint"
 
 		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			PermissionID: permissionID,
+			PermissionID: uid.New(uid.PermissionPrefix),
 			WorkspaceID:  workspace.ID,
-			Name:         permissionName,
-			Slug:         "test-get-permission",
+			Name:         permissionNameSlug,
+			Slug:         permissionNameSlug,
 			Description:  sql.NullString{Valid: true, String: permissionDesc},
 			CreatedAtM:   time.Now().UnixMilli(),
 		})
@@ -58,7 +57,7 @@ func TestSuccess(t *testing.T) {
 
 		// Now retrieve the permission
 		req := handler.Request{
-			PermissionId: permissionID,
+			Slug: permissionNameSlug,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -75,8 +74,8 @@ func TestSuccess(t *testing.T) {
 
 		// Verify permission data
 		permission := res.Body.Data.Permission
-		require.Equal(t, permissionID, permission.Id)
-		require.Equal(t, permissionName, permission.Name)
+		require.Equal(t, permissionNameSlug, permission.Slug)
+		require.Equal(t, permissionNameSlug, permission.Name)
 		require.NotNil(t, permission.Description)
 		require.Equal(t, permissionDesc, *permission.Description)
 		require.NotNil(t, permission.CreatedAt)
@@ -85,13 +84,12 @@ func TestSuccess(t *testing.T) {
 	// Test case for getting a permission without description
 	t.Run("get permission without description", func(t *testing.T) {
 		// First, create a permission to retrieve, without a description
-		permissionID := uid.New(uid.PermissionPrefix)
-		permissionName := "test.get.permission.no.desc"
+		permissionNameSlug := "test.get.permission.no.desc"
 
 		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			PermissionID: permissionID,
+			PermissionID: uid.New(uid.PermissionPrefix),
 			WorkspaceID:  workspace.ID,
-			Name:         permissionName,
+			Name:         permissionNameSlug,
 			Slug:         "test-get-permission-no-desc",
 			Description:  sql.NullString{}, // Empty description
 			CreatedAtM:   time.Now().UnixMilli(),
@@ -100,7 +98,7 @@ func TestSuccess(t *testing.T) {
 
 		// Now retrieve the permission
 		req := handler.Request{
-			PermissionId: permissionID,
+			Slug: permissionNameSlug,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -117,8 +115,8 @@ func TestSuccess(t *testing.T) {
 
 		// Verify permission data
 		permission := res.Body.Data.Permission
-		require.Equal(t, permissionID, permission.Id)
-		require.Equal(t, permissionName, permission.Name)
+		require.Equal(t, permissionNameSlug, permission.Slug)
+		require.Equal(t, permissionNameSlug, permission.Name)
 		require.Nil(t, permission.Description)
 	})
 }

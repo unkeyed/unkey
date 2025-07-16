@@ -40,22 +40,18 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/permissions.listPermissions")
 
-	// 1. Authentication
 	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
 	}
 
-	// 2. Request validation
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
 	}
 
-	// Handle null cursor - use empty string to start from beginning
 	cursor := ptr.SafeDeref(req.Cursor, "")
 
-	// 3. Permission check
 	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Rbac,
@@ -67,7 +63,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// 4. Query permissions with pagination
 	permissions, err := db.Query.ListPermissions(
 		ctx,
 		h.DB.RO(),
@@ -83,28 +78,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Check if we have more results by seeing if we got 101 permissions
-	hasMore := len(permissions) > 100
 	var nextCursor *string
-
-	// If we have more than 100, truncate to 100
+	hasMore := len(permissions) > 100
 	if hasMore {
 		nextCursor = ptr.P(permissions[100].ID)
 		permissions = permissions[:100]
 	}
 
-	// 5. Transform permissions into response format
 	responsePermissions := make([]openapi.Permission, 0, len(permissions))
 	for _, perm := range permissions {
 		permission := openapi.Permission{
-			Id:          perm.ID,
 			Name:        perm.Name,
 			Slug:        perm.Slug,
 			Description: nil,
 			CreatedAt:   perm.CreatedAtM,
 		}
 
-		// Add description only if it's valid
 		if perm.Description.Valid {
 			permission.Description = &perm.Description.String
 		}

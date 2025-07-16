@@ -44,14 +44,14 @@ func TestSuccess(t *testing.T) {
 	t.Run("delete permission", func(t *testing.T) {
 		// First, create a permission to delete
 		permissionID := uid.New(uid.PermissionPrefix)
-		permissionName := "test.delete.permission"
+		permissionNameAndSlug := "test.delete.permission"
 		permissionDesc := "Test permission to be deleted"
 
 		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permissionID,
 			WorkspaceID:  workspace.ID,
-			Name:         permissionName,
-			Slug:         "test-delete-permission",
+			Name:         permissionNameAndSlug,
+			Slug:         permissionNameAndSlug,
 			Description:  sql.NullString{Valid: true, String: permissionDesc},
 			CreatedAtM:   time.Now().UnixMilli(),
 		})
@@ -64,7 +64,7 @@ func TestSuccess(t *testing.T) {
 
 		// Now delete the permission
 		req := handler.Request{
-			PermissionId: permissionID,
+			Slug: permissionNameAndSlug,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -102,14 +102,14 @@ func TestSuccess(t *testing.T) {
 	t.Run("delete permission with description", func(t *testing.T) {
 		// Create a permission with a description
 		permissionID := uid.New(uid.PermissionPrefix)
-		permissionName := "test.delete.permission.with.description"
+		permissionNameAndSlug := "test.delete.permission.with.description"
 		permissionDesc := "This permission has a description"
 
 		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permissionID,
 			WorkspaceID:  workspace.ID,
-			Name:         permissionName,
-			Slug:         "test-delete-permission-with-description",
+			Name:         permissionNameAndSlug,
+			Slug:         permissionNameAndSlug,
 			Description:  sql.NullString{Valid: true, String: permissionDesc},
 			CreatedAtM:   time.Now().UnixMilli(),
 		})
@@ -123,7 +123,7 @@ func TestSuccess(t *testing.T) {
 
 		// Delete the permission
 		req := handler.Request{
-			PermissionId: permissionID,
+			Slug: permissionNameAndSlug,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](

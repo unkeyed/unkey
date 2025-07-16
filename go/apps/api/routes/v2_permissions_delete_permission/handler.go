@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -40,19 +41,16 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	// 1. Authentication
 	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
 	}
 
-	// 2. Request validation
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
 	}
 
-	// 3. Permission check
 	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Rbac,
@@ -64,8 +62,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// 4. Check if permission exists and belongs to authorized workspace
-	permission, err := db.Query.FindPermissionByID(ctx, h.DB.RO(), req.PermissionId)
+	permission, err := db.Query.FindPermissionBySlugAndWorkspaceID(ctx, h.DB.RO(), db.FindPermissionBySlugAndWorkspaceIDParams{
+		Slug:        req.Slug,
+		WorkspaceID: auth.AuthorizedWorkspaceID,
+	})
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("permission not found",
@@ -90,7 +90,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// 5. Delete the permission in a transaction
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		// Delete role-permission relationships
-		err = db.Query.DeleteManyRolePermissionsByPermissionID(ctx, tx, req.PermissionId)
+		err = db.Query.DeleteManyRolePermissionsByPermissionID(ctx, tx, permission.ID)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -99,7 +99,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		// Delete key-permission relationships
-		err = db.Query.DeleteManyKeyPermissionsByPermissionID(ctx, tx, req.PermissionId)
+		err = db.Query.DeleteManyKeyPermissionsByPermissionID(ctx, tx, permission.ID)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -108,7 +108,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		// Delete the permission itself
-		err = db.Query.DeletePermission(ctx, tx, req.PermissionId)
+		err = db.Query.DeletePermission(ctx, tx, permission.ID)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -125,13 +125,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ActorID:     auth.Key.ID,
 				ActorName:   "root key",
 				ActorMeta:   map[string]any{},
-				Display:     "Deleted " + req.PermissionId,
+				Display:     fmt.Sprintf("Deleted permission %s (%s)", permission.Slug, permission.ID),
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
 					{
 						Type:        "permission",
-						ID:          req.PermissionId,
+						ID:          permission.ID,
 						Name:        permission.Name,
 						DisplayName: permission.Name,
 						Meta: map[string]interface{}{
@@ -152,7 +152,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// 6. Return success response
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
