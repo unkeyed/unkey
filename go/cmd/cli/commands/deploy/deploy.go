@@ -40,8 +40,8 @@ var DeployFlags = []cli.Flag{
 	cli.String("config", "Directory containing unkey.json config file", "", "", false),
 
 	// Required flags (can be provided via config file)
-	cli.String("workspace-id", "Workspace ID", "", "UNKEY_WORKSPACE_ID", false), // Changed to false since config can provide it
-	cli.String("project-id", "Project ID", "", "UNKEY_PROJECT_ID", false),       // Changed to false since config can provide it
+	cli.String("workspace-id", "Workspace ID", "", "UNKEY_WORKSPACE_ID", false),
+	cli.String("project-id", "Project ID", "", "UNKEY_PROJECT_ID", false),
 
 	// Optional flags with defaults
 	cli.String("context", "Docker context path", "", "", false), // No default, will use config or "."
