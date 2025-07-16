@@ -11,6 +11,9 @@ on:
       agent:
         description: "Whether Agent has changed"
         value: ${{ jobs.build.outputs.agent }}
+      go:
+        description: "Whether go has changed"
+        value: ${{ jobs.build.outputs.go }}
 
 permissions:
   contents: read
