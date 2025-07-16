@@ -74,6 +74,9 @@ func New(config Config) (*database, error) {
 			db:   read,
 			mode: "ro",
 		}
+		config.Logger.Info("database configured with separate read replica")
+	} else {
+		config.Logger.Info("database configured without separate read replica, using primary for reads")
 	}
 
 	return &database{
