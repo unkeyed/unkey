@@ -14,7 +14,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
-func Test_UpdateKey_InvalidRefillConfig(t *testing.T) {
+func TestUpdateKeyInvalidRefillConfig(t *testing.T) {
 	t.Parallel()
 
 	h := testutil.NewHarness(t)

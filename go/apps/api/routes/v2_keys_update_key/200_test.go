@@ -3,7 +3,6 @@ package handler_test
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"testing"
 	"time"
@@ -18,7 +17,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
-func Test_UpdateKey_Success(t *testing.T) {
+func TestUpdateKeySuccess(t *testing.T) {
 	t.Parallel()
 
 	h := testutil.NewHarness(t)
@@ -66,7 +65,7 @@ func Test_UpdateKey_Success(t *testing.T) {
 	require.NotEmpty(t, res.Body.Meta.RequestId)
 }
 
-func Test_UpdateKey_UpdateAllFields(t *testing.T) {
+func TestUpdateKeyUpdateAllFields(t *testing.T) {
 	t.Parallel()
 
 	h := testutil.NewHarness(t)
@@ -118,8 +117,7 @@ func Test_UpdateKey_UpdateAllFields(t *testing.T) {
 		Roles:       &[]string{"admin", "user"},
 	}
 
-	res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-	log.Printf("Response body %#v", res.Body)
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, 200, res.Status, "Expected 200, got: %d", res.Status)
 	require.NotNil(t, res.Body)
 	require.NotEmpty(t, res.Body.Meta.RequestId)

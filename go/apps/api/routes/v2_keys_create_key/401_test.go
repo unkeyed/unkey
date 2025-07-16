@@ -12,7 +12,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func Test_CreateKey_Unauthorized(t *testing.T) {
+func TestCreateKeyUnauthorized(t *testing.T) {
 
 	h := testutil.NewHarness(t)
 

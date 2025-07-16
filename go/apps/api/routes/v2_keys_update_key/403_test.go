@@ -13,7 +13,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
-func Test_UpdateKey_CorrectPermissions(t *testing.T) {
+func TestUpdateKeyCorrectPermissions(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
@@ -70,7 +70,7 @@ func Test_UpdateKey_CorrectPermissions(t *testing.T) {
 
 			req := handler.Request{
 				KeyId:   keyResponse.KeyID,
-				Enabled: &[]bool{false}[0],
+				Enabled: ptr.P(false),
 			}
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -80,7 +80,7 @@ func Test_UpdateKey_CorrectPermissions(t *testing.T) {
 	}
 }
 
-func Test_UpdateKey_InsufficientPermissions(t *testing.T) {
+func TestUpdateKeyInsufficientPermissions(t *testing.T) {
 	t.Parallel()
 
 	h := testutil.NewHarness(t)
@@ -116,7 +116,7 @@ func Test_UpdateKey_InsufficientPermissions(t *testing.T) {
 
 	req := handler.Request{
 		KeyId:   keyResponse.KeyID,
-		Enabled: &[]bool{false}[0],
+		Enabled: ptr.P(false),
 	}
 
 	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
@@ -124,7 +124,7 @@ func Test_UpdateKey_InsufficientPermissions(t *testing.T) {
 	require.NotNil(t, res.Body)
 }
 
-func Test_UpdateKey_CrossWorkspaceIsolation(t *testing.T) {
+func TestUpdateKeyCrossWorkspaceIsolation(t *testing.T) {
 	t.Parallel()
 
 	h := testutil.NewHarness(t)
@@ -163,7 +163,7 @@ func Test_UpdateKey_CrossWorkspaceIsolation(t *testing.T) {
 
 	req := handler.Request{
 		KeyId:   keyResponse.KeyID,
-		Enabled: &[]bool{false}[0],
+		Enabled: ptr.P(false),
 	}
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)

@@ -13,7 +13,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
-func Test_UpdateKey_NotFound(t *testing.T) {
+func TestUpdateKeyNotFound(t *testing.T) {
 	t.Parallel()
 
 	h := testutil.NewHarness(t)

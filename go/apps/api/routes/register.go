@@ -344,7 +344,7 @@ func Register(srv *zen.Server, svc *Services) {
 		},
 	)
 
-	// v2/keys.createKey
+	// v2/keys.updateKey
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysUpdateKey.Handler{

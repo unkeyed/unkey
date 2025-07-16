@@ -1114,7 +1114,6 @@ type V2KeysCreateKeyRequestBody struct {
 	Name *string `json:"name,omitempty"`
 
 	// Permissions Grants specific permissions directly to this key without requiring role membership.
-	// Use hierarchical naming patterns like `resource.action` for logical organization.
 	// Wildcard permissions like `documents.*` grant access to all sub-permissions including `documents.read` and `documents.write`.
 	// Direct permissions supplement any permissions inherited from assigned roles.
 	Permissions *[]string `json:"permissions,omitempty"`

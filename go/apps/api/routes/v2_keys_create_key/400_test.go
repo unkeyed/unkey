@@ -14,7 +14,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
-func Test_CreateKey_BadRequest(t *testing.T) {
+func TestCreateKeyBadRequest(t *testing.T) {
 
 	h := testutil.NewHarness(t)
 
