@@ -5860,9 +5860,8 @@ paths:
         - Enabling user-based analytics across multiple keys
         - Simplifying key management for multi-device or multi-service users
 
-        When you create keys with the same externalId, they'll share rate limits and appear grouped in analytics. This enables scenarios like letting users generate multiple API keys for different devices while still treating them as a single entity for usage limits.
-
-        The identity concept creates a separation between your user entities and their authentication credentials (API keys), similar to how users can have multiple passwords or sessions.
+        When you create keys with the same externalId, they'll share rate limits and appear grouped in analytics.
+        This enables scenarios like letting users generate multiple API keys for different devices while still treating them as a single entity for usage limits.
       operationId: identities.createIdentity
       x-speakeasy-name-override: createIdentity
       security:
