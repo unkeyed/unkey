@@ -58,25 +58,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = auth.Verify(ctx, keys.WithPermissions(
-		rbac.And(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   "*",
-				Action:       rbac.UpdateKey,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Rbac,
-				ResourceID:   "*",
-				Action:       rbac.AddPermissionToKey,
-			}),
-		),
-	))
-	if err != nil {
-		return err
-	}
-
-	key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), req.KeyId)
+	key, err := db.Query.FindKeyByIdOrHash(ctx,
+		h.DB.RO(),
+		db.FindKeyByIdOrHashParams{
+			ID:   sql.NullString{String: req.KeyId, Valid: true},
+			Hash: sql.NullString{String: "", Valid: false},
+		},
+	)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("key not found",
@@ -100,6 +88,31 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Internal("key belongs to different workspace"),
 			fault.Public("The specified key was not found."),
 		)
+	}
+
+	err = auth.Verify(ctx, keys.WithPermissions(
+		rbac.And(
+			rbac.Or(
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   key.Api.ID,
+					Action:       rbac.UpdateKey,
+				}),
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   "*",
+					Action:       rbac.UpdateKey,
+				}),
+			),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Rbac,
+				ResourceID:   "*",
+				Action:       rbac.AddPermissionToKey,
+			}),
+		),
+	))
+	if err != nil {
+		return err
 	}
 
 	currentPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), req.KeyId)
