@@ -263,7 +263,6 @@ func (p *parser) parse() (PermissionQuery, error) {
 //
 // Complexity limits enforced:
 //   - Maximum query length: 1000 characters (prevents excessive memory usage)
-//   - Maximum permissions: 100 (prevents exponential evaluation complexity)
 //
 // The query string is automatically trimmed of leading and trailing whitespace.
 // Empty or whitespace-only queries are rejected.
@@ -272,13 +271,11 @@ func (p *parser) parse() (PermissionQuery, error) {
 //  1. Input validation (length, emptiness)
 //  2. Lexical analysis (tokenization)
 //  3. Syntactic parsing (AST generation)
-//  4. Complexity validation (permission count)
 //
 // Error conditions:
 //   - Query exceeds 1000 characters
 //   - Query is empty or whitespace-only
 //   - Syntax errors in the query
-//   - Query contains more than 100 permissions
 //
 // Returns the parsed [PermissionQuery] ready for use with [RBAC.EvaluatePermissions],
 // or an error describing the validation or parsing failure.
@@ -288,20 +285,6 @@ func parseQuery(query string) (PermissionQuery, error) {
 	result, err := p.parse()
 	if err != nil {
 		return PermissionQuery{}, err
-	}
-
-	// Count permissions and check limits
-	// We inline the permission counting logic here since it's only used once
-	var countPermissions func(PermissionQuery) int
-	countPermissions = func(query PermissionQuery) int {
-		if query.Value != "" {
-			return 1
-		}
-		count := 0
-		for _, child := range query.Children {
-			count += countPermissions(child)
-		}
-		return count
 	}
 
 	return result, nil
