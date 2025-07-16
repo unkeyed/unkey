@@ -263,10 +263,7 @@ components:
     KeysDeleteKeyResponseData:
       type: object
       properties: {}
-<<<<<<< HEAD
       additionalProperties: false
-=======
->>>>>>> ede6df1b8 (adjust comments)
       description: Empty response object by design. A successful response indicates the key was deleted successfully.
     V2KeysDeleteKeyResponseBody:
       type: object
@@ -361,7 +358,6 @@ components:
             Duplicate permissions are ignored automatically, making this operation idempotent.
             Use the permissions slug here, if one of the slug(s) is not found it will be created IF the root key has the necessary permissions.
           items:
-<<<<<<< HEAD
             type: string
             description: |
               Identifies the permission by its human-readable name using hierarchical naming patterns.
@@ -369,44 +365,6 @@ components:
               Slugs must be unique within your `workspace` and support wildcard matching during verification.
               Combined with `create=true`, allows automatic permission creation for streamlined workflows.
             example: documents.write
-=======
-            type: object
-            properties:
-              id:
-                type: string
-                minLength: 3
-                maxLength: 255
-                pattern: "^[a-zA-Z0-9_]+$"
-                description: |
-                  References an existing permission by its database identifier.
-                  Use when you know the exact permission ID and want to ensure you're referencing a specific permission.
-                  Takes precedence over slug when both are provided in the same object.
-                  The referenced permission must already exist in your workspace.
-                example: perm_1n9McEIBSqy44Qy7hzWyM5
-              slug:
-                type: string
-                minLength: 1
-                maxLength: 100 # Keep permission names concise and readable
-                pattern: "^[a-zA-Z0-9_.]+$"
-                description: |
-                  Identifies the permission by its human-readable name using hierarchical naming patterns.
-                  Use `resource.action` format for logical organization and verification flexibility.
-                  Slugs must be unique within your `workspace` and support wildcard matching during verification.
-                  Combined with `create=true`, allows automatic permission creation for streamlined workflows.
-                example: documents.write
-              create:
-                type: boolean
-                default: false
-                description: |
-                  Enables automatic permission creation when the specified slug does not exist.
-                  Only works with slug-based references, not ID-based references.
-                  Requires the `rbac.*.create_permission` permission on your root key.
-
-                  Created permissions are permanent and visible workspace-wide to all API keys.
-                  Use carefully to avoid permission proliferation from typos or uncontrolled creation.
-                  Consider centralizing permission creation in controlled processes for better governance.
-                  Auto-created permissions use the slug as both the name and identifier.
->>>>>>> ede6df1b8 (adjust comments)
             additionalProperties: false
       additionalProperties: false
     V2KeysAddPermissionsResponseData:
@@ -479,32 +437,9 @@ components:
             After removal, verification checks for these permissions will fail unless granted through roles.
             Removing all direct permissions does not disable the key, only removes its direct permission grants.
           items:
-<<<<<<< HEAD
             type: string
             description: Identifies the permission by slug for removal from the key's direct assignment list.
             example: documents.write
-=======
-            type: object
-            properties:
-              id:
-                type: string
-                minLength: 3
-                maxLength: 255
-                pattern: "^[a-zA-Z0-9_]+$"
-                description: |
-                  References the permission to remove by its database identifier.
-                  Use when you know the exact permission ID and want to ensure you're removing a specific permission.
-                  Takes precedence over name when both are provided in the same object.
-                example: perm_1n9McEIBSqy44Qy7hzWyM5
-              slug:
-                type: string
-                minLength: 1
-                maxLength: 100 # Keep permission slugs concise and readable
-                pattern: "^[a-zA-Z0-9_.]+$"
-                description: Identifies the permission by slug for removal from the key's direct assignment list.
-                example: documents.write
-            additionalProperties: false
->>>>>>> ede6df1b8 (adjust comments)
       additionalProperties: false
     V2KeysRemovePermissionsResponseData:
       type: array
@@ -568,7 +503,6 @@ components:
             The permissions to set for this key. This is a complete replacement operation - it overwrites all existing direct permissions with this new set.
             Permissions that are applied through roles are not affected.
           items:
-<<<<<<< HEAD
             type: string
             description: The slug of the permission. Provide either ID or slug
               for each permission, not both. Slugs must match exactly as defined
@@ -577,38 +511,6 @@ components:
               be ambiguous if not carefully managed across your workspace.
             example: documents.write
             minLength: 1
-=======
-            type: object
-            properties:
-              id:
-                type: string
-                description:
-                  The ID of an existing permission (begins with `perm_`).
-                  Provide either ID or slug for each permission, not both. Using ID
-                  is more precise and guarantees you're referencing the exact permission
-                  intended, regardless of slug changes or duplicates. IDs are particularly
-                  useful in automation scripts and when migrating permissions between
-                  environments.
-                example: perm_1n9McEIBSqy44Qy7hzWyM5
-                minLength: 3
-              slug:
-                type: string
-                description:
-                  The slug of the permission. Provide either ID or slug
-                  for each permission, not both. Slugs must match exactly as defined
-                  in your permission system - including case sensitivity and the complete
-                  hierarchical path. Slugs are generally more human-readable but can
-                  be ambiguous if not carefully managed across your workspace.
-                example: documents.write
-                minLength: 1
-              create:
-                type: boolean
-                description: |-
-                  When true, if a permission with this slug doesn't exist, it will be automatically created on-the-fly. Only works when specifying slug, not ID.
-                  This  Requires the `rbac.*.create_permission` permission on your root key.
-                default: false
-            additionalProperties: false
->>>>>>> ede6df1b8 (adjust comments)
       additionalProperties: false
     V2KeysSetPermissionsResponseData:
       type: array
@@ -3499,20 +3401,6 @@ components:
     V2IdentitiesUpdateIdentityRequestBody:
       type: object
       properties:
-<<<<<<< HEAD
-=======
-        identityId:
-          type: string
-          minLength: 3
-          maxLength: 255
-          pattern: "^[a-zA-Z0-9_]+$"
-          description: |
-            Specifies which identity to update using the Unkey database identifier.
-            Takes precedence over externalId when both are provided in the same request.
-            Use this when you have stored the Unkey identity ID from previous API calls.
-            Essential for direct identity management when you track Unkey's internal identifiers.
-          example: id_01H9TQPP77V5E48E9SH0BG0ZQX
->>>>>>> ede6df1b8 (adjust comments)
         externalId:
           type: string
           minLength: 3
