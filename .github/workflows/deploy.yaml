@@ -3,6 +3,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 concurrency:
   group: deploy
   cancel-in-progress: false
