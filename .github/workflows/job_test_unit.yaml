@@ -5,24 +5,7 @@ permissions:
   contents: read
 jobs:
   test:
-    strategy:
-      fail-fast: false
-      matrix:
-        path:
-          - "./internal/billing"
-          - "./internal/encryption"
-          - "./internal/hash"
-          - "./internal/id"
-          - "./internal/keys"
-          - "./internal/resend"
-          - "./internal/clickhouse"
-          - "./packages/api"
-          - "./packages/cache"
-          - "./packages/hono"
-          - "./packages/nextjs"
-          - "./packages/rbac"
-          - "./apps/dashboard"
-    name: Test ${{matrix.path}}
+    name: Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,7 +15,6 @@ jobs:
           ts: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Build
-        if: ${{ matrix.path != './apps/dashboard' }}
-        run: pnpm turbo run build --filter=${{matrix.path}}
+        run: pnpm build
       - name: Test
-        run: pnpm turbo run test --filter=${{matrix.path}}
+        run: pnpm test
