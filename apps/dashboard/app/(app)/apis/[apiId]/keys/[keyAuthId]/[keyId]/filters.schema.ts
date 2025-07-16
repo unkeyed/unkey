@@ -9,6 +9,7 @@ import { z } from "zod";
 import { getOutcomeColor } from "../../../_overview/utils";
 
 export const ALLOWED_OPERATOR = ["is"] as const;
+export const TAG_OPERATORS = ["is", "contains", "startsWith", "endsWith"] as const;
 export type KeyDetailsFilterOperator = z.infer<typeof keyDetailsFilterOperatorEnum>;
 
 export const keyDetailsFilterFieldConfig: FilterFieldConfigs = {
@@ -24,6 +25,10 @@ export const keyDetailsFilterFieldConfig: FilterFieldConfigs = {
     type: "string",
     operators: ALLOWED_OPERATOR,
   },
+  tags: {
+    type: "string",
+    operators: TAG_OPERATORS,
+  },
   outcomes: {
     type: "string",
     operators: ALLOWED_OPERATOR,
@@ -32,8 +37,14 @@ export const keyDetailsFilterFieldConfig: FilterFieldConfigs = {
   } as const,
 };
 
-export const keyDetailsFilterOperatorEnum = z.enum(ALLOWED_OPERATOR);
-export const keyDetailsFilterFieldEnum = z.enum(["startTime", "endTime", "since", "outcomes"]);
+export const keyDetailsFilterOperatorEnum = z.enum([...ALLOWED_OPERATOR, ...TAG_OPERATORS]);
+export const keyDetailsFilterFieldEnum = z.enum([
+  "startTime",
+  "endTime",
+  "since",
+  "tags",
+  "outcomes",
+]);
 
 export const filterOutputSchema = createFilterOutputSchema(
   keyDetailsFilterFieldEnum,
@@ -47,12 +58,13 @@ export type FilterFieldConfigs = {
   startTime: NumberConfig<KeyDetailsFilterOperator>;
   endTime: NumberConfig<KeyDetailsFilterOperator>;
   since: StringConfig<KeyDetailsFilterOperator>;
+  tags: StringConfig<KeyDetailsFilterOperator>;
   outcomes: StringConfig<KeyDetailsFilterOperator>;
 };
 
 export type IsOnlyUrlValue = {
   value: string | number;
-  operator: KeyDetailsFilterOperator;
+  operator: "is";
 };
 
 export type KeyDetailsFilterUrlValue = Pick<
@@ -62,9 +74,15 @@ export type KeyDetailsFilterUrlValue = Pick<
 
 export type KeyDetailsFilterValue = FilterValue<KeyDetailsFilterField, KeyDetailsFilterOperator>;
 
+export type AllOperatorsUrlValue = {
+  value: string;
+  operator: "is" | "contains" | "startsWith" | "endsWith";
+};
+
 export type KeysQuerySearchParams = {
   startTime?: number | null;
   endTime?: number | null;
   since?: string | null;
+  tags: AllOperatorsUrlValue[] | null;
   outcomes: IsOnlyUrlValue[] | null;
 };

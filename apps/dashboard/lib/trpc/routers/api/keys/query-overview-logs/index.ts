@@ -1,12 +1,6 @@
 import { keysQueryOverviewLogsPayload } from "@/app/(app)/apis/[apiId]/_overview/components/table/query-logs.schema";
 import { clickhouse } from "@/lib/clickhouse";
-import {
-  ratelimit,
-  requireUser,
-  requireWorkspace,
-  t,
-  withRatelimit,
-} from "@/lib/trpc/trpc";
+import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { keysOverviewLogs as keysLogs } from "@unkey/clickhouse/src/keys/keys";
 import { z } from "zod";
@@ -52,6 +46,8 @@ export const queryKeysOverviewLogs = t.procedure
       keyspaceId: keyspaceId,
       // Only include keyIds filters if explicitly provided in the input
       keyIds: input.keyIds ? transformedInputs.keyIds : null,
+      // Pass tags to ClickHouse for filtering
+      tags: transformedInputs.tags,
       // Nullify these as we'll filter in the database
       names: null,
       identities: null,
@@ -95,12 +91,10 @@ export const queryKeysOverviewLogs = t.procedure
         ...log,
         key_details: keyDetailsMap.get(log.key_id) || null,
       }));
-    console.log(keysOverviewLogs);
     const response: KeysOverviewLogsResponse = {
       keysOverviewLogs,
       hasMore: logs.length === input.limit && keysOverviewLogs.length > 0,
-      nextCursor:
-        logs.length === input.limit ? logs[logs.length - 1].time : undefined,
+      nextCursor: logs.length === input.limit ? logs[logs.length - 1].time : undefined,
     };
 
     return response;

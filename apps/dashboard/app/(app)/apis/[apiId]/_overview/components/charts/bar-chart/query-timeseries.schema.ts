@@ -15,7 +15,7 @@ export const keysOverviewQueryTimeseriesPayload = z.object({
           z.object({
             operator: keysOverviewFilterOperatorEnum,
             value: z.string(),
-          }),
+          })
         )
         .max(MAX_KEYID_COUNT),
     })
@@ -26,7 +26,7 @@ export const keysOverviewQueryTimeseriesPayload = z.object({
         z.object({
           operator: keysOverviewFilterOperatorEnum,
           value: z.string(),
-        }),
+        })
       ),
     })
     .nullable(),
@@ -36,7 +36,7 @@ export const keysOverviewQueryTimeseriesPayload = z.object({
         z.object({
           operator: keysOverviewFilterOperatorEnum,
           value: z.string(),
-        }),
+        })
       ),
     })
     .nullable(),
@@ -46,11 +46,18 @@ export const keysOverviewQueryTimeseriesPayload = z.object({
         z.object({
           value: z.enum(KEY_VERIFICATION_OUTCOMES),
           operator: z.literal("is"),
-        }),
+        })
       ),
     })
     .nullable(),
-  tags: z.array(z.string()).nullable(),
+  tags: z
+    .object({
+      operator: keysOverviewFilterOperatorEnum,
+      value: z.string(),
+    })
+    .nullable(),
 });
 
-export type KeysOverviewQueryTimeseriesPayload = z.infer<typeof keysOverviewQueryTimeseriesPayload>;
+export type KeysOverviewQueryTimeseriesPayload = z.infer<
+  typeof keysOverviewQueryTimeseriesPayload
+>;

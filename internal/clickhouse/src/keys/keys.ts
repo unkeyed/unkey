@@ -22,7 +22,7 @@ export const keysOverviewLogsParams = z.object({
       z.object({
         value: z.enum(KEY_VERIFICATION_OUTCOMES),
         operator: z.literal("is"),
-      })
+      }),
     )
     .nullable(),
   names: z
@@ -30,7 +30,7 @@ export const keysOverviewLogsParams = z.object({
       z.object({
         operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
         value: z.string(),
-      })
+      }),
     )
     .nullable(),
   identities: z
@@ -38,7 +38,7 @@ export const keysOverviewLogsParams = z.object({
       z.object({
         operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
         value: z.string(),
-      })
+      }),
     )
     .nullable(),
   keyIds: z
@@ -46,7 +46,15 @@ export const keysOverviewLogsParams = z.object({
       z.object({
         operator: z.enum(["is", "contains"]),
         value: z.string(),
-      })
+      }),
+    )
+    .nullable(),
+  tags: z
+    .array(
+      z.object({
+        operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
+        value: z.string(),
+      }),
     )
     .nullable(),
   cursorTime: z.number().int().nullable(),
@@ -55,7 +63,7 @@ export const keysOverviewLogsParams = z.object({
       z.object({
         column: z.enum(["time", "valid", "invalid"]),
         direction: z.enum(["asc", "desc"]),
-      })
+      }),
     )
     .nullable(),
 });
@@ -126,6 +134,7 @@ export function getKeysOverviewLogs(ch: Querier) {
 
     const hasKeyIdFilters = args.keyIds && args.keyIds.length > 0;
     const hasOutcomeFilters = args.outcomes && args.outcomes.length > 0;
+    const hasTagFilters = args.tags && args.tags.length > 0;
     const hasSortingRules = args.sorts && args.sorts.length > 0;
 
     const outcomeCondition = hasOutcomeFilters
@@ -162,6 +171,29 @@ export function getKeysOverviewLogs(ch: Querier) {
           .join(" OR ") || "TRUE"
       : "TRUE";
 
+    const tagConditions = hasTagFilters
+      ? args.tags
+          ?.map((filter, index) => {
+            const paramName = `tagValue_${index}`;
+            paramSchemaExtension[paramName] = z.string();
+            parameters[paramName] = filter.value;
+            switch (filter.operator) {
+              case "is":
+                return `has(tags, {${paramName}: String})`;
+              case "contains":
+                return `arrayExists(x -> like(x, CONCAT('%', {${paramName}: String}, '%')), tags)`;
+              case "startsWith":
+                return `arrayExists(x -> like(x, CONCAT({${paramName}: String}, '%')), tags)`;
+              case "endsWith":
+                return `arrayExists(x -> like(x, CONCAT('%', {${paramName}: String})), tags)`;
+              default:
+                return null;
+            }
+          })
+          .filter(Boolean)
+          .join(" OR ") || "TRUE"
+      : "TRUE";
+
     const allowedColumns = new Map([
       ["time", "time"],
       ["valid", "valid_count"],
@@ -175,8 +207,7 @@ export function getKeysOverviewLogs(ch: Querier) {
             // Only add to ORDER BY if it's an allowed column to prevent injection
             if (column) {
               const direction =
-                sort.direction.toUpperCase() === "ASC" ||
-                sort.direction.toUpperCase() === "DESC"
+                sort.direction.toUpperCase() === "ASC" || sort.direction.toUpperCase() === "DESC"
                   ? sort.direction.toUpperCase()
                   : "DESC";
               acc.push(`${column} ${direction}`);
@@ -199,18 +230,15 @@ export function getKeysOverviewLogs(ch: Querier) {
     const timeDirection = hasCustomSort
       ? "ASC"
       : timeSort?.direction.toUpperCase() === "ASC"
-      ? "ASC"
-      : "DESC";
+        ? "ASC"
+        : "DESC";
 
     // Remove any existing time sort from the orderBy array
-    const orderByWithoutTime = orderBy.filter(
-      (clause) => !clause.startsWith("time")
-    );
+    const orderByWithoutTime = orderBy.filter((clause) => !clause.startsWith("time"));
 
     // Construct final ORDER BY clause with only time at the end
     const orderByClause =
-      [...orderByWithoutTime, `time ${timeDirection}`].join(", ") ||
-      "time DESC"; // Fallback if empty
+      [...orderByWithoutTime, `time ${timeDirection}`].join(", ") || "time DESC"; // Fallback if empty
 
     // Create cursor condition based on time direction
     let cursorCondition: string;
@@ -233,8 +261,7 @@ export function getKeysOverviewLogs(ch: Querier) {
       `;
     }
 
-    const extendedParamsSchema =
-      keysOverviewLogsParams.extend(paramSchemaExtension);
+    const extendedParamsSchema = keysOverviewLogsParams.extend(paramSchemaExtension);
     const query = ch.query({
       query: `
 WITH
@@ -254,6 +281,8 @@ WITH
           AND (${keyIdConditions})
           -- Apply dynamic outcome filtering
           AND (${outcomeCondition})
+          -- Apply dynamic tag filtering
+          AND (${tagConditions})
           -- Handle pagination using only time as cursor
           ${cursorCondition}
     ),
@@ -266,6 +295,8 @@ WITH
           max(time) as last_request_time,
           -- Get the request_id of the latest verification (based on time)
           argMax(request_id, time) as last_request_id,
+          -- Get the tags from the latest verification (based on time)
+          argMax(tags, time) as tags,
           -- Count valid verifications
           countIf(outcome = 'VALID') as valid_count,
           -- Count all non-valid verifications
@@ -289,6 +320,7 @@ WITH
       a.key_id,
       a.last_request_time as time,
       a.last_request_id as request_id,
+      a.tags,
       a.valid_count,
       a.error_count,
       -- Create an array of tuples containing all outcomes and their counts
@@ -301,6 +333,7 @@ WITH
       a.key_id,
       a.last_request_time,
       a.last_request_id,
+      a.tags,
       a.valid_count,
       a.error_count
     -- Sort results with most recent verification first
@@ -336,6 +369,7 @@ WITH
           key_id: result.key_id,
           time: result.time,
           request_id: result.request_id,
+          tags: result.tags,
           valid_count: result.valid_count,
           error_count: result.error_count,
           outcome_counts: outcomeCountsObj,

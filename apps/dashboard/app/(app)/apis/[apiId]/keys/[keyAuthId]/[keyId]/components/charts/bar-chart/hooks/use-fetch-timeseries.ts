@@ -8,7 +8,10 @@ import { keyDetailsFilterFieldConfig } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 import type { KeyDetailsQueryTimeseriesPayload } from "../query-timeseries.schema";
 
-export const useFetchVerificationTimeseries = (keyId: string, keyspaceId: string) => {
+export const useFetchVerificationTimeseries = (
+  keyId: string,
+  keyspaceId: string
+) => {
   const { filters } = useFilters();
   const { queryTime: timestamp } = useQueryTime();
 
@@ -17,6 +20,7 @@ export const useFetchVerificationTimeseries = (keyId: string, keyspaceId: string
       startTime: timestamp - HISTORICAL_DATA_WINDOW,
       endTime: timestamp,
       outcomes: { filters: [] },
+      tags: null,
       since: "",
       keyId,
       keyspaceId,
@@ -28,14 +32,31 @@ export const useFetchVerificationTimeseries = (keyId: string, keyspaceId: string
       }
 
       switch (filter.field) {
+        case "tags": {
+          if (typeof filter.value === "string" && filter.value.trim()) {
+            const fieldConfig = keyDetailsFilterFieldConfig[filter.field];
+            const validOperators = fieldConfig.operators;
+
+            const operator = validOperators.includes(filter.operator)
+              ? filter.operator
+              : validOperators[0];
+
+            params.tags = {
+              operator,
+              value: filter.value,
+            };
+          }
+          break;
+        }
+
         case "startTime":
         case "endTime": {
           const numValue =
             typeof filter.value === "number"
               ? filter.value
               : typeof filter.value === "string"
-                ? Number(filter.value)
-                : Number.NaN;
+              ? Number(filter.value)
+              : Number.NaN;
 
           if (!Number.isNaN(numValue)) {
             params[filter.field] = numValue;
@@ -69,9 +90,12 @@ export const useFetchVerificationTimeseries = (keyId: string, keyspaceId: string
     return params;
   }, [filters, timestamp, keyId, keyspaceId]);
 
-  const { data, isLoading, isError } = trpc.key.logs.timeseries.useQuery(queryParams, {
-    refetchInterval: queryParams.endTime === timestamp ? 10_000 : false,
-  });
+  const { data, isLoading, isError } = trpc.key.logs.timeseries.useQuery(
+    queryParams,
+    {
+      refetchInterval: queryParams.endTime === timestamp ? 10_000 : false,
+    }
+  );
 
   const timeseries = useMemo(() => {
     if (!data?.timeseries) {
@@ -93,7 +117,8 @@ export const useFetchVerificationTimeseries = (keyId: string, keyspaceId: string
         outcomeFields.rate_limited = ts.y.rate_limited_count;
       }
       if (ts.y.insufficient_permissions_count !== undefined) {
-        outcomeFields.insufficient_permissions = ts.y.insufficient_permissions_count;
+        outcomeFields.insufficient_permissions =
+          ts.y.insufficient_permissions_count;
       }
       if (ts.y.forbidden_count !== undefined) {
         outcomeFields.forbidden = ts.y.forbidden_count;

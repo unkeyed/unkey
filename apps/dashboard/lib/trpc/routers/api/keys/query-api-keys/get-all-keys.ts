@@ -1,7 +1,9 @@
 import type { AllOperatorsUrlValue } from "@/app/(app)/apis/[apiId]/_overview/filters.schema";
+import { clickhouse } from "@/lib/clickhouse";
 import { type SQL, db, like, or } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { identities } from "@unkey/db/src/schema";
+import { z } from "zod";
 import type { KeyDetails } from "./schema";
 
 interface GetAllKeysInput {
@@ -11,6 +13,7 @@ interface GetAllKeysInput {
     keyIds?: AllOperatorsUrlValue[] | null;
     names?: AllOperatorsUrlValue[] | null;
     identities?: AllOperatorsUrlValue[] | null;
+    tags?: AllOperatorsUrlValue[] | null;
   };
   limit?: number;
   cursorKeyId?: string | null;
@@ -35,7 +38,8 @@ export async function getAllKeys({
   limit = 50,
   cursorKeyId = null,
 }: GetAllKeysInput): Promise<GetAllKeysResult> {
-  const { keyIds, names, identities: identityFilters } = filters;
+  const { keyIds, names, identities: identityFilters, tags } = filters;
+
   try {
     // Security verification - ensure the keyspaceId belongs to the workspaceId
     const keyAuth = await db.query.keyAuth.findFirst({
@@ -56,10 +60,95 @@ export async function getAllKeys({
       });
     }
 
+    // Get keys that match tag filters if provided
+    let tagFilteredKeyIds: string[] | null = null;
+
+    if (tags && tags.length > 0) {
+      try {
+        // Build tag filter conditions with proper parameterization
+        const tagQueries = tags.map((tag, index) => {
+          const paramKey = `tagValue${index}`;
+          let condition: string;
+
+          switch (tag.operator) {
+            case "is":
+              condition = `has(tags, {${paramKey}: String})`;
+              break;
+            case "contains":
+              condition = `arrayExists(x -> position(x, {${paramKey}: String}) > 0, tags)`;
+              break;
+            case "startsWith":
+              condition = `arrayExists(x -> startsWith(x, {${paramKey}: String}), tags)`;
+              break;
+            case "endsWith":
+              condition = `arrayExists(x -> endsWith(x, {${paramKey}: String}), tags)`;
+              break;
+            default:
+              condition = `has(tags, {${paramKey}: String})`;
+          }
+
+          return { condition, paramKey, value: tag.value };
+        });
+
+        // Build the params schema dynamically
+        const paramsObj: Record<string, z.ZodString> = {
+          workspaceId: z.string(),
+          keyspaceId: z.string(),
+        };
+        tagQueries.forEach(({ paramKey }) => {
+          paramsObj[paramKey] = z.string();
+        });
+
+        // Build the query parameters
+        const queryParams: Record<string, string> = {
+          workspaceId,
+          keyspaceId,
+        };
+        tagQueries.forEach(({ paramKey, value }) => {
+          queryParams[paramKey] = value;
+        });
+
+        const tagQuery = clickhouse.querier.query({
+          query: `
+            SELECT DISTINCT key_id
+            FROM verifications.raw_key_verifications_v1
+            WHERE workspace_id = {workspaceId: String}
+              AND key_space_id = {keyspaceId: String}
+              AND (${tagQueries.map(({ condition }) => condition).join(" OR ")})
+          `,
+          params: z.object(paramsObj),
+          schema: z.object({
+            key_id: z.string(),
+          }),
+        });
+
+        const result = await tagQuery(queryParams);
+
+        if (result.err) {
+          console.error("ClickHouse query error:", result.err);
+          tagFilteredKeyIds = [];
+        } else {
+          tagFilteredKeyIds = result.val.map((row) => row.key_id);
+        }
+      } catch (error) {
+        console.error("Error querying tags from ClickHouse:", error);
+        tagFilteredKeyIds = [];
+      }
+    }
+
     // Helper function to build the filter conditions (without cursor)
     // biome-ignore lint/suspicious/noExplicitAny: Leave it as is for now
     const buildFilterConditions = (key: any, { and, isNull, eq, sql }: any) => {
       const conditions = [eq(key.keyAuthId, keyspaceId), isNull(key.deletedAtM)];
+
+      // Apply tag-based key filtering if we have filtered key IDs
+      if (tagFilteredKeyIds !== null) {
+        if (tagFilteredKeyIds.length === 0) {
+          conditions.push(sql`1 = 0`);
+        } else {
+          conditions.push(sql`${key.id} IN ${tagFilteredKeyIds}`);
+        }
+      }
 
       // Apply name filters
       if (names && names.length > 0) {
@@ -188,8 +277,6 @@ export async function getAllKeys({
     });
 
     const totalCount = countQuery.length;
-
-    // Get the paginated keys with filters and cursor
     const keysQuery = await db.query.keys.findMany({
       where: (key, helpers) => {
         const { and, lt } = helpers;

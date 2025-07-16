@@ -20,7 +20,7 @@ export const useFetchVerificationTimeseries = (apiId: string | null) => {
       outcomes: { filters: [] },
       names: { filters: [] },
       identities: { filters: [] },
-      tags: [],
+      tags: null,
       apiId: apiId ?? "",
       since: "",
     };
@@ -48,8 +48,8 @@ export const useFetchVerificationTimeseries = (apiId: string | null) => {
             typeof filter.value === "number"
               ? filter.value
               : typeof filter.value === "string"
-                ? Number(filter.value)
-                : Number.NaN;
+              ? Number(filter.value)
+              : Number.NaN;
 
           if (!Number.isNaN(numValue)) {
             params[filter.field] = numValue;
@@ -66,7 +66,8 @@ export const useFetchVerificationTimeseries = (apiId: string | null) => {
 
         case "keyIds": {
           if (typeof filter.value === "string" && filter.value.trim()) {
-            const keyIdOperator = operator === "is" || operator === "contains" ? operator : "is";
+            const keyIdOperator =
+              operator === "is" || operator === "contains" ? operator : "is";
 
             params.keyIds?.filters?.push({
               operator: keyIdOperator,
@@ -103,7 +104,10 @@ export const useFetchVerificationTimeseries = (apiId: string | null) => {
 
         case "tags": {
           if (typeof filter.value === "string" && filter.value.trim()) {
-            params.tags?.push(filter.value);
+            params.tags = {
+              operator,
+              value: filter.value,
+            };
           }
           break;
         }
@@ -113,10 +117,13 @@ export const useFetchVerificationTimeseries = (apiId: string | null) => {
     return params;
   }, [filters, timestamp, apiId]);
 
-  const { data, isLoading, isError } = trpc.api.keys.timeseries.useQuery(queryParams, {
-    refetchInterval: queryParams.endTime === timestamp ? 10_000 : false,
-    enabled: Boolean(apiId),
-  });
+  const { data, isLoading, isError } = trpc.api.keys.timeseries.useQuery(
+    queryParams,
+    {
+      refetchInterval: queryParams.endTime === timestamp ? 10_000 : false,
+      enabled: Boolean(apiId),
+    }
+  );
 
   const timeseries = useMemo(() => {
     if (!data?.timeseries) {
@@ -138,7 +145,8 @@ export const useFetchVerificationTimeseries = (apiId: string | null) => {
         outcomeFields.rate_limited = ts.y.rate_limited_count;
       }
       if (ts.y.insufficient_permissions_count !== undefined) {
-        outcomeFields.insufficient_permissions = ts.y.insufficient_permissions_count;
+        outcomeFields.insufficient_permissions =
+          ts.y.insufficient_permissions_count;
       }
       if (ts.y.forbidden_count !== undefined) {
         outcomeFields.forbidden = ts.y.forbidden_count;

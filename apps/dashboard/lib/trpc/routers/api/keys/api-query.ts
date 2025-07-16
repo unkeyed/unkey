@@ -24,10 +24,7 @@ type DatabaseKey = Pick<
   | "workspaceId"
 > & {
   permissions: {
-    permission: Pick<
-      BasePermission,
-      "name" | "description" | "createdAtM" | "updatedAtM"
-    >;
+    permission: Pick<BasePermission, "name" | "description" | "createdAtM" | "updatedAtM">;
   }[];
   roles: {
     role: Pick<BaseRole, "name" | "description" | "createdAtM" | "updatedAtM">;
@@ -96,11 +93,7 @@ export async function queryApiKeys({
   const combinedResults = await db.query.apis
     .findFirst({
       where: (api, { and, eq, isNull }) =>
-        and(
-          eq(api.id, apiId),
-          eq(api.workspaceId, workspaceId),
-          isNull(api.deletedAtM)
-        ),
+        and(eq(api.id, apiId), eq(api.workspaceId, workspaceId), isNull(api.deletedAtM)),
       with: {
         keyAuth: {
           with: {
@@ -157,9 +150,7 @@ export async function queryApiKeys({
                     .map((filter) => filter.value);
 
                   if (nameIsValues.length > 0) {
-                    conditions.push(
-                      inArray(key.name, nameIsValues as string[])
-                    );
+                    conditions.push(inArray(key.name, nameIsValues as string[]));
                   }
 
                   if (nameContainsValues.length > 0) {
@@ -196,7 +187,7 @@ export async function queryApiKeys({
 
                   if (keyIdContainsValues.length > 0) {
                     keyIdContainsValues.forEach((value) =>
-                      conditions.push(sql`${key.id} LIKE ${`%${value}%`}`)
+                      conditions.push(sql`${key.id} LIKE ${`%${value}%`}`),
                     );
                   }
                 }
@@ -243,19 +234,13 @@ export async function queryApiKeys({
                         ownerCondition = sql`${key.ownerId} = ${value}`;
                         break;
                       case "contains":
-                        ownerCondition = sql`${
-                          key.ownerId
-                        } LIKE ${`%${value}%`}`;
+                        ownerCondition = sql`${key.ownerId} LIKE ${`%${value}%`}`;
                         break;
                       case "startsWith":
-                        ownerCondition = sql`${
-                          key.ownerId
-                        } LIKE ${`${value}%`}`;
+                        ownerCondition = sql`${key.ownerId} LIKE ${`${value}%`}`;
                         break;
                       case "endsWith":
-                        ownerCondition = sql`${
-                          key.ownerId
-                        } LIKE ${`%${value}`}`;
+                        ownerCondition = sql`${key.ownerId} LIKE ${`%${value}`}`;
                         break;
                       default:
                         ownerCondition = sql`${key.ownerId} = ${value}`;
@@ -266,9 +251,7 @@ export async function queryApiKeys({
                 }
 
                 if (allIdentityConditions.length > 0) {
-                  conditions.push(
-                    sql`(${sql.join(allIdentityConditions, sql` OR `)})`
-                  );
+                  conditions.push(sql`(${sql.join(allIdentityConditions, sql` OR `)})`);
                 }
 
                 return and(...conditions);
@@ -328,9 +311,7 @@ export async function queryApiKeys({
   };
 }
 
-export function createKeyDetailsMap(
-  keys: DatabaseKey[]
-): Map<string, KeyDetails> {
+export function createKeyDetailsMap(keys: DatabaseKey[]): Map<string, KeyDetails> {
   const keyDetailsMap = new Map<string, KeyDetails>();
   for (const key of keys) {
     const rolesData = key.roles
@@ -408,11 +389,7 @@ export const getApi = async (apiId: string, workspaceId: string) => {
   const api = await db.query.apis
     .findFirst({
       where: (api, { and, eq, isNull }) =>
-        and(
-          eq(api.id, apiId),
-          eq(api.workspaceId, workspaceId),
-          isNull(api.deletedAtM)
-        ),
+        and(eq(api.id, apiId), eq(api.workspaceId, workspaceId), isNull(api.deletedAtM)),
       with: {
         keyAuth: {
           columns: {

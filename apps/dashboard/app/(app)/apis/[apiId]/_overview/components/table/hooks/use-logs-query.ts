@@ -89,7 +89,7 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
           if (typeof filter.value === "string" && filter.value.trim()) {
             params.tags?.push({
               operator,
-              value: filter.value
+              value: filter.value,
             });
           }
           break;

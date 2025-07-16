@@ -5,6 +5,7 @@ import {
 import { parseAsInteger, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
 import {
+  type AllOperatorsUrlValue,
   type IsOnlyUrlValue,
   type KeyDetailsFilterField,
   type KeyDetailsFilterValue,
@@ -13,11 +14,15 @@ import {
 } from "../filters.schema";
 
 const parseAsIsOnlyFilterArray = parseAsFilterValueArray<"is">(["is"]);
+const parseAsAllOperatorsFilterArray = parseAsFilterValueArray<
+  "is" | "contains" | "startsWith" | "endsWith"
+>(["is", "contains", "startsWith", "endsWith"]);
 
 export const queryParamsPayload = {
   startTime: parseAsInteger,
   endTime: parseAsInteger,
   since: parseAsRelativeTime,
+  tags: parseAsAllOperatorsFilterArray,
   outcomes: parseAsIsOnlyFilterArray,
 } as const;
 
@@ -30,7 +35,7 @@ export const useFilters = () => {
     const activeFilters: KeyDetailsFilterValue[] = [];
 
     for (const [field, value] of Object.entries(searchParams)) {
-      if (!Array.isArray(value) || field !== "outcomes") {
+      if (!Array.isArray(value) || (field !== "outcomes" && field !== "tags")) {
         continue;
       }
 
@@ -78,10 +83,12 @@ export const useFilters = () => {
         startTime: null,
         endTime: null,
         since: null,
+        tags: null,
         outcomes: null,
       };
 
       const outcomeFilters: IsOnlyUrlValue[] = [];
+      const tagFilters: AllOperatorsUrlValue[] = [];
 
       newFilters.forEach((filter) => {
         const fieldConfig = keyDetailsFilterFieldConfig[filter.field];
@@ -90,12 +97,23 @@ export const useFilters = () => {
         const operator = validOperators.includes(filter.operator)
           ? filter.operator
           : validOperators[0];
-        if (operator !== "is") {
-          throw new Error("Invalid filter operator. Only 'is' operator is allowed.");
-        }
 
         switch (filter.field) {
+          case "tags":
+            if (typeof filter.value === "string") {
+              tagFilters.push({
+                value: filter.value,
+                operator: operator as "is" | "contains" | "startsWith" | "endsWith",
+              });
+            }
+            break;
+
           case "outcomes":
+            if (operator !== "is") {
+              throw new Error(
+                "Invalid filter operator for outcomes. Only 'is' operator is allowed.",
+              );
+            }
             if (typeof filter.value === "string") {
               outcomeFilters.push({
                 value: filter.value,
@@ -106,6 +124,11 @@ export const useFilters = () => {
 
           case "startTime":
           case "endTime": {
+            if (operator !== "is") {
+              throw new Error(
+                "Invalid filter operator for time fields. Only 'is' operator is allowed.",
+              );
+            }
             const numValue =
               typeof filter.value === "number"
                 ? filter.value
@@ -120,6 +143,11 @@ export const useFilters = () => {
           }
 
           case "since":
+            if (operator !== "is") {
+              throw new Error(
+                "Invalid filter operator for since field. Only 'is' operator is allowed.",
+              );
+            }
             if (typeof filter.value === "string") {
               newParams.since = filter.value;
             }
@@ -127,6 +155,7 @@ export const useFilters = () => {
         }
       });
 
+      newParams.tags = tagFilters.length > 0 ? tagFilters : null;
       newParams.outcomes = outcomeFilters.length > 0 ? outcomeFilters : null;
 
       setSearchParams(newParams);

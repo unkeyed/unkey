@@ -9,6 +9,15 @@ export const keyDetailsLogsPayload = z.object({
   keyId: z.string(),
   since: z.string(),
   cursor: z.number().nullable().optional().nullable(),
+  tags: z
+    .array(
+      z.object({
+        value: z.string(),
+        operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
+      }),
+    )
+    .optional()
+    .nullable(),
   outcomes: z
     .array(
       z.object({

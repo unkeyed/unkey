@@ -17,10 +17,9 @@ export const LogsClient = ({ apiId }: { apiId: string }) => {
   }, []);
 
   const handleSelectedLog = useCallback((log: KeysOverviewLog | null) => {
-    setSelectedLog(log);    
+    setSelectedLog(log);
   }, []);
 
-  
   return (
     <div className="flex flex-col">
       <KeysOverviewLogsControls apiId={apiId} />

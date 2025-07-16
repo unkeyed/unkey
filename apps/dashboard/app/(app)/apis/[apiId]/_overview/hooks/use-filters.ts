@@ -45,9 +45,12 @@ export const useFilters = () => {
 
   const filters = useMemo(() => {
     const activeFilters: KeysOverviewFilterValue[] = [];
-    console.log("UseFilters", { searchParams });
+
     for (const [field, value] of Object.entries(searchParams)) {
-      if (!Array.isArray(value) || !["keyIds", "names", "identities", "outcomes", "tags"].includes(field)) {
+      if (
+        !Array.isArray(value) ||
+        !["keyIds", "names", "identities", "outcomes", "tags"].includes(field)
+      ) {
         continue;
       }
 
