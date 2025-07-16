@@ -42,30 +42,9 @@ func TestNotFoundErrors(t *testing.T) {
 	}
 
 	// Test case for non-existent permission ID
-	t.Run("non-existent permission ID", func(t *testing.T) {
+	t.Run("non-existent permission slug", func(t *testing.T) {
 		req := handler.Request{
-			PermissionId: "perm_does_not_exist",
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 404, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "does not exist")
-	})
-
-	// Test case for valid-looking but non-existent permission ID
-	t.Run("valid-looking but non-existent permission ID", func(t *testing.T) {
-		nonExistentID := uid.New(uid.PermissionPrefix) // Generate a valid ID format that doesn't exist
-
-		req := handler.Request{
-			PermissionId: nonExistentID,
+			Slug: "permission.not.exist",
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -84,12 +63,13 @@ func TestNotFoundErrors(t *testing.T) {
 	// Test case for already deleted permission
 	t.Run("already deleted permission", func(t *testing.T) {
 		// First, create a permission
+		permissionSlugName := "test.deleted.permission"
 		permissionID := uid.New(uid.PermissionPrefix)
 		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permissionID,
 			WorkspaceID:  workspace.ID,
-			Name:         "test.permission.to.delete",
-			Slug:         "test-permission-to-delete",
+			Name:         permissionSlugName,
+			Slug:         permissionSlugName,
 			Description:  sql.NullString{Valid: false},
 			CreatedAtM:   time.Now().UnixMilli(),
 		})
@@ -101,7 +81,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 		// Try to delete it again
 		req := handler.Request{
-			PermissionId: permissionID,
+			Slug: permissionSlugName,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](

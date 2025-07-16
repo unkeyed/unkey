@@ -35,10 +35,10 @@ func TestValidationErrors(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	// Test case for missing required permissionId
-	t.Run("missing permissionId", func(t *testing.T) {
+	// Test case for missing required slug
+	t.Run("missing slug", func(t *testing.T) {
 		req := handler.Request{
-			// PermissionId is missing
+			// Slug is missing
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
@@ -54,10 +54,10 @@ func TestValidationErrors(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "validate schema")
 	})
 
-	// Test case for empty permissionId
-	t.Run("empty permissionId", func(t *testing.T) {
+	// Test case for empty slug
+	t.Run("empty slug", func(t *testing.T) {
 		req := handler.Request{
-			PermissionId: "", // Empty string is invalid
+			Slug: "", // Empty string should be invalid
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
@@ -90,25 +90,5 @@ func TestValidationErrors(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 		require.Contains(t, res.Body.Error.Detail, "validate schema")
-	})
-
-	// Test case for invalid permissionId format
-	t.Run("invalid permissionId format", func(t *testing.T) {
-		req := handler.Request{
-			PermissionId: "not_a_valid_permission_id_format",
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 404, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "does not exist")
-		// Note: The handler does database lookup first, so invalid formats return 404, not 400
 	})
 }

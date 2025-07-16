@@ -32,14 +32,13 @@ func TestPermissionErrors(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	// Create a test permission to try to retrieve
-	permissionID := uid.New(uid.PermissionPrefix)
-	permissionName := "test.permission.access"
+	permissionNameSlug := "test.permission.access"
 
 	err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-		PermissionID: permissionID,
+		PermissionID: uid.New(uid.PermissionPrefix),
 		WorkspaceID:  workspace.ID,
-		Name:         permissionName,
-		Slug:         "test-permission-access",
+		Name:         permissionNameSlug,
+		Slug:         permissionNameSlug,
 		Description:  sql.NullString{Valid: true, String: "Test permission for authorization tests"},
 		CreatedAtM:   time.Now().UnixMilli(),
 	})
@@ -56,7 +55,7 @@ func TestPermissionErrors(t *testing.T) {
 		}
 
 		req := handler.Request{
-			PermissionId: permissionID,
+			Slug: permissionNameSlug,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
@@ -83,7 +82,7 @@ func TestPermissionErrors(t *testing.T) {
 		}
 
 		req := handler.Request{
-			PermissionId: permissionID,
+			Slug: permissionNameSlug,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](

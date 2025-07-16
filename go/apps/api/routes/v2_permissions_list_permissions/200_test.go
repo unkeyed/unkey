@@ -54,12 +54,12 @@ func TestSuccess(t *testing.T) {
 	}
 
 	// Insert test permissions into the database
-	for i, perm := range testPermissions {
+	for _, perm := range testPermissions {
 		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: perm.ID,
 			WorkspaceID:  workspace.ID,
 			Name:         perm.Name,
-			Slug:         fmt.Sprintf("test-permission-%d", i+1),
+			Slug:         perm.Name,
 			Description:  sql.NullString{Valid: true, String: perm.Description},
 			CreatedAtM:   time.Now().UnixMilli(),
 		})
@@ -100,12 +100,12 @@ func TestSuccess(t *testing.T) {
 		// Verify we got the correct permissions
 		permMap := make(map[string]bool)
 		for _, perm := range res.Body.Data {
-			permMap[perm.Id] = true
+			permMap[perm.Slug] = true
 		}
 
 		// Check that all created permissions are in the response
 		for _, perm := range testPermissions {
-			require.True(t, permMap[perm.ID], "Permission %s not found in response", perm.ID)
+			require.True(t, permMap[perm.Name], "Permission %s not found in response", perm.Name)
 		}
 	})
 
@@ -188,7 +188,7 @@ func TestSuccess(t *testing.T) {
 		// Verify first and second page have different permissions
 		for _, perm1 := range res1.Body.Data {
 			for _, perm2 := range res2.Body.Data {
-				require.NotEqual(t, perm1.Id, perm2.Id, "Permission should not appear on both pages")
+				require.NotEqual(t, perm1.Slug, perm2.Slug, "Permission should not appear on both pages")
 			}
 		}
 	})

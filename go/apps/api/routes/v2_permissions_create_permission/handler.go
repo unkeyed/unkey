@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -101,7 +102,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ActorID:     auth.Key.ID,
 				ActorName:   "root key",
 				ActorMeta:   map[string]any{},
-				Display:     "Created " + permissionID,
+				Display:     fmt.Sprintf("Created %s (%s)", req.Slug, permissionID),
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
@@ -134,8 +135,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.PermissionsCreatePermissionResponseData{
-			PermissionId: permissionID,
-		},
+		Data: openapi.PermissionsCreatePermissionResponseData{},
 	})
 }

@@ -99,7 +99,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	permissions := make([]openapi.Permission, 0, len(rolePermissions))
 	for _, perm := range rolePermissions {
 		permission := openapi.Permission{
-			Id:          perm.ID,
 			Name:        perm.Name,
 			Slug:        perm.Slug,
 			CreatedAt:   perm.CreatedAtM,
