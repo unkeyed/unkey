@@ -8,7 +8,7 @@ replace github.com/unkeyed/unkey/go/deploy/pkg/spiffe => ../spiffe
 
 require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
-	github.com/go-jose/go-jose/v4 v4.0.4 // indirect
+	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.5.0 // indirect
 	github.com/zeebo/errs v1.4.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
