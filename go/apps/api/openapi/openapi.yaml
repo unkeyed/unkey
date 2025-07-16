@@ -3306,50 +3306,19 @@ components:
             - clientVersion=2.3.0
             - feature=premium
         permissions:
-          oneOf:
-            - type: string
-              minLength: 1
-              maxLength: 100 # Keep permission names concise and readable
-              pattern: "^[a-zA-Z0-9_.]+$"
-              description: |
-                Checks if the key has this specific permission. Supports hierarchical permissions where
-                `documents.*` grants access to `documents.read` and `documents.write`.
-                Verification fails if the key lacks this exact permission or a parent wildcard permission.
-              example: "documents.read"
-            - type: object
-              properties:
-                type:
-                  type: string
-                  enum:
-                    - and
-                    - or
-                  description: |
-                    Sets the logical operator for multiple permission checks.
-                    Use 'and' when all permissions are required, 'or' when any one permission is sufficient.
-                    Choose 'and' for restrictive access and 'or' for flexible role-based access patterns.
-                permissions:
-                  type: array
-                  items:
-                    type: string
-                    minLength: 1
-                    maxLength: 100 # Keep permission names concise and readable
-                    pattern: "^[a-zA-Z0-9_.]+$"
-                  maxItems: 100 # Allow complex permission sets without performance degradation
-                  minItems: 1
-                  description: |
-                    Lists permissions to evaluate against the key's assigned permissions and roles.
-                    Each permission supports hierarchical matching with wildcard notation.
-                    Empty arrays are not allowed - omit the permissions field entirely for no authorization.
-                  example: ["documents.read", "documents.write", "users.view"]
-              required:
-                - type
-                - permissions
-              additionalProperties: false
+          type: string
+          minLength: 1
+          maxLength: 1000 # Allow for complex permission queries
+          pattern: "^[a-zA-Z0-9_.()\\s-]+$"
           description: |
-            Enforces role-based access control by verifying the key has required permissions.
-            Omitting this field skips permission checks entirely, allowing any valid key to proceed.
-            When provided, verification fails unless the key has the specified permissions through direct assignment or role inheritance.
-            Essential for implementing fine-grained authorization in multi-tenant or privilege-separated APIs.
+            Checks if the key has the specified permission(s) using a query syntax.
+            Supports single permissions, logical operators (AND, OR), and parentheses for grouping.
+            Examples:
+            - Single permission: "documents.read"
+            - Multiple permissions: "documents.read AND documents.write"
+            - Complex queries: "(documents.read OR documents.write) AND users.view"
+            Verification fails if the key lacks the required permissions through direct assignment or role inheritance.
+          example: "documents.read AND users.view"
         credits:
           "$ref": "#/components/schemas/KeysVerifyKeyCredits"
         ratelimits:
@@ -7288,6 +7257,21 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/BadRequestErrorResponse"
+              examples:
+                permissionsQuerySyntaxError:
+                  summary: Invalid permissions query syntax
+                  value:
+                    meta:
+                      requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+                    error:
+                      title: Bad Request
+                      detail: "Syntax error in permission query: unexpected token 'AND' at position 15. Expected permission name or opening parenthesis."
+                      status: 400
+                      type: "https://unkey.com/docs/api-reference/errors-v2/user/bad_request/permissions_query_syntax_error"
+                      errors:
+                        - location: "body.permissions"
+                          message: "unexpected token 'AND' at position 15"
+                          fix: "Check your query syntax. AND/OR operators must be between permissions, not at the start or end"
         "401":
           description: Unauthorized
           content:

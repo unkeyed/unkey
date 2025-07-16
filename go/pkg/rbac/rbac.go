@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+
+	"github.com/unkeyed/unkey/go/pkg/codes"
+	"github.com/unkeyed/unkey/go/pkg/fault"
 )
 
 // RBAC provides methods for evaluating permissions against requirements.
@@ -116,7 +119,11 @@ func (r *RBAC) evaluateQueryV1(query PermissionQuery, permissions []string) (Eva
 		}, nil
 	}
 
-	return EvaluationResult{}, fmt.Errorf("invalid query structure")
+	return EvaluationResult{}, fault.New(
+		fmt.Sprintf("query has invalid structure: operation=%s, value=%s, children=%d", query.Operation, query.Value, len(query.Children)),
+		fault.Code(codes.App.Internal.UnexpectedError.URN()),
+		fault.Public("The permission query has an invalid structure and cannot be evaluated."),
+	)
 }
 
 func formatPermissions(permissions []string) []string {
@@ -127,4 +134,25 @@ func formatPermissions(permissions []string) []string {
 	}
 
 	return formatted
+}
+
+// ParseQuery parses a SQL-like permission query string and returns a PermissionQuery.
+//
+// Supported syntax:
+//   - Permissions: alphanumeric characters, dots, underscores, hyphens (e.g., "api.key1.read_key")
+//   - Operators: AND, OR (case-insensitive)
+//   - Grouping: parentheses ()
+//   - Precedence: AND has higher precedence than OR
+//
+// Examples:
+//   - "api.key1.read_key"
+//   - "perm1 AND perm2"
+//   - "perm1 OR perm2 AND perm3" (parsed as "perm1 OR (perm2 AND perm3)")
+//   - "(perm1 OR perm2) AND perm3"
+//
+// Limits:
+//   - Maximum query length: 1000 characters
+//   - Maximum permissions: 100
+func ParseQuery(query string) (PermissionQuery, error) {
+	return parseQuery(query)
 }

@@ -40,12 +40,6 @@ const (
 	Set       V2KeysUpdateCreditsRequestBodyOperation = "set"
 )
 
-// Defines values for V2KeysVerifyKeyRequestBodyPermissions1Type.
-const (
-	And V2KeysVerifyKeyRequestBodyPermissions1Type = "and"
-	Or  V2KeysVerifyKeyRequestBodyPermissions1Type = "or"
-)
-
 // ApisCreateApiResponseData defines model for ApisCreateApiResponseData.
 type ApisCreateApiResponseData struct {
 	// ApiId The unique identifier assigned to the newly created API.
@@ -1640,11 +1634,14 @@ type V2KeysVerifyKeyRequestBody struct {
 	// Include the full key exactly as provided - even minor modifications will cause verification failure.
 	Key string `json:"key"`
 
-	// Permissions Enforces role-based access control by verifying the key has required permissions.
-	// Omitting this field skips permission checks entirely, allowing any valid key to proceed.
-	// When provided, verification fails unless the key has the specified permissions through direct assignment or role inheritance.
-	// Essential for implementing fine-grained authorization in multi-tenant or privilege-separated APIs.
-	Permissions *V2KeysVerifyKeyRequestBody_Permissions `json:"permissions,omitempty"`
+	// Permissions Checks if the key has the specified permission(s) using a query syntax.
+	// Supports single permissions, logical operators (AND, OR), and parentheses for grouping.
+	// Examples:
+	// - Single permission: "documents.read"
+	// - Multiple permissions: "documents.read AND documents.write"
+	// - Complex queries: "(documents.read OR documents.write) AND users.view"
+	// Verification fails if the key lacks the required permissions through direct assignment or role inheritance.
+	Permissions *string `json:"permissions,omitempty"`
 
 	// Ratelimits Enforces time-based rate limiting during verification to prevent abuse and ensure fair usage.
 	// Omitting this field skips rate limit checks entirely, relying only on configured key rate limits.
@@ -1657,37 +1654,6 @@ type V2KeysVerifyKeyRequestBody struct {
 	// Use 'key=value' format for compatibility with most analytics tools and clear categorization.
 	// Avoid including sensitive data in tags as they may appear in logs and analytics reports.
 	Tags *[]string `json:"tags,omitempty"`
-}
-
-// V2KeysVerifyKeyRequestBodyPermissions0 Checks if the key has this specific permission. Supports hierarchical permissions where
-// `documents.*` grants access to `documents.read` and `documents.write`.
-// Verification fails if the key lacks this exact permission or a parent wildcard permission.
-type V2KeysVerifyKeyRequestBodyPermissions0 = string
-
-// V2KeysVerifyKeyRequestBodyPermissions1 defines model for .
-type V2KeysVerifyKeyRequestBodyPermissions1 struct {
-	// Permissions Lists permissions to evaluate against the key's assigned permissions and roles.
-	// Each permission supports hierarchical matching with wildcard notation.
-	// Empty arrays are not allowed - omit the permissions field entirely for no authorization.
-	Permissions []string `json:"permissions"`
-
-	// Type Sets the logical operator for multiple permission checks.
-	// Use 'and' when all permissions are required, 'or' when any one permission is sufficient.
-	// Choose 'and' for restrictive access and 'or' for flexible role-based access patterns.
-	Type V2KeysVerifyKeyRequestBodyPermissions1Type `json:"type"`
-}
-
-// V2KeysVerifyKeyRequestBodyPermissions1Type Sets the logical operator for multiple permission checks.
-// Use 'and' when all permissions are required, 'or' when any one permission is sufficient.
-// Choose 'and' for restrictive access and 'or' for flexible role-based access patterns.
-type V2KeysVerifyKeyRequestBodyPermissions1Type string
-
-// V2KeysVerifyKeyRequestBody_Permissions Enforces role-based access control by verifying the key has required permissions.
-// Omitting this field skips permission checks entirely, allowing any valid key to proceed.
-// When provided, verification fails unless the key has the specified permissions through direct assignment or role inheritance.
-// Essential for implementing fine-grained authorization in multi-tenant or privilege-separated APIs.
-type V2KeysVerifyKeyRequestBody_Permissions struct {
-	union json.RawMessage
 }
 
 // V2KeysVerifyKeyResponseBody defines model for V2KeysVerifyKeyResponseBody.
@@ -2397,68 +2363,6 @@ func (t *V2KeysGetKeyRequestBody) UnmarshalJSON(b []byte) error {
 		}
 	}
 
-	return err
-}
-
-// AsV2KeysVerifyKeyRequestBodyPermissions0 returns the union data inside the V2KeysVerifyKeyRequestBody_Permissions as a V2KeysVerifyKeyRequestBodyPermissions0
-func (t V2KeysVerifyKeyRequestBody_Permissions) AsV2KeysVerifyKeyRequestBodyPermissions0() (V2KeysVerifyKeyRequestBodyPermissions0, error) {
-	var body V2KeysVerifyKeyRequestBodyPermissions0
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromV2KeysVerifyKeyRequestBodyPermissions0 overwrites any union data inside the V2KeysVerifyKeyRequestBody_Permissions as the provided V2KeysVerifyKeyRequestBodyPermissions0
-func (t *V2KeysVerifyKeyRequestBody_Permissions) FromV2KeysVerifyKeyRequestBodyPermissions0(v V2KeysVerifyKeyRequestBodyPermissions0) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeV2KeysVerifyKeyRequestBodyPermissions0 performs a merge with any union data inside the V2KeysVerifyKeyRequestBody_Permissions, using the provided V2KeysVerifyKeyRequestBodyPermissions0
-func (t *V2KeysVerifyKeyRequestBody_Permissions) MergeV2KeysVerifyKeyRequestBodyPermissions0(v V2KeysVerifyKeyRequestBodyPermissions0) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsV2KeysVerifyKeyRequestBodyPermissions1 returns the union data inside the V2KeysVerifyKeyRequestBody_Permissions as a V2KeysVerifyKeyRequestBodyPermissions1
-func (t V2KeysVerifyKeyRequestBody_Permissions) AsV2KeysVerifyKeyRequestBodyPermissions1() (V2KeysVerifyKeyRequestBodyPermissions1, error) {
-	var body V2KeysVerifyKeyRequestBodyPermissions1
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromV2KeysVerifyKeyRequestBodyPermissions1 overwrites any union data inside the V2KeysVerifyKeyRequestBody_Permissions as the provided V2KeysVerifyKeyRequestBodyPermissions1
-func (t *V2KeysVerifyKeyRequestBody_Permissions) FromV2KeysVerifyKeyRequestBodyPermissions1(v V2KeysVerifyKeyRequestBodyPermissions1) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeV2KeysVerifyKeyRequestBodyPermissions1 performs a merge with any union data inside the V2KeysVerifyKeyRequestBody_Permissions, using the provided V2KeysVerifyKeyRequestBodyPermissions1
-func (t *V2KeysVerifyKeyRequestBody_Permissions) MergeV2KeysVerifyKeyRequestBodyPermissions1(v V2KeysVerifyKeyRequestBodyPermissions1) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-func (t V2KeysVerifyKeyRequestBody_Permissions) MarshalJSON() ([]byte, error) {
-	b, err := t.union.MarshalJSON()
-	return b, err
-}
-
-func (t *V2KeysVerifyKeyRequestBody_Permissions) UnmarshalJSON(b []byte) error {
-	err := t.union.UnmarshalJSON(b)
 	return err
 }
 
