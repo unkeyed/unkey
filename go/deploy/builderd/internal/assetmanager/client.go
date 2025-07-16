@@ -9,8 +9,8 @@ import (
 	"os"
 	"path/filepath"
 
-	assetv1 "github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/asset/v1"
-	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/asset/v1/assetv1connect"
+	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
+	"github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1/assetmanagerdv1connect"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -18,7 +18,7 @@ import (
 
 // Client provides access to the assetmanagerd service
 type Client struct {
-	client   assetv1connect.AssetManagerServiceClient
+	client   assetmanagerdv1connect.AssetManagerServiceClient
 	logger   *slog.Logger
 	enabled  bool
 	endpoint string
@@ -43,7 +43,7 @@ func NewClient(cfg *config.Config, logger *slog.Logger, tlsProvider tls.Provider
 	httpClient.Transport = otelhttp.NewTransport(httpClient.Transport)
 
 	// Create Connect client
-	client := assetv1connect.NewAssetManagerServiceClient(
+	client := assetmanagerdv1connect.NewAssetManagerServiceClient(
 		httpClient,
 		cfg.AssetManager.Endpoint,
 	)

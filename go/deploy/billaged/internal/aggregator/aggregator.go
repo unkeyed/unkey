@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	billingv1 "github.com/unkeyed/unkey/go/deploy/billaged/gen/billing/v1"
+	billingv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/billaged/v1"
 )
 
 // VMUsageData tracks usage for a single VM
