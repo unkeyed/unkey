@@ -50,8 +50,6 @@ type DockerBackendConfig struct {
 	// ContainerPrefix is the prefix for container names (defaults to unkey-vm-)
 	ContainerPrefix string `json:"container_prefix,omitempty"`
 	
-	// DefaultImage is the default image to use if none specified
-	DefaultImage string `json:"default_image,omitempty"`
 	
 	// PortRange defines the range of host ports to allocate
 	PortRange struct {
@@ -72,7 +70,6 @@ func DefaultDockerBackendConfig() *DockerBackendConfig {
 		DockerHost:      "",  // Use default Docker socket
 		NetworkName:     "bridge",
 		ContainerPrefix: "unkey-vm-",
-		DefaultImage:    "alpine:latest",
 		PortRange: struct {
 			Min int `json:"min"`
 			Max int `json:"max"`
