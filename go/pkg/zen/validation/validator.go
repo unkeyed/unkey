@@ -82,21 +82,20 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 		},
 	}
 
-	// Collect non-nullable errors
-	var nonNullableErrors []*errors.ValidationError
+	// our openapi validator errors out when having a type that is nullable: true
+	// So we are checking if the errors is that because if so we can just ignore it.
+	var nonIgnoredErrors []*errors.ValidationError
 	for _, err := range errs {
 		if !v.isNullableError(err) {
-			nonNullableErrors = append(nonNullableErrors, err)
+			nonIgnoredErrors = append(nonIgnoredErrors, err)
 		}
 	}
 
-	// If all errors are nullable, consider the request valid
-	if len(nonNullableErrors) == 0 {
+	if len(nonIgnoredErrors) == 0 {
 		return openapi.BadRequestErrorResponse{}, true
 	}
 
-	// Process the first non-nullable error
-	err := nonNullableErrors[0]
+	err := nonIgnoredErrors[0]
 	res.Error.Detail = err.Message
 	for _, verr := range err.SchemaValidationErrors {
 		res.Error.Errors = append(res.Error.Errors, openapi.ValidationError{
@@ -201,7 +200,6 @@ func (v *Validator) isNullableError(e *errors.ValidationError) bool {
 			return false
 		}
 
-		// Its nullable just ignore the error its fine.
 		return true
 	}
 

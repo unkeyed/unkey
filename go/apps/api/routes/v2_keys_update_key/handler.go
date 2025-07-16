@@ -180,12 +180,30 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					})
 
 					if err != nil {
+						// Incase of duplicate key error just find existing identity
+						if db.IsDuplicateKeyError(err) {
+							identity, err = db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
+								WorkspaceID: auth.AuthorizedWorkspaceID,
+								ExternalID:  externalID,
+								Deleted:     false,
+							})
+
+							if err != nil {
+								return fault.Wrap(err,
+									fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+									fault.Internal("failed to find identity"),
+									fault.Public("Failed to find identity."),
+								)
+							}
+						}
+
 						return fault.Wrap(err,
 							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 							fault.Internal("failed to create identity"),
 							fault.Public("Failed to create identity."),
 						)
 					}
+
 					update.IdentityID = sql.NullString{Valid: true, String: identityID}
 				} else {
 					// Use existing identity

@@ -56,7 +56,7 @@ func TestUpdateKeySuccess(t *testing.T) {
 		ExternalId: nullable.NewNullableWithValue("test2"),
 		Meta:       nullable.NewNullableWithValue(map[string]interface{}{"test": "test"}),
 		Expires:    nullable.NewNullableWithValue(time.Now().Add(time.Hour).UnixMilli()),
-		Enabled:    &[]bool{true}[0],
+		Enabled:    ptr.P(true),
 	}
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -87,7 +87,7 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 
 	// Create key using helper
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
-		WorkspaceID: h.Resources().UserWorkspace.ID,
+		WorkspaceID: api.WorkspaceID,
 		KeyAuthID:   api.KeyAuthID.String,
 		Name:        ptr.P("test"),
 	})
@@ -99,13 +99,16 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
+	h.CreateRole(seed.CreateRoleRequest{WorkspaceID: api.WorkspaceID, Name: "admin"})
+	h.CreateRole(seed.CreateRoleRequest{WorkspaceID: api.WorkspaceID, Name: "user"})
+
 	req := handler.Request{
 		KeyId:      keyResponse.KeyID,
 		Name:       nullable.NewNullableWithValue("newName"),
 		ExternalId: nullable.NewNullableWithValue("newExternalId"),
 		Meta:       nullable.NewNullableWithValue(map[string]interface{}{"new": "meta"}),
 		Expires:    nullable.NewNullNullable[int64](),
-		Enabled:    &[]bool{true}[0],
+		Enabled:    ptr.P(true),
 		Credits: &openapi.KeyCreditsData{
 			Remaining: nullable.NewNullableWithValue(int64(100)),
 			Refill: &openapi.KeyCreditsRefill{

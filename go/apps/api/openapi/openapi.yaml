@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
 info:
   title: Unkey API
   version: 2.0.0
@@ -79,7 +80,7 @@ info:
     - `errors`: Array of validation errors (for 400 responses)
 
     This structure ensures you always have the context needed to debug issues and take corrective action.
-openapi: 3.0.1
+openapi: 3.0.0
 servers:
   - url: https://api.unkey.com
 x-speakeasy-retries:
