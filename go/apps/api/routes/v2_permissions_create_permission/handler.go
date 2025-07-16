@@ -81,10 +81,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 		if err != nil {
 			if db.IsDuplicateKeyError(err) {
-
 				return fault.New("permission already exists",
 					fault.Code(codes.UnkeyDataErrorsIdentityDuplicate), // Reuse the identity duplicate code for conflict status
-					fault.Internal("already exists"), fault.Public("A permission with name \""+req.Name+"\" already exists in this workspace"),
+					fault.Public("A permission with name \""+req.Name+"\" already exists in this workspace"),
 				)
 			}
 			return fault.Wrap(err,
@@ -97,7 +96,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       "permission.create",
+				Event:       auditlog.PermissionCreateEvent,
 				ActorType:   auditlog.RootKeyActor,
 				ActorID:     auth.Key.ID,
 				ActorName:   "root key",

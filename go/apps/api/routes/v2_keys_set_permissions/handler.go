@@ -48,42 +48,48 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.setPermissions")
 
-	// 1. Authentication
 	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
 	}
 
-	// 2. Request validation
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
 	}
 
-	// 3. Permission check
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.UpdateKey,
-		}),
-	)))
+	err = auth.Verify(ctx, keys.WithPermissions(
+		rbac.And(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   "*",
+				Action:       rbac.UpdateKey,
+			}),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Rbac,
+				ResourceID:   "*",
+				Action:       rbac.AddPermissionToKey,
+			}),
+		),
+	))
 	if err != nil {
 		return err
 	}
 
-	// 4. Validate key exists and belongs to workspace
 	key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("key not found",
 				fault.Code(codes.Data.Key.NotFound.URN()),
-				fault.Internal("key not found"), fault.Public("The specified key was not found."),
+				fault.Internal("key not found"),
+				fault.Public("The specified key was not found."),
 			)
 		}
+
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve key."),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve key."),
 		)
 	}
 
@@ -91,164 +97,145 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if key.WorkspaceID != auth.AuthorizedWorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
-			fault.Internal("key belongs to different workspace"), fault.Public("The specified key was not found."),
+			fault.Internal("key belongs to different workspace"),
+			fault.Public("The specified key was not found."),
 		)
 	}
 
-	// 5. Get current direct permissions for the key
 	currentPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve current permissions."),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve current permissions."),
 		)
 	}
 
-	// 6. Resolve and validate requested permissions
-	requestedPermissions := make([]db.Permission, 0, len(req.Permissions))
-
-	foundPermissions, err := db.Query.FindPermissionsBySlugs()
-
-	for _, permissionRef := range req.Permissions {
-		var permission db.Permission
-
-		// nolint:nestif
-		if permissionRef.Id != nil && *permissionRef.Id != "" {
-			// Find by ID
-			permission, err = db.Query.FindPermissionByID(ctx, h.DB.RO(), *permissionRef.Id)
-			if err != nil {
-				if db.IsNotFound(err) {
-					return fault.New("permission not found",
-						fault.Code(codes.Data.Permission.NotFound.URN()),
-						fault.Internal("permission not found"), fault.Public(fmt.Sprintf("Permission with ID '%s' was not found.", *permissionRef.Id)),
-					)
-				}
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to retrieve permission."),
-				)
-			}
-		} else if permissionRef.Slug != nil && *permissionRef.Slug != "" {
-			// Find by slug
-			permission, err = db.Query.FindPermissionBySlugAndWorkspaceID(ctx, h.DB.RO(), db.FindPermissionBySlugAndWorkspaceIDParams{
-				Slug:        *permissionRef.Slug,
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-			})
-			if err != nil {
-				if db.IsNotFound(err) {
-					// Check if we should create the permission
-					if permissionRef.Create != nil && *permissionRef.Create {
-						// Create permission using slug as both name and slug
-						permissionID := uid.New(uid.PermissionPrefix)
-						err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-							PermissionID: permissionID,
-							WorkspaceID:  auth.AuthorizedWorkspaceID,
-							Name:         *permissionRef.Slug,
-							Slug:         *permissionRef.Slug,
-							Description:  sql.NullString{String: "", Valid: false},
-							CreatedAtM:   time.Now().UnixMilli(),
-						})
-						if err != nil {
-							return fault.Wrap(err,
-								fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-								fault.Internal("database error"), fault.Public("Failed to create permission."),
-							)
-						}
-
-						// Fetch the newly created permission
-						permission, err = db.Query.FindPermissionByID(ctx, h.DB.RO(), permissionID)
-						if err != nil {
-							return fault.Wrap(err,
-								fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-								fault.Internal("database error"), fault.Public("Failed to retrieve created permission."),
-							)
-						}
-					} else {
-						return fault.New("permission not found",
-							fault.Code(codes.Data.Permission.NotFound.URN()),
-							fault.Internal("permission not found"), fault.Public(fmt.Sprintf("Permission with slug '%s' was not found.", *permissionRef.Slug)),
-						)
-					}
-				} else {
-					return fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("database error"), fault.Public("Failed to retrieve permission."),
-					)
-				}
-			}
-		} else {
-			return fault.New("invalid permission reference",
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal("permission missing id and slug"), fault.Public("Each permission must specify either 'id' or 'slug'."),
-			)
-		}
-
-		// Validate permission belongs to the same workspace
-		if permission.WorkspaceID != auth.AuthorizedWorkspaceID {
-			return fault.New("permission not found",
-				fault.Code(codes.Data.Permission.NotFound.URN()),
-				fault.Internal("permission belongs to different workspace"), fault.Public(fmt.Sprintf("Permission '%s' was not found.", permission.Slug)),
-			)
-		}
-
-		requestedPermissions = append(requestedPermissions, permission)
+	foundPermissions, err := db.Query.FindPermissionsBySlugs(ctx, h.DB.RO(), db.FindPermissionsBySlugsParams{
+		Slugs:       req.Permissions,
+		WorkspaceID: auth.AuthorizedWorkspaceID,
+	})
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve permissions."),
+		)
 	}
 
-	// 7. Calculate differential update
-	// Create maps for efficient lookup
+	requestedPermissions := make(map[string]db.FindPermissionsBySlugsRow)
+	permissionsToCreate := make([]db.InsertPermissionParams, 0)
+
+	for _, foundPermission := range foundPermissions {
+		requestedPermissions[foundPermission.Slug] = foundPermission
+	}
+
+	for _, permissionsToSet := range req.Permissions {
+		_, ok := requestedPermissions[permissionsToSet]
+		if ok {
+			continue
+		}
+
+		permissionID := uid.New(uid.PermissionPrefix)
+		permissionsToCreate = append(permissionsToCreate, db.InsertPermissionParams{
+			PermissionID: permissionID,
+			WorkspaceID:  auth.AuthorizedWorkspaceID,
+			Name:         permissionsToSet,
+			Slug:         permissionsToSet,
+			Description:  sql.NullString{String: "", Valid: false},
+			CreatedAtM:   time.Now().UnixMilli(),
+		})
+
+		requestedPermissions[permissionsToSet] = db.FindPermissionsBySlugsRow{
+			ID:   permissionID,
+			Slug: permissionsToSet,
+		}
+	}
+
+	if len(permissionsToCreate) > 0 {
+		err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Rbac,
+				ResourceID:   "*",
+				Action:       rbac.CreatePermission,
+			}),
+		)))
+		if err != nil {
+			return err
+		}
+	}
+
 	currentPermissionIDs := make(map[string]bool)
+	requestedPermissionIDs := make(map[string]bool)
+	permissionsToAdd := make([]db.FindPermissionsBySlugsRow, 0)
+	permissionsToRemove := make(map[string]db.FindPermissionsBySlugsRow, 0)
+
 	for _, permission := range currentPermissions {
-		currentPermissionIDs[permission.ID] = true
+		currentPermissionIDs[permission.Slug] = true
 	}
 
-	requestedPermissionIDs := make(map[string]bool)
-	requestedPermissionMap := make(map[string]db.Permission)
 	for _, permission := range requestedPermissions {
 		requestedPermissionIDs[permission.ID] = true
-		requestedPermissionMap[permission.ID] = permission
-	}
-
-	// Determine permissions to remove and add
-	permissionsToRemove := make([]string, 0)
-	for _, permission := range currentPermissions {
-		if !requestedPermissionIDs[permission.ID] {
-			permissionsToRemove = append(permissionsToRemove, permission.ID)
-		}
-	}
-
-	permissionsToAdd := make([]db.Permission, 0)
-	for _, permission := range requestedPermissions {
 		if !currentPermissionIDs[permission.ID] {
 			permissionsToAdd = append(permissionsToAdd, permission)
 		}
 	}
 
-	// 8. Apply changes in transaction
+	for _, permission := range currentPermissions {
+		_, found := requestedPermissionIDs[permission.ID]
+		if found {
+			continue
+		}
+
+		permissionsToRemove[permission.ID] = db.FindPermissionsBySlugsRow{
+			ID:   permission.ID,
+			Slug: permission.Slug,
+			Name: permission.Name,
+		}
+	}
+
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		var auditLogs []auditlog.AuditLog
 
-		// Remove permissions that are no longer needed
-		for _, permissionID := range permissionsToRemove {
-			err = db.Query.DeleteKeyPermissionByKeyAndPermissionID(ctx, tx, db.DeleteKeyPermissionByKeyAndPermissionIDParams{
-				KeyID:        req.KeyId,
-				PermissionID: permissionID,
-			})
+		if len(permissionsToCreate) > 0 {
+			for _, permission := range permissionsToCreate {
+				auditLogs = append(auditLogs, auditlog.AuditLog{
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					Event:       auditlog.PermissionCreateEvent,
+					ActorType:   auditlog.RootKeyActor,
+					ActorID:     auth.Key.ID,
+					ActorName:   "root key",
+					ActorMeta:   map[string]any{},
+					Display:     fmt.Sprintf("Created %s (%s)", permission.Slug, permission.PermissionID),
+					RemoteIP:    s.Location(),
+					UserAgent:   s.UserAgent(),
+					Resources: []auditlog.AuditLogResource{
+						{
+							Type:        "permission",
+							ID:          permission.PermissionID,
+							Name:        permission.Name,
+							DisplayName: permission.Name,
+							Meta: map[string]interface{}{
+								"name":        permission.Name,
+								"slug":        permission.Name,
+								"description": permission.Description.String,
+							},
+						},
+					},
+				})
+			}
+
+			err = db.BulkInsert(ctx, tx, "INSERT INTO permissions (id, workspace_id, name, slug, description, created_at_m) VALUES (?, ?, ?, ?, ?, ?)", permissionsToCreate)
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to remove permission assignment."),
+					fault.Internal("database error"), fault.Public("Failed to add permission assignments."),
 				)
 			}
+		}
 
-			// Find the permission for audit log
-			var permissionName string
-			for _, p := range currentPermissions {
-				if p.ID == permissionID {
-					permissionName = p.Name
-					break
-				}
-			}
-
+		permIds := make([]string, 0)
+		for id, perm := range permissionsToRemove {
 			auditLogs = append(auditLogs, auditlog.AuditLog{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.AuthDisconnectPermissionKeyEvent,
@@ -256,7 +243,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ActorID:     auth.Key.ID,
 				ActorName:   "root key",
 				ActorMeta:   map[string]any{},
-				Display:     fmt.Sprintf("Removed permission %s from key %s", permissionName, req.KeyId),
+				Display:     fmt.Sprintf("Removed permission %s from key %s", perm.Name, req.KeyId),
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
@@ -269,29 +256,39 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					},
 					{
 						Type:        "permission",
-						ID:          permissionID,
-						Name:        permissionName,
-						DisplayName: permissionName,
+						ID:          perm.ID,
+						Name:        perm.Name,
+						DisplayName: perm.Name,
 						Meta:        map[string]any{},
 					},
 				},
 			})
+
+			permIds = append(permIds, id)
 		}
 
-		// Add new permissions
+		if len(permissionsToRemove) > 0 {
+			err = db.Query.DeleteKeyPermissionByKeyAndPermissionIDs(ctx, tx, db.DeleteKeyPermissionByKeyAndPermissionIDsParams{
+				KeyID:         req.KeyId,
+				PermissionIds: permIds,
+			})
+
+			if err != nil {
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to remove permission assignment."),
+				)
+			}
+		}
+
+		permissionsToInsert := make([]db.InsertKeyPermissionParams, 0)
 		for _, permission := range permissionsToAdd {
-			err = db.Query.InsertKeyPermission(ctx, tx, db.InsertKeyPermissionParams{
+			permissionsToInsert = append(permissionsToInsert, db.InsertKeyPermissionParams{
 				KeyID:        req.KeyId,
 				PermissionID: permission.ID,
 				WorkspaceID:  auth.AuthorizedWorkspaceID,
 				CreatedAt:    time.Now().UnixMilli(),
 			})
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to add permission assignment."),
-				)
-			}
 
 			auditLogs = append(auditLogs, auditlog.AuditLog{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
@@ -322,6 +319,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			})
 		}
 
+		if len(permissionsToInsert) > 0 {
+			err = db.BulkInsert(ctx, tx, "INSERT INTO key_permissions (key_id, permission_id, workspace_id, created_at_m) VALUES (?, ?, ?, ?)", permissionsToInsert)
+			if err != nil {
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to add permission assignments."),
+				)
+			}
+		}
+
 		// Insert audit logs
 		if len(auditLogs) > 0 {
 			err = h.Auditlogs.Insert(ctx, tx, auditLogs)
@@ -338,17 +345,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	h.KeyCache.Remove(ctx, key.Hash)
 
-	// 10. Get final state of permissions and build response
-	finalPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), req.KeyId)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve final permission state."),
-		)
+	finalPermissions := make([]db.FindPermissionsBySlugsRow, 0)
+	for _, perm := range requestedPermissions {
+		finalPermissions = append(finalPermissions, perm)
 	}
 
-	// Sort permissions alphabetically by name for consistent response
-	slices.SortFunc(finalPermissions, func(a, b db.Permission) int {
+	slices.SortFunc(finalPermissions, func(a, b db.FindPermissionsBySlugsRow) int {
 		if a.Name < b.Name {
 			return -1
 		} else if a.Name > b.Name {
@@ -357,19 +359,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return 0
 	})
 
-	// Build response data
 	responseData := make(openapi.V2KeysSetPermissionsResponseData, len(finalPermissions))
 	for i, permission := range finalPermissions {
-		responseData[i] = struct {
-			Id   string `json:"id"`
-			Name string `json:"name"`
+		res := struct {
+			Description *string `json:"description,omitempty"`
+			Name        string  `json:"name"`
+			Slug        string  `json:"slug"`
 		}{
-			Id:   permission.ID,
-			Name: permission.Name,
+			Description: nil,
+			Name:        permission.Name,
+			Slug:        permission.Slug,
 		}
+
+		if permission.Description.Valid {
+			res.Description = &permission.Description.String
+		}
+
+		responseData[i] = res
 	}
 
-	// 11. Return success response
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),

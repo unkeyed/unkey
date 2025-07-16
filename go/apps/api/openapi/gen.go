@@ -1267,11 +1267,14 @@ type V2KeysSetPermissionsResponse struct {
 // - An empty array means the key has no direct permissions assigned
 // - For a complete permission picture including roles, use `/v2/keys.getKey` instead
 type V2KeysSetPermissionsResponseData = []struct {
-	// Id The unique identifier of the permission
-	Id string `json:"id"`
+	// Description The description of the permission
+	Description *string `json:"description,omitempty"`
 
 	// Name The name of the permission
 	Name string `json:"name"`
+
+	// Slug The unique identifier of the permission
+	Slug string `json:"slug"`
 }
 
 // V2KeysSetRolesRequestBody defines model for V2KeysSetRolesRequestBody.

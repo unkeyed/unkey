@@ -107,6 +107,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// 6. Resolve and validate requested permissions
 	requestedPermissions := make([]db.Permission, 0, len(req.Permissions))
+
+
+	foundPermissions,err:= db.Query.FindPermissionBySlugAndWorkspaceID(ctx context.Context, db db.DBTX, arg db.FindPermissionBySlugAndWorkspaceIDParams)
+
+
 	for _, permRef := range req.Permissions {
 		var permission db.Permission
 

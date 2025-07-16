@@ -523,17 +523,21 @@ components:
       items:
         type: object
         required:
-          - id
+          - slug
           - name
         properties:
-          id:
+          slug:
             type: string
             description: The unique identifier of the permission
-            example: perm_1n9McEIBSqy44Qy7hzWyM5
+            example: documents.write
           name:
             type: string
             description: The name of the permission
-            example: documents.write
+            example: Write documents
+          description:
+            type: string
+            description: The description of the permission
+            example: Write access to documents
     V2KeysSetPermissionsResponse:
       type: object
       required:
