@@ -139,14 +139,22 @@ export async function getAllKeys({
     // Helper function to build the filter conditions (without cursor)
     // biome-ignore lint/suspicious/noExplicitAny: Leave it as is for now
     const buildFilterConditions = (key: any, { and, isNull, eq, sql }: any) => {
-      const conditions = [eq(key.keyAuthId, keyspaceId), isNull(key.deletedAtM)];
+      const conditions = [
+        eq(key.keyAuthId, keyspaceId),
+        isNull(key.deletedAtM),
+      ];
 
       // Apply tag-based key filtering if we have filtered key IDs
       if (tagFilteredKeyIds !== null) {
         if (tagFilteredKeyIds.length === 0) {
           conditions.push(sql`1 = 0`);
         } else {
-          conditions.push(sql`${key.id} IN ${tagFilteredKeyIds}`);
+          conditions.push(
+            sql`${key.id} IN (${sql.join(
+              tagFilteredKeyIds.map((id) => sql`${id}`),
+              sql`, `
+            )})`
+          );
         }
       }
 
@@ -236,10 +244,12 @@ export async function getAllKeys({
             sql`EXISTS (
                 SELECT 1 FROM ${identities} -- Use schema object for table name is fine
                 WHERE ${sql.raw("identities.id")} = ${
-                  key.identityId
-                } -- Use raw 'identities.id'; use schema 'key.identityId' for outer ref
+              key.identityId
+            } -- Use raw 'identities.id'; use schema 'key.identityId' for outer ref
                   AND ${(() => {
-                    const rawExternalIdColumn = sql.raw("identities.external_id");
+                    const rawExternalIdColumn = sql.raw(
+                      "identities.external_id"
+                    );
                     switch (filter.operator) {
                       case "is":
                         return sql`${rawExternalIdColumn} = ${value}`;
@@ -254,7 +264,7 @@ export async function getAllKeys({
                     }
                   })()}
             )`,
-            ownerIdCondition,
+            ownerIdCondition
           );
 
           individualIdentityFilterConditions.push(combinedCheckForThisFilter);

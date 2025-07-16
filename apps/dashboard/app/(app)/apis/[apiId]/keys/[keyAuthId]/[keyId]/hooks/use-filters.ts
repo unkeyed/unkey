@@ -52,7 +52,7 @@ export const useFilters = () => {
             ...baseFilter,
             metadata: {
               colorClass: keyDetailsFilterFieldConfig.outcomes.getColorClass?.(
-                filterItem.value as string,
+                filterItem.value as string
               ),
             },
           });
@@ -97,13 +97,23 @@ export const useFilters = () => {
         const operator = validOperators.includes(filter.operator)
           ? filter.operator
           : validOperators[0];
-
         switch (filter.field) {
           case "tags":
+            if (!validOperators.includes(filter.operator)) {
+              throw new Error(
+                `Invalid filter operator for tags. Allowed operators are: ${validOperators.join(
+                  ", "
+                )}`
+              );
+            }
             if (typeof filter.value === "string") {
               tagFilters.push({
                 value: filter.value,
-                operator: operator as "is" | "contains" | "startsWith" | "endsWith",
+                operator: filter.operator as
+                  | "is"
+                  | "contains"
+                  | "startsWith"
+                  | "endsWith",
               });
             }
             break;
@@ -111,7 +121,7 @@ export const useFilters = () => {
           case "outcomes":
             if (operator !== "is") {
               throw new Error(
-                "Invalid filter operator for outcomes. Only 'is' operator is allowed.",
+                "Invalid filter operator for outcomes. Only 'is' operator is allowed."
               );
             }
             if (typeof filter.value === "string") {
@@ -126,15 +136,15 @@ export const useFilters = () => {
           case "endTime": {
             if (operator !== "is") {
               throw new Error(
-                "Invalid filter operator for time fields. Only 'is' operator is allowed.",
+                "Invalid filter operator for time fields. Only 'is' operator is allowed."
               );
             }
             const numValue =
               typeof filter.value === "number"
                 ? filter.value
                 : typeof filter.value === "string"
-                  ? Number(filter.value)
-                  : Number.NaN;
+                ? Number(filter.value)
+                : Number.NaN;
 
             if (!Number.isNaN(numValue)) {
               newParams[filter.field] = numValue;
@@ -145,7 +155,7 @@ export const useFilters = () => {
           case "since":
             if (operator !== "is") {
               throw new Error(
-                "Invalid filter operator for since field. Only 'is' operator is allowed.",
+                "Invalid filter operator for since field. Only 'is' operator is allowed."
               );
             }
             if (typeof filter.value === "string") {
@@ -160,7 +170,7 @@ export const useFilters = () => {
 
       setSearchParams(newParams);
     },
-    [setSearchParams],
+    [setSearchParams]
   );
 
   const removeFilter = useCallback(
@@ -168,7 +178,7 @@ export const useFilters = () => {
       const newFilters = filters.filter((f) => f.id !== id);
       updateFilters(newFilters);
     },
-    [filters, updateFilters],
+    [filters, updateFilters]
   );
 
   return {
