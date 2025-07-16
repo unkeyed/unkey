@@ -266,7 +266,7 @@ services:
     platform: linux/amd64
     container_name: metald-aio
     hostname: metald-aio
-    privileged: true  # Required for systemd
+    privileged: true # Required for systemd
     volumes:
       # Mount Docker socket for metald Docker backend
       - /var/run/docker.sock:/var/run/docker.sock
@@ -276,24 +276,23 @@ services:
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
     ports:
       # Only expose metald port (agent already uses 8080)
-      - "8090:8080"  # metald
+      - "8090:8080" # metald
     depends_on:
       - otel
     environment:
       # Development environment
       - UNKEY_ENVIRONMENT=development
       - UNKEY_LOG_LEVEL=debug
-      
+
       # Docker backend configuration
       - UNKEY_METALD_BACKEND=docker
       - UNKEY_METALD_DOCKER_HOST=unix:///var/run/docker.sock
-      
+
       # Service discovery (internal container ports)
       - UNKEY_METALD_BILLING_ENDPOINT=http://localhost:8081
       - UNKEY_METALD_ASSETMANAGER_ENDPOINT=http://localhost:8083
       - UNKEY_ASSETMANAGERD_BUILDERD_ENDPOINT=http://localhost:8082
       - UNKEY_BUILDERD_ASSETMANAGER_ENDPOINT=http://localhost:8083
-      
 
 volumes:
   mysql:
