@@ -263,10 +263,7 @@ components:
     KeysDeleteKeyResponseData:
       type: object
       properties: {}
-<<<<<<< HEAD
       additionalProperties: false
-=======
->>>>>>> ede6df1b8 (adjust comments)
       description: Empty response object by design. A successful response indicates the key was deleted successfully.
     V2KeysDeleteKeyResponseBody:
       type: object
@@ -309,11 +306,7 @@ components:
             The complete API key string provided by you, including any prefix.
             Never log, cache, or store API keys in your system as they provide full access to user resources.
             Include the full key exactly as provided - even minor modifications will cause a not found error.
-<<<<<<< HEAD
-          example: prefix_f4cc2d765275c206b7d76ff0e92e583067c4e33603fb4055d7ba3031cd7ce36a
-=======
           example: my_prefix_1234567890abcdef
->>>>>>> ede6df1b8 (adjust comments)
       additionalProperties: false
       oneOf:
         - required:
@@ -3491,20 +3484,6 @@ components:
     V2IdentitiesUpdateIdentityRequestBody:
       type: object
       properties:
-<<<<<<< HEAD
-=======
-        identityId:
-          type: string
-          minLength: 3
-          maxLength: 255
-          pattern: "^[a-zA-Z0-9_]+$"
-          description: |
-            Specifies which identity to update using the Unkey database identifier.
-            Takes precedence over externalId when both are provided in the same request.
-            Use this when you have stored the Unkey identity ID from previous API calls.
-            Essential for direct identity management when you track Unkey's internal identifiers.
-          example: id_01H9TQPP77V5E48E9SH0BG0ZQX
->>>>>>> ede6df1b8 (adjust comments)
         externalId:
           type: string
           minLength: 3
