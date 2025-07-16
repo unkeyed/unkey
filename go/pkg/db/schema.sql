@@ -427,6 +427,7 @@ CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m
 CREATE INDEX `idx_keys_on_for_workspace_id` ON `keys` (`for_workspace_id`);
 CREATE INDEX `owner_id_idx` ON `keys` (`owner_id`);
 CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`);
+CREATE INDEX `idx_keys_on_workspace_id` ON `keys` (`workspace_id`);
 CREATE INDEX `deleted_at_idx` ON `keys` (`deleted_at_m`);
 CREATE INDEX `name_idx` ON `ratelimits` (`name`);
 CREATE INDEX `identity_id_idx` ON `ratelimits` (`identity_id`);
