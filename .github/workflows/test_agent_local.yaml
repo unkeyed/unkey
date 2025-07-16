@@ -2,6 +2,9 @@ name: Test Agent Local
 on:
   workflow_call:
 
+permissions:
+  contents: read
+
 jobs:
   test_agent_local:
     runs-on: ubuntu-latest
