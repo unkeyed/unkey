@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/cmd/cli/cli"
+	"github.com/unkeyed/unkey/go/cmd/cli/config"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/git"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -35,12 +36,15 @@ type DeployOptions struct {
 }
 
 var DeployFlags = []cli.Flag{
-	// Required flags
-	cli.String("workspace-id", "Workspace ID", "", "UNKEY_WORKSPACE_ID", true),
-	cli.String("project-id", "Project ID", "", "UNKEY_PROJECT_ID", true),
+	// Config directory flag (highest priority)
+	cli.String("config", "Directory containing unkey.json config file", "", "", false),
+
+	// Required flags (can be provided via config file)
+	cli.String("workspace-id", "Workspace ID", "", "UNKEY_WORKSPACE_ID", false), // Changed to false since config can provide it
+	cli.String("project-id", "Project ID", "", "UNKEY_PROJECT_ID", false),       // Changed to false since config can provide it
 
 	// Optional flags with defaults
-	cli.String("context", "Docker context path", ".", "", false),
+	cli.String("context", "Docker context path", "", "", false), // No default, will use config or "."
 	cli.String("branch", "Git branch", "main", "", false),
 	cli.String("docker-image", "Pre-built docker image", "", "", false),
 	cli.String("dockerfile", "Path to Dockerfile", "Dockerfile", "", false),
@@ -61,12 +65,21 @@ var Command = &cli.Command{
 Builds a Docker image from the specified context and
 deploys it to the Unkey platform.
 
+The deploy command will automatically load configuration from unkey.json
+in the current directory or specified config directory.
+
 EXAMPLES:
-    # Basic deployment
-    unkey deploy \
-      --workspace-id=ws_4QgQsKsKfdm3nGeC \
-      --project-id=proj_9aiaks2dzl6mcywnxjf \
-      --context=./demo_api
+    # Deploy using config file (./unkey.json)
+    unkey deploy
+
+    # Deploy with config from specific directory
+    unkey deploy --config=./test-docker
+
+    # Deploy overriding workspace from config
+    unkey deploy --workspace-id=ws_different
+
+    # Deploy with specific context (overrides config)
+    unkey deploy --context=./demo_api
 
     # Deploy with your own registry
     unkey deploy \
@@ -75,25 +88,41 @@ EXAMPLES:
       --registry=docker.io/mycompany/myapp
 
     # Local development (skip push)
-    unkey deploy \
-      --workspace-id=ws_4QgQsKsKfdm3nGeC \
-      --project-id=proj_9aiaks2dzl6mcywnxjf \
-      --skip-push
+    unkey deploy --skip-push
 
     # Deploy pre-built image
-    unkey deploy \
-      --workspace-id=ws_4QgQsKsKfdm3nGeC \
-      --project-id=proj_9aiaks2dzl6mcywnxjf \
-      --docker-image=ghcr.io/user/app:v1.0.0`,
+    unkey deploy --docker-image=ghcr.io/user/app:v1.0.0
+
+If no config file exists, you can create one with:
+    unkey init`,
 	Flags:  DeployFlags,
 	Action: DeployAction,
 }
 
 func DeployAction(ctx context.Context, cmd *cli.Command) error {
+	// Load configuration file
+	configPath := config.GetConfigPath(cmd.String("config"))
+	cfg, err := config.LoadConfig(configPath)
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Merge config with command flags (flags take precedence)
+	finalConfig := cfg.MergeWithFlags(
+		cmd.String("workspace-id"),
+		cmd.String("project-id"),
+		cmd.String("context"),
+	)
+
+	// Validate that we have required fields
+	if err := finalConfig.Validate(); err != nil {
+		return err
+	}
+
 	opts := &DeployOptions{
-		WorkspaceID:     cmd.String("workspace-id"),
-		ProjectID:       cmd.String("project-id"),
-		Context:         cmd.String("context"),
+		WorkspaceID:     finalConfig.WorkspaceID,
+		ProjectID:       finalConfig.ProjectID,
+		Context:         finalConfig.Context,
 		Branch:          cmd.String("branch"),
 		DockerImage:     cmd.String("docker-image"),
 		Dockerfile:      cmd.String("dockerfile"),

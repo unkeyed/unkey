@@ -1,69 +1,75 @@
 package init
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/unkeyed/unkey/go/cmd/cli/cli"
+	"github.com/unkeyed/unkey/go/cmd/cli/config"
 )
 
 var Command = &cli.Command{
 	Name:  "init",
 	Usage: "Initialize configuration file for Unkey CLI",
 	Description: `Initialize a configuration file to store default values for workspace ID, project ID, and context path.
-This will create a configuration file that can be used to avoid specifying common flags repeatedly.
+This will create a unkey.json file in the specified directory.
 
 EXAMPLES:
-    # Create default config file (./unkey.json)
+    # Create unkey.json in current directory
     unkey init
     
-    # Create config file at custom location
-    unkey init --config=./my-project.json
-    
-    # Initialize with specific values
-    unkey init --workspace-id=ws_123 --project-id=proj_456`,
+    # Create unkey.json in a specific directory
+    unkey init --config=./test-docker`,
 	Flags: []cli.Flag{
-		cli.String("config", "Configuration file path", "./unkey.json", "", false),
-		cli.String("workspace-id", "Default workspace ID to save in config", "", "", false),
-		cli.String("project-id", "Default project ID to save in config", "", "", false),
-		cli.String("context", "Default Docker context path to save in config", "", "", false),
+		cli.String("config", "Directory where unkey.json will be created", ".", "", false),
 	},
 	Action: run,
 }
 
 func run(ctx context.Context, cmd *cli.Command) error {
-	configPath := cmd.String("config")
-	workspaceID := cmd.String("workspace-id")
-	projectID := cmd.String("project-id")
-	contextPath := cmd.String("context")
+	configDir := cmd.String("config")
+	configPath := config.GetConfigFilePath(configDir)
 
 	fmt.Println("🚀 Unkey CLI Configuration Setup")
 	fmt.Println("")
 
-	// For now, just show what would be saved
-	fmt.Println("Configuration file support coming soon!")
-	fmt.Println("")
-	fmt.Printf("Config file location: %s\n", configPath)
-
-	if workspaceID != "" {
-		fmt.Printf("Workspace ID: %s\n", workspaceID)
-	}
-	if projectID != "" {
-		fmt.Printf("Project ID: %s\n", projectID)
-	}
-	if contextPath != "" {
-		fmt.Printf("Context path: %s\n", contextPath)
+	// Check if config file already exists
+	if config.ConfigExists(configDir) {
+		fmt.Printf("⚠️  Configuration file already exists at: %s\n", configPath)
+		if !promptConfirm("Do you want to overwrite it?") {
+			fmt.Println("Configuration setup cancelled.")
+			return nil
+		}
+		fmt.Println("")
 	}
 
+	// Create template config file
+	if err := config.CreateTemplate(configDir); err != nil {
+		return fmt.Errorf("failed to create config template: %w", err)
+	}
+
+	fmt.Printf("✅ Configuration template created at: %s\n", configPath)
 	fmt.Println("")
-	fmt.Println("For now, use flags directly:")
+	fmt.Println("Please replace the placeholder values with your actual values:")
 	fmt.Println("")
-	fmt.Println("Example:")
-	fmt.Println("  unkey deploy \\")
-	fmt.Println("    --workspace-id=ws_4QgQsKsKfdm3nGeC \\")
-	fmt.Println("    --project-id=proj_9aiaks2dzl6mcywnxjf \\")
-	fmt.Println("    --context=./demo_api")
+	fmt.Println("After editing, you can run commands without flags:")
+	fmt.Println("  unkey deploy")
 	fmt.Println("")
 
 	return nil
+}
+
+func readLine() string {
+	reader := bufio.NewReader(os.Stdin)
+	line, _ := reader.ReadString('\n')
+	return strings.TrimSpace(line)
+}
+
+func promptConfirm(message string) bool {
+	fmt.Printf("%s (y/N): ", message)
+	response := strings.ToLower(strings.TrimSpace(readLine()))
+	return response == "y" || response == "yes"
 }
