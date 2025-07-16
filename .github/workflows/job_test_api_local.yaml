@@ -16,7 +16,7 @@ jobs:
         run: rm -rf /opt/hostedtoolcache
 
       - name: Run containers
-        run: docker compose -f ./deployment/docker-compose.yaml up api -d
+        run: docker compose -f ./deployment/docker-compose.yaml up mysql api -d
 
       - name: Install
         uses: ./.github/actions/install
