@@ -5,8 +5,10 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
+	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -29,7 +31,22 @@ func (r *Replica) ExecContext(ctx context.Context, query string, args ...interfa
 		attribute.String("mode", r.mode),
 		attribute.String("query", query),
 	)
-	return r.db.ExecContext(ctx, query, args...)
+
+	// Track metrics
+	start := time.Now()
+	result, err := r.db.ExecContext(ctx, query, args...)
+
+	// Record latency and operation count
+	duration := time.Since(start).Seconds()
+	status := "success"
+	if err != nil {
+		status = "error"
+	}
+
+	metrics.DatabaseOperationLatency.WithLabelValues(r.mode, "exec", status).Observe(duration)
+	metrics.DatabaseOperationTotal.WithLabelValues(r.mode, "exec", status).Inc()
+
+	return result, err
 }
 
 // PrepareContext prepares a SQL statement for later execution.
@@ -40,7 +57,22 @@ func (r *Replica) PrepareContext(ctx context.Context, query string) (*sql.Stmt, 
 		attribute.String("mode", r.mode),
 		attribute.String("query", query),
 	)
-	return r.db.PrepareContext(ctx, query) // nolint:sqlclosecheck
+
+	// Track metrics
+	start := time.Now()
+	stmt, err := r.db.PrepareContext(ctx, query)
+
+	// Record latency and operation count
+	duration := time.Since(start).Seconds()
+	status := "success"
+	if err != nil {
+		status = "error"
+	}
+
+	metrics.DatabaseOperationLatency.WithLabelValues(r.mode, "prepare", status).Observe(duration)
+	metrics.DatabaseOperationTotal.WithLabelValues(r.mode, "prepare", status).Inc()
+
+	return stmt, err // nolint:sqlclosecheck
 }
 
 // QueryContext executes a SQL query that returns rows.
@@ -51,8 +83,22 @@ func (r *Replica) QueryContext(ctx context.Context, query string, args ...interf
 		attribute.String("mode", r.mode),
 		attribute.String("query", query),
 	)
-	return r.db.QueryContext(ctx, query, args...) // nolint:sqlclosecheck
 
+	// Track metrics
+	start := time.Now()
+	rows, err := r.db.QueryContext(ctx, query, args...)
+
+	// Record latency and operation count
+	duration := time.Since(start).Seconds()
+	status := "success"
+	if err != nil {
+		status = "error"
+	}
+
+	metrics.DatabaseOperationLatency.WithLabelValues(r.mode, "query", status).Observe(duration)
+	metrics.DatabaseOperationTotal.WithLabelValues(r.mode, "query", status).Inc()
+
+	return rows, err // nolint:sqlclosecheck
 }
 
 // QueryRowContext executes a SQL query that returns a single row.
@@ -63,7 +109,20 @@ func (r *Replica) QueryRowContext(ctx context.Context, query string, args ...int
 		attribute.String("mode", r.mode),
 		attribute.String("query", query),
 	)
-	return r.db.QueryRowContext(ctx, query, args...)
+
+	// Track metrics
+	start := time.Now()
+	row := r.db.QueryRowContext(ctx, query, args...)
+
+	// Record latency and operation count
+	duration := time.Since(start).Seconds()
+	// QueryRowContext doesn't return an error, but we can still track timing
+	status := "success"
+
+	metrics.DatabaseOperationLatency.WithLabelValues(r.mode, "query_row", status).Observe(duration)
+	metrics.DatabaseOperationTotal.WithLabelValues(r.mode, "query_row", status).Inc()
+
+	return row
 }
 
 // Begin starts a transaction and returns it.
@@ -73,5 +132,19 @@ func (r *Replica) Begin(ctx context.Context) (*sql.Tx, error) {
 	defer span.End()
 	span.SetAttributes(attribute.String("mode", r.mode))
 
-	return r.db.BeginTx(ctx, nil)
+	// Track metrics
+	start := time.Now()
+	tx, err := r.db.BeginTx(ctx, nil)
+
+	// Record latency and operation count
+	duration := time.Since(start).Seconds()
+	status := "success"
+	if err != nil {
+		status = "error"
+	}
+
+	metrics.DatabaseOperationLatency.WithLabelValues(r.mode, "begin", status).Observe(duration)
+	metrics.DatabaseOperationTotal.WithLabelValues(r.mode, "begin", status).Inc()
+
+	return tx, err
 }
