@@ -354,45 +354,15 @@ components:
           description: |
             Grants additional permissions to the key through direct assignment or automatic creation.
             Duplicate permissions are ignored automatically, making this operation idempotent.
-            Use either ID for existing permissions or slug for new permissions with optional auto-creation.
-            Adding permissions never removes existing permissions or role-based permissions.
+            Use the permissions slug here, if one of the slug(s) is not found it will be created IF the root key has the necessary permissions.
           items:
-            type: object
-            properties:
-              id:
-                type: string
-                minLength: 3
-                maxLength: 255
-                pattern: "^[a-zA-Z0-9_]+$"
-                description: |
-                  References an existing permission by its database identifier.
-                  Use when you know the exact permission ID and want to ensure you're referencing a specific permission.
-                  Takes precedence over slug when both are provided in the same object.
-                  The referenced permission must already exist in your workspace.
-                example: perm_1n9McEIBSqy44Qy7hzWyM5
-              slug:
-                type: string
-                minLength: 1
-                maxLength: 100 # Keep permission names concise and readable
-                pattern: "^[a-zA-Z0-9_.]+$"
-                description: |
-                  Identifies the permission by its human-readable name using hierarchical naming patterns.
-                  Use `resource.action` format for logical organization and verification flexibility.
-                  Slugs must be unique within your `workspace` and support wildcard matching during verification.
-                  Combined with `create=true`, allows automatic permission creation for streamlined workflows.
-                example: documents.write
-              create:
-                type: boolean
-                default: false
-                description: |
-                  Enables automatic permission creation when the specified slug does not exist.
-                  Only works with slug-based references, not ID-based references.
-                  Requires the `rbac.*.create_permission` permission on your root key.
-
-                  Created permissions are permanent and visible workspace-wide to all API keys.
-                  Use carefully to avoid permission proliferation from typos or uncontrolled creation.
-                  Consider centralizing permission creation in controlled processes for better governance.
-                  Auto-created permissions use the slug as both the name and identifier.
+            type: string
+            description: |
+              Identifies the permission by its human-readable name using hierarchical naming patterns.
+              Use `resource.action` format for logical organization and verification flexibility.
+              Slugs must be unique within your `workspace` and support wildcard matching during verification.
+              Combined with `create=true`, allows automatic permission creation for streamlined workflows.
+            example: documents.write
             additionalProperties: false
       additionalProperties: false
     V2KeysAddPermissionsResponseData:
@@ -460,31 +430,14 @@ components:
           description: |
             Removes direct permissions from the key without affecting role-based permissions.
             Operations are idempotent - removing non-existent permissions has no effect and causes no errors.
-            Use either ID for existing permissions or name for exact string matching.
+            Use the permissions slug.
 
             After removal, verification checks for these permissions will fail unless granted through roles.
             Removing all direct permissions does not disable the key, only removes its direct permission grants.
           items:
-            type: object
-            properties:
-              id:
-                type: string
-                minLength: 3
-                maxLength: 255
-                pattern: "^[a-zA-Z0-9_]+$"
-                description: |
-                  References the permission to remove by its database identifier.
-                  Use when you know the exact permission ID and want to ensure you're removing a specific permission.
-                  Takes precedence over name when both are provided in the same object.
-                example: perm_1n9McEIBSqy44Qy7hzWyM5
-              slug:
-                type: string
-                minLength: 1
-                maxLength: 100 # Keep permission slugs concise and readable
-                pattern: "^[a-zA-Z0-9_.]+$"
-                description: Identifies the permission by slug for removal from the key's direct assignment list.
-                example: documents.write
-            additionalProperties: false
+            type: string
+            description: Identifies the permission by slug for removal from the key's direct assignment list.
+            example: documents.write
       additionalProperties: false
     V2KeysRemovePermissionsResponseData:
       type: array
@@ -497,19 +450,9 @@ components:
       items:
         type: object
         required:
-          - id
           - name
           - slug
         properties:
-          id:
-            type: string
-            description:
-              The unique identifier of the permission (begins with `perm_`).
-              This ID can be used in other API calls to reference this specific permission.
-              IDs are guaranteed unique and won't change, making them ideal for scripting
-              and automation. You can store these IDs in your system for consistent
-              reference.
-            example: perm_1n9McEIBSqy44Qy7hzWyM5
           name:
             type: string
             description: The name of the permission
@@ -523,6 +466,10 @@ components:
 
               When adding permissions, you must specify each exact permission - wildcards are not valid for assignment.
             example: documents.write
+          description:
+            type: string
+            description: A description of the permission.
+            example: Allows read access to documents
     V2KeysRemovePermissionsResponse:
       type: object
       required:
@@ -554,36 +501,14 @@ components:
             The permissions to set for this key. This is a complete replacement operation - it overwrites all existing direct permissions with this new set.
             Permissions that are applied through roles are not affected.
           items:
-            type: object
-            properties:
-              id:
-                type: string
-                description:
-                  The ID of an existing permission (begins with `perm_`).
-                  Provide either ID or slug for each permission, not both. Using ID
-                  is more precise and guarantees you're referencing the exact permission
-                  intended, regardless of slug changes or duplicates. IDs are particularly
-                  useful in automation scripts and when migrating permissions between
-                  environments.
-                example: perm_1n9McEIBSqy44Qy7hzWyM5
-                minLength: 3
-              slug:
-                type: string
-                description:
-                  The slug of the permission. Provide either ID or slug
-                  for each permission, not both. Slugs must match exactly as defined
-                  in your permission system - including case sensitivity and the complete
-                  hierarchical path. Slugs are generally more human-readable but can
-                  be ambiguous if not carefully managed across your workspace.
-                example: documents.write
-                minLength: 1
-              create:
-                type: boolean
-                description: |-
-                  When true, if a permission with this slug doesn't exist, it will be automatically created on-the-fly. Only works when specifying slug, not ID.
-                  This  Requires the `rbac.*.create_permission` permission on your root key.
-                default: false
-            additionalProperties: false
+            type: string
+            description: The slug of the permission. Provide either ID or slug
+              for each permission, not both. Slugs must match exactly as defined
+              in your permission system - including case sensitivity and the complete
+              hierarchical path. Slugs are generally more human-readable but can
+              be ambiguous if not carefully managed across your workspace.
+            example: documents.write
+            minLength: 1
       additionalProperties: false
     V2KeysSetPermissionsResponseData:
       type: array
@@ -632,7 +557,6 @@ components:
             Specifies which key receives the additional roles using the database identifier returned from `createKey`.
             Do not confuse this with the actual API key string that users include in requests.
             Added roles supplement existing roles and permissions without replacing them.
-            Role assignments take effect immediately but may take up to 30 seconds to propagate across all regions.
           example: key_2cGKbMxRyIzhCxo1Idjz8q
         roles:
           type: array
@@ -1059,7 +983,7 @@ components:
           items:
             type: string
             minLength: 1
-            maxLength: 100 # Keep permission names concise and readable
+            maxLength: 100
             pattern: "^[a-zA-Z0-9_]+$"
           description: |
             Grants specific permissions directly to this key without requiring role membership.
@@ -1606,7 +1530,7 @@ components:
             type: string
             minLength: 1
             maxLength: 255
-          description: Permission names assigned to this key.
+          description: Permission slugs assigned to this key.
           example: ["users.read", "posts.write"]
         identity:
           "$ref": "#/components/schemas/Identity"
@@ -2402,16 +2326,6 @@ components:
     Permission:
       type: object
       properties:
-        id:
-          type: string
-          minLength: 3
-          maxLength: 255
-          pattern: "^[a-zA-Z0-9_]+$"
-          description: |
-            The unique identifier for this permission within Unkey's system.
-            Generated automatically when the permission is created and used to reference this permission in API operations.
-            Always begins with 'perm_' followed by alphanumeric characters and underscores.
-          example: perm_1234567890abcdef
         name:
           type: string
           minLength: 1
@@ -2449,7 +2363,6 @@ components:
             Automatically set by the system and cannot be modified.
           example: 1701425400000
       required:
-        - id
         - name
         - slug
         - createdAt
@@ -3267,7 +3180,7 @@ components:
           oneOf:
             - type: string
               minLength: 1
-              maxLength: 100 # Keep permission names concise and readable
+              maxLength: 100
               pattern: "^[a-zA-Z0-9_.]+$"
               description: |
                 Checks if the key has this specific permission. Supports hierarchical permissions where
@@ -3290,7 +3203,7 @@ components:
                   items:
                     type: string
                     minLength: 1
-                    maxLength: 100 # Keep permission names concise and readable
+                    maxLength: 100
                     pattern: "^[a-zA-Z0-9_.]+$"
                   maxItems: 100 # Allow complex permission sets without performance degradation
                   minItems: 1
@@ -3679,18 +3592,7 @@ paths:
                 value:
                   keyId: key_2cGKbMxRyIzhCxo1Idjz8q
                   permissions: []
-              basic:
-                summary: Set permissions using IDs
-                description:
-                  Using permission IDs is the most precise approach for
-                  setting permissions, especially in automation scripts where exact
-                  references are important.
-                value:
-                  keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-                  permissions:
-                    - id: perm_1n9McEIBSqy44Qy7hzWyM5
-                    - id: perm_2zF4mNyP9BsRj2aQwDxVkT
-              withNames:
+              withSlugs:
                 summary: Add permissions using slugs
                 description:
                   Using permission slugs is more readable and maintainable.
@@ -3698,35 +3600,8 @@ paths:
                 value:
                   keyId: key_2cGKbMxRyIzhCxo1Idjz8q
                   permissions:
-                    - slug: documents.write
-                    - slug: documents.delete
-              withCreation:
-                summary: Set with permission creation
-                description:
-                  This example demonstrates setting permissions while simultaneously
-                  creating new ones that don't exist yet. Requires the `rbac.*.create_permission`
-                  permission on your root key.
-                value:
-                  keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-                  permissions:
-                    - slug: documents.write
-                    - slug: reports.export
-                      create: true
-                    - name: reports.schedule
-                      create: true
-              mixed:
-                summary: Mix of ID and name references
-                description:
-                  You can combine different reference methods in a single
-                  request - some permissions by ID, others by name, and even create
-                  new ones on the fly.
-                value:
-                  keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-                  permissions:
-                    - id: perm_1n9McEIBSqy44Qy7hzWyM5
-                    - slug: documents.delete
-                    - slug: reports.view
-                      create: true
+                    - documents.write
+                    - documents.read
       responses:
         "200":
           description:
@@ -3964,38 +3839,14 @@ paths:
                 value:
                   keyId: key_2cGKbMxRyIzhCxo1Idjz8q
                   permissions: []
-              basic:
-                summary: Remove permissions using IDs
-                description:
-                  Using permission IDs is the most precise way to remove
-                  permissions, guaranteeing you're removing exactly what you intend
-                  regardless of name changes.
+              withSlugs:
+                summary: Remove permissions using slugs
+                description: Using permission slugs is more human-readable but requires exact name matches, including full path and correct case sensitivity.
                 value:
                   keyId: key_2cGKbMxRyIzhCxo1Idjz8q
                   permissions:
-                    - id: perm_1n9McEIBSqy44Qy7hzWyM5
-                    - id: perm_2zF4mNyP9BsRj2aQwDxVkT
-              withNames:
-                summary: Remove permissions using names
-                description:
-                  Using permission names is more human-readable but requires
-                  exact name matches, including full path and correct case sensitivity.
-                value:
-                  keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-                  permissions:
-                    - name: documents.write
-                    - name: documents.delete
-              mixed:
-                summary: Mix of ID and name references
-                description:
-                  You can combine ID-based and name-based references in
-                  a single request. This is useful when you have exact IDs for some
-                  permissions but only names for others.
-                value:
-                  keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-                  permissions:
-                    - id: perm_1n9McEIBSqy44Qy7hzWyM5
-                    - name: reports.export
+                    - documents.write
+                    - documents.delete
               removeAccessGroup:
                 summary: Remove all permissions for a resource group
                 description:
@@ -4005,10 +3856,10 @@ paths:
                 value:
                   keyId: key_2cGKbMxRyIzhCxo1Idjz8q
                   permissions:
-                    - name: documents.read
-                    - name: documents.write
-                    - name: documents.delete
-                    - name: documents.share
+                    - documents.read
+                    - documents.write
+                    - documents.delete
+                    - documents.share
       responses:
         "200":
           description:
@@ -4165,7 +4016,7 @@ paths:
       description: |-
         Assigns one or more roles to an existing API key, incrementally adding to any existing roles already assigned. Roles are collections of permissions that provide a convenient way to assign multiple permissions at once rather than assigning individual permissions one by one.
 
-        This operation is idempotent, meaning adding the same role multiple times has no additional effect. The assignment happens as an atomic transaction where all roles are added or none are with rollback on failure. Changes take effect immediately for new verifications within seconds, and during verification, permissions from all assigned roles are combined.
+        This operation is idempotent, meaning adding the same role multiple times has no additional effect. The assignment happens as an atomic transaction where all roles are added or none are with rollback on failure.
 
         Use this endpoint when promoting users to higher access levels, adding specialized function access to existing keys, or implementing role-based access control patterns. It provides a standardized way to bundle permissions across many keys while preserving existing role assignments. Unlike setRoles which replaces all roles, this endpoint only adds to the existing set of roles assigned to a key.
       operationId: addRoles
@@ -4290,14 +4141,16 @@ paths:
         - keys
       summary: Add permissions to an API key
       description: |-
-        Assigns one or more permissions to an existing API key. This endpoint is used to incrementally add permissions without removing existing ones.
+        Assigns one or more permissions to an existing API key.
+        This endpoint is used to incrementally add permissions without removing existing ones.
 
-        Permissions define access control capabilities that are validated during key verification. Each permission typically follows a 'resource.action' naming pattern (e.g., 'documents.read', 'users.create'). A key can have both direct permissions (added via this endpoint) and indirect permissions (granted through roles).
+        Permissions define access control capabilities that are validated during key verification. Each permission typically follows a 'resource.action' naming pattern (e.g., 'documents.read', 'users.create').
+        A key can have both direct permissions (added via this endpoint) and indirect permissions (granted through roles).
 
         Key features:
         - Idempotent operation - adding the same permission multiple times has no additional effect
         - Atomic transaction - all permissions are added or none are (rollback on failure)
-        - Permission creation - optionally create new permissions if they don't exist (with 'create: true')
+        - Permission creation - optionally create new permissions if they don't exist, only if the root key has required permissions for this.
         - Hierarchical permissions - during verification, 'documents.*' grants access to both 'documents.read' and 'documents.write'
 
         Unlike setPermissions (which replaces all permissions), this endpoint only adds to the existing set. Use this when incrementally granting new capabilities to existing keys.
@@ -4312,50 +4165,13 @@ paths:
             schema:
               "$ref": "#/components/schemas/V2KeysAddPermissionsRequestBody"
             examples:
-              basic:
-                summary: Add permissions using IDs
-                description:
-                  When you know the exact permission IDs, referencing them
-                  directly is the most precise approach. Permission IDs are guaranteed
-                  to be unique.
+              withSlugs:
+                summary: Add permissions using slugs
                 value:
                   keyId: key_2cGKbMxRyIzhCxo1Idjz8q
                   permissions:
-                    - id: perm_1n9McEIBSqy44Qy7hzWyM5
-                    - id: perm_2zF4mNyP9BsRj2aQwDxVkT
-              withNames:
-                summary: Add permissions using names
-                value:
-                  keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-                  permissions:
-                    - name: documents.write
-                    - name: documents.delete
-              withCreation:
-                summary: Add and create new permissions
-                description:
-                  Setting create=true dynamically creates permissions if
-                  they don't exist yet. This requires the `rbac.*.create_permission`
-                  permission on your root key.
-                value:
-                  keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-                  permissions:
-                    - name: reports.export
-                      create: true
-                    - name: reports.schedule
-                      create: true
-              mixed:
-                summary: Mix ID and name references
-                description:
-                  You can combine ID references, name references, and creation
-                  in a single request. If both id and name are provided for any permission,
-                  the id takes precedence.
-                value:
-                  keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-                  permissions:
-                    - id: perm_1n9McEIBSqy44Qy7hzWyM5
-                    - name: documents.publish
-                    - name: analytics.view
-                      create: true
+                    - documents.write
+                    - documents.delete
               hierarchical:
                 summary: Using hierarchical permission naming
                 description:
@@ -4365,12 +4181,9 @@ paths:
                 value:
                   keyId: key_2cGKbMxRyIzhCxo1Idjz8q
                   permissions:
-                    - name: billing.invoices.create
-                      create: true
-                    - name: billing.invoices.view
-                      create: true
-                    - name: billing.payments.process
-                      create: true
+                    - billing.invoices.create
+                    - billing.invoices.view
+                    - billing.payments.process
               completeBilling:
                 summary: Complete billing system permissions
                 description:
@@ -4379,18 +4192,12 @@ paths:
                 value:
                   keyId: key_2cGKbMxRyIzhCxo1Idjz8q
                   permissions:
-                    - name: billing.invoices.create
-                      create: true
-                    - name: billing.invoices.view
-                      create: true
-                    - name: billing.invoices.update
-                      create: true
-                    - name: billing.payments.process
-                      create: true
-                    - name: billing.payments.refund
-                      create: true
-                    - name: billing.settings.view
-                      create: true
+                    - billing.invoices.create
+                    - billing.invoices.view
+                    - billing.invoices.update
+                    - billing.payments.process
+                    - billing.payments.refund
+                    - billing.settings.view
       responses:
         "200":
           description: Permissions successfully added to the key
@@ -4620,7 +4427,7 @@ paths:
                     - id: role_1n9McEIBSqy44Qy7hzWyM5
                     - id: role_2a8NdFJCTrz55Ry8Jdkz9r
               withNames:
-                summary: Removing roles by name
+                summary: Removing roles by slugs
                 description:
                   Removing roles by name is more human-readable but requires
                   exact name matches, including correct capitalization.
@@ -6534,7 +6341,7 @@ paths:
               basic:
                 summary: Delete a permission
                 value:
-                  permissionId: perm_1234567890abcdef
+                  slug: documents.write
         required: true
       responses:
         "200":
@@ -7308,7 +7115,7 @@ paths:
 
         This endpoint supports flexible identification using either the Unkey identity ID or your external ID, making it easy to integrate with existing user management systems. Fields not included in the request remain unchanged, allowing for targeted updates without affecting other identity properties.
 
-        Changes to rate limits take effect immediately for new API key verifications, though existing sessions may retain old limits briefly due to caching. When updating metadata, consider that this information is returned during key verification, so avoid storing sensitive data that shouldn't be exposed to client applications.
+        When updating metadata, consider that this information is returned during key verification, so avoid storing sensitive data that shouldn't be exposed to client applications.
 
         Common use cases include updating user plan information after subscription changes, adjusting rate limits for different service tiers, and maintaining current contact or organizational information associated with the identity.
       operationId: v2.identities.updateIdentity
