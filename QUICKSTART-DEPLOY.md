@@ -5,6 +5,7 @@ This guide will help you get the Unkey deployment platform up and running locall
 ## Prerequisites
 
 - Docker and Docker Compose
+- Go 1.24 or later
 - A terminal/command line
 
 ## Step 1: Start the Platform
@@ -12,21 +13,12 @@ This guide will help you get the Unkey deployment platform up and running locall
 1. Start all services using Docker Compose:
 
 ```bash
-docker-compose up -d
+docker-compose up metald-aio dashboard ctrl -d
 ```
 
-This will start:
+2. Wait for all services to be healthy
 
-- MySQL database (port 3306)
-- Dashboard (port 3000)
-- Control plane services
-- Supporting infrastructure
-
-2. Wait for all services to be healthy (this may take 1-2 minutes):
-
-```bash
-docker-compose ps
-```
+The platform now uses a Docker backend that creates containers instead of VMs, making it much faster and easier to run locally.
 
 ## Step 2: Set Up Your Workspace
 
@@ -36,31 +28,17 @@ docker-compose ps
 http://localhost:3000
 ```
 
-2. Sign in or create an account through the authentication flow
+2. Create a workspace and copy its id
 
-3. Once logged in, you'll automatically have a workspace created. Navigate to:
+3. Create a new project by filling out the form:
 
-```
-http://localhost:3000/projects
-```
+Go to http://localhost:3000/projects
 
-4. Create a new project by filling out the form:
+- **Name**: Choose any name (e.g., "My Test App")
+- **Slug**: This will auto-generate based on the name
+- **Git URL**: Optional, leave blank for testing
 
-   - **Name**: Choose any name (e.g., "My Test App")
-   - **Slug**: This will auto-generate based on the name
-   - **Git URL**: Optional, leave blank for testing
-
-5. After creating the project, **copy the Project ID** from the project details. It will look like:
-
-```
-proj_xxxxxxxxxxxxxxxxxx
-```
-
-6. Also note your **Workspace ID** (you can find this settings). It will look like:
-
-```
-ws_xxxxxxxxxxxxxxxxxx
-```
+4. After creating the project, **copy the Project ID** from the project details. It will look like:
 
 ## Step 3: Deploy a Version
 
@@ -82,21 +60,71 @@ go run . version create \
 Keep the context as shown, there's a demo api in that folder.
 Replace `YOUR_WORKSPACE_ID` and `YOUR_PROJECT_ID` with the actual values you copied from the dashboard.
 
-3. The CLI will show real-time progress as your deployment goes through these stages:
-   - Downloading Docker image
-   - Building rootfs
-   - Uploading rootfs
-   - Creating VM
-   - Booting VM
-   - Assigning domains
-   - Completed
+3. The CLI will:
+   - Always build a fresh Docker image from your code
+   - Set the PORT environment variable to 8080 in the container
+   - Use the Docker backend to create a container instead of a VM
+   - Automatically allocate a random host port (e.g., 35432) to avoid conflicts
+   - Show real-time progress as your deployment goes through the stages
 
 ## Step 4: View Your Deployment
 
-1. Return to the dashboard and navigate to:
+1. Once the deployment completes, the CLI will show you the available domains:
+
+```
+Deployment Complete
+  Version ID: v_xxxxxxxxxxxxxxxxxx
+  Status: Ready
+  Environment: Production
+
+Domains
+  https://main-commit-workspace.unkey.app
+  http://localhost:35432
+```
+
+2. If you're using the `demo_api` you can curl the `/v1/liveness` endpoint
+3. Return to the dashboard and navigate to:
 
 ```
 http://localhost:3000/versions
 http://localhost:3000/deployments
 ```
 
+### Important: Your Application Must Listen on the PORT Environment Variable
+
+**Your deployed application MUST read the `PORT` environment variable and listen on that port.** The platform sets `PORT=8080` in the container, and your code needs to use this value.
+
+**Example for different languages:**
+
+```javascript
+// Node.js
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});
+```
+
+```python
+# Python
+import os
+port = int(os.environ.get('PORT', 3000))
+app.run(host='0.0.0.0', port=port)
+```
+
+```go
+// Go
+port := os.Getenv("PORT")
+if port == "" {
+    port = "3000"
+}
+http.ListenAndServe(":"+port, handler)
+```
+
+The demo_api already follows this pattern and listens on the PORT environment variable.
+
+## Troubleshooting
+
+- If you see "port is already allocated" errors, the system will automatically retry with a new random port
+- Check container logs: `docker logs <container-name>`
+- Verify the demo_api is listening on the PORT environment variable (should be 8080)
+- Make sure your Dockerfile exposes the correct port (8080 in the demo_api example)
