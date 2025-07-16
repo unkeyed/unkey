@@ -1,6 +1,8 @@
 name: Test API Local
 on:
   workflow_call:
+permissions:
+  contents: read
 
 jobs:
   test:
@@ -14,7 +16,7 @@ jobs:
         run: rm -rf /opt/hostedtoolcache
 
       - name: Run containers
-        run: docker compose -f ./deployment/docker-compose.yaml up -d
+        run: docker compose -f ./deployment/docker-compose.yaml up mysql planetscale clickhouse agent chproxy -d
 
       - name: Install
         uses: ./.github/actions/install

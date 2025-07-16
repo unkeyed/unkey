@@ -1,5 +1,8 @@
 name: Prune old images
 
+permissions:
+  contents: read
+
 on:
   workflow_dispatch:
   schedule:

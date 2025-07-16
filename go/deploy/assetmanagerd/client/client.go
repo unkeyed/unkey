@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	assetv1 "github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/asset/v1"
-	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/asset/v1/assetv1connect"
+	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
+	"github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1/assetmanagerdv1connect"
 	"github.com/unkeyed/unkey/go/deploy/pkg/tls"
 )
 
@@ -41,7 +41,7 @@ type Config struct {
 
 // Client provides a high-level interface to assetmanagerd services
 type Client struct {
-	assetService assetv1connect.AssetManagerServiceClient
+	assetService assetmanagerdv1connect.AssetManagerServiceClient
 	tlsProvider  tls.Provider
 	userID       string
 	tenantID     string
@@ -92,7 +92,7 @@ func New(ctx context.Context, config Config) (*Client, error) {
 	}
 
 	// Create ConnectRPC client
-	assetService := assetv1connect.NewAssetManagerServiceClient(
+	assetService := assetmanagerdv1connect.NewAssetManagerServiceClient(
 		httpClient,
 		config.ServerAddress,
 	)

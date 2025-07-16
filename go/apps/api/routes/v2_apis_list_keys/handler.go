@@ -50,14 +50,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	var req Request
-	err = s.BindBody(&req)
+	req, err := zen.BindBody[Request](s)
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
-		)
+		return err
 	}
-
 	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
 		rbac.And(
 			rbac.Or(
@@ -399,7 +395,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if key.IdentityID.Valid {
 			k.Identity = &openapi.Identity{
 				ExternalId: key.ExternalID.String,
-				Id:         key.IdentityID.String,
 				Meta:       nil,
 				Ratelimits: nil,
 			}

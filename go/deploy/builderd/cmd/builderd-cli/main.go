@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/deploy/builderd/client"
-	builderv1 "github.com/unkeyed/unkey/go/deploy/builderd/gen/builder/v1"
+	builderv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 

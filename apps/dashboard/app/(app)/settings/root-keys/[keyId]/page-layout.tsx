@@ -54,7 +54,7 @@ const LastUsed: React.FC<{
   keyId: string;
 }> = async ({ workspaceId, keySpaceId, keyId }) => {
   const lastUsed = await clickhouse.verifications
-    .latest({ workspaceId, keySpaceId, keyId })
+    .latest({ workspaceId, keySpaceId, keyId, limit: 1 })
     .then((res) => res.val?.at(0)?.time ?? 0);
 
   return (

@@ -36,7 +36,6 @@ func TestCreateIdentityDuplicate(t *testing.T) {
 		successRes := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, successRes.Status, "expected 200, received: %#v", successRes.Body)
 		require.NotNil(t, successRes.Body)
-		require.NotEmpty(t, successRes.Body.Data.IdentityId, successRes.Body)
 
 		errorRes := testutil.CallRoute[handler.Request, openapi.ConflictErrorResponse](h, route, headers, req)
 		require.Equal(t, 409, errorRes.Status, "expected 409, received: %s", errorRes.RawBody)
