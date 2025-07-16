@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"slices"
+
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
@@ -17,7 +19,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
-	"golang.org/x/exp/slices"
 )
 
 // withCredits validates that the key has sufficient usage credits and deducts the specified cost.
