@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -33,6 +34,16 @@ func TestForbidden(t *testing.T) {
 
 	// Create a workspace
 	workspace := h.Resources().UserWorkspace
+
+	h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID:   workspace.ID,
+		IpWhitelist:   "",
+		EncryptedKeys: false,
+		Name:          nil,
+		CreatedAt:     nil,
+		DefaultPrefix: nil,
+		DefaultBytes:  nil,
+	})
 
 	// Create test data
 	keyAuthID := uid.New(uid.KeyAuthPrefix)
@@ -76,14 +87,8 @@ func TestForbidden(t *testing.T) {
 	require.NoError(t, err)
 
 	req := handler.Request{
-		KeyId: keyID,
-		Permissions: []struct {
-			Create *bool   `json:"create,omitempty"`
-			Id     *string `json:"id,omitempty"`
-			Slug   *string `json:"slug,omitempty"`
-		}{
-			{Id: &permissionID},
-		},
+		KeyId:       keyID,
+		Permissions: []string{},
 	}
 
 	t.Run("missing update_key permission", func(t *testing.T) {

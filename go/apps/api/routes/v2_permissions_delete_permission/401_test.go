@@ -24,7 +24,7 @@ func TestAuthenticationErrors(t *testing.T) {
 
 	// Create a valid request
 	req := handler.Request{
-		PermissionId: "perm_test123",
+		Slug: "perm.test",
 	}
 
 	// Test case for missing authorization header

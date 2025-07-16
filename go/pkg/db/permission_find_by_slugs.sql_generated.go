@@ -7,11 +7,12 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"strings"
 )
 
 const findPermissionsBySlugs = `-- name: FindPermissionsBySlugs :many
-SELECT id, slug FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
+SELECT id, slug, name, description FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
 `
 
 type FindPermissionsBySlugsParams struct {
@@ -20,13 +21,15 @@ type FindPermissionsBySlugsParams struct {
 }
 
 type FindPermissionsBySlugsRow struct {
-	ID   string `db:"id"`
-	Slug string `db:"slug"`
+	ID          string         `db:"id"`
+	Slug        string         `db:"slug"`
+	Name        string         `db:"name"`
+	Description sql.NullString `db:"description"`
 }
 
 // FindPermissionsBySlugs
 //
-//	SELECT id, slug FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
+//	SELECT id, slug, name, description FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
 func (q *Queries) FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindPermissionsBySlugsParams) ([]FindPermissionsBySlugsRow, error) {
 	query := findPermissionsBySlugs
 	var queryParams []interface{}
@@ -47,7 +50,12 @@ func (q *Queries) FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindP
 	var items []FindPermissionsBySlugsRow
 	for rows.Next() {
 		var i FindPermissionsBySlugsRow
-		if err := rows.Scan(&i.ID, &i.Slug); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Slug,
+			&i.Name,
+			&i.Description,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

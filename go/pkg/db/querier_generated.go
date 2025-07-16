@@ -29,6 +29,11 @@ type Querier interface {
 	//  DELETE FROM keys_permissions
 	//  WHERE key_id = ? AND permission_id = ?
 	DeleteKeyPermissionByKeyAndPermissionID(ctx context.Context, db DBTX, arg DeleteKeyPermissionByKeyAndPermissionIDParams) error
+	//DeleteKeyPermissionByKeyAndPermissionIDs
+	//
+	//  DELETE FROM keys_permissions
+	//  WHERE key_id = ? AND permission_id IN (/*SLICE:permission_ids*/?)
+	DeleteKeyPermissionByKeyAndPermissionIDs(ctx context.Context, db DBTX, arg DeleteKeyPermissionByKeyAndPermissionIDsParams) error
 	//DeleteManyKeyPermissionsByPermissionID
 	//
 	//  DELETE FROM keys_permissions
@@ -320,7 +325,7 @@ type Querier interface {
 	FindPermissionBySlugAndWorkspaceID(ctx context.Context, db DBTX, arg FindPermissionBySlugAndWorkspaceIDParams) (Permission, error)
 	//FindPermissionsBySlugs
 	//
-	//  SELECT id, slug FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
+	//  SELECT id, slug, name, description FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
 	FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindPermissionsBySlugsParams) ([]FindPermissionsBySlugsRow, error)
 	//FindProjectById
 	//

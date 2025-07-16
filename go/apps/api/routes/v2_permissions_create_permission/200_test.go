@@ -40,9 +40,10 @@ func TestSuccess(t *testing.T) {
 	// Test case for creating a permission
 	t.Run("create permission", func(t *testing.T) {
 		description := "Test permission description"
+		permissionSlugAndName := "test.permission"
 		req := handler.Request{
-			Name:        "test.permission",
-			Slug:        "test-permission",
+			Name:        permissionSlugAndName,
+			Slug:        "permissionSlugAndNametest-permission",
 			Description: &description,
 		}
 
@@ -56,20 +57,20 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, http.StatusOK, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data)
-		require.NotEmpty(t, res.Body.Data.PermissionId)
-		require.True(t, len(res.Body.Data.PermissionId) > 0, "PermissionId should not be empty")
 
 		// Verify permission was created in database
-		perm, err := db.Query.FindPermissionByID(ctx, h.DB.RO(), res.Body.Data.PermissionId)
+		perm, err := db.Query.FindPermissionBySlugAndWorkspaceID(ctx, h.DB.RO(), db.FindPermissionBySlugAndWorkspaceIDParams{
+			Slug:        permissionSlugAndName,
+			WorkspaceID: workspace.ID,
+		})
 		require.NoError(t, err)
-		require.Equal(t, res.Body.Data.PermissionId, perm.ID)
 		require.Equal(t, req.Name, perm.Name)
 		require.Equal(t, req.Slug, perm.Slug)
 		require.Equal(t, description, perm.Description.String)
 		require.Equal(t, workspace.ID, perm.WorkspaceID)
 
 		// Verify audit log was created
-		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), res.Body.Data.PermissionId)
+		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), perm.ID)
 		require.NoError(t, err)
 		require.NotEmpty(t, auditLogs, "Audit log for permission creation should exist")
 
@@ -85,9 +86,10 @@ func TestSuccess(t *testing.T) {
 
 	// Test case for creating a permission without description
 	t.Run("create permission without description", func(t *testing.T) {
+		permissionSlugAndName := "test-permission-no-desc"
 		req := handler.Request{
-			Name: "test.permission.no.desc",
-			Slug: "test-permission-no-desc",
+			Name: permissionSlugAndName,
+			Slug: permissionSlugAndName,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -100,12 +102,13 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, http.StatusOK, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data)
-		require.NotEmpty(t, res.Body.Data.PermissionId)
 
 		// Verify permission was created in database
-		perm, err := db.Query.FindPermissionByID(ctx, h.DB.RO(), res.Body.Data.PermissionId)
+		perm, err := db.Query.FindPermissionBySlugAndWorkspaceID(ctx, h.DB.RO(), db.FindPermissionBySlugAndWorkspaceIDParams{
+			Slug:        permissionSlugAndName,
+			WorkspaceID: workspace.ID,
+		})
 		require.NoError(t, err)
-		require.Equal(t, res.Body.Data.PermissionId, perm.ID)
 		require.Equal(t, req.Name, perm.Name)
 		require.Equal(t, req.Slug, perm.Slug)
 		require.False(t, perm.Description.Valid, "Description should be empty")

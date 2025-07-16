@@ -55,7 +55,6 @@ func TestConflictErrors(t *testing.T) {
 		require.Equal(t, http.StatusOK, res1.Status, "First permission creation should succeed")
 		require.NotNil(t, res1.Body)
 		require.NotNil(t, res1.Body.Data)
-		require.NotEmpty(t, res1.Body.Data.PermissionId)
 
 		// Now try to create another permission with the same name
 		req2 := handler.Request{

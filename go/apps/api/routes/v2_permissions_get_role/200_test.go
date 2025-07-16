@@ -111,7 +111,7 @@ func TestSuccess(t *testing.T) {
 		// Create a map of permission IDs for easier checking
 		permMap := make(map[string]bool)
 		for _, perm := range role.Permissions {
-			permMap[perm.Id] = true
+			permMap[perm.Slug] = true
 		}
 
 		// Verify all expected permissions are present
