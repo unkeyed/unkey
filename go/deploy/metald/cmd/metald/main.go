@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/assetmanager"
+	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/docker"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/firecracker"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/billing"
@@ -280,6 +281,20 @@ func main() {
 		backend = sdkClient
 
 		// Note: Network manager is initialized and managed by SDK v4
+	case types.BackendTypeDocker:
+		// AIDEV-NOTE: Docker backend for development - creates containers instead of VMs
+		logger.Info("initializing Docker backend for development")
+		
+		dockerClient, err := docker.NewDockerBackend(logger, docker.DefaultDockerBackendConfig())
+		if err != nil {
+			logger.Error("failed to create Docker backend",
+				slog.String("error", err.Error()),
+			)
+			os.Exit(1)
+		}
+		
+		backend = dockerClient
+		logger.Info("Docker backend initialized successfully")
 	case types.BackendTypeCloudHypervisor:
 		logger.Error("CloudHypervisor backend not implemented",
 			slog.String("backend", string(cfg.Backend.Type)),

@@ -62,6 +62,9 @@ const (
 
 	// ReadKey permits viewing API key details
 	ReadKey ActionType = "read_key"
+
+	// VerifyKey permits verifying API keys
+	VerifyKey ActionType = "verify_key"
 )
 
 // Predefined rate limiting actions. These constants define operations

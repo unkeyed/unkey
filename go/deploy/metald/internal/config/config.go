@@ -391,9 +391,9 @@ func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (
 
 // Validate validates the configuration
 func (c *Config) Validate() error {
-	// AIDEV-BUSINESS_RULE: Only Firecracker backend is supported
-	if c.Backend.Type != types.BackendTypeFirecracker {
-		return fmt.Errorf("only firecracker backend is supported, got: %s", c.Backend.Type)
+	// AIDEV-BUSINESS_RULE: Support Firecracker and Docker backends
+	if c.Backend.Type != types.BackendTypeFirecracker && c.Backend.Type != types.BackendTypeDocker {
+		return fmt.Errorf("only firecracker and docker backends are supported, got: %s", c.Backend.Type)
 	}
 
 	// AIDEV-NOTE: Comprehensive unit tests implemented in config_test.go

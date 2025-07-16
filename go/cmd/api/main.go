@@ -132,11 +132,43 @@ var Cmd = &cli.Command{
 			Value:    0,
 			Required: false,
 		},
+
+		// Vault Configuration
 		&cli.StringSliceFlag{
 			Name:     "vault-master-keys",
 			Usage:    "Vault master keys for encryption",
 			Sources:  cli.EnvVars("UNKEY_VAULT_MASTER_KEYS"),
 			Value:    []string{},
+			Required: false,
+		},
+
+		// S3 Configuration
+		&cli.StringFlag{
+			Name:     "vault-s3-url",
+			Usage:    "S3 Compatible Endpoint URL ",
+			Sources:  cli.EnvVars("UNKEY_VAULT_S3_URL"),
+			Value:    "",
+			Required: false,
+		},
+		&cli.StringFlag{
+			Name:     "vault-s3-bucket",
+			Usage:    "S3 bucket name",
+			Sources:  cli.EnvVars("UNKEY_VAULT_S3_BUCKET"),
+			Value:    "",
+			Required: false,
+		},
+		&cli.StringFlag{
+			Name:     "vault-s3-access-key-id",
+			Usage:    "S3 access key ID",
+			Sources:  cli.EnvVars("UNKEY_VAULT_S3_ACCESS_KEY_ID"),
+			Value:    "",
+			Required: false,
+		},
+		&cli.StringFlag{
+			Name:     "vault-s3-secret-access-key",
+			Usage:    "S3 secret access key",
+			Sources:  cli.EnvVars("UNKEY_VAULT_S3_SECRET_ACCESS_KEY"),
+			Value:    "",
 			Required: false,
 		},
 	},
@@ -162,6 +194,16 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		}
 	}
 
+	var vaultS3Config *api.S3Config
+	if cmd.String("vault-s3-url") != "" {
+		vaultS3Config = &api.S3Config{
+			URL:             cmd.String("vault-s3-url"),
+			Bucket:          cmd.String("vault-s3-bucket"),
+			AccessKeyID:     cmd.String("vault-s3-access-key-id"),
+			SecretAccessKey: cmd.String("vault-s3-secret-access-key"),
+		}
+	}
+
 	config := api.Config{
 		// Basic configuration
 		Platform: cmd.String("platform"),
@@ -171,7 +213,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		// Database configuration
 		DatabasePrimary:         cmd.String("database-primary"),
-		DatabaseReadonlyReplica: cmd.String("database-readonly-replica"),
+		DatabaseReadonlyReplica: cmd.String("database-replica"),
 
 		// ClickHouse
 		ClickhouseURL: cmd.String("clickhouse-url"),
@@ -189,7 +231,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		Clock:          clock.New(),
 		TestMode:       cmd.Bool("test-mode"),
 
+		// Vault configuration
 		VaultMasterKeys: cmd.StringSlice("vault-master-keys"),
+		VaultS3:         vaultS3Config,
 	}
 
 	err := config.Validate()

@@ -43,7 +43,7 @@
     "@upstash/redis": "^1.34.3",
     "tsup": "^8.0.2",
     "typescript": "5.5.3",
-    "vitest": "^1.6.1"
+    "vitest": "^3.2.4"
   },
   "dependencies": {
     "@opentelemetry/api": "1.8.0",

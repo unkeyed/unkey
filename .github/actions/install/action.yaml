@@ -41,12 +41,6 @@ runs:
       env:
         GITHUB_TOKEN: ${{ inputs.github_token }}
 
-    - name: Install Task
-      uses: arduino/setup-task@v2
-      if: ${{ inputs.go == 'true' }}
-      env:
-        GITHUB_TOKEN: ${{ inputs.github_token }}
-
     - name: Setup Node
       if: ${{ inputs.ts == 'true' }}
       uses: actions/setup-node@v4

@@ -1,7 +1,8 @@
+permissions:
+  contents: read
 name: Test Agent Local
 on:
   workflow_call:
-
 jobs:
   test_agent_local:
     runs-on: ubuntu-latest

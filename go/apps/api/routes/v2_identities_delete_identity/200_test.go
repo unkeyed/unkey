@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_delete_identity"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -65,11 +64,10 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		Logger:      h.Logger,
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Permissions: h.Permissions,
-		Auditlogs:   h.Auditlogs,
+		Logger:    h.Logger,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
 	}
 
 	h.Register(route)
@@ -79,41 +77,6 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
-
-	t.Run("delete identity by ID", func(t *testing.T) {
-		testIdentity := createTestIdentity(t, h, 0)
-
-		// Verify identity exists before deletion
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
-			ID:      testIdentity.ID,
-			Deleted: false,
-		})
-		require.NoError(t, err)
-		require.Equal(t, testIdentity.ID, identity.ID)
-
-		// Delete the identity via API
-		req := handler.Request{IdentityId: ptr.P(testIdentity.ID)}
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-
-		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
-		require.NotNil(t, res.Body)
-
-		// Verify identity is soft deleted (no longer found with deleted=false)
-		_, err = db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
-			ID:      testIdentity.ID,
-			Deleted: false,
-		})
-		require.Equal(t, sql.ErrNoRows, err, "identity should not be found with deleted=false")
-
-		// Verify identity still exists but marked as deleted
-		deletedIdentity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
-			ID:      testIdentity.ID,
-			Deleted: true,
-		})
-		require.NoError(t, err, "identity should still exist with deleted=true")
-		require.Equal(t, testIdentity.ID, deletedIdentity.ID)
-		require.True(t, deletedIdentity.Deleted)
-	})
 
 	t.Run("delete identity by external ID", func(t *testing.T) {
 		testIdentity := createTestIdentity(t, h, 0)
@@ -128,7 +91,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		require.Equal(t, testIdentity.ExternalID, identity.ExternalID)
 
 		// Delete the identity via API
-		req := handler.Request{ExternalId: ptr.P(testIdentity.ExternalID)}
+		req := handler.Request{ExternalId: testIdentity.ExternalID}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -163,7 +126,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		require.Len(t, rateLimits, numberOfRatelimits)
 
 		// Delete the identity via API
-		req := handler.Request{IdentityId: ptr.P(testIdentity.ID)}
+		req := handler.Request{ExternalId: testIdentity.ExternalID}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -192,32 +155,8 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", wildcardKey)},
 		}
 
-		req := handler.Request{IdentityId: ptr.P(testIdentity.ID)}
+		req := handler.Request{ExternalId: testIdentity.ExternalID}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, wildcardHeaders, req)
-
-		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
-		require.NotNil(t, res.Body)
-
-		// Verify identity is soft deleted
-		_, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
-			ID:      testIdentity.ID,
-			Deleted: false,
-		})
-		require.Equal(t, sql.ErrNoRows, err)
-	})
-
-	t.Run("delete identity with specific permission", func(t *testing.T) {
-		testIdentity := createTestIdentity(t, h, 0)
-
-		// Create root key with specific identity permission
-		specificKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("identity.%s.delete_identity", testIdentity.ID))
-		specificHeaders := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", specificKey)},
-		}
-
-		req := handler.Request{IdentityId: ptr.P(testIdentity.ID)}
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, specificHeaders, req)
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
@@ -234,7 +173,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		testIdentity := createTestIdentity(t, h, 2)
 
 		// Delete the identity
-		req := handler.Request{IdentityId: ptr.P(testIdentity.ID)}
+		req := handler.Request{ExternalId: testIdentity.ExternalID}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -260,7 +199,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		testIdentity := createTestIdentity(t, h, 0)
 
 		// Delete the identity once
-		req := handler.Request{IdentityId: ptr.P(testIdentity.ID)}
+		req := handler.Request{ExternalId: testIdentity.ExternalID}
 		res1 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res1.Status, "first deletion should succeed")
 
@@ -277,7 +216,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		// Delete the new identity (this should trigger duplicate key error handling)
-		req2 := handler.Request{IdentityId: ptr.P(newIdentityID)}
+		req2 := handler.Request{ExternalId: testIdentity.ExternalID}
 		res2 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req2)
 		require.Equal(t, 200, res2.Status, "second deletion should succeed despite duplicate key scenario")
 

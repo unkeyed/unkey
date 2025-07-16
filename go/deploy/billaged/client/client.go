@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	billingv1 "github.com/unkeyed/unkey/go/deploy/billaged/gen/billing/v1"
-	"github.com/unkeyed/unkey/go/deploy/billaged/gen/billing/v1/billingv1connect"
+	billingv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/billaged/v1"
+	"github.com/unkeyed/unkey/go/gen/proto/deploy/billaged/v1/billagedv1connect"
 	"github.com/unkeyed/unkey/go/deploy/pkg/tls"
 )
 
@@ -41,7 +41,7 @@ type Config struct {
 
 // Client provides a high-level interface to billaged services
 type Client struct {
-	billingService billingv1connect.BillingServiceClient
+	billingService billagedv1connect.BillingServiceClient
 	tlsProvider    tls.Provider
 	userID         string
 	tenantID       string
@@ -92,7 +92,7 @@ func New(ctx context.Context, config Config) (*Client, error) {
 	}
 
 	// Create ConnectRPC client
-	billingService := billingv1connect.NewBillingServiceClient(
+	billingService := billagedv1connect.NewBillingServiceClient(
 		httpClient,
 		config.ServerAddress,
 	)

@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	billingv1 "github.com/unkeyed/unkey/go/deploy/billaged/gen/billing/v1"
-	"github.com/unkeyed/unkey/go/deploy/billaged/gen/billing/v1/billingv1connect"
+	billingv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/billaged/v1"
+	"github.com/unkeyed/unkey/go/gen/proto/deploy/billaged/v1/billagedv1connect"
 	"github.com/unkeyed/unkey/go/deploy/billaged/internal/aggregator"
 	"github.com/unkeyed/unkey/go/deploy/billaged/internal/observability"
 )
@@ -176,4 +176,4 @@ func (s *BillingService) NotifyPossibleGap(
 }
 
 // Ensure BillingService implements the interface
-var _ billingv1connect.BillingServiceHandler = (*BillingService)(nil)
+var _ billagedv1connect.BillingServiceHandler = (*BillingService)(nil)

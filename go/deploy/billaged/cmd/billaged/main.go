@@ -15,7 +15,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/unkeyed/unkey/go/deploy/billaged/gen/billing/v1/billingv1connect"
+	"github.com/unkeyed/unkey/go/gen/proto/deploy/billaged/v1/billagedv1connect"
 	"github.com/unkeyed/unkey/go/deploy/billaged/internal/aggregator"
 	"github.com/unkeyed/unkey/go/deploy/billaged/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/billaged/internal/observability"
@@ -230,7 +230,7 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	path, handler := billingv1connect.NewBillingServiceHandler(billingService,
+	path, handler := billagedv1connect.NewBillingServiceHandler(billingService,
 		connect.WithInterceptors(interceptorList...),
 	)
 	mux.Handle(path, handler)

@@ -8,170 +8,224 @@ package db
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 )
 
 const findKeyForVerification = `-- name: FindKeyForVerification :one
-WITH direct_permissions AS (
-    SELECT kp.key_id, p.name as permission_name
-    FROM keys_permissions kp
-    JOIN permissions p ON kp.permission_id = p.id
-),
-role_permissions AS (
-    SELECT kr.key_id, p.name as permission_name
-    FROM keys_roles kr
-    JOIN roles_permissions rp ON kr.role_id = rp.role_id
-    JOIN permissions p ON rp.permission_id = p.id
-),
-all_permissions AS (
-    SELECT key_id, permission_name FROM direct_permissions
-    UNION
-    SELECT key_id, permission_name FROM role_permissions
-),
-all_ratelimits AS (
-    SELECT
-        key_id as target_id,
-        'key' as target_type,
-        name,
-        ` + "`" + `limit` + "`" + `,
-        duration
-    FROM ratelimits
-    WHERE key_id IS NOT NULL
-    UNION
-    SELECT
-        identity_id as target_id,
-        'identity' as target_type,
-        name,
-        ` + "`" + `limit` + "`" + `,
-        duration
-    FROM ratelimits
-    WHERE identity_id IS NOT NULL
-)
-SELECT
-    k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
-    i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
-    JSON_ARRAYAGG(
-        JSON_OBJECT(
-            'target_type', rl.target_type,
-            'name', rl.name,
-            'limit', rl.limit,
-            'duration', rl.duration
-        )
-    ) as ratelimits,
-    GROUP_CONCAT(DISTINCT perms.permission_name) as permissions
-FROM ` + "`" + `keys` + "`" + ` k
-LEFT JOIN identities i ON k.identity_id = i.id
-LEFT JOIN all_permissions perms ON k.id = perms.key_id
-LEFT JOIN all_ratelimits rl ON (
-    (rl.target_type = 'key' AND rl.target_id = k.id) OR
-    (rl.target_type = 'identity' AND rl.target_id = k.identity_id)
-)
-WHERE k.hash = ?
-GROUP BY k.id
+select k.id,
+       k.key_auth_id,
+       k.workspace_id,
+       k.for_workspace_id,
+       k.name,
+       k.meta,
+       k.expires,
+       k.deleted_at_m,
+       k.refill_day,
+       k.refill_amount,
+       k.last_refill_at,
+       k.enabled,
+       k.remaining_requests,
+       a.ip_whitelist,
+       a.workspace_id  as api_workspace_id,
+       a.id            as api_id,
+       a.deleted_at_m  as api_deleted_at_m,
+
+       COALESCE(
+               (SELECT JSON_ARRAYAGG(name)
+                FROM (SELECT name
+                      FROM keys_roles kr
+                               JOIN roles r ON r.id = kr.role_id
+                      WHERE kr.key_id = k.id) as roles),
+               JSON_ARRAY()
+       )               as roles,
+
+       COALESCE(
+               (SELECT JSON_ARRAYAGG(slug)
+                FROM (SELECT slug
+                      FROM keys_permissions kp
+                               JOIN permissions p ON kp.permission_id = p.id
+                      WHERE kp.key_id = k.id
+
+                      UNION ALL
+
+                      SELECT slug
+                      FROM keys_roles kr
+                               JOIN roles_permissions rp ON kr.role_id = rp.role_id
+                               JOIN permissions p ON rp.permission_id = p.id
+                      WHERE kr.key_id = k.id) as combined_perms),
+               JSON_ARRAY()
+       )               as permissions,
+
+       coalesce(
+               (select json_arrayagg(
+                    json_object(
+                       'id', rl.id,
+                       'name', rl.name,
+                       'key_id', rl.key_id,
+                       'identity_id', rl.identity_id,
+                       'limit', rl.limit,
+                       'duration', rl.duration,
+                       'auto_apply', rl.auto_apply
+                    )
+                )
+                from ` + "`" + `ratelimits` + "`" + ` rl
+                where rl.key_id = k.id
+                   OR rl.identity_id = i.id),
+               json_array()
+       ) as ratelimits,
+
+       i.id as identity_id,
+       i.external_id,
+       i.meta          as identity_meta,
+       ka.deleted_at_m as key_auth_deleted_at_m,
+       ws.enabled      as workspace_enabled,
+       fws.enabled     as for_workspace_enabled
+from ` + "`" + `keys` + "`" + ` k
+         JOIN apis a USING (key_auth_id)
+         JOIN key_auth ka ON ka.id = k.key_auth_id
+         JOIN workspaces ws ON ws.id = k.workspace_id
+         LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
+         LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = 0
+where k.hash = ?
+  and k.deleted_at_m is null
 `
 
 type FindKeyForVerificationRow struct {
-	Key         Key             `db:"key"`
-	Identity    Identity        `db:"identity"`
-	Ratelimits  json.RawMessage `db:"ratelimits"`
-	Permissions sql.NullString  `db:"permissions"`
+	ID                  string         `db:"id"`
+	KeyAuthID           string         `db:"key_auth_id"`
+	WorkspaceID         string         `db:"workspace_id"`
+	ForWorkspaceID      sql.NullString `db:"for_workspace_id"`
+	Name                sql.NullString `db:"name"`
+	Meta                sql.NullString `db:"meta"`
+	Expires             sql.NullTime   `db:"expires"`
+	DeletedAtM          sql.NullInt64  `db:"deleted_at_m"`
+	RefillDay           sql.NullInt16  `db:"refill_day"`
+	RefillAmount        sql.NullInt32  `db:"refill_amount"`
+	LastRefillAt        sql.NullTime   `db:"last_refill_at"`
+	Enabled             bool           `db:"enabled"`
+	RemainingRequests   sql.NullInt32  `db:"remaining_requests"`
+	IpWhitelist         sql.NullString `db:"ip_whitelist"`
+	ApiWorkspaceID      string         `db:"api_workspace_id"`
+	ApiID               string         `db:"api_id"`
+	ApiDeletedAtM       sql.NullInt64  `db:"api_deleted_at_m"`
+	Roles               interface{}    `db:"roles"`
+	Permissions         interface{}    `db:"permissions"`
+	Ratelimits          interface{}    `db:"ratelimits"`
+	IdentityID          sql.NullString `db:"identity_id"`
+	ExternalID          sql.NullString `db:"external_id"`
+	IdentityMeta        []byte         `db:"identity_meta"`
+	KeyAuthDeletedAtM   sql.NullInt64  `db:"key_auth_deleted_at_m"`
+	WorkspaceEnabled    bool           `db:"workspace_enabled"`
+	ForWorkspaceEnabled sql.NullBool   `db:"for_workspace_enabled"`
 }
 
 // FindKeyForVerification
 //
-//	WITH direct_permissions AS (
-//	    SELECT kp.key_id, p.name as permission_name
-//	    FROM keys_permissions kp
-//	    JOIN permissions p ON kp.permission_id = p.id
-//	),
-//	role_permissions AS (
-//	    SELECT kr.key_id, p.name as permission_name
-//	    FROM keys_roles kr
-//	    JOIN roles_permissions rp ON kr.role_id = rp.role_id
-//	    JOIN permissions p ON rp.permission_id = p.id
-//	),
-//	all_permissions AS (
-//	    SELECT key_id, permission_name FROM direct_permissions
-//	    UNION
-//	    SELECT key_id, permission_name FROM role_permissions
-//	),
-//	all_ratelimits AS (
-//	    SELECT
-//	        key_id as target_id,
-//	        'key' as target_type,
-//	        name,
-//	        `limit`,
-//	        duration
-//	    FROM ratelimits
-//	    WHERE key_id IS NOT NULL
-//	    UNION
-//	    SELECT
-//	        identity_id as target_id,
-//	        'identity' as target_type,
-//	        name,
-//	        `limit`,
-//	        duration
-//	    FROM ratelimits
-//	    WHERE identity_id IS NOT NULL
-//	)
-//	SELECT
-//	    k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
-//	    i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
-//	    JSON_ARRAYAGG(
-//	        JSON_OBJECT(
-//	            'target_type', rl.target_type,
-//	            'name', rl.name,
-//	            'limit', rl.limit,
-//	            'duration', rl.duration
-//	        )
-//	    ) as ratelimits,
-//	    GROUP_CONCAT(DISTINCT perms.permission_name) as permissions
-//	FROM `keys` k
-//	LEFT JOIN identities i ON k.identity_id = i.id
-//	LEFT JOIN all_permissions perms ON k.id = perms.key_id
-//	LEFT JOIN all_ratelimits rl ON (
-//	    (rl.target_type = 'key' AND rl.target_id = k.id) OR
-//	    (rl.target_type = 'identity' AND rl.target_id = k.identity_id)
-//	)
-//	WHERE k.hash = ?
-//	GROUP BY k.id
+//	select k.id,
+//	       k.key_auth_id,
+//	       k.workspace_id,
+//	       k.for_workspace_id,
+//	       k.name,
+//	       k.meta,
+//	       k.expires,
+//	       k.deleted_at_m,
+//	       k.refill_day,
+//	       k.refill_amount,
+//	       k.last_refill_at,
+//	       k.enabled,
+//	       k.remaining_requests,
+//	       a.ip_whitelist,
+//	       a.workspace_id  as api_workspace_id,
+//	       a.id            as api_id,
+//	       a.deleted_at_m  as api_deleted_at_m,
+//
+//	       COALESCE(
+//	               (SELECT JSON_ARRAYAGG(name)
+//	                FROM (SELECT name
+//	                      FROM keys_roles kr
+//	                               JOIN roles r ON r.id = kr.role_id
+//	                      WHERE kr.key_id = k.id) as roles),
+//	               JSON_ARRAY()
+//	       )               as roles,
+//
+//	       COALESCE(
+//	               (SELECT JSON_ARRAYAGG(slug)
+//	                FROM (SELECT slug
+//	                      FROM keys_permissions kp
+//	                               JOIN permissions p ON kp.permission_id = p.id
+//	                      WHERE kp.key_id = k.id
+//
+//	                      UNION ALL
+//
+//	                      SELECT slug
+//	                      FROM keys_roles kr
+//	                               JOIN roles_permissions rp ON kr.role_id = rp.role_id
+//	                               JOIN permissions p ON rp.permission_id = p.id
+//	                      WHERE kr.key_id = k.id) as combined_perms),
+//	               JSON_ARRAY()
+//	       )               as permissions,
+//
+//	       coalesce(
+//	               (select json_arrayagg(
+//	                    json_object(
+//	                       'id', rl.id,
+//	                       'name', rl.name,
+//	                       'key_id', rl.key_id,
+//	                       'identity_id', rl.identity_id,
+//	                       'limit', rl.limit,
+//	                       'duration', rl.duration,
+//	                       'auto_apply', rl.auto_apply
+//	                    )
+//	                )
+//	                from `ratelimits` rl
+//	                where rl.key_id = k.id
+//	                   OR rl.identity_id = i.id),
+//	               json_array()
+//	       ) as ratelimits,
+//
+//	       i.id as identity_id,
+//	       i.external_id,
+//	       i.meta          as identity_meta,
+//	       ka.deleted_at_m as key_auth_deleted_at_m,
+//	       ws.enabled      as workspace_enabled,
+//	       fws.enabled     as for_workspace_enabled
+//	from `keys` k
+//	         JOIN apis a USING (key_auth_id)
+//	         JOIN key_auth ka ON ka.id = k.key_auth_id
+//	         JOIN workspaces ws ON ws.id = k.workspace_id
+//	         LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
+//	         LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = 0
+//	where k.hash = ?
+//	  and k.deleted_at_m is null
 func (q *Queries) FindKeyForVerification(ctx context.Context, db DBTX, hash string) (FindKeyForVerificationRow, error) {
 	row := db.QueryRowContext(ctx, findKeyForVerification, hash)
 	var i FindKeyForVerificationRow
 	err := row.Scan(
-		&i.Key.ID,
-		&i.Key.KeyAuthID,
-		&i.Key.Hash,
-		&i.Key.Start,
-		&i.Key.WorkspaceID,
-		&i.Key.ForWorkspaceID,
-		&i.Key.Name,
-		&i.Key.OwnerID,
-		&i.Key.IdentityID,
-		&i.Key.Meta,
-		&i.Key.Expires,
-		&i.Key.CreatedAtM,
-		&i.Key.UpdatedAtM,
-		&i.Key.DeletedAtM,
-		&i.Key.RefillDay,
-		&i.Key.RefillAmount,
-		&i.Key.LastRefillAt,
-		&i.Key.Enabled,
-		&i.Key.RemainingRequests,
-		&i.Key.RatelimitAsync,
-		&i.Key.RatelimitLimit,
-		&i.Key.RatelimitDuration,
-		&i.Key.Environment,
-		&i.Identity.ID,
-		&i.Identity.ExternalID,
-		&i.Identity.WorkspaceID,
-		&i.Identity.Environment,
-		&i.Identity.Meta,
-		&i.Identity.Deleted,
-		&i.Identity.CreatedAt,
-		&i.Identity.UpdatedAt,
-		&i.Ratelimits,
+		&i.ID,
+		&i.KeyAuthID,
+		&i.WorkspaceID,
+		&i.ForWorkspaceID,
+		&i.Name,
+		&i.Meta,
+		&i.Expires,
+		&i.DeletedAtM,
+		&i.RefillDay,
+		&i.RefillAmount,
+		&i.LastRefillAt,
+		&i.Enabled,
+		&i.RemainingRequests,
+		&i.IpWhitelist,
+		&i.ApiWorkspaceID,
+		&i.ApiID,
+		&i.ApiDeletedAtM,
+		&i.Roles,
 		&i.Permissions,
+		&i.Ratelimits,
+		&i.IdentityID,
+		&i.ExternalID,
+		&i.IdentityMeta,
+		&i.KeyAuthDeletedAtM,
+		&i.WorkspaceEnabled,
+		&i.ForWorkspaceEnabled,
 	)
 	return i, err
 }

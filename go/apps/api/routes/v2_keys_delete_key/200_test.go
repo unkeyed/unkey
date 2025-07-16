@@ -11,11 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_delete_key"
 	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
-	"github.com/unkeyed/unkey/go/pkg/uid"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
 func TestKeyDeleteSuccess(t *testing.T) {
@@ -23,11 +22,11 @@ func TestKeyDeleteSuccess(t *testing.T) {
 	ctx := context.Background()
 
 	route := &handler.Handler{
-		Logger:      h.Logger,
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Permissions: h.Permissions,
-		Auditlogs:   h.Auditlogs,
+		Logger:    h.Logger,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
+		KeyCache:  h.Caches.VerificationKeyByHash,
 	}
 
 	h.Register(route)
@@ -35,78 +34,56 @@ func TestKeyDeleteSuccess(t *testing.T) {
 	// Create a workspace and user
 	workspace := h.Resources().UserWorkspace
 
-	// Create a keyAuth (keyring) for the API
-	keyAuthID := uid.New(uid.KeyAuthPrefix)
-	err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-		ID:            keyAuthID,
-		WorkspaceID:   workspace.ID,
-		CreatedAtM:    time.Now().UnixMilli(),
-		DefaultPrefix: sql.NullString{Valid: false},
-		DefaultBytes:  sql.NullInt32{Valid: false},
-	})
-	require.NoError(t, err)
-
-	// Create a test API
-	apiID := uid.New("api")
-	err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-		ID:          apiID,
-		Name:        "Test API",
+	// Create a test API using testutil helper
+	apiName := "Test API"
+	api := h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID: workspace.ID,
-		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
-		CreatedAtM:  time.Now().UnixMilli(),
+		Name:        &apiName,
 	})
-	require.NoError(t, err)
 
-	softDeleteKeyID := uid.New(uid.KeyPrefix)
-	softDeleteKey, err := h.Keys.CreateKey(ctx, keys.CreateKeyRequest{
-		Prefix:     "test",
-		ByteLength: 16,
+	// Create a test key for soft delete using testutil helper
+	softDeleteKeyName := "test-key"
+	softDeleteKeyResponse := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeyAuthID:   api.KeyAuthID.String,
+		Name:        &softDeleteKeyName,
 	})
-	require.NoError(t, err)
+	softDeleteKeyID := softDeleteKeyResponse.KeyID
 
-	err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-		ID:                softDeleteKeyID,
-		KeyringID:         keyAuthID,
-		Hash:              softDeleteKey.Hash,
-		Start:             softDeleteKey.Start,
-		WorkspaceID:       workspace.ID,
-		ForWorkspaceID:    sql.NullString{Valid: false},
-		Name:              sql.NullString{Valid: true, String: "test-key"},
-		Expires:           sql.NullTime{Valid: false},
-		CreatedAtM:        time.Now().UnixMilli(),
-		Enabled:           true,
-		IdentityID:        sql.NullString{Valid: false, String: ""},
-		RemainingRequests: sql.NullInt32{Int32: 0, Valid: false},
+	// Create a test key for hard delete with all relationships using testutil helper
+	hardDeleteKeyName := "test-key"
+	hardDeleteKeyResponse := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeyAuthID:   api.KeyAuthID.String,
+		Name:        &hardDeleteKeyName,
+		Permissions: []seed.CreatePermissionRequest{
+			{
+				WorkspaceID: workspace.ID,
+				Name:        "read_data",
+				Slug:        "read_data",
+			},
+		},
+		Roles: []seed.CreateRoleRequest{
+			{
+				WorkspaceID: workspace.ID,
+				Name:        "data_admin",
+			},
+		},
+		Ratelimits: []seed.CreateRatelimitRequest{
+			{
+				WorkspaceID: workspace.ID,
+				Name:        "api_calls",
+				Limit:       100,
+				Duration:    60000,
+			},
+		},
 	})
-	require.NoError(t, err)
+	hardDeleteKeyID := hardDeleteKeyResponse.KeyID
 
-	hardDeleteKeyID := uid.New(uid.KeyPrefix)
-	hardDeleteKey, err := h.Keys.CreateKey(ctx, keys.CreateKeyRequest{
-		Prefix:     "test",
-		ByteLength: 16,
-	})
-	require.NoError(t, err)
-
-	err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-		ID:                hardDeleteKeyID,
-		KeyringID:         keyAuthID,
-		Hash:              hardDeleteKey.Hash,
-		Start:             hardDeleteKey.Start,
-		WorkspaceID:       workspace.ID,
-		ForWorkspaceID:    sql.NullString{Valid: false},
-		Name:              sql.NullString{Valid: true, String: "test-key"},
-		Expires:           sql.NullTime{Valid: false},
-		CreatedAtM:        time.Now().UnixMilli(),
-		Enabled:           true,
-		IdentityID:        sql.NullString{Valid: false, String: ""},
-		RemainingRequests: sql.NullInt32{Int32: 0, Valid: false},
-	})
-	require.NoError(t, err)
-
+	// Add encryption to the hard delete key
 	encryption, err := h.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
 		Keyring: workspace.ID,
-		Data:    hardDeleteKey.Key,
+		Data:    hardDeleteKeyResponse.Key,
 	})
 	require.NoError(t, err)
 
@@ -116,55 +93,6 @@ func TestKeyDeleteSuccess(t *testing.T) {
 		CreatedAt:       time.Now().UnixMilli(),
 		Encrypted:       encryption.GetEncrypted(),
 		EncryptionKeyID: encryption.GetKeyId(),
-	})
-	require.NoError(t, err)
-
-	// Create permissions
-	perm1ID := uid.New(uid.PermissionPrefix)
-	err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-		PermissionID: perm1ID,
-		WorkspaceID:  workspace.ID,
-		Name:         "read_data",
-		Slug:         "read_data",
-		CreatedAtM:   time.Now().UnixMilli(),
-	})
-	require.NoError(t, err)
-
-	// Assign permissions to key
-	err = db.Query.InsertKeyPermission(ctx, h.DB.RW(), db.InsertKeyPermissionParams{
-		KeyID:        hardDeleteKeyID,
-		PermissionID: perm1ID,
-		WorkspaceID:  workspace.ID,
-	})
-	require.NoError(t, err)
-
-	roleID := uid.New(uid.RolePrefix)
-	err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-		RoleID:      roleID,
-		WorkspaceID: workspace.ID,
-		Name:        "data_admin",
-	})
-	require.NoError(t, err)
-
-	// Assign role to key
-	err = db.Query.InsertKeyRole(ctx, h.DB.RW(), db.InsertKeyRoleParams{
-		KeyID:       hardDeleteKeyID,
-		RoleID:      roleID,
-		WorkspaceID: workspace.ID,
-		CreatedAtM:  time.Now().UnixMilli(),
-	})
-	require.NoError(t, err)
-
-	// Create ratelimits for the key
-	rl1ID := uid.New(uid.RatelimitPrefix)
-	err = db.Query.InsertKeyRatelimit(ctx, h.DB.RW(), db.InsertKeyRatelimitParams{
-		ID:          rl1ID,
-		WorkspaceID: workspace.ID,
-		KeyID:       sql.NullString{Valid: true, String: hardDeleteKeyID},
-		Name:        "api_calls",
-		Limit:       100,
-		Duration:    60000, // 1 minute
-		CreatedAt:   time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
 
