@@ -33,10 +33,24 @@ func (c *Command) showHelp() {
 		c.showCommands()
 	}
 
-	// Show available flags/options
+	// Show command-specific flags if any exist
 	if len(c.Flags) > 0 {
-		c.showFlags()
+		fmt.Printf("OPTIONS:\n")
+		for _, flag := range c.Flags {
+			c.showFlag(flag)
+		}
+		fmt.Printf("\n")
 	}
+
+	// Always show global options
+	fmt.Printf("GLOBAL OPTIONS:\n")
+	fmt.Printf("   %-25s %s\n", "--help, -h", "show help")
+
+	// Add version flag only for root command (commands with Version set)
+	if c.Version != "" {
+		fmt.Printf("   %-25s %s\n", "--version, -v", "print the version")
+	}
+	fmt.Printf("\n")
 }
 
 // showUsageLine displays the command usage syntax
@@ -54,7 +68,6 @@ func (c *Command) showUsageLine() {
 	if len(c.Commands) > 0 {
 		fmt.Printf(" [command]")
 	}
-
 	fmt.Printf("\n\n")
 }
 
@@ -68,7 +81,6 @@ func (c *Command) buildCommandPath() []string {
 		path = append([]string{cmd.Name}, path...)
 		cmd = cmd.parent
 	}
-
 	return path
 }
 
@@ -95,19 +107,6 @@ func (c *Command) showCommands() {
 
 	// Add built-in help command
 	fmt.Printf("   %-*s %s\n", maxLen+10, "help, h", "Shows help for commands")
-	fmt.Printf("\n")
-}
-
-// showFlags displays all available flags in a formatted table
-func (c *Command) showFlags() {
-	fmt.Printf("OPTIONS:\n")
-
-	for _, flag := range c.Flags {
-		c.showFlag(flag)
-	}
-
-	// Add built-in help flag
-	fmt.Printf("   %-25s %s\n", "--help, -h", "show help")
 	fmt.Printf("\n")
 }
 

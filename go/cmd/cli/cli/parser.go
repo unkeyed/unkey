@@ -19,13 +19,18 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 	}
 
 	var commandArgs []string
-
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 
 		// Handle help flags first - these short-circuit normal processing
 		if arg == "-h" || arg == "--help" || arg == "help" {
 			c.showHelp()
+			return nil
+		}
+
+		// Handle version flags - print version and exit
+		if (arg == "-v" || arg == "--version") && c.Version != "" {
+			fmt.Println(c.Version)
 			return nil
 		}
 
@@ -76,14 +81,9 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 	// Store parsed arguments
 	c.args = commandArgs
 
-	// If no arguments were provided and this command has required flags, show help
-	if len(args) == 0 && c.hasRequiredFlags() {
-		c.showHelp()
-		return nil
-	}
-
 	// Validate all required flags are present
 	if err := c.validateRequiredFlags(); err != nil {
+		fmt.Printf("Error: %v\n\n", err)
 		c.showHelp()
 		return err
 	}
@@ -99,16 +99,6 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 	}
 
 	return nil
-}
-
-// Helper method to check if command has required flags
-func (c *Command) hasRequiredFlags() bool {
-	for _, flag := range c.Flags {
-		if flag.Required() {
-			return true
-		}
-	}
-	return false
 }
 
 // parseFlag handles parsing of a single flag and its value
