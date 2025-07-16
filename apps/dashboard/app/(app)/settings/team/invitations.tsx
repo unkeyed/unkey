@@ -8,10 +8,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { toast } from "@/components/ui/toaster";
 import type { AuthenticatedUser, Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
-import { Button, Empty, Loading } from "@unkey/ui";
+import { Button, Empty, Loading, toast } from "@unkey/ui";
 import { memo } from "react";
 import { InviteButton } from "./invite";
 import { StatusBadge } from "./status-badge";
@@ -22,7 +21,7 @@ type InvitationsProps = {
 };
 
 export const Invitations = memo<InvitationsProps>(({ user, organization }) => {
-  const { data: invitationsList, isLoading } = trpc.org.invitations.list.useQuery(organization!.id);
+  const { data: invitationsList, isLoading } = trpc.org.invitations.list.useQuery(organization.id);
   const invitations = invitationsList?.data;
   const utils = trpc.useUtils();
   const revokeInvitation = trpc.org.invitations.remove.useMutation({
@@ -79,7 +78,7 @@ export const Invitations = memo<InvitationsProps>(({ user, organization }) => {
                   onClick={async () => {
                     try {
                       await revokeInvitation.mutateAsync({
-                        orgId: organization!.id,
+                        orgId: organization.id,
                         invitationId: invitation.id,
                       });
                     } catch (error) {

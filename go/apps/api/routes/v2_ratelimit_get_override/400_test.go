@@ -19,10 +19,10 @@ func TestBadRequests(t *testing.T) {
 
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID)
 	route := &handler.Handler{
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Logger:      h.Logger,
-		Permissions: h.Permissions,
+		DB:                            h.DB,
+		Keys:                          h.Keys,
+		Logger:                        h.Logger,
+		RatelimitNamespaceByNameCache: h.Caches.RatelimitNamespaceByName,
 	}
 
 	h.Register(route)
@@ -99,11 +99,11 @@ func TestBadRequests(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "You must provide either a namespace ID or name.", res.Body.Error.Detail)
+		require.Equal(t, "POST request body for '/v2/ratelimit.getOverride' failed to validate schema", res.Body.Error.Detail)
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Equal(t, len(res.Body.Error.Errors), 0)
+		require.Equal(t, len(res.Body.Error.Errors), 3)
 	})
 
 	t.Run("missing authorization header", func(t *testing.T) {

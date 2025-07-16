@@ -10,8 +10,8 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
-	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
+	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -25,12 +25,11 @@ type Response = openapi.V2KeysSetRolesResponse
 
 // Handler implements zen.Route interface for the v2 keys set roles endpoint
 type Handler struct {
-	// Services as public fields
-	Logger      logging.Logger
-	DB          db.Database
-	Keys        keys.KeyService
-	Permissions permissions.PermissionService
-	Auditlogs   auditlogs.AuditLogService
+	Logger    logging.Logger
+	DB        db.Database
+	Keys      keys.KeyService
+	Auditlogs auditlogs.AuditLogService
+	KeyCache  cache.Cache[string, db.FindKeyForVerificationRow]
 }
 
 // Method returns the HTTP method this route responds to
@@ -48,7 +47,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.setRoles")
 
 	// 1. Authentication
-	auth, err := h.Keys.VerifyRootKey(ctx, s)
+	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -60,17 +59,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// 3. Permission check
-	err = h.Permissions.Check(
-		ctx,
-		auth.KeyID,
-		rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   "*",
-				Action:       rbac.UpdateKey,
-			}),
-		),
-	)
+	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   "*",
+			Action:       rbac.UpdateKey,
+		}),
+	)))
 	if err != nil {
 		return err
 	}
@@ -222,7 +217,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.AuthDisconnectRoleKeyEvent,
 				ActorType:   auditlog.RootKeyActor,
-				ActorID:     auth.KeyID,
+				ActorID:     auth.Key.ID,
 				ActorName:   "root key",
 				ActorMeta:   map[string]any{},
 				Display:     fmt.Sprintf("Removed role %s from key %s", removedRole.Name, req.KeyId),
@@ -266,7 +261,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.AuthConnectRoleKeyEvent,
 				ActorType:   auditlog.RootKeyActor,
-				ActorID:     auth.KeyID,
+				ActorID:     auth.Key.ID,
 				ActorName:   "root key",
 				ActorMeta:   map[string]any{},
 				Display:     fmt.Sprintf("Added role %s to key %s", role.Name, req.KeyId),
@@ -295,10 +290,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if len(auditLogs) > 0 {
 			err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("audit log error"), fault.Public("Failed to create audit log for role changes."),
-				)
+				return err
 			}
 		}
 
@@ -307,6 +299,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
+
+	h.KeyCache.Remove(ctx, key.Hash)
 
 	// 10. Get final state of roles and build response
 	finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), req.KeyId)

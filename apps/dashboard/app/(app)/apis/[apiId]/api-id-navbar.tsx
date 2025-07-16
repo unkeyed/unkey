@@ -5,6 +5,7 @@ import { NavbarActionButton } from "@/components/navigation/action-button";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
 import { ChevronExpandY, Gear, Nodes, Plus, TaskUnchecked } from "@unkey/icons";
 import dynamic from "next/dynamic";
@@ -22,9 +23,9 @@ const CreateKeyDialog = dynamic(
 
 const KeysTableActionPopover = dynamic(
   () =>
-    import(
-      "./keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover"
-    ).then((mod) => mod.KeysTableActionPopover),
+    import("@/components/logs/table-action.popover").then((mod) => ({
+      default: mod.TableActionPopover,
+    })),
   {
     ssr: false,
   },
@@ -190,8 +191,7 @@ export const ApisNavbar = ({
                 isIdentifier
                 active
               >
-                {specificKey.id?.substring(0, 8)}...
-                {specificKey.id?.substring(specificKey.id?.length - 4)}
+                {shortenId(specificKey.id)}
               </Navbar.Breadcrumbs.Link>
             )}
           </Navbar.Breadcrumbs>

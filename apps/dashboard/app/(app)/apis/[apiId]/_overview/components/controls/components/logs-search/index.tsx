@@ -1,7 +1,5 @@
-import { LogsLLMSearch } from "@/components/logs/llm-search";
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { transformStructuredOutputToFilters } from "@unkey/ui";
+import { LLMSearch, toast, transformStructuredOutputToFilters } from "@unkey/ui";
 import { useFilters } from "../../../../hooks/use-filters";
 
 export const LogsSearch = ({ apiId }: { apiId: string }) => {
@@ -41,7 +39,7 @@ export const LogsSearch = ({ apiId }: { apiId: string }) => {
   });
 
   return (
-    <LogsLLMSearch
+    <LLMSearch
       exampleQueries={[
         "Show rate limited outcomes",
         "Show identity that starts with test_",

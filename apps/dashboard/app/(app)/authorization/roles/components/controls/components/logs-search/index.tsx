@@ -1,7 +1,5 @@
-import { LogsLLMSearch } from "@/components/logs/llm-search";
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { transformStructuredOutputToFilters } from "@unkey/ui";
+import { LLMSearch, toast, transformStructuredOutputToFilters } from "@unkey/ui";
 import { useFilters } from "../../../../hooks/use-filters";
 
 export const RolesSearch = () => {
@@ -41,7 +39,7 @@ export const RolesSearch = () => {
   });
 
   return (
-    <LogsLLMSearch
+    <LLMSearch
       exampleQueries={[
         "Find admin and moderator roles",
         "Show roles with api.read permissions",

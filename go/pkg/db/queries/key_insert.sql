@@ -14,10 +14,8 @@ INSERT INTO `keys` (
     created_at_m,
     enabled,
     remaining_requests,
-    ratelimit_async,
-    ratelimit_limit,
-    ratelimit_duration,
-    environment
+    refill_day,
+    refill_amount
 ) VALUES (
     sqlc.arg(id),
     sqlc.arg(keyring_id),
@@ -33,8 +31,6 @@ INSERT INTO `keys` (
     sqlc.arg(created_at_m),
     sqlc.arg(enabled),
     sqlc.arg(remaining_requests),
-    sqlc.arg(ratelimit_async),
-    sqlc.arg(ratelimit_limit),
-    sqlc.arg(ratelimit_duration),
-    sqlc.arg(environment)
+    sqlc.arg(refill_day),
+    sqlc.arg(refill_amount)
 );

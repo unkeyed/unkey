@@ -1,19 +1,19 @@
-import type { Roles } from "@/lib/trpc/routers/authorization/roles/query";
+import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
+import { toast } from "@unkey/ui";
 import { useEffect } from "react";
-import { toast } from "sonner";
 import { UpsertRoleDialog } from "../../../../upsert-role";
-import { useFetchConnectedKeysAndPerms } from "./hooks/use-fetch-connected-keys-and-perms";
+import { useFetchConnectedKeysAndPermsData } from "./hooks/use-fetch-connected-keys-and-perms";
 
 export const EditRole = ({
   role,
   isOpen,
   onClose,
 }: {
-  role: Roles;
+  role: RoleBasic;
   isOpen: boolean;
   onClose: () => void;
 }) => {
-  const { permissions, keys, error } = useFetchConnectedKeysAndPerms(role.roleId);
+  const { permissions, keys, error } = useFetchConnectedKeysAndPermsData(role.roleId);
 
   useEffect(() => {
     if (error) {
@@ -42,7 +42,6 @@ export const EditRole = ({
       }
     }
   }, [error]);
-
   return (
     <UpsertRoleDialog
       existingRole={{

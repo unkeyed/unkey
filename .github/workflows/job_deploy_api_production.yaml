@@ -5,10 +5,11 @@ on:
       CLOUDFLARE_API_TOKEN:
         required: true
 
-
-
 jobs:
   deploy:
+    permissions:
+      contents: read
+      deployments: write
     environment: Production
     runs-on: ubuntu-latest
     steps:
@@ -18,6 +19,7 @@ jobs:
         uses: ./.github/actions/install
         with:
           ts: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build
         run: pnpm turbo run build --filter='./apps/api'

@@ -3,7 +3,9 @@ name: unkey
 services:
   mysql:
     container_name: mysql
-    image: mysql:8.0
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.mysql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
@@ -48,7 +50,7 @@ services:
     deploy:
       replicas: 3
       endpoint_mode: vip
-    command: ["api"]
+    command: ["run", "api"]
     build:
       context: ../go
       dockerfile: ./Dockerfile
@@ -68,11 +70,13 @@ services:
       # UNKEY_PROMETHEUS_PORT: 2112
 
   redis:
+    container_name: redis
     image: redis:latest
     ports:
       - 6379:6379
 
   agent:
+    container_name: agent
     command: ["/usr/local/bin/unkey", "agent", "--config", "config.docker.json"]
     build:
       context: ../apps/agent
@@ -95,6 +99,7 @@ services:
       CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000"
 
   chproxy:
+    container_name: chproxy
     build:
       context: ../apps/chproxy
       dockerfile: Dockerfile
@@ -124,6 +129,7 @@ services:
       - clickhouse:/bitnami/clickhouse
 
   clickhouse_migrator:
+    container_name: clickhouse_migrator
     build:
       context: ../internal/clickhouse
       dockerfile: ./Dockerfile
@@ -145,6 +151,7 @@ services:
       - s3:/data
 
   api:
+    container_name: api
     build:
       context: ..
       dockerfile: ./apps/api/Dockerfile.dev
@@ -174,12 +181,35 @@ services:
       - clickhouse
       - chproxy
 
+  ctrl:
+    build:
+      context: ../go
+      dockerfile: Dockerfile
+      args:
+        VERSION: "latest"
+    container_name: ctrl
+    command: ["run", "ctrl"]
+    ports:
+      - "7091:7091"
+    depends_on:
+      - mysql
+    environment:
+      # Database configuration - use existing mysql service
+      UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true"
+      UNKEY_DATABASE_HYDRA: "unkey:password@tcp(mysql:3306)/hydra?parseTime=true"
+
+      # Control plane configuration
+      UNKEY_HTTP_PORT: "7091"
+      UNKEY_METALD_ADDRESS: "http://localhost:8080"
+
+    # Override the entrypoint to run ctrl command
+
   otel:
     image: grafana/otel-lgtm:latest
     container_name: otel
     hostname: otel
     ports:
-      - 3000:3000
+      - 3001:3000
       - 4317:4317
       - 4318:4318
 
@@ -192,6 +222,39 @@ services:
       - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
     depends_on:
       - apiv2
+
+  dashboard:
+    build:
+      context: ..
+      dockerfile: ./apps/dashboard/Dockerfile
+    container_name: unkey-dashboard
+    ports:
+      - "3000:3000"
+    depends_on:
+      - planetscale
+      - agent
+    environment:
+      # Database configuration
+      DATABASE_HOST: "planetscale:3900"
+      DATABASE_USERNAME: "unkey"
+      DATABASE_PASSWORD: "password"
+
+      # Auth configuration
+      AUTH_PROVIDER: "local"
+
+      # Agent configuration
+      AGENT_URL: "http://agent:8080"
+      AGENT_TOKEN: "agent-auth-secret"
+
+      # Clickhouse configuration
+      CLICKHOUSE_URL: "http://default:password@clickhouse:8123"
+
+      # Environment
+      NODE_ENV: "production"
+
+      # Bootstrap workspace/API IDs
+      UNKEY_WORKSPACE_ID: "ws_local_root"
+      UNKEY_API_ID: "api_local_root_keys"
 
 volumes:
   mysql:

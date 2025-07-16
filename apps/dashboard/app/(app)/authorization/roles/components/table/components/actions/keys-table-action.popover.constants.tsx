@@ -1,12 +1,13 @@
 "use client";
+
 import {
-  KeysTableActionPopoverDefaultTrigger,
   type MenuItem,
-} from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover";
-import { toast } from "@/components/ui/toaster";
+  TableActionPopoverDefaultTrigger,
+} from "@/components/logs/table-action.popover";
 import { trpc } from "@/lib/trpc/client";
-import type { Roles } from "@/lib/trpc/routers/authorization/roles/query";
+import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { Clone, PenWriting3, Trash } from "@unkey/icons";
+import { toast } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { MAX_KEYS_FETCH_LIMIT } from "../../../upsert-role/components/assign-key/hooks/use-fetch-keys";
 import { MAX_PERMS_FETCH_LIMIT } from "../../../upsert-role/components/assign-permission/hooks/use-fetch-permissions";
@@ -14,17 +15,14 @@ import { DeleteRole } from "./components/delete-role";
 import { EditRole } from "./components/edit-role";
 
 const KeysTableActionPopover = dynamic(
-  () =>
-    import(
-      "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover"
-    ).then((mod) => mod.KeysTableActionPopover),
+  () => import("@/components/logs/table-action.popover").then((mod) => mod.TableActionPopover),
   {
-    loading: KeysTableActionPopoverDefaultTrigger,
+    loading: TableActionPopoverDefaultTrigger,
   },
 );
 
 type RolesTableActionsProps = {
-  role: Roles;
+  role: RoleBasic;
 };
 
 export const RolesTableActions = ({ role }: RolesTableActionsProps) => {
@@ -35,7 +33,7 @@ export const RolesTableActions = ({ role }: RolesTableActionsProps) => {
 };
 
 const getRolesTableActionItems = (
-  role: Roles,
+  role: RoleBasic,
   trpcUtils: ReturnType<typeof trpc.useUtils>,
 ): MenuItem[] => {
   return [

@@ -1,6 +1,8 @@
 name: Test API Local
 on:
   workflow_call:
+permissions:
+  contents: read
 
 jobs:
   test:
@@ -21,6 +23,7 @@ jobs:
         with:
           ts: true
           go: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build
         run: pnpm turbo run build --filter=./apps/api...

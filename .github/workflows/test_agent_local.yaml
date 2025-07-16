@@ -2,6 +2,8 @@ name: Test Agent Local
 on:
   workflow_call:
 
+permissions:
+  contents: read
 
 jobs:
   test_agent_local:
@@ -13,10 +15,10 @@ jobs:
         uses: ./.github/actions/install
         with:
           go: true
-
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build
-        run: task build
+        run: make build
         working-directory: apps/agent
 
       - name: Test

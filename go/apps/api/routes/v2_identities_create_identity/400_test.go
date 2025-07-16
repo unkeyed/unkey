@@ -19,11 +19,10 @@ func TestBadRequests(t *testing.T) {
 
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.create_identity")
 	route := &handler.Handler{
-		Logger:      h.Logger,
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Permissions: h.Permissions,
-		Auditlogs:   h.Auditlogs,
+		Logger:    h.Logger,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
 	}
 
 	h.Register(route)
@@ -98,10 +97,11 @@ func TestBadRequests(t *testing.T) {
 	t.Run("missing rate limit name", func(t *testing.T) {
 		req := handler.Request{
 			ExternalId: uid.New("test"),
-			Ratelimits: &[]openapi.Ratelimit{
+			Ratelimits: &[]openapi.RatelimitRequest{
 				{
-					Duration: 1000,
-					Limit:    1,
+					Duration:  1000,
+					Limit:     1,
+					AutoApply: true,
 				},
 			},
 		}
@@ -121,11 +121,12 @@ func TestBadRequests(t *testing.T) {
 	t.Run("negative rate limit value", func(t *testing.T) {
 		req := handler.Request{
 			ExternalId: uid.New("test"),
-			Ratelimits: &[]openapi.Ratelimit{
+			Ratelimits: &[]openapi.RatelimitRequest{
 				{
-					Name:     "test_limit",
-					Duration: 1000, // valid duration
-					Limit:    -10,  // negative limit
+					Name:      "test_limit",
+					Duration:  1000, // valid duration
+					Limit:     -10,  // negative limit
+					AutoApply: true,
 				},
 			},
 		}
@@ -134,7 +135,7 @@ func TestBadRequests(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "Rate limit value must be greater than zero.", res.Body.Error.Detail)
+		require.Equal(t, "POST request body for '/v2/identities.createIdentity' failed to validate schema", res.Body.Error.Detail)
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
@@ -144,11 +145,12 @@ func TestBadRequests(t *testing.T) {
 	t.Run("zero rate limit value", func(t *testing.T) {
 		req := handler.Request{
 			ExternalId: uid.New("test"),
-			Ratelimits: &[]openapi.Ratelimit{
+			Ratelimits: &[]openapi.RatelimitRequest{
 				{
-					Name:     "test_limit",
-					Duration: 1000, // valid duration
-					Limit:    0,    // zero limit
+					Name:      "test_limit",
+					Duration:  1000, // valid duration
+					Limit:     0,    // zero limit
+					AutoApply: true,
 				},
 			},
 		}
@@ -157,7 +159,7 @@ func TestBadRequests(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "Rate limit value must be greater than zero.", res.Body.Error.Detail)
+		require.Equal(t, "POST request body for '/v2/identities.createIdentity' failed to validate schema", res.Body.Error.Detail)
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
@@ -167,11 +169,12 @@ func TestBadRequests(t *testing.T) {
 	t.Run("duration less than 1000ms", func(t *testing.T) {
 		req := handler.Request{
 			ExternalId: uid.New("test"),
-			Ratelimits: &[]openapi.Ratelimit{
+			Ratelimits: &[]openapi.RatelimitRequest{
 				{
-					Name:     "test_limit",
-					Duration: 999, // less than 1000ms
-					Limit:    100, // valid limit
+					Name:      "test_limit",
+					Duration:  999, // less than 1000ms
+					Limit:     100, // valid limit
+					AutoApply: true,
 				},
 			},
 		}
@@ -180,7 +183,7 @@ func TestBadRequests(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "Rate limit duration must be at least 1000ms (1 second).", res.Body.Error.Detail)
+		require.Equal(t, "POST request body for '/v2/identities.createIdentity' failed to validate schema", res.Body.Error.Detail)
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)

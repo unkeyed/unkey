@@ -18,10 +18,9 @@ import (
 func TestNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
-		Logger:      h.Logger,
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Permissions: h.Permissions,
+		Logger: h.Logger,
+		DB:     h.DB,
+		Keys:   h.Keys,
 	}
 
 	h.Register(route)
@@ -32,24 +31,10 @@ func TestNotFound(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	t.Run("identity ID does not exist", func(t *testing.T) {
-		nonExistentID := uid.New(uid.IdentityPrefix)
-		req := handler.Request{
-			IdentityId: &nonExistentID,
-		}
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, got: %d", res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/identity_not_found", res.Body.Error.Type)
-		require.Equal(t, "This identity does not exist.", res.Body.Error.Detail)
-		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
-		require.Equal(t, "Not Found", res.Body.Error.Title)
-		require.NotEmpty(t, res.Body.Meta.RequestId)
-	})
-
 	t.Run("external ID does not exist", func(t *testing.T) {
 		nonExistentExternalID := "non_existent_external_id"
 		req := handler.Request{
-			ExternalId: &nonExistentExternalID,
+			ExternalId: nonExistentExternalID,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, got: %d", res.Status)
@@ -77,6 +62,7 @@ func TestNotFound(t *testing.T) {
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
+			Meta:        []byte("{}"),
 		})
 		require.NoError(t, err)
 
@@ -87,16 +73,9 @@ func TestNotFound(t *testing.T) {
 		err = tx.Commit()
 		require.NoError(t, err)
 
-		// Try to retrieve the deleted identity by ID
-		reqById := handler.Request{
-			IdentityId: &deletedIdentityID,
-		}
-		resById := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, reqById)
-		require.Equal(t, http.StatusNotFound, resById.Status, "expected 404 for deleted identity (by ID)")
-
 		// Try to retrieve the deleted identity by externalId
 		reqByExternalId := handler.Request{
-			ExternalId: &deletedExternalID,
+			ExternalId: deletedExternalID,
 		}
 		resByExternalId := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, reqByExternalId)
 		require.Equal(t, http.StatusNotFound, resByExternalId.Status, "expected 404 for deleted identity (by externalId)")

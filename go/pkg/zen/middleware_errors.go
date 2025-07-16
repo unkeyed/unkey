@@ -16,7 +16,6 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
 			err := next(ctx, s)
-
 			if err == nil {
 				return nil
 			}

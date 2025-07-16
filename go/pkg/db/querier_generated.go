@@ -14,6 +14,16 @@ type Querier interface {
 	//
 	//  DELETE FROM identities WHERE id = ?
 	DeleteIdentity(ctx context.Context, db DBTX, id string) error
+	//DeleteKeyByID
+	//
+	//  DELETE k, kp, kr, rl, ek
+	//  FROM `keys` k
+	//  LEFT JOIN keys_permissions kp ON k.id = kp.key_id
+	//  LEFT JOIN keys_roles kr ON k.id = kr.key_id
+	//  LEFT JOIN ratelimits rl ON k.id = rl.key_id
+	//  LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
+	//  WHERE k.id = ?
+	DeleteKeyByID(ctx context.Context, db DBTX, id string) error
 	//DeleteKeyPermissionByKeyAndPermissionID
 	//
 	//  DELETE FROM keys_permissions
@@ -83,6 +93,53 @@ type Querier interface {
 	//  JOIN audit_log ON audit_log.id = audit_log_target.audit_log_id
 	//  WHERE audit_log_target.id = ?
 	FindAuditLogTargetByID(ctx context.Context, db DBTX, id string) ([]FindAuditLogTargetByIDRow, error)
+	//FindBranchByProjectName
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      name,
+	//      created_at,
+	//      updated_at
+	//  FROM branches
+	//  WHERE project_id = ? AND name = ?
+	FindBranchByProjectName(ctx context.Context, db DBTX, arg FindBranchByProjectNameParams) (Branch, error)
+	//FindBuildById
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      version_id,
+	//      rootfs_image_id,
+	//      git_commit_sha,
+	//      git_branch,
+	//      status,
+	//      build_tool,
+	//      error_message,
+	//      started_at,
+	//      completed_at,
+	//      created_at,
+	//      updated_at
+	//  FROM `builds`
+	//  WHERE id = ?
+	FindBuildById(ctx context.Context, db DBTX, id string) (Build, error)
+	//FindHostnameRoutesByVersionId
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      hostname,
+	//      version_id,
+	//      is_enabled,
+	//      created_at,
+	//      updated_at
+	//  FROM hostname_routes
+	//  WHERE version_id = ? AND is_enabled = true
+	//  ORDER BY created_at ASC
+	FindHostnameRoutesByVersionId(ctx context.Context, db DBTX, versionID string) ([]HostnameRoute, error)
 	//FindIdentityByExternalID
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at FROM identities WHERE workspace_id = ? AND external_id = ? AND deleted = ?
@@ -102,64 +159,107 @@ type Querier interface {
 	//  FROM `keys`
 	//  WHERE id = ?
 	FindKeyByID(ctx context.Context, db DBTX, id string) (Key, error)
+	//FindKeyByIdOrHash
+	//
+	//  SELECT
+	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
+	//      ek.encrypted as encrypted_key,
+	//  	ek.encryption_key_id as encryption_key_id
+	//  FROM `keys` k
+	//  JOIN apis a USING(key_auth_id)
+	//  LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
+	//  WHERE (CASE
+	//      WHEN ? IS NOT NULL THEN k.id = ?
+	//      WHEN ? IS NOT NULL THEN k.hash = ?
+	//      ELSE FALSE
+	//  END) AND k.deleted_at_m IS NULL AND a.deleted_at_m IS NULL
+	FindKeyByIdOrHash(ctx context.Context, db DBTX, arg FindKeyByIdOrHashParams) (FindKeyByIdOrHashRow, error)
+	//FindKeyCredits
+	//
+	//  SELECT remaining_requests FROM `keys` k WHERE k.id = ?
+	FindKeyCredits(ctx context.Context, db DBTX, id string) (sql.NullInt32, error)
+	//FindKeyEncryptionByKeyID
+	//
+	//  SELECT workspace_id, key_id, created_at, updated_at, encrypted, encryption_key_id FROM encrypted_keys WHERE key_id = ?
+	FindKeyEncryptionByKeyID(ctx context.Context, db DBTX, keyID string) (EncryptedKey, error)
 	//FindKeyForVerification
 	//
-	//  WITH direct_permissions AS (
-	//      SELECT kp.key_id, p.name as permission_name
-	//      FROM keys_permissions kp
-	//      JOIN permissions p ON kp.permission_id = p.id
-	//  ),
-	//  role_permissions AS (
-	//      SELECT kr.key_id, p.name as permission_name
-	//      FROM keys_roles kr
-	//      JOIN roles_permissions rp ON kr.role_id = rp.role_id
-	//      JOIN permissions p ON rp.permission_id = p.id
-	//  ),
-	//  all_permissions AS (
-	//      SELECT key_id, permission_name FROM direct_permissions
-	//      UNION
-	//      SELECT key_id, permission_name FROM role_permissions
-	//  ),
-	//  all_ratelimits AS (
-	//      SELECT
-	//          key_id as target_id,
-	//          'key' as target_type,
-	//          name,
-	//          `limit`,
-	//          duration
-	//      FROM ratelimits
-	//      WHERE key_id IS NOT NULL
-	//      UNION
-	//      SELECT
-	//          identity_id as target_id,
-	//          'identity' as target_type,
-	//          name,
-	//          `limit`,
-	//          duration
-	//      FROM ratelimits
-	//      WHERE identity_id IS NOT NULL
-	//  )
-	//  SELECT
-	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
-	//      i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
-	//      JSON_ARRAYAGG(
-	//          JSON_OBJECT(
-	//              'target_type', rl.target_type,
-	//              'name', rl.name,
-	//              'limit', rl.limit,
-	//              'duration', rl.duration
-	//          )
-	//      ) as ratelimits,
-	//      GROUP_CONCAT(DISTINCT perms.permission_name) as permissions
-	//  FROM `keys` k
-	//  LEFT JOIN identities i ON k.identity_id = i.id
-	//  LEFT JOIN all_permissions perms ON k.id = perms.key_id
-	//  LEFT JOIN all_ratelimits rl ON (
-	//      (rl.target_type = 'key' AND rl.target_id = k.id) OR
-	//      (rl.target_type = 'identity' AND rl.target_id = k.identity_id)
-	//  )
-	//  WHERE k.hash = ?
-	//  GROUP BY k.id
+	//  select k.id,
+	//         k.key_auth_id,
+	//         k.workspace_id,
+	//         k.for_workspace_id,
+	//         k.name,
+	//         k.meta,
+	//         k.expires,
+	//         k.deleted_at_m,
+	//         k.refill_day,
+	//         k.refill_amount,
+	//         k.last_refill_at,
+	//         k.enabled,
+	//         k.remaining_requests,
+	//         a.ip_whitelist,
+	//         a.workspace_id  as api_workspace_id,
+	//         a.id            as api_id,
+	//         a.deleted_at_m  as api_deleted_at_m,
+	//
+	//         COALESCE(
+	//                 (SELECT JSON_ARRAYAGG(name)
+	//                  FROM (SELECT name
+	//                        FROM keys_roles kr
+	//                                 JOIN roles r ON r.id = kr.role_id
+	//                        WHERE kr.key_id = k.id) as roles),
+	//                 JSON_ARRAY()
+	//         )               as roles,
+	//
+	//         COALESCE(
+	//                 (SELECT JSON_ARRAYAGG(slug)
+	//                  FROM (SELECT slug
+	//                        FROM keys_permissions kp
+	//                                 JOIN permissions p ON kp.permission_id = p.id
+	//                        WHERE kp.key_id = k.id
+	//
+	//                        UNION ALL
+	//
+	//                        SELECT slug
+	//                        FROM keys_roles kr
+	//                                 JOIN roles_permissions rp ON kr.role_id = rp.role_id
+	//                                 JOIN permissions p ON rp.permission_id = p.id
+	//                        WHERE kr.key_id = k.id) as combined_perms),
+	//                 JSON_ARRAY()
+	//         )               as permissions,
+	//
+	//         coalesce(
+	//                 (select json_arrayagg(
+	//                      json_object(
+	//                         'id', rl.id,
+	//                         'name', rl.name,
+	//                         'key_id', rl.key_id,
+	//                         'identity_id', rl.identity_id,
+	//                         'limit', rl.limit,
+	//                         'duration', rl.duration,
+	//                         'auto_apply', rl.auto_apply
+	//                      )
+	//                  )
+	//                  from `ratelimits` rl
+	//                  where rl.key_id = k.id
+	//                     OR rl.identity_id = i.id),
+	//                 json_array()
+	//         ) as ratelimits,
+	//
+	//         i.id as identity_id,
+	//         i.external_id,
+	//         i.meta          as identity_meta,
+	//         ka.deleted_at_m as key_auth_deleted_at_m,
+	//         ws.enabled      as workspace_enabled,
+	//         fws.enabled     as for_workspace_enabled
+	//  from `keys` k
+	//           JOIN apis a USING (key_auth_id)
+	//           JOIN key_auth ka ON ka.id = k.key_auth_id
+	//           JOIN workspaces ws ON ws.id = k.workspace_id
+	//           LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
+	//           LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = 0
+	//  where k.hash = ?
+	//    and k.deleted_at_m is null
 	FindKeyForVerification(ctx context.Context, db DBTX, hash string) (FindKeyForVerificationRow, error)
 	//FindKeyRoleByKeyAndRoleID
 	//
@@ -170,9 +270,30 @@ type Querier interface {
 	FindKeyRoleByKeyAndRoleID(ctx context.Context, db DBTX, arg FindKeyRoleByKeyAndRoleIDParams) ([]KeysRole, error)
 	//FindKeyringByID
 	//
-	//  SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth`
-	//  WHERE id = ?
+	//  SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth` WHERE id = ?
 	FindKeyringByID(ctx context.Context, db DBTX, id string) (KeyAuth, error)
+	//FindLatestBuildByVersionId
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      version_id,
+	//      rootfs_image_id,
+	//      git_commit_sha,
+	//      git_branch,
+	//      status,
+	//      build_tool,
+	//      error_message,
+	//      started_at,
+	//      completed_at,
+	//      created_at,
+	//      updated_at
+	//  FROM `builds`
+	//  WHERE version_id = ?
+	//  ORDER BY created_at DESC
+	//  LIMIT 1
+	FindLatestBuildByVersionId(ctx context.Context, db DBTX, versionID string) (Build, error)
 	// Finds a permission record by its ID
 	// Returns: The permission record if found
 	//
@@ -197,6 +318,63 @@ type Querier interface {
 	//  AND workspace_id = ?
 	//  LIMIT 1
 	FindPermissionBySlugAndWorkspaceID(ctx context.Context, db DBTX, arg FindPermissionBySlugAndWorkspaceIDParams) (Permission, error)
+	//FindPermissionsBySlugs
+	//
+	//  SELECT id, slug FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
+	FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindPermissionsBySlugsParams) ([]FindPermissionsBySlugsRow, error)
+	//FindProjectById
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      partition_id,
+	//      name,
+	//      slug,
+	//      git_repository_url,
+	//      default_branch,
+	//      delete_protection,
+	//      created_at,
+	//      updated_at
+	//  FROM projects
+	//  WHERE id = ?
+	FindProjectById(ctx context.Context, db DBTX, id string) (Project, error)
+	//FindProjectByWorkspaceSlug
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      partition_id,
+	//      name,
+	//      slug,
+	//      git_repository_url,
+	//      default_branch,
+	//      delete_protection,
+	//      created_at,
+	//      updated_at
+	//  FROM projects
+	//  WHERE workspace_id = ? AND slug = ?
+	FindProjectByWorkspaceSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceSlugParams) (Project, error)
+	//FindRatelimitNamespace
+	//
+	//  SELECT id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,
+	//         coalesce(
+	//                 (select json_arrayagg(
+	//                                 json_object(
+	//                                         'id', ro.id,
+	//                                         'identifier', ro.identifier,
+	//                                         'limit', ro.limit,
+	//                                         'duration', ro.duration
+	//                                 )
+	//                         )
+	//                  from ratelimit_overrides ro where ro.namespace_id = ns.id AND ro.deleted_at_m IS NULL),
+	//                 json_array()
+	//         ) as overrides
+	//  FROM `ratelimit_namespaces` ns
+	//  WHERE ns.workspace_id = ?
+	//  AND CASE WHEN ? IS NOT NULL THEN ns.name = ?
+	//  WHEN ? IS NOT NULL THEN ns.id = ?
+	//  ELSE false END
+	FindRatelimitNamespace(ctx context.Context, db DBTX, arg FindRatelimitNamespaceParams) (FindRatelimitNamespaceRow, error)
 	//FindRatelimitNamespaceByID
 	//
 	//  SELECT id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m FROM `ratelimit_namespaces`
@@ -247,9 +425,43 @@ type Querier interface {
 	//  WHERE role_id = ?
 	//    AND permission_id = ?
 	FindRolePermissionByRoleAndPermissionID(ctx context.Context, db DBTX, arg FindRolePermissionByRoleAndPermissionIDParams) ([]RolesPermission, error)
+	//FindRolesByNames
+	//
+	//  SELECT id, name FROM roles WHERE workspace_id = ? AND name IN (/*SLICE:names*/?)
+	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
+	//FindVersionById
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      branch_id,
+	//      build_id,
+	//      rootfs_image_id,
+	//      git_commit_sha,
+	//      git_branch,
+	//      config_snapshot,
+	//      status,
+	//      created_at,
+	//      updated_at
+	//  FROM `versions`
+	//  WHERE id = ?
+	FindVersionById(ctx context.Context, db DBTX, id string) (Version, error)
+	//FindVersionStepsByVersionId
+	//
+	//  SELECT
+	//      version_id,
+	//      status,
+	//      message,
+	//      error_message,
+	//      created_at
+	//  FROM version_steps
+	//  WHERE version_id = ?
+	//  ORDER BY created_at ASC
+	FindVersionStepsByVersionId(ctx context.Context, db DBTX, versionID string) ([]VersionStep, error)
 	//FindWorkspaceByID
 	//
-	//  SELECT id, org_id, name, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  SELECT id, org_id, name, partition_id, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, db DBTX, id string) (Workspace, error)
 	//HardDeleteWorkspace
@@ -265,10 +477,12 @@ type Querier interface {
 	//      name,
 	//      workspace_id,
 	//      auth_type,
+	//      ip_whitelist,
 	//      key_auth_id,
 	//      created_at_m,
 	//      deleted_at_m
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -308,7 +522,7 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//      ?,
+	//      CAST(? AS JSON),
 	//      ?
 	//  )
 	InsertAuditLog(ctx context.Context, db DBTX, arg InsertAuditLogParams) error
@@ -334,10 +548,72 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//      ?,
+	//      CAST(? AS JSON),
 	//      ?
 	//  )
 	InsertAuditLogTarget(ctx context.Context, db DBTX, arg InsertAuditLogTargetParams) error
+	//InsertBranch
+	//
+	//  INSERT INTO branches (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      name,
+	//      created_at,
+	//      updated_at
+	//  ) VALUES (
+	//      ?, ?, ?, ?, ?, ?
+	//  )
+	InsertBranch(ctx context.Context, db DBTX, arg InsertBranchParams) error
+	//InsertBuild
+	//
+	//  INSERT INTO builds (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      version_id,
+	//      rootfs_image_id,
+	//      git_commit_sha,
+	//      git_branch,
+	//      status,
+	//      build_tool,
+	//      error_message,
+	//      started_at,
+	//      completed_at,
+	//      created_at,
+	//      updated_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      NULL,
+	//      NULL,
+	//      NULL,
+	//      'pending',
+	//      'docker',
+	//      NULL,
+	//      NULL,
+	//      NULL,
+	//      ?,
+	//      NULL
+	//  )
+	InsertBuild(ctx context.Context, db DBTX, arg InsertBuildParams) error
+	//InsertHostnameRoute
+	//
+	//  INSERT INTO hostname_routes (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      hostname,
+	//      version_id,
+	//      is_enabled,
+	//      created_at,
+	//      updated_at
+	//  ) VALUES (
+	//      ?, ?, ?, ?, ?, ?, ?, ?
+	//  )
+	InsertHostnameRoute(ctx context.Context, db DBTX, arg InsertHostnameRouteParams) error
 	//InsertIdentity
 	//
 	//  INSERT INTO `identities` (
@@ -353,7 +629,7 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//      ?
+	//      CAST(? AS JSON)
 	//  )
 	InsertIdentity(ctx context.Context, db DBTX, arg InsertIdentityParams) error
 	//InsertIdentityRatelimit
@@ -365,8 +641,10 @@ type Querier interface {
 	//      name,
 	//      `limit`,
 	//      duration,
-	//      created_at
+	//      created_at,
+	//      auto_apply
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -393,10 +671,8 @@ type Querier interface {
 	//      created_at_m,
 	//      enabled,
 	//      remaining_requests,
-	//      ratelimit_async,
-	//      ratelimit_limit,
-	//      ratelimit_duration,
-	//      environment
+	//      refill_day,
+	//      refill_amount
 	//  ) VALUES (
 	//      ?,
 	//      ?,
@@ -413,11 +689,15 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//      ?,
-	//      ?,
 	//      ?
 	//  )
 	InsertKey(ctx context.Context, db DBTX, arg InsertKeyParams) error
+	//InsertKeyEncryption
+	//
+	//  INSERT INTO encrypted_keys
+	//  (workspace_id, key_id, encrypted, encryption_key_id, created_at)
+	//  VALUES (?, ?, ?, ?, ?)
+	InsertKeyEncryption(ctx context.Context, db DBTX, arg InsertKeyEncryptionParams) error
 	//InsertKeyPermission
 	//
 	//  INSERT INTO `keys_permissions` (
@@ -441,8 +721,10 @@ type Querier interface {
 	//      name,
 	//      `limit`,
 	//      duration,
+	//      auto_apply,
 	//      created_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -508,6 +790,23 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertPermission(ctx context.Context, db DBTX, arg InsertPermissionParams) error
+	//InsertProject
+	//
+	//  INSERT INTO projects (
+	//      id,
+	//      workspace_id,
+	//      partition_id,
+	//      name,
+	//      slug,
+	//      git_repository_url,
+	//      default_branch,
+	//      delete_protection,
+	//      created_at,
+	//      updated_at
+	//  ) VALUES (
+	//      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+	//  )
+	InsertProject(ctx context.Context, db DBTX, arg InsertProjectParams) error
 	//InsertRatelimitNamespace
 	//
 	//  INSERT INTO
@@ -586,6 +885,53 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertRolePermission(ctx context.Context, db DBTX, arg InsertRolePermissionParams) error
+	//InsertVersion
+	//
+	//  INSERT INTO `versions` (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      branch_id,
+	//      build_id,
+	//      rootfs_image_id,
+	//      git_commit_sha,
+	//      git_branch,
+	//      config_snapshot,
+	//      status,
+	//      created_at,
+	//      updated_at
+	//  )
+	//  VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertVersion(ctx context.Context, db DBTX, arg InsertVersionParams) error
+	//InsertVersionStep
+	//
+	//  INSERT INTO version_steps (
+	//      version_id,
+	//      status,
+	//      message,
+	//      error_message,
+	//      created_at
+	//  ) VALUES (
+	//      ?, ?, ?, ?, ?
+	//  )
+	//  ON DUPLICATE KEY UPDATE
+	//      message = VALUES(message),
+	//      error_message = VALUES(error_message),
+	//      created_at = VALUES(created_at)
+	InsertVersionStep(ctx context.Context, db DBTX, arg InsertVersionStepParams) error
 	//InsertWorkspace
 	//
 	//  INSERT INTO `workspaces` (
@@ -631,15 +977,19 @@ type Querier interface {
 	ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]Identity, error)
 	//ListIdentityRatelimits
 	//
-	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration
+	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply
 	//  FROM ratelimits
 	//  WHERE identity_id = ?
 	//  ORDER BY id ASC
 	ListIdentityRatelimits(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error)
 	//ListIdentityRatelimitsByID
 	//
-	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration FROM ratelimits WHERE identity_id = ?
+	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply FROM ratelimits WHERE identity_id = ?
 	ListIdentityRatelimitsByID(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error)
+	//ListIdentityRatelimitsByIDs
+	//
+	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply FROM ratelimits WHERE identity_id IN (/*SLICE:ids*/?)
+	ListIdentityRatelimitsByIDs(ctx context.Context, db DBTX, ids []sql.NullString) ([]Ratelimit, error)
 	//ListKeysByKeyAuthID
 	//
 	//  SELECT
@@ -699,18 +1049,6 @@ type Querier interface {
 	//  WHERE rp.role_id = ?
 	//  ORDER BY p.slug
 	ListPermissionsByRoleID(ctx context.Context, db DBTX, roleID string) ([]Permission, error)
-	//ListRatelimitOverrideMatches
-	//
-	//  SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
-	//  WHERE
-	//      workspace_id = ?
-	//      AND namespace_id = ?
-	//      AND ? LIKE
-	//            REPLACE(
-	//              REPLACE(identifier, '*', '%'), -- Replace * with % wildcard
-	//              '_', '\\_'                              -- Escape underscore literals
-	//            )
-	ListRatelimitOverrideMatches(ctx context.Context, db DBTX, arg ListRatelimitOverrideMatchesParams) ([]RatelimitOverride, error)
 	//ListRatelimitOverridesByNamespaceID
 	//
 	//  SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
@@ -718,6 +1056,17 @@ type Querier interface {
 	//      workspace_id = ?
 	//      AND namespace_id = ?
 	ListRatelimitOverridesByNamespaceID(ctx context.Context, db DBTX, arg ListRatelimitOverridesByNamespaceIDParams) ([]RatelimitOverride, error)
+	//ListRatelimitsByKeyID
+	//
+	//  SELECT
+	//    id,
+	//    name,
+	//    `limit`,
+	//    duration,
+	//    auto_apply
+	//  FROM ratelimits
+	//  WHERE key_id = ?
+	ListRatelimitsByKeyID(ctx context.Context, db DBTX, keyID sql.NullString) ([]ListRatelimitsByKeyIDRow, error)
 	//ListRatelimitsByKeyIDs
 	//
 	//  SELECT
@@ -725,7 +1074,8 @@ type Querier interface {
 	//    key_id,
 	//    name,
 	//    `limit`,
-	//    duration
+	//    duration,
+	//    auto_apply
 	//  FROM ratelimits
 	//  WHERE key_id IN (/*SLICE:key_ids*/?)
 	//  ORDER BY key_id, id
@@ -750,7 +1100,7 @@ type Querier interface {
 	//ListWorkspaces
 	//
 	//  SELECT
-	//     w.id, w.org_id, w.name, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
+	//     w.id, w.org_id, w.name, w.partition_id, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
 	//     q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team
 	//  FROM `workspaces` w
 	//  LEFT JOIN quota q ON w.id = q.workspace_id
@@ -768,6 +1118,10 @@ type Querier interface {
 	//
 	//  UPDATE identities set deleted = 1 WHERE id = ?
 	SoftDeleteIdentity(ctx context.Context, db DBTX, id string) error
+	//SoftDeleteKeyByID
+	//
+	//  UPDATE `keys` SET deleted_at_m = ? WHERE id = ?
+	SoftDeleteKeyByID(ctx context.Context, db DBTX, arg SoftDeleteKeyByIDParams) error
 	//SoftDeleteManyKeysByKeyAuthID
 	//
 	//  UPDATE `keys`
@@ -802,15 +1156,59 @@ type Querier interface {
 	//  SET delete_protection = ?
 	//  WHERE id = ?
 	UpdateApiDeleteProtection(ctx context.Context, db DBTX, arg UpdateApiDeleteProtectionParams) error
+	//UpdateBuildFailed
+	//
+	//  UPDATE builds SET
+	//      status = 'failed',
+	//      completed_at = ?,
+	//      error_message = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdateBuildFailed(ctx context.Context, db DBTX, arg UpdateBuildFailedParams) error
+	//UpdateBuildStatus
+	//
+	//  UPDATE builds SET
+	//      status = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdateBuildStatus(ctx context.Context, db DBTX, arg UpdateBuildStatusParams) error
+	//UpdateBuildSucceeded
+	//
+	//  UPDATE builds SET
+	//      status = 'succeeded',
+	//      completed_at = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdateBuildSucceeded(ctx context.Context, db DBTX, arg UpdateBuildSucceededParams) error
 	//UpdateIdentity
 	//
 	//  UPDATE `identities`
 	//  SET
-	//      meta = ?,
+	//      meta = CAST(? AS JSON),
 	//      updated_at = NOW()
 	//  WHERE
 	//      id = ?
 	UpdateIdentity(ctx context.Context, db DBTX, arg UpdateIdentityParams) error
+	//UpdateKeyCredits
+	//
+	//  UPDATE `keys`
+	//  SET remaining_requests =
+	//  CASE
+	//      WHEN ? = 'set' THEN ?
+	//      WHEN ? = 'increment' THEN remaining_requests + ?
+	//      WHEN ? = 'decrement' AND remaining_requests - ? > 0 THEN remaining_requests - ?
+	//      WHEN ? = 'decrement' AND remaining_requests - ? <= 0 THEN 0
+	//  END
+	//  WHERE id = ?
+	UpdateKeyCredits(ctx context.Context, db DBTX, arg UpdateKeyCreditsParams) error
+	//UpdateKeyCreditsRefill
+	//
+	//  UPDATE `keys` SET refill_amount = ?, refill_day = ? WHERE id = ?
+	UpdateKeyCreditsRefill(ctx context.Context, db DBTX, arg UpdateKeyCreditsRefillParams) error
+	//UpdateKeyringKeyEncryption
+	//
+	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?
+	UpdateKeyringKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeyringKeyEncryptionParams) error
 	//UpdateRatelimit
 	//
 	//  UPDATE `ratelimits`
@@ -818,6 +1216,7 @@ type Querier interface {
 	//      name = ?,
 	//      `limit` = ?,
 	//      duration = ?,
+	//      auto_apply = ?,
 	//      updated_at = NOW()
 	//  WHERE
 	//      id = ?
@@ -832,6 +1231,13 @@ type Querier interface {
 	//      updated_at_m= ?
 	//  WHERE id = ?
 	UpdateRatelimitOverride(ctx context.Context, db DBTX, arg UpdateRatelimitOverrideParams) (sql.Result, error)
+	//UpdateVersionStatus
+	//
+	//  UPDATE versions SET
+	//      status = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdateVersionStatus(ctx context.Context, db DBTX, arg UpdateVersionStatusParams) error
 	//UpdateWorkspaceEnabled
 	//
 	//  UPDATE `workspaces`
@@ -844,6 +1250,20 @@ type Querier interface {
 	//  SET plan = ?
 	//  WHERE id = ?
 	UpdateWorkspacePlan(ctx context.Context, db DBTX, arg UpdateWorkspacePlanParams) (sql.Result, error)
+	//UpsertBranch
+	//
+	//  INSERT INTO branches (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      name,
+	//      created_at,
+	//      updated_at
+	//  ) VALUES (
+	//      ?, ?, ?, ?, ?, ?
+	//  ) ON DUPLICATE KEY UPDATE
+	//      updated_at = VALUES(updated_at)
+	UpsertBranch(ctx context.Context, db DBTX, arg UpsertBranchParams) error
 }
 
 var _ Querier = (*Queries)(nil)

@@ -7,7 +7,11 @@ import { Controller, useFieldArray, useFormContext, useWatch } from "react-hook-
 import type { RatelimitFormValues, RatelimitItem } from "../create-key.schema";
 import { ProtectionSwitch } from "./protection-switch";
 
-export const RatelimitSetup = () => {
+export const RatelimitSetup = ({
+  overrideEnabled = false,
+}: {
+  overrideEnabled?: boolean;
+}) => {
   const {
     register,
     formState: { errors },
@@ -56,15 +60,17 @@ export const RatelimitSetup = () => {
 
   return (
     <div className="space-y-5 px-2 py-1">
-      <ProtectionSwitch
-        description="Turn on to restrict how frequently this key can be used. Requests
+      {!overrideEnabled && (
+        <ProtectionSwitch
+          description="Turn on to restrict how frequently this key can be used. Requests
             beyond the limit will be blocked."
-        title="Ratelimit"
-        icon={<Gauge className="text-gray-12" size="sm-regular" />}
-        checked={ratelimitEnabled}
-        onCheckedChange={handleSwitchChange}
-        {...register("ratelimit.enabled")}
-      />
+          title="Ratelimit"
+          icon={<Gauge className="text-gray-12" size="sm-regular" />}
+          checked={ratelimitEnabled}
+          onCheckedChange={handleSwitchChange}
+          {...register("ratelimit.enabled")}
+        />
+      )}
 
       <div className="flex w-full justify-between items-center px-1">
         <div className="flex gap-2 items-center">
@@ -166,7 +172,8 @@ export const RatelimitSetup = () => {
                       This rate limit rule will always be used.{" "}
                       <InlineLink
                         label="Learn more"
-                        target
+                        target="_blank"
+                        rel="noopener noreferrer"
                         href="https://unkey.com/docs/apis/features/ratelimiting/overview#auto-apply-vs-manual-ratelimits"
                       />
                       .

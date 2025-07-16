@@ -1,5 +1,5 @@
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { toast } from "@unkey/ui";
 
 export const useUpsertPermission = (
   onSuccess: (data: {
@@ -12,6 +12,7 @@ export const useUpsertPermission = (
   const permission = trpc.authorization.permissions.upsert.useMutation({
     onSuccess(data) {
       trpcUtils.authorization.permissions.invalidate();
+      trpcUtils.authorization.roles.invalidate();
       // Show success toast
       toast.success(data.isUpdate ? "Permission Updated" : "Permission Created", {
         description: data.message,

@@ -8,7 +8,6 @@ import (
 // BindBody binds the request body to the given struct.
 // If it fails, an error is returned, that you can directly return from your handler.
 func BindBody[T any](s *Session) (T, error) {
-
 	// nolint:exhaustruct
 	var req T
 	err := s.BindBody(&req)
@@ -20,5 +19,4 @@ func BindBody[T any](s *Session) (T, error) {
 	}
 
 	return req, nil
-
 }

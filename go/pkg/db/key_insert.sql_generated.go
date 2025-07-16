@@ -26,10 +26,8 @@ INSERT INTO ` + "`" + `keys` + "`" + ` (
     created_at_m,
     enabled,
     remaining_requests,
-    ratelimit_async,
-    ratelimit_limit,
-    ratelimit_duration,
-    environment
+    refill_day,
+    refill_amount
 ) VALUES (
     ?,
     ?,
@@ -39,8 +37,6 @@ INSERT INTO ` + "`" + `keys` + "`" + ` (
     ?,
     ?,
     null,
-    ?,
-    ?,
     ?,
     ?,
     ?,
@@ -66,10 +62,8 @@ type InsertKeyParams struct {
 	CreatedAtM        int64          `db:"created_at_m"`
 	Enabled           bool           `db:"enabled"`
 	RemainingRequests sql.NullInt32  `db:"remaining_requests"`
-	RatelimitAsync    sql.NullBool   `db:"ratelimit_async"`
-	RatelimitLimit    sql.NullInt32  `db:"ratelimit_limit"`
-	RatelimitDuration sql.NullInt64  `db:"ratelimit_duration"`
-	Environment       sql.NullString `db:"environment"`
+	RefillDay         sql.NullInt16  `db:"refill_day"`
+	RefillAmount      sql.NullInt32  `db:"refill_amount"`
 }
 
 // InsertKey
@@ -89,10 +83,8 @@ type InsertKeyParams struct {
 //	    created_at_m,
 //	    enabled,
 //	    remaining_requests,
-//	    ratelimit_async,
-//	    ratelimit_limit,
-//	    ratelimit_duration,
-//	    environment
+//	    refill_day,
+//	    refill_amount
 //	) VALUES (
 //	    ?,
 //	    ?,
@@ -102,8 +94,6 @@ type InsertKeyParams struct {
 //	    ?,
 //	    ?,
 //	    null,
-//	    ?,
-//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -128,10 +118,8 @@ func (q *Queries) InsertKey(ctx context.Context, db DBTX, arg InsertKeyParams) e
 		arg.CreatedAtM,
 		arg.Enabled,
 		arg.RemainingRequests,
-		arg.RatelimitAsync,
-		arg.RatelimitLimit,
-		arg.RatelimitDuration,
-		arg.Environment,
+		arg.RefillDay,
+		arg.RefillAmount,
 	)
 	return err
 }

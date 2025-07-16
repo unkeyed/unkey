@@ -18,10 +18,9 @@ import type React from "react";
 import { useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { toast } from "@/components/ui/toaster";
 import { setSessionCookie } from "@/lib/auth/cookies";
 import { trpc } from "@/lib/trpc/client";
-import { Loading } from "@unkey/ui";
+import { Loading, toast } from "@unkey/ui";
 
 export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
   const { data: user } = trpc.user.getCurrentUser.useQuery();
@@ -36,24 +35,34 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
   // const { switchOrganization } = useUser();
   // const { organization: currentOrg } = useOrganization();
   const [isLoading, setLoading] = useState(false);
-  const userMemberships = memberships!.data;
+  if (!memberships?.data) {
+    console.error("Memberships data is not available");
+    return <div>Unable to load workspace data</div>; // or appropriate fallback UI
+  }
 
+  const userMemberships = memberships.data;
   const currentOrg = userMemberships.find(
     (membership) => membership.organization.id === user?.orgId,
   );
 
   const changeWorkspace = trpc.user.switchOrg.useMutation({
     async onSuccess(sessionData) {
-      const { token, expiresAt } = sessionData;
-      await setSessionCookie({
-        token: token!,
-        expiresAt: expiresAt!,
-      });
+      if (!sessionData.token || !sessionData.expiresAt) {
+        console.error("Invalid session data received:", sessionData);
+        toast.error("Failed to switch workspace. Invalid session data.");
+        return;
+      }
 
-      // refresh the check mark by invalidating the current user's org data
-      utils.user.getCurrentUser.invalidate();
-
-      //router.replace('/');
+      try {
+        await setSessionCookie({
+          token: sessionData.token,
+          expiresAt: sessionData.expiresAt,
+        });
+        utils.user.getCurrentUser.invalidate();
+      } catch (error) {
+        console.error("Failed to set session cookie:", error);
+        toast.error("Failed to complete workspace switch. Please try again.");
+      }
     },
     onError(error) {
       console.error("Failed to switch workspace: ", error);

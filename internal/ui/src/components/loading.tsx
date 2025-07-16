@@ -11,7 +11,7 @@ interface LoadingProps extends SVGProps<SVGSVGElement> {
   type?: "spinner" | "dots";
 }
 
-export function Loading({
+function Loading({
   size,
   duration,
   className,
@@ -86,3 +86,7 @@ const convertDurationToMS = (duration: string): number => {
 
   throw new Error(`Invalid duration format: "${duration}". Expected 'ms' or 's' suffix.`);
 };
+
+Loading.displayName = "Loading";
+
+export { Loading };

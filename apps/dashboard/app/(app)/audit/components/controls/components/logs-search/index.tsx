@@ -1,7 +1,5 @@
-import { LogsLLMSearch } from "@/components/logs/llm-search";
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { transformStructuredOutputToFilters } from "@unkey/ui";
+import { LLMSearch, toast, transformStructuredOutputToFilters } from "@unkey/ui";
 import { useFilters } from "../../../../hooks/use-filters";
 
 export const LogsSearch = () => {
@@ -41,7 +39,7 @@ export const LogsSearch = () => {
   });
 
   return (
-    <LogsLLMSearch
+    <LLMSearch
       exampleQueries={[
         "Show keys created in the last 3h",
         "Show all ratelimit events",

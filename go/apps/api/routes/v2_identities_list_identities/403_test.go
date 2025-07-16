@@ -18,10 +18,9 @@ import (
 func TestForbidden(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
-		Logger:      h.Logger,
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Permissions: h.Permissions,
+		Logger: h.Logger,
+		DB:     h.DB,
+		Keys:   h.Keys,
 	}
 
 	// Create a rootKey without any permissions
@@ -47,6 +46,7 @@ func TestForbidden(t *testing.T) {
 		WorkspaceID: workspaceID,
 		Environment: "default",
 		CreatedAt:   time.Now().UnixMilli(),
+		Meta:        []byte("{}"),
 	})
 	require.NoError(t, err)
 
@@ -58,6 +58,7 @@ func TestForbidden(t *testing.T) {
 		WorkspaceID: workspaceID,
 		Environment: "production",
 		CreatedAt:   time.Now().UnixMilli(),
+		Meta:        []byte("{}"),
 	})
 	require.NoError(t, err)
 
@@ -69,6 +70,7 @@ func TestForbidden(t *testing.T) {
 		WorkspaceID: workspaceID,
 		Environment: "staging",
 		CreatedAt:   time.Now().UnixMilli(),
+		Meta:        []byte("{}"),
 	})
 	require.NoError(t, err)
 
@@ -107,7 +109,7 @@ func TestForbidden(t *testing.T) {
 		foundProd := false
 		for _, identity := range res.Body.Data {
 			// Should be able to see production identity
-			if identity.Id == prodIdentityID {
+			if identity.ExternalId == "test_user_prod" {
 				foundProd = true
 			}
 		}
@@ -139,13 +141,13 @@ func TestForbidden(t *testing.T) {
 		foundStaging := false
 
 		for _, identity := range res.Body.Data {
-			if identity.Id == defaultIdentityID {
+			if identity.ExternalId == "test_user_default" {
 				foundDefault = true
 			}
-			if identity.Id == prodIdentityID {
+			if identity.ExternalId == "test_user_prod" {
 				foundProd = true
 			}
-			if identity.Id == stagingIdentityID {
+			if identity.ExternalId == "test_user_staging" {
 				foundStaging = true
 			}
 		}

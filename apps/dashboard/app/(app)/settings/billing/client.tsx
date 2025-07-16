@@ -3,11 +3,10 @@ import type { Workspace } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
-import { Button, Empty, SettingCard } from "@unkey/ui";
+import { Button, Empty, SettingCard, toast } from "@unkey/ui";
 import ms from "ms";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import type Stripe from "stripe";
 import { WorkspaceNavbar } from "../workspace-navbar";
 import { Confirm } from "./components/confirmation";
@@ -79,12 +78,16 @@ const Mutations = () => {
     },
   });
 
-  return { createSubscription, updateSubscription, cancelSubscription, uncancelSubscription };
+  return {
+    createSubscription,
+    updateSubscription,
+    cancelSubscription,
+    uncancelSubscription,
+  };
 };
 
 export const Client: React.FC<Props> = (props) => {
   const mutations = Mutations();
-
   const allowUpdate =
     props.subscription && ["active", "trialing"].includes(props.subscription.status);
   const allowCancel =
@@ -155,12 +158,21 @@ export const Client: React.FC<Props> = (props) => {
                         } updates your request quota to ${formatNumber(
                           p.quotas.requestsPerMonth,
                         )} per month immediately.`}
-                        onConfirm={async () =>
+                        onConfirm={async () => {
+                          if (!props.currentProductId) {
+                            console.error(
+                              "Cannot update subscription: currentProductId is missing",
+                            );
+                            toast.error(
+                              "Unable to update subscription. Please refresh and try again.",
+                            );
+                            return;
+                          }
                           mutations.updateSubscription.mutateAsync({
-                            oldProductId: props.currentProductId!,
+                            oldProductId: props.currentProductId,
                             newProductId: p.id,
-                          })
-                        }
+                          });
+                        }}
                         trigger={(onClick) => (
                           <Button variant="outline" disabled={isSelected} onClick={onClick}>
                             Change
@@ -176,7 +188,9 @@ export const Client: React.FC<Props> = (props) => {
                           p.quotas.requestsPerMonth,
                         )} per month immediately.`}
                         onConfirm={() =>
-                          mutations.createSubscription.mutateAsync({ productId: p.id })
+                          mutations.createSubscription.mutateAsync({
+                            productId: p.id,
+                          })
                         }
                         fineprint={
                           props.hasPreviousSubscriptions
@@ -302,9 +316,10 @@ const CancelAlert: React.FC<{ cancelAt?: number }> = (props) => {
     </SettingCard>
   );
 };
-const SusbcriptionStatus: React.FC<{ status: Stripe.Subscription.Status; trialUntil?: number }> = (
-  props,
-) => {
+const SusbcriptionStatus: React.FC<{
+  status: Stripe.Subscription.Status;
+  trialUntil?: number;
+}> = (props) => {
   switch (props.status) {
     case "active":
       return null;

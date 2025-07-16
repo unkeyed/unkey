@@ -1,6 +1,5 @@
 "use client";
 
-import { toast } from "@/components/ui/toaster";
 import type { AuthenticatedUser, Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,6 +13,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  toast,
 } from "@unkey/ui";
 import type React from "react";
 import { useState } from "react";
@@ -53,7 +53,9 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
       utils.org.invitations.list.invalidate();
 
       toast.success(
-        `We have sent an email to ${getValues("email")} with instructions on how to join your workspace.`,
+        `We have sent an email to ${getValues(
+          "email",
+        )} with instructions on how to join your workspace.`,
       );
       setDialogOpen(false);
     },
@@ -63,16 +65,27 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
   });
 
   // If user or organization isn't available yet, return null or a loading state
-  if (!user!.orgId || !organization) {
+  if (!user.orgId || !organization) {
     return null;
   }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    await createInvitation.mutateAsync({
-      email: values.email,
-      role: values.role,
-      orgId: user!.orgId!,
-    });
+    if (!user?.orgId) {
+      console.error("Cannot create invitation: user.orgId is missing");
+      toast.error("Unable to create invitation. Please refresh and try again.");
+      return;
+    }
+
+    try {
+      await createInvitation.mutateAsync({
+        email: values.email,
+        role: values.role,
+        orgId: user.orgId,
+      });
+    } catch (error) {
+      console.error("Failed to create invitation:", error);
+      toast.error("Failed to create invitation. Please try again.");
+    }
   }
 
   return (

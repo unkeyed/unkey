@@ -2,12 +2,16 @@ package hydra
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"reflect"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/hydra/metrics"
-	"github.com/unkeyed/unkey/go/pkg/ptr"
+	"github.com/unkeyed/unkey/go/pkg/hydra/store"
+	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
+	"github.com/unkeyed/unkey/go/pkg/uid"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // Step executes a named step within a workflow with automatic checkpointing and retry logic.
@@ -68,10 +72,26 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 		return zero, fmt.Errorf("invalid workflow context")
 	}
 
-	existing, err := wctx.getCompletedStep(stepName)
-	if err == nil && existing != nil {
+	// Start tracing span for this step
+	stepCtx, span := tracing.Start(wctx.ctx, fmt.Sprintf("hydra.step.%s", stepName))
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("hydra.step.name", stepName),
+		attribute.String("hydra.workflow.name", wctx.workflowName),
+		attribute.String("hydra.execution.id", wctx.executionID),
+		attribute.String("hydra.namespace", wctx.namespace),
+	)
+
+	existing, err := store.Query.GetCompletedStep(wctx.ctx, wctx.db, store.GetCompletedStepParams{
+		Namespace:   wctx.namespace,
+		ExecutionID: wctx.ExecutionID(),
+		StepName:    stepName,
+	})
+	if err == nil {
 		// Record cached step hit
 		metrics.StepsCachedTotal.WithLabelValues(wctx.namespace, wctx.workflowName, stepName).Inc()
+		span.SetAttributes(attribute.Bool("hydra.step.cached", true))
 
 		responseType := reflect.TypeOf((*TResponse)(nil)).Elem()
 		var response TResponse
@@ -81,7 +101,9 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 			var ok bool
 			response, ok = responseValue.Interface().(TResponse)
 			if !ok {
-				return zero, fmt.Errorf("failed to convert response to expected type")
+				conversionErr := fmt.Errorf("failed to convert response to expected type")
+				tracing.RecordError(span, conversionErr)
+				return zero, conversionErr
 			}
 		}
 
@@ -89,6 +111,7 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 			err = wctx.marshaller.Unmarshal(existing.OutputData, &response)
 			if err != nil {
 				metrics.RecordError(wctx.namespace, "step", "unmarshal_cached_result_failed")
+				tracing.RecordError(span, err)
 				return zero, fmt.Errorf("failed to unmarshal cached step result: %w", err)
 			}
 		}
@@ -96,58 +119,125 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 		return response, nil
 	}
 
-	existingStep, err := wctx.getAnyStep(stepName)
-	var stepToUse *WorkflowStep
-	shouldCreateNewStep := true
+	span.SetAttributes(attribute.Bool("hydra.step.cached", false))
 
-	if err == nil && existingStep != nil {
-		stepToUse = existingStep
-		shouldCreateNewStep = false
-	}
+	_, err = store.Query.GetStep(wctx.ctx, wctx.db, store.GetStepParams{
+		Namespace:   wctx.namespace,
+		ExecutionID: wctx.ExecutionID(),
+		StepName:    stepName,
+	})
+	var stepToUse *store.WorkflowStep
+	shouldCreateNewStep := err != nil // sql.ErrNoRows means step doesn't exist, so create new one
 
 	stepStartTime := time.Now()
 
 	if shouldCreateNewStep {
-		stepToUse = &WorkflowStep{
-			ID:                "",
-			ExecutionID:       wctx.ExecutionID(),
-			StepName:          stepName,
-			StepOrder:         wctx.getNextStepOrder(),
-			Status:            StepStatusRunning,
-			Namespace:         wctx.namespace,
-			StartedAt:         ptr.P(stepStartTime.UnixMilli()),
-			OutputData:        nil,
-			ErrorMessage:      "",
-			MaxAttempts:       wctx.stepMaxAttempts,
-			RemainingAttempts: wctx.stepMaxAttempts,
-			CompletedAt:       nil,
+		stepID := uid.New(uid.StepPrefix)
+
+		// Create step with lease validation - only if worker holds valid lease
+		now := time.Now().UnixMilli()
+		createResult, createErr := wctx.db.ExecContext(wctx.ctx, `
+			INSERT INTO workflow_steps (
+			    id, execution_id, step_name, status, output_data, error_message,
+			    started_at, completed_at, max_attempts, remaining_attempts, namespace
+			) 
+			SELECT ?, ?, ?, ?, ?, ?,
+			       ?, ?, ?, ?, ?
+			WHERE EXISTS (
+			    SELECT 1 FROM leases 
+			    WHERE resource_id = ? AND kind = 'workflow' 
+			    AND worker_id = ? AND expires_at > ?
+			)`,
+			stepID,
+			wctx.ExecutionID(),
+			stepName,
+			store.WorkflowStepsStatusRunning,
+			[]byte{},
+			sql.NullString{String: "", Valid: false},
+			sql.NullInt64{Int64: stepStartTime.UnixMilli(), Valid: true},
+			sql.NullInt64{Int64: 0, Valid: false},
+			wctx.stepMaxAttempts,
+			wctx.stepMaxAttempts,
+			wctx.namespace,
+			wctx.ExecutionID(), // resource_id for lease check
+			wctx.workerID,      // worker_id for lease check
+			now,                // expires_at check
+		)
+		if createErr != nil {
+			return zero, fmt.Errorf("failed to create step: %w", createErr)
 		}
 
-		err = wctx.store.CreateStep(wctx.ctx, stepToUse)
-		if err != nil {
-			metrics.RecordError(wctx.namespace, "step", "create_step_failed")
-			return zero, fmt.Errorf("failed to create step: %w", err)
+		// Check if the step creation actually happened (lease validation)
+		rowsAffected, rowsErr := createResult.RowsAffected()
+		if rowsErr != nil {
+			return zero, fmt.Errorf("failed to check step creation result: %w", rowsErr)
 		}
+		if rowsAffected == 0 {
+			return zero, fmt.Errorf("step creation failed: lease expired or invalid")
+		}
+
+		// Step created successfully
+		span.SetAttributes(attribute.Bool("hydra.step.new", true))
 	} else {
-		stepToUse.Status = StepStatusRunning
-		stepToUse.StartedAt = ptr.P(stepStartTime.UnixMilli())
-		stepToUse.ErrorMessage = ""
-		stepToUse.CompletedAt = nil
+		// Update existing step to running status with lease validation
+		now := time.Now().UnixMilli()
+		updateResult, updateErr := wctx.db.ExecContext(wctx.ctx, `
+			UPDATE workflow_steps 
+			SET status = ?, completed_at = ?, output_data = ?, error_message = ?
+			WHERE workflow_steps.namespace = ? AND execution_id = ? AND step_name = ?
+			  AND EXISTS (
+			    SELECT 1 FROM leases 
+			    WHERE resource_id = ? AND kind = 'workflow' 
+			    AND worker_id = ? AND expires_at > ?
+			  )`,
+			store.WorkflowStepsStatusRunning,
+			sql.NullInt64{Int64: 0, Valid: false},
+			[]byte{},
+			sql.NullString{String: "", Valid: false},
+			wctx.namespace,
+			wctx.ExecutionID(),
+			stepName,
+			wctx.ExecutionID(), // resource_id for lease check
+			wctx.workerID,      // worker_id for lease check
+			now,                // expires_at check
+		)
+		if updateErr != nil {
+			return zero, fmt.Errorf("failed to update step status: %w", updateErr)
+		}
 
-		err = wctx.store.UpdateStepStatus(wctx.ctx, wctx.namespace, wctx.executionID, stepName, StepStatusRunning, nil, "")
-		if err != nil {
-			metrics.RecordError(wctx.namespace, "step", "update_step_failed")
-			return zero, fmt.Errorf("failed to update step: %w", err)
+		// Check if the update actually happened (lease validation)
+		rowsAffected, rowsErr := updateResult.RowsAffected()
+		if rowsErr != nil {
+			return zero, fmt.Errorf("failed to check step update result: %w", rowsErr)
+		}
+		if rowsAffected == 0 {
+			return zero, fmt.Errorf("step update failed: lease expired or invalid")
+		}
+
+		// Get the step after successful update
+		stepResult, getErr := store.Query.GetStep(wctx.ctx, wctx.db, store.GetStepParams{
+			Namespace:   wctx.namespace,
+			ExecutionID: wctx.ExecutionID(),
+			StepName:    stepName,
+		})
+		stepToUse = &stepResult
+		if getErr != nil {
+			return zero, fmt.Errorf("failed to retrieve updated step: %w", getErr)
 		}
 
 		// Record step retry
 		if stepToUse.RemainingAttempts < stepToUse.MaxAttempts {
 			metrics.StepsRetriedTotal.WithLabelValues(wctx.namespace, wctx.workflowName, stepName).Inc()
+			span.SetAttributes(attribute.Bool("hydra.step.retry", true))
 		}
+		span.SetAttributes(attribute.Bool("hydra.step.new", false))
 	}
 
-	response, err := fn(wctx.ctx)
+	response, err := fn(stepCtx)
 	if err != nil {
+		tracing.RecordError(span, err)
+		span.SetAttributes(attribute.String("hydra.step.status", "failed"))
+
 		if markErr := wctx.markStepFailed(stepName, err.Error()); markErr != nil {
 			metrics.RecordError(wctx.namespace, "step", "mark_step_failed_error")
 		}
@@ -158,6 +248,9 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 
 	respData, err := wctx.marshaller.Marshal(response)
 	if err != nil {
+		tracing.RecordError(span, err)
+		span.SetAttributes(attribute.String("hydra.step.status", "failed"))
+
 		if markErr := wctx.markStepFailed(stepName, err.Error()); markErr != nil {
 			metrics.RecordError(wctx.namespace, "step", "mark_step_failed_error")
 		}
@@ -169,12 +262,49 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 
 	err = wctx.markStepCompleted(stepName, respData)
 	if err != nil {
+		tracing.RecordError(span, err)
+		span.SetAttributes(attribute.String("hydra.step.status", "failed"))
 		metrics.RecordError(wctx.namespace, "step", "mark_completed_failed")
 		return zero, fmt.Errorf("failed to mark step completed: %w", err)
 	}
 
+	span.SetAttributes(attribute.String("hydra.step.status", "completed"))
 	metrics.ObserveStepDuration(wctx.namespace, wctx.workflowName, stepName, "completed", stepStartTime)
 	metrics.StepsExecutedTotal.WithLabelValues(wctx.namespace, wctx.workflowName, stepName, "completed").Inc()
 
 	return response, nil
+}
+
+// StepVoid executes a named step within a workflow that performs side effects but doesn't return a value.
+//
+// This is a convenience wrapper around Step for functions that only return an error.
+// It's perfect for steps that perform database updates, send notifications, or other
+// side effects where the result itself isn't needed by subsequent steps.
+//
+// Parameters:
+// - ctx: The workflow context from the workflow's Run() method
+// - stepName: A unique name for this step within the workflow
+// - fn: The function to execute, which should be idempotent and only return an error
+//
+// Example usage:
+//
+//	// Database update step
+//	err := hydra.StepVoid(ctx, "update-user-status", func(stepCtx context.Context) error {
+//	    return userService.UpdateStatus(stepCtx, userID, "active")
+//	})
+//
+//	// Notification step
+//	err := hydra.StepVoid(ctx, "send-email", func(stepCtx context.Context) error {
+//	    return emailService.SendWelcomeEmail(stepCtx, userEmail)
+//	})
+//
+// Returns only an error if the step execution fails.
+func StepVoid(ctx WorkflowContext, stepName string, fn func(context.Context) error) error {
+	_, err := Step(ctx, stepName, func(stepCtx context.Context) (*struct{}, error) {
+		if err := fn(stepCtx); err != nil {
+			return nil, err
+		}
+		return &struct{}{}, nil
+	})
+	return err
 }

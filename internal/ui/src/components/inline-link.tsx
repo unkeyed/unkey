@@ -2,7 +2,7 @@
 import * as React from "react";
 import { cn } from "../lib/utils";
 
-type InlineLinkProps = {
+export interface InlineLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
   /**
    * The URL to link to.
    */
@@ -24,28 +24,17 @@ type InlineLinkProps = {
    * Additional CSS classes to apply to the link.
    */
   className?: string;
-  /**
-   * Whether to open the link in a new tab.
-   */
-  target?: boolean;
-};
-export const InlineLink: React.FC<InlineLinkProps> = ({
+}
+const InlineLink: React.FC<InlineLinkProps> = ({
   className,
   label,
   href,
   icon,
   iconPosition = "right",
-  target,
   ...props
 }) => {
   return (
-    <a
-      href={href}
-      className={cn(className, "underline inline-flex hover:opacity-70")}
-      target={target ? "_blank" : undefined}
-      rel={target ? "noopener noreferrer" : undefined}
-      {...props}
-    >
+    <a href={href} className={cn(className, "underline inline-flex hover:opacity-70")} {...props}>
       <span className="inline-flex gap-x-1 items-center">
         {iconPosition === "left" && icon && <span aria-hidden="true">{icon}</span>}
         {label}
@@ -54,3 +43,7 @@ export const InlineLink: React.FC<InlineLinkProps> = ({
     </a>
   );
 };
+
+InlineLink.displayName = "InlineLink";
+
+export { InlineLink };

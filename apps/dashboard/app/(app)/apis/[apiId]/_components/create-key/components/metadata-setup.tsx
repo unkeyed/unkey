@@ -1,12 +1,11 @@
 "use client";
-import { toast } from "@/components/ui/toaster";
 import { Code } from "@unkey/icons";
-import { Button, FormTextarea } from "@unkey/ui";
+import { Button, FormTextarea, toast } from "@unkey/ui";
 import { useFormContext, useWatch } from "react-hook-form";
 import type { MetadataFormValues } from "../create-key.schema";
 import { ProtectionSwitch } from "./protection-switch";
 
-const EXAMPLE_JSON = {
+export const EXAMPLE_JSON = {
   user: {
     id: "user_123456",
     role: "admin",
@@ -14,7 +13,11 @@ const EXAMPLE_JSON = {
   },
 };
 
-export const MetadataSetup = () => {
+export const MetadataSetup = ({
+  overrideEnabled = false,
+}: {
+  overrideEnabled?: boolean;
+}) => {
   const {
     register,
     formState: { errors },
@@ -67,15 +70,16 @@ export const MetadataSetup = () => {
 
   return (
     <div className="space-y-5 px-2 py-1">
-      <ProtectionSwitch
-        description="Add custom metadata to your API key as a JSON object. This metadata will be available when verifying the key."
-        title="Metadata"
-        icon={<Code className="text-gray-12" size="sm-regular" />}
-        checked={metadataEnabled}
-        onCheckedChange={handleSwitchChange}
-        {...register("metadata.enabled")}
-      />
-
+      {!overrideEnabled && (
+        <ProtectionSwitch
+          description="Add custom metadata to your API key as a JSON object. This metadata will be available when verifying the key."
+          title="Metadata"
+          icon={<Code className="text-gray-12" size="sm-regular" />}
+          checked={metadataEnabled}
+          onCheckedChange={handleSwitchChange}
+          {...register("metadata.enabled")}
+        />
+      )}
       <div className="space-y-2 h-fit duration-300">
         <FormTextarea
           placeholder={JSON.stringify(EXAMPLE_JSON, null, 2)}

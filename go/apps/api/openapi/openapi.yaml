@@ -194,108 +194,18 @@ components:
             Active sessions continue until their next verification attempt after expiry.
           example: 1704067200000
         credits:
-          type: object
-          nullable: true
-          properties:
-            remaining:
-              type: integer
-              format: int64
-              minimum: 0
-              maximum: 9223372036854775807 # Max int64 value
-              description: |
-                Counts how many times this key can be used before becoming invalid.
-                Each verification reduces this count by the verification cost (default 1).
-                When reaching 0, further verifications fail with `USAGE_EXCEEDED`.
-                Required when specifying credits for usage-based pricing or quotas.
-              example: 1000
-            refill:
-              type: object
-              nullable: true
-              properties:
-                interval:
-                  type: string
-                  enum:
-                    - daily
-                    - monthly
-                  description: |
-                    Sets how often credits automatically refill. Monthly refills support specific days via refillDay,
-                    while daily refills occur at midnight UTC. Choose daily for high-frequency APIs and monthly for
-                    subscription-based quotas.
-                amount:
-                  type: integer
-                  minimum: 1
-                  maximum: 1000000 # Reasonable upper bound for subscription quotas
-                  description: |
-                    Specifies how many credits to add during each refill cycle.
-                    This amount gets added to remaining credits, not replaced, so unused credits carry over.
-                    Typically matches your subscription plan's quota.
-                  example: 1000
-                refillDay:
-                  type: integer
-                  minimum: 1
-                  maximum: 31 # Valid calendar days
-                  description: |
-                    Sets the day of month for monthly refills (1-31). Only valid with monthly interval.
-                    Days beyond month length (like 31 in February) default to the last valid day.
-                    Useful for aligning refills with billing cycles.
-                  example: 15
-              required:
-                - interval
-                - amount
-              description: |
-                Configures automatic credit refills on a schedule.
-                Omitting this field preserves existing refill settings, while setting null disables refills entirely.
-                Refills add to existing credits rather than replacing them, allowing unused quotas to accumulate.
-          required:
-            - remaining
+          "$ref": "#/components/schemas/KeyCreditsData"
           description: |
             Controls usage-based limits for this key through credit consumption.
             Omitting this field preserves current credit settings, while setting null enables unlimited usage.
             Cannot configure refill settings when credits is null, and refillDay requires monthly interval.
             Essential for implementing usage-based pricing and subscription quotas.
         ratelimits:
-          type: array
           nullable: true
+          type: array
           maxItems: 50 # Reasonable limit for rate limit configurations per key
           items:
-            type: object
-            required:
-              - name
-              - limit
-              - duration
-            properties:
-              name:
-                type: string
-                minLength: 1
-                maxLength: 50 # Keep rate limit names concise and readable
-                pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
-                description: |
-                  Identifies this rate limit uniquely within the key. Names must start with a letter and use semantic
-                  identifiers like 'requests', 'computations', or 'write_operations' rather than generic terms.
-                  Use only letters, numbers, underscores, and hyphens after the initial letter.
-                  Duplicate names within the same key are not allowed.
-                example: requests
-              limit:
-                type: integer
-                format: int64
-                minimum: 1
-                maximum: 1000000 # Reasonable upper bound for rate limits
-                description: |
-                  Sets the maximum operations allowed within the duration window.
-                  When this limit is reached, verification fails with code=RATE_LIMITED until the window resets.
-                  Adjust this based on your API's capacity and expected usage patterns.
-                example: 100
-              duration:
-                type: integer
-                format: int32
-                minimum: 1000 # 1 second minimum window
-                maximum: 2592000000 # 30 days maximum window
-                description: |
-                  Duration of the rate limit window in milliseconds. Common values include 60000 (1 minute),
-                  3600000 (1 hour), and 86400000 (24 hours). The rate limit automatically resets after this period elapses.
-                  Windows shorter than 1 second are not supported for performance reasons.
-                example: 60000
-
+            "$ref": "#/components/schemas/RatelimitRequest"
           description: |
             Defines time-based rate limits that protect against abuse by controlling request frequency.
             Omitting this field preserves existing rate limits, while setting null removes all rate limits.
@@ -313,12 +223,8 @@ components:
     KeysUpdateKeyResponseData:
       type: object
       properties: {}
-      description:
-        Empty response object by design. A successful response indicates
-        the key was updated successfully. The endpoint doesn't return the updated
-        key to reduce response size and avoid exposing sensitive information. Changes
-        may take up to 30 seconds to propagate to all regions due to cache invalidation
-        delays. If you need the updated key state, use a subsequent call to `keys.getKey`.
+      additionalProperties: false
+      description: Empty response object by design. A successful response indicates the key was updated successfully.
     V2KeysUpdateKeyResponseBody:
       type: object
       required:
@@ -360,11 +266,8 @@ components:
     KeysDeleteKeyResponseData:
       type: object
       properties: {}
-      description: |
-        Confirms successful key deletion with no additional data returned.
-        Deletion immediately invalidates the key in the primary database but cache propagation across regions may take up to 30 seconds.
-        During this propagation window, some verification attempts might still succeed in certain regions due to eventual consistency.
-        Monitor your application logs during the propagation period to ensure no unexpected authentication successes occur.
+      additionalProperties: false
+      description: Empty response object by design. A successful response indicates the key was deleted successfully.
     V2KeysDeleteKeyResponseBody:
       type: object
       required:
@@ -376,8 +279,6 @@ components:
           "$ref": "#/components/schemas/KeysDeleteKeyResponseData"
     V2KeysGetKeyRequestBody:
       type: object
-      required:
-        - keyId
       properties:
         keyId:
           type: string
@@ -401,231 +302,21 @@ components:
             Use only for legitimate recovery scenarios like user password resets or emergency access.
             Most applications should keep this false to maintain security best practices and avoid accidental key exposure.
             Decryption requests are audited and may trigger security alerts in enterprise environments.
+        key:
+          type: string
+          minLength: 1
+          maxLength: 512 # Reasonable upper bound for API key strings
+          description: |
+            The complete API key string provided by you, including any prefix.
+            Never log, cache, or store API keys in your system as they provide full access to user resources.
+            Include the full key exactly as provided - even minor modifications will cause a not found error.
+          example: prefix_f4cc2d765275c206b7d76ff0e92e583067c4e33603fb4055d7ba3031cd7ce36a
       additionalProperties: false
-    KeysGetKeyResponseData:
-      type: object
-      required:
-        - id
-        - start
-        - createdAt
-        - enabled
-      properties:
-        id:
-          type: string
-          description: The unique identifier of the key in Unkey's system.
-          example: key_2cGKbMxRyIzhCxo1Idjz8q
-        start:
-          type: string
-          description:
-            The first few characters of the key to visually identify it
-            without exposing the full key. Used in dashboards and logs to help users
-            recognize which key is being used without revealing sensitive information.
-            Typically includes the prefix if one was specified.
-          example: prod_5j1
-        apiId:
-          type: string
-          description: The ID of the API this key belongs to.
-          example: api_2cGKbMxRjIzhCxo1IdjH3a
-        name:
-          type: string
-          description:
-            A descriptive name for the key for internal reference. Shown
-            in dashboards and logs but never exposed to end users.
-          example: Payment Service Production Key
-        externalId:
-          type: string
-          description:
-            Your user's unique identifier, creating a link between Unkey
-            and your system. This ID is returned during verification so you can identify
-            which customer/entity is making the request without performing additional
-            database lookups. Use consistent identifiers that match your primary user/tenant
-            identifiers for seamless integration.
-          example: user_912a841d
-        meta:
-          type: object
-          additionalProperties: true
-          description:
-            Arbitrary JSON metadata associated with this key. This can
-            include additional context like subscription plans, feature flags, or
-            any custom data. Metadata is stored as-is and returned during verification,
-            allowing you to access important information without additional database
-            queries. Consider including data relevant to authorization decisions,
-            usage tracking, and user context.
-          example:
-            plan: enterprise
-            limits:
-              storage: 500GB
-              compute: 1000 minutes/month
-            contactInfo:
-              primaryEmail: admin@example.com
-              technicalContact: tech@example.com
-            integrations:
-              slack: true
-              github:
-                enabled: true
-                repositories: 10
-            lastActivityTimestamp: 1671048264000
-        createdAt:
-          type: integer
-          format: int64
-          description: Unix timestamp (in milliseconds) when the key was created.
-          example: 1671048264000
-        updatedAt:
-          type: integer
-          format: int64
-          description: Unix timestamp (in milliseconds) when the key was last updated.
-          example: 1671135600000
-        expires:
-          type: integer
-          format: int64
-          description:
-            Unix timestamp (in milliseconds) when this key will automatically
-            expire. If null, the key has no expiration.
-          example: 1704067200000
-        credits:
-          type: object
-          properties:
-            remaining:
-              type: integer
-              format: int32
-              description:
-                The number of times this key can still be used before becoming
-                invalid.
-              example: 753
-            refill:
-              type: object
-              required:
-                - interval
-                - amount
-              properties:
-                interval:
-                  type: string
-                  enum:
-                    - daily
-                    - monthly
-                  description: How often the credits are automatically refilled.
-                amount:
-                  type: integer
-                  minimum: 1
-                  description: Number of credits added during each refill.
-                refillDay:
-                  type: integer
-                  minimum: 1
-                  maximum: 31
-                  description:
-                    For monthly refills, the day of month when refills
-                    occur.
-                lastRefillAt:
-                  type: integer
-                  format: int64
-                  description:
-                    Unix timestamp (in milliseconds) when credits were
-                    last refilled.
-              description: Configuration for automatic credit refills.
-          description:
-            Usage limits configuration for this key. Credits provide a
-            way to limit the number of times a key can be used before becoming invalid.
-            Unlike ratelimits, credits are globally consistent (using database transactions)
-            providing 100% accuracy at the cost of slightly higher latency. Ideal
-            for monetization, usage quotas, or strict limits that must not be exceeded.
-            See the 'refill' field for automatic replenishment options.
-        ratelimits:
-          type: array
-          items:
-            type: object
-            required:
-              - name
-              - limit
-              - duration
-            properties:
-              name:
-                type: string
-                description: Identifier for this ratelimit.
-                example: requests
-              limit:
-                type: integer
-                format: int32
-                description:
-                  Maximum number of operations allowed within the time
-                  window.
-                example: 100
-              duration:
-                type: integer
-                format: int32
-                description: Duration of the ratelimit window in milliseconds.
-                example: 60000
-              async:
-                type: boolean
-                description:
-                  Whether this ratelimit uses fast (async=true) or consistent
-                  (async=false) mode. Fast mode has lower latency but less accuracy.
-                default: true
-          description:
-            Array of ratelimits applied to this key. Multiple named ratelimits
-            can control different aspects of key usage. For example, a 'requests'
-            ratelimit might control overall API calls while a separate 'computations'
-            limit manages access to resource-intensive operations. Ratelimits are
-            optimized for performance and typically add minimal latency to verifications.
-            They can be shared across keys through identities.
-        roles:
-          type: array
-          items:
-            type: string
-          description:
-            List of role names assigned to this key. Roles are collections
-            of permissions.
-          example:
-            - api_admin
-            - billing_reader
-        permissions:
-          type: array
-          items:
-            type: string
-          description: List of permission names directly assigned to this key.
-          example:
-            - documents.read
-            - documents.write
-            - settings.view
-        enabled:
-          type: boolean
-          description:
-            Whether the key is currently active. Disabled keys will fail
-            verification with `code=DISABLED`. Toggling this allows you to temporarily
-            suspend access without deleting the key, which is useful for maintenance,
-            account freezing, or debugging. Can be updated using the `keys.updateKey` endpoint.
-          example: true
-        plaintext:
-          type: string
-          description:
-            "The full `API key` in plaintext. Only included when `decrypt`
-            is `true` and the key was created with `recoverable: true`. SECURITY RISK:
-            This field contains the actual secret key which should never be logged,
-            stored in databases, or exposed in any frontend code. It should only be
-            displayed directly to users through secure channels. Most applications
-            should avoid setting decrypt=true unless absolutely necessary."
-        identity:
-          type: object
-          properties:
-            id:
-              type: string
-              description: The unique ID of the identity in Unkey's system.
-            externalId:
-              type: string
-              description: Your identifier for this identity in your system.
-            meta:
-              type: object
-              additionalProperties: true
-              description: Additional metadata associated with this identity.
-          required:
-            - id
-            - externalId
-          description:
-            The identity associated with this key, if any. Identities allow
-            resource sharing (like ratelimits) across multiple keys belonging to the
-            same user/entity. This enables scenarios like issuing separate keys for
-            different devices/services while maintaining global usage limits for the
-            user. An identity's externalId typically matches your user ID or tenant
-            ID.
+      oneOf:
+        - required:
+            - keyId
+        - required:
+            - key
     V2KeysGetKeyResponseBody:
       type: object
       required:
@@ -635,7 +326,7 @@ components:
         meta:
           "$ref": "#/components/schemas/Meta"
         data:
-          "$ref": "#/components/schemas/KeysGetKeyResponseData"
+          "$ref": "#/components/schemas/KeyResponseData"
     V2KeysVerifyKeyResponseBody:
       type: object
       required:
@@ -1296,11 +987,11 @@ components:
           "$ref": "#/components/schemas/Meta"
         data:
           "$ref": "#/components/schemas/V2KeysSetRolesResponseData"
-    V2KeysUpdateRemainingRequestBody:
+    V2KeysUpdateCreditsRequestBody:
       type: object
       required:
         - keyId
-        - remaining
+        - operation
       properties:
         keyId:
           type: string
@@ -1311,101 +1002,39 @@ components:
             will be updated.
           example: key_2cGKbMxRyIzhCxo1Idjz8q
           minLength: 3
-        remaining:
+        value:
           type: integer
           format: int64
-          description: |-
+          nullable: true
+          minimum: 0
+          maximum: 9223372036854775807 # Max int64 value for future-proofing
+          description: |
             The new value for the remaining credits. This is an absolute value replacement, not an increment or decrement operation.
 
             Key behaviors:
-            - This completely replaces the current remaining credits value
-            - To add credits, first get the current value and then set remaining = current + additional
-            - To make a key unlimited, set remaining = -1
+            - This completely replaces the current remaining credits value when operation is set to 'set'
+            - To add credits, either replace the current value with the new value or increment the current value by a new value
+            - To make a key unlimited, set value = null
             - To make a key with unlimited usage have a specific limit, set remaining to a positive number
+            - If a decrement would result in a negative value, the remaining credits are set to zero
             - Credits are decremented each time the key is successfully verified (by the cost value, default 1)
             - When credits reach zero, verification fails with code=USAGE_EXCEEDED
 
             This field is useful for implementing usage-based pricing, subscription tiers, trial periods, or consumption quotas.
           example: 1000
-        overwriteRefillSettings:
-          type: boolean
-          description: |-
-            When true, any existing automatic refill settings will be removed from the key.
-
-            Use cases:
-            - Convert a key with automatic periodic refills to a one-time credit allocation
-            - Remove subscription-like behavior in favor of manually controlled credits
-            - Downgrade from an automatic plan to a fixed allocation
-            - Simplify credit management by removing automated refills
-
-            When false or omitted, existing refill settings are preserved, and only the current remaining value is updated. This lets you adjust the current balance without changing the refill schedule.
-          default: false
+        operation:
+          type: string
+          enum:
+            - set
+            - increment
+            - decrement
+          description: |
+            The operation to perform on the remaining credits. This can be one of:
+            - set: Replace the current remaining credits value with the specified value.
+            - increment: Add the specified value to the current remaining credits value.
+            - decrement: Subtract the specified value from the current remaining credits value.
       additionalProperties: false
-    KeysUpdateRemainingResponseData:
-      type: object
-      required:
-        - remaining
-      properties:
-        remaining:
-          type: integer
-          format: int64
-          description:
-            The updated remaining credits value for the key after the operation
-            completes. This reflects the exact value that was set in the request.
-            A value of -1 indicates unlimited usage, meaning the key can be used an
-            unlimited number of times without being rejected for credit exhaustion.
-            This field is guaranteed to be present in every response.
-          example: 1000
-        refillSettings:
-          type: object
-          nullable: true
-          properties:
-            interval:
-              type: string
-              enum:
-                - daily
-                - weekly
-                - monthly
-                - never
-              description:
-                The interval at which credits are automatically refilled.
-                'daily' resets at midnight UTC, 'weekly' resets on the specified weekday
-                (where 1=Monday, 7=Sunday), 'monthly' resets on the specified day
-                of month, and 'never' means no automatic refills occur.
-            amount:
-              type: integer
-              format: int64
-              minimum: 1
-              description:
-                The number of credits added during each automatic refill.
-                This is the quota that gets renewed each period, making it useful
-                for implementing subscription tiers with different usage limits (e.g.,
-                Basic=100/month, Pro=1000/month).
-            refillDay:
-              type: integer
-              minimum: 1
-              maximum: 31
-              description:
-                For monthly refills, the day of the month on which to refill
-                (1-31). For weekly refills, the day of the week (1=Monday, 7=Sunday).
-                This allows aligning refills with billing cycles, subscription periods,
-                or other business-relevant schedules.
-            lastRefillAt:
-              type: string
-              format: date-time
-              description:
-                The timestamp when the last automatic refill occurred.
-                This helps track when credits were last replenished and understand
-                when the next refill will occur. The timestamp is in ISO 8601 format
-                (YYYY-MM-DDTHH:MM:SSZ).
-          description:
-            If the key has automatic refill settings, they are included
-            here with their current configuration. If null, the key does not have
-            automatic refills configured (either because they were removed with overwriteRefillSettings=true
-            or because they were never set up). Refill settings create subscription-like
-            behavior where the key automatically receives new credits on a regular
-            schedule.
-    V2KeysUpdateRemainingResponse:
+    V2KeysUpdateCreditsResponse:
       type: object
       required:
         - meta
@@ -1414,7 +1043,7 @@ components:
         meta:
           "$ref": "#/components/schemas/Meta"
         data:
-          "$ref": "#/components/schemas/KeysUpdateRemainingResponseData"
+          "$ref": "#/components/schemas/KeyCreditsData"
     V2KeysCreateKeyRequestBody:
       type: object
       required:
@@ -1538,58 +1167,7 @@ components:
             Essential for trial periods, temporary access, and security compliance requiring key rotation.
           example: 1704067200000
         credits:
-          type: object
-          required:
-            - remaining
-          properties:
-            remaining:
-              type: integer
-              format: int64
-              minimum: 0
-              maximum: 9223372036854775807 # Max int64 value
-              description: |
-                Sets the initial number of times this key can be used before becoming invalid.
-                Each verification reduces this count by the verification cost (default 1).
-                When reaching 0, further verifications fail with code=USAGE_EXCEEDED.
-                Provides globally consistent usage limits, ideal for implementing usage-based pricing and strict quotas.
-              example: 1000
-            refill:
-              type: object
-              properties:
-                interval:
-                  type: string
-                  enum:
-                    - daily
-                    - monthly
-                  description: |
-                    Sets how often credits automatically refill. Daily refills occur at midnight UTC,
-                    while monthly refills support specific days via refillDay.
-                    Choose daily for high-frequency APIs and monthly for subscription-based quotas.
-                amount:
-                  type: integer
-                  minimum: 1
-                  maximum: 1000000 # Reasonable upper bound for subscription quotas
-                  description: |
-                    Specifies how many credits to add during each refill cycle.
-                    This amount gets added to remaining credits, not replaced, so unused credits carry over.
-                    Typically matches your subscription plan's quota for predictable billing cycles.
-                  example: 1000
-                refillDay:
-                  type: integer
-                  minimum: 1
-                  maximum: 31 # Valid calendar days
-                  description: |
-                    Sets the day of month for monthly refills (1-31). Only valid with monthly interval.
-                    Days beyond month length (like 31 in February) default to the last valid day.
-                    Useful for aligning refills with billing cycles and subscription renewals.
-                  example: 15
-              required:
-                - interval
-                - amount
-              description: |
-                Configures automatic credit refills on a schedule for subscription-like recurring quotas.
-                Refills add to existing credits rather than replacing them, allowing unused quotas to accumulate.
-                Essential for implementing predictable billing cycles and user-friendly quota management.
+          "$ref": "#/components/schemas/KeyCreditsData"
           description: |
             Controls usage-based limits through credit consumption with optional automatic refills.
             Unlike rate limits which control frequency, credits control total usage with global consistency.
@@ -1597,52 +1175,9 @@ components:
             Omitting this field creates unlimited usage, while setting null is not allowed during creation.
         ratelimits:
           type: array
-          maxItems: 50 # Reasonable limit for rate limit configurations per key
+          maxItems: 50 # Reasonable limit for rate limit configurations per identity
           items:
-            type: object
-            required:
-              - name
-              - limit
-              - duration
-            properties:
-              name:
-                type: string
-                minLength: 1
-                maxLength: 50 # Keep rate limit names concise and readable
-                pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
-                description: |
-                  Identifies this rate limit uniquely within the key. Names must start with a letter and use semantic
-                  identifiers like 'requests', 'computations', or 'write_operations' rather than generic terms.
-                  Duplicate names within the same key are not allowed.
-                example: requests
-              limit:
-                type: integer
-                format: int64
-                minimum: 1
-                maximum: 1000000 # Reasonable upper bound for rate limits
-                description: |
-                  Sets the maximum operations allowed within the duration window.
-                  When this limit is reached, verification fails with code=RATE_LIMITED until the window resets.
-                  Adjust this based on your API's capacity and expected usage patterns.
-                example: 100
-              duration:
-                type: integer
-                format: int32
-                minimum: 1000 # 1 second minimum window
-                maximum: 2592000000 # 30 days maximum window
-                description: |
-                  Duration of the rate limit window in milliseconds. Common values include 60000 (1 minute),
-                  3600000 (1 hour), and 86400000 (24 hours). The rate limit automatically resets after this period elapses.
-                  Windows shorter than 1 second are not supported for performance reasons.
-                example: 60000
-              async:
-                type: boolean
-                default: true
-                description: |
-                  Controls whether this rate limit uses fast (async=true) or consistent (async=false) mode.
-                  Fast mode has lower latency but may allow brief bursts above the limit during high concurrency.
-                  Consistent mode provides strict guarantees but adds latency to every verification.
-                  Use consistent mode only when precise rate limiting is essential for billing or security.
+            "$ref": "#/components/schemas/RatelimitRequest"
           description: |
             Defines time-based rate limits that protect against abuse by controlling request frequency.
             Unlike credits which track total usage, rate limits reset automatically after each window expires.
@@ -1655,7 +1190,6 @@ components:
             - name: heavy_operations
               limit: 10
               duration: 3600000
-              async: false
         enabled:
           type: boolean
           default: true
@@ -2015,9 +1549,6 @@ components:
     Identity:
       type: object
       properties:
-        id:
-          type: string
-          description: Identity ID
         externalId:
           type: string
           description: External identity ID
@@ -2027,22 +1558,22 @@ components:
         ratelimits:
           type: array
           items:
-            "$ref": "#/components/schemas/Ratelimit"
+            "$ref": "#/components/schemas/RatelimitResponse"
           description: Identity ratelimits
       required:
-        - id
         - externalId
         - ratelimits
-    KeyCredits:
+    KeyCreditsData:
       type: object
       description: Credit configuration and remaining balance for this key.
       properties:
         remaining:
           type: integer
           format: int64
-          minimum: -1 # -1 represents unlimited
+          nullable: true
+          minimum: 0
           maximum: 9223372036854775807
-          description: Number of credits remaining (-1 for unlimited).
+          description: Number of credits remaining (null for unlimited).
           example: 1000
         refill:
           "$ref": "#/components/schemas/KeyCreditsRefill"
@@ -2072,18 +1603,11 @@ components:
           maximum: 31
           description: Day of month for monthly refills (1-31).
           example: 1
-        lastRefillAt:
-          type: integer
-          format: int64
-          minimum: 0
-          maximum: 9223372036854775807
-          description: Unix timestamp in milliseconds of last refill.
-          example: 1701425400000
       required:
         - interval
         - amount
       additionalProperties: false
-    KeyResponse:
+    KeyResponseData:
       type: object
       properties:
         keyId:
@@ -2099,6 +1623,10 @@ components:
           maxLength: 50
           description: First few characters of the key for identification.
           example: sk_test_abc123
+        enabled:
+          type: boolean
+          description: Whether the key is enabled or disabled.
+          example: true
         name:
           type: string
           maxLength: 255
@@ -2134,13 +1662,7 @@ components:
           description: Unix timestamp in milliseconds when key expires.
           example: 1733000000000
         credits:
-          "$ref": "#/components/schemas/KeyCredits"
-        environment:
-          type: string
-          maxLength: 100
-          pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
-          description: Environment tag for this key.
-          example: production
+          "$ref": "#/components/schemas/KeyCreditsData"
         plaintext:
           type: string
           description: Decrypted key value (only when decrypt=true).
@@ -2174,7 +1696,9 @@ components:
       required:
         - keyId
         - start
+        - apiId
         - createdAt
+        - enabled
       additionalProperties: false
     LivenessResponseData:
       type: object
@@ -2225,11 +1749,16 @@ components:
           maximum: 2592000000
           description: Rate limit window duration in milliseconds.
           example: 3600000
+        autoApply:
+          type: boolean
+          description: Whether this rate limit was automatically applied when verifying the key.
+          example: true
       required:
         - id
         - name
         - limit
         - duration
+        - autoApply
       additionalProperties: false
     V2LivenessResponseBody:
       type: object
@@ -2387,6 +1916,13 @@ components:
       required:
         - identifier
       type: object
+      oneOf:
+        - required:
+            - namespaceName
+            - identifier
+        - required:
+            - namespaceId
+            - identifier
     V2RatelimitGetOverrideResponseBody:
       type: object
       required:
@@ -2689,7 +2225,7 @@ components:
           type: array
           maxItems: 50 # Reasonable limit for rate limit configurations per identity
           items:
-            "$ref": "#/components/schemas/Ratelimit"
+            "$ref": "#/components/schemas/RatelimitRequest"
           description: |
             Defines shared rate limits that apply to all keys belonging to this identity.
             Prevents abuse by users with multiple keys by enforcing consistent limits across their entire key portfolio.
@@ -2701,12 +2237,13 @@ components:
             - Each named limit can have different thresholds and windows
 
             When verifying keys, you can specify which limits you want to use and all keys attached to this identity will share the limits, regardless of which specific key is used.
-    Ratelimit:
+    RatelimitRequest:
       type: object
       required:
         - name
         - limit
         - duration
+        - autoApply
       properties:
         name:
           description: |-
@@ -2736,6 +2273,7 @@ components:
             Higher values allow more frequent access but may impact service performance.
           type: integer
           format: int64
+          minimum: 1
         duration:
           description: |-
             The duration for each ratelimit window in milliseconds.
@@ -2749,22 +2287,14 @@ components:
             Shorter windows provide more frequent resets but may allow large burst usage. Longer windows provide more consistent usage patterns but take longer to reset after limit exhaustion.
           type: integer
           format: int64
+          minimum: 1000
+        autoApply:
+          description: |-
+            Whether this ratelimit should be automatically applied when verifying a key.
+          type: boolean
+          default: false
     IdentitiesCreateIdentityResponseData:
       type: object
-      properties:
-        identityId:
-          description: |-
-            The unique identifier for this identity in Unkey's system (begins with `id_`).
-
-            This ID is generated automatically and used internally by Unkey to reference this identity. While you typically don't need to store this value (your `externalId` is sufficient), it can be useful to record it for:
-            - Debugging purposes
-            - Advanced API operations
-            - Integration with Unkey's analytics
-
-            Unlike `externalId` which comes from your system, this ID is guaranteed unique across all Unkey `workspaces`.
-          type: string
-      required:
-        - identityId
     V2IdentitiesCreateIdentityResponseBody:
       type: object
       required:
@@ -2778,41 +2308,21 @@ components:
     V2IdentitiesGetIdentityRequestBody:
       type: object
       properties:
-        identityId:
-          type: string
-          minLength: 3
-          description:
-            The Unkey identity ID to retrieve (begins with 'id_'). Use
-            either identityId or externalId to specify which identity to fetch. If
-            both are provided, identityId takes precedence.
-          example: id_1234567890abcdef
         externalId:
           type: string
           minLength: 1
           description:
             The external ID of the identity to retrieve. This is the ID
-            from your own system that was used during identity creation. Use either
-            identityId or externalId to specify which identity to fetch. If both are
-            provided, identityId takes precedence.
+            from your own system that was used during identity creation.
           example: user_abc123
       additionalProperties: false
-      oneOf:
-        - required:
-            - identityId
-        - required:
-            - externalId
+      required:
+        - externalId
     IdentitiesGetIdentityResponseData:
       type: object
       required:
-        - id
         - externalId
       properties:
-        id:
-          type: string
-          description:
-            The unique identifier for this identity in Unkey's system (begins
-            with 'id_').
-          example: id_1234567890abcdef
         externalId:
           type: string
           description:
@@ -2833,7 +2343,7 @@ components:
         ratelimits:
           type: array
           items:
-            "$ref": "#/components/schemas/Ratelimit"
+            "$ref": "#/components/schemas/RatelimitResponse"
           description:
             Rate limits associated with this identity. These limits are
             shared across all API keys linked to this identity, providing consistent
@@ -2894,28 +2404,11 @@ components:
           minLength: 3
           description: |
             The id of this identity in your system.
-
-            This should match the externalId value you used when creating the identity. You can use this field when you know the specific externalId but don't have the Unkey identityId. Only one of externalId or identityId is required.
-
+            This should match the externalId value you used when creating the identity.
             This identifier typically comes from your authentication system and could be a userId, organizationId, or any other stable unique identifier in your application.
           example: user_123
-        identityId:
-          type: string
-          minLength: 3
-          description: |-
-            The Unkey Identity ID (begins with 'id_').
-
-            This is the internal unique identifier generated by Unkey when the identity was created. Use this when you have the specific Unkey ID and want to ensure you're targeting the exact identity. This is especially useful in automation scripts or when you need to guarantee you're operating on a specific identity regardless of externalId changes.
-
-            Only one of externalId or identityId is required.
-          example: id_123
-      oneOf:
-        - required:
-            - externalId
-          description: Identify by external ID from your system
-        - required:
-            - identityId
-          description: Identify by Unkey's internal identity ID
+      required:
+        - externalId
     V2IdentitiesDeleteIdentityResponseBody:
       type: object
       description:
@@ -2952,6 +2445,13 @@ components:
             Use clear, semantic names that reflect the resources or actions being permitted.
             Names must be unique within your workspace to avoid confusion and conflicts.
           example: "users.read"
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 512
+          description: |
+            The URL-safe identifier when this permission was created.
+          example: users-read
         description:
           type: string
           maxLength: 2048
@@ -2974,6 +2474,7 @@ components:
       required:
         - id
         - name
+        - slug
         - createdAt
       additionalProperties: false
     V2PermissionsCreatePermissionRequestBody:
@@ -3679,7 +3180,7 @@ components:
       type: array
       maxItems: 100 # DoS protection matching request limit
       items:
-        "$ref": "#/components/schemas/KeyResponse"
+        "$ref": "#/components/schemas/KeyResponseData"
       description: Array of API keys with complete configuration and metadata.
     V2ApisListKeysResponseBody:
       type: object
@@ -3758,96 +3259,6 @@ components:
         - duration
         - identifier
         - limit
-    V2KeysWhoamiRequestBody:
-      type: object
-      required:
-        - key
-      properties:
-        key:
-          type: string
-          description: The API key to identify and retrieve information about
-          example: sk_1234567890abcdef
-          minLength: 1
-      additionalProperties: false
-    KeyWhoamiData:
-      type: object
-      properties:
-        id:
-          type: string
-          description: The unique identifier of the key
-          example: key_1234567890abcdef
-        name:
-          type: string
-          nullable: true
-          description: The human-readable name of the key (optional)
-          example: Production API Key
-        remaining:
-          type: integer
-          nullable: true
-          format: int64
-          description: The remaining number of requests for the key (null means unlimited)
-          example: 1000
-        identity:
-          type: object
-          nullable: true
-          properties:
-            id:
-              type: string
-              description: The unique identity ID associated with the key
-              example: id_1234567890abcdef
-            externalId:
-              type: string
-              description:
-                The external identity ID associated with the key (e.g.,
-                user ID in your system)
-              example: user_12345
-          required:
-            - id
-            - externalId
-          description:
-            The identity object associated with the key (null if no identity
-            is associated)
-        meta:
-          type: object
-          nullable: true
-          additionalProperties: true
-          description:
-            Custom metadata associated with the key (null if no metadata
-            is present)
-          example:
-            role: admin
-            plan: premium
-            teamId: team_12345
-        createdAt:
-          type: integer
-          format: int64
-          description: The timestamp in milliseconds when the key was created
-          example: 1620000000000
-        enabled:
-          type: boolean
-          description: Whether the key is enabled and can be used
-          example: true
-        environment:
-          type: string
-          nullable: true
-          description:
-            The environment the key is associated with (e.g., production,
-            staging, development)
-          example: production
-      required:
-        - id
-        - createdAt
-        - enabled
-    V2KeysWhoamiResponse:
-      type: object
-      required:
-        - meta
-        - data
-      properties:
-        meta:
-          "$ref": "#/components/schemas/Meta"
-        data:
-          "$ref": "#/components/schemas/KeyWhoamiData"
     V2KeysVerifyKeyRequestBody:
       type: object
       required:
@@ -3899,7 +3310,7 @@ components:
             - type: string
               minLength: 1
               maxLength: 100 # Keep permission names concise and readable
-              pattern: "^[a-zA-Z0-9_]+$"
+              pattern: "^[a-zA-Z0-9_.]+$"
               description: |
                 Checks if the key has this specific permission. Supports hierarchical permissions where
                 `documents.*` grants access to `documents.read` and `documents.write`.
@@ -3922,7 +3333,7 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 100 # Keep permission names concise and readable
-                    pattern: "^[a-zA-Z0-9_]+$"
+                    pattern: "^[a-zA-Z0-9_.]+$"
                   maxItems: 100 # Allow complex permission sets without performance degradation
                   minItems: 1
                   description: |
@@ -3940,82 +3351,67 @@ components:
             When provided, verification fails unless the key has the specified permissions through direct assignment or role inheritance.
             Essential for implementing fine-grained authorization in multi-tenant or privilege-separated APIs.
         credits:
-          type: object
-          properties:
-            cost:
-              type: integer
-              format: int64
-              minimum: 0
-              maximum: 1000 # Reasonable upper bound for operation costs
-              default: 1
-              description: |
-                Sets how many credits to deduct for this verification request.
-                Use 0 for read-only operations or free tier access, higher values for premium features.
-                Credits are deducted immediately upon verification, even if the key lacks required permissions.
-                Essential for implementing usage-based pricing with different operation costs.
-              example: 5
-          additionalProperties: false
-          description: |
-            Controls credit consumption for usage-based billing and quota enforcement.
-            Omitting this field uses the default cost of 1 credit per verification.
-            Credits provide globally consistent usage tracking, essential for paid APIs with strict quotas.
-            Verification can succeed while credit deduction fails if the key has insufficient credits.
+          "$ref": "#/components/schemas/KeysVerifyKeyCredits"
         ratelimits:
           type: array
-          maxItems: 10 # Reasonable limit for rate limit checks per verification
           items:
-            type: object
-            required:
-              - name
-            properties:
-              name:
-                type: string
-                minLength: 1
-                maxLength: 50 # Keep rate limit names concise and readable
-                pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
-                description: |
-                  Identifies which rate limit configuration to check. Must match a rate limit defined on the key or identity.
-                  Use semantic names that clearly describe what's being limited, avoiding generic terms like 'limit1'.
-                  Rate limit names are case-sensitive and must exist in the key's configuration.
-                example: api_requests
-              cost:
-                type: integer
-                format: int64
-                minimum: 0
-                maximum: 1000 # Reasonable upper bound for operation costs
-                default: 1
-                description: |
-                  Sets how much of the rate limit quota this operation consumes.
-                  Use higher values for expensive operations and 0 for operations that should not count against the limit.
-                  Cost is applied immediately, even if other rate limits or permissions cause verification to fail.
-                example: 3
-              limit:
-                type: integer
-                format: int64
-                minimum: 1
-                maximum: 1000000 # Reasonable upper bound for rate limits
-                description: |
-                  Temporarily overrides the configured rate limit for this request only.
-                  Does not modify the stored configuration and applies only to this single verification.
-                  Useful for implementing per-request dynamic limits based on user tier or operation type.
-                example: 1000
-              duration:
-                type: integer
-                format: int64
-                minimum: 1000 # 1 second minimum window
-                maximum: 2592000000 # 30 days maximum window
-                description: |
-                  Temporarily overrides the rate limit window duration in milliseconds for this request only.
-                  Does not modify the stored configuration and applies only to this single verification.
-                  Common values include 60000 (1 minute), 3600000 (1 hour), and 86400000 (24 hours).
-                example: 60000
-            additionalProperties: false
+            "$ref": "#/components/schemas/KeysVerifyKeyRatelimit"
           description: |
             Enforces time-based rate limiting during verification to prevent abuse and ensure fair usage.
             Omitting this field skips rate limit checks entirely, relying only on configured key rate limits.
             Multiple rate limits can be checked simultaneously, each with different costs and temporary overrides.
             Rate limit checks are optimized for performance but may allow brief bursts during high concurrency.
       additionalProperties: false
+    KeysVerifyKeyCredits:
+      type: object
+      required:
+        - cost
+      properties:
+        cost:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 1000000000
+          description: |
+            Sets how many credits to deduct for this verification request.
+            Use 0 for read-only operations or free tier access, higher values for premium features.
+            Credits are deducted immediately upon verification, even if the key lacks required permissions.
+            Essential for implementing usage-based pricing with different operation costs.
+          example: 5
+      additionalProperties: false
+      description: |
+        Controls credit consumption for usage-based billing and quota enforcement.
+        Omitting this field uses the default cost of 1 credit per verification.
+        Credits provide globally consistent usage tracking, essential for paid APIs with strict quotas.
+        Verification can succeed while credit deduction fails if the key has insufficient credits.
+    KeysVerifyKeyRatelimit:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 255 # Reasonable upper bound for database identifiers
+          pattern: ""
+          description: References an existing ratelimit by its name. Key Ratelimits will take precedence over identifier-based limits.
+          example: tokens
+        cost:
+          type: integer
+          minimum: 0
+          default: 1
+          description: Optionally override how expensive this operation is and how many tokens are deducted from the current limit.
+          example: 2
+        limit:
+          type: integer
+          minimum: 0
+          description: Optionally override the maximum number of requests allowed within the specified interval.
+          example: 50
+        duration:
+          type: integer
+          minimum: 0
+          description: Optionally override the duration of the rate limit window duration.
+          example: 600000
     KeysVerifyKeyResponseData:
       type: object
       properties:
@@ -4033,7 +3429,6 @@ components:
             - FORBIDDEN
             - USAGE_EXCEEDED
             - RATE_LIMITED
-            - UNAUTHORIZED
             - DISABLED
             - INSUFFICIENT_PERMISSIONS
             - EXPIRED
@@ -4057,13 +3452,6 @@ components:
             The human-readable name assigned to this key during creation.
             This is useful for displaying in logs or admin interfaces to identify
             the key's purpose or owner.
-        externalId:
-          type: string
-          description:
-            Your user/tenant identifier that was associated with this key
-            during creation. This allows you to connect the key back to your user
-            without additional database lookups, making it ideal for implementing
-            user-based authorization in stateless services.
         meta:
           type: object
           additionalProperties: true
@@ -4111,12 +3499,6 @@ components:
             A list of all role names assigned to this key. Roles are collections
             of permissions that grant access to specific functionality. Only returned
             when permissions were checked during verification.
-        environment:
-          type: string
-          description:
-            The environment tag associated with the key (e.g., 'production',
-            'staging', 'development'). Use this to further segment keys within an
-            API beyond just the apiId separation.
         identity:
           "$ref": "#/components/schemas/Identity"
           description:
@@ -4126,60 +3508,78 @@ components:
         ratelimits:
           type: array
           items:
-            type: object
-            required:
-              - name
-              - limit
-              - remaining
-              - reset
-            properties:
-              name:
-                type: string
-                description:
-                  The name of the rate limit that was checked. This matches
-                  the name provided in the request.
-              limit:
-                type: integer
-                format: int32
-                description:
-                  The maximum number of operations allowed within the current
-                  time window for this rate limit.
-              remaining:
-                type: integer
-                format: int32
-                description:
-                  The number of operations still allowed within the current
-                  time window after this verification. Your application can use this
-                  to inform users about remaining capacity or to implement your own
-                  backoff strategies.
-              reset:
-                type: integer
-                format: int64
-                description:
-                  Unix timestamp in milliseconds when the rate limit window
-                  will reset and 'remaining' will return to 'limit'. Use this to implement
-                  retry-after logic or to display wait times to users.
-          description:
-            Information about the rate limits applied during verification.
-            Only included when rate limits were checked. If verification failed with
-            `code=RATE_LIMITED`, this will show which specific rate limit was exceeded.
+            "$ref": "#/components/schemas/VerifyKeyRatelimitData"
+            description: The ratelimits that got checked
       required:
         - valid
         - code
+    VerifyKeyRatelimitData:
+      type: object
+      properties:
+        exceeded:
+          type: boolean
+          description: Whether the rate limit was exceeded.
+        id:
+          type: string
+          minLength: 8
+          maxLength: 255
+          pattern: "^rl_[a-zA-Z0-9_]+$"
+          description: Unique identifier for this rate limit configuration.
+          example: rl_1234567890abcdef
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+          description: Human-readable name for this rate limit.
+          example: api_requests
+        limit:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 1000000
+          description: Maximum requests allowed within the time window.
+          example: 1000
+        duration:
+          type: integer
+          format: int64
+          minimum: 1000
+          maximum: 2592000000
+          description: Rate limit window duration in milliseconds.
+          example: 3600000
+        reset:
+          type: integer
+          format: int64
+          minimum: 1000
+          maximum: 2592000000
+          description: Rate limit reset duration in milliseconds.
+          example: 3600000
+        remaining:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 1000000
+          description: Rate limit remaining requests within the time window.
+          example: 999
+        autoApply:
+          type: boolean
+          description: |
+            Whether this rate limit should be automatically applied when verifying keys.
+            When true, we will automatically apply this limit during verification without it being explicitly listed.
+          example: true
+      required:
+        - id
+        - exceeded
+        - name
+        - limit
+        - duration
+        - reset
+        - remaining
+        - autoApply
+      additionalProperties: false
     V2IdentitiesUpdateIdentityRequestBody:
       type: object
       properties:
-        identityId:
-          type: string
-          minLength: 3
-          maxLength: 255 # Reasonable upper bound for database identifiers
-          pattern: "^[a-zA-Z0-9_]+$"
-          description: |
-            Specifies which identity to update using the Unkey database identifier.
-            Takes precedence over externalId when both are provided in the same request.
-            Use this when you have stored the Unkey identity ID from previous API calls.
-            Essential for direct identity management when you track Unkey's internal identifiers.
-          example: id_01H9TQPP77V5E48E9SH0BG0ZQX
         externalId:
           type: string
           minLength: 3
@@ -4187,9 +3587,7 @@ components:
           pattern: "^[a-zA-Z0-9_.-]+$"
           description: |
             Specifies which identity to update using your system's identifier from identity creation.
-            Ignored when identityId is also provided in the same request.
             Use this when you track identities by your own user IDs, organization IDs, or tenant identifiers.
-            More convenient than identityId when integrating with existing user management systems.
             Accepts letters, numbers, underscores, dots, and hyphens for flexible identifier formats.
           example: user_abc123
         meta:
@@ -4209,7 +3607,7 @@ components:
           type: array
           maxItems: 50 # Reasonable limit for rate limit configurations per identity
           items:
-            "$ref": "#/components/schemas/Ratelimit"
+            "$ref": "#/components/schemas/RatelimitRequest"
           description: |
             Replaces all existing identity rate limits with this complete list of rate limits.
             Omitting this field preserves existing rate limits, while providing an empty array removes all rate limits.
@@ -4220,23 +3618,13 @@ components:
               limit: 1000
               duration: 3600000
       additionalProperties: false
-      anyOf:
-        - required:
-            - identityId
-        - required:
-            - externalId
+      required:
+        - externalId
     IdentitiesUpdateIdentityResponseData:
       type: object
       required:
-        - id
         - externalId
       properties:
-        id:
-          type: string
-          description:
-            The unique identifier for this identity in Unkey's system (begins
-            with 'id_').
-          example: id_01H9TQPP77V5E48E9SH0BG0ZQX
         externalId:
           type: string
           description: The external identifier for this identity in your system.
@@ -4252,7 +3640,7 @@ components:
         ratelimits:
           type: array
           items:
-            "$ref": "#/components/schemas/Ratelimit"
+            "$ref": "#/components/schemas/RatelimitResponse"
           description: Rate limits associated with this identity after the update.
           example:
             - name: requests
@@ -4269,124 +3657,6 @@ components:
         meta:
           "$ref": "#/components/schemas/Meta"
 paths:
-  "/v2/keys.whoami":
-    post:
-      tags:
-        - keys
-      summary: Get information about an API key
-      description: |-
-        Identifies the owner and details of an API key without triggering billing or usage tracking. This endpoint is designed for scenarios where users provide API keys to your application and you need to determine key ownership and basic information without performing a billed verification.
-
-        Common use cases:
-        - User onboarding flows where customers enter their API keys and you need to identify the account owner
-        - Admin dashboards displaying which user or organization owns specific keys
-        - Key validation during setup without consuming credits or affecting usage metrics
-        - Support tools for troubleshooting key ownership and configuration issues
-
-        The response includes key metadata, identity information (if associated), permissions, and current status. When a key has an associated identity, you can use the `externalId` to map it back to your user system without storing the raw API key.
-
-        This endpoint provides an alternative to verification when you only need identification rather than access control. Unlike verification, it does not consume credits, increment usage counters, or affect rate limits associated with the key.
-
-        Since the response may contain sensitive business data in metadata fields, restrict usage to secure contexts and consider implementing rate limiting to prevent abuse.
-      operationId: whoami
-      x-speakeasy-name-override: whoami
-      security:
-        - rootKey: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/V2KeysWhoamiRequestBody"
-            examples:
-              basic:
-                summary: Basic key lookup
-                value:
-                  key: sk_1234567890abcdef
-      responses:
-        "200":
-          description: Key information successfully retrieved
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/V2KeysWhoamiResponse"
-              examples:
-                full:
-                  summary: Complete key information
-                  value:
-                    meta:
-                      requestId: req_1234567890abcdef
-                    data:
-                      id: key_1234567890abcdef
-                      name: Production API Key
-                      remaining: 1000
-                      identity:
-                        id: id_1234567890abcdef
-                        externalId: user_12345
-                      meta:
-                        role: admin
-                        plan: premium
-                        teamId: team_12345
-                      createdAt: 1620000000000
-                      enabled: true
-                      environment: production
-                minimal:
-                  summary: Key with minimal information
-                  value:
-                    meta:
-                      requestId: req_1234567890abcdef
-                    data:
-                      id: key_1234567890abcdef
-                      createdAt: 1620000000000
-                      enabled: true
-        "400":
-          description: Bad request - Missing required parameters or invalid format
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/BadRequestErrorResponse"
-              examples:
-                missingApiId:
-                  summary: Missing apiId
-                  value:
-                    meta:
-                      requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
-                    error:
-                      title: Bad Request
-                      detail: apiId is required
-                      status: 400
-                      type: https://unkey.dev/errors/bad-request
-                      errors:
-                        - message: apiId is required
-                          location: body.apiId
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/UnauthorizedErrorResponse"
-        "403":
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/ForbiddenErrorResponse"
-        "404":
-          description: Not found - Specified API ID doesn't exist
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/NotFoundErrorResponse"
-        "500":
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/InternalServerErrorResponse"
-          description:
-            Internal server error. This may occur if there are connection
-            issues with the database or if the verification service is experiencing
-            problems. Implement proper retry logic with backoff in your clients to
-            handle these situations.
   "/v2/keys.setPermissions":
     post:
       tags:
@@ -5447,7 +4717,7 @@ paths:
         "404":
           description:
             Not found - The specified identity doesn't exist. This error
-            occurs when no identity matches the provided externalId or identityId.
+            occurs when no identity matches the provided externalId.
             This might happen if the identity was already deleted, never existed,
             or if there's a typo in the identifier. Verify the identity exists before
             attempting deletion.
@@ -5461,19 +4731,19 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/InternalServerErrorResponse"
-  "/v2/keys.updateRemaining":
+  "/v2/keys.updateCredits":
     post:
       tags:
         - keys
       summary: Update remaining credits for an API key
-      description: |-
+      description: |
         Sets the remaining number of credits for a key, providing precise control over usage limits for implementing usage-based business models. Use this endpoint when customers make purchases to add credits, during subscription renewals to reset credits, or for adjustments due to refunds and promotions.
 
         The credits feature provides globally consistent usage limiting where each successful verification decrements the counter by the specified cost value (default 1). When credits reach zero, verification fails with `code=USAGE_EXCEEDED`, making this ideal for monetization models where accuracy is critical compared to rate limits which control frequency.
 
         This endpoint works alongside `createKey` for setting initial credits and the automatic refill system for periodic replenishment. You can optionally remove automatic refill settings from the key, effectively converting it from periodic refills to fixed credit allocation. Common scenarios include implementing free trial extensions, granting bonus credits as incentives, or converting between subscription models.
-      operationId: updateRemaining
-      x-speakeasy-name-override: updateRemaining
+      operationId: updateCredits
+      x-speakeasy-name-override: updateCredits
       security:
         - rootKey: []
       requestBody:
@@ -5481,54 +4751,46 @@ paths:
         content:
           application/json:
             schema:
-              "$ref": "#/components/schemas/V2KeysUpdateRemainingRequestBody"
+              "$ref": "#/components/schemas/V2KeysUpdateCreditsRequestBody"
             examples:
-              setCredits:
-                summary: Set remaining credits
-                description:
-                  This sets an absolute value of 1000 credits for the key.
-                  If the key previously had 200 credits, it will now have 1000 (not
-                  1200). If it previously had unlimited usage, it will now be limited
-                  to 1000 credits.
-                value:
-                  keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-                  remaining: 1000
               setUnlimited:
                 summary: Set unlimited usage
                 description:
-                  Setting remaining to -1 makes the key usable an unlimited
+                  Setting remaining to null makes the key usable an unlimited
                   number of times. This is useful for premium tiers, trusted partners,
-                  or internal applications where usage counting isn't needed.
+                  or internal applications where usage counting isn't needed. Any previous refill settings will be removed.
                 value:
                   keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-                  remaining: -1
-              removeRefills:
-                summary: Remove refill settings
-                description:
-                  This sets 500 credits and removes any automatic refill
-                  configuration, effectively converting a key from a subscription-like
-                  model to a one-time credit allocation. Useful when downgrading from
-                  an automatic plan to a fixed allocation.
+                  value: null
+                  operation: set
+              setCredits:
+                summary: Set credits
+                description: To set credits, first get the current value using keys.getKey, then add the amount.
                 value:
                   keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-                  remaining: 500
-                  overwriteRefillSettings: true
-              addPurchasedCredits:
-                summary: Add purchased credits
-                description:
-                  To add credits to the existing balance, first get the
-                  current value using keys.getKey, then add the purchased amount.
-                  Any existing refill settings are preserved.
+                  value: 2500
+                  operation: set
+              incrementCredits:
+                summary: Increment credits
+                description: To increment credits to the existing balance, just specify the increment operation and the amount to add.
                 value:
                   keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-                  remaining: 2500
+                  value: 2500
+                  operation: increment
+              decrementCredits:
+                summary: Decrement credits
+                description: To decrement credits to the existing balance, just specify the decrement operation and the amount to subtract.
+                value:
+                  keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+                  value: 2500
+                  operation: decrement
       responses:
         "200":
           description: Remaining credits successfully updated
           content:
             application/json:
               schema:
-                "$ref": "#/components/schemas/V2KeysUpdateRemainingResponse"
+                "$ref": "#/components/schemas/V2KeysUpdateCreditsResponse"
               examples:
                 withRefills:
                   summary: Updated with refill settings preserved
@@ -5541,7 +4803,6 @@ paths:
                         interval: monthly
                         amount: 1000
                         refillDay: 1
-                        lastRefillAt: "2023-01-01T00:00:00Z"
                 withoutRefills:
                   summary: Updated with refills removed
                   value:
@@ -5556,14 +4817,13 @@ paths:
                     meta:
                       requestId: req_1234567890abcdef
                     data:
-                      remaining: -1
+                      remaining: null
                       refillSettings:
         "400":
           description:
             Bad request - Invalid or missing parameters. This error occurs
             when the request body is malformed, missing required fields, or contains
-            invalid values. Verify that you've provided either a valid externalId
-            or identityId, and that the format of each field meets the requirements.
+            invalid values. Verify that you've provided a valid externalId, and that the format of each field meets the requirements.
           content:
             application/json:
               schema:
@@ -6722,9 +5982,11 @@ paths:
                     - name: requests
                       limit: 10000
                       duration: 3600000
+                      autoApply: true
                     - name: heavy_compute
                       limit: 100
                       duration: 86400000
+                      autoApply: false
         required: true
       responses:
         "200":
@@ -6738,8 +6000,6 @@ paths:
                   value:
                     meta:
                       requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
-                    data:
-                      identityId: id_01H9TQP8NP8JN3X8HWSKPW43JE
           description: OK
         "400":
           description: Bad request
@@ -6783,20 +6043,18 @@ paths:
         - identities
       summary: Retrieve identity information
       description: |-
-        Retrieves detailed information about a specific identity by its Unkey ID or external ID.
+        Retrieves detailed information about a specific identity by its external ID.
 
         Identities in Unkey represent entities in your system (users, organizations, etc.) that can be associated with multiple API keys. This endpoint provides access to:
         - Identity metadata that was stored during creation
         - Rate limiting configurations that apply across all keys for this identity
-        - Mapping between your system's external IDs and Unkey's internal IDs
 
         This endpoint is useful for:
         - Checking if an identity exists
         - Retrieving metadata associated with an identity
         - Viewing rate limit configurations
-        - Finding the Unkey ID for an identity when you only have the external ID
 
-        You must provide either the identityId or externalId parameter to identify which identity to retrieve.
+        You must provide the externalId parameter to identify which identity to retrieve.
       operationId: identities.getIdentity
       x-speakeasy-name-override: getIdentity
       security:
@@ -6807,10 +6065,6 @@ paths:
             schema:
               "$ref": "#/components/schemas/V2IdentitiesGetIdentityRequestBody"
             examples:
-              byIdentityId:
-                summary: Retrieve by Unkey identity ID
-                value:
-                  identityId: id_1234567890abcdef
               byExternalId:
                 summary: Retrieve by external ID
                 value:
@@ -6845,8 +6099,7 @@ paths:
                           limit: 100
                           duration: 3600000
         "400":
-          description:
-            Bad request - Missing both identityId and externalId, or other
+          description: Bad request - Missing the externalId, or other
             validation issues
           content:
             application/json:
@@ -6904,12 +6157,10 @@ paths:
               basic:
                 summary: Basic identity listing
                 value:
-                  environment: default
                   limit: 50
               withPagination:
                 summary: Fetch next page with cursor
                 value:
-                  environment: default
                   limit: 50
                   cursor: cursor_eyJrZXkiOiJrZXlfMTIzNCJ9
         required: true
@@ -7021,11 +6272,6 @@ paths:
                 description: Deleting using your system's identifier
                 value:
                   externalId: user_abc123
-              byIdentityId:
-                summary: Delete by Unkey identity ID
-                description: Deleting using Unkey's internal identifier
-                value:
-                  identityId: id_01H9TQP8NP8JN3X8HWSKPW43JE
         required: true
       responses:
         "200":
@@ -8092,7 +7338,7 @@ paths:
               updateMetadata:
                 summary: Update identity metadata only
                 value:
-                  identityId: id_01H9TQPP77V5E48E9SH0BG0ZQX
+                  externalId: user_123
                   meta:
                     name: Alice Smith
                     email: alice.updated@example.com

@@ -6,10 +6,10 @@ on:
         required: true
   workflow_dispatch:
 
-
-
 jobs:
   deploy:
+    permissions:
+      contents: read
     environment: ClickHouse Production Migration
     runs-on: ubuntu-latest
     steps:
@@ -19,10 +19,12 @@ jobs:
         uses: ./.github/actions/install
         with:
           go: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install goose
         run: go install github.com/pressly/goose/v3/cmd/goose@latest
-
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Migrate
         run: goose clickhouse "${{ secrets.CLICKHOUSE_URL }}" up

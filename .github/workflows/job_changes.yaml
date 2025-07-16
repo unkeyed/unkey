@@ -9,6 +9,8 @@ jobs:
   build:
     name: Build Agent
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3

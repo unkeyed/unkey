@@ -11,7 +11,6 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
-	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
@@ -28,11 +27,10 @@ type Response = openapi.V2IdentitiesCreateIdentityResponseBody
 // Handler implements zen.Route interface for the v2 identities create identity endpoint
 type Handler struct {
 	// Services as public fields
-	Logger      logging.Logger
-	DB          db.Database
-	Keys        keys.KeyService
-	Permissions permissions.PermissionService
-	Auditlogs   auditlogs.AuditLogService
+	Logger    logging.Logger
+	DB        db.Database
+	Keys      keys.KeyService
+	Auditlogs auditlogs.AuditLogService
 }
 
 const (
@@ -53,36 +51,28 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, err := h.Keys.VerifyRootKey(ctx, s)
+	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
 	}
 
-	// nolint:exhaustruct
-	req := Request{}
-	err = s.BindBody(&req)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
-		)
-	}
-
-	err = h.Permissions.Check(
-		ctx,
-		auth.KeyID,
-		rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Identity,
-				ResourceID:   "*",
-				Action:       rbac.CreateIdentity,
-			}),
-		),
-	)
+	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
 	}
 
-	var meta []byte
+	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Identity,
+			ResourceID:   "*",
+			Action:       rbac.CreateIdentity,
+		}),
+	)))
+	if err != nil {
+		return err
+	}
+
+	meta := []byte("{}")
 	if req.Meta != nil {
 		rawMeta, metaErr := json.Marshal(req.Meta)
 		if metaErr != nil {
@@ -103,36 +93,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		meta = rawMeta
 	}
 
-	// Validate rate limits
-	if req.Ratelimits != nil {
-		for _, ratelimit := range *req.Ratelimits {
-			// Validate rate limit name is provided
-			if ratelimit.Name == "" {
-				return fault.New("invalid rate limit",
-					fault.Code(codes.App.Validation.InvalidInput.URN()),
-					fault.Internal("missing rate limit name"), fault.Public("Rate limit name is required."),
-				)
-			}
-
-			// Validate rate limit value is positive
-			if ratelimit.Limit <= 0 {
-				return fault.New("invalid rate limit",
-					fault.Code(codes.App.Validation.InvalidInput.URN()),
-					fault.Internal("invalid rate limit value"), fault.Public("Rate limit value must be greater than zero."),
-				)
-			}
-
-			// Validate duration is at least 1000ms (1 second)
-			if ratelimit.Duration < 1000 {
-				return fault.New("invalid rate limit",
-					fault.Code(codes.App.Validation.InvalidInput.URN()),
-					fault.Internal("invalid rate limit duration"), fault.Public("Rate limit duration must be at least 1000ms (1 second)."),
-				)
-			}
-		}
-	}
-
-	identityID, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
+	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		identityID := uid.New(uid.IdentityPrefix)
 		args := db.InsertIdentityParams{
 			ID:          identityID,
@@ -142,20 +103,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        meta,
 		}
-		h.Logger.Warn("inserting identity",
-			"args", args,
-		)
-		err = db.Query.InsertIdentity(ctx, tx, args)
 
+		err = db.Query.InsertIdentity(ctx, tx, args)
 		if err != nil {
 			if db.IsDuplicateKeyError(err) {
-				return "", fault.Wrap(err,
+				return fault.Wrap(err,
 					fault.Code(codes.Data.Identity.Duplicate.URN()),
 					fault.Internal("identity already exists"), fault.Public(fmt.Sprintf("Identity with externalId \"%s\" already exists in this workspace.", req.ExternalId)),
 				)
 			}
 
-			return "", fault.Wrap(err,
+			return fault.Wrap(err,
 				fault.Internal("unable to create identity"), fault.Public("We're unable to create the identity and its ratelimits."),
 			)
 		}
@@ -165,7 +123,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.IdentityCreateEvent,
 				Display:     fmt.Sprintf("Created identity %s.", identityID),
-				ActorID:     auth.KeyID,
+				ActorID:     auth.Key.ID,
 				ActorName:   "root key",
 				ActorMeta:   map[string]any{},
 				ActorType:   auditlog.RootKeyActor,
@@ -184,9 +142,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if req.Ratelimits != nil {
-			for _, ratelimit := range *req.Ratelimits {
+			rateLimitsToInsert := make([]db.InsertIdentityRatelimitParams, len(*req.Ratelimits))
+			for i, ratelimit := range *req.Ratelimits {
 				ratelimitID := uid.New(uid.RatelimitPrefix)
-				err = db.Query.InsertIdentityRatelimit(ctx, tx, db.InsertIdentityRatelimitParams{
+				rateLimitsToInsert[i] = db.InsertIdentityRatelimitParams{
 					ID:          ratelimitID,
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					IdentityID:  sql.NullString{String: identityID, Valid: true},
@@ -194,18 +153,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					Limit:       int32(ratelimit.Limit), // nolint:gosec
 					Duration:    ratelimit.Duration,
 					CreatedAt:   time.Now().UnixMilli(),
-				})
-				if err != nil {
-					return "", fault.Wrap(err,
-						fault.Internal("unable to create ratelimit"), fault.Public("We're unable to create a ratelimit for the identity."),
-					)
+					AutoApply:   ratelimit.AutoApply,
 				}
 
 				auditLogs = append(auditLogs, auditlog.AuditLog{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					Event:       auditlog.RatelimitCreateEvent,
 					Display:     fmt.Sprintf("Created ratelimit %s.", ratelimitID),
-					ActorID:     auth.KeyID,
+					ActorID:     auth.Key.ID,
 					ActorType:   auditlog.RootKeyActor,
 					ActorName:   "root key",
 					ActorMeta:   map[string]any{},
@@ -229,17 +184,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					},
 				})
 			}
+
+			err = db.BulkInsert(
+				ctx,
+				tx,
+				"INSERT INTO ratelimits (id, workspace_id, identity_id, name, `limit`, duration, created_at, auto_apply) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+				rateLimitsToInsert,
+			)
+			if err != nil {
+				return fault.Wrap(err,
+					fault.Internal("unable to create ratelimit"), fault.Public("We're unable to create a ratelimit for the identity."),
+				)
+			}
 		}
 
 		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 		if err != nil {
-			return "", fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database failed to insert audit logs"), fault.Public("Failed to insert audit logs"),
-			)
+			return err
 		}
 
-		return identityID, nil
+		return nil
 	})
 	if err != nil {
 		return err
@@ -249,8 +213,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.IdentitiesCreateIdentityResponseData{
-			IdentityId: identityID,
-		},
+		Data: openapi.IdentitiesCreateIdentityResponseData{},
 	})
 }

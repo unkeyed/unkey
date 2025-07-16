@@ -6,7 +6,6 @@ package openapi
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/oapi-codegen/runtime"
@@ -18,22 +17,8 @@ const (
 
 // Defines values for KeyCreditsRefillInterval.
 const (
-	KeyCreditsRefillIntervalDaily   KeyCreditsRefillInterval = "daily"
-	KeyCreditsRefillIntervalMonthly KeyCreditsRefillInterval = "monthly"
-)
-
-// Defines values for KeysGetKeyResponseDataCreditsRefillInterval.
-const (
-	KeysGetKeyResponseDataCreditsRefillIntervalDaily   KeysGetKeyResponseDataCreditsRefillInterval = "daily"
-	KeysGetKeyResponseDataCreditsRefillIntervalMonthly KeysGetKeyResponseDataCreditsRefillInterval = "monthly"
-)
-
-// Defines values for KeysUpdateRemainingResponseDataRefillSettingsInterval.
-const (
-	KeysUpdateRemainingResponseDataRefillSettingsIntervalDaily   KeysUpdateRemainingResponseDataRefillSettingsInterval = "daily"
-	KeysUpdateRemainingResponseDataRefillSettingsIntervalMonthly KeysUpdateRemainingResponseDataRefillSettingsInterval = "monthly"
-	KeysUpdateRemainingResponseDataRefillSettingsIntervalNever   KeysUpdateRemainingResponseDataRefillSettingsInterval = "never"
-	KeysUpdateRemainingResponseDataRefillSettingsIntervalWeekly  KeysUpdateRemainingResponseDataRefillSettingsInterval = "weekly"
+	Daily   KeyCreditsRefillInterval = "daily"
+	Monthly KeyCreditsRefillInterval = "monthly"
 )
 
 // Defines values for KeysVerifyKeyResponseDataCode.
@@ -44,21 +29,15 @@ const (
 	INSUFFICIENTPERMISSIONS KeysVerifyKeyResponseDataCode = "INSUFFICIENT_PERMISSIONS"
 	NOTFOUND                KeysVerifyKeyResponseDataCode = "NOT_FOUND"
 	RATELIMITED             KeysVerifyKeyResponseDataCode = "RATE_LIMITED"
-	UNAUTHORIZED            KeysVerifyKeyResponseDataCode = "UNAUTHORIZED"
 	USAGEEXCEEDED           KeysVerifyKeyResponseDataCode = "USAGE_EXCEEDED"
 	VALID                   KeysVerifyKeyResponseDataCode = "VALID"
 )
 
-// Defines values for V2KeysCreateKeyRequestBodyCreditsRefillInterval.
+// Defines values for V2KeysUpdateCreditsRequestBodyOperation.
 const (
-	V2KeysCreateKeyRequestBodyCreditsRefillIntervalDaily   V2KeysCreateKeyRequestBodyCreditsRefillInterval = "daily"
-	V2KeysCreateKeyRequestBodyCreditsRefillIntervalMonthly V2KeysCreateKeyRequestBodyCreditsRefillInterval = "monthly"
-)
-
-// Defines values for V2KeysUpdateKeyRequestBodyCreditsRefillInterval.
-const (
-	Daily   V2KeysUpdateKeyRequestBodyCreditsRefillInterval = "daily"
-	Monthly V2KeysUpdateKeyRequestBodyCreditsRefillInterval = "monthly"
+	Decrement V2KeysUpdateCreditsRequestBodyOperation = "decrement"
+	Increment V2KeysUpdateCreditsRequestBodyOperation = "increment"
+	Set       V2KeysUpdateCreditsRequestBodyOperation = "set"
 )
 
 // Defines values for V2KeysVerifyKeyRequestBodyPermissions1Type.
@@ -99,7 +78,7 @@ type ApisGetApiResponseData struct {
 }
 
 // ApisListKeysResponseData Array of API keys with complete configuration and metadata.
-type ApisListKeysResponseData = []KeyResponse
+type ApisListKeysResponseData = []KeyResponseData
 
 // BadRequestErrorDetails defines model for BadRequestErrorDetails.
 type BadRequestErrorDetails struct {
@@ -187,31 +166,18 @@ type ForbiddenErrorResponse struct {
 }
 
 // IdentitiesCreateIdentityResponseData defines model for IdentitiesCreateIdentityResponseData.
-type IdentitiesCreateIdentityResponseData struct {
-	// IdentityId The unique identifier for this identity in Unkey's system (begins with `id_`).
-	//
-	// This ID is generated automatically and used internally by Unkey to reference this identity. While you typically don't need to store this value (your `externalId` is sufficient), it can be useful to record it for:
-	// - Debugging purposes
-	// - Advanced API operations
-	// - Integration with Unkey's analytics
-	//
-	// Unlike `externalId` which comes from your system, this ID is guaranteed unique across all Unkey `workspaces`.
-	IdentityId string `json:"identityId"`
-}
+type IdentitiesCreateIdentityResponseData = map[string]interface{}
 
 // IdentitiesGetIdentityResponseData defines model for IdentitiesGetIdentityResponseData.
 type IdentitiesGetIdentityResponseData struct {
 	// ExternalId The external identifier for this identity in your system. This is the ID you provided during identity creation.
 	ExternalId string `json:"externalId"`
 
-	// Id The unique identifier for this identity in Unkey's system (begins with 'id_').
-	Id string `json:"id"`
-
 	// Meta Custom metadata associated with this identity. This can include any JSON-serializable data you stored with the identity during creation or updates.
 	Meta *map[string]interface{} `json:"meta,omitempty"`
 
 	// Ratelimits Rate limits associated with this identity. These limits are shared across all API keys linked to this identity, providing consistent rate limiting regardless of which key is used.
-	Ratelimits *[]Ratelimit `json:"ratelimits,omitempty"`
+	Ratelimits *[]RatelimitResponse `json:"ratelimits,omitempty"`
 }
 
 // IdentitiesListIdentitiesResponseData List of identities matching the specified criteria.
@@ -222,14 +188,11 @@ type IdentitiesUpdateIdentityResponseData struct {
 	// ExternalId The external identifier for this identity in your system.
 	ExternalId string `json:"externalId"`
 
-	// Id The unique identifier for this identity in Unkey's system (begins with 'id_').
-	Id string `json:"id"`
-
 	// Meta Custom metadata associated with this identity after the update.
 	Meta *map[string]interface{} `json:"meta,omitempty"`
 
 	// Ratelimits Rate limits associated with this identity after the update.
-	Ratelimits *[]Ratelimit `json:"ratelimits,omitempty"`
+	Ratelimits *[]RatelimitResponse `json:"ratelimits,omitempty"`
 }
 
 // Identity defines model for Identity.
@@ -237,14 +200,11 @@ type Identity struct {
 	// ExternalId External identity ID
 	ExternalId string `json:"externalId"`
 
-	// Id Identity ID
-	Id string `json:"id"`
-
 	// Meta Identity metadata
 	Meta *map[string]interface{} `json:"meta,omitempty"`
 
 	// Ratelimits Identity ratelimits
-	Ratelimits []Ratelimit `json:"ratelimits"`
+	Ratelimits []RatelimitResponse `json:"ratelimits"`
 }
 
 // InternalServerErrorResponse Error response for unexpected server-side issues that prevented the request from being processed correctly. This is typically caused by problems with the service infrastructure, database connectivity issues, unexpected exceptions, or service failures. When receiving this error, clients should implement appropriate retry strategies with backoff and report the issue if it persists. The `requestId` in the `meta` object is essential for troubleshooting and should be included in any support inquiries.
@@ -256,12 +216,12 @@ type InternalServerErrorResponse struct {
 	Meta Meta `json:"meta"`
 }
 
-// KeyCredits Credit configuration and remaining balance for this key.
-type KeyCredits struct {
+// KeyCreditsData Credit configuration and remaining balance for this key.
+type KeyCreditsData struct {
 	Refill *KeyCreditsRefill `json:"refill,omitempty"`
 
-	// Remaining Number of credits remaining (-1 for unlimited).
-	Remaining int64 `json:"remaining"`
+	// Remaining Number of credits remaining (null for unlimited).
+	Remaining nullable.Nullable[int64] `json:"remaining"`
 }
 
 // KeyCreditsRefill defines model for KeyCreditsRefill.
@@ -272,9 +232,6 @@ type KeyCreditsRefill struct {
 	// Interval How often credits are automatically refilled.
 	Interval KeyCreditsRefillInterval `json:"interval"`
 
-	// LastRefillAt Unix timestamp in milliseconds of last refill.
-	LastRefillAt *int64 `json:"lastRefillAt,omitempty"`
-
 	// RefillDay Day of month for monthly refills (1-31).
 	RefillDay *int `json:"refillDay,omitempty"`
 }
@@ -282,16 +239,16 @@ type KeyCreditsRefill struct {
 // KeyCreditsRefillInterval How often credits are automatically refilled.
 type KeyCreditsRefillInterval string
 
-// KeyResponse defines model for KeyResponse.
-type KeyResponse struct {
+// KeyResponseData defines model for KeyResponseData.
+type KeyResponseData struct {
 	// CreatedAt Unix timestamp in milliseconds when key was created.
 	CreatedAt int64 `json:"createdAt"`
 
 	// Credits Credit configuration and remaining balance for this key.
-	Credits *KeyCredits `json:"credits,omitempty"`
+	Credits *KeyCreditsData `json:"credits,omitempty"`
 
-	// Environment Environment tag for this key.
-	Environment *string `json:"environment,omitempty"`
+	// Enabled Whether the key is enabled or disabled.
+	Enabled bool `json:"enabled"`
 
 	// Expires Unix timestamp in milliseconds when key expires.
 	Expires  *int64    `json:"expires,omitempty"`
@@ -325,39 +282,6 @@ type KeyResponse struct {
 	UpdatedAt *int64 `json:"updatedAt,omitempty"`
 }
 
-// KeyWhoamiData defines model for KeyWhoamiData.
-type KeyWhoamiData struct {
-	// CreatedAt The timestamp in milliseconds when the key was created
-	CreatedAt int64 `json:"createdAt"`
-
-	// Enabled Whether the key is enabled and can be used
-	Enabled bool `json:"enabled"`
-
-	// Environment The environment the key is associated with (e.g., production, staging, development)
-	Environment nullable.Nullable[string] `json:"environment,omitempty"`
-
-	// Id The unique identifier of the key
-	Id string `json:"id"`
-
-	// Identity The identity object associated with the key (null if no identity is associated)
-	Identity nullable.Nullable[struct {
-		// ExternalId The external identity ID associated with the key (e.g., user ID in your system)
-		ExternalId string `json:"externalId"`
-
-		// Id The unique identity ID associated with the key
-		Id string `json:"id"`
-	}] `json:"identity,omitempty"`
-
-	// Meta Custom metadata associated with the key (null if no metadata is present)
-	Meta nullable.Nullable[map[string]interface{}] `json:"meta,omitempty"`
-
-	// Name The human-readable name of the key (optional)
-	Name nullable.Nullable[string] `json:"name,omitempty"`
-
-	// Remaining The remaining number of requests for the key (null means unlimited)
-	Remaining nullable.Nullable[int64] `json:"remaining,omitempty"`
-}
-
 // KeysCreateKeyResponseData defines model for KeysCreateKeyResponseData.
 type KeysCreateKeyResponseData struct {
 	// Key The full generated API key that should be securely provided to your user. SECURITY WARNING: This is the only time you'll receive the complete key - Unkey only stores a securely hashed version. Never log or store this value in your own systems; provide it directly to your end user via secure channels. After this API call completes, this value cannot be retrieved again (unless created with `recoverable=true`).
@@ -367,131 +291,38 @@ type KeysCreateKeyResponseData struct {
 	KeyId string `json:"keyId"`
 }
 
-// KeysDeleteKeyResponseData Confirms successful key deletion with no additional data returned.
-// Deletion immediately invalidates the key in the primary database but cache propagation across regions may take up to 30 seconds.
-// During this propagation window, some verification attempts might still succeed in certain regions due to eventual consistency.
-// Monitor your application logs during the propagation period to ensure no unexpected authentication successes occur.
+// KeysDeleteKeyResponseData Empty response object by design. A successful response indicates the key was deleted successfully.
 type KeysDeleteKeyResponseData = map[string]interface{}
 
-// KeysGetKeyResponseData defines model for KeysGetKeyResponseData.
-type KeysGetKeyResponseData struct {
-	// ApiId The ID of the API this key belongs to.
-	ApiId *string `json:"apiId,omitempty"`
-
-	// CreatedAt Unix timestamp (in milliseconds) when the key was created.
-	CreatedAt int64 `json:"createdAt"`
-
-	// Credits Usage limits configuration for this key. Credits provide a way to limit the number of times a key can be used before becoming invalid. Unlike ratelimits, credits are globally consistent (using database transactions) providing 100% accuracy at the cost of slightly higher latency. Ideal for monetization, usage quotas, or strict limits that must not be exceeded. See the 'refill' field for automatic replenishment options.
-	Credits *struct {
-		// Refill Configuration for automatic credit refills.
-		Refill *struct {
-			// Amount Number of credits added during each refill.
-			Amount int `json:"amount"`
-
-			// Interval How often the credits are automatically refilled.
-			Interval KeysGetKeyResponseDataCreditsRefillInterval `json:"interval"`
-
-			// LastRefillAt Unix timestamp (in milliseconds) when credits were last refilled.
-			LastRefillAt *int64 `json:"lastRefillAt,omitempty"`
-
-			// RefillDay For monthly refills, the day of month when refills occur.
-			RefillDay *int `json:"refillDay,omitempty"`
-		} `json:"refill,omitempty"`
-
-		// Remaining The number of times this key can still be used before becoming invalid.
-		Remaining *int32 `json:"remaining,omitempty"`
-	} `json:"credits,omitempty"`
-
-	// Enabled Whether the key is currently active. Disabled keys will fail verification with `code=DISABLED`. Toggling this allows you to temporarily suspend access without deleting the key, which is useful for maintenance, account freezing, or debugging. Can be updated using the `keys.updateKey` endpoint.
-	Enabled bool `json:"enabled"`
-
-	// Expires Unix timestamp (in milliseconds) when this key will automatically expire. If null, the key has no expiration.
-	Expires *int64 `json:"expires,omitempty"`
-
-	// ExternalId Your user's unique identifier, creating a link between Unkey and your system. This ID is returned during verification so you can identify which customer/entity is making the request without performing additional database lookups. Use consistent identifiers that match your primary user/tenant identifiers for seamless integration.
-	ExternalId *string `json:"externalId,omitempty"`
-
-	// Id The unique identifier of the key in Unkey's system.
-	Id string `json:"id"`
-
-	// Identity The identity associated with this key, if any. Identities allow resource sharing (like ratelimits) across multiple keys belonging to the same user/entity. This enables scenarios like issuing separate keys for different devices/services while maintaining global usage limits for the user. An identity's externalId typically matches your user ID or tenant ID.
-	Identity *struct {
-		// ExternalId Your identifier for this identity in your system.
-		ExternalId string `json:"externalId"`
-
-		// Id The unique ID of the identity in Unkey's system.
-		Id string `json:"id"`
-
-		// Meta Additional metadata associated with this identity.
-		Meta *map[string]interface{} `json:"meta,omitempty"`
-	} `json:"identity,omitempty"`
-
-	// Meta Arbitrary JSON metadata associated with this key. This can include additional context like subscription plans, feature flags, or any custom data. Metadata is stored as-is and returned during verification, allowing you to access important information without additional database queries. Consider including data relevant to authorization decisions, usage tracking, and user context.
-	Meta *map[string]interface{} `json:"meta,omitempty"`
-
-	// Name A descriptive name for the key for internal reference. Shown in dashboards and logs but never exposed to end users.
-	Name *string `json:"name,omitempty"`
-
-	// Permissions List of permission names directly assigned to this key.
-	Permissions *[]string `json:"permissions,omitempty"`
-
-	// Plaintext The full `API key` in plaintext. Only included when `decrypt` is `true` and the key was created with `recoverable: true`. SECURITY RISK: This field contains the actual secret key which should never be logged, stored in databases, or exposed in any frontend code. It should only be displayed directly to users through secure channels. Most applications should avoid setting decrypt=true unless absolutely necessary.
-	Plaintext *string `json:"plaintext,omitempty"`
-
-	// Ratelimits Array of ratelimits applied to this key. Multiple named ratelimits can control different aspects of key usage. For example, a 'requests' ratelimit might control overall API calls while a separate 'computations' limit manages access to resource-intensive operations. Ratelimits are optimized for performance and typically add minimal latency to verifications. They can be shared across keys through identities.
-	Ratelimits *[]struct {
-		// Async Whether this ratelimit uses fast (async=true) or consistent (async=false) mode. Fast mode has lower latency but less accuracy.
-		Async *bool `json:"async,omitempty"`
-
-		// Duration Duration of the ratelimit window in milliseconds.
-		Duration int32 `json:"duration"`
-
-		// Limit Maximum number of operations allowed within the time window.
-		Limit int32 `json:"limit"`
-
-		// Name Identifier for this ratelimit.
-		Name string `json:"name"`
-	} `json:"ratelimits,omitempty"`
-
-	// Roles List of role names assigned to this key. Roles are collections of permissions.
-	Roles *[]string `json:"roles,omitempty"`
-
-	// Start The first few characters of the key to visually identify it without exposing the full key. Used in dashboards and logs to help users recognize which key is being used without revealing sensitive information. Typically includes the prefix if one was specified.
-	Start string `json:"start"`
-
-	// UpdatedAt Unix timestamp (in milliseconds) when the key was last updated.
-	UpdatedAt *int64 `json:"updatedAt,omitempty"`
-}
-
-// KeysGetKeyResponseDataCreditsRefillInterval How often the credits are automatically refilled.
-type KeysGetKeyResponseDataCreditsRefillInterval string
-
-// KeysUpdateKeyResponseData Empty response object by design. A successful response indicates the key was updated successfully. The endpoint doesn't return the updated key to reduce response size and avoid exposing sensitive information. Changes may take up to 30 seconds to propagate to all regions due to cache invalidation delays. If you need the updated key state, use a subsequent call to `keys.getKey`.
+// KeysUpdateKeyResponseData Empty response object by design. A successful response indicates the key was updated successfully.
 type KeysUpdateKeyResponseData = map[string]interface{}
 
-// KeysUpdateRemainingResponseData defines model for KeysUpdateRemainingResponseData.
-type KeysUpdateRemainingResponseData struct {
-	// RefillSettings If the key has automatic refill settings, they are included here with their current configuration. If null, the key does not have automatic refills configured (either because they were removed with overwriteRefillSettings=true or because they were never set up). Refill settings create subscription-like behavior where the key automatically receives new credits on a regular schedule.
-	RefillSettings nullable.Nullable[struct {
-		// Amount The number of credits added during each automatic refill. This is the quota that gets renewed each period, making it useful for implementing subscription tiers with different usage limits (e.g., Basic=100/month, Pro=1000/month).
-		Amount *int64 `json:"amount,omitempty"`
-
-		// Interval The interval at which credits are automatically refilled. 'daily' resets at midnight UTC, 'weekly' resets on the specified weekday (where 1=Monday, 7=Sunday), 'monthly' resets on the specified day of month, and 'never' means no automatic refills occur.
-		Interval *KeysUpdateRemainingResponseDataRefillSettingsInterval `json:"interval,omitempty"`
-
-		// LastRefillAt The timestamp when the last automatic refill occurred. This helps track when credits were last replenished and understand when the next refill will occur. The timestamp is in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ).
-		LastRefillAt *time.Time `json:"lastRefillAt,omitempty"`
-
-		// RefillDay For monthly refills, the day of the month on which to refill (1-31). For weekly refills, the day of the week (1=Monday, 7=Sunday). This allows aligning refills with billing cycles, subscription periods, or other business-relevant schedules.
-		RefillDay *int `json:"refillDay,omitempty"`
-	}] `json:"refillSettings,omitempty"`
-
-	// Remaining The updated remaining credits value for the key after the operation completes. This reflects the exact value that was set in the request. A value of -1 indicates unlimited usage, meaning the key can be used an unlimited number of times without being rejected for credit exhaustion. This field is guaranteed to be present in every response.
-	Remaining int64 `json:"remaining"`
+// KeysVerifyKeyCredits Controls credit consumption for usage-based billing and quota enforcement.
+// Omitting this field uses the default cost of 1 credit per verification.
+// Credits provide globally consistent usage tracking, essential for paid APIs with strict quotas.
+// Verification can succeed while credit deduction fails if the key has insufficient credits.
+type KeysVerifyKeyCredits struct {
+	// Cost Sets how many credits to deduct for this verification request.
+	// Use 0 for read-only operations or free tier access, higher values for premium features.
+	// Credits are deducted immediately upon verification, even if the key lacks required permissions.
+	// Essential for implementing usage-based pricing with different operation costs.
+	Cost int32 `json:"cost"`
 }
 
-// KeysUpdateRemainingResponseDataRefillSettingsInterval The interval at which credits are automatically refilled. 'daily' resets at midnight UTC, 'weekly' resets on the specified weekday (where 1=Monday, 7=Sunday), 'monthly' resets on the specified day of month, and 'never' means no automatic refills occur.
-type KeysUpdateRemainingResponseDataRefillSettingsInterval string
+// KeysVerifyKeyRatelimit defines model for KeysVerifyKeyRatelimit.
+type KeysVerifyKeyRatelimit struct {
+	// Cost Optionally override how expensive this operation is and how many tokens are deducted from the current limit.
+	Cost *int `json:"cost,omitempty"`
+
+	// Duration Optionally override the duration of the rate limit window duration.
+	Duration *int `json:"duration,omitempty"`
+
+	// Limit Optionally override the maximum number of requests allowed within the specified interval.
+	Limit *int `json:"limit,omitempty"`
+
+	// Name References an existing ratelimit by its name. Key Ratelimits will take precedence over identifier-based limits.
+	Name string `json:"name"`
+}
 
 // KeysVerifyKeyResponseData defines model for KeysVerifyKeyResponseData.
 type KeysVerifyKeyResponseData struct {
@@ -504,15 +335,9 @@ type KeysVerifyKeyResponseData struct {
 	// Enabled Indicates if the key is currently enabled. Disabled keys will always fail verification with `code=DISABLED`. This is useful for implementing temporary suspensions without deleting the key.
 	Enabled *bool `json:"enabled,omitempty"`
 
-	// Environment The environment tag associated with the key (e.g., 'production', 'staging', 'development'). Use this to further segment keys within an API beyond just the apiId separation.
-	Environment *string `json:"environment,omitempty"`
-
 	// Expires Unix timestamp (in milliseconds) when the key will expire. If null or not present, the key has no expiration. You can use this to warn users about upcoming expirations or to understand the validity period.
-	Expires *int64 `json:"expires,omitempty"`
-
-	// ExternalId Your user/tenant identifier that was associated with this key during creation. This allows you to connect the key back to your user without additional database lookups, making it ideal for implementing user-based authorization in stateless services.
-	ExternalId *string   `json:"externalId,omitempty"`
-	Identity   *Identity `json:"identity,omitempty"`
+	Expires  *int64    `json:"expires,omitempty"`
+	Identity *Identity `json:"identity,omitempty"`
 
 	// KeyId The unique identifier of the verified key in Unkey's system. Use this ID for operations like updating or revoking the key. This field is returned for both valid and invalid keys (except when `code=NOT_FOUND`).
 	KeyId *string `json:"keyId,omitempty"`
@@ -524,22 +349,8 @@ type KeysVerifyKeyResponseData struct {
 	Name *string `json:"name,omitempty"`
 
 	// Permissions A list of all permission names assigned to this key, either directly or through roles. These permissions determine what actions the key can perform. Only returned when permissions were checked during verification or when the key fails with `code=INSUFFICIENT_PERMISSIONS`.
-	Permissions *[]string `json:"permissions,omitempty"`
-
-	// Ratelimits Information about the rate limits applied during verification. Only included when rate limits were checked. If verification failed with `code=RATE_LIMITED`, this will show which specific rate limit was exceeded.
-	Ratelimits *[]struct {
-		// Limit The maximum number of operations allowed within the current time window for this rate limit.
-		Limit int32 `json:"limit"`
-
-		// Name The name of the rate limit that was checked. This matches the name provided in the request.
-		Name string `json:"name"`
-
-		// Remaining The number of operations still allowed within the current time window after this verification. Your application can use this to inform users about remaining capacity or to implement your own backoff strategies.
-		Remaining int32 `json:"remaining"`
-
-		// Reset Unix timestamp in milliseconds when the rate limit window will reset and 'remaining' will return to 'limit'. Use this to implement retry-after logic or to display wait times to users.
-		Reset int64 `json:"reset"`
-	} `json:"ratelimits,omitempty"`
+	Permissions *[]string                 `json:"permissions,omitempty"`
+	Ratelimits  *[]VerifyKeyRatelimitData `json:"ratelimits,omitempty"`
 
 	// Roles A list of all role names assigned to this key. Roles are collections of permissions that grant access to specific functionality. Only returned when permissions were checked during verification.
 	Roles *[]string `json:"roles,omitempty"`
@@ -608,6 +419,9 @@ type Permission struct {
 	// Use clear, semantic names that reflect the resources or actions being permitted.
 	// Names must be unique within your workspace to avoid confusion and conflicts.
 	Name string `json:"name"`
+
+	// Slug The URL-safe identifier when this permission was created.
+	Slug string `json:"slug"`
 }
 
 // PermissionsCreatePermissionResponseData defines model for PermissionsCreatePermissionResponseData.
@@ -651,42 +465,6 @@ type PreconditionFailedErrorResponse struct {
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
-}
-
-// Ratelimit defines model for Ratelimit.
-type Ratelimit struct {
-	// Duration The duration for each ratelimit window in milliseconds.
-	//
-	// This controls how long the rate limit counter accumulates before resetting. Common values include:
-	// - 1000 (1 second): For strict per-second limits on high-frequency operations
-	// - 60000 (1 minute): For moderate API usage control
-	// - 3600000 (1 hour): For less frequent but costly operations
-	// - 86400000 (24 hours): For daily quotas
-	//
-	// Shorter windows provide more frequent resets but may allow large burst usage. Longer windows provide more consistent usage patterns but take longer to reset after limit exhaustion.
-	Duration int64 `json:"duration"`
-
-	// Limit The maximum number of operations allowed within the specified time window.
-	//
-	// When this limit is reached, verification requests will fail with `code=RATE_LIMITED` until the window resets. The limit should reflect:
-	// - Your infrastructure capacity and scaling limitations
-	// - Fair usage expectations for your service
-	// - Different tier levels for various user types
-	// - The relative cost of the operations being limited
-	//
-	// Higher values allow more frequent access but may impact service performance.
-	Limit int64 `json:"limit"`
-
-	// Name The name of this rate limit. This name is used to identify which limit to check during key verification.
-	//
-	// Best practices for limit names:
-	// - Use descriptive, semantic names like 'api_requests', 'heavy_operations', or 'downloads'
-	// - Be consistent with naming conventions across your application
-	// - Create separate limits for different resource types or operation costs
-	// - Consider using namespaced names for better organization (e.g., 'files.downloads', 'compute.training')
-	//
-	// You will reference this exact name when verifying keys to check against this specific limit.
-	Name string `json:"name"`
 }
 
 // RatelimitDeleteOverrideResponseData Empty response object. A successful response indicates the override was successfully deleted. The operation is immediate - as soon as this response is received, the override no longer exists and affected identifiers have reverted to using the default rate limit for the namespace. No other data is returned as part of the deletion operation.
@@ -773,8 +551,50 @@ type RatelimitOverride struct {
 	OverrideId string `json:"overrideId"`
 }
 
+// RatelimitRequest defines model for RatelimitRequest.
+type RatelimitRequest struct {
+	// AutoApply Whether this ratelimit should be automatically applied when verifying a key.
+	AutoApply bool `json:"autoApply"`
+
+	// Duration The duration for each ratelimit window in milliseconds.
+	//
+	// This controls how long the rate limit counter accumulates before resetting. Common values include:
+	// - 1000 (1 second): For strict per-second limits on high-frequency operations
+	// - 60000 (1 minute): For moderate API usage control
+	// - 3600000 (1 hour): For less frequent but costly operations
+	// - 86400000 (24 hours): For daily quotas
+	//
+	// Shorter windows provide more frequent resets but may allow large burst usage. Longer windows provide more consistent usage patterns but take longer to reset after limit exhaustion.
+	Duration int64 `json:"duration"`
+
+	// Limit The maximum number of operations allowed within the specified time window.
+	//
+	// When this limit is reached, verification requests will fail with `code=RATE_LIMITED` until the window resets. The limit should reflect:
+	// - Your infrastructure capacity and scaling limitations
+	// - Fair usage expectations for your service
+	// - Different tier levels for various user types
+	// - The relative cost of the operations being limited
+	//
+	// Higher values allow more frequent access but may impact service performance.
+	Limit int64 `json:"limit"`
+
+	// Name The name of this rate limit. This name is used to identify which limit to check during key verification.
+	//
+	// Best practices for limit names:
+	// - Use descriptive, semantic names like 'api_requests', 'heavy_operations', or 'downloads'
+	// - Be consistent with naming conventions across your application
+	// - Create separate limits for different resource types or operation costs
+	// - Consider using namespaced names for better organization (e.g., 'files.downloads', 'compute.training')
+	//
+	// You will reference this exact name when verifying keys to check against this specific limit.
+	Name string `json:"name"`
+}
+
 // RatelimitResponse defines model for RatelimitResponse.
 type RatelimitResponse struct {
+	// AutoApply Whether this rate limit was automatically applied when verifying the key.
+	AutoApply bool `json:"autoApply"`
+
 	// Duration Rate limit window duration in milliseconds.
 	Duration int64 `json:"duration"`
 
@@ -1005,7 +825,7 @@ type V2IdentitiesCreateIdentityRequestBody struct {
 	// - Each named limit can have different thresholds and windows
 	//
 	// When verifying keys, you can specify which limits you want to use and all keys attached to this identity will share the limits, regardless of which specific key is used.
-	Ratelimits *[]Ratelimit `json:"ratelimits,omitempty"`
+	Ratelimits *[]RatelimitRequest `json:"ratelimits,omitempty"`
 }
 
 // V2IdentitiesCreateIdentityResponseBody defines model for V2IdentitiesCreateIdentityResponseBody.
@@ -1019,26 +839,10 @@ type V2IdentitiesCreateIdentityResponseBody struct {
 // V2IdentitiesDeleteIdentityRequestBody defines model for V2IdentitiesDeleteIdentityRequestBody.
 type V2IdentitiesDeleteIdentityRequestBody struct {
 	// ExternalId The id of this identity in your system.
-	//
-	// This should match the externalId value you used when creating the identity. You can use this field when you know the specific externalId but don't have the Unkey identityId. Only one of externalId or identityId is required.
-	//
+	// This should match the externalId value you used when creating the identity.
 	// This identifier typically comes from your authentication system and could be a userId, organizationId, or any other stable unique identifier in your application.
-	ExternalId *string `json:"externalId,omitempty"`
-
-	// IdentityId The Unkey Identity ID (begins with 'id_').
-	//
-	// This is the internal unique identifier generated by Unkey when the identity was created. Use this when you have the specific Unkey ID and want to ensure you're targeting the exact identity. This is especially useful in automation scripts or when you need to guarantee you're operating on a specific identity regardless of externalId changes.
-	//
-	// Only one of externalId or identityId is required.
-	IdentityId *string `json:"identityId,omitempty"`
-	union      json.RawMessage
+	ExternalId string `json:"externalId"`
 }
-
-// V2IdentitiesDeleteIdentityRequestBody0 Identify by external ID from your system
-type V2IdentitiesDeleteIdentityRequestBody0 = interface{}
-
-// V2IdentitiesDeleteIdentityRequestBody1 Identify by Unkey's internal identity ID
-type V2IdentitiesDeleteIdentityRequestBody1 = interface{}
 
 // V2IdentitiesDeleteIdentityResponseBody Empty response object. A successful response indicates the identity was deleted successfully. The operation is immediate and permanent - the identity and all its associated data are removed from the system. Any API keys previously associated with this identity remain valid but are no longer linked to this identity.
 type V2IdentitiesDeleteIdentityResponseBody struct {
@@ -1048,19 +852,9 @@ type V2IdentitiesDeleteIdentityResponseBody struct {
 
 // V2IdentitiesGetIdentityRequestBody defines model for V2IdentitiesGetIdentityRequestBody.
 type V2IdentitiesGetIdentityRequestBody struct {
-	// ExternalId The external ID of the identity to retrieve. This is the ID from your own system that was used during identity creation. Use either identityId or externalId to specify which identity to fetch. If both are provided, identityId takes precedence.
-	ExternalId *string `json:"externalId,omitempty"`
-
-	// IdentityId The Unkey identity ID to retrieve (begins with 'id_'). Use either identityId or externalId to specify which identity to fetch. If both are provided, identityId takes precedence.
-	IdentityId *string `json:"identityId,omitempty"`
-	union      json.RawMessage
+	// ExternalId The external ID of the identity to retrieve. This is the ID from your own system that was used during identity creation.
+	ExternalId string `json:"externalId"`
 }
-
-// V2IdentitiesGetIdentityRequestBody0 defines model for .
-type V2IdentitiesGetIdentityRequestBody0 = interface{}
-
-// V2IdentitiesGetIdentityRequestBody1 defines model for .
-type V2IdentitiesGetIdentityRequestBody1 = interface{}
 
 // V2IdentitiesGetIdentityResponseBody defines model for V2IdentitiesGetIdentityResponseBody.
 type V2IdentitiesGetIdentityResponseBody struct {
@@ -1092,17 +886,9 @@ type V2IdentitiesListIdentitiesResponseBody struct {
 // V2IdentitiesUpdateIdentityRequestBody defines model for V2IdentitiesUpdateIdentityRequestBody.
 type V2IdentitiesUpdateIdentityRequestBody struct {
 	// ExternalId Specifies which identity to update using your system's identifier from identity creation.
-	// Ignored when identityId is also provided in the same request.
 	// Use this when you track identities by your own user IDs, organization IDs, or tenant identifiers.
-	// More convenient than identityId when integrating with existing user management systems.
 	// Accepts letters, numbers, underscores, dots, and hyphens for flexible identifier formats.
-	ExternalId *string `json:"externalId,omitempty"`
-
-	// IdentityId Specifies which identity to update using the Unkey database identifier.
-	// Takes precedence over externalId when both are provided in the same request.
-	// Use this when you have stored the Unkey identity ID from previous API calls.
-	// Essential for direct identity management when you track Unkey's internal identifiers.
-	IdentityId *string `json:"identityId,omitempty"`
+	ExternalId string `json:"externalId"`
 
 	// Meta Replaces all existing metadata with this new metadata object.
 	// Omitting this field preserves existing metadata, while providing an empty object clears all metadata.
@@ -1114,15 +900,8 @@ type V2IdentitiesUpdateIdentityRequestBody struct {
 	// Omitting this field preserves existing rate limits, while providing an empty array removes all rate limits.
 	// These limits are shared across all keys belonging to this identity, preventing abuse through multiple keys.
 	// Rate limit changes take effect immediately but may take up to 30 seconds to propagate across all regions.
-	Ratelimits *[]Ratelimit `json:"ratelimits,omitempty"`
-	union      json.RawMessage
+	Ratelimits *[]RatelimitRequest `json:"ratelimits,omitempty"`
 }
-
-// V2IdentitiesUpdateIdentityRequestBody0 defines model for .
-type V2IdentitiesUpdateIdentityRequestBody0 = interface{}
-
-// V2IdentitiesUpdateIdentityRequestBody1 defines model for .
-type V2IdentitiesUpdateIdentityRequestBody1 = interface{}
 
 // V2IdentitiesUpdateIdentityResponseBody defines model for V2IdentitiesUpdateIdentityResponseBody.
 type V2IdentitiesUpdateIdentityResponseBody struct {
@@ -1298,37 +1077,8 @@ type V2KeysCreateKeyRequestBody struct {
 	// Consider 32 bytes for highly sensitive APIs, but avoid values above 64 bytes unless specifically required.
 	ByteLength *int `json:"byteLength,omitempty"`
 
-	// Credits Controls usage-based limits through credit consumption with optional automatic refills.
-	// Unlike rate limits which control frequency, credits control total usage with global consistency.
-	// Essential for implementing usage-based pricing, subscription tiers, and hard usage quotas.
-	// Omitting this field creates unlimited usage, while setting null is not allowed during creation.
-	Credits *struct {
-		// Refill Configures automatic credit refills on a schedule for subscription-like recurring quotas.
-		// Refills add to existing credits rather than replacing them, allowing unused quotas to accumulate.
-		// Essential for implementing predictable billing cycles and user-friendly quota management.
-		Refill *struct {
-			// Amount Specifies how many credits to add during each refill cycle.
-			// This amount gets added to remaining credits, not replaced, so unused credits carry over.
-			// Typically matches your subscription plan's quota for predictable billing cycles.
-			Amount int `json:"amount"`
-
-			// Interval Sets how often credits automatically refill. Daily refills occur at midnight UTC,
-			// while monthly refills support specific days via refillDay.
-			// Choose daily for high-frequency APIs and monthly for subscription-based quotas.
-			Interval V2KeysCreateKeyRequestBodyCreditsRefillInterval `json:"interval"`
-
-			// RefillDay Sets the day of month for monthly refills (1-31). Only valid with monthly interval.
-			// Days beyond month length (like 31 in February) default to the last valid day.
-			// Useful for aligning refills with billing cycles and subscription renewals.
-			RefillDay *int `json:"refillDay,omitempty"`
-		} `json:"refill,omitempty"`
-
-		// Remaining Sets the initial number of times this key can be used before becoming invalid.
-		// Each verification reduces this count by the verification cost (default 1).
-		// When reaching 0, further verifications fail with code=USAGE_EXCEEDED.
-		// Provides globally consistent usage limits, ideal for implementing usage-based pricing and strict quotas.
-		Remaining int64 `json:"remaining"`
-	} `json:"credits,omitempty"`
+	// Credits Credit configuration and remaining balance for this key.
+	Credits *KeyCreditsData `json:"credits,omitempty"`
 
 	// Enabled Controls whether the key is active immediately upon creation.
 	// When set to `false`, the key exists but all verification attempts fail with `code=DISABLED`.
@@ -1378,28 +1128,7 @@ type V2KeysCreateKeyRequestBody struct {
 	// Unlike credits which track total usage, rate limits reset automatically after each window expires.
 	// Multiple rate limits can control different operation types with separate thresholds and windows.
 	// Essential for preventing API abuse while maintaining good performance for legitimate usage.
-	Ratelimits *[]struct {
-		// Async Controls whether this rate limit uses fast (async=true) or consistent (async=false) mode.
-		// Fast mode has lower latency but may allow brief bursts above the limit during high concurrency.
-		// Consistent mode provides strict guarantees but adds latency to every verification.
-		// Use consistent mode only when precise rate limiting is essential for billing or security.
-		Async *bool `json:"async,omitempty"`
-
-		// Duration Duration of the rate limit window in milliseconds. Common values include 60000 (1 minute),
-		// 3600000 (1 hour), and 86400000 (24 hours). The rate limit automatically resets after this period elapses.
-		// Windows shorter than 1 second are not supported for performance reasons.
-		Duration int32 `json:"duration"`
-
-		// Limit Sets the maximum operations allowed within the duration window.
-		// When this limit is reached, verification fails with code=RATE_LIMITED until the window resets.
-		// Adjust this based on your API's capacity and expected usage patterns.
-		Limit int64 `json:"limit"`
-
-		// Name Identifies this rate limit uniquely within the key. Names must start with a letter and use semantic
-		// identifiers like 'requests', 'computations', or 'write_operations' rather than generic terms.
-		// Duplicate names within the same key are not allowed.
-		Name string `json:"name"`
-	} `json:"ratelimits,omitempty"`
+	Ratelimits *[]RatelimitRequest `json:"ratelimits,omitempty"`
 
 	// Recoverable Controls whether the plaintext key is stored in an encrypted vault for later retrieval.
 	// When true, allows recovering the actual key value using keys.getKey with decrypt=true.
@@ -1413,11 +1142,6 @@ type V2KeysCreateKeyRequestBody struct {
 	// Roles provide a convenient way to group permissions and apply consistent access patterns across multiple keys.
 	Roles *[]string `json:"roles,omitempty"`
 }
-
-// V2KeysCreateKeyRequestBodyCreditsRefillInterval Sets how often credits automatically refill. Daily refills occur at midnight UTC,
-// while monthly refills support specific days via refillDay.
-// Choose daily for high-frequency APIs and monthly for subscription-based quotas.
-type V2KeysCreateKeyRequestBodyCreditsRefillInterval string
 
 // V2KeysCreateKeyResponseBody defines model for V2KeysCreateKeyResponseBody.
 type V2KeysCreateKeyResponseBody struct {
@@ -1447,10 +1171,7 @@ type V2KeysDeleteKeyRequestBody struct {
 
 // V2KeysDeleteKeyResponseBody defines model for V2KeysDeleteKeyResponseBody.
 type V2KeysDeleteKeyResponseBody struct {
-	// Data Confirms successful key deletion with no additional data returned.
-	// Deletion immediately invalidates the key in the primary database but cache propagation across regions may take up to 30 seconds.
-	// During this propagation window, some verification attempts might still succeed in certain regions due to eventual consistency.
-	// Monitor your application logs during the propagation period to ensure no unexpected authentication successes occur.
+	// Data Empty response object by design. A successful response indicates the key was deleted successfully.
 	Data *KeysDeleteKeyResponseData `json:"data,omitempty"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
@@ -1468,16 +1189,28 @@ type V2KeysGetKeyRequestBody struct {
 	// Decryption requests are audited and may trigger security alerts in enterprise environments.
 	Decrypt *bool `json:"decrypt,omitempty"`
 
+	// Key The complete API key string provided by you, including any prefix.
+	// Never log, cache, or store API keys in your system as they provide full access to user resources.
+	// Include the full key exactly as provided - even minor modifications will cause a not found error.
+	Key *string `json:"key,omitempty"`
+
 	// KeyId Specifies which key to retrieve using the database identifier returned from `keys.createKey`.
 	// Do not confuse this with the actual API key string that users include in requests.
 	// Key data includes metadata, permissions, usage statistics, and configuration but never the plaintext key value unless `decrypt=true`.
 	// Find this ID in creation responses, key listings, dashboard, or verification responses.
-	KeyId string `json:"keyId"`
+	KeyId *string `json:"keyId,omitempty"`
+	union json.RawMessage
 }
+
+// V2KeysGetKeyRequestBody0 defines model for .
+type V2KeysGetKeyRequestBody0 = interface{}
+
+// V2KeysGetKeyRequestBody1 defines model for .
+type V2KeysGetKeyRequestBody1 = interface{}
 
 // V2KeysGetKeyResponseBody defines model for V2KeysGetKeyResponseBody.
 type V2KeysGetKeyResponseBody struct {
-	Data KeysGetKeyResponseData `json:"data"`
+	Data KeyResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
@@ -1789,39 +1522,51 @@ type V2KeysSetRolesResponseData = []struct {
 	Name string `json:"name"`
 }
 
+// V2KeysUpdateCreditsRequestBody defines model for V2KeysUpdateCreditsRequestBody.
+type V2KeysUpdateCreditsRequestBody struct {
+	// KeyId The ID of the key to update (begins with `key_`). This is the database reference ID for the key, not the actual API key string that users authenticate with. This ID uniquely identifies which key's credits will be updated.
+	KeyId string `json:"keyId"`
+
+	// Operation The operation to perform on the remaining credits. This can be one of:
+	// - set: Replace the current remaining credits value with the specified value.
+	// - increment: Add the specified value to the current remaining credits value.
+	// - decrement: Subtract the specified value from the current remaining credits value.
+	Operation V2KeysUpdateCreditsRequestBodyOperation `json:"operation"`
+
+	// Value The new value for the remaining credits. This is an absolute value replacement, not an increment or decrement operation.
+	//
+	// Key behaviors:
+	// - This completely replaces the current remaining credits value when operation is set to 'set'
+	// - To add credits, either replace the current value with the new value or increment the current value by a new value
+	// - To make a key unlimited, set value = null
+	// - To make a key with unlimited usage have a specific limit, set remaining to a positive number
+	// - If a decrement would result in a negative value, the remaining credits are set to zero
+	// - Credits are decremented each time the key is successfully verified (by the cost value, default 1)
+	// - When credits reach zero, verification fails with code=USAGE_EXCEEDED
+	//
+	// This field is useful for implementing usage-based pricing, subscription tiers, trial periods, or consumption quotas.
+	Value nullable.Nullable[int64] `json:"value,omitempty"`
+}
+
+// V2KeysUpdateCreditsRequestBodyOperation The operation to perform on the remaining credits. This can be one of:
+// - set: Replace the current remaining credits value with the specified value.
+// - increment: Add the specified value to the current remaining credits value.
+// - decrement: Subtract the specified value from the current remaining credits value.
+type V2KeysUpdateCreditsRequestBodyOperation string
+
+// V2KeysUpdateCreditsResponse defines model for V2KeysUpdateCreditsResponse.
+type V2KeysUpdateCreditsResponse struct {
+	// Data Credit configuration and remaining balance for this key.
+	Data KeyCreditsData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2KeysUpdateKeyRequestBody defines model for V2KeysUpdateKeyRequestBody.
 type V2KeysUpdateKeyRequestBody struct {
-	// Credits Controls usage-based limits for this key through credit consumption.
-	// Omitting this field preserves current credit settings, while setting null enables unlimited usage.
-	// Cannot configure refill settings when credits is null, and refillDay requires monthly interval.
-	// Essential for implementing usage-based pricing and subscription quotas.
-	Credits nullable.Nullable[struct {
-		// Refill Configures automatic credit refills on a schedule.
-		// Omitting this field preserves existing refill settings, while setting null disables refills entirely.
-		// Refills add to existing credits rather than replacing them, allowing unused quotas to accumulate.
-		Refill nullable.Nullable[struct {
-			// Amount Specifies how many credits to add during each refill cycle.
-			// This amount gets added to remaining credits, not replaced, so unused credits carry over.
-			// Typically matches your subscription plan's quota.
-			Amount int `json:"amount"`
-
-			// Interval Sets how often credits automatically refill. Monthly refills support specific days via refillDay,
-			// while daily refills occur at midnight UTC. Choose daily for high-frequency APIs and monthly for
-			// subscription-based quotas.
-			Interval V2KeysUpdateKeyRequestBodyCreditsRefillInterval `json:"interval"`
-
-			// RefillDay Sets the day of month for monthly refills (1-31). Only valid with monthly interval.
-			// Days beyond month length (like 31 in February) default to the last valid day.
-			// Useful for aligning refills with billing cycles.
-			RefillDay *int `json:"refillDay,omitempty"`
-		}] `json:"refill,omitempty"`
-
-		// Remaining Counts how many times this key can be used before becoming invalid.
-		// Each verification reduces this count by the verification cost (default 1).
-		// When reaching 0, further verifications fail with `USAGE_EXCEEDED`.
-		// Required when specifying credits for usage-based pricing or quotas.
-		Remaining int64 `json:"remaining"`
-	}] `json:"credits,omitempty"`
+	// Credits Credit configuration and remaining balance for this key.
+	Credits *KeyCreditsData `json:"credits,omitempty"`
 
 	// Enabled Controls whether the key is currently active for verification requests.
 	// When set to `false`, all verification attempts fail with `code=DISABLED` regardless of other settings.
@@ -1863,72 +1608,13 @@ type V2KeysUpdateKeyRequestBody struct {
 	// Omitting this field preserves existing rate limits, while setting null removes all rate limits.
 	// Unlike credits which track total usage, rate limits reset automatically after each window expires.
 	// Multiple rate limits can control different operation types with separate thresholds and windows.
-	Ratelimits nullable.Nullable[[]struct {
-		// Duration Duration of the rate limit window in milliseconds. Common values include 60000 (1 minute),
-		// 3600000 (1 hour), and 86400000 (24 hours). The rate limit automatically resets after this period elapses.
-		// Windows shorter than 1 second are not supported for performance reasons.
-		Duration int32 `json:"duration"`
-
-		// Limit Sets the maximum operations allowed within the duration window.
-		// When this limit is reached, verification fails with code=RATE_LIMITED until the window resets.
-		// Adjust this based on your API's capacity and expected usage patterns.
-		Limit int64 `json:"limit"`
-
-		// Name Identifies this rate limit uniquely within the key. Names must start with a letter and use semantic
-		// identifiers like 'requests', 'computations', or 'write_operations' rather than generic terms.
-		// Use only letters, numbers, underscores, and hyphens after the initial letter.
-		// Duplicate names within the same key are not allowed.
-		Name string `json:"name"`
-	}] `json:"ratelimits,omitempty"`
+	Ratelimits nullable.Nullable[[]RatelimitRequest] `json:"ratelimits,omitempty"`
 }
-
-// V2KeysUpdateKeyRequestBodyCreditsRefillInterval Sets how often credits automatically refill. Monthly refills support specific days via refillDay,
-// while daily refills occur at midnight UTC. Choose daily for high-frequency APIs and monthly for
-// subscription-based quotas.
-type V2KeysUpdateKeyRequestBodyCreditsRefillInterval string
 
 // V2KeysUpdateKeyResponseBody defines model for V2KeysUpdateKeyResponseBody.
 type V2KeysUpdateKeyResponseBody struct {
-	// Data Empty response object by design. A successful response indicates the key was updated successfully. The endpoint doesn't return the updated key to reduce response size and avoid exposing sensitive information. Changes may take up to 30 seconds to propagate to all regions due to cache invalidation delays. If you need the updated key state, use a subsequent call to `keys.getKey`.
+	// Data Empty response object by design. A successful response indicates the key was updated successfully.
 	Data *KeysUpdateKeyResponseData `json:"data,omitempty"`
-
-	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
-	Meta Meta `json:"meta"`
-}
-
-// V2KeysUpdateRemainingRequestBody defines model for V2KeysUpdateRemainingRequestBody.
-type V2KeysUpdateRemainingRequestBody struct {
-	// KeyId The ID of the key to update (begins with `key_`). This is the database reference ID for the key, not the actual API key string that users authenticate with. This ID uniquely identifies which key's credits will be updated.
-	KeyId string `json:"keyId"`
-
-	// OverwriteRefillSettings When true, any existing automatic refill settings will be removed from the key.
-	//
-	// Use cases:
-	// - Convert a key with automatic periodic refills to a one-time credit allocation
-	// - Remove subscription-like behavior in favor of manually controlled credits
-	// - Downgrade from an automatic plan to a fixed allocation
-	// - Simplify credit management by removing automated refills
-	//
-	// When false or omitted, existing refill settings are preserved, and only the current remaining value is updated. This lets you adjust the current balance without changing the refill schedule.
-	OverwriteRefillSettings *bool `json:"overwriteRefillSettings,omitempty"`
-
-	// Remaining The new value for the remaining credits. This is an absolute value replacement, not an increment or decrement operation.
-	//
-	// Key behaviors:
-	// - This completely replaces the current remaining credits value
-	// - To add credits, first get the current value and then set remaining = current + additional
-	// - To make a key unlimited, set remaining = -1
-	// - To make a key with unlimited usage have a specific limit, set remaining to a positive number
-	// - Credits are decremented each time the key is successfully verified (by the cost value, default 1)
-	// - When credits reach zero, verification fails with code=USAGE_EXCEEDED
-	//
-	// This field is useful for implementing usage-based pricing, subscription tiers, trial periods, or consumption quotas.
-	Remaining int64 `json:"remaining"`
-}
-
-// V2KeysUpdateRemainingResponse defines model for V2KeysUpdateRemainingResponse.
-type V2KeysUpdateRemainingResponse struct {
-	Data KeysUpdateRemainingResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
@@ -1946,13 +1632,7 @@ type V2KeysVerifyKeyRequestBody struct {
 	// Omitting this field uses the default cost of 1 credit per verification.
 	// Credits provide globally consistent usage tracking, essential for paid APIs with strict quotas.
 	// Verification can succeed while credit deduction fails if the key has insufficient credits.
-	Credits *struct {
-		// Cost Sets how many credits to deduct for this verification request.
-		// Use 0 for read-only operations or free tier access, higher values for premium features.
-		// Credits are deducted immediately upon verification, even if the key lacks required permissions.
-		// Essential for implementing usage-based pricing with different operation costs.
-		Cost *int64 `json:"cost,omitempty"`
-	} `json:"credits,omitempty"`
+	Credits *KeysVerifyKeyCredits `json:"credits,omitempty"`
 
 	// Key The complete API key string provided by your user, including any prefix.
 	// Verification uses secure hashing algorithms without storing plaintext values.
@@ -1970,27 +1650,7 @@ type V2KeysVerifyKeyRequestBody struct {
 	// Omitting this field skips rate limit checks entirely, relying only on configured key rate limits.
 	// Multiple rate limits can be checked simultaneously, each with different costs and temporary overrides.
 	// Rate limit checks are optimized for performance but may allow brief bursts during high concurrency.
-	Ratelimits *[]struct {
-		// Cost Sets how much of the rate limit quota this operation consumes.
-		// Use higher values for expensive operations and 0 for operations that should not count against the limit.
-		// Cost is applied immediately, even if other rate limits or permissions cause verification to fail.
-		Cost *int64 `json:"cost,omitempty"`
-
-		// Duration Temporarily overrides the rate limit window duration in milliseconds for this request only.
-		// Does not modify the stored configuration and applies only to this single verification.
-		// Common values include 60000 (1 minute), 3600000 (1 hour), and 86400000 (24 hours).
-		Duration *int64 `json:"duration,omitempty"`
-
-		// Limit Temporarily overrides the configured rate limit for this request only.
-		// Does not modify the stored configuration and applies only to this single verification.
-		// Useful for implementing per-request dynamic limits based on user tier or operation type.
-		Limit *int64 `json:"limit,omitempty"`
-
-		// Name Identifies which rate limit configuration to check. Must match a rate limit defined on the key or identity.
-		// Use semantic names that clearly describe what's being limited, avoiding generic terms like 'limit1'.
-		// Rate limit names are case-sensitive and must exist in the key's configuration.
-		Name string `json:"name"`
-	} `json:"ratelimits,omitempty"`
+	Ratelimits *[]KeysVerifyKeyRatelimit `json:"ratelimits,omitempty"`
 
 	// Tags Attaches metadata tags for analytics and monitoring without affecting verification outcomes.
 	// Enables segmentation of API usage in dashboards by endpoint, client version, region, or custom dimensions.
@@ -2033,20 +1693,6 @@ type V2KeysVerifyKeyRequestBody_Permissions struct {
 // V2KeysVerifyKeyResponseBody defines model for V2KeysVerifyKeyResponseBody.
 type V2KeysVerifyKeyResponseBody struct {
 	Data KeysVerifyKeyResponseData `json:"data"`
-
-	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
-	Meta Meta `json:"meta"`
-}
-
-// V2KeysWhoamiRequestBody defines model for V2KeysWhoamiRequestBody.
-type V2KeysWhoamiRequestBody struct {
-	// Key The API key to identify and retrieve information about
-	Key string `json:"key"`
-}
-
-// V2KeysWhoamiResponse defines model for V2KeysWhoamiResponse.
-type V2KeysWhoamiResponse struct {
-	Data KeyWhoamiData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
@@ -2334,7 +1980,14 @@ type V2RatelimitGetOverrideRequestBody struct {
 
 	// NamespaceName The name of the rate limit namespace. Either `namespaceId` or `namespaceName` must be provided, but not both. Using `namespaceName` is more human-readable and easier to work with for manual operations and configurations.
 	NamespaceName *string `json:"namespaceName,omitempty"`
+	union         json.RawMessage
 }
+
+// V2RatelimitGetOverrideRequestBody0 defines model for .
+type V2RatelimitGetOverrideRequestBody0 = interface{}
+
+// V2RatelimitGetOverrideRequestBody1 defines model for .
+type V2RatelimitGetOverrideRequestBody1 = interface{}
 
 // V2RatelimitGetOverrideResponseBody defines model for V2RatelimitGetOverrideResponseBody.
 type V2RatelimitGetOverrideResponseBody struct {
@@ -2493,6 +2146,34 @@ type ValidationError struct {
 	Message string `json:"message"`
 }
 
+// VerifyKeyRatelimitData defines model for VerifyKeyRatelimitData.
+type VerifyKeyRatelimitData struct {
+	// AutoApply Whether this rate limit should be automatically applied when verifying keys.
+	// When true, we will automatically apply this limit during verification without it being explicitly listed.
+	AutoApply bool `json:"autoApply"`
+
+	// Duration Rate limit window duration in milliseconds.
+	Duration int64 `json:"duration"`
+
+	// Exceeded Whether the rate limit was exceeded.
+	Exceeded bool `json:"exceeded"`
+
+	// Id Unique identifier for this rate limit configuration.
+	Id string `json:"id"`
+
+	// Limit Maximum requests allowed within the time window.
+	Limit int64 `json:"limit"`
+
+	// Name Human-readable name for this rate limit.
+	Name string `json:"name"`
+
+	// Remaining Rate limit remaining requests within the time window.
+	Remaining int64 `json:"remaining"`
+
+	// Reset Rate limit reset duration in milliseconds.
+	Reset int64 `json:"reset"`
+}
+
 // CreateApiJSONRequestBody defines body for CreateApi for application/json ContentType.
 type CreateApiJSONRequestBody = V2ApisCreateApiRequestBody
 
@@ -2547,17 +2228,14 @@ type SetPermissionsJSONRequestBody = V2KeysSetPermissionsRequestBody
 // SetRolesJSONRequestBody defines body for SetRoles for application/json ContentType.
 type SetRolesJSONRequestBody = V2KeysSetRolesRequestBody
 
+// UpdateCreditsJSONRequestBody defines body for UpdateCredits for application/json ContentType.
+type UpdateCreditsJSONRequestBody = V2KeysUpdateCreditsRequestBody
+
 // UpdateKeyJSONRequestBody defines body for UpdateKey for application/json ContentType.
 type UpdateKeyJSONRequestBody = V2KeysUpdateKeyRequestBody
 
-// UpdateRemainingJSONRequestBody defines body for UpdateRemaining for application/json ContentType.
-type UpdateRemainingJSONRequestBody = V2KeysUpdateRemainingRequestBody
-
 // VerifyKeyJSONRequestBody defines body for VerifyKey for application/json ContentType.
 type VerifyKeyJSONRequestBody = V2KeysVerifyKeyRequestBody
-
-// WhoamiJSONRequestBody defines body for Whoami for application/json ContentType.
-type WhoamiJSONRequestBody = V2KeysWhoamiRequestBody
 
 // CreatePermissionJSONRequestBody defines body for CreatePermission for application/json ContentType.
 type CreatePermissionJSONRequestBody = V2PermissionsCreatePermissionRequestBody
@@ -2598,22 +2276,22 @@ type RatelimitListOverridesJSONRequestBody = V2RatelimitListOverridesRequestBody
 // RatelimitSetOverrideJSONRequestBody defines body for RatelimitSetOverride for application/json ContentType.
 type RatelimitSetOverrideJSONRequestBody = V2RatelimitSetOverrideRequestBody
 
-// AsV2IdentitiesDeleteIdentityRequestBody0 returns the union data inside the V2IdentitiesDeleteIdentityRequestBody as a V2IdentitiesDeleteIdentityRequestBody0
-func (t V2IdentitiesDeleteIdentityRequestBody) AsV2IdentitiesDeleteIdentityRequestBody0() (V2IdentitiesDeleteIdentityRequestBody0, error) {
-	var body V2IdentitiesDeleteIdentityRequestBody0
+// AsV2KeysGetKeyRequestBody0 returns the union data inside the V2KeysGetKeyRequestBody as a V2KeysGetKeyRequestBody0
+func (t V2KeysGetKeyRequestBody) AsV2KeysGetKeyRequestBody0() (V2KeysGetKeyRequestBody0, error) {
+	var body V2KeysGetKeyRequestBody0
 	err := json.Unmarshal(t.union, &body)
 	return body, err
 }
 
-// FromV2IdentitiesDeleteIdentityRequestBody0 overwrites any union data inside the V2IdentitiesDeleteIdentityRequestBody as the provided V2IdentitiesDeleteIdentityRequestBody0
-func (t *V2IdentitiesDeleteIdentityRequestBody) FromV2IdentitiesDeleteIdentityRequestBody0(v V2IdentitiesDeleteIdentityRequestBody0) error {
+// FromV2KeysGetKeyRequestBody0 overwrites any union data inside the V2KeysGetKeyRequestBody as the provided V2KeysGetKeyRequestBody0
+func (t *V2KeysGetKeyRequestBody) FromV2KeysGetKeyRequestBody0(v V2KeysGetKeyRequestBody0) error {
 	b, err := json.Marshal(v)
 	t.union = b
 	return err
 }
 
-// MergeV2IdentitiesDeleteIdentityRequestBody0 performs a merge with any union data inside the V2IdentitiesDeleteIdentityRequestBody, using the provided V2IdentitiesDeleteIdentityRequestBody0
-func (t *V2IdentitiesDeleteIdentityRequestBody) MergeV2IdentitiesDeleteIdentityRequestBody0(v V2IdentitiesDeleteIdentityRequestBody0) error {
+// MergeV2KeysGetKeyRequestBody0 performs a merge with any union data inside the V2KeysGetKeyRequestBody, using the provided V2KeysGetKeyRequestBody0
+func (t *V2KeysGetKeyRequestBody) MergeV2KeysGetKeyRequestBody0(v V2KeysGetKeyRequestBody0) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err
@@ -2624,22 +2302,22 @@ func (t *V2IdentitiesDeleteIdentityRequestBody) MergeV2IdentitiesDeleteIdentityR
 	return err
 }
 
-// AsV2IdentitiesDeleteIdentityRequestBody1 returns the union data inside the V2IdentitiesDeleteIdentityRequestBody as a V2IdentitiesDeleteIdentityRequestBody1
-func (t V2IdentitiesDeleteIdentityRequestBody) AsV2IdentitiesDeleteIdentityRequestBody1() (V2IdentitiesDeleteIdentityRequestBody1, error) {
-	var body V2IdentitiesDeleteIdentityRequestBody1
+// AsV2KeysGetKeyRequestBody1 returns the union data inside the V2KeysGetKeyRequestBody as a V2KeysGetKeyRequestBody1
+func (t V2KeysGetKeyRequestBody) AsV2KeysGetKeyRequestBody1() (V2KeysGetKeyRequestBody1, error) {
+	var body V2KeysGetKeyRequestBody1
 	err := json.Unmarshal(t.union, &body)
 	return body, err
 }
 
-// FromV2IdentitiesDeleteIdentityRequestBody1 overwrites any union data inside the V2IdentitiesDeleteIdentityRequestBody as the provided V2IdentitiesDeleteIdentityRequestBody1
-func (t *V2IdentitiesDeleteIdentityRequestBody) FromV2IdentitiesDeleteIdentityRequestBody1(v V2IdentitiesDeleteIdentityRequestBody1) error {
+// FromV2KeysGetKeyRequestBody1 overwrites any union data inside the V2KeysGetKeyRequestBody as the provided V2KeysGetKeyRequestBody1
+func (t *V2KeysGetKeyRequestBody) FromV2KeysGetKeyRequestBody1(v V2KeysGetKeyRequestBody1) error {
 	b, err := json.Marshal(v)
 	t.union = b
 	return err
 }
 
-// MergeV2IdentitiesDeleteIdentityRequestBody1 performs a merge with any union data inside the V2IdentitiesDeleteIdentityRequestBody, using the provided V2IdentitiesDeleteIdentityRequestBody1
-func (t *V2IdentitiesDeleteIdentityRequestBody) MergeV2IdentitiesDeleteIdentityRequestBody1(v V2IdentitiesDeleteIdentityRequestBody1) error {
+// MergeV2KeysGetKeyRequestBody1 performs a merge with any union data inside the V2KeysGetKeyRequestBody, using the provided V2KeysGetKeyRequestBody1
+func (t *V2KeysGetKeyRequestBody) MergeV2KeysGetKeyRequestBody1(v V2KeysGetKeyRequestBody1) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err
@@ -2650,7 +2328,7 @@ func (t *V2IdentitiesDeleteIdentityRequestBody) MergeV2IdentitiesDeleteIdentityR
 	return err
 }
 
-func (t V2IdentitiesDeleteIdentityRequestBody) MarshalJSON() ([]byte, error) {
+func (t V2KeysGetKeyRequestBody) MarshalJSON() ([]byte, error) {
 	b, err := t.union.MarshalJSON()
 	if err != nil {
 		return nil, err
@@ -2663,24 +2341,31 @@ func (t V2IdentitiesDeleteIdentityRequestBody) MarshalJSON() ([]byte, error) {
 		}
 	}
 
-	if t.ExternalId != nil {
-		object["externalId"], err = json.Marshal(t.ExternalId)
+	if t.Decrypt != nil {
+		object["decrypt"], err = json.Marshal(t.Decrypt)
 		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'externalId': %w", err)
+			return nil, fmt.Errorf("error marshaling 'decrypt': %w", err)
 		}
 	}
 
-	if t.IdentityId != nil {
-		object["identityId"], err = json.Marshal(t.IdentityId)
+	if t.Key != nil {
+		object["key"], err = json.Marshal(t.Key)
 		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'identityId': %w", err)
+			return nil, fmt.Errorf("error marshaling 'key': %w", err)
+		}
+	}
+
+	if t.KeyId != nil {
+		object["keyId"], err = json.Marshal(t.KeyId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'keyId': %w", err)
 		}
 	}
 	b, err = json.Marshal(object)
 	return b, err
 }
 
-func (t *V2IdentitiesDeleteIdentityRequestBody) UnmarshalJSON(b []byte) error {
+func (t *V2KeysGetKeyRequestBody) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	if err != nil {
 		return err
@@ -2691,265 +2376,24 @@ func (t *V2IdentitiesDeleteIdentityRequestBody) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	if raw, found := object["externalId"]; found {
-		err = json.Unmarshal(raw, &t.ExternalId)
+	if raw, found := object["decrypt"]; found {
+		err = json.Unmarshal(raw, &t.Decrypt)
 		if err != nil {
-			return fmt.Errorf("error reading 'externalId': %w", err)
+			return fmt.Errorf("error reading 'decrypt': %w", err)
 		}
 	}
 
-	if raw, found := object["identityId"]; found {
-		err = json.Unmarshal(raw, &t.IdentityId)
+	if raw, found := object["key"]; found {
+		err = json.Unmarshal(raw, &t.Key)
 		if err != nil {
-			return fmt.Errorf("error reading 'identityId': %w", err)
+			return fmt.Errorf("error reading 'key': %w", err)
 		}
 	}
 
-	return err
-}
-
-// AsV2IdentitiesGetIdentityRequestBody0 returns the union data inside the V2IdentitiesGetIdentityRequestBody as a V2IdentitiesGetIdentityRequestBody0
-func (t V2IdentitiesGetIdentityRequestBody) AsV2IdentitiesGetIdentityRequestBody0() (V2IdentitiesGetIdentityRequestBody0, error) {
-	var body V2IdentitiesGetIdentityRequestBody0
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromV2IdentitiesGetIdentityRequestBody0 overwrites any union data inside the V2IdentitiesGetIdentityRequestBody as the provided V2IdentitiesGetIdentityRequestBody0
-func (t *V2IdentitiesGetIdentityRequestBody) FromV2IdentitiesGetIdentityRequestBody0(v V2IdentitiesGetIdentityRequestBody0) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeV2IdentitiesGetIdentityRequestBody0 performs a merge with any union data inside the V2IdentitiesGetIdentityRequestBody, using the provided V2IdentitiesGetIdentityRequestBody0
-func (t *V2IdentitiesGetIdentityRequestBody) MergeV2IdentitiesGetIdentityRequestBody0(v V2IdentitiesGetIdentityRequestBody0) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsV2IdentitiesGetIdentityRequestBody1 returns the union data inside the V2IdentitiesGetIdentityRequestBody as a V2IdentitiesGetIdentityRequestBody1
-func (t V2IdentitiesGetIdentityRequestBody) AsV2IdentitiesGetIdentityRequestBody1() (V2IdentitiesGetIdentityRequestBody1, error) {
-	var body V2IdentitiesGetIdentityRequestBody1
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromV2IdentitiesGetIdentityRequestBody1 overwrites any union data inside the V2IdentitiesGetIdentityRequestBody as the provided V2IdentitiesGetIdentityRequestBody1
-func (t *V2IdentitiesGetIdentityRequestBody) FromV2IdentitiesGetIdentityRequestBody1(v V2IdentitiesGetIdentityRequestBody1) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeV2IdentitiesGetIdentityRequestBody1 performs a merge with any union data inside the V2IdentitiesGetIdentityRequestBody, using the provided V2IdentitiesGetIdentityRequestBody1
-func (t *V2IdentitiesGetIdentityRequestBody) MergeV2IdentitiesGetIdentityRequestBody1(v V2IdentitiesGetIdentityRequestBody1) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-func (t V2IdentitiesGetIdentityRequestBody) MarshalJSON() ([]byte, error) {
-	b, err := t.union.MarshalJSON()
-	if err != nil {
-		return nil, err
-	}
-	object := make(map[string]json.RawMessage)
-	if t.union != nil {
-		err = json.Unmarshal(b, &object)
+	if raw, found := object["keyId"]; found {
+		err = json.Unmarshal(raw, &t.KeyId)
 		if err != nil {
-			return nil, err
-		}
-	}
-
-	if t.ExternalId != nil {
-		object["externalId"], err = json.Marshal(t.ExternalId)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'externalId': %w", err)
-		}
-	}
-
-	if t.IdentityId != nil {
-		object["identityId"], err = json.Marshal(t.IdentityId)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'identityId': %w", err)
-		}
-	}
-	b, err = json.Marshal(object)
-	return b, err
-}
-
-func (t *V2IdentitiesGetIdentityRequestBody) UnmarshalJSON(b []byte) error {
-	err := t.union.UnmarshalJSON(b)
-	if err != nil {
-		return err
-	}
-	object := make(map[string]json.RawMessage)
-	err = json.Unmarshal(b, &object)
-	if err != nil {
-		return err
-	}
-
-	if raw, found := object["externalId"]; found {
-		err = json.Unmarshal(raw, &t.ExternalId)
-		if err != nil {
-			return fmt.Errorf("error reading 'externalId': %w", err)
-		}
-	}
-
-	if raw, found := object["identityId"]; found {
-		err = json.Unmarshal(raw, &t.IdentityId)
-		if err != nil {
-			return fmt.Errorf("error reading 'identityId': %w", err)
-		}
-	}
-
-	return err
-}
-
-// AsV2IdentitiesUpdateIdentityRequestBody0 returns the union data inside the V2IdentitiesUpdateIdentityRequestBody as a V2IdentitiesUpdateIdentityRequestBody0
-func (t V2IdentitiesUpdateIdentityRequestBody) AsV2IdentitiesUpdateIdentityRequestBody0() (V2IdentitiesUpdateIdentityRequestBody0, error) {
-	var body V2IdentitiesUpdateIdentityRequestBody0
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromV2IdentitiesUpdateIdentityRequestBody0 overwrites any union data inside the V2IdentitiesUpdateIdentityRequestBody as the provided V2IdentitiesUpdateIdentityRequestBody0
-func (t *V2IdentitiesUpdateIdentityRequestBody) FromV2IdentitiesUpdateIdentityRequestBody0(v V2IdentitiesUpdateIdentityRequestBody0) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeV2IdentitiesUpdateIdentityRequestBody0 performs a merge with any union data inside the V2IdentitiesUpdateIdentityRequestBody, using the provided V2IdentitiesUpdateIdentityRequestBody0
-func (t *V2IdentitiesUpdateIdentityRequestBody) MergeV2IdentitiesUpdateIdentityRequestBody0(v V2IdentitiesUpdateIdentityRequestBody0) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsV2IdentitiesUpdateIdentityRequestBody1 returns the union data inside the V2IdentitiesUpdateIdentityRequestBody as a V2IdentitiesUpdateIdentityRequestBody1
-func (t V2IdentitiesUpdateIdentityRequestBody) AsV2IdentitiesUpdateIdentityRequestBody1() (V2IdentitiesUpdateIdentityRequestBody1, error) {
-	var body V2IdentitiesUpdateIdentityRequestBody1
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromV2IdentitiesUpdateIdentityRequestBody1 overwrites any union data inside the V2IdentitiesUpdateIdentityRequestBody as the provided V2IdentitiesUpdateIdentityRequestBody1
-func (t *V2IdentitiesUpdateIdentityRequestBody) FromV2IdentitiesUpdateIdentityRequestBody1(v V2IdentitiesUpdateIdentityRequestBody1) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeV2IdentitiesUpdateIdentityRequestBody1 performs a merge with any union data inside the V2IdentitiesUpdateIdentityRequestBody, using the provided V2IdentitiesUpdateIdentityRequestBody1
-func (t *V2IdentitiesUpdateIdentityRequestBody) MergeV2IdentitiesUpdateIdentityRequestBody1(v V2IdentitiesUpdateIdentityRequestBody1) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-func (t V2IdentitiesUpdateIdentityRequestBody) MarshalJSON() ([]byte, error) {
-	b, err := t.union.MarshalJSON()
-	if err != nil {
-		return nil, err
-	}
-	object := make(map[string]json.RawMessage)
-	if t.union != nil {
-		err = json.Unmarshal(b, &object)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if t.ExternalId != nil {
-		object["externalId"], err = json.Marshal(t.ExternalId)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'externalId': %w", err)
-		}
-	}
-
-	if t.IdentityId != nil {
-		object["identityId"], err = json.Marshal(t.IdentityId)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'identityId': %w", err)
-		}
-	}
-
-	if t.Meta != nil {
-		object["meta"], err = json.Marshal(t.Meta)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'meta': %w", err)
-		}
-	}
-
-	if t.Ratelimits != nil {
-		object["ratelimits"], err = json.Marshal(t.Ratelimits)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'ratelimits': %w", err)
-		}
-	}
-	b, err = json.Marshal(object)
-	return b, err
-}
-
-func (t *V2IdentitiesUpdateIdentityRequestBody) UnmarshalJSON(b []byte) error {
-	err := t.union.UnmarshalJSON(b)
-	if err != nil {
-		return err
-	}
-	object := make(map[string]json.RawMessage)
-	err = json.Unmarshal(b, &object)
-	if err != nil {
-		return err
-	}
-
-	if raw, found := object["externalId"]; found {
-		err = json.Unmarshal(raw, &t.ExternalId)
-		if err != nil {
-			return fmt.Errorf("error reading 'externalId': %w", err)
-		}
-	}
-
-	if raw, found := object["identityId"]; found {
-		err = json.Unmarshal(raw, &t.IdentityId)
-		if err != nil {
-			return fmt.Errorf("error reading 'identityId': %w", err)
-		}
-	}
-
-	if raw, found := object["meta"]; found {
-		err = json.Unmarshal(raw, &t.Meta)
-		if err != nil {
-			return fmt.Errorf("error reading 'meta': %w", err)
-		}
-	}
-
-	if raw, found := object["ratelimits"]; found {
-		err = json.Unmarshal(raw, &t.Ratelimits)
-		if err != nil {
-			return fmt.Errorf("error reading 'ratelimits': %w", err)
+			return fmt.Errorf("error reading 'keyId': %w", err)
 		}
 	}
 
@@ -3015,5 +2459,127 @@ func (t V2KeysVerifyKeyRequestBody_Permissions) MarshalJSON() ([]byte, error) {
 
 func (t *V2KeysVerifyKeyRequestBody_Permissions) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsV2RatelimitGetOverrideRequestBody0 returns the union data inside the V2RatelimitGetOverrideRequestBody as a V2RatelimitGetOverrideRequestBody0
+func (t V2RatelimitGetOverrideRequestBody) AsV2RatelimitGetOverrideRequestBody0() (V2RatelimitGetOverrideRequestBody0, error) {
+	var body V2RatelimitGetOverrideRequestBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2RatelimitGetOverrideRequestBody0 overwrites any union data inside the V2RatelimitGetOverrideRequestBody as the provided V2RatelimitGetOverrideRequestBody0
+func (t *V2RatelimitGetOverrideRequestBody) FromV2RatelimitGetOverrideRequestBody0(v V2RatelimitGetOverrideRequestBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2RatelimitGetOverrideRequestBody0 performs a merge with any union data inside the V2RatelimitGetOverrideRequestBody, using the provided V2RatelimitGetOverrideRequestBody0
+func (t *V2RatelimitGetOverrideRequestBody) MergeV2RatelimitGetOverrideRequestBody0(v V2RatelimitGetOverrideRequestBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsV2RatelimitGetOverrideRequestBody1 returns the union data inside the V2RatelimitGetOverrideRequestBody as a V2RatelimitGetOverrideRequestBody1
+func (t V2RatelimitGetOverrideRequestBody) AsV2RatelimitGetOverrideRequestBody1() (V2RatelimitGetOverrideRequestBody1, error) {
+	var body V2RatelimitGetOverrideRequestBody1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2RatelimitGetOverrideRequestBody1 overwrites any union data inside the V2RatelimitGetOverrideRequestBody as the provided V2RatelimitGetOverrideRequestBody1
+func (t *V2RatelimitGetOverrideRequestBody) FromV2RatelimitGetOverrideRequestBody1(v V2RatelimitGetOverrideRequestBody1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2RatelimitGetOverrideRequestBody1 performs a merge with any union data inside the V2RatelimitGetOverrideRequestBody, using the provided V2RatelimitGetOverrideRequestBody1
+func (t *V2RatelimitGetOverrideRequestBody) MergeV2RatelimitGetOverrideRequestBody1(v V2RatelimitGetOverrideRequestBody1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t V2RatelimitGetOverrideRequestBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	object["identifier"], err = json.Marshal(t.Identifier)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'identifier': %w", err)
+	}
+
+	if t.NamespaceId != nil {
+		object["namespaceId"], err = json.Marshal(t.NamespaceId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'namespaceId': %w", err)
+		}
+	}
+
+	if t.NamespaceName != nil {
+		object["namespaceName"], err = json.Marshal(t.NamespaceName)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'namespaceName': %w", err)
+		}
+	}
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *V2RatelimitGetOverrideRequestBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["identifier"]; found {
+		err = json.Unmarshal(raw, &t.Identifier)
+		if err != nil {
+			return fmt.Errorf("error reading 'identifier': %w", err)
+		}
+	}
+
+	if raw, found := object["namespaceId"]; found {
+		err = json.Unmarshal(raw, &t.NamespaceId)
+		if err != nil {
+			return fmt.Errorf("error reading 'namespaceId': %w", err)
+		}
+	}
+
+	if raw, found := object["namespaceName"]; found {
+		err = json.Unmarshal(raw, &t.NamespaceName)
+		if err != nil {
+			return fmt.Errorf("error reading 'namespaceName': %w", err)
+		}
+	}
+
 	return err
 }

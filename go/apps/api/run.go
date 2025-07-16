@@ -4,17 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
-	"os/signal"
 	"runtime/debug"
-	"syscall"
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/routes"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
-	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clock"
@@ -23,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/prometheus"
+	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
 	"github.com/unkeyed/unkey/go/pkg/vault"
 	"github.com/unkeyed/unkey/go/pkg/vault/storage"
@@ -62,12 +59,15 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.InstanceID != "" {
 		logger = logger.With(slog.String("instanceID", cfg.InstanceID))
 	}
+
 	if cfg.Platform != "" {
 		logger = logger.With(slog.String("platform", cfg.Platform))
 	}
+
 	if cfg.Region != "" {
 		logger = logger.With(slog.String("region", cfg.Region))
 	}
+
 	if version.Version != "" {
 		logger = logger.With(slog.String("version", version.Version))
 	}
@@ -145,24 +145,13 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)
-
 	}
+
 	shutdowns.RegisterCtx(srv.Shutdown)
 
 	validator, err := validation.New()
 	if err != nil {
 		return fmt.Errorf("unable to create validator: %w", err)
-	}
-
-	keySvc, err := keys.New(keys.Config{
-		Logger:         logger,
-		DB:             db,
-		Clock:          clk,
-		KeyCache:       caches.KeyByHash,
-		WorkspaceCache: caches.WorkspaceByID,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create key service: %w", err)
 	}
 
 	ctr, err := counter.NewRedis(counter.RedisConfig{
@@ -182,46 +171,56 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create ratelimit service: %w", err)
 	}
 
-	p, err := permissions.New(permissions.Config{
+	keySvc, err := keys.New(keys.Config{
+		Logger:      logger,
+		DB:          db,
+		KeyCache:    caches.VerificationKeyByHash,
+		RateLimiter: rlSvc,
+		RBAC:        rbac.New(),
+		Clickhouse:  ch,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create key service: %w", err)
+	}
+
+	var vaultSvc *vault.Service
+	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3 != nil {
+		vaultStorage, err := storage.NewS3(storage.S3Config{
+			Logger:            logger,
+			S3URL:             cfg.VaultS3.URL,
+			S3Bucket:          cfg.VaultS3.Bucket,
+			S3AccessKeyID:     cfg.VaultS3.AccessKeyID,
+			S3AccessKeySecret: cfg.VaultS3.SecretAccessKey,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create vault storage: %w", err)
+		}
+
+		vaultSvc, err = vault.New(vault.Config{
+			Logger:     logger,
+			Storage:    vaultStorage,
+			MasterKeys: cfg.VaultMasterKeys,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create vault service: %w", err)
+		}
+	}
+
+	auditlogSvc := auditlogs.New(auditlogs.Config{
+		Logger: logger,
 		DB:     db,
-		Logger: logger,
-		Clock:  clk,
-		Cache:  caches.PermissionsByKeyId,
 	})
-	if err != nil {
-		return fmt.Errorf("unable to create permissions service: %w", err)
-	}
-
-	vaultStorage, err := storage.NewMemory(storage.MemoryConfig{
-		Logger: logger,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create vault storage: %w", err)
-	}
-
-	vaultSvc, err := vault.New(vault.Config{
-		Logger:     logger,
-		Storage:    vaultStorage,
-		MasterKeys: cfg.VaultMasterKeys,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create vault service: %w", err)
-	}
 
 	routes.Register(srv, &routes.Services{
-		Logger:      logger,
-		Database:    db,
-		ClickHouse:  ch,
-		Keys:        keySvc,
-		Validator:   validator,
-		Ratelimit:   rlSvc,
-		Permissions: p,
-		Auditlogs: auditlogs.New(auditlogs.Config{
-			Logger: logger,
-			DB:     db,
-		}),
-		Caches: caches,
-		Vault:  vaultSvc,
+		Logger:     logger,
+		Database:   db,
+		ClickHouse: ch,
+		Keys:       keySvc,
+		Validator:  validator,
+		Ratelimit:  rlSvc,
+		Auditlogs:  auditlogSvc,
+		Caches:     caches,
+		Vault:      vaultSvc,
 	})
 
 	go func() {
@@ -231,31 +230,15 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}()
 
-	return gracefulShutdown(ctx, logger, shutdowns)
-}
-func gracefulShutdown(ctx context.Context, logger logging.Logger, shutdowns *shutdown.Shutdowns) error {
-	cShutdown := make(chan os.Signal, 1)
-	signal.Notify(cShutdown, os.Interrupt, syscall.SIGTERM)
+	// Wait for signals and handle shutdown
+	logger.Info("API server started successfully")
 
-	// Create a channel that closes when the context is done
-	done := ctx.Done()
-
-	// Wait for either a signal or context cancellation
-	select {
-	case <-cShutdown:
-		logger.Info("shutting down due to signal")
-	case <-done:
-		logger.Info("shutting down due to context cancellation")
+	// Wait for either OS signals or context cancellation, then shutdown
+	if err := shutdowns.WaitForSignal(ctx, time.Minute); err != nil {
+		logger.Error("Shutdown failed", "error", err)
+		return fmt.Errorf("shutdown failed: %w", err)
 	}
 
-	// Create a timeout context for the shutdown process
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	defer cancel()
-
-	errs := shutdowns.Shutdown(shutdownCtx)
-
-	if len(errs) > 0 {
-		return fmt.Errorf("errors occurred during shutdown: %v", errs)
-	}
+	logger.Info("API server shut down successfully")
 	return nil
 }

@@ -7,10 +7,17 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import type { Api, VercelBinding } from "@unkey/db";
-import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
+import {
+  Button,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  toast,
+} from "@unkey/ui";
 import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -161,8 +168,13 @@ export const Client: React.FC<Props> = ({
           disabled={disabled}
           variant="primary"
           onClick={() => {
+            if (!projectId) {
+              toast.error("Project not selected. Please select a project and try again.");
+              return;
+            }
+
             create.mutate({
-              projectId: projectId!,
+              projectId,
               integrationId,
               accessToken,
               vercelTeamId: vercelTeamId,

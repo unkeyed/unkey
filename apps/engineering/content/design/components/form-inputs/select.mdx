@@ -1,37 +1,56 @@
 ---
 title: Select
-description: A customizable select component built with Radix UI
+description: A customizable select component built with Radix UI primitives for creating accessible dropdown menus with multiple variants and styling options.
 ---
-
 import { SelectExample, SelectExampleVariants } from "./select.example";
 
-The Select component is a customizable dropdown menu built on top of Radix UI's Select primitive. It provides a flexible and accessible way to create select inputs with various styling options.
+## Overview
 
-## Features
-
-- Multiple variants (default, success, warning, error)
-- Left icon support
-- Fully accessible
-- Customizable styling
-- Animated transitions
-- Keyboard navigation
-
-## Variants
-
-The Select component supports four variants:
-
-- `default`: Standard select with gray styling
-- `success`: Green styling for successful states
-- `warning`: Yellow styling for warning states
-- `error`: Red styling for error states
+The Select component provides a customizable dropdown menu built on top of Radix UI's Select primitive. It's designed to create accessible, user-friendly select inputs with various styling options, multiple variants, and comprehensive accessibility features while maintaining consistency with the design system.
 
 ## Usage
+
+```tsx
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
+
+export default function MyComponent() {
+  return (
+    <Select>
+      <SelectTrigger>
+        <SelectValue placeholder="Select an option" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="option1">Option 1</SelectItem>
+        <SelectItem value="option2">Option 2</SelectItem>
+        <SelectItem value="option3">Option 3</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+}
+```
+
+## Examples
+
+### Basic Select
+A complete example showing various select patterns and configurations.
 
 <SelectExample />
 
 ### Variant Styles
+Different visual styles for various select states.
 
 <SelectExampleVariants />
+
+## Features
+
+- **Multiple Variants**: Different visual styles (default, success, warning, error) for semantic meaning
+- **Left Icon Support**: Optional icon display on the left side for enhanced visual context
+- **Fully Accessible**: Built on Radix UI primitives with comprehensive accessibility
+- **Customizable Styling**: Extensive styling options through className props
+- **Animated Transitions**: Smooth animations for open/close states
+- **Keyboard Navigation**: Full keyboard support for all interactions
+- **Responsive Design**: Adapts to different screen sizes
+- **Dark Mode Support**: Consistent appearance in light and dark themes
 
 ## Props
 
@@ -39,40 +58,90 @@ The Select component supports four variants:
 
 | Prop | Type | Description |
 |------|------|-------------|
-| variant | "default" \| "success" \| "warning" \| "error" | The visual variant of the select |
-| leftIcon | React.ReactNode | Optional icon to display on the left side |
-| wrapperClassName | string | Additional classes for the wrapper element |
-| className | string | Additional classes for the trigger element |
+| `variant` | `"default" \| "success" \| "warning" \| "error"` | The visual variant of the select |
+| `leftIcon` | `React.ReactNode` | Optional icon to display on the left side |
+| `wrapperClassName` | `string` | Additional classes for the wrapper element |
+| `className` | `string` | Additional classes for the trigger element |
 
 ### SelectContent
 
 | Prop | Type | Description |
 |------|------|-------------|
-| position | "popper" \| "item-aligned" | The positioning strategy for the dropdown |
-| className | string | Additional classes for the content element |
+| `position` | `"popper" \| "item-aligned"` | The positioning strategy for the dropdown |
+| `className` | `string` | Additional classes for the content element |
 
 ### SelectItem
 
 | Prop | Type | Description |
 |------|------|-------------|
-| value | string | The value of the select item |
-| disabled | boolean | Whether the item is disabled |
-| className | string | Additional classes for the item element |
+| `value` | `string` | The value of the select item |
+| `disabled` | `boolean` | Whether the item is disabled |
+| `className` | `string` | Additional classes for the item element |
+
+## Variants
+
+### Default
+- Standard select with gray styling
+- Use for most select inputs
+- Balanced visual weight and accessibility
+
+### Success
+- Green styling for successful states
+- Use for validated or successful selections
+- Encourages positive user feedback
+
+### Warning
+- Yellow styling for warning states
+- Use for selections that need attention
+- Indicates potential issues
+
+### Error
+- Red styling for error states
+- Use for validation errors or failed selections
+- Clearly indicates problems that need resolution
+
+## Structure
+
+The Select component is composed of several sub-components that work together:
+
+1. **Select** - The root component that manages select state
+2. **SelectTrigger** - The element that opens the select dropdown
+3. **SelectValue** - Displays the selected value or placeholder
+4. **SelectContent** - The dropdown container with options
+5. **SelectItem** - Individual selectable options
+
+## Styling
+
+The component includes default styling with:
+
+- Consistent spacing and typography from design system
+- Color-coded variants for semantic meaning
+- Smooth animations for open/close transitions
+- Dark mode support with appropriate color schemes
+- Focus states for accessibility
+- Customizable through className props
+
+### Custom Styling
+
+You can customize the appearance using className props:
+
+```tsx
+<SelectTrigger 
+  variant="success"
+  className="custom-select-trigger"
+  wrapperClassName="custom-wrapper"
+>
+  <SelectValue placeholder="Custom styled select" />
+</SelectTrigger>
+```
 
 ## Accessibility
 
 The Select component is built with accessibility in mind:
 
-- Keyboard navigation support
-- ARIA attributes
-- Focus management
-- Screen reader support
-- Proper role attributes
-
-## Best Practices
-
-1. Always provide a placeholder or default value
-2. Use appropriate variants for different states
-3. Group related options using SelectGroup
-4. Add icons when they provide additional context
-5. Use disabled state for unavailable options 
+- **Keyboard Navigation**: Full keyboard support including arrow keys and Enter
+- **ARIA Attributes**: Proper ARIA labels and roles for screen readers
+- **Focus Management**: Maintains focus context during dropdown interactions
+- **Screen Reader Support**: Announces selections and state changes appropriately
+- **High Contrast**: Maintains proper contrast ratios across all variants
+- **Semantic HTML**: Uses appropriate HTML elements and roles

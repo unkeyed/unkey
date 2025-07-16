@@ -4,12 +4,12 @@
     <p><a href="http://www.unkey.com/blog/zen">Read our blog post</a> about why we built Zen and how it works</p>
 </div>
 
-
 Zen is a lightweight, minimalistic HTTP framework for Go, designed to wrap the
 standard library with just enough abstraction to streamline your development
 process—nothing more, nothing less.
 
 ## Why "Zen"?
+
 The name "Zen" reflects the philosophy behind the framework: simplicity,
 clarity, and efficiency.
 
@@ -21,6 +21,7 @@ clarity, and efficiency.
   complexity or dependencies.
 
 ## Features
+
 - Built directly on the Go standard library (net/http).
 - Thin abstractions for routing, middleware, and error handling.
 - Support for HTTPS connections with TLS certificates.
@@ -90,8 +91,9 @@ func main() {
 	createUserRoute := zen.NewRoute("POST", "/users", func(ctx context.Context, s *zen.Session) error {
 		// Parse request body
 		var req CreateUserRequest
-		if err := s.BindBody(&req); err != nil {
-			return err // This will be handled by error middleware
+		req, err := zen.BindBody[CreateUserRequest](s)
+		if err != nil {
+			return err
 		}
 
 		// Additional validation logic
@@ -167,7 +169,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to load TLS configuration: %v", err)
 	}
-	
+
 	// Create a server with TLS configuration
 	server, err := zen.New(zen.Config{
 		TLS: tlsConfig,
@@ -175,9 +177,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to create server: %v", err)
 	}
-	
+
 	// Register routes...
-	
+
 	// Start the HTTPS server with context for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -239,6 +241,7 @@ err := server.Shutdown(shutdownCtx)
 ```
 
 When a server's context is canceled, it will:
+
 1. Stop accepting new connections
 2. Complete any in-flight requests
 3. Release resources and exit gracefully

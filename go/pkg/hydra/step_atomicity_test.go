@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/hydra/store"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -66,11 +67,14 @@ func TestStepExecutionAtomicity(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 
 		// Check if workflow completed
-		currentStatus, getErr := engine.store.GetWorkflow(ctx, engine.GetNamespace(), executionID)
+		currentStatus, getErr := store.Query.GetWorkflow(ctx, engine.GetDB(), store.GetWorkflowParams{
+			ID:        executionID,
+			Namespace: engine.GetNamespace(),
+		})
 		if getErr != nil {
 			return false
 		}
-		return currentStatus.Status == WorkflowStatusCompleted
+		return currentStatus.Status == store.WorkflowExecutionsStatusCompleted
 	}, 5*time.Second, 50*time.Millisecond, "Workflow should complete")
 
 	// Assert: Step should execute exactly once despite any potential failures
@@ -86,9 +90,12 @@ func TestStepExecutionAtomicity(t *testing.T) {
 			"This could mean duplicate emails sent, multiple payments charged, etc.", finalSideEffectsCount)
 
 	// Verify the workflow completed successfully
-	finalWorkflow, err := engine.store.GetWorkflow(ctx, engine.GetNamespace(), executionID)
+	finalWorkflow, err := store.Query.GetWorkflow(ctx, engine.GetDB(), store.GetWorkflowParams{
+		ID:        executionID,
+		Namespace: engine.GetNamespace(),
+	})
 	require.NoError(t, err)
-	require.Equal(t, WorkflowStatusCompleted, finalWorkflow.Status,
+	require.Equal(t, store.WorkflowExecutionsStatusCompleted, finalWorkflow.Status,
 		"Workflow should complete successfully")
 
 }
@@ -171,11 +178,14 @@ func TestConcurrentStepExecution(t *testing.T) {
 		time.Sleep(20 * time.Millisecond)
 
 		// Check if workflow completed
-		currentStatus, err := engine.store.GetWorkflow(ctx, engine.GetNamespace(), executionID)
+		currentStatus, err := store.Query.GetWorkflow(ctx, engine.GetDB(), store.GetWorkflowParams{
+			ID:        executionID,
+			Namespace: engine.GetNamespace(),
+		})
 		if err != nil {
 			return false
 		}
-		return currentStatus.Status == WorkflowStatusCompleted
+		return currentStatus.Status == store.WorkflowExecutionsStatusCompleted
 	}, 5*time.Second, 50*time.Millisecond, "Workflow should complete with concurrent workers")
 
 	// Assert: Step should execute exactly once even with multiple workers

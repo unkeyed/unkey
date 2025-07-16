@@ -31,10 +31,9 @@ func TestOverrideNotFound(t *testing.T) {
 	require.NoError(t, err)
 
 	route := &handler.Handler{
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Logger:      h.Logger,
-		Permissions: h.Permissions,
+		DB:     h.DB,
+		Keys:   h.Keys,
+		Logger: h.Logger,
 	}
 
 	h.Register(route)

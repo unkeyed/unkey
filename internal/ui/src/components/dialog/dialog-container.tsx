@@ -3,7 +3,7 @@
 import * as React from "react";
 import type { PropsWithChildren, ReactNode } from "react";
 import { cn } from "../../lib/utils";
-import { Dialog, DialogContent } from "./parts/dialog";
+import { Dialog, DialogContent } from "./dialog";
 import {
   DefaultDialogContentArea,
   DefaultDialogFooter,
@@ -21,7 +21,7 @@ type DialogContainerProps = PropsWithChildren<{
   subTitle?: string;
 }>;
 
-export const DialogContainer = ({
+const DialogContainer = ({
   className,
   isOpen,
   subTitle,
@@ -55,5 +55,6 @@ export const DialogContainer = ({
     </Dialog>
   );
 };
+DialogContainer.displayName = "DialogContainer";
 
-export { DefaultDialogHeader, DefaultDialogContentArea, DefaultDialogFooter };
+export { DialogContainer };

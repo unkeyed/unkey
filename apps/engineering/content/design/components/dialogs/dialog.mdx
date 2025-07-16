@@ -1,0 +1,178 @@
+---
+title: Dialog
+description: A foundational modal component built on Radix UI primitives with accessible modal functionality, customizable styling, and flexible behavior options.
+---
+import { DialogExample } from "./dialog.example"
+
+## Overview
+
+The Dialog component provides a comprehensive modal system for displaying content in overlay dialogs. It's built on top of Radix UI's Dialog primitive with additional styling and functionality, offering accessible modal behavior with customizable appearance and flexible composition patterns.
+
+## Usage
+
+```tsx
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@unkey/ui";
+
+export default function MyComponent() {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button>Open Dialog</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Dialog Title</DialogTitle>
+          <DialogDescription>Optional description text.</DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
+          <p>Your dialog content here.</p>
+        </div>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </DialogClose>
+          <Button>Save Changes</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+```
+
+## Examples
+
+### Basic Dialog
+A complete example showing various dialog patterns and configurations.
+
+<DialogExample />
+
+## Features
+
+- **Accessible**: Built on Radix UI primitives with full accessibility support
+- **Flexible**: Composable components for custom layouts
+- **Close Warning Support**: Optional confirmation when closing dialogs
+- **Keyboard Navigation**: Full keyboard support including Escape to close
+- **Customizable**: Extensive styling options through className props
+- **TypeScript**: Full TypeScript support with proper type definitions
+- **Dark Mode Support**: Consistent appearance in light and dark themes
+- **Responsive Design**: Adapts to different screen sizes
+
+## Props
+
+### Dialog
+
+| Prop        | Type                    | Default | Description                                    |
+|-------------|-------------------------|---------|------------------------------------------------|
+| `open`      | `boolean`               | -       | Controls the open state of the dialog          |
+| `onOpenChange` | `(value: boolean) => void` | -     | Callback when the open state changes           |
+| `children`  | `ReactNode`             | -       | The dialog content                              |
+
+### DialogContent
+
+| Prop              | Type                    | Default | Description                                      |
+|-------------------|-------------------------|---------|--------------------------------------------------|
+| `showCloseWarning` | `boolean`               | `false` | Whether to show warning when closing            |
+| `onAttemptClose`  | `() => void`            | -       | Callback when user attempts to close            |
+| `xButtonRef`      | `RefObject<HTMLButtonElement>` | -    | Ref for the close button                        |
+| `className`       | `string`                | -       | Additional classes for the dialog content       |
+| `children`        | `ReactNode`             | -       | The content to display in the dialog            |
+
+### DialogTrigger
+
+| Prop     | Type      | Default | Description                    |
+|----------|-----------|---------|--------------------------------|
+| `asChild` | `boolean` | `false` | Whether to render as child element |
+| `children` | `ReactNode` | -       | The trigger element            |
+
+### DialogClose
+
+| Prop     | Type      | Default | Description                    |
+|----------|-----------|---------|--------------------------------|
+| `asChild` | `boolean` | `false` | Whether to render as child element |
+| `children` | `ReactNode` | -       | The close trigger element      |
+
+### DialogHeader
+
+| Prop     | Type   | Default | Description                    |
+|----------|--------|---------|--------------------------------|
+| `className` | `string` | -       | Additional classes for header  |
+| `children` | `ReactNode` | -       | Header content                 |
+
+### DialogFooter
+
+| Prop     | Type   | Default | Description                    |
+|----------|--------|---------|--------------------------------|
+| `className` | `string` | -       | Additional classes for footer  |
+| `children` | `ReactNode` | -       | Footer content                 |
+
+### DialogTitle
+
+| Prop     | Type   | Default | Description                    |
+|----------|--------|---------|--------------------------------|
+| `className` | `string` | -       | Additional classes for title   |
+| `children` | `ReactNode` | -       | Title content                  |
+
+### DialogDescription
+
+| Prop     | Type   | Default | Description                    |
+|----------|--------|---------|--------------------------------|
+| `className` | `string` | -       | Additional classes for description |
+| `children` | `ReactNode` | -       | Description content            |
+
+
+## Structure
+
+The Dialog component is composed of several sub-components that work together:
+
+1. **Dialog** - The root component that manages dialog state
+2. **DialogTrigger** - The element that opens the dialog
+3. **DialogContent** - The main dialog container with overlay
+4. **DialogHeader** - Container for title and description
+5. **DialogTitle** - The dialog's title
+6. **DialogDescription** - Optional description text
+7. **DialogFooter** - Container for action buttons
+8. **DialogClose** - Component that closes the dialog when clicked
+
+## Styling
+
+The Dialog component comes with default styling that includes:
+
+- **Overlay**: Semi-transparent backdrop with blur effect
+- **Content**: Centered modal with shadow and rounded corners
+- **Animations**: Smooth enter/exit animations
+- **Responsive**: Adapts to different screen sizes
+- **Dark Mode**: Full dark mode support
+
+### Custom Styling
+
+You can customize the appearance using className props:
+
+```tsx
+<DialogContent className="max-w-md bg-gradient-to-br from-blue-50 to-indigo-100">
+  <DialogHeader>
+    <DialogTitle className="text-blue-900">Custom Title</DialogTitle>
+    <DialogDescription className="text-blue-700">
+      Custom description styling
+    </DialogDescription>
+  </DialogHeader>
+</DialogContent>
+```
+
+## Accessibility
+
+The Dialog component implements the following accessibility features:
+
+- **Focus Management**: Automatically manages focus within the dialog
+- **Keyboard Navigation**: Full keyboard support (Escape to close, Tab navigation)
+- **ARIA Attributes**: Proper ARIA labels and roles for screen readers
+- **Focus Trap**: Prevents focus from leaving the dialog when open
+- **Screen Reader Support**: Announces dialog state changes

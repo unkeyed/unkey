@@ -1,0 +1,181 @@
+---
+title: LLM Search
+description: An intelligent search component with AI-powered query suggestions, multiple search modes, and keyboard shortcuts for enhanced user experience.
+---
+
+import {
+  DefaultLLMSearch,
+  LLMSearchWithCustomPlaceholder,
+  LLMSearchWithDebouncedMode,
+  LLMSearchWithThrottledMode,
+  LLMSearchWithCustomTexts,
+  LLMSearchWithoutExplainer,
+  LLMSearchWithoutClear,
+  LLMSearchWithKeyboardShortcuts
+} from "./llm-search.examples";
+
+## Features
+
+- **AI-powered search** with intelligent query suggestions
+- **Multiple search modes**: manual, debounced, and throttled
+- **Keyboard shortcuts** for power users
+- **Example queries** to guide users
+- **Loading states** with customizable text
+- **Accessible design** with proper ARIA attributes
+- **Responsive layout** that adapts to different screen sizes
+
+## Usage
+
+### With Log Analysis
+
+```tsx
+<LLMSearch
+  onSearch={handleLogSearch}
+  isLoading={isSearching}
+  exampleQueries={[
+    "Show me all errors from the last 24 hours",
+    "Find requests with response time > 1000ms",
+    "Display authentication failures by user",
+  ]}
+  searchMode="debounced"
+  debounceTime={300}
+/>
+```
+
+### With Analytics Dashboard
+
+```tsx
+<LLMSearch
+  onSearch={handleAnalyticsSearch}
+  isLoading={isLoading}
+  placeholder="Search your analytics data..."
+  loadingText="Analyzing your data..."
+  hideExplainer={true}
+/>
+```
+
+### With Real-time Monitoring
+
+```tsx
+<LLMSearch
+  onSearch={handleRealTimeSearch}
+  isLoading={isSearching}
+  searchMode="allowTypeDuringSearch"
+  exampleQueries={[
+    "Show me active incidents",
+    "Find high CPU usage servers",
+    "Display failed health checks",
+  ]}
+/>
+```
+
+## Basic Usage
+
+The default LLMSearch includes example queries and standard search functionality.
+
+<DefaultLLMSearch />
+
+## Customization
+
+### Custom Placeholder Text
+
+Customize the placeholder text to match your application's context.
+
+<LLMSearchWithCustomPlaceholder />
+
+### Search Modes
+
+The component supports three different search modes to optimize performance and user experience.
+
+#### Debounced Mode
+
+Searches are triggered after the user stops typing for a specified duration.
+
+<LLMSearchWithDebouncedMode />
+
+#### Throttled Mode
+
+Searches are triggered while the user is typing, with rate limiting to prevent excessive API calls.
+
+<LLMSearchWithThrottledMode />
+
+### Custom Loading and Clearing Text
+
+Customize the text displayed during loading and clearing operations.
+
+<LLMSearchWithCustomTexts />
+
+### Visibility Controls
+
+Control which UI elements are displayed.
+
+#### Without Explainer
+
+Hide the explainer text to save space.
+
+<LLMSearchWithoutExplainer />
+
+#### Without Clear Button
+
+Hide the clear button for read-only or controlled search scenarios.
+
+<LLMSearchWithoutClear />
+
+### Keyboard Shortcuts
+
+The component includes comprehensive keyboard shortcuts for enhanced usability.
+
+<LLMSearchWithKeyboardShortcuts />
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `onSearch` | `(query: string) => void` | **Required** | Callback function called when a search is triggered |
+| `onClear` | `() => void` | `undefined` | Optional callback function called when search is cleared |
+| `isLoading` | `boolean` | **Required** | Whether the search is currently in progress |
+| `exampleQueries` | `string[]` | `undefined` | Array of example queries to display as suggestions |
+| `placeholder` | `string` | `"Search and filter with AI…"` | Placeholder text for the search input |
+| `loadingText` | `string` | `"AI consults the Palantír..."` | Text displayed during loading state |
+| `clearingText` | `string` | `"Clearing search..."` | Text displayed during clearing state |
+| `searchMode` | `"manual" \| "debounced" \| "allowTypeDuringSearch"` | `"manual"` | The search mode to use |
+| `debounceTime` | `number` | `500` | Debounce time in milliseconds (for debounced mode) |
+| `hideExplainer` | `boolean` | `false` | Whether to hide the explainer text |
+| `hideClear` | `boolean` | `false` | Whether to hide the clear button |
+
+## Search Modes
+
+### Manual Mode (`"manual"`)
+- Search is triggered only on Enter key press or example query selection
+- Best for precise searches where users want full control
+- Reduces API calls and provides explicit user intent
+
+### Debounced Mode (`"debounced"`)
+- Search is triggered after the user stops typing for the specified debounce time.
+- Balances responsiveness with API efficiency
+- Good for real-time search with reasonable rate limiting
+
+### Throttled Mode (`"allowTypeDuringSearch"`)
+- Search is triggered while the user is typing with throttling
+- Provides immediate feedback but with controlled API call frequency
+- Best for highly responsive search experiences
+
+## Keyboard Shortcuts
+
+The component includes several keyboard shortcuts for enhanced usability:
+
+- **`S` key**: Focus the search input (global shortcut)
+- **`Enter`**: Trigger search with current input
+- **`Escape`**: Clear search and blur input
+
+## Accessibility
+
+The LLMSearch component is built with accessibility in mind:
+
+- **Keyboard navigation**: Full keyboard support with logical tab order
+- **Screen reader support**: Proper ARIA labels and descriptions
+- **Focus management**: Clear focus indicators and logical focus flow
+- **Loading states**: Accessible loading indicators with descriptive text
+- **Error handling**: Clear error messages and recovery options
+
+

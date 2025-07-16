@@ -13,8 +13,11 @@ import (
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_list_keys"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hash"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
+
+	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 )
 
 func TestSuccess(t *testing.T) {
@@ -22,11 +25,10 @@ func TestSuccess(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		Logger:      h.Logger,
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Permissions: h.Permissions,
-		Vault:       h.Vault,
+		Logger: h.Logger,
+		DB:     h.DB,
+		Keys:   h.Keys,
+		Vault:  h.Vault,
 	}
 
 	h.Register(route)
@@ -35,16 +37,22 @@ func TestSuccess(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key", "api.*.read_api")
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key", "api.*.read_api", "api.*.decrypt_key")
 
 	// Create a keyAuth (keyring) for the API
-	keyAuthID := uid.New("keyauth")
+	keyAuthID := uid.New(uid.KeyAuthPrefix)
 	err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
 		ID:            keyAuthID,
 		WorkspaceID:   workspace.ID,
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false},
 		DefaultBytes:  sql.NullInt32{Valid: false},
+	})
+	require.NoError(t, err)
+
+	err = db.Query.UpdateKeyringKeyEncryption(ctx, h.DB.RW(), db.UpdateKeyringKeyEncryptionParams{
+		ID:                 keyAuthID,
+		StoreEncryptedKeys: true,
 	})
 	require.NoError(t, err)
 
@@ -85,6 +93,7 @@ func TestSuccess(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	encryptedKeysMap := make(map[string]struct{})
 	// Create test keys with various configurations
 	testKeys := []struct {
 		id         string
@@ -139,10 +148,12 @@ func TestSuccess(t *testing.T) {
 			metaBytes, _ = json.Marshal(keyData.meta)
 		}
 
+		key := keyData.start + uid.New("")
+
 		insertParams := db.InsertKeyParams{
 			ID:                keyData.id,
 			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(keyData.start + uid.New("")),
+			Hash:              hash.Sha256(key),
 			Start:             keyData.start,
 			WorkspaceID:       workspace.ID,
 			ForWorkspaceID:    sql.NullString{Valid: false},
@@ -152,10 +163,6 @@ func TestSuccess(t *testing.T) {
 			CreatedAtM:        time.Now().UnixMilli(),
 			Enabled:           keyData.enabled,
 			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
 		}
 
 		if keyData.identityID != nil {
@@ -166,6 +173,22 @@ func TestSuccess(t *testing.T) {
 
 		err := db.Query.InsertKey(ctx, h.DB.RW(), insertParams)
 		require.NoError(t, err)
+
+		encryption, err := h.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
+			Keyring: h.Resources().UserWorkspace.ID,
+			Data:    key,
+		})
+		require.NoError(t, err)
+
+		err = db.Query.InsertKeyEncryption(ctx, h.DB.RW(), db.InsertKeyEncryptionParams{
+			WorkspaceID:     h.Resources().UserWorkspace.ID,
+			KeyID:           keyData.id,
+			CreatedAt:       time.Now().UnixMilli(),
+			Encrypted:       encryption.GetEncrypted(),
+			EncryptionKeyID: encryption.GetKeyId(),
+		})
+		require.NoError(t, err)
+		encryptedKeysMap[keyData.id] = struct{}{}
 	}
 
 	// Set up request headers
@@ -296,7 +319,6 @@ func TestSuccess(t *testing.T) {
 		for _, key := range res.Body.Data {
 			require.NotNil(t, key.Identity)
 			require.Equal(t, identity1ExternalID, key.Identity.ExternalId)
-			require.Equal(t, identity1ID, key.Identity.Id)
 		}
 	})
 
@@ -371,7 +393,6 @@ func TestSuccess(t *testing.T) {
 
 		key := res.Body.Data[0]
 		require.NotNil(t, key.Identity)
-		require.Equal(t, identity1ID, key.Identity.Id)
 		require.Equal(t, identity1ExternalID, key.Identity.ExternalId)
 		require.NotNil(t, key.Identity.Meta)
 
@@ -407,7 +428,7 @@ func TestSuccess(t *testing.T) {
 
 	t.Run("empty API returns empty result", func(t *testing.T) {
 		// Create a new API with no keys
-		emptyKeyAuthID := uid.New("keyauth")
+		emptyKeyAuthID := uid.New(uid.KeyAuthPrefix)
 		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
 			ID:          emptyKeyAuthID,
 			WorkspaceID: workspace.ID,
@@ -485,11 +506,8 @@ func TestSuccess(t *testing.T) {
 			Meta:              sql.NullString{Valid: false},
 			Expires:           sql.NullTime{Valid: false},
 			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
-			IdentityID:        sql.NullString{Valid: false},
+
+			IdentityID: sql.NullString{Valid: false},
 		})
 		require.NoError(t, err)
 
@@ -508,11 +526,8 @@ func TestSuccess(t *testing.T) {
 			Meta:              sql.NullString{Valid: false},
 			Expires:           sql.NullTime{Valid: false},
 			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
-			IdentityID:        sql.NullString{Valid: false},
+
+			IdentityID: sql.NullString{Valid: false},
 		})
 		require.NoError(t, err)
 
@@ -569,5 +584,31 @@ func TestSuccess(t *testing.T) {
 		}
 		require.True(t, foundKeyWithRatelimits, "Should find the key with ratelimits in response")
 		require.True(t, foundKeyWithoutRatelimits, "Should find the key without ratelimits in response")
+	})
+
+	t.Run("verify encrypted key is returned correctly", func(t *testing.T) {
+		req := handler.Request{
+			ApiId:   apiID,
+			Decrypt: ptr.P(true),
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body.Data)
+
+		for _, key := range res.Body.Data {
+			_, exists := encryptedKeysMap[key.KeyId]
+			if !exists {
+				continue
+			}
+
+			require.NotEmpty(t, ptr.SafeDeref(key.Plaintext), "Key should be decrypted and have plaintext")
+		}
 	})
 }

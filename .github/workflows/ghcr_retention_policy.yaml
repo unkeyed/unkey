@@ -1,5 +1,8 @@
 name: Prune old images
 
+permissions:
+  contents: read
+
 on:
   workflow_dispatch:
   schedule:
@@ -17,5 +20,6 @@ jobs:
           token: ${{ secrets.PAT }}
           image-names: "unkey agent"
           image-tags: "!latest"
+          keep-n-most-recent: 10
           cut-off: 4w
-          dry-run: false
+          dry-run: true

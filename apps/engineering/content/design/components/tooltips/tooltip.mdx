@@ -1,8 +1,132 @@
 ---
 title: Tooltip
+description: A flexible tooltip component with multiple positioning options, customizable content, and accessibility features for providing contextual information.
 ---
 import { OnHoverExample } from "./tooltip.onHover"
 
-## Tooltip
+## Overview
+
+The Tooltip component provides a flexible way to display contextual information when users hover over or focus on elements. It's designed to offer multiple positioning options, customizable content, and comprehensive accessibility features for enhanced user experience.
+
+## Usage
+
+```tsx
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+
+export default function MyComponent() {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button>Hover me</Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>This is a helpful tooltip</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+```
+
+## Examples
+
+### On Hover
+Examples showing different tooltip configurations and positioning options.
 
 <OnHoverExample />
+
+## Features
+
+- **Multiple Positions**: Flexible positioning (top, bottom, left, right, and corners)
+- **Customizable Content**: Rich content support with text, icons, and components
+- **Accessibility**: Full accessibility support with proper ARIA attributes
+- **Keyboard Navigation**: Keyboard support for focus-based tooltips
+- **Responsive Design**: Adapts to different screen sizes and viewports
+- **Dark Mode Support**: Consistent appearance in light and dark themes
+- **Customizable Styling**: Extensive styling options through className props
+- **Delay Control**: Configurable show/hide delays for better UX
+
+## Props
+
+### TooltipProvider
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `ReactNode` | - | Tooltip components |
+| `delayDuration` | `number` | `700` | Delay before showing tooltip (ms) |
+| `skipDelayDuration` | `number` | `300` | Delay before hiding tooltip (ms) |
+
+### Tooltip
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `defaultOpen` | `boolean` | `false` | Whether tooltip is open by default |
+| `open` | `boolean` | - | Controlled open state |
+| `onOpenChange` | `(open: boolean) => void` | - | Callback when open state changes |
+| `delayDuration` | `number` | - | Override delay duration |
+| `disableHoverableContent` | `boolean` | `false` | Disable hover on tooltip content |
+
+### TooltipTrigger
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `asChild` | `boolean` | `false` | Whether to render as child element |
+| `children` | `ReactNode` | - | The trigger element |
+
+### TooltipContent
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `side` | `"top" \| "right" \| "bottom" \| "left"` | `"top"` | Preferred side for tooltip |
+| `sideOffset` | `number` | `4` | Distance from trigger element |
+| `align` | `"start" \| "center" \| "end"` | `"center"` | Alignment relative to trigger |
+| `alignOffset` | `number` | `0` | Offset from alignment |
+| `avoidCollisions` | `boolean` | `true` | Whether to avoid viewport collisions |
+| `collisionBoundary` | `Boundary` | - | Boundary for collision detection |
+| `collisionPadding` | `number \| Padding` | `0` | Padding for collision detection |
+| `arrowPadding` | `number` | `0` | Padding for arrow positioning |
+| `sticky` | `"partial" \| "always"` | `"partial"` | Sticky behavior on collision |
+| `hideWhenDetached` | `boolean` | `false` | Hide when trigger is detached |
+| `className` | `string` | - | Additional CSS classes |
+
+## Structure
+
+The Tooltip system is composed of several components that work together:
+
+1. **TooltipProvider** - Context provider for tooltip management
+2. **Tooltip** - The root component that manages tooltip state
+3. **TooltipTrigger** - The element that triggers the tooltip
+4. **TooltipContent** - The actual tooltip content container
+
+## Styling
+
+The component includes default styling with:
+
+- Consistent padding and border radius
+- Drop shadow for visual separation
+- Smooth animations for show/hide
+- Dark mode support with appropriate color schemes
+- Focus states for accessibility
+- Customizable through className props
+
+### Custom Styling
+
+You can customize the appearance using className props:
+
+```tsx
+<TooltipContent className="custom-tooltip-class">
+  <p>Custom styled tooltip content</p>
+</TooltipContent>
+```
+
+## Accessibility
+
+The Tooltip component is built with accessibility in mind:
+
+- **ARIA Attributes**: Proper ARIA labels and descriptions for screen readers
+- **Keyboard Support**: Full keyboard navigation and activation
+- **Focus Management**: Proper focus handling and announcements
+- **Screen Reader Support**: Announces tooltip content appropriately
+- **High Contrast**: Maintains proper contrast ratios
+- **Semantic HTML**: Uses appropriate HTML elements and roles

@@ -8,7 +8,6 @@ import (
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
-	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -25,10 +24,9 @@ type Response = openapi.V2IdentitiesGetIdentityResponseBody
 // Handler implements zen.Route interface for the v2 identities get identity endpoint
 type Handler struct {
 	// Services as public fields
-	Logger      logging.Logger
-	DB          db.Database
-	Keys        keys.KeyService
-	Permissions permissions.PermissionService
+	Logger logging.Logger
+	DB     db.Database
+	Keys   keys.KeyService
 }
 
 // Method returns the HTTP method this route responds to
@@ -43,7 +41,7 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, err := h.Keys.VerifyRootKey(ctx, s)
+	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -62,45 +60,33 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	result, err := db.TxWithResult(ctx, h.DB.RO(), func(ctx context.Context, tx db.DBTX) (IdentityResult, error) {
 		var identity db.Identity
 
-		// First try to get the identity
-		if req.IdentityId != nil {
-			// Find by IdentityId
-			identity, err = db.Query.FindIdentityByID(ctx, tx, db.FindIdentityByIDParams{
-				ID:      *req.IdentityId,
-				Deleted: false,
-			})
-		} else if req.ExternalId != nil {
-			// Find by ExternalId
-			identity, err = db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
-				ExternalID:  *req.ExternalId,
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Deleted:     false,
-			})
-		} else {
-			return IdentityResult{}, fault.New("invalid request",
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal("either identityId or externalId must be provided"), fault.Public("Either identityId or externalId must be provided."),
-			)
-		}
+		identity, err = db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
+			ExternalID:  req.ExternalId,
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+			Deleted:     false,
+		})
 
 		if err != nil {
-			if err == sql.ErrNoRows {
+			if db.IsNotFound(err) {
 				return IdentityResult{}, fault.New("identity not found",
 					fault.Code(codes.Data.Identity.NotFound.URN()),
-					fault.Internal("identity not found"), fault.Public("This identity does not exist."),
+					fault.Internal("identity not found"),
+					fault.Public("This identity does not exist."),
 				)
 			}
+
 			return IdentityResult{}, fault.Wrap(err,
-				fault.Internal("unable to find identity"), fault.Public("We're unable to retrieve the identity."),
+				fault.Internal("unable to find identity"),
+				fault.Public("We're unable to retrieve the identity."),
 			)
 		}
 
 		// Get the ratelimits for this identity
 		ratelimits, listErr := db.Query.ListIdentityRatelimitsByID(ctx, tx, sql.NullString{Valid: true, String: identity.ID})
-		if listErr != nil {
-
+		if listErr != nil && !db.IsNotFound(listErr) {
 			return IdentityResult{}, fault.Wrap(listErr,
-				fault.Internal("unable to fetch ratelimits"), fault.Public("We're unable to retrieve the identity's ratelimits."),
+				fault.Internal("unable to fetch ratelimits"),
+				fault.Public("We're unable to retrieve the identity's ratelimits."),
 			)
 		}
 
@@ -114,7 +100,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	ratelimits := result.Ratelimits
 
 	// Check permissions using either wildcard or the specific identity ID
-	permissionCheck := rbac.Or(
+	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Identity,
 			ResourceID:   "*",
@@ -125,9 +111,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   identity.ID,
 			Action:       rbac.ReadIdentity,
 		}),
-	)
-
-	err = h.Permissions.Check(ctx, auth.KeyID, permissionCheck)
+	)))
 	if err != nil {
 		return err
 	}
@@ -146,12 +130,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Format ratelimits for the response
-	responseRatelimits := make([]openapi.Ratelimit, 0, len(ratelimits))
+	responseRatelimits := make([]openapi.RatelimitResponse, 0, len(ratelimits))
 	for _, r := range ratelimits {
-		responseRatelimits = append(responseRatelimits, openapi.Ratelimit{
-			Name:     r.Name,
-			Limit:    int64(r.Limit),
-			Duration: r.Duration,
+		responseRatelimits = append(responseRatelimits, openapi.RatelimitResponse{
+			Name:      r.Name,
+			Limit:     int64(r.Limit),
+			Duration:  r.Duration,
+			Id:        r.ID,
+			AutoApply: r.AutoApply,
 		})
 	}
 
@@ -160,7 +146,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RequestId: s.RequestID(),
 		},
 		Data: openapi.IdentitiesGetIdentityResponseData{
-			Id:         identity.ID,
 			ExternalId: identity.ExternalID,
 			Meta:       &metaMap,
 			Ratelimits: &responseRatelimits,

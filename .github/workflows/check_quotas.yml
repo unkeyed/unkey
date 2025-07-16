@@ -1,5 +1,8 @@
 name: Quota Check
 
+permissions:
+  contents: read
+
 on:
   schedule:
     - cron: "0 15 * * *"
@@ -23,6 +26,7 @@ jobs:
         uses: ./.github/actions/install
         with:
           go: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build CLI
         working-directory: ./go

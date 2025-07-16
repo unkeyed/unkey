@@ -28,7 +28,9 @@ import { useRatelimitNavigation } from "./hooks/use-ratelimit-navigation";
 
 export function AppSidebar({
   ...props
-}: React.ComponentProps<typeof Sidebar> & { workspace: Workspace & { quotas?: Quotas } }) {
+}: React.ComponentProps<typeof Sidebar> & {
+  workspace: Workspace & { quotas: Quotas | null };
+}) {
   const segments = useSelectedLayoutSegments() ?? [];
   const router = useRouter();
 
@@ -77,7 +79,7 @@ export function AppSidebar({
     [],
   );
 
-  const { state, isMobile, toggleSidebar } = useSidebar();
+  const { state, isMobile, toggleSidebar, openMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
 
   const headerContent = useMemo(
@@ -120,7 +122,7 @@ export function AppSidebar({
         </SidebarGroup>
 
         <SidebarGroup>
-          <UsageBanner quotas={props.workspace.quotas!} />
+          <UsageBanner quotas={props.workspace.quotas} />
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
@@ -130,7 +132,11 @@ export function AppSidebar({
             "flex-row": state === "expanded",
           })}
         >
-          <UserButton />
+          <UserButton
+            isCollapsed={(state === "collapsed" || isMobile) && !(isMobile && openMobile)}
+            isMobile={isMobile}
+            isMobileSidebarOpen={openMobile}
+          />
 
           <HelpButton />
         </div>

@@ -15,7 +15,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import type { Api, Key, VercelBinding } from "@unkey/db";
@@ -31,9 +30,10 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
+  toast,
 } from "@unkey/ui";
+import { formatDistanceToNow } from "date-fns";
 import { ExternalLink, Link2, MoreHorizontal, Plus, RefreshCw, Trash, Unlink2 } from "lucide-react";
-import ms from "ms";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type React from "react";
@@ -297,10 +297,12 @@ const ConnectedResource: React.FC<{
               <DropdownMenuLabel className="flex items-center justify-between w-full gap-2">
                 <span className="text-sm text-content">
                   Edited{" "}
-                  {ms(Date.now() - props.binding!.updatedAtM!, {
-                    long: true,
-                  })}{" "}
-                  ago by {props.binding?.updatedBy.name}
+                  {props.binding.updatedAtM
+                    ? formatDistanceToNow(new Date(props.binding.updatedAtM), {
+                        addSuffix: true,
+                      })
+                    : "recently"}{" "}
+                  by {props.binding.updatedBy.name}
                 </span>
                 <Avatar className="w-6 h-6 ">
                   {/* <AvatarImage
@@ -375,8 +377,12 @@ const ConnectedResource: React.FC<{
           {props.binding ? (
             <DropdownMenuItem
               onClick={() => {
+                if (!props.binding) {
+                  toast.error("Unable to unbind. Please refresh and try again.");
+                  return;
+                }
                 unbind.mutate({
-                  bindingId: props.binding!.id,
+                  bindingId: props.binding.id,
                 });
               }}
               className="flex items-center gap-2"

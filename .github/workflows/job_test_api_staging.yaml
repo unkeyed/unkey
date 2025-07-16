@@ -1,3 +1,5 @@
+permissions:
+  contents: read
 name: API Test Staging
 on:
   workflow_call:
@@ -38,6 +40,7 @@ jobs:
         uses: ./.github/actions/install
         with:
           ts: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Build
         run: pnpm turbo run build --filter=./apps/api
 

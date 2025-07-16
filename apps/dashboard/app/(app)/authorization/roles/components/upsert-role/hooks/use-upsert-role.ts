@@ -1,5 +1,5 @@
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { toast } from "@unkey/ui";
 
 export const useUpsertRole = (
   onSuccess: (data: {
@@ -11,8 +11,20 @@ export const useUpsertRole = (
   const trpcUtils = trpc.useUtils();
 
   const role = trpc.authorization.roles.upsert.useMutation({
-    onSuccess(data) {
-      trpcUtils.authorization.roles.invalidate();
+    async onSuccess(data) {
+      await Promise.all([
+        trpcUtils.authorization.roles.query.invalidate(),
+        trpcUtils.authorization.permissions.query.refetch(),
+        trpcUtils.authorization.roles.connectedKeysAndPerms.invalidate({
+          roleId: data.roleId,
+        }),
+        trpcUtils.authorization.roles.connectedKeys.invalidate({
+          roleId: data.roleId,
+        }),
+        trpcUtils.authorization.roles.connectedPerms.invalidate({
+          roleId: data.roleId,
+        }),
+      ]);
 
       // Show success toast
       toast.success(data.isUpdate ? "Role Updated" : "Role Created", {
