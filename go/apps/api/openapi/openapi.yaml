@@ -108,7 +108,8 @@ components:
         Authorization: Bearer unkey_123
         ```
 
-        Root keys have specific permissions attached to them, controlling what operations they can perform. Key permissions follow a hierarchical structure with patterns like `resource.resource_id.action` (e.g., `apis.*.create_key`, `apis.*.read_api`).
+        Root keys have specific permissions attached to them, controlling what operations they can perform.
+        Key permissions follow a hierarchical structure with patterns like `resource.resource_id.action` (e.g., `apis.*.create_key`, `apis.*.read_api`).
 
         Security best practices:
         - Keep root keys secure and never expose them in client-side code
@@ -126,7 +127,7 @@ components:
         keyId:
           type: string
           minLength: 3
-          maxLength: 255 # Reasonable upper bound for database identifiers
+          maxLength: 255
           pattern: "^[a-zA-Z0-9_]+$"
           description: |
             Specifies which key to update using the database identifier returned from `createKey`.
@@ -136,7 +137,7 @@ components:
           type: string
           nullable: true
           minLength: 1
-          maxLength: 200 # Human-readable names should be concise but descriptive
+          maxLength: 200
           description: |
             Sets a human-readable name for internal organization and identification.
             Omitting this field leaves the current name unchanged, while setting null removes it entirely.
@@ -146,7 +147,7 @@ components:
           type: string
           nullable: true
           minLength: 1
-          maxLength: 255 # Match database varchar limits for external identifiers
+          maxLength: 255
           pattern: "^[a-zA-Z0-9_.-]+$"
           description: |
             Links this key to a user or entity in your system for ownership tracking during verification.
@@ -158,12 +159,11 @@ components:
           type: object
           nullable: true
           additionalProperties: true
-          maxProperties: 100 # Prevent DoS while allowing rich metadata
+          maxProperties: 100
           description: |
             Stores arbitrary JSON metadata returned during key verification.
             Omitting this field preserves existing metadata, while setting null removes all metadata entirely.
             Avoid storing sensitive data here as it's returned in verification responses.
-            Large metadata objects increase verification latency and should stay under 10KB total size.
           example:
             plan: enterprise
             limits:
@@ -241,7 +241,7 @@ components:
         keyId:
           type: string
           minLength: 3
-          maxLength: 255 # Reasonable upper bound for database identifiers
+          maxLength: 255
           pattern: "^[a-zA-Z0-9_]+$"
           description: |
             Specifies which key to delete using the database identifier returned from `createKey`.
@@ -257,14 +257,12 @@ components:
 
             Use permanent deletion only for regulatory compliance (GDPR), resolving hash collisions, or when reusing identical key strings.
             Permanent deletion cannot be undone and may affect analytics data that references the deleted key.
-            Most applications should use soft deletion to maintain audit trails and prevent accidental data loss.
           example: false
       additionalProperties: false
     KeysDeleteKeyResponseData:
       type: object
       properties: {}
-      description: |
-        Confirms successful key deletion with no additional data returned.
+      description: Empty response object by design. A successful response indicates the key was deleted successfully.
     V2KeysDeleteKeyResponseBody:
       type: object
       required:
@@ -280,7 +278,7 @@ components:
         keyId:
           type: string
           minLength: 3
-          maxLength: 255 # Reasonable upper bound for database identifiers
+          maxLength: 255
           pattern: "^[a-zA-Z0-9_]+$"
           description: |
             Specifies which key to retrieve using the database identifier returned from `keys.createKey`.
@@ -293,22 +291,20 @@ components:
           default: false
           description: |
             Controls whether to include the plaintext key value in the response for recovery purposes.
-            Only works for keys created with `recoverable=true` and requires the `decrypt_key` permission.
+            Only works for keys created with `recoverable=true` OR when passing in the raw key string and requires the `decrypt_key` permission.
             Returned keys must be handled securely, never logged, cached, or stored insecurely.
 
-            Use only for legitimate recovery scenarios like user password resets or emergency access.
+            Use only for legitimate recovery scenarios or emergency access.
             Most applications should keep this false to maintain security best practices and avoid accidental key exposure.
-            Decryption requests are audited and may trigger security alerts in enterprise environments.
         key:
           type: string
           minLength: 1
-          maxLength: 512 # Reasonable upper bound for API key strings
+          maxLength: 512
           description: |
             The complete API key string provided by you, including any prefix.
             Never log, cache, or store API keys in your system as they provide full access to user resources.
             Include the full key exactly as provided - even minor modifications will cause a not found error.
-          example: prefix_f4cc2d765275c206b7d76ff0e92e583067c4e33603fb4055d7ba3031cd7ce36a
-
+          example: my_prefix_1234567890abcdef
       additionalProperties: false
       oneOf:
         - required:
@@ -344,13 +340,12 @@ components:
         keyId:
           type: string
           minLength: 3
-          maxLength: 255 # Reasonable upper bound for database identifiers
+          maxLength: 255
           pattern: "^[a-zA-Z0-9_]+$"
           description: |
             Specifies which key receives the additional permissions using the database identifier returned from `keys.createKey`.
             Do not confuse this with the actual API key string that users include in requests.
             Added permissions supplement existing permissions and roles without replacing them.
-            Permission changes take effect immediately but may take up to 30 seconds to propagate across all regions.
           example: key_2cGKbMxRyIzhCxo1Idjz8q
         permissions:
           type: array
@@ -367,7 +362,7 @@ components:
               id:
                 type: string
                 minLength: 3
-                maxLength: 255 # Reasonable upper bound for database identifiers
+                maxLength: 255
                 pattern: "^[a-zA-Z0-9_]+$"
                 description: |
                   References an existing permission by its database identifier.
@@ -405,12 +400,6 @@ components:
       description: |-
         Complete list of all permissions directly assigned to the key (including both newly added permissions and those that were already assigned).
 
-        This response includes:
-        - All direct permissions assigned to the key (both pre-existing and newly added)
-        - Permissions sorted alphabetically by name for consistent response format
-        - Both the permission ID and name for each permission
-
-        Important notes:
         - This list does NOT include permissions granted through roles
         - For a complete permission picture, use `/v2/keys.getKey` instead
         - An empty array indicates the key has no direct permissions assigned
@@ -436,8 +425,7 @@ components:
             example: Can write documents
           slug:
             type: string
-            description: |-
-              The slug of the permission, typically following a `resource.action` pattern like `documents.read`.
+            description: The slug of the permission, typically following a `resource.action` pattern like `documents.read`.
             example: documents.write
     V2KeysAddPermissionsResponse:
       type: object
@@ -458,13 +446,12 @@ components:
         keyId:
           type: string
           minLength: 3
-          maxLength: 255 # Reasonable upper bound for database identifiers
+          maxLength: 255
           pattern: "^[a-zA-Z0-9_]+$"
           description: |
             Specifies which key to remove permissions from using the database identifier returned from `keys.createKey`.
             Do not confuse this with the actual API key string that users include in requests.
             Removing permissions only affects direct assignments, not permissions inherited from roles.
-            Permission changes take effect immediately but may take up to 30 seconds to propagate across all regions.
           example: key_2cGKbMxRyIzhCxo1Idjz8q
         permissions:
           type: array
@@ -483,21 +470,19 @@ components:
               id:
                 type: string
                 minLength: 3
-                maxLength: 255 # Reasonable upper bound for database identifiers
+                maxLength: 255
                 pattern: "^[a-zA-Z0-9_]+$"
                 description: |
                   References the permission to remove by its database identifier.
                   Use when you know the exact permission ID and want to ensure you're removing a specific permission.
                   Takes precedence over name when both are provided in the same object.
-                  Essential for automation scripts where precision prevents accidental permission removal.
                 example: perm_1n9McEIBSqy44Qy7hzWyM5
               slug:
                 type: string
                 minLength: 1
                 maxLength: 100 # Keep permission slugs concise and readable
                 pattern: "^[a-zA-Z0-9_.]+$"
-                description: |
-                  Identifies the permission by slug for removal from the key's direct assignment list.
+                description: Identifies the permission by slug for removal from the key's direct assignment list.
                 example: documents.write
             additionalProperties: false
       additionalProperties: false
@@ -506,16 +491,9 @@ components:
       description: |-
         Complete list of all permissions directly assigned to the key after the removal operation (remaining permissions only).
 
-        This response includes:
-        - All direct permissions still assigned to the key after removal
-        - Permissions sorted alphabetically by name for consistent response format
-        - Both the permission ID and name for each remaining permission
-
-        Important notes:
         - This list does NOT include permissions granted through roles
         - For a complete permission picture, use `/v2/keys.getKey` instead
         - An empty array indicates the key has no direct permissions assigned
-        - All permission removals are logged to the audit log for security tracking
       items:
         type: object
         required:
@@ -541,13 +519,9 @@ components:
             description: |-
               The slug of the permission, typically following a `resource.action` pattern like `documents.read`. Names are human-readable identifiers used both for assignment and verification.
 
-              During verification:
-              - The exact name is matched (e.g., `documents.read`)
-              - Hierarchical wildcards are supported in verification requests
-              - A key with permission `documents.*` grants access to `documents.read`, `documents.write`, etc.
-              - Wildcards can appear at any level: `billing.*.view` matches `billing.invoices.view` and `billing.payments.view`
+              During verification the exact name is matched (e.g., `documents.read`) and any wildcard permissions (`documents.*`) are also considered, which would match `documents.write` OR `documents.delete`.
 
-              However, when adding permissions, you must specify each exact permission - wildcards are not valid for assignment.
+              When adding permissions, you must specify each exact permission - wildcards are not valid for assignment.
             example: documents.write
     V2KeysRemovePermissionsResponse:
       type: object
@@ -578,15 +552,7 @@ components:
           type: array
           description: |-
             The permissions to set for this key. This is a complete replacement operation - it overwrites all existing direct permissions with this new set.
-
-            Key behaviors:
-            - Providing an empty array removes all direct permissions from the key
-            - This only affects direct permissions - permissions granted through roles are not affected
-            - All existing direct permissions not included in this list will be removed
-            - The complete list approach allows synchronizing permissions with external systems
-            - Permission changes take effect immediately for new verifications
-
-            Unlike addPermissions (which only adds) or removePermissions (which only removes), this endpoint performs a wholesale replacement of the permission set.
+            Permissions that are applied through roles are not affected.
           items:
             type: object
             properties:
@@ -615,31 +581,18 @@ components:
                 type: boolean
                 description: |-
                   When true, if a permission with this slug doesn't exist, it will be automatically created on-the-fly. Only works when specifying slug, not ID.
-
-                  SECURITY CONSIDERATIONS:
-                  - Requires the `rbac.*.create_permission` permission on your root key
-                  - Created permissions are permanent and visible throughout your workspace
-                  - Use carefully to avoid permission proliferation and inconsistency
-                  - Consider using a controlled process for permission creation instead
-                  - Typos with `create=true` will create unintended permissions that persist in your system
+                  This  Requires the `rbac.*.create_permission` permission on your root key.
                 default: false
             additionalProperties: false
       additionalProperties: false
     V2KeysSetPermissionsResponseData:
       type: array
       description: |-
-        Complete list of all permissions now directly assigned to the key after the set operation has completed.
+        Complete list of permissions that are directly assigned to the key after the set operation has completed.
 
-        The response includes:
-        - The comprehensive, updated set of direct permissions (reflecting the complete replacement)
-        - Both ID and name for each permission for easy reference
-        - Permissions sorted alphabetically by name for consistent response format
-
-        Important notes:
         - This only shows direct permissions, not those granted through roles
         - An empty array means the key has no direct permissions assigned
-        - For a complete permission picture including roles, use keys.getKey instead
-        - All permission changes are logged in the audit log for security tracking
+        - For a complete permission picture including roles, use `/v2/keys.getKey` instead
       items:
         type: object
         required:
@@ -673,7 +626,7 @@ components:
         keyId:
           type: string
           minLength: 3
-          maxLength: 255 # Reasonable upper bound for database identifiers
+          maxLength: 255
           pattern: "^[a-zA-Z0-9_]+$"
           description: |
             Specifies which key receives the additional roles using the database identifier returned from `createKey`.
@@ -698,7 +651,7 @@ components:
               id:
                 type: string
                 minLength: 3
-                maxLength: 255 # Reasonable upper bound for database identifiers
+                maxLength: 255
                 pattern: "^[a-zA-Z0-9_]+$"
                 description: |
                   References an existing role by its database identifier.
@@ -724,18 +677,6 @@ components:
       type: array
       description: |-
         Complete list of all roles directly assigned to the key after the operation completes.
-
-        The response includes:
-        - All roles now assigned to the key (both pre-existing and newly added)
-        - Both ID and name of each role for easy reference
-        - Roles sorted alphabetically by name for consistent response format
-
-        Important notes:
-        - The response shows the complete current state after the addition
-        - An empty array means the key has no roles assigned (unlikely after an add operation)
-        - This only shows direct role assignments, not inherited or nested roles
-        - Role permissions are not expanded in this response - use keys.getKey for full details
-        - All role changes are logged in the audit log for security tracking
       items:
         type: object
         required:
@@ -753,12 +694,11 @@ components:
             example: role_1n9McEIBSqy44Qy7hzWyM5
           name:
             type: string
-            description:
-              The name of the role. This is a human-readable identifier
-              that's unique within your workspace. Role names help identify what access
-              level or function a role provides. Common patterns include naming by
-              access level (`admin`, `editor`, `viewer`), by department (`billing_manager`,
-              `support_agent`), or by feature area (`analytics_user`, `dashboard_admin`).
+            description: The name of the role.
+              This is a human-readable identifier that's unique within your workspace.
+              Role names help identify what access level or function a role provides.
+
+              Common patterns include naming by access level (`admin`, `editor`, `viewer`), by department (`billing_manager`, `support_agent`), or by feature area (`analytics_user`, `dashboard_admin`).
             example: admin
     V2KeysAddRolesResponse:
       type: object
@@ -779,13 +719,12 @@ components:
         keyId:
           type: string
           minLength: 3
-          maxLength: 255 # Reasonable upper bound for database identifiers
+          maxLength: 255
           pattern: "^[a-zA-Z0-9_]+$"
           description: |
             Specifies which key loses the roles using the database identifier returned from createKey.
             Do not confuse this with the actual API key string that users include in requests.
             Removing roles only affects direct assignments, not permissions inherited from other sources.
-            Role changes take effect immediately but may take up to 30 seconds to propagate across all regions.
           example: key_2cGKbMxRyIzhCxo1Idjz8q
         roles:
           type: array
@@ -804,7 +743,7 @@ components:
               id:
                 type: string
                 minLength: 3
-                maxLength: 255 # Reasonable upper bound for database identifiers
+                maxLength: 255
                 pattern: "^[a-zA-Z0-9_]+$"
                 description: |
                   References the role to remove by its database identifier.
@@ -830,16 +769,8 @@ components:
       description: |-
         Complete list of all roles directly assigned to the key after the removal operation completes.
 
-        The response includes:
-        - The remaining roles still assigned to the key (after removing the specified roles)
-        - Both ID and name for each role for easy reference
-        - Roles sorted alphabetically by name for consistent response format
-
-        Important notes:
-        - The response reflects the current state after the removal operation
         - An empty array indicates the key now has no roles assigned
-        - Role permissions are not expanded in this response - use keys.getKey for full details
-        - All role changes are logged in the audit log for security tracking
+        - Role permissions are not expanded in this response - use `/v2/keys.getKey` for full details
       items:
         type: object
         required:
@@ -877,13 +808,12 @@ components:
         keyId:
           type: string
           minLength: 3
-          maxLength: 255 # Reasonable upper bound for database identifiers
+          maxLength: 255
           pattern: "^[a-zA-Z0-9_]+$"
           description: |
             Specifies which key gets the complete role replacement using the database identifier returned from createKey.
             Do not confuse this with the actual API key string that users include in requests.
             This is a wholesale replacement operation that removes all existing roles not included in the request.
-            Role changes take effect immediately but may take up to 30 seconds to propagate across all regions.
           example: key_2cGKbMxRyIzhCxo1Idjz8q
         roles:
           type: array
@@ -902,7 +832,7 @@ components:
               id:
                 type: string
                 minLength: 3
-                maxLength: 255 # Reasonable upper bound for database identifiers
+                maxLength: 255
                 pattern: "^[a-zA-Z0-9_]+$"
                 description: |
                   References an existing role by its database identifier.
@@ -1040,7 +970,7 @@ components:
         apiId:
           type: string
           minLength: 3
-          maxLength: 255 # Reasonable upper bound for database identifiers
+          maxLength: 255
           pattern: "^[a-zA-Z0-9_]+$"
           description: |
             Specifies which API this key belongs to, providing complete isolation between environments.
@@ -1060,7 +990,7 @@ components:
         name:
           type: string
           minLength: 1
-          maxLength: 200 # Human-readable names should be concise but descriptive
+          maxLength: 200
           description: |
             Sets a human-readable identifier for internal organization and dashboard display.
             Never exposed to end users, only visible in management interfaces and API responses.
@@ -1068,8 +998,8 @@ components:
           example: Payment Service Production Key
         byteLength:
           type: integer
-          minimum: 16 # Minimum secure key length
-          maximum: 255 # Reasonable upper bound for key generation
+          minimum: 16
+          maximum: 255
           default: 16
           description: |
             Controls the cryptographic strength of the generated key in bytes.
@@ -1080,7 +1010,7 @@ components:
         externalId:
           type: string
           minLength: 1
-          maxLength: 255 # Match database varchar limits for external identifiers
+          maxLength: 255
           pattern: "^[a-zA-Z0-9_.-]+$"
           description: |
             Links this key to a user or entity in your system using your own identifier.
@@ -1092,7 +1022,7 @@ components:
         meta:
           type: object
           additionalProperties: true
-          maxProperties: 100 # Prevent DoS while allowing rich metadata
+          maxProperties: 100
           description: |
             Stores arbitrary JSON metadata returned during key verification for contextual information.
             Eliminates additional database lookups during verification, improving performance for stateless services.
@@ -1163,7 +1093,7 @@ components:
             Omitting this field creates unlimited usage, while setting null is not allowed during creation.
         ratelimits:
           type: array
-          maxItems: 50 # Reasonable limit for rate limit configurations per identity
+          maxItems: 50
           items:
             "$ref": "#/components/schemas/RatelimitRequest"
           description: |
@@ -2193,7 +2123,7 @@ components:
         externalId:
           type: string
           minLength: 3
-          maxLength: 255 # Match database varchar limits for external identifiers
+          maxLength: 255
           pattern: "^[a-zA-Z0-9_.-]+$"
           description: |
             Creates an identity using your system's unique identifier for a user, organization, or entity.
@@ -2208,7 +2138,7 @@ components:
         meta:
           type: object
           additionalProperties: true
-          maxProperties: 100 # Prevent DoS while allowing rich metadata
+          maxProperties: 100
           description: |
             Stores arbitrary JSON metadata returned during key verification for contextual information.
             Eliminates additional database lookups during verification, improving performance for stateless services.
@@ -2219,7 +2149,7 @@ components:
             Metadata is returned as-is whenever keys associated with this identity are verified.
         ratelimits:
           type: array
-          maxItems: 50 # Reasonable limit for rate limit configurations per identity
+          maxItems: 50
           items:
             "$ref": "#/components/schemas/RatelimitRequest"
           description: |
@@ -2641,7 +2571,7 @@ components:
       additionalProperties: false
     PermissionsListPermissionsResponseData:
       type: array
-      maxItems: 1000 # DoS protection while allowing reasonable batch sizes
+      maxItems: 1000
       items:
         "$ref": "#/components/schemas/Permission"
       description: Array of permission objects with complete configuration details.
@@ -2989,8 +2919,8 @@ components:
         name:
           type: string
           minLength: 3
-          maxLength: 255 # Reasonable upper bound for API names
-          pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$" # Must start with letter, then alphanumeric/underscore/dot/hyphen
+          maxLength: 255
+          pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
           description: |
             Creates an API with this name as an internal identifier for organization and isolation.
             APIs serve as containers for groups of keys and provide namespace separation between environments or services.
@@ -3296,7 +3226,7 @@ components:
         apiId:
           type: string
           minLength: 3
-          maxLength: 255 # Reasonable upper bound for database identifiers
+          maxLength: 255
           pattern: "^[a-zA-Z0-9_]+$"
           description: |
             Specifies which API the key belongs to for complete environment isolation.
@@ -3420,7 +3350,7 @@ components:
         name:
           type: string
           minLength: 3
-          maxLength: 255 # Reasonable upper bound for database identifiers
+          maxLength: 255
           pattern: ""
           description: References an existing ratelimit by its name. Key Ratelimits will take precedence over identifier-based limits.
           example: tokens
@@ -3611,7 +3541,7 @@ components:
         identityId:
           type: string
           minLength: 3
-          maxLength: 255 # Reasonable upper bound for database identifiers
+          maxLength: 255
           pattern: "^[a-zA-Z0-9_]+$"
           description: |
             Specifies which identity to update using the Unkey database identifier.
@@ -3622,7 +3552,7 @@ components:
         externalId:
           type: string
           minLength: 3
-          maxLength: 255 # Match database varchar limits for external identifiers
+          maxLength: 255
           pattern: "^[a-zA-Z0-9_.-]+$"
           description: |
             Specifies which identity to update using your system's identifier from identity creation.
@@ -3634,7 +3564,7 @@ components:
         meta:
           type: object
           additionalProperties: true
-          maxProperties: 100 # Prevent DoS while allowing rich metadata
+          maxProperties: 100
           description: |
             Replaces all existing metadata with this new metadata object.
             Omitting this field preserves existing metadata, while providing an empty object clears all metadata.
@@ -3646,14 +3576,13 @@ components:
             plan: premium
         ratelimits:
           type: array
-          maxItems: 50 # Reasonable limit for rate limit configurations per identity
+          maxItems: 50
           items:
             "$ref": "#/components/schemas/RatelimitRequest"
           description: |
             Replaces all existing identity rate limits with this complete list of rate limits.
             Omitting this field preserves existing rate limits, while providing an empty array removes all rate limits.
             These limits are shared across all keys belonging to this identity, preventing abuse through multiple keys.
-            Rate limit changes take effect immediately but may take up to 30 seconds to propagate across all regions.
           example:
             - name: requests
               limit: 1000
