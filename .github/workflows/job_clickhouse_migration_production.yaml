@@ -8,6 +8,8 @@ on:
 
 jobs:
   deploy:
+    permissions:
+      contents: read
     environment: ClickHouse Production Migration
     runs-on: ubuntu-latest
     steps:
