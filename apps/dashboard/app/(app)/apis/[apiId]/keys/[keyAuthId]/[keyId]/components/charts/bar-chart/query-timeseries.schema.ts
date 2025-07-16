@@ -20,12 +20,10 @@ export const keyDetailsQueryTimeseriesPayload = z.object({
         z.object({
           value: z.enum(KEY_VERIFICATION_OUTCOMES),
           operator: z.literal("is"),
-        })
+        }),
       ),
     })
     .nullable(),
 });
 
-export type KeyDetailsQueryTimeseriesPayload = z.infer<
-  typeof keyDetailsQueryTimeseriesPayload
->;
+export type KeyDetailsQueryTimeseriesPayload = z.infer<typeof keyDetailsQueryTimeseriesPayload>;
