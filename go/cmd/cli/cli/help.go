@@ -145,6 +145,10 @@ func (c *Command) getEnvVar(flag Flag) string {
 		return f.EnvVar()
 	case *IntFlag:
 		return f.EnvVar()
+	case *FloatFlag:
+		return f.EnvVar()
+	case *StringSliceFlag:
+		return f.EnvVar()
 	default:
 		return ""
 	}

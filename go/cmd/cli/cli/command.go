@@ -66,6 +66,28 @@ func (c *Command) Int(name string) int {
 	return 0
 }
 
+// Float returns the value of a float flag by name
+// Returns 0.0 if flag doesn't exist or isn't a FloatFlag
+func (c *Command) Float(name string) float64 {
+	if flag, ok := c.flagMap[name]; ok {
+		if ff, ok := flag.(*FloatFlag); ok {
+			return ff.Value()
+		}
+	}
+	return 0.0
+}
+
+// StringSlice returns the value of a string slice flag by name
+// Returns empty slice if flag doesn't exist or isn't a StringSliceFlag
+func (c *Command) StringSlice(name string) []string {
+	if flag, ok := c.flagMap[name]; ok {
+		if ssf, ok := flag.(*StringSliceFlag); ok {
+			return ssf.Value()
+		}
+	}
+	return []string{}
+}
+
 // Run executes the command with the given arguments (typically os.Args)
 // This is the main entry point for CLI execution
 func (c *Command) Run(ctx context.Context, args []string) error {

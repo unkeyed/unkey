@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 // Flag represents a command line flag interface
@@ -198,6 +199,150 @@ func Int(name, usage string, defaultValue int, envVar string, required bool) *In
 				flag.value = parsed
 				flag.set = true // Mark as set since env var was found
 			}
+		}
+	}
+
+	return flag
+}
+
+// FloatFlag represents a float64 command line flag
+type FloatFlag struct {
+	name     string  // Flag name
+	usage    string  // Help description
+	value    float64 // Current value
+	envVar   string  // Environment variable to check for default
+	required bool    // Whether flag is mandatory
+	set      bool    // Whether user explicitly provided this flag
+}
+
+// Name returns the flag name
+func (f *FloatFlag) Name() string { return f.name }
+
+// Usage returns the flag's help text
+func (f *FloatFlag) Usage() string { return f.usage }
+
+// Required returns whether this flag is mandatory
+func (f *FloatFlag) Required() bool { return f.required }
+
+// IsSet returns whether the user explicitly provided this flag
+func (f *FloatFlag) IsSet() bool { return f.set }
+
+// Parse sets the flag value from a string
+func (f *FloatFlag) Parse(value string) error {
+	parsed, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		return fmt.Errorf("invalid float value: %s", value)
+	}
+	f.value = parsed
+	f.set = true
+	return nil
+}
+
+// Value returns the current float64 value
+func (f *FloatFlag) Value() float64 { return f.value }
+
+// EnvVar returns the environment variable name for this flag
+func (f *FloatFlag) EnvVar() string { return f.envVar }
+
+// StringSliceFlag represents a string slice command line flag
+type StringSliceFlag struct {
+	name     string   // Flag name
+	usage    string   // Help description
+	value    []string // Current value
+	envVar   string   // Environment variable to check for default
+	required bool     // Whether flag is mandatory
+	set      bool     // Whether user explicitly provided this flag
+}
+
+// Name returns the flag name
+func (f *StringSliceFlag) Name() string { return f.name }
+
+// Usage returns the flag's help text
+func (f *StringSliceFlag) Usage() string { return f.usage }
+
+// Required returns whether this flag is mandatory
+func (f *StringSliceFlag) Required() bool { return f.required }
+
+// IsSet returns whether the user explicitly provided this flag
+func (f *StringSliceFlag) IsSet() bool { return f.set }
+
+// Parse sets the flag value from a string (comma-separated values)
+func (f *StringSliceFlag) Parse(value string) error {
+	if value == "" {
+		f.value = []string{}
+	} else {
+		// Split by comma and trim whitespace
+		parts := strings.Split(value, ",")
+		result := make([]string, 0, len(parts))
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				result = append(result, trimmed)
+			}
+		}
+		f.value = result
+	}
+	f.set = true
+	return nil
+}
+
+// Value returns the current string slice value
+func (f *StringSliceFlag) Value() []string { return f.value }
+
+// EnvVar returns the environment variable name for this flag
+func (f *StringSliceFlag) EnvVar() string { return f.envVar }
+
+// Float creates a new float flag with environment variable support
+func Float(name, usage string, defaultValue float64, envVar string, required bool) *FloatFlag {
+	flag := &FloatFlag{
+		name:     name,
+		usage:    usage,
+		value:    defaultValue,
+		envVar:   envVar,
+		required: required,
+	}
+
+	// Check environment variable for default value
+	if envVar != "" {
+		if envValue := os.Getenv(envVar); envValue != "" {
+			if parsed, err := strconv.ParseFloat(envValue, 64); err == nil {
+				flag.value = parsed
+				flag.set = true // Mark as set since env var was found
+			}
+		}
+	}
+
+	return flag
+}
+
+// StringSlice creates a new string slice flag with environment variable support
+func StringSlice(name, usage string, defaultValue []string, envVar string, required bool) *StringSliceFlag {
+	flag := &StringSliceFlag{
+		name:     name,
+		usage:    usage,
+		value:    defaultValue,
+		envVar:   envVar,
+		required: required,
+	}
+
+	// Check environment variable for default value
+	if envVar != "" {
+		if envValue := os.Getenv(envVar); envValue != "" {
+			// Parse comma-separated values from environment
+			if envValue == "" {
+				flag.value = []string{}
+			} else {
+				parts := strings.Split(envValue, ",")
+				result := make([]string, 0, len(parts))
+				for _, part := range parts {
+					trimmed := strings.TrimSpace(part)
+					if trimmed != "" {
+						result = append(result, trimmed)
+					}
+				}
+				flag.value = result
+			}
+			flag.set = true // Mark as set since env var was found
 		}
 	}
 

@@ -7,6 +7,10 @@ import (
 
 	"github.com/unkeyed/unkey/go/cmd/cli/cli"
 	"github.com/unkeyed/unkey/go/cmd/cli/commands/deploy"
+	"github.com/unkeyed/unkey/go/cmd/cli/commands/healthcheck"
+	initcmd "github.com/unkeyed/unkey/go/cmd/cli/commands/init"
+	"github.com/unkeyed/unkey/go/cmd/cli/commands/quotacheck"
+	"github.com/unkeyed/unkey/go/cmd/cli/commands/run"
 	"github.com/unkeyed/unkey/go/cmd/cli/commands/versions"
 	"github.com/unkeyed/unkey/go/pkg/version"
 )
@@ -19,6 +23,10 @@ func main() {
 		Commands: []*cli.Command{
 			deploy.Command,
 			versions.Command,
+			run.Command,
+			healthcheck.Command,
+			quotacheck.Command,
+			initcmd.Command,
 		},
 	}
 
