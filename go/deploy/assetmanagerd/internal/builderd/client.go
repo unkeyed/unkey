@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	builderv1 "github.com/unkeyed/unkey/go/deploy/builderd/gen/builder/v1"
-	"github.com/unkeyed/unkey/go/deploy/builderd/gen/builder/v1/builderv1connect"
+	builderv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1"
+	"github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1/builderdv1connect"
 	tlspkg "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
@@ -63,7 +63,7 @@ type CompletedBuild struct {
 type Client struct {
 	cfg           *Config
 	logger        *slog.Logger
-	builderClient builderv1connect.BuilderServiceClient
+	builderClient builderdv1connect.BuilderServiceClient
 }
 
 // NewClient creates a new builderd client
@@ -75,7 +75,7 @@ func NewClient(cfg *Config, logger *slog.Logger) (*Client, error) {
 	httpClient.Transport = otelhttp.NewTransport(httpClient.Transport)
 
 	// Create Connect client
-	builderClient := builderv1connect.NewBuilderServiceClient(
+	builderClient := builderdv1connect.NewBuilderServiceClient(
 		httpClient,
 		cfg.Endpoint,
 	)

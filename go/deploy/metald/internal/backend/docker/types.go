@@ -1,11 +1,9 @@
 package docker
 
 import (
-	"context"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/network"
+	"github.com/docker/go-connections/nat"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
 	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1"
 )
@@ -121,7 +119,7 @@ type ContainerCreateOptions struct {
 	Env          []string
 	Labels       map[string]string
 	ExposedPorts map[string]struct{}
-	PortBindings map[string][]container.PortBinding
+	PortBindings map[string][]nat.PortBinding
 	Memory       int64
 	CPUs         float64
 	WorkingDir   string

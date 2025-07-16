@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"testing"
 
-	assetv1 "github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/asset/v1"
+	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/config"
 )
 
