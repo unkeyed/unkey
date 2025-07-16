@@ -124,9 +124,9 @@ export const KeyCreatedSuccessDialog = ({
           <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full px-[120px]">
             <div className="py-4 mt-[30px]">
               <div className="flex gap-4">
-                <div className="border border-grayA-4 rounded-[10px] size-14 opacity-35" />
-                <div className="border border-grayA-4 rounded-[10px] size-14" />
-                <div className="border border-grayA-4 rounded-[10px] size-14 flex items-center justify-center relative">
+                <div className="border border-grayA-4 rounded-[14px] size-14 opacity-35" />
+                <div className="border border-grayA-4 rounded-[14px] size-14" />
+                <div className="border border-grayA-4 rounded-[14px] size-14 flex items-center justify-center relative">
                   <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute left-0 top-0" />
                   <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 top-0" />
                   <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 bottom-0" />
@@ -136,8 +136,8 @@ export const KeyCreatedSuccessDialog = ({
                     <Check size="sm-bold" />
                   </div>
                 </div>
-                <div className="border border-grayA-4 rounded-[10px] size-14" />
-                <div className="border border-grayA-4 rounded-[10px] size-14 opacity-35" />
+                <div className="border border-grayA-4 rounded-[14px] size-14" />
+                <div className="border border-grayA-4 rounded-[14px] size-14 opacity-35" />
               </div>
             </div>
             <div className="mt-5 flex flex-col gap-2 items-center">
