@@ -55,6 +55,10 @@ var createCmd = &cli.Command{
 			Usage:    "Docker image tag (e.g., ghcr.io/user/app:tag). If not provided, builds from current directory",
 			Required: false,
 		},
+		&cli.BoolFlag{
+			Name:  "force-build",
+			Usage: "Force build Docker image even if --docker-image is provided",
+		},
 		&cli.StringFlag{
 			Name:     "dockerfile",
 			Usage:    "Path to Dockerfile",
@@ -123,29 +127,34 @@ func createAction(ctx context.Context, cmd *cli.Command) error {
 	dockerfile := cmd.String("dockerfile")
 	buildContext := cmd.String("context")
 
+	// Always build the image, ignoring any provided docker-image
+	dockerImage = ""
+
 	return runDeploymentSteps(ctx, cmd, workspaceID, projectID, branch, dockerImage, dockerfile, buildContext, commit, logger)
 }
 
-func printDeploymentComplete(versionID, workspace, branch string) {
-	// Use actual Git info for hostname generation
-	gitInfo := git.GetInfo()
-	identifier := versionID
-	if gitInfo.IsRepo && gitInfo.CommitSHA != "" {
-		identifier = gitInfo.CommitSHA
-	}
-
+func printDeploymentComplete(version *ctrlv1.Version) {
 	fmt.Println()
 	fmt.Println("Deployment Complete")
-	fmt.Printf("  Version ID: %s\n", versionID)
+	fmt.Printf("  Version ID: %s\n", version.GetId())
 	fmt.Printf("  Status: Ready\n")
 	fmt.Printf("  Environment: Production\n")
 
 	fmt.Println()
 	fmt.Println("Domains")
-	// Replace underscores with dashes for valid hostname format
-	cleanIdentifier := strings.ReplaceAll(identifier, "_", "-")
-	fmt.Printf("  https://%s-%s-%s.unkey.app\n", branch, cleanIdentifier, workspace)
-	fmt.Printf("  https://api.acme.com\n")
+	hostnames := version.GetHostnames()
+	if len(hostnames) > 0 {
+		for _, hostname := range hostnames {
+			// Check if it's a localhost hostname (don't add https://)
+			if strings.HasPrefix(hostname, "localhost:") {
+				fmt.Printf("  http://%s\n", hostname)
+			} else {
+				fmt.Printf("  https://%s\n", hostname)
+			}
+		}
+	} else {
+		fmt.Printf("  No hostnames assigned\n")
+	}
 }
 
 func runDeploymentSteps(ctx context.Context, cmd *cli.Command, workspace, project, branch, dockerImage, dockerfile, buildContext, commit string, logger logging.Logger) error {
@@ -324,17 +333,18 @@ func runDeploymentSteps(ctx context.Context, cmd *cli.Command, workspace, projec
 	fmt.Printf("  Version ID: %s\n", versionID)
 
 	// Poll for version status updates
-	if err := pollVersionStatus(ctx, logger, client, versionID); err != nil {
+	finalVersion, err := pollVersionStatus(ctx, logger, client, versionID)
+	if err != nil {
 		return fmt.Errorf("deployment failed: %w", err)
 	}
 
-	printDeploymentComplete(versionID, workspace, branch)
+	printDeploymentComplete(finalVersion)
 
 	return nil
 }
 
 // pollVersionStatus polls the control plane API and displays deployment steps as they occur
-func pollVersionStatus(ctx context.Context, logger logging.Logger, client ctrlv1connect.VersionServiceClient, versionID string) error {
+func pollVersionStatus(ctx context.Context, logger logging.Logger, client ctrlv1connect.VersionServiceClient, versionID string) (*ctrlv1.Version, error) {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 
@@ -346,10 +356,10 @@ func pollVersionStatus(ctx context.Context, logger logging.Logger, client ctrlv1
 	for {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return nil, ctx.Err()
 		case <-timeout.C:
 			fmt.Printf("Error: Deployment timeout after 5 minutes\n")
-			return fmt.Errorf("deployment timeout")
+			return nil, fmt.Errorf("deployment timeout")
 		case <-ticker.C:
 			// Always poll version status
 			getReq := connect.NewRequest(&ctrlv1.GetVersionRequest{
@@ -377,12 +387,12 @@ func pollVersionStatus(ctx context.Context, logger logging.Logger, client ctrlv1
 
 			// Check if deployment is complete
 			if version.GetStatus() == ctrlv1.VersionStatus_VERSION_STATUS_ACTIVE {
-				return nil
+				return version, nil
 			}
 
 			// Check if deployment failed
 			if version.GetStatus() == ctrlv1.VersionStatus_VERSION_STATUS_FAILED {
-				return fmt.Errorf("deployment failed")
+				return nil, fmt.Errorf("deployment failed")
 			}
 		}
 	}
