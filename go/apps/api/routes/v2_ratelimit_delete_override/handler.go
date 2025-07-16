@@ -49,14 +49,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// nolint:exhaustruct
-	req := Request{}
-	err = s.BindBody(&req)
+	req, err := zen.BindBody[Request](s)
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Internal("invalid request body"),
-			fault.Public("The request body is invalid."),
-		)
+		return err
 	}
 
 	namespace, err := getNamespace(ctx, h, auth.AuthorizedWorkspaceID, req)
