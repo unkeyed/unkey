@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/unkeyed/unkey/go/cmd/cli/cli"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/git"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -18,6 +19,7 @@ var (
 	ErrDockerBuildFailed = errors.New("docker build failed")
 )
 
+// DeployOptions contains all configuration for deployment
 type DeployOptions struct {
 	WorkspaceID     string
 	ProjectID       string
@@ -32,15 +34,74 @@ type DeployOptions struct {
 	AuthToken       string
 }
 
-func Deploy(ctx context.Context, args []string, env map[string]string) error {
-	if len(args) < 1 {
-		PrintDeployHelp()
-		return fmt.Errorf("deploy command requires arguments")
-	}
+var DeployFlags = []cli.Flag{
+	// Required flags
+	cli.String("workspace-id", "Workspace ID", "", "UNKEY_WORKSPACE_ID", true),
+	cli.String("project-id", "Project ID", "", "UNKEY_PROJECT_ID", true),
 
-	opts, err := parseDeployFlags(args, env)
-	if err != nil {
-		return err
+	// Optional flags with defaults
+	cli.String("context", "Docker context path", ".", "", false),
+	cli.String("branch", "Git branch", "main", "", false),
+	cli.String("docker-image", "Pre-built docker image", "", "", false),
+	cli.String("dockerfile", "Path to Dockerfile", "Dockerfile", "", false),
+	cli.String("commit", "Git commit SHA", "", "", false),
+	cli.String("registry", "Docker registry", "ghcr.io/unkeyed/deploy", "UNKEY_DOCKER_REGISTRY", false),
+	cli.Bool("skip-push", "Skip pushing to registry (for local testing)", "", false),
+
+	// Control plane flags (internal)
+	cli.String("control-plane-url", "Control plane URL", "http://localhost:7091", "", false),
+	cli.String("auth-token", "Control plane auth token", "ctrl-secret-token", "", false),
+}
+
+// Command defines the deploy CLI command
+var Command = &cli.Command{
+	Name:  "deploy",
+	Usage: "Deploy a new version",
+	Description: `Build and deploy a new version of your application.
+Builds a Docker image from the specified context and
+deploys it to the Unkey platform.
+
+EXAMPLES:
+    # Basic deployment
+    unkey deploy \
+      --workspace-id=ws_4QgQsKsKfdm3nGeC \
+      --project-id=proj_9aiaks2dzl6mcywnxjf \
+      --context=./demo_api
+
+    # Deploy with your own registry
+    unkey deploy \
+      --workspace-id=ws_4QgQsKsKfdm3nGeC \
+      --project-id=proj_9aiaks2dzl6mcywnxjf \
+      --registry=docker.io/mycompany/myapp
+
+    # Local development (skip push)
+    unkey deploy \
+      --workspace-id=ws_4QgQsKsKfdm3nGeC \
+      --project-id=proj_9aiaks2dzl6mcywnxjf \
+      --skip-push
+
+    # Deploy pre-built image
+    unkey deploy \
+      --workspace-id=ws_4QgQsKsKfdm3nGeC \
+      --project-id=proj_9aiaks2dzl6mcywnxjf \
+      --docker-image=ghcr.io/user/app:v1.0.0`,
+	Flags:  DeployFlags,
+	Action: DeployAction,
+}
+
+func DeployAction(ctx context.Context, cmd *cli.Command) error {
+	opts := &DeployOptions{
+		WorkspaceID:     cmd.String("workspace-id"),
+		ProjectID:       cmd.String("project-id"),
+		Context:         cmd.String("context"),
+		Branch:          cmd.String("branch"),
+		DockerImage:     cmd.String("docker-image"),
+		Dockerfile:      cmd.String("dockerfile"),
+		Commit:          cmd.String("commit"),
+		Registry:        cmd.String("registry"),
+		SkipPush:        cmd.Bool("skip-push"),
+		ControlPlaneURL: cmd.String("control-plane-url"),
+		AuthToken:       cmd.String("auth-token"),
 	}
 
 	return executeDeploy(ctx, opts)
