@@ -80,7 +80,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// 4. Validate API exists and belongs to workspace
 	api, err := db.Query.FindApiByID(ctx, h.DB.RO(), req.ApiId)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -96,7 +95,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Validate API belongs to authorized workspace
 	if api.WorkspaceID != auth.AuthorizedWorkspaceID {
 		return fault.New("api not found",
 			fault.Code(codes.Data.Api.NotFound.URN()),
@@ -177,57 +175,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	now := time.Now().UnixMilli()
 
-	// 6. Resolve permissions if provided
-	var resolvedPermissions []db.Permission
-	if req.Permissions != nil {
-		for _, permName := range *req.Permissions {
-			permission, findErr := db.Query.FindPermissionByNameAndWorkspaceID(ctx, h.DB.RO(), db.FindPermissionByNameAndWorkspaceIDParams{
-				Name:        permName,
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-			})
-			if findErr != nil {
-				if db.IsNotFound(findErr) {
-					return fault.New("permission not found",
-						fault.Code(codes.Data.Permission.NotFound.URN()),
-						fault.Internal("permission not found"), fault.Public(fmt.Sprintf("Permission '%s' was not found.", permName)),
-					)
-				}
-				return fault.Wrap(findErr,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to retrieve permission."),
-				)
-			}
-			resolvedPermissions = append(resolvedPermissions, permission)
-		}
-	}
-
-	// 7. Resolve roles if provided
-	var resolvedRoles []db.Role
-	if req.Roles != nil {
-		for _, roleName := range *req.Roles {
-			role, findErr := db.Query.FindRoleByNameAndWorkspaceID(ctx, h.DB.RO(), db.FindRoleByNameAndWorkspaceIDParams{
-				Name:        roleName,
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-			})
-			if findErr != nil {
-				if db.IsNotFound(findErr) {
-					return fault.New("role not found",
-						fault.Code(codes.Data.Role.NotFound.URN()),
-						fault.Internal("role not found"), fault.Public(fmt.Sprintf("Role '%s' was not found.", roleName)),
-					)
-				}
-				return fault.Wrap(findErr,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to retrieve role."),
-				)
-			}
-			resolvedRoles = append(resolvedRoles, role)
-		}
-	}
-
-	// 8. Execute all database operations in a transaction
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		// 9. Insert the key
 		insertKeyParams := db.InsertKeyParams{
 			ID:                keyID,
 			KeyringID:         api.KeyAuthID.String,
@@ -249,6 +197,51 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// Set optional fields
 		if req.Name != nil {
 			insertKeyParams.Name = sql.NullString{String: *req.Name, Valid: true}
+		}
+
+		// Handle identity creation/lookup from externalId
+		if req.ExternalId != nil {
+			externalID := *req.ExternalId
+
+			// Try to find existing identity
+			identity, err := db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				ExternalID:  externalID,
+				Deleted:     false,
+			})
+
+			if err != nil {
+				if !db.IsNotFound(err) {
+					return fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("failed to find identity"),
+						fault.Public("Failed to find identity."),
+					)
+				}
+
+				// Create new identity
+				identityID := uid.New(uid.IdentityPrefix)
+				err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
+					ID:          identityID,
+					ExternalID:  externalID,
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					Environment: "default",
+					CreatedAt:   now,
+					Meta:        []byte("{}"),
+				})
+
+				if err != nil {
+					return fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("failed to create identity"),
+						fault.Public("Failed to create identity."),
+					)
+				}
+				insertKeyParams.IdentityID = sql.NullString{Valid: true, String: identityID}
+			} else {
+				// Use existing identity
+				insertKeyParams.IdentityID = sql.NullString{Valid: true, String: identity.ID}
+			}
 		}
 
 		// Note: owner_id is set to null in the SQL query, so we skip setting it here
@@ -329,7 +322,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
-		// 10. Handle rate limits if provided
 		if req.Ratelimits != nil && len(*req.Ratelimits) > 0 {
 			ratelimitsToInsert := make([]db.InsertKeyRatelimitParams, len(*req.Ratelimits))
 			for i, ratelimit := range *req.Ratelimits {
@@ -358,112 +350,209 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
-		// 11. Handle permissions if provided
+		// 11. Handle permissions if provided - with auto-creation
 		var auditLogs []auditlog.AuditLog
-		permissionsToInsert := make([]db.InsertKeyPermissionParams, len(resolvedPermissions))
-		for idx, permission := range resolvedPermissions {
-			permissionsToInsert[idx] = db.InsertKeyPermissionParams{
-				KeyID:        keyID,
-				PermissionID: permission.ID,
-				WorkspaceID:  auth.AuthorizedWorkspaceID,
-				CreatedAt:    now,
-			}
-
-			auditLogs = append(auditLogs, auditlog.AuditLog{
+		if req.Permissions != nil {
+			existingPermissions, err := db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       auditlog.AuthConnectPermissionKeyEvent,
-				ActorType:   auditlog.RootKeyActor,
-				ActorID:     auth.Key.ID,
-				ActorName:   "root key",
-				ActorMeta:   map[string]any{},
-				Display:     fmt.Sprintf("Added permission %s to key %s", permission.Name, keyID),
-				RemoteIP:    s.Location(),
-				UserAgent:   s.UserAgent(),
-				Resources: []auditlog.AuditLogResource{
-					{
-						Type:        "key",
-						ID:          keyID,
-						Name:        insertKeyParams.Name.String,
-						DisplayName: insertKeyParams.Name.String,
-						Meta:        map[string]any{},
-					},
-					{
-						Type:        "permission",
-						ID:          permission.ID,
-						Name:        permission.Name,
-						DisplayName: permission.Name,
-						Meta:        map[string]any{},
-					},
-				},
+				Slugs:       *req.Permissions,
 			})
-		}
 
-		if len(permissionsToInsert) > 0 {
-			err = db.BulkInsert(
-				ctx,
-				tx,
-				"INSERT INTO key_permissions (key_id, permission_id, workspace_id, created_at_m) VALUES (?, ?, ?, ?)",
-				permissionsToInsert,
-			)
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to assign permissions."),
+					fault.Internal("database error"),
+					fault.Public("Failed to retrieve permissions."),
 				)
 			}
-		}
 
-		// 12. Handle roles if provided
-		rolesToInsert := make([]db.InsertKeyRoleParams, len(resolvedRoles))
-		for idx, role := range resolvedRoles {
-			rolesToInsert[idx] = db.InsertKeyRoleParams{
-				KeyID:       keyID,
-				RoleID:      role.ID,
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				CreatedAtM:  now,
+			existingPermMap := make(map[string]db.FindPermissionsBySlugsRow)
+			for _, p := range existingPermissions {
+				existingPermMap[p.Slug] = p
 			}
 
-			auditLogs = append(auditLogs, auditlog.AuditLog{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       auditlog.AuthConnectRoleKeyEvent,
-				ActorType:   auditlog.RootKeyActor,
-				ActorID:     auth.Key.ID,
-				ActorName:   "root key",
-				ActorMeta:   map[string]any{},
-				Display:     fmt.Sprintf("Connected role %s to key %s", role.Name, keyID),
-				RemoteIP:    s.Location(),
-				UserAgent:   s.UserAgent(),
-				Resources: []auditlog.AuditLogResource{
-					{
-						Type:        "key",
-						ID:          keyID,
-						DisplayName: insertKeyParams.Name.String,
-						Name:        insertKeyParams.Name.String,
-						Meta:        map[string]any{},
+			permissionsToCreate := []db.InsertPermissionParams{}
+			requestedPermissions := []db.FindPermissionsBySlugsRow{}
+
+			for _, requestedSlug := range *req.Permissions {
+				existingPerm, exists := existingPermMap[requestedSlug]
+				if exists {
+					requestedPermissions = append(requestedPermissions, existingPerm)
+					continue
+				}
+
+				newPermID := uid.New(uid.PermissionPrefix)
+				permissionsToCreate = append(permissionsToCreate, db.InsertPermissionParams{
+					PermissionID: newPermID,
+					WorkspaceID:  auth.AuthorizedWorkspaceID,
+					Name:         requestedSlug,
+					Slug:         requestedSlug,
+					Description:  sql.NullString{String: fmt.Sprintf("Auto-created permission: %s", requestedSlug), Valid: true},
+					CreatedAtM:   now,
+				})
+
+				requestedPermissions = append(requestedPermissions, db.FindPermissionsBySlugsRow{
+					ID:   newPermID,
+					Slug: requestedSlug,
+				})
+			}
+
+			if len(permissionsToCreate) > 0 {
+				err = db.BulkInsert(ctx, tx,
+					"INSERT INTO permissions (id, workspace_id, name, slug, description, created_at_m) VALUES (?, ?, ?, ?, ?, ?)",
+					permissionsToCreate,
+				)
+
+				if err != nil {
+					return fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("database error"),
+						fault.Public("Failed to create permissions."),
+					)
+				}
+			}
+
+			permissionsToInsert := []db.InsertKeyPermissionParams{}
+			for _, reqPerm := range requestedPermissions {
+				permissionsToInsert = append(permissionsToInsert, db.InsertKeyPermissionParams{
+					KeyID:        keyID,
+					PermissionID: reqPerm.ID,
+					WorkspaceID:  auth.AuthorizedWorkspaceID,
+					CreatedAt:    now,
+				})
+
+				auditLogs = append(auditLogs, auditlog.AuditLog{
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					Event:       auditlog.AuthConnectPermissionKeyEvent,
+					ActorType:   auditlog.RootKeyActor,
+					ActorID:     auth.Key.ID,
+					ActorName:   "root key",
+					ActorMeta:   map[string]any{},
+					Display:     fmt.Sprintf("Added permission %s to key %s", reqPerm.Slug, keyID),
+					RemoteIP:    s.Location(),
+					UserAgent:   s.UserAgent(),
+					Resources: []auditlog.AuditLogResource{
+						{
+							Type:        "key",
+							ID:          keyID,
+							Name:        insertKeyParams.Name.String,
+							DisplayName: insertKeyParams.Name.String,
+							Meta:        map[string]any{},
+						},
+						{
+							Type:        "permission",
+							ID:          reqPerm.ID,
+							Name:        reqPerm.Slug,
+							DisplayName: reqPerm.Slug,
+							Meta:        map[string]any{},
+						},
 					},
-					{
-						Type:        "role",
-						ID:          role.ID,
-						DisplayName: role.Name,
-						Name:        role.Name,
-						Meta:        map[string]any{},
-					},
-				},
-			})
+				})
+			}
+
+			if len(permissionsToInsert) > 0 {
+				err = db.BulkInsert(ctx, tx,
+					"INSERT INTO keys_permissions (key_id, permission_id, workspace_id, created_at_m) VALUES (?, ?, ?, ?)",
+					permissionsToInsert,
+				)
+				if err != nil {
+					return fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("database error"),
+						fault.Public("Failed to assign permissions."),
+					)
+				}
+			}
 		}
 
-		if len(rolesToInsert) > 0 {
-			err = db.BulkInsert(
-				ctx,
-				tx,
-				"INSERT INTO keys_roles (key_id, role_id, workspace_id, created_at_m) VALUES (?, ?, ?, ?)",
-				rolesToInsert,
-			)
+		// 12. Handle roles if provided - with auto-creation
+		if req.Roles != nil {
+			existingRoles, err := db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Names:       *req.Roles,
+			})
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to assign roles."),
+					fault.Internal("database error"),
+					fault.Public("Failed to retrieve roles."),
 				)
+			}
+
+			// Find which roles need to be created
+			existingRoleMap := make(map[string]db.FindRolesByNamesRow)
+			for _, r := range existingRoles {
+				existingRoleMap[r.Name] = r
+			}
+
+			// Create missing roles in bulk and build final list
+			requestedRoles := []db.FindRolesByNamesRow{}
+
+			for _, requestedName := range *req.Roles {
+				existingRole, exists := existingRoleMap[requestedName]
+				if exists {
+					requestedRoles = append(requestedRoles, existingRole)
+					continue
+				}
+
+				return fault.New("role not found",
+					fault.Code(codes.Data.Role.NotFound.URN()),
+					fault.Internal("role not found"), fault.Public(fmt.Sprintf("Role %q was not found.", requestedName)),
+				)
+			}
+
+			// Insert all requested roles
+			rolesToInsert := []db.InsertKeyRoleParams{}
+			for _, reqRole := range requestedRoles {
+				rolesToInsert = append(rolesToInsert, db.InsertKeyRoleParams{
+					KeyID:       keyID,
+					RoleID:      reqRole.ID,
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					CreatedAtM:  now,
+				})
+
+				auditLogs = append(auditLogs, auditlog.AuditLog{
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					Event:       auditlog.AuthConnectRoleKeyEvent,
+					ActorType:   auditlog.RootKeyActor,
+					ActorID:     auth.Key.ID,
+					ActorName:   "root key",
+					ActorMeta:   map[string]any{},
+					Display:     fmt.Sprintf("Connected role %s to key %s", reqRole.Name, keyID),
+					RemoteIP:    s.Location(),
+					UserAgent:   s.UserAgent(),
+					Resources: []auditlog.AuditLogResource{
+						{
+							Type:        "key",
+							ID:          keyID,
+							DisplayName: insertKeyParams.Name.String,
+							Name:        insertKeyParams.Name.String,
+							Meta:        map[string]any{},
+						},
+						{
+							Type:        "role",
+							ID:          reqRole.ID,
+							DisplayName: reqRole.Name,
+							Name:        reqRole.Name,
+							Meta:        map[string]any{},
+						},
+					},
+				})
+			}
+
+			if len(rolesToInsert) > 0 {
+				err = db.BulkInsert(ctx, tx,
+					"INSERT INTO keys_roles (key_id, role_id, workspace_id, created_at_m) VALUES (?, ?, ?, ?)",
+					rolesToInsert,
+				)
+
+				if err != nil {
+					return fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("database error"),
+						fault.Public("Failed to assign roles."),
+					)
+				}
 			}
 		}
 

@@ -56,42 +56,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Parse request
-	req := Request{
-		ExternalId: nil,
-		IdentityId: nil,
-		Meta:       nil,
-		Ratelimits: nil,
-	}
-	err = s.BindBody(&req)
+	req, err := zen.BindBody[Request](s)
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
-		)
-	}
-
-	// Validate that at least one of identityID or externalID is provided
-	if req.IdentityId == nil && req.ExternalId == nil {
-		return fault.New("missing required field",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal("missing required field"), fault.Public("Provide either identityId or externalId"),
-		)
-	}
-
-	// Check permissions
-	var identityIdForPermissions string
-	if req.IdentityId != nil {
-		identityIdForPermissions = *req.IdentityId
+		return err
 	}
 
 	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Identity,
 			ResourceID:   "*",
-			Action:       rbac.UpdateIdentity,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Identity,
-			ResourceID:   identityIdForPermissions,
 			Action:       rbac.UpdateIdentity,
 		}),
 	)))
@@ -107,7 +80,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				return fault.New("duplicate ratelimit name",
 					fault.Code(codes.App.Validation.InvalidInput.URN()),
 					fault.Internal("duplicate ratelimit name"),
-					fault.Public(fmt.Sprintf("Ratelimit with name \"%s\" is already defined in the request", ratelimit.Name)),
+					fault.Public(fmt.Sprintf("Ratelimit with name %q is already defined in the request", ratelimit.Name)),
 				)
 			}
 			nameSet[ratelimit.Name] = true
@@ -135,55 +108,46 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		// Get the identity
-		var identity db.Identity
-		var existingRatelimits []db.Ratelimit
-
-		if req.IdentityId != nil {
-			// Find by identity ID
-			identity, err = db.Query.FindIdentityByID(ctx, tx, db.FindIdentityByIDParams{
-				ID:      *req.IdentityId,
-				Deleted: false,
-			})
-		} else {
-			// Find by external ID
-			identity, err = db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
-				ExternalID:  *req.ExternalId,
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Deleted:     false,
-			})
-		}
-
+	identity, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.Identity, error) {
+		// Find by external ID
+		identity, err := db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
+			ExternalID:  req.ExternalId,
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+			Deleted:     false,
+		})
 		if err != nil {
-			if err == sql.ErrNoRows {
-				return fault.New("identity not found",
+			if db.IsNotFound(err) {
+				// nolint:exhaustruct
+				return db.Identity{}, fault.New("identity not found",
 					fault.Code(codes.Data.Identity.NotFound.URN()),
 					fault.Internal("identity not found"), fault.Public("Identity not found in this workspace"),
 				)
 			}
-			return fault.Wrap(err,
+
+			// nolint:exhaustruct
+			return db.Identity{}, fault.Wrap(err,
 				fault.Internal("unable to find identity"), fault.Public("We're unable to retrieve the identity."),
 			)
 		}
 
-		// Verify workspace
 		if identity.WorkspaceID != auth.AuthorizedWorkspaceID {
-			return fault.New("identity not found",
+			// nolint:exhaustruct
+			return db.Identity{}, fault.New("identity not found",
 				fault.Code(codes.Data.Identity.NotFound.URN()),
-				fault.Internal("wrong workspace, masking as 404"), fault.Public("Identity not found in this workspace"),
+				fault.Internal("wrong workspace, masking as 404"),
+				fault.Public("Identity not found in this workspace"),
 			)
 		}
 
-		// Get existing ratelimits
+		var existingRatelimits []db.Ratelimit
 		existingRatelimits, err = db.Query.ListIdentityRatelimitsByID(ctx, tx, sql.NullString{String: identity.ID, Valid: true})
-		if err != nil && err != sql.ErrNoRows {
-			return fault.Wrap(err,
+		if err != nil && !db.IsNotFound(err) {
+			// nolint:exhaustruct
+			return db.Identity{}, fault.Wrap(err,
 				fault.Internal("unable to fetch ratelimits"), fault.Public("We're unable to retrieve the identity's ratelimits."),
 			)
 		}
 
-		// Create the base audit log
 		auditLogs := []auditlog.AuditLog{
 			{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
@@ -207,20 +171,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			},
 		}
 
-		// Update metadata if provided
 		if req.Meta != nil {
 			err = db.Query.UpdateIdentity(ctx, tx, db.UpdateIdentityParams{
 				ID:   identity.ID,
 				Meta: metaBytes,
 			})
+
 			if err != nil {
-				return fault.Wrap(err,
+				// nolint:exhaustruct
+				return db.Identity{}, fault.Wrap(err,
 					fault.Internal("unable to update metadata"), fault.Public("We're unable to update the identity's metadata."),
 				)
 			}
 		}
 
-		// Handle ratelimits if provided
 		if req.Ratelimits != nil {
 			// Process ratelimits changes
 			// 1. Delete ratelimits that no longer exist
@@ -283,7 +247,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if len(rateLimitsToDelete) > 0 {
 				err = db.Query.DeleteManyRatelimitsByIDs(ctx, tx, rateLimitsToDelete)
 				if err != nil {
-					return fault.Wrap(err,
+					// nolint:exhaustruct
+					return db.Identity{}, fault.Wrap(err,
 						fault.Internal("unable to delete ratelimits"), fault.Public("We're unable to delete ratelimits."),
 					)
 				}
@@ -392,9 +357,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				)
 
 				if err != nil {
-					return fault.Wrap(err,
+					// nolint:exhaustruct
+					return db.Identity{}, fault.Wrap(err,
 						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("database failed to insert ratelimits"), fault.Public("Failed to insert ratelimits"),
+						fault.Internal("database failed to insert ratelimits"),
+						fault.Public("Failed to insert ratelimits"),
 					)
 				}
 			}
@@ -402,43 +369,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 		if err != nil {
-			return err
+			// nolint:exhaustruct
+			return db.Identity{}, err
 		}
 
-		return nil
+		return identity, nil
 	})
 	if err != nil {
 		return err
 	}
 
-	// Get updated identity with ratelimits
-	var identity db.Identity
-	if req.IdentityId != nil {
-		identity, err = db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
-			ID:      *req.IdentityId,
-			Deleted: false,
-		})
-	} else {
-		identity, err = db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
-			ExternalID:  *req.ExternalId,
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Deleted:     false,
-		})
-	}
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Internal("unable to get updated identity"), fault.Public("We were able to update the identity but unable to retrieve the updated data."),
-		)
-	}
-
 	updatedRatelimits, err := db.Query.ListIdentityRatelimitsByID(ctx, h.DB.RO(), sql.NullString{String: identity.ID, Valid: true})
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil && !db.IsNotFound(err) {
 		return fault.Wrap(err,
-			fault.Internal("unable to fetch updated ratelimits"), fault.Public("We were able to update the identity but unable to retrieve the updated ratelimits."),
+			fault.Internal("unable to fetch updated ratelimits"),
+			fault.Public("We were able to update the identity but unable to retrieve the updated ratelimits."),
 		)
 	}
 
-	// Format ratelimits for response
 	responseRatelimits := make([]openapi.RatelimitResponse, 0, len(updatedRatelimits))
 	for _, r := range updatedRatelimits {
 		responseRatelimits = append(responseRatelimits, openapi.RatelimitResponse{
@@ -450,28 +398,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 	}
 
-	// Parse metadata
-	var responseMeta *map[string]interface{}
-	if len(identity.Meta) > 0 {
-		metaMap := make(map[string]interface{})
-		err = json.Unmarshal(identity.Meta, &metaMap)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Internal("unable to unmarshal metadata"), fault.Public("We're unable to parse the identity's metadata."),
-			)
-		}
-		responseMeta = &metaMap
-	}
-
-	// Build response
 	response := Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
 		Data: openapi.IdentitiesUpdateIdentityResponseData{
-			Id:         identity.ID,
-			ExternalId: identity.ExternalID,
-			Meta:       responseMeta,
+			ExternalId: req.ExternalId,
+			Meta:       req.Meta,
 			Ratelimits: &responseRatelimits,
 		},
 	}

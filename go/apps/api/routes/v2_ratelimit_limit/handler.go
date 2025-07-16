@@ -59,12 +59,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Parse request body
-	req := new(Request)
-	if bindErr := s.BindBody(req); bindErr != nil {
-		return fault.Wrap(err,
-			fault.Internal("invalid request body"), fault.Public("We're unable to parse the request body as JSON."),
-		)
+	req, err := zen.BindBody[Request](s)
+	if err != nil {
+		return err
 	}
 
 	cost := int64(1)
