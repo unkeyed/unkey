@@ -1,6 +1,8 @@
 name: Unit Tests
 on:
   workflow_call:
+permissions:
+  contents: read
 jobs:
   test:
     strategy:

@@ -1,6 +1,8 @@
 name: Test API Local
 on:
   workflow_call:
+permissions:
+  contents: read
 
 jobs:
   test:
