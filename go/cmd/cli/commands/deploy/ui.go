@@ -63,6 +63,24 @@ func (ui *UI) PrintStepError(message string) {
 	fmt.Printf("  %s✗%s %s\n", ColorRed, ColorReset, message)
 }
 
+func (ui *UI) spinnerLoop(prefix string, messageGetter func() string, isActive func() bool) {
+	go func() {
+		frame := 0
+		for {
+			ui.mu.Lock()
+			if !isActive() {
+				ui.mu.Unlock()
+				return
+			}
+			message := messageGetter()
+			fmt.Printf("\r%s%s %s", prefix, spinnerChars[frame%len(spinnerChars)], message)
+			ui.mu.Unlock()
+			frame++
+			time.Sleep(100 * time.Millisecond)
+		}
+	}()
+}
+
 func (ui *UI) StartSpinner(message string) {
 	ui.mu.Lock()
 	if ui.spinning {
@@ -70,22 +88,10 @@ func (ui *UI) StartSpinner(message string) {
 		return
 	}
 	ui.spinning = true
+	spinnerMessage := message
 	ui.mu.Unlock()
 
-	go func() {
-		frame := 0
-		for {
-			ui.mu.Lock()
-			if !ui.spinning {
-				ui.mu.Unlock()
-				return
-			}
-			fmt.Printf("\r%s %s", spinnerChars[frame%len(spinnerChars)], message)
-			ui.mu.Unlock()
-			frame++
-			time.Sleep(100 * time.Millisecond)
-		}
-	}()
+	ui.spinnerLoop("", func() string { return spinnerMessage }, func() bool { return ui.spinning })
 }
 
 func (ui *UI) StopSpinner(finalMessage string, success bool) {
@@ -106,35 +112,18 @@ func (ui *UI) StopSpinner(finalMessage string, success bool) {
 // Step spinner methods - indented with 2 spaces to show as sub-steps
 func (ui *UI) StartStepSpinner(message string) {
 	ui.mu.Lock()
-	defer ui.mu.Unlock()
-
 	if ui.stepSpinning {
 		fmt.Print("\r\033[K")
 	}
-
 	ui.currentStep = message
 	ui.stepSpinning = true
+	ui.mu.Unlock()
 
-	go func() {
-		frame := 0
-		for {
-			ui.mu.Lock()
-			if !ui.stepSpinning {
-				ui.mu.Unlock()
-				return
-			}
-			fmt.Printf("\r  %s %s", spinnerChars[frame%len(spinnerChars)], ui.currentStep)
-			ui.mu.Unlock()
-			frame++
-			time.Sleep(100 * time.Millisecond)
-		}
-	}()
+	ui.spinnerLoop("  ", func() string { return ui.currentStep }, func() bool { return ui.stepSpinning })
 }
 
 func (ui *UI) CompleteStepAndStartNext(completedMessage, nextMessage string) {
 	ui.mu.Lock()
-	defer ui.mu.Unlock()
-
 	// Stop current spinner and show completion
 	if ui.stepSpinning {
 		ui.stepSpinning = false
@@ -146,35 +135,22 @@ func (ui *UI) CompleteStepAndStartNext(completedMessage, nextMessage string) {
 	if nextMessage != "" {
 		ui.currentStep = nextMessage
 		ui.stepSpinning = true
+		ui.mu.Unlock()
 
-		go func() {
-			frame := 0
-			for {
-				ui.mu.Lock()
-				if !ui.stepSpinning {
-					ui.mu.Unlock()
-					return
-				}
-				fmt.Printf("\r  %s %s", spinnerChars[frame%len(spinnerChars)], ui.currentStep)
-				ui.mu.Unlock()
-				frame++
-				time.Sleep(100 * time.Millisecond)
-			}
-		}()
+		ui.spinnerLoop("  ", func() string { return ui.currentStep }, func() bool { return ui.stepSpinning })
+	} else {
+		ui.mu.Unlock()
 	}
 }
 
 func (ui *UI) CompleteCurrentStep(message string, success bool) {
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
-
 	if !ui.stepSpinning {
 		return
 	}
-
 	ui.stepSpinning = false
 	fmt.Print("\r\033[K")
-
 	if success {
 		fmt.Printf("  %s✓%s %s\n", ColorGreen, ColorReset, message)
 	} else {
