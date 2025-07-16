@@ -14,7 +14,5 @@ jobs:
         with:
           ts: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build
-        run: pnpm build
       - name: Test
         run: pnpm turbo run test --filter '!api'
