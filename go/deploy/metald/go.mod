@@ -8,9 +8,10 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.28
 	github.com/prometheus/client_golang v1.22.0
 	github.com/stretchr/testify v1.10.0
-	github.com/unkeyed/unkey/go/deploy/assetmanagerd v0.0.0-00010101000000-000000000000
-	github.com/unkeyed/unkey/go/deploy/billaged v0.0.0-00010101000000-000000000000
-	github.com/unkeyed/unkey/go/deploy/builderd v0.0.0-00010101000000-000000000000
+	github.com/unkeyed/unkey/go v0.0.0-00010101000000-000000000000
+	github.com/unkeyed/unkey/go/deploy/assetmanagerd v0.0.0-20250709084132-0dd195e4c51b
+	github.com/unkeyed/unkey/go/deploy/billaged v0.0.0-20250709084132-0dd195e4c51b
+	github.com/unkeyed/unkey/go/deploy/builderd v0.0.0-20250709084132-0dd195e4c51b
 	github.com/unkeyed/unkey/go/deploy/pkg/health v0.0.0-00010101000000-000000000000
 	github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors v0.0.0-00010101000000-000000000000
 	github.com/unkeyed/unkey/go/deploy/pkg/tls v0.0.0-00010101000000-000000000000
@@ -40,7 +41,7 @@ require (
 	github.com/containerd/fifo v1.1.0 // indirect
 	github.com/containernetworking/cni v1.3.0 // indirect
 	github.com/containernetworking/plugins v1.7.1 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
@@ -65,7 +66,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.65.0 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
@@ -104,3 +105,5 @@ replace github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors => ../
 replace github.com/unkeyed/unkey/go/deploy/pkg/tracing => ../pkg/tracing
 
 replace github.com/mitchellh/osext => github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
+
+replace github.com/unkeyed/unkey/go => ../../

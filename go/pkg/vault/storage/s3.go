@@ -25,13 +25,12 @@ type s3 struct {
 type S3Config struct {
 	S3URL             string
 	S3Bucket          string
-	S3AccessKeyId     string
+	S3AccessKeyID     string
 	S3AccessKeySecret string
 	Logger            logging.Logger
 }
 
 func NewS3(config S3Config) (Storage, error) {
-
 	logger := config.Logger.With("service", "storage")
 
 	logger.Info("using s3 storage")
@@ -43,12 +42,11 @@ func NewS3(config S3Config) (Storage, error) {
 			URL:               config.S3URL,
 			HostnameImmutable: true,
 		}, nil
-
 	})
 
 	cfg, err := awsConfig.LoadDefaultConfig(context.Background(),
 		awsConfig.WithEndpointResolverWithOptions(r2Resolver), // nolint:staticcheck
-		awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(config.S3AccessKeyId, config.S3AccessKeySecret, "")),
+		awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(config.S3AccessKeyID, config.S3AccessKeySecret, "")),
 		awsConfig.WithRegion("auto"),
 		awsConfig.WithRetryMode(aws.RetryModeStandard),
 		awsConfig.WithRetryMaxAttempts(3),

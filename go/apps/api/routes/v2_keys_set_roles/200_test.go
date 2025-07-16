@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_set_roles"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -21,11 +21,11 @@ func TestSuccess(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Logger:      h.Logger,
-		Permissions: h.Permissions,
-		Auditlogs:   h.Auditlogs,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Logger:    h.Logger,
+		Auditlogs: h.Auditlogs,
+		KeyCache:  h.Caches.VerificationKeyByHash,
 	}
 
 	h.Register(route)
@@ -41,51 +41,26 @@ func TestSuccess(t *testing.T) {
 	}
 
 	t.Run("set single role by ID", func(t *testing.T) {
-		// Create a test keyring
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        workspace.ID,
-			StoreEncryptedKeys: false,
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			CreatedAtM:         time.Now().UnixMilli(),
+		// Create API with keyring using testutil helper
+		defaultPrefix := "test"
+		defaultBytes := int32(16)
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   workspace.ID,
+			DefaultPrefix: &defaultPrefix,
+			DefaultBytes:  &defaultBytes,
 		})
-		require.NoError(t, err)
 
-		// Create a test key
-		keyID := uid.New(uid.KeyPrefix)
-		keyString := "test_" + uid.New("")
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(keyString),
-			Start:             keyString[:4],
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Test Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
-		})
-		require.NoError(t, err)
-
-		// Create a role
-		roleID := uid.New(uid.TestPrefix)
-		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-			RoleID:      roleID,
-			WorkspaceID: workspace.ID,
+		// Create a test key with role using testutil helper
+		roleID := h.CreateRole(seed.CreateRoleRequest{
 			Name:        "admin_set_single_id",
-			Description: sql.NullString{Valid: true, String: "Admin role"},
+			WorkspaceID: workspace.ID,
 		})
-		require.NoError(t, err)
+
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+		})
+		keyID := keyResponse.KeyID
 
 		// Verify key has no roles initially
 		currentRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
@@ -139,46 +114,27 @@ func TestSuccess(t *testing.T) {
 	})
 
 	t.Run("set single role by name", func(t *testing.T) {
-		// Create a test keyring
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        workspace.ID,
-			StoreEncryptedKeys: false,
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			CreatedAtM:         time.Now().UnixMilli(),
+		// Create API and key using testutil helpers
+		defaultPrefix := "test"
+		defaultBytes := int32(16)
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   workspace.ID,
+			DefaultPrefix: &defaultPrefix,
+			DefaultBytes:  &defaultBytes,
 		})
-		require.NoError(t, err)
 
-		// Create a test key
-		keyID := uid.New(uid.KeyPrefix)
-		keyString := "test_" + uid.New("")
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(keyString),
-			Start:             keyString[:4],
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Test Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
+		keyName := "Test Key"
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+			Name:        &keyName,
 		})
-		require.NoError(t, err)
+		keyID := keyResponse.KeyID
 
 		// Create a role
 		roleID := uid.New(uid.TestPrefix)
 		roleName := "editor_set_single_name"
-		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      roleID,
 			WorkspaceID: workspace.ID,
 			Name:        roleName,
@@ -218,45 +174,26 @@ func TestSuccess(t *testing.T) {
 	})
 
 	t.Run("set multiple roles mixed references", func(t *testing.T) {
-		// Create a test keyring
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        workspace.ID,
-			StoreEncryptedKeys: false,
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			CreatedAtM:         time.Now().UnixMilli(),
+		// Create API and key using testutil helpers
+		defaultPrefix := "test"
+		defaultBytes := int32(16)
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   workspace.ID,
+			DefaultPrefix: &defaultPrefix,
+			DefaultBytes:  &defaultBytes,
 		})
-		require.NoError(t, err)
 
-		// Create a test key
-		keyID := uid.New(uid.KeyPrefix)
-		keyString := "test_" + uid.New("")
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(keyString),
-			Start:             keyString[:4],
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Test Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
+		keyName := "Test Key"
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+			Name:        &keyName,
 		})
-		require.NoError(t, err)
+		keyID := keyResponse.KeyID
 
 		// Create multiple roles
 		adminRoleID := uid.New(uid.TestPrefix)
-		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      adminRoleID,
 			WorkspaceID: workspace.ID,
 			Name:        "admin_set_multi",
@@ -332,45 +269,26 @@ func TestSuccess(t *testing.T) {
 	})
 
 	t.Run("replace existing roles", func(t *testing.T) {
-		// Create a test keyring
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        workspace.ID,
-			StoreEncryptedKeys: false,
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			CreatedAtM:         time.Now().UnixMilli(),
+		// Create API and key using testutil helpers
+		defaultPrefix := "test"
+		defaultBytes := int32(16)
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   workspace.ID,
+			DefaultPrefix: &defaultPrefix,
+			DefaultBytes:  &defaultBytes,
 		})
-		require.NoError(t, err)
 
-		// Create a test key
-		keyID := uid.New(uid.KeyPrefix)
-		keyString := "test_" + uid.New("")
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(keyString),
-			Start:             keyString[:4],
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Test Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
+		keyName := "Test Key"
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+			Name:        &keyName,
 		})
-		require.NoError(t, err)
+		keyID := keyResponse.KeyID
 
 		// Create roles
 		oldRoleID := uid.New(uid.TestPrefix)
-		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      oldRoleID,
 			WorkspaceID: workspace.ID,
 			Name:        "admin_replace_old",
@@ -455,45 +373,26 @@ func TestSuccess(t *testing.T) {
 	})
 
 	t.Run("set roles to empty - remove all roles", func(t *testing.T) {
-		// Create a test keyring
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        workspace.ID,
-			StoreEncryptedKeys: false,
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			CreatedAtM:         time.Now().UnixMilli(),
+		// Create API and key using testutil helpers
+		defaultPrefix := "test"
+		defaultBytes := int32(16)
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   workspace.ID,
+			DefaultPrefix: &defaultPrefix,
+			DefaultBytes:  &defaultBytes,
 		})
-		require.NoError(t, err)
 
-		// Create a test key
-		keyID := uid.New(uid.KeyPrefix)
-		keyString := "test_" + uid.New("")
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(keyString),
-			Start:             keyString[:4],
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Test Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
+		keyName := "Test Key"
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+			Name:        &keyName,
 		})
-		require.NoError(t, err)
+		keyID := keyResponse.KeyID
 
 		// Create a role and assign it to the key
 		roleID := uid.New(uid.TestPrefix)
-		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      roleID,
 			WorkspaceID: workspace.ID,
 			Name:        "admin_remove_all",
@@ -557,45 +456,26 @@ func TestSuccess(t *testing.T) {
 	})
 
 	t.Run("set same roles as current - no changes", func(t *testing.T) {
-		// Create a test keyring
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        workspace.ID,
-			StoreEncryptedKeys: false,
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			CreatedAtM:         time.Now().UnixMilli(),
+		// Create API and key using testutil helpers
+		defaultPrefix := "test"
+		defaultBytes := int32(16)
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   workspace.ID,
+			DefaultPrefix: &defaultPrefix,
+			DefaultBytes:  &defaultBytes,
 		})
-		require.NoError(t, err)
 
-		// Create a test key
-		keyID := uid.New(uid.KeyPrefix)
-		keyString := "test_" + uid.New("")
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(keyString),
-			Start:             keyString[:4],
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Test Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
+		keyName := "Test Key"
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+			Name:        &keyName,
 		})
-		require.NoError(t, err)
+		keyID := keyResponse.KeyID
 
 		// Create a role and assign it to the key
 		roleID := uid.New(uid.TestPrefix)
-		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      roleID,
 			WorkspaceID: workspace.ID,
 			Name:        "admin_no_change",
@@ -655,45 +535,26 @@ func TestSuccess(t *testing.T) {
 	})
 
 	t.Run("role reference with both ID and name", func(t *testing.T) {
-		// Create a test keyring
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
-			WorkspaceID:        workspace.ID,
-			StoreEncryptedKeys: false,
-			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-			CreatedAtM:         time.Now().UnixMilli(),
+		// Create API and key using testutil helpers
+		defaultPrefix := "test"
+		defaultBytes := int32(16)
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   workspace.ID,
+			DefaultPrefix: &defaultPrefix,
+			DefaultBytes:  &defaultBytes,
 		})
-		require.NoError(t, err)
 
-		// Create a test key
-		keyID := uid.New(uid.KeyPrefix)
-		keyString := "test_" + uid.New("")
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(keyString),
-			Start:             keyString[:4],
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Test Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
-			RatelimitAsync:    sql.NullBool{Valid: false},
-			RatelimitLimit:    sql.NullInt32{Valid: false},
-			RatelimitDuration: sql.NullInt64{Valid: false},
-			Environment:       sql.NullString{Valid: false},
+		keyName := "Test Key"
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+			Name:        &keyName,
 		})
-		require.NoError(t, err)
+		keyID := keyResponse.KeyID
 
 		// Create roles
 		role1ID := uid.New(uid.TestPrefix)
-		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      role1ID,
 			WorkspaceID: workspace.ID,
 			Name:        "admin_set_both_ref",

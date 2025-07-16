@@ -11,7 +11,7 @@ import {
 import { lifecycleDates } from "./util/lifecycle_dates";
 
 export const hostnames = mysqlTable(
-  "hostnames",
+  "domains",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),

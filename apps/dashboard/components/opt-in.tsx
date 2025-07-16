@@ -1,10 +1,9 @@
 "use client";
 
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { PostHogEvent } from "@/providers/PostHogProvider";
 import type { Workspace } from "@unkey/db";
-import { Button, Empty } from "@unkey/ui";
+import { Button, Empty, toast } from "@unkey/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type React from "react";

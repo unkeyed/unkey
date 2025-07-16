@@ -20,10 +20,9 @@ import (
 func TestSuccess(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
-		Logger:      h.Logger,
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Permissions: h.Permissions,
+		Logger: h.Logger,
+		DB:     h.DB,
+		Keys:   h.Keys,
 	}
 
 	// Register the route with the harness
@@ -102,8 +101,8 @@ func TestSuccess(t *testing.T) {
 		// Verify first identity
 		found := false
 		for _, identity := range res.Body.Data {
-			for i, id := range identityIDs {
-				if identity.Id == id {
+			for i, id := range externalIDs {
+				if identity.ExternalId == id {
 					assert.Equal(t, externalIDs[i], identity.ExternalId)
 					found = true
 
@@ -166,16 +165,16 @@ func TestSuccess(t *testing.T) {
 		require.Greater(t, len(secondRes.Body.Data), 0)
 
 		// Ensure no overlap between pages
-		firstPageIDs := make(map[string]bool)
+		firstPageExternalIDs := make(map[string]bool)
 		for _, identity := range firstRes.Body.Data {
-			firstPageIDs[identity.Id] = true
+			firstPageExternalIDs[identity.ExternalId] = true
 		}
 
 		// Check a sample identity from second page to ensure no overlap
 		if len(secondRes.Body.Data) > 0 {
-			sampleID := secondRes.Body.Data[0].Id
-			_, found := firstPageIDs[sampleID]
-			assert.False(t, found, "identity %s should not appear in both pages", sampleID)
+			sampleExternalID := secondRes.Body.Data[0].ExternalId
+			_, found := firstPageExternalIDs[sampleExternalID]
+			assert.False(t, found, "identity %s should not appear in both pages", sampleExternalID)
 		}
 	})
 
@@ -214,7 +213,7 @@ func TestSuccess(t *testing.T) {
 
 		// The deleted identity should not be in the results
 		for _, identity := range res.Body.Data {
-			require.NotEqual(t, deletedIdentityID, identity.Id, "Deleted identity should not be returned")
+			require.NotEqual(t, deletedExternalID, identity.ExternalId, "Deleted identity should not be returned")
 		}
 	})
 
@@ -258,7 +257,7 @@ func TestSuccess(t *testing.T) {
 		// Should find the identity with Unicode
 		var foundUnicode bool
 		for _, identity := range res.Body.Data {
-			if identity.Id == unicodeIdentityID {
+			if identity.ExternalId == unicodeExternalID {
 				foundUnicode = true
 
 				// Verify the Unicode external ID was preserved
@@ -325,7 +324,6 @@ func TestSuccess(t *testing.T) {
 
 		// Should return exactly one identity
 		require.Equal(t, 1, len(res.Body.Data))
-		require.Equal(t, singleIdentityID, res.Body.Data[0].Id)
 		require.Equal(t, singleExternalID, res.Body.Data[0].ExternalId)
 
 		// Pagination should indicate no more results
@@ -354,7 +352,6 @@ func TestSuccess(t *testing.T) {
 			identity := res.Body.Data[0]
 
 			// ID fields should never be empty
-			require.NotEmpty(t, identity.Id, "Identity ID should not be empty")
 			require.NotEmpty(t, identity.ExternalId, "External ID should not be empty")
 
 			// Meta might be nil if none set

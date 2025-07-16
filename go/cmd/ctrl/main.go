@@ -112,6 +112,19 @@ var Cmd = &cli.Command{
 			Sources:  cli.EnvVars("UNKEY_AUTH_TOKEN"),
 			Required: false,
 		},
+		&cli.StringFlag{
+			Name:     "metald-address",
+			Usage:    "Full URL of the metald service for VM operations. Required for deployments. Example: https://metald.example.com:8080",
+			Sources:  cli.EnvVars("UNKEY_METALD_ADDRESS"),
+			Required: true,
+		},
+		&cli.StringFlag{
+			Name:     "spiffe-socket-path",
+			Usage:    "Path to SPIFFE agent socket for mTLS authentication. Default: /var/lib/spire/agent/agent.sock",
+			Sources:  cli.EnvVars("UNKEY_SPIFFE_SOCKET_PATH"),
+			Value:    "/var/lib/spire/agent/agent.sock",
+			Required: false,
+		},
 	},
 
 	Action: action,
@@ -155,7 +168,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		TLSConfig: tlsConfig,
 
 		// Control Plane Specific
-		AuthToken: cmd.String("auth-token"),
+		AuthToken:        cmd.String("auth-token"),
+		MetaldAddress:    cmd.String("metald-address"),
+		SPIFFESocketPath: cmd.String("spiffe-socket-path"),
 
 		// Common
 		Clock: clock.New(),

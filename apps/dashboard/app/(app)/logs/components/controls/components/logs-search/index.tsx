@@ -1,8 +1,6 @@
 import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { LLMSearch } from "@unkey/ui";
-import { transformStructuredOutputToFilters } from "@unkey/ui";
+import { LLMSearch, toast, transformStructuredOutputToFilters } from "@unkey/ui";
 
 export const LogsSearch = () => {
   const { filters, updateFilters } = useFilters();

@@ -4,7 +4,6 @@ import { ConfirmPopover } from "@/components/confirmation-popover";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { Check, CircleInfo, Key2 } from "@unkey/icons";
 import { type UnkeyPermission, unkeyPermissionValidation } from "@unkey/rbac";
@@ -21,6 +20,7 @@ import {
   InfoTooltip,
   Input,
   VisibleButton,
+  toast,
 } from "@unkey/ui";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";

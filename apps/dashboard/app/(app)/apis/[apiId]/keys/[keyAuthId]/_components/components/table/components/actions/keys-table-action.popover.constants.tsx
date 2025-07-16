@@ -1,5 +1,5 @@
 import { MAX_KEYS_FETCH_LIMIT } from "@/app/(app)/authorization/roles/components/upsert-role/components/assign-key/hooks/use-fetch-keys";
-import { toast } from "@/components/ui/toaster";
+import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import {
@@ -15,6 +15,7 @@ import {
   Tag,
   Trash,
 } from "@unkey/icons";
+import { toast } from "@unkey/ui";
 import { DeleteKey } from "./components/delete-key";
 import { UpdateKeyStatus } from "./components/disable-key";
 import { EditCredits } from "./components/edit-credits";
@@ -26,7 +27,6 @@ import { EditRatelimits } from "./components/edit-ratelimits";
 import { KeyRbacDialog } from "./components/edit-rbac";
 import { MAX_PERMS_FETCH_LIMIT } from "./components/edit-rbac/components/assign-permission/hooks/use-fetch-keys-permissions";
 import { MAX_ROLES_FETCH_LIMIT } from "./components/edit-rbac/components/assign-role/hooks/use-fetch-keys-roles";
-import { KeysTableActionPopover, type MenuItem } from "./keys-table-action.popover";
 
 export const getKeysTableActionItems = (
   key: KeyDetails,
@@ -195,5 +195,5 @@ type KeysTableActionsProps = {
 export const KeysTableActions = ({ keyData }: KeysTableActionsProps) => {
   const trpcUtils = trpc.useUtils();
   const items = getKeysTableActionItems(keyData, trpcUtils);
-  return <KeysTableActionPopover items={items} />;
+  return <TableActionPopover items={items} />;
 };

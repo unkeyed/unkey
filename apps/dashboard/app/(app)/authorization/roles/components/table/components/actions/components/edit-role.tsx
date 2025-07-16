@@ -1,6 +1,6 @@
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
+import { toast } from "@unkey/ui";
 import { useEffect } from "react";
-import { toast } from "sonner";
 import { UpsertRoleDialog } from "../../../../upsert-role";
 import { useFetchConnectedKeysAndPermsData } from "./hooks/use-fetch-connected-keys-and-perms";
 

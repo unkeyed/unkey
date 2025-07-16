@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	vmprovisionerv1 "github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
+	vmprovisionerv1 "github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1"
 )
 
 // AIDEV-NOTE: Configuration file support for VM templates and custom configurations

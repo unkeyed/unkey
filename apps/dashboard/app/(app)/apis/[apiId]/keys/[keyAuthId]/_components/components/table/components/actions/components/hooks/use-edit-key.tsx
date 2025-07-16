@@ -1,6 +1,6 @@
 import { UNNAMED_KEY } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.constants";
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { toast } from "@unkey/ui";
 
 export const useEditKeyName = (onSuccess: () => void) => {
   const trpcUtils = trpc.useUtils();

@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	vmprovisionerv1 "github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
-	"github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1/vmprovisionerv1connect"
 	"github.com/unkeyed/unkey/go/deploy/pkg/tls"
+	vmprovisionerv1 "github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1"
+	"github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1/vmprovisionerv1connect"
 )
 
 // AIDEV-NOTE: Metald client with SPIFFE/SPIRE socket integration and tenant isolation

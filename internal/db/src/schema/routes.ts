@@ -6,7 +6,7 @@ import { lifecycleDates } from "./util/lifecycle_dates";
 import { versions } from "./versions";
 import { workspaces } from "./workspaces";
 export const routes = mysqlTable(
-  "routes",
+  "hostname_routes",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),

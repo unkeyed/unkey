@@ -1,10 +1,9 @@
 "use client";
-import { toast } from "@/components/ui/toaster";
 import type { Workspace } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
-import { Button, Empty, SettingCard } from "@unkey/ui";
+import { Button, Empty, SettingCard, toast } from "@unkey/ui";
 import ms from "ms";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -89,7 +88,6 @@ const Mutations = () => {
 
 export const Client: React.FC<Props> = (props) => {
   const mutations = Mutations();
-
   const allowUpdate =
     props.subscription && ["active", "trialing"].includes(props.subscription.status);
   const allowCancel =

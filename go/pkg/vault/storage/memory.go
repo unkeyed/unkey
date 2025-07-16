@@ -22,7 +22,6 @@ type MemoryConfig struct {
 }
 
 func NewMemory(config MemoryConfig) (Storage, error) {
-
 	logger := config.Logger.With("service", "storage")
 
 	return &memory{

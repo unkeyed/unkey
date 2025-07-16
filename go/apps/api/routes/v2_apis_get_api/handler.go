@@ -6,7 +6,6 @@ import (
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
-	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -21,10 +20,9 @@ type Response = openapi.V2ApisGetApiResponseBody
 // Handler implements zen.Route interface for the v2 APIs get API endpoint
 type Handler struct {
 	// Services as public fields
-	Logger      logging.Logger
-	DB          db.Database
-	Keys        keys.KeyService
-	Permissions permissions.PermissionService
+	Logger logging.Logger
+	DB     db.Database
+	Keys   keys.KeyService
 }
 
 // Method returns the HTTP method this route responds to
@@ -40,35 +38,28 @@ func (h *Handler) Path() string {
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/apis.getApi")
-	auth, err := h.Keys.VerifyRootKey(ctx, s)
+	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
 	}
 
-	var req Request
-	err = s.BindBody(&req)
+	req, err := zen.BindBody[Request](s)
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
-		)
+		return err
 	}
 
-	err = h.Permissions.Check(
-		ctx,
-		auth.KeyID,
-		rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   "*",
-				Action:       rbac.ReadAPI,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   req.ApiId,
-				Action:       rbac.ReadAPI,
-			}),
-		),
-	)
+	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   "*",
+			Action:       rbac.ReadAPI,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   req.ApiId,
+			Action:       rbac.ReadAPI,
+		}),
+	)))
 	if err != nil {
 		return err
 	}

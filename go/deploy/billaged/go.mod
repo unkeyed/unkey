@@ -5,6 +5,7 @@ go 1.24.4
 require (
 	connectrpc.com/connect v1.18.1
 	github.com/prometheus/client_golang v1.22.0
+	github.com/unkeyed/unkey/go v0.0.0-00010101000000-000000000000
 	github.com/unkeyed/unkey/go/deploy/pkg/health v0.0.0-00010101000000-000000000000
 	github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors v0.0.0-00010101000000-000000000000
 	github.com/unkeyed/unkey/go/deploy/pkg/tls v0.0.0-00010101000000-000000000000
@@ -62,3 +63,4 @@ replace github.com/unkeyed/unkey/go/deploy/pkg/health => ../pkg/health
 replace github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors => ../pkg/observability/interceptors
 
 replace github.com/unkeyed/unkey/go/deploy/pkg/tracing => ../pkg/tracing
+replace github.com/unkeyed/unkey/go => ../../

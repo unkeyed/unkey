@@ -1,7 +1,7 @@
 package cloudhypervisor
 
 import (
-	metaldv1 "github.com/unkeyed/unkey/go/deploy/metald/gen/vmprovisioner/v1"
+	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1"
 )
 
 // Cloud Hypervisor API types
