@@ -94,11 +94,6 @@ func (c *Command) Run(ctx context.Context, args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("no arguments provided")
 	}
-	// Initialize flag lookup map for O(1) access
-	c.flagMap = make(map[string]Flag)
-	for _, flag := range c.Flags {
-		c.flagMap[flag.Name()] = flag
-	}
 	// Parse arguments starting from index 1 (skip program name)
 	return c.parse(ctx, args[1:])
 }

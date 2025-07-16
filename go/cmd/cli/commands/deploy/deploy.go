@@ -153,6 +153,9 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 		if err := pushImage(ctx, dockerImage, opts.Registry); err != nil {
 			ui.PrintError("Push failed but continuing deployment")
 			ui.PrintErrorDetails(err.Error())
+			// INFO: For now we are ignoring registry push because everyone one is working locally,
+			// omit this when comments and put the return nil back when going to prod
+			// return nil
 		} else {
 			ui.PrintSuccess("Image pushed successfully")
 		}
@@ -238,11 +241,8 @@ func printSourceInfo(opts *DeployOptions, gitInfo git.Info) {
 	fmt.Printf("    Branch: %s\n", opts.Branch)
 
 	if gitInfo.IsRepo && gitInfo.CommitSHA != "" {
-		shortSHA := gitInfo.CommitSHA
-		if len(shortSHA) > 7 {
-			shortSHA = shortSHA[:7]
-		}
-		commitInfo := shortSHA
+
+		commitInfo := gitInfo.ShortSHA
 		if gitInfo.IsDirty {
 			commitInfo += " (dirty)"
 		}
