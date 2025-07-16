@@ -19,8 +19,8 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	assetv1 "github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/asset/v1"
-	"github.com/unkeyed/unkey/go/deploy/builderd/gen/builder/v1/builderv1connect"
+	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
+	"github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1/builderdv1connect"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/assetmanager"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/observability"
@@ -264,7 +264,7 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	path, handler := builderv1connect.NewBuilderServiceHandler(builderService,
+	path, handler := builderdv1connect.NewBuilderServiceHandler(builderService,
 		connect.WithInterceptors(interceptorList...),
 	)
 	mux.Handle(path, handler)

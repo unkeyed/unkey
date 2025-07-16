@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	builderv1 "github.com/unkeyed/unkey/go/deploy/builderd/gen/builder/v1"
-	"github.com/unkeyed/unkey/go/deploy/builderd/gen/builder/v1/builderv1connect"
+	builderv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1"
+	"github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1/builderdv1connect"
 	"github.com/unkeyed/unkey/go/deploy/pkg/tls"
 )
 
@@ -41,7 +41,7 @@ type Config struct {
 
 // Client provides a high-level interface to builderd services
 type Client struct {
-	builderService builderv1connect.BuilderServiceClient
+	builderService builderdv1connect.BuilderServiceClient
 	tlsProvider    tls.Provider
 	userID         string
 	tenantID       string
@@ -92,7 +92,7 @@ func New(ctx context.Context, config Config) (*Client, error) {
 	}
 
 	// Create ConnectRPC client
-	builderService := builderv1connect.NewBuilderServiceClient(
+	builderService := builderdv1connect.NewBuilderServiceClient(
 		httpClient,
 		config.ServerAddress,
 	)

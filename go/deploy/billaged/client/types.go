@@ -1,7 +1,7 @@
 package client
 
 import (
-	billingv1 "github.com/unkeyed/unkey/go/deploy/billaged/gen/billing/v1"
+	billingv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/billaged/v1"
 )
 
 // AIDEV-NOTE: Type definitions for billaged client requests and responses

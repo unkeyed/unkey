@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/deploy/billaged/client"
-	billingv1 "github.com/unkeyed/unkey/go/deploy/billaged/gen/billing/v1"
+	billingv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/billaged/v1"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
