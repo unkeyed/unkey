@@ -6,8 +6,8 @@ on:
         required: true
         description: "github registrytoken"
 
-
-
+permissions:
+  contents: read
 
 jobs:
   build:
