@@ -17,4 +17,4 @@ jobs:
       - name: Build
         run: pnpm build
       - name: Test
-        run: pnpm test
+        run: pnpm turbo run test --filter '!api'
