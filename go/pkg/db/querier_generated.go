@@ -10,6 +10,16 @@ import (
 )
 
 type Querier interface {
+	//DeleteAllKeyPermissionsByKeyID
+	//
+	//  DELETE FROM keys_permissions
+	//  WHERE key_id = ?
+	DeleteAllKeyPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) error
+	//DeleteAllKeyRolesByKeyID
+	//
+	//  DELETE FROM keys_roles
+	//  WHERE key_id = ?
+	DeleteAllKeyRolesByKeyID(ctx context.Context, db DBTX, keyID string) error
 	//DeleteIdentity
 	//
 	//  DELETE FROM identities WHERE id = ?
@@ -1189,6 +1199,44 @@ type Querier interface {
 	//  WHERE
 	//      id = ?
 	UpdateIdentity(ctx context.Context, db DBTX, arg UpdateIdentityParams) error
+	//UpdateKey
+	//
+	//  UPDATE `keys` k SET
+	//      name = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE k.name
+	//      END,
+	//      identity_id = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE k.identity_id
+	//      END,
+	//      enabled = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE k.enabled
+	//      END,
+	//      meta = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE k.meta
+	//      END,
+	//      expires = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE k.expires
+	//      END,
+	//      remaining_requests = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE k.remaining_requests
+	//      END,
+	//      refill_amount = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE k.refill_amount
+	//      END,
+	//      refill_day = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE k.refill_day
+	//      END,
+	//      updated_at_m = ?
+	//  WHERE id = ?
+	UpdateKey(ctx context.Context, db DBTX, arg UpdateKeyParams) error
 	//UpdateKeyCredits
 	//
 	//  UPDATE `keys`
