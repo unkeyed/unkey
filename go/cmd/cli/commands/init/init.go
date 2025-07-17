@@ -7,14 +7,15 @@ import (
 	"os"
 	"strings"
 
-	"github.com/unkeyed/unkey/go/cmd/cli/cli"
 	"github.com/unkeyed/unkey/go/cmd/cli/config"
+	"github.com/unkeyed/unkey/go/pkg/cli"
 )
 
 var Command = &cli.Command{
 	Name:  "init",
 	Usage: "Initialize configuration file for Unkey CLI",
 	Description: `Initialize a configuration file to store default values for workspace ID, project ID, and context path.
+
 This will create a unkey.json file in the specified directory.
 
 EXAMPLES:
@@ -24,7 +25,7 @@ EXAMPLES:
     # Create unkey.json in a specific directory
     unkey init --config=./test-docker`,
 	Flags: []cli.Flag{
-		cli.String("config", "Directory where unkey.json will be created", ".", "", false),
+		cli.String("config", "Directory where unkey.json will be created", cli.Default(".")),
 	},
 	Action: run,
 }

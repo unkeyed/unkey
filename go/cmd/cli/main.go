@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/unkeyed/unkey/go/cmd/cli/cli"
 	"github.com/unkeyed/unkey/go/cmd/cli/commands/deploy"
 	initcmd "github.com/unkeyed/unkey/go/cmd/cli/commands/init"
 	"github.com/unkeyed/unkey/go/cmd/cli/commands/versions"
+	"github.com/unkeyed/unkey/go/pkg/cli"
 	"github.com/unkeyed/unkey/go/pkg/version"
 )
 

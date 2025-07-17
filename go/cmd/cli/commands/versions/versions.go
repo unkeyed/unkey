@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/unkeyed/unkey/go/cmd/cli/cli"
 	"github.com/unkeyed/unkey/go/cmd/cli/commands/deploy"
+	"github.com/unkeyed/unkey/go/pkg/cli"
 )
 
 // VersionListOptions holds options for version list command
@@ -66,9 +66,9 @@ EXAMPLES:
     # Filter by status and limit results
     unkey version list --status=active --limit=5`,
 	Flags: []cli.Flag{
-		cli.String("branch", "Filter by branch", "", "", false),
-		cli.String("status", "Filter by status (pending, building, active, failed)", "", "", false),
-		cli.Int("limit", "Number of versions to show", 10, "", false),
+		cli.String("branch", "Filter by branch"),
+		cli.String("status", "Filter by status (pending, building, active, failed)"),
+		cli.Int("limit", "Number of versions to show", cli.Default(10)),
 	},
 	Action: listAction,
 }

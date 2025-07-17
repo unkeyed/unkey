@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/unkeyed/unkey/go/cmd/cli/cli"
 	"github.com/unkeyed/unkey/go/cmd/cli/config"
 
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/go/pkg/cli"
 	"github.com/unkeyed/unkey/go/pkg/git"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
@@ -49,24 +49,23 @@ type DeployOptions struct {
 
 var DeployFlags = []cli.Flag{
 	// Config directory flag (highest priority)
-	cli.String("config", "Directory containing unkey.json config file", "", "", false),
-
+	cli.String("config", "Directory containing unkey.json config file"),
 	// Required flags (can be provided via config file)
-	cli.String("workspace-id", "Workspace ID", "", "UNKEY_WORKSPACE_ID", false),
-	cli.String("project-id", "Project ID", "", "UNKEY_PROJECT_ID", false),
-
+	cli.String("workspace-id", "Workspace ID", cli.EnvVar("UNKEY_WORKSPACE_ID")),
+	cli.String("project-id", "Project ID", cli.EnvVar("UNKEY_PROJECT_ID")),
 	// Optional flags with defaults
-	cli.String("context", "Docker context path", ".", "", false),
-	cli.String("branch", "Git branch", "main", "", false),
-	cli.String("docker-image", "Pre-built docker image", "", "", false),
-	cli.String("dockerfile", "Path to Dockerfile", "Dockerfile", "", false),
-	cli.String("commit", "Git commit SHA", "", "", false),
-	cli.String("registry", "Docker registry", "ghcr.io/unkeyed/deploy", "UNKEY_DOCKER_REGISTRY", false),
-	cli.Bool("skip-push", "Skip pushing to registry (for local testing)", "", false),
-
+	cli.String("context", "Docker context path", cli.Default(".")),
+	cli.String("branch", "Git branch", cli.Default("main")),
+	cli.String("docker-image", "Pre-built docker image"),
+	cli.String("dockerfile", "Path to Dockerfile", cli.Default("Dockerfile")),
+	cli.String("commit", "Git commit SHA"),
+	cli.String("registry", "Docker registry",
+		cli.Default("ghcr.io/unkeyed/deploy"),
+		cli.EnvVar("UNKEY_DOCKER_REGISTRY")),
+	cli.Bool("skip-push", "Skip pushing to registry (for local testing)"),
 	// Control plane flags (internal)
-	cli.String("control-plane-url", "Control plane URL", "http://localhost:7091", "", false),
-	cli.String("auth-token", "Control plane auth token", "ctrl-secret-token", "", false),
+	cli.String("control-plane-url", "Control plane URL", cli.Default("http://localhost:7091")),
+	cli.String("auth-token", "Control plane auth token", cli.Default("ctrl-secret-token")),
 }
 
 // Command defines the deploy CLI command
