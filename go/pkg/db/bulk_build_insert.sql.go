@@ -13,7 +13,8 @@ const bulkInsertBuild = `INSERT INTO builds ( id, workspace_id, project_id, vers
 
 // BulkInsertBuild performs bulk insert in a single query
 func (q *Queries) BulkInsertBuild(ctx context.Context, db DBTX, args []InsertBuildParams) error {
-if len(args) == 0 {
+
+	if len(args) == 0 {
 		return nil
 	}
 

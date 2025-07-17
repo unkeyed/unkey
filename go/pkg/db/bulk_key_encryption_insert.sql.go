@@ -13,7 +13,8 @@ const bulkInsertKeyEncryption = `INSERT INTO encrypted_keys (workspace_id, key_i
 
 // BulkInsertKeyEncryption performs bulk insert in a single query
 func (q *Queries) BulkInsertKeyEncryption(ctx context.Context, db DBTX, args []InsertKeyEncryptionParams) error {
-if len(args) == 0 {
+
+	if len(args) == 0 {
 		return nil
 	}
 

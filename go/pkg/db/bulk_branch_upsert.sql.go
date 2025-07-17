@@ -14,7 +14,8 @@ const bulkUpsertBranch = `INSERT INTO branches ( id, workspace_id, project_id, n
 
 // BulkUpsertBranch performs bulk insert in a single query
 func (q *Queries) BulkUpsertBranch(ctx context.Context, db DBTX, args []UpsertBranchParams) error {
-if len(args) == 0 {
+
+	if len(args) == 0 {
 		return nil
 	}
 

@@ -13,7 +13,8 @@ const bulkInsertKeyRatelimit = `INSERT INTO ` + "`" + `ratelimits` + "`" + ` ( i
 
 // BulkInsertKeyRatelimit performs bulk insert in a single query
 func (q *Queries) BulkInsertKeyRatelimit(ctx context.Context, db DBTX, args []InsertKeyRatelimitParams) error {
-if len(args) == 0 {
+
+	if len(args) == 0 {
 		return nil
 	}
 

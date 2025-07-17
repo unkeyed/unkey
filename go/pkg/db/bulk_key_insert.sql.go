@@ -13,7 +13,8 @@ const bulkInsertKey = `INSERT INTO ` + "`" + `keys` + "`" + ` ( id, key_auth_id,
 
 // BulkInsertKey performs bulk insert in a single query
 func (q *Queries) BulkInsertKey(ctx context.Context, db DBTX, args []InsertKeyParams) error {
-if len(args) == 0 {
+
+	if len(args) == 0 {
 		return nil
 	}
 

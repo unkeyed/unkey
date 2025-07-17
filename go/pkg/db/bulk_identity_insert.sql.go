@@ -13,7 +13,8 @@ const bulkInsertIdentity = `INSERT INTO ` + "`" + `identities` + "`" + ` ( id, e
 
 // BulkInsertIdentity performs bulk insert in a single query
 func (q *Queries) BulkInsertIdentity(ctx context.Context, db DBTX, args []InsertIdentityParams) error {
-if len(args) == 0 {
+
+	if len(args) == 0 {
 		return nil
 	}
 

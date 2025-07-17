@@ -13,7 +13,8 @@ const bulkInsertRole = `INSERT INTO roles ( id, workspace_Id, name, description,
 
 // BulkInsertRole performs bulk insert in a single query
 func (q *Queries) BulkInsertRole(ctx context.Context, db DBTX, args []InsertRoleParams) error {
-if len(args) == 0 {
+
+	if len(args) == 0 {
 		return nil
 	}
 

@@ -13,7 +13,8 @@ const bulkInsertKeyRole = `INSERT INTO keys_roles ( key_id, role_id, workspace_i
 
 // BulkInsertKeyRole performs bulk insert in a single query
 func (q *Queries) BulkInsertKeyRole(ctx context.Context, db DBTX, args []InsertKeyRoleParams) error {
-if len(args) == 0 {
+
+	if len(args) == 0 {
 		return nil
 	}
 

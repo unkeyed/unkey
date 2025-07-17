@@ -13,7 +13,8 @@ const bulkInsertPermission = `INSERT INTO permissions ( id, workspace_id, name, 
 
 // BulkInsertPermission performs bulk insert in a single query
 func (q *Queries) BulkInsertPermission(ctx context.Context, db DBTX, args []InsertPermissionParams) error {
-if len(args) == 0 {
+
+	if len(args) == 0 {
 		return nil
 	}
 

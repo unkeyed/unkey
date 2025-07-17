@@ -13,7 +13,8 @@ const bulkInsertRatelimitNamespace = `INSERT INTO ` + "`" + `ratelimit_namespace
 
 // BulkInsertRatelimitNamespace performs bulk insert in a single query
 func (q *Queries) BulkInsertRatelimitNamespace(ctx context.Context, db DBTX, args []InsertRatelimitNamespaceParams) error {
-if len(args) == 0 {
+
+	if len(args) == 0 {
 		return nil
 	}
 

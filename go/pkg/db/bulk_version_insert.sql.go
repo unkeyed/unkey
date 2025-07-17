@@ -13,7 +13,8 @@ const bulkInsertVersion = `INSERT INTO ` + "`" + `versions` + "`" + ` ( id, work
 
 // BulkInsertVersion performs bulk insert in a single query
 func (q *Queries) BulkInsertVersion(ctx context.Context, db DBTX, args []InsertVersionParams) error {
-if len(args) == 0 {
+
+	if len(args) == 0 {
 		return nil
 	}
 

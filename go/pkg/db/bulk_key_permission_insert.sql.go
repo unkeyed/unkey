@@ -13,7 +13,8 @@ const bulkInsertKeyPermission = `INSERT INTO ` + "`" + `keys_permissions` + "`" 
 
 // BulkInsertKeyPermission performs bulk insert in a single query
 func (q *Queries) BulkInsertKeyPermission(ctx context.Context, db DBTX, args []InsertKeyPermissionParams) error {
-if len(args) == 0 {
+
+	if len(args) == 0 {
 		return nil
 	}
 

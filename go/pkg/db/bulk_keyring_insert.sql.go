@@ -13,7 +13,8 @@ const bulkInsertKeyring = `INSERT INTO ` + "`" + `key_auth` + "`" + ` ( id, work
 
 // BulkInsertKeyring performs bulk insert in a single query
 func (q *Queries) BulkInsertKeyring(ctx context.Context, db DBTX, args []InsertKeyringParams) error {
-if len(args) == 0 {
+
+	if len(args) == 0 {
 		return nil
 	}
 

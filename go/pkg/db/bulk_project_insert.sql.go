@@ -13,7 +13,8 @@ const bulkInsertProject = `INSERT INTO projects ( id, workspace_id, partition_id
 
 // BulkInsertProject performs bulk insert in a single query
 func (q *Queries) BulkInsertProject(ctx context.Context, db DBTX, args []InsertProjectParams) error {
-if len(args) == 0 {
+
+	if len(args) == 0 {
 		return nil
 	}
 

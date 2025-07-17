@@ -13,7 +13,8 @@ const bulkInsertRolePermission = `INSERT INTO roles_permissions ( role_id, permi
 
 // BulkInsertRolePermission performs bulk insert in a single query
 func (q *Queries) BulkInsertRolePermission(ctx context.Context, db DBTX, args []InsertRolePermissionParams) error {
-if len(args) == 0 {
+
+	if len(args) == 0 {
 		return nil
 	}
 

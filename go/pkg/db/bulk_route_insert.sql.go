@@ -13,7 +13,8 @@ const bulkInsertHostnameRoute = `INSERT INTO hostname_routes ( id, workspace_id,
 
 // BulkInsertHostnameRoute performs bulk insert in a single query
 func (q *Queries) BulkInsertHostnameRoute(ctx context.Context, db DBTX, args []InsertHostnameRouteParams) error {
-if len(args) == 0 {
+
+	if len(args) == 0 {
 		return nil
 	}
 

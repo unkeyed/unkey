@@ -16,7 +16,8 @@ const bulkInsertVersionStep = `INSERT INTO version_steps ( version_id, status, m
 
 // BulkInsertVersionStep performs bulk insert in a single query
 func (q *Queries) BulkInsertVersionStep(ctx context.Context, db DBTX, args []InsertVersionStepParams) error {
-if len(args) == 0 {
+
+	if len(args) == 0 {
 		return nil
 	}
 

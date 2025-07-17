@@ -13,7 +13,8 @@ const bulkInsertAuditLogTarget = `INSERT INTO ` + "`" + `audit_log_target` + "`"
 
 // BulkInsertAuditLogTarget performs bulk insert in a single query
 func (q *Queries) BulkInsertAuditLogTarget(ctx context.Context, db DBTX, args []InsertAuditLogTargetParams) error {
-if len(args) == 0 {
+
+	if len(args) == 0 {
 		return nil
 	}
 

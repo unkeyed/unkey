@@ -13,7 +13,8 @@ const bulkInsertAuditLog = `INSERT INTO ` + "`" + `audit_log` + "`" + ` ( id, wo
 
 // BulkInsertAuditLog performs bulk insert in a single query
 func (q *Queries) BulkInsertAuditLog(ctx context.Context, db DBTX, args []InsertAuditLogParams) error {
-if len(args) == 0 {
+
+	if len(args) == 0 {
 		return nil
 	}
 

@@ -18,7 +18,8 @@ const bulkInsertIdentityRatelimit = `INSERT INTO ` + "`" + `ratelimits` + "`" + 
 
 // BulkInsertIdentityRatelimit performs bulk insert in a single query
 func (q *Queries) BulkInsertIdentityRatelimit(ctx context.Context, db DBTX, args []InsertIdentityRatelimitParams) error {
-if len(args) == 0 {
+
+	if len(args) == 0 {
 		return nil
 	}
 

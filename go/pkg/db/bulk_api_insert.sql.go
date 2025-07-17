@@ -13,7 +13,8 @@ const bulkInsertApi = `INSERT INTO apis ( id, name, workspace_id, auth_type, ip_
 
 // BulkInsertApi performs bulk insert in a single query
 func (q *Queries) BulkInsertApi(ctx context.Context, db DBTX, args []InsertApiParams) error {
-if len(args) == 0 {
+
+	if len(args) == 0 {
 		return nil
 	}
 

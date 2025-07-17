@@ -13,7 +13,8 @@ const bulkInsertWorkspace = `INSERT INTO ` + "`" + `workspaces` + "`" + ` ( id, 
 
 // BulkInsertWorkspace performs bulk insert in a single query
 func (q *Queries) BulkInsertWorkspace(ctx context.Context, db DBTX, args []InsertWorkspaceParams) error {
-if len(args) == 0 {
+
+	if len(args) == 0 {
 		return nil
 	}
 
