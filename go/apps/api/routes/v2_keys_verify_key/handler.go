@@ -127,9 +127,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if req.Permissions != nil {
-		query, queryErr := convertPermissionsToQuery(*req.Permissions)
-		if queryErr != nil {
-			return queryErr
+		// Parse the permissions query string using the RBAC parser
+		query, parseErr := rbac.ParseQuery(*req.Permissions)
+		if parseErr != nil {
+			return fault.Wrap(parseErr,
+				fault.Code(codes.User.BadRequest.PermissionsQuerySyntaxError.URN()),
+				fault.Internal(fmt.Sprintf("failed to parse permissions query: %s", *req.Permissions)),
+			)
 		}
 
 		opts = append(opts, keys.WithPermissions(query))
@@ -237,35 +241,4 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	return s.JSON(http.StatusOK, res)
-}
-
-// convertPermissionsToQuery converts OpenAPI permissions to rbac.PermissionQuery
-func convertPermissionsToQuery(permissions openapi.V2KeysVerifyKeyRequestBody_Permissions) (rbac.PermissionQuery, error) {
-	// Try to unmarshal as string first (single permission)
-	if perm, err := permissions.AsV2KeysVerifyKeyRequestBodyPermissions0(); err == nil {
-		return rbac.S(perm), nil
-	}
-
-	// Try to unmarshal as object (multiple permissions with operator)
-	if obj, err := permissions.AsV2KeysVerifyKeyRequestBodyPermissions1(); err == nil {
-		if len(obj.Permissions) == 0 {
-			return rbac.PermissionQuery{}, fmt.Errorf("permissions array cannot be empty")
-		}
-
-		queries := make([]rbac.PermissionQuery, 0, len(obj.Permissions))
-		for _, perm := range obj.Permissions {
-			queries = append(queries, rbac.S(perm))
-		}
-
-		switch obj.Type {
-		case openapi.And:
-			return rbac.And(queries...), nil
-		case openapi.Or:
-			return rbac.Or(queries...), nil
-		default:
-			return rbac.PermissionQuery{}, fmt.Errorf("unsupported operator: %s", obj.Type)
-		}
-	}
-
-	return rbac.PermissionQuery{}, fmt.Errorf("invalid permissions format")
 }
