@@ -28,6 +28,7 @@ export function transformVerificationFilters(params: VerificationQueryTimeseries
       startTime: timeConfig.startTime,
       keyIds: [],
       names: [],
+      tags: null,
       outcomes: [],
       endTime: timeConfig.endTime,
     },

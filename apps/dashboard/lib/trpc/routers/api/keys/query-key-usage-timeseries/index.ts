@@ -19,6 +19,7 @@ export const keyUsageTimeseries = t.procedure
         identities: null,
         keyIds: null,
         names: null,
+        tags: null,
         outcomes: null,
       });
 
