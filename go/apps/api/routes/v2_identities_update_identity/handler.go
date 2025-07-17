@@ -346,15 +346,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if len(rateLimitsToInsert) > 0 {
-				err = db.BulkInsert(ctx, tx,
-					"INSERT INTO ratelimits (id, workspace_id, identity_id, name,`limit`"+`, duration, created_at, auto_apply) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-					ON DUPLICATE KEY UPDATE`+"`limit` = VALUES(`limit`),"+`
-					name = VALUES(name),
-					duration = VALUES(duration),
-					auto_apply = VALUES(auto_apply),
-					updated_at = NOW()`,
-					rateLimitsToInsert,
-				)
+				err = db.BulkQuery.BulkInsertIdentityRatelimit(ctx, tx, rateLimitsToInsert)
 
 				if err != nil {
 					// nolint:exhaustruct

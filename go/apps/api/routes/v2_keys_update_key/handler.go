@@ -362,12 +362,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if len(ratelimitsToInsert) > 0 {
-				err = db.BulkInsert(ctx, tx,
-					"INSERT INTO ratelimits (id, workspace_id, key_id, name, `limit`, duration, created_at, auto_apply) VALUES (?, ?, ?, ?, ?, ?, ?, ?) "+
-						"ON DUPLICATE KEY UPDATE `limit` = VALUES(`limit`), duration = VALUES(duration), auto_apply = VALUES(auto_apply), updated_at = NOW()",
-					ratelimitsToInsert,
-				)
-
+				err = db.BulkQuery.BulkInsertKeyRatelimit(ctx, tx, ratelimitsToInsert)
 				if err != nil {
 					return fault.Wrap(err,
 						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -424,11 +419,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if len(permissionsToCreate) > 0 {
-				err = db.BulkInsert(ctx, tx,
-					"INSERT INTO permissions (id, workspace_id, name, slug, description, created_at_m) VALUES (?, ?, ?, ?, ?, ?)",
-					permissionsToCreate,
-				)
-
+				err = db.BulkQuery.BulkInsertPermission(ctx, tx, permissionsToCreate)
 				if err != nil {
 					return fault.Wrap(err,
 						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -458,10 +449,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if len(permissionsToInsert) > 0 {
-				err = db.BulkInsert(ctx, tx,
-					"INSERT INTO keys_permissions (key_id, permission_id, workspace_id, created_at_m) VALUES (?, ?, ?, ?)",
-					permissionsToInsert,
-				)
+				err = db.BulkQuery.BulkInsertKeyPermission(ctx, tx, permissionsToInsert)
 				if err != nil {
 					return fault.Wrap(err,
 						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -526,11 +514,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if len(rolesToInsert) > 0 {
-				err = db.BulkInsert(ctx, tx,
-					"INSERT INTO keys_roles (key_id, role_id, workspace_id, created_at_m) VALUES (?, ?, ?, ?)",
-					rolesToInsert,
-				)
-
+				err = db.BulkQuery.BulkInsertKeyRole(ctx, tx, rolesToInsert)
 				if err != nil {
 					return fault.Wrap(err,
 						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

@@ -662,7 +662,12 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?
-	//  )
+	//  ) ON DUPLICATE KEY UPDATE
+	//      name = VALUES(name),
+	//      `limit` = VALUES(`limit`),
+	//      duration = VALUES(duration),
+	//      auto_apply = VALUES(auto_apply),
+	//      updated_at = VALUES(created_at)
 	InsertIdentityRatelimit(ctx context.Context, db DBTX, arg InsertIdentityRatelimitParams) error
 	//InsertKey
 	//

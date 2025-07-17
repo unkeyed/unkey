@@ -185,10 +185,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				})
 			}
 
-			err = db.BulkInsert(
+			err = db.BulkQuery.BulkInsertIdentityRatelimit(
 				ctx,
 				tx,
-				"INSERT INTO ratelimits (id, workspace_id, identity_id, name, `limit`, duration, created_at, auto_apply) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
 				rateLimitsToInsert,
 			)
 			if err != nil {

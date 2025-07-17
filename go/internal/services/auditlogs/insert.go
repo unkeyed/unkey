@@ -13,64 +13,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-// Generated Insert query which we are re-using for bulk inserts
-const insertAuditLog = `INSERT INTO ` + "`" + `audit_log` + "`" + ` (
-    id,
-    workspace_id,
-    bucket_id,
-    bucket,
-    event,
-    time,
-    display,
-    remote_ip,
-    user_agent,
-    actor_type,
-    actor_id,
-    actor_name,
-    actor_meta,
-    created_at
-) VALUES (
-    ?,
-    ?,
-    ?,
-    ?,
-    ?,
-    ?,
-    ?,
-    ?,
-    ?,
-    ?,
-    ?,
-    ?,
-    ?,
-    ?
-)`
-
-// Generated Insert query which we are re-using for bulk inserts
-const insertAuditLogTarget = `INSERT INTO ` + "`" + `audit_log_target` + "`" + ` (
-    workspace_id,
-    bucket_id,
-    bucket,
-    audit_log_id,
-    display_name,
-    type,
-    id,
-    name,
-    meta,
-    created_at
-) VALUES (
-    ?,
-    ?,
-    ?,
-    ?,
-    ?,
-    ?,
-    ?,
-    ?,
-    ?,
-    ?
-)`
-
 // DEFAULT_BUCKET is the default bucket name used for audit logs when no bucket
 // is specified. All audit logs are categorized into buckets for organization
 // and querying purposes, with "unkey_mutations" serving as the standard bucket
@@ -167,7 +109,7 @@ func (s *service) insertLogs(ctx context.Context, tx db.DBTX, logs []auditlog.Au
 		}
 	}
 
-	err := db.BulkInsert(ctx, tx, insertAuditLog, auditLogs)
+	err := db.BulkQuery.BulkInsertAuditLog(ctx, tx, auditLogs)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -175,7 +117,7 @@ func (s *service) insertLogs(ctx context.Context, tx db.DBTX, logs []auditlog.Au
 		)
 	}
 
-	err = db.BulkInsert(ctx, tx, insertAuditLogTarget, auditLogTargets)
+	err = db.BulkQuery.BulkInsertAuditLogTarget(ctx, tx, auditLogTargets)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
