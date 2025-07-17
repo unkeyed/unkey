@@ -11,8 +11,8 @@ import (
 // bulkInsertRatelimitOverride is the base query for bulk insert
 const bulkInsertRatelimitOverride = `INSERT INTO ` + "`" + `ratelimit_overrides` + "`" + ` ( id, workspace_id, namespace_id, identifier, ` + "`" + `limit` + "`" + `, duration, async, created_at_m ) VALUES %s`
 
-// BulkInsertRatelimitOverride performs bulk insert in a single query
-func (q *Queries) BulkInsertRatelimitOverride(ctx context.Context, db DBTX, args []InsertRatelimitOverrideParams) error {
+// InsertRatelimitOverrides performs bulk insert in a single query
+func (q *BulkQueries) InsertRatelimitOverrides(ctx context.Context, db DBTX, args []InsertRatelimitOverrideParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -39,6 +39,6 @@ func (q *Queries) BulkInsertRatelimitOverride(ctx context.Context, db DBTX, args
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }

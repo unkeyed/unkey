@@ -109,7 +109,7 @@ func (s *service) insertLogs(ctx context.Context, tx db.DBTX, logs []auditlog.Au
 		}
 	}
 
-	err := db.BulkQuery.BulkInsertAuditLog(ctx, tx, auditLogs)
+	err := db.BulkQuery.InsertAuditLogs(ctx, tx, auditLogs)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -117,7 +117,7 @@ func (s *service) insertLogs(ctx context.Context, tx db.DBTX, logs []auditlog.Au
 		)
 	}
 
-	err = db.BulkQuery.BulkInsertAuditLogTarget(ctx, tx, auditLogTargets)
+	err = db.BulkQuery.InsertAuditLogTargets(ctx, tx, auditLogTargets)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

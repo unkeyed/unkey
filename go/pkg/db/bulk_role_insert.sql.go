@@ -11,8 +11,8 @@ import (
 // bulkInsertRole is the base query for bulk insert
 const bulkInsertRole = `INSERT INTO roles ( id, workspace_Id, name, description, created_at_m ) VALUES %s`
 
-// BulkInsertRole performs bulk insert in a single query
-func (q *Queries) BulkInsertRole(ctx context.Context, db DBTX, args []InsertRoleParams) error {
+// InsertRoles performs bulk insert in a single query
+func (q *BulkQueries) InsertRoles(ctx context.Context, db DBTX, args []InsertRoleParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -37,6 +37,6 @@ func (q *Queries) BulkInsertRole(ctx context.Context, db DBTX, args []InsertRole
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }

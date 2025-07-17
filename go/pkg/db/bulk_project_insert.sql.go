@@ -11,8 +11,8 @@ import (
 // bulkInsertProject is the base query for bulk insert
 const bulkInsertProject = `INSERT INTO projects ( id, workspace_id, partition_id, name, slug, git_repository_url, default_branch, delete_protection, created_at, updated_at ) VALUES %s`
 
-// BulkInsertProject performs bulk insert in a single query
-func (q *Queries) BulkInsertProject(ctx context.Context, db DBTX, args []InsertProjectParams) error {
+// InsertProjects performs bulk insert in a single query
+func (q *BulkQueries) InsertProjects(ctx context.Context, db DBTX, args []InsertProjectParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -42,6 +42,6 @@ func (q *Queries) BulkInsertProject(ctx context.Context, db DBTX, args []InsertP
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }

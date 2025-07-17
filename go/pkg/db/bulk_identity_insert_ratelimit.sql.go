@@ -16,8 +16,8 @@ const bulkInsertIdentityRatelimit = `INSERT INTO ` + "`" + `ratelimits` + "`" + 
     auto_apply = VALUES(auto_apply),
     updated_at = VALUES(created_at)`
 
-// BulkInsertIdentityRatelimit performs bulk insert in a single query
-func (q *Queries) BulkInsertIdentityRatelimit(ctx context.Context, db DBTX, args []InsertIdentityRatelimitParams) error {
+// InsertIdentityRatelimits performs bulk insert in a single query
+func (q *BulkQueries) InsertIdentityRatelimits(ctx context.Context, db DBTX, args []InsertIdentityRatelimitParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -45,6 +45,6 @@ func (q *Queries) BulkInsertIdentityRatelimit(ctx context.Context, db DBTX, args
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }

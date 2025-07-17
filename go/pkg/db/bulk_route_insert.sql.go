@@ -11,8 +11,8 @@ import (
 // bulkInsertHostnameRoute is the base query for bulk insert
 const bulkInsertHostnameRoute = `INSERT INTO hostname_routes ( id, workspace_id, project_id, hostname, version_id, is_enabled, created_at, updated_at ) VALUES %s`
 
-// BulkInsertHostnameRoute performs bulk insert in a single query
-func (q *Queries) BulkInsertHostnameRoute(ctx context.Context, db DBTX, args []InsertHostnameRouteParams) error {
+// InsertHostnameRoutes performs bulk insert in a single query
+func (q *BulkQueries) InsertHostnameRoutes(ctx context.Context, db DBTX, args []InsertHostnameRouteParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -40,6 +40,6 @@ func (q *Queries) BulkInsertHostnameRoute(ctx context.Context, db DBTX, args []I
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }

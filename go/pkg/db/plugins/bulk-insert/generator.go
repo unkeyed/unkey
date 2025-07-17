@@ -52,9 +52,17 @@ func (g *Generator) Generate(ctx context.Context, req *plugin.GenerateRequest) (
 		if bulkFunction != nil {
 			files = append(files, bulkFunction)
 
+			// Generate pluralized function name for interface
+			bulkFunctionName := query.Name
+			if strings.HasPrefix(query.Name, "Insert") {
+				entityName := strings.TrimPrefix(query.Name, "Insert")
+				pluralizedEntity := pluralize(entityName)
+				bulkFunctionName = "Insert" + pluralizedEntity
+			}
+
 			// Track function signature for interface
 			bulkFunctions = append(bulkFunctions, BulkFunction{
-				Name:         fmt.Sprintf("Bulk%s", query.Name),
+				Name:         bulkFunctionName,
 				ParamsStruct: fmt.Sprintf("%sParams", query.Name),
 			})
 		}
@@ -81,8 +89,16 @@ func (g *Generator) isInsertQuery(query *plugin.Query) bool {
 // generateBulkInsertFunction generates a bulk insert function for the given query.
 func (g *Generator) generateBulkInsertFunction(query *plugin.Query) *plugin.File {
 	originalName := query.Name
-	bulkFunctionName := fmt.Sprintf("Bulk%s", originalName)
 	paramsStructName := fmt.Sprintf("%sParams", originalName)
+
+	// Generate pluralized function name
+	// If the function name starts with "Insert", replace it with pluralized version
+	bulkFunctionName := originalName
+	if strings.HasPrefix(originalName, "Insert") {
+		entityName := strings.TrimPrefix(originalName, "Insert")
+		pluralizedEntity := pluralize(entityName)
+		bulkFunctionName = "Insert" + pluralizedEntity
+	}
 
 	// Parse the SQL query
 	parser := NewSQLParser()
@@ -123,21 +139,22 @@ func (g *Generator) generateBulkInsertFunction(query *plugin.Query) *plugin.File
 // extractFieldNames extracts Go field names from query parameters.
 func (g *Generator) extractFieldNames(params []*plugin.Parameter) []string {
 	var fields []string
+
 	for _, param := range params {
 		if param.Column != nil {
 			fieldName := ToCamelCase(param.Column.Name)
 			fields = append(fields, fieldName)
 		}
 	}
+
 	return fields
 }
 
 // generateInterfaceExtension generates an interface extension file with bulk insert methods.
 func (g *Generator) generateInterfaceExtension(bulkFunctions []BulkFunction) *plugin.File {
 	content := g.generateInterfaceContent(bulkFunctions)
-
 	return &plugin.File{
-		Name:     "bulk_querier.go",
+		Name:     "querier_bulk_generated.go",
 		Contents: []byte(content),
 	}
 }
@@ -166,7 +183,7 @@ func (g *Generator) generateInterfaceContent(bulkFunctions []BulkFunction) strin
 
 	// Generate assertion to ensure Queries implements BulkQuerier
 	content.WriteString("// Ensure Queries implements BulkQuerier\n")
-	content.WriteString("var _ BulkQuerier = (*Queries)(nil)\n")
+	content.WriteString("var _ BulkQuerier = (*BulkQueries)(nil)\n")
 
 	return content.String()
 }

@@ -29,7 +29,7 @@ func TestTemplateRenderer_Render(t *testing.T) {
 			contains: []string{
 				"package db",
 				"const bulkInsertUser = `INSERT INTO users (id, name) VALUES %s`",
-				"func (q *Queries) BulkInsertUser(ctx context.Context, db DBTX, args []InsertUserParams) error",
+				"func (q *BulkQueries) BulkInsertUser(ctx context.Context, db DBTX, args []InsertUserParams) error",
 				"allArgs = append(allArgs, arg.ID)",
 				"allArgs = append(allArgs, arg.Name)",
 				"_, err := db.ExecContext(ctx, bulkQuery, allArgs...)",
@@ -51,7 +51,7 @@ func TestTemplateRenderer_Render(t *testing.T) {
 			contains: []string{
 				"package db",
 				"const bulkUpsertUser = `INSERT INTO users (id, name) VALUES %s ON DUPLICATE KEY UPDATE name = VALUES(name)`",
-				"func (q *Queries) BulkUpsertUser(ctx context.Context, db DBTX, args []UpsertUserParams) error",
+				"func (q *BulkQueries) BulkUpsertUser(ctx context.Context, db DBTX, args []UpsertUserParams) error",
 			},
 		},
 		{
@@ -68,7 +68,7 @@ func TestTemplateRenderer_Render(t *testing.T) {
 				Fields:                    []string{"ID", "Name"},
 			},
 			contains: []string{
-				"func (q *Queries) BulkInsertUser(ctx context.Context, args []InsertUserParams) error",
+				"func (q *BulkQueries) BulkInsertUser(ctx context.Context, args []InsertUserParams) error",
 				"_, err := q.db.ExecContext(ctx, bulkQuery, allArgs...)",
 			},
 		},

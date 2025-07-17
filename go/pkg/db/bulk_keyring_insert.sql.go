@@ -11,8 +11,8 @@ import (
 // bulkInsertKeyring is the base query for bulk insert
 const bulkInsertKeyring = `INSERT INTO ` + "`" + `key_auth` + "`" + ` ( id, workspace_id, created_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at ) VALUES %s`
 
-// BulkInsertKeyring performs bulk insert in a single query
-func (q *Queries) BulkInsertKeyring(ctx context.Context, db DBTX, args []InsertKeyringParams) error {
+// InsertKeyrings performs bulk insert in a single query
+func (q *BulkQueries) InsertKeyrings(ctx context.Context, db DBTX, args []InsertKeyringParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -38,6 +38,6 @@ func (q *Queries) BulkInsertKeyring(ctx context.Context, db DBTX, args []InsertK
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }

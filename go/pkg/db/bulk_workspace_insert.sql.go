@@ -11,8 +11,8 @@ import (
 // bulkInsertWorkspace is the base query for bulk insert
 const bulkInsertWorkspace = `INSERT INTO ` + "`" + `workspaces` + "`" + ` ( id, org_id, name, created_at_m, tier, beta_features, features, enabled, delete_protection ) VALUES %s`
 
-// BulkInsertWorkspace performs bulk insert in a single query
-func (q *Queries) BulkInsertWorkspace(ctx context.Context, db DBTX, args []InsertWorkspaceParams) error {
+// InsertWorkspaces performs bulk insert in a single query
+func (q *BulkQueries) InsertWorkspaces(ctx context.Context, db DBTX, args []InsertWorkspaceParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -36,6 +36,6 @@ func (q *Queries) BulkInsertWorkspace(ctx context.Context, db DBTX, args []Inser
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }

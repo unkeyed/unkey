@@ -11,8 +11,8 @@ import (
 // bulkInsertKeyRatelimit is the base query for bulk insert
 const bulkInsertKeyRatelimit = `INSERT INTO ` + "`" + `ratelimits` + "`" + ` ( id, workspace_id, key_id, name, ` + "`" + `limit` + "`" + `, duration, auto_apply, created_at ) VALUES %s`
 
-// BulkInsertKeyRatelimit performs bulk insert in a single query
-func (q *Queries) BulkInsertKeyRatelimit(ctx context.Context, db DBTX, args []InsertKeyRatelimitParams) error {
+// InsertKeyRatelimits performs bulk insert in a single query
+func (q *BulkQueries) InsertKeyRatelimits(ctx context.Context, db DBTX, args []InsertKeyRatelimitParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -40,6 +40,6 @@ func (q *Queries) BulkInsertKeyRatelimit(ctx context.Context, db DBTX, args []In
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }

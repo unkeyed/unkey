@@ -12,8 +12,8 @@ import (
 const bulkUpsertBranch = `INSERT INTO branches ( id, workspace_id, project_id, name, created_at, updated_at ) VALUES %s ON DUPLICATE KEY UPDATE
     updated_at = VALUES(updated_at)`
 
-// BulkUpsertBranch performs bulk insert in a single query
-func (q *Queries) BulkUpsertBranch(ctx context.Context, db DBTX, args []UpsertBranchParams) error {
+// UpsertBranch performs bulk insert in a single query
+func (q *BulkQueries) UpsertBranch(ctx context.Context, db DBTX, args []UpsertBranchParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -39,6 +39,6 @@ func (q *Queries) BulkUpsertBranch(ctx context.Context, db DBTX, args []UpsertBr
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }

@@ -11,8 +11,8 @@ import (
 // bulkInsertBranch is the base query for bulk insert
 const bulkInsertBranch = `INSERT INTO branches ( id, workspace_id, project_id, name, created_at, updated_at ) VALUES %s`
 
-// BulkInsertBranch performs bulk insert in a single query
-func (q *Queries) BulkInsertBranch(ctx context.Context, db DBTX, args []InsertBranchParams) error {
+// InsertBranches performs bulk insert in a single query
+func (q *BulkQueries) InsertBranches(ctx context.Context, db DBTX, args []InsertBranchParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -38,6 +38,6 @@ func (q *Queries) BulkInsertBranch(ctx context.Context, db DBTX, args []InsertBr
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }

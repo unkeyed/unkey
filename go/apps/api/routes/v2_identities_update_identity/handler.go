@@ -346,7 +346,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if len(rateLimitsToInsert) > 0 {
-				err = db.BulkQuery.BulkInsertIdentityRatelimit(ctx, tx, rateLimitsToInsert)
+				err = db.BulkQuery.InsertIdentityRatelimits(ctx, tx, rateLimitsToInsert)
 
 				if err != nil {
 					// nolint:exhaustruct

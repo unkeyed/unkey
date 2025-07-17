@@ -11,8 +11,8 @@ import (
 // bulkInsertKey is the base query for bulk insert
 const bulkInsertKey = `INSERT INTO ` + "`" + `keys` + "`" + ` ( id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, enabled, remaining_requests, refill_day, refill_amount ) VALUES %s`
 
-// BulkInsertKey performs bulk insert in a single query
-func (q *Queries) BulkInsertKey(ctx context.Context, db DBTX, args []InsertKeyParams) error {
+// InsertKeys performs bulk insert in a single query
+func (q *BulkQueries) InsertKeys(ctx context.Context, db DBTX, args []InsertKeyParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -47,6 +47,6 @@ func (q *Queries) BulkInsertKey(ctx context.Context, db DBTX, args []InsertKeyPa
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }

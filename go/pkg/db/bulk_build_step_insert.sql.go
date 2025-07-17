@@ -14,8 +14,8 @@ const bulkInsertVersionStep = `INSERT INTO version_steps ( version_id, status, m
     error_message = VALUES(error_message),
     created_at = VALUES(created_at)`
 
-// BulkInsertVersionStep performs bulk insert in a single query
-func (q *Queries) BulkInsertVersionStep(ctx context.Context, db DBTX, args []InsertVersionStepParams) error {
+// InsertVersionSteps performs bulk insert in a single query
+func (q *BulkQueries) InsertVersionSteps(ctx context.Context, db DBTX, args []InsertVersionStepParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -40,6 +40,6 @@ func (q *Queries) BulkInsertVersionStep(ctx context.Context, db DBTX, args []Ins
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }

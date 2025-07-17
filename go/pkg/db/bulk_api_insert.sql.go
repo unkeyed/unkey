@@ -11,8 +11,8 @@ import (
 // bulkInsertApi is the base query for bulk insert
 const bulkInsertApi = `INSERT INTO apis ( id, name, workspace_id, auth_type, ip_whitelist, key_auth_id, created_at_m, deleted_at_m ) VALUES %s`
 
-// BulkInsertApi performs bulk insert in a single query
-func (q *Queries) BulkInsertApi(ctx context.Context, db DBTX, args []InsertApiParams) error {
+// InsertApis performs bulk insert in a single query
+func (q *BulkQueries) InsertApis(ctx context.Context, db DBTX, args []InsertApiParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -39,6 +39,6 @@ func (q *Queries) BulkInsertApi(ctx context.Context, db DBTX, args []InsertApiPa
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }

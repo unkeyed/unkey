@@ -11,8 +11,8 @@ import (
 // bulkInsertIdentity is the base query for bulk insert
 const bulkInsertIdentity = `INSERT INTO ` + "`" + `identities` + "`" + ` ( id, external_id, workspace_id, environment, created_at, meta ) VALUES %s`
 
-// BulkInsertIdentity performs bulk insert in a single query
-func (q *Queries) BulkInsertIdentity(ctx context.Context, db DBTX, args []InsertIdentityParams) error {
+// InsertIdentities performs bulk insert in a single query
+func (q *BulkQueries) InsertIdentities(ctx context.Context, db DBTX, args []InsertIdentityParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -38,6 +38,6 @@ func (q *Queries) BulkInsertIdentity(ctx context.Context, db DBTX, args []Insert
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }

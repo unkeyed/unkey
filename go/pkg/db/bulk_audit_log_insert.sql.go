@@ -11,8 +11,8 @@ import (
 // bulkInsertAuditLog is the base query for bulk insert
 const bulkInsertAuditLog = `INSERT INTO ` + "`" + `audit_log` + "`" + ` ( id, workspace_id, bucket_id, bucket, event, time, display, remote_ip, user_agent, actor_type, actor_id, actor_name, actor_meta, created_at ) VALUES %s`
 
-// BulkInsertAuditLog performs bulk insert in a single query
-func (q *Queries) BulkInsertAuditLog(ctx context.Context, db DBTX, args []InsertAuditLogParams) error {
+// InsertAuditLogs performs bulk insert in a single query
+func (q *BulkQueries) InsertAuditLogs(ctx context.Context, db DBTX, args []InsertAuditLogParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -46,6 +46,6 @@ func (q *Queries) BulkInsertAuditLog(ctx context.Context, db DBTX, args []Insert
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }

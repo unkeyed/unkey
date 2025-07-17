@@ -11,8 +11,8 @@ import (
 // bulkInsertKeyEncryption is the base query for bulk insert
 const bulkInsertKeyEncryption = `INSERT INTO encrypted_keys (workspace_id, key_id, encrypted, encryption_key_id, created_at) VALUES %s`
 
-// BulkInsertKeyEncryption performs bulk insert in a single query
-func (q *Queries) BulkInsertKeyEncryption(ctx context.Context, db DBTX, args []InsertKeyEncryptionParams) error {
+// InsertKeyEncryptions performs bulk insert in a single query
+func (q *BulkQueries) InsertKeyEncryptions(ctx context.Context, db DBTX, args []InsertKeyEncryptionParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -37,6 +37,6 @@ func (q *Queries) BulkInsertKeyEncryption(ctx context.Context, db DBTX, args []I
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }

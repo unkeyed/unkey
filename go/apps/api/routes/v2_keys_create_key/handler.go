@@ -338,7 +338,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 			}
 
-			err = db.BulkQuery.BulkInsertKeyRatelimit(ctx, tx, ratelimitsToInsert)
+			err = db.BulkQuery.InsertKeyRatelimits(ctx, tx, ratelimitsToInsert)
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -395,7 +395,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if len(permissionsToCreate) > 0 {
-				err = db.BulkQuery.BulkInsertPermission(ctx, tx, permissionsToCreate)
+				err = db.BulkQuery.InsertPermissions(ctx, tx, permissionsToCreate)
 				if err != nil {
 					return fault.Wrap(err,
 						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -444,7 +444,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if len(permissionsToInsert) > 0 {
-				err = db.BulkQuery.BulkInsertKeyPermission(ctx, tx, permissionsToInsert)
+				err = db.BulkQuery.InsertKeyPermissions(ctx, tx, permissionsToInsert)
 				if err != nil {
 					return fault.Wrap(err,
 						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -531,7 +531,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if len(rolesToInsert) > 0 {
-				err = db.BulkQuery.BulkInsertKeyRole(ctx, tx, rolesToInsert)
+				err = db.BulkQuery.InsertKeyRoles(ctx, tx, rolesToInsert)
 				if err != nil {
 					return fault.Wrap(err,
 						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

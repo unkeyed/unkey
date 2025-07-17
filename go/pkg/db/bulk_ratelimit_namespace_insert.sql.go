@@ -11,8 +11,8 @@ import (
 // bulkInsertRatelimitNamespace is the base query for bulk insert
 const bulkInsertRatelimitNamespace = `INSERT INTO ` + "`" + `ratelimit_namespaces` + "`" + ` ( id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m ) VALUES %s`
 
-// BulkInsertRatelimitNamespace performs bulk insert in a single query
-func (q *Queries) BulkInsertRatelimitNamespace(ctx context.Context, db DBTX, args []InsertRatelimitNamespaceParams) error {
+// InsertRatelimitNamespaces performs bulk insert in a single query
+func (q *BulkQueries) InsertRatelimitNamespaces(ctx context.Context, db DBTX, args []InsertRatelimitNamespaceParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -36,6 +36,6 @@ func (q *Queries) BulkInsertRatelimitNamespace(ctx context.Context, db DBTX, arg
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }

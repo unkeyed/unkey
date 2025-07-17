@@ -4,6 +4,45 @@ import (
 	"testing"
 )
 
+func TestPluralize(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		// Regular plurals
+		{"cat", "cats"},
+		{"dog", "dogs"},
+		{"Key", "Keys"},
+		{"User", "Users"},
+		{"AuditLog", "AuditLogs"},
+
+		// Words ending in s, sh, ch, x, z
+		{"class", "classes"},
+		{"dish", "dishes"},
+		{"church", "churches"},
+		{"box", "boxes"},
+		{"buzz", "buzzes"},
+
+		// Words ending in y
+		{"city", "cities"},
+		{"baby", "babies"},
+		{"boy", "boys"}, // vowel before y
+		{"key", "keys"}, // vowel before y
+
+		// Edge cases
+		{"", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := pluralize(tt.input)
+			if result != tt.expected {
+				t.Errorf("pluralize(%q) = %q, want %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
 func TestToCamelCase(t *testing.T) {
 	tests := []struct {
 		input    string
@@ -39,7 +78,7 @@ func TestToCamelCase(t *testing.T) {
 		t.Run(tt.input, func(t *testing.T) {
 			result := ToCamelCase(tt.input)
 			if result != tt.expected {
-				t.Errorf("ToCamelInitCase(%q) = %q, want %q", tt.input, result, tt.expected)
+				t.Errorf("ToCamelCase(%q) = %q, want %q", tt.input, result, tt.expected)
 			}
 		})
 	}

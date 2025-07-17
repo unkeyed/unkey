@@ -11,8 +11,8 @@ import (
 // bulkInsertVersion is the base query for bulk insert
 const bulkInsertVersion = `INSERT INTO ` + "`" + `versions` + "`" + ` ( id, workspace_id, project_id, branch_id, build_id, rootfs_image_id, git_commit_sha, git_branch, config_snapshot, status, created_at, updated_at ) VALUES %s`
 
-// BulkInsertVersion performs bulk insert in a single query
-func (q *Queries) BulkInsertVersion(ctx context.Context, db DBTX, args []InsertVersionParams) error {
+// InsertVersions performs bulk insert in a single query
+func (q *BulkQueries) InsertVersions(ctx context.Context, db DBTX, args []InsertVersionParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -44,6 +44,6 @@ func (q *Queries) BulkInsertVersion(ctx context.Context, db DBTX, args []InsertV
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }

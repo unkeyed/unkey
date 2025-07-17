@@ -185,7 +185,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				})
 			}
 
-			err = db.BulkQuery.BulkInsertIdentityRatelimit(
+			err = db.BulkQuery.InsertIdentityRatelimits(
 				ctx,
 				tx,
 				rateLimitsToInsert,
