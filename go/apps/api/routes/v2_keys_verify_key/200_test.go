@@ -251,13 +251,10 @@ func TestSuccess(t *testing.T) {
 				}},
 			})
 
-			perms := &openapi.V2KeysVerifyKeyRequestBody_Permissions{}
-			perms.FromV2KeysVerifyKeyRequestBodyPermissions0(openapi.V2KeysVerifyKeyRequestBodyPermissions0("domain.write"))
-
 			req := handler.Request{
 				ApiId:       api.ID,
 				Key:         key.Key,
-				Permissions: perms,
+				Permissions: ptr.P("domain.write"),
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -279,13 +276,10 @@ func TestSuccess(t *testing.T) {
 				}},
 			})
 
-			perms := &openapi.V2KeysVerifyKeyRequestBody_Permissions{}
-			perms.FromV2KeysVerifyKeyRequestBodyPermissions0(openapi.V2KeysVerifyKeyRequestBodyPermissions0("domain.read"))
-
 			req := handler.Request{
 				ApiId:       api.ID,
 				Key:         key.Key,
-				Permissions: perms,
+				Permissions: ptr.P("domain.read"),
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -301,19 +295,102 @@ func TestSuccess(t *testing.T) {
 				KeyAuthID:   api.KeyAuthID.String,
 			})
 
-			perms := &openapi.V2KeysVerifyKeyRequestBody_Permissions{}
-			perms.FromV2KeysVerifyKeyRequestBodyPermissions0(openapi.V2KeysVerifyKeyRequestBodyPermissions0("domain.write"))
-
 			req := handler.Request{
 				ApiId:       api.ID,
 				Key:         key.Key,
-				Permissions: perms,
+				Permissions: ptr.P("domain.write"),
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 			require.NotNil(t, res.Body)
 			require.Equal(t, openapi.INSUFFICIENTPERMISSIONS, res.Body.Data.Code, "Key should be no perms but got %s", res.Body.Data.Code)
 			require.False(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
+		})
+
+		t.Run("with complex permissions query", func(t *testing.T) {
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID: workspace.ID,
+				KeyAuthID:   api.KeyAuthID.String,
+				Permissions: []seed.CreatePermissionRequest{
+					{
+						Name:        "api.read",
+						Slug:        "api.read",
+						Description: nil,
+						WorkspaceID: workspace.ID,
+					},
+					{
+						Name:        "api.write",
+						Slug:        "api.write",
+						Description: nil,
+						WorkspaceID: workspace.ID,
+					},
+				},
+			})
+
+			req := handler.Request{
+				ApiId:       api.ID,
+				Key:         key.Key,
+				Permissions: ptr.P("api.read AND api.write"),
+			}
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
+			require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
+		})
+
+		t.Run("with large permissions query (20+ permissions)", func(t *testing.T) {
+			// Create a key with 25 permissions
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID: workspace.ID,
+				KeyAuthID:   api.KeyAuthID.String,
+				Permissions: []seed.CreatePermissionRequest{
+					{Name: "read.users", Slug: "read.users", WorkspaceID: workspace.ID},
+					{Name: "write.users", Slug: "write.users", WorkspaceID: workspace.ID},
+					{Name: "delete.users", Slug: "delete.users", WorkspaceID: workspace.ID},
+					{Name: "read.posts", Slug: "read.posts", WorkspaceID: workspace.ID},
+					{Name: "write.posts", Slug: "write.posts", WorkspaceID: workspace.ID},
+					{Name: "delete.posts", Slug: "delete.posts", WorkspaceID: workspace.ID},
+					{Name: "read.comments", Slug: "read.comments", WorkspaceID: workspace.ID},
+					{Name: "write.comments", Slug: "write.comments", WorkspaceID: workspace.ID},
+					{Name: "delete.comments", Slug: "delete.comments", WorkspaceID: workspace.ID},
+					{Name: "read.files", Slug: "read.files", WorkspaceID: workspace.ID},
+					{Name: "write.files", Slug: "write.files", WorkspaceID: workspace.ID},
+					{Name: "delete.files", Slug: "delete.files", WorkspaceID: workspace.ID},
+					{Name: "read.settings", Slug: "read.settings", WorkspaceID: workspace.ID},
+					{Name: "write.settings", Slug: "write.settings", WorkspaceID: workspace.ID},
+					{Name: "admin.users", Slug: "admin.users", WorkspaceID: workspace.ID},
+					{Name: "admin.posts", Slug: "admin.posts", WorkspaceID: workspace.ID},
+					{Name: "admin.system", Slug: "admin.system", WorkspaceID: workspace.ID},
+					{Name: "moderate.comments", Slug: "moderate.comments", WorkspaceID: workspace.ID},
+					{Name: "backup.create", Slug: "backup.create", WorkspaceID: workspace.ID},
+					{Name: "backup.restore", Slug: "backup.restore", WorkspaceID: workspace.ID},
+					{Name: "analytics.view", Slug: "analytics.view", WorkspaceID: workspace.ID},
+					{Name: "analytics.export", Slug: "analytics.export", WorkspaceID: workspace.ID},
+					{Name: "billing.view", Slug: "billing.view", WorkspaceID: workspace.ID},
+					{Name: "billing.manage", Slug: "billing.manage", WorkspaceID: workspace.ID},
+					{Name: "audit.view", Slug: "audit.view", WorkspaceID: workspace.ID},
+				},
+			})
+
+			// Complex query with 25 permissions using AND and OR operators
+			largeQuery := "(read.users OR write.users) AND (read.posts OR write.posts OR delete.posts) AND " +
+				"(read.comments AND write.comments) AND (read.files OR write.files) AND " +
+				"(read.settings AND write.settings) AND (admin.users OR admin.posts) AND " +
+				"admin.system AND moderate.comments AND (backup.create OR backup.restore) AND " +
+				"(analytics.view AND analytics.export) AND (billing.view OR billing.manage) AND " +
+				"audit.view AND delete.users AND delete.comments AND delete.files"
+
+			req := handler.Request{
+				ApiId:       api.ID,
+				Key:         key.Key,
+				Permissions: ptr.P(largeQuery),
+			}
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
+			require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
 		})
 	})
 

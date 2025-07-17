@@ -107,4 +107,55 @@ func TestBadRequest(t *testing.T) {
 			require.NotNil(t, res.Body.Error)
 		})
 	})
+
+	t.Run("invalid permissions query syntax", func(t *testing.T) {
+		key := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+		})
+
+		testCases := []struct {
+			name        string
+			permissions string
+			expectError string
+		}{
+			{
+				name:        "missing operand",
+				permissions: "permission_1 AND",
+				expectError: "Unexpected end of query. Expected a permission identifier or opening parenthesis.",
+			},
+			{
+				name:        "unmatched parenthesis",
+				permissions: "(permission_1 AND permission_2",
+				expectError: "Missing closing parenthesis ')' at position 30. Every opening parenthesis must have a matching closing parenthesis.",
+			},
+			{
+				name:        "empty parentheses",
+				permissions: "permission_1 AND ()",
+				expectError: "Empty parentheses found at position 18. Parentheses must contain at least one permission or expression.",
+			},
+			{
+				name:        "operator at start",
+				permissions: "AND permission_1",
+				expectError: "Unexpected token 'AND' at position 0. Expected a permission identifier or opening parenthesis.",
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				req := handler.Request{
+					ApiId:       api.ID,
+					Key:         key.Key,
+					Permissions: ptr.P(tc.permissions),
+				}
+
+				res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, validHeaders, req)
+				require.Equal(t, 400, res.Status)
+				require.NotNil(t, res.Body)
+				require.NotNil(t, res.Body.Error)
+				require.Contains(t, res.Body.Error.Detail, tc.expectError)
+				require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/user/bad_request/permissions_query_syntax_error", res.Body.Error.Type)
+			})
+		}
+	})
 }
