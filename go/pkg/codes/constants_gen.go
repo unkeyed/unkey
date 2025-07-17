@@ -7,6 +7,15 @@ type URN string
 // Error code constants for use in switch statements for exhaustive checking
 const (
 	// ----------------
+	// UserErrors
+	// ----------------
+
+	// BadRequest
+
+	// PermissionsQuerySyntaxError indicates a syntax or lexical error in verifyKey permissions query parsing.
+	UserErrorsBadRequestPermissionsQuerySyntaxError URN = "err:user:bad_request:permissions_query_syntax_error"
+
+	// ----------------
 	// UnkeyAuthErrors
 	// ----------------
 

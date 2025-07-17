@@ -59,7 +59,8 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 			// Bad Request errors
 			case codes.UnkeyAppErrorsValidationInvalidInput,
 				codes.UnkeyAuthErrorsAuthenticationMissing,
-				codes.UnkeyAuthErrorsAuthenticationMalformed:
+				codes.UnkeyAuthErrorsAuthenticationMalformed,
+				codes.UserErrorsBadRequestPermissionsQuerySyntaxError:
 				return s.JSON(http.StatusBadRequest, openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
