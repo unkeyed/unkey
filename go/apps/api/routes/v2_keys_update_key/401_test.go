@@ -7,12 +7,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
-	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_create_key"
+	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_update_key"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestCreateKeyUnauthorized(t *testing.T) {
+func TestUpdateKeyUnauthorized(t *testing.T) {
 
 	h := testutil.NewHarness(t)
 
@@ -21,15 +22,26 @@ func TestCreateKeyUnauthorized(t *testing.T) {
 		Keys:      h.Keys,
 		Logger:    h.Logger,
 		Auditlogs: h.Auditlogs,
-		Vault:     h.Vault,
 	}
 
 	h.Register(route)
 
-	// Basic request body
-	req := handler.Request{
-		ApiId: uid.New(uid.APIPrefix),
-	}
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID:   h.Resources().UserWorkspace.ID,
+		IpWhitelist:   "",
+		EncryptedKeys: false,
+		Name:          nil,
+		CreatedAt:     nil,
+		DefaultPrefix: nil,
+		DefaultBytes:  nil,
+	})
+
+	key := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: api.WorkspaceID,
+		KeyAuthID:   api.KeyAuthID.String,
+	})
+
+	req := handler.Request{KeyId: key.KeyID}
 
 	t.Run("invalid bearer token", func(t *testing.T) {
 		headers := http.Header{

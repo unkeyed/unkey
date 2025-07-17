@@ -14,7 +14,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
-func Test_CreateKey_Success(t *testing.T) {
+func TestCreateKeySuccess(t *testing.T) {
 	t.Parallel()
 
 	h := testutil.NewHarness(t)
@@ -65,7 +65,7 @@ func Test_CreateKey_Success(t *testing.T) {
 	require.True(t, key.Enabled)
 }
 
-func Test_CreateKey_WithOptionalFields(t *testing.T) {
+func TestCreateKeyWithOptionalFields(t *testing.T) {
 	t.Parallel()
 
 	h := testutil.NewHarness(t)
