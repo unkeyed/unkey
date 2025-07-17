@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestToCamelInitCase(t *testing.T) {
+func TestToCamelCase(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected string
@@ -33,10 +33,6 @@ func TestToCamelInitCase(t *testing.T) {
 		{"user_id_2", "UserID2"},
 		{"api_key", "ApiKey"},
 		{"http_status", "HttpStatus"},
-
-		{"user_id", "userID"},
-		{"name", "name"},
-		{"id", "id"},
 	}
 
 	for _, tt := range tests {
