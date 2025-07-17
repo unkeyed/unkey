@@ -82,7 +82,6 @@ export const useFilters = () => {
           newParams[field] = fieldFilters;
         }
       });
-
       setSearchParams(newParams);
     },
     [setSearchParams],

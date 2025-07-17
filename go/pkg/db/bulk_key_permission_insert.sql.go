@@ -27,7 +27,7 @@ func (q *Queries) BulkInsertKeyPermission(ctx context.Context, db DBTX, args []I
 	bulkQuery := fmt.Sprintf(bulkInsertKeyPermission, strings.Join(valueClauses, ", "))
 
 	// Collect all arguments
-	var allArgs []interface{}
+	var allArgs []any
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.KeyID)
 		allArgs = append(allArgs, arg.PermissionID)

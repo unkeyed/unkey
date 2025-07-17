@@ -33,6 +33,10 @@ export const keysOverviewFilterFieldConfig: FilterFieldConfigs = {
     type: "string",
     operators: ["is", "contains", "startsWith", "endsWith"],
   },
+  tags: {
+    type: "string",
+    operators: ["is", "contains", "startsWith", "endsWith"],
+  },
   outcomes: {
     type: "string",
     operators: ["is"],
@@ -52,6 +56,7 @@ export const keysOverviewFilterFieldEnum = z.enum([
   "names",
   "outcomes",
   "identities",
+  "tags",
 ]);
 
 export const filterOutputSchema = createFilterOutputSchema(
@@ -73,6 +78,7 @@ export type FilterFieldConfigs = {
   names: StringConfig<KeysOverviewFilterOperator>;
   outcomes: StringConfig<KeysOverviewFilterOperator>;
   identities: StringConfig<KeysOverviewFilterOperator>;
+  tags: StringConfig<KeysOverviewFilterOperator>;
 };
 
 export type IsOnlyUrlValue = {
@@ -108,4 +114,5 @@ export type KeysQuerySearchParams = {
   names: AllOperatorsUrlValue[] | null;
   outcomes: IsOnlyUrlValue[] | null;
   identities: AllOperatorsUrlValue[] | null;
+  tags: AllOperatorsUrlValue[] | null;
 };

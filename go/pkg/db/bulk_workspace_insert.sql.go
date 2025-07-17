@@ -27,7 +27,7 @@ func (q *Queries) BulkInsertWorkspace(ctx context.Context, db DBTX, args []Inser
 	bulkQuery := fmt.Sprintf(bulkInsertWorkspace, strings.Join(valueClauses, ", "))
 
 	// Collect all arguments
-	var allArgs []interface{}
+	var allArgs []any
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.OrgID)

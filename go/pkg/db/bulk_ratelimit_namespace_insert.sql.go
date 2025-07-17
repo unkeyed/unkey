@@ -27,7 +27,7 @@ func (q *Queries) BulkInsertRatelimitNamespace(ctx context.Context, db DBTX, arg
 	bulkQuery := fmt.Sprintf(bulkInsertRatelimitNamespace, strings.Join(valueClauses, ", "))
 
 	// Collect all arguments
-	var allArgs []interface{}
+	var allArgs []any
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.WorkspaceID)

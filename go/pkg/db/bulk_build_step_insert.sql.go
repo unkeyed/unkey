@@ -30,7 +30,7 @@ func (q *Queries) BulkInsertVersionStep(ctx context.Context, db DBTX, args []Ins
 	bulkQuery := fmt.Sprintf(bulkInsertVersionStep, strings.Join(valueClauses, ", "))
 
 	// Collect all arguments
-	var allArgs []interface{}
+	var allArgs []any
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.VersionID)
 		allArgs = append(allArgs, arg.Status)

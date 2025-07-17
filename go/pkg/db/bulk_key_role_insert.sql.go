@@ -27,7 +27,7 @@ func (q *Queries) BulkInsertKeyRole(ctx context.Context, db DBTX, args []InsertK
 	bulkQuery := fmt.Sprintf(bulkInsertKeyRole, strings.Join(valueClauses, ", "))
 
 	// Collect all arguments
-	var allArgs []interface{}
+	var allArgs []any
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.KeyID)
 		allArgs = append(allArgs, arg.RoleID)

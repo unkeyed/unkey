@@ -30,7 +30,7 @@ func (q *Queries) {{.BulkFunctionName}}(ctx context.Context, args []{{.ParamsStr
 	bulkQuery := fmt.Sprintf({{.BulkQueryConstant}}, strings.Join(valueClauses, ", "))
 
 	// Collect all arguments
-	var allArgs []interface{}
+	var allArgs []any
 	for _, arg := range args {
 		{{- range .Fields}}
 		allArgs = append(allArgs, arg.{{.}})

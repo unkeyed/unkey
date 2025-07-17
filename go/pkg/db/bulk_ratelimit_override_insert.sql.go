@@ -27,7 +27,7 @@ func (q *Queries) BulkInsertRatelimitOverride(ctx context.Context, db DBTX, args
 	bulkQuery := fmt.Sprintf(bulkInsertRatelimitOverride, strings.Join(valueClauses, ", "))
 
 	// Collect all arguments
-	var allArgs []interface{}
+	var allArgs []any
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.WorkspaceID)
@@ -39,6 +39,6 @@ func (q *Queries) BulkInsertRatelimitOverride(ctx context.Context, db DBTX, args
 	}
 
 	// Execute the bulk insert
-	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-	return err
+    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+    return err
 }

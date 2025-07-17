@@ -32,7 +32,7 @@ func (q *Queries) BulkInsertIdentityRatelimit(ctx context.Context, db DBTX, args
 	bulkQuery := fmt.Sprintf(bulkInsertIdentityRatelimit, strings.Join(valueClauses, ", "))
 
 	// Collect all arguments
-	var allArgs []interface{}
+	var allArgs []any
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.WorkspaceID)
