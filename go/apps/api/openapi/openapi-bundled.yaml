@@ -1,0 +1,654 @@
+openapi: 3.0.0
+info:
+  title: Unkey API
+  version: 2.0.0
+  description: |-
+    Unkey's API provides programmatic access for all resources within our platform.
+
+
+    ### Authentication
+    #
+    This API uses HTTP Bearer authentication with root keys. Most endpoints require specific permissions associated with your root key. When making requests, include your root key in the `Authorization` header:
+    ```
+    Authorization: Bearer unkey_xxxxxxxxxxx
+    ```
+
+    All responses follow a consistent envelope structure that separates operational metadata from actual data. This design provides several benefits:
+    - Debugging: Every response includes a unique requestId for tracing issues
+    - Consistency: Predictable response format across all endpoints
+    - Extensibility: Easy to add new metadata without breaking existing integrations
+    - Error Handling: Unified error format with actionable information
+
+    ### Success Response Format:
+    ```json
+    {
+      "meta": {
+        "requestId": "req_123456"
+      },
+      "data": {
+        // Actual response data here
+      }
+    }
+    ```
+
+    The meta object contains operational information:
+    - `requestId`: Unique identifier for this request (essential for support)
+
+    The data object contains the actual response data specific to each endpoint.
+
+    ### Paginated Response Format:
+    ```json
+    {
+      "meta": {
+        "requestId": "req_123456"
+      },
+      "data": [
+        // Array of results
+      ],
+      "pagination": {
+        "cursor": "next_page_token",
+        "hasMore": true
+      }
+    }
+    ```
+
+    The pagination object appears on list endpoints and contains:
+    - `cursor`: Token for requesting the next page
+    - `hasMore`: Whether more results are available
+
+    ### Error Response Format:
+    ```json
+    {
+      "meta": {
+        "requestId": "req_2c9a0jf23l4k567"
+      },
+      "error": {
+        "detail": "The resource you are attempting to modify is protected and cannot be changed",
+        "status": 403,
+        "title": "Forbidden",
+        "type": "https://unkey.com/docs/api-reference/errors-v2/unkey/application/protected_resource"
+      }
+    }
+    ```
+
+    Error responses include comprehensive diagnostic information:
+    - `title`: Human-readable error summary
+    - `detail`: Specific description of what went wrong
+    - `status`: HTTP status code
+    - `type`: Link to error documentation
+    - `errors`: Array of validation errors (for 400 responses)
+
+    This structure ensures you always have the context needed to debug issues and take corrective action.
+servers:
+  - url: https://api.unkey.com
+x-speakeasy-retries:
+  strategy: backoff
+  backoff:
+    initialInterval: 50
+    maxInterval: 1000
+    maxElapsedTime: 10000
+    exponent: 1.5
+  statusCodes:
+    - 5XX
+  retryConnectionErrors: true
+security:
+  - rootKey: []
+paths:
+  /v2/keys.setPermissions:
+    $ref: "#/components/pathItems/index"
+  /v2/keys.updateKey:
+    $ref: "#/components/pathItems/index__updateKey"
+components:
+  securitySchemes:
+    rootKey:
+      type: http
+      scheme: bearer
+      bearerFormat: root key
+      description: |-
+        Unkey uses API keys (root keys) for authentication. These keys authorize access to management operations in the API.
+        To authenticate, include your root key in the Authorization header of each request:
+        ```
+        Authorization: Bearer unkey_123
+        ```
+        Root keys have specific permissions attached to them, controlling what operations they can perform. Key permissions follow a hierarchical structure with patterns like `resource.resource_id.action` (e.g., `apis.*.create_key`, `apis.*.read_api`).
+        Security best practices:
+        - Keep root keys secure and never expose them in client-side code
+        - Use different root keys for different environments
+        - Rotate keys periodically, especially after team member departures
+        - Create keys with minimal necessary permissions following least privilege principle
+        - Monitor key usage with audit logs.
+  schemas:
+    meta:
+      type: object
+      required:
+        - requestId
+      properties:
+        requestId:
+          description: A unique id for this request. Always include this ID when contacting support about a specific API request. This identifier allows Unkey's support team to trace the exact request through logs and diagnostic systems to provide faster assistance.
+          example: req_123
+          type: string
+      additionalProperties: false
+      description: Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+  pathItems:
+    index:
+      post:
+        tags:
+          - keys
+        summary: Set (replace) all permissions on an API key
+        description: |-
+          Sets the permissions for an existing API key by replacing all existing direct permissions with the provided set. This is a complete replacement operation - permissions not specified in the request will be removed.
+          Use this endpoint when you want to:
+          - Synchronize API key permissions with an external system
+          - Reset a key's permissions to a known state
+          - Apply a standardized permission template to a key
+          - Remove all permissions from a key (by providing an empty array)
+          - Fix over-permissioned keys by applying the precise set needed
+          Key differences from other endpoints:
+          - Unlike addPermissions, this replaces all permissions instead of just adding
+          - Unlike removePermissions, this sets the complete state rather than removing specific permissions
+          - The advantage is atomic replacement in a single operation versus multiple incremental changes
+          Only direct permissions are affected - permissions granted through roles remain unchanged. Changes take effect immediately for new verifications, though existing authorized sessions may continue until their cache expires (typically under 30 seconds).
+        operationId: setPermissions
+        x-speakeasy-name-override: setPermissions
+        security:
+          - rootKey: []
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - keyId
+                  - permissions
+                properties:
+                  keyId:
+                    type: string
+                    description: The unique identifier of the key to set permissions on (begins with 'key_'). This ID comes from the createKey response and identifies which key will have its permissions replaced. This is the database ID, not the actual API key string that users authenticate with.
+                    example: key_2cGKbMxRyIzhCxo1Idjz8q
+                    minLength: 3
+                  permissions:
+                    type: array
+                    description: |-
+                      The permissions to set for this key. This is a complete replacement operation - it overwrites all existing direct permissions with this new set.
+                      Key behaviors:
+                      - Providing an empty array removes all direct permissions from the key
+                      - This only affects direct permissions - permissions granted through roles are not affected
+                      - All existing direct permissions not included in this list will be removed
+                      - The complete list approach allows synchronizing permissions with external systems
+                      - Permission changes take effect immediately for new verifications
+                      Unlike addPermissions (which only adds) or removePermissions (which only removes), this endpoint performs a wholesale replacement of the permission set.
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: The ID of an existing permission (begins with `perm_`). Provide either ID or slug for each permission, not both. Using ID is more precise and guarantees you're referencing the exact permission intended, regardless of slug changes or duplicates. IDs are particularly useful in automation scripts and when migrating permissions between environments.
+                          example: perm_1n9McEIBSqy44Qy7hzWyM5
+                          minLength: 3
+                        slug:
+                          type: string
+                          description: The slug of the permission. Provide either ID or slug for each permission, not both. Slugs must match exactly as defined in your permission system - including case sensitivity and the complete hierarchical path. Slugs are generally more human-readable but can be ambiguous if not carefully managed across your workspace.
+                          example: documents.write
+                          minLength: 1
+                        create:
+                          type: boolean
+                          description: |-
+                            When true, if a permission with this slug doesn't exist, it will be automatically created on-the-fly. Only works when specifying slug, not ID.
+                            SECURITY CONSIDERATIONS:
+                            - Requires the `rbac.*.create_permission` permission on your root key
+                            - Created permissions are permanent and visible throughout your workspace
+                            - Use carefully to avoid permission proliferation and inconsistency
+                            - Consider using a controlled process for permission creation instead
+                            - Typos with `create=true` will create unintended permissions that persist in your system
+                          default: false
+                      additionalProperties: false
+                additionalProperties: false
+              examples:
+                removeAll:
+                  summary: Remove all permissions from key
+                  description: This example won't work as expected! The permissions array must contain at least one permission to remove. To remove all permissions, use the setPermissions endpoint with an empty permissions array instead.
+                  value:
+                    keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+                    permissions: []
+                basic:
+                  summary: Set permissions using IDs
+                  description: Using permission IDs is the most precise approach for setting permissions, especially in automation scripts where exact references are important.
+                  value:
+                    keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+                    permissions:
+                      - id: perm_1n9McEIBSqy44Qy7hzWyM5
+                      - id: perm_2zF4mNyP9BsRj2aQwDxVkT
+                withNames:
+                  summary: Add permissions using slugs
+                  description: Using permission slugs is more readable and maintainable. Slugs must be unique within your workspace.
+                  value:
+                    keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+                    permissions:
+                      - slug: documents.write
+                      - slug: documents.delete
+                withCreation:
+                  summary: Set with permission creation
+                  description: This example demonstrates setting permissions while simultaneously creating new ones that don't exist yet. Requires the `rbac.*.create_permission` permission on your root key.
+                  value:
+                    keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+                    permissions:
+                      - slug: documents.write
+                      - slug: reports.export
+                        create: true
+                      - name: reports.schedule
+                        create: true
+                mixed:
+                  summary: Mix of ID and name references
+                  description: You can combine different reference methods in a single request - some permissions by ID, others by name, and even create new ones on the fly.
+                  value:
+                    keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+                    permissions:
+                      - id: perm_1n9McEIBSqy44Qy7hzWyM5
+                      - slug: documents.delete
+                      - slug: reports.view
+                        create: true
+        responses:
+          "200":
+            description: Permissions successfully set on the key. The previous direct permission set has been completely replaced with the new set specified in the request.
+            content:
+              application/json:
+                schema:
+                  type: object
+                  required:
+                    - meta
+                    - data
+                  properties:
+                    meta:
+                      $ref: "#/components/schemas/meta"
+                    data:
+                      type: array
+                      description: |-
+                        Complete list of all permissions now directly assigned to the key after the set operation has completed.
+                        The response includes:
+                        - The comprehensive, updated set of direct permissions (reflecting the complete replacement)
+                        - Both ID and name for each permission for easy reference
+                        - Permissions sorted alphabetically by name for consistent response format
+                        Important notes:
+                        - This only shows direct permissions, not those granted through roles
+                        - An empty array means the key has no direct permissions assigned
+                        - For a complete permission picture including roles, use keys.getKey instead
+                        - All permission changes are logged in the audit log for security tracking
+                      items:
+                        type: object
+                        required:
+                          - id
+                          - name
+                        properties:
+                          id:
+                            type: string
+                            description: The unique identifier of the permission
+                            example: perm_1n9McEIBSqy44Qy7hzWyM5
+                          name:
+                            type: string
+                            description: The name of the permission
+                            example: documents.write
+                examples:
+                  standard:
+                    summary: Complete list of permissions
+                    value:
+                      meta:
+                        requestId: req_2cGKbMxRyIzhCxo1Idjz8q
+                      data:
+                        - id: perm_1n9McEIBSqy44Qy7hzWyM5
+                          name: documents.write
+                        - id: perm_2zF4mNyP9BsRj2aQwDxVkT
+                          name: documents.delete
+                        - id: perm_3qRsTu2vWxYzAbCdEfGhIj
+                          name: reports.view
+                  empty:
+                    summary: All permissions removed
+                    value:
+                      meta:
+                        requestId: req_3qRsTu2vWxYzAbCdEfGhIj
+                      data: []
+          "400":
+            description: |-
+              Bad Request - Invalid request format, missing required fields, or validation errors
+            content:
+              application/json:
+                schema:
+                  type: object
+                  required:
+                    - meta
+                    - error
+                  properties:
+                    meta:
+                      $ref: "#/components/schemas/meta"
+                    error:
+                      allOf:
+                        - $ref: "fixme"
+                        - type: object
+                          properties:
+                            errors:
+                              description: List of individual validation errors that occurred in the request. Each error provides specific details about what failed validation, where the error occurred in the request, and suggestions for fixing it. This granular information helps developers quickly identify and resolve multiple issues in a single request without having to make repeated API calls.
+                              items:
+                                additionalProperties: false
+                                properties:
+                                  location:
+                                    description: |-
+                                      JSON path indicating exactly where in the request the error occurred. This helps pinpoint the problematic field or parameter. Examples include:
+                                      - 'body.name' (field in request body)
+                                      - 'body.items[3].tags' (nested array element)
+                                      - 'path.apiId' (path parameter)
+                                      - 'query.limit' (query parameter)
+                                      Use this location to identify exactly which part of your request needs correction.
+                                    type: string
+                                    example: body.permissions[0].name
+                                  message:
+                                    description: Detailed error message explaining what validation rule was violated. This provides specific information about why the field or parameter was rejected, such as format errors, invalid values, or constraint violations.
+                                    type: string
+                                    example: Must be at least 3 characters long
+                                  fix:
+                                    description: A human-readable suggestion describing how to fix the error. This provides practical guidance on what changes would satisfy the validation requirements. Not all validation errors include fix suggestions, but when present, they offer specific remediation advice.
+                                    type: string
+                                    example: Ensure the name uses only alphanumeric characters, underscores, and hyphens
+                                required:
+                                  - location
+                                  - message
+                                type: object
+                                description: Individual validation error details. Each validation error provides precise information about what failed, where it failed, and how to fix it, enabling efficient error resolution.
+                              type: array
+                          required:
+                            - errors
+                      description: Extended error details specifically for bad request (400) errors. This builds on the BaseError structure by adding an array of individual validation errors, making it easy to identify and fix multiple issues at once.
+                  description: Error response for invalid requests that cannot be processed due to client-side errors. This typically occurs when request parameters are missing, malformed, or fail validation rules. The response includes detailed information about the specific errors in the request, including the location of each error and suggestions for fixing it. When receiving this error, check the 'errors' array in the response for specific validation issues that need to be addressed before retrying.
+                examples:
+                  validationError:
+                    summary: Validation error example
+                    value:
+                      meta:
+                        requestId: req_2c9a0jf23l4k567
+                      error:
+                        detail: Request failed validation due to invalid field values
+                        status: 400
+                        title: Bad Request
+                        type: https://unkey.com/docs/api-reference/errors-v2/unkey/client/validation_error
+                        errors:
+                          - location: body.permissions[0].name
+                            message: Must be at least 3 characters long
+                            fix: Ensure the name uses only alphanumeric characters, underscores, and hyphens
+          "401":
+            description: |-
+              Unauthorized - Missing or invalid authentication credentials
+            content:
+              application/json:
+                schema:
+                  type: object
+                  required:
+                    - meta
+                    - error
+                  properties:
+                    meta:
+                      $ref: "#/components/schemas/meta"
+                    error:
+                      properties:
+                        detail:
+                          description: A human-readable explanation specific to this occurrence of the problem. This provides detailed information about what went wrong and potential remediation steps. The message is intended to be helpful for developers troubleshooting the issue.
+                          example: Property foo is required but is missing.
+                          type: string
+                        status:
+                          description: HTTP status code that corresponds to this error. This will match the status code in the HTTP response. Common codes include `400` (Bad Request), `401` (Unauthorized), `403` (Forbidden), `404` (Not Found), `409` (Conflict), and `500` (Internal Server Error).
+                          example: 404
+                          format: int
+                          type: integer
+                        title:
+                          description: A short, human-readable summary of the problem type. This remains constant from occurrence to occurrence of the same problem and should be used for programmatic handling.
+                          example: Not Found
+                          type: string
+                        type:
+                          description: A URI reference that identifies the problem type. This provides a stable identifier for the error that can be used for documentation lookups and programmatic error handling. When followed, this URI should provide human-readable documentation for the problem type.
+                          example: https://unkey.com/docs/api-reference/errors-v2/unkey/resource/not_found
+                          type: string
+                      required:
+                        - title
+                        - detail
+                        - status
+                        - type
+                      type: object
+                      additionalProperties: false
+                      description: Base error structure following Problem Details for HTTP APIs (RFC 7807). This provides a standardized way to carry machine-readable details of errors in HTTP response content.
+                  description: |-
+                    Error response when authentication has failed or credentials are missing. This occurs when:
+                    - The Authorization header is missing
+                    - The root key is invalid or has been revoked
+                    - The root key format is incorrect
+                    - The authentication token has expired
+                    To fix this error:
+                    1. Ensure you're including the `Authorization` header with format: `Bearer your_root_key`
+                    2. Verify your root key is valid and has not been revoked in the Unkey dashboard
+                    3. Check that you're using the correct root key for the environment
+                    4. If using a new key, ensure it was created successfully
+                    For security reasons, the specific reason for authentication failure may be intentionally vague in the error message. Check your Unkey dashboard for more detailed information about your root keys.
+                examples:
+                  invalidToken:
+                    summary: Invalid authentication token
+                    value:
+                      meta:
+                        requestId: req_2c9a0jf23l4k567
+                      error:
+                        detail: The provided authentication token is invalid or has expired
+                        status: 401
+                        title: Unauthorized
+                        type: https://unkey.com/docs/api-reference/errors-v2/unkey/auth/invalid_token
+          "403":
+            description: |-
+              Forbidden - Insufficient permissions to access the requested resource
+            content:
+              application/json:
+                schema:
+                  type: object
+                  required:
+                    - meta
+                    - error
+                  properties:
+                    meta:
+                      $ref: "#/components/schemas/meta"
+                    error:
+                      $ref: "fixme"
+                  description: |-
+                    Error response when the caller is authenticated but lacks permission to perform the requested operation. This occurs when:
+                    - The root key doesn't have the required permissions for the operation
+                    - The caller is trying to access resources from a different workspace
+                    - The caller is attempting to access another user's resources
+                    - The operation violates a policy restriction
+                    Unlike Unauthorized (401) which indicates authentication issues, Forbidden (403) indicates authorization problems for an authenticated caller.
+                    To fix this error:
+                    1. Check the permissions assigned to your root key in the Unkey dashboard
+                    2. Verify you're operating within the correct workspace
+                    3. Ensure you have the necessary scope to access the requested resource
+                    4. Request additional permissions if needed from your workspace administrator
+                    Permission patterns in Unkey follow a hierarchical structure:
+                    - 'resource.*' grants all permissions for a resource
+                    - 'resource.read' grants read-only access
+                    - 'resource.write' grants write access
+                examples:
+                  insufficientPermissions:
+                    summary: Insufficient permissions
+                    value:
+                      meta:
+                        requestId: req_2c9a0jf23l4k567
+                      error:
+                        detail: Your root key lacks the required permissions for this operation
+                        status: 403
+                        title: Forbidden
+                        type: https://unkey.com/docs/api-reference/errors-v2/unkey/auth/insufficient_permissions
+          "404":
+            description: |-
+              Not Found - The requested resource does not exist
+            content:
+              application/json:
+                schema:
+                  type: object
+                  required:
+                    - meta
+                    - error
+                  properties:
+                    meta:
+                      $ref: "#/components/schemas/meta"
+                    error:
+                      $ref: "fixme"
+                  description: Error response when the requested resource cannot be found. This typically indicates that the resource either doesn't exist, has been deleted, or the caller doesn't have permission to see it. Common scenarios include looking up non-existent keys, APIs, permissions, or identities. When receiving this error, verify that the resource identifier is correct and that the resource hasn't been deleted.
+                examples:
+                  resourceNotFound:
+                    summary: Resource not found
+                    value:
+                      meta:
+                        requestId: req_2c9a0jf23l4k567
+                      error:
+                        detail: The requested resource could not be found
+                        status: 404
+                        title: Not Found
+                        type: https://unkey.com/docs/api-reference/errors-v2/unkey/resource/not_found
+          "500":
+            description: |-
+              Internal Server Error - An unexpected error occurred on the server
+            content:
+              application/json:
+                schema:
+                  type: object
+                  required:
+                    - meta
+                    - error
+                  properties:
+                    meta:
+                      $ref: "#/components/schemas/meta"
+                    error:
+                      $ref: "fixme"
+                  description: Error response for unexpected server-side issues that prevented the request from being processed correctly. This is typically caused by problems with Unkey's infrastructure rather than issues with your request. When encountering this error, the best course of action is to retry the request after a short delay. If the problem persists, contact Unkey support with the requestId for investigation. These errors are monitored by Unkey's engineering team and are typically resolved quickly.
+                examples:
+                  serverError:
+                    summary: Internal server error
+                    value:
+                      meta:
+                        requestId: req_2c9a0jf23l4k567
+                      error:
+                        detail: An unexpected error occurred while processing your request
+                        status: 500
+                        title: Internal Server Error
+                        type: https://unkey.com/docs/api-reference/errors-v2/unkey/server/internal_error
+    index__updateKey:
+      post:
+        tags:
+          - keys
+        summary: Update API key properties without changing the key itself
+        description: |-
+          Modifies the properties of an existing API key without changing the key string itself. This endpoint supports partial updates - you only need to include the fields you want to change.
+
+          You can use this endpoint to:
+          - Rename keys for better organization
+          - Update metadata to reflect changes in user status, plan, or properties
+          - Modify usage limits or rate limits
+          - Enable or disable keys temporarily
+          - Change key expiration dates
+          - Add or update user identifiers
+
+          To explicitly remove/disable a feature, set its field to null. Fields not included in the request remain unchanged. For managing permissions or roles, use the specialized endpoints (keys.addPermissions, keys.removePermissions, etc.) instead.
+
+          Changes may take up to 30 seconds to propagate to all regions due to cache invalidation. For immediate effect in the current region, follow the update with a verification request.
+        operationId: updateKey
+        x-speakeasy-name-override: updateKey
+        security:
+          - rootKey: []
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - keyId
+                properties:
+                  keyId:
+                    type: string
+                    description: The unique identifier of the key to update
+                    example: key_2cGKbMxRyIzhCxo1Idjz8q
+                    minLength: 3
+                  name:
+                    type: string
+                    nullable: true
+                    description: Human-readable name for the key
+                    example: Updated API Key
+                  externalId:
+                    type: string
+                    nullable: true
+                    description: External identifier for linking to your system
+                    example: user_12345
+                  meta:
+                    type: object
+                    nullable: true
+                    description: Additional metadata for the key
+                    additionalProperties: true
+                additionalProperties: false
+              examples:
+                basic:
+                  summary: Update key name and external ID
+                  value:
+                    keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+                    name: Updated API Key
+                    externalId: user_12345
+                withMeta:
+                  summary: Update key with metadata
+                  value:
+                    keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+                    name: Production API Key
+                    meta:
+                      environment: production
+                      team: backend
+        responses:
+          "200":
+            description: Key successfully updated with the new values
+            content:
+              application/json:
+                schema:
+                  type: object
+                  required:
+                    - meta
+                    - data
+                  properties:
+                    meta:
+                      $ref: "#/components/schemas/meta"
+                    data:
+                      type: object
+                      required:
+                        - keyId
+                      properties:
+                        keyId:
+                          type: string
+                          description: The unique identifier of the updated key
+                          example: key_2cGKbMxRyIzhCxo1Idjz8q
+                        name:
+                          type: string
+                          nullable: true
+                          description: The updated name of the key
+                          example: Updated API Key
+                        externalId:
+                          type: string
+                          nullable: true
+                          description: The updated external identifier
+                          example: user_12345
+                examples:
+                  standard:
+                    summary: Key updated successfully
+                    value:
+                      meta:
+                        requestId: req_2cGKbMxRyIzhCxo1Idjz8q
+                      data:
+                        keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+                        name: Updated API Key
+                        externalId: user_12345
+          "400":
+            $ref: "/Users/florianeikel/Developer/unkey/go/apps/api/openapi/spec/error/responses.yaml#/BadRequestError"
+          "401":
+            $ref: "/Users/florianeikel/Developer/unkey/go/apps/api/openapi/spec/error/responses.yaml#/UnauthorizedError"
+          "403":
+            $ref: "/Users/florianeikel/Developer/unkey/go/apps/api/openapi/spec/error/responses.yaml#/ForbiddenError"
+          "404":
+            $ref: "/Users/florianeikel/Developer/unkey/go/apps/api/openapi/spec/error/responses.yaml#/NotFoundError"
+          "500":
+            $ref: "/Users/florianeikel/Developer/unkey/go/apps/api/openapi/spec/error/responses.yaml#/InternalServerError"
