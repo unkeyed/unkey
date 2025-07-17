@@ -20,6 +20,12 @@ export function transformKeyDetailsFilters(
       value: o.value,
     })) ?? null;
 
+  const tags =
+    params.tags?.map((t) => ({
+      operator: t.operator,
+      value: t.value,
+    })) ?? null;
+
   return {
     workspaceId,
     keyId: params.keyId,
@@ -29,5 +35,6 @@ export function transformKeyDetailsFilters(
     endTime,
     cursorTime: params.cursor ?? null,
     outcomes,
+    tags,
   };
 }

@@ -17,7 +17,12 @@ export const LogsFilters = () => {
   const activeNameFilter = filters.find((f) => f.field === "names");
   const activeIdentityFilter = filters.find((f) => f.field === "identities");
   const activeKeyIdsFilter = filters.find((f) => f.field === "keyIds");
+  const activeTagsFilter = filters.find((f) => f.field === "tags");
   const keyIdOptions = keysListFilterFieldConfig.names.operators.map((op) => ({
+    id: op,
+    label: op,
+  }));
+  const tagsOptions = keysListFilterFieldConfig.tags.operators.map((op) => ({
     id: op,
     label: op,
   }));
@@ -90,6 +95,31 @@ export const LogsFilters = () => {
                   ...activeFiltersWithoutKeyIds,
                   {
                     field: "keyIds",
+                    id: crypto.randomUUID(),
+                    operator: id,
+                    value: text,
+                  },
+                ]);
+              }}
+            />
+          ),
+        },
+        {
+          id: "tags",
+          label: "Tags",
+          shortcut: "t",
+          component: (
+            <FilterOperatorInput
+              label="Tags"
+              options={tagsOptions}
+              defaultOption={activeTagsFilter?.operator}
+              defaultText={activeTagsFilter?.value as string}
+              onApply={(id, text) => {
+                const activeFiltersWithoutTags = filters.filter((f) => f.field !== "tags");
+                updateFilters([
+                  ...activeFiltersWithoutTags,
+                  {
+                    field: "tags",
                     id: crypto.randomUUID(),
                     operator: id,
                     value: text,

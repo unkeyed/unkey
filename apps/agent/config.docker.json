@@ -9,16 +9,6 @@
   "authToken": "${AUTH_TOKEN}",
   "nodeId": "${NODE_ID}",
   "logging": {},
-  "cluster": {
-    "authToken": "${AUTH_TOKEN}",
-    "serfAddr": "${HOSTNAME}:${SERF_PORT}",
-    "rpcAddr": "${HOSTNAME}:${RPC_PORT}",
-    "join": {
-      "env": {
-        "addrs": ["unkey-agent-1:${SERF_PORT}"]
-      }
-    }
-  },
   "services": {
     "vault": {
       "s3Url": "${VAULT_S3_URL}",

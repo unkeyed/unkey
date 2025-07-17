@@ -12,7 +12,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func Test_CreateKey_NotFound(t *testing.T) {
+func TestCreateKeyNotFound(t *testing.T) {
 
 	h := testutil.NewHarness(t)
 
