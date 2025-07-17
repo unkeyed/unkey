@@ -3,6 +3,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"testing"
 	"time"
@@ -13,7 +14,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/port"
 	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
@@ -36,7 +36,6 @@ type Harness struct {
 	ctx           context.Context
 	cancel        context.CancelFunc
 	instanceAddrs []string
-	ports         *port.FreePort
 	Seed          *seed.Seeder
 	dbDSN         string
 	DB            db.Database
@@ -87,7 +86,6 @@ func New(t *testing.T, config Config) *Harness {
 		t:             t,
 		ctx:           ctx,
 		cancel:        cancel,
-		ports:         port.New(),
 		instanceAddrs: []string{},
 		Seed:          seed.New(t, db),
 		dbDSN:         mysqlHostDSN,
@@ -124,11 +122,11 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 
 	// Start each API node as a goroutine
 	for i := 0; i < config.Nodes; i++ {
-		// Find an available port
-		portFinder := port.New()
-		nodePort := portFinder.Get()
+		// Create ephemeral listener
+		ln, err := net.Listen("tcp", ":0")
+		require.NoError(h.t, err, "Failed to create ephemeral listener")
 
-		cluster.Addrs[i] = fmt.Sprintf("http://localhost:%d", nodePort)
+		cluster.Addrs[i] = fmt.Sprintf("http://%s", ln.Addr().String())
 
 		// Create API config for this node using host connections
 		mysqlHostCfg := containers.MySQL(h.t)
@@ -139,7 +137,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 		apiConfig := api.Config{
 			Platform:                "test",
 			Image:                   "test",
-			HttpPort:                nodePort,
+			Listener:                ln,
 			DatabasePrimary:         mysqlHostCfg.FormatDSN(),
 			DatabaseReadonlyReplica: "",
 			ClickhouseURL:           clickhouseHostDSN,
@@ -198,12 +196,13 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 
 		// Wait for server to start
 		maxAttempts := 30
+		healthURL := fmt.Sprintf("http://%s/v2/liveness", ln.Addr().String())
 		for attempt := 0; attempt < maxAttempts; attempt++ {
-			resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v2/liveness", nodePort))
+			resp, err := http.Get(healthURL)
 			if err == nil {
 				resp.Body.Close()
 				if resp.StatusCode == http.StatusOK {
-					h.t.Logf("API server %d started on port %d", i, nodePort)
+					h.t.Logf("API server %d started on %s", i, ln.Addr().String())
 					break
 				}
 			}
@@ -216,6 +215,8 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 		// Register cleanup
 		h.t.Cleanup(func() {
 			cancel()
+			// Note: Don't call ln.Close() here as the zen server
+			// will properly close the listener during graceful shutdown
 		})
 	}
 

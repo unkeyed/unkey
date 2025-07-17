@@ -3,28 +3,22 @@ package agent
 import (
 	"context"
 	"fmt"
-	"net"
 	"os"
 	"os/signal"
 	"runtime/debug"
 	"strings"
 	"syscall"
 
-	"github.com/Southclaws/fault"
-	"github.com/Southclaws/fault/fmsg"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api"
 	"github.com/unkeyed/unkey/apps/agent/pkg/clickhouse"
-	"github.com/unkeyed/unkey/apps/agent/pkg/cluster"
 	"github.com/unkeyed/unkey/apps/agent/pkg/config"
 	"github.com/unkeyed/unkey/apps/agent/pkg/connect"
-	"github.com/unkeyed/unkey/apps/agent/pkg/membership"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/profiling"
 	"github.com/unkeyed/unkey/apps/agent/pkg/prometheus"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
 	"github.com/unkeyed/unkey/apps/agent/pkg/version"
-	"github.com/unkeyed/unkey/apps/agent/services/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/services/vault"
 	"github.com/unkeyed/unkey/apps/agent/services/vault/storage"
 	storageMiddleware "github.com/unkeyed/unkey/apps/agent/services/vault/storage/middleware"
@@ -160,81 +154,13 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("failed to create vault service: %w", err)
 	}
 
-	var clus cluster.Cluster
-
-	if cfg.Cluster != nil {
-
-		memb, membershipErr := membership.New(membership.Config{
-			NodeId:   cfg.NodeId,
-			RpcAddr:  cfg.Cluster.RpcAddr,
-			SerfAddr: cfg.Cluster.SerfAddr,
-			Logger:   logger,
-		})
-		if membershipErr != nil {
-			return fmt.Errorf("failed to create membership: %w", membershipErr)
-		}
-
-		var join []string
-		if cfg.Cluster.Join.Dns != nil {
-			addrs, lookupErr := net.LookupHost(cfg.Cluster.Join.Dns.AAAA)
-			if lookupErr != nil {
-				return fmt.Errorf("failed to lookup dns: %w", lookupErr)
-			}
-			logger.Info().Strs("addrs", addrs).Msg("found dns records")
-			join = addrs
-		} else if cfg.Cluster.Join.Env != nil {
-			join = cfg.Cluster.Join.Env.Addrs
-		}
-
-		_, err = memb.Join(join...)
-		if err != nil {
-			return fault.Wrap(err, fmsg.With("failed to join cluster"))
-		}
-		defer func() {
-			logger.Info().Msg("leaving membership")
-			err = memb.Leave()
-			if err != nil {
-				logger.Error().Err(err).Msg("failed to leave cluster")
-			}
-		}()
-
-		clus, err = cluster.New(cluster.Config{
-			NodeId:     cfg.NodeId,
-			RpcAddr:    cfg.Cluster.RpcAddr,
-			Membership: memb,
-			Logger:     logger,
-			Metrics:    m,
-			Debug:      true,
-			AuthToken:  cfg.Cluster.AuthToken,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create cluster: %w", err)
-		}
-		defer func() {
-			shutdownErr := clus.Shutdown()
-			if shutdownErr != nil {
-				logger.Error().Err(shutdownErr).Msg("failed to shutdown cluster")
-			}
-		}()
-
-	}
-
-	rl, err := ratelimit.New(ratelimit.Config{
-		Logger:  logger,
-		Metrics: m,
-		Cluster: clus,
-	})
-	if err != nil {
-		logger.Fatal().Err(err).Msg("failed to create service")
-	}
-
 	srv, err := api.New(api.Config{
 		NodeId:     cfg.NodeId,
 		Logger:     logger,
-		Ratelimit:  rl,
+		Ratelimit:  nil,
 		Metrics:    m,
 		Clickhouse: ch,
-		AuthToken:  cfg.Cluster.AuthToken,
+		AuthToken:  cfg.AuthToken,
 		Vault:      v,
 	})
 	if err != nil {
@@ -245,17 +171,6 @@ func run(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-
-	err = connectSrv.AddService(connect.NewClusterServer(clus, logger))
-	if err != nil {
-		return fmt.Errorf("failed to add cluster service: %w", err)
-
-	}
-	err = connectSrv.AddService(connect.NewRatelimitServer(rl, logger, cfg.AuthToken))
-	if err != nil {
-		return fmt.Errorf("failed to add ratelimit service: %w", err)
-	}
-	logger.Info().Msg("started ratelimit service")
 
 	go func() {
 		err = connectSrv.Listen(fmt.Sprintf(":%s", cfg.RpcPort))
@@ -294,10 +209,6 @@ func run(c *cli.Context) error {
 	err = srv.Shutdown()
 	if err != nil {
 		return fmt.Errorf("failed to shutdown service: %w", err)
-	}
-	err = clus.Shutdown()
-	if err != nil {
-		return fmt.Errorf("failed to shutdown cluster: %w", err)
 	}
 
 	return nil

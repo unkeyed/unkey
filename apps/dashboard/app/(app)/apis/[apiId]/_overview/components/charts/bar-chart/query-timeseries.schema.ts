@@ -50,6 +50,12 @@ export const keysOverviewQueryTimeseriesPayload = z.object({
       ),
     })
     .nullable(),
+  tags: z
+    .object({
+      operator: keysOverviewFilterOperatorEnum,
+      value: z.string(),
+    })
+    .nullable(),
 });
 
 export type KeysOverviewQueryTimeseriesPayload = z.infer<typeof keysOverviewQueryTimeseriesPayload>;

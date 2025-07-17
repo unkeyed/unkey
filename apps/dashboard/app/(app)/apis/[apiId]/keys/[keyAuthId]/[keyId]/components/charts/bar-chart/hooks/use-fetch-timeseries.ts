@@ -17,6 +17,7 @@ export const useFetchVerificationTimeseries = (keyId: string, keyspaceId: string
       startTime: timestamp - HISTORICAL_DATA_WINDOW,
       endTime: timestamp,
       outcomes: { filters: [] },
+      tags: null,
       since: "",
       keyId,
       keyspaceId,
@@ -28,6 +29,23 @@ export const useFetchVerificationTimeseries = (keyId: string, keyspaceId: string
       }
 
       switch (filter.field) {
+        case "tags": {
+          if (typeof filter.value === "string" && filter.value.trim()) {
+            const fieldConfig = keyDetailsFilterFieldConfig[filter.field];
+            const validOperators = fieldConfig.operators;
+
+            const operator = validOperators.includes(filter.operator)
+              ? filter.operator
+              : validOperators[0];
+
+            params.tags = {
+              operator,
+              value: filter.value,
+            };
+          }
+          break;
+        }
+
         case "startTime":
         case "endTime": {
           const numValue =
