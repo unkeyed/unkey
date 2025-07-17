@@ -31,6 +31,12 @@ export function transformKeysFilters(
       value: k.value,
     })) ?? null;
 
+  const tags =
+    params.tags?.map((k) => ({
+      operator: k.operator,
+      value: k.value,
+    })) ?? null;
+
   const outcomes =
     params.outcomes?.map((o) => ({
       operator: "is" as const,
@@ -50,6 +56,7 @@ export function transformKeysFilters(
     keyIds,
     names,
     identities,
+    tags,
     outcomes,
     cursorTime: params.cursor ?? null,
     sorts,

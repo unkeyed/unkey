@@ -173,7 +173,11 @@ export const registerV1KeysGetVerifications = (app: App) =>
         if (!dbRes) {
           return [];
         }
-        return dbRes.map((key) => ({ key, api: key.keyAuth.api, ratelimits: key.ratelimits }));
+        return dbRes.map((key) => ({
+          key,
+          api: key.keyAuth.api,
+          ratelimits: key.ratelimits,
+        }));
       });
       if (keys.err) {
         throw new UnkeyApiError({
@@ -238,6 +242,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
               keyIds: null,
               outcomes: null,
               names: null,
+              tags: null,
             })
             .catch((err) => {
               throw new Error(err.message);

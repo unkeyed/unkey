@@ -88,7 +88,6 @@ services:
       - clickhouse
     environment:
       PORT: 8080
-      SERF_PORT: 9999
       RPC_PORT: 9095
       AUTH_TOKEN: "agent-auth-secret"
       VAULT_S3_URL: "http://s3:3902"
