@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	backendtypes "github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
 	"go.opentelemetry.io/otel/attribute"
@@ -46,7 +46,7 @@ func (mc *MetricsCollector) CollectMetrics(ctx context.Context, containerID stri
 	defer stats.Body.Close()
 
 	// Parse stats JSON
-	var dockerStats types.StatsJSON
+	var dockerStats container.StatsResponse
 	if err := json.NewDecoder(stats.Body).Decode(&dockerStats); err != nil {
 		span.RecordError(err)
 		return nil, fmt.Errorf("failed to decode container stats: %w", err)
@@ -69,7 +69,7 @@ func (mc *MetricsCollector) CollectMetrics(ctx context.Context, containerID stri
 }
 
 // convertDockerStatsToVMMetrics converts Docker stats to VM metrics format
-func (mc *MetricsCollector) convertDockerStatsToVMMetrics(stats *types.StatsJSON) *backendtypes.VMMetrics {
+func (mc *MetricsCollector) convertDockerStatsToVMMetrics(stats *container.StatsResponse) *backendtypes.VMMetrics {
 	metrics := &backendtypes.VMMetrics{
 		Timestamp:        time.Now(),
 		CpuTimeNanos:     0,
@@ -178,7 +178,7 @@ func (mc *MetricsCollector) StreamMetrics(ctx context.Context, containerID strin
 }
 
 // CalculateCPUPercent calculates CPU percentage from Docker stats
-func (mc *MetricsCollector) CalculateCPUPercent(current, previous *types.StatsJSON) float64 {
+func (mc *MetricsCollector) CalculateCPUPercent(current, previous *container.StatsResponse) float64 {
 	if current == nil || previous == nil {
 		return 0.0
 	}
@@ -203,7 +203,7 @@ func (mc *MetricsCollector) CalculateCPUPercent(current, previous *types.StatsJS
 }
 
 // CalculateMemoryPercent calculates memory percentage from Docker stats
-func (mc *MetricsCollector) CalculateMemoryPercent(stats *types.StatsJSON) float64 {
+func (mc *MetricsCollector) CalculateMemoryPercent(stats *container.StatsResponse) float64 {
 	if stats == nil || stats.MemoryStats.Limit == 0 {
 		return 0.0
 	}
@@ -216,7 +216,7 @@ func (mc *MetricsCollector) CalculateMemoryPercent(stats *types.StatsJSON) float
 }
 
 // CalculateNetworkIORate calculates network I/O rate from Docker stats
-func (mc *MetricsCollector) CalculateNetworkIORate(current, previous *types.StatsJSON, timeDelta time.Duration) (rxRate, txRate float64) {
+func (mc *MetricsCollector) CalculateNetworkIORate(current, previous *container.StatsResponse, timeDelta time.Duration) (rxRate, txRate float64) {
 	if current == nil || previous == nil || timeDelta == 0 {
 		return 0.0, 0.0
 	}
@@ -243,7 +243,7 @@ func (mc *MetricsCollector) CalculateNetworkIORate(current, previous *types.Stat
 }
 
 // CalculateBlockIORate calculates block I/O rate from Docker stats
-func (mc *MetricsCollector) CalculateBlockIORate(current, previous *types.StatsJSON, timeDelta time.Duration) (readRate, writeRate float64) {
+func (mc *MetricsCollector) CalculateBlockIORate(current, previous *container.StatsResponse, timeDelta time.Duration) (readRate, writeRate float64) {
 	if current == nil || previous == nil || timeDelta == 0 {
 		return 0.0, 0.0
 	}

@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ory/dockertest/v3"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
@@ -28,8 +27,7 @@ type ApiConfig struct {
 
 // ApiCluster represents a cluster of API containers
 type ApiCluster struct {
-	Addrs     []string
-	Resources []*dockertest.Resource
+	Addrs []string
 }
 
 // Harness is a test harness for creating and managing a cluster of API nodes
@@ -121,8 +119,7 @@ func (h *Harness) Resources() seed.Resources {
 // RunAPI creates a cluster of API containers for chaos testing
 func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 	cluster := &ApiCluster{
-		Addrs:     make([]string, config.Nodes),
-		Resources: make([]*dockertest.Resource, config.Nodes), // Not used but kept for compatibility
+		Addrs: make([]string, config.Nodes),
 	}
 
 	// Start each API node as a goroutine
@@ -223,32 +220,6 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 	}
 
 	return cluster
-}
-
-// StopContainer stops a specific API container (for chaos testing)
-func (h *Harness) StopContainer(index int) error {
-	if h.apiCluster == nil || index >= len(h.apiCluster.Resources) {
-		return fmt.Errorf("invalid container index: %d", index)
-	}
-
-	pool, err := dockertest.NewPool("")
-	if err != nil {
-		return err
-	}
-	return pool.Client.StopContainer(h.apiCluster.Resources[index].Container.ID, 10)
-}
-
-// StartContainer starts a stopped API container (for chaos testing)
-func (h *Harness) StartContainer(index int) error {
-	if h.apiCluster == nil || index >= len(h.apiCluster.Resources) {
-		return fmt.Errorf("invalid container index: %d", index)
-	}
-
-	pool, err := dockertest.NewPool("")
-	if err != nil {
-		return err
-	}
-	return pool.Client.StartContainer(h.apiCluster.Resources[index].Container.ID, nil)
 }
 
 // GetClusterAddrs returns the addresses of all API containers

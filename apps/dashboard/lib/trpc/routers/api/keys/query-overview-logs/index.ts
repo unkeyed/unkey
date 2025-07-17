@@ -46,6 +46,8 @@ export const queryKeysOverviewLogs = t.procedure
       keyspaceId: keyspaceId,
       // Only include keyIds filters if explicitly provided in the input
       keyIds: input.keyIds ? transformedInputs.keyIds : null,
+      // Pass tags to ClickHouse for filtering
+      tags: transformedInputs.tags,
       // Nullify these as we'll filter in the database
       names: null,
       identities: null,
@@ -89,7 +91,6 @@ export const queryKeysOverviewLogs = t.procedure
         ...log,
         key_details: keyDetailsMap.get(log.key_id) || null,
       }));
-
     const response: KeysOverviewLogsResponse = {
       keysOverviewLogs,
       hasMore: logs.length === input.limit && keysOverviewLogs.length > 0,

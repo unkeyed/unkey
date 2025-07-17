@@ -1,5 +1,6 @@
 permissions:
   contents: read
+  deployments: write
 name: Deploy
 on:
   push:

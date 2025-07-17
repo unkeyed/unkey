@@ -4,16 +4,27 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/unkeyed/unkey/go/cmd/cli/cli"
 	"github.com/unkeyed/unkey/go/cmd/cli/config"
+
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/git"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
-const DEBUG_DELAY = 250
+// Step predictor - maps current step message patterns to next expected steps
+// Based on the actual workflow messages from version.go
+// TODO: In the future directly get those from hydra
+var stepSequence = map[string]string{
+	"Version queued and ready to start":  "Downloading Docker image:",
+	"Downloading Docker image:":          "Building rootfs from Docker image:",
+	"Building rootfs from Docker image:": "Uploading rootfs image to storage",
+	"Uploading rootfs image to storage":  "Creating VM for version:",
+	"Creating VM for version:":           "VM booted successfully:",
+	"VM booted successfully:":            "Assigned hostname:",
+	"Assigned hostname:":                 "Version deployment completed successfully",
+}
 
 var (
 	ErrDockerNotFound    = errors.New("docker command not found - please install Docker")
@@ -44,7 +55,7 @@ var DeployFlags = []cli.Flag{
 	cli.String("project-id", "Project ID", "", "UNKEY_PROJECT_ID", false),
 
 	// Optional flags with defaults
-	cli.String("context", "Docker context path", "", "", false), // No default, will use config or "."
+	cli.String("context", "Docker context path", ".", "", false),
 	cli.String("branch", "Git branch", "main", "", false),
 	cli.String("docker-image", "Pre-built docker image", "", "", false),
 	cli.String("dockerfile", "Path to Dockerfile", "Dockerfile", "", false),
@@ -204,8 +215,6 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 
 	ui.PrintSuccess(fmt.Sprintf("Version created: %s", versionId))
 
-	ui.StartSpinner("Deploying to Unkey...")
-
 	onStatusChange := func(event VersionStatusEvent) error {
 		if event.CurrentStatus == ctrlv1.VersionStatus_VERSION_STATUS_FAILED {
 			return handleVersionFailure(controlPlane, event.Version, ui)
@@ -218,11 +227,14 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 
 	err = controlPlane.PollVersionStatus(ctx, logger, versionId, onStatusChange, onStepUpdate)
 	if err != nil {
-		ui.StopSpinner("Deployment failed", false)
+		// Complete any running step spinner on error
+		ui.CompleteCurrentStep("Deployment failed", false)
 		return err
 	}
 
-	ui.StopSpinner("Deployment completed successfully", true)
+	// Complete final step if still spinning
+	ui.CompleteCurrentStep("Version deployment completed successfully", true)
+	ui.PrintSuccess("Deployment completed successfully")
 
 	fmt.Printf("\n")
 	printCompletionInfo(opts, gitInfo, versionId)
@@ -231,38 +243,48 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 	return nil
 }
 
-func handleVersionFailure(controlPlane *ControlPlaneClient, version *ctrlv1.Version, ui *UI) error {
-	errorMsg := controlPlane.getFailureMessage(version)
-	ui.PrintError("Deployment failed")
-	ui.PrintErrorDetails(errorMsg)
-	return fmt.Errorf("deployment failed: %s", errorMsg)
+func getNextStepMessage(currentMessage string) string {
+	// Check if current message starts with any known step pattern
+	for key, next := range stepSequence {
+		if len(currentMessage) >= len(key) && currentMessage[:len(key)] == key {
+			return next
+		}
+	}
+	return ""
 }
 
 func handleStepUpdate(event VersionStepEvent, ui *UI) error {
-	ui.mu.Lock()
-	if ui.spinning {
-		ui.spinning = false
-		fmt.Print("\r\033[K")
-	}
-	ui.mu.Unlock()
-
 	step := event.Step
 
 	if step.GetErrorMessage() != "" {
-		ui.PrintStepError(step.GetMessage())
+		ui.CompleteCurrentStep(step.GetMessage(), false)
 		ui.PrintErrorDetails(step.GetErrorMessage())
 		return fmt.Errorf("deployment failed: %s", step.GetErrorMessage())
 	}
 
 	if step.GetMessage() != "" {
-		ui.PrintStepSuccess(step.GetMessage())
+		message := step.GetMessage()
+		nextStep := getNextStepMessage(message)
 
-		if DEBUG_DELAY > 0 {
-			time.Sleep(DEBUG_DELAY * time.Millisecond)
+		if !ui.stepSpinning {
+			// First step - start spinner, then complete and start next
+			ui.StartStepSpinner(message)
+			ui.CompleteStepAndStartNext(message, nextStep)
+		} else {
+			// Complete current step and start next
+			ui.CompleteStepAndStartNext(message, nextStep)
 		}
 	}
 
 	return nil
+}
+
+func handleVersionFailure(controlPlane *ControlPlaneClient, version *ctrlv1.Version, ui *UI) error {
+	errorMsg := controlPlane.getFailureMessage(version)
+	ui.CompleteCurrentStep("Deployment failed", false)
+	ui.PrintError("Deployment failed")
+	ui.PrintErrorDetails(errorMsg)
+	return fmt.Errorf("deployment failed: %s", errorMsg)
 }
 
 func printSourceInfo(opts *DeployOptions, gitInfo git.Info) {

@@ -65,6 +65,7 @@ export function useKeyDetailsLogsQuery({
       startTime: timestamp - HISTORICAL_DATA_WINDOW,
       endTime: timestamp,
       outcomes: [],
+      tags: [],
       since: "",
     };
 
@@ -76,6 +77,15 @@ export function useKeyDetailsLogsQuery({
       }
 
       switch (filter.field) {
+        case "tags": {
+          if (typeof filter.value === "string") {
+            params.tags?.push({
+              value: filter.value,
+              operator: filter.operator as "is" | "contains" | "startsWith" | "endsWith",
+            });
+          }
+          break;
+        }
         case "outcomes": {
           type ValidOutcome = (typeof KEY_VERIFICATION_OUTCOMES)[number];
           if (

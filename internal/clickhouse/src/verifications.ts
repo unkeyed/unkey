@@ -36,6 +36,14 @@ export const keyDetailsLogsParams = z.object({
   limit: z.number().int(),
   startTime: z.number().int(),
   endTime: z.number().int(),
+  tags: z
+    .array(
+      z.object({
+        value: z.string(),
+        operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
+      }),
+    )
+    .nullable(),
   outcomes: z
     .array(
       z.object({
@@ -67,7 +75,32 @@ export function getKeyDetailsLogs(ch: Querier) {
     const paramSchemaExtension: Record<string, z.ZodType> = {};
     const parameters: ExtendedParamsKeyDetails = { ...args };
 
+    const hasTagFilters = args.tags && args.tags.length > 0;
     const hasOutcomeFilters = args.outcomes && args.outcomes.length > 0;
+
+    const tagCondition = hasTagFilters
+      ? args.tags
+          ?.map((filter, index) => {
+            const paramName = `tagValue_${index}`;
+            paramSchemaExtension[paramName] = z.string();
+            parameters[paramName] = filter.value;
+
+            switch (filter.operator) {
+              case "is":
+                return `has(tags, {${paramName}: String})`;
+              case "contains":
+                return `arrayExists(tag -> position(tag, {${paramName}: String}) > 0, tags)`;
+              case "startsWith":
+                return `arrayExists(tag -> startsWith(tag, {${paramName}: String}), tags)`;
+              case "endsWith":
+                return `arrayExists(tag -> endsWith(tag, {${paramName}: String}), tags)`;
+              default:
+                return null;
+            }
+          })
+          .filter(Boolean)
+          .join(" AND ") || "TRUE"
+      : "TRUE";
 
     const outcomeCondition = hasOutcomeFilters
       ? args.outcomes
@@ -104,6 +137,7 @@ export function getKeyDetailsLogs(ch: Querier) {
       AND key_space_id = {keyspaceId: String}
       AND key_id = {keyId: String}
       AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+      AND (${tagCondition})
       AND (${outcomeCondition})
     `;
 
@@ -178,6 +212,14 @@ export const verificationTimeseriesParams = z.object({
     .array(
       z.object({
         operator: z.enum(["is", "contains"]),
+        value: z.string(),
+      }),
+    )
+    .nullable(),
+  tags: z
+    .array(
+      z.object({
+        operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
         value: z.string(),
       }),
     )
@@ -328,7 +370,7 @@ function createVerificationTimeseriesQuery(interval: TimeInterval, whereClause: 
       'forbidden_count', SUM(IF(outcome = 'FORBIDDEN', count, 0)),
       'disabled_count', SUM(IF(outcome = 'DISABLED', count, 0)) ,
       'expired_count',SUM(IF(outcome = 'EXPIRED', count, 0)) ,
-      'usage_exceeded_count', SUM(IF(outcome = 'USAGE_EXCEEDED', count, 0)) 
+      'usage_exceeded_count', SUM(IF(outcome = 'USAGE_EXCEEDED', count, 0))
       ) as y
     FROM ${interval.table}
     ${whereClause}
@@ -400,6 +442,33 @@ function getVerificationTimeseriesWhereClause(
     }
   }
 
+  // Handle tags filter
+  if (params.tags && params.tags.length > 0) {
+    const tagConditions = params.tags
+      .map((filter, index) => {
+        const paramName = `tagValue_${index}`;
+        paramSchemaExtension[paramName] = z.string();
+
+        switch (filter.operator) {
+          case "is":
+            return `has(tags, {${paramName}: String})`;
+          case "contains":
+            return `arrayExists(tag -> position(tag, {${paramName}: String}) > 0, tags)`;
+          case "startsWith":
+            return `arrayExists(tag -> startsWith(tag, {${paramName}: String}), tags)`;
+          case "endsWith":
+            return `arrayExists(tag -> endsWith(tag, {${paramName}: String}), tags)`;
+          default:
+            return null;
+        }
+      })
+      .filter(Boolean);
+
+    if (tagConditions.length > 0) {
+      conditions.push(`(${tagConditions.join(" AND ")})`);
+    }
+  }
+
   return {
     whereClause: conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "",
     paramSchema: verificationTimeseriesParams.extend(paramSchemaExtension),
@@ -414,19 +483,28 @@ function createVerificationTimeseriesQuerier(interval: TimeInterval) {
     ]);
 
     // Create parameters object with filter values
+
     const parameters = {
       ...args,
       ...(args.keyIds?.reduce(
         (acc, filter, index) => ({
-          // biome-ignore lint/performance/noAccumulatingSpread: <explanation>
+          // biome-ignore lint/performance/noAccumulatingSpread: We don't care about the spread syntax warning here
           ...acc,
           [`keyIdValue_${index}`]: filter.value,
         }),
         {},
       ) ?? {}),
+      ...(args.tags?.reduce(
+        (acc, filter, index) => ({
+          // biome-ignore lint/performance/noAccumulatingSpread: We don't care about the spread syntax warning here
+          ...acc,
+          [`tagValue_${index}`]: filter.value,
+        }),
+        {},
+      ) ?? {}),
       ...(args.outcomes?.reduce(
         (acc, filter, index) => ({
-          // biome-ignore lint/performance/noAccumulatingSpread: <explanation>
+          // biome-ignore lint/performance/noAccumulatingSpread: We don't care about the spread syntax warning here
           ...acc,
           [`outcomeValue_${index}`]: filter.value,
         }),

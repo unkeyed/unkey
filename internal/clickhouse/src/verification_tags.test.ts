@@ -128,6 +128,7 @@ describe("materialized views", () => {
             identities: null, // Required parameter
             keyIds: null, // Required parameter
             outcomes: null, // Required parameter
+            tags: null, // Required parameter
           });
 
           // Calculate total verification count from all data points
