@@ -208,7 +208,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		// Basic configuration
 		Platform: cmd.String("platform"),
 		Image:    cmd.String("image"),
-		HttpPort: cmd.Int("http-port"),
 		Region:   cmd.String("region"),
 
 		// Database configuration
@@ -230,6 +229,10 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		PrometheusPort: cmd.Int("prometheus-port"),
 		Clock:          clock.New(),
 		TestMode:       cmd.Bool("test-mode"),
+
+		// HTTP configuration
+		HttpPort: cmd.Int("http-port"),
+		Listener: nil, // Production uses HttpPort
 
 		// Vault configuration
 		VaultMasterKeys: cmd.StringSlice("vault-master-keys"),
