@@ -1,4 +1,4 @@
-package init
+package deploy
 
 import (
 	"bufio"
@@ -32,13 +32,12 @@ EXAMPLES:
 func run(ctx context.Context, cmd *cli.Command) error {
 	configDir := cmd.String("config")
 	configPath := config.GetConfigFilePath(configDir)
-
-	fmt.Println("🚀 Unkey CLI Configuration Setup")
+	fmt.Println(">> Unkey CLI Configuration Setup")
 	fmt.Println("")
 
 	// Check if config file already exists
 	if config.ConfigExists(configDir) {
-		fmt.Printf("⚠️  Configuration file already exists at: %s\n", configPath)
+		fmt.Printf("!  Configuration file already exists at: %s\n", configPath)
 		if !promptConfirm("Do you want to overwrite it?") {
 			fmt.Println("Configuration setup cancelled.")
 			return nil
@@ -50,8 +49,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	if err := config.CreateTemplate(configDir); err != nil {
 		return fmt.Errorf("failed to create config template: %w", err)
 	}
-
-	fmt.Printf("✅ Configuration template created at: %s\n", configPath)
+	fmt.Printf("✓ Configuration template created at: %s\n", configPath)
 	fmt.Println("")
 	fmt.Println("Please replace the placeholder values with your actual values:")
 	fmt.Println("")

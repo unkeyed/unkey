@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/unkeyed/unkey/go/cmd/cli/cli"
 	"github.com/unkeyed/unkey/go/cmd/cli/config"
@@ -216,29 +217,29 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 	ui.PrintSuccess(fmt.Sprintf("Version created: %s", versionId))
 
 	onStatusChange := func(event VersionStatusEvent) error {
-		if event.CurrentStatus == ctrlv1.VersionStatus_VERSION_STATUS_FAILED {
+		switch event.CurrentStatus {
+		case ctrlv1.VersionStatus_VERSION_STATUS_FAILED:
 			return handleVersionFailure(controlPlane, event.Version, ui)
+		case ctrlv1.VersionStatus_VERSION_STATUS_ACTIVE:
+			ui.CompleteCurrentStep("Version deployment completed successfully", true)
+			ui.PrintSuccess("Deployment completed successfully")
+
+			fmt.Printf("\n")
+			printCompletionInfo(event.Version)
+			fmt.Printf("\n")
 		}
 		return nil
 	}
+
 	onStepUpdate := func(event VersionStepEvent) error {
 		return handleStepUpdate(event, ui)
 	}
 
 	err = controlPlane.PollVersionStatus(ctx, logger, versionId, onStatusChange, onStepUpdate)
 	if err != nil {
-		// Complete any running step spinner on error
 		ui.CompleteCurrentStep("Deployment failed", false)
 		return err
 	}
-
-	// Complete final step if still spinning
-	ui.CompleteCurrentStep("Version deployment completed successfully", true)
-	ui.PrintSuccess("Deployment completed successfully")
-
-	fmt.Printf("\n")
-	printCompletionInfo(opts, gitInfo, versionId)
-	fmt.Printf("\n")
 
 	return nil
 }
@@ -309,22 +310,31 @@ func printSourceInfo(opts *DeployOptions, gitInfo git.Info) {
 	fmt.Printf("\n")
 }
 
-func printCompletionInfo(opts *DeployOptions, gitInfo git.Info, versionId string) {
-	if versionId == "" || opts.WorkspaceID == "" || opts.Branch == "" {
+func printCompletionInfo(version *ctrlv1.Version) {
+	if version == nil || version.GetId() == "" {
 		fmt.Printf("✓ Deployment completed\n")
 		return
 	}
 
-	fmt.Printf("Deployment Summary:\n")
-	fmt.Printf("    Version: %s\n", versionId)
-	fmt.Printf("    Status: Ready\n")
-	fmt.Printf("    Environment: Production\n")
+	fmt.Println()
+	fmt.Println("Deployment Complete")
+	fmt.Printf("  Version ID: %s\n", version.GetId())
+	fmt.Printf("  Status: Ready\n")
+	fmt.Printf("  Environment: Production\n")
 
-	identifier := versionId
-	if gitInfo.ShortSHA != "" {
-		identifier = gitInfo.ShortSHA
+	fmt.Println()
+	fmt.Println("Domains")
+
+	hostnames := version.GetHostnames()
+	if len(hostnames) > 0 {
+		for _, hostname := range hostnames {
+			if strings.HasPrefix(hostname, "localhost:") {
+				fmt.Printf("  http://%s\n", hostname)
+			} else {
+				fmt.Printf("  https://%s\n", hostname)
+			}
+		}
+	} else {
+		fmt.Printf("  No hostnames assigned\n")
 	}
-
-	domain := fmt.Sprintf("https://%s-%s-%s.unkey.app", opts.Branch, identifier, opts.WorkspaceID)
-	fmt.Printf("    URL: %s\n", domain)
 }
