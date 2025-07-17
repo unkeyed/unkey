@@ -1,6 +1,8 @@
 package api
 
 import (
+	"net"
+
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/tls"
 )
@@ -23,7 +25,13 @@ type Config struct {
 	Image string
 
 	// HttpPort defines the HTTP port for the API server to listen on (default: 7070)
+	// Used in production deployments. Ignored if Listener is provided.
 	HttpPort int
+
+	// Listener defines a pre-created network listener for the HTTP server
+	// If provided, the server will use this listener instead of creating one from HttpPort
+	// This is intended for testing scenarios where ephemeral ports are needed to avoid conflicts
+	Listener net.Listener
 
 	// Region identifies the geographic region where this node is deployed
 	Region string

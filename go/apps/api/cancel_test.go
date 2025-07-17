@@ -3,13 +3,13 @@ package api_test
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api"
-	"github.com/unkeyed/unkey/go/pkg/port"
 	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/vault/keys"
@@ -23,9 +23,10 @@ func TestContextCancellation(t *testing.T) {
 	mysqlCfg.DBName = "unkey"
 	dbDsn := mysqlCfg.FormatDSN()
 	redisUrl := containers.Redis(t)
-	// Get free ports for the node
-	portAllocator := port.New()
-	httpPort := portAllocator.Get()
+
+	// Create ephemeral listener
+	ln, err := net.Listen("tcp", ":0")
+	require.NoError(t, err, "Failed to create ephemeral listener")
 
 	// Create a cancellable context
 	ctx, cancel := context.WithCancel(context.Background())
@@ -37,7 +38,7 @@ func TestContextCancellation(t *testing.T) {
 	config := api.Config{
 		Platform:                "test",
 		Image:                   "test",
-		HttpPort:                httpPort,
+		Listener:                ln,
 		Region:                  "test-region",
 		Clock:                   nil, // Will use real clock
 		InstanceID:              uid.New(uid.InstancePrefix),
@@ -65,7 +66,7 @@ func TestContextCancellation(t *testing.T) {
 
 	// Wait for the server to start up
 	require.Eventually(t, func() bool {
-		res, livenessErr := http.Get(fmt.Sprintf("http://localhost:%d/v2/liveness", httpPort))
+		res, livenessErr := http.Get(fmt.Sprintf("http://%s/v2/liveness", ln.Addr()))
 		if livenessErr != nil {
 			return false
 		}
@@ -90,6 +91,6 @@ func TestContextCancellation(t *testing.T) {
 	}
 
 	// Verify the server is no longer responding
-	_, err = http.Get(fmt.Sprintf("http://localhost:%d/v2/liveness", httpPort))
+	_, err = http.Get(fmt.Sprintf("http://%s/v2/liveness", ln.Addr()))
 	require.Error(t, err, "Server should no longer be responding after shutdown")
 }
