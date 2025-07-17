@@ -872,7 +872,7 @@ type Querier interface {
 	//
 	//  INSERT INTO roles (
 	//    id,
-	//    workspace_Id,
+	//    workspace_id,
 	//    name,
 	//    description,
 	//    created_at_m

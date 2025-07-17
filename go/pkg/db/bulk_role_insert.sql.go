@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertRole is the base query for bulk insert
-const bulkInsertRole = `INSERT INTO roles ( id, workspace_Id, name, description, created_at_m ) VALUES %s`
+const bulkInsertRole = `INSERT INTO roles ( id, workspace_id, name, description, created_at_m ) VALUES %s`
 
 // InsertRoles performs bulk insert in a single query
 func (q *BulkQueries) InsertRoles(ctx context.Context, db DBTX, args []InsertRoleParams) error {
