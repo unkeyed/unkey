@@ -27,6 +27,7 @@ export const queryKeysList = t.procedure
         keyIds: input.keyIds,
         names: input.names,
         identities: input.identities,
+        tags: input.tags,
       },
       limit: input.limit,
       cursorKeyId: input.cursor ?? null,

@@ -43,7 +43,6 @@ export function useKeysListQuery({ keyAuthId }: UseKeysListQueryParams) {
         });
       }
     });
-
     return params;
   }, [filters, keyAuthId]);
 
