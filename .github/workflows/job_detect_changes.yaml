@@ -11,6 +11,9 @@ on:
       agent:
         description: "Whether Agent has changed"
         value: ${{ jobs.build.outputs.agent }}
+      go:
+        description: "Whether go has changed"
+        value: ${{ jobs.build.outputs.go }}
 
 permissions:
   contents: read
@@ -23,6 +26,7 @@ jobs:
       api: ${{ steps.changes.outputs.api }}
       clickhouse: ${{ steps.changes.outputs.clickhouse }}
       agent: ${{ steps.changes.outputs.agent }}
+      go: ${{ steps.changes.outputs.go }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -39,4 +43,6 @@ jobs:
               - 'internal/clickhouse/**'
             agent:
               - 'apps/agent/**'
+              - 'go/**'
+            go:
               - 'go/**'

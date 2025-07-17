@@ -1,11 +1,9 @@
 package docker
 
 import (
-	"context"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/network"
+	"github.com/docker/go-connections/nat"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
 	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1"
 )
@@ -52,8 +50,6 @@ type DockerBackendConfig struct {
 	// ContainerPrefix is the prefix for container names (defaults to unkey-vm-)
 	ContainerPrefix string `json:"container_prefix,omitempty"`
 	
-	// DefaultImage is the default image to use if none specified
-	DefaultImage string `json:"default_image,omitempty"`
 	
 	// PortRange defines the range of host ports to allocate
 	PortRange struct {
@@ -74,7 +70,6 @@ func DefaultDockerBackendConfig() *DockerBackendConfig {
 		DockerHost:      "",  // Use default Docker socket
 		NetworkName:     "bridge",
 		ContainerPrefix: "unkey-vm-",
-		DefaultImage:    "alpine:latest",
 		PortRange: struct {
 			Min int `json:"min"`
 			Max int `json:"max"`
@@ -121,7 +116,7 @@ type ContainerCreateOptions struct {
 	Env          []string
 	Labels       map[string]string
 	ExposedPorts map[string]struct{}
-	PortBindings map[string][]container.PortBinding
+	PortBindings map[string][]nat.PortBinding
 	Memory       int64
 	CPUs         float64
 	WorkingDir   string

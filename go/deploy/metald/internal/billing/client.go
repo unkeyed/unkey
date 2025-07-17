@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	billingv1 "github.com/unkeyed/unkey/go/deploy/billaged/gen/billing/v1"
-	"github.com/unkeyed/unkey/go/deploy/billaged/gen/billing/v1/billingv1connect"
+	billingv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/billaged/v1"
+	"github.com/unkeyed/unkey/go/gen/proto/deploy/billaged/v1/billagedv1connect"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/observability"
 	"github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors"
@@ -111,7 +111,7 @@ var _ BillingClient = (*MockBillingClient)(nil)
 type ConnectRPCBillingClient struct {
 	endpoint string
 	logger   *slog.Logger
-	client   billingv1connect.BillingServiceClient
+	client   billagedv1connect.BillingServiceClient
 }
 
 func NewConnectRPCBillingClient(endpoint string, logger *slog.Logger) *ConnectRPCBillingClient {
@@ -120,7 +120,7 @@ func NewConnectRPCBillingClient(endpoint string, logger *slog.Logger) *ConnectRP
 	}
 
 	// AIDEV-NOTE: Using debug interceptor for comprehensive error tracking
-	billingClient := billingv1connect.NewBillingServiceClient(
+	billingClient := billagedv1connect.NewBillingServiceClient(
 		httpClient,
 		endpoint,
 		connect.WithInterceptors(
@@ -151,7 +151,7 @@ func NewConnectRPCBillingClientWithHTTP(endpoint string, logger *slog.Logger, ht
 		interceptorList = append(interceptorList, connect.Interceptor(interceptor))
 	}
 
-	billingClient := billingv1connect.NewBillingServiceClient(
+	billingClient := billagedv1connect.NewBillingServiceClient(
 		httpClient,
 		endpoint,
 		connect.WithInterceptors(interceptorList...),

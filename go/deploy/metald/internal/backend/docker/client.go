@@ -4,23 +4,22 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
-	"net"
+	"math/rand"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 	backendtypes "github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
 	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -67,7 +66,7 @@ func NewDockerBackend(logger *slog.Logger, config *DockerBackendConfig) (*Docker
 	// Verify Docker connection
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	
+
 	if _, err := dockerClient.Ping(ctx); err != nil {
 		return nil, fmt.Errorf("failed to connect to Docker daemon: %w", err)
 	}
@@ -128,6 +127,7 @@ func NewDockerBackend(logger *slog.Logger, config *DockerBackendConfig) (*Docker
 		vmBootCounter:   vmBootCounter,
 		vmErrorCounter:  vmErrorCounter,
 	}
+
 
 	return backend, nil
 }
@@ -225,8 +225,19 @@ func (d *DockerBackend) BootVM(ctx context.Context, vmID string) error {
 		slog.String("container_id", vm.ContainerID),
 	)
 
+	// Check if container still exists before starting
+	_, err := d.dockerClient.ContainerInspect(ctx, vm.ContainerID)
+	if err != nil {
+		span.RecordError(err)
+		d.vmErrorCounter.Add(ctx, 1, metric.WithAttributes(
+			attribute.String("operation", "boot"),
+			attribute.String("error", "container_not_found"),
+		))
+		return fmt.Errorf("container not found before start: %w", err)
+	}
+
 	// Start container
-	if err := d.dockerClient.ContainerStart(ctx, vm.ContainerID, types.ContainerStartOptions{}); err != nil {
+	if err := d.dockerClient.ContainerStart(ctx, vm.ContainerID, container.StartOptions{}); err != nil {
 		span.RecordError(err)
 		d.vmErrorCounter.Add(ctx, 1, metric.WithAttributes(
 			attribute.String("operation", "boot"),
@@ -238,7 +249,7 @@ func (d *DockerBackend) BootVM(ctx context.Context, vmID string) error {
 	// Update VM state and network info
 	d.mutex.Lock()
 	vm.State = metaldv1.VmState_VM_STATE_RUNNING
-	
+
 	// Get container network info
 	networkInfo, err := d.getContainerNetworkInfo(ctx, vm.ContainerID)
 	if err != nil {
@@ -298,7 +309,7 @@ func (d *DockerBackend) DeleteVM(ctx context.Context, vmID string) error {
 	)
 
 	// Remove container (force remove)
-	if err := d.dockerClient.ContainerRemove(ctx, vm.ContainerID, types.ContainerRemoveOptions{
+	if err := d.dockerClient.ContainerRemove(ctx, vm.ContainerID, container.RemoveOptions{
 		Force: true,
 	}); err != nil {
 		span.RecordError(err)
@@ -355,8 +366,8 @@ func (d *DockerBackend) ShutdownVMWithOptions(ctx context.Context, vmID string, 
 	)
 
 	// Stop container
-	timeout := time.Duration(timeoutSeconds) * time.Second
-	if err := d.dockerClient.ContainerStop(ctx, vm.ContainerID, &timeout); err != nil {
+	timeoutInt := int(timeoutSeconds)
+	if err := d.dockerClient.ContainerStop(ctx, vm.ContainerID, container.StopOptions{Timeout: &timeoutInt}); err != nil {
 		span.RecordError(err)
 		return fmt.Errorf("failed to stop container: %w", err)
 	}
@@ -541,7 +552,7 @@ func (d *DockerBackend) GetVMMetrics(ctx context.Context, vmID string) (*backend
 	defer stats.Body.Close()
 
 	// Parse stats
-	var dockerStats types.StatsJSON
+	var dockerStats container.StatsResponse
 	if err := json.NewDecoder(stats.Body).Decode(&dockerStats); err != nil {
 		span.RecordError(err)
 		return nil, fmt.Errorf("failed to decode container stats: %w", err)
@@ -552,10 +563,10 @@ func (d *DockerBackend) GetVMMetrics(ctx context.Context, vmID string) (*backend
 		Timestamp:        time.Now(),
 		CpuTimeNanos:     int64(dockerStats.CPUStats.CPUUsage.TotalUsage),
 		MemoryUsageBytes: int64(dockerStats.MemoryStats.Usage),
-		DiskReadBytes:    0,  // TODO: Calculate from BlkioStats
-		DiskWriteBytes:   0,  // TODO: Calculate from BlkioStats
-		NetworkRxBytes:   0,  // TODO: Calculate from NetworkStats
-		NetworkTxBytes:   0,  // TODO: Calculate from NetworkStats
+		DiskReadBytes:    0, // TODO: Calculate from BlkioStats
+		DiskWriteBytes:   0, // TODO: Calculate from BlkioStats
+		NetworkRxBytes:   0, // TODO: Calculate from NetworkStats
+		NetworkTxBytes:   0, // TODO: Calculate from NetworkStats
 	}
 
 	// Calculate disk I/O
@@ -612,12 +623,12 @@ func (d *DockerBackend) vmConfigToContainerSpec(ctx context.Context, vmID string
 		CPUs:   float64(config.GetCpu().GetVcpuCount()),
 	}
 
-	// Determine image from metadata or use default
-	if dockerImage, ok := config.Metadata["docker_image"]; ok {
-		spec.Image = dockerImage
-	} else {
-		spec.Image = d.config.DefaultImage
+	// Docker image must be specified in metadata
+	dockerImage, ok := config.Metadata["docker_image"]
+	if !ok || dockerImage == "" {
+		return nil, fmt.Errorf("docker_image must be specified in VM config metadata")
 	}
+	spec.Image = dockerImage
 
 	// Extract exposed ports from metadata
 	if exposedPorts, ok := config.Metadata["exposed_ports"]; ok {
@@ -629,6 +640,16 @@ func (d *DockerBackend) vmConfigToContainerSpec(ctx context.Context, vmID string
 		}
 	}
 
+	// Extract environment variables from metadata
+	if envVars, ok := config.Metadata["env_vars"]; ok {
+		vars := strings.Split(envVars, ",")
+		for _, envVar := range vars {
+			if envVar = strings.TrimSpace(envVar); envVar != "" {
+				spec.Env = append(spec.Env, envVar)
+			}
+		}
+	}
+
 	// Allocate host ports for exposed ports
 	for _, exposedPort := range spec.ExposedPorts {
 		containerPort, err := strconv.Atoi(strings.Split(exposedPort, "/")[0])
@@ -636,19 +657,15 @@ func (d *DockerBackend) vmConfigToContainerSpec(ctx context.Context, vmID string
 			continue
 		}
 
-		hostPort, err := d.portAllocator.allocatePort(vmID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to allocate port: %w", err)
-		}
-
 		protocol := "tcp"
 		if strings.Contains(exposedPort, "/udp") {
 			protocol = "udp"
 		}
 
+		// We'll allocate the port during container creation with retry logic
 		spec.PortMappings = append(spec.PortMappings, PortMapping{
 			ContainerPort: containerPort,
-			HostPort:      hostPort,
+			HostPort:      0, // Will be allocated during creation
 			Protocol:      protocol,
 		})
 	}
@@ -663,6 +680,27 @@ func (d *DockerBackend) createContainer(ctx context.Context, spec *ContainerSpec
 	)
 	defer span.End()
 
+	d.logger.Info("checking if image exists locally", "image", spec.Image)
+	_, err := d.dockerClient.ImageInspect(ctx, spec.Image)
+	if err != nil {
+		d.logger.Info("image not found locally, pulling image", "image", spec.Image, "error", err.Error())
+		pullResponse, err := d.dockerClient.ImagePull(ctx, spec.Image, image.PullOptions{})
+		if err != nil {
+			return "", fmt.Errorf("failed to pull image %s: %w", spec.Image, err)
+		}
+		defer pullResponse.Close()
+		
+		// Read the pull response to completion to ensure pull finishes
+		_, err = io.ReadAll(pullResponse)
+		if err != nil {
+			return "", fmt.Errorf("failed to read pull response for image %s: %w", spec.Image, err)
+		}
+		
+		d.logger.Info("image pulled successfully", "image", spec.Image)
+	} else {
+		d.logger.Info("image found locally, skipping pull", "image", spec.Image)
+	}
+
 	// Build container configuration
 	config := &container.Config{
 		Image:        spec.Image,
@@ -673,6 +711,9 @@ func (d *DockerBackend) createContainer(ctx context.Context, spec *ContainerSpec
 		WorkingDir:   spec.WorkingDir,
 	}
 
+	// Log the container command for debugging
+	d.logger.Info("container configuration", "image", spec.Image, "cmd", config.Cmd, "env", config.Env)
+
 	// Set up exposed ports
 	for _, mapping := range spec.PortMappings {
 		port := nat.Port(fmt.Sprintf("%d/%s", mapping.ContainerPort, mapping.Protocol))
@@ -682,35 +723,77 @@ func (d *DockerBackend) createContainer(ctx context.Context, spec *ContainerSpec
 	// Build host configuration
 	hostConfig := &container.HostConfig{
 		PortBindings: make(nat.PortMap),
-		AutoRemove:   d.config.AutoRemove,
+		AutoRemove:   false, // Don't auto-remove containers for debugging
 		Privileged:   d.config.Privileged,
 		Resources: container.Resources{
-			Memory: spec.Memory,
+			Memory:   spec.Memory,
 			NanoCPUs: int64(spec.CPUs * 1e9),
 		},
 	}
 
-	// Set up port bindings
-	for _, mapping := range spec.PortMappings {
-		containerPort := nat.Port(fmt.Sprintf("%d/%s", mapping.ContainerPort, mapping.Protocol))
-		hostConfig.PortBindings[containerPort] = []nat.PortBinding{
-			{
-				HostIP:   "0.0.0.0",
-				HostPort: strconv.Itoa(mapping.HostPort),
-			},
+	// Set up port bindings with retry logic
+	maxRetries := 5
+	for retry := 0; retry < maxRetries; retry++ {
+		// Clear previous port bindings
+		hostConfig.PortBindings = make(nat.PortMap)
+		
+		// Allocate ports for this attempt
+		var allocatedPorts []int
+		portAllocationFailed := false
+		
+		for i, mapping := range spec.PortMappings {
+			if mapping.HostPort == 0 {
+				// Allocate a new port
+				hostPort, err := d.portAllocator.allocatePort(spec.Labels["unkey.vm.id"])
+				if err != nil {
+					// Release any ports allocated in this attempt
+					for _, port := range allocatedPorts {
+						d.portAllocator.releasePort(port, spec.Labels["unkey.vm.id"])
+					}
+					portAllocationFailed = true
+					break
+				}
+				spec.PortMappings[i].HostPort = hostPort
+				allocatedPorts = append(allocatedPorts, hostPort)
+			}
+			
+			containerPort := nat.Port(fmt.Sprintf("%d/%s", mapping.ContainerPort, mapping.Protocol))
+			hostConfig.PortBindings[containerPort] = []nat.PortBinding{
+				{
+					HostIP:   "0.0.0.0",
+					HostPort: strconv.Itoa(spec.PortMappings[i].HostPort),
+				},
+			}
 		}
+		
+		if portAllocationFailed {
+			continue // Try again with new ports
+		}
+
+		// Create container
+		containerName := d.config.ContainerPrefix + spec.Labels["unkey.vm.id"]
+		resp, err := d.dockerClient.ContainerCreate(ctx, config, hostConfig, nil, nil, containerName)
+		if err != nil {
+			// If it's a port binding error, release ports and try again
+			if strings.Contains(err.Error(), "port is already allocated") || strings.Contains(err.Error(), "bind") {
+				for _, port := range allocatedPorts {
+					d.portAllocator.releasePort(port, spec.Labels["unkey.vm.id"])
+				}
+				d.logger.Warn("port binding failed, retrying with new ports", "error", err, "retry", retry+1)
+				continue
+			}
+			// Other errors are not retryable
+			span.RecordError(err)
+			return "", fmt.Errorf("failed to create container: %w", err)
+		}
+
+		// Success!
+		span.SetAttributes(attribute.String("container_id", resp.ID))
+		return resp.ID, nil
 	}
 
-	// Create container
-	containerName := d.config.ContainerPrefix + spec.Labels["unkey.vm.id"]
-	resp, err := d.dockerClient.ContainerCreate(ctx, config, hostConfig, nil, nil, containerName)
-	if err != nil {
-		span.RecordError(err)
-		return "", fmt.Errorf("failed to create container: %w", err)
-	}
-
-	span.SetAttributes(attribute.String("container_id", resp.ID))
-	return resp.ID, nil
+	// If we get here, all retries failed
+	return "", fmt.Errorf("failed to create container after %d retries due to port conflicts", maxRetries)
 }
 
 // getContainerNetworkInfo gets network information for a container
@@ -742,6 +825,47 @@ func (d *DockerBackend) getContainerNetworkInfo(ctx context.Context, containerID
 		}
 	}
 
+	// Add port mappings from container inspect
+	if inspect.NetworkSettings != nil && inspect.NetworkSettings.Ports != nil {
+		var portMappings []*metaldv1.PortMapping
+		for containerPort, hostBindings := range inspect.NetworkSettings.Ports {
+			if len(hostBindings) > 0 {
+				// Parse container port (e.g., "3000/tcp" -> 3000)
+				portStr := strings.Split(string(containerPort), "/")[0]
+				containerPortNum, err := strconv.Atoi(portStr)
+				if err != nil {
+					continue
+				}
+
+				// Get protocol (tcp/udp)
+				protocol := "tcp"
+				if strings.Contains(string(containerPort), "/udp") {
+					protocol = "udp"
+				}
+
+				// Add mapping for each host binding
+				for _, hostBinding := range hostBindings {
+					hostPortNum, err := strconv.Atoi(hostBinding.HostPort)
+					if err != nil {
+						continue
+					}
+
+					portMappings = append(portMappings, &metaldv1.PortMapping{
+						ContainerPort: int32(containerPortNum),
+						HostPort:      int32(hostPortNum),
+						Protocol:      protocol,
+					})
+				}
+			}
+		}
+
+		// Initialize networkInfo if it doesn't exist
+		if networkInfo == nil {
+			networkInfo = &metaldv1.VmNetworkInfo{}
+		}
+		networkInfo.PortMappings = portMappings
+	}
+
 	return networkInfo, nil
 }
 
@@ -752,18 +876,17 @@ func (pa *portAllocator) allocatePort(vmID string) (int, error) {
 	pa.mutex.Lock()
 	defer pa.mutex.Unlock()
 
-	// Find available port
-	for port := pa.minPort; port <= pa.maxPort; port++ {
+	// Try random ports to avoid conflicts
+	maxAttempts := 100
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		port := rand.Intn(pa.maxPort-pa.minPort+1) + pa.minPort
 		if _, exists := pa.allocated[port]; !exists {
-			// Check if port is actually available
-			if pa.isPortAvailable(port) {
-				pa.allocated[port] = vmID
-				return port, nil
-			}
+			pa.allocated[port] = vmID
+			return port, nil
 		}
 	}
 
-	return 0, fmt.Errorf("no available ports in range %d-%d", pa.minPort, pa.maxPort)
+	return 0, fmt.Errorf("no available ports in range %d-%d after %d attempts", pa.minPort, pa.maxPort, maxAttempts)
 }
 
 // releasePort releases a port from a VM
@@ -776,15 +899,6 @@ func (pa *portAllocator) releasePort(port int, vmID string) {
 	}
 }
 
-// isPortAvailable checks if a port is available on the host
-func (pa *portAllocator) isPortAvailable(port int) bool {
-	conn, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
-	if err != nil {
-		return false
-	}
-	conn.Close()
-	return true
-}
 
 // Ensure DockerBackend implements Backend interface
 var _ backendtypes.Backend = (*DockerBackend)(nil)

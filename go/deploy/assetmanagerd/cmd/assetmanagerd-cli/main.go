@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/client"
-	assetv1 "github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/asset/v1"
+	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
 )
 
 // AIDEV-NOTE: CLI tool demonstrating assetmanagerd client usage with SPIFFE integration

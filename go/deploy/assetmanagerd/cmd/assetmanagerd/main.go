@@ -16,8 +16,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	assetv1 "github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/asset/v1"
-	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/asset/v1/assetv1connect"
+	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
+	"github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1/assetmanagerdv1connect"
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/internal/builderd"
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/internal/observability"
@@ -227,7 +227,7 @@ func main() {
 	}
 
 	// Create ConnectRPC handler with shared interceptors
-	path, handler := assetv1connect.NewAssetManagerServiceHandler(
+	path, handler := assetmanagerdv1connect.NewAssetManagerServiceHandler(
 		assetService,
 		connect.WithInterceptors(interceptorList...),
 	)
