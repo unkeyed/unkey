@@ -18,15 +18,5 @@
       "s3AccessKeySecret": "${VAULT_S3_ACCESS_KEY_SECRET}",
       "masterKeys": "${VAULT_MASTER_KEYS}"
     }
-  },
-  "cluster": {
-    "authToken": "${AUTH_TOKEN}",
-    "serfAddr": "[${FLY_PRIVATE_IP}]:${SERF_PORT}",
-    "rpcAddr": "http://${FLY_PRIVATE_IP}:${RPC_PORT}",
-    "join": {
-      "env": {
-        "addrs": []
-      }
-    }
   }
 }
