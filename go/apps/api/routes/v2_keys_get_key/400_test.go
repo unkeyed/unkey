@@ -12,7 +12,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 )
 
-func Test_GetKey_BadRequest(t *testing.T) {
+func TestGetKeyBadRequest(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{

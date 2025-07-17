@@ -51,14 +51,11 @@ func TestSuccess(t *testing.T) {
 
 	// Insert multiple test identities
 	const totalIdentities = 15
-	var identityIDs []string
 	var externalIDs []string
-
-	for i := 0; i < totalIdentities; i++ {
+	for i := range totalIdentities {
 		identityID := uid.New(uid.IdentityPrefix)
 		externalID := "test_user_" + uid.New("") // Generate a unique ID
 
-		identityIDs = append(identityIDs, identityID)
 		externalIDs = append(externalIDs, externalID)
 
 		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
