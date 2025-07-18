@@ -20,6 +20,7 @@ SELECT
     git_commit_sha,
     git_branch,
     config_snapshot,
+    openapi_spec,
     status,
     created_at,
     updated_at
@@ -39,6 +40,7 @@ WHERE id = ?
 //	    git_commit_sha,
 //	    git_branch,
 //	    config_snapshot,
+//	    openapi_spec,
 //	    status,
 //	    created_at,
 //	    updated_at
@@ -57,6 +59,7 @@ func (q *Queries) FindVersionById(ctx context.Context, db DBTX, id string) (Vers
 		&i.GitCommitSha,
 		&i.GitBranch,
 		&i.ConfigSnapshot,
+		&i.OpenapiSpec,
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,

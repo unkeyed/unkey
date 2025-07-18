@@ -384,6 +384,7 @@ CREATE TABLE `versions` (
 	`git_commit_sha` varchar(40),
 	`git_branch` varchar(256),
 	`config_snapshot` json NOT NULL,
+	`openapi_spec` text,
 	`status` enum('pending','building','deploying','active','failed','archived') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,

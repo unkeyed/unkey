@@ -9,6 +9,7 @@ SELECT
     git_commit_sha,
     git_branch,
     config_snapshot,
+    openapi_spec,
     status,
     created_at,
     updated_at

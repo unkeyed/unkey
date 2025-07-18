@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, json, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, json, mysqlEnum, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
 import { branches } from "./branches";
 import { builds } from "./builds";
 import { projects } from "./projects";
@@ -31,6 +31,9 @@ export const versions = mysqlTable(
         metadata?: Record<string, unknown>;
       }>()
       .notNull(),
+
+    // OpenAPI specification
+    openapiSpec: text("openapi_spec"),
 
     // Version status
     status: mysqlEnum("status", [
