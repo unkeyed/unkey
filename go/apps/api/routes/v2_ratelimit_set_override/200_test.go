@@ -49,10 +49,10 @@ func TestSetOverrideSuccessfully(t *testing.T) {
 	// Create a new override by namespace name
 	t.Run("create override using namespace name", func(t *testing.T) {
 		req := handler.Request{
-			NamespaceName: &namespaceName,
-			Identifier:    "user_123",
-			Limit:         10,
-			Duration:      1000,
+			Namespace:  namespaceName,
+			Identifier: "user_123",
+			Limit:      10,
+			Duration:   1000,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -75,10 +75,10 @@ func TestSetOverrideSuccessfully(t *testing.T) {
 	// Create a new override by namespace ID
 	t.Run("create override using namespace ID", func(t *testing.T) {
 		req := handler.Request{
-			NamespaceId: &namespaceID,
-			Identifier:  "user_456",
-			Limit:       20,
-			Duration:    2000,
+			Namespace:  namespaceID,
+			Identifier: "user_456",
+			Limit:      20,
+			Duration:   2000,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -101,10 +101,10 @@ func TestSetOverrideSuccessfully(t *testing.T) {
 	// Create an override with a wildcard identifier
 	t.Run("create override with wildcard identifier", func(t *testing.T) {
 		req := handler.Request{
-			NamespaceId: &namespaceID,
-			Identifier:  "*", // Wildcard
-			Limit:       5,
-			Duration:    2000,
+			Namespace:  namespaceID,
+			Identifier: "*", // Wildcard
+			Limit:      5,
+			Duration:   2000,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)

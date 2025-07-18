@@ -63,7 +63,7 @@ func TestWorkspacePermissions(t *testing.T) {
 
 	// Try to access the override with a key from a different workspace
 	req := handler.Request{
-		NamespaceId: &namespaceID,
+		Namespace: namespaceID,
 	}
 
 	res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)

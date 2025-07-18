@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -15,7 +14,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/match"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -54,10 +52,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	// Use the namespace field directly - it can be either name or ID
+	namespaceKey := req.Namespace
+
 	response, err := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
 		WorkspaceID: auth.AuthorizedWorkspaceID,
-		Name:        sql.NullString{String: ptr.SafeDeref(req.NamespaceName), Valid: req.NamespaceName != nil},
-		ID:          sql.NullString{String: ptr.SafeDeref(req.NamespaceId), Valid: req.NamespaceId != nil},
+		Namespace:   namespaceKey,
 	})
 	if err != nil {
 		if db.IsNotFound(err) {

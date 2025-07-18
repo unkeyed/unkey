@@ -65,8 +65,8 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 	// Test getting by namespace name
 	t.Run("get by namespace name", func(t *testing.T) {
 		req := handler.Request{
-			NamespaceName: &namespaceName,
-			Identifier:    identifier,
+			Namespace:  namespaceName,
+			Identifier: identifier,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -82,8 +82,8 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 	// Test getting by namespace ID
 	t.Run("get by namespace ID", func(t *testing.T) {
 		req := handler.Request{
-			NamespaceId: &namespaceID,
-			Identifier:  identifier,
+			Namespace:  namespaceID,
+			Identifier: identifier,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
