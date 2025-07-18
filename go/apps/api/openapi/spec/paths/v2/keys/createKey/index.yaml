@@ -1,0 +1,38 @@
+post:
+  tags:
+    - keys
+  summary: Update API key properties without changing the key itself
+  description: |-
+    Modifies the properties of an existing API key without changing the key string itself. This endpoint supports partial updates - you only need to include the fields you want to change.
+
+    You can use this endpoint to:
+    - Rename keys for better organization
+    - Update metadata to reflect changes in user status, plan, or properties
+    - Modify usage limits or rate limits
+    - Enable or disable keys temporarily
+    - Change key expiration dates
+    - Add or update user identifiers
+
+    To explicitly remove/disable a feature, set its field to null. Fields not included in the request remain unchanged. For managing permissions or roles, use the specialized endpoints (keys.addPermissions, keys.removePermissions, etc.) instead.
+
+    Changes may take up to 30 seconds to propagate to all regions due to cache invalidation. For immediate effect in the current region, follow the update with a verification request.
+  operationId: updateKey
+  x-speakeasy-name-override: updateKey
+
+  security:
+    - rootKey: []
+  requestBody:
+    $ref: "./request.yaml#/Request"
+  responses:
+    "200":
+      $ref: "./response.yaml#/Response"
+    "400":
+      $ref: "../../../../error/responses.yaml#/BadRequestError"
+    "401":
+      $ref: "../../../../error/responses.yaml#/UnauthorizedError"
+    "403":
+      $ref: "../../../../error/responses.yaml#/ForbiddenError"
+    "404":
+      $ref: "../../../../error/responses.yaml#/NotFoundError"
+    "500":
+      $ref: "../../../../error/responses.yaml#/InternalServerError"
