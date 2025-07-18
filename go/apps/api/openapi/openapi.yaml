@@ -1813,21 +1813,19 @@ components:
         - Prioritizing important clients with higher limits
       additionalProperties: false
       properties:
-        namespaceId:
-          description:
-            The unique ID of the rate limit namespace. Either `namespaceId`
-            or `namespaceName` must be provided, but not both. Using `namespaceId` guarantees
-            you're targeting the exact namespace intended, even if names change, making
-            it ideal for automation and scripts.
+        namespace:
           type: string
           minLength: 1
           maxLength: 255
-        namespaceName:
-          description:
-            The name of the rate limit namespace. Either `namespaceId` or
-            `namespaceName` must be provided, but not both. Using `namespaceName` is more
-            human-readable and convenient for manual operations and configurations.
-          type: string
+          description: |
+            The rate limit namespace identifier. This can be either:
+            - A namespace name (e.g., "api.requests", "auth.login") - human-readable names that are unique within your workspace
+            - A namespace ID (e.g., "ns_1234567890abcdef") - system-generated unique identifiers
+            
+            The system will automatically detect whether you've provided a name or ID and perform the appropriate lookup.
+            Names must start with a letter and can contain letters, numbers, underscores, dots, slashes, or hyphens.
+            IDs follow the format "ns_" followed by an alphanumeric string.
+          example: api.requests
         duration:
           description: |-
             The duration in milliseconds for the rate limit window. This defines how long the rate limit counter accumulates before resetting to zero.
@@ -1872,6 +1870,7 @@ components:
           type: integer
           minimum: 0
       required:
+        - namespace
         - identifier
         - limit
         - duration
@@ -1914,23 +1913,19 @@ components:
         - Retrieving override settings for modification
       additionalProperties: false
       properties:
-        namespaceId:
-          description:
-            The unique ID of the rate limit namespace. Either `namespaceId`
-            or `namespaceName` must be provided, but not both. Using `namespaceId` is
-            more precise and less prone to naming conflicts, making it ideal for scripts
-            and automated operations.
+        namespace:
           type: string
           minLength: 1
           maxLength: 255
-        namespaceName:
-          description:
-            The name of the rate limit namespace. Either `namespaceId` or
-            `namespaceName` must be provided, but not both. Using `namespaceName` is more
-            human-readable and easier to work with for manual operations and configurations.
-          type: string
-          minLength: 1
-          maxLength: 255
+          description: |
+            The rate limit namespace identifier. This can be either:
+            - A namespace name (e.g., "api.requests", "auth.login") - human-readable names that are unique within your workspace
+            - A namespace ID (e.g., "ns_1234567890abcdef") - system-generated unique identifiers
+            
+            The system will automatically detect whether you've provided a name or ID and perform the appropriate lookup.
+            Names must start with a letter and can contain letters, numbers, underscores, dots, slashes, or hyphens.
+            IDs follow the format "ns_" followed by an alphanumeric string.
+          example: api.requests
         identifier:
           description: |-
             The exact identifier pattern for the override you want to retrieve. This must match exactly as it was specified when creating the override.
@@ -1945,15 +1940,9 @@ components:
           minLength: 1
           maxLength: 255
       required:
+        - namespace
         - identifier
       type: object
-      oneOf:
-        - required:
-            - namespaceName
-            - identifier
-        - required:
-            - namespaceId
-            - identifier
     V2RatelimitGetOverrideResponseBody:
       type: object
       required:
@@ -1967,22 +1956,19 @@ components:
     V2RatelimitListOverridesRequestBody:
       additionalProperties: false
       properties:
-        namespaceId:
-          description:
-            The unique ID of the rate limit namespace to list overrides
-            for. Either `namespaceId` or `namespaceName` must be provided, but not both.
-            Using `namespaceId` guarantees you're targeting the exact namespace intended,
-            even if names change over time.
+        namespace:
           type: string
           minLength: 1
           maxLength: 255
-        namespaceName:
-          description:
-            The name of the rate limit namespace to list overrides for.
-            Either `namespaceId` or `namespaceName` must be provided, but not both. Using
-            `namespaceName` is more human-readable and convenient for manual operations
-            and dashboards.
-          type: string
+          description: |
+            The rate limit namespace identifier. This can be either:
+            - A namespace name (e.g., "api.requests", "auth.login") - human-readable names that are unique within your workspace
+            - A namespace ID (e.g., "ns_1234567890abcdef") - system-generated unique identifiers
+            
+            The system will automatically detect whether you've provided a name or ID and perform the appropriate lookup.
+            Names must start with a letter and can contain letters, numbers, underscores, dots, slashes, or hyphens.
+            IDs follow the format "ns_" followed by an alphanumeric string.
+          example: api.requests
         cursor:
           description:
             Pagination cursor from a previous response. Include this when
@@ -2003,6 +1989,8 @@ components:
           default: 10
           minimum: 1
           maximum: 100
+      required:
+        - namespace
       type: object
     RatelimitListOverridesResponseData:
       type: array
@@ -2026,15 +2014,16 @@ components:
         namespace:
           type: string
           minLength: 1
-          maxLength: 255 # Reasonable upper bound for namespace identifiers
-          pattern: "^[a-zA-Z][a-zA-Z0-9_./-]*$"
+          maxLength: 255
           description: |
-            Identifies the rate limit category using hierarchical naming for organization and monitoring.
-            Namespaces must start with a letter and can contain letters, numbers, underscores, dots, slashes, or hyphens.
-            Use descriptive, hierarchical names like 'auth.login', 'api.requests', or 'media.uploads' for clear categorization.
-            Namespaces must be unique within your workspace and support segmentation of different API operations.
-            Consistent naming conventions across your application improve monitoring and debugging capabilities.
-          example: sms.sign_up
+            The rate limit namespace identifier. This can be either:
+            - A namespace name (e.g., "api.requests", "auth.login") - human-readable names that are unique within your workspace
+            - A namespace ID (e.g., "ns_1234567890abcdef") - system-generated unique identifiers
+            
+            The system will automatically detect whether you've provided a name or ID and perform the appropriate lookup.
+            Names must start with a letter and can contain letters, numbers, underscores, dots, slashes, or hyphens.
+            IDs follow the format "ns_" followed by an alphanumeric string.
+          example: api.requests
         cost:
           type: integer
           format: int64
@@ -2167,24 +2156,19 @@ components:
         Once deleted, the override cannot be recovered, and the operation takes effect immediately.
       additionalProperties: false
       properties:
-        namespaceId:
-          description:
-            The unique ID of the rate limit namespace containing the override.
-            Either `namespaceId` or `namespaceName` must be provided, but not both. Using
-            `namespaceId` is more precise and less prone to naming conflicts, making
-            it ideal for automation and scripts.
+        namespace:
           type: string
           minLength: 1
           maxLength: 255
-        namespaceName:
-          description:
-            The name of the rate limit namespace containing the override.
-            Either `namespaceId` or `namespaceName` must be provided, but not both. Using
-            `namespaceName` is more human-readable and convenient for manual operations
-            and configurations.
-          type: string
-          minLength: 1
-          maxLength: 255
+          description: |
+            The rate limit namespace identifier. This can be either:
+            - A namespace name (e.g., "api.requests", "auth.login") - human-readable names that are unique within your workspace
+            - A namespace ID (e.g., "ns_1234567890abcdef") - system-generated unique identifiers
+            
+            The system will automatically detect whether you've provided a name or ID and perform the appropriate lookup.
+            Names must start with a letter and can contain letters, numbers, underscores, dots, slashes, or hyphens.
+            IDs follow the format "ns_" followed by an alphanumeric string.
+          example: api.requests
         identifier:
           description: |-
             The exact identifier pattern of the override to delete. This must match exactly as it was specified when creating the override.
@@ -2199,6 +2183,7 @@ components:
           minLength: 1
           maxLength: 255
       required:
+        - namespace
         - identifier
       type: object
     RatelimitDeleteOverrideResponseData:
@@ -5411,6 +5396,13 @@ paths:
                   limit: 50
                   duration: 3600000
                   cost: 5
+              usingNamespaceId:
+                summary: Using namespace ID instead of name
+                value:
+                  namespace: ns_1234567890abcdef
+                  identifier: user_xyz789
+                  limit: 200
+                  duration: 60000
         required: true
       responses:
         "200":
