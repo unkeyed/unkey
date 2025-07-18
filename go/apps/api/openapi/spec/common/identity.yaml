@@ -10,7 +10,7 @@ Identity:
     ratelimits:
       type: array
       items:
-        "$ref": "./ratelimitResponse.yaml#/RatelimitResponse"
+        "$ref": "./RatelimitResponse.yaml"
     description: Identity ratelimits
   required:
     - externalId

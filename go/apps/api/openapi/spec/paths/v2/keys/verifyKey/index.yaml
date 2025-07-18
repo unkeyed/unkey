@@ -22,12 +22,27 @@ post:
     "200":
       $ref: "./response.yaml#/Response"
     "400":
-      $ref: "../../../../error/responses.yaml#/BadRequestError"
+      $ref: "../../../../error/badRequestErrorResponse.yaml"
+      examples:
+        permissionsQuerySyntaxError:
+          summary: Invalid permissions query syntax
+          value:
+            meta:
+              requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+            error:
+              title: Bad Request
+              detail: "Syntax error in permission query: unexpected token 'AND' at position 15. Expected permission name or opening parenthesis."
+              status: 400
+              type: "https://unkey.com/docs/api-reference/errors-v2/user/bad_request/permissions_query_syntax_error"
+              errors:
+                - location: "body.permissions"
+                  message: "unexpected token 'AND' at position 15"
+                  fix: "Check your query syntax. AND/OR operators must be between permissions, not at the start or end"
     "401":
-      $ref: "../../../../error/responses.yaml#/UnauthorizedError"
+      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
     "403":
-      $ref: "../../../../error/responses.yaml#/ForbiddenError"
+      $ref: "../../../../error/forbiddenErrorResponse.yaml"
     "404":
-      $ref: "../../../../error/responses.yaml#/NotFoundError"
+      $ref: "../../../../error/notFoundErrorResponse.yaml"
     "500":
-      $ref: "../../../../error/responses.yaml#/InternalServerError"
+      $ref: "../../../../error/internalServerErrorResponse.yaml"

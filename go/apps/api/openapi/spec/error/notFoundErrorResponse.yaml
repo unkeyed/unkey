@@ -1,0 +1,17 @@
+description: |-
+  Not Found - The requested resource does not exist
+content:
+  application/json:
+    schema:
+      $ref: "./notFoundError.yaml"
+    examples:
+      resourceNotFound:
+        summary: Resource not found
+        value:
+          meta:
+            requestId: req_2c9a0jf23l4k567
+          error:
+            detail: The requested resource could not be found
+            status: 404
+            title: Not Found
+            type: https://unkey.com/docs/api-reference/errors-v2/unkey/resource/not_found

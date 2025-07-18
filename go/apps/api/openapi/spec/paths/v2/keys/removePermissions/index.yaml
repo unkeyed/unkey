@@ -19,12 +19,12 @@ post:
     "200":
       $ref: "./response.yaml#/Response"
     "400":
-      $ref: "../../../../error/responses.yaml#/BadRequestError"
+      $ref: "../../../../error/badRequestErrorResponse.yaml"
     "401":
-      $ref: "../../../../error/responses.yaml#/UnauthorizedError"
+      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
     "403":
-      $ref: "../../../../error/responses.yaml#/ForbiddenError"
+      $ref: "../../../../error/forbiddenErrorResponse.yaml"
     "404":
-      $ref: "../../../../error/responses.yaml#/NotFoundError"
+      $ref: "../../../../error/notFoundErrorResponse.yaml"
     "500":
-      $ref: "../../../../error/responses.yaml#/InternalServerError"
+      $ref: "../../../../error/internalServerErrorResponse.yaml"

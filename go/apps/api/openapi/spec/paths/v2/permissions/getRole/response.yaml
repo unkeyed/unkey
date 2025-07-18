@@ -21,7 +21,7 @@ PermissionsGetRoleResponseData:
   type: object
   properties:
     role:
-      "$ref": "../listRoles/response.yaml#/RoleWithPermissions"
+      "$ref": "../../../../common/Role.yaml"
   required:
     - role
   additionalProperties: false

@@ -1,0 +1,17 @@
+description: |-
+  Forbidden - Insufficient permissions to access the requested resource
+content:
+  application/json:
+    schema:
+      $ref: "./forbiddenError.yaml"
+    examples:
+      insufficientPermissions:
+        summary: Insufficient permissions
+        value:
+          meta:
+            requestId: req_2c9a0jf23l4k567
+          error:
+            detail: Your root key lacks the required permissions for this operation
+            status: 403
+            title: Forbidden
+            type: https://unkey.com/docs/api-reference/errors-v2/unkey/auth/insufficient_permissions

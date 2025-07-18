@@ -21,7 +21,7 @@ PermissionsGetPermissionResponseData:
   type: object
   properties:
     permission:
-      "$ref": "../listPermissions/response.yaml#/Permission"
+      "$ref": "../../../../common/Permission.yaml"
   required:
     - permission
   additionalProperties: false

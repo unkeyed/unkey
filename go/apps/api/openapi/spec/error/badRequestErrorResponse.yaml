@@ -1,0 +1,21 @@
+description: |-
+  Bad Request - Invalid request format, missing required fields, or validation errors
+content:
+  application/json:
+    schema:
+      $ref: "./badRequestError.yaml"
+    examples:
+      validationError:
+        summary: Validation error example
+        value:
+          meta:
+            requestId: req_2c9a0jf23l4k567
+          error:
+            detail: Request failed validation due to invalid field values
+            status: 400
+            title: Bad Request
+            type: https://unkey.com/docs/api-reference/errors-v2/unkey/client/validation_error
+            errors:
+              - location: body.permissions[0].name
+                message: Must be at least 3 characters long
+                fix: Ensure the name uses only alphanumeric characters, underscores, and hyphens

@@ -38,25 +38,19 @@ V2KeysVerifyKeyRequestBody:
         Can include prefixes (e.g., 'prod_xxxxx') and should be provided exactly as given to the user.
       example: prod_1234567890abcdef1234567890abcdef
     permissions:
-      type: object
-      properties:
-        type:
-          type: string
-          enum: [and, or]
-          description: |
-            Logic type for permission validation:
-            - 'and': Key must have ALL specified permissions
-            - 'or': Key must have AT LEAST ONE of the specified permissions
-        permissions:
-          type: array
-          items:
-            type: string
-          description: List of permission names to check
+      type: string
+      minLength: 1
+      maxLength: 1000 # Allow for complex permission queries
+      pattern: "^[a-zA-Z0-9_.()\\s-]+$"
       description: |
-        Enforces role-based access control by verifying the key has required permissions.
-        Omitting this field skips permission checks entirely, allowing any valid key to proceed.
-        When provided, verification fails unless the key has the specified permissions through direct assignment or role inheritance.
-        Essential for implementing fine-grained authorization in multi-tenant or privilege-separated APIs.
+        Checks if the key has the specified permission(s) using a query syntax.
+        Supports single permissions, logical operators (AND, OR), and parentheses for grouping.
+        Examples:
+        - Single permission: "documents.read"
+        - Multiple permissions: "documents.read AND documents.write"
+        - Complex queries: "(documents.read OR documents.write) AND users.view"
+        Verification fails if the key lacks the required permissions through direct assignment or role inheritance.
+      example: "documents.read AND users.view"
     credits:
       type: object
       properties:

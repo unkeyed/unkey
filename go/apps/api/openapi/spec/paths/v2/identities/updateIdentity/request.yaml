@@ -44,7 +44,7 @@ V2IdentitiesUpdateIdentityRequestBody:
       type: array
       maxItems: 50
       items:
-        "$ref": "../createIdentity/request.yaml#/RatelimitRequest"
+        "$ref": "../../../../common/RatelimitRequest.yaml"
       description: |
         Replaces all existing identity rate limits with this complete list of rate limits.
         Omitting this field preserves existing rate limits, while providing an empty array removes all rate limits.

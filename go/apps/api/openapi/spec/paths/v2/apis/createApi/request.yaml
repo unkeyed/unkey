@@ -6,9 +6,9 @@ Request:
         "$ref": "#/V2ApisCreateApiRequestBody"
       examples:
         production:
-        summary: Production API
-        value:
-          name: payment-service-production
+          summary: Production API
+          value:
+            name: payment-service-production
         staging:
           summary: Staging environment
           value:
@@ -23,23 +23,23 @@ V2ApisCreateApiRequestBody:
   required:
     - name
   properties:
-  name:
-    type: string
-    minLength: 3
-    maxLength: 255
-    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
-    description: |
-      Creates an API with this name as an internal identifier for organization and isolation.
-      APIs serve as containers for groups of keys and provide namespace separation between environments or services.
-      Names must be unique within your workspace and are not shown to end users.
+    name:
+      type: string
+      minLength: 3
+      maxLength: 255
+      pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+      description: |
+        Creates an API with this name as an internal identifier for organization and isolation.
+        APIs serve as containers for groups of keys and provide namespace separation between environments or services.
+        Names must be unique within your workspace and are not shown to end users.
 
-      Use descriptive names that clearly identify the API's purpose and environment:
-      - Include environment indicators like 'production', 'staging', 'development'
-      - Use service-based naming like 'payment-service', 'user-management', 'analytics'
-      - Follow consistent naming conventions across your organization
-      - Keep names concise but informative for easy identification
+        Use descriptive names that clearly identify the API's purpose and environment:
+        - Include environment indicators like 'production', 'staging', 'development'
+        - Use service-based naming like 'payment-service', 'user-management', 'analytics'
+        - Follow consistent naming conventions across your organization
+        - Keep names concise but informative for easy identification
 
-      Must start with a letter and contain only letters, numbers, underscores, dots, and hyphens.
-      Avoid generic names like 'api' or 'main' that don't provide meaningful context.
-    example: payment-service-production
+        Must start with a letter and contain only letters, numbers, underscores, dots, and hyphens.
+        Avoid generic names like 'api' or 'main' that don't provide meaningful context.
+      example: payment-service-production
   additionalProperties: false

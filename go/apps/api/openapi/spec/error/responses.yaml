@@ -4,7 +4,7 @@ BadRequestError:
   content:
     application/json:
       schema:
-        $ref: "./errors.yaml#/BadRequestErrorResponse"
+        $ref: "./badRequestError.yaml"
       examples:
         validationError:
           summary: Validation error example
@@ -27,7 +27,7 @@ UnauthorizedError:
   content:
     application/json:
       schema:
-        $ref: "./errors.yaml#/UnauthorizedErrorResponse"
+        $ref: "./unauthorizedError.yaml"
       examples:
         invalidToken:
           summary: Invalid authentication token
@@ -46,7 +46,7 @@ ForbiddenError:
   content:
     application/json:
       schema:
-        $ref: "./errors.yaml#/ForbiddenErrorResponse"
+        $ref: "./forbiddenError.yaml"
       examples:
         insufficientPermissions:
           summary: Insufficient permissions
@@ -65,7 +65,7 @@ NotFoundError:
   content:
     application/json:
       schema:
-        $ref: "./errors.yaml#/NotFoundErrorResponse"
+        $ref: "./notFoundError.yaml"
       examples:
         resourceNotFound:
           summary: Resource not found
@@ -84,7 +84,7 @@ ConflictError:
   content:
     application/json:
       schema:
-        $ref: "./errors.yaml#/ConflictErrorResponse"
+        $ref: "./conflictError.yaml"
       examples:
         duplicateResource:
           summary: Duplicate resource
@@ -103,7 +103,7 @@ InternalServerError:
   content:
     application/json:
       schema:
-        $ref: "./errors.yaml#/InternalServerErrorResponse"
+        $ref: "./internalServerError.yaml"
       examples:
         serverError:
           summary: Internal server error

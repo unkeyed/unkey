@@ -1,0 +1,17 @@
+description: |-
+  Unauthorized - Missing or invalid authentication credentials
+content:
+  application/json:
+    schema:
+      $ref: "./unauthorizedError.yaml"
+    examples:
+      invalidToken:
+        summary: Invalid authentication token
+        value:
+          meta:
+            requestId: req_2c9a0jf23l4k567
+          error:
+            detail: The provided authentication token is invalid or has expired
+            status: 401
+            title: Unauthorized
+            type: https://unkey.com/docs/api-reference/errors-v2/unkey/auth/invalid_token

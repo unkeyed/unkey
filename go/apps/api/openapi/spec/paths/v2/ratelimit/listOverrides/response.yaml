@@ -22,4 +22,4 @@ V2RatelimitListOverridesResponseBody:
 RatelimitListOverridesResponseData:
   type: array
   items:
-    "$ref": "../getOverride/response.yaml#/RatelimitOverride"
+    "$ref": "../../../../common/RatelimitOverride.yaml"

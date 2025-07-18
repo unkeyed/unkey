@@ -72,7 +72,7 @@ Identity:
     ratelimits:
       type: array
       items:
-        "$ref": "../getIdentity/response.yaml#/RatelimitResponse"
+        "$ref": "../../../../common/RatelimitResponse.yaml"
       description: Identity ratelimits
   required:
     - externalId
