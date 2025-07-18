@@ -38,6 +38,7 @@ import (
 	"context"
 	"log"
 	"log/slog"
+	"net"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/pkg/zen"
@@ -141,7 +142,14 @@ func main() {
 	logger.Info("starting server",
 		"address", ":8080",
 	)
-	err = server.Listen(context.Background(), ":8080")
+	
+	// Create a listener
+	listener, err := net.Listen("tcp", ":8080")
+	if err != nil {
+		log.Fatalf("failed to create listener: %v", err)
+	}
+	
+	err = server.Serve(context.Background(), listener)
 	if err != nil {
 		logger.Error("server error", slog.String("error", err.Error()))
 	}
@@ -158,6 +166,7 @@ package main
 import (
 	"context"
 	"log"
+	"net"
 
 	"github.com/unkeyed/unkey/go/pkg/tls"
 	"github.com/unkeyed/unkey/go/pkg/zen"
@@ -184,9 +193,15 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Create a listener for HTTPS
+	listener, err := net.Listen("tcp", ":443")
+	if err != nil {
+		log.Fatalf("failed to create listener: %v", err)
+	}
+
 	// Start in a goroutine so you can handle shutdown signals
 	go func() {
-		if err := server.Listen(ctx, ":443"); err != nil {
+		if err := server.Serve(ctx, listener); err != nil {
 			log.Fatalf("server error: %v", err)
 		}
 	}()
@@ -198,6 +213,32 @@ func main() {
 	cancel() // This will initiate graceful shutdown
 }
 ```
+
+## Testing with Ephemeral Ports
+
+For testing, you can use ephemeral ports to let the OS assign an available port automatically. This prevents port conflicts in testing environments:
+
+```go
+import "github.com/unkeyed/unkey/go/pkg/listener"
+
+// Get an available port and listener
+listenerImpl, err := listener.Ephemeral()
+if err != nil {
+	t.Fatalf("failed to create ephemeral listener: %v", err)
+}
+netListener, err := listenerImpl.Listen()
+if err != nil {
+	t.Fatalf("failed to get listener: %v", err)
+}
+
+// Start the server
+go server.Serve(ctx, netListener)
+
+// Make requests to the server
+resp, err := http.Get(fmt.Sprintf("http://%s/test", listenerImpl.Addr()))
+```
+
+This approach is especially useful for concurrent tests where multiple servers need to run simultaneously without conflicting ports.
 
 ## Working with OpenAPI Validation
 
@@ -228,8 +269,13 @@ Zen provides built-in support for graceful shutdown through context cancellation
 // Create a context that can be cancelled
 ctx, cancel := context.WithCancel(context.Background())
 
-// Start the server with this context
-go server.Listen(ctx, ":8080")
+// Create a listener and start the server with this context
+listener, err := net.Listen("tcp", ":8080")
+if err != nil {
+	log.Fatalf("failed to create listener: %v", err)
+}
+
+go server.Serve(ctx, listener)
 
 // When you need to shut down (e.g., on SIGTERM):
 cancel()

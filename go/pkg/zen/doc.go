@@ -49,8 +49,12 @@
 //	    route,
 //	)
 //
-//	// Start the server
-//	err = server.Listen(ctx, ":8080")
+//	// Create a listener and start the server
+//	listener, err := net.Listen("tcp", ":8080")
+//	if err != nil {
+//	    log.Fatalf("failed to create listener: %v", err)
+//	}
+//	err = server.Serve(ctx, listener)
 //
 // Zen is optimized for building maintainable, observable web services with minimal
 // external dependencies and strong integration with standard Go libraries.

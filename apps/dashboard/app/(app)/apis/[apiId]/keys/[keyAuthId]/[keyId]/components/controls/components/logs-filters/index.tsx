@@ -1,21 +1,55 @@
 import { FiltersPopover } from "@/components/logs/checkbox/filters-popover";
 
+import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
 import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useState } from "react";
+import { keyDetailsFilterFieldConfig } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 import { OutcomesFilter } from "./outcome-filter";
 
 export const LogsFilters = () => {
-  const { filters } = useFilters();
+  const { filters, updateFilters } = useFilters();
   const [open, setOpen] = useState(false);
+
+  const activeTagsFilter = filters.find((f) => f.field === "tags");
+  const tagsOptions = keyDetailsFilterFieldConfig.tags.operators.map((op) => ({
+    id: op,
+    label: op,
+  }));
 
   return (
     <FiltersPopover
       open={open}
       onOpenChange={setOpen}
       items={[
+        {
+          id: "tags",
+          label: "Tags",
+          shortcut: "t",
+          component: (
+            <FilterOperatorInput
+              label="Tags"
+              options={tagsOptions}
+              defaultOption={activeTagsFilter?.operator}
+              defaultText={activeTagsFilter?.value as string}
+              onApply={(id, text) => {
+                const activeFiltersWithoutTags = filters.filter((f) => f.field !== "tags");
+                updateFilters([
+                  ...activeFiltersWithoutTags,
+                  {
+                    field: "tags",
+                    id: crypto.randomUUID(),
+                    operator: id,
+                    value: text,
+                  },
+                ]);
+                setOpen(false);
+              }}
+            />
+          ),
+        },
         {
           id: "outcomes",
           label: "Outcomes",

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"runtime/debug"
 	"time"
 
@@ -110,7 +111,11 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("unable to start prometheus: %w", promErr)
 		}
 		go func() {
-			promListenErr := prom.Listen(ctx, fmt.Sprintf(":%d", cfg.PrometheusPort))
+			promListener, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
+			if err != nil {
+				panic(err)
+			}
+			promListenErr := prom.Serve(ctx, promListener)
 			if promListenErr != nil {
 				panic(promListenErr)
 			}
@@ -222,16 +227,22 @@ func Run(ctx context.Context, cfg Config) error {
 		Caches:     caches,
 		Vault:      vaultSvc,
 	})
+	if cfg.Listener == nil {
+		// Create listener from HttpPort (production)
+		cfg.Listener, err = net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpPort))
+		if err != nil {
+			return fmt.Errorf("Unable to listen on port %d: %w", cfg.HttpPort, err)
+		}
+	}
 
 	go func() {
-		listenErr := srv.Listen(ctx, fmt.Sprintf(":%d", cfg.HttpPort))
-		if listenErr != nil {
-			panic(listenErr)
+		serveErr := srv.Serve(ctx, cfg.Listener)
+		if serveErr != nil {
+			panic(serveErr)
 		}
-	}()
 
-	// Wait for signals and handle shutdown
-	logger.Info("API server started successfully")
+		logger.Info("API server started successfully")
+	}()
 
 	// Wait for either OS signals or context cancellation, then shutdown
 	if err := shutdowns.WaitForSignal(ctx, time.Minute); err != nil {

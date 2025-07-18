@@ -46,6 +46,7 @@ func main() {
 	f.WriteString("const (\n")
 
 	// Process each top-level error domain using reflection
+	processErrorDomain(f, "User", reflect.ValueOf(codes.User))
 	processErrorDomain(f, "Unkey", reflect.ValueOf(codes.Auth))
 	processErrorDomain(f, "Unkey", reflect.ValueOf(codes.Data))
 	processErrorDomain(f, "Unkey", reflect.ValueOf(codes.App))

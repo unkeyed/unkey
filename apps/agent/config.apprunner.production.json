@@ -35,16 +35,6 @@
       "masterKeys": "${VAULT_MASTER_KEYS}"
     }
   },
-  "cluster": {
-    "authToken": "${AUTH_TOKEN}",
-    "serfAddr": "[${FLY_PRIVATE_IP}]:${SERF_PORT}",
-    "rpcAddr": "http://${FLY_PRIVATE_IP}:${RPC_PORT}",
-    "join": {
-      "env": {
-        "addrs": []
-      }
-    }
-  },
   "heartbeat": {
     "interval": 60,
     "url": "${HEARTBEAT_URL}"

@@ -13,7 +13,7 @@ import (
 const insertRole = `-- name: InsertRole :exec
 INSERT INTO roles (
   id,
-  workspace_Id,
+  workspace_id,
   name,
   description,
   created_at_m
@@ -39,7 +39,7 @@ type InsertRoleParams struct {
 //
 //	INSERT INTO roles (
 //	  id,
-//	  workspace_Id,
+//	  workspace_id,
 //	  name,
 //	  description,
 //	  created_at_m

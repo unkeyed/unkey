@@ -58,6 +58,14 @@ export const keysQueryOverviewLogsPayload = z.object({
     )
     .optional()
     .nullable(),
+  tags: z
+    .array(
+      z.object({
+        operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
+        value: z.string(),
+      }),
+    )
+    .nullable(),
 });
 
 export type KeysQueryOverviewLogsPayload = z.infer<typeof keysQueryOverviewLogsPayload>;

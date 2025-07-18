@@ -13,6 +13,7 @@ const baseKeysSchema = z.object({
   names: baseFilterArraySchema,
   identities: baseFilterArraySchema,
   keyIds: baseFilterArraySchema,
+  tags: baseFilterArraySchema,
 });
 
 export const keysQueryListPayload = baseKeysSchema.extend({

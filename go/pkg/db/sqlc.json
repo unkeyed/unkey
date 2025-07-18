@@ -5,6 +5,15 @@
       "engine": "mysql",
       "queries": "./queries",
       "schema": "schema.sql",
+      "codegen": [
+        {
+          "out": ".",
+          "plugin": "bulk-insert",
+          "options": {
+            "emit_methods_with_db_argument": true
+          }
+        }
+      ],
       "gen": {
         "go": {
           "package": "db",
@@ -34,6 +43,14 @@
             }
           ]
         }
+      }
+    }
+  ],
+  "plugins": [
+    {
+      "name": "bulk-insert",
+      "process": {
+        "cmd": "./plugins/dist/bulk-insert"
       }
     }
   ]

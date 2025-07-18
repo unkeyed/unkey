@@ -35,6 +35,7 @@ export const queryParamsPayload = {
   since: parseAsRelativeTime,
   outcomes: parseAsIsOnlyFilterArray,
   identities: parseAsAllOperatorsFilterArray,
+  tags: parseAsAllOperatorsFilterArray,
 } as const;
 
 export const useFilters = () => {
@@ -46,7 +47,10 @@ export const useFilters = () => {
     const activeFilters: KeysOverviewFilterValue[] = [];
 
     for (const [field, value] of Object.entries(searchParams)) {
-      if (!Array.isArray(value) || !["keyIds", "names", "identities", "outcomes"].includes(field)) {
+      if (
+        !Array.isArray(value) ||
+        !["keyIds", "names", "identities", "outcomes", "tags"].includes(field)
+      ) {
         continue;
       }
 
@@ -98,12 +102,14 @@ export const useFilters = () => {
         names: null,
         identities: null,
         outcomes: null,
+        tags: null,
       };
 
       const keyIdFilters: IsContainsUrlValue[] = [];
       const nameFilters: AllOperatorsUrlValue[] = [];
       const identitiesFilters: AllOperatorsUrlValue[] = [];
       const outcomeFilters: IsOnlyUrlValue[] = [];
+      const tagFilters: AllOperatorsUrlValue[] = [];
 
       newFilters.forEach((filter) => {
         const fieldConfig = keysOverviewFilterFieldConfig[filter.field];
@@ -146,6 +152,15 @@ export const useFilters = () => {
             }
             break;
 
+          case "tags":
+            if (typeof filter.value === "string") {
+              tagFilters.push({
+                value: filter.value,
+                operator: operator as "is" | "contains" | "startsWith" | "endsWith",
+              });
+            }
+            break;
+
           case "startTime":
           case "endTime": {
             const numValue =
@@ -173,6 +188,7 @@ export const useFilters = () => {
       newParams.names = nameFilters.length > 0 ? nameFilters : null;
       newParams.identities = identitiesFilters.length > 0 ? identitiesFilters : null;
       newParams.outcomes = outcomeFilters.length > 0 ? outcomeFilters : null;
+      newParams.tags = tagFilters.length > 0 ? tagFilters : null;
 
       setSearchParams(newParams);
     },

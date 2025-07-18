@@ -49,6 +49,14 @@ export const keysOverviewLogsParams = z.object({
       }),
     )
     .nullable(),
+  tags: z
+    .array(
+      z.object({
+        operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
+        value: z.string(),
+      }),
+    )
+    .nullable(),
   cursorTime: z.number().int().nullable(),
   sorts: z
     .array(
@@ -104,6 +112,7 @@ export const rawKeysOverviewLogs = z.object({
   valid_count: z.number().int(),
   error_count: z.number().int(),
   outcome_counts: z.record(z.string(), z.number().int()),
+  tags: z.array(z.string()).optional(),
 });
 
 export const keysOverviewLogs = rawKeysOverviewLogs.extend({
@@ -125,6 +134,7 @@ export function getKeysOverviewLogs(ch: Querier) {
 
     const hasKeyIdFilters = args.keyIds && args.keyIds.length > 0;
     const hasOutcomeFilters = args.outcomes && args.outcomes.length > 0;
+    const hasTagFilters = args.tags && args.tags.length > 0;
     const hasSortingRules = args.sorts && args.sorts.length > 0;
 
     const outcomeCondition = hasOutcomeFilters
@@ -153,6 +163,29 @@ export function getKeysOverviewLogs(ch: Querier) {
                 return `key_id = {${paramName}: String}`;
               case "contains":
                 return `like(key_id, CONCAT('%', {${paramName}: String}, '%'))`;
+              default:
+                return null;
+            }
+          })
+          .filter(Boolean)
+          .join(" OR ") || "TRUE"
+      : "TRUE";
+
+    const tagConditions = hasTagFilters
+      ? args.tags
+          ?.map((filter, index) => {
+            const paramName = `tagValue_${index}`;
+            paramSchemaExtension[paramName] = z.string();
+            parameters[paramName] = filter.value;
+            switch (filter.operator) {
+              case "is":
+                return `has(tags, {${paramName}: String})`;
+              case "contains":
+                return `arrayExists(x -> like(x, CONCAT('%', {${paramName}: String}, '%')), tags)`;
+              case "startsWith":
+                return `arrayExists(x -> like(x, CONCAT({${paramName}: String}, '%')), tags)`;
+              case "endsWith":
+                return `arrayExists(x -> like(x, CONCAT('%', {${paramName}: String})), tags)`;
               default:
                 return null;
             }
@@ -238,6 +271,7 @@ WITH
           request_id,
           time,
           key_id,
+          tags,
           outcome
       FROM verifications.raw_key_verifications_v1
       WHERE workspace_id = {workspaceId: String}
@@ -247,6 +281,8 @@ WITH
           AND (${keyIdConditions})
           -- Apply dynamic outcome filtering
           AND (${outcomeCondition})
+          -- Apply dynamic tag filtering
+          AND (${tagConditions})
           -- Handle pagination using only time as cursor
           ${cursorCondition}
     ),
@@ -259,6 +295,8 @@ WITH
           max(time) as last_request_time,
           -- Get the request_id of the latest verification (based on time)
           argMax(request_id, time) as last_request_id,
+          -- Get the tags from the latest verification (based on time)
+          argMax(tags, time) as tags,
           -- Count valid verifications
           countIf(outcome = 'VALID') as valid_count,
           -- Count all non-valid verifications
@@ -282,6 +320,7 @@ WITH
       a.key_id,
       a.last_request_time as time,
       a.last_request_id as request_id,
+      a.tags,
       a.valid_count,
       a.error_count,
       -- Create an array of tuples containing all outcomes and their counts
@@ -294,6 +333,7 @@ WITH
       a.key_id,
       a.last_request_time,
       a.last_request_id,
+      a.tags,
       a.valid_count,
       a.error_count
     -- Sort results with most recent verification first
@@ -329,6 +369,7 @@ WITH
           key_id: result.key_id,
           time: result.time,
           request_id: result.request_id,
+          tags: result.tags,
           valid_count: result.valid_count,
           error_count: result.error_count,
           outcome_counts: outcomeCountsObj,
