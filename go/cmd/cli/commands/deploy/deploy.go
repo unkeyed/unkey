@@ -4,9 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
-	"github.com/unkeyed/unkey/go/cmd/cli/cli"
+	"github.com/unkeyed/unkey/go/cmd/cli/config"
+
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/go/pkg/cli"
 	"github.com/unkeyed/unkey/go/pkg/git"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
@@ -45,22 +48,24 @@ type DeployOptions struct {
 }
 
 var DeployFlags = []cli.Flag{
-	// Required flags
-	cli.String("workspace-id", "Workspace ID", "", "UNKEY_WORKSPACE_ID", true),
-	cli.String("project-id", "Project ID", "", "UNKEY_PROJECT_ID", true),
-
+	// Config directory flag (highest priority)
+	cli.String("config", "Directory containing unkey.json config file"),
+	// Required flags (can be provided via config file)
+	cli.String("workspace-id", "Workspace ID", cli.EnvVar("UNKEY_WORKSPACE_ID")),
+	cli.String("project-id", "Project ID", cli.EnvVar("UNKEY_PROJECT_ID")),
 	// Optional flags with defaults
-	cli.String("context", "Docker context path", ".", "", false),
-	cli.String("branch", "Git branch", "main", "", false),
-	cli.String("docker-image", "Pre-built docker image", "", "", false),
-	cli.String("dockerfile", "Path to Dockerfile", "Dockerfile", "", false),
-	cli.String("commit", "Git commit SHA", "", "", false),
-	cli.String("registry", "Docker registry", "ghcr.io/unkeyed/deploy", "UNKEY_DOCKER_REGISTRY", false),
-	cli.Bool("skip-push", "Skip pushing to registry (for local testing)", "", false),
-
+	cli.String("context", "Docker context path", cli.Default(".")),
+	cli.String("branch", "Git branch", cli.Default("main")),
+	cli.String("docker-image", "Pre-built docker image"),
+	cli.String("dockerfile", "Path to Dockerfile", cli.Default("Dockerfile")),
+	cli.String("commit", "Git commit SHA"),
+	cli.String("registry", "Docker registry",
+		cli.Default("ghcr.io/unkeyed/deploy"),
+		cli.EnvVar("UNKEY_DOCKER_REGISTRY")),
+	cli.Bool("skip-push", "Skip pushing to registry (for local testing)"),
 	// Control plane flags (internal)
-	cli.String("control-plane-url", "Control plane URL", "http://localhost:7091", "", false),
-	cli.String("auth-token", "Control plane auth token", "ctrl-secret-token", "", false),
+	cli.String("control-plane-url", "Control plane URL", cli.Default("http://localhost:7091")),
+	cli.String("auth-token", "Control plane auth token", cli.Default("ctrl-secret-token")),
 }
 
 // Command defines the deploy CLI command
@@ -71,12 +76,21 @@ var Command = &cli.Command{
 Builds a Docker image from the specified context and
 deploys it to the Unkey platform.
 
+The deploy command will automatically load configuration from unkey.json
+in the current directory or specified config directory.
+
 EXAMPLES:
-    # Basic deployment
-    unkey deploy \
-      --workspace-id=ws_4QgQsKsKfdm3nGeC \
-      --project-id=proj_9aiaks2dzl6mcywnxjf \
-      --context=./demo_api
+    # Deploy using config file (./unkey.json)
+    unkey deploy
+
+    # Deploy with config from specific directory
+    unkey deploy --config=./test-docker
+
+    # Deploy overriding workspace from config
+    unkey deploy --workspace-id=ws_different
+
+    # Deploy with specific context (overrides config)
+    unkey deploy --context=./demo_api
 
     # Deploy with your own registry
     unkey deploy \
@@ -85,25 +99,41 @@ EXAMPLES:
       --registry=docker.io/mycompany/myapp
 
     # Local development (skip push)
-    unkey deploy \
-      --workspace-id=ws_4QgQsKsKfdm3nGeC \
-      --project-id=proj_9aiaks2dzl6mcywnxjf \
-      --skip-push
+    unkey deploy --skip-push
 
     # Deploy pre-built image
-    unkey deploy \
-      --workspace-id=ws_4QgQsKsKfdm3nGeC \
-      --project-id=proj_9aiaks2dzl6mcywnxjf \
-      --docker-image=ghcr.io/user/app:v1.0.0`,
+    unkey deploy --docker-image=ghcr.io/user/app:v1.0.0
+
+If no config file exists, you can create one with:
+    unkey init`,
 	Flags:  DeployFlags,
 	Action: DeployAction,
 }
 
 func DeployAction(ctx context.Context, cmd *cli.Command) error {
+	// Load configuration file
+	configPath := config.GetConfigPath(cmd.String("config"))
+	cfg, err := config.LoadConfig(configPath)
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Merge config with command flags (flags take precedence)
+	finalConfig := cfg.MergeWithFlags(
+		cmd.String("workspace-id"),
+		cmd.String("project-id"),
+		cmd.String("context"),
+	)
+
+	// Validate that we have required fields
+	if err := finalConfig.Validate(); err != nil {
+		return err
+	}
+
 	opts := &DeployOptions{
-		WorkspaceID:     cmd.String("workspace-id"),
-		ProjectID:       cmd.String("project-id"),
-		Context:         cmd.String("context"),
+		WorkspaceID:     finalConfig.WorkspaceID,
+		ProjectID:       finalConfig.ProjectID,
+		Context:         finalConfig.Context,
 		Branch:          cmd.String("branch"),
 		DockerImage:     cmd.String("docker-image"),
 		Dockerfile:      cmd.String("dockerfile"),
@@ -117,7 +147,6 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 	return executeDeploy(ctx, opts)
 }
 
-// Updated executeDeploy function - remove global spinner for deployment steps
 func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 	ui := NewUI()
 	logger := logging.New()
@@ -187,8 +216,16 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 	ui.PrintSuccess(fmt.Sprintf("Version created: %s", versionId))
 
 	onStatusChange := func(event VersionStatusEvent) error {
-		if event.CurrentStatus == ctrlv1.VersionStatus_VERSION_STATUS_FAILED {
+		switch event.CurrentStatus {
+		case ctrlv1.VersionStatus_VERSION_STATUS_FAILED:
 			return handleVersionFailure(controlPlane, event.Version, ui)
+		case ctrlv1.VersionStatus_VERSION_STATUS_ACTIVE:
+			ui.CompleteCurrentStep("Version deployment completed successfully", true)
+			ui.PrintSuccess("Deployment completed successfully")
+
+			fmt.Printf("\n")
+			printCompletionInfo(event.Version)
+			fmt.Printf("\n")
 		}
 		return nil
 	}
@@ -199,18 +236,9 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 
 	err = controlPlane.PollVersionStatus(ctx, logger, versionId, onStatusChange, onStepUpdate)
 	if err != nil {
-		// Complete any running step spinner on error
 		ui.CompleteCurrentStep("Deployment failed", false)
 		return err
 	}
-
-	// Complete final step if still spinning
-	ui.CompleteCurrentStep("Version deployment completed successfully", true)
-	ui.PrintSuccess("Deployment completed successfully")
-
-	fmt.Printf("\n")
-	printCompletionInfo(opts, gitInfo, versionId)
-	fmt.Printf("\n")
 
 	return nil
 }
@@ -281,22 +309,31 @@ func printSourceInfo(opts *DeployOptions, gitInfo git.Info) {
 	fmt.Printf("\n")
 }
 
-func printCompletionInfo(opts *DeployOptions, gitInfo git.Info, versionId string) {
-	if versionId == "" || opts.WorkspaceID == "" || opts.Branch == "" {
+func printCompletionInfo(version *ctrlv1.Version) {
+	if version == nil || version.GetId() == "" {
 		fmt.Printf("✓ Deployment completed\n")
 		return
 	}
 
-	fmt.Printf("Deployment Summary:\n")
-	fmt.Printf("    Version: %s\n", versionId)
-	fmt.Printf("    Status: Ready\n")
-	fmt.Printf("    Environment: Production\n")
+	fmt.Println()
+	fmt.Println("Deployment Complete")
+	fmt.Printf("  Version ID: %s\n", version.GetId())
+	fmt.Printf("  Status: Ready\n")
+	fmt.Printf("  Environment: Production\n")
 
-	identifier := versionId
-	if gitInfo.ShortSHA != "" {
-		identifier = gitInfo.ShortSHA
+	fmt.Println()
+	fmt.Println("Domains")
+
+	hostnames := version.GetHostnames()
+	if len(hostnames) > 0 {
+		for _, hostname := range hostnames {
+			if strings.HasPrefix(hostname, "localhost:") {
+				fmt.Printf("  http://%s\n", hostname)
+			} else {
+				fmt.Printf("  https://%s\n", hostname)
+			}
+		}
+	} else {
+		fmt.Printf("  No hostnames assigned\n")
 	}
-
-	domain := fmt.Sprintf("https://%s-%s-%s.unkey.app", opts.Branch, identifier, opts.WorkspaceID)
-	fmt.Printf("    URL: %s\n", domain)
 }

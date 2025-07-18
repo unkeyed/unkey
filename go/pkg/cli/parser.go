@@ -11,12 +11,7 @@ import (
 // This handles flag parsing, subcommand routing, and help display
 func (c *Command) parse(ctx context.Context, args []string) error {
 	// Initialize flagMap if not already done
-	if c.flagMap == nil {
-		c.flagMap = make(map[string]Flag)
-		for _, flag := range c.Flags {
-			c.flagMap[flag.Name()] = flag
-		}
-	}
+	c.initFlagMap()
 
 	var commandArgs []string
 	for i := 0; i < len(args); i++ {
@@ -157,9 +152,20 @@ func (c *Command) parseFlag(args []string, i *int) error {
 }
 
 // validateRequiredFlags checks that all required flags have been set
+func (c *Command) initFlagMap() {
+	if c.flagMap != nil {
+		return
+	}
+	c.flagMap = make(map[string]Flag)
+	for _, flag := range c.Flags {
+		c.flagMap[flag.Name()] = flag
+	}
+}
+
+// Replace validateRequiredFlags method with:
 func (c *Command) validateRequiredFlags() error {
 	for _, flag := range c.Flags {
-		if flag.Required() && !flag.IsSet() {
+		if flag.Required() && !flag.HasValue() {
 			return fmt.Errorf("required flag missing: %s", flag.Name())
 		}
 	}
