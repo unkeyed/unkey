@@ -25,11 +25,11 @@ type Response = openapi.V2RatelimitDeleteOverrideResponseBody
 
 // Handler implements zen.Route interface for the v2 ratelimit delete override endpoint
 type Handler struct {
-	Logger                        logging.Logger
-	DB                            db.Database
-	Keys                          keys.KeyService
-	Auditlogs                     auditlogs.AuditLogService
-	RatelimitNamespaceByNameCache cache.Cache[string, db.FindRatelimitNamespace]
+	Logger                  logging.Logger
+	DB                      db.Database
+	Keys                    keys.KeyService
+	Auditlogs               auditlogs.AuditLogService
+	RatelimitNamespaceCache cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 }
 
 // Method returns the HTTP method this route responds to
@@ -156,7 +156,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 
-		h.RatelimitNamespaceByNameCache.Remove(ctx, namespace.Name)
+		h.RatelimitNamespaceCache.Remove(ctx,
+			cache.ScopedKey{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Key:         namespace.ID,
+			},
+			cache.ScopedKey{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Key:         namespace.Name,
+			},
+		)
 
 		return nil
 	})

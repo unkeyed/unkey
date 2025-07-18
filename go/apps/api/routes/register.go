@@ -73,13 +73,13 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2RatelimitLimit.Handler{
-			Logger:                        svc.Logger,
-			DB:                            svc.Database,
-			Keys:                          svc.Keys,
-			ClickHouse:                    svc.ClickHouse,
-			Ratelimit:                     svc.Ratelimit,
-			RatelimitNamespaceByNameCache: svc.Caches.RatelimitNamespaceByName,
-			TestMode:                      srv.Flags().TestMode,
+			Logger:                  svc.Logger,
+			DB:                      svc.Database,
+			Keys:                    svc.Keys,
+			ClickHouse:              svc.ClickHouse,
+			Ratelimit:               svc.Ratelimit,
+			RatelimitNamespaceCache: svc.Caches.RatelimitNamespace,
+			TestMode:                srv.Flags().TestMode,
 		},
 	)
 
@@ -87,11 +87,11 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2RatelimitSetOverride.Handler{
-			Logger:                        svc.Logger,
-			DB:                            svc.Database,
-			Keys:                          svc.Keys,
-			Auditlogs:                     svc.Auditlogs,
-			RatelimitNamespaceByNameCache: svc.Caches.RatelimitNamespaceByName,
+			Logger:                  svc.Logger,
+			DB:                      svc.Database,
+			Keys:                    svc.Keys,
+			Auditlogs:               svc.Auditlogs,
+			RatelimitNamespaceCache: svc.Caches.RatelimitNamespace,
 		},
 	)
 
@@ -99,10 +99,10 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2RatelimitGetOverride.Handler{
-			Logger:                        svc.Logger,
-			DB:                            svc.Database,
-			Keys:                          svc.Keys,
-			RatelimitNamespaceByNameCache: svc.Caches.RatelimitNamespaceByName,
+			Logger:                  svc.Logger,
+			DB:                      svc.Database,
+			Keys:                    svc.Keys,
+			RatelimitNamespaceCache: svc.Caches.RatelimitNamespace,
 		},
 	)
 
@@ -110,11 +110,11 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2RatelimitDeleteOverride.Handler{
-			Logger:                        svc.Logger,
-			DB:                            svc.Database,
-			Keys:                          svc.Keys,
-			Auditlogs:                     svc.Auditlogs,
-			RatelimitNamespaceByNameCache: svc.Caches.RatelimitNamespaceByName,
+			Logger:                  svc.Logger,
+			DB:                      svc.Database,
+			Keys:                    svc.Keys,
+			Auditlogs:               svc.Auditlogs,
+			RatelimitNamespaceCache: svc.Caches.RatelimitNamespace,
 		},
 	)
 

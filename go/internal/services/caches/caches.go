@@ -13,9 +13,9 @@ import (
 // Caches holds all cache instances used throughout the application.
 // Each field represents a specialized cache for a specific data entity.
 type Caches struct {
-	// RatelimitNamespaceByName caches ratelimit namespace lookups by name.
-	// Keys are db.FindRatelimitNamespaceByNameParams and values are db.RatelimitNamespace.
-	RatelimitNamespaceByName cache.Cache[string, db.FindRatelimitNamespace]
+	// RatelimitNamespace caches ratelimit namespace lookups by name or ID.
+	// Keys are cache.ScopedKey and values are db.FindRatelimitNamespace.
+	RatelimitNamespace cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 
 	// VerificationKeyByHash caches verification key lookups by their hash.
 	// Keys are string (hash) and values are db.VerificationKey.
@@ -65,7 +65,7 @@ type Config struct {
 //	// Use the caches
 //	key, err := caches.KeyByHash.Get(ctx, "some-hash")
 func New(config Config) (Caches, error) {
-	ratelimitNamespace, err := cache.New(cache.Config[string, db.FindRatelimitNamespace]{
+	ratelimitNamespace, err := cache.New(cache.Config[cache.ScopedKey, db.FindRatelimitNamespace]{
 		Fresh:    time.Minute,
 		Stale:    24 * time.Hour,
 		Logger:   config.Logger,
@@ -103,8 +103,8 @@ func New(config Config) (Caches, error) {
 	}
 
 	return Caches{
-		RatelimitNamespaceByName: middleware.WithTracing(ratelimitNamespace),
-		ApiByID:                  middleware.WithTracing(apiById),
-		VerificationKeyByHash:    middleware.WithTracing(verificationKeyByHash),
+		RatelimitNamespace:    middleware.WithTracing(ratelimitNamespace),
+		ApiByID:               middleware.WithTracing(apiById),
+		VerificationKeyByHash: middleware.WithTracing(verificationKeyByHash),
 	}, nil
 }

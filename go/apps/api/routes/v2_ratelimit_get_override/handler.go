@@ -26,10 +26,10 @@ type Response = openapi.V2RatelimitGetOverrideResponseBody
 // Handler implements zen.Route interface for the v2 ratelimit get override endpoint
 type Handler struct {
 	// Services as public fields
-	Logger                        logging.Logger
-	DB                            db.Database
-	Keys                          keys.KeyService
-	RatelimitNamespaceByNameCache cache.Cache[string, db.FindRatelimitNamespace]
+	Logger                  logging.Logger
+	DB                      db.Database
+	Keys                    keys.KeyService
+	RatelimitNamespaceCache cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 }
 
 // Method returns the HTTP method this route responds to
