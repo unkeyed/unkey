@@ -1,0 +1,24 @@
+Response:
+  description: |-
+    API successfully deleted. All keys associated with this API have been invalidated and will no longer work for verification. 
+    The API ID can no longer be used for any operations, and new keys cannot be created with this API ID. 
+    This operation is immediate and cannot be undone.
+  content:
+    application/json:
+      schema:
+        $ref: "#/V2ApisDeleteApiResponseBody"
+      examples:
+        success:
+          summary: Successful deletion
+          value:
+            meta:
+              requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+
+V2ApisDeleteApiResponseBody:
+  type: object
+  required:
+    - meta
+  properties:
+    meta:
+      $ref: "../../../../common/meta.yaml"
+  additionalProperties: false

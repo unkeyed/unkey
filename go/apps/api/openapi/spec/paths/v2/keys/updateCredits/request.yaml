@@ -1,0 +1,75 @@
+Request:
+  required: true
+  content:
+    application/json:
+      schema:
+        "$ref": "#/V2KeysUpdateCreditsRequestBody"
+
+V2KeysUpdateCreditsRequestBody:
+  type: object
+  required:
+    - keyId
+  properties:
+    keyId:
+      type: string
+      minLength: 3
+      maxLength: 255
+      pattern: "^[a-zA-Z0-9_]+$"
+      description: |
+        The unique identifier of the key to update credits for (begins with 'key_').
+        This ID comes from the createKey response and identifies which key will have its credits updated.
+        This is the database ID, not the actual API key string.
+      example: key_2cGKbMxRyIzhCxo1Idjz8q
+    credits:
+      type: object
+      properties:
+        remaining:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9223372036854775807
+          description: |
+            Sets the number of credits remaining for this key.
+            This completely replaces the current credit balance.
+            Use this for topping up credits or adjusting balances.
+          example: 1000
+        refill:
+          type: object
+          properties:
+            interval:
+              type: string
+              enum: [daily, monthly]
+              description: |
+                How often credits are automatically refilled.
+                'daily' refills every 24 hours, 'monthly' refills on the specified day of month.
+              example: monthly
+            amount:
+              type: integer
+              format: int64
+              minimum: 0
+              maximum: 9223372036854775807
+              description: |
+                Number of credits to add during each refill cycle.
+                This amount is added to the current balance, not replacing it.
+              example: 1000
+            refillDay:
+              type: integer
+              minimum: 1
+              maximum: 31
+              description: |
+                Day of the month for monthly refills (1-31).
+                Only applicable when interval is 'monthly'.
+                If the day doesn't exist in a month (e.g., 31st in February), refill occurs on the last day of that month.
+              example: 1
+          required:
+            - interval
+            - amount
+          additionalProperties: false
+          description: |
+            Automatic refill configuration for credits.
+            Omit this field to disable automatic refills.
+      additionalProperties: false
+      description: |
+        Credit system configuration for this key.
+        Omit this field to disable the credit system entirely for this key.
+  additionalProperties: false

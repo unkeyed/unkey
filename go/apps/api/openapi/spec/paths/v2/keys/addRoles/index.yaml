@@ -1,0 +1,27 @@
+post:
+  tags:
+    - keys
+  summary: Add roles to an API key
+  description: |-
+    Adds one or more roles to an existing API key without affecting existing roles or permissions. This is an additive operation that supplements the key's current role assignments.
+    Use this endpoint when you need to grant additional role-based access to a key, such as promoting user privileges or enabling new feature sets through role inheritance.
+    Role assignments take effect immediately for new verifications, though existing authorized sessions may continue until their cache expires.
+  operationId: addRoles
+  x-speakeasy-name-override: addRoles
+  security:
+    - rootKey: []
+  requestBody:
+    $ref: "./request.yaml#/Request"
+  responses:
+    "200":
+      $ref: "./response.yaml#/Response"
+    "400":
+      $ref: "../../../../error/badRequestErrorResponse.yaml"
+    "401":
+      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+    "403":
+      $ref: "../../../../error/forbiddenErrorResponse.yaml"
+    "404":
+      $ref: "../../../../error/notFoundErrorResponse.yaml"
+    "500":
+      $ref: "../../../../error/internalServerErrorResponse.yaml"

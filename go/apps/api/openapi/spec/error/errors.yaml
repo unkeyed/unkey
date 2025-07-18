@@ -1,0 +1,120 @@
+BadRequestErrorResponse:
+  type: object
+  required:
+    - meta
+    - error
+  properties:
+    meta:
+      $ref: "../common/meta.yaml"
+    error:
+      $ref: "./base.yaml#/BadRequestErrorDetails"
+  description: Error response for invalid requests that cannot be processed due
+    to client-side errors. This typically occurs when request parameters are missing,
+    malformed, or fail validation rules. The response includes detailed information
+    about the specific errors in the request, including the location of each error
+    and suggestions for fixing it. When receiving this error, check the 'errors'
+    array in the response for specific validation issues that need to be addressed
+    before retrying.
+
+UnauthorizedErrorResponse:
+  type: object
+  required:
+    - meta
+    - error
+  properties:
+    meta:
+      $ref: "../common/meta.yaml"
+    error:
+      $ref: "./base.yaml#/BaseError"
+  description: |-
+    Error response when authentication has failed or credentials are missing. This occurs when:
+    - The Authorization header is missing
+    - The root key is invalid or has been revoked
+    - The root key format is incorrect
+    - The authentication token has expired
+    To fix this error:
+    1. Ensure you're including the `Authorization` header with format: `Bearer your_root_key`
+    2. Verify your root key is valid and has not been revoked in the Unkey dashboard
+    3. Check that you're using the correct root key for the environment
+    4. If using a new key, ensure it was created successfully
+    For security reasons, the specific reason for authentication failure may be intentionally vague in the error message. Check your Unkey dashboard for more detailed information about your root keys.
+
+ForbiddenErrorResponse:
+  type: object
+  required:
+    - meta
+    - error
+  properties:
+    meta:
+      $ref: "../common/meta.yaml"
+    error:
+      $ref: "./base.yaml#/BaseError"
+  description: |-
+    Error response when the caller is authenticated but lacks permission to perform the requested operation. This occurs when:
+    - The root key doesn't have the required permissions for the operation
+    - The caller is trying to access resources from a different workspace
+    - The caller is attempting to access another user's resources
+    - The operation violates a policy restriction
+    Unlike Unauthorized (401) which indicates authentication issues, Forbidden (403) indicates authorization problems for an authenticated caller.
+    To fix this error:
+    1. Check the permissions assigned to your root key in the Unkey dashboard
+    2. Verify you're operating within the correct workspace
+    3. Ensure you have the necessary scope to access the requested resource
+    4. Request additional permissions if needed from your workspace administrator
+    Permission patterns in Unkey follow a hierarchical structure:
+    - 'resource.*' grants all permissions for a resource
+    - 'resource.read' grants read-only access
+    - 'resource.write' grants write access
+
+NotFoundErrorResponse:
+  type: object
+  required:
+    - meta
+    - error
+  properties:
+    meta:
+      $ref: "../common/meta.yaml"
+    error:
+      $ref: "./base.yaml#/BaseError"
+  description: Error response when the requested resource cannot be found. This
+    typically indicates that the resource either doesn't exist, has been deleted,
+    or the caller doesn't have permission to see it. Common scenarios include
+    looking up non-existent keys, APIs, permissions, or identities. When receiving
+    this error, verify that the resource identifier is correct and that the resource
+    hasn't been deleted.
+
+ConflictErrorResponse:
+  type: object
+  required:
+    - meta
+    - error
+  properties:
+    meta:
+      $ref: "../common/meta.yaml"
+    error:
+      $ref: "./base.yaml#/BaseError"
+  description:
+    Error response for conflicts with the current state of a resource.
+    This typically occurs when trying to create a resource that already exists
+    (like an identity with a duplicate externalId) or when performing an operation
+    that would violate system constraints. The error detail will explain the specific
+    conflict. To resolve, check if the resource already exists or if the operation
+    would create an inconsistent state.
+
+InternalServerErrorResponse:
+  type: object
+  required:
+    - meta
+    - error
+  properties:
+    meta:
+      $ref: "../common/meta.yaml"
+    error:
+      $ref: "./base.yaml#/BaseError"
+  description: Error response for unexpected server-side issues that prevented
+    the request from being processed correctly. This is typically caused by problems
+    with Unkey's infrastructure rather than issues with your request. When encountering
+    this error, the best course of action is to retry the request after a short
+    delay. If the problem persists, contact Unkey support with the requestId for
+    investigation. These errors are monitored by Unkey's engineering team and are
+    typically resolved quickly.

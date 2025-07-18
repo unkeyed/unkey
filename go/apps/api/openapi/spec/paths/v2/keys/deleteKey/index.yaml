@@ -1,0 +1,32 @@
+post:
+  tags:
+    - keys
+  summary: Delete an API key permanently
+  description: |-
+    Permanently removes an API key from the system. Once deleted, the key becomes invalid immediately and cannot be used for any further authentication attempts.
+    This operation is irreversible and will:
+    - Immediately invalidate the key across all regions
+    - Remove all associated permissions and roles
+    - Clear any stored metadata
+    - Stop any ongoing rate limit tracking
+    - Remove the key from analytics and usage tracking
+    Use this endpoint when deactivating user accounts, cleaning up test keys, or implementing key rotation policies. The key deletion is logged in the audit trail for security compliance.
+  operationId: deleteKey
+  x-speakeasy-name-override: deleteKey
+  security:
+    - rootKey: []
+  requestBody:
+    $ref: "./request.yaml#/Request"
+  responses:
+    "200":
+      $ref: "./response.yaml#/Response"
+    "400":
+      $ref: "../../../../error/badRequestErrorResponse.yaml"
+    "401":
+      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+    "403":
+      $ref: "../../../../error/forbiddenErrorResponse.yaml"
+    "404":
+      $ref: "../../../../error/notFoundErrorResponse.yaml"
+    "500":
+      $ref: "../../../../error/internalServerErrorResponse.yaml"

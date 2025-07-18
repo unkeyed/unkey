@@ -1,0 +1,27 @@
+post:
+  tags:
+    - keys
+  summary: Retrieve detailed information about a specific API key
+  description: |-
+    Retrieves comprehensive information about an API key including its configuration, permissions, roles, metadata, and usage limits. This endpoint is essential for key management, debugging, and building administrative interfaces.
+    The response includes all key properties such as expiration dates, credit balances, rate limits, assigned permissions and roles, and any metadata stored with the key. This information helps administrators understand a key's current state and troubleshoot access issues.
+    Note: The actual key value is never returned for security reasons, only the key's metadata and configuration.
+  operationId: getKey
+  x-speakeasy-name-override: getKey
+  security:
+    - rootKey: []
+  requestBody:
+    $ref: "./request.yaml#/Request"
+  responses:
+    "200":
+      $ref: "./response.yaml#/Response"
+    "400":
+      $ref: "../../../../error/badRequestErrorResponse.yaml"
+    "401":
+      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+    "403":
+      $ref: "../../../../error/forbiddenErrorResponse.yaml"
+    "404":
+      $ref: "../../../../error/notFoundErrorResponse.yaml"
+    "500":
+      $ref: "../../../../error/internalServerErrorResponse.yaml"

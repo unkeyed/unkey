@@ -1,0 +1,55 @@
+Request:
+  required: true
+  content:
+    application/json:
+      schema:
+        "$ref": "#/V2PermissionsCreateRoleRequestBody"
+      examples:
+        basic:
+          summary: Basic role creation
+          value:
+            name: content.editor
+            description: Can read and write content
+        withoutDescription:
+          summary: Role without description
+          value:
+            name: api.reader
+
+V2PermissionsCreateRoleRequestBody:
+  type: object
+  required:
+    - name
+  properties:
+    name:
+      type: string
+      minLength: 1
+      maxLength: 512
+      pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+      description: |
+        Creates a role with this unique name that groups related permissions together.
+        Names must be unique within your workspace to prevent conflicts during assignment.
+        Use descriptive names that clearly indicate the role's purpose and scope of access.
+        Consider hierarchical naming conventions like 'department.function' for better organization.
+        Role names should be:
+        - Descriptive enough to understand their purpose
+        - Consistent with your organization's naming conventions
+        - Unique to avoid confusion during role assignment
+        - Focused on a specific function or responsibility
+        Examples: 'admin.billing', 'support.readonly', 'developer.api', 'manager.analytics'
+      example: "support.readonly"
+    description:
+      type: string
+      maxLength: 2048
+      description: |
+        Provides comprehensive documentation of what this role encompasses and what access it grants.
+        Include information about the intended use case, what permissions should be assigned, and any important considerations.
+        This internal documentation helps team members understand role boundaries and security implications.
+        Not visible to end users - designed for administration teams and access control audits.
+        Consider documenting:
+        - The role's intended purpose and scope
+        - What types of users should receive this role
+        - What permissions are typically associated with it
+        - Any security considerations or limitations
+        - Related roles that might be used together
+      example: "Provides read-only access for customer support representatives. Includes permissions to view user accounts, support tickets, and basic analytics. Does not include access to billing, admin functions, or data modification capabilities."
+  additionalProperties: false

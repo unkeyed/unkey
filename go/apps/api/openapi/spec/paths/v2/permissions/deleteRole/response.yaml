@@ -1,0 +1,15 @@
+Response:
+  description: Successfully deleted role
+  content:
+    application/json:
+      schema:
+        "$ref": "#/V2PermissionsDeleteRoleResponseBody"
+
+V2PermissionsDeleteRoleResponseBody:
+  type: object
+  required:
+    - meta
+  properties:
+    meta:
+      $ref: "../../../../common/meta.yaml"
+  additionalProperties: false

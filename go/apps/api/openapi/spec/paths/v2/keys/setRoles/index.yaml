@@ -1,0 +1,27 @@
+post:
+  tags:
+    - keys
+  summary: Set (replace) all roles on an API key
+  description: |-
+    Sets the roles for an existing API key by replacing all existing role assignments with the provided set. This is a complete replacement operation - roles not specified in the request will be removed.
+    Use this endpoint when you want to synchronize API key roles with an external system, reset a key's roles to a known state, or apply a standardized role template to a key.
+    Role assignments take effect immediately for new verifications, though existing authorized sessions may continue until their cache expires.
+  operationId: setRoles
+  x-speakeasy-name-override: setRoles
+  security:
+    - rootKey: []
+  requestBody:
+    $ref: "./request.yaml#/Request"
+  responses:
+    "200":
+      $ref: "./response.yaml#/Response"
+    "400":
+      $ref: "../../../../error/badRequestErrorResponse.yaml"
+    "401":
+      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+    "403":
+      $ref: "../../../../error/forbiddenErrorResponse.yaml"
+    "404":
+      $ref: "../../../../error/notFoundErrorResponse.yaml"
+    "500":
+      $ref: "../../../../error/internalServerErrorResponse.yaml"

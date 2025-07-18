@@ -1,0 +1,30 @@
+post:
+  tags:
+    - keys
+  summary: Remove permissions from an API key
+  description: |-
+    Removes one or more permissions from an existing API key. This endpoint is used to selectively revoke access rights from a key without deleting it or affecting other permissions.
+    Key features:
+    - Selective removal - revoke specific permissions while leaving others intact
+    - Direct permissions only - doesn't affect permissions granted through roles
+    - Idempotent operation - removing permissions multiple times has no additional effect
+    Use this endpoint when downgrading user access privileges, removing temporary elevated permissions, implementing granular permission adjustments, or revoking access to specific resources.
+  operationId: removePermissions
+  x-speakeasy-name-override: removePermissions
+  security:
+    - rootKey: []
+  requestBody:
+    $ref: "./request.yaml#/Request"
+  responses:
+    "200":
+      $ref: "./response.yaml#/Response"
+    "400":
+      $ref: "../../../../error/badRequestErrorResponse.yaml"
+    "401":
+      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+    "403":
+      $ref: "../../../../error/forbiddenErrorResponse.yaml"
+    "404":
+      $ref: "../../../../error/notFoundErrorResponse.yaml"
+    "500":
+      $ref: "../../../../error/internalServerErrorResponse.yaml"

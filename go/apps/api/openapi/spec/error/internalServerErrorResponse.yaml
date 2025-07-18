@@ -1,0 +1,17 @@
+description: |-
+  Internal Server Error - An unexpected error occurred on the server
+content:
+  application/json:
+    schema:
+      $ref: "./internalServerError.yaml"
+    examples:
+      serverError:
+        summary: Internal server error
+        value:
+          meta:
+            requestId: req_2c9a0jf23l4k567
+          error:
+            detail: An unexpected error occurred while processing your request
+            status: 500
+            title: Internal Server Error
+            type: https://unkey.com/docs/api-reference/errors-v2/unkey/server/internal_error

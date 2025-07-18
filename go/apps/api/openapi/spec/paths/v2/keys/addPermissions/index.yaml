@@ -1,0 +1,27 @@
+post:
+  tags:
+    - keys
+  summary: Add permissions to an API key
+  description: |-
+    Adds one or more permissions to an existing API key without affecting existing permissions or roles. This is an additive operation that supplements the key's current permission set.
+    Use this endpoint when you need to grant additional access rights to a key, such as upgrading user privileges, enabling new features, or implementing progressive permission models.
+    Only direct permissions are affected - permissions granted through roles remain unchanged. Changes take effect immediately for new verifications, though existing authorized sessions may continue until their cache expires.
+  operationId: addPermissions
+  x-speakeasy-name-override: addPermissions
+  security:
+    - rootKey: []
+  requestBody:
+    $ref: "./request.yaml#/Request"
+  responses:
+    "200":
+      $ref: "./response.yaml#/Response"
+    "400":
+      $ref: "../../../../error/badRequestErrorResponse.yaml"
+    "401":
+      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+    "403":
+      $ref: "../../../../error/forbiddenErrorResponse.yaml"
+    "404":
+      $ref: "../../../../error/notFoundErrorResponse.yaml"
+    "500":
+      $ref: "../../../../error/internalServerErrorResponse.yaml"

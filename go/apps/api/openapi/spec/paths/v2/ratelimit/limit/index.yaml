@@ -1,0 +1,44 @@
+post:
+  tags:
+    - ratelimit
+  summary: Apply rate limiting to any identifier
+  description: |-
+    Checks and enforces rate limits for any identifier in your application. This is the core rate limiting endpoint that provides flexible, namespace-based rate limiting for any entity in your system.
+    Unlike API key-based rate limiting, this endpoint can be used to limit any identifiable entity:
+    - Anonymous users by IP address
+    - Authenticated users by user ID
+    - Organizations by organization ID
+    - API clients by client ID
+    - Specific actions or resources by custom identifiers
+    The endpoint is designed for high-performance rate limiting with predictable behavior. It returns information about limit status, remaining capacity, and reset times that can be communicated to consumers of your API or service.
+    Features:
+    - Namespace-based organization for different limit types
+    - Custom costs for variable-weight operations
+    - Flexible time windows (1 second to 24 hours)
+    - Override support for custom limits for specific identifiers
+    - Consistent sliding window implementation
+    Implementation tips:
+    - Always check the 'success' field to determine if the request should proceed
+    - Use the 'reset' time to implement intelligent client-side retry logic
+    - Leverage the 'remaining' count to display usage information to users
+    - Store the namespaceId after first use to avoid name lookups in high-volume scenarios
+    - Consider using smaller durations for security-critical operations
+  operationId: ratelimit.limit
+  x-speakeasy-name-override: limit
+  security:
+    - rootKey: []
+  requestBody:
+    $ref: "./request.yaml#/Request"
+  responses:
+    "200":
+      $ref: "./response.yaml#/Response"
+    "400":
+      $ref: "../../../../error/badRequestErrorResponse.yaml"
+    "401":
+      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+    "403":
+      $ref: "../../../../error/forbiddenErrorResponse.yaml"
+    "404":
+      $ref: "../../../../error/notFoundErrorResponse.yaml"
+    "500":
+      $ref: "../../../../error/internalServerErrorResponse.yaml"

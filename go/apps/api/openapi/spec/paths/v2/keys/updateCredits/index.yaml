@@ -1,0 +1,28 @@
+post:
+  tags:
+    - keys
+  summary: Update credit configuration for an API key
+  description: |-
+    Updates the credit system configuration for an existing API key. Credits are used for usage-based billing and quota enforcement.
+    This endpoint allows you to modify the remaining credit balance, refill settings, or completely change the credit configuration for a key.
+    Use this endpoint for topping up user credits, changing subscription tiers, implementing promotional credits, or adjusting billing cycles.
+    Credit changes take effect immediately for new verifications.
+  operationId: updateCredits
+  x-speakeasy-name-override: updateCredits
+  security:
+    - rootKey: []
+  requestBody:
+    $ref: "./request.yaml#/Request"
+  responses:
+    "200":
+      $ref: "./response.yaml#/Response"
+    "400":
+      $ref: "../../../../error/badRequestErrorResponse.yaml"
+    "401":
+      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+    "403":
+      $ref: "../../../../error/forbiddenErrorResponse.yaml"
+    "404":
+      $ref: "../../../../error/notFoundErrorResponse.yaml"
+    "500":
+      $ref: "../../../../error/internalServerErrorResponse.yaml"

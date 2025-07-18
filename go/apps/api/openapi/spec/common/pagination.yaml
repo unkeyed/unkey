@@ -1,0 +1,24 @@
+type: object
+properties:
+  cursor:
+    type: string
+    minLength: 1
+    maxLength: 1024 # Reasonable upper bound for cursor tokens
+    description: |
+      Opaque pagination token for retrieving the next page of results.
+      Include this exact value in the cursor field of subsequent requests.
+      Cursors are temporary and may expire after extended periods.
+    example: eyJrZXkiOiJrZXlfMTIzNCIsInRzIjoxNjk5Mzc4ODAwfQ==
+  hasMore:
+    type: boolean
+    description: |
+      Indicates whether additional results exist beyond this page.
+      When true, use the cursor to fetch the next page.
+      When false, you have reached the end of the result set.
+    example: true
+required:
+  - hasMore
+additionalProperties: false
+description:
+  Pagination metadata for list endpoints. Provides information necessary
+  to traverse through large result sets efficiently using cursor-based pagination.
