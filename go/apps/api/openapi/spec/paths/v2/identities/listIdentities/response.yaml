@@ -57,24 +57,5 @@ V2IdentitiesListIdentitiesResponseBody:
 IdentitiesListIdentitiesResponseData:
   type: array
   items:
-    "$ref": "#/Identity"
+    "$ref": "../../../../common/Identity.yaml"
   description: List of identities matching the specified criteria.
-
-Identity:
-  type: object
-  properties:
-    externalId:
-      type: string
-      description: External identity ID
-    meta:
-      type: object
-      description: Identity metadata
-    ratelimits:
-      type: array
-      items:
-        "$ref": "../../../../common/RatelimitResponse.yaml"
-      description: Identity ratelimits
-  required:
-    - externalId
-    - ratelimits
-  additionalProperties: false

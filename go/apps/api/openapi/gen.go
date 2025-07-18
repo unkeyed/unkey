@@ -37,6 +37,18 @@ const (
 	UpdateKeyJSONBodyCreditsRefillIntervalMonthly UpdateKeyJSONBodyCreditsRefillInterval = "monthly"
 )
 
+// Identity defines model for Identity.
+type Identity struct {
+	Description *interface{} `json:"description,omitempty"`
+
+	// ExternalId External identity ID
+	ExternalId string `json:"externalId"`
+
+	// Meta Identity metadata
+	Meta       *map[string]interface{} `json:"meta,omitempty"`
+	Ratelimits []RatelimitResponse     `json:"ratelimits"`
+}
+
 // Permission defines model for Permission.
 type Permission struct {
 	// CreatedAt Unix timestamp in milliseconds indicating when this permission was first created.
