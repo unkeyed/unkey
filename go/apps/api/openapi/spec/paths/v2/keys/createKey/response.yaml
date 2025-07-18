@@ -1,24 +1,11 @@
-V2KeysUpdateKeyResponseData:
-  type: object
-  required:
-    - keyId
-  properties:
-    keyId:
-      type: string
-      description: The unique identifier of the updated key
-      example: key_2cGKbMxRyIzhCxo1Idjz8q
-    name:
-      type: string
-      nullable: true
-      description: The updated name of the key
-      example: Updated API Key
-    externalId:
-      type: string
-      nullable: true
-      description: The updated external identifier
-      example: user_12345
+Response:
+  description: Successfully created API key
+  content:
+    application/json:
+      schema:
+        "$ref": "#/V2KeysCreateKeyResponseBody"
 
-V2KeysUpdateKeyResponse:
+V2KeysCreateKeyResponseBody:
   type: object
   required:
     - meta
@@ -27,21 +14,32 @@ V2KeysUpdateKeyResponse:
     meta:
       $ref: "../../../../common/meta.yaml"
     data:
-      $ref: "#/V2KeysUpdateKeyResponseData"
+      "$ref": "#/KeysCreateKeyResponseData"
+  additionalProperties: false
 
-Response:
-  description: Key successfully updated with the new values
-  content:
-    application/json:
-      schema:
-        $ref: "#/V2KeysUpdateKeyResponse"
-      examples:
-        standard:
-          summary: Key updated successfully
-          value:
-            meta:
-              requestId: req_2cGKbMxRyIzhCxo1Idjz8q
-            data:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              name: Updated API Key
-              externalId: user_12345
+KeysCreateKeyResponseData:
+  type: object
+  properties:
+    keyId:
+      type: string
+      minLength: 3
+      maxLength: 255
+      pattern: "^[a-zA-Z0-9_]+$"
+      description: |
+        The unique identifier for the newly created key within Unkey's system.
+        Use this ID for subsequent operations like updating, deleting, or retrieving the key.
+        Always begins with 'key_' followed by alphanumeric characters and underscores.
+      example: key_1234567890abcdef
+    key:
+      type: string
+      minLength: 1
+      description: |
+        The actual API key string that your users will use for authentication.
+        IMPORTANT: This is the only time you'll see the full key value - it cannot be retrieved later unless created with recoverable=true.
+        Store this securely and provide it directly to your end user.
+        The key includes any prefix you specified during creation.
+      example: prod_1234567890abcdef1234567890abcdef
+  required:
+    - keyId
+    - key
+  additionalProperties: false

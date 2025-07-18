@@ -1,32 +1,11 @@
-V2KeysSetPermissionsResponseData:
-  type: array
-  description: |-
-    Complete list of all permissions now directly assigned to the key after the set operation has completed.
-    The response includes:
-    - The comprehensive, updated set of direct permissions (reflecting the complete replacement)
-    - Both ID and name for each permission for easy reference
-    - Permissions sorted alphabetically by name for consistent response format
-    Important notes:
-    - This only shows direct permissions, not those granted through roles
-    - An empty array means the key has no direct permissions assigned
-    - For a complete permission picture including roles, use keys.getKey instead
-    - All permission changes are logged in the audit log for security tracking
-  items:
-    type: object
-    required:
-      - id
-      - name
-    properties:
-      id:
-        type: string
-        description: The unique identifier of the permission
-        example: perm_1n9McEIBSqy44Qy7hzWyM5
-      name:
-        type: string
-        description: The name of the permission
-        example: documents.write
+Response:
+  description: Successfully added roles to the key
+  content:
+    application/json:
+      schema:
+        "$ref": "#/V2KeysAddRolesResponseBody"
 
-V2KeysSetPermissionsResponse:
+V2KeysAddRolesResponseBody:
   type: object
   required:
     - meta
@@ -35,32 +14,26 @@ V2KeysSetPermissionsResponse:
     meta:
       $ref: "../../../../common/meta.yaml"
     data:
-      $ref: "#/V2KeysSetPermissionsResponseData"
+      "$ref": "#/KeysAddRolesResponseData"
+  additionalProperties: false
 
-Response:
-  description: Permissions successfully set on the key. The previous direct
-    permission set has been completely replaced with the new set specified
-    in the request.
-  content:
-    application/json:
-      schema:
-        $ref: "#/V2KeysSetPermissionsResponse"
-      examples:
-        standard:
-          summary: Complete list of permissions
-          value:
-            meta:
-              requestId: req_2cGKbMxRyIzhCxo1Idjz8q
-            data:
-              - id: perm_1n9McEIBSqy44Qy7hzWyM5
-                name: documents.write
-              - id: perm_2zF4mNyP9BsRj2aQwDxVkT
-                name: documents.delete
-              - id: perm_3qRsTu2vWxYzAbCdEfGhIj
-                name: reports.view
-        empty:
-          summary: All permissions removed
-          value:
-            meta:
-              requestId: req_3qRsTu2vWxYzAbCdEfGhIj
-            data: []
+KeysAddRolesResponseData:
+  type: array
+  description: |
+    Complete list of all roles now assigned to the key after adding the new roles.
+    This includes both previously existing roles and the newly added ones.
+  items:
+    type: object
+    required:
+      - id
+      - name
+    properties:
+      id:
+        type: string
+        description: The unique identifier of the role
+        example: role_1n9McEIBSqy44Qy7hzWyM5
+      name:
+        type: string
+        description: The name of the role
+        example: editor
+  additionalProperties: false

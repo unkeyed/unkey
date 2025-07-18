@@ -1,0 +1,34 @@
+post:
+  tags:
+    - permissions
+  summary: Create a new permission
+  description: |-
+    Creates a new permission in the workspace. Permissions are the fundamental building blocks of access control in Unkey's RBAC system, representing specific actions or capabilities that can be granted to API keys either directly or through roles.
+    This endpoint allows you to:
+    - Define new permissions with descriptive names and URL-safe slugs
+    - Set up granular access control for your API keys
+    - Build the foundation for role-based access control
+    - Organize permissions with consistent naming patterns
+    Best practices:
+    - Use hierarchical naming (e.g., 'resource.action' or 'resource.subresource.action')
+    - Choose descriptive but concise permission names
+    - Use URL-safe slugs for easy reference in APIs
+  operationId: createPermission
+  x-speakeasy-name-override: CreatePermission
+  security:
+    - rootKey: []
+  requestBody:
+    $ref: "./request.yaml#/Request"
+  responses:
+    "200":
+      $ref: "./response.yaml#/Response"
+    "400":
+      $ref: "../../../../error/responses.yaml#/BadRequestError"
+    "401":
+      $ref: "../../../../error/responses.yaml#/UnauthorizedError"
+    "403":
+      $ref: "../../../../error/responses.yaml#/ForbiddenError"
+    "409":
+      $ref: "../../../../error/responses.yaml#/ConflictError"
+    "500":
+      $ref: "../../../../error/responses.yaml#/InternalServerError"

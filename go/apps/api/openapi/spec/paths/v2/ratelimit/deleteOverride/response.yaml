@@ -1,0 +1,22 @@
+Response:
+  description: Override successfully deleted
+  content:
+    application/json:
+      schema:
+        "$ref": "#/V2RatelimitDeleteOverrideResponseBody"
+
+V2RatelimitDeleteOverrideResponseBody:
+  type: object
+  required:
+    - meta
+    - data
+  properties:
+    meta:
+      $ref: "../../../../common/meta.yaml"
+    data:
+      "$ref": "#/RatelimitDeleteOverrideResponseData"
+  additionalProperties: false
+
+RatelimitDeleteOverrideResponseData:
+  type: object
+  additionalProperties: false

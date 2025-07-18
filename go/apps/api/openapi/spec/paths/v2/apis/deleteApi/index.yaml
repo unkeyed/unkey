@@ -1,0 +1,38 @@
+post:
+  tags:
+    - apis
+  summary: Delete an API and invalidate all its associated keys
+  description: |-
+    Permanently deletes an API namespace and invalidates all keys associated with it.
+    WARNING: This is a destructive operation with significant consequences:
+    - All keys associated with this API will be invalidated immediately
+    - Verification attempts for these keys will fail with `code=NOT_FOUND`
+    - Historical analytics data for the API and its keys will be preserved
+    - This action cannot be undone
+    Common reasons to delete an API include:
+    - Removing test or development environments no longer needed
+    - Retiring deprecated services or products
+    - Cleaning up unused resources
+    - Implementing security isolation after compromise
+    Before deletion, ensure that:
+    - You have the correct API ID (check the environment/service)
+    - You have migrated any needed keys to a new API
+    - You have updated all client applications to use new keys
+    - You have backed up any important metadata or analytics
+  operationId: deleteApi
+  x-speakeasy-name-override: deleteApi
+  security:
+    - rootKey: []
+  requestBody:
+    $ref: "./request.yaml#/Request"
+  responses:
+    "200":
+      $ref: "./response.yaml#/Response"
+    "400":
+      $ref: "../../../../error/responses.yaml#/BadRequestError"
+    "401":
+      $ref: "../../../../error/responses.yaml#/UnauthorizedError"
+    "403":
+      $ref: "../../../../error/responses.yaml#/ForbiddenError"
+    "500":
+      $ref: "../../../../error/responses.yaml#/InternalServerError"

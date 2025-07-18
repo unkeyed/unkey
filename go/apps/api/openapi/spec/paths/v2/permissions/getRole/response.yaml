@@ -1,0 +1,28 @@
+Response:
+  description: Successfully retrieved role
+  content:
+    application/json:
+      schema:
+        "$ref": "#/V2PermissionsGetRoleResponseBody"
+
+V2PermissionsGetRoleResponseBody:
+  type: object
+  required:
+    - meta
+    - data
+  properties:
+    meta:
+      $ref: "../../../../common/meta.yaml"
+    data:
+      "$ref": "#/PermissionsGetRoleResponseData"
+  additionalProperties: false
+
+PermissionsGetRoleResponseData:
+  type: object
+  properties:
+    role:
+      "$ref": "../listRoles/response.yaml#/RoleWithPermissions"
+  required:
+    - role
+  additionalProperties: false
+  description: Complete role details including assigned permissions.

@@ -1,0 +1,24 @@
+Response:
+  description: |-
+    Successfully deleted the identity. The operation is complete and cannot be undone.
+  content:
+    application/json:
+      schema:
+        $ref: "#/V2IdentitiesDeleteIdentityResponseBody"
+      examples:
+        success:
+          summary: Successful deletion
+          value:
+            meta:
+              requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+
+V2IdentitiesDeleteIdentityResponseBody:
+  type: object
+  description: |-
+    Empty response object. A successful response indicates the identity was deleted successfully.
+  required:
+    - meta
+  properties:
+    meta:
+      $ref: "../../../../common/meta.yaml"
+  additionalProperties: false

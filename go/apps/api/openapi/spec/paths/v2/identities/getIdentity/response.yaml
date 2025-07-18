@@ -1,0 +1,100 @@
+Response:
+  description: |-
+    Successfully retrieved the identity information including metadata and rate limiting configurations.
+  content:
+    application/json:
+      schema:
+        $ref: "#/V2IdentitiesGetIdentityResponseBody"
+      examples:
+        standard:
+          summary: Identity with metadata and rate limits
+          value:
+            meta:
+              requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+            data:
+              id: id_1234567890abcdef
+              externalId: user_abc123
+              meta:
+                name: Alice Smith
+                email: alice@example.com
+                plan: premium
+                companyId: company_xyz
+              ratelimits:
+                - name: api_requests
+                  limit: 1000
+                  duration: 60000
+                - name: heavy_operations
+                  limit: 100
+                  duration: 3600000
+
+V2IdentitiesGetIdentityResponseBody:
+  type: object
+  required:
+    - meta
+    - data
+  properties:
+    meta:
+      $ref: "../../../../common/meta.yaml"
+    data:
+      "$ref": "#/IdentitiesGetIdentityResponseData"
+  additionalProperties: false
+
+IdentitiesGetIdentityResponseData:
+  type: object
+  required:
+    - externalId
+  properties:
+    externalId:
+      type: string
+      description: |-
+        The external identifier for this identity in your system. This is the ID you provided during identity creation.
+      example: user_abc123
+    meta:
+      type: object
+      additionalProperties: true
+      description: |-
+        Custom metadata associated with this identity. This can include any JSON-serializable data you stored with the identity during creation or updates.
+      example:
+        name: Alice Smith
+        email: alice@example.com
+        plan: premium
+    ratelimits:
+      type: array
+      items:
+        "$ref": "#/RatelimitResponse"
+      description: |-
+        Rate limits associated with this identity. These limits are shared across all API keys linked to this identity, providing consistent rate limiting regardless of which key is used.
+  additionalProperties: false
+
+RatelimitResponse:
+  type: object
+  properties:
+    id:
+      type: string
+      minLength: 8
+      maxLength: 255
+      pattern: "^rl_[a-zA-Z0-9_]+$"
+      description: Unique identifier for this rate limit configuration.
+      example: rl_1234567890abcdef
+    name:
+      type: string
+      minLength: 1
+      maxLength: 128
+      pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+      description: Human-readable name for this rate limit.
+      example: api_requests
+    limit:
+      type: integer
+      format: int64
+      minimum: 1
+      maximum: 1000000
+      description: Maximum requests allowed within the time window.
+      example: 1000
+    duration:
+      type: integer
+      format: int64
+      minimum: 1000
+      maximum: 2592000000
+      description: Rate limit window duration in milliseconds.
+      example: 3600000
+  additionalProperties: false

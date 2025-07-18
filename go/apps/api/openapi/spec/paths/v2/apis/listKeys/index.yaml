@@ -1,0 +1,27 @@
+post:
+  tags:
+    - apis
+  summary: List all keys associated with an API namespace
+  description: |-
+    Retrieves a paginated list of all API keys associated with a specific API namespace. Returns detailed information about each key including metadata, permissions, and usage limits.
+    Use this endpoint to build admin dashboards for API key management, audit active keys for security reviews, or find keys associated with specific users through the externalId filter. For large APIs with many keys, results are paginated and can be filtered to locate specific keys efficiently.
+    For security reasons, full key values are never returned unless specifically requested with decrypt=true, and only for keys created with recoverable=true when the caller has sufficient permissions.
+  operationId: listKeys
+  x-speakeasy-name-override: listKeys
+  security:
+    - rootKey: []
+  requestBody:
+    $ref: "./request.yaml#/Request"
+  responses:
+    "200":
+      $ref: "./response.yaml#/Response"
+    "400":
+      $ref: "../../../../error/responses.yaml#/BadRequestError"
+    "401":
+      $ref: "../../../../error/responses.yaml#/UnauthorizedError"
+    "403":
+      $ref: "../../../../error/responses.yaml#/ForbiddenError"
+    "404":
+      $ref: "../../../../error/responses.yaml#/NotFoundError"
+    "500":
+      $ref: "../../../../error/responses.yaml#/InternalServerError"

@@ -1,0 +1,30 @@
+post:
+  tags:
+    - permissions
+  summary: Delete a permission
+  description: |-
+    Permanently removes a permission from the workspace. This endpoint is used when a permission is no longer needed or when cleaning up unused permissions.
+    When a permission is deleted:
+    - All direct assignments to API keys are removed
+    - The permission is removed from any roles it was assigned to
+    - The permission's name becomes available for reuse
+    Important: This operation cannot be undone, and it immediately affects all API keys and roles that had this permission assigned. Consider carefully before deleting permissions that are actively in use.
+  operationId: deletePermission
+  x-speakeasy-name-override: DeletePermission
+  security:
+    - rootKey: []
+  requestBody:
+    $ref: "./request.yaml#/Request"
+  responses:
+    "200":
+      $ref: "./response.yaml#/Response"
+    "400":
+      $ref: "../../../../error/responses.yaml#/BadRequestError"
+    "401":
+      $ref: "../../../../error/responses.yaml#/UnauthorizedError"
+    "403":
+      $ref: "../../../../error/responses.yaml#/ForbiddenError"
+    "404":
+      $ref: "../../../../error/responses.yaml#/NotFoundError"
+    "500":
+      $ref: "../../../../error/responses.yaml#/InternalServerError"

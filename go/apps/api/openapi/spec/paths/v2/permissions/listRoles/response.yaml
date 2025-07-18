@@ -1,0 +1,111 @@
+Response:
+  description: Successfully listed roles
+  content:
+    application/json:
+      schema:
+        "$ref": "#/V2PermissionsListRolesResponseBody"
+
+V2PermissionsListRolesResponseBody:
+  type: object
+  required:
+    - meta
+    - data
+  properties:
+    meta:
+      $ref: "../../../../common/meta.yaml"
+    data:
+      "$ref": "#/PermissionsListRolesResponseData"
+    pagination:
+      $ref: "../../../../common/pagination.yaml"
+  additionalProperties: false
+
+PermissionsListRolesResponseData:
+  type: array
+  maxItems: 1000
+  items:
+    "$ref": "#/RoleWithPermissions"
+  description: Array of roles with their assigned permissions.
+
+RoleWithPermissions:
+  type: object
+  properties:
+    id:
+      type: string
+      minLength: 3
+      maxLength: 255
+      pattern: "^[a-zA-Z0-9_]+$"
+      description: |
+        The unique identifier for this role within Unkey's system.
+        Generated automatically when the role is created and used to reference this role in API operations.
+        Always begins with 'role_' followed by alphanumeric characters and underscores.
+      example: role_1234567890abcdef
+    name:
+      type: string
+      minLength: 1
+      maxLength: 512
+      description: |
+        The human-readable name for this role that describes its function.
+        Should be descriptive enough for administrators to understand what access this role provides.
+        Use clear, semantic names that reflect the job function or responsibility level.
+        Names must be unique within your workspace to avoid confusion during role assignment.
+      example: "support.readonly"
+    description:
+      type: string
+      maxLength: 2048
+      description: |
+        Optional detailed explanation of what this role encompasses and what access it provides.
+        Helps team members understand the role's scope, intended use cases, and security implications.
+        Include information about what types of users should receive this role and what they can accomplish.
+        Not visible to end users - this is for internal documentation and access control audits.
+      example: "Provides read-only access for customer support representatives to view user accounts and support tickets"
+    createdAt:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9223372036854775807 # Max int64 value for future-proofing
+      description: |
+        Unix timestamp in milliseconds indicating when this role was first created.
+        Useful for auditing and understanding the evolution of your access control structure.
+        Automatically set by the system and cannot be modified.
+      example: 1701425400000
+    permissions:
+      type: array
+      items:
+        "$ref": "#/Permission"
+      maxItems: 100
+      description: |
+        Complete list of permissions currently assigned to this role.
+        Each permission grants specific access rights that will be inherited by any keys or users assigned this role.
+        Use this list to understand the full scope of access provided by this role.
+        Empty array indicates a role with no permissions (useful for placeholder roles).
+      example:
+        - id: perm_1234567890abcdef
+          name: "documents.read"
+          description: "Allows reading document contents"
+        - id: perm_abcdef1234567890
+          name: "documents.write"
+          description: "Allows creating and modifying documents"
+  additionalProperties: false
+
+Permission:
+  type: object
+  properties:
+    id:
+      type: string
+      minLength: 3
+      maxLength: 255
+      pattern: "^[a-zA-Z0-9_]+$"
+      description: The unique identifier for this permission
+      example: perm_1234567890abcdef
+    name:
+      type: string
+      minLength: 1
+      maxLength: 512
+      description: The human-readable name for this permission
+      example: "documents.read"
+    description:
+      type: string
+      maxLength: 2048
+      description: Optional description of what this permission grants
+      example: "Allows reading document contents"
+  additionalProperties: false

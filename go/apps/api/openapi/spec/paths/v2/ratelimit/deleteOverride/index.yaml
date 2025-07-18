@@ -1,0 +1,26 @@
+post:
+  tags:
+    - ratelimit
+  summary: Delete a rate limit override
+  description: |-
+    Permanently removes a rate limit override from a namespace. Once deleted, the affected identifiers immediately revert to using the default rate limits for that namespace.
+    Use this endpoint to remove temporary overrides that are no longer needed, reset entities back to standard rate limits, or clean up outdated rate limiting rules. The deletion operation is immediate and permanent - once an override is deleted, it cannot be recovered and must be recreated using the setOverride endpoint if needed again.
+  operationId: ratelimit.deleteOverride
+  x-speakeasy-name-override: deleteOverride
+  security:
+    - rootKey: []
+  requestBody:
+    $ref: "./request.yaml#/Request"
+  responses:
+    "200":
+      $ref: "./response.yaml#/Response"
+    "400":
+      $ref: "../../../../error/responses.yaml#/BadRequestError"
+    "401":
+      $ref: "../../../../error/responses.yaml#/UnauthorizedError"
+    "403":
+      $ref: "../../../../error/responses.yaml#/ForbiddenError"
+    "404":
+      $ref: "../../../../error/responses.yaml#/NotFoundError"
+    "500":
+      $ref: "../../../../error/responses.yaml#/InternalServerError"

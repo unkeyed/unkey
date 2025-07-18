@@ -1,0 +1,57 @@
+Response:
+  description: |-
+    Successfully retrieved the list of keys for this API. The response includes key details such as IDs, names, creation dates, and associated metadata. 
+    For security, the actual key values are not included unless specifically requested with decrypt=true. 
+    If there are more keys than the requested limit, the pagination object will include a cursor for fetching the next page and hasMore=true.
+  content:
+    application/json:
+      schema:
+        $ref: "#/V2ApisListKeysResponseBody"
+      examples:
+        standardResponse:
+          summary: Successful key listing
+          value:
+            meta:
+              requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+            data:
+              - keyId: key_1a2b3c4d5e6f
+                start: prod_abc
+                name: Production Admin Key
+                createdAt: 1671048264000
+                permissions:
+                  - admin.read
+                  - admin.write
+                meta:
+                  owner: alice@example.com
+                  department: Engineering
+              - keyId: key_2b3c4d5e6f7g
+                start: prod_def
+                name: CI/CD Pipeline Key
+                createdAt: 1671135600000
+                permissions:
+                  - deploy.trigger
+                  - logs.read
+            pagination:
+              cursor: cursor_eyJsYXN0S2V5SWQiOiJrZXlfMmIzYzRkNWU2ZjdnIiwibGFzdENyZWF0ZWRBdCI6MTY3MTEzNTYwMDAwMH0=
+              hasMore: true
+
+V2ApisListKeysResponseBody:
+  type: object
+  required:
+    - meta
+    - data
+  properties:
+    meta:
+      $ref: "../../../../common/meta.yaml"
+    data:
+      "$ref": "#/ApisListKeysResponseData"
+    pagination:
+      "$ref": "../../../../common/pagination.yaml"
+  additionalProperties: false
+
+ApisListKeysResponseData:
+  type: array
+  maxItems: 100 # DoS protection matching request limit
+  items:
+    "$ref": "../../../../common/key.yaml"
+  description: Array of API keys with complete configuration and metadata.

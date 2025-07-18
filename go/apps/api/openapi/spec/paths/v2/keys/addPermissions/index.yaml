@@ -1,22 +1,13 @@
 post:
   tags:
     - keys
-  summary: Set (replace) all permissions on an API key
+  summary: Add permissions to an API key
   description: |-
-    Sets the permissions for an existing API key by replacing all existing direct permissions with the provided set. This is a complete replacement operation - permissions not specified in the request will be removed.
-    Use this endpoint when you want to:
-    - Synchronize API key permissions with an external system
-    - Reset a key's permissions to a known state
-    - Apply a standardized permission template to a key
-    - Remove all permissions from a key (by providing an empty array)
-    - Fix over-permissioned keys by applying the precise set needed
-    Key differences from other endpoints:
-    - Unlike addPermissions, this replaces all permissions instead of just adding
-    - Unlike removePermissions, this sets the complete state rather than removing specific permissions
-    - The advantage is atomic replacement in a single operation versus multiple incremental changes
-    Only direct permissions are affected - permissions granted through roles remain unchanged. Changes take effect immediately for new verifications, though existing authorized sessions may continue until their cache expires (typically under 30 seconds).
-  operationId: setPermissions
-  x-speakeasy-name-override: setPermissions
+    Adds one or more permissions to an existing API key without affecting existing permissions or roles. This is an additive operation that supplements the key's current permission set.
+    Use this endpoint when you need to grant additional access rights to a key, such as upgrading user privileges, enabling new features, or implementing progressive permission models.
+    Only direct permissions are affected - permissions granted through roles remain unchanged. Changes take effect immediately for new verifications, though existing authorized sessions may continue until their cache expires.
+  operationId: addPermissions
+  x-speakeasy-name-override: addPermissions
   security:
     - rootKey: []
   requestBody:

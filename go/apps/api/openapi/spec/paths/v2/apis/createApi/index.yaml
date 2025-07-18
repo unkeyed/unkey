@@ -1,0 +1,40 @@
+post:
+  tags:
+    - apis
+  summary: Create a new API namespace for organizing keys
+  description: |-
+    Creates a new API namespace that serves as a container for related API keys.
+
+    APIs in Unkey provide important functionality:
+    - They organize keys into logical groups for easier management
+    - They isolate keys between different environments (dev/staging/production)
+    - They enforce security boundaries between services or products
+    - They provide a foundation for permission scoping and access control
+
+    Common use cases for creating separate APIs include:
+    - Separating development, staging, and production environments
+    - Isolating different services or microservices from each other
+    - Creating boundaries between different products or teams
+    - Implementing multi-tenant isolation for SaaS applications
+
+    You'll use the resulting API ID when creating keys to associate them with this API namespace.
+    During key verification, you must provide the same API ID to ensure keys can't be used across different environments or services.
+  operationId: createApi
+  x-speakeasy-name-override: createApi
+  security:
+    - rootKey: []
+  requestBody:
+    $ref: "./request.yaml#/Request"
+  responses:
+    "200":
+      $ref: "./response.yaml#/Response"
+    "400":
+      $ref: "../../../../error/responses.yaml#/BadRequestError"
+    "401":
+      $ref: "../../../../error/responses.yaml#/UnauthorizedError"
+    "403":
+      $ref: "../../../../error/responses.yaml#/ForbiddenError"
+    "404":
+      $ref: "../../../../error/responses.yaml#/NotFoundError"
+    "500":
+      $ref: "../../../../error/responses.yaml#/InternalServerError"

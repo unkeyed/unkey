@@ -1,0 +1,33 @@
+post:
+  tags:
+    - ratelimit
+  summary: Create or update a custom rate limit for specific identifiers
+  description: |-
+    Creates a new or updates an existing rate limit override for specific identifiers within a namespace.
+    Overrides allow you to implement special rate limiting rules that differ from the default limits. This is essential for:
+    - Creating tiered rate limits for different customer segments
+    - Implementing premium tiers with higher limits
+    - Applying stricter limits to suspicious or abusive users
+    - Setting emergency limits during system stress
+    - Creating customized rate limiting policies
+    When an override exists, it completely replaces the default rate limit for matching identifiers. The override takes effect immediately and will be applied to the very next rate limit check that matches the identifier pattern.
+    Wildcard patterns can be used to create powerful matching rules that apply to groups of identifiers without having to create individual overrides for each one.
+  operationId: ratelimit.setOverride
+  x-speakeasy-name-override: setOverride
+  security:
+    - rootKey: []
+  requestBody:
+    $ref: "./request.yaml#/Request"
+  responses:
+    "200":
+      $ref: "./response.yaml#/Response"
+    "400":
+      $ref: "../../../../error/responses.yaml#/BadRequestError"
+    "401":
+      $ref: "../../../../error/responses.yaml#/UnauthorizedError"
+    "403":
+      $ref: "../../../../error/responses.yaml#/ForbiddenError"
+    "404":
+      $ref: "../../../../error/responses.yaml#/NotFoundError"
+    "500":
+      $ref: "../../../../error/responses.yaml#/InternalServerError"

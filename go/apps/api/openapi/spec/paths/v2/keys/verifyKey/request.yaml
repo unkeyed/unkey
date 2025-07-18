@@ -1,0 +1,78 @@
+Request:
+  required: true
+  content:
+    application/json:
+      schema:
+        "$ref": "#/V2KeysVerifyKeyRequestBody"
+      examples:
+        simple:
+          summary: Basic key verification
+          value:
+            key: prod_1234567890abcdef1234567890abcdef
+        withPermissions:
+          summary: Verify key with permission check
+          value:
+            key: prod_1234567890abcdef1234567890abcdef
+            permissions:
+              type: and
+              permissions:
+                - documents.read
+                - documents.write
+        withCredits:
+          summary: Verify key and consume credits
+          value:
+            key: prod_1234567890abcdef1234567890abcdef
+            credits:
+              cost: 5
+
+V2KeysVerifyKeyRequestBody:
+  type: object
+  required:
+    - key
+  properties:
+    key:
+      type: string
+      minLength: 1
+      description: |
+        The API key to verify. This is the actual key string that your users authenticate with.
+        Can include prefixes (e.g., 'prod_xxxxx') and should be provided exactly as given to the user.
+      example: prod_1234567890abcdef1234567890abcdef
+    permissions:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [and, or]
+          description: |
+            Logic type for permission validation:
+            - 'and': Key must have ALL specified permissions
+            - 'or': Key must have AT LEAST ONE of the specified permissions
+        permissions:
+          type: array
+          items:
+            type: string
+          description: List of permission names to check
+      description: |
+        Enforces role-based access control by verifying the key has required permissions.
+        Omitting this field skips permission checks entirely, allowing any valid key to proceed.
+        When provided, verification fails unless the key has the specified permissions through direct assignment or role inheritance.
+        Essential for implementing fine-grained authorization in multi-tenant or privilege-separated APIs.
+    credits:
+      type: object
+      properties:
+        cost:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 1000000000
+          description: |
+            Sets how many credits to deduct for this verification request.
+            Use 0 for read-only operations or free tier access, higher values for premium features.
+            Credits are deducted immediately upon verification, even if the key lacks required permissions.
+            Essential for implementing usage-based pricing with different operation costs.
+          example: 5
+      description: |
+        Controls credit consumption for usage-based billing and quota enforcement.
+        When specified, the cost is deducted from the key's remaining credits.
+        Verification fails if the key doesn't have sufficient credits remaining.
+  additionalProperties: false

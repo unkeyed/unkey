@@ -1,123 +1,97 @@
-V2KeysSetPermissionsRequestBody:
-  type: object
-  required:
-    - keyId
-    - permissions
-  properties:
-    keyId:
-      type: string
-      description:
-        The unique identifier of the key to set permissions on (begins
-        with 'key_'). This ID comes from the createKey response and identifies
-        which key will have its permissions replaced. This is the database ID,
-        not the actual API key string that users authenticate with.
-      example: key_2cGKbMxRyIzhCxo1Idjz8q
-      minLength: 3
-    permissions:
-      type: array
-      description: |-
-        The permissions to set for this key. This is a complete replacement operation - it overwrites all existing direct permissions with this new set.
-        Key behaviors:
-        - Providing an empty array removes all direct permissions from the key
-        - This only affects direct permissions - permissions granted through roles are not affected
-        - All existing direct permissions not included in this list will be removed
-        - The complete list approach allows synchronizing permissions with external systems
-        - Permission changes take effect immediately for new verifications
-        Unlike addPermissions (which only adds) or removePermissions (which only removes), this endpoint performs a wholesale replacement of the permission set.
-      items:
-        type: object
-        properties:
-          id:
-            type: string
-            description: The ID of an existing permission (begins with `perm_`).
-              Provide either ID or slug for each permission, not both. Using ID
-              is more precise and guarantees you're referencing the exact permission
-              intended, regardless of slug changes or duplicates. IDs are particularly
-              useful in automation scripts and when migrating permissions between
-              environments.
-            example: perm_1n9McEIBSqy44Qy7hzWyM5
-            minLength: 3
-          slug:
-            type: string
-            description: The slug of the permission. Provide either ID or slug
-              for each permission, not both. Slugs must match exactly as defined
-              in your permission system - including case sensitivity and the complete
-              hierarchical path. Slugs are generally more human-readable but can
-              be ambiguous if not carefully managed across your workspace.
-            example: documents.write
-            minLength: 1
-          create:
-            type: boolean
-            description: |-
-              When true, if a permission with this slug doesn't exist, it will be automatically created on-the-fly. Only works when specifying slug, not ID.
-              SECURITY CONSIDERATIONS:
-              - Requires the `rbac.*.create_permission` permission on your root key
-              - Created permissions are permanent and visible throughout your workspace
-              - Use carefully to avoid permission proliferation and inconsistency
-              - Consider using a controlled process for permission creation instead
-              - Typos with `create=true` will create unintended permissions that persist in your system
-            default: false
-        additionalProperties: false
-  additionalProperties: false
-
 Request:
   required: true
   content:
     application/json:
       schema:
-        $ref: "#/V2KeysSetPermissionsRequestBody"
+        "$ref": "#/V2RatelimitLimitRequestBody"
       examples:
-        removeAll:
-          summary: Remove all permissions from key
-          description: This example won't work as expected! The permissions
-            array must contain at least one permission to remove. To remove
-            all permissions, use the setPermissions endpoint with an empty permissions
-            array instead.
-          value:
-            keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-            permissions: []
         basic:
-          summary: Set permissions using IDs
-          description: Using permission IDs is the most precise approach for
-            setting permissions, especially in automation scripts where exact
-            references are important.
+          summary: Basic rate limit check
           value:
-            keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-            permissions:
-              - id: perm_1n9McEIBSqy44Qy7hzWyM5
-              - id: perm_2zF4mNyP9BsRj2aQwDxVkT
-        withNames:
-          summary: Add permissions using slugs
-          description: Using permission slugs is more readable and maintainable.
-            Slugs must be unique within your workspace.
+            namespace: api.requests
+            identifier: user_abc123
+            limit: 100
+            duration: 60000
+        ipLimit:
+          summary: IP-based rate limiting
           value:
-            keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-            permissions:
-              - slug: documents.write
-              - slug: documents.delete
-        withCreation:
-          summary: Set with permission creation
-          description:
-            This example demonstrates setting permissions while simultaneously
-            creating new ones that don't exist yet. Requires the `rbac.*.create_permission`
-            permission on your root key.
+            namespace: auth.login
+            identifier: 203.0.113.42
+            limit: 5
+            duration: 60000
+        weightedCost:
+          summary: Operation with variable cost
           value:
-            keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-            permissions:
-              - slug: documents.write
-              - slug: reports.export
-                create: true
-              - name: reports.schedule
-                create: true
-        mixed:
-          summary: Mix of ID and name references
-          description: You can combine different reference methods in a single
-            request - some permissions by ID, others by name, and even create
-            new ones on the fly.
-          value:
-            keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-            permissions:
-              - id: perm_1n9McEIBSqy44Qy7hzWyM5
-              - slug: documents.delete
-              - slug: reports.view
-                create: true
+            namespace: api.heavy_operations
+            identifier: user_def456
+            limit: 50
+            duration: 3600000
+            cost: 5
+
+V2RatelimitLimitRequestBody:
+  type: object
+  additionalProperties: false
+  properties:
+    namespace:
+      type: string
+      minLength: 1
+      maxLength: 255
+      pattern: "^[a-zA-Z][a-zA-Z0-9_./-]*$"
+      description: |
+        Identifies the rate limit category using hierarchical naming for organization and monitoring.
+        Namespaces must start with a letter and can contain letters, numbers, underscores, dots, slashes, or hyphens.
+        Use descriptive, hierarchical names like 'auth.login', 'api.requests', or 'media.uploads' for clear categorization.
+        Namespaces must be unique within your workspace and support segmentation of different API operations.
+        Consistent naming conventions across your application improve monitoring and debugging capabilities.
+      example: sms.sign_up
+    cost:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 1000
+      default: 1
+      description: |
+        Sets how much of the rate limit quota this request consumes, enabling weighted rate limiting.
+        Use higher values for resource-intensive operations and 0 for tracking without limiting.
+        When accumulated cost exceeds the limit within the duration window, subsequent requests are rejected.
+        Essential for implementing fair usage policies and preventing resource abuse through expensive operations.
+      example: 5
+    duration:
+      type: integer
+      format: int64
+      minimum: 1000
+      maximum: 2592000000
+      description: |
+        Sets the rate limit window duration in milliseconds after which the counter resets.
+        Shorter durations enable faster recovery but may be less effective against sustained abuse.
+        Common values include 60000 (1 minute), 3600000 (1 hour), and 86400000 (24 hours).
+        Balance user experience with protection needs when choosing window sizes.
+      example: 60000
+    identifier:
+      type: string
+      minLength: 1
+      maxLength: 255
+      pattern: "^[a-zA-Z0-9_.:/-]+$"
+      description: |
+        Defines the scope of rate limiting by identifying the entity being limited.
+        Use user IDs for per-user limits, IP addresses for anonymous limiting, or API key IDs for per-key limits.
+        Accepts letters, numbers, underscores, dots, colons, slashes, and hyphens for flexible identifier formats.
+        The same identifier can be used across different namespaces to apply multiple rate limit types.
+        Choose identifiers that provide appropriate granularity for your rate limiting strategy.
+      example: "user_12345"
+    limit:
+      type: integer
+      format: int64
+      minimum: 1
+      maximum: 1000000
+      description: |
+        Sets the maximum operations allowed within the duration window before requests are rejected.
+        When this limit is reached, subsequent requests fail with `RATE_LIMITED` until the window resets.
+        Balance user experience with resource protection when setting limits for different user tiers.
+        Consider system capacity, business requirements, and fair usage policies in limit determination.
+      example: 1000
+  required:
+    - namespace
+    - identifier
+    - limit
+    - duration

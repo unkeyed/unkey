@@ -1,24 +1,20 @@
 post:
   tags:
     - keys
-  summary: Update API key properties without changing the key itself
+  summary: Create a new API key with customizable security features
   description: |-
-    Modifies the properties of an existing API key without changing the key string itself. This endpoint supports partial updates - you only need to include the fields you want to change.
-
-    You can use this endpoint to:
-    - Rename keys for better organization
-    - Update metadata to reflect changes in user status, plan, or properties
-    - Modify usage limits or rate limits
-    - Enable or disable keys temporarily
-    - Change key expiration dates
-    - Add or update user identifiers
-
-    To explicitly remove/disable a feature, set its field to null. Fields not included in the request remain unchanged. For managing permissions or roles, use the specialized endpoints (keys.addPermissions, keys.removePermissions, etc.) instead.
-
-    Changes may take up to 30 seconds to propagate to all regions due to cache invalidation. For immediate effect in the current region, follow the update with a verification request.
-  operationId: updateKey
-  x-speakeasy-name-override: updateKey
-
+    Creates a new API key with configurable security properties, usage limits, and metadata. This endpoint generates a cryptographically secure key that you can distribute to your users for authenticating with your API.
+    The key is only returned once in the response - Unkey stores only a secure hash of the key, not the key itself. You must provide this key directly to your end user; it cannot be retrieved later (unless created with `recoverable: true`, which is less secure).
+    Keys are associated with a specific API (via `apiId`), which helps isolate environments (dev/staging/prod) and prevents keys from being used across different services. Keys can be further configured with:
+    - Optional prefixes for visual identification
+    - Expiration dates for temporary access
+    - Usage limits (credits) for consumption-based APIs
+    - Rate limits for abuse prevention
+    - Permissions and roles for granular access control
+    - Metadata for storing context with the key
+    Best practices include using environment-specific API IDs, meaningful prefixes, appropriate byte length for security needs, and avoiding storing keys in your databases.
+  operationId: createKey
+  x-speakeasy-name-override: createKey
   security:
     - rootKey: []
   requestBody:

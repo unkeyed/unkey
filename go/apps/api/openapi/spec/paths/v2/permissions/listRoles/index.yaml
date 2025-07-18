@@ -1,0 +1,31 @@
+post:
+  tags:
+    - permissions
+  summary: List all roles in a workspace
+  description: |-
+    Retrieves a paginated list of all roles defined in the workspace, including their assigned permissions. This endpoint is essential for role-based access control (RBAC) administration.
+    Roles are collections of permissions that can be assigned to API keys, providing a convenient way to manage access control at scale. This endpoint allows you to:
+    - View all available roles for assignment
+    - Inspect which permissions are granted by each role
+    - Build role management interfaces
+    - Audit your RBAC configuration
+    Results are paginated and sorted alphabetically by role name. Each role includes its complete set of assigned permissions.
+  operationId: listRoles
+  x-speakeasy-name-override: ListRoles
+  security:
+    - rootKey: []
+  requestBody:
+    $ref: "./request.yaml#/Request"
+  responses:
+    "200":
+      $ref: "./response.yaml#/Response"
+    "400":
+      $ref: "../../../../error/responses.yaml#/BadRequestError"
+    "401":
+      $ref: "../../../../error/responses.yaml#/UnauthorizedError"
+    "403":
+      $ref: "../../../../error/responses.yaml#/ForbiddenError"
+    "404":
+      $ref: "../../../../error/responses.yaml#/NotFoundError"
+    "500":
+      $ref: "../../../../error/responses.yaml#/InternalServerError"

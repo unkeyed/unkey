@@ -1,48 +1,24 @@
-V2KeysUpdateKeyRequestBody:
+Request:
+  required: true
+  content:
+    application/json:
+      schema:
+        "$ref": "#/V2KeysDeleteKeyRequestBody"
+
+V2KeysDeleteKeyRequestBody:
   type: object
   required:
     - keyId
   properties:
     keyId:
       type: string
-      description: The unique identifier of the key to update
-      example: key_2cGKbMxRyIzhCxo1Idjz8q
       minLength: 3
-    name:
-      type: string
-      nullable: true
-      description: Human-readable name for the key
-      example: Updated API Key
-    externalId:
-      type: string
-      nullable: true
-      description: External identifier for linking to your system
-      example: user_12345
-    meta:
-      type: object
-      nullable: true
-      description: Additional metadata for the key
-      additionalProperties: true
+      maxLength: 255
+      pattern: "^[a-zA-Z0-9_]+$"
+      description: |
+        The unique identifier of the key to delete (begins with 'key_').
+        This ID comes from the createKey response and identifies which key to permanently remove.
+        This is the database ID, not the actual API key string.
+        WARNING: This operation is irreversible and will immediately invalidate the key.
+      example: key_2cGKbMxRyIzhCxo1Idjz8q
   additionalProperties: false
-
-Request:
-  required: true
-  content:
-    application/json:
-      schema:
-        $ref: "#/V2KeysUpdateKeyRequestBody"
-      examples:
-        basic:
-          summary: Update key name and external ID
-          value:
-            keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-            name: Updated API Key
-            externalId: user_12345
-        withMeta:
-          summary: Update key with metadata
-          value:
-            keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-            name: Production API Key
-            meta:
-              environment: production
-              team: backend

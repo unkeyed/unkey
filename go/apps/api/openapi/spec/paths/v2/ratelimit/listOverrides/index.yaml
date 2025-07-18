@@ -1,0 +1,27 @@
+post:
+  tags:
+    - ratelimit
+  summary: List all rate limit overrides for a namespace
+  description: |-
+    Retrieves a paginated list of all rate limit overrides defined for a specific namespace. Returns detailed information about each override including identifier patterns, limits, and durations.
+    Use this endpoint to audit your rate limiting policies, build administrative dashboards, or manage and clean up override configurations. For namespaces with many overrides, results are paginated and can be retrieved in chunks using the cursor parameter.
+    This endpoint is particularly useful when you need to review all custom rate limit rules for a namespace, find patterns in your override configurations, or implement management interfaces for rate limiting policies.
+  operationId: ratelimit.listOverrides
+  x-speakeasy-name-override: listOverrides
+  security:
+    - rootKey: []
+  requestBody:
+    $ref: "./request.yaml#/Request"
+  responses:
+    "200":
+      $ref: "./response.yaml#/Response"
+    "400":
+      $ref: "../../../../error/responses.yaml#/BadRequestError"
+    "401":
+      $ref: "../../../../error/responses.yaml#/UnauthorizedError"
+    "403":
+      $ref: "../../../../error/responses.yaml#/ForbiddenError"
+    "404":
+      $ref: "../../../../error/responses.yaml#/NotFoundError"
+    "500":
+      $ref: "../../../../error/responses.yaml#/InternalServerError"

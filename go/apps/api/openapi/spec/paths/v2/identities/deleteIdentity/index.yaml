@@ -1,0 +1,36 @@
+post:
+  tags:
+    - identities
+  summary: Delete an existing identity
+  description: |-
+    Permanently removes an identity from your workspace. This operation cannot be undone.
+    Deleting an identity has several important effects:
+    - All metadata associated with the identity is permanently removed
+    - Any rate limit history for this identity is cleared
+    - The identity's externalId becomes available for reuse
+    - Keys remain functional but lose their identity association
+    Important notes:
+    - This operation does NOT delete or disable any API keys associated with this identity
+    - After deletion, keys previously linked to this identity will function independently
+    - Rate limits that were shared across keys via this identity will no longer be shared
+    - The externalId can be reused immediately after deletion
+    Use this endpoint for compliance with data deletion requirements, cleaning up test data, or when an entity (user, organization) is permanently removed from your system.
+  operationId: v2.identities.deleteIdentity
+  x-speakeasy-name-override: deleteIdentity
+  security:
+    - rootKey: []
+  requestBody:
+    $ref: "./request.yaml#/Request"
+  responses:
+    "200":
+      $ref: "./response.yaml#/Response"
+    "400":
+      $ref: "../../../../error/responses.yaml#/BadRequestError"
+    "401":
+      $ref: "../../../../error/responses.yaml#/UnauthorizedError"
+    "403":
+      $ref: "../../../../error/responses.yaml#/ForbiddenError"
+    "404":
+      $ref: "../../../../error/responses.yaml#/NotFoundError"
+    "500":
+      $ref: "../../../../error/responses.yaml#/InternalServerError"

@@ -1,47 +1,15 @@
-V2KeysUpdateKeyResponseData:
-  type: object
-  required:
-    - keyId
-  properties:
-    keyId:
-      type: string
-      description: The unique identifier of the updated key
-      example: key_2cGKbMxRyIzhCxo1Idjz8q
-    name:
-      type: string
-      nullable: true
-      description: The updated name of the key
-      example: Updated API Key
-    externalId:
-      type: string
-      nullable: true
-      description: The updated external identifier
-      example: user_12345
-
-V2KeysUpdateKeyResponse:
-  type: object
-  required:
-    - meta
-    - data
-  properties:
-    meta:
-      $ref: "../../../../common/meta.yaml"
-    data:
-      $ref: "#/V2KeysUpdateKeyResponseData"
-
 Response:
-  description: Key successfully updated with the new values
+  description: Successfully deleted key
   content:
     application/json:
       schema:
-        $ref: "#/V2KeysUpdateKeyResponse"
-      examples:
-        standard:
-          summary: Key updated successfully
-          value:
-            meta:
-              requestId: req_2cGKbMxRyIzhCxo1Idjz8q
-            data:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              name: Updated API Key
-              externalId: user_12345
+        "$ref": "#/V2KeysDeleteKeyResponseBody"
+
+V2KeysDeleteKeyResponseBody:
+  type: object
+  required:
+    - meta
+  properties:
+    meta:
+      $ref: "../../../../common/meta.yaml"
+  additionalProperties: false

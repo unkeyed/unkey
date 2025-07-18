@@ -1,0 +1,33 @@
+post:
+  tags:
+    - identities
+  summary: Retrieve identity information
+  description: |-
+    Retrieves detailed information about a specific identity by its external ID.
+    Identities in Unkey represent entities in your system (users, organizations, etc.) that can be associated with multiple API keys. This endpoint provides access to:
+    - Identity metadata that was stored during creation
+    - Rate limiting configurations that apply across all keys for this identity
+    This endpoint is useful for:
+    - Checking if an identity exists
+    - Retrieving metadata associated with an identity
+    - Viewing rate limit configurations
+    You must provide the externalId parameter to identify which identity to retrieve.
+  operationId: identities.getIdentity
+  x-speakeasy-name-override: getIdentity
+  security:
+    - rootKey: []
+  requestBody:
+    $ref: "./request.yaml#/Request"
+  responses:
+    "200":
+      $ref: "./response.yaml#/Response"
+    "400":
+      $ref: "../../../../error/responses.yaml#/BadRequestError"
+    "401":
+      $ref: "../../../../error/responses.yaml#/UnauthorizedError"
+    "403":
+      $ref: "../../../../error/responses.yaml#/ForbiddenError"
+    "404":
+      $ref: "../../../../error/responses.yaml#/NotFoundError"
+    "500":
+      $ref: "../../../../error/responses.yaml#/InternalServerError"

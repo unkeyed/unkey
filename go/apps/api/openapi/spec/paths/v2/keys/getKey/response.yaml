@@ -1,24 +1,11 @@
-V2KeysUpdateKeyResponseData:
-  type: object
-  required:
-    - keyId
-  properties:
-    keyId:
-      type: string
-      description: The unique identifier of the updated key
-      example: key_2cGKbMxRyIzhCxo1Idjz8q
-    name:
-      type: string
-      nullable: true
-      description: The updated name of the key
-      example: Updated API Key
-    externalId:
-      type: string
-      nullable: true
-      description: The updated external identifier
-      example: user_12345
+Response:
+  description: Successfully retrieved key information
+  content:
+    application/json:
+      schema:
+        "$ref": "#/V2KeysGetKeyResponseBody"
 
-V2KeysUpdateKeyResponse:
+V2KeysGetKeyResponseBody:
   type: object
   required:
     - meta
@@ -27,21 +14,117 @@ V2KeysUpdateKeyResponse:
     meta:
       $ref: "../../../../common/meta.yaml"
     data:
-      $ref: "#/V2KeysUpdateKeyResponseData"
+      "$ref": "#/KeysGetKeyResponseData"
+  additionalProperties: false
 
-Response:
-  description: Key successfully updated with the new values
-  content:
-    application/json:
-      schema:
-        $ref: "#/V2KeysUpdateKeyResponse"
-      examples:
-        standard:
-          summary: Key updated successfully
-          value:
-            meta:
-              requestId: req_2cGKbMxRyIzhCxo1Idjz8q
-            data:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              name: Updated API Key
-              externalId: user_12345
+KeysGetKeyResponseData:
+  type: object
+  properties:
+    keyId:
+      type: string
+      description: The unique identifier for this key
+      example: key_1234567890abcdef
+    name:
+      type: string
+      description: The human-readable name assigned to this key
+      example: User API Key
+    externalId:
+      type: string
+      description: The external identifier associated with this key
+      example: user_12345
+    meta:
+      type: object
+      additionalProperties: true
+      description: Arbitrary metadata stored with the key
+      example:
+        plan: premium
+        features:
+          analytics: true
+          exports: true
+    expires:
+      type: integer
+      format: int64
+      description: Unix timestamp in milliseconds when the key expires
+      example: 1735689600000
+    credits:
+      type: object
+      properties:
+        remaining:
+          type: integer
+          format: int64
+          description: Number of credits remaining
+        refill:
+          type: object
+          properties:
+            interval:
+              type: string
+              enum: [daily, monthly]
+              description: How often credits are refilled
+            amount:
+              type: integer
+              format: int64
+              description: Number of credits added during refill
+            refillDay:
+              type: integer
+              minimum: 1
+              maximum: 31
+              description: Day of month for monthly refills
+      description: Credit system configuration and current balance
+    ratelimits:
+      type: array
+      items:
+        type: object
+        properties:
+          name:
+            type: string
+            description: Name of the rate limit
+          limit:
+            type: integer
+            description: Maximum requests allowed
+          duration:
+            type: integer
+            description: Duration in milliseconds
+      description: Rate limit configuration for this key
+    permissions:
+      type: array
+      items:
+        type: object
+        properties:
+          id:
+            type: string
+            description: The unique identifier of the permission
+          name:
+            type: string
+            description: The name of the permission
+      description: List of all permissions granted to this key
+    roles:
+      type: array
+      items:
+        type: object
+        properties:
+          id:
+            type: string
+            description: The unique identifier of the role
+          name:
+            type: string
+            description: The name of the role
+      description: List of all roles assigned to this key
+    enabled:
+      type: boolean
+      description: Whether the key is currently enabled
+      example: true
+    createdAt:
+      type: integer
+      format: int64
+      description: Unix timestamp when the key was created
+      example: 1701425400000
+    updatedAt:
+      type: integer
+      format: int64
+      description: Unix timestamp when the key was last updated
+      example: 1701425400000
+  required:
+    - keyId
+    - enabled
+    - createdAt
+  additionalProperties: false

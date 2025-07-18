@@ -1,0 +1,36 @@
+Response:
+  description: Successfully created role
+  content:
+    application/json:
+      schema:
+        "$ref": "#/V2PermissionsCreateRoleResponseBody"
+
+V2PermissionsCreateRoleResponseBody:
+  type: object
+  required:
+    - meta
+    - data
+  properties:
+    meta:
+      $ref: "../../../../common/meta.yaml"
+    data:
+      "$ref": "#/PermissionsCreateRoleResponseData"
+  additionalProperties: false
+
+PermissionsCreateRoleResponseData:
+  type: object
+  properties:
+    roleId:
+      type: string
+      minLength: 3
+      maxLength: 255
+      pattern: "^[a-zA-Z0-9_]+$"
+      description: |
+        The unique identifier assigned to the newly created role.
+        Use this ID to reference the role in subsequent API operations like assignment to keys, deletion, or modification.
+        Always begins with 'role_' followed by alphanumeric characters and underscores.
+        Store this ID if you need to manage the role programmatically in the future.
+      example: role_1234567890abcdef
+  required:
+    - roleId
+  additionalProperties: false

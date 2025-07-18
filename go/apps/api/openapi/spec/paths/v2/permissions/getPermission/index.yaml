@@ -1,0 +1,31 @@
+post:
+  tags:
+    - permissions
+  summary: Retrieve details about a specific permission
+  description: |-
+    Retrieves detailed information about a specific permission by its ID. This endpoint allows you to inspect a permission's properties, including its name, description, and workspace association.
+    This is useful for:
+    - Verifying a permission exists before assigning it
+    - Retrieving permission details for display in administrative interfaces
+    - Checking permission configuration before making updates
+    - Building permission management tools
+    Permissions are the fundamental building blocks of access control in Unkey's RBAC system, representing specific capabilities that can be granted to API keys either directly or through roles.
+  operationId: getPermission
+  x-speakeasy-name-override: GetPermission
+  security:
+    - rootKey: []
+  requestBody:
+    $ref: "./request.yaml#/Request"
+  responses:
+    "200":
+      $ref: "./response.yaml#/Response"
+    "400":
+      $ref: "../../../../error/responses.yaml#/BadRequestError"
+    "401":
+      $ref: "../../../../error/responses.yaml#/UnauthorizedError"
+    "403":
+      $ref: "../../../../error/responses.yaml#/ForbiddenError"
+    "404":
+      $ref: "../../../../error/responses.yaml#/NotFoundError"
+    "500":
+      $ref: "../../../../error/responses.yaml#/InternalServerError"

@@ -1,0 +1,27 @@
+post:
+  tags:
+    - ratelimit
+  summary: Retrieve a specific rate limit override
+  description: |-
+    Retrieves the details of a specific rate limit override by its identifier pattern. Returns the exact configuration including the identifier pattern, custom limit value, duration window, and namespace association.
+    Use this endpoint to inspect override configurations before making modifications, audit your rate limiting policies, or debug rate limiting behavior. The identifier must match exactly as it was specified when creating the override, including any wildcard patterns.
+    This endpoint is essential for understanding why certain identifiers receive different rate limits than the default. When troubleshooting rate limiting issues, this endpoint helps verify that overrides are configured correctly and matching the expected identifiers.
+  operationId: ratelimit.getOverride
+  x-speakeasy-name-override: getOverride
+  security:
+    - rootKey: []
+  requestBody:
+    $ref: "./request.yaml#/Request"
+  responses:
+    "200":
+      $ref: "./response.yaml#/Response"
+    "400":
+      $ref: "../../../../error/responses.yaml#/BadRequestError"
+    "401":
+      $ref: "../../../../error/responses.yaml#/UnauthorizedError"
+    "403":
+      $ref: "../../../../error/responses.yaml#/ForbiddenError"
+    "404":
+      $ref: "../../../../error/responses.yaml#/NotFoundError"
+    "500":
+      $ref: "../../../../error/responses.yaml#/InternalServerError"

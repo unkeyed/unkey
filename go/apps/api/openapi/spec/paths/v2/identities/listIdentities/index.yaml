@@ -1,0 +1,37 @@
+post:
+  tags:
+    - identities
+  summary: List identities in your workspace
+  description: |-
+    Retrieves a paginated list of identities in your workspace. Identities represent entities in your system (users, organizations, etc.) that can be associated with multiple API keys for resource sharing.
+    This endpoint allows you to:
+    - Browse all identities in your workspace
+    - Search for specific identities by environment
+    - View rate limits configured for each identity
+    - Implement identity management interfaces
+    Results are paginated if there are more identities than the specified limit. Use the returned cursor to fetch subsequent pages.
+  operationId: identities.listIdentities
+  x-speakeasy-name-override: listIdentities
+  security:
+    - rootKey: []
+  requestBody:
+    $ref: "./request.yaml#/Request"
+  responses:
+    "200":
+      $ref: "./response.yaml#/Response"
+    "400":
+      $ref: "../../../../error/responses.yaml#/BadRequestError"
+    "401":
+      $ref: "../../../../error/responses.yaml#/UnauthorizedError"
+    "403":
+      $ref: "../../../../error/responses.yaml#/ForbiddenError"
+    "500":
+      $ref: "../../../../error/responses.yaml#/InternalServerError"
+  x-speakeasy-pagination:
+    type: cursor
+    inputs:
+      - name: cursor
+        in: parameters
+        type: cursor
+    outputs:
+      nextCursor: "$.data.cursor"

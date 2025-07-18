@@ -1,123 +1,50 @@
-V2KeysSetPermissionsRequestBody:
-  type: object
-  required:
-    - keyId
-    - permissions
-  properties:
-    keyId:
-      type: string
-      description:
-        The unique identifier of the key to set permissions on (begins
-        with 'key_'). This ID comes from the createKey response and identifies
-        which key will have its permissions replaced. This is the database ID,
-        not the actual API key string that users authenticate with.
-      example: key_2cGKbMxRyIzhCxo1Idjz8q
-      minLength: 3
-    permissions:
-      type: array
-      description: |-
-        The permissions to set for this key. This is a complete replacement operation - it overwrites all existing direct permissions with this new set.
-        Key behaviors:
-        - Providing an empty array removes all direct permissions from the key
-        - This only affects direct permissions - permissions granted through roles are not affected
-        - All existing direct permissions not included in this list will be removed
-        - The complete list approach allows synchronizing permissions with external systems
-        - Permission changes take effect immediately for new verifications
-        Unlike addPermissions (which only adds) or removePermissions (which only removes), this endpoint performs a wholesale replacement of the permission set.
-      items:
-        type: object
-        properties:
-          id:
-            type: string
-            description: The ID of an existing permission (begins with `perm_`).
-              Provide either ID or slug for each permission, not both. Using ID
-              is more precise and guarantees you're referencing the exact permission
-              intended, regardless of slug changes or duplicates. IDs are particularly
-              useful in automation scripts and when migrating permissions between
-              environments.
-            example: perm_1n9McEIBSqy44Qy7hzWyM5
-            minLength: 3
-          slug:
-            type: string
-            description: The slug of the permission. Provide either ID or slug
-              for each permission, not both. Slugs must match exactly as defined
-              in your permission system - including case sensitivity and the complete
-              hierarchical path. Slugs are generally more human-readable but can
-              be ambiguous if not carefully managed across your workspace.
-            example: documents.write
-            minLength: 1
-          create:
-            type: boolean
-            description: |-
-              When true, if a permission with this slug doesn't exist, it will be automatically created on-the-fly. Only works when specifying slug, not ID.
-              SECURITY CONSIDERATIONS:
-              - Requires the `rbac.*.create_permission` permission on your root key
-              - Created permissions are permanent and visible throughout your workspace
-              - Use carefully to avoid permission proliferation and inconsistency
-              - Consider using a controlled process for permission creation instead
-              - Typos with `create=true` will create unintended permissions that persist in your system
-            default: false
-        additionalProperties: false
-  additionalProperties: false
-
 Request:
   required: true
   content:
     application/json:
       schema:
-        $ref: "#/V2KeysSetPermissionsRequestBody"
-      examples:
-        removeAll:
-          summary: Remove all permissions from key
-          description: This example won't work as expected! The permissions
-            array must contain at least one permission to remove. To remove
-            all permissions, use the setPermissions endpoint with an empty permissions
-            array instead.
-          value:
-            keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-            permissions: []
-        basic:
-          summary: Set permissions using IDs
-          description: Using permission IDs is the most precise approach for
-            setting permissions, especially in automation scripts where exact
-            references are important.
-          value:
-            keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-            permissions:
-              - id: perm_1n9McEIBSqy44Qy7hzWyM5
-              - id: perm_2zF4mNyP9BsRj2aQwDxVkT
-        withNames:
-          summary: Add permissions using slugs
-          description: Using permission slugs is more readable and maintainable.
-            Slugs must be unique within your workspace.
-          value:
-            keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-            permissions:
-              - slug: documents.write
-              - slug: documents.delete
-        withCreation:
-          summary: Set with permission creation
-          description:
-            This example demonstrates setting permissions while simultaneously
-            creating new ones that don't exist yet. Requires the `rbac.*.create_permission`
-            permission on your root key.
-          value:
-            keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-            permissions:
-              - slug: documents.write
-              - slug: reports.export
-                create: true
-              - name: reports.schedule
-                create: true
-        mixed:
-          summary: Mix of ID and name references
-          description: You can combine different reference methods in a single
-            request - some permissions by ID, others by name, and even create
-            new ones on the fly.
-          value:
-            keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-            permissions:
-              - id: perm_1n9McEIBSqy44Qy7hzWyM5
-              - slug: documents.delete
-              - slug: reports.view
-                create: true
+        "$ref": "#/V2KeysRemoveRolesRequestBody"
+
+V2KeysRemoveRolesRequestBody:
+  type: object
+  required:
+    - keyId
+    - roles
+  properties:
+    keyId:
+      type: string
+      minLength: 3
+      maxLength: 255
+      pattern: "^[a-zA-Z0-9_]+$"
+      description: |
+        The unique identifier of the key to remove roles from (begins with 'key_').
+        This ID comes from the createKey response and identifies which key will lose roles.
+        This is the database ID, not the actual API key string.
+      example: key_2cGKbMxRyIzhCxo1Idjz8q
+    roles:
+      type: array
+      minItems: 1
+      maxItems: 100
+      description: |
+        The roles to remove from this key.
+        Operations are idempotent - removing non-assigned roles has no effect.
+        Role changes take effect immediately for new verifications.
+      items:
+        type: object
+        properties:
+          id:
+            type: string
+            description: |
+              The ID of an existing role (begins with 'role_').
+              Provide either ID or name for each role, not both.
+            example: role_1n9McEIBSqy44Qy7hzWyM5
+          name:
+            type: string
+            description: |
+              The name of the role.
+              Provide either ID or name for each role, not both.
+            example: editor
+        oneOf:
+          - required: [id]
+          - required: [name]
+  additionalProperties: false

@@ -1,0 +1,36 @@
+Response:
+  description: Successfully created permission
+  content:
+    application/json:
+      schema:
+        "$ref": "#/V2PermissionsCreatePermissionResponseBody"
+
+V2PermissionsCreatePermissionResponseBody:
+  type: object
+  required:
+    - meta
+    - data
+  properties:
+    meta:
+      $ref: "../../../../common/meta.yaml"
+    data:
+      "$ref": "#/PermissionsCreatePermissionResponseData"
+  additionalProperties: false
+
+PermissionsCreatePermissionResponseData:
+  type: object
+  properties:
+    permissionId:
+      type: string
+      minLength: 3
+      maxLength: 255
+      pattern: "^[a-zA-Z0-9_]+$"
+      description: |
+        The unique identifier assigned to the newly created permission.
+        Use this ID to reference the permission in subsequent API operations like assignment to keys/roles, deletion, or modification.
+        Always begins with 'perm_' followed by alphanumeric characters and underscores.
+        Store this ID if you need to manage the permission programmatically in the future.
+      example: perm_1234567890abcdef
+  required:
+    - permissionId
+  additionalProperties: false

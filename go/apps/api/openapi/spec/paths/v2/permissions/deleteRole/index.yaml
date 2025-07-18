@@ -1,0 +1,30 @@
+post:
+  tags:
+    - permissions
+  summary: Delete a role
+  description: |-
+    Permanently removes a role from the workspace. This endpoint is used when a role is no longer needed or needs to be replaced with a different role structure.
+    When a role is deleted:
+    - All keys that had this role assigned will lose the permissions granted by this role
+    - The role will no longer appear in role listings
+    - The role's name becomes available for reuse
+    Important: This operation cannot be undone, and it immediately affects all API keys that had this role assigned. Consider carefully before deleting roles that are actively in use by many keys.
+  operationId: deleteRole
+  x-speakeasy-name-override: DeleteRole
+  security:
+    - rootKey: []
+  requestBody:
+    $ref: "./request.yaml#/Request"
+  responses:
+    "200":
+      $ref: "./response.yaml#/Response"
+    "400":
+      $ref: "../../../../error/responses.yaml#/BadRequestError"
+    "401":
+      $ref: "../../../../error/responses.yaml#/UnauthorizedError"
+    "403":
+      $ref: "../../../../error/responses.yaml#/ForbiddenError"
+    "409":
+      $ref: "../../../../error/responses.yaml#/ConflictError"
+    "500":
+      $ref: "../../../../error/responses.yaml#/InternalServerError"
