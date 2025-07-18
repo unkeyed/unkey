@@ -451,6 +451,7 @@ type Querier interface {
 	//      git_commit_sha,
 	//      git_branch,
 	//      config_snapshot,
+	//      openapi_spec,
 	//      status,
 	//      created_at,
 	//      updated_at
@@ -907,11 +908,13 @@ type Querier interface {
 	//      git_commit_sha,
 	//      git_branch,
 	//      config_snapshot,
+	//      openapi_spec,
 	//      status,
 	//      created_at,
 	//      updated_at
 	//  )
 	//  VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1279,6 +1282,12 @@ type Querier interface {
 	//      updated_at_m= ?
 	//  WHERE id = ?
 	UpdateRatelimitOverride(ctx context.Context, db DBTX, arg UpdateRatelimitOverrideParams) (sql.Result, error)
+	//UpdateVersionOpenApiSpec
+	//
+	//  UPDATE versions SET
+	//      openapi_spec = ?
+	//  WHERE id = ?
+	UpdateVersionOpenApiSpec(ctx context.Context, db DBTX, arg UpdateVersionOpenApiSpecParams) error
 	//UpdateVersionStatus
 	//
 	//  UPDATE versions SET
