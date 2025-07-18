@@ -9,6 +9,8 @@
 // - Primary/replica configuration with automatic routing of reads and writes
 // - Support for transactions
 // - Type-safe query methods generated from SQL
+// - Bulk insert operations for improved performance
+// - BulkQuerier interface for type-safe bulk operations
 //
 // Basic usage:
 //
@@ -33,6 +35,23 @@
 //	err = db.Query.InsertKey(ctx, db.RW(), insertKeyParams)
 //	if err != nil {
 //	    return fmt.Errorf("failed to insert key: %w", err)
+//	}
+//
+//	// Use bulk operations for efficient batch inserts
+//	err = db.Query.BulkInsertKey(ctx, db.RW(), []db.InsertKeyParams{
+//	    insertKeyParams1,
+//	    insertKeyParams2,
+//	    insertKeyParams3,
+//	})
+//	if err != nil {
+//	    return fmt.Errorf("failed to bulk insert keys: %w", err)
+//	}
+//
+//	// Type-safe bulk operations using the BulkQuerier interface
+//	var bulkQuerier db.BulkQuerier = db.Query
+//	err = bulkQuerier.BulkInsertKey(ctx, db.RW(), keyBatch)
+//	if err != nil {
+//	    return fmt.Errorf("failed to bulk insert via interface: %w", err)
 //	}
 //
 // This package relies on the standard Go database/sql package and the
