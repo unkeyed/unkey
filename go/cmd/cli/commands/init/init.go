@@ -7,58 +7,78 @@ import (
 	"os"
 	"strings"
 
+	"github.com/unkeyed/unkey/go/cmd/cli/commands/deploy"
 	"github.com/unkeyed/unkey/go/cmd/cli/config"
 	"github.com/unkeyed/unkey/go/pkg/cli"
 )
 
 var Command = &cli.Command{
 	Name:  "init",
-	Usage: "Initialize configuration file for Unkey CLI",
-	Description: `Initialize a configuration file to store default values for workspace ID, project ID, and context path.
+	Usage: "Initialize configuration file",
+	Description: `Initialize a configuration file to store default values for workspace ID, 
+project ID, and build context path.
 
-This will create a unkey.json file in the specified directory.
+This will create a unkey.json file in the specified directory with template
+values that you can customize for your project.
 
 EXAMPLES:
     # Create unkey.json in current directory
     unkey init
-    
+
     # Create unkey.json in a specific directory
-    unkey init --config=./test-docker`,
+    unkey init --config=./my-project
+
+    # Force overwrite existing config
+    unkey init --force`,
 	Flags: []cli.Flag{
 		cli.String("config", "Directory where unkey.json will be created", cli.Default(".")),
+		cli.Bool("force", "Overwrite existing configuration file without prompting"),
 	},
-	Action: run,
+	Action: InitAction,
 }
 
-func run(ctx context.Context, cmd *cli.Command) error {
+func InitAction(ctx context.Context, cmd *cli.Command) error {
 	configDir := cmd.String("config")
 	configPath := config.GetConfigFilePath(configDir)
-	fmt.Println(">> Unkey CLI Configuration Setup")
-	fmt.Println("")
+	force := cmd.Bool("force")
+	ui := deploy.NewUI()
+
+	fmt.Printf("Unkey Configuration Setup\n")
+	fmt.Printf("──────────────────────────────────────────────────\n")
 
 	// Check if config file already exists
 	if config.ConfigExists(configDir) {
-		fmt.Printf("!  Configuration file already exists at: %s\n", configPath)
-		if !promptConfirm("Do you want to overwrite it?") {
-			fmt.Println("Configuration setup cancelled.")
+		fmt.Printf("Configuration file already exists at: %s\n", configPath)
+		if !force && !promptConfirm("Do you want to overwrite it?") {
+			fmt.Printf("Configuration setup cancelled.\n")
 			return nil
 		}
-		fmt.Println("")
+		fmt.Printf("\n")
 	}
 
 	// Create template config file
+	ui.Print("Creating configuration template")
 	if err := config.CreateTemplate(configDir); err != nil {
+		ui.PrintError("Failed to create config template")
 		return fmt.Errorf("failed to create config template: %w", err)
 	}
-	fmt.Printf("✓ Configuration template created at: %s\n", configPath)
-	fmt.Println("")
-	fmt.Println("Please replace the placeholder values with your actual values:")
-	fmt.Println("")
-	fmt.Println("After editing, you can run commands without flags:")
-	fmt.Println("  unkey deploy")
-	fmt.Println("")
 
+	ui.PrintSuccess(fmt.Sprintf("Configuration template created at: %s", configPath))
+	fmt.Printf("\n")
+
+	printNextSteps()
 	return nil
+}
+
+func printNextSteps() {
+	fmt.Printf("Next Steps:\n")
+	fmt.Printf("1. Edit the configuration file and replace placeholder values\n")
+	fmt.Printf("2. Set your workspace ID and project ID\n")
+	fmt.Printf("3. Customize the build context path if needed\n")
+	fmt.Printf("\n")
+	fmt.Printf("After configuration, you can deploy without flags:\n")
+	fmt.Printf("  unkey deploy\n")
+	fmt.Printf("\n")
 }
 
 func readLine() string {

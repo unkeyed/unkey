@@ -2,7 +2,6 @@ package deploy
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -27,11 +26,6 @@ var stepSequence = map[string]string{
 	"Assigned hostname:":                 "Version deployment completed successfully",
 }
 
-var (
-	ErrDockerNotFound    = errors.New("docker command not found - please install Docker")
-	ErrDockerBuildFailed = errors.New("docker build failed")
-)
-
 // DeployOptions contains all configuration for deployment
 type DeployOptions struct {
 	WorkspaceID     string
@@ -43,6 +37,7 @@ type DeployOptions struct {
 	Commit          string
 	Registry        string
 	SkipPush        bool
+	Verbose         bool
 	ControlPlaneURL string
 	AuthToken       string
 }
@@ -54,15 +49,16 @@ var DeployFlags = []cli.Flag{
 	cli.String("workspace-id", "Workspace ID", cli.EnvVar("UNKEY_WORKSPACE_ID")),
 	cli.String("project-id", "Project ID", cli.EnvVar("UNKEY_PROJECT_ID")),
 	// Optional flags with defaults
-	cli.String("context", "Docker context path", cli.Default(".")),
+	cli.String("context", "Build context path"),
 	cli.String("branch", "Git branch", cli.Default("main")),
 	cli.String("docker-image", "Pre-built docker image"),
 	cli.String("dockerfile", "Path to Dockerfile", cli.Default("Dockerfile")),
 	cli.String("commit", "Git commit SHA"),
-	cli.String("registry", "Docker registry",
+	cli.String("registry", "Container registry",
 		cli.Default("ghcr.io/unkeyed/deploy"),
-		cli.EnvVar("UNKEY_DOCKER_REGISTRY")),
+		cli.EnvVar("UNKEY_REGISTRY")),
 	cli.Bool("skip-push", "Skip pushing to registry (for local testing)"),
+	cli.Bool("verbose", "Show detailed output for build and deployment operations"),
 	// Control plane flags (internal)
 	cli.String("control-plane-url", "Control plane URL", cli.Default("http://localhost:7091")),
 	cli.String("auth-token", "Control plane auth token", cli.Default("ctrl-secret-token")),
@@ -73,7 +69,7 @@ var Command = &cli.Command{
 	Name:  "deploy",
 	Usage: "Deploy a new version",
 	Description: `Build and deploy a new version of your application.
-Builds a Docker image from the specified context and
+Builds a container image from the specified context and
 deploys it to the Unkey platform.
 
 The deploy command will automatically load configuration from unkey.json
@@ -103,6 +99,9 @@ EXAMPLES:
 
     # Deploy pre-built image
     unkey deploy --docker-image=ghcr.io/user/app:v1.0.0
+
+    # Show detailed build and deployment output
+    unkey deploy --verbose
 
 If no config file exists, you can create one with:
     unkey init`,
@@ -152,6 +151,7 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 	logger := logging.New()
 	gitInfo := git.GetInfo()
 
+	// Auto-detect branch and commit from git if not specified
 	if opts.Branch == "main" && gitInfo.IsRepo && gitInfo.Branch != "" {
 		opts.Branch = gitInfo.Branch
 	}
@@ -159,6 +159,7 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 		opts.Commit = gitInfo.CommitSHA
 	}
 
+	// Print header
 	fmt.Printf("Unkey Deploy Progress\n")
 	fmt.Printf("──────────────────────────────────────────────────\n")
 	printSourceInfo(opts, gitInfo)
@@ -167,21 +168,24 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 
 	var dockerImage string
 
+	// Build or use pre-built Docker image
 	if opts.DockerImage == "" {
+		// Check Docker availability
 		if !isDockerAvailable() {
 			ui.PrintError("Docker not found - please install Docker")
-			ui.PrintErrorDetails(ErrDockerNotFound.Error())
-			return nil
+			return ErrDockerNotFound
 		}
 
+		// Generate image tag and full image name
 		imageTag := generateImageTag(opts, gitInfo)
 		dockerImage = fmt.Sprintf("%s:%s", opts.Registry, imageTag)
 
 		ui.Print(fmt.Sprintf("Building image: %s", dockerImage))
-		if err := buildImage(ctx, opts, dockerImage); err != nil {
+
+		// Build image with robust error handling and real-time output
+		if err := buildImage(ctx, opts, dockerImage, ui); err != nil {
 			ui.PrintError("Docker build failed")
-			ui.PrintErrorDetails(err.Error())
-			return nil
+			return err
 		}
 		ui.PrintSuccess("Image built successfully")
 	} else {
@@ -189,14 +193,15 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 		ui.Print("Using pre-built Docker image")
 	}
 
+	// Push to registry (unless skipped or using pre-built image)
 	if !opts.SkipPush && opts.DockerImage == "" {
 		ui.Print("Pushing to registry")
 		if err := pushImage(ctx, dockerImage, opts.Registry); err != nil {
 			ui.PrintError("Push failed but continuing deployment")
 			ui.PrintErrorDetails(err.Error())
-			// INFO: For now we are ignoring registry push because everyone one is working locally,
-			// omit this when comments and put the return nil back when going to prod
-			// return nil
+			// NOTE: Currently ignoring push failures for local development
+			// For production deployment, uncomment the line below:
+			// return err
 		} else {
 			ui.PrintSuccess("Image pushed successfully")
 		}
@@ -204,41 +209,45 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 		ui.Print("Skipping registry push")
 	}
 
+	// Create deployment version
 	ui.Print("Creating deployment")
-
 	controlPlane := NewControlPlaneClient(opts)
 	versionId, err := controlPlane.CreateVersion(ctx, dockerImage)
 	if err != nil {
 		ui.PrintError("Failed to create version")
 		ui.PrintErrorDetails(err.Error())
-		return nil
+		return err
 	}
 	ui.PrintSuccess(fmt.Sprintf("Version created: %s", versionId))
 
-	// Track deployment completion
+	// Track final version for completion info
 	var finalVersion *ctrlv1.Version
 
+	// Handle version status changes
 	onStatusChange := func(event VersionStatusEvent) error {
 		switch event.CurrentStatus {
 		case ctrlv1.VersionStatus_VERSION_STATUS_FAILED:
 			return handleVersionFailure(controlPlane, event.Version, ui)
 		case ctrlv1.VersionStatus_VERSION_STATUS_ACTIVE:
-			// Just store the version - success will be printed after polling ends
+			// Store version but don't print success, wait for polling to complete
 			finalVersion = event.Version
 		}
 		return nil
 	}
 
+	// Handle deployment step updates
 	onStepUpdate := func(event VersionStepEvent) error {
 		return handleStepUpdate(event, ui)
 	}
 
+	// Poll for deployment completion
 	err = controlPlane.PollVersionStatus(ctx, logger, versionId, onStatusChange, onStepUpdate)
 	if err != nil {
 		ui.CompleteCurrentStep("Deployment failed", false)
 		return err
 	}
 
+	// Print final success message only after all polling is complete
 	if finalVersion != nil {
 		ui.CompleteCurrentStep("Version deployment completed successfully", true)
 		ui.PrintSuccess("Deployment completed successfully")
