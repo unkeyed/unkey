@@ -121,12 +121,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if hit == cache.Null {
-		if db.IsNotFound(err) {
-			return fault.New("namespace cache null",
-				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-				fault.Public("This namespace does not exist."),
-			)
-		}
+		return fault.New("namespace cache null",
+			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+			fault.Public("This namespace does not exist."),
+		)
 	}
 
 	if namespace.DeletedAtM.Valid {
