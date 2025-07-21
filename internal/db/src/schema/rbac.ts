@@ -54,6 +54,7 @@ export const permissionsRelations = relations(permissions, ({ one, many }) => ({
 export const keysPermissions = mysqlTable(
   "keys_permissions",
   {
+    tempId: bigint("temp_id", { mode: "number" }).autoincrement().notNull(),
     keyId: varchar("key_id", { length: 256 }).notNull(),
     permissionId: varchar("permission_id", { length: 256 }).notNull(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
@@ -70,6 +71,7 @@ export const keysPermissions = mysqlTable(
         columns: [table.keyId, table.permissionId, table.workspaceId],
         name: "keys_permissions_key_id_permission_id_workspace_id",
       }),
+      keysPermissionsTempIdUnique: unique("keys_permissions_temp_id_unique").on(table.tempId),
       keyIdPermissionIdIdx: unique("key_id_permission_id_idx").on(table.keyId, table.permissionId),
     };
   },

@@ -125,8 +125,7 @@ func TestSetOverrideSuccessfully(t *testing.T) {
 		require.EqualValues(t, req.Duration, override.Duration)
 	})
 
-	// Creating same override twice returns sameID
-	t.Run("create override with wildcard identifier", func(t *testing.T) {
+	t.Run("create same override twice should update existing record", func(t *testing.T) {
 		req := handler.Request{
 			NamespaceId: &namespaceID,
 			Identifier:  "*", // Wildcard
