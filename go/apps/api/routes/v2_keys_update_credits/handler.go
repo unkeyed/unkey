@@ -22,7 +22,7 @@ import (
 )
 
 type Request = openapi.V2KeysUpdateCreditsRequestBody
-type Response = openapi.V2KeysUpdateCreditsResponse
+type Response = openapi.V2KeysUpdateCreditsResponseBody
 
 // Handler implements zen.Route interface for the v2 keys.updateCredits endpoint
 type Handler struct {

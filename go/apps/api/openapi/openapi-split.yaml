@@ -124,61 +124,62 @@ paths:
   /v2/identities.updateIdentity:
     $ref: "./spec/paths/v2/identities/updateIdentity/index.yaml"
 
-  # # Key Endpoints
-  # /v2/keys.setPermissions:
-  #   $ref: "./spec/paths/v2/keys/setPermissions/index.yaml"
-  # /v2/keys.updateKey:
-  #   $ref: "./spec/paths/v2/keys/updateKey/index.yaml"
-  # /v2/keys.removePermissions:
-  #   $ref: "./spec/paths/v2/keys/removePermissions/index.yaml"
-  # /v2/keys.addRoles:
-  #   $ref: "./spec/paths/v2/keys/addRoles/index.yaml"
-  # /v2/keys.addPermissions:
-  #   $ref: "./spec/paths/v2/keys/addPermissions/index.yaml"
-  # /v2/keys.removeRoles:
-  #   $ref: "./spec/paths/v2/keys/removeRoles/index.yaml"
-  # /v2/keys.updateCredits:
-  #   $ref: "./spec/paths/v2/keys/updateCredits/index.yaml"
-  # /v2/keys.setRoles:
-  #   $ref: "./spec/paths/v2/keys/setRoles/index.yaml"
-  # /v2/keys.deleteKey:
-  #   $ref: "./spec/paths/v2/keys/deleteKey/index.yaml"
-  # /v2/keys.getKey:
-  #   $ref: "./spec/paths/v2/keys/getKey/index.yaml"
-  # /v2/keys.createKey:
-  #   $ref: "./spec/paths/v2/keys/createKey/index.yaml"
-  # /v2/keys.verifyKey:
-  #   $ref: "./spec/paths/v2/keys/verifyKey/index.yaml"
+  # Key Endpoints
+  /v2/keys.addPermissions:
+    $ref: "./spec/paths/v2/keys/addPermissions/index.yaml"
+  /v2/keys.setPermissions:
+    $ref: "./spec/paths/v2/keys/setPermissions/index.yaml"
+  /v2/keys.removePermissions:
+    $ref: "./spec/paths/v2/keys/removePermissions/index.yaml"
+  /v2/keys.addRoles:
+    $ref: "./spec/paths/v2/keys/addRoles/index.yaml"
+  /v2/keys.setRoles:
+    $ref: "./spec/paths/v2/keys/setRoles/index.yaml"
+  /v2/keys.removeRoles:
+    $ref: "./spec/paths/v2/keys/removeRoles/index.yaml"
 
-  # # Ratelimit Endpoints
-  # /v2/ratelimit.limit:
-  #   $ref: "./spec/paths/v2/ratelimit/limit/index.yaml"
-  # /v2/ratelimit.setOverride:
-  #   $ref: "./spec/paths/v2/ratelimit/setOverride/index.yaml"
-  # /v2/ratelimit.getOverride:
-  #   $ref: "./spec/paths/v2/ratelimit/getOverride/index.yaml"
-  # /v2/ratelimit.listOverrides:
-  #   $ref: "./spec/paths/v2/ratelimit/listOverrides/index.yaml"
-  # /v2/ratelimit.deleteOverride:
-  #   $ref: "./spec/paths/v2/ratelimit/deleteOverride/index.yaml"
+  /v2/keys.createKey:
+    $ref: "./spec/paths/v2/keys/createKey/index.yaml"
+  /v2/keys.updateKey:
+    $ref: "./spec/paths/v2/keys/updateKey/index.yaml"
+  /v2/keys.updateCredits:
+    $ref: "./spec/paths/v2/keys/updateCredits/index.yaml"
+  /v2/keys.deleteKey:
+    $ref: "./spec/paths/v2/keys/deleteKey/index.yaml"
+  /v2/keys.getKey:
+    $ref: "./spec/paths/v2/keys/getKey/index.yaml"
+  /v2/keys.verifyKey:
+    $ref: "./spec/paths/v2/keys/verifyKey/index.yaml"
 
-  # # Permissions Endpoints
-  # /v2/permissions.listRoles:
-  #   $ref: "./spec/paths/v2/permissions/listRoles/index.yaml"
-  # /v2/permissions.createRole:
-  #   $ref: "./spec/paths/v2/permissions/createRole/index.yaml"
-  # /v2/permissions.createPermission:
-  #   $ref: "./spec/paths/v2/permissions/createPermission/index.yaml"
-  # /v2/permissions.getPermission:
-  #   $ref: "./spec/paths/v2/permissions/getPermission/index.yaml"
-  # /v2/permissions.listPermissions:
-  #   $ref: "./spec/paths/v2/permissions/listPermissions/index.yaml"
-  # /v2/permissions.deletePermission:
-  #   $ref: "./spec/paths/v2/permissions/deletePermission/index.yaml"
-  # /v2/permissions.deleteRole:
-  #   $ref: "./spec/paths/v2/permissions/deleteRole/index.yaml"
-  # /v2/permissions.getRole:
-  #   $ref: "./spec/paths/v2/permissions/getRole/index.yaml"
+  # Ratelimit Endpoints
+  /v2/ratelimit.limit:
+    $ref: "./spec/paths/v2/ratelimit/limit/index.yaml"
+  /v2/ratelimit.setOverride:
+    $ref: "./spec/paths/v2/ratelimit/setOverride/index.yaml"
+  /v2/ratelimit.getOverride:
+    $ref: "./spec/paths/v2/ratelimit/getOverride/index.yaml"
+  /v2/ratelimit.listOverrides:
+    $ref: "./spec/paths/v2/ratelimit/listOverrides/index.yaml"
+  /v2/ratelimit.deleteOverride:
+    $ref: "./spec/paths/v2/ratelimit/deleteOverride/index.yaml"
+
+  # Permissions Endpoints
+  /v2/permissions.createRole:
+    $ref: "./spec/paths/v2/permissions/createRole/index.yaml"
+  /v2/permissions.getRole:
+    $ref: "./spec/paths/v2/permissions/getRole/index.yaml"
+  /v2/permissions.listRoles:
+    $ref: "./spec/paths/v2/permissions/listRoles/index.yaml"
+  /v2/permissions.deleteRole:
+    $ref: "./spec/paths/v2/permissions/deleteRole/index.yaml"
+  /v2/permissions.createPermission:
+    $ref: "./spec/paths/v2/permissions/createPermission/index.yaml"
+  /v2/permissions.getPermission:
+    $ref: "./spec/paths/v2/permissions/getPermission/index.yaml"
+  /v2/permissions.listPermissions:
+    $ref: "./spec/paths/v2/permissions/listPermissions/index.yaml"
+  /v2/permissions.deletePermission:
+    $ref: "./spec/paths/v2/permissions/deletePermission/index.yaml"
 
 components:
   securitySchemes:

@@ -11,17 +11,92 @@ post:
   security:
     - rootKey: []
   requestBody:
-    $ref: "./request.yaml#/Request"
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2KeysSetRolesRequestBody.yaml"
+        examples:
+          standard:
+            summary: Setting multiple roles
+            description: This example shows setting a mix of roles by both ID
+              and name. After this operation, the key will have exactly these
+              two roles - any other roles previously assigned will be removed.
+            value:
+              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+              roles:
+                - id: role_1n9McEIBSqy44Qy7hzWyM5
+                - name: developer
+          removeAll:
+            summary: Removing all roles
+            description: By providing an empty roles array, you can remove all
+              direct role assignments from a key. This doesn't affect the key's
+              validity, but removes all role-based permissions.
+            value:
+              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+              roles: []
+          standardTemplate:
+            summary: Applying a standard role template
+            description: A common pattern is applying a standard set of roles
+              to maintain consistency across keys for users with similar access
+              needs.
+            value:
+              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+              roles:
+                - name: basic_user
+                - name: analytics_viewer
+                - name: self_service
   responses:
     "200":
-      $ref: "./response.yaml#/Response"
+      description: Roles successfully set for the key
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2KeysSetRolesResponseBody.yaml"
+          examples:
+            standard:
+              summary: Roles after update
+              value:
+                meta:
+                  requestId: req_1234567890abcdef
+                data:
+                  - id: role_1n9McEIBSqy44Qy7hzWyM5
+                    name: admin
+                  - id: role_3b9OeGKDUsy66Sz9Kelz0s
+                    name: developer
+            empty:
+              summary: All roles removed
+              value:
+                meta:
+                  requestId: req_1234567890abcdef
+                data: []
     "400":
-      $ref: "../../../../error/badRequestErrorResponse.yaml"
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
     "401":
-      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      $ref: "../../../../error/forbiddenErrorResponse.yaml"
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
-      $ref: "../../../../error/notFoundErrorResponse.yaml"
+      description: Not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
     "500":
-      $ref: "../../../../error/internalServerErrorResponse.yaml"
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

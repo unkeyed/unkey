@@ -11,19 +11,55 @@ post:
   security:
     - rootKey: []
   requestBody:
-    $ref: "./request.yaml#/Request"
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PermissionsCreateRoleRequestBody.yaml"
+        examples:
+          basic:
+            summary: Basic role creation
+            value:
+              name: content.editor
+              description: Can read and write content
+          withoutDescription:
+            summary: Role without description
+            value:
+              name: api.reader
+    required: true
   responses:
     "200":
-      $ref: "./response.yaml#/Response"
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PermissionsCreateRoleResponseBody.yaml"
+      description: Successfully created role
     "400":
-      $ref: "../../../../error/badRequestErrorResponse.yaml"
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
     "401":
-      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      $ref: "../../../../error/forbiddenErrorResponse.yaml"
-    "404":
-      $ref: "../../../../error/notFoundErrorResponse.yaml"
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "409":
-      $ref: "../../../../error/conflictErrorResponse.yaml"
+      description: Conflict - A role with this name already exists
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ConflictErrorResponse.yaml"
     "500":
-      $ref: "../../../../error/internalServerErrorResponse.yaml"
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

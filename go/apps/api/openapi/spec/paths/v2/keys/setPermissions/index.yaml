@@ -20,17 +20,252 @@ post:
   security:
     - rootKey: []
   requestBody:
-    $ref: "./request.yaml#/Request"
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2KeysSetPermissionsRequestBody.yaml"
+        examples:
+          removeAll:
+            summary: Remove all permissions from key
+            description: This example won't work as expected! The permissions
+              array must contain at least one permission to remove. To remove
+              all permissions, use the setPermissions endpoint with an empty permissions
+              array instead.
+            value:
+              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+              permissions: []
+          basic:
+            summary: Set permissions using IDs
+            description: Using permission IDs is the most precise approach for
+              setting permissions, especially in automation scripts where exact
+              references are important.
+            value:
+              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+              permissions:
+                - id: perm_1n9McEIBSqy44Qy7hzWyM5
+                - id: perm_2zF4mNyP9BsRj2aQwDxVkT
+          withNames:
+            summary: Add permissions using slugs
+            description:
+              Using permission slugs is more readable and maintainable.
+              Slugs must be unique within your workspace.
+            value:
+              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+              permissions:
+                - slug: documents.write
+                - slug: documents.delete
+          withCreation:
+            summary: Set with permission creation
+            description:
+              This example demonstrates setting permissions while simultaneously
+              creating new ones that don't exist yet. Requires the `rbac.*.create_permission`
+              permission on your root key.
+            value:
+              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+              permissions:
+                - slug: documents.write
+                - slug: reports.export
+                  create: true
+                - name: reports.schedule
+                  create: true
+          mixed:
+            summary: Mix of ID and name references
+            description: You can combine different reference methods in a single
+              request - some permissions by ID, others by name, and even create
+              new ones on the fly.
+            value:
+              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+              permissions:
+                - id: perm_1n9McEIBSqy44Qy7hzWyM5
+                - slug: documents.delete
+                - slug: reports.view
+                  create: true
   responses:
     "200":
-      $ref: "./response.yaml#/Response"
+      description: Permissions successfully set on the key. The previous direct
+        permission set has been completely replaced with the new set specified
+        in the request.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2KeysSetPermissionsResponseBody.yaml"
+          examples:
+            standard:
+              summary: Complete list of permissions
+              value:
+                meta:
+                  requestId: req_2cGKbMxRyIzhCxo1Idjz8q
+                data:
+                  - id: perm_1n9McEIBSqy44Qy7hzWyM5
+                    name: documents.write
+                  - id: perm_2zF4mNyP9BsRj2aQwDxVkT
+                    name: documents.delete
+                  - id: perm_3qRsTu2vWxYzAbCdEfGhIj
+                    name: reports.view
+            empty:
+              summary: All permissions removed
+              value:
+                meta:
+                  requestId: req_3qRsTu2vWxYzAbCdEfGhIj
+                data: []
     "400":
-      $ref: "../../../../error/badRequestErrorResponse.yaml"
+      description: Bad Request - Invalid keyId format, missing required fields,
+        or malformed permission entries
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+          examples:
+            invalidKeyId:
+              summary: Invalid keyId format
+              value:
+                meta:
+                  requestId: req_5zAbCdEfGhIjKlMnOpQrSt
+                error:
+                  title: Bad Request
+                  detail: keyId must start with 'key_'
+                  status: 400
+                  type: bad_request
+            emptyPermissions:
+              summary: Empty permissions array
+              value:
+                meta:
+                  requestId: req_6aBcDeFgHiJkLmNoPqRsT
+                error:
+                  title: Bad Request
+                  detail: At least one permission must be specified
+                  status: 400
+                  type: bad_request
+            missingIdentifier:
+              summary: Permission missing both id and name
+              value:
+                meta:
+                  requestId: req_7bCdEfGhIjKlMnOpQrStUv
+                error:
+                  title: Bad Request
+                  detail: Each permission must include either id or name
+                  status: 400
+                  type: bad_request
     "401":
-      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+      description: Unauthorized - Missing or invalid authentication credentials
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+          examples:
+            invalidRootKey:
+              summary: Invalid root key provided
+              value:
+                meta:
+                  requestId: req_9tUv3wXyZaAbCdEfGhIjKl
+                error:
+                  title: Unauthorized
+                  detail: The root key provided is invalid or has been revoked.
+                  status: 401
+                  type: unauthorized
     "403":
-      $ref: "../../../../error/forbiddenErrorResponse.yaml"
+      description:
+        Forbidden - Insufficient permissions (requires `rbac.*.add_permission_to_key`
+        and `rbac.*.remove_permission_from_key` and potentially `rbac.*.create_permission`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            missingAddPermission:
+              summary: Missing add permission
+              value:
+                meta:
+                  requestId: req_0uVwX4yZaAbCdEfGhIjKl
+                error:
+                  title: Forbidden
+                  detail:
+                    Your root key requires the 'rbac.*.add_permission_to_key'
+                    permission to perform this operation
+                  status: 403
+                  type: forbidden
+            missingRemovePermission:
+              summary: Missing remove permission
+              value:
+                meta:
+                  requestId: req_1vWxYzAbCdEfGhIjKlMnOp
+                error:
+                  title: Forbidden
+                  detail:
+                    Your root key requires the 'rbac.*.remove_permission_from_key'
+                    permission to perform this operation
+                  status: 403
+                  type: forbidden
+            missingCreatePermission:
+              summary: Cannot create new permissions
+              value:
+                meta:
+                  requestId: req_4bVcWdXeYfZgHiJkLmNoPq
+                error:
+                  title: Forbidden
+                  detail: Your root key requires the 'rbac.*.create_permission'
+                    permission to create new permissions
+                  status: 403
+                  type: forbidden
     "404":
-      $ref: "../../../../error/notFoundErrorResponse.yaml"
+      description: Not Found - Key not found or specified permission IDs don't
+        exist
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            keyNotFound:
+              summary: Key not found
+              value:
+                meta:
+                  requestId: req_2wXyZaAbCdEfGhIjKlMnOp
+                error:
+                  title: Not Found
+                  detail: Key key_2cGKbMxRyIzhCxo1Idjz8q not found
+                  status: 404
+                  type: not_found
+            permissionNotFound:
+              summary: Permission not found
+              value:
+                meta:
+                  requestId: req_3xYzAbCdEfGhIjKlMnOpQr
+                error:
+                  title: Not Found
+                  detail: Permission perm_1n9McEIBSqy44Qy7hzWyM5 not found and
+                    not allowed to create
+                  status: 404
+                  type: not_found
     "500":
-      $ref: "../../../../error/internalServerErrorResponse.yaml"
+      description: Internal Server Error - An unexpected error occurred while
+        processing the request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+          examples:
+            databaseError:
+              summary: Database error
+              value:
+                meta:
+                  requestId: req_4yZaAbCdEfGhIjKlMnOpQrS
+                error:
+                  title: Internal Server Error
+                  detail:
+                    An unexpected error occurred while processing your request.
+                    Please try again later.
+                  status: 500
+                  type: internal_server_error
+            cachingError:
+              summary: Cache invalidation error
+              value:
+                meta:
+                  requestId: req_5zAbCdEfGhIjKlMnOpQrSt
+                error:
+                  title: Internal Server Error
+                  detail: The permissions were successfully set but there was
+                    an error invalidating cached keys. Some systems may temporarily
+                    see stale data.
+                  status: 500
+                  type: internal_server_error

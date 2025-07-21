@@ -18,17 +18,65 @@ post:
   security:
     - rootKey: []
   requestBody:
-    $ref: "./request.yaml#/Request"
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PermissionsCreatePermissionRequestBody.yaml"
+        examples:
+          basic:
+            summary: Basic permission creation
+            value:
+              name: documents.read
+              slug: documents-read
+              description: Allows reading document resources
+          withoutDescription:
+            summary: Permission without description
+            value:
+              name: files.upload
+              slug: files-upload
+          complexPermission:
+            summary: Complex permission with detailed info
+            value:
+              name: admin.users.delete
+              slug: admin-users-delete
+              description:
+                Grants full administrative access to delete user accounts.
+                This is a high-privilege permission that should be used carefully.
+    required: true
   responses:
     "200":
-      $ref: "./response.yaml#/Response"
+      description: Successfully created permission
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PermissionsCreatePermissionResponseBody.yaml"
     "400":
-      $ref: "../../../../error/badRequestErrorResponse.yaml"
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
     "401":
-      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      $ref: "../../../../error/forbiddenErrorResponse.yaml"
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "409":
-      $ref: "../../../../error/conflictErrorResponse.yaml"
+      description: Conflict - permission with that name already exists
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ConflictErrorResponse.yaml"
     "500":
-      $ref: "../../../../error/internalServerErrorResponse.yaml"
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

@@ -28,17 +28,104 @@ post:
   security:
     - rootKey: []
   requestBody:
-    $ref: "./request.yaml#/Request"
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2RatelimitLimitRequestBody.yaml"
+        examples:
+          basic:
+            summary: Basic rate limit check
+            value:
+              namespace: api.requests
+              identifier: user_abc123
+              limit: 100
+              duration: 60000
+          ipLimit:
+            summary: IP-based rate limiting
+            value:
+              namespace: auth.login
+              identifier: 203.0.113.42
+              limit: 5
+              duration: 60000
+          weightedCost:
+            summary: Operation with variable cost
+            value:
+              namespace: api.heavy_operations
+              identifier: user_def456
+              limit: 50
+              duration: 3600000
+              cost: 5
+    required: true
   responses:
     "200":
-      $ref: "./response.yaml#/Response"
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2RatelimitLimitResponseBody.yaml"
+          examples:
+            allowed:
+              summary: Request allowed
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+                data:
+                  limit: 100
+                  remaining: 99
+                  reset: 1714582980000
+                  success: true
+            limitReached:
+              summary: Rate limit exceeded
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQY
+                data:
+                  limit: 100
+                  remaining: 0
+                  reset: 1714582980000
+                  success: false
+            withOverride:
+              summary: With custom override applied
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQZ
+                data:
+                  limit: 1000
+                  remaining: 995
+                  reset: 1714582980000
+                  success: true
+                  overrideId: ovr_2cGKbMxRyIzhCxo1Idjz8q
+      description:
+        Rate limit check completed. Even when the rate limit is exceeded,
+        this endpoint returns HTTP 200 OK - you must check the 'success' field
+        in the response to determine if the request is allowed. When success=false,
+        the client should be prevented from proceeding with their request.
     "400":
-      $ref: "../../../../error/badRequestErrorResponse.yaml"
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
     "401":
-      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      $ref: "../../../../error/forbiddenErrorResponse.yaml"
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
-      $ref: "../../../../error/notFoundErrorResponse.yaml"
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
     "500":
-      $ref: "../../../../error/internalServerErrorResponse.yaml"
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

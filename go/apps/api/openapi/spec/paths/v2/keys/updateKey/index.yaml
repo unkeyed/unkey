@@ -18,21 +18,98 @@ post:
     Changes may take up to 30 seconds to propagate to all regions due to cache invalidation. For immediate effect in the current region, follow the update with a verification request.
   operationId: updateKey
   x-speakeasy-name-override: updateKey
-
   security:
     - rootKey: []
   requestBody:
-    $ref: "./request.yaml#/Request"
+    content:
+      application/json:
+        schema:
+          "$ref": "V2KeysUpdateKeyRequestBody.yaml"
+        examples:
+          disableKey:
+            summary: Temporarily disable a key
+            value:
+              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+              enabled: false
+          updateMetadata:
+            summary: Update key metadata
+            value:
+              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+              meta:
+                plan: enterprise
+                features:
+                  advancedAnalytics: true
+                  customReports: true
+                updatedAt: "2023-07-15T12:30:45Z"
+          changeExpiration:
+            summary: Change expiration date
+            value:
+              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+              expires: 1735689600000
+          updateLimits:
+            summary: Modify usage limits
+            value:
+              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+              credits:
+                remaining: 5000
+                refill:
+                  interval: monthly
+                  amount: 5000
+                  refillDay: 1
+              ratelimits:
+                - name: requests
+                  limit: 200
+                  duration: 60000
+          removeFeature:
+            summary: Remove a feature
+            value:
+              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+              expires:
+              meta:
+    required: true
   responses:
     "200":
-      $ref: "./response.yaml#/Response"
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2KeysUpdateKeyResponseBody.yaml"
+          examples:
+            success:
+              summary: Successful update
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQY
+                data: {}
+      description: Key successfully updated. Changes may take up to 30 seconds
+        to propagate to all regions due to cache invalidation. The response is
+        empty by design - use keys.getKey to retrieve the current state if needed.
     "400":
-      $ref: "../../../../error/badRequestErrorResponse.yaml"
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
     "401":
-      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      $ref: "../../../../error/forbiddenErrorResponse.yaml"
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
-      $ref: "../../../../error/notFoundErrorResponse.yaml"
+      description: Not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
     "500":
-      $ref: "../../../../error/internalServerErrorResponse.yaml"
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

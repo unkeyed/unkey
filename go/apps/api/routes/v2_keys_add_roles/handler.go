@@ -21,7 +21,7 @@ import (
 )
 
 type Request = openapi.V2KeysAddRolesRequestBody
-type Response = openapi.V2KeysAddRolesResponse
+type Response = openapi.V2KeysAddRolesResponseBody
 
 type Handler struct {
 	Logger    logging.Logger

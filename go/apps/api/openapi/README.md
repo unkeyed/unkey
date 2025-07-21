@@ -65,16 +65,25 @@ spec/paths/v2/apis/listKeys/
 Contains the main operation definition with references to request and response files:
 
 ```yaml
-get:
+post:
   summary: List API keys
   operationId: listKeys
   requestBody:
-    $ref: "./V2ApisListKeysRequestBody.yaml#/RequestBody"
+    content:
+      application/json:
+        schema:
+          $ref: "./V2ApisListKeysRequestBody.yaml"
   responses:
     "200":
-      $ref: "./V2ApisListKeysResponseBody.yaml#/ResponseBody"
+      content:
+        application/json:
+          schema:
+            $ref: "./V2ApisListKeysResponseBody.yaml"
     "400":
-      $ref: "../../../../error/BadRequestErrorResponse.yaml#/BadRequestErrorResponse"
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
 ```
 
 ### V2ApisListKeysRequestBody.yaml
@@ -82,27 +91,25 @@ get:
 Contains the request body schema definition:
 
 ```yaml
-V2ApisListKeysRequestBody:
-  type: object
-  required:
-    - apiId
-  properties:
-    apiId:
-      type: string
-      description: The unique identifier of the API
-      example: api_2cGKbMxRyIzhCxo1Idjz8q
-
-RequestBody:
-  required: true
-  content:
-    application/json:
-      schema:
-        $ref: "#/V2ApisListKeysRequestBody"
-      examples:
-        basic:
-          summary: Basic example
-          value:
-            apiId: api_123
+type: object
+required:
+  - apiId
+properties:
+  apiId:
+    type: string
+    minLength: 1
+    description: The ID of the API whose keys you want to list
+    example: api_1234
+  limit:
+    type: integer
+    description: Maximum number of keys to return
+    default: 100
+    minimum: 1
+    maximum: 100
+  cursor:
+    type: string
+    description: Pagination cursor from a previous response
+    example: cursor_eyJsYXN0S2V5SWQiOiJrZXlfMjNld3MiLCJsYXN0Q3JlYXRlZEF0IjoxNjcyNTI0MjM0MDAwfQ==
 ```
 
 ### V2ApisListKeysResponseBody.yaml
@@ -110,31 +117,17 @@ RequestBody:
 Contains the response body schema definition:
 
 ```yaml
-V2ApisListKeysResponseBody:
-  type: object
-  required:
-    - meta
-    - data
-  properties:
-    meta:
-      $ref: "../../../../common/Meta.yaml#/Meta"
-    data:
-      $ref: "./V2ApisListKeysResponseData.yaml#/V2ApisListKeysResponseData"
-
-ResponseBody:
-  description: Success response
-  content:
-    application/json:
-      schema:
-        $ref: "#/V2ApisListKeysResponseBody"
-      examples:
-        standard:
-          summary: Standard response
-          value:
-            meta:
-              requestId: req_123
-            data:
-              keys: [...]
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    $ref: "../../../../common/Meta.yaml"
+  data:
+    $ref: "./V2ApisListKeysResponseData.yaml"
+  pagination:
+    $ref: "../../../../common/Pagination.yaml"
 ```
 
 ## Benefits of Split Structure

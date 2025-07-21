@@ -94,7 +94,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// 5. Get permissions for each role
-	roleResponses := make([]openapi.RoleWithPermissions, 0, len(roles))
+	roleResponses := make([]openapi.Role, 0, len(roles))
 	for _, role := range roles {
 		// Get permissions for this role
 		rolePermissions, err := db.Query.ListPermissionsByRoleID(ctx, h.DB.RO(), role.ID)
@@ -125,7 +125,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		// Transform role
-		roleResponse := openapi.RoleWithPermissions{
+		roleResponse := openapi.Role{
 			Id:          role.ID,
 			Name:        role.Name,
 			Description: nil,

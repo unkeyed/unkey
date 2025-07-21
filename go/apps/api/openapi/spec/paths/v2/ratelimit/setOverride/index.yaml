@@ -17,17 +17,71 @@ post:
   security:
     - rootKey: []
   requestBody:
-    $ref: "./request.yaml#/Request"
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2RatelimitSetOverrideRequestBody.yaml"
+        examples:
+          premium:
+            summary: Higher limit for premium user
+            value:
+              namespaceName: api.requests
+              identifier: premium_user_123
+              limit: 1000
+              duration: 60000
+          wildcardPattern:
+            summary: Pattern matching with wildcard
+            value:
+              namespaceId: ns_1234567890abcdef
+              identifier: premium_*
+              limit: 500
+              duration: 60000
+          blockAbusive:
+            summary: Block abusive user
+            value:
+              namespaceName: api.requests
+              identifier: abusive_user_456
+              limit: 0
+              duration: 3600000
+    required: true
   responses:
     "200":
-      $ref: "./response.yaml#/Response"
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2RatelimitSetOverrideResponseBody.yaml"
+      description: Identity successfully deleted. The operation has permanently
+        removed the identity from your workspace. Any API keys previously associated
+        with this identity remain functional but no longer share resources through
+        this identity. The externalId can now be reused for a new identity if
+        needed.
     "400":
-      $ref: "../../../../error/badRequestErrorResponse.yaml"
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
     "401":
-      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      $ref: "../../../../error/forbiddenErrorResponse.yaml"
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
-      $ref: "../../../../error/notFoundErrorResponse.yaml"
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
     "500":
-      $ref: "../../../../error/internalServerErrorResponse.yaml"
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

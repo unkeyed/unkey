@@ -1,0 +1,23 @@
+type: object
+properties:
+  limit:
+    type: integer
+    minimum: 1
+    maximum: 100
+    default: 100
+    description: |
+      Maximum number of roles to return in a single response.
+      Use smaller values for faster response times and better UI performance.
+      Use larger values when you need to process many roles efficiently.
+      Results exceeding this limit will be paginated with a cursor for continuation.
+    example: 50
+  cursor:
+    type: string
+    maxLength: 1024
+    description: |
+      Pagination cursor from a previous response to fetch the next page of roles.
+      Include this when you need to retrieve additional roles beyond the first page.
+      Each response containing more results will include a cursor value that can be used here.
+      Leave empty or omit this field to start from the beginning of the role list.
+    example: "eyJrZXkiOiJyb2xlXzEyMzQifQ=="
+additionalProperties: false

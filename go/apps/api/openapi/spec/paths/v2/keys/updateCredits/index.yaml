@@ -12,17 +12,108 @@ post:
   security:
     - rootKey: []
   requestBody:
-    $ref: "./request.yaml#/Request"
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2KeysUpdateCreditsRequestBody.yaml"
+        examples:
+          setUnlimited:
+            summary: Set unlimited usage
+            description:
+              Setting remaining to null makes the key usable an unlimited
+              number of times. This is useful for premium tiers, trusted partners,
+              or internal applications where usage counting isn't needed. Any previous refill settings will be removed.
+            value:
+              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+              value: null
+              operation: set
+          setCredits:
+            summary: Set credits
+            description: To set credits, first get the current value using keys.getKey, then add the amount.
+            value:
+              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+              value: 2500
+              operation: set
+          incrementCredits:
+            summary: Increment credits
+            description: To increment credits to the existing balance, just specify the increment operation and the amount to add.
+            value:
+              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+              value: 2500
+              operation: increment
+          decrementCredits:
+            summary: Decrement credits
+            description: To decrement credits to the existing balance, just specify the decrement operation and the amount to subtract.
+            value:
+              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+              value: 2500
+              operation: decrement
   responses:
     "200":
-      $ref: "./response.yaml#/Response"
+      description: Remaining credits successfully updated
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2KeysUpdateCreditsResponseBody.yaml"
+          examples:
+            withRefills:
+              summary: Updated with refill settings preserved
+              value:
+                meta:
+                  requestId: req_1234567890abcdef
+                data:
+                  remaining: 1000
+                  refillSettings:
+                    interval: monthly
+                    amount: 1000
+                    refillDay: 1
+            withoutRefills:
+              summary: Updated with refills removed
+              value:
+                meta:
+                  requestId: req_1234567890abcdef
+                data:
+                  remaining: 500
+                  refillSettings:
+            unlimited:
+              summary: Set to unlimited usage
+              value:
+                meta:
+                  requestId: req_1234567890abcdef
+                data:
+                  remaining: null
+                  refillSettings:
     "400":
-      $ref: "../../../../error/badRequestErrorResponse.yaml"
+      description:
+        Bad request - Invalid or missing parameters. This error occurs
+        when the request body is malformed, missing required fields, or contains
+        invalid values. Verify that you've provided a valid externalId, and that the format of each field meets the requirements.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
     "401":
-      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      $ref: "../../../../error/forbiddenErrorResponse.yaml"
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
-      $ref: "../../../../error/notFoundErrorResponse.yaml"
+      description: Not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
     "500":
-      $ref: "../../../../error/internalServerErrorResponse.yaml"
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

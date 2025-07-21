@@ -11,17 +11,109 @@ post:
   security:
     - rootKey: []
   requestBody:
-    $ref: "./request.yaml#/Request"
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2KeysRemoveRolesRequestBody.yaml"
+        examples:
+          basic:
+            summary: Removing roles by ID
+            description: Removing roles by their exact IDs ensures precision in
+              revoking the exact intended roles, regardless of name changes.
+            value:
+              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+              roles:
+                - id: role_1n9McEIBSqy44Qy7hzWyM5
+                - id: role_2a8NdFJCTrz55Ry8Jdkz9r
+          withNames:
+            summary: Removing roles by name
+            description:
+              Removing roles by name is more human-readable but requires
+              exact name matches, including correct capitalization.
+            value:
+              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+              roles:
+                - name: admin
+                - name: billing_manager
+          mixed:
+            summary: Removing roles by mixed identifiers
+            description: You can combine both ID and name references in a single
+              request to remove multiple roles using whichever reference method
+              is most convenient for each role.
+            value:
+              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+              roles:
+                - id: role_1n9McEIBSqy44Qy7hzWyM5
+                - name: billing_manager
   responses:
     "200":
-      $ref: "./response.yaml#/Response"
+      description: Roles successfully removed from the key. The response shows
+        all remaining roles still assigned to the key after the removal operation.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2KeysRemoveRolesResponseBody.yaml"
+          examples:
+            standard:
+              summary: Remaining roles after removal
+              value:
+                meta:
+                  requestId: req_1234567890abcdef
+                data:
+                  - id: role_3b9OeGKDUsy66Sz9Kelz0s
+                    name: developer
+            empty:
+              summary: No roles remaining
+              value:
+                meta:
+                  requestId: req_1234567890abcdef
+                data: []
     "400":
-      $ref: "../../../../error/badRequestErrorResponse.yaml"
+      description: Bad request - Invalid parameters or configuration
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+          examples:
+            invalidKeyId:
+              summary: Invalid key ID format
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQZ
+                error:
+                  title: Bad Request
+                  detail: keyId must be a valid key ID starting with 'key_'
+                  status: 400
+                  type: https://unkey.dev/errors/bad-request
+                  errors:
+                    - message: keyId must be a valid key ID starting with 'key_'
+                      location: body.keyId
     "401":
-      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      $ref: "../../../../error/forbiddenErrorResponse.yaml"
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
-      $ref: "../../../../error/notFoundErrorResponse.yaml"
+      description: Not found - The specified identity doesn't exist. This error
+        occurs when no identity matches the provided externalId.
+        This might happen if the identity was already deleted, never existed,
+        or if there's a typo in the identifier. Verify the identity exists before
+        attempting deletion.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
     "500":
-      $ref: "../../../../error/internalServerErrorResponse.yaml"
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

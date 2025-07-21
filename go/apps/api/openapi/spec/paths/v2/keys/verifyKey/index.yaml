@@ -50,27 +50,47 @@ post:
           schema:
             "$ref": "./V2KeysVerifyKeyResponseBody.yaml"
     "400":
-      $ref: "../../../../error/badRequestErrorResponse.yaml"
-      examples:
-        permissionsQuerySyntaxError:
-          summary: Invalid permissions query syntax
-          value:
-            meta:
-              requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
-            error:
-              title: Bad Request
-              detail: "Syntax error in permission query: unexpected token 'AND' at position 15. Expected permission name or opening parenthesis."
-              status: 400
-              type: "https://unkey.com/docs/api-reference/errors-v2/user/bad_request/permissions_query_syntax_error"
-              errors:
-                - location: "body.permissions"
-                  message: "unexpected token 'AND' at position 15"
-                  fix: "Check your query syntax. AND/OR operators must be between permissions, not at the start or end"
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+          examples:
+            permissionsQuerySyntaxError:
+              summary: Invalid permissions query syntax
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+                error:
+                  title: Bad Request
+                  detail: "Syntax error in permission query: unexpected token 'AND' at position 15. Expected permission name or opening parenthesis."
+                  status: 400
+                  type: "https://unkey.com/docs/api-reference/errors-v2/user/bad_request/permissions_query_syntax_error"
+                  errors:
+                    - location: "body.permissions"
+                      message: "unexpected token 'AND' at position 15"
+                      fix: "Check your query syntax. AND/OR operators must be between permissions, not at the start or end"
     "401":
-      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      $ref: "../../../../error/forbiddenErrorResponse.yaml"
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
-      $ref: "../../../../error/notFoundErrorResponse.yaml"
+      description: Not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
     "500":
-      $ref: "../../../../error/internalServerErrorResponse.yaml"
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
