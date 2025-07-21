@@ -15,9 +15,38 @@ import (
 )
 
 const (
+	// Timeouts
 	DockerBuildTimeout = 10 * time.Minute
-	DefaultDockerfile  = "Dockerfile"
-	DefaultRegistry    = "docker.io"
+
+	// Docker command and arguments
+	DockerCmd          = "docker"
+	DockerBuildCmd     = "build"
+	DockerPushCmd      = "push"
+	DockerVersionFlag  = "--version"
+	DockerFileFlag     = "-f"
+	DockerTagFlag      = "-t"
+	DockerBuildArgFlag = "--build-arg"
+
+	// Build arguments
+	VersionBuildArg = "VERSION"
+
+	// Progress messages
+	ProgressBuilding = "Building..."
+
+	// Step messages
+	MsgValidationFailed     = "Validation failed"
+	MsgBuildInputsValidated = "Build inputs validated"
+	MsgBuildCommandPrepared = "Build command prepared"
+	MsgStartingDockerBuild  = "Starting Docker build"
+	MsgDockerBuildFailed    = "Docker build failed"
+	MsgDockerBuildCompleted = "Docker build completed successfully"
+	MsgBuildTimedOut        = "Build timed out"
+	MsgBuildFailed          = "Build failed"
+	MsgLastFewLinesOfOutput = "Last few lines of output:"
+
+	// Limits
+	MaxOutputLines = 5
+	MaxErrorLines  = 3
 )
 
 var (
@@ -38,7 +67,7 @@ func generateImageTag(opts *DeployOptions, gitInfo git.Info) string {
 
 // isDockerAvailable checks if Docker is installed and accessible
 func isDockerAvailable() error {
-	cmd := exec.Command("docker", "--version")
+	cmd := exec.Command(DockerCmd, DockerVersionFlag)
 	if err := cmd.Run(); err != nil {
 		return ErrDockerNotFound
 	}
@@ -49,34 +78,34 @@ func isDockerAvailable() error {
 func buildImage(ctx context.Context, opts *DeployOptions, dockerImage string, ui *UI) error {
 	// Sub-step 1: Validate inputs
 	if err := validateImagePath(opts); err != nil {
-		ui.PrintStepError("Validation failed")
+		ui.PrintStepError(MsgValidationFailed)
 		ui.PrintErrorDetails(err.Error())
 		return err
 	}
-	ui.PrintStepSuccess("Build inputs validated")
+	ui.PrintStepSuccess(MsgBuildInputsValidated)
 
 	// Sub-step 2: Prepare build command
-	buildArgs := []string{"build"}
+	buildArgs := []string{DockerBuildCmd}
 	if opts.Dockerfile != DefaultDockerfile {
-		buildArgs = append(buildArgs, "-f", opts.Dockerfile)
+		buildArgs = append(buildArgs, DockerFileFlag, opts.Dockerfile)
 	}
 	buildArgs = append(buildArgs,
-		"-t", dockerImage,
-		"--build-arg", fmt.Sprintf("VERSION=%s", opts.Commit),
+		DockerTagFlag, dockerImage,
+		DockerBuildArgFlag, fmt.Sprintf("%s=%s", VersionBuildArg, opts.Commit),
 		opts.Context,
 	)
 
-	ui.PrintStepSuccess("Build command prepared")
+	ui.PrintStepSuccess(MsgBuildCommandPrepared)
 	if opts.Verbose {
-		ui.PrintBuildProgress(fmt.Sprintf("Running: docker %s", strings.Join(buildArgs, " ")))
+		ui.PrintBuildProgress(fmt.Sprintf("Running: %s %s", DockerCmd, strings.Join(buildArgs, " ")))
 	}
 
 	// Sub-step 3: Execute Docker build
-	ui.PrintStepSuccess("Starting Docker build")
+	ui.PrintStepSuccess(MsgStartingDockerBuild)
 	buildCtx, cancel := context.WithTimeout(ctx, DockerBuildTimeout)
 	defer cancel()
 
-	cmd := exec.CommandContext(buildCtx, "docker", buildArgs...)
+	cmd := exec.CommandContext(buildCtx, DockerCmd, buildArgs...)
 
 	var buildErr error
 	if opts.Verbose {
@@ -86,12 +115,12 @@ func buildImage(ctx context.Context, opts *DeployOptions, dockerImage string, ui
 	}
 
 	if buildErr != nil {
-		ui.PrintStepError("Docker build failed")
+		ui.PrintStepError(MsgDockerBuildFailed)
 		ui.PrintErrorDetails(buildErr.Error())
 		return buildErr
 	}
 
-	ui.PrintStepSuccess("Docker build completed successfully")
+	ui.PrintStepSuccess(MsgDockerBuildCompleted)
 	return nil
 }
 
@@ -172,7 +201,7 @@ func buildImageWithSpinner(cmd *exec.Cmd, buildCtx context.Context, ui *UI) erro
 	allOutput := []string{}
 
 	// Start progress spinner
-	ui.StartStepSpinner("Building...")
+	ui.StartStepSpinner(ProgressBuilding)
 
 	// Stream stdout and track progress
 	go func() {
@@ -183,7 +212,7 @@ func buildImageWithSpinner(cmd *exec.Cmd, buildCtx context.Context, ui *UI) erro
 
 			// Update spinner with current step
 			if step := extractDockerStep(line); step != "" {
-				ui.UpdateStepSpinner(fmt.Sprintf("Building... %s", step))
+				ui.UpdateStepSpinner(fmt.Sprintf("%s %s", ProgressBuilding, step))
 			}
 		}
 	}()
@@ -205,20 +234,20 @@ func buildImageWithSpinner(cmd *exec.Cmd, buildCtx context.Context, ui *UI) erro
 
 	select {
 	case <-buildCtx.Done():
-		ui.CompleteCurrentStep("Build timed out", false)
+		ui.CompleteCurrentStep(MsgBuildTimedOut, false)
 		if buildCtx.Err() == context.DeadlineExceeded {
 			return fmt.Errorf("%w after %v", ErrBuildTimeout, DockerBuildTimeout)
 		}
 		return buildCtx.Err()
 	case err := <-done:
 		if err != nil {
-			ui.CompleteCurrentStep("Build failed", false)
+			ui.CompleteCurrentStep(MsgBuildFailed, false)
 			// Show last few lines of output for debugging
 			if len(allOutput) > 0 {
-				ui.PrintBuildError("Last few lines of output:")
+				ui.PrintBuildError(MsgLastFewLinesOfOutput)
 				lines := allOutput
-				if len(lines) > 5 {
-					lines = lines[len(lines)-5:]
+				if len(lines) > MaxOutputLines {
+					lines = lines[len(lines)-MaxOutputLines:]
 				}
 				for _, line := range lines {
 					ui.PrintBuildProgress(line)
@@ -228,7 +257,7 @@ func buildImageWithSpinner(cmd *exec.Cmd, buildCtx context.Context, ui *UI) erro
 		}
 	}
 
-	ui.CompleteCurrentStep("Docker build completed successfully", true)
+	ui.CompleteCurrentStep(MsgDockerBuildCompleted, true)
 	return nil
 }
 
@@ -264,7 +293,7 @@ func extractDockerStep(line string) string {
 
 // pushImage pushes the built Docker image to the registry
 func pushImage(ctx context.Context, dockerImage, registry string) error {
-	cmd := exec.CommandContext(ctx, "docker", "push", dockerImage)
+	cmd := exec.CommandContext(ctx, DockerCmd, DockerPushCmd, dockerImage)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		detailedMsg := classifyPushError(string(output), registry)
@@ -319,8 +348,8 @@ func classifyError(output string) string {
 	default:
 		// Return last few lines for debugging
 		lines := strings.Split(strings.TrimSpace(output), "\n")
-		if len(lines) > 3 {
-			return strings.Join(lines[len(lines)-3:], "\n")
+		if len(lines) > MaxErrorLines {
+			return strings.Join(lines[len(lines)-MaxErrorLines:], "\n")
 		}
 		return strings.TrimSpace(output)
 	}
