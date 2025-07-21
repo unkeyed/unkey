@@ -126,7 +126,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Limit:       int32(req.Limit),    // nolint:gosec
 			Duration:    int32(req.Duration), //nolint:gosec
 			CreatedAt:   now,
-			UpdatedAt:   sql.NullInt64{Int64: now, Valid: false},
+			UpdatedAt:   sql.NullInt64{Int64: now, Valid: true},
 		})
 		if err != nil {
 			return "", fault.Wrap(err,
