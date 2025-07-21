@@ -173,6 +173,7 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 			ui.PrintErrorDetails(ErrDockerNotFound.Error())
 			return nil
 		}
+
 		imageTag := generateImageTag(opts, gitInfo)
 		dockerImage = fmt.Sprintf("%s:%s", opts.Registry, imageTag)
 
@@ -212,20 +213,18 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 		ui.PrintErrorDetails(err.Error())
 		return nil
 	}
-
 	ui.PrintSuccess(fmt.Sprintf("Version created: %s", versionId))
+
+	// Track deployment completion
+	var finalVersion *ctrlv1.Version
 
 	onStatusChange := func(event VersionStatusEvent) error {
 		switch event.CurrentStatus {
 		case ctrlv1.VersionStatus_VERSION_STATUS_FAILED:
 			return handleVersionFailure(controlPlane, event.Version, ui)
 		case ctrlv1.VersionStatus_VERSION_STATUS_ACTIVE:
-			ui.CompleteCurrentStep("Version deployment completed successfully", true)
-			ui.PrintSuccess("Deployment completed successfully")
-
-			fmt.Printf("\n")
-			printCompletionInfo(event.Version)
-			fmt.Printf("\n")
+			// Just store the version - success will be printed after polling ends
+			finalVersion = event.Version
 		}
 		return nil
 	}
@@ -238,6 +237,14 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 	if err != nil {
 		ui.CompleteCurrentStep("Deployment failed", false)
 		return err
+	}
+
+	if finalVersion != nil {
+		ui.CompleteCurrentStep("Version deployment completed successfully", true)
+		ui.PrintSuccess("Deployment completed successfully")
+		fmt.Printf("\n")
+		printCompletionInfo(finalVersion)
+		fmt.Printf("\n")
 	}
 
 	return nil
