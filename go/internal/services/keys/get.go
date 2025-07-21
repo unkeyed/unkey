@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/unkeyed/unkey/go/internal/services/caches"
@@ -88,8 +87,6 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 			message: "key does not exist",
 		}, nil
 	}
-
-	log.Printf("Found key %#v", key)
 
 	// ForWorkspace set but that doesn't exist
 	if key.ForWorkspaceID.Valid && !key.ForWorkspaceEnabled.Valid {
