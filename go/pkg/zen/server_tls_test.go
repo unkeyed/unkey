@@ -98,16 +98,12 @@ func TestServerWithTLS(t *testing.T) {
 	})
 	server.RegisterRoute([]Middleware{}, testRoute)
 
-	// Create a net.Listener to determine the port
-	ln, err := net.Listen("tcp", "localhost:0")
-	require.NoError(t, err, "Failed to create listener")
+	// Create ephemeral listener
+	ln, err := net.Listen("tcp", ":0")
+	require.NoError(t, err, "Failed to create ephemeral listener")
 
-	// Get the assigned port
-	_, portStr, err := net.SplitHostPort(ln.Addr().String())
-	require.NoError(t, err, "Failed to get port")
-
-	// Modify server to use our listener's port
-	addr := "localhost:" + portStr
+	// Get the address for the test client
+	addr := ln.Addr().String()
 
 	// Start the server in a goroutine
 	serverCtx, serverCancel := context.WithCancel(context.Background())
@@ -117,15 +113,12 @@ func TestServerWithTLS(t *testing.T) {
 	serverReady := make(chan struct{})
 
 	go func() {
-		// Close our listener as server.Listen will create its own
-		ln.Close()
-
 		// Signal that we're about to start the server
 		close(serverReady)
 
-		listenErr := server.Listen(serverCtx, addr)
+		listenErr := server.Serve(serverCtx, ln)
 		if listenErr != nil && listenErr.Error() != "http: Server closed" {
-			t.Errorf("server.Listen returned: %v", listenErr)
+			t.Errorf("server.Serve returned: %v", listenErr)
 		}
 	}()
 	defer server.Shutdown(context.Background())
@@ -200,16 +193,12 @@ func TestServerWithTLSContextCancellation(t *testing.T) {
 	})
 	server.RegisterRoute([]Middleware{}, testRoute)
 
-	// Create a net.Listener to determine the port
-	ln, err := net.Listen("tcp", "localhost:0")
-	require.NoError(t, err, "Failed to create listener")
+	// Create ephemeral listener
+	ln, err := net.Listen("tcp", ":0")
+	require.NoError(t, err, "Failed to create ephemeral listener")
 
-	// Get the assigned port
-	_, portStr, err := net.SplitHostPort(ln.Addr().String())
-	require.NoError(t, err, "Failed to get port")
-
-	// Modify server to use our listener's port
-	addr := "localhost:" + portStr
+	// Get the address for the test client
+	addr := ln.Addr().String()
 
 	// Create a context that can be canceled
 	serverCtx, serverCancel := context.WithCancel(context.Background())
@@ -222,15 +211,12 @@ func TestServerWithTLSContextCancellation(t *testing.T) {
 
 	// Start the server in a goroutine
 	go func() {
-		// Close our listener as server.Listen will create its own
-		ln.Close()
-
 		// Signal that we're about to start the server
 		close(serverReady)
 
-		listenErr := server.Listen(serverCtx, addr)
+		listenErr := server.Serve(serverCtx, ln)
 		if listenErr != nil && listenErr.Error() != "http: Server closed" {
-			t.Errorf("server.Listen returned: %v", listenErr)
+			t.Errorf("server.Serve returned: %v", listenErr)
 		}
 
 		// Signal that the server has exited

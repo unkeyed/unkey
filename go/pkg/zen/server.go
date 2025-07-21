@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -162,7 +163,7 @@ func (s *Server) Flags() Flags {
 //	        log.Printf("server stopped: %v", err)
 //	    }
 //	}()
-func (s *Server) Listen(ctx context.Context, addr string) error {
+func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 	s.mu.Lock()
 	if s.isListening {
 		s.logger.Warn("already listening")
@@ -171,8 +172,6 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 	}
 	s.isListening = true
 	s.mu.Unlock()
-
-	s.srv.Addr = addr
 
 	// Set up context handling for graceful shutdown
 	serverCtx, cancel := context.WithCancel(context.Background())
@@ -194,20 +193,19 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 			// Server stopped on its own
 		}
 	}()
-
 	var err error
 
 	// Check if TLS should be used
 	if s.tlsConfig != nil {
-		s.logger.Info("listening", "srv", "https", "addr", addr)
+		s.logger.Info("listening", "srv", "https", "addr", ln.Addr().String())
 
 		s.srv.TLSConfig = s.tlsConfig
 
 		// ListenAndServeTLS with empty strings will use the certificates from TLSConfig
-		err = s.srv.ListenAndServeTLS("", "")
+		err = s.srv.ServeTLS(ln, "", "")
 	} else {
-		s.logger.Info("listening", "srv", "http", "addr", addr)
-		err = s.srv.ListenAndServe()
+		s.logger.Info("listening", "srv", "http", "addr", ln.Addr().String())
+		err = s.srv.Serve(ln)
 	}
 
 	// Cancel the server context since the server has stopped
