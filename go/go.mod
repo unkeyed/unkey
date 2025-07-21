@@ -10,7 +10,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.70
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.82.0
 	github.com/btcsuite/btcutil v1.0.2
-	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sql-driver/mysql v1.9.2
 	github.com/lmittmann/tint v1.1.1
 	github.com/maypok86/otter v1.2.4
@@ -21,6 +20,7 @@ require (
 	github.com/pb33f/libopenapi-validator v0.4.6
 	github.com/prometheus/client_golang v1.22.0
 	github.com/redis/go-redis/v9 v9.9.0
+	github.com/segmentio/kafka-go v0.4.48
 	github.com/shirou/gopsutil/v4 v4.25.5
 	github.com/sqlc-dev/plugin-sdk-go v1.23.0
 	github.com/sqlc-dev/sqlc v1.28.0

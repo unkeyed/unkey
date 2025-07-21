@@ -28,6 +28,9 @@ type Cache[K comparable, V any] interface {
 
 	// Clear removes all entries from the cache.
 	Clear(ctx context.Context)
+
+	// Name returns the name of this cache instance.
+	Name() string
 }
 
 type Key interface {

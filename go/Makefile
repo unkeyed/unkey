@@ -5,13 +5,13 @@ install:
 
 fmt: lint
 	go fmt ./...
-	golangci-lint run 
+	golangci-lint run
 
 pull:
-	@docker compose -f ../deployment/docker-compose.yaml pull 
+	@docker compose -f ../deployment/docker-compose.yaml pull
 
 up:
-	@docker compose -f ../deployment/docker-compose.yaml up -d mysql redis clickhouse s3 otel
+	@docker compose -f ../deployment/docker-compose.yaml up -d mysql redis clickhouse s3 otel kafka
 	@echo "Starting ClickHouse migrations (will retry if ClickHouse isn't ready)..."
 	@for i in {1..10}; do \
 		echo "Migration attempt $$i..."; \
@@ -42,4 +42,3 @@ build:
 generate:
 	buf generate
 	go generate ./...
-

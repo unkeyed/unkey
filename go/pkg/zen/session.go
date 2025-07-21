@@ -50,6 +50,29 @@ func (s *Session) init(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// Init initializes a session with the provided HTTP response writer and request.
+// This method is exported for testing purposes, allowing tests to create properly
+// initialized sessions without going through the full zen server setup.
+//
+// Parameters:
+//   - w: HTTP response writer for writing headers and response body
+//   - r: HTTP request containing request data
+//
+// Returns an error if initialization fails, though the current implementation
+// always returns nil.
+//
+// Usage example for testing:
+//
+//	session := &zen.Session{}
+//	err := session.Init(recorder, request)
+//	if err != nil {
+//	    t.Fatal(err)
+//	}
+//	// Now session can be used for testing
+func (s *Session) Init(w http.ResponseWriter, r *http.Request) error {
+	return s.init(w, r)
+}
+
 // AuthorizedWorkspaceID returns the workspace ID associated with the authenticated
 // request. This is populated by authentication middleware.
 //

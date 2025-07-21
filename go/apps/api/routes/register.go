@@ -204,6 +204,7 @@ func Register(srv *zen.Server, svc *Services) {
 			Logger: svc.Logger,
 			DB:     svc.Database,
 			Keys:   svc.Keys,
+			Caches: svc.Caches,
 		},
 	)
 

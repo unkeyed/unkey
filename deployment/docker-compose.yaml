@@ -59,6 +59,7 @@ services:
       - redis
       - clickhouse
       - otel
+      - kafka
     environment:
       UNKEY_HTTP_PORT: 7070
       UNKEY_REDIS_URL: "redis://redis:6379"
@@ -67,6 +68,7 @@ services:
       UNKEY_OTEL: true
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel:4318"
       OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
+      UNKEY_KAFKA_BROKERS: "kafka:9092"
       # UNKEY_PROMETHEUS_PORT: 2112
 
   redis:
@@ -75,6 +77,21 @@ services:
     ports:
       - 6379:6379
 
+  # The Kafka broker, available at localhost:9092
+  kafka:
+    container_name: kafka
+    image: bitnami/kafka:latest
+    ports:
+      - 9092:9092
+    environment:
+      KAFKA_CFG_NODE_ID: 0
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://127.0.0.1:9092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@localhost:9093
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: true
   agent:
     container_name: agent
     command: ["/usr/local/bin/unkey", "agent", "--config", "config.docker.json"]
@@ -148,6 +165,19 @@ services:
       MINIO_CONSOLE_PORT_NUMBER: 3903
     volumes:
       - s3:/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "--silent",
+          "--fail",
+          "--output",
+          "/dev/null",
+          "http://localhost:3902/minio/health/live",
+        ]
+      interval: 2s
+      retries: 30
 
   api:
     container_name: api
