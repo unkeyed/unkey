@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/git"
@@ -197,6 +198,7 @@ func buildImageWithSpinner(cmd *exec.Cmd, buildCtx context.Context, ui *UI) erro
 	}
 
 	// Track all output for error reporting
+	var outputMu sync.Mutex
 	allOutput := []string{}
 
 	// Start progress spinner
@@ -207,7 +209,10 @@ func buildImageWithSpinner(cmd *exec.Cmd, buildCtx context.Context, ui *UI) erro
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
 			line := scanner.Text()
+
+			outputMu.Lock()
 			allOutput = append(allOutput, line)
+			outputMu.Unlock()
 
 			// Update spinner with current step
 			if step := extractDockerStep(line); step != "" {
@@ -221,7 +226,10 @@ func buildImageWithSpinner(cmd *exec.Cmd, buildCtx context.Context, ui *UI) erro
 		scanner := bufio.NewScanner(stderr)
 		for scanner.Scan() {
 			line := scanner.Text()
+
+			outputMu.Lock()
 			allOutput = append(allOutput, line)
+			outputMu.Unlock()
 		}
 	}()
 
@@ -241,10 +249,16 @@ func buildImageWithSpinner(cmd *exec.Cmd, buildCtx context.Context, ui *UI) erro
 	case err := <-done:
 		if err != nil {
 			ui.CompleteCurrentStep(MsgBuildFailed, false)
+
+			outputMu.Lock()
+			outputCopy := make([]string, len(allOutput))
+			copy(outputCopy, allOutput)
+			outputMu.Unlock()
+
 			// Show last few lines of output for debugging
-			if len(allOutput) > 0 {
+			if len(outputCopy) > 0 {
 				ui.PrintBuildError(MsgLastFewLinesOfOutput)
-				lines := allOutput
+				lines := outputCopy
 				if len(lines) > MaxOutputLines {
 					lines = lines[len(lines)-MaxOutputLines:]
 				}
@@ -252,7 +266,7 @@ func buildImageWithSpinner(cmd *exec.Cmd, buildCtx context.Context, ui *UI) erro
 					ui.PrintBuildProgress(line)
 				}
 			}
-			return fmt.Errorf("%w: %s", ErrDockerBuildFailed, classifyError(strings.Join(allOutput, "\n")))
+			return fmt.Errorf("%w: %s", ErrDockerBuildFailed, classifyError(strings.Join(outputCopy, "\n")))
 		}
 	}
 
