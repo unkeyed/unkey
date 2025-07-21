@@ -285,27 +285,42 @@ func Validate(fn ValidateFunc) FlagOption {
 // Default sets a default value for the flag
 func Default(value any) FlagOption {
 	return func(f any) {
+		var err error
 		switch flag := f.(type) {
 		case *StringFlag:
 			if v, ok := value.(string); ok {
 				flag.value = v
+			} else {
+				err = fmt.Errorf("default value for string flag '%s' must be string, got %T", flag.name, value)
 			}
 		case *BoolFlag:
 			if v, ok := value.(bool); ok {
 				flag.value = v
+			} else {
+				err = fmt.Errorf("default value for bool flag '%s' must be bool, got %T", flag.name, value)
 			}
 		case *IntFlag:
 			if v, ok := value.(int); ok {
 				flag.value = v
+			} else {
+				err = fmt.Errorf("default value for int flag '%s' must be int, got %T", flag.name, value)
 			}
 		case *FloatFlag:
 			if v, ok := value.(float64); ok {
 				flag.value = v
+			} else {
+				err = fmt.Errorf("default value for float flag '%s' must be float64, got %T", flag.name, value)
 			}
 		case *StringSliceFlag:
 			if v, ok := value.([]string); ok {
 				flag.value = v
+			} else {
+				err = fmt.Errorf("default value for string slice flag '%s' must be []string, got %T", flag.name, value)
 			}
+		}
+
+		if err != nil {
+			Exit(fmt.Sprintf("Configuration error: %s", err.Error()), 1)
 		}
 	}
 }
@@ -338,7 +353,6 @@ func String(name, usage string, opts ...FlagOption) *StringFlag {
 }
 
 // Bool creates a new boolean flag with optional configuration
-
 func Bool(name, usage string, opts ...FlagOption) *BoolFlag {
 	flag := &BoolFlag{
 		baseFlag: baseFlag{
@@ -357,14 +371,16 @@ func Bool(name, usage string, opts ...FlagOption) *BoolFlag {
 	// Check environment variable for default value if specified
 	if flag.envVar != "" {
 		if envValue := os.Getenv(flag.envVar); envValue != "" {
-			if parsed, err := strconv.ParseBool(envValue); err == nil {
-				flag.value = parsed
-				flag.hasEnvValue = true
-				// Don't mark as explicitly set - this is from environment
+			parsed, err := strconv.ParseBool(envValue)
+			if err != nil {
+				Exit(fmt.Sprintf("Environment variable error: invalid boolean value in %s=%q: %v",
+					flag.envVar, envValue, err), 1)
 			}
+			flag.value = parsed
+			flag.hasEnvValue = true
+			// Don't mark as explicitly set - this is from environment
 		}
 	}
-
 	return flag
 }
 
@@ -387,11 +403,14 @@ func Int(name, usage string, opts ...FlagOption) *IntFlag {
 	// Check environment variable for default value if specified
 	if flag.envVar != "" {
 		if envValue := os.Getenv(flag.envVar); envValue != "" {
-			if parsed, err := strconv.Atoi(envValue); err == nil {
-				flag.value = parsed
-				flag.hasEnvValue = true
-				// Don't mark as explicitly set - this is from environment
+			parsed, err := strconv.Atoi(envValue)
+			if err != nil {
+				Exit(fmt.Sprintf("Environment variable error: invalid integer value in %s=%q: %v",
+					flag.envVar, envValue, err), 1)
 			}
+			flag.value = parsed
+			flag.hasEnvValue = true
+			// Don't mark as explicitly set - this is from environment
 		}
 	}
 
@@ -417,11 +436,14 @@ func Float(name, usage string, opts ...FlagOption) *FloatFlag {
 	// Check environment variable for default value if specified
 	if flag.envVar != "" {
 		if envValue := os.Getenv(flag.envVar); envValue != "" {
-			if parsed, err := strconv.ParseFloat(envValue, 64); err == nil {
-				flag.value = parsed
-				flag.hasEnvValue = true
-				// Don't mark as explicitly set - this is from environment
+			parsed, err := strconv.ParseFloat(envValue, 64)
+			if err != nil {
+				Exit(fmt.Sprintf("Environment variable error: invalid float value in %s=%q: %v",
+					flag.envVar, envValue, err), 1)
 			}
+			flag.value = parsed
+			flag.hasEnvValue = true
+			// Don't mark as explicitly set - this is from environment
 		}
 	}
 

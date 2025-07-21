@@ -164,7 +164,11 @@ If no config file exists, you can create one with:
 
 func DeployAction(ctx context.Context, cmd *cli.Command) error {
 	// Load configuration file
-	configPath := config.GetConfigPath(cmd.String("config"))
+	configPath, err := config.GetConfigPath(cmd.String("config"))
+	if err != nil {
+		return err
+	}
+
 	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
@@ -179,7 +183,7 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 
 	// Validate that we have required fields
 	if err := finalConfig.Validate(); err != nil {
-		return err
+		return err // Clean error message already
 	}
 
 	opts := &DeployOptions{

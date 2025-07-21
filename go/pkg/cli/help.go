@@ -162,7 +162,7 @@ func (c *Command) buildFlagName(flag Flag) string {
 
 	// For single character flags, show both short and long form
 	if len(name) == 1 {
-		return fmt.Sprintf("-%s, --%s", name, name)
+		return fmt.Sprintf("-%s", name)
 	}
 
 	// For multi-character flags, just show long form
