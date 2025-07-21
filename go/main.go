@@ -9,20 +9,19 @@ import (
 	"github.com/unkeyed/unkey/go/cmd/healthcheck"
 	"github.com/unkeyed/unkey/go/cmd/quotacheck"
 	"github.com/unkeyed/unkey/go/cmd/run"
-	versioncmd "github.com/unkeyed/unkey/go/cmd/version"
-	"github.com/unkeyed/unkey/go/pkg/version"
-	"github.com/urfave/cli/v3"
+	"github.com/unkeyed/unkey/go/cmd/version"
+	"github.com/unkeyed/unkey/go/pkg/cli"
+	ver "github.com/unkeyed/unkey/go/pkg/version"
 )
 
 func main() {
 	app := &cli.Command{
 		Name:    "unkey",
-		Usage:   "Run unkey ",
-		Version: version.Version,
-
+		Usage:   "Run unkey",
+		Version: ver.Version,
 		Commands: []*cli.Command{
 			run.Cmd,
-			versioncmd.Cmd,
+			version.Cmd,
 			deploy.Cmd,
 			healthcheck.Cmd,
 			quotacheck.Cmd,

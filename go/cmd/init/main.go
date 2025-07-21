@@ -1,4 +1,4 @@
-package deploy
+package init
 
 import (
 	"bufio"
@@ -7,12 +7,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/unkeyed/unkey/go/cmd/cli/commands/deploy"
-	"github.com/unkeyed/unkey/go/cmd/cli/config"
+	"github.com/unkeyed/unkey/go/cmd/config"
+	"github.com/unkeyed/unkey/go/cmd/deploy"
 	"github.com/unkeyed/unkey/go/pkg/cli"
 )
 
-var Command = &cli.Command{
+var Cmd = &cli.Command{
 	Name:  "init",
 	Usage: "Initialize configuration file",
 	Description: `Initialize a configuration file to store default values for workspace ID, 
@@ -34,13 +34,14 @@ EXAMPLES:
 		cli.String("config", "Directory where unkey.json will be created", cli.Default(".")),
 		cli.Bool("force", "Overwrite existing configuration file without prompting"),
 	},
-	Action: InitAction,
+	Action: action,
 }
 
-func InitAction(ctx context.Context, cmd *cli.Command) error {
+func action(ctx context.Context, cmd *cli.Command) error {
 	configDir := cmd.String("config")
 	configPath := config.GetConfigFilePath(configDir)
 	force := cmd.Bool("force")
+	// TODO: Move this to a `/pkg` and make more generic
 	ui := deploy.NewUI()
 
 	fmt.Printf("Unkey Configuration Setup\n")
