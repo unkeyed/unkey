@@ -89,7 +89,6 @@ properties:
 required:
   - keyId
   - start
-  - apiId
   - createdAt
   - enabled
 additionalProperties: false

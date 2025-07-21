@@ -43,5 +43,5 @@ properties:
       - What operations are permitted
       - Any conditions or limitations
       - Related permissions that might be needed
-    example: "Grants read-only access to user profile information, account settings, and subscription status. Does not include access to payment methods or billing history."
+    example: "Grants read-only access to user profile information, account settings, and subscription status."
 additionalProperties: false

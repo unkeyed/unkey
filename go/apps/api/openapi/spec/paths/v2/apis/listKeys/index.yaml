@@ -95,11 +95,11 @@ post:
           schema:
             $ref: "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
-    description: Not Found
-    content:
-      application/json:
-        schema:
-          $ref: "../../../../error/NotFoundErrorResponse.yaml"
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/NotFoundErrorResponse.yaml"
     "500":
       description: Internal server error
       content:

@@ -37,6 +37,7 @@ properties:
       - name: requests
         limit: 1000
         duration: 3600000
+        autoApply: true
 additionalProperties: false
 required:
   - externalId
