@@ -170,10 +170,10 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 
 	// Build or use pre-built Docker image
 	if opts.DockerImage == "" {
-		// Check Docker availability
-		if !isDockerAvailable() {
+		// Check Docker availability using updated function
+		if err := isDockerAvailable(); err != nil {
 			ui.PrintError("Docker not found - please install Docker")
-			return ErrDockerNotFound
+			return err
 		}
 
 		// Generate image tag and full image name
@@ -182,9 +182,8 @@ func executeDeploy(ctx context.Context, opts *DeployOptions) error {
 
 		ui.Print(fmt.Sprintf("Building image: %s", dockerImage))
 
-		// Build image with robust error handling and real-time output
 		if err := buildImage(ctx, opts, dockerImage, ui); err != nil {
-			ui.PrintError("Docker build failed")
+			// Don't print additional error, buildImage already reported it with proper hierarchy
 			return err
 		}
 		ui.PrintSuccess("Image built successfully")

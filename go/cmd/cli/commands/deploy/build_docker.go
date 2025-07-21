@@ -25,6 +25,7 @@ var (
 	ErrDockerBuildFailed  = errors.New("docker build failed")
 	ErrInvalidContext     = errors.New("invalid build context")
 	ErrDockerfileNotFound = errors.New("dockerfile not found")
+	ErrBuildTimeout       = errors.New("docker build timed out")
 )
 
 // generateImageTag creates a unique tag for the Docker image
@@ -36,18 +37,23 @@ func generateImageTag(opts *DeployOptions, gitInfo git.Info) string {
 }
 
 // isDockerAvailable checks if Docker is installed and accessible
-func isDockerAvailable() bool {
+func isDockerAvailable() error {
 	cmd := exec.Command("docker", "--version")
-	return cmd.Run() == nil
+	if err := cmd.Run(); err != nil {
+		return ErrDockerNotFound
+	}
+	return nil
 }
 
-// buildImage builds the Docker image with progress spinner or verbose output
+// buildImage builds the Docker image with proper error hierarchy
 func buildImage(ctx context.Context, opts *DeployOptions, dockerImage string, ui *UI) error {
 	// Sub-step 1: Validate inputs
-	ui.PrintStepSuccess("Validating build inputs")
 	if err := validateImagePath(opts); err != nil {
+		ui.PrintStepError("Validation failed")
+		ui.PrintErrorDetails(err.Error())
 		return err
 	}
+	ui.PrintStepSuccess("Build inputs validated")
 
 	// Sub-step 2: Prepare build command
 	buildArgs := []string{"build"}
@@ -72,11 +78,21 @@ func buildImage(ctx context.Context, opts *DeployOptions, dockerImage string, ui
 
 	cmd := exec.CommandContext(buildCtx, "docker", buildArgs...)
 
+	var buildErr error
 	if opts.Verbose {
-		return buildImageVerbose(cmd, buildCtx, ui)
+		buildErr = buildImageVerbose(cmd, buildCtx, ui)
 	} else {
-		return buildImageWithSpinner(cmd, buildCtx, ui)
+		buildErr = buildImageWithSpinner(cmd, buildCtx, ui)
 	}
+
+	if buildErr != nil {
+		ui.PrintStepError("Docker build failed")
+		ui.PrintErrorDetails(buildErr.Error())
+		return buildErr
+	}
+
+	ui.PrintStepSuccess("Docker build completed successfully")
+	return nil
 }
 
 // buildImageVerbose shows all Docker output in real-time
@@ -122,16 +138,15 @@ func buildImageVerbose(cmd *exec.Cmd, buildCtx context.Context, ui *UI) error {
 	select {
 	case <-buildCtx.Done():
 		if buildCtx.Err() == context.DeadlineExceeded {
-			return fmt.Errorf("docker build timed out after %v", DockerBuildTimeout)
+			return fmt.Errorf("%w after %v", ErrBuildTimeout, DockerBuildTimeout)
 		}
 		return buildCtx.Err()
 	case err := <-done:
 		if err != nil {
-			return fmt.Errorf("docker build failed: %w", err)
+			return fmt.Errorf("%w: %v", ErrDockerBuildFailed, err)
 		}
 	}
 
-	ui.PrintStepSuccess("Docker build completed successfully")
 	return nil
 }
 
@@ -192,7 +207,7 @@ func buildImageWithSpinner(cmd *exec.Cmd, buildCtx context.Context, ui *UI) erro
 	case <-buildCtx.Done():
 		ui.CompleteCurrentStep("Build timed out", false)
 		if buildCtx.Err() == context.DeadlineExceeded {
-			return fmt.Errorf("docker build timed out after %v", DockerBuildTimeout)
+			return fmt.Errorf("%w after %v", ErrBuildTimeout, DockerBuildTimeout)
 		}
 		return buildCtx.Err()
 	case err := <-done:
@@ -209,7 +224,7 @@ func buildImageWithSpinner(cmd *exec.Cmd, buildCtx context.Context, ui *UI) erro
 					ui.PrintBuildProgress(line)
 				}
 			}
-			return fmt.Errorf("docker build failed: %s", classifyError(strings.Join(allOutput, "\n")))
+			return fmt.Errorf("%w: %s", ErrDockerBuildFailed, classifyError(strings.Join(allOutput, "\n")))
 		}
 	}
 
@@ -235,13 +250,13 @@ func extractDockerStep(line string) string {
 	// Look for other meaningful progress
 	switch {
 	case strings.Contains(line, "DONE"):
-		return "✓ Step completed"
+		return "Step completed"
 	case strings.Contains(line, "CACHED"):
-		return "↻ Using cache"
+		return "Using cache"
 	case strings.Contains(line, "exporting"):
-		return "📦 Exporting image"
+		return "Exporting image"
 	case strings.Contains(line, "naming to"):
-		return "🏷️ Tagging image"
+		return "Tagging image"
 	}
 
 	return ""
@@ -264,11 +279,11 @@ func pushImage(ctx context.Context, dockerImage, registry string) error {
 	return nil
 }
 
-// validateImagePath - simple pre-flight checks
+// validateImagePath - pre-flight checks using error constants
 func validateImagePath(opts *DeployOptions) error {
 	// Context directory exists?
 	if _, err := os.Stat(opts.Context); os.IsNotExist(err) {
-		return fmt.Errorf("build context directory '%s' does not exist", opts.Context)
+		return fmt.Errorf("%w: directory '%s' does not exist", ErrInvalidContext, opts.Context)
 	}
 
 	// Dockerfile exists?
@@ -278,7 +293,7 @@ func validateImagePath(opts *DeployOptions) error {
 	}
 
 	if _, err := os.Stat(dockerfilePath); os.IsNotExist(err) {
-		return fmt.Errorf("dockerfile '%s' not found", dockerfilePath)
+		return fmt.Errorf("%w: '%s' not found", ErrDockerfileNotFound, dockerfilePath)
 	}
 
 	return nil
