@@ -178,12 +178,13 @@ func (c *ControlPlaneClient) processNewSteps(
 				Step:      step,
 				Status:    currentStatus,
 			}
-
 			if err := onStepUpdate(event); err != nil {
 				return err
 			}
-		}
 
+			// INFO: This is for demo purposes only.
+			time.Sleep(800 * time.Millisecond)
+		}
 		// Mark this step as processed
 		processedSteps[stepTimestamp] = true
 	}

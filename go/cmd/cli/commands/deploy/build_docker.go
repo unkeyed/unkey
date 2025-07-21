@@ -120,7 +120,6 @@ func buildImage(ctx context.Context, opts *DeployOptions, dockerImage string, ui
 		return buildErr
 	}
 
-	ui.PrintStepSuccess(MsgDockerBuildCompleted)
 	return nil
 }
 
