@@ -32,13 +32,13 @@ type Response = openapi.V2RatelimitLimitResponseBody
 // Handler implements zen.Route interface for the v2 ratelimit limit endpoint
 type Handler struct {
 	// Services as public fields
-	Logger                        logging.Logger
-	Keys                          keys.KeyService
-	DB                            db.Database
-	ClickHouse                    clickhouse.Bufferer
-	Ratelimit                     ratelimit.Service
-	RatelimitNamespaceByNameCache cache.Cache[string, db.FindRatelimitNamespace]
-	TestMode                      bool
+	Logger                  logging.Logger
+	Keys                    keys.KeyService
+	DB                      db.Database
+	ClickHouse              clickhouse.Bufferer
+	Ratelimit               ratelimit.Service
+	RatelimitNamespaceCache cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
+	TestMode                bool
 }
 
 // Method returns the HTTP method this route responds to
@@ -70,43 +70,45 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	ctx, span := tracing.Start(ctx, "FindRatelimitNamespace")
-	namespace, err := h.RatelimitNamespaceByNameCache.SWR(ctx, req.Namespace, func(ctx context.Context) (db.FindRatelimitNamespace, error) {
-		response, err := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Name:        sql.NullString{String: req.Namespace, Valid: true},
-			ID:          sql.NullString{String: "", Valid: false},
-		})
-		result := db.FindRatelimitNamespace{} // nolint:exhaustruct
-		if err != nil {
-			return result, err
-		}
-
-		result = db.FindRatelimitNamespace{
-			ID:                response.ID,
-			WorkspaceID:       response.WorkspaceID,
-			Name:              response.Name,
-			CreatedAtM:        response.CreatedAtM,
-			UpdatedAtM:        response.UpdatedAtM,
-			DeletedAtM:        response.DeletedAtM,
-			DirectOverrides:   make(map[string]db.FindRatelimitNamespaceLimitOverride),
-			WildcardOverrides: make([]db.FindRatelimitNamespaceLimitOverride, 0),
-		}
-
-		overrides := make([]db.FindRatelimitNamespaceLimitOverride, 0)
-		err = json.Unmarshal(response.Overrides.([]byte), &overrides)
-		if err != nil {
-			return result, err
-		}
-
-		for _, override := range overrides {
-			result.DirectOverrides[override.Identifier] = override
-			if strings.Contains(override.Identifier, "*") {
-				result.WildcardOverrides = append(result.WildcardOverrides, override)
+	namespace, err := h.RatelimitNamespaceCache.SWR(ctx,
+		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: req.Namespace},
+		func(ctx context.Context) (db.FindRatelimitNamespace, error) {
+			response, err := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Name:        sql.NullString{String: req.Namespace, Valid: true},
+				ID:          sql.NullString{String: "", Valid: false},
+			})
+			result := db.FindRatelimitNamespace{} // nolint:exhaustruct
+			if err != nil {
+				return result, err
 			}
-		}
 
-		return result, nil
-	}, caches.DefaultFindFirstOp)
+			result = db.FindRatelimitNamespace{
+				ID:                response.ID,
+				WorkspaceID:       response.WorkspaceID,
+				Name:              response.Name,
+				CreatedAtM:        response.CreatedAtM,
+				UpdatedAtM:        response.UpdatedAtM,
+				DeletedAtM:        response.DeletedAtM,
+				DirectOverrides:   make(map[string]db.FindRatelimitNamespaceLimitOverride),
+				WildcardOverrides: make([]db.FindRatelimitNamespaceLimitOverride, 0),
+			}
+
+			overrides := make([]db.FindRatelimitNamespaceLimitOverride, 0)
+			err = json.Unmarshal(response.Overrides.([]byte), &overrides)
+			if err != nil {
+				return result, err
+			}
+
+			for _, override := range overrides {
+				result.DirectOverrides[override.Identifier] = override
+				if strings.Contains(override.Identifier, "*") {
+					result.WildcardOverrides = append(result.WildcardOverrides, override)
+				}
+			}
+
+			return result, nil
+		}, caches.DefaultFindFirstOp)
 	span.End()
 
 	if err != nil {
