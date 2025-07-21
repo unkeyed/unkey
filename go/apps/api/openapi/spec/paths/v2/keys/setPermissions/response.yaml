@@ -33,7 +33,7 @@ V2KeysSetPermissionsResponse:
     - data
   properties:
     meta:
-      $ref: "../../../../common/meta.yaml"
+      $ref: "../../../../common/Meta.yaml"
     data:
       $ref: "#/V2KeysSetPermissionsResponseData"
 

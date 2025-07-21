@@ -15,18 +15,85 @@ post:
   security:
     - rootKey: []
   requestBody:
-    $ref: "./request.yaml#/Request"
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2IdentitiesListIdentitiesRequestBody.yaml"
+        examples:
+          basic:
+            summary: Basic identity listing
+            value:
+              limit: 50
+          withPagination:
+            summary: Fetch next page with cursor
+            value:
+              limit: 50
+              cursor: cursor_eyJrZXkiOiJrZXlfMTIzNCJ9
+    required: true
   responses:
     "200":
-      $ref: "./response.yaml#/Response"
+      description: Successfully retrieved the list of identities
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2IdentitiesListIdentitiesResponseBody.yaml"
+          examples:
+            standard:
+              summary: Identity listing with pagination
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+                data:
+                  identities:
+                    - id: id_01H9TQP8NP8JN3X8HWSKPW43JE
+                      externalId: user_abc123
+                      ratelimits:
+                        - name: api_requests
+                          limit: 1000
+                          duration: 60000
+                        - name: heavy_operations
+                          limit: 100
+                          duration: 3600000
+                    - id: id_02ZYR3Q9NP8JM4X8HWSKPW43JF
+                      externalId: user_def456
+                      ratelimits:
+                        - name: api_requests
+                          limit: 500
+                          duration: 60000
+                  cursor: cursor_eyJsYXN0SWQiOiJpZF8wMlpZUjNROU5QOEpNNFg4SFdTS1BXNDNKRiJ9
+                  total: 247
+            emptyList:
+              summary: Empty identity list
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQY
+                data:
+                  identities: []
+                  total: 0
     "400":
-      $ref: "../../../../error/badRequestErrorResponse.yaml"
+      description: Bad Request - Invalid parameters
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
     "401":
-      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+      description: Unauthorized - Missing or invalid authentication
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      $ref: "../../../../error/forbiddenErrorResponse.yaml"
+      description: Forbidden - Insufficient permissions
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "500":
-      $ref: "../../../../error/internalServerErrorResponse.yaml"
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
   x-speakeasy-pagination:
     type: cursor
     inputs:

@@ -9,6 +9,7 @@ V2KeysUpdateCreditsRequestBody:
   type: object
   required:
     - keyId
+    - operation
   properties:
     keyId:
       type: string
@@ -20,56 +21,36 @@ V2KeysUpdateCreditsRequestBody:
         This ID comes from the createKey response and identifies which key will have its credits updated.
         This is the database ID, not the actual API key string.
       example: key_2cGKbMxRyIzhCxo1Idjz8q
-    credits:
-      type: object
-      properties:
-        remaining:
-          type: integer
-          format: int64
-          minimum: 0
-          maximum: 9223372036854775807
-          description: |
-            Sets the number of credits remaining for this key.
-            This completely replaces the current credit balance.
-            Use this for topping up credits or adjusting balances.
-          example: 1000
-        refill:
-          type: object
-          properties:
-            interval:
-              type: string
-              enum: [daily, monthly]
-              description: |
-                How often credits are automatically refilled.
-                'daily' refills every 24 hours, 'monthly' refills on the specified day of month.
-              example: monthly
-            amount:
-              type: integer
-              format: int64
-              minimum: 0
-              maximum: 9223372036854775807
-              description: |
-                Number of credits to add during each refill cycle.
-                This amount is added to the current balance, not replacing it.
-              example: 1000
-            refillDay:
-              type: integer
-              minimum: 1
-              maximum: 31
-              description: |
-                Day of the month for monthly refills (1-31).
-                Only applicable when interval is 'monthly'.
-                If the day doesn't exist in a month (e.g., 31st in February), refill occurs on the last day of that month.
-              example: 1
-          required:
-            - interval
-            - amount
-          additionalProperties: false
-          description: |
-            Automatic refill configuration for credits.
-            Omit this field to disable automatic refills.
-      additionalProperties: false
+    value:
+      type: integer
+      format: int64
+      nullable: true
+      minimum: 0
+      maximum: 9223372036854775807 # Max int64 value for future-proofing
       description: |
-        Credit system configuration for this key.
-        Omit this field to disable the credit system entirely for this key.
+        The new value for the remaining credits. This is an absolute value replacement, not an increment or decrement operation.
+
+        Key behaviors:
+        - This completely replaces the current remaining credits value when operation is set to 'set'
+        - To add credits, either replace the current value with the new value or increment the current value by a new value
+        - To make a key unlimited, set value = null
+        - To make a key with unlimited usage have a specific limit, set remaining to a positive number
+        - If a decrement would result in a negative value, the remaining credits are set to zero
+        - Credits are decremented each time the key is successfully verified (by the cost value, default 1)
+        - When credits reach zero, verification fails with code=USAGE_EXCEEDED
+
+        This field is useful for implementing usage-based pricing, subscription tiers, trial periods, or consumption quotas.
+      example: 1000
+    operation:
+      type: string
+      enum:
+        - set
+        - increment
+        - decrement
+      description: |
+        The operation to perform on the remaining credits. This can be one of:
+        - set: Replace the current remaining credits value with the specified value.
+        - increment: Add the specified value to the current remaining credits value.
+        - decrement: Subtract the specified value from the current remaining credits value.
+
   additionalProperties: false

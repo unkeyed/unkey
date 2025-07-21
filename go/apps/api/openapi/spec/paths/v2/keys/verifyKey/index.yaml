@@ -17,10 +17,38 @@ post:
   security:
     - rootKey: []
   requestBody:
-    $ref: "./request.yaml#/Request"
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2KeysVerifyKeyRequestBody.yaml"
+      examples:
+        simple:
+          summary: Basic key verification
+          value:
+            key: prod_1234567890abcdef1234567890abcdef
+        withPermissions:
+          summary: Verify key with permission check
+          value:
+            key: prod_1234567890abcdef1234567890abcdef
+            permissions:
+              type: and
+              permissions:
+                - documents.read
+                - documents.write
+        withCredits:
+          summary: Verify key and consume credits
+          value:
+            key: prod_1234567890abcdef1234567890abcdef
+            credits:
+            cost: 5
   responses:
     "200":
-      $ref: "./response.yaml#/Response"
+      description: Key verification completed (check 'valid' field for success)
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2KeysVerifyKeyResponseBody.yaml"
     "400":
       $ref: "../../../../error/badRequestErrorResponse.yaml"
       examples:

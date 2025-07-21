@@ -11,5 +11,5 @@ V2KeysDeleteKeyResponseBody:
     - meta
   properties:
     meta:
-      $ref: "../../../../common/meta.yaml"
+      $ref: "../../../../common/Meta.yaml"
   additionalProperties: false

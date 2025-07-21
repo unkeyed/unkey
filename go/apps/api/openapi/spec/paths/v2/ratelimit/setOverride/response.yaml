@@ -14,7 +14,7 @@ V2RatelimitSetOverrideResponseBody:
     - data
   properties:
     meta:
-      $ref: "../../../../common/meta.yaml"
+      $ref: "../../../../common/Meta.yaml"
     data:
       "$ref": "#/RatelimitSetOverrideResponseData"
   additionalProperties: false

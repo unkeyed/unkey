@@ -17,17 +17,82 @@ post:
   security:
     - rootKey: []
   requestBody:
-    $ref: "./request.yaml#/Request"
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2IdentitiesCreateIdentityRequestBody.yaml"
+        examples:
+          basic:
+            summary: Basic identity creation
+            value:
+              externalId: user_abc123
+          withMetadata:
+            summary: Identity with user metadata
+            value:
+              externalId: user_abc123
+              meta:
+                name: Alice Smith
+                email: alice@example.com
+                plan: premium
+                accountCreated: "2023-01-15T08:30:00Z"
+                region: eu-west
+          withRatelimits:
+            summary: Identity with shared rate limits
+            value:
+              externalId: org_xyz456
+              meta:
+                name: Acme Corporation
+                planTier: enterprise
+              ratelimits:
+                - name: requests
+                  limit: 10000
+                  duration: 3600000
+                  autoApply: true
+                - name: heavy_compute
+                  limit: 100
+                  duration: 86400000
+                  autoApply: false
+    required: true
+
   responses:
     "200":
-      $ref: "./response.yaml#/Response"
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2IdentitiesCreateIdentityResponseBody.yaml"
+          examples:
+            success:
+              summary: Successfully created identity
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
     "400":
-      $ref: "../../../../error/badRequestErrorResponse.yaml"
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
     "401":
-      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      $ref: "../../../../error/forbiddenErrorResponse.yaml"
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
     "409":
-      $ref: "../../../../error/conflictErrorResponse.yaml"
+      description: Identity already exists
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ConflictErrorResponse.yaml"
     "500":
-      $ref: "../../../../error/internalServerErrorResponse.yaml"
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"

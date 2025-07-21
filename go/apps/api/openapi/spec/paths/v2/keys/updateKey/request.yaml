@@ -43,7 +43,7 @@ V2KeysUpdateKeyRequestBody:
       example: 1704067200000
 
     credits:
-      "$ref": "../../../../common/keyCredits.yaml#/KeyCreditsData"
+      "$ref": "../../../../common/KeyCreditsData.yaml"
       description: |
         Controls usage-based limits for this key through credit consumption.
         Omitting this field preserves current credit settings, while setting null enables unlimited usage.

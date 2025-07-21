@@ -48,7 +48,7 @@ V2RatelimitLimitResponseBody:
     - data
   properties:
     meta:
-      $ref: "../../../../common/meta.yaml"
+      $ref: "../../../../common/Meta.yaml"
     data:
       "$ref": "#/RatelimitLimitResponseData"
   additionalProperties: false

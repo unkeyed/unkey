@@ -20,17 +20,57 @@ post:
   security:
     - rootKey: []
   requestBody:
-    $ref: "./request.yaml#/Request"
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2IdentitiesDeleteIdentityRequestBody.yaml"
+        examples:
+          byExternalId:
+            summary: Delete by external ID
+            description: Deleting using your system's identifier
+            value:
+              externalId: user_abc123
+    required: true
   responses:
     "200":
-      $ref: "./response.yaml#/Response"
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2IdentitiesDeleteIdentityResponseBody.yaml"
+          examples:
+            success:
+              summary: Successful deletion
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+      description: OK
     "400":
-      $ref: "../../../../error/badRequestErrorResponse.yaml"
+      description: Bad request
+      content:
+        application/problem+json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
     "401":
-      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+      description: Unauthorized
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      $ref: "../../../../error/forbiddenErrorResponse.yaml"
+      description: Forbidden
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
-      $ref: "../../../../error/notFoundErrorResponse.yaml"
+      description: Not found
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
     "500":
-      $ref: "../../../../error/internalServerErrorResponse.yaml"
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+      description: Error

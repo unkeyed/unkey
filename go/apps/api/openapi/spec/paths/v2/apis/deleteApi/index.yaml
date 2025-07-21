@@ -4,16 +4,19 @@ post:
   summary: Delete an API and invalidate all its associated keys
   description: |-
     Permanently deletes an API namespace and invalidates all keys associated with it.
+
     WARNING: This is a destructive operation with significant consequences:
     - All keys associated with this API will be invalidated immediately
     - Verification attempts for these keys will fail with `code=NOT_FOUND`
     - Historical analytics data for the API and its keys will be preserved
     - This action cannot be undone
+
     Common reasons to delete an API include:
     - Removing test or development environments no longer needed
     - Retiring deprecated services or products
     - Cleaning up unused resources
     - Implementing security isolation after compromise
+
     Before deletion, ensure that:
     - You have the correct API ID (check the environment/service)
     - You have migrated any needed keys to a new API
@@ -24,15 +27,65 @@ post:
   security:
     - rootKey: []
   requestBody:
-    $ref: "./request.yaml#/Request"
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2ApisDeleteApiRequestBody.yaml"
+        examples:
+          basic:
+            summary: Delete an API
+            value:
+              apiId: api_VNcuGfVjUkrVcWJmda0A
+    required: true
   responses:
     "200":
-      $ref: "./response.yaml#/Response"
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2ApisDeleteApiResponseBody.yaml"
+          examples:
+            success:
+              summary: Successful deletion
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+      description: API successfully deleted. All keys associated with this API
+        have been invalidated and will no longer work for verification. The API
+        ID can no longer be used for any operations, and new keys cannot be created
+        with this API ID. This operation is immediate and cannot be undone.
     "400":
-      $ref: "../../../../error/badRequestErrorResponse.yaml"
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
     "401":
-      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      $ref: "../../../../error/forbiddenErrorResponse.yaml"
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/NotFoundErrorResponse.yaml"
+    "412":
+      description: The API has api protection enabled, please disable it before deleting the API.
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/PreconditionFailedErrorResponse.yaml"
     "500":
-      $ref: "../../../../error/internalServerErrorResponse.yaml"
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"

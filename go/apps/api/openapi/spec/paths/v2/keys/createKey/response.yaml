@@ -12,7 +12,7 @@ V2KeysCreateKeyResponseBody:
     - data
   properties:
     meta:
-      $ref: "../../../../common/meta.yaml"
+      $ref: "../../../../common/Meta.yaml"
     data:
       "$ref": "#/KeysCreateKeyResponseData"
   additionalProperties: false

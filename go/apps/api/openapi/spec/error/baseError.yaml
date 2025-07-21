@@ -22,8 +22,7 @@ properties:
     example: Not Found
     type: string
   type:
-    description:
-      A URI reference that identifies the problem type. This provides
+    description: A URI reference that identifies the problem type. This provides
       a stable identifier for the error that can be used for documentation lookups
       and programmatic error handling. When followed, this URI should provide human-readable
       documentation for the problem type.

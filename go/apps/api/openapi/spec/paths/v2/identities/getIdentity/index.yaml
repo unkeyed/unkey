@@ -17,17 +17,71 @@ post:
   security:
     - rootKey: []
   requestBody:
-    $ref: "./request.yaml#/Request"
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2IdentitiesGetIdentityRequestBody.yaml"
+        examples:
+          byExternalId:
+            summary: Retrieve by external ID
+            value:
+              externalId: user_abc123
+    required: true
   responses:
     "200":
-      $ref: "./response.yaml#/Response"
+      description: Successfully retrieved the identity information
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2IdentitiesGetIdentityResponseBody.yaml"
+          examples:
+            standard:
+              summary: Identity with metadata and rate limits
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+                data:
+                  id: id_1234567890abcdef
+                  externalId: user_abc123
+                  meta:
+                    name: Alice Smith
+                    email: alice@example.com
+                    plan: premium
+                    companyId: company_xyz
+                  ratelimits:
+                    - name: api_requests
+                      limit: 1000
+                      duration: 60000
+                    - name: heavy_operations
+                      limit: 100
+                      duration: 3600000
     "400":
-      $ref: "../../../../error/badRequestErrorResponse.yaml"
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
     "401":
-      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      $ref: "../../../../error/forbiddenErrorResponse.yaml"
+      description: Forbidden - Insufficient permissions to access this identity
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
-      $ref: "../../../../error/notFoundErrorResponse.yaml"
+      description: Not found - The specified identity doesn't exist
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
     "500":
-      $ref: "../../../../error/internalServerErrorResponse.yaml"
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

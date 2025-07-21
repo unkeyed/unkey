@@ -12,7 +12,7 @@ V2KeysSetRolesResponseBody:
     - data
   properties:
     meta:
-      $ref: "../../../../common/meta.yaml"
+      $ref: "../../../../common/Meta.yaml"
     data:
       "$ref": "#/KeysSetRolesResponseData"
   additionalProperties: false

@@ -1,17 +1,16 @@
+type: object
+required:
+  - meta
+  - error
+properties:
+  meta:
+    $ref: "../common/Meta.yaml"
+  error:
+    $ref: "./BaseError.yaml"
 description: |-
-  Unauthorized - Missing or invalid authentication credentials
-content:
-  application/json:
-    schema:
-      $ref: "./unauthorizedError.yaml"
-    examples:
-      invalidToken:
-        summary: Invalid authentication token
-        value:
-          meta:
-            requestId: req_2c9a0jf23l4k567
-          error:
-            detail: The provided authentication token is invalid or has expired
-            status: 401
-            title: Unauthorized
-            type: https://unkey.com/docs/api-reference/errors-v2/unkey/auth/invalid_token
+  Error response when authentication has failed or credentials are missing. This occurs when:
+  - No authentication token is provided in the request
+  - The provided token is invalid, expired, or malformed
+  - The token format doesn't match expected patterns
+
+  To resolve this error, ensure you're including a valid root key in the Authorization header.

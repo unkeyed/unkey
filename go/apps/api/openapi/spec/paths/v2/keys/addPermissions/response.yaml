@@ -12,7 +12,7 @@ V2KeysAddPermissionsResponseBody:
     - data
   properties:
     meta:
-      $ref: "../../../../common/meta.yaml"
+      $ref: "../../../../common/Meta.yaml"
     data:
       "$ref": "#/KeysAddPermissionsResponseData"
   additionalProperties: false

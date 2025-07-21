@@ -24,17 +24,64 @@ post:
   security:
     - rootKey: []
   requestBody:
-    $ref: "./request.yaml#/Request"
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2ApisCreateApiRequestBody.yaml"
+        examples:
+          production:
+            summary: Production API
+            value:
+              name: payment-service-production
+          staging:
+            summary: Staging environment
+            value:
+              name: payment-service-staging
+          serviceSpecific:
+            summary: Service-specific API
+            value:
+              name: analytics-service
+    required: true
   responses:
     "200":
-      $ref: "./response.yaml#/Response"
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2ApisCreateApiResponseBody.yaml"
+          examples:
+            success:
+              summary: Successfully created API
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+                data:
+                  apiId: api_2cGKbMxRjIzhCxo1IdjH3a
+      description:
+        Successfully created a new API namespace. The response includes
+        the unique API ID that you'll need for creating keys within this namespace.
+        This ID should be stored securely as it's required for all operations
+        related to this API.
     "400":
-      $ref: "../../../../error/badRequestErrorResponse.yaml"
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
     "401":
-      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      $ref: "../../../../error/forbiddenErrorResponse.yaml"
-    "404":
-      $ref: "../../../../error/notFoundErrorResponse.yaml"
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "500":
-      $ref: "../../../../error/internalServerErrorResponse.yaml"
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

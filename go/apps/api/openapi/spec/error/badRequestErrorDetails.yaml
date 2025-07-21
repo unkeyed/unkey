@@ -1,5 +1,5 @@
 allOf:
-  - $ref: "./baseError.yaml"
+  - $ref: "./BaseError.yaml"
   - type: object
     properties:
       errors:
@@ -10,7 +10,7 @@ allOf:
           resolve multiple issues in a single request without having to make repeated
           API calls.
         items:
-          $ref: "./validationError.yaml"
+          $ref: "./ValidationError.yaml"
         type: array
     required:
       - errors

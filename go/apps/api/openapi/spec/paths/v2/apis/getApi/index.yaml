@@ -9,23 +9,65 @@ post:
     - Retrieving the name of an API when you only have its ID
     - Checking if you have access to a particular API
     - Confirming API details before performing operations on it
+
     The information returned is minimal by design, as APIs are primarily organizational containers. Most of the valuable data lies in the keys associated with an API, which can be retrieved using the apis.listKeys endpoint.
   operationId: getApi
   x-speakeasy-name-override: getApi
   security:
     - rootKey: []
   requestBody:
-    $ref: "./request.yaml#/Request"
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2ApisGetApiRequestBody.yaml"
+        examples:
+          basic:
+            summary: Retrieve API by ID
+            value:
+              apiId: api_1234
+    required: true
   responses:
     "200":
-      $ref: "./response.yaml#/Response"
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2ApisGetApiResponseBody.yaml"
+          examples:
+            standard:
+              summary: API details response
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+                data:
+                  id: api_1234567890abcdef
+                  name: payment-service-production
     "400":
-      $ref: "../../../../error/badRequestErrorResponse.yaml"
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
     "401":
-      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      $ref: "../../../../error/forbiddenErrorResponse.yaml"
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
-      $ref: "../../../../error/notFoundErrorResponse.yaml"
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/NotFoundErrorResponse.yaml"
     "500":
-      $ref: "../../../../error/internalServerErrorResponse.yaml"
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"

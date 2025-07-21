@@ -12,7 +12,7 @@ V2KeysRemovePermissionsResponseBody:
     - data
   properties:
     meta:
-      $ref: "../../../../common/meta.yaml"
+      $ref: "../../../../common/Meta.yaml"
     data:
       "$ref": "#/KeysRemovePermissionsResponseData"
   additionalProperties: false

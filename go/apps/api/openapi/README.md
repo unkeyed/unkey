@@ -10,22 +10,14 @@ openapi/
 └── spec/                   # All specification files
     ├── paths/              # Path definitions organized by API version
     │   └── v2/            # Version 2 API endpoints
-    │       └── keys/      # Key management endpoints
-    │           ├── setPermissions/
-    │           │   ├── index.yaml    # Main path definition
-    │           │   ├── request.yaml  # Request body & examples
-    │           │   └── response.yaml # Response & examples
-    │           └── updateKey/
-    │               ├── index.yaml
-    │               ├── request.yaml
-    │               └── response.yaml
-    ├── common/             # Shared schemas
-    │   ├── meta.yaml      # Meta response object
-    │   └── pagination.yaml # Pagination object
+    │       ├── apis/      # API management endpoints
+    │       ├── identities/ # Identity management endpoints
+    │       ├── keys/      # Key management endpoints
+    │       ├── liveness/   # Health check endpoints
+    │       ├── permissions/ # Permission and role management
+    │       └── ratelimit/  # Rate limiting endpoints
+    ├── common/             # Shared schemas (Meta.yaml, Pagination.yaml, etc.)
     └── error/             # Error-related schemas
-        ├── base.yaml      # Base error schema
-        ├── errors.yaml    # Error detail schemas
-        └── responses.yaml # Common error responses
 ```
 
 ## Usage
@@ -48,94 +40,101 @@ This creates `openapi-bundled.yaml` with all references resolved using [libopena
 ## Adding New Endpoints
 
 1. Create a new directory under the appropriate category in `spec/paths/v2/` (e.g., `spec/paths/v2/keys/newEndpoint/`)
-2. Create three files in the new directory:
+2. Create the necessary files in the new directory using explicit naming:
    - `index.yaml` - Main path definition with operation details
-   - `request.yaml` - Request body definition with schema and examples
-   - `response.yaml` - Response definition with schema and examples
+   - `V2CategoryOperationRequestBody.yaml` - Request body schema
+   - `V2CategoryOperationResponseBody.yaml` - Response body schema
+   - Additional data schemas as needed (e.g., `V2CategoryOperationResponseData.yaml`)
 3. Update `openapi-split.yaml` to include your new endpoint in the `paths` section
 4. If needed, add shared schemas to `spec/common/` or `spec/error/`
 
 ## Example Endpoint Structure
 
-See `spec/paths/v2/keys/setPermissions/` for a complete example:
+See `spec/paths/v2/apis/listKeys/` for a complete example:
 
 ```
-spec/paths/v2/keys/setPermissions/
-├── index.yaml     # Main operation definition
-├── request.yaml   # Request body with schema and examples
-└── response.yaml  # Response with schema and examples
+spec/paths/v2/apis/listKeys/
+├── index.yaml                        # Main operation definition
+├── V2ApisListKeysRequestBody.yaml    # Request body schema
+├── V2ApisListKeysResponseBody.yaml   # Response body schema
+└── V2ApisListKeysResponseData.yaml   # Response data schema
 ```
 
 ### index.yaml
+
 Contains the main operation definition with references to request and response files:
+
 ```yaml
-post:
-  summary: Set (replace) all permissions on an API key
-  operationId: setPermissions
+get:
+  summary: List API keys
+  operationId: listKeys
   requestBody:
-    $ref: "./request.yaml#/Request"
+    $ref: "./V2ApisListKeysRequestBody.yaml#/RequestBody"
   responses:
     "200":
-      $ref: "./response.yaml#/Response"
+      $ref: "./V2ApisListKeysResponseBody.yaml#/ResponseBody"
     "400":
-      $ref: "../../../../error/responses.yaml#/BadRequestError"
+      $ref: "../../../../error/BadRequestErrorResponse.yaml#/BadRequestErrorResponse"
 ```
 
-### request.yaml
-Contains both the schema definition and request body with examples:
+### V2ApisListKeysRequestBody.yaml
+
+Contains the request body schema definition:
+
 ```yaml
-V2KeysSetPermissionsRequestBody:
+V2ApisListKeysRequestBody:
   type: object
   required:
-    - keyId
-    - permissions
+    - apiId
   properties:
-    keyId:
+    apiId:
       type: string
-      description: The unique identifier of the key
-      example: key_2cGKbMxRyIzhCxo1Idjz8q
+      description: The unique identifier of the API
+      example: api_2cGKbMxRyIzhCxo1Idjz8q
 
-Request:
+RequestBody:
   required: true
   content:
     application/json:
       schema:
-        $ref: "#/V2KeysSetPermissionsRequestBody"
+        $ref: "#/V2ApisListKeysRequestBody"
       examples:
         basic:
           summary: Basic example
           value:
-            keyId: key_123
-            permissions: [...]
+            apiId: api_123
 ```
 
-### response.yaml  
-Contains both the schema definition and response with examples:
+### V2ApisListKeysResponseBody.yaml
+
+Contains the response body schema definition:
+
 ```yaml
-V2KeysSetPermissionsResponse:
+V2ApisListKeysResponseBody:
   type: object
   required:
     - meta
     - data
   properties:
     meta:
-      $ref: "../../../../common/meta.yaml"
+      $ref: "../../../../common/Meta.yaml#/Meta"
     data:
-      type: array
+      $ref: "./V2ApisListKeysResponseData.yaml#/V2ApisListKeysResponseData"
 
-Response:
+ResponseBody:
   description: Success response
   content:
     application/json:
       schema:
-        $ref: "#/V2KeysSetPermissionsResponse"
+        $ref: "#/V2ApisListKeysResponseBody"
       examples:
         standard:
           summary: Standard response
           value:
             meta:
               requestId: req_123
-            data: [...]
+            data:
+              keys: [...]
 ```
 
 ## Benefits of Split Structure

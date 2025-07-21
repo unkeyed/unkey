@@ -4,24 +4,105 @@ post:
   summary: List all keys associated with an API namespace
   description: |-
     Retrieves a paginated list of all API keys associated with a specific API namespace. Returns detailed information about each key including metadata, permissions, and usage limits.
+
     Use this endpoint to build admin dashboards for API key management, audit active keys for security reviews, or find keys associated with specific users through the externalId filter. For large APIs with many keys, results are paginated and can be filtered to locate specific keys efficiently.
+
     For security reasons, full key values are never returned unless specifically requested with decrypt=true, and only for keys created with recoverable=true when the caller has sufficient permissions.
   operationId: listKeys
   x-speakeasy-name-override: listKeys
   security:
     - rootKey: []
   requestBody:
-    $ref: "./request.yaml#/Request"
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2ApisListKeysRequestBody.yaml"
+        examples:
+          basicListing:
+            summary: List all keys for an API
+            value:
+              apiId: api_1234
+          filteredListing:
+            summary: List keys for specific user
+            value:
+              apiId: api_1234
+              externalId: user_5bf93ab218e
+              limit: 50
+          paginatedRequest:
+            summary: Fetch next page of results
+            value:
+              apiId: api_1234
+              cursor: cursor_eyJsYXN0S2V5SWQiOiJrZXlfMjNld3MiLCJsYXN0Q3JlYXRlZEF0IjoxNjcyNTI0MjM0MDAwfQ==
+    required: true
   responses:
     "200":
-      $ref: "./response.yaml#/Response"
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2ApisListKeysResponseBody.yaml"
+          examples:
+            standardResponse:
+              summary: Successful key listing
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+                data:
+                  - keyId: key_1a2b3c4d5e6f
+                    start: prod_abc
+                    name: Production Admin Key
+                    createdAt: 1671048264000
+                    permissions:
+                      - admin.read
+                      - admin.write
+                    meta:
+                      owner: alice@example.com
+                      department: Engineering
+                  - keyId: key_2b3c4d5e6f7g
+                    start: prod_def
+                    name: CI/CD Pipeline Key
+                    createdAt: 1671135600000
+                    permissions:
+                      - deploy.trigger
+                      - logs.read
+                    meta:
+                      owner: true
+                pagination:
+                  cursor: cursor_eyJsYXN0S2V5SWQiOiJrZXlfMmIzYzRkNWU2ZjdnIiwibGFzdENyZWF0ZWRBdCI6MTY3MTEzNTYwMDAwMH0=
+                  hasMore: true
+            description:
+              Successfully retrieved the list of keys for this API. The response
+              includes key details such as IDs, names, creation dates, and associated
+              metadata. For security, the actual key values are not included unless
+              specifically requested with decrypt=true. If there are more keys than
+              the requested limit, the pagination object will include a cursor for fetching
+              the next page and hasMore=true.
     "400":
-      $ref: "../../../../error/badRequestErrorResponse.yaml"
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
     "401":
-      $ref: "../../../../error/unauthorizedErrorResponse.yaml"
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      $ref: "../../../../error/forbiddenErrorResponse.yaml"
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
-      $ref: "../../../../error/notFoundErrorResponse.yaml"
+    description: Not Found
+    content:
+      application/json:
+        schema:
+          $ref: "../../../../error/NotFoundErrorResponse.yaml"
     "500":
-      $ref: "../../../../error/internalServerErrorResponse.yaml"
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"

@@ -12,11 +12,11 @@ V2PermissionsListRolesResponseBody:
     - data
   properties:
     meta:
-      $ref: "../../../../common/meta.yaml"
+      $ref: "../../../../common/Meta.yaml"
     data:
       "$ref": "#/PermissionsListRolesResponseData"
     pagination:
-      $ref: "../../../../common/pagination.yaml"
+      $ref: "../../../../common/Pagination.yaml"
   additionalProperties: false
 
 PermissionsListRolesResponseData:

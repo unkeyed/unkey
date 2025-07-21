@@ -1,17 +1,16 @@
+type: object
+required:
+  - meta
+  - error
+properties:
+  meta:
+    $ref: "../common/Meta.yaml"
+  error:
+    $ref: "./BaseError.yaml"
 description: |-
-  Not Found - The requested resource does not exist
-content:
-  application/json:
-    schema:
-      $ref: "./notFoundError.yaml"
-    examples:
-      resourceNotFound:
-        summary: Resource not found
-        value:
-          meta:
-            requestId: req_2c9a0jf23l4k567
-          error:
-            detail: The requested resource could not be found
-            status: 404
-            title: Not Found
-            type: https://unkey.com/docs/api-reference/errors-v2/unkey/resource/not_found
+  Error response when the requested resource cannot be found. This occurs when:
+  - The specified resource ID doesn't exist in your workspace
+  - The resource has been deleted or moved
+  - The resource exists but is not accessible with current permissions
+
+  To resolve this error, verify the resource ID is correct and that you have access to it.
