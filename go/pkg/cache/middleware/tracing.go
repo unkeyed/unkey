@@ -84,6 +84,10 @@ func (mw *tracingMiddleware[K, V]) Clear(ctx context.Context) {
 	mw.next.Clear(ctx)
 }
 
+func (mw *tracingMiddleware[K, V]) Name() string {
+	return mw.next.Name()
+}
+
 func (mw *tracingMiddleware[K, V]) SWR(ctx context.Context, key K, refreshFromOrigin func(ctx context.Context) (V, error), op func(err error) cache.Op) (V, error) {
 	ctx, span := tracing.Start(ctx, "cache.SWR")
 	defer span.End()

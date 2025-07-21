@@ -1,6 +1,6 @@
 -- Initialize multiple databases for the Unkey deployment platform
 CREATE DATABASE IF NOT EXISTS unkey;
-CREATE DATABASE IF NOT EXISTS hydra; 
+CREATE DATABASE IF NOT EXISTS hydra;
 CREATE DATABASE IF NOT EXISTS partition_001;
 
 -- Create the unkey user

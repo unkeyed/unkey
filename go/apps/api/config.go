@@ -7,6 +7,11 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/tls"
 )
 
+const (
+	// DefaultCacheInvalidationTopic is the default Kafka topic name for cache invalidation events
+	DefaultCacheInvalidationTopic = "cache-invalidations"
+)
+
 type S3Config struct {
 	URL             string
 	Bucket          string
@@ -72,6 +77,15 @@ type Config struct {
 	// Vault Configuration
 	VaultMasterKeys []string
 	VaultS3         *S3Config
+
+	// --- Kafka configuration ---
+
+	// KafkaBrokers is the list of Kafka broker addresses
+	KafkaBrokers []string
+
+	// CacheInvalidationTopic is the Kafka topic name for cache invalidation events
+	// If empty, defaults to DefaultCacheInvalidationTopic
+	CacheInvalidationTopic string
 }
 
 func (c Config) Validate() error {

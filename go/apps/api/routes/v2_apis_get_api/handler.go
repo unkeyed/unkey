@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
+	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
@@ -23,6 +24,7 @@ type Handler struct {
 	Logger logging.Logger
 	DB     db.Database
 	Keys   keys.KeyService
+	Caches caches.Caches
 }
 
 // Method returns the HTTP method this route responds to
@@ -64,8 +66,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Get API from database
-	api, err := db.Query.FindApiByID(ctx, h.DB.RO(), req.ApiId)
+	// Get API from cache with SWR (stale-while-revalidate) pattern
+	api, err := h.Caches.ApiByID.SWR(ctx, req.ApiId, func(ctx context.Context) (db.Api, error) {
+		return db.Query.FindApiByID(ctx, h.DB.RO(), req.ApiId)
+	}, caches.DefaultFindFirstOp)
+
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("api not found",

@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"strings"
 
 	"github.com/unkeyed/unkey/go/apps/api"
 	"github.com/unkeyed/unkey/go/pkg/clock"
@@ -171,12 +172,22 @@ var Cmd = &cli.Command{
 			Value:    "",
 			Required: false,
 		},
+
+		// Kafka Configuration
+		&cli.StringFlag{
+			Name:     "kafka-brokers",
+			Usage:    "Comma-separated list of Kafka broker addresses for distributed cache invalidation",
+			Sources:  cli.EnvVars("UNKEY_KAFKA_BROKERS"),
+			Value:    "",
+			Required: false,
+		},
 	},
 
 	Action: action,
 }
 
 func action(ctx context.Context, cmd *cli.Command) error {
+
 	// Check if TLS flags are properly set (both or none)
 	tlsCertFile := cmd.String("tls-cert-file")
 	tlsKeyFile := cmd.String("tls-key-file")
@@ -201,6 +212,16 @@ func action(ctx context.Context, cmd *cli.Command) error {
 			Bucket:          cmd.String("vault-s3-bucket"),
 			AccessKeyID:     cmd.String("vault-s3-access-key-id"),
 			SecretAccessKey: cmd.String("vault-s3-secret-access-key"),
+		}
+	}
+
+	// Parse Kafka brokers
+	var kafkaBrokers []string
+	if brokers := cmd.String("kafka-brokers"); brokers != "" {
+		kafkaBrokers = strings.Split(brokers, ",")
+		// Trim whitespace from each broker
+		for i, broker := range kafkaBrokers {
+			kafkaBrokers[i] = strings.TrimSpace(broker)
 		}
 	}
 
@@ -237,6 +258,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		// Vault configuration
 		VaultMasterKeys: cmd.StringSlice("vault-master-keys"),
 		VaultS3:         vaultS3Config,
+
+		// Kafka configuration
+		KafkaBrokers: kafkaBrokers,
 	}
 
 	err := config.Validate()

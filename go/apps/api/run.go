@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/routes"
+	cachev1 "github.com/unkeyed/unkey/go/gen/proto/cache/v1"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
@@ -17,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/counter"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/eventstream"
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/prometheus"
@@ -133,13 +135,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	caches, err := caches.New(caches.Config{
-		Logger: logger,
-		Clock:  clk,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create caches: %w", err)
-	}
+	// Caches will be created after invalidation consumer is set up
 
 	srv, err := zen.New(zen.Config{
 		Logger: logger,
@@ -176,17 +172,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create ratelimit service: %w", err)
 	}
 
-	keySvc, err := keys.New(keys.Config{
-		Logger:      logger,
-		DB:          db,
-		KeyCache:    caches.VerificationKeyByHash,
-		RateLimiter: rlSvc,
-		RBAC:        rbac.New(),
-		Clickhouse:  ch,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create key service: %w", err)
-	}
+	// Key service will be created after caches
 
 	var vaultSvc *vault.Service
 	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3 != nil {
@@ -215,6 +201,52 @@ func Run(ctx context.Context, cfg Config) error {
 		Logger: logger,
 		DB:     db,
 	})
+
+	// Initialize cache invalidation topic
+	var cacheInvalidationTopic *eventstream.Topic[*cachev1.CacheInvalidationEvent]
+	if len(cfg.KafkaBrokers) > 0 {
+		logger.Info("Initializing cache invalidation topic",
+			"brokers", cfg.KafkaBrokers,
+			"instanceID", cfg.InstanceID)
+		logger.Info("DEBUG: Raw broker strings", "raw_brokers", fmt.Sprintf("%#v", cfg.KafkaBrokers))
+
+		topicName := cfg.CacheInvalidationTopic
+		if topicName == "" {
+			topicName = DefaultCacheInvalidationTopic
+		}
+
+		cacheInvalidationTopic = eventstream.NewTopic[*cachev1.CacheInvalidationEvent](eventstream.TopicConfig{
+			Brokers:    cfg.KafkaBrokers,
+			Topic:      topicName,
+			InstanceID: cfg.InstanceID,
+			Logger:     logger,
+		})
+
+		// Register topic for graceful shutdown
+		shutdowns.Register(cacheInvalidationTopic.Close)
+	}
+
+	caches, err := caches.New(caches.Config{
+		Logger:                 logger,
+		Clock:                  clk,
+		CacheInvalidationTopic: cacheInvalidationTopic,
+		NodeID:                 cfg.InstanceID,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create caches: %w", err)
+	}
+
+	keySvc, err := keys.New(keys.Config{
+		Logger:      logger,
+		DB:          db,
+		KeyCache:    caches.VerificationKeyByHash,
+		RateLimiter: rlSvc,
+		RBAC:        rbac.New(),
+		Clickhouse:  ch,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create key service: %w", err)
+	}
 
 	routes.Register(srv, &routes.Services{
 		Logger:     logger,
