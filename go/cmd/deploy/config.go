@@ -12,8 +12,6 @@ var (
 	ErrWorkspaceIDRequired = errors.New("workspace ID is required (use --workspace-id flag or edit unkey.json)")
 	ErrProjectIDRequired   = errors.New("project ID is required (use --project-id flag or edit unkey.json)")
 	ErrConfigPathResolve   = errors.New("failed to resolve config path")
-	ErrConfigDirNotExist   = errors.New("config directory does not exist")
-	ErrConfigDirAccess     = errors.New("failed to access config directory")
 	ErrConfigFileRead      = errors.New("failed to read config file")
 	ErrConfigFileParse     = errors.New("failed to parse config file")
 	ErrConfigFileWrite     = errors.New("failed to write config file")
@@ -109,7 +107,7 @@ func writeConfig(configPath string, config *Config) error {
 	}
 
 	if err := os.WriteFile(configPath, data, 0644); err != nil {
-		return fmt.Errorf("failed to write file: %w", err)
+		return fmt.Errorf("%w: %w", ErrConfigFileWrite, err)
 	}
 
 	return nil

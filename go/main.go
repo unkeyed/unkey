@@ -11,14 +11,15 @@ import (
 	"github.com/unkeyed/unkey/go/cmd/run"
 	"github.com/unkeyed/unkey/go/cmd/version"
 	"github.com/unkeyed/unkey/go/pkg/cli"
-	ver "github.com/unkeyed/unkey/go/pkg/version"
+	versioncmd "github.com/unkeyed/unkey/go/pkg/version"
 )
 
 func main() {
 	app := &cli.Command{
-		Name:    "unkey",
-		Usage:   "Run unkey",
-		Version: ver.Version,
+		Name:        "unkey",
+		Usage:       "Run unkey",
+		Description: `Unkey CLI – deploy, run and administer Unkey services.`,
+		Version:     versioncmd.Version,
 		Commands: []*cli.Command{
 			run.Cmd,
 			version.Cmd,
