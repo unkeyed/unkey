@@ -153,10 +153,10 @@ func (c *cache[K, V]) get(_ context.Context, key K) (swrEntry[V], bool) {
 	return v, ok
 }
 
-func (c *cache[K, V]) Remove(ctx context.Context, key K) {
-
-	c.otter.Delete(key)
-
+func (c *cache[K, V]) Remove(ctx context.Context, keys ...K) {
+	for _, key := range keys {
+		c.otter.Delete(key)
+	}
 }
 
 func (c *cache[K, V]) Dump(ctx context.Context) ([]byte, error) {

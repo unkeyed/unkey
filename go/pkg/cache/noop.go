@@ -13,7 +13,7 @@ func (c *noopCache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit
 func (c *noopCache[K, V]) Set(ctx context.Context, key K, value V) {}
 func (c *noopCache[K, V]) SetNull(ctx context.Context, key K)      {}
 
-func (c *noopCache[K, V]) Remove(ctx context.Context, key K) {}
+func (c *noopCache[K, V]) Remove(ctx context.Context, keys ...K) {}
 
 func (c *noopCache[K, V]) Dump(ctx context.Context) ([]byte, error) {
 	return []byte{}, nil
