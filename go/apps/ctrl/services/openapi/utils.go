@@ -10,10 +10,7 @@ import (
 func (s *Service) loadVersionSpec(ctx context.Context, versionID string) (string, error) {
 	version, err := db.Query.FindVersionById(ctx, s.db.RO(), versionID)
 	if err != nil {
-		return "", fault.Wrap(err,
-			fault.Internal("failed to find version in database"),
-			fault.Public("Version not found"),
-		)
+		return "", err
 	}
 
 	if !version.OpenapiSpec.Valid {
