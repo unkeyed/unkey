@@ -59,7 +59,7 @@ var (
 )
 
 // generateImageTag creates a unique tag for the Docker image
-func generateImageTag(opts *DeployOptions, gitInfo git.Info) string {
+func generateImageTag(opts DeployOptions, gitInfo git.Info) string {
 	if gitInfo.ShortSHA != "" {
 		return fmt.Sprintf("%s-%s", opts.Branch, gitInfo.ShortSHA)
 	}
@@ -76,7 +76,7 @@ func isDockerAvailable() error {
 }
 
 // buildImage builds the Docker image with proper error hierarchy
-func buildImage(ctx context.Context, opts *DeployOptions, dockerImage string, ui *UI) error {
+func buildImage(ctx context.Context, opts DeployOptions, dockerImage string, ui *UI) error {
 	// Sub-step 1: Validate inputs
 	if err := validateImagePath(opts); err != nil {
 		ui.PrintStepError(MsgValidationFailed)
@@ -322,7 +322,7 @@ func pushImage(ctx context.Context, dockerImage, registry string) error {
 }
 
 // validateImagePath - pre-flight checks using error constants
-func validateImagePath(opts *DeployOptions) error {
+func validateImagePath(opts DeployOptions) error {
 	// Context directory exists?
 	if _, err := os.Stat(opts.Context); os.IsNotExist(err) {
 		return fmt.Errorf("%w: directory '%s' does not exist", ErrInvalidContext, opts.Context)

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/unkeyed/unkey/go/cmd/config"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/cli"
 	"github.com/unkeyed/unkey/go/pkg/git"
@@ -98,6 +97,9 @@ type DeployOptions struct {
 var DeployFlags = []cli.Flag{
 	// Config directory flag (highest priority)
 	cli.String("config", "Directory containing unkey.json config file"),
+	// Init flag
+	cli.Bool("init", "Initialize configuration file in the specified directory"),
+	cli.Bool("force", "Force overwrite existing configuration file when using --init"),
 	// Required flags (can be provided via config file)
 	cli.String("workspace-id", "Workspace ID", cli.EnvVar(EnvWorkspaceID)),
 	cli.String("project-id", "Project ID", cli.EnvVar("UNKEY_PROJECT_ID")),
@@ -117,18 +119,29 @@ var DeployFlags = []cli.Flag{
 	cli.String("auth-token", "Control plane auth token", cli.Default(DefaultAuthToken)),
 }
 
-// Cmd defines the deploy CLI command (renamed from Command to match your existing pattern)
+// Cmd defines the deploy CLI command
 var Cmd = &cli.Command{
 	Name:  "deploy",
-	Usage: "Deploy a new version",
-	Description: `Build and deploy a new version of your application.
-Builds a container image from the specified context and
+	Usage: "Deploy a new version or initialize configuration",
+	Description: `Build and deploy a new version of your application, or initialize configuration.
+
+When used with --init, creates a configuration template file.
+Otherwise, builds a container image from the specified context and
 deploys it to the Unkey platform.
 
 The deploy command will automatically load configuration from unkey.json
 in the current directory or specified config directory.
 
 EXAMPLES:
+    # Initialize configuration file
+    unkey deploy --init
+
+    # Initialize in specific directory
+    unkey deploy --init --config=./my-project
+
+    # Force overwrite existing config
+    unkey deploy --init --force
+
     # Deploy using config file (./unkey.json)
     unkey deploy
 
@@ -154,39 +167,42 @@ EXAMPLES:
     unkey deploy --docker-image=ghcr.io/user/app:v1.0.0
 
     # Show detailed build and deployment output
-    unkey deploy --verbose
-
-If no config file exists, you can create one with:
-    unkey init`,
+    unkey deploy --verbose`,
 	Flags:  DeployFlags,
 	Action: DeployAction,
 }
 
 func DeployAction(ctx context.Context, cmd *cli.Command) error {
+	// Handle --init flag
+	if cmd.Bool("init") {
+		ui := NewUI()
+		return handleInit(cmd, ui)
+	}
+
 	// Load configuration file
-	configPath, err := config.GetConfigPath(cmd.String("config"))
+	configPath, err := getConfigPath(cmd.String("config"))
 	if err != nil {
 		return err
 	}
 
-	cfg, err := config.LoadConfig(configPath)
+	cfg, err := loadConfig(configPath)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
 	// Merge config with command flags (flags take precedence)
-	finalConfig := cfg.MergeWithFlags(
+	finalConfig := cfg.mergeWithFlags(
 		cmd.String("workspace-id"),
 		cmd.String("project-id"),
 		cmd.String("context"),
 	)
 
 	// Validate that we have required fields
-	if err := finalConfig.Validate(); err != nil {
+	if err := finalConfig.validate(); err != nil {
 		return err // Clean error message already
 	}
 
-	opts := &DeployOptions{
+	opts := DeployOptions{
 		WorkspaceID:     finalConfig.WorkspaceID,
 		ProjectID:       finalConfig.ProjectID,
 		Context:         finalConfig.Context,
@@ -204,7 +220,7 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 	return executeDeploy(ctx, opts)
 }
 
-func executeDeploy(ctx context.Context, opts *DeployOptions) error {
+func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	ui := NewUI()
 	logger := logging.New()
 	gitInfo := git.GetInfo()
@@ -360,7 +376,7 @@ func handleVersionFailure(controlPlane *ControlPlaneClient, version *ctrlv1.Vers
 	return fmt.Errorf("deployment failed: %s", errorMsg)
 }
 
-func printSourceInfo(opts *DeployOptions, gitInfo git.Info) {
+func printSourceInfo(opts DeployOptions, gitInfo git.Info) {
 	fmt.Printf("Source Information:\n")
 	fmt.Printf("    %s: %s\n", LabelBranch, opts.Branch)
 

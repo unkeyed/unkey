@@ -1,4 +1,4 @@
-package config
+package deploy
 
 import (
 	"encoding/json"
@@ -27,10 +27,10 @@ type Config struct {
 	Context     string `json:"context"`
 }
 
-// LoadConfig loads configuration from unkey.json in the specified directory.
+// loadConfig loads configuration from unkey.json in the specified directory.
 // If configPath is empty, uses current directory.
 // If the file doesn't exist, it returns an empty config without error.
-func LoadConfig(configPath string) (*Config, error) {
+func loadConfig(configPath string) (*Config, error) {
 	// If no config path specified, use current directory
 	if configPath == "" {
 		configPath = "."
@@ -65,43 +65,40 @@ func LoadConfig(configPath string) (*Config, error) {
 	return config, nil
 }
 
-// CreateTemplate creates a new unkey.json template file in the specified directory
-func CreateTemplate(configDir string) error {
-	configPath := filepath.Join(configDir, "unkey.json")
-
-	// Create template config with placeholder values
-	config := &Config{
-		WorkspaceID: "ws_your_workspace_id",
-		ProjectID:   "proj_your_project_id",
-		Context:     "./your_app_directory",
-	}
-
-	// Create directory if it doesn't exist
-	if err := os.MkdirAll(configDir, 0755); err != nil {
-		return fmt.Errorf("%w %s: %w", ErrDirectoryCreate, configDir, err)
-	}
-
-	// Write config file
-	if err := writeConfig(configPath, config); err != nil {
-		return fmt.Errorf("%w: %w", ErrConfigFileWrite, err)
-	}
-
-	return nil
-}
-
-// ConfigExists checks if unkey.json exists in the specified directory
-func ConfigExists(configDir string) bool {
+// configExists checks if unkey.json exists in the specified directory
+func configExists(configDir string) bool {
 	configPath := filepath.Join(configDir, "unkey.json")
 	_, err := os.Stat(configPath)
 	return err == nil
 }
 
-// GetConfigFilePath returns the full path to unkey.json in the specified directory
-func GetConfigFilePath(configDir string) string {
+// getConfigFilePath returns the full path to unkey.json in the specified directory
+func getConfigFilePath(configDir string) string {
 	if configDir == "" {
 		configDir = "."
 	}
 	return filepath.Join(configDir, "unkey.json")
+}
+
+// createConfigWithValues creates a new unkey.json file with the provided values
+func createConfigWithValues(configDir, workspaceID, projectID, context string) error {
+	// Create directory if it doesn't exist
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return fmt.Errorf("%w %s: %w", ErrDirectoryCreate, configDir, err)
+	}
+
+	config := &Config{
+		WorkspaceID: workspaceID,
+		ProjectID:   projectID,
+		Context:     context,
+	}
+
+	configPath := filepath.Join(configDir, "unkey.json")
+	if err := writeConfig(configPath, config); err != nil {
+		return fmt.Errorf("%w: %w", ErrConfigFileWrite, err)
+	}
+
+	return nil
 }
 
 // writeConfig writes the config struct to a JSON file
@@ -118,8 +115,8 @@ func writeConfig(configPath string, config *Config) error {
 	return nil
 }
 
-// MergeWithFlags merges config values with command flags, with flags taking precedence
-func (c *Config) MergeWithFlags(workspaceID, projectID, context string) *Config {
+// mergeWithFlags merges config values with command flags, with flags taking precedence
+func (c *Config) mergeWithFlags(workspaceID, projectID, context string) *Config {
 	merged := &Config{
 		WorkspaceID: c.WorkspaceID,
 		ProjectID:   c.ProjectID,
@@ -145,8 +142,8 @@ func (c *Config) MergeWithFlags(workspaceID, projectID, context string) *Config 
 	return merged
 }
 
-// Validate checks if required fields are present and not placeholder values
-func (c *Config) Validate() error {
+// validate checks if required fields are present and not placeholder values
+func (c *Config) validate() error {
 	if c.WorkspaceID == "" || c.WorkspaceID == "ws_your_workspace_id" {
 		return ErrWorkspaceIDRequired
 	}
@@ -156,8 +153,8 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// GetConfigPath resolves the config directory path
-func GetConfigPath(configFlag string) (string, error) {
+// getConfigPath resolves the config directory path
+func getConfigPath(configFlag string) (string, error) {
 	if configFlag == "" {
 		return ".", nil
 	}

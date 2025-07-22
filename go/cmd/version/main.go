@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/unkeyed/unkey/go/cmd/deploy"
 	"github.com/unkeyed/unkey/go/pkg/cli"
 )
 
@@ -16,20 +15,10 @@ var Cmd = &cli.Command{
 	
 Versions are immutable snapshots of your code, configuration, and infrastructure settings.`,
 	Commands: []*cli.Command{
-		createCmd,
 		getCmd,
 		listCmd,
 		rollbackCmd,
 	},
-}
-
-var createCmd = &cli.Command{
-	Name:        "create",
-	Aliases:     []string{"deploy"},
-	Usage:       "Create a new version (same as deploy)",
-	Description: "Same as 'unkey deploy'. See 'unkey help deploy' for details.",
-	Flags:       deploy.DeployFlags,
-	Action:      deploy.DeployAction,
 }
 
 var getCmd = &cli.Command{
