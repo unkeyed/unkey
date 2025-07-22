@@ -33,6 +33,7 @@ func startBufferProcessor(
 			startTime := time.Now()
 
 			telemetryConfig.Metrics.FlushCounter.Add(ctx, 1)
+			telemetryConfig.Metrics.FlushBatchCount.Record(ctx, int64(len(batchesByParams)))
 
 			span.SetAttributes(
 				attribute.Int("batch_count", len(batchesByParams)),
@@ -40,7 +41,11 @@ func startBufferProcessor(
 			)
 
 			for _, batch := range batchesByParams {
+				batchStart := time.Now()
 				err := persist(ctx, batch, config)
+				batchDuration := time.Since(batchStart).Seconds()
+				telemetryConfig.Metrics.BatchPersistDuration.Record(ctx, batchDuration)
+
 				if err != nil {
 					span.RecordError(err)
 					span.SetStatus(codes.Error, err.Error())
@@ -49,6 +54,7 @@ func startBufferProcessor(
 						"error", err.Error(),
 						"table", batch.Table,
 						"rows_dropped", len(batch.Rows),
+						"batch_duration_seconds", batchDuration,
 						"query", batch.Params.Get("query"),
 					)
 				}
