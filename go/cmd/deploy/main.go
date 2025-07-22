@@ -119,55 +119,84 @@ var DeployFlags = []cli.Flag{
 	cli.String("auth-token", "Control plane auth token", cli.Default(DefaultAuthToken)),
 }
 
+// WARNING: Changing the "Description" part will also affect generated MDX.
 // Cmd defines the deploy CLI command
 var Cmd = &cli.Command{
 	Name:  "deploy",
 	Usage: "Deploy a new version or initialize configuration",
 	Description: `Build and deploy a new version of your application, or initialize configuration.
 
-When used with --init, creates a configuration template file.
-Otherwise, builds a container image from the specified context and
-deploys it to the Unkey platform.
+The deploy command handles the complete deployment lifecycle: from building Docker images to deploying them on Unkey's infrastructure. It automatically detects your Git context, builds containers, and manages the deployment process with real-time status updates.
 
-The deploy command will automatically load configuration from unkey.json
-in the current directory or specified config directory.
+**Initialization Mode:**
+Use --init to create a configuration template file. This generates an unkey.json file with your project settings, making future deployments simpler and more consistent across environments.
 
-EXAMPLES:
-    # Initialize configuration file
-    unkey deploy --init
+**Deployment Process:**
+1. Load configuration from unkey.json or flags
+2. Build Docker image from your application
+3. Push image to container registry
+4. Create deployment version on Unkey platform
+5. Monitor deployment status until active
 
-    # Initialize in specific directory
-    unkey deploy --init --config=./my-project
+## Examples
 
-    # Force overwrite existing config
-    unkey deploy --init --force
+#### Initialize new project configuration
+` + "```bash" + `
+unkey deploy --init
+` + "```" + `
 
-    # Deploy using config file (./unkey.json)
-    unkey deploy
+#### Initialize with custom location
+` + "```bash" + `
+unkey deploy --init --config=./my-project
+` + "```" + `
 
-    # Deploy with config from specific directory
-    unkey deploy --config=./test-docker
+#### Force overwrite existing configuration
+` + "```bash" + `
+unkey deploy --init --force
+` + "```" + `
 
-    # Deploy overriding workspace from config
-    unkey deploy --workspace-id=ws_different
+#### Standard deployment (uses ./unkey.json)
+` + "```bash" + `
+unkey deploy
+` + "```" + `
 
-    # Deploy with specific context (overrides config)
-    unkey deploy --context=./demo_api
+#### Deploy from specific config directory
+` + "```bash" + `
+unkey deploy --config=./production
+` + "```" + `
 
-    # Deploy with your own registry
-    unkey deploy \
-      --workspace-id=ws_4QgQsKsKfdm3nGeC \
-      --project-id=proj_9aiaks2dzl6mcywnxjf \
-      --registry=docker.io/mycompany/myapp
+#### Override workspace from config file
+` + "```bash" + `
+unkey deploy --workspace-id=ws_production_123
+` + "```" + `
 
-    # Local development (skip push)
-    unkey deploy --skip-push
+#### Deploy with custom build context
+` + "```bash" + `
+unkey deploy --context=./api
+` + "```" + `
 
-    # Deploy pre-built image
-    unkey deploy --docker-image=ghcr.io/user/app:v1.0.0
+#### Deploy to custom registry
+` + "```bash" + `
+unkey deploy \
+  --workspace-id=ws_4QgQsKsKfdm3nGeC \
+  --project-id=proj_9aiaks2dzl6mcywnxjf \
+  --registry=docker.io/mycompany/myapp
+` + "```" + `
 
-    # Show detailed build and deployment output
-    unkey deploy --verbose`,
+#### Local development (build only, no push)
+` + "```bash" + `
+unkey deploy --skip-push
+` + "```" + `
+
+#### Deploy pre-built image
+` + "```bash" + `
+unkey deploy --docker-image=ghcr.io/user/app:v1.0.0
+` + "```" + `
+
+#### Verbose output for debugging
+` + "```bash" + `
+unkey deploy --verbose
+` + "```" + ``,
 	Flags:  DeployFlags,
 	Action: DeployAction,
 }

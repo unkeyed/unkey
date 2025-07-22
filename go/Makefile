@@ -1,4 +1,6 @@
-.PHONY: install fmt test-unit test-full build generate lint pull up down
+.PHONY: install fmt test-unit test-full build generate lint pull up down generate-docs
+
+DOCS_DIR = ../apps/engineering/content/docs/architecture/services
 
 install:
 	go mod tidy
@@ -14,7 +16,7 @@ up:
 	@docker compose -f ../deployment/docker-compose.yaml up -d mysql redis clickhouse s3 otel
 	@echo "Starting ClickHouse migrations (will retry if ClickHouse isn't ready)..."
 	@for i in {1..10}; do \
-		echo "Migration attempt $$i..."; \
+		echo "Migration attempt $i..."; \
 		if docker compose -f ../deployment/docker-compose.yaml run --rm clickhouse_migrator; then \
 			echo "Migrations completed successfully!"; \
 			break; \
@@ -32,14 +34,18 @@ test-full: export SIMULATION_TEST=false
 test-full: up
 	@echo "Running full tests... this can take more than 30min... run 'make test-unit' for faster tests"
 	@go test -failfast -timeout=60m -shuffle=on -v -json ./... | tparse -all -progress -smallscreen
-
 test-unit: up
 	@go test -json -race -failfast -timeout=30m ./... | tparse -all -progress -smallscreen
 
-build:
+build: generate-docs
+build-binary:
 	go build -o unkey ./main.go
 
 generate:
 	buf generate
 	go generate ./...
-
+generate-docs: build-binary
+	@for cmd in deploy run healthcheck quotacheck version; do \
+		mkdir -p "$(DOCS_DIR)/$$cmd"; \
+		./unkey $$cmd mdx > "$(DOCS_DIR)/$$cmd/index.mdx"; \
+	done
