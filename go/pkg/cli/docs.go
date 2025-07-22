@@ -23,7 +23,7 @@ func (c *Command) GenerateMDX(frontMatter *FrontMatter) (string, error) {
 		"hasPrefix": strings.HasPrefix,
 		"title":     strings.Title,
 		"lower":     strings.ToLower,
-		"hasItems":  func(items interface{}) bool { return c.hasItems(items) },
+		"hasItems":  func(items any) bool { return c.hasItems(items) },
 		"eq":        func(a, b string) bool { return a == b },
 	}).Parse(mdxTemplate)
 	if err != nil {
@@ -35,7 +35,45 @@ func (c *Command) GenerateMDX(frontMatter *FrontMatter) (string, error) {
 		return "", fmt.Errorf("failed to execute MDX template: %w", err)
 	}
 
+	// If this command has subcommands, append their documentation
+	if len(c.Commands) > 0 {
+		for _, subCmd := range c.Commands {
+			subFrontMatter := &FrontMatter{
+				Title:       fmt.Sprintf("%s %s", strings.Title(c.Name), strings.Title(subCmd.Name)),
+				Description: subCmd.Usage,
+			}
+
+			subMDX, err := subCmd.GenerateMDX(subFrontMatter)
+			if err != nil {
+				return "", fmt.Errorf("failed to generate MDX for subcommand %s: %w", subCmd.Name, err)
+			}
+
+			// Remove frontmatter from subcommand MDX and append
+			subMDXContent := c.removeFrontmatter(subMDX)
+			result.WriteString("\n\n---\n\n")
+			result.WriteString(subMDXContent)
+		}
+	}
+
 	return result.String(), nil
+}
+
+// removeFrontmatter strips the frontmatter section from MDX content
+func (c *Command) removeFrontmatter(mdx string) string {
+	lines := strings.Split(mdx, "\n")
+	if len(lines) == 0 || lines[0] != "---" {
+		return mdx
+	}
+
+	// Find the closing ---
+	for i := 1; i < len(lines); i++ {
+		if lines[i] == "---" {
+			// Return everything after the closing frontmatter
+			return strings.Join(lines[i+1:], "\n")
+		}
+	}
+
+	return mdx
 }
 
 // MDXData holds structured command data for template generation
@@ -403,7 +441,7 @@ func (c *Command) extractEnvVariables() []MDXEnvVar {
 	return envVars
 }
 
-func (c *Command) hasItems(items interface{}) bool {
+func (c *Command) hasItems(items any) bool {
 	switch v := items.(type) {
 	case []MDXFlag:
 		return len(v) > 0
