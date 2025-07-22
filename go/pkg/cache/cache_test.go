@@ -15,7 +15,7 @@ import (
 
 func TestWriteRead(t *testing.T) {
 
-	c, err := cache.New[string, string](cache.Config[string, string]{
+	c, err := cache.New(cache.Config[string, string]{
 		MaxSize: 10_000,
 
 		Fresh:    time.Minute,
@@ -33,7 +33,7 @@ func TestWriteRead(t *testing.T) {
 func TestEviction(t *testing.T) {
 
 	clk := clock.NewTestClock()
-	c, err := cache.New[string, string](cache.Config[string, string]{
+	c, err := cache.New(cache.Config[string, string]{
 		MaxSize: 10_000,
 
 		Fresh:    time.Second,
@@ -56,7 +56,7 @@ func TestRefresh(t *testing.T) {
 	// count how many times we refreshed from origin
 	refreshedFromOrigin := atomic.Int32{}
 
-	c, err := cache.New[string, string](cache.Config[string, string]{
+	c, err := cache.New(cache.Config[string, string]{
 		MaxSize: 10_000,
 
 		Fresh:    time.Second * 2,
@@ -80,7 +80,7 @@ func TestRefresh(t *testing.T) {
 
 func TestNull(t *testing.T) {
 
-	c, err := cache.New[string, string](cache.Config[string, string]{
+	c, err := cache.New(cache.Config[string, string]{
 		MaxSize:  10_000,
 		Fresh:    time.Second * 1,
 		Stale:    time.Minute * 5,

@@ -239,7 +239,7 @@ func (c *cache[K, V]) SWR(
 	key K,
 	refreshFromOrigin func(context.Context) (V, error),
 	op func(error) Op,
-) (V, error) {
+) (V, CacheHit, error) {
 	now := c.clock.Now()
 	e, ok := c.get(ctx, key)
 	if ok {
@@ -247,7 +247,7 @@ func (c *cache[K, V]) SWR(
 
 		if now.Before(e.Fresh) {
 			// We have data and it's fresh, so we return it
-			return e.Value, nil
+			return e.Value, e.Hit, nil
 		}
 
 		if now.Before(e.Stale) {
@@ -260,7 +260,7 @@ func (c *cache[K, V]) SWR(
 				c.revalidate(context.WithoutCancel(ctx), key, refreshFromOrigin, op)
 
 			}
-			return e.Value, nil
+			return e.Value, e.Hit, nil
 		}
 
 		// We have old data, that we should not serve anymore
@@ -281,5 +281,21 @@ func (c *cache[K, V]) SWR(
 		break
 	}
 
-	return v, err
+	if err != nil {
+		// Error occurred, return Miss as the cache hit status
+		return v, Miss, err
+	}
+
+	// Determine cache hit status based on the operation
+	var hit CacheHit
+	switch op(err) {
+	case WriteValue:
+		hit = Hit
+	case WriteNull:
+		hit = Null
+	default:
+		hit = Miss
+	}
+
+	return v, hit, err
 }

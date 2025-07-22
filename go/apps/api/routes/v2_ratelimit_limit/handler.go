@@ -70,7 +70,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	ctx, span := tracing.Start(ctx, "FindRatelimitNamespace")
-	namespace, err := h.RatelimitNamespaceCache.SWR(ctx,
+	namespace, hit, err := h.RatelimitNamespaceCache.SWR(
+		ctx,
 		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: req.Namespace},
 		func(ctx context.Context) (db.FindRatelimitNamespace, error) {
 			response, err := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
@@ -108,7 +109,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			return result, nil
-		}, caches.DefaultFindFirstOp)
+		},
+		caches.DefaultFindFirstOp,
+	)
 	span.End()
 
 	if err != nil {
@@ -120,6 +123,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		return err
+	}
+
+	if hit == cache.Null {
+		return fault.New("namespace cache null",
+			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+			fault.Public("This namespace does not exist."),
+		)
 	}
 
 	if namespace.DeletedAtM.Valid {
