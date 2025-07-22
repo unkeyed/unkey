@@ -183,6 +183,10 @@ func (c *ControlPlaneClient) processNewSteps(
 			}
 
 			// INFO: This is for demo purposes only.
+			// Adding a small delay between deployment steps to make the progression
+			// visually observable during demos. This allows viewers to see each
+			// individual step (VM boot, rootfs loading, etc.) rather than having
+			// everything complete too quickly to follow.
 			time.Sleep(800 * time.Millisecond)
 		}
 		// Mark this step as processed
