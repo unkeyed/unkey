@@ -91,8 +91,11 @@ func startBufferProcessor(
 				batch, ok := batchesByParams[params]
 				if !ok {
 					batchesByParams[params] = b
-					config.Logger.Debug("new batch type received",
-						"query", b.Params.Get("query"))
+					config.Logger.Info("new batch type received",
+						"query", b.Params.Get("query"),
+						"table", b.Table,
+						"params", params,
+						"total_batch_types", len(batchesByParams))
 				} else {
 					// Check if adding these rows would exceed the per-batch limit
 					if len(batch.Rows)+len(b.Rows) > maxBatchRows {
