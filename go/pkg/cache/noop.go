@@ -22,9 +22,9 @@ func (c *noopCache[K, V]) Restore(ctx context.Context, data []byte) error {
 	return nil
 }
 func (c *noopCache[K, V]) Clear(ctx context.Context) {}
-func (c *noopCache[K, V]) SWR(ctx context.Context, key K, refreshFromOrigin func(context.Context) (V, error), op func(err error) Op) (V, error) {
+func (c *noopCache[K, V]) SWR(ctx context.Context, key K, refreshFromOrigin func(context.Context) (V, error), op func(err error) Op) (V, CacheHit, error) {
 	var v V
-	return v, nil
+	return v, Miss, nil
 }
 
 func NewNoopCache[K comparable, V any]() Cache[K, V] {

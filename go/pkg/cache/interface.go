@@ -19,7 +19,7 @@ type Cache[K comparable, V any] interface {
 	// Multiple keys can be provided for efficient bulk removal.
 	Remove(ctx context.Context, keys ...K)
 
-	SWR(ctx context.Context, key K, refreshFromOrigin func(ctx context.Context) (V, error), op func(error) Op) (value V, err error)
+	SWR(ctx context.Context, key K, refreshFromOrigin func(ctx context.Context) (V, error), op func(error) Op) (value V, hit CacheHit, err error)
 
 	// Dump returns a serialized representation of the cache.
 	Dump(ctx context.Context) ([]byte, error)
