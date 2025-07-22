@@ -72,6 +72,14 @@ type Config struct {
 	// Vault Configuration
 	VaultMasterKeys []string
 	VaultS3         *S3Config
+
+	// --- ClickHouse proxy configuration ---
+
+	// ChproxyEnabled enables the ClickHouse proxy endpoints
+	ChproxyEnabled bool
+
+	// ChproxyToken is the authentication token for ClickHouse proxy endpoints
+	ChproxyToken string
 }
 
 func (c Config) Validate() error {

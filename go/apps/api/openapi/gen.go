@@ -82,6 +82,135 @@ type BaseError struct {
 	Type string `json:"type"`
 }
 
+// ChproxyMetricsRequestBody Array of API request metric events to be processed
+type ChproxyMetricsRequestBody = []struct {
+	// City Client city
+	City string `json:"city"`
+
+	// Colo Cloudflare colo/edge location
+	Colo string `json:"colo"`
+
+	// Continent Client continent code
+	Continent string `json:"continent"`
+
+	// Country Client country code
+	Country string `json:"country"`
+
+	// Error Error message if request failed
+	Error string `json:"error"`
+
+	// Host Hostname from the request
+	Host string `json:"host"`
+
+	// IpAddress Client IP address
+	IpAddress string `json:"ip_address"`
+
+	// Method HTTP method used
+	Method string `json:"method"`
+
+	// Path Request URI path
+	Path string `json:"path"`
+
+	// RequestBody HTTP request body (sanitized)
+	RequestBody string `json:"request_body"`
+
+	// RequestHeaders HTTP request headers
+	RequestHeaders []string `json:"request_headers"`
+
+	// RequestId Unique identifier for the API request
+	RequestId string `json:"request_id"`
+
+	// ResponseBody HTTP response body (sanitized)
+	ResponseBody string `json:"response_body"`
+
+	// ResponseHeaders HTTP response headers
+	ResponseHeaders []string `json:"response_headers"`
+
+	// ResponseStatus HTTP response status code
+	ResponseStatus int `json:"response_status"`
+
+	// ServiceLatency Time in milliseconds to process the request
+	ServiceLatency int64 `json:"service_latency"`
+
+	// Time Unix timestamp in milliseconds when the request was received
+	Time int64 `json:"time"`
+
+	// UserAgent Client user agent string
+	UserAgent string `json:"user_agent"`
+
+	// WorkspaceId Unique identifier of the workspace making the request
+	WorkspaceId string `json:"workspace_id"`
+}
+
+// ChproxyMetricsResponseBody defines model for ChproxyMetricsResponseBody.
+type ChproxyMetricsResponseBody struct {
+	// Status Processing status
+	Status string `json:"status"`
+}
+
+// ChproxyRatelimitsRequestBody Array of ratelimit events to be processed
+type ChproxyRatelimitsRequestBody = []struct {
+	// Identifier Identifier being rate limited (e.g., API key, IP address)
+	Identifier string `json:"identifier"`
+
+	// NamespaceId Unique identifier of the ratelimit namespace
+	NamespaceId string `json:"namespace_id"`
+
+	// Passed Whether the request passed the rate limit check (true) or was rate limited (false)
+	Passed bool `json:"passed"`
+
+	// RequestId Unique identifier for the ratelimit request
+	RequestId string `json:"request_id"`
+
+	// Time Unix timestamp in milliseconds when the ratelimit was checked
+	Time int64 `json:"time"`
+
+	// WorkspaceId Unique identifier of the workspace
+	WorkspaceId string `json:"workspace_id"`
+}
+
+// ChproxyRatelimitsResponseBody defines model for ChproxyRatelimitsResponseBody.
+type ChproxyRatelimitsResponseBody struct {
+	// Status Processing status
+	Status string `json:"status"`
+}
+
+// ChproxyVerificationsRequestBody Array of key verification events to be processed
+type ChproxyVerificationsRequestBody = []struct {
+	// IdentityId Optional identity associated with the key
+	IdentityId *string `json:"identity_id,omitempty"`
+
+	// KeyId Unique identifier of the key being verified
+	KeyId string `json:"key_id"`
+
+	// KeySpaceId Unique identifier of the key space (API) the key belongs to
+	KeySpaceId string `json:"key_space_id"`
+
+	// Outcome Result of the verification attempt
+	Outcome string `json:"outcome"`
+
+	// Region Geographic region where the verification occurred
+	Region string `json:"region"`
+
+	// RequestId Unique identifier for the verification request
+	RequestId string `json:"request_id"`
+
+	// Tags Optional array of tags associated with the verification
+	Tags *[]string `json:"tags,omitempty"`
+
+	// Time Unix timestamp in milliseconds when the verification occurred
+	Time int64 `json:"time"`
+
+	// WorkspaceId Unique identifier of the workspace that owns the key
+	WorkspaceId string `json:"workspace_id"`
+}
+
+// ChproxyVerificationsResponseBody defines model for ChproxyVerificationsResponseBody.
+type ChproxyVerificationsResponseBody struct {
+	// Status Processing status
+	Status string `json:"status"`
+}
+
 // ConflictErrorResponse Error response when the request conflicts with the current state of the resource. This occurs when:
 // - Attempting to create a resource that already exists
 // - Modifying a resource that has been changed by another operation
@@ -2129,6 +2258,15 @@ type VerifyKeyRatelimitData struct {
 	// Reset Rate limit reset duration in milliseconds.
 	Reset int64 `json:"reset"`
 }
+
+// ChproxyMetricsJSONRequestBody defines body for ChproxyMetrics for application/json ContentType.
+type ChproxyMetricsJSONRequestBody = ChproxyMetricsRequestBody
+
+// ChproxyRatelimitsJSONRequestBody defines body for ChproxyRatelimits for application/json ContentType.
+type ChproxyRatelimitsJSONRequestBody = ChproxyRatelimitsRequestBody
+
+// ChproxyVerificationsJSONRequestBody defines body for ChproxyVerifications for application/json ContentType.
+type ChproxyVerificationsJSONRequestBody = ChproxyVerificationsRequestBody
 
 // CreateApiJSONRequestBody defines body for CreateApi for application/json ContentType.
 type CreateApiJSONRequestBody = V2ApisCreateApiRequestBody

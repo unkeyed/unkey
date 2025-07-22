@@ -1,0 +1,107 @@
+type: array
+description: Array of API request metric events to be processed
+items:
+  type: object
+  required:
+    - workspace_id
+    - request_id
+    - time
+    - host
+    - method
+    - path
+    - request_headers
+    - request_body
+    - response_status
+    - response_headers
+    - response_body
+    - error
+    - service_latency
+    - user_agent
+    - ip_address
+    - country
+    - city
+    - colo
+    - continent
+  properties:
+    workspace_id:
+      type: string
+      description: Unique identifier of the workspace making the request
+      example: "ws_123abc"
+    request_id:
+      type: string
+      description: Unique identifier for the API request
+      example: "req_456def"
+    time:
+      type: integer
+      format: int64
+      description: Unix timestamp in milliseconds when the request was received
+      example: 1642637400000
+    host:
+      type: string
+      description: Hostname from the request
+      example: "api.unkey.dev"
+    method:
+      type: string
+      description: HTTP method used
+      example: "POST"
+    path:
+      type: string
+      description: Request URI path
+      example: "/v2/keys/verify"
+    request_headers:
+      type: array
+      description: HTTP request headers
+      items:
+        type: string
+      example: ["authorization: Bearer ...", "content-type: application/json"]
+    request_body:
+      type: string
+      description: HTTP request body (sanitized)
+      example: '{"key": "uk_123"}'
+    response_status:
+      type: integer
+      description: HTTP response status code
+      example: 200
+    response_headers:
+      type: array
+      description: HTTP response headers
+      items:
+        type: string
+      example: ["content-type: application/json"]
+    response_body:
+      type: string
+      description: HTTP response body (sanitized)
+      example: '{"valid": true}'
+    error:
+      type: string
+      description: Error message if request failed
+      example: ""
+    service_latency:
+      type: integer
+      format: int64
+      description: Time in milliseconds to process the request
+      example: 45
+    user_agent:
+      type: string
+      description: Client user agent string
+      example: "unkey-js/1.0.0"
+    ip_address:
+      type: string
+      description: Client IP address
+      example: "1.2.3.4"
+    country:
+      type: string
+      description: Client country code
+      example: "US"
+    city:
+      type: string
+      description: Client city
+      example: "New York"
+    colo:
+      type: string
+      description: Cloudflare colo/edge location
+      example: "EWR"
+    continent:
+      type: string
+      description: Client continent code
+      example: "NA"
