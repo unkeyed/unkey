@@ -45,12 +45,14 @@ func startBufferProcessor(
 					span.RecordError(err)
 					span.SetStatus(codes.Error, err.Error())
 
-					config.Logger.Error("error persisting batch",
+					config.Logger.Error("error persisting batch, data dropped",
 						"error", err.Error(),
 						"table", batch.Table,
+						"rows_dropped", len(batch.Rows),
 						"query", batch.Params.Get("query"),
 					)
 				}
+				// Note: Memory will be freed when batchesByParams is reset below
 			}
 
 			duration := time.Since(startTime).Seconds()
@@ -86,9 +88,36 @@ func startBufferProcessor(
 					config.Logger.Debug("new batch type received",
 						"query", b.Params.Get("query"))
 				} else {
-					batch.Rows = append(batch.Rows, b.Rows...)
+					// Check if adding these rows would exceed the per-batch limit
+					if len(batch.Rows)+len(b.Rows) > maxBatchRows {
+						// Flush the current batch to make room
+						config.Logger.Info("flushing batch due to individual batch size limit",
+							"current_rows", len(batch.Rows),
+							"incoming_rows", len(b.Rows),
+							"table", batch.Table)
+
+						err := persist(ctx, batch, config)
+
+						// Always free the memory by resetting batch, regardless of persist success
+						// Update buffered count: subtract old rows, will add new rows below
+						buffered -= len(batch.Rows)
+
+						if err != nil {
+							config.Logger.Error("error persisting batch during size limit flush, data dropped",
+								"error", err.Error(),
+								"table", batch.Table,
+								"rows_dropped", len(batch.Rows),
+								"query", batch.Params.Get("query"))
+						}
+
+						// Reset this batch and start fresh with the new rows
+						batch.Rows = b.Rows
+					} else {
+						batch.Rows = append(batch.Rows, b.Rows...)
+					}
 				}
 
+				// Always add the new incoming rows to the buffer count
 				buffered += len(b.Rows)
 				SetBufferSize(int64(buffered))
 
