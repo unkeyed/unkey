@@ -44,13 +44,15 @@ func (mw *tracingMiddleware[K, V]) SetNull(ctx context.Context, key K) {
 	mw.next.SetNull(ctx, key)
 
 }
-func (mw *tracingMiddleware[K, V]) Remove(ctx context.Context, key K) {
+func (mw *tracingMiddleware[K, V]) Remove(ctx context.Context, keys ...K) {
 	ctx, span := tracing.Start(ctx, "cache.Remove")
 	defer span.End()
-	span.SetAttributes(attribute.String("key", fmt.Sprintf("%+v", key)))
+	span.SetAttributes(
+		attribute.String("keys", fmt.Sprintf("%+v", keys)),
+		attribute.Int("count", len(keys)),
+	)
 
-	mw.next.Remove(ctx, key)
-
+	mw.next.Remove(ctx, keys...)
 }
 
 func (mw *tracingMiddleware[K, V]) Dump(ctx context.Context) ([]byte, error) {

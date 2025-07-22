@@ -17,4 +17,9 @@ INSERT INTO `ratelimits` (
     sqlc.arg('duration'),
     sqlc.arg('created_at'),
     sqlc.arg('auto_apply')
-);
+) ON DUPLICATE KEY UPDATE
+    name = VALUES(name),
+    `limit` = VALUES(`limit`),
+    duration = VALUES(duration),
+    auto_apply = VALUES(auto_apply),
+    updated_at = VALUES(created_at);

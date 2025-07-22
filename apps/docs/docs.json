@@ -235,6 +235,12 @@
                           "api-reference/errors-v2/unkey/data/role_not_found",
                           "api-reference/errors-v2/unkey/data/workspace_not_found"
                         ]
+                      },
+                      {
+                        "group": "User",
+                        "pages": [
+                          "api-reference/errors-v2/user/bad_request/permissions_query_syntax_error"
+                        ]
                       }
                     ]
                   },

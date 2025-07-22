@@ -29,7 +29,12 @@ INSERT INTO ` + "`" + `ratelimits` + "`" + ` (
     ?,
     ?,
     ?
-)
+) ON DUPLICATE KEY UPDATE
+    name = VALUES(name),
+    ` + "`" + `limit` + "`" + ` = VALUES(` + "`" + `limit` + "`" + `),
+    duration = VALUES(duration),
+    auto_apply = VALUES(auto_apply),
+    updated_at = VALUES(created_at)
 `
 
 type InsertIdentityRatelimitParams struct {
@@ -63,7 +68,12 @@ type InsertIdentityRatelimitParams struct {
 //	    ?,
 //	    ?,
 //	    ?
-//	)
+//	) ON DUPLICATE KEY UPDATE
+//	    name = VALUES(name),
+//	    `limit` = VALUES(`limit`),
+//	    duration = VALUES(duration),
+//	    auto_apply = VALUES(auto_apply),
+//	    updated_at = VALUES(created_at)
 func (q *Queries) InsertIdentityRatelimit(ctx context.Context, db DBTX, arg InsertIdentityRatelimitParams) error {
 	_, err := db.ExecContext(ctx, insertIdentityRatelimit,
 		arg.ID,

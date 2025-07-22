@@ -662,7 +662,12 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?
-	//  )
+	//  ) ON DUPLICATE KEY UPDATE
+	//      name = VALUES(name),
+	//      `limit` = VALUES(`limit`),
+	//      duration = VALUES(duration),
+	//      auto_apply = VALUES(auto_apply),
+	//      updated_at = VALUES(created_at)
 	InsertIdentityRatelimit(ctx context.Context, db DBTX, arg InsertIdentityRatelimitParams) error
 	//InsertKey
 	//
@@ -867,7 +872,7 @@ type Querier interface {
 	//
 	//  INSERT INTO roles (
 	//    id,
-	//    workspace_Id,
+	//    workspace_id,
 	//    name,
 	//    description,
 	//    created_at_m
