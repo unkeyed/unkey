@@ -19,31 +19,11 @@ const (
 	// Timeouts
 	DockerBuildTimeout = 10 * time.Minute
 
-	// Docker command and arguments
-	DockerCmd          = "docker"
-	DockerBuildCmd     = "build"
-	DockerPushCmd      = "push"
-	DockerVersionFlag  = "--version"
-	DockerFileFlag     = "-f"
-	DockerTagFlag      = "-t"
-	DockerBuildArgFlag = "--build-arg"
-
 	// Build arguments
 	VersionBuildArg = "VERSION"
 
 	// Progress messages
 	ProgressBuilding = "Building..."
-
-	// Step messages
-	MsgValidationFailed     = "Validation failed"
-	MsgBuildInputsValidated = "Build inputs validated"
-	MsgBuildCommandPrepared = "Build command prepared"
-	MsgStartingDockerBuild  = "Starting Docker build"
-	MsgDockerBuildFailed    = "Docker build failed"
-	MsgDockerBuildCompleted = "Docker build completed successfully"
-	MsgBuildTimedOut        = "Build timed out"
-	MsgBuildFailed          = "Build failed"
-	MsgLastFewLinesOfOutput = "Last few lines of output:"
 
 	// Limits
 	MaxOutputLines = 5
@@ -68,7 +48,7 @@ func generateImageTag(opts DeployOptions, gitInfo git.Info) string {
 
 // isDockerAvailable checks if Docker is installed and accessible
 func isDockerAvailable() error {
-	cmd := exec.Command(DockerCmd, DockerVersionFlag)
+	cmd := exec.Command("docker", "--version")
 	if err := cmd.Run(); err != nil {
 		return ErrDockerNotFound
 	}
@@ -79,34 +59,34 @@ func isDockerAvailable() error {
 func buildImage(ctx context.Context, opts DeployOptions, dockerImage string, ui *UI) error {
 	// Sub-step 1: Validate inputs
 	if err := validateImagePath(opts); err != nil {
-		ui.PrintStepError(MsgValidationFailed)
+		ui.PrintStepError("Validation failed")
 		ui.PrintErrorDetails(err.Error())
 		return err
 	}
-	ui.PrintStepSuccess(MsgBuildInputsValidated)
+	ui.PrintStepSuccess("Build inputs validated")
 
 	// Sub-step 2: Prepare build command
-	buildArgs := []string{DockerBuildCmd}
+	buildArgs := []string{"build"}
 	if opts.Dockerfile != DefaultDockerfile {
-		buildArgs = append(buildArgs, DockerFileFlag, opts.Dockerfile)
+		buildArgs = append(buildArgs, "-f", opts.Dockerfile)
 	}
 	buildArgs = append(buildArgs,
-		DockerTagFlag, dockerImage,
-		DockerBuildArgFlag, fmt.Sprintf("%s=%s", VersionBuildArg, opts.Commit),
+		"-t", dockerImage,
+		"--build-arg", fmt.Sprintf("%s=%s", VersionBuildArg, opts.Commit),
 		opts.Context,
 	)
 
-	ui.PrintStepSuccess(MsgBuildCommandPrepared)
+	ui.PrintStepSuccess("Build command prepared")
 	if opts.Verbose {
-		ui.PrintBuildProgress(fmt.Sprintf("Running: %s %s", DockerCmd, strings.Join(buildArgs, " ")))
+		ui.PrintBuildProgress(fmt.Sprintf("Running: docker %s", strings.Join(buildArgs, " ")))
 	}
 
 	// Sub-step 3: Execute Docker build
-	ui.PrintStepSuccess(MsgStartingDockerBuild)
+	ui.PrintStepSuccess("Starting Docker build")
 	buildCtx, cancel := context.WithTimeout(ctx, DockerBuildTimeout)
 	defer cancel()
 
-	cmd := exec.CommandContext(buildCtx, DockerCmd, buildArgs...)
+	cmd := exec.CommandContext(buildCtx, "docker", buildArgs...)
 
 	var buildErr error
 	if opts.Verbose {
@@ -116,7 +96,7 @@ func buildImage(ctx context.Context, opts DeployOptions, dockerImage string, ui 
 	}
 
 	if buildErr != nil {
-		ui.PrintStepError(MsgDockerBuildFailed)
+		ui.PrintStepError("Docker build failed")
 		ui.PrintErrorDetails(buildErr.Error())
 		return buildErr
 	}
@@ -241,14 +221,14 @@ func buildImageWithSpinner(cmd *exec.Cmd, buildCtx context.Context, ui *UI) erro
 
 	select {
 	case <-buildCtx.Done():
-		ui.CompleteCurrentStep(MsgBuildTimedOut, false)
+		ui.CompleteCurrentStep("Build timed out", false)
 		if buildCtx.Err() == context.DeadlineExceeded {
 			return fmt.Errorf("%w after %v", ErrBuildTimeout, DockerBuildTimeout)
 		}
 		return buildCtx.Err()
 	case err := <-done:
 		if err != nil {
-			ui.CompleteCurrentStep(MsgBuildFailed, false)
+			ui.CompleteCurrentStep("Build failed", false)
 
 			outputMu.Lock()
 			outputCopy := make([]string, len(allOutput))
@@ -257,7 +237,7 @@ func buildImageWithSpinner(cmd *exec.Cmd, buildCtx context.Context, ui *UI) erro
 
 			// Show last few lines of output for debugging
 			if len(outputCopy) > 0 {
-				ui.PrintBuildError(MsgLastFewLinesOfOutput)
+				ui.PrintBuildError("Last few lines of output:")
 				lines := outputCopy
 				if len(lines) > MaxOutputLines {
 					lines = lines[len(lines)-MaxOutputLines:]
@@ -270,7 +250,7 @@ func buildImageWithSpinner(cmd *exec.Cmd, buildCtx context.Context, ui *UI) erro
 		}
 	}
 
-	ui.CompleteCurrentStep(MsgDockerBuildCompleted, true)
+	ui.CompleteCurrentStep("Docker build completed successfully", true)
 	return nil
 }
 
@@ -306,7 +286,7 @@ func extractDockerStep(line string) string {
 
 // pushImage pushes the built Docker image to the registry
 func pushImage(ctx context.Context, dockerImage, registry string) error {
-	cmd := exec.CommandContext(ctx, DockerCmd, DockerPushCmd, dockerImage)
+	cmd := exec.CommandContext(ctx, "docker", "push", dockerImage)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		detailedMsg := classifyPushError(string(output), registry)
