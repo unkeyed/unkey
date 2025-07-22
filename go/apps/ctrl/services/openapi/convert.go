@@ -43,14 +43,22 @@ func convertChangesToProto(changes checker.Changes) []*ctrlv1.ChangelogEntry {
 		}
 
 		operationId := change.GetOperationId()
-		
-		var operationIdPtr *string
-		if operationId != "" {
-			// Create a local copy to avoid pointer reuse in loop
-			opId := operationId
-			operationIdPtr = &opId
+		result[i] = &ctrlv1.ChangelogEntry{
+			Id:          change.GetId(),
+			Text:        change.GetUncolorizedText(localizer),
+			Level:       level,
+			Operation:   change.GetOperation(),
+			Path:        change.GetPath(),
+			OperationId: &operationId,
 		}
-		
+	}
+
+	return result
+}
+
+			Path:        change.GetPath(),
+			OperationId: operationIdPtr,
+		}
 		result[i] = &ctrlv1.ChangelogEntry{
 			Id:          change.GetId(),
 			Text:        change.GetUncolorizedText(localizer),
@@ -62,4 +70,3 @@ func convertChangesToProto(changes checker.Changes) []*ctrlv1.ChangelogEntry {
 	}
 
 	return result
-}
