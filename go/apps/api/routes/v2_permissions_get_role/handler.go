@@ -102,7 +102,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Id:          perm.ID,
 			Name:        perm.Name,
 			Slug:        perm.Slug,
-			CreatedAt:   perm.CreatedAtM,
 			Description: nil,
 		}
 

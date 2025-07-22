@@ -3,7 +3,10 @@ post:
     - keys
   summary: Remove permissions from an API key
   description: |-
-    Removes one or more permissions from an existing API key. This endpoint is used to selectively revoke access rights from a key without deleting it or affecting other permissions.
+    Removes one or more permissions from an existing API key.
+
+    This endpoint is used to selectively revoke access rights from a key without deleting it or affecting other permissions.
+
     Key features:
     - Selective removal - revoke specific permissions while leaving others intact
     - Direct permissions only - doesn't affect permissions granted through roles
@@ -36,45 +39,11 @@ post:
             value:
               keyId: key_2cGKbMxRyIzhCxo1Idjz8q
               permissions:
-                - id: perm_1n9McEIBSqy44Qy7hzWyM5
-                - id: perm_2zF4mNyP9BsRj2aQwDxVkT
-          withNames:
-            summary: Remove permissions using names
-            description:
-              Using permission names is more human-readable but requires
-              exact name matches, including full path and correct case sensitivity.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              permissions:
-                - name: documents.write
-                - name: documents.delete
-          mixed:
-            summary: Mix of ID and name references
-            description: You can combine ID-based and name-based references in
-              a single request. This is useful when you have exact IDs for some
-              permissions but only names for others.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              permissions:
-                - id: perm_1n9McEIBSqy44Qy7hzWyM5
-                - name: reports.export
-          removeAccessGroup:
-            summary: Remove all permissions for a resource group
-            description: A common pattern is removing all permissions related
-              to a specific resource (e.g., 'documents') when revoking access
-              to that resource type.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              permissions:
-                - name: documents.read
-                - name: documents.write
-                - name: documents.delete
-                - name: documents.share
+                - perm_2zF4mNyP9BsRj2aQwDxVkT
+                - documents.delete
   responses:
     "200":
-      description: Permissions successfully removed from the key. All requested
-        permissions have been removed if they were present. Any permissions that
-        weren't assigned to the key were simply ignored without causing an error.
+      description: Successfully removed all specified permissions from the key.
       content:
         application/json:
           schema:
@@ -82,17 +51,13 @@ post:
           examples:
             standard:
               summary: Successful removal
-              description: The response body contains only metadata and an empty
-                data object. This minimalist response structure is by design -
-                if you receive a 200 status code, all requested permissions have
-                been successfully removed (or weren't present to begin with).
+              description: Successfully removed all specified permissions from the key.
               value:
                 meta:
                   requestId: req_2cGKbMxRyIzhCxo1Idjz8q
                 data: {}
     "400":
-      description: Bad Request - Invalid keyId format, missing required fields,
-        or malformed permission entries
+      description: Bad Request - Invalid keyId format, missing required fields, or malformed permission entries
       content:
         application/json:
           schema:
@@ -159,9 +124,7 @@ post:
                   requestId: req_0uVwX4yZaAbCdEfGhIjKl
                 error:
                   title: Forbidden
-                  detail:
-                    Your root key requires the 'rbac.*.remove_permission_from_key'
-                    permission to perform this operation
+                  detail: Your root key requires the 'rbac.*.remove_permission_from_key' permission to perform this operation
                   status: 403
                   type: forbidden
     "404":
@@ -182,8 +145,7 @@ post:
                   status: 404
                   type: not_found
     "500":
-      description: Internal Server Error - An unexpected error occurred while
-        processing the request
+      description: Internal Server Error
       content:
         application/json:
           schema:

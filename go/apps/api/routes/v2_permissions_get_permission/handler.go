@@ -92,7 +92,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Name:        permission.Name,
 		Slug:        permission.Slug,
 		Description: nil,
-		CreatedAt:   permission.CreatedAtM,
 	}
 
 	// Add description only if it's valid

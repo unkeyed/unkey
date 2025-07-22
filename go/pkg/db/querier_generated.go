@@ -39,6 +39,11 @@ type Querier interface {
 	//  DELETE FROM keys_permissions
 	//  WHERE key_id = ? AND permission_id = ?
 	DeleteKeyPermissionByKeyAndPermissionID(ctx context.Context, db DBTX, arg DeleteKeyPermissionByKeyAndPermissionIDParams) error
+	//DeleteManyKeyPermissionByKeyAndPermissionIDs
+	//
+	//  DELETE FROM keys_permissions
+	//  WHERE key_id = ? AND permission_id IN (/*SLICE:ids*/?)
+	DeleteManyKeyPermissionByKeyAndPermissionIDs(ctx context.Context, db DBTX, arg DeleteManyKeyPermissionByKeyAndPermissionIDsParams) error
 	//DeleteManyKeyPermissionsByPermissionID
 	//
 	//  DELETE FROM keys_permissions
@@ -304,6 +309,12 @@ type Querier interface {
 	//  ORDER BY created_at DESC
 	//  LIMIT 1
 	FindLatestBuildByVersionId(ctx context.Context, db DBTX, versionID string) (Build, error)
+	//FindManyPermissionsByIdOrSlug
+	//
+	//  SELECT id, workspace_id, name, slug, description, created_at_m, updated_at_m
+	//  FROM permissions
+	//  WHERE workspace_id = ? AND (id IN (/*SLICE:ids*/?) OR slug IN (/*SLICE:ids*/?))
+	FindManyPermissionsByIdOrSlug(ctx context.Context, db DBTX, arg FindManyPermissionsByIdOrSlugParams) ([]Permission, error)
 	// Finds a permission record by its ID
 	// Returns: The permission record if found
 	//
@@ -312,6 +323,12 @@ type Querier interface {
 	//  WHERE id = ?
 	//  LIMIT 1
 	FindPermissionByID(ctx context.Context, db DBTX, permissionID string) (Permission, error)
+	//FindPermissionByIdOrSlug
+	//
+	//  SELECT id, workspace_id, name, slug, description, created_at_m, updated_at_m
+	//  FROM permissions
+	//  WHERE workspace_id = ? AND (id = ? OR slug = ?)
+	FindPermissionByIdOrSlug(ctx context.Context, db DBTX, arg FindPermissionByIdOrSlugParams) (Permission, error)
 	//FindPermissionByNameAndWorkspaceID
 	//
 	//  SELECT id, workspace_id, name, slug, description, created_at_m, updated_at_m

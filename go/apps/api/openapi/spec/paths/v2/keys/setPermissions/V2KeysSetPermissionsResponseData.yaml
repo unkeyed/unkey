@@ -13,16 +13,4 @@ description: |-
   - For a complete permission picture including roles, use keys.getKey instead
   - All permission changes are logged in the audit log for security tracking
 items:
-  type: object
-  required:
-    - id
-    - name
-  properties:
-    id:
-      type: string
-      description: The unique identifier of the permission
-      example: perm_1n9McEIBSqy44Qy7hzWyM5
-    name:
-      type: string
-      description: The name of the permission
-      example: documents.write
+  "$ref": "../../../../common/Permission.yaml"

@@ -64,7 +64,7 @@ func TestSuccess(t *testing.T) {
 
 		// Now delete the permission
 		req := handler.Request{
-			PermissionId: permissionID,
+			Permission: permissionID,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -123,7 +123,7 @@ func TestSuccess(t *testing.T) {
 
 		// Delete the permission
 		req := handler.Request{
-			PermissionId: permissionID,
+			Permission: permissionID,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](

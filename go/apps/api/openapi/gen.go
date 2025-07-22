@@ -96,6 +96,9 @@ type ConflictErrorResponse struct {
 	Meta Meta `json:"meta"`
 }
 
+// EmptyResponse Empty response object by design. A successful response indicates this operation was successfully executed.
+type EmptyResponse = map[string]interface{}
+
 // ForbiddenErrorResponse Error response when the provided credentials are valid but lack sufficient permissions for the requested operation. This occurs when:
 // - The root key doesn't have the required permissions for this endpoint
 // - The operation requires elevated privileges that the current key lacks
@@ -202,9 +205,6 @@ type KeyResponseData struct {
 	UpdatedAt *int64 `json:"updatedAt,omitempty"`
 }
 
-// KeysDeleteKeyResponseData Empty response object by design. A successful response indicates the key was deleted successfully.
-type KeysDeleteKeyResponseData = map[string]interface{}
-
 // KeysVerifyKeyCredits Controls credit consumption for usage-based billing and quota enforcement.
 // Omitting this field uses the default cost of 1 credit per verification.
 // Credits provide globally consistent usage tracking, essential for paid APIs with strict quotas.
@@ -305,11 +305,6 @@ type Pagination struct {
 
 // Permission defines model for Permission.
 type Permission struct {
-	// CreatedAt Unix timestamp in milliseconds indicating when this permission was first created.
-	// Useful for auditing and understanding the evolution of your permission structure.
-	// Automatically set by the system and cannot be modified.
-	CreatedAt int64 `json:"createdAt"`
-
 	// Description Optional detailed explanation of what this permission grants access to.
 	// Helps team members understand the scope and implications of granting this permission.
 	// Include information about what resources can be accessed and what actions can be performed.
@@ -550,6 +545,9 @@ type V2ApisDeleteApiRequestBody struct {
 
 // V2ApisDeleteApiResponseBody defines model for V2ApisDeleteApiResponseBody.
 type V2ApisDeleteApiResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
@@ -779,39 +777,16 @@ type V2IdentitiesUpdateIdentityResponseBody struct {
 type V2KeysAddPermissionsRequestBody struct {
 	// KeyId Specifies which key receives the additional permissions using the database identifier returned from `keys.createKey`.
 	// Do not confuse this with the actual API key string that users include in requests.
-	// Added permissions supplement existing permissions and roles without replacing them.
-	// Permission changes take effect immediately but may take up to 30 seconds to propagate across all regions.
 	KeyId string `json:"keyId"`
 
 	// Permissions Grants additional permissions to the key through direct assignment or automatic creation.
 	// Duplicate permissions are ignored automatically, making this operation idempotent.
-	// Use either ID for existing permissions or slug for new permissions with optional auto-creation.
 	//
-	// Permission changes take effect immediately but cache propagation across regions may take up to 30 seconds.
+	// You can either use a permission slug, or the permission ID.
+	//
+	// If slugs are used, the permission will be auto created IF the root key has the given permissions, otherwise this operation will fail with a 404 error.
 	// Adding permissions never removes existing permissions or role-based permissions.
-	Permissions []struct {
-		// Create Enables automatic permission creation when the specified slug does not exist.
-		// Only works with slug-based references, not ID-based references.
-		// Requires the `rbac.*.create_permission` permission on your root key.
-		//
-		// Created permissions are permanent and visible workspace-wide to all API keys.
-		// Use carefully to avoid permission proliferation from typos or uncontrolled creation.
-		// Consider centralizing permission creation in controlled processes for better governance.
-		// Auto-created permissions use the slug as both the name and identifier.
-		Create *bool `json:"create,omitempty"`
-
-		// Id References an existing permission by its database identifier.
-		// Use when you know the exact permission ID and want to ensure you're referencing a specific permission.
-		// Takes precedence over slug when both are provided in the same object.
-		// The referenced permission must already exist in your workspace.
-		Id *string `json:"id,omitempty"`
-
-		// Slug Identifies the permission by its human-readable name using hierarchical naming patterns.
-		// Use `resource.action` format for logical organization and verification flexibility.
-		// Slugs must be unique within your `workspace` and support wildcard matching during verification.
-		// Combined with `create=true`, allows automatic permission creation for streamlined workflows.
-		Slug *string `json:"slug,omitempty"`
-	} `json:"permissions"`
+	Permissions []string `json:"permissions"`
 }
 
 // V2KeysAddPermissionsResponseBody defines model for V2KeysAddPermissionsResponseBody.
@@ -844,16 +819,7 @@ type V2KeysAddPermissionsResponseBody struct {
 // - This list does NOT include permissions granted through roles
 // - For a complete permission picture, use `/v2/keys.getKey` instead
 // - An empty array indicates the key has no direct permissions assigned
-type V2KeysAddPermissionsResponseData = []struct {
-	// Id The unique identifier of the permission (begins with `perm_`). This ID can be used in other API calls to reference this specific permission. IDs are guaranteed unique and won't change, making them ideal for scripting and automation. You can store these IDs in your system for consistent reference.
-	Id string `json:"id"`
-
-	// Name The human-readable name of the permission.
-	Name string `json:"name"`
-
-	// Slug The slug of the permission, typically following a `resource.action` pattern like `documents.read`.
-	Slug string `json:"slug"`
-}
+type V2KeysAddPermissionsResponseData = []Permission
 
 // V2KeysAddRolesRequestBody defines model for V2KeysAddRolesRequestBody.
 type V2KeysAddRolesRequestBody struct {
@@ -1043,8 +1009,8 @@ type V2KeysDeleteKeyRequestBody struct {
 
 // V2KeysDeleteKeyResponseBody defines model for V2KeysDeleteKeyResponseBody.
 type V2KeysDeleteKeyResponseBody struct {
-	// Data Empty response object by design. A successful response indicates the key was deleted successfully.
-	Data *KeysDeleteKeyResponseData `json:"data,omitempty"`
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
@@ -1092,27 +1058,14 @@ type V2KeysGetKeyResponseBody struct {
 type V2KeysRemovePermissionsRequestBody struct {
 	// KeyId Specifies which key to remove permissions from using the database identifier returned from `keys.createKey`.
 	// Do not confuse this with the actual API key string that users include in requests.
-	// Removing permissions only affects direct assignments, not permissions inherited from roles.
-	// Permission changes take effect immediately but may take up to 30 seconds to propagate across all regions.
 	KeyId string `json:"keyId"`
 
 	// Permissions Removes direct permissions from the key without affecting role-based permissions.
-	// Operations are idempotent - removing non-existent permissions has no effect and causes no errors.
-	// Use either ID for existing permissions or name for exact string matching.
+	//
+	// You can either use a permission slug, or the permission ID.
 	//
 	// After removal, verification checks for these permissions will fail unless granted through roles.
-	// Permission changes take effect immediately but cache propagation across regions may take up to 30 seconds.
-	// Removing all direct permissions does not disable the key, only removes its direct permission grants.
-	Permissions []struct {
-		// Id References the permission to remove by its database identifier.
-		// Use when you know the exact permission ID and want to ensure you're removing a specific permission.
-		// Takes precedence over name when both are provided in the same object.
-		// Essential for automation scripts where precision prevents accidental permission removal.
-		Id *string `json:"id,omitempty"`
-
-		// Slug Identifies the permission by slug for removal from the key's direct assignment list.
-		Slug *string `json:"slug,omitempty"`
-	} `json:"permissions"`
+	Permissions []string `json:"permissions"`
 }
 
 // V2KeysRemovePermissionsResponseBody defines model for V2KeysRemovePermissionsResponseBody.
@@ -1124,12 +1077,10 @@ type V2KeysRemovePermissionsResponseBody struct {
 	// - Permissions sorted alphabetically by name for consistent response format
 	// - Both the permission ID and name for each remaining permission
 	//
-	// Important notes:
+	// Notes:
 	// - This list does NOT include permissions granted through roles
 	// - For a complete permission picture, use `/v2/keys.getKey` instead
 	// - An empty array indicates the key has no direct permissions assigned
-	// - Any cached versions of the key are immediately invalidated to ensure consistency
-	// - Changes to permissions take effect within seconds for new verifications
 	// - All permission removals are logged to the audit log for security tracking
 	Data V2KeysRemovePermissionsResponseData `json:"data"`
 
@@ -1144,31 +1095,12 @@ type V2KeysRemovePermissionsResponseBody struct {
 // - Permissions sorted alphabetically by name for consistent response format
 // - Both the permission ID and name for each remaining permission
 //
-// Important notes:
+// Notes:
 // - This list does NOT include permissions granted through roles
 // - For a complete permission picture, use `/v2/keys.getKey` instead
 // - An empty array indicates the key has no direct permissions assigned
-// - Any cached versions of the key are immediately invalidated to ensure consistency
-// - Changes to permissions take effect within seconds for new verifications
 // - All permission removals are logged to the audit log for security tracking
-type V2KeysRemovePermissionsResponseData = []struct {
-	// Id The unique identifier of the permission (begins with `perm_`). This ID can be used in other API calls to reference this specific permission. IDs are guaranteed unique and won't change, making them ideal for scripting and automation. You can store these IDs in your system for consistent reference.
-	Id string `json:"id"`
-
-	// Name The name of the permission
-	Name string `json:"name"`
-
-	// Slug The slug of the permission, typically following a `resource.action` pattern like `documents.read`. Names are human-readable identifiers used both for assignment and verification.
-	//
-	// During verification:
-	// - The exact name is matched (e.g., `documents.read`)
-	// - Hierarchical wildcards are supported in verification requests
-	// - A key with permission `documents.*` grants access to `documents.read`, `documents.write`, etc.
-	// - Wildcards can appear at any level: `billing.*.view` matches `billing.invoices.view` and `billing.payments.view`
-	//
-	// However, when adding permissions, you must specify each exact permission - wildcards are not valid for assignment.
-	Slug string `json:"slug"`
-}
+type V2KeysRemovePermissionsResponseData = []Permission
 
 // V2KeysRemoveRolesRequestBody defines model for V2KeysRemoveRolesRequestBody.
 type V2KeysRemoveRolesRequestBody struct {
@@ -1246,36 +1178,19 @@ type V2KeysRemoveRolesResponseData = []struct {
 
 // V2KeysSetPermissionsRequestBody defines model for V2KeysSetPermissionsRequestBody.
 type V2KeysSetPermissionsRequestBody struct {
-	// KeyId The unique identifier of the key to set permissions on (begins with 'key_'). This ID comes from the createKey response and identifies which key will have its permissions replaced. This is the database ID, not the actual API key string that users authenticate with.
+	// KeyId Specifies which key receives the additional permissions using the database identifier returned from `keys.createKey`.
+	// Do not confuse this with the actual API key string that users include in requests.
 	KeyId string `json:"keyId"`
 
-	// Permissions The permissions to set for this key. This is a complete replacement operation - it overwrites all existing direct permissions with this new set.
+	// Permissions The permissions to set for this key.
+	//
+	// This is a complete replacement operation - it overwrites all existing direct permissions with this new set.
 	//
 	// Key behaviors:
 	// - Providing an empty array removes all direct permissions from the key
 	// - This only affects direct permissions - permissions granted through roles are not affected
 	// - All existing direct permissions not included in this list will be removed
-	// - The complete list approach allows synchronizing permissions with external systems
-	// - Permission changes take effect immediately for new verifications
-	//
-	// Unlike addPermissions (which only adds) or removePermissions (which only removes), this endpoint performs a wholesale replacement of the permission set.
-	Permissions []struct {
-		// Create When true, if a permission with this slug doesn't exist, it will be automatically created on-the-fly. Only works when specifying slug, not ID.
-		//
-		// SECURITY CONSIDERATIONS:
-		// - Requires the `rbac.*.create_permission` permission on your root key
-		// - Created permissions are permanent and visible throughout your workspace
-		// - Use carefully to avoid permission proliferation and inconsistency
-		// - Consider using a controlled process for permission creation instead
-		// - Typos with `create=true` will create unintended permissions that persist in your system
-		Create *bool `json:"create,omitempty"`
-
-		// Id The ID of an existing permission (begins with `perm_`). Provide either ID or slug for each permission, not both. Using ID is more precise and guarantees you're referencing the exact permission intended, regardless of slug changes or duplicates. IDs are particularly useful in automation scripts and when migrating permissions between environments.
-		Id *string `json:"id,omitempty"`
-
-		// Slug The slug of the permission. Provide either ID or slug for each permission, not both. Slugs must match exactly as defined in your permission system - including case sensitivity and the complete hierarchical path. Slugs are generally more human-readable but can be ambiguous if not carefully managed across your workspace.
-		Slug *string `json:"slug,omitempty"`
-	} `json:"permissions"`
+	Permissions []string `json:"permissions"`
 }
 
 // V2KeysSetPermissionsResponseBody defines model for V2KeysSetPermissionsResponseBody.
@@ -1310,13 +1225,7 @@ type V2KeysSetPermissionsResponseBody struct {
 // - An empty array means the key has no direct permissions assigned
 // - For a complete permission picture including roles, use keys.getKey instead
 // - All permission changes are logged in the audit log for security tracking
-type V2KeysSetPermissionsResponseData = []struct {
-	// Id The unique identifier of the permission
-	Id string `json:"id"`
-
-	// Name The name of the permission
-	Name string `json:"name"`
-}
+type V2KeysSetPermissionsResponseData = []Permission
 
 // V2KeysSetRolesRequestBody defines model for V2KeysSetRolesRequestBody.
 type V2KeysSetRolesRequestBody struct {
@@ -1487,15 +1396,12 @@ type V2KeysUpdateKeyRequestBody struct {
 
 // V2KeysUpdateKeyResponseBody defines model for V2KeysUpdateKeyResponseBody.
 type V2KeysUpdateKeyResponseBody struct {
-	// Data Empty response object by design. A successful response indicates the key was updated successfully.
-	Data *V2KeysUpdateKeyResponseData `json:"data,omitempty"`
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
-
-// V2KeysUpdateKeyResponseData Empty response object by design. A successful response indicates the key was updated successfully.
-type V2KeysUpdateKeyResponseData = map[string]interface{}
 
 // V2KeysVerifyKeyRequestBody defines model for V2KeysVerifyKeyRequestBody.
 type V2KeysVerifyKeyRequestBody struct {
@@ -1660,7 +1566,9 @@ type V2PermissionsCreateRoleResponseData struct {
 
 // V2PermissionsDeletePermissionRequestBody defines model for V2PermissionsDeletePermissionRequestBody.
 type V2PermissionsDeletePermissionRequestBody struct {
-	// PermissionId Specifies which permission to permanently delete from your workspace.
+	// Permission Specifies which permission to permanently delete from your workspace.
+	//
+	// This can be a permission ID or a permission slug.
 	//
 	// WARNING: Deleting a permission has immediate and irreversible consequences:
 	// - All API keys with this permission will lose that access immediately
@@ -1672,12 +1580,14 @@ type V2PermissionsDeletePermissionRequestBody struct {
 	// - Have updated any keys or roles that depend on this permission
 	// - Have migrated to alternative permissions if needed
 	// - Have notified affected users about the access changes
-	// - Have the correct permission ID (double-check against your permission list)
-	PermissionId string `json:"permissionId"`
+	Permission string `json:"permission"`
 }
 
 // V2PermissionsDeletePermissionResponseBody defines model for V2PermissionsDeletePermissionResponseBody.
 type V2PermissionsDeletePermissionResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
@@ -1703,6 +1613,9 @@ type V2PermissionsDeleteRoleRequestBody struct {
 
 // V2PermissionsDeleteRoleResponseBody defines model for V2PermissionsDeleteRoleResponseBody.
 type V2PermissionsDeleteRoleResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }

@@ -57,7 +57,7 @@ func TestValidationErrors(t *testing.T) {
 	// Test case for empty permissionId
 	t.Run("empty permissionId", func(t *testing.T) {
 		req := handler.Request{
-			PermissionId: "", // Empty string is invalid
+			Permission: "", // Empty string is invalid
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
@@ -95,7 +95,7 @@ func TestValidationErrors(t *testing.T) {
 	// Test case for invalid permissionId format
 	t.Run("invalid permissionId format", func(t *testing.T) {
 		req := handler.Request{
-			PermissionId: "not_a_valid_permission_id_format",
+			Permission: "not_a_valid_permission_id_format",
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](

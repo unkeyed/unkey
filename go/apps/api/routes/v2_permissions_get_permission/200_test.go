@@ -79,7 +79,6 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, permissionName, permission.Name)
 		require.NotNil(t, permission.Description)
 		require.Equal(t, permissionDesc, *permission.Description)
-		require.NotNil(t, permission.CreatedAt)
 	})
 
 	// Test case for getting a permission without description

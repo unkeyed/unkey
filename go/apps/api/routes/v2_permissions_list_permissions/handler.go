@@ -101,7 +101,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Name:        perm.Name,
 			Slug:        perm.Slug,
 			Description: nil,
-			CreatedAt:   perm.CreatedAtM,
 		}
 
 		// Add description only if it's valid
