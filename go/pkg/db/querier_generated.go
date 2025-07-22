@@ -845,28 +845,31 @@ type Querier interface {
 	InsertRatelimitNamespace(ctx context.Context, db DBTX, arg InsertRatelimitNamespaceParams) error
 	//InsertRatelimitOverride
 	//
-	//  INSERT INTO
-	//      `ratelimit_overrides` (
-	//          id,
-	//          workspace_id,
-	//          namespace_id,
-	//          identifier,
-	//          `limit`,
-	//          duration,
-	//          async,
-	//          created_at_m
-	//      )
-	//  VALUES
-	//      (
-	//          ?,
-	//          ?,
-	//          ?,
-	//          ?,
-	//          ?,
-	//          ?,
-	//          false,
-	//           ?
-	//      )
+	//  INSERT INTO ratelimit_overrides (
+	//      id,
+	//      workspace_id,
+	//      namespace_id,
+	//      identifier,
+	//      `limit`,
+	//      duration,
+	//      async,
+	//      created_at_m
+	//  )
+	//  VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      false,
+	//      ?
+	//  )
+	//  ON DUPLICATE KEY UPDATE
+	//      `limit` = VALUES(`limit`),
+	//      duration = VALUES(duration),
+	//      async = VALUES(async),
+	//      updated_at_m = ?
 	InsertRatelimitOverride(ctx context.Context, db DBTX, arg InsertRatelimitOverrideParams) error
 	//InsertRole
 	//
