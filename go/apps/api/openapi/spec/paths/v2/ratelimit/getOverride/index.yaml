@@ -1,0 +1,66 @@
+post:
+  tags:
+    - ratelimit
+  summary: Retrieve a specific rate limit override
+  description: |-
+    Retrieves the details of a specific rate limit override by its identifier pattern. Returns the exact configuration including the identifier pattern, custom limit value, duration window, and namespace association.
+    Use this endpoint to inspect override configurations before making modifications, audit your rate limiting policies, or debug rate limiting behavior. The identifier must match exactly as it was specified when creating the override, including any wildcard patterns.
+    This endpoint is essential for understanding why certain identifiers receive different rate limits than the default. When troubleshooting rate limiting issues, this endpoint helps verify that overrides are configured correctly and matching the expected identifiers.
+  operationId: ratelimit.getOverride
+  x-speakeasy-name-override: getOverride
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2RatelimitGetOverrideRequestBody.yaml"
+        examples:
+          byNameAndId:
+            summary: Get specific override
+            value:
+              namespaceName: api.requests
+              identifier: premium_user_123
+          wildcardPattern:
+            summary: Get wildcard pattern override
+            value:
+              namespaceId: ns_1234567890abcdef
+              identifier: premium_*
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2RatelimitGetOverrideResponseBody.yaml"
+      description: OK
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

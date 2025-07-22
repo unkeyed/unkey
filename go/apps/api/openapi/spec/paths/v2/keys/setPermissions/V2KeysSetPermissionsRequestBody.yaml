@@ -1,0 +1,62 @@
+type: object
+required:
+  - keyId
+  - permissions
+properties:
+  keyId:
+    type: string
+    description: The unique identifier of the key to set permissions on (begins
+      with 'key_'). This ID comes from the createKey response and identifies
+      which key will have its permissions replaced. This is the database ID,
+      not the actual API key string that users authenticate with.
+    example: key_2cGKbMxRyIzhCxo1Idjz8q
+    minLength: 3
+  permissions:
+    type: array
+    description: |-
+      The permissions to set for this key. This is a complete replacement operation - it overwrites all existing direct permissions with this new set.
+
+      Key behaviors:
+      - Providing an empty array removes all direct permissions from the key
+      - This only affects direct permissions - permissions granted through roles are not affected
+      - All existing direct permissions not included in this list will be removed
+      - The complete list approach allows synchronizing permissions with external systems
+      - Permission changes take effect immediately for new verifications
+
+      Unlike addPermissions (which only adds) or removePermissions (which only removes), this endpoint performs a wholesale replacement of the permission set.
+    items:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The ID of an existing permission (begins with `perm_`).
+            Provide either ID or slug for each permission, not both. Using ID
+            is more precise and guarantees you're referencing the exact permission
+            intended, regardless of slug changes or duplicates. IDs are particularly
+            useful in automation scripts and when migrating permissions between
+            environments.
+          example: perm_1n9McEIBSqy44Qy7hzWyM5
+          minLength: 3
+        slug:
+          type: string
+          description: The slug of the permission. Provide either ID or slug
+            for each permission, not both. Slugs must match exactly as defined
+            in your permission system - including case sensitivity and the complete
+            hierarchical path. Slugs are generally more human-readable but can
+            be ambiguous if not carefully managed across your workspace.
+          example: documents.write
+          minLength: 1
+        create:
+          type: boolean
+          description: |-
+            When true, if a permission with this slug doesn't exist, it will be automatically created on-the-fly. Only works when specifying slug, not ID.
+
+            SECURITY CONSIDERATIONS:
+            - Requires the `rbac.*.create_permission` permission on your root key
+            - Created permissions are permanent and visible throughout your workspace
+            - Use carefully to avoid permission proliferation and inconsistency
+            - Consider using a controlled process for permission creation instead
+            - Typos with `create=true` will create unintended permissions that persist in your system
+          default: false
+      additionalProperties: false
+additionalProperties: false

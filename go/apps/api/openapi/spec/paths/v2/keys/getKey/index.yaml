@@ -1,0 +1,55 @@
+post:
+  tags:
+    - keys
+  summary: Retrieve detailed information about a specific API key
+  description: |-
+    Retrieves comprehensive information about an API key including its configuration, permissions, roles, metadata, and usage limits. This endpoint is essential for key management, debugging, and building administrative interfaces.
+    The response includes all key properties such as expiration dates, credit balances, rate limits, assigned permissions and roles, and any metadata stored with the key. This information helps administrators understand a key's current state and troubleshoot access issues.
+    Note: The actual key value is never returned for security reasons, only the key's metadata and configuration.
+  operationId: getKey
+  x-speakeasy-name-override: getKey
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2KeysGetKeyRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2KeysGetKeyResponseBody.yaml"
+      description: Successfully retrieved key
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

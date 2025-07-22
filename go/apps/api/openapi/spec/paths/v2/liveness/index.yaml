@@ -1,0 +1,68 @@
+get:
+  x-speakeasy-ignore: "true"
+  tags:
+    - liveness
+  security: []
+  operationId: liveness
+  summary: Check service health and availability
+  description: |-
+    Checks if the Unkey API service is functioning correctly and ready to handle requests. Returns a simple health status that load balancers, monitoring tools, and orchestration systems can use to verify service availability.
+
+    This endpoint requires no authentication and has minimal processing overhead for fast health verification. The response indicates whether the service can process requests normally or if there are issues requiring attention. Monitor this endpoint to detect service degradation and implement automated failover or alerting when the service becomes unhealthy.
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2LivenessResponseBody.yaml"
+          examples:
+          healthy:
+          summary: Healthy service
+          value:
+          meta:
+            requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+          data:
+            message: OK
+      description:
+        Service is healthy and ready to process requests. The response
+        includes a simple 'OK' message indicating normal operation. Monitoring
+        systems can use this as confirmation that the service is functioning properly.
+    "412":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../error/InternalServerErrorResponse.yaml"
+          examples:
+            degraded:
+              summary: Service in degraded state
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+                error:
+                  title: Precondition Failed
+                  detail: Service is in a degraded state. Some functionality may
+                    be limited.
+                  status: 412
+                  type: https://unkey.dev/errors/precondition-failed
+    "500":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../error/InternalServerErrorResponse.yaml"
+          examples:
+            unhealthy:
+              summary: Service unhealthy
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQY
+                error:
+                  title: Internal Server Error
+                  detail: The service is currently experiencing issues and may
+                    not be fully operational.
+                  status: 500
+                  type: https://unkey.dev/errors/internal-server-error
+      description: Service is unhealthy and unable to process requests properly.
+        This indicates a significant issue with the service that requires attention.
+        Clients should refrain from making other API calls as they are likely
+        to fail. Monitoring systems should trigger alerts when receiving this
+        response.

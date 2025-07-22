@@ -1,0 +1,65 @@
+post:
+  tags:
+    - ratelimit
+  summary: Delete a rate limit override
+  description: |-
+    Permanently removes a rate limit override from a namespace. Once deleted, the affected identifiers immediately revert to using the default rate limits for that namespace.
+    Use this endpoint to remove temporary overrides that are no longer needed, reset entities back to standard rate limits, or clean up outdated rate limiting rules. The deletion operation is immediate and permanent - once an override is deleted, it cannot be recovered and must be recreated using the setOverride endpoint if needed again.
+  operationId: ratelimit.deleteOverride
+  x-speakeasy-name-override: deleteOverride
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2RatelimitDeleteOverrideRequestBody.yaml"
+        examples:
+          specificOverride:
+            summary: Delete specific identifier override
+            value:
+              namespaceName: api.requests
+              identifier: premium_user_123
+          wildcardPattern:
+            summary: Delete wildcard pattern override
+            value:
+              namespaceId: ns_1234567890abcdef
+              identifier: premium_*
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2RatelimitDeleteOverrideResponseBody.yaml"
+      description: OK
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

@@ -1,0 +1,98 @@
+post:
+  tags:
+    - identities
+  summary: Create a new identity for resource sharing across keys
+  description: |-
+    Creates a new identity that can be associated with multiple API keys to enable resource sharing.
+    Identities are a powerful concept in Unkey that allow multiple API keys to share resources like rate limits and to be associated with the same entity (user, organization, etc.). This is essential for:
+    - Implementing consistent rate limiting across multiple API keys
+    - Associating multiple keys with the same user or organization
+    - Sharing metadata across all keys for an entity
+    - Enabling user-based analytics across multiple keys
+    - Simplifying key management for multi-device or multi-service users
+    When you create keys with the same externalId, they'll share rate limits and appear grouped in analytics. This enables scenarios like letting users generate multiple API keys for different devices while still treating them as a single entity for usage limits.
+    The identity concept creates a separation between your user entities and their authentication credentials (API keys), similar to how users can have multiple passwords or sessions.
+  operationId: identities.createIdentity
+  x-speakeasy-name-override: createIdentity
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2IdentitiesCreateIdentityRequestBody.yaml"
+        examples:
+          basic:
+            summary: Basic identity creation
+            value:
+              externalId: user_abc123
+          withMetadata:
+            summary: Identity with user metadata
+            value:
+              externalId: user_abc123
+              meta:
+                name: Alice Smith
+                email: alice@example.com
+                plan: premium
+                accountCreated: "2023-01-15T08:30:00Z"
+                region: eu-west
+          withRatelimits:
+            summary: Identity with shared rate limits
+            value:
+              externalId: org_xyz456
+              meta:
+                name: Acme Corporation
+                planTier: enterprise
+              ratelimits:
+                - name: requests
+                  limit: 10000
+                  duration: 3600000
+                  autoApply: true
+                - name: heavy_compute
+                  limit: 100
+                  duration: 86400000
+                  autoApply: false
+    required: true
+
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2IdentitiesCreateIdentityResponseBody.yaml"
+          examples:
+            success:
+              summary: Successfully created identity
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+    "409":
+      description: Identity already exists
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ConflictErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"

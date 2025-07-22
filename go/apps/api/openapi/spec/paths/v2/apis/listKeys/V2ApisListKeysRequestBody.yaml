@@ -1,0 +1,56 @@
+type: object
+required:
+  - apiId
+properties:
+  apiId:
+    type: string
+    minLength: 1
+    description: The ID of the API whose keys you want to list (begins with
+      'api_'). This endpoint returns all keys associated with this specific
+      API, subject to pagination and any additional filters provided.
+    example: api_1234
+  limit:
+    type: integer
+    description: The maximum number of keys to return in a single request. Use
+      this to control response size and loading performance. Higher values return
+      more keys but may increase response time. Lower values may require more
+      pagination requests but provide faster initial loading.
+    default: 100
+    minimum: 1
+    maximum: 100
+  cursor:
+    type: string
+    description: Pagination cursor from a previous response. Use this to fetch
+      subsequent pages of results when the response contains hasMore=true. Each
+      response containing additional results will include a new cursor value
+      in the pagination object.
+    example: cursor_eyJsYXN0S2V5SWQiOiJrZXlfMjNld3MiLCJsYXN0Q3JlYXRlZEF0IjoxNjcyNTI0MjM0MDAwfQ==
+  externalId:
+    type: string
+    minLength: 3
+    description: Optional filter to return only keys associated with a specific
+      external ID. This is useful when you need to find all keys belonging to
+      a particular user, organization, or entity in your system. The value must
+      exactly match the externalId set during key creation.
+    example: user_5bf93ab218e
+  decrypt:
+    type: boolean
+    description: |-
+      When true, attempts to include the plaintext key value in the response. SECURITY WARNING:
+      - This requires special permissions on the calling root key
+      - Only works for keys created with 'recoverable: true'
+      - Exposes sensitive key material in the response
+      - Should only be used in secure administrative contexts
+      - Never enable this in user-facing applications
+    default: false
+  revalidateKeysCache:
+    type: boolean
+    default: false
+    description: |-
+      EXPERIMENTAL: Skip the cache and fetch the keys directly from the database. This ensures you see the most recent state, including keys created moments ago. Use this when:
+      - You've just created a key and need to display it immediately
+      - You need absolute certainty about the current key state
+      - You're debugging cache consistency issues
+
+      This parameter comes with a performance cost and should be used sparingly.
+additionalProperties: false
