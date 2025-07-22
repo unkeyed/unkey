@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -40,26 +41,33 @@ func startBufferProcessor(
 				attribute.Int("buffered_rows", buffered),
 			)
 
+			// Process batches in parallel for better throughput
+			var wg sync.WaitGroup
 			for _, batch := range batchesByParams {
-				batchStart := time.Now()
-				err := persist(ctx, batch, config)
-				batchDuration := time.Since(batchStart).Seconds()
-				telemetryConfig.Metrics.BatchPersistDuration.Record(ctx, batchDuration)
+				wg.Add(1)
+				go func(b *Batch) {
+					defer wg.Done()
 
-				if err != nil {
-					span.RecordError(err)
-					span.SetStatus(codes.Error, err.Error())
+					batchStart := time.Now()
+					err := persist(ctx, b, config)
+					batchDuration := time.Since(batchStart).Seconds()
+					telemetryConfig.Metrics.BatchPersistDuration.Record(ctx, batchDuration)
 
-					config.Logger.Error("error persisting batch, data dropped",
-						"error", err.Error(),
-						"table", batch.Table,
-						"rows_dropped", len(batch.Rows),
-						"batch_duration_seconds", batchDuration,
-						"query", batch.Params.Get("query"),
-					)
-				}
-				// Note: Memory will be freed when batchesByParams is reset below
+					if err != nil {
+						span.RecordError(err)
+						span.SetStatus(codes.Error, err.Error())
+
+						config.Logger.Error("error persisting batch, data dropped",
+							"error", err.Error(),
+							"table", b.Table,
+							"rows_dropped", len(b.Rows),
+							"batch_duration_seconds", batchDuration,
+							"query", b.Params.Get("query"),
+						)
+					}
+				}(batch)
 			}
+			wg.Wait() // Wait for all parallel persists to complete
 
 			duration := time.Since(startTime).Seconds()
 			telemetryConfig.Metrics.FlushDuration.Record(ctx, duration)
