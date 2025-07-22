@@ -19,6 +19,7 @@ export const projects = mysqlTable(
     // Git configuration
     gitRepositoryUrl: varchar("git_repository_url", { length: 500 }),
 
+    defaultBranch: varchar("default_branch", { length: 256 }).default("main"),
     ...deleteProtection,
     ...lifecycleDates,
   },
