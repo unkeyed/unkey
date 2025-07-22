@@ -1,0 +1,127 @@
+post:
+  tags:
+    - keys
+  summary: Create a new API key with customizable security features
+  description: |-
+    Creates a new API key with configurable security properties, usage limits, and metadata. This endpoint generates a cryptographically secure key that you can distribute to your users for authenticating with your API.
+    The key is only returned once in the response - Unkey stores only a secure hash of the key, not the key itself. You must provide this key directly to your end user; it cannot be retrieved later (unless created with `recoverable: true`, which is less secure).
+    Keys are associated with a specific API (via `apiId`), which helps isolate environments (dev/staging/prod) and prevents keys from being used across different services. Keys can be further configured with:
+    - Optional prefixes for visual identification
+    - Expiration dates for temporary access
+    - Usage limits (credits) for consumption-based APIs
+    - Rate limits for abuse prevention
+    - Permissions and roles for granular access control
+    - Metadata for storing context with the key
+    Best practices include using environment-specific API IDs, meaningful prefixes, appropriate byte length for security needs, and avoiding storing keys in your databases.
+  operationId: createKey
+  x-speakeasy-name-override: createKey
+  security:
+    - rootKey: []
+
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2KeysCreateKeyRequestBody.yaml"
+        examples:
+          simple:
+            summary: Basic key creation
+            value:
+              apiId: api_1234567890abcdef
+              prefix: prod
+          withMeta:
+            summary: Key with user-specific metadata
+            value:
+              apiId: api_1234567890abcdef
+              prefix: prod
+              name: User API Key
+              externalId: user_12345
+              meta:
+                plan: premium
+                features:
+                  analytics: true
+                  exports: true
+                teamId: team_abc123
+          withLimits:
+            summary: Key with usage limits
+            value:
+              apiId: api_1234567890abcdef
+              prefix: prod
+              externalId: user_12345
+              expires: 1735689600000
+              credits:
+                remaining: 1000
+                refill:
+                  interval: monthly
+                  amount: 1000
+                  refillDay: 1
+              ratelimits:
+                - name: requests
+                  limit: 100
+                  duration: 60000
+                - name: heavy_operations
+                  limit: 10
+                  duration: 3600000
+          withPermissions:
+            summary: Key with access control
+            value:
+              apiId: api_1234567890abcdef
+              prefix: prod
+              externalId: user_12345
+              permissions:
+                - documents.read
+                - documents.write
+                - profile.view
+              roles:
+                - editor
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2KeysCreateKeyResponseBody.yaml"
+          examples:
+            standard:
+              summary: Successfully created key
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+                data:
+                  keyId: key_01H9TQP8NP8JN3X8HWSKPW43JE
+                  key: prod_f4cc2d765275c206b7d76ff0e92e583067c4e33603fb4055d7ba3031cd7ce36a
+      description: "Successfully created a new API key. The response includes
+        both the keyId (for reference in your system) and the full key string.
+        IMPORTANT: This is the only time the complete key is available - it cannot
+        be retrieved later. You must securely provide this key to your end user
+        immediately."
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+      description: Internal server error

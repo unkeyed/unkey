@@ -1,0 +1,60 @@
+post:
+  tags:
+    - permissions
+  summary: Retrieve details about a specific role
+  description: |-
+    Retrieves detailed information about a specific role by its ID, including all permissions assigned to the role. This endpoint allows you to inspect a role's properties and understand what permissions it grants.
+    This is useful for:
+    - Verifying a role exists before assigning it to API keys
+    - Retrieving role details for display in administrative interfaces
+    - Checking role configuration before making updates
+    - Building role management tools
+    - Understanding the complete permission set granted by a role
+    Roles are collections of permissions that can be assigned to API keys, providing a convenient way to manage access control at scale in Unkey's RBAC system.
+  operationId: getRole
+  x-speakeasy-name-override: GetRole
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PermissionsGetRoleRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PermissionsGetRoleResponseBody.yaml"
+      description: Successfully retrieved role
+    "400":
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

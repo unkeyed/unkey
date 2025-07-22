@@ -1,0 +1,8 @@
+type: object
+properties:
+  role:
+    "$ref": "../../../../common/Role.yaml"
+required:
+  - role
+additionalProperties: false
+description: Complete role details including assigned permissions.

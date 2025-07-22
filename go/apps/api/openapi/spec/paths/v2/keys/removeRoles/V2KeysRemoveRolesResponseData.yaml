@@ -1,0 +1,32 @@
+type: array
+description: |-
+  Complete list of all roles directly assigned to the key after the removal operation completes.
+
+  The response includes:
+  - The remaining roles still assigned to the key (after removing the specified roles)
+  - Both ID and name for each role for easy reference
+  - Roles sorted alphabetically by name for consistent response format
+
+  Important notes:
+  - The response reflects the current state after the removal operation
+  - An empty array indicates the key now has no roles assigned
+  - This only shows direct role assignments
+  - Role permissions are not expanded in this response - use keys.getKey for full details
+  - All role changes are logged in the audit log for security tracking
+  - Changes take effect immediately for new verifications but cached sessions may retain old permissions briefly
+items:
+  type: object
+  required:
+    - id
+    - name
+  properties:
+    id:
+      type: string
+      description: The unique identifier of the role (begins with `role_`).
+        This ID can be used in other API calls to reference this specific role.
+      example: role_1n9McEIBSqy44Qy7hzWyM5
+    name:
+      type: string
+      description: The name of the role. This is a human-readable identifier
+        that's unique within your workspace.
+      example: admin

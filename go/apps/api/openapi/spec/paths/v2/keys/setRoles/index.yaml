@@ -1,0 +1,102 @@
+post:
+  tags:
+    - keys
+  summary: Set (replace) all roles on an API key
+  description: |-
+    Sets the roles for an existing API key by replacing all existing role assignments with the provided set. This is a complete replacement operation - roles not specified in the request will be removed.
+    Use this endpoint when you want to synchronize API key roles with an external system, reset a key's roles to a known state, or apply a standardized role template to a key.
+    Role assignments take effect immediately for new verifications, though existing authorized sessions may continue until their cache expires.
+  operationId: setRoles
+  x-speakeasy-name-override: setRoles
+  security:
+    - rootKey: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2KeysSetRolesRequestBody.yaml"
+        examples:
+          standard:
+            summary: Setting multiple roles
+            description: This example shows setting a mix of roles by both ID
+              and name. After this operation, the key will have exactly these
+              two roles - any other roles previously assigned will be removed.
+            value:
+              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+              roles:
+                - id: role_1n9McEIBSqy44Qy7hzWyM5
+                - name: developer
+          removeAll:
+            summary: Removing all roles
+            description: By providing an empty roles array, you can remove all
+              direct role assignments from a key. This doesn't affect the key's
+              validity, but removes all role-based permissions.
+            value:
+              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+              roles: []
+          standardTemplate:
+            summary: Applying a standard role template
+            description: A common pattern is applying a standard set of roles
+              to maintain consistency across keys for users with similar access
+              needs.
+            value:
+              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+              roles:
+                - name: basic_user
+                - name: analytics_viewer
+                - name: self_service
+  responses:
+    "200":
+      description: Roles successfully set for the key
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2KeysSetRolesResponseBody.yaml"
+          examples:
+            standard:
+              summary: Roles after update
+              value:
+                meta:
+                  requestId: req_1234567890abcdef
+                data:
+                  - id: role_1n9McEIBSqy44Qy7hzWyM5
+                    name: admin
+                  - id: role_3b9OeGKDUsy66Sz9Kelz0s
+                    name: developer
+            empty:
+              summary: All roles removed
+              value:
+                meta:
+                  requestId: req_1234567890abcdef
+                data: []
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

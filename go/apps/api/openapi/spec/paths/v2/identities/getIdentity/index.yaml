@@ -1,0 +1,87 @@
+post:
+  tags:
+    - identities
+  summary: Retrieve identity information
+  description: |-
+    Retrieves detailed information about a specific identity by its external ID.
+    Identities in Unkey represent entities in your system (users, organizations, etc.) that can be associated with multiple API keys. This endpoint provides access to:
+    - Identity metadata that was stored during creation
+    - Rate limiting configurations that apply across all keys for this identity
+    This endpoint is useful for:
+    - Checking if an identity exists
+    - Retrieving metadata associated with an identity
+    - Viewing rate limit configurations
+    You must provide the externalId parameter to identify which identity to retrieve.
+  operationId: identities.getIdentity
+  x-speakeasy-name-override: getIdentity
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2IdentitiesGetIdentityRequestBody.yaml"
+        examples:
+          byExternalId:
+            summary: Retrieve by external ID
+            value:
+              externalId: user_abc123
+    required: true
+  responses:
+    "200":
+      description: Successfully retrieved the identity information
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2IdentitiesGetIdentityResponseBody.yaml"
+          examples:
+            standard:
+              summary: Identity with metadata and rate limits
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+                data:
+                  id: id_1234567890abcdef
+                  externalId: user_abc123
+                  meta:
+                    name: Alice Smith
+                    email: alice@example.com
+                    plan: premium
+                    companyId: company_xyz
+                  ratelimits:
+                    - name: api_requests
+                      limit: 1000
+                      duration: 60000
+                    - name: heavy_operations
+                      limit: 100
+                      duration: 3600000
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions to access this identity
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not found - The specified identity doesn't exist
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

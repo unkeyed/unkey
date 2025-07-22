@@ -1,0 +1,67 @@
+post:
+  tags:
+    - keys
+  summary: Delete an API key permanently
+  description: |-
+    Permanently removes an API key from the system. Once deleted, the key becomes invalid immediately and cannot be used for any further authentication attempts.
+    This operation is irreversible and will:
+    - Immediately invalidate the key across all regions
+    - Remove all associated permissions and roles
+    - Clear any stored metadata
+    - Stop any ongoing rate limit tracking
+    - Remove the key from analytics and usage tracking
+    Use this endpoint when deactivating user accounts, cleaning up test keys, or implementing key rotation policies. The key deletion is logged in the audit trail for security compliance.
+  operationId: deleteKey
+  x-speakeasy-name-override: deleteKey
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2KeysDeleteKeyRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2KeysDeleteKeyResponseBody.yaml"
+      description:
+        Successfully deleted key. The key will immediately fail verification
+        in the current region, but it may take up to 30 seconds for deletion to
+        propagate to all regions due to eventual consistency. After deletion,
+        the key will no longer appear in key listings, and verification attempts
+        will return `code=NOT_FOUND`. Soft-deleted keys (`permanent=false`) remain
+        in the database but are marked as deleted, while permanently deleted keys
+        are completely removed.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

@@ -1,0 +1,65 @@
+post:
+  tags:
+    - identities
+  summary: Update an existing identity
+  description: |-
+    Updates an existing identity's metadata and rate limits with support for partial updates. You can modify the metadata to reflect changes in user status, subscription plans, or other entity properties, and adjust rate limits to match new usage tiers or requirements.
+    This endpoint supports flexible identification using either the Unkey identity ID or your external ID, making it easy to integrate with existing user management systems. Fields not included in the request remain unchanged, allowing for targeted updates without affecting other identity properties.
+    Changes to rate limits take effect immediately for new API key verifications, though existing sessions may retain old limits briefly due to caching. When updating metadata, consider that this information is returned during key verification, so avoid storing sensitive data that shouldn't be exposed to client applications.
+    Common use cases include updating user plan information after subscription changes, adjusting rate limits for different service tiers, and maintaining current contact or organizational information associated with the identity.
+  operationId: v2.identities.updateIdentity
+  x-speakeasy-name-override: updateIdentity
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2IdentitiesUpdateIdentityRequestBody.yaml"
+        examples:
+          updateMetadata:
+            summary: Update identity metadata only
+            value:
+              externalId: user_123
+              meta:
+                name: Alice Smith
+                email: alice.updated@example.com
+                plan: enterprise
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2IdentitiesUpdateIdentityResponseBody.yaml"
+      description: OK
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"

@@ -1,0 +1,8 @@
+type: object
+required:
+  - meta
+properties:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    "$ref": "./V2KeysUpdateKeyResponseData.yaml"

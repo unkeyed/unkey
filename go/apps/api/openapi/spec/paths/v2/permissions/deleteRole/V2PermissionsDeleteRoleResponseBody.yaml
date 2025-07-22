@@ -1,0 +1,7 @@
+type: object
+required:
+  - meta
+properties:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+additionalProperties: false
