@@ -20,7 +20,7 @@ import (
 )
 
 type Request = openapi.V2KeysRemovePermissionsRequestBody
-type Response = openapi.V2KeysRemovePermissionsResponse
+type Response = openapi.V2KeysRemovePermissionsResponseBody
 
 // Handler implements zen.Route interface for the v2 keys remove permissions endpoint
 type Handler struct {

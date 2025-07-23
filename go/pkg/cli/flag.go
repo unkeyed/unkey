@@ -55,7 +55,8 @@ func (b *baseFlag) EnvVar() string { return b.envVar }
 // StringFlag represents a string command line flag
 type StringFlag struct {
 	baseFlag
-	value string // Current value
+	value       string // Current value
+	hasEnvValue bool   // Track if value came from environment
 }
 
 // Parse sets the flag value from a string
@@ -74,8 +75,8 @@ func (f *StringFlag) Parse(value string) error {
 // Value returns the current string value
 func (f *StringFlag) Value() string { return f.value }
 
-// HasValue returns true if the flag has any non-empty value
-func (f *StringFlag) HasValue() bool { return f.value != "" }
+// HasValue returns true if the flag has any non-empty value or came from environment
+func (f *StringFlag) HasValue() bool { return f.value != "" || f.hasEnvValue }
 
 // BoolFlag represents a boolean command line flag
 type BoolFlag struct {
@@ -184,7 +185,8 @@ func (f *FloatFlag) HasValue() bool { return f.value != 0.0 || f.hasEnvValue }
 // StringSliceFlag represents a string slice command line flag
 type StringSliceFlag struct {
 	baseFlag
-	value []string // Current value
+	value       []string // Current value
+	hasEnvValue bool     // Track if value came from environment
 }
 
 // parseCommaSeparated splits a comma-separated string into a slice of trimmed non-empty strings
@@ -222,8 +224,8 @@ func (f *StringSliceFlag) Parse(value string) error {
 // Value returns the current string slice value
 func (f *StringSliceFlag) Value() []string { return f.value }
 
-// HasValue returns true if the slice is not empty
-func (f *StringSliceFlag) HasValue() bool { return len(f.value) > 0 }
+// HasValue returns true if the slice is not empty or came from environment
+func (f *StringSliceFlag) HasValue() bool { return len(f.value) > 0 || f.hasEnvValue }
 
 // FlagOption represents an option for configuring flags
 type FlagOption func(flag any)
@@ -344,7 +346,15 @@ func String(name, usage string, opts ...FlagOption) *StringFlag {
 	// Check environment variable for default value if specified
 	if flag.envVar != "" {
 		if envValue := os.Getenv(flag.envVar); envValue != "" {
+			// Apply validation to environment variable values
+			if flag.validate != nil {
+				if err := flag.validate(envValue); err != nil {
+					Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
+						flag.envVar, envValue, err), 1)
+				}
+			}
 			flag.value = envValue
+			flag.hasEnvValue = true
 			// Don't mark as explicitly set - this is from environment
 		}
 	}
@@ -375,6 +385,13 @@ func Bool(name, usage string, opts ...FlagOption) *BoolFlag {
 			if err != nil {
 				Exit(fmt.Sprintf("Environment variable error: invalid boolean value in %s=%q: %v",
 					flag.envVar, envValue, err), 1)
+			}
+			// Apply validation to environment variable values
+			if flag.validate != nil {
+				if err := flag.validate(envValue); err != nil {
+					Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
+						flag.envVar, envValue, err), 1)
+				}
 			}
 			flag.value = parsed
 			flag.hasEnvValue = true
@@ -407,6 +424,13 @@ func Int(name, usage string, opts ...FlagOption) *IntFlag {
 			if err != nil {
 				Exit(fmt.Sprintf("Environment variable error: invalid integer value in %s=%q: %v",
 					flag.envVar, envValue, err), 1)
+			}
+			// Apply validation to environment variable values
+			if flag.validate != nil {
+				if err := flag.validate(envValue); err != nil {
+					Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
+						flag.envVar, envValue, err), 1)
+				}
 			}
 			flag.value = parsed
 			flag.hasEnvValue = true
@@ -441,6 +465,13 @@ func Float(name, usage string, opts ...FlagOption) *FloatFlag {
 				Exit(fmt.Sprintf("Environment variable error: invalid float value in %s=%q: %v",
 					flag.envVar, envValue, err), 1)
 			}
+			// Apply validation to environment variable values
+			if flag.validate != nil {
+				if err := flag.validate(envValue); err != nil {
+					Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
+						flag.envVar, envValue, err), 1)
+				}
+			}
 			flag.value = parsed
 			flag.hasEnvValue = true
 			// Don't mark as explicitly set - this is from environment
@@ -469,7 +500,15 @@ func StringSlice(name, usage string, opts ...FlagOption) *StringSliceFlag {
 	// Check environment variable for default value if specified
 	if flag.envVar != "" {
 		if envValue := os.Getenv(flag.envVar); envValue != "" {
+			// Apply validation to environment variable values
+			if flag.validate != nil {
+				if err := flag.validate(envValue); err != nil {
+					Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
+						flag.envVar, envValue, err), 1)
+				}
+			}
 			flag.value = flag.parseCommaSeparated(envValue)
+			flag.hasEnvValue = true
 			// Don't mark as explicitly set - this is from environment
 		}
 	}

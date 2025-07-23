@@ -1,0 +1,54 @@
+post:
+  tags:
+    - permissions
+  summary: List all permissions in a workspace
+  description: |-
+    Retrieves a paginated list of all permissions defined in the workspace. This endpoint is essential for permission management and RBAC administration.
+    Permissions are the fundamental building blocks of access control in Unkey, representing specific actions or capabilities that can be granted to API keys either directly or through roles.
+    This endpoint allows you to:
+    - View all available permissions for assignment
+    - Build permission management interfaces
+    - Audit your RBAC configuration
+    - Identify existing permissions before creating new ones
+    Results are paginated and typically sorted alphabetically by permission name.
+  operationId: listPermissions
+  x-speakeasy-name-override: ListPermissions
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PermissionsListPermissionsRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PermissionsListPermissionsResponseBody.yaml"
+      description: Successfully listed permissions
+    "400":
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "500":
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertVersion is the base query for bulk insert
-const bulkInsertVersion = `INSERT INTO ` + "`" + `versions` + "`" + ` ( id, workspace_id, project_id, branch_id, build_id, rootfs_image_id, git_commit_sha, git_branch, config_snapshot, status, created_at, updated_at ) VALUES %s`
+const bulkInsertVersion = `INSERT INTO ` + "`" + `versions` + "`" + ` ( id, workspace_id, project_id, branch_id, build_id, rootfs_image_id, git_commit_sha, git_branch, config_snapshot, openapi_spec, status, created_at, updated_at ) VALUES %s`
 
 // InsertVersions performs bulk insert in a single query
 func (q *BulkQueries) InsertVersions(ctx context.Context, db DBTX, args []InsertVersionParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertVersions(ctx context.Context, db DBTX, args []Insert
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertVersion, strings.Join(valueClauses, ", "))
@@ -38,6 +38,7 @@ func (q *BulkQueries) InsertVersions(ctx context.Context, db DBTX, args []Insert
 		allArgs = append(allArgs, arg.GitCommitSha)
 		allArgs = append(allArgs, arg.GitBranch)
 		allArgs = append(allArgs, arg.ConfigSnapshot)
+		allArgs = append(allArgs, arg.OpenapiSpec)
 		allArgs = append(allArgs, arg.Status)
 		allArgs = append(allArgs, arg.CreatedAt)
 		allArgs = append(allArgs, arg.UpdatedAt)

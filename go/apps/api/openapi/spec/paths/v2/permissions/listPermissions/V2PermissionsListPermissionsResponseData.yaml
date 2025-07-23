@@ -1,0 +1,5 @@
+type: array
+maxItems: 1000
+description: Array of permission objects with complete configuration details.
+items:
+  "$ref": "../../../../common/Permission.yaml"

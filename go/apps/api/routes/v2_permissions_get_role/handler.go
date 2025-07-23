@@ -115,7 +115,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// 8. Return the role with its permissions
-	roleResponse := openapi.RoleWithPermissions{
+	roleResponse := openapi.Role{
 		Id:          role.ID,
 		Name:        role.Name,
 		CreatedAt:   role.CreatedAtM,
@@ -132,7 +132,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.PermissionsGetRoleResponseData{
+		Data: openapi.V2PermissionsGetRoleResponseData{
 			Role: roleResponse,
 		},
 	})

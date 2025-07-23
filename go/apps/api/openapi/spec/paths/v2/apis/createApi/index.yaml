@@ -1,0 +1,87 @@
+post:
+  tags:
+    - apis
+  summary: Create a new API namespace for organizing keys
+  description: |-
+    Creates a new API namespace that serves as a container for related API keys.
+
+    APIs in Unkey provide important functionality:
+    - They organize keys into logical groups for easier management
+    - They isolate keys between different environments (dev/staging/production)
+    - They enforce security boundaries between services or products
+    - They provide a foundation for permission scoping and access control
+
+    Common use cases for creating separate APIs include:
+    - Separating development, staging, and production environments
+    - Isolating different services or microservices from each other
+    - Creating boundaries between different products or teams
+    - Implementing multi-tenant isolation for SaaS applications
+
+    You'll use the resulting API ID when creating keys to associate them with this API namespace.
+    During key verification, you must provide the same API ID to ensure keys can't be used across different environments or services.
+  operationId: createApi
+  x-speakeasy-name-override: createApi
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2ApisCreateApiRequestBody.yaml"
+        examples:
+          production:
+            summary: Production API
+            value:
+              name: payment-service-production
+          staging:
+            summary: Staging environment
+            value:
+              name: payment-service-staging
+          serviceSpecific:
+            summary: Service-specific API
+            value:
+              name: analytics-service
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2ApisCreateApiResponseBody.yaml"
+          examples:
+            success:
+              summary: Successfully created API
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+                data:
+                  apiId: api_2cGKbMxRjIzhCxo1IdjH3a
+      description:
+        Successfully created a new API namespace. The response includes
+        the unique API ID that you'll need for creating keys within this namespace.
+        This ID should be stored securely as it's required for all operations
+        related to this API.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

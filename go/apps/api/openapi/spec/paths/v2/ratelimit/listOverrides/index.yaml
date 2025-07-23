@@ -1,0 +1,71 @@
+post:
+  tags:
+    - ratelimit
+  summary: List all rate limit overrides for a namespace
+  description: |-
+    Retrieves a paginated list of all rate limit overrides defined for a specific namespace. Returns detailed information about each override including identifier patterns, limits, and durations.
+    Use this endpoint to audit your rate limiting policies, build administrative dashboards, or manage and clean up override configurations. For namespaces with many overrides, results are paginated and can be retrieved in chunks using the cursor parameter.
+    This endpoint is particularly useful when you need to review all custom rate limit rules for a namespace, find patterns in your override configurations, or implement management interfaces for rate limiting policies.
+  operationId: ratelimit.listOverrides
+  x-speakeasy-name-override: listOverrides
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2RatelimitListOverridesRequestBody.yaml"
+        examples:
+          byNamespaceName:
+            summary: List all overrides by namespace name
+            value:
+              namespaceName: api.requests
+              limit: 20
+          byNamespaceId:
+            summary: List overrides by namespace ID
+            value:
+              namespaceId: ns_1234567890abcdef
+              limit: 50
+          pagination:
+            summary: Fetch next page of results
+            value:
+              namespaceId: ns_1234567890abcdef
+              cursor: cursor_eyJsYXN0SWQiOiJvdnJfM2RITGNOeVN6SnppRHlwMkpla2E5ciJ9
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2RatelimitListOverridesResponseBody.yaml"
+      description: OK
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+      description: Error

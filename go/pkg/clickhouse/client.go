@@ -99,7 +99,7 @@ func New(config Config) (*clickhouse, error) {
 		requests: batch.New(batch.Config[schema.ApiRequestV1]{
 			Name:          "api requests",
 			Drop:          true,
-			BatchSize:     1000,
+			BatchSize:     10000,
 			BufferSize:    100000,
 			FlushInterval: time.Second,
 			Consumers:     4,
@@ -118,7 +118,7 @@ func New(config Config) (*clickhouse, error) {
 			batch.Config[schema.KeyVerificationRequestV1]{
 				Name:          "key verifications",
 				Drop:          true,
-				BatchSize:     1000,
+				BatchSize:     10000,
 				BufferSize:    100000,
 				FlushInterval: time.Second,
 				Consumers:     4,
@@ -137,7 +137,7 @@ func New(config Config) (*clickhouse, error) {
 			batch.Config[schema.RatelimitRequestV1]{
 				Name:          "rate limits",
 				Drop:          true,
-				BatchSize:     1000,
+				BatchSize:     10000,
 				BufferSize:    100000,
 				FlushInterval: time.Second,
 				Consumers:     8,

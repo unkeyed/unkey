@@ -64,6 +64,8 @@ services:
       UNKEY_REDIS_URL: "redis://redis:6379"
       UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true"
       UNKEY_CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
+      UNKEY_CHPROXY_ENABLED: "true"
+      UNKEY_CHPROXY_AUTH_TOKEN: "chproxy-test-token-123"
       UNKEY_OTEL: true
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel:4318"
       OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
@@ -171,14 +173,15 @@ services:
         "--var=EMIT_METRICS_LOGS:false",
         "--var=SYNC_RATELIMIT_ON_NO_DATA:1.0",
         "--var=CLICKHOUSE_URL:http://default:password@clickhouse:8123",
-        "--var=CLICKHOUSE_INSERT_URL:http://proxy:password@chproxy:7123",
+        "--var=CLICKHOUSE_INSERT_URL:http://apiv2:7070",
+        "--var=CLICKHOUSE_PROXY_TOKEN:chproxy-test-token-123",
       ]
 
     depends_on:
       - planetscale
       - agent
       - clickhouse
-      - chproxy
+      - apiv2
 
   ctrl:
     build:

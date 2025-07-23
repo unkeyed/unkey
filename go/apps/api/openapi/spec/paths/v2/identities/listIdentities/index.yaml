@@ -1,0 +1,104 @@
+post:
+  tags:
+    - identities
+  summary: List identities in your workspace
+  description: |-
+    Retrieves a paginated list of identities in your workspace. Identities represent entities in your system (users, organizations, etc.) that can be associated with multiple API keys for resource sharing.
+    This endpoint allows you to:
+    - Browse all identities in your workspace
+    - Search for specific identities by environment
+    - View rate limits configured for each identity
+    - Implement identity management interfaces
+    Results are paginated if there are more identities than the specified limit. Use the returned cursor to fetch subsequent pages.
+  operationId: identities.listIdentities
+  x-speakeasy-name-override: listIdentities
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2IdentitiesListIdentitiesRequestBody.yaml"
+        examples:
+          basic:
+            summary: Basic identity listing
+            value:
+              limit: 50
+          withPagination:
+            summary: Fetch next page with cursor
+            value:
+              limit: 50
+              cursor: cursor_eyJrZXkiOiJrZXlfMTIzNCJ9
+    required: true
+  responses:
+    "200":
+      description: Successfully retrieved the list of identities
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2IdentitiesListIdentitiesResponseBody.yaml"
+          examples:
+            standard:
+              summary: Identity listing with pagination
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+                data:
+                  identities:
+                    - id: id_01H9TQP8NP8JN3X8HWSKPW43JE
+                      externalId: user_abc123
+                      ratelimits:
+                        - name: api_requests
+                          limit: 1000
+                          duration: 60000
+                        - name: heavy_operations
+                          limit: 100
+                          duration: 3600000
+                    - id: id_02ZYR3Q9NP8JM4X8HWSKPW43JF
+                      externalId: user_def456
+                      ratelimits:
+                        - name: api_requests
+                          limit: 500
+                          duration: 60000
+                  cursor: cursor_eyJsYXN0SWQiOiJpZF8wMlpZUjNROU5QOEpNNFg4SFdTS1BXNDNKRiJ9
+                  total: 247
+            emptyList:
+              summary: Empty identity list
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQY
+                data:
+                  identities: []
+                  total: 0
+    "400":
+      description: Bad Request - Invalid parameters
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized - Missing or invalid authentication
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "500":
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+  x-speakeasy-pagination:
+    type: cursor
+    inputs:
+      - name: cursor
+        in: parameters
+        type: cursor
+    outputs:
+      nextCursor: "$.data.cursor"

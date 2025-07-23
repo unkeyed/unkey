@@ -1,0 +1,23 @@
+type: object
+properties:
+  apiId:
+    type: string
+    minLength: 8
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: |
+      The unique identifier assigned to the newly created API.
+      Use this ID for all subsequent operations including key creation, verification, and API management.
+      Always begins with 'api_' followed by a unique alphanumeric sequence.
+
+      Store this ID securely as it's required when:
+      - Creating API keys within this namespace
+      - Verifying keys associated with this API
+      - Managing API settings and metadata
+      - Listing keys belonging to this API
+
+      This identifier is permanent and cannot be changed after creation.
+    example: api_2cGKbMxRjIzhCxo1IdjH3a
+required:
+  - apiId
+additionalProperties: false

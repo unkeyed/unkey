@@ -1,0 +1,11 @@
+type: object
+properties:
+  externalId:
+    type: string
+    minLength: 1
+    description: The external ID of the identity to retrieve. This is the ID
+      from your own system that was used during identity creation.
+    example: user_abc123
+additionalProperties: false
+required:
+  - externalId

@@ -1,0 +1,71 @@
+type: object
+additionalProperties: false
+required:
+  - apiId
+  - key
+properties:
+  apiId:
+    type: string
+    minLength: 3
+    maxLength: 255 # Reasonable upper bound for database identifiers
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: |
+      Specifies which API the key belongs to for complete environment isolation.
+      Keys from different APIs cannot access each other, preventing cross-environment leaks.
+      Essential for ensuring development keys cannot access production data and vice versa.
+      Store this API ID in your service configuration rather than hardcoding it.
+    example: api_1234
+  key:
+    type: string
+    minLength: 1
+    maxLength: 512 # Reasonable upper bound for API key strings
+    description: |
+      The complete API key string provided by your user, including any prefix.
+      Verification uses secure hashing algorithms without storing plaintext values.
+      Never log, cache, or store API keys in your system as they provide full access to user resources.
+      Include the full key exactly as provided - even minor modifications will cause verification failure.
+    example: prefix_f4cc2d765275c206b7d76ff0e92e583067c4e33603fb4055d7ba3031cd7ce36a
+  tags:
+    type: array
+    items:
+      type: string
+      minLength: 1
+      maxLength: 128 # Keep individual tags concise for analytics performance
+      pattern: "^[a-zA-Z0-9_=/.:-]+$"
+    maxItems: 20 # Allow sufficient tags for detailed analytics without performance impact
+    description: |
+      Attaches metadata tags for analytics and monitoring without affecting verification outcomes.
+      Enables segmentation of API usage in dashboards by endpoint, client version, region, or custom dimensions.
+      Use 'key=value' format for compatibility with most analytics tools and clear categorization.
+      Avoid including sensitive data in tags as they may appear in logs and analytics reports.
+    example:
+      - endpoint=/users/profile
+      - method=GET
+      - region=us-east-1
+      - clientVersion=2.3.0
+      - feature=premium
+  permissions:
+    type: string
+    minLength: 1
+    maxLength: 1000 # Allow for complex permission queries
+    pattern: "^[a-zA-Z0-9_.()\\s-]+$"
+    description: |
+      Checks if the key has the specified permission(s) using a query syntax.
+      Supports single permissions, logical operators (AND, OR), and parentheses for grouping.
+      Examples:
+      - Single permission: "documents.read"
+      - Multiple permissions: "documents.read AND documents.write"
+      - Complex queries: "(documents.read OR documents.write) AND users.view"
+      Verification fails if the key lacks the required permissions through direct assignment or role inheritance.
+    example: "documents.read AND users.view"
+  credits:
+    "$ref": "./KeysVerifyKeyCredits.yaml"
+  ratelimits:
+    type: array
+    items:
+      "$ref": "./KeysVerifyKeyRatelimit.yaml"
+    description: |
+      Enforces time-based rate limiting during verification to prevent abuse and ensure fair usage.
+      Omitting this field skips rate limit checks entirely, relying only on configured key rate limits.
+      Multiple rate limits can be checked simultaneously, each with different costs and temporary overrides.
+      Rate limit checks are optimized for performance but may allow brief bursts during high concurrency.

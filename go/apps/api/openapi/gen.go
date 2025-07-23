@@ -40,40 +40,6 @@ const (
 	Set       V2KeysUpdateCreditsRequestBodyOperation = "set"
 )
 
-// ApisCreateApiResponseData defines model for ApisCreateApiResponseData.
-type ApisCreateApiResponseData struct {
-	// ApiId The unique identifier assigned to the newly created API.
-	// Use this ID for all subsequent operations including key creation, verification, and API management.
-	// Always begins with 'api_' followed by a unique alphanumeric sequence.
-	//
-	// Store this ID securely as it's required when:
-	// - Creating API keys within this namespace
-	// - Verifying keys associated with this API
-	// - Managing API settings and metadata
-	// - Listing keys belonging to this API
-	//
-	// This identifier is permanent and cannot be changed after creation.
-	ApiId string `json:"apiId"`
-}
-
-// ApisGetApiResponseData defines model for ApisGetApiResponseData.
-type ApisGetApiResponseData struct {
-	// Id The unique identifier of this API within Unkey's system.
-	// Used in all operations related to this API including key creation, verification, and management.
-	// Always begins with 'api_' followed by alphanumeric characters and underscores.
-	// This identifier is permanent and never changes after API creation.
-	Id string `json:"id"`
-
-	// Name The internal name of this API as specified during creation.
-	// Used for organization and identification within your workspace.
-	// Helps distinguish between different environments, services, or access tiers.
-	// Not visible to end users - this is purely for administrative purposes.
-	Name string `json:"name"`
-}
-
-// ApisListKeysResponseData Array of API keys with complete configuration and metadata.
-type ApisListKeysResponseData = []KeyResponseData
-
 // BadRequestErrorDetails defines model for BadRequestErrorDetails.
 type BadRequestErrorDetails struct {
 	// Detail A human-readable explanation specific to this occurrence of the problem. This provides detailed information about what went wrong and potential remediation steps. The message is intended to be helpful for developers troubleshooting the issue.
@@ -85,23 +51,23 @@ type BadRequestErrorDetails struct {
 	// Status HTTP status code that corresponds to this error. This will match the status code in the HTTP response. Common codes include `400` (Bad Request), `401` (Unauthorized), `403` (Forbidden), `404` (Not Found), `409` (Conflict), and `500` (Internal Server Error).
 	Status int `json:"status"`
 
-	// Title A short, human-readable summary of the problem type. This is a concise, fixed string that categorizes the error and remains consistent between occurrences of the same error type. It provides a quick way to identify the category of error.
+	// Title A short, human-readable summary of the problem type. This remains constant from occurrence to occurrence of the same problem and should be used for programmatic handling.
 	Title string `json:"title"`
 
-	// Type A URI reference to human-readable documentation for the error. This link points to detailed documentation about this specific error type, including possible causes and solutions. It's designed to help developers understand and resolve the issue.
+	// Type A URI reference that identifies the problem type. This provides a stable identifier for the error that can be used for documentation lookups and programmatic error handling. When followed, this URI should provide human-readable documentation for the problem type.
 	Type string `json:"type"`
 }
 
 // BadRequestErrorResponse Error response for invalid requests that cannot be processed due to client-side errors. This typically occurs when request parameters are missing, malformed, or fail validation rules. The response includes detailed information about the specific errors in the request, including the location of each error and suggestions for fixing it. When receiving this error, check the 'errors' array in the response for specific validation issues that need to be addressed before retrying.
 type BadRequestErrorResponse struct {
-	// Error Extended error details specifically for bad request (400) errors. This builds on the BaseError structure by adding an array of individual validation errors that provide specific information about each validation failure in the request. This is particularly useful for requests with multiple fields that might have different validation issues simultaneously.
+	// Error Extended error details specifically for bad request (400) errors. This builds on the BaseError structure by adding an array of individual validation errors, making it easy to identify and fix multiple issues at once.
 	Error BadRequestErrorDetails `json:"error"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
 
-// BaseError Standard error structure that provides detailed information about errors encountered during API operations. This follows a problem details format that includes both machine-readable error codes and human-readable explanations. All error responses in the API include this structure to provide consistent, actionable error information.
+// BaseError Base error structure following Problem Details for HTTP APIs (RFC 7807). This provides a standardized way to carry machine-readable details of errors in HTTP response content.
 type BaseError struct {
 	// Detail A human-readable explanation specific to this occurrence of the problem. This provides detailed information about what went wrong and potential remediation steps. The message is intended to be helpful for developers troubleshooting the issue.
 	Detail string `json:"detail"`
@@ -109,101 +75,88 @@ type BaseError struct {
 	// Status HTTP status code that corresponds to this error. This will match the status code in the HTTP response. Common codes include `400` (Bad Request), `401` (Unauthorized), `403` (Forbidden), `404` (Not Found), `409` (Conflict), and `500` (Internal Server Error).
 	Status int `json:"status"`
 
-	// Title A short, human-readable summary of the problem type. This is a concise, fixed string that categorizes the error and remains consistent between occurrences of the same error type. It provides a quick way to identify the category of error.
+	// Title A short, human-readable summary of the problem type. This remains constant from occurrence to occurrence of the same problem and should be used for programmatic handling.
 	Title string `json:"title"`
 
-	// Type A URI reference to human-readable documentation for the error. This link points to detailed documentation about this specific error type, including possible causes and solutions. It's designed to help developers understand and resolve the issue.
+	// Type A URI reference that identifies the problem type. This provides a stable identifier for the error that can be used for documentation lookups and programmatic error handling. When followed, this URI should provide human-readable documentation for the problem type.
 	Type string `json:"type"`
 }
 
-// ConflictErrorResponse Error response for conflicts with the current state of a resource. This typically occurs when trying to create a resource that already exists (like an identity with a duplicate externalId) or when performing an operation that conflicts with the resource's current state. When receiving this error, the request should be modified to resolve the conflict before retrying, or a different operation should be used instead.
+// ChproxyMetricsRequestBody Array of API request metric events to be processed
+type ChproxyMetricsRequestBody = []map[string]interface{}
+
+// ChproxyMetricsResponseBody defines model for ChproxyMetricsResponseBody.
+type ChproxyMetricsResponseBody struct {
+	// Status Processing status
+	Status string `json:"status"`
+}
+
+// ChproxyRatelimitsRequestBody Array of ratelimit events to be processed
+type ChproxyRatelimitsRequestBody = []map[string]interface{}
+
+// ChproxyRatelimitsResponseBody defines model for ChproxyRatelimitsResponseBody.
+type ChproxyRatelimitsResponseBody struct {
+	// Status Processing status
+	Status string `json:"status"`
+}
+
+// ChproxyVerificationsRequestBody Array of key verification events to be processed
+type ChproxyVerificationsRequestBody = []map[string]interface{}
+
+// ChproxyVerificationsResponseBody defines model for ChproxyVerificationsResponseBody.
+type ChproxyVerificationsResponseBody struct {
+	// Status Processing status
+	Status string `json:"status"`
+}
+
+// ConflictErrorResponse Error response when the request conflicts with the current state of the resource. This occurs when:
+// - Attempting to create a resource that already exists
+// - Modifying a resource that has been changed by another operation
+// - Violating unique constraints or business rules
+//
+// To resolve this error, check the current state of the resource and adjust your request accordingly.
 type ConflictErrorResponse struct {
-	// Error Standard error structure that provides detailed information about errors encountered during API operations. This follows a problem details format that includes both machine-readable error codes and human-readable explanations. All error responses in the API include this structure to provide consistent, actionable error information.
+	// Error Base error structure following Problem Details for HTTP APIs (RFC 7807). This provides a standardized way to carry machine-readable details of errors in HTTP response content.
 	Error BaseError `json:"error"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
 
-// ForbiddenErrorResponse Error response when the caller is authenticated but lacks permission to perform the requested operation. This occurs when:
+// ForbiddenErrorResponse Error response when the provided credentials are valid but lack sufficient permissions for the requested operation. This occurs when:
+// - The root key doesn't have the required permissions for this endpoint
+// - The operation requires elevated privileges that the current key lacks
+// - Access to the requested resource is restricted based on workspace settings
 //
-// - The root key doesn't have the required permissions for the operation
-// - The caller is trying to access resources from a different workspace
-// - The caller is attempting to access another user's resources
-// - The operation violates a policy restriction
-//
-// Unlike Unauthorized (401) which indicates authentication issues, Forbidden (403) indicates authorization problems for an authenticated caller.
-//
-// To fix this error:
-// 1. Check the permissions assigned to your root key in the Unkey dashboard
-// 2. Verify you're operating within the correct workspace
-// 3. Ensure you have the necessary scope to access the requested resource
-// 4. Request additional permissions if needed from your workspace administrator
-//
-// Permission patterns in Unkey follow a hierarchical structure:
-// - 'resource.*' grants all permissions for a resource
-// - 'resource.read' grants read-only access
-// - 'resource.write' grants write access
-//
-// Common permission requirements for endpoints include:
-// - keys.create - For creating new API keys
-// - keys.read - For retrieving key information
-// - keys.update - For modifying existing keys
-// - keys.delete - For removing keys
-// - apis.* - For managing API namespaces
+// To resolve this error, ensure your root key has the necessary permissions or contact your workspace administrator.
 type ForbiddenErrorResponse struct {
-	// Error Standard error structure that provides detailed information about errors encountered during API operations. This follows a problem details format that includes both machine-readable error codes and human-readable explanations. All error responses in the API include this structure to provide consistent, actionable error information.
+	// Error Base error structure following Problem Details for HTTP APIs (RFC 7807). This provides a standardized way to carry machine-readable details of errors in HTTP response content.
 	Error BaseError `json:"error"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
-}
-
-// IdentitiesCreateIdentityResponseData defines model for IdentitiesCreateIdentityResponseData.
-type IdentitiesCreateIdentityResponseData = map[string]interface{}
-
-// IdentitiesGetIdentityResponseData defines model for IdentitiesGetIdentityResponseData.
-type IdentitiesGetIdentityResponseData struct {
-	// ExternalId The external identifier for this identity in your system. This is the ID you provided during identity creation.
-	ExternalId string `json:"externalId"`
-
-	// Meta Custom metadata associated with this identity. This can include any JSON-serializable data you stored with the identity during creation or updates.
-	Meta *map[string]interface{} `json:"meta,omitempty"`
-
-	// Ratelimits Rate limits associated with this identity. These limits are shared across all API keys linked to this identity, providing consistent rate limiting regardless of which key is used.
-	Ratelimits *[]RatelimitResponse `json:"ratelimits,omitempty"`
-}
-
-// IdentitiesListIdentitiesResponseData List of identities matching the specified criteria.
-type IdentitiesListIdentitiesResponseData = []Identity
-
-// IdentitiesUpdateIdentityResponseData defines model for IdentitiesUpdateIdentityResponseData.
-type IdentitiesUpdateIdentityResponseData struct {
-	// ExternalId The external identifier for this identity in your system.
-	ExternalId string `json:"externalId"`
-
-	// Meta Custom metadata associated with this identity after the update.
-	Meta *map[string]interface{} `json:"meta,omitempty"`
-
-	// Ratelimits Rate limits associated with this identity after the update.
-	Ratelimits *[]RatelimitResponse `json:"ratelimits,omitempty"`
 }
 
 // Identity defines model for Identity.
 type Identity struct {
+	Description *interface{} `json:"description,omitempty"`
+
 	// ExternalId External identity ID
 	ExternalId string `json:"externalId"`
 
 	// Meta Identity metadata
-	Meta *map[string]interface{} `json:"meta,omitempty"`
-
-	// Ratelimits Identity ratelimits
-	Ratelimits []RatelimitResponse `json:"ratelimits"`
+	Meta       *map[string]interface{} `json:"meta,omitempty"`
+	Ratelimits []RatelimitResponse     `json:"ratelimits"`
 }
 
-// InternalServerErrorResponse Error response for unexpected server-side issues that prevented the request from being processed correctly. This is typically caused by problems with the service infrastructure, database connectivity issues, unexpected exceptions, or service failures. When receiving this error, clients should implement appropriate retry strategies with backoff and report the issue if it persists. The `requestId` in the `meta` object is essential for troubleshooting and should be included in any support inquiries.
+// InternalServerErrorResponse Error response when an unexpected error occurs on the server. This indicates a problem with Unkey's systems rather than your request.
+//
+// When you encounter this error:
+// - The request ID in the response can help Unkey support investigate the issue
+// - The error is likely temporary and retrying may succeed
+// - If the error persists, contact Unkey support with the request ID
 type InternalServerErrorResponse struct {
-	// Error Standard error structure that provides detailed information about errors encountered during API operations. This follows a problem details format that includes both machine-readable error codes and human-readable explanations. All error responses in the API include this structure to provide consistent, actionable error information.
+	// Error Base error structure following Problem Details for HTTP APIs (RFC 7807). This provides a standardized way to carry machine-readable details of errors in HTTP response content.
 	Error BaseError `json:"error"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
@@ -212,21 +165,24 @@ type InternalServerErrorResponse struct {
 
 // KeyCreditsData Credit configuration and remaining balance for this key.
 type KeyCreditsData struct {
+	// Refill Configuration for automatic credit refill behavior.
 	Refill *KeyCreditsRefill `json:"refill,omitempty"`
 
 	// Remaining Number of credits remaining (null for unlimited).
 	Remaining nullable.Nullable[int64] `json:"remaining"`
 }
 
-// KeyCreditsRefill defines model for KeyCreditsRefill.
+// KeyCreditsRefill Configuration for automatic credit refill behavior.
 type KeyCreditsRefill struct {
-	// Amount Number of credits added during each refill.
+	// Amount Number of credits to add during each refill cycle.
 	Amount int64 `json:"amount"`
 
 	// Interval How often credits are automatically refilled.
 	Interval KeyCreditsRefillInterval `json:"interval"`
 
-	// RefillDay Day of month for monthly refills (1-31).
+	// RefillDay Day of the month for monthly refills (1-31).
+	// Only required when interval is 'monthly'.
+	// For days beyond the month's length, refill occurs on the last day of the month.
 	RefillDay *int `json:"refillDay,omitempty"`
 }
 
@@ -244,9 +200,12 @@ type KeyResponseData struct {
 	// Enabled Whether the key is enabled or disabled.
 	Enabled bool `json:"enabled"`
 
-	// Expires Unix timestamp in milliseconds when key expires.
-	Expires  *int64    `json:"expires,omitempty"`
-	Identity *Identity `json:"identity,omitempty"`
+	// Expires Unix timestamp in milliseconds when key expires (if set).
+	Expires *int64 `json:"expires,omitempty"`
+
+	// ExternalId External identifier linking this key to an entity in your system.
+	ExternalId *string   `json:"externalId,omitempty"`
+	Identity   *Identity `json:"identity,omitempty"`
 
 	// KeyId Unique identifier for this key.
 	KeyId string `json:"keyId"`
@@ -255,19 +214,13 @@ type KeyResponseData struct {
 	Meta *map[string]interface{} `json:"meta,omitempty"`
 
 	// Name Human-readable name for this key.
-	Name *string `json:"name,omitempty"`
-
-	// Permissions Permission names assigned to this key.
+	Name        *string   `json:"name,omitempty"`
 	Permissions *[]string `json:"permissions,omitempty"`
 
 	// Plaintext Decrypted key value (only when decrypt=true).
-	Plaintext *string `json:"plaintext,omitempty"`
-
-	// Ratelimits Rate limit configurations for this key.
+	Plaintext  *string              `json:"plaintext,omitempty"`
 	Ratelimits *[]RatelimitResponse `json:"ratelimits,omitempty"`
-
-	// Roles Role names assigned to this key.
-	Roles *[]string `json:"roles,omitempty"`
+	Roles      *[]string            `json:"roles,omitempty"`
 
 	// Start First few characters of the key for identification.
 	Start string `json:"start"`
@@ -276,20 +229,8 @@ type KeyResponseData struct {
 	UpdatedAt *int64 `json:"updatedAt,omitempty"`
 }
 
-// KeysCreateKeyResponseData defines model for KeysCreateKeyResponseData.
-type KeysCreateKeyResponseData struct {
-	// Key The full generated API key that should be securely provided to your user. SECURITY WARNING: This is the only time you'll receive the complete key - Unkey only stores a securely hashed version. Never log or store this value in your own systems; provide it directly to your end user via secure channels. After this API call completes, this value cannot be retrieved again (unless created with `recoverable=true`).
-	Key string `json:"key"`
-
-	// KeyId The unique identifier for this key in Unkey's system. This is NOT the actual API key, but a reference ID used for management operations like updating or deleting the key. Store this ID in your database to reference the key later. This ID is not sensitive and can be logged or displayed in dashboards.
-	KeyId string `json:"keyId"`
-}
-
 // KeysDeleteKeyResponseData Empty response object by design. A successful response indicates the key was deleted successfully.
 type KeysDeleteKeyResponseData = map[string]interface{}
-
-// KeysUpdateKeyResponseData Empty response object by design. A successful response indicates the key was updated successfully.
-type KeysUpdateKeyResponseData = map[string]interface{}
 
 // KeysVerifyKeyCredits Controls credit consumption for usage-based billing and quota enforcement.
 // Omitting this field uses the default cost of 1 credit per verification.
@@ -356,28 +297,27 @@ type KeysVerifyKeyResponseData struct {
 // KeysVerifyKeyResponseDataCode A machine-readable code indicating the verification status or failure reason. Values: `VALID` (key is valid), `NOT_FOUND` (key doesn't exist), `FORBIDDEN` (key exists but belongs to a different API), `USAGE_EXCEEDED` (key has no more credits), `RATE_LIMITED` (key exceeded rate limits), `UNAUTHORIZED` (key can't be used for this action), `DISABLED` (key was explicitly disabled), `INSUFFICIENT_PERMISSIONS` (key lacks required permissions), `EXPIRED` (key has passed its expiration date).
 type KeysVerifyKeyResponseDataCode string
 
-// LivenessResponseData Response data for the liveness check endpoint. This provides a simple indication of whether the Unkey API service is running and able to process requests. Monitoring systems can use this endpoint to track service availability and trigger alerts if the service becomes unhealthy.
-type LivenessResponseData struct {
-	// Message Status message indicating the health of the service. A value of 'OK' indicates that the service is functioning properly and ready to accept requests. Any other value indicates a potential issue with the service health.
-	Message string `json:"message"`
-}
-
 // Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 type Meta struct {
 	// RequestId A unique id for this request. Always include this ID when contacting support about a specific API request. This identifier allows Unkey's support team to trace the exact request through logs and diagnostic systems to provide faster assistance.
 	RequestId string `json:"requestId"`
 }
 
-// NotFoundErrorResponse Error response when the requested resource cannot be found. This typically indicates that the resource either doesn't exist, has been deleted, or the caller doesn't have permission to see it. Common scenarios include looking up non-existent keys, APIs, permissions, or identities. When receiving this error, verify that the resource identifier is correct and that the resource hasn't been deleted.
+// NotFoundErrorResponse Error response when the requested resource cannot be found. This occurs when:
+// - The specified resource ID doesn't exist in your workspace
+// - The resource has been deleted or moved
+// - The resource exists but is not accessible with current permissions
+//
+// To resolve this error, verify the resource ID is correct and that you have access to it.
 type NotFoundErrorResponse struct {
-	// Error Standard error structure that provides detailed information about errors encountered during API operations. This follows a problem details format that includes both machine-readable error codes and human-readable explanations. All error responses in the API include this structure to provide consistent, actionable error information.
+	// Error Base error structure following Problem Details for HTTP APIs (RFC 7807). This provides a standardized way to carry machine-readable details of errors in HTTP response content.
 	Error BaseError `json:"error"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
 
-// Pagination defines model for Pagination.
+// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
 type Pagination struct {
 	// Cursor Opaque pagination token for retrieving the next page of results.
 	// Include this exact value in the cursor field of subsequent requests.
@@ -418,97 +358,19 @@ type Permission struct {
 	Slug string `json:"slug"`
 }
 
-// PermissionsCreatePermissionResponseData defines model for PermissionsCreatePermissionResponseData.
-type PermissionsCreatePermissionResponseData struct {
-	// PermissionId The unique identifier assigned to the newly created permission.
-	// Use this ID to reference the permission in role assignments, key operations, and other API calls.
-	// Always begins with 'perm_' followed by a unique alphanumeric sequence.
-	// Store this ID if you need to manage or reference this permission in future operations.
-	PermissionId string `json:"permissionId"`
-}
-
-// PermissionsCreateRoleResponseData defines model for PermissionsCreateRoleResponseData.
-type PermissionsCreateRoleResponseData struct {
-	// RoleId The unique identifier assigned to the newly created role.
-	// Use this ID to reference the role in permission assignments, key operations, and role management calls.
-	// Always begins with 'role_' followed by a unique alphanumeric sequence.
-	// Store this ID if you need to manage, modify, or assign this role in future operations.
-	RoleId string `json:"roleId"`
-}
-
-// PermissionsGetPermissionResponseData Complete permission details including ID, name, and metadata.
-type PermissionsGetPermissionResponseData struct {
-	Permission Permission `json:"permission"`
-}
-
-// PermissionsGetRoleResponseData Complete role details including assigned permissions.
-type PermissionsGetRoleResponseData struct {
-	Role RoleWithPermissions `json:"role"`
-}
-
-// PermissionsListPermissionsResponseData Array of permission objects with complete configuration details.
-type PermissionsListPermissionsResponseData = []Permission
-
-// PermissionsListRolesResponseData Array of roles with their assigned permissions.
-type PermissionsListRolesResponseData = []RoleWithPermissions
-
-// PreconditionFailedErrorResponse Error response for when the service is available but in a degraded state. This occurs when preconditions for normal operation aren't fully met. This could happen when dependent services are experiencing issues, when the system is in maintenance mode, or when certain features are temporarily disabled. Clients should proceed with caution and may want to retry non-critical operations later.
+// PreconditionFailedErrorResponse Error response when one or more conditions specified in the request headers are not met. This typically occurs when:
+// - Using conditional requests with If-Match or If-None-Match headers
+// - The resource version doesn't match the expected value
+// - Optimistic concurrency control detects a conflict
+//
+// To resolve this error, fetch the latest version of the resource and retry with updated conditions.
 type PreconditionFailedErrorResponse struct {
-	// Error Standard error structure that provides detailed information about errors encountered during API operations. This follows a problem details format that includes both machine-readable error codes and human-readable explanations. All error responses in the API include this structure to provide consistent, actionable error information.
+	// Error Base error structure following Problem Details for HTTP APIs (RFC 7807). This provides a standardized way to carry machine-readable details of errors in HTTP response content.
 	Error BaseError `json:"error"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
-
-// RatelimitDeleteOverrideResponseData Empty response object. A successful response indicates the override was successfully deleted. The operation is immediate - as soon as this response is received, the override no longer exists and affected identifiers have reverted to using the default rate limit for the namespace. No other data is returned as part of the deletion operation.
-type RatelimitDeleteOverrideResponseData = map[string]interface{}
-
-// RatelimitLimitResponseData defines model for RatelimitLimitResponseData.
-type RatelimitLimitResponseData struct {
-	// Limit The maximum number of operations allowed within the time window. This reflects either the default limit specified in the request or an override limit if one exists for this identifier.
-	//
-	// This value helps clients understand their total quota for the current window.
-	Limit int64 `json:"limit"`
-
-	// OverrideId If a rate limit override was applied for this identifier, this field contains the ID of the override that was used. Empty when no override is in effect.
-	//
-	// This can be useful for:
-	// - Debugging which override rule was matched
-	// - Tracking the effects of specific overrides
-	// - Understanding why limits differ from default values
-	// - Audit logging of special rate limit rules
-	OverrideId *string `json:"overrideId,omitempty"`
-
-	// Remaining The number of operations remaining in the current window before the rate limit is exceeded. Applications should use this value to:
-	//
-	// - Implement client-side throttling before hitting limits
-	// - Display usage information to end users
-	// - Trigger alerts when approaching limits
-	// - Adjust request patterns based on available capacity
-	//
-	// When this reaches zero, requests will be rejected until the window resets.
-	Remaining int64 `json:"remaining"`
-
-	// Reset The Unix timestamp in milliseconds when the rate limit window will reset and 'remaining' will return to 'limit'.
-	//
-	// This timestamp enables clients to:
-	// - Calculate and display wait times to users
-	// - Implement intelligent retry mechanisms
-	// - Schedule requests to resume after the reset
-	// - Implement exponential backoff when needed
-	//
-	// The reset time is based on a sliding window from the first request in the current window.
-	Reset int64 `json:"reset"`
-
-	// Success Whether the request passed the rate limit check. If true, the request is allowed to proceed. If false, the request has exceeded the rate limit and should be blocked or rejected.
-	//
-	// You MUST check this field to determine if the request should proceed, as the endpoint always returns `HTTP 200` even when rate limited.
-	Success bool `json:"success"`
-}
-
-// RatelimitListOverridesResponseData defines model for RatelimitListOverridesResponseData.
-type RatelimitListOverridesResponseData = []RatelimitOverride
 
 // RatelimitOverride defines model for RatelimitOverride.
 type RatelimitOverride struct {
@@ -602,21 +464,8 @@ type RatelimitResponse struct {
 	Name string `json:"name"`
 }
 
-// RatelimitSetOverrideResponseData defines model for RatelimitSetOverrideResponseData.
-type RatelimitSetOverrideResponseData struct {
-	// OverrideId The unique identifier for the newly created or updated rate limit override. This ID can be used to:
-	//
-	// - Reference this specific override in subsequent API calls
-	// - Delete or modify this override later
-	// - Track which override is being applied in rate limit responses
-	// - Associate override effects with specific rules in analytics
-	//
-	// Store this ID if you need to manage the override in the future.
-	OverrideId string `json:"overrideId"`
-}
-
-// RoleWithPermissions defines model for RoleWithPermissions.
-type RoleWithPermissions struct {
+// Role defines model for Role.
+type Role struct {
 	// CreatedAt Unix timestamp in milliseconds indicating when this role was first created.
 	// Useful for auditing and understanding the evolution of your access control structure.
 	// Automatically set by the system and cannot be modified.
@@ -648,21 +497,13 @@ type RoleWithPermissions struct {
 }
 
 // UnauthorizedErrorResponse Error response when authentication has failed or credentials are missing. This occurs when:
+// - No authentication token is provided in the request
+// - The provided token is invalid, expired, or malformed
+// - The token format doesn't match expected patterns
 //
-// - The Authorization header is missing
-// - The root key is invalid or has been revoked
-// - The root key format is incorrect
-// - The authentication token has expired
-//
-// To fix this error:
-// 1. Ensure you're including the `Authorization` header with format: `Bearer your_root_key`
-// 2. Verify your root key is valid and has not been revoked in the Unkey dashboard
-// 3. Check that you're using the correct root key for the environment
-// 4. If using a new key, ensure it was created successfully
-//
-// For security reasons, the specific reason for authentication failure may be intentionally vague in the error message. Check your Unkey dashboard for more detailed information about your root keys.
+// To resolve this error, ensure you're including a valid root key in the Authorization header.
 type UnauthorizedErrorResponse struct {
-	// Error Standard error structure that provides detailed information about errors encountered during API operations. This follows a problem details format that includes both machine-readable error codes and human-readable explanations. All error responses in the API include this structure to provide consistent, actionable error information.
+	// Error Base error structure following Problem Details for HTTP APIs (RFC 7807). This provides a standardized way to carry machine-readable details of errors in HTTP response content.
 	Error BaseError `json:"error"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
@@ -688,10 +529,26 @@ type V2ApisCreateApiRequestBody struct {
 
 // V2ApisCreateApiResponseBody defines model for V2ApisCreateApiResponseBody.
 type V2ApisCreateApiResponseBody struct {
-	Data ApisCreateApiResponseData `json:"data"`
+	Data V2ApisCreateApiResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// V2ApisCreateApiResponseData defines model for V2ApisCreateApiResponseData.
+type V2ApisCreateApiResponseData struct {
+	// ApiId The unique identifier assigned to the newly created API.
+	// Use this ID for all subsequent operations including key creation, verification, and API management.
+	// Always begins with 'api_' followed by a unique alphanumeric sequence.
+	//
+	// Store this ID securely as it's required when:
+	// - Creating API keys within this namespace
+	// - Verifying keys associated with this API
+	// - Managing API settings and metadata
+	// - Listing keys belonging to this API
+	//
+	// This identifier is permanent and cannot be changed after creation.
+	ApiId string `json:"apiId"`
 }
 
 // V2ApisDeleteApiRequestBody defines model for V2ApisDeleteApiRequestBody.
@@ -741,10 +598,25 @@ type V2ApisGetApiRequestBody struct {
 
 // V2ApisGetApiResponseBody defines model for V2ApisGetApiResponseBody.
 type V2ApisGetApiResponseBody struct {
-	Data ApisGetApiResponseData `json:"data"`
+	Data V2ApisGetApiResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// V2ApisGetApiResponseData defines model for V2ApisGetApiResponseData.
+type V2ApisGetApiResponseData struct {
+	// Id The unique identifier of this API within Unkey's system.
+	// Used in all operations related to this API including key creation, verification, and management.
+	// Always begins with 'api_' followed by alphanumeric characters and underscores.
+	// This identifier is permanent and never changes after API creation.
+	Id string `json:"id"`
+
+	// Name The internal name of this API as specified during creation.
+	// Used for organization and identification within your workspace.
+	// Helps distinguish between different environments, services, or access tiers.
+	// Not visible to end users - this is purely for administrative purposes.
+	Name string `json:"name"`
 }
 
 // V2ApisListKeysRequestBody defines model for V2ApisListKeysRequestBody.
@@ -781,12 +653,17 @@ type V2ApisListKeysRequestBody struct {
 // V2ApisListKeysResponseBody defines model for V2ApisListKeysResponseBody.
 type V2ApisListKeysResponseBody struct {
 	// Data Array of API keys with complete configuration and metadata.
-	Data ApisListKeysResponseData `json:"data"`
+	Data V2ApisListKeysResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
-	Meta       Meta        `json:"meta"`
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
 	Pagination *Pagination `json:"pagination,omitempty"`
 }
+
+// V2ApisListKeysResponseData Array of API keys with complete configuration and metadata.
+type V2ApisListKeysResponseData = []KeyResponseData
 
 // V2IdentitiesCreateIdentityRequestBody defines model for V2IdentitiesCreateIdentityRequestBody.
 type V2IdentitiesCreateIdentityRequestBody struct {
@@ -824,11 +701,14 @@ type V2IdentitiesCreateIdentityRequestBody struct {
 
 // V2IdentitiesCreateIdentityResponseBody defines model for V2IdentitiesCreateIdentityResponseBody.
 type V2IdentitiesCreateIdentityResponseBody struct {
-	Data IdentitiesCreateIdentityResponseData `json:"data"`
+	Data V2IdentitiesCreateIdentityResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
+
+// V2IdentitiesCreateIdentityResponseData defines model for V2IdentitiesCreateIdentityResponseData.
+type V2IdentitiesCreateIdentityResponseData = map[string]interface{}
 
 // V2IdentitiesDeleteIdentityRequestBody defines model for V2IdentitiesDeleteIdentityRequestBody.
 type V2IdentitiesDeleteIdentityRequestBody struct {
@@ -838,7 +718,7 @@ type V2IdentitiesDeleteIdentityRequestBody struct {
 	ExternalId string `json:"externalId"`
 }
 
-// V2IdentitiesDeleteIdentityResponseBody Empty response object. A successful response indicates the identity was deleted successfully. The operation is immediate and permanent - the identity and all its associated data are removed from the system. Any API keys previously associated with this identity remain valid but are no longer linked to this identity.
+// V2IdentitiesDeleteIdentityResponseBody Empty response object. A successful response indicates the identity was deleted successfully.
 type V2IdentitiesDeleteIdentityResponseBody struct {
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
@@ -852,10 +732,22 @@ type V2IdentitiesGetIdentityRequestBody struct {
 
 // V2IdentitiesGetIdentityResponseBody defines model for V2IdentitiesGetIdentityResponseBody.
 type V2IdentitiesGetIdentityResponseBody struct {
-	Data IdentitiesGetIdentityResponseData `json:"data"`
+	Data V2IdentitiesGetIdentityResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// V2IdentitiesGetIdentityResponseData defines model for V2IdentitiesGetIdentityResponseData.
+type V2IdentitiesGetIdentityResponseData struct {
+	// ExternalId The external identifier for this identity in your system. This is the ID you provided during identity creation.
+	ExternalId string `json:"externalId"`
+
+	// Meta Custom metadata associated with this identity. This can include any JSON-serializable data you stored with the identity during creation or updates.
+	Meta *map[string]interface{} `json:"meta,omitempty"`
+
+	// Ratelimits Rate limits associated with this identity. These limits are shared across all API keys linked to this identity, providing consistent rate limiting regardless of which key is used.
+	Ratelimits *[]RatelimitResponse `json:"ratelimits,omitempty"`
 }
 
 // V2IdentitiesListIdentitiesRequestBody defines model for V2IdentitiesListIdentitiesRequestBody.
@@ -870,12 +762,17 @@ type V2IdentitiesListIdentitiesRequestBody struct {
 // V2IdentitiesListIdentitiesResponseBody defines model for V2IdentitiesListIdentitiesResponseBody.
 type V2IdentitiesListIdentitiesResponseBody struct {
 	// Data List of identities matching the specified criteria.
-	Data IdentitiesListIdentitiesResponseData `json:"data"`
+	Data V2IdentitiesListIdentitiesResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
-	Meta       Meta       `json:"meta"`
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
 	Pagination Pagination `json:"pagination"`
 }
+
+// V2IdentitiesListIdentitiesResponseData List of identities matching the specified criteria.
+type V2IdentitiesListIdentitiesResponseData = []Identity
 
 // V2IdentitiesUpdateIdentityRequestBody defines model for V2IdentitiesUpdateIdentityRequestBody.
 type V2IdentitiesUpdateIdentityRequestBody struct {
@@ -899,7 +796,7 @@ type V2IdentitiesUpdateIdentityRequestBody struct {
 
 // V2IdentitiesUpdateIdentityResponseBody defines model for V2IdentitiesUpdateIdentityResponseBody.
 type V2IdentitiesUpdateIdentityResponseBody struct {
-	Data IdentitiesUpdateIdentityResponseData `json:"data"`
+	Data Identity `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
@@ -944,8 +841,8 @@ type V2KeysAddPermissionsRequestBody struct {
 	} `json:"permissions"`
 }
 
-// V2KeysAddPermissionsResponse defines model for V2KeysAddPermissionsResponse.
-type V2KeysAddPermissionsResponse struct {
+// V2KeysAddPermissionsResponseBody defines model for V2KeysAddPermissionsResponseBody.
+type V2KeysAddPermissionsResponseBody struct {
 	// Data Complete list of all permissions directly assigned to the key (including both newly added permissions and those that were already assigned).
 	//
 	// This response includes:
@@ -1016,8 +913,8 @@ type V2KeysAddRolesRequestBody struct {
 	} `json:"roles"`
 }
 
-// V2KeysAddRolesResponse defines model for V2KeysAddRolesResponse.
-type V2KeysAddRolesResponse struct {
+// V2KeysAddRolesResponseBody defines model for V2KeysAddRolesResponseBody.
+type V2KeysAddRolesResponseBody struct {
 	// Data Complete list of all roles directly assigned to the key after the operation completes.
 	//
 	// The response includes:
@@ -1138,10 +1035,19 @@ type V2KeysCreateKeyRequestBody struct {
 
 // V2KeysCreateKeyResponseBody defines model for V2KeysCreateKeyResponseBody.
 type V2KeysCreateKeyResponseBody struct {
-	Data KeysCreateKeyResponseData `json:"data"`
+	Data V2KeysCreateKeyResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// V2KeysCreateKeyResponseData defines model for V2KeysCreateKeyResponseData.
+type V2KeysCreateKeyResponseData struct {
+	// Key The full generated API key that should be securely provided to your user. SECURITY WARNING: This is the only time you'll receive the complete key - Unkey only stores a securely hashed version. Never log or store this value in your own systems; provide it directly to your end user via secure channels. After this API call completes, this value cannot be retrieved again (unless created with `recoverable=true`).
+	Key string `json:"key"`
+
+	// KeyId The unique identifier for this key in Unkey's system. This is NOT the actual API key, but a reference ID used for management operations like updating or deleting the key. Store this ID in your database to reference the key later. This ID is not sensitive and can be logged or displayed in dashboards.
+	KeyId string `json:"keyId"`
 }
 
 // V2KeysDeleteKeyRequestBody defines model for V2KeysDeleteKeyRequestBody.
@@ -1236,8 +1142,8 @@ type V2KeysRemovePermissionsRequestBody struct {
 	} `json:"permissions"`
 }
 
-// V2KeysRemovePermissionsResponse defines model for V2KeysRemovePermissionsResponse.
-type V2KeysRemovePermissionsResponse struct {
+// V2KeysRemovePermissionsResponseBody defines model for V2KeysRemovePermissionsResponseBody.
+type V2KeysRemovePermissionsResponseBody struct {
 	// Data Complete list of all permissions directly assigned to the key after the removal operation (remaining permissions only).
 	//
 	// This response includes:
@@ -1321,8 +1227,8 @@ type V2KeysRemoveRolesRequestBody struct {
 	} `json:"roles"`
 }
 
-// V2KeysRemoveRolesResponse defines model for V2KeysRemoveRolesResponse.
-type V2KeysRemoveRolesResponse struct {
+// V2KeysRemoveRolesResponseBody defines model for V2KeysRemoveRolesResponseBody.
+type V2KeysRemoveRolesResponseBody struct {
 	// Data Complete list of all roles directly assigned to the key after the removal operation completes.
 	//
 	// The response includes:
@@ -1399,8 +1305,8 @@ type V2KeysSetPermissionsRequestBody struct {
 	} `json:"permissions"`
 }
 
-// V2KeysSetPermissionsResponse defines model for V2KeysSetPermissionsResponse.
-type V2KeysSetPermissionsResponse struct {
+// V2KeysSetPermissionsResponseBody defines model for V2KeysSetPermissionsResponseBody.
+type V2KeysSetPermissionsResponseBody struct {
 	// Data Complete list of all permissions now directly assigned to the key after the set operation has completed.
 	//
 	// The response includes:
@@ -1471,8 +1377,8 @@ type V2KeysSetRolesRequestBody struct {
 	} `json:"roles"`
 }
 
-// V2KeysSetRolesResponse defines model for V2KeysSetRolesResponse.
-type V2KeysSetRolesResponse struct {
+// V2KeysSetRolesResponseBody defines model for V2KeysSetRolesResponseBody.
+type V2KeysSetRolesResponseBody struct {
 	// Data Complete list of all roles now directly assigned to the key after the set operation has completed.
 	//
 	// The response includes:
@@ -1547,8 +1453,8 @@ type V2KeysUpdateCreditsRequestBody struct {
 // - decrement: Subtract the specified value from the current remaining credits value.
 type V2KeysUpdateCreditsRequestBodyOperation string
 
-// V2KeysUpdateCreditsResponse defines model for V2KeysUpdateCreditsResponse.
-type V2KeysUpdateCreditsResponse struct {
+// V2KeysUpdateCreditsResponseBody defines model for V2KeysUpdateCreditsResponseBody.
+type V2KeysUpdateCreditsResponseBody struct {
 	// Data Credit configuration and remaining balance for this key.
 	Data KeyCreditsData `json:"data"`
 
@@ -1609,11 +1515,14 @@ type V2KeysUpdateKeyRequestBody struct {
 // V2KeysUpdateKeyResponseBody defines model for V2KeysUpdateKeyResponseBody.
 type V2KeysUpdateKeyResponseBody struct {
 	// Data Empty response object by design. A successful response indicates the key was updated successfully.
-	Data *KeysUpdateKeyResponseData `json:"data,omitempty"`
+	Data *V2KeysUpdateKeyResponseData `json:"data,omitempty"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
+
+// V2KeysUpdateKeyResponseData Empty response object by design. A successful response indicates the key was updated successfully.
+type V2KeysUpdateKeyResponseData = map[string]interface{}
 
 // V2KeysVerifyKeyRequestBody defines model for V2KeysVerifyKeyRequestBody.
 type V2KeysVerifyKeyRequestBody struct {
@@ -1668,10 +1577,16 @@ type V2KeysVerifyKeyResponseBody struct {
 // V2LivenessResponseBody defines model for V2LivenessResponseBody.
 type V2LivenessResponseBody struct {
 	// Data Response data for the liveness check endpoint. This provides a simple indication of whether the Unkey API service is running and able to process requests. Monitoring systems can use this endpoint to track service availability and trigger alerts if the service becomes unhealthy.
-	Data LivenessResponseData `json:"data"`
+	Data V2LivenessResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// V2LivenessResponseData Response data for the liveness check endpoint. This provides a simple indication of whether the Unkey API service is running and able to process requests. Monitoring systems can use this endpoint to track service availability and trigger alerts if the service becomes unhealthy.
+type V2LivenessResponseData struct {
+	// Message Status message indicating the health of the service. A value of 'OK' indicates that the service is functioning properly and ready to accept requests. Any other value indicates a potential issue with the service health.
+	Message string `json:"message"`
 }
 
 // V2PermissionsCreatePermissionRequestBody defines model for V2PermissionsCreatePermissionRequestBody.
@@ -1708,10 +1623,19 @@ type V2PermissionsCreatePermissionRequestBody struct {
 
 // V2PermissionsCreatePermissionResponseBody defines model for V2PermissionsCreatePermissionResponseBody.
 type V2PermissionsCreatePermissionResponseBody struct {
-	Data PermissionsCreatePermissionResponseData `json:"data"`
+	Data V2PermissionsCreatePermissionResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// V2PermissionsCreatePermissionResponseData defines model for V2PermissionsCreatePermissionResponseData.
+type V2PermissionsCreatePermissionResponseData struct {
+	// PermissionId The unique identifier assigned to the newly created permission.
+	// Use this ID to reference the permission in role assignments, key operations, and other API calls.
+	// Always begins with 'perm_' followed by a unique alphanumeric sequence.
+	// Store this ID if you need to manage or reference this permission in future operations.
+	PermissionId string `json:"permissionId"`
 }
 
 // V2PermissionsCreateRoleRequestBody defines model for V2PermissionsCreateRoleRequestBody.
@@ -1746,10 +1670,19 @@ type V2PermissionsCreateRoleRequestBody struct {
 
 // V2PermissionsCreateRoleResponseBody defines model for V2PermissionsCreateRoleResponseBody.
 type V2PermissionsCreateRoleResponseBody struct {
-	Data PermissionsCreateRoleResponseData `json:"data"`
+	Data V2PermissionsCreateRoleResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// V2PermissionsCreateRoleResponseData defines model for V2PermissionsCreateRoleResponseData.
+type V2PermissionsCreateRoleResponseData struct {
+	// RoleId The unique identifier assigned to the newly created role.
+	// Use this ID to reference the role in permission assignments, key operations, and role management calls.
+	// Always begins with 'role_' followed by a unique alphanumeric sequence.
+	// Store this ID if you need to manage, modify, or assign this role in future operations.
+	RoleId string `json:"roleId"`
 }
 
 // V2PermissionsDeletePermissionRequestBody defines model for V2PermissionsDeletePermissionRequestBody.
@@ -1813,10 +1746,15 @@ type V2PermissionsGetPermissionRequestBody struct {
 // V2PermissionsGetPermissionResponseBody defines model for V2PermissionsGetPermissionResponseBody.
 type V2PermissionsGetPermissionResponseBody struct {
 	// Data Complete permission details including ID, name, and metadata.
-	Data PermissionsGetPermissionResponseData `json:"data"`
+	Data V2PermissionsGetPermissionResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// V2PermissionsGetPermissionResponseData Complete permission details including ID, name, and metadata.
+type V2PermissionsGetPermissionResponseData struct {
+	Permission Permission `json:"permission"`
 }
 
 // V2PermissionsGetRoleRequestBody defines model for V2PermissionsGetRoleRequestBody.
@@ -1831,10 +1769,15 @@ type V2PermissionsGetRoleRequestBody struct {
 // V2PermissionsGetRoleResponseBody defines model for V2PermissionsGetRoleResponseBody.
 type V2PermissionsGetRoleResponseBody struct {
 	// Data Complete role details including assigned permissions.
-	Data PermissionsGetRoleResponseData `json:"data"`
+	Data V2PermissionsGetRoleResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// V2PermissionsGetRoleResponseData Complete role details including assigned permissions.
+type V2PermissionsGetRoleResponseData struct {
+	Role Role `json:"role"`
 }
 
 // V2PermissionsListPermissionsRequestBody defines model for V2PermissionsListPermissionsRequestBody.
@@ -1854,12 +1797,17 @@ type V2PermissionsListPermissionsRequestBody struct {
 // V2PermissionsListPermissionsResponseBody defines model for V2PermissionsListPermissionsResponseBody.
 type V2PermissionsListPermissionsResponseBody struct {
 	// Data Array of permission objects with complete configuration details.
-	Data PermissionsListPermissionsResponseData `json:"data"`
+	Data V2PermissionsListPermissionsResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
-	Meta       Meta        `json:"meta"`
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
 	Pagination *Pagination `json:"pagination,omitempty"`
 }
+
+// V2PermissionsListPermissionsResponseData Array of permission objects with complete configuration details.
+type V2PermissionsListPermissionsResponseData = []Permission
 
 // V2PermissionsListRolesRequestBody defines model for V2PermissionsListRolesRequestBody.
 type V2PermissionsListRolesRequestBody struct {
@@ -1879,12 +1827,17 @@ type V2PermissionsListRolesRequestBody struct {
 // V2PermissionsListRolesResponseBody defines model for V2PermissionsListRolesResponseBody.
 type V2PermissionsListRolesResponseBody struct {
 	// Data Array of roles with their assigned permissions.
-	Data PermissionsListRolesResponseData `json:"data"`
+	Data V2PermissionsListRolesResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
-	Meta       Meta        `json:"meta"`
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
 	Pagination *Pagination `json:"pagination,omitempty"`
 }
+
+// V2PermissionsListRolesResponseData Array of roles with their assigned permissions.
+type V2PermissionsListRolesResponseData = []Role
 
 // V2RatelimitDeleteOverrideRequestBody Deletes an existing rate limit override. This permanently removes a custom rate limit rule, reverting affected identifiers back to the default rate limits for the namespace.
 //
@@ -1917,11 +1870,14 @@ type V2RatelimitDeleteOverrideRequestBody struct {
 // V2RatelimitDeleteOverrideResponseBody defines model for V2RatelimitDeleteOverrideResponseBody.
 type V2RatelimitDeleteOverrideResponseBody struct {
 	// Data Empty response object. A successful response indicates the override was successfully deleted. The operation is immediate - as soon as this response is received, the override no longer exists and affected identifiers have reverted to using the default rate limit for the namespace. No other data is returned as part of the deletion operation.
-	Data RatelimitDeleteOverrideResponseData `json:"data"`
+	Data V2RatelimitDeleteOverrideResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
+
+// V2RatelimitDeleteOverrideResponseData Empty response object. A successful response indicates the override was successfully deleted. The operation is immediate - as soon as this response is received, the override no longer exists and affected identifiers have reverted to using the default rate limit for the namespace. No other data is returned as part of the deletion operation.
+type V2RatelimitDeleteOverrideResponseData = map[string]interface{}
 
 // V2RatelimitGetOverrideRequestBody Gets the configuration of an existing rate limit override. Use this to retrieve details about custom rate limit rules that have been created for specific identifiers within a namespace.
 //
@@ -2001,10 +1957,53 @@ type V2RatelimitLimitRequestBody struct {
 
 // V2RatelimitLimitResponseBody defines model for V2RatelimitLimitResponseBody.
 type V2RatelimitLimitResponseBody struct {
-	Data RatelimitLimitResponseData `json:"data"`
+	Data V2RatelimitLimitResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// V2RatelimitLimitResponseData defines model for V2RatelimitLimitResponseData.
+type V2RatelimitLimitResponseData struct {
+	// Limit The maximum number of operations allowed within the time window. This reflects either the default limit specified in the request or an override limit if one exists for this identifier.
+	//
+	// This value helps clients understand their total quota for the current window.
+	Limit int64 `json:"limit"`
+
+	// OverrideId If a rate limit override was applied for this identifier, this field contains the ID of the override that was used. Empty when no override is in effect.
+	//
+	// This can be useful for:
+	// - Debugging which override rule was matched
+	// - Tracking the effects of specific overrides
+	// - Understanding why limits differ from default values
+	// - Audit logging of special rate limit rules
+	OverrideId *string `json:"overrideId,omitempty"`
+
+	// Remaining The number of operations remaining in the current window before the rate limit is exceeded. Applications should use this value to:
+	//
+	// - Implement client-side throttling before hitting limits
+	// - Display usage information to end users
+	// - Trigger alerts when approaching limits
+	// - Adjust request patterns based on available capacity
+	//
+	// When this reaches zero, requests will be rejected until the window resets.
+	Remaining int64 `json:"remaining"`
+
+	// Reset The Unix timestamp in milliseconds when the rate limit window will reset and 'remaining' will return to 'limit'.
+	//
+	// This timestamp enables clients to:
+	// - Calculate and display wait times to users
+	// - Implement intelligent retry mechanisms
+	// - Schedule requests to resume after the reset
+	// - Implement exponential backoff when needed
+	//
+	// The reset time is based on a sliding window from the first request in the current window.
+	Reset int64 `json:"reset"`
+
+	// Success Whether the request passed the rate limit check. If true, the request is allowed to proceed. If false, the request has exceeded the rate limit and should be blocked or rejected.
+	//
+	// You MUST check this field to determine if the request should proceed, as the endpoint always returns `HTTP 200` even when rate limited.
+	Success bool `json:"success"`
 }
 
 // V2RatelimitListOverridesRequestBody defines model for V2RatelimitListOverridesRequestBody.
@@ -2030,12 +2029,17 @@ type V2RatelimitListOverridesRequestBody struct {
 
 // V2RatelimitListOverridesResponseBody defines model for V2RatelimitListOverridesResponseBody.
 type V2RatelimitListOverridesResponseBody struct {
-	Data RatelimitListOverridesResponseData `json:"data"`
+	Data V2RatelimitListOverridesResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
-	Meta       Meta        `json:"meta"`
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
 	Pagination *Pagination `json:"pagination,omitempty"`
 }
+
+// V2RatelimitListOverridesResponseData defines model for V2RatelimitListOverridesResponseData.
+type V2RatelimitListOverridesResponseData = []RatelimitOverride
 
 // V2RatelimitSetOverrideRequestBody Sets a new or overwrites an existing rate limit override. Overrides allow you to apply special rate limit rules to specific identifiers, providing custom limits that differ from the default.
 //
@@ -2089,13 +2093,26 @@ type V2RatelimitSetOverrideRequestBody struct {
 
 // V2RatelimitSetOverrideResponseBody defines model for V2RatelimitSetOverrideResponseBody.
 type V2RatelimitSetOverrideResponseBody struct {
-	Data RatelimitSetOverrideResponseData `json:"data"`
+	Data V2RatelimitSetOverrideResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
 
-// ValidationError Detailed information about a specific validation error in a request. Each validation error pinpoints exactly what part of the request failed validation, why it failed, and how to fix it. Multiple validation errors may be returned in a single response when there are issues with multiple fields or parameters.
+// V2RatelimitSetOverrideResponseData defines model for V2RatelimitSetOverrideResponseData.
+type V2RatelimitSetOverrideResponseData struct {
+	// OverrideId The unique identifier for the newly created or updated rate limit override. This ID can be used to:
+	//
+	// - Reference this specific override in subsequent API calls
+	// - Delete or modify this override later
+	// - Track which override is being applied in rate limit responses
+	// - Associate override effects with specific rules in analytics
+	//
+	// Store this ID if you need to manage the override in the future.
+	OverrideId string `json:"overrideId"`
+}
+
+// ValidationError Individual validation error details. Each validation error provides precise information about what failed, where it failed, and how to fix it, enabling efficient error resolution.
 type ValidationError struct {
 	// Fix A human-readable suggestion describing how to fix the error. This provides practical guidance on what changes would satisfy the validation requirements. Not all validation errors include fix suggestions, but when present, they offer specific remediation advice.
 	Fix *string `json:"fix,omitempty"`
@@ -2105,7 +2122,6 @@ type ValidationError struct {
 	// - 'body.items[3].tags' (nested array element)
 	// - 'path.apiId' (path parameter)
 	// - 'query.limit' (query parameter)
-	//
 	// Use this location to identify exactly which part of your request needs correction.
 	Location string `json:"location"`
 
@@ -2140,6 +2156,15 @@ type VerifyKeyRatelimitData struct {
 	// Reset Rate limit reset duration in milliseconds.
 	Reset int64 `json:"reset"`
 }
+
+// ChproxyMetricsJSONRequestBody defines body for ChproxyMetrics for application/json ContentType.
+type ChproxyMetricsJSONRequestBody = ChproxyMetricsRequestBody
+
+// ChproxyRatelimitsJSONRequestBody defines body for ChproxyRatelimits for application/json ContentType.
+type ChproxyRatelimitsJSONRequestBody = ChproxyRatelimitsRequestBody
+
+// ChproxyVerificationsJSONRequestBody defines body for ChproxyVerifications for application/json ContentType.
+type ChproxyVerificationsJSONRequestBody = ChproxyVerificationsRequestBody
 
 // CreateApiJSONRequestBody defines body for CreateApi for application/json ContentType.
 type CreateApiJSONRequestBody = V2ApisCreateApiRequestBody

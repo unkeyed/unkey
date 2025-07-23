@@ -1,0 +1,13 @@
+type: object
+required:
+  - meta
+  - data
+  - pagination
+properties:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    "$ref": "./V2IdentitiesListIdentitiesResponseData.yaml"
+  pagination:
+    "$ref": "../../../../common/Pagination.yaml"
+additionalProperties: false
