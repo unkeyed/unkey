@@ -5,6 +5,9 @@ import (
 	"regexp"
 	"strings"
 	"text/template"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // FrontMatter holds metadata for the MDX file
@@ -17,15 +20,24 @@ type FrontMatter struct {
 func (c *Command) GenerateMDX(frontMatter *FrontMatter) (string, error) {
 	data := c.extractMDXData(frontMatter)
 
+	// Choose template based on whether this is a parent command or leaf command
+	var templateStr string
+	if len(c.Commands) > 0 {
+		templateStr = parentCommandTemplate
+	} else {
+		templateStr = leafCommandTemplate
+	}
+
+	caser := cases.Title(language.English)
 	tmpl, err := template.New("mdx").Funcs(template.FuncMap{
 		"join":      strings.Join,
 		"contains":  strings.Contains,
 		"hasPrefix": strings.HasPrefix,
-		"title":     strings.Title,
+		"title":     caser.String,
 		"lower":     strings.ToLower,
 		"hasItems":  func(items any) bool { return c.hasItems(items) },
 		"eq":        func(a, b string) bool { return a == b },
-	}).Parse(mdxTemplate)
+	}).Parse(templateStr)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse MDX template: %w", err)
 	}
@@ -35,45 +47,7 @@ func (c *Command) GenerateMDX(frontMatter *FrontMatter) (string, error) {
 		return "", fmt.Errorf("failed to execute MDX template: %w", err)
 	}
 
-	// If this command has subcommands, append their documentation
-	if len(c.Commands) > 0 {
-		for _, subCmd := range c.Commands {
-			subFrontMatter := &FrontMatter{
-				Title:       fmt.Sprintf("%s %s", strings.Title(c.Name), strings.Title(subCmd.Name)),
-				Description: subCmd.Usage,
-			}
-
-			subMDX, err := subCmd.GenerateMDX(subFrontMatter)
-			if err != nil {
-				return "", fmt.Errorf("failed to generate MDX for subcommand %s: %w", subCmd.Name, err)
-			}
-
-			// Remove frontmatter from subcommand MDX and append
-			subMDXContent := c.removeFrontmatter(subMDX)
-			result.WriteString("\n\n---\n\n")
-			result.WriteString(subMDXContent)
-		}
-	}
-
 	return result.String(), nil
-}
-
-// removeFrontmatter strips the frontmatter section from MDX content
-func (c *Command) removeFrontmatter(mdx string) string {
-	lines := strings.Split(mdx, "\n")
-	if len(lines) == 0 || lines[0] != "---" {
-		return mdx
-	}
-
-	// Find the closing ---
-	for i := 1; i < len(lines); i++ {
-		if lines[i] == "---" {
-			// Return everything after the closing frontmatter
-			return strings.Join(lines[i+1:], "\n")
-		}
-	}
-
-	return mdx
 }
 
 // MDXData holds structured command data for template generation
@@ -110,8 +84,6 @@ type MDXFlag struct {
 	Default     string
 	EnvVar      string
 	Required    bool
-	Category    string
-	Icon        string
 }
 
 type MDXEnvVar struct {
@@ -184,8 +156,8 @@ func (c *Command) extractAllExamples() []MDXExample {
 	}
 
 	// Parse example lines
-	lines := strings.Split(matches[1], "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(matches[1], "\n")
+	for line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
@@ -213,12 +185,10 @@ func (c *Command) extractAllFlags() []MDXFlag {
 		mdxFlag := MDXFlag{
 			Name:        flag.Name(),
 			Description: flag.Usage(),
-			Type:        c.getFlagTypeName(flag),
-			Default:     c.getFlagDefaultValue(flag),
-			EnvVar:      c.getFlagEnvVar(flag),
+			Type:        c.getTypeString(flag),
+			Default:     c.getDefaultValue(flag),
+			EnvVar:      c.getEnvVar(flag),
 			Required:    flag.Required(),
-			Category:    c.categorizeFlag(flag.Name()),
-			Icon:        c.getFlagIcon(flag.Name()),
 		}
 		flags = append(flags, mdxFlag)
 	}
@@ -226,41 +196,22 @@ func (c *Command) extractAllFlags() []MDXFlag {
 	return flags
 }
 
-// categorizeFlag determines flag category based on name patterns
-func (c *Command) categorizeFlag(name string) string {
-	// Core configuration flags
-	corePatterns := []string{"config", "workspace", "project", "database", "dsn", "url", "init", "force"}
-	for _, pattern := range corePatterns {
-		if strings.Contains(name, pattern) {
-			return "core"
-		}
+// getTypeString returns the type name for a flag
+func (c *Command) getTypeString(flag Flag) string {
+	switch flag.(type) {
+	case *StringFlag:
+		return "string"
+	case *BoolFlag:
+		return "boolean"
+	case *IntFlag:
+		return "integer"
+	case *FloatFlag:
+		return "float"
+	case *StringSliceFlag:
+		return "string[]"
+	default:
+		return "unknown"
 	}
-
-	// Build/deployment flags
-	buildPatterns := []string{"build", "docker", "context", "registry", "image", "dockerfile"}
-	for _, pattern := range buildPatterns {
-		if strings.Contains(name, pattern) {
-			return "build"
-		}
-	}
-
-	// Development/debug flags
-	devPatterns := []string{"verbose", "debug", "skip", "dry", "test", "branch", "commit"}
-	for _, pattern := range devPatterns {
-		if strings.Contains(name, pattern) {
-			return "development"
-		}
-	}
-
-	// Service/infrastructure flags
-	servicePatterns := []string{"slack", "webhook", "notification", "auth", "token", "control"}
-	for _, pattern := range servicePatterns {
-		if strings.Contains(name, pattern) {
-			return "service"
-		}
-	}
-
-	return "core"
 }
 
 // determineCommandType categorizes the command
@@ -272,38 +223,6 @@ func (c *Command) determineCommandType() string {
 		return "leaf"
 	}
 	return "service"
-}
-
-// getFlagIcon assigns appropriate icons
-func (c *Command) getFlagIcon(name string) string {
-	iconMap := map[string]string{
-		"config":    "folder",
-		"workspace": "building",
-		"project":   "box",
-		"database":  "database",
-		"url":       "link",
-		"dsn":       "database",
-		"webhook":   "webhook",
-		"slack":     "message-circle",
-		"verbose":   "terminal",
-		"debug":     "bug",
-		"docker":    "package",
-		"build":     "hammer",
-		"context":   "folder-open",
-		"registry":  "archive",
-		"auth":      "key",
-		"token":     "shield",
-		"init":      "plus",
-		"force":     "alert-triangle",
-	}
-
-	for key, icon := range iconMap {
-		if strings.Contains(name, key) {
-			return icon
-		}
-	}
-
-	return "settings"
 }
 
 // Helper methods
@@ -364,75 +283,17 @@ func (c *Command) generateExampleTitle(command string) string {
 	return "Basic usage"
 }
 
-func (c *Command) getFlagTypeName(flag Flag) string {
-	switch flag.(type) {
-	case *StringFlag:
-		return "string"
-	case *BoolFlag:
-		return "boolean"
-	case *IntFlag:
-		return "integer"
-	case *FloatFlag:
-		return "float"
-	case *StringSliceFlag:
-		return "string[]"
-	default:
-		return "unknown"
-	}
-}
-
-func (c *Command) getFlagDefaultValue(flag Flag) string {
-	switch f := flag.(type) {
-	case *StringFlag:
-		if val := f.Value(); val != "" {
-			return val
-		}
-	case *BoolFlag:
-		if f.HasValue() && f.Value() {
-			return "true"
-		}
-	case *IntFlag:
-		if f.HasValue() && f.Value() != 0 {
-			return fmt.Sprintf("%d", f.Value())
-		}
-	case *FloatFlag:
-		if f.HasValue() && f.Value() != 0.0 {
-			return fmt.Sprintf("%.2f", f.Value())
-		}
-	case *StringSliceFlag:
-		if val := f.Value(); len(val) > 0 {
-			return strings.Join(val, ", ")
-		}
-	}
-	return ""
-}
-
-func (c *Command) getFlagEnvVar(flag Flag) string {
-	switch f := flag.(type) {
-	case *StringFlag:
-		return f.EnvVar()
-	case *BoolFlag:
-		return f.EnvVar()
-	case *IntFlag:
-		return f.EnvVar()
-	case *FloatFlag:
-		return f.EnvVar()
-	case *StringSliceFlag:
-		return f.EnvVar()
-	}
-	return ""
-}
-
 func (c *Command) extractEnvVariables() []MDXEnvVar {
 	var envVars []MDXEnvVar
 	seen := make(map[string]bool)
 
 	for _, flag := range c.Flags {
-		if envVar := c.getFlagEnvVar(flag); envVar != "" && !seen[envVar] {
+		envVar := c.getEnvVar(flag)
+		if envVar != "" && !seen[envVar] {
 			envVars = append(envVars, MDXEnvVar{
 				Name:        envVar,
 				Description: fmt.Sprintf("Default value for --%s flag", flag.Name()),
-				Type:        c.getFlagTypeName(flag),
+				Type:        c.getTypeString(flag),
 			})
 			seen[envVar] = true
 		}
@@ -456,8 +317,44 @@ func (c *Command) hasItems(items any) bool {
 	}
 }
 
-// Clean, simple MDX template with tables for flags and frontmatter
-const mdxTemplate = `---
+// Template for parent commands (commands with subcommands)
+const parentCommandTemplate = `---
+{{- if .FrontMatter }}
+title: "{{ .FrontMatter.Title }}"
+description: "{{ .FrontMatter.Description }}"
+{{- else }}
+title: "{{ .Name | title }} Command"
+description: "{{ .Usage }}"
+{{- end }}
+---
+{{- if .Description }}
+{{ .Description }}
+{{- else }}
+{{ .Usage }}
+{{- end }}
+
+## Quick Reference
+
+{{- range .Subcommands }}
+- ` + "`{{ $.Name }} {{ .Name }}`" + ` - {{ .Usage }}
+{{- end }}
+
+{{- if hasItems .Flags }}
+
+## Global Flags
+
+These flags apply to all subcommands:
+
+| Flag | Description | Type | Default | Environment |
+| --- | --- | --- | --- | --- |
+{{- range .Flags }}
+| ` + "`--{{ .Name }}`" + `{{- if .Required }} **(required)**{{ end }} | {{ .Description }} | {{ .Type }} | {{- if .Default }}` + "`{{ .Default }}`" + `{{- else }}-{{- end }} | {{- if .EnvVar }}` + "`{{ .EnvVar }}`" + `{{- else }}-{{- end }} |
+{{- end }}
+
+{{- end }}`
+
+// Template for leaf commands (commands without subcommands)
+const leafCommandTemplate = `---
 {{- if .FrontMatter }}
 title: "{{ .FrontMatter.Title }}"
 description: "{{ .FrontMatter.Description }}"
@@ -467,41 +364,10 @@ description: "{{ .Usage }}"
 {{- end }}
 ---
 
-# {{ if .FrontMatter }}{{ .FrontMatter.Title }}{{ else }}{{ .Name | title }}{{ end }}
-
-{{ .Usage }}
-
-{{- if .HasSubcmds }}
-
-> **Info:** This command has subcommands. Use ` + "`{{ .Name }} <subcommand>`" + ` to run specific services.
-
-## Available Subcommands
-
-{{- range .Subcommands }}
-
-### ` + "`{{ .Name }}`" + `
-
+{{- if .Description }}
 {{ .Description }}
-
-**Usage:**
-` + "```bash" + `
-unkey run {{ .Name }}
-` + "```" + `
-{{- if .Aliases }}
-
-**Aliases:** ` + "`{{ join .Aliases \", \" }}`" + `
-{{- end }}
-
----
-
-{{- end }}
-
 {{- else }}
-
-## Usage
-
-{{ .Description }}
-
+{{ .Usage }}
 {{- end }}
 
 ## Command Syntax
@@ -529,62 +395,10 @@ unkey run {{ .Name }}
 
 ## Flags
 
-### Configuration
-
 | Flag | Description | Type | Default | Environment |
 | --- | --- | --- | --- | --- |
 {{- range .Flags }}
-{{- if eq .Category "core" }}
 | ` + "`--{{ .Name }}`" + `{{- if .Required }} **(required)**{{ end }} | {{ .Description }} | {{ .Type }} | {{- if .Default }}` + "`{{ .Default }}`" + `{{- else }}-{{- end }} | {{- if .EnvVar }}` + "`{{ .EnvVar }}`" + `{{- else }}-{{- end }} |
-{{- end }}
-{{- end }}
-
-{{- $hasBuild := false }}
-{{- range .Flags }}{{- if eq .Category "build" }}{{- $hasBuild = true }}{{- end }}{{- end }}
-{{- if $hasBuild }}
-
-### Build & Deployment
-
-| Flag | Description | Type | Default | Environment |
-| --- | --- | --- | --- | --- |
-{{- range .Flags }}
-{{- if eq .Category "build" }}
-| ` + "`--{{ .Name }}`" + ` | {{ .Description }} | {{ .Type }} | {{- if .Default }}` + "`{{ .Default }}`" + `{{- else }}-{{- end }} | {{- if .EnvVar }}` + "`{{ .EnvVar }}`" + `{{- else }}-{{- end }} |
-{{- end }}
-{{- end }}
-
-{{- end }}
-
-{{- $hasDev := false }}
-{{- range .Flags }}{{- if eq .Category "development" }}{{- $hasDev = true }}{{- end }}{{- end }}
-{{- if $hasDev }}
-
-### Development Options
-
-| Flag | Description | Type | Default |
-| --- | --- | --- | --- |
-{{- range .Flags }}
-{{- if eq .Category "development" }}
-| ` + "`--{{ .Name }}`" + ` | {{ .Description }} | {{ .Type }} | {{- if .Default }}` + "`{{ .Default }}`" + `{{- else }}-{{- end }} |
-{{- end }}
-{{- end }}
-
-{{- end }}
-
-{{- $hasService := false }}
-{{- range .Flags }}{{- if eq .Category "service" }}{{- $hasService = true }}{{- end }}{{- end }}
-{{- if $hasService }}
-
-### Service Configuration
-
-| Flag | Description | Type | Default | Environment |
-| --- | --- | --- | --- | --- |
-{{- range .Flags }}
-{{- if eq .Category "service" }}
-| ` + "`--{{ .Name }}`" + ` | {{ .Description }} | {{ .Type }} | {{- if .Default }}` + "`{{ .Default }}`" + `{{- else }}-{{- end }} | {{- if .EnvVar }}` + "`{{ .EnvVar }}`" + `{{- else }}-{{- end }} |
-{{- end }}
-{{- end }}
-
 {{- end }}
 
 {{- end }}

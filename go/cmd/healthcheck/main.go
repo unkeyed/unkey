@@ -11,9 +11,15 @@ import (
 var Cmd = &cli.Command{
 	Name:  "healthcheck",
 	Usage: "Perform an HTTP healthcheck against a given URL",
-	Description: `Perform an HTTP healthcheck against a given URL.
+	Description: `
+This command sends an HTTP GET request to the specified URL and validates the response. 
+It exits with code 0 if the server returns a 200 status code, otherwise exits with code 1.
 
-This command exits with 0 if the status code is 200, otherwise it exits with 1.
+This is useful for:
+- Health monitoring in CI/CD pipelines
+- Service availability checks
+- Load balancer health probes
+- Infrastructure monitoring scripts
 
 ## Usage
 
@@ -25,7 +31,10 @@ Check if a service is healthy:
 ` + "`unkey healthcheck https://api.unkey.dev/health`" + `
 
 Check local service:
-` + "`unkey healthcheck http://localhost:8080/health`",
+` + "`unkey healthcheck http://localhost:8080/health`" + `
+
+Use in a monitoring script:
+` + "`unkey healthcheck https://example.com/api/status || echo 'Service is down!'`",
 	Action: runAction,
 }
 
