@@ -2,36 +2,4 @@ type: array
 description: Array of ratelimit events to be processed
 items:
   type: object
-  required:
-    - request_id
-    - time
-    - workspace_id
-    - namespace_id
-    - identifier
-    - passed
-  properties:
-    request_id:
-      type: string
-      description: Unique identifier for the ratelimit request
-      example: "req_123abc"
-    time:
-      type: integer
-      format: int64
-      description: Unix timestamp in milliseconds when the ratelimit was checked
-      example: 1642637400000
-    workspace_id:
-      type: string
-      description: Unique identifier of the workspace
-      example: "ws_123abc"
-    namespace_id:
-      type: string
-      description: Unique identifier of the ratelimit namespace
-      example: "ns_456def"
-    identifier:
-      type: string
-      description: Identifier being rate limited (e.g., API key, IP address)
-      example: "key_789ghi"
-    passed:
-      type: boolean
-      description: Whether the request passed the rate limit check (true) or was rate limited (false)
-      example: true
+  additionalProperties: true

@@ -48,14 +48,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	events, err := zen.BindBody[[]schema.ApiRequestV1](s)
 	if err != nil {
-		return fault.New("invalid request body",
-			fault.Code(codes.Code{
-				System:   codes.SystemUser,
-				Category: codes.CategoryUserBadRequest,
-				Specific: "invalid_body",
-			}.URN()),
-			fault.Internal("failed to parse chproxy request body"),
-			fault.Public("The request body is invalid."))
+		return err
 	}
 
 	// Record metrics
