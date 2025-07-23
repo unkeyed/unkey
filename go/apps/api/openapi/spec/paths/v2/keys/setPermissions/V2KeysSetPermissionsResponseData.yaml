@@ -1,0 +1,28 @@
+type: array
+description: |-
+  Complete list of all permissions now directly assigned to the key after the set operation has completed.
+
+  The response includes:
+  - The comprehensive, updated set of direct permissions (reflecting the complete replacement)
+  - Both ID and name for each permission for easy reference
+  - Permissions sorted alphabetically by name for consistent response format
+
+  Important notes:
+  - This only shows direct permissions, not those granted through roles
+  - An empty array means the key has no direct permissions assigned
+  - For a complete permission picture including roles, use keys.getKey instead
+  - All permission changes are logged in the audit log for security tracking
+items:
+  type: object
+  required:
+    - id
+    - name
+  properties:
+    id:
+      type: string
+      description: The unique identifier of the permission
+      example: perm_1n9McEIBSqy44Qy7hzWyM5
+    name:
+      type: string
+      description: The name of the permission
+      example: documents.write

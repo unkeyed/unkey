@@ -21,7 +21,7 @@ import (
 )
 
 type Request = openapi.V2KeysAddPermissionsRequestBody
-type Response = openapi.V2KeysAddPermissionsResponse
+type Response = openapi.V2KeysAddPermissionsResponseBody
 
 type Handler struct {
 	Logger    logging.Logger

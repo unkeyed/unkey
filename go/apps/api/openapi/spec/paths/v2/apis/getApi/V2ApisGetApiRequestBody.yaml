@@ -1,0 +1,22 @@
+type: object
+required:
+  - apiId
+properties:
+  apiId:
+    type: string
+    minLength: 8
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: |
+      Specifies which API to retrieve by its unique identifier.
+      Must be a valid API ID that begins with 'api_' and exists within your workspace.
+
+      Use this endpoint to:
+      - Verify an API exists and is accessible
+      - Retrieve the API's current name and configuration
+      - Validate API IDs before performing key operations
+      - Check API status during debugging or troubleshooting
+
+      Returns complete API information including name, ID, and metadata.
+    example: api_1234567890abcdef
+additionalProperties: false

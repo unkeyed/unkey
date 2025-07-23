@@ -99,7 +99,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.ApisGetApiResponseData{
+		Data: openapi.V2ApisGetApiResponseData{
 			Id:   api.ID,
 			Name: api.Name,
 		},

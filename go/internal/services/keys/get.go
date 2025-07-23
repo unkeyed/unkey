@@ -8,6 +8,7 @@ import (
 
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/pkg/assert"
+	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/hash"
@@ -60,7 +61,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 	}
 
 	h := hash.Sha256(rawKey)
-	key, err := s.keyCache.SWR(ctx, h, func(ctx context.Context) (db.FindKeyForVerificationRow, error) {
+	key, hit, err := s.keyCache.SWR(ctx, h, func(ctx context.Context) (db.FindKeyForVerificationRow, error) {
 		return db.Query.FindKeyForVerification(ctx, s.db.RO(), h)
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
@@ -77,6 +78,14 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 			fault.Internal("unable to load key"),
 			fault.Public("We could not load the requested key."),
 		)
+	}
+
+	if hit == cache.Null {
+		// nolint:exhaustruct
+		return &KeyVerifier{
+			Status:  StatusNotFound,
+			message: "key does not exist",
+		}, nil
 	}
 
 	// ForWorkspace set but that doesn't exist

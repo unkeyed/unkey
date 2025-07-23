@@ -23,7 +23,7 @@ import (
 )
 
 type Request = openapi.V2KeysSetPermissionsRequestBody
-type Response = openapi.V2KeysSetPermissionsResponse
+type Response = openapi.V2KeysSetPermissionsResponseBody
 
 // Handler implements zen.Route interface for the v2 keys set permissions endpoint
 type Handler struct {
