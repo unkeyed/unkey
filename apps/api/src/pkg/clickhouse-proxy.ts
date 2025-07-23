@@ -56,6 +56,7 @@ export class ClickHouseProxyClient {
       continent: string;
     }>,
   ): Promise<void> {
+
     await this.sendEvents("/_internal/chproxy/metrics", events);
   }
 

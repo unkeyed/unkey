@@ -66,39 +66,40 @@ export function init(): MiddlewareHandler<HonoEnv> {
 
     const readonly =
       c.env.DATABASE_HOST_READONLY &&
-      c.env.DATABASE_USERNAME_READONLY &&
-      c.env.DATABASE_PASSWORD_READONLY
+        c.env.DATABASE_USERNAME_READONLY &&
+        c.env.DATABASE_PASSWORD_READONLY
         ? createConnection({
-            host: c.env.DATABASE_HOST_READONLY,
-            username: c.env.DATABASE_USERNAME_READONLY,
-            password: c.env.DATABASE_PASSWORD_READONLY,
-            retry: 3,
-            logger,
-          })
+          host: c.env.DATABASE_HOST_READONLY,
+          username: c.env.DATABASE_USERNAME_READONLY,
+          password: c.env.DATABASE_PASSWORD_READONLY,
+          retry: 3,
+          logger,
+        })
         : primary;
 
     const db = { primary, readonly };
 
     const metrics: Metrics = c.env.EMIT_METRICS_LOGS
       ? new LogdrainMetrics({
-          requestId,
-          environment: c.env.ENVIRONMENT,
-          isolateId,
-        })
+        requestId,
+        environment: c.env.ENVIRONMENT,
+        isolateId,
+      })
       : new NoopMetrics();
 
     const usageLimiter = c.env.DO_USAGELIMIT
       ? new DurableUsageLimiter({
-          requestId,
-          namespace: c.env.DO_USAGELIMIT,
-          logger,
-          metrics,
-        })
+        requestId,
+        namespace: c.env.DO_USAGELIMIT,
+        logger,
+        metrics,
+      })
       : new NoopUsageLimiter();
 
     const analytics = new Analytics({
       clickhouseUrl: c.env.CLICKHOUSE_URL,
-      clickhouseInsertUrl: c.env.CLICKHOUSE_INSERT_URL,
+      clickhouseProxyUrl: c.env.CLICKHOUSE_PROXY_URL,
+      clickhouseProxyToken: c.env.CLICKHOUSE_PROXY_TOKEN,
     });
     const rateLimiter = new DurableRateLimiter({
       namespace: c.env.DO_RATELIMIT,
