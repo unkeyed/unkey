@@ -6,12 +6,20 @@ import (
 	"time"
 )
 
-// Color constants
+// Colors
 const (
 	ColorReset  = "\033[0m"
 	ColorRed    = "\033[31m"
 	ColorGreen  = "\033[32m"
 	ColorYellow = "\033[33m"
+)
+
+// Symbols
+const (
+	SymbolTick   = "✔"
+	SymbolCross  = "✘"
+	SymbolBullet = "●"
+	SymbolArrow  = "=>"
 )
 
 var spinnerChars = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
@@ -30,37 +38,37 @@ func NewUI() *UI {
 func (ui *UI) Print(message string) {
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
-	fmt.Printf("%s•%s %s\n", ColorYellow, ColorReset, message)
+	fmt.Printf("%s%s%s %s\n", ColorYellow, SymbolBullet, ColorReset, message)
 }
 
 func (ui *UI) PrintSuccess(message string) {
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
-	fmt.Printf("%s✓%s %s\n", ColorGreen, ColorReset, message)
+	fmt.Printf("%s%s%s %s\n", ColorGreen, SymbolTick, ColorReset, message)
 }
 
 func (ui *UI) PrintError(message string) {
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
-	fmt.Printf("%s✗%s %s\n", ColorRed, ColorReset, message)
+	fmt.Printf("%s%s%s %s\n", ColorRed, SymbolCross, ColorReset, message)
 }
 
 func (ui *UI) PrintErrorDetails(message string) {
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
-	fmt.Printf("  %s->%s %s\n", ColorRed, ColorReset, message)
+	fmt.Printf("  %s%s%s %s\n", ColorRed, SymbolArrow, ColorReset, message)
 }
 
 func (ui *UI) PrintStepSuccess(message string) {
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
-	fmt.Printf("  %s✓%s %s\n", ColorGreen, ColorReset, message)
+	fmt.Printf("  %s%s%s %s\n", ColorGreen, SymbolTick, ColorReset, message)
 }
 
 func (ui *UI) PrintStepError(message string) {
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
-	fmt.Printf("  %s✗%s %s\n", ColorRed, ColorReset, message)
+	fmt.Printf("  %s%s%s %s\n", ColorRed, SymbolCross, ColorReset, message)
 }
 
 func (ui *UI) spinnerLoop(prefix string, messageGetter func() string, isActive func() bool) {
@@ -103,9 +111,9 @@ func (ui *UI) StopSpinner(finalMessage string, success bool) {
 	ui.spinning = false
 	fmt.Print("\r\033[K")
 	if success {
-		fmt.Printf("%s✓%s %s\n", ColorGreen, ColorReset, finalMessage)
+		fmt.Printf("%s%s%s %s\n", ColorGreen, SymbolTick, ColorReset, finalMessage)
 	} else {
-		fmt.Printf("%s✗%s %s\n", ColorRed, ColorReset, finalMessage)
+		fmt.Printf("%s%s%s %s\n", ColorRed, SymbolCross, ColorReset, finalMessage)
 	}
 }
 
@@ -118,7 +126,6 @@ func (ui *UI) StartStepSpinner(message string) {
 	ui.currentStep = message
 	ui.stepSpinning = true
 	ui.mu.Unlock()
-
 	ui.spinnerLoop("  ", func() string { return ui.currentStep }, func() bool { return ui.stepSpinning })
 }
 
@@ -128,7 +135,7 @@ func (ui *UI) CompleteStepAndStartNext(completedMessage, nextMessage string) {
 	if ui.stepSpinning {
 		ui.stepSpinning = false
 		fmt.Print("\r\033[K")
-		fmt.Printf("  %s✓%s %s\n", ColorGreen, ColorReset, completedMessage)
+		fmt.Printf("  %s%s%s %s\n", ColorGreen, SymbolTick, ColorReset, completedMessage)
 	}
 
 	// Start next step if provided
@@ -152,8 +159,8 @@ func (ui *UI) CompleteCurrentStep(message string, success bool) {
 	ui.stepSpinning = false
 	fmt.Print("\r\033[K")
 	if success {
-		fmt.Printf("  %s✓%s %s\n", ColorGreen, ColorReset, message)
+		fmt.Printf("  %s%s%s %s\n", ColorGreen, SymbolTick, ColorReset, message)
 	} else {
-		fmt.Printf("  %s✗%s %s\n", ColorRed, ColorReset, message)
+		fmt.Printf("  %s%s%s %s\n", ColorRed, SymbolCross, ColorReset, message)
 	}
 }
