@@ -253,10 +253,13 @@ func (c *Command) getFlagsByType(flagType string) string {
 	return strings.Join(matching, ", ")
 }
 
+// ExitFunc allows dependency injection for testing
+var ExitFunc = os.Exit
+
 // Exit provides a clean way to exit with an error message and code
 // This is a convenience function that prints the message and calls os.Exit
 func Exit(message string, code int) error {
 	fmt.Println(message)
-	os.Exit(code)
+	ExitFunc(code)
 	return nil // unreachable but satisfies error interface
 }

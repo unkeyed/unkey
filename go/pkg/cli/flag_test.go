@@ -42,15 +42,19 @@ func TestStringFlag_ValidationOnEnvVar(t *testing.T) {
 	os.Setenv("INVALID_URL", "not-a-url")
 	defer os.Unsetenv("INVALID_URL")
 
-	flag := String("url", "URL flag", EnvVar("INVALID_URL"), Validate(validateURL))
-	// Should get env var value without validation
-	require.Equal(t, "not-a-url", flag.Value())
-	require.False(t, flag.IsSet())
+	exitCode, exitCalled, cleanup := mockExit()
+	defer cleanup()
 
-	// But explicit parsing should trigger validation
-	err := flag.Parse("also-invalid")
-	require.Error(t, err)
-	require.Contains(t, err.Error(), ErrValidationFailed.Error())
+	// Capture the panic and validate the exit behavior
+	defer func() {
+		r := recover()
+		require.NotNil(t, r, "Expected panic from mocked Exit")
+		require.Equal(t, "exit called", r)
+		require.True(t, *exitCalled, "Exit should have been called")
+		require.Equal(t, 1, *exitCode, "Exit code should be 1")
+	}()
+
+	String("url", "URL flag", EnvVar("INVALID_URL"), Validate(validateURL))
 }
 
 // BoolFlag Tests
@@ -60,6 +64,25 @@ func TestBoolFlag_EmptyValue(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, flag.Value())
 	require.True(t, flag.IsSet())
+}
+
+func TestBoolFlag_WithEnvVar_InvalidValue(t *testing.T) {
+	os.Setenv("INVALID_BOOL", "maybe")
+	defer os.Unsetenv("INVALID_BOOL")
+
+	exitCode, exitCalled, cleanup := mockExit()
+	defer cleanup()
+
+	// Capture the panic and validate the exit behavior
+	defer func() {
+		r := recover()
+		require.NotNil(t, r, "Expected panic from mocked Exit")
+		require.Equal(t, "exit called", r)
+		require.True(t, *exitCalled, "Exit should have been called")
+		require.Equal(t, 1, *exitCode, "Exit code should be 1")
+	}()
+
+	Bool("test", "test flag", EnvVar("INVALID_BOOL"))
 }
 
 func TestBoolFlag_InvalidValue(t *testing.T) {
@@ -147,14 +170,19 @@ func TestFloatFlag_ValidationOnEnvVar(t *testing.T) {
 		return nil
 	}
 
-	flag := Float("rate", "rate flag", EnvVar("INVALID_RANGE"), Validate(validateRange))
-	require.Equal(t, 2.5, flag.Value())
-	require.False(t, flag.IsSet())
+	exitCode, exitCalled, cleanup := mockExit()
+	defer cleanup()
 
-	// But explicit parsing should trigger validation
-	err := flag.Parse("1.5")
-	require.Error(t, err)
-	require.Contains(t, err.Error(), ErrValidationFailed.Error())
+	// Capture the panic and validate the exit behavior
+	defer func() {
+		r := recover()
+		require.NotNil(t, r, "Expected panic from mocked Exit")
+		require.Equal(t, "exit called", r)
+		require.True(t, *exitCalled, "Exit should have been called")
+		require.Equal(t, 1, *exitCode, "Exit code should be 1")
+	}()
+
+	Float("rate", "rate flag", EnvVar("INVALID_RANGE"), Validate(validateRange))
 }
 
 func TestStringSliceFlag_CommaSeparated(t *testing.T) {
@@ -192,13 +220,19 @@ func TestStringSliceFlag_ValidationOnEnvVar(t *testing.T) {
 		return nil
 	}
 
-	flag := StringSlice("tags", "tags flag", EnvVar("INVALID_TAGS"), Validate(validateNoSemicolons))
-	require.Equal(t, []string{"valid", "invalid;;tag"}, flag.Value())
-	require.False(t, flag.IsSet())
+	exitCode, exitCalled, cleanup := mockExit()
+	defer cleanup()
 
-	err := flag.Parse("test;;invalid")
-	require.Error(t, err)
-	require.Contains(t, err.Error(), ErrValidationFailed.Error())
+	// Capture the panic and validate the exit behavior
+	defer func() {
+		r := recover()
+		require.NotNil(t, r, "Expected panic from mocked Exit")
+		require.Equal(t, "exit called", r)
+		require.True(t, *exitCalled, "Exit should have been called")
+		require.Equal(t, 1, *exitCode, "Exit code should be 1")
+	}()
+
+	StringSlice("tags", "tags flag", EnvVar("INVALID_TAGS"), Validate(validateNoSemicolons))
 }
 
 func TestCommandLineOverrideEnvironment(t *testing.T) {
@@ -808,4 +842,20 @@ func TestCommand_ErrorMessage_Quality(t *testing.T) {
 	}()
 
 	cmd.RequireString("missing-flag")
+}
+
+func mockExit() (exitCode *int, exitCalled *bool, cleanup func()) {
+	var code int
+	var called bool
+
+	originalExit := ExitFunc
+	ExitFunc = func(c int) {
+		code = c
+		called = true
+		panic("exit called") // Prevent actual exit
+	}
+
+	return &code, &called, func() {
+		ExitFunc = originalExit
+	}
 }
