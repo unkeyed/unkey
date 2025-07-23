@@ -1072,11 +1072,6 @@ type V2KeysRemovePermissionsRequestBody struct {
 type V2KeysRemovePermissionsResponseBody struct {
 	// Data Complete list of all permissions directly assigned to the key after the removal operation (remaining permissions only).
 	//
-	// This response includes:
-	// - All direct permissions still assigned to the key after removal
-	// - Permissions sorted alphabetically by name for consistent response format
-	// - Both the permission ID and name for each remaining permission
-	//
 	// Notes:
 	// - This list does NOT include permissions granted through roles
 	// - For a complete permission picture, use `/v2/keys.getKey` instead
@@ -1089,11 +1084,6 @@ type V2KeysRemovePermissionsResponseBody struct {
 }
 
 // V2KeysRemovePermissionsResponseData Complete list of all permissions directly assigned to the key after the removal operation (remaining permissions only).
-//
-// This response includes:
-// - All direct permissions still assigned to the key after removal
-// - Permissions sorted alphabetically by name for consistent response format
-// - Both the permission ID and name for each remaining permission
 //
 // Notes:
 // - This list does NOT include permissions granted through roles
@@ -1622,11 +1612,8 @@ type V2PermissionsDeleteRoleResponseBody struct {
 
 // V2PermissionsGetPermissionRequestBody defines model for V2PermissionsGetPermissionRequestBody.
 type V2PermissionsGetPermissionRequestBody struct {
-	// PermissionId Specifies which permission to retrieve by its unique identifier.
-	// Must be a valid permission ID that begins with 'perm_' and exists within your workspace.
-	// Use this endpoint to verify permission details, check its current configuration, or retrieve metadata.
-	// Returns detailed information including name, description, and workspace association.
-	PermissionId string `json:"permissionId"`
+	// Permission Specifies which permission to retrieve by either its slug or permission id.
+	Permission string `json:"permission"`
 }
 
 // V2PermissionsGetPermissionResponseBody defines model for V2PermissionsGetPermissionResponseBody.

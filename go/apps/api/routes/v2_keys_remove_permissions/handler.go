@@ -202,16 +202,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					UserAgent:   s.UserAgent(),
 					Resources: []auditlog.AuditLogResource{
 						{
-							Type:        "key",
+							Type:        auditlog.KeyResourceType,
 							ID:          req.KeyId,
 							Name:        key.Name.String,
 							DisplayName: key.Name.String,
 							Meta:        map[string]any{},
 						},
 						{
-							Type:        "permission",
+							Type:        auditlog.PermissionResourceType,
 							ID:          permission.ID,
-							Name:        permission.Name,
+							Name:        permission.Slug,
 							DisplayName: permission.Name,
 							Meta:        map[string]any{},
 						},

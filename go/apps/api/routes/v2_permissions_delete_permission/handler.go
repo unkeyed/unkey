@@ -63,8 +63,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	permission, err := db.Query.FindPermissionByIdOrSlug(ctx, h.DB.RO(), db.FindPermissionByIdOrSlugParams{
 		WorkspaceID: auth.AuthorizedWorkspaceID,
-		ID:          req.Permission,
-		Slug:        req.Permission,
+		Search:      req.Permission,
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -109,7 +108,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       "permission.delete",
+				Event:       auditlog.PermissionDeleteEvent,
 				ActorType:   auditlog.RootKeyActor,
 				ActorID:     auth.Key.ID,
 				ActorName:   "root key",
@@ -119,9 +118,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
 					{
-						Type:        "permission",
+						Type:        auditlog.PermissionResourceType,
 						ID:          permission.ID,
-						Name:        permission.Name,
+						Name:        permission.Slug,
 						DisplayName: permission.Name,
 						Meta: map[string]interface{}{
 							"name":        permission.Name,

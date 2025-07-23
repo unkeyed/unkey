@@ -17,8 +17,7 @@ WHERE workspace_id = ? AND (id = ? OR slug = ?)
 
 type FindPermissionByIdOrSlugParams struct {
 	WorkspaceID string `db:"workspace_id"`
-	ID          string `db:"id"`
-	Slug        string `db:"slug"`
+	Search      string `db:"search"`
 }
 
 // FindPermissionByIdOrSlug
@@ -27,7 +26,7 @@ type FindPermissionByIdOrSlugParams struct {
 //	FROM permissions
 //	WHERE workspace_id = ? AND (id = ? OR slug = ?)
 func (q *Queries) FindPermissionByIdOrSlug(ctx context.Context, db DBTX, arg FindPermissionByIdOrSlugParams) (Permission, error) {
-	row := db.QueryRowContext(ctx, findPermissionByIdOrSlug, arg.WorkspaceID, arg.ID, arg.Slug)
+	row := db.QueryRowContext(ctx, findPermissionByIdOrSlug, arg.WorkspaceID, arg.Search, arg.Search)
 	var i Permission
 	err := row.Scan(
 		&i.ID,

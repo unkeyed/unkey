@@ -3,9 +3,12 @@ post:
     - keys
   summary: Add permissions to an API key
   description: |-
-    Adds one or more permissions to an existing API key without affecting existing permissions or roles. This is an additive operation that supplements the key's current permission set.
+    Adds one or more permissions to an existing API key without affecting existing permissions or roles.
+
+    This is an additive operation that supplements the key's current permission set.
     Use this endpoint when you need to grant additional access rights to a key, such as upgrading user privileges, enabling new features, or implementing progressive permission models.
-    Only direct permissions are affected - permissions granted through roles remain unchanged. Changes take effect immediately for new verifications, though existing authorized sessions may continue until their cache expires.
+
+    Only direct permissions are affected - permissions granted through roles remain unchanged.
   operationId: addPermissions
   x-speakeasy-name-override: addPermissions
   security:
@@ -26,40 +29,8 @@ post:
             value:
               keyId: key_2cGKbMxRyIzhCxo1Idjz8q
               permissions:
-                - id: perm_1n9McEIBSqy44Qy7hzWyM5
-                - id: perm_2zF4mNyP9BsRj2aQwDxVkT
-          withNames:
-            summary: Add permissions using names
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              permissions:
-                - name: documents.write
-                - name: documents.delete
-          withCreation:
-            summary: Add and create new permissions
-            description: Setting create=true dynamically creates permissions if
-              they don't exist yet. This requires the `rbac.*.create_permission`
-              permission on your root key.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              permissions:
-                - name: reports.export
-                  create: true
-                - name: reports.schedule
-                  create: true
-          mixed:
-            summary: Mix ID and name references
-            description:
-              You can combine ID references, name references, and creation
-              in a single request. If both id and name are provided for any permission,
-              the id takes precedence.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              permissions:
-                - id: perm_1n9McEIBSqy44Qy7hzWyM5
-                - name: documents.publish
-                - name: analytics.view
-                  create: true
+                - perm_2zF4mNyP9BsRj2aQwDxVkT
+                - perm_1n9McEIBSqy44Qy7hzWyM5
           hierarchical:
             summary: Using hierarchical permission naming
             description: Permissions can use hierarchical naming with dots as
@@ -68,12 +39,9 @@ post:
             value:
               keyId: key_2cGKbMxRyIzhCxo1Idjz8q
               permissions:
-                - name: billing.invoices.create
-                  create: true
-                - name: billing.invoices.view
-                  create: true
-                - name: billing.payments.process
-                  create: true
+                - billing.invoices.create
+                - billing.invoices.view
+                - billing.payments.process
           completeBilling:
             summary: Complete billing system permissions
             description: Creating a structured set of permissions for a complete
@@ -81,18 +49,12 @@ post:
             value:
               keyId: key_2cGKbMxRyIzhCxo1Idjz8q
               permissions:
-                - name: billing.invoices.create
-                  create: true
-                - name: billing.invoices.view
-                  create: true
-                - name: billing.invoices.update
-                  create: true
-                - name: billing.payments.process
-                  create: true
-                - name: billing.payments.refund
-                  create: true
-                - name: billing.settings.view
-                  create: true
+                - billing.invoices.create
+                - billing.invoices.view
+                - billing.invoices.update
+                - billing.payments.process
+                - billing.payments.refund
+                - billing.settings.view
   responses:
     "200":
       description: Permissions successfully added to the key
@@ -112,14 +74,8 @@ post:
                 data:
                   - id: perm_1n9McEIBSqy44Qy7hzWyM5
                     name: documents.write
-                  - id: perm_2zF4mNyP9BsRj2aQwDxVkT
-                    name: documents.delete
-                  - id: perm_3qRsTu2vWxYzAbCdEfGhIj
-                    name: documents.read
-                  - id: perm_4bVcWdXeYfZgHiJkLmNoPq
-                    name: reports.export
-                  - id: perm_5sTu2vWxYzAbCdEfGhIjKl
-                    name: reports.schedule
+                    slug: documents.write
+                    description: "Some description"
             hierarchical:
               summary: Key with hierarchical permissions
               value:
@@ -128,14 +84,19 @@ post:
                 data:
                   - id: perm_1n9McEIBSqy44Qy7hzWyM5
                     name: billing.invoices.create
+                    slug: billing.invoices.create
                   - id: perm_2zF4mNyP9BsRj2aQwDxVkT
                     name: billing.invoices.view
+                    slug: billing.invoices.view
                   - id: perm_3qRsTu2vWxYzAbCdEfGhIj
                     name: billing.payments.process
+                    slug: billing.payments.process
                   - id: perm_4bVcWdXeYfZgHiJkLmNoPq
                     name: billing.settings.read
+                    slug: billing.settings.read
                   - id: perm_5sTu2vWxYzAbCdEfGhIjKl
                     name: billing.settings.write
+                    slug: billing.settings.write
             empty:
               summary: Key with no permissions
               value:
@@ -188,9 +149,7 @@ post:
                   status: 401
                   type: unauthorized
     "403":
-      description:
-        Forbidden - Insufficient permissions (requires `rbac.*.add_permission_to_key`
-        and potentially `rbac.*.create_permission`)
+      description: Forbidden - Insufficient permissions (requires `rbac.*.add_permission_to_key` and potentially `rbac.*.create_permission`)
       content:
         application/json:
           schema:

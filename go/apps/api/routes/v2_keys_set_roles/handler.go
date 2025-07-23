@@ -225,14 +225,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
 					{
-						Type:        "key",
+						Type:        auditlog.KeyResourceType,
 						ID:          req.KeyId,
 						Name:        key.Name.String,
 						DisplayName: key.Name.String,
 						Meta:        map[string]any{},
 					},
 					{
-						Type:        "role",
+						Type:        auditlog.RoleResourceType,
 						ID:          removedRole.ID,
 						Name:        removedRole.Name,
 						DisplayName: removedRole.Name,
@@ -269,14 +269,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
 					{
-						Type:        "key",
+						Type:        auditlog.KeyResourceType,
 						ID:          req.KeyId,
 						Name:        key.Name.String,
 						DisplayName: key.Name.String,
 						Meta:        map[string]any{},
 					},
 					{
-						Type:        "role",
+						Type:        auditlog.RoleResourceType,
 						ID:          role.ID,
 						Name:        role.Name,
 						DisplayName: role.Name,

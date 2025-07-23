@@ -537,14 +537,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			UserAgent:   s.UserAgent(),
 			Resources: []auditlog.AuditLogResource{
 				{
-					Type:        "key",
+					Type:        auditlog.KeyResourceType,
 					ID:          key.ID,
 					DisplayName: key.Name.String,
 					Name:        key.Name.String,
 					Meta:        map[string]any{},
 				},
 				{
-					Type:        "api",
+					Type:        auditlog.APIResourceType,
 					ID:          key.Api.ID,
 					DisplayName: key.Api.Name,
 					Name:        key.Api.Name,

@@ -122,7 +122,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       "role.delete",
+				Event:       auditlog.RoleDeleteEvent,
 				ActorType:   auditlog.RootKeyActor,
 				ActorID:     auth.Key.ID,
 				ActorName:   "root key",
@@ -132,7 +132,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
 					{
-						Type:        "role",
+						Type:        auditlog.RoleResourceType,
 						ID:          req.RoleId,
 						Name:        role.Name,
 						DisplayName: role.Name,
