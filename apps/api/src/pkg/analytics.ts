@@ -48,7 +48,7 @@ export class Analytics {
         identifier: string;
         passed: boolean;
       }) => {
-        // biome-ignore lint/style/noNonNullAssertion: <explanation>
+        // biome-ignore lint/style/noNonNullAssertion: proxyClient existence verified above
         return await wrap(this.proxyClient!.insertRatelimits([event]), err => new FetchError(
           {
             message: err.message,
