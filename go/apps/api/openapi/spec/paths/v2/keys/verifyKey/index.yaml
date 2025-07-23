@@ -1,17 +1,24 @@
 post:
   tags:
     - keys
-  summary: Verify an API key's validity and permissions
-  description: |-
-    This is the core endpoint for authenticating and authorizing API key usage in your application. It checks if a key is valid, hasn't expired, has sufficient remaining credits, isn't rate limited, and has the required permissions.
-    When a key is verified, several checks occur:
-    - Key existence and format validation
-    - Expiration check
-    - Enabled/disabled status verification
-    - Permission validation (if required)
-    - Rate limit enforcement
-    - Credit consumption (if configured)
-    The response includes detailed information about the key's status, remaining resources, and metadata to help your application make authorization decisions.
+  summary: Verify API key validity and enforce permissions
+  description: |
+    Verify an API key's validity and permissions for request authentication.
+
+    Use this endpoint on every incoming request to your protected resources. It checks key validity, permissions, rate limits, and usage quotas in a single call.
+
+    > **Important**: Always returns HTTP 200. Check the `valid` field in response data to determine if the key is authorized.
+
+    **Common use cases:**
+    - Authenticate API requests before processing
+    - Enforce permission-based access control
+    - Track usage and apply rate limits
+
+    **Required Permissions**
+    
+    Your root key needs one of:
+    - `api.*.verify_key` (verify keys in any API)
+    - `api.<api_id>.verify_key` (verify keys in specific API)
   operationId: verifyKey
   x-speakeasy-name-override: verifyKey
   security:
@@ -22,29 +29,16 @@ post:
       application/json:
         schema:
           "$ref": "./V2KeysVerifyKeyRequestBody.yaml"
-      examples:
-        simple:
-          summary: Basic key verification
-          value:
-            key: prod_1234567890abcdef1234567890abcdef
-        withPermissions:
-          summary: Verify key with permission check
-          value:
-            key: prod_1234567890abcdef1234567890abcdef
-            permissions:
-              type: and
-              permissions:
-                - documents.read
-                - documents.write
-        withCredits:
-          summary: Verify key and consume credits
-          value:
-            key: prod_1234567890abcdef1234567890abcdef
-            credits:
-            cost: 5
   responses:
     "200":
-      description: Key verification completed (check 'valid' field for success)
+      description: |
+        Key verification process completed. This endpoint always returns HTTP 200 regardless of whether the key passed or failed verification. You must check the `valid` field in the response data to determine the actual verification result.
+
+        When verification succeeds, the response includes comprehensive information about the key including its current status, remaining credits, expiration time, associated permissions and roles, metadata, and any rate limiting information. This data enables your application to make informed authorization decisions and provide appropriate user experiences.
+
+        When verification fails, the response indicates the specific reason through the `code` field while setting `valid` to false. The failure codes help you handle different scenarios appropriately, such as directing users to renew expired keys, upgrade for more credits, or contact support for disabled keys.
+
+        The response also includes identity information when the key is associated with an identity, providing additional context about the key holder and any identity-specific rate limits or metadata that may apply to the verification.
       content:
         application/json:
           schema:

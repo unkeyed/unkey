@@ -1,11 +1,16 @@
 post:
   tags:
     - permissions
-  summary: Create a new role with permissions
-  description: |-
-    Creates a new role in the workspace with optional permission assignments. Roles are collections of permissions that can be assigned to API keys, providing a convenient way to manage access control at scale.
-    Roles enable you to group related permissions together for easier management, assign consistent permission sets to multiple API keys, and implement role-based access control patterns that simplify permission management as your system grows. When creating a role, you can optionally assign existing permissions to it immediately, and the role becomes available for assignment to API keys as soon as it's created.
-    Use roles to establish standardized access patterns in your application, making it easier to maintain consistent security policies across many API keys while reducing the complexity of individual permission management.
+  summary: Create role
+  description: |
+    Create a new role to group related permissions for easier management. Roles enable consistent permission assignment across multiple API keys.
+
+    **Important:** Role names must be unique within the workspace. Once created, roles are immediately available for assignment.
+
+    **Required Permissions**
+    
+    Your root key must have the following permission:
+    - `rbac.*.create_role`
   operationId: createRole
   x-speakeasy-name-override: CreateRole
   security:
@@ -32,7 +37,7 @@ post:
         application/json:
           schema:
             "$ref": "./V2PermissionsCreateRoleResponseBody.yaml"
-      description: Successfully created role
+      description: Role created successfully
     "400":
       description: Bad Request
       content:

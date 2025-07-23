@@ -1,12 +1,23 @@
 post:
   tags:
     - keys
-  summary: Update credit configuration for an API key
-  description: |-
-    Updates the credit system configuration for an existing API key. Credits are used for usage-based billing and quota enforcement.
-    This endpoint allows you to modify the remaining credit balance, refill settings, or completely change the credit configuration for a key.
-    Use this endpoint for topping up user credits, changing subscription tiers, implementing promotional credits, or adjusting billing cycles.
-    Credit changes take effect immediately for new verifications.
+  summary: Update key credits
+  description: |
+    Update credit quotas in response to plan changes, billing cycles, or usage purchases.
+
+    Use this for user upgrades/downgrades, monthly quota resets, credit purchases, or promotional bonuses. Supports three operations: set, increment, or decrement credits. Set to null for unlimited usage.
+
+    > **Important**: Setting unlimited credits automatically clears existing refill configurations.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `api.*.update_key` (to update keys in any API)
+    - `api.<api_id>.update_key` (to update keys in a specific API)
+
+    **Side Effects**
+
+    Credit updates remove the key from cache immediately. Setting credits to unlimited automatically clears any existing refill settings. Changes take effect instantly but may take up to 30 seconds to propagate to all edge regions.
   operationId: updateCredits
   x-speakeasy-name-override: updateCredits
   security:
@@ -17,78 +28,16 @@ post:
       application/json:
         schema:
           "$ref": "./V2KeysUpdateCreditsRequestBody.yaml"
-        examples:
-          setUnlimited:
-            summary: Set unlimited usage
-            description:
-              Setting remaining to null makes the key usable an unlimited
-              number of times. This is useful for premium tiers, trusted partners,
-              or internal applications where usage counting isn't needed. Any previous refill settings will be removed.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              value: null
-              operation: set
-          setCredits:
-            summary: Set credits
-            description: To set credits, first get the current value using keys.getKey, then add the amount.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              value: 2500
-              operation: set
-          incrementCredits:
-            summary: Increment credits
-            description: To increment credits to the existing balance, just specify the increment operation and the amount to add.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              value: 2500
-              operation: increment
-          decrementCredits:
-            summary: Decrement credits
-            description: To decrement credits to the existing balance, just specify the decrement operation and the amount to subtract.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              value: 2500
-              operation: decrement
   responses:
     "200":
-      description: Remaining credits successfully updated
+      description: |
+        Credits updated successfully. Response includes updated remaining credits and refill settings.
       content:
         application/json:
           schema:
             "$ref": "./V2KeysUpdateCreditsResponseBody.yaml"
-          examples:
-            withRefills:
-              summary: Updated with refill settings preserved
-              value:
-                meta:
-                  requestId: req_1234567890abcdef
-                data:
-                  remaining: 1000
-                  refillSettings:
-                    interval: monthly
-                    amount: 1000
-                    refillDay: 1
-            withoutRefills:
-              summary: Updated with refills removed
-              value:
-                meta:
-                  requestId: req_1234567890abcdef
-                data:
-                  remaining: 500
-                  refillSettings:
-            unlimited:
-              summary: Set to unlimited usage
-              value:
-                meta:
-                  requestId: req_1234567890abcdef
-                data:
-                  remaining: null
-                  refillSettings:
     "400":
-      description:
-        Bad request - Invalid or missing parameters. This error occurs
-        when the request body is malformed, missing required fields, or contains
-        invalid values. Verify that you've provided a valid externalId, and that the format of each field meets the requirements.
+      description: Bad request
       content:
         application/json:
           schema:

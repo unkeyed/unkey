@@ -1,13 +1,25 @@
 post:
   tags:
     - apis
-  summary: List all keys associated with an API namespace
-  description: |-
-    Retrieves a paginated list of all API keys associated with a specific API namespace. Returns detailed information about each key including metadata, permissions, and usage limits.
+  summary: List all keys associated with an API namespace  
+  description: |
+    Retrieve a paginated list of API keys for dashboard and administrative interfaces.
 
-    Use this endpoint to build admin dashboards for API key management, audit active keys for security reviews, or find keys associated with specific users through the externalId filter. For large APIs with many keys, results are paginated and can be filtered to locate specific keys efficiently.
+    Use this to build key management dashboards, filter keys by user with `externalId`, or retrieve key details for administrative purposes. Each key includes status, metadata, permissions, and usage limits.
 
-    For security reasons, full key values are never returned unless specifically requested with decrypt=true, and only for keys created with recoverable=true when the caller has sufficient permissions.
+    > **Important**: Set `decrypt: true` only in secure contexts to retrieve plaintext key values from recoverable keys.
+
+    **Required Permissions**
+    
+    Your root key must have one of the following permissions for basic key listing:
+    - `api.*.read_key` (to read keys from any API)
+    - `api.<api_id>.read_key` (to read keys from a specific API)
+    
+    Additionally, you need read access to the API itself:
+    - `api.*.read_api` or `api.<api_id>.read_api`
+    
+    Additional permission required for decrypt functionality:
+    - `api.*.decrypt_key` or `api.<api_id>.decrypt_key`
   operationId: listKeys
   x-speakeasy-name-override: listKeys
   security:
@@ -17,22 +29,6 @@ post:
       application/json:
         schema:
           "$ref": "./V2ApisListKeysRequestBody.yaml"
-        examples:
-          basicListing:
-            summary: List all keys for an API
-            value:
-              apiId: api_1234
-          filteredListing:
-            summary: List keys for specific user
-            value:
-              apiId: api_1234
-              externalId: user_5bf93ab218e
-              limit: 50
-          paginatedRequest:
-            summary: Fetch next page of results
-            value:
-              apiId: api_1234
-              cursor: cursor_eyJsYXN0S2V5SWQiOiJrZXlfMjNld3MiLCJsYXN0Q3JlYXRlZEF0IjoxNjcyNTI0MjM0MDAwfQ==
     required: true
   responses:
     "200":
@@ -40,42 +36,8 @@ post:
         application/json:
           schema:
             "$ref": "./V2ApisListKeysResponseBody.yaml"
-          examples:
-            standardResponse:
-              summary: Successful key listing
-              value:
-                meta:
-                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
-                data:
-                  - keyId: key_1a2b3c4d5e6f
-                    start: prod_abc
-                    name: Production Admin Key
-                    createdAt: 1671048264000
-                    permissions:
-                      - admin.read
-                      - admin.write
-                    meta:
-                      owner: alice@example.com
-                      department: Engineering
-                  - keyId: key_2b3c4d5e6f7g
-                    start: prod_def
-                    name: CI/CD Pipeline Key
-                    createdAt: 1671135600000
-                    permissions:
-                      - deploy.trigger
-                      - logs.read
-                    meta:
-                      owner: true
-                pagination:
-                  cursor: cursor_eyJsYXN0S2V5SWQiOiJrZXlfMmIzYzRkNWU2ZjdnIiwibGFzdENyZWF0ZWRBdCI6MTY3MTEzNTYwMDAwMH0=
-                  hasMore: true
-            description:
-              Successfully retrieved the list of keys for this API. The response
-              includes key details such as IDs, names, creation dates, and associated
-              metadata. For security, the actual key values are not included unless
-              specifically requested with decrypt=true. If there are more keys than
-              the requested limit, the pagination object will include a cursor for fetching
-              the next page and hasMore=true.
+      description: |
+        Successfully retrieved paginated keys. Use the pagination cursor for additional results when `hasMore: true`.
     "400":
       description: Bad request
       content:

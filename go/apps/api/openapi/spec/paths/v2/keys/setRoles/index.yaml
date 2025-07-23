@@ -2,10 +2,22 @@ post:
   tags:
     - keys
   summary: Set (replace) all roles on an API key
-  description: |-
-    Sets the roles for an existing API key by replacing all existing role assignments with the provided set. This is a complete replacement operation - roles not specified in the request will be removed.
-    Use this endpoint when you want to synchronize API key roles with an external system, reset a key's roles to a known state, or apply a standardized role template to a key.
-    Role assignments take effect immediately for new verifications, though existing authorized sessions may continue until their cache expires.
+  description: |
+    Replace all roles on a key with the specified set in a single atomic operation.
+
+    Use this to synchronize with external systems, reset roles to a known state, or apply standardized role templates. Direct permissions are never affected.
+
+    > **Important**: Changes take effect immediately with up to 30-second edge propagation.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `api.*.update_key` (to update keys in any API)
+    - `api.<api_id>.update_key` (to update keys in a specific API)
+
+    **Side Effects**
+
+    Invalidates the key cache for immediate effect, and makes role changes available for verification within 30 seconds across all regions.
   operationId: setRoles
   x-speakeasy-name-override: setRoles
   security:
@@ -16,60 +28,13 @@ post:
       application/json:
         schema:
           "$ref": "./V2KeysSetRolesRequestBody.yaml"
-        examples:
-          standard:
-            summary: Setting multiple roles
-            description: This example shows setting a mix of roles by both ID
-              and name. After this operation, the key will have exactly these
-              two roles - any other roles previously assigned will be removed.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              roles:
-                - id: role_1n9McEIBSqy44Qy7hzWyM5
-                - name: developer
-          removeAll:
-            summary: Removing all roles
-            description: By providing an empty roles array, you can remove all
-              direct role assignments from a key. This doesn't affect the key's
-              validity, but removes all role-based permissions.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              roles: []
-          standardTemplate:
-            summary: Applying a standard role template
-            description: A common pattern is applying a standard set of roles
-              to maintain consistency across keys for users with similar access
-              needs.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              roles:
-                - name: basic_user
-                - name: analytics_viewer
-                - name: self_service
   responses:
     "200":
-      description: Roles successfully set for the key
+      description: Roles set successfully. Returns all roles currently assigned to the key.
       content:
         application/json:
           schema:
             "$ref": "./V2KeysSetRolesResponseBody.yaml"
-          examples:
-            standard:
-              summary: Roles after update
-              value:
-                meta:
-                  requestId: req_1234567890abcdef
-                data:
-                  - id: role_1n9McEIBSqy44Qy7hzWyM5
-                    name: admin
-                  - id: role_3b9OeGKDUsy66Sz9Kelz0s
-                    name: developer
-            empty:
-              summary: All roles removed
-              value:
-                meta:
-                  requestId: req_1234567890abcdef
-                data: []
     "400":
       description: Bad request
       content:

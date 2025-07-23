@@ -2,13 +2,22 @@ post:
   tags:
     - keys
   summary: Remove permissions from an API key
-  description: |-
-    Removes one or more permissions from an existing API key. This endpoint is used to selectively revoke access rights from a key without deleting it or affecting other permissions.
-    Key features:
-    - Selective removal - revoke specific permissions while leaving others intact
-    - Direct permissions only - doesn't affect permissions granted through roles
-    - Idempotent operation - removing permissions multiple times has no additional effect
-    Use this endpoint when downgrading user access privileges, removing temporary elevated permissions, implementing granular permission adjustments, or revoking access to specific resources.
+  description: |
+    Remove permissions from a key without affecting existing roles or other permissions.
+
+    Use this for privilege downgrades, removing temporary access, or plan changes that revoke specific capabilities. Permissions granted through roles remain unchanged.
+
+    > **Important**: Changes take effect immediately with up to 30-second edge propagation.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `api.*.update_key` (to update keys in any API)
+    - `api.<api_id>.update_key` (to update keys in a specific API)
+
+    **Side Effects**
+
+    Invalidates the key cache for immediate effect, and makes permission changes available for verification within 30 seconds across all regions.
   operationId: removePermissions
   x-speakeasy-name-override: removePermissions
   security:
@@ -19,197 +28,40 @@ post:
       application/json:
         schema:
           "$ref": "./V2KeysRemovePermissionsRequestBody.yaml"
-        examples:
-          removeAll:
-            summary: Remove all permissions from key
-            description: Setting an empty permissions array removes all direct
-              permissions from the key. This doesn't remove permissions granted
-              through roles. The key remains valid but will have no direct permissions.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              permissions: []
-          basic:
-            summary: Remove permissions using IDs
-            description: Using permission IDs is the most precise way to remove
-              permissions, guaranteeing you're removing exactly what you intend
-              regardless of name changes.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              permissions:
-                - id: perm_1n9McEIBSqy44Qy7hzWyM5
-                - id: perm_2zF4mNyP9BsRj2aQwDxVkT
-          withNames:
-            summary: Remove permissions using names
-            description:
-              Using permission names is more human-readable but requires
-              exact name matches, including full path and correct case sensitivity.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              permissions:
-                - name: documents.write
-                - name: documents.delete
-          mixed:
-            summary: Mix of ID and name references
-            description: You can combine ID-based and name-based references in
-              a single request. This is useful when you have exact IDs for some
-              permissions but only names for others.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              permissions:
-                - id: perm_1n9McEIBSqy44Qy7hzWyM5
-                - name: reports.export
-          removeAccessGroup:
-            summary: Remove all permissions for a resource group
-            description: A common pattern is removing all permissions related
-              to a specific resource (e.g., 'documents') when revoking access
-              to that resource type.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              permissions:
-                - name: documents.read
-                - name: documents.write
-                - name: documents.delete
-                - name: documents.share
   responses:
     "200":
-      description: Permissions successfully removed from the key. All requested
-        permissions have been removed if they were present. Any permissions that
-        weren't assigned to the key were simply ignored without causing an error.
+      description: Permissions removed successfully. Returns all permissions currently assigned to the key.
       content:
         application/json:
           schema:
             "$ref": "./V2KeysRemovePermissionsResponseBody.yaml"
-          examples:
-            standard:
-              summary: Successful removal
-              description: The response body contains only metadata and an empty
-                data object. This minimalist response structure is by design -
-                if you receive a 200 status code, all requested permissions have
-                been successfully removed (or weren't present to begin with).
-              value:
-                meta:
-                  requestId: req_2cGKbMxRyIzhCxo1Idjz8q
-                data: {}
     "400":
-      description: Bad Request - Invalid keyId format, missing required fields,
-        or malformed permission entries
+      description: Bad request
       content:
         application/json:
           schema:
             "$ref": "../../../../error/BadRequestErrorResponse.yaml"
-          examples:
-            invalidKeyId:
-              summary: Invalid keyId format
-              value:
-                meta:
-                  requestId: req_5zAbCdEfGhIjKlMnOpQrSt
-                error:
-                  title: Bad Request
-                  detail: keyId must start with 'key_'
-                  status: 400
-                  type: bad_request
-            emptyPermissions:
-              summary: Empty permissions array
-              value:
-                meta:
-                  requestId: req_6aBcDeFgHiJkLmNoPqRsT
-                error:
-                  title: Bad Request
-                  detail: At least one permission must be specified
-                  status: 400
-                  type: bad_request
-            missingIdentifier:
-              summary: Permission missing both id and name
-              value:
-                meta:
-                  requestId: req_7bCdEfGhIjKlMnOpQrStUv
-                error:
-                  title: Bad Request
-                  detail: Each permission must include either id or name
-                  status: 400
-                  type: bad_request
     "401":
-      description: Unauthorized - Missing or invalid authentication credentials
+      description: Unauthorized
       content:
         application/json:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
-          examples:
-            invalidRootKey:
-              summary: Invalid root key provided
-              value:
-                meta:
-                  requestId: req_9tUv3wXyZaAbCdEfGhIjKl
-                error:
-                  title: Unauthorized
-                  detail: The root key provided is invalid or has been revoked.
-                  status: 401
-                  type: unauthorized
     "403":
-      description: Forbidden - Insufficient permissions (requires `rbac.*.remove_permission_from_key`)
+      description: Forbidden
       content:
         application/json:
           schema:
             "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
-          examples:
-            missingPermission:
-              summary: Missing required permission
-              value:
-                meta:
-                  requestId: req_0uVwX4yZaAbCdEfGhIjKl
-                error:
-                  title: Forbidden
-                  detail:
-                    Your root key requires the 'rbac.*.remove_permission_from_key'
-                    permission to perform this operation
-                  status: 403
-                  type: forbidden
     "404":
-      description: Not Found - Key not found
+      description: Not found
       content:
         application/json:
           schema:
             "$ref": "../../../../error/NotFoundErrorResponse.yaml"
-          examples:
-            keyNotFound:
-              summary: Key not found
-              value:
-                meta:
-                  requestId: req_2wXyZaAbCdEfGhIjKlMnOp
-                error:
-                  title: Not Found
-                  detail: Key key_2cGKbMxRyIzhCxo1Idjz8q not found
-                  status: 404
-                  type: not_found
     "500":
-      description: Internal Server Error - An unexpected error occurred while
-        processing the request
+      description: Internal server error
       content:
         application/json:
           schema:
             "$ref": "../../../../error/InternalServerErrorResponse.yaml"
-          examples:
-            databaseError:
-              summary: Database error
-              value:
-                meta:
-                  requestId: req_4yZaAbCdEfGhIjKlMnOpQrS
-                error:
-                  title: Internal Server Error
-                  detail:
-                    An unexpected error occurred while processing your request.
-                    Please try again later.
-                  status: 500
-                  type: internal_server_error
-            cachingError:
-              summary: Cache invalidation error
-              value:
-                meta:
-                  requestId: req_5zAbCdEfGhIjKlMnOpQrSt
-                error:
-                  title: Internal Server Error
-                  detail: The permissions were successfully removed but there
-                    was an error invalidating cached keys. Some systems may temporarily
-                    see stale data.
-                  status: 500
-                  type: internal_server_error

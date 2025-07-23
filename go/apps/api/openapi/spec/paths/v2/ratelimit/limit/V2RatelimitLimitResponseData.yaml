@@ -46,7 +46,6 @@ properties:
       - Debugging which override rule was matched
       - Tracking the effects of specific overrides
       - Understanding why limits differ from default values
-      - Audit logging of special rate limit rules
     type: string
 required:
   - limit

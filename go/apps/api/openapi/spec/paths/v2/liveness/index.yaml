@@ -5,10 +5,20 @@ get:
   security: []
   operationId: liveness
   summary: Check service health and availability
-  description: |-
-    Checks if the Unkey API service is functioning correctly and ready to handle requests. Returns a simple health status that load balancers, monitoring tools, and orchestration systems can use to verify service availability.
+  description: |
+    Check if the Unkey API service is healthy and ready to handle requests.
 
-    This endpoint requires no authentication and has minimal processing overhead for fast health verification. The response indicates whether the service can process requests normally or if there are issues requiring attention. Monitor this endpoint to detect service degradation and implement automated failover or alerting when the service becomes unhealthy.
+    Use this for load balancer health checks, monitoring systems, and orchestration platforms. No authentication required with minimal processing overhead.
+
+    > **Important**: Monitor this endpoint for service degradation detection and automated failover implementation.
+
+    **Required Permissions**
+
+    None - this endpoint requires no authentication.
+
+    **Side Effects**
+
+    None - this is a read-only health check that does not modify any data or state.
   responses:
     "200":
       content:
@@ -16,17 +26,15 @@ get:
           schema:
             "$ref": "./V2LivenessResponseBody.yaml"
           examples:
-          healthy:
-          summary: Healthy service
-          value:
-          meta:
-            requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
-          data:
-            message: OK
-      description:
-        Service is healthy and ready to process requests. The response
-        includes a simple 'OK' message indicating normal operation. Monitoring
-        systems can use this as confirmation that the service is functioning properly.
+            healthy:
+              summary: Healthy service
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+                data:
+                  message: OK
+      description: |
+        Service is healthy and ready to process requests. Returns 'OK' message for normal operation.
     "412":
       content:
         application/json:
@@ -61,8 +69,5 @@ get:
                     not be fully operational.
                   status: 500
                   type: https://unkey.dev/errors/internal-server-error
-      description: Service is unhealthy and unable to process requests properly.
-        This indicates a significant issue with the service that requires attention.
-        Clients should refrain from making other API calls as they are likely
-        to fail. Monitoring systems should trigger alerts when receiving this
-        response.
+      description: |
+        Service is unhealthy and unable to process requests properly. Significant service issue requiring immediate attention.

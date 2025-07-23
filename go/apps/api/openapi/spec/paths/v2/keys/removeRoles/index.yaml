@@ -2,10 +2,22 @@ post:
   tags:
     - keys
   summary: Remove roles from an API key
-  description: |-
-    Removes one or more roles from an existing API key. This endpoint is used to selectively revoke role-based access from a key without affecting direct permissions or other roles.
-    Use this endpoint when downgrading user privileges, removing temporary role assignments, or implementing granular role management.
-    Role changes take effect immediately for new verifications, though existing authorized sessions may continue until their cache expires.
+  description: |
+    Remove roles from a key without affecting direct permissions or other roles.
+
+    Use this for privilege downgrades, removing temporary access, or subscription changes that revoke specific role-based capabilities. Direct permissions remain unchanged.
+
+    > **Important**: Changes take effect immediately with up to 30-second edge propagation.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `api.*.update_key` (to update keys in any API)
+    - `api.<api_id>.update_key` (to update keys in a specific API)
+
+    **Side Effects**
+
+    Invalidates the key cache for immediate effect, and makes role changes available for verification within 30 seconds across all regions.
   operationId: removeRoles
   x-speakeasy-name-override: removeRoles
   security:
@@ -16,79 +28,19 @@ post:
       application/json:
         schema:
           "$ref": "./V2KeysRemoveRolesRequestBody.yaml"
-        examples:
-          basic:
-            summary: Removing roles by ID
-            description: Removing roles by their exact IDs ensures precision in
-              revoking the exact intended roles, regardless of name changes.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              roles:
-                - id: role_1n9McEIBSqy44Qy7hzWyM5
-                - id: role_2a8NdFJCTrz55Ry8Jdkz9r
-          withNames:
-            summary: Removing roles by name
-            description:
-              Removing roles by name is more human-readable but requires
-              exact name matches, including correct capitalization.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              roles:
-                - name: admin
-                - name: billing_manager
-          mixed:
-            summary: Removing roles by mixed identifiers
-            description: You can combine both ID and name references in a single
-              request to remove multiple roles using whichever reference method
-              is most convenient for each role.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              roles:
-                - id: role_1n9McEIBSqy44Qy7hzWyM5
-                - name: billing_manager
   responses:
     "200":
-      description: Roles successfully removed from the key. The response shows
-        all remaining roles still assigned to the key after the removal operation.
+      description: Roles removed successfully. Returns all roles currently assigned to the key.
       content:
         application/json:
           schema:
             "$ref": "./V2KeysRemoveRolesResponseBody.yaml"
-          examples:
-            standard:
-              summary: Remaining roles after removal
-              value:
-                meta:
-                  requestId: req_1234567890abcdef
-                data:
-                  - id: role_3b9OeGKDUsy66Sz9Kelz0s
-                    name: developer
-            empty:
-              summary: No roles remaining
-              value:
-                meta:
-                  requestId: req_1234567890abcdef
-                data: []
     "400":
-      description: Bad request - Invalid parameters or configuration
+      description: Bad request
       content:
         application/json:
           schema:
             "$ref": "../../../../error/BadRequestErrorResponse.yaml"
-          examples:
-            invalidKeyId:
-              summary: Invalid key ID format
-              value:
-                meta:
-                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQZ
-                error:
-                  title: Bad Request
-                  detail: keyId must be a valid key ID starting with 'key_'
-                  status: 400
-                  type: https://unkey.dev/errors/bad-request
-                  errors:
-                    - message: keyId must be a valid key ID starting with 'key_'
-                      location: body.keyId
     "401":
       description: Unauthorized
       content:
@@ -102,11 +54,7 @@ post:
           schema:
             "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
-      description: Not found - The specified identity doesn't exist. This error
-        occurs when no identity matches the provided externalId.
-        This might happen if the identity was already deleted, never existed,
-        or if there's a typo in the identifier. Verify the identity exists before
-        attempting deletion.
+      description: Not found
       content:
         application/json:
           schema:

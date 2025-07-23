@@ -8,17 +8,18 @@ properties:
     maxLength: 255 # Reasonable upper bound for API names
     pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$" # Must start with letter, then alphanumeric/underscore/dot/hyphen
     description: |
-      Creates an API with this name as an internal identifier for organization and isolation.
-      APIs serve as containers for groups of keys and provide namespace separation between environments or services.
-      Names must be unique within your workspace and are not shown to end users.
-
-      Use descriptive names that clearly identify the API's purpose and environment:
-      - Include environment indicators like 'production', 'staging', 'development'
-      - Use service-based naming like 'payment-service', 'user-management', 'analytics'
-      - Follow consistent naming conventions across your organization
-      - Keep names concise but informative for easy identification
-
-      Must start with a letter and contain only letters, numbers, underscores, dots, and hyphens.
-      Avoid generic names like 'api' or 'main' that don't provide meaningful context.
+      Unique identifier for this API namespace within your workspace.
+      Use descriptive names like 'payment-service-prod' or 'user-api-dev' to clearly identify purpose and environment.
     example: payment-service-production
 additionalProperties: false
+examples:
+  basic:
+    summary: Basic API creation
+    description: Create an API for a payment service
+    value:
+      name: payment-service-prod
+  withEnvironment:
+    summary: Environment-specific API
+    description: Create separate APIs for different environments
+    value:
+      name: user-api-dev
