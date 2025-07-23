@@ -48,7 +48,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	events, err := zen.BindBody[[]schema.RatelimitRequestV1](s)
 	if err != nil {
-		return fault.New("invalid request body", fault.Code("CHPROXY_BODY_INVALID"))
+		return err
 	}
 
 	// Record metrics
