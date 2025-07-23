@@ -5,23 +5,35 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/urfave/cli/v3"
+	"github.com/unkeyed/unkey/go/pkg/cli"
 )
 
 var Cmd = &cli.Command{
-	Name: "healthcheck",
+	Name:  "healthcheck",
+	Usage: "Perform an HTTP healthcheck against a given URL",
 	Description: `Perform an HTTP healthcheck against a given URL.
-
 This command exits with 0 if the status code is 200, otherwise it exits with 1.
-	`,
-	ArgsUsage: `<url>`,
-	Action:    run,
+
+USAGE:
+    unkey healthcheck <url>
+
+EXAMPLES:
+    # Check if a service is healthy
+    unkey healthcheck https://api.unkey.dev/health
+
+    # Check local service
+    unkey healthcheck http://localhost:8080/health`,
+	Action: runAction,
 }
 
 // nolint:gocognit
-func run(ctx context.Context, cmd *cli.Command) error {
+func runAction(ctx context.Context, cmd *cli.Command) error {
+	args := cmd.Args()
+	if len(args) == 0 {
+		return fmt.Errorf("you must provide a url like so: 'unkey healthcheck <url>'")
+	}
 
-	url := cmd.Args().First()
+	url := args[0]
 	if url == "" {
 		return fmt.Errorf("you must provide a url like so: 'unkey healthcheck <url>'")
 	}
@@ -37,5 +49,6 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("healthcheck failed with status code %d", res.StatusCode)
 	}
 
+	fmt.Printf("✓ Healthcheck passed: %s returned %d\n", url, res.StatusCode)
 	return nil
 }

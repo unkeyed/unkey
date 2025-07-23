@@ -34,11 +34,11 @@ type VersionStepEvent struct {
 // ControlPlaneClient handles API operations with the control plane
 type ControlPlaneClient struct {
 	client ctrlv1connect.VersionServiceClient
-	opts   *DeployOptions
+	opts   DeployOptions
 }
 
 // NewControlPlaneClient creates a new control plane client
-func NewControlPlaneClient(opts *DeployOptions) *ControlPlaneClient {
+func NewControlPlaneClient(opts DeployOptions) *ControlPlaneClient {
 	httpClient := &http.Client{}
 	client := ctrlv1connect.NewVersionServiceClient(httpClient, opts.ControlPlaneURL)
 
@@ -178,12 +178,17 @@ func (c *ControlPlaneClient) processNewSteps(
 				Step:      step,
 				Status:    currentStatus,
 			}
-
 			if err := onStepUpdate(event); err != nil {
 				return err
 			}
-		}
 
+			// INFO: This is for demo purposes only.
+			// Adding a small delay between deployment steps to make the progression
+			// visually observable during demos. This allows viewers to see each
+			// individual step (VM boot, rootfs loading, etc.) rather than having
+			// everything complete too quickly to follow.
+			time.Sleep(800 * time.Millisecond)
+		}
 		// Mark this step as processed
 		processedSteps[stepTimestamp] = true
 	}

@@ -28,7 +28,6 @@ require (
 	github.com/sqlc-dev/sqlc v1.28.0
 	github.com/stretchr/testify v1.10.0
 	github.com/unkeyed/unkey/go/deploy/pkg/tls v0.0.0-00010101000000-000000000000
-	github.com/urfave/cli/v3 v3.3.3
 	go.opentelemetry.io/contrib/bridges/otelslog v0.11.0
 	go.opentelemetry.io/contrib/bridges/prometheus v0.61.0
 	go.opentelemetry.io/contrib/processors/minsev v0.9.0
