@@ -478,13 +478,21 @@ description: "{{ .Usage }}"
 ## Available Subcommands
 
 {{- range .Subcommands }}
-### {{ .Name }}
 
-{{ .Usage }}
+### ` + "`{{ .Name }}`" + `
+
+{{ .Description }}
+
+**Usage:**
+` + "```bash" + `
+unkey run {{ .Name }}
+` + "```" + `
 {{- if .Aliases }}
 
 **Aliases:** ` + "`{{ join .Aliases \", \" }}`" + `
 {{- end }}
+
+---
 
 {{- end }}
 

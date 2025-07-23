@@ -12,19 +12,30 @@ import (
 var Cmd = &cli.Command{
 	Name:  "run",
 	Usage: "Run Unkey services",
-	Description: `Run various Unkey services including:
-  - api: The main API server for validating and managing API keys
-  - ctrl: The control plane service for managing infrastructure
+	Description: `Run various Unkey services in development or production environments.
 
-EXAMPLES:
-    # Run the API server
-    unkey run api
+## Available Services
 
-    # Run the control plane
-    unkey run ctrl
+- ` + "`api`" + ` - The main API server for validating and managing API keys
+- ` + "`ctrl`" + ` - The control plane service for managing infrastructure and deployments
 
-    # Show available services
-    unkey run --help`,
+## Usage
+
+` + "`unkey run <service> [flags]`" + `
+
+## Examples
+
+Run the API server:
+` + "`unkey run api`" + `
+
+Run the control plane:
+` + "`unkey run ctrl`" + `
+
+Show available services and their options:
+` + "`unkey run --help`" + `
+
+Run API server with custom configuration:
+` + "`unkey run api --port 8080 --env production`",
 	Commands: []*cli.Command{
 		api.Cmd,
 		ctrl.Cmd,
