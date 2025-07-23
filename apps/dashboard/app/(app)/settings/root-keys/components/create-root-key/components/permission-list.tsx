@@ -164,7 +164,7 @@ export const PermissionContentList = ({ type, api }: Props) => {
                 <>
                   <div
                     key={`${type === "workspace" ? "workspace" : api?.id}-${category}`}
-                    className="flex flex-col gap-2 my-0 py-0 border-l ml-[23px]"
+                    className="flex flex-col gap-2 my-0 py-0 border-l ml-[31px]"
                   >
                     <div className="flex flex-col my-0 py-0">
                       <Collapsible>
@@ -175,11 +175,12 @@ export const PermissionContentList = ({ type, api }: Props) => {
                           setChecked={() => handleCategoryChecked(category)}
                         />
                         <CollapsibleContent>
-                          <div className="flex flex-col gap-2 my-0 py-0 border-l ml-6">
+                          <div className="flex flex-col gap-2 my-0 py-0 border-l ml-[31px]">
                             {Object.entries(allPermissions).map(
                               ([action, { description, permission }]) => (
                                 <PermissionToggle
                                   key={action}
+                                  category={category}
                                   label={action}
                                   description={description}
                                   checked={selectedPermissions.includes(permission)}

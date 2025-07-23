@@ -42,7 +42,7 @@ export const PermissionSheet = ({ children, apis }: PermissionSheetProps) => {
     <Sheet open={open} onOpenChange={handleOpenChange} modal={true}>
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent
-        className="flex flex-col p-0 m-0 h-full gap-0 border-l border-l-gray-4"
+        className="flex flex-col p-0 m-0 h-full gap-0 border-l border-l-gray-4 min-w-[420px]"
         side="right"
         overlay="transparent"
       >
@@ -56,14 +56,14 @@ export const PermissionSheet = ({ children, apis }: PermissionSheetProps) => {
         </SheetHeader>
         <SheetDescription className="w-full h-full pt-2">
           <ScrollArea className="flex flex-col h-full">
-            <div className="flex flex-col gap-4 h-full pt-0 mt-0">
+            <div className="flex flex-col h-full pt-0 mt-0 gap-1">
               {/* Workspace Permissions */}
               {/* TODO: Tie In Search */}
               {/* TODO: Return permissions to the form */}
               <PermissionContentList type="workspace" />
               {/* From APIs */}
               {/* TODO: add real API list */}
-              <p className="text-sm text-gray-10 ml-4">From APIs</p>
+              <p className="text-sm text-gray-10 ml-6 py-auto mt-1.5">From APIs</p>
               {fakeApis.map((api) => (
                 <PermissionContentList type="api" api={api} />
               ))}
