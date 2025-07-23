@@ -75,13 +75,8 @@ func TestSuccess(t *testing.T) {
 		require.Len(t, currentPermissions, 1)
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Id   *string `json:"id,omitempty"`
-				Slug *string `json:"slug,omitempty"`
-			}{
-				{Id: &permissionID},
-			},
+			KeyId:       keyID,
+			Permissions: []string{permissionID},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -147,13 +142,8 @@ func TestSuccess(t *testing.T) {
 		keyID := keyResponse.KeyID
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Id   *string `json:"id,omitempty"`
-				Slug *string `json:"slug,omitempty"`
-			}{
-				{Slug: &permissionName},
-			},
+			KeyId:       keyID,
+			Permissions: []string{permissionName},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -229,14 +219,8 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Id   *string `json:"id,omitempty"`
-				Slug *string `json:"slug,omitempty"`
-			}{
-				{Id: &permission1ID},
-				{Slug: &permission2Name},
-			},
+			KeyId:       keyID,
+			Permissions: []string{permission1ID, permission2Name},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -285,13 +269,8 @@ func TestSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Id   *string `json:"id,omitempty"`
-				Slug *string `json:"slug,omitempty"`
-			}{
-				{Id: &permissionID},
-			},
+			KeyId:       keyID,
+			Permissions: []string{permissionID},
 		}
 
 		// Remove permission (which isn't assigned)
@@ -379,13 +358,8 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Id   *string `json:"id,omitempty"`
-				Slug *string `json:"slug,omitempty"`
-			}{
-				{Id: &removePermissionID}, // Only remove this one
-			},
+			KeyId:       keyID,
+			Permissions: []string{removePermissionID},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -482,13 +456,10 @@ func TestSuccess(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Permissions: []struct {
-				Id   *string `json:"id,omitempty"`
-				Slug *string `json:"slug,omitempty"`
-			}{
-				{Id: &permission1ID},
-				{Id: &permission2ID},
-				{Id: &permission3ID},
+			Permissions: []string{
+				permission1ID,
+				permission2ID,
+				permission3ID,
 			},
 		}
 

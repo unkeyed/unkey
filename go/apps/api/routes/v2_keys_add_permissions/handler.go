@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"slices"
@@ -43,32 +44,23 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	// 1. Authentication
 	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
 	}
 
-	// 2. Request validation
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
 	}
 
-	// 3. Permission check
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.UpdateKey,
-		}),
-	)))
-	if err != nil {
-		return err
-	}
-
-	// 4. Validate key exists and belongs to workspace
-	key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), req.KeyId)
+	key, err := db.Query.FindKeyByIdOrHash(ctx,
+		h.DB.RO(),
+		db.FindKeyByIdOrHashParams{
+			ID:   sql.NullString{String: req.KeyId, Valid: true},
+			Hash: sql.NullString{String: "", Valid: false},
+		},
+	)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("key not found",
@@ -82,7 +74,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Validate key belongs to authorized workspace
 	if key.WorkspaceID != auth.AuthorizedWorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
@@ -90,13 +81,47 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// 5. Get current direct permissions for the key
+	if key.Api.DeletedAtM.Valid {
+		return fault.New("key not found",
+			fault.Code(codes.Data.Key.NotFound.URN()),
+			fault.Internal("key belongs to deleted api"),
+			fault.Public("The specified key was not found."),
+		)
+	}
+
 	currentPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"), fault.Public("Failed to retrieve current permissions."),
 		)
+	}
+
+	err = auth.Verify(ctx, keys.WithPermissions(
+		rbac.And(
+			rbac.Or(
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   "*",
+					Action:       rbac.UpdateKey,
+				}),
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   key.Api.ID,
+					Action:       rbac.UpdateKey,
+				}),
+			),
+			rbac.Or(
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Rbac,
+					ResourceID:   "*",
+					Action:       rbac.AddPermissionToKey,
+				}),
+			),
+		),
+	))
+	if err != nil {
+		return err
 	}
 
 	// Convert current permissions to a map for efficient lookup

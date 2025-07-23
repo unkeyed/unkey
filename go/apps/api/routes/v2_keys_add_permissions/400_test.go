@@ -184,14 +184,8 @@ func TestValidationErrors(t *testing.T) {
 		require.NoError(t, err)
 
 		req := handler.Request{
-			KeyId: validKeyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{}, // Neither id nor name provided
-			},
+			KeyId:       validKeyID,
+			Permissions: []string{},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
@@ -211,14 +205,8 @@ func TestValidationErrors(t *testing.T) {
 		nonExistentPermissionID := uid.New(uid.TestPrefix)
 
 		req := handler.Request{
-			KeyId: validKeyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Id: &nonExistentPermissionID},
-			},
+			KeyId:       validKeyID,
+			Permissions: []string{nonExistentPermissionID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -235,17 +223,9 @@ func TestValidationErrors(t *testing.T) {
 	})
 
 	t.Run("permission not found by slug", func(t *testing.T) {
-		nonExistentPermissionSlug := "nonexistent.permission"
-
 		req := handler.Request{
-			KeyId: validKeyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Slug: &nonExistentPermissionSlug},
-			},
+			KeyId:       validKeyID,
+			Permissions: []string{"nonexistent.permission"},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -276,14 +256,8 @@ func TestValidationErrors(t *testing.T) {
 		nonExistentKeyID := uid.New(uid.KeyPrefix)
 
 		req := handler.Request{
-			KeyId: nonExistentKeyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Id: &permissionID},
-			},
+			KeyId:       nonExistentKeyID,
+			Permissions: []string{permissionID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](

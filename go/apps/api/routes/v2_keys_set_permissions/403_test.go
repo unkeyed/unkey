@@ -76,14 +76,8 @@ func TestForbidden(t *testing.T) {
 	require.NoError(t, err)
 
 	req := handler.Request{
-		KeyId: keyID,
-		Permissions: []struct {
-			Create *bool   `json:"create,omitempty"`
-			Id     *string `json:"id,omitempty"`
-			Slug   *string `json:"slug,omitempty"`
-		}{
-			{Id: &permissionID},
-		},
+		KeyId:       keyID,
+		Permissions: []string{permissionID},
 	}
 
 	t.Run("missing update_key permission", func(t *testing.T) {

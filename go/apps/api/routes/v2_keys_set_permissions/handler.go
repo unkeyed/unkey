@@ -48,32 +48,23 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.setPermissions")
 
-	// 1. Authentication
 	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
 	}
 
-	// 2. Request validation
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
 	}
 
-	// 3. Permission check
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.UpdateKey,
-		}),
-	)))
-	if err != nil {
-		return err
-	}
-
-	// 4. Validate key exists and belongs to workspace
-	key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), req.KeyId)
+	key, err := db.Query.FindKeyByIdOrHash(ctx,
+		h.DB.RO(),
+		db.FindKeyByIdOrHashParams{
+			ID:   sql.NullString{String: req.KeyId, Valid: true},
+			Hash: sql.NullString{String: "", Valid: false},
+		},
+	)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("key not found",
@@ -87,7 +78,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Validate key belongs to authorized workspace
 	if key.WorkspaceID != auth.AuthorizedWorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
@@ -95,7 +85,43 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// 5. Get current direct permissions for the key
+	if key.Api.DeletedAtM.Valid {
+		return fault.New("key not found",
+			fault.Code(codes.Data.Key.NotFound.URN()),
+			fault.Internal("key belongs to deleted api"),
+			fault.Public("The specified key was not found."),
+		)
+	}
+
+	err = auth.Verify(ctx, keys.WithPermissions(
+		rbac.And(
+			rbac.Or(
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   "*",
+					Action:       rbac.UpdateKey,
+				}),
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   key.Api.ID,
+					Action:       rbac.UpdateKey,
+				}),
+			),
+			rbac.And(
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Rbac,
+					ResourceID:   "*",
+					Action:       rbac.AddPermissionToKey,
+				}),
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Rbac,
+					ResourceID:   "*",
+					Action:       rbac.RemovePermissionFromKey,
+				}),
+			),
+		),
+	))
+
 	currentPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		return fault.Wrap(err,
@@ -104,7 +130,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	permissions, err := db.Query.FindManyPermissionsByIdOrSlug(ctx, h.DB.RO(), db.FindManyPermissionsByIdOrSlugParams{
+	foundPermissions, err := db.Query.FindManyPermissionsByIdOrSlug(ctx, h.DB.RO(), db.FindManyPermissionsByIdOrSlugParams{
 		WorkspaceID: auth.AuthorizedWorkspaceID,
 		Ids:         req.Permissions,
 	})
@@ -114,20 +140,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		missingPermissions[permission] = struct{}{}
 	}
 
-	for _, permission := range permissions {
-		if _, ok := missingPermissions[permission.ID]; ok {
-			delete(missingPermissions, permission.ID)
-		}
-
-		if _, ok := missingPermissions[permission.Slug]; ok {
-			delete(missingPermissions, permission.Slug)
-		}
+	for _, permission := range foundPermissions {
+		delete(missingPermissions, permission.ID)
+		delete(missingPermissions, permission.Slug)
 	}
 
 	permissionsToSet := make([]db.Permission, 0)
 	permissionsToInsert := make([]db.InsertPermissionParams, 0)
 
-	for _, permission := range permissions {
+	for _, permission := range foundPermissions {
 		permissionsToSet = append(permissionsToSet, permission)
 	}
 
@@ -135,8 +156,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if strings.HasPrefix(perm, "perm_") {
 			return fault.New("permission not found",
 				fault.Code(codes.Data.Permission.NotFound.URN()),
-				fault.Internal("permission not found"),
-				fault.Public(fmt.Sprintf("Permission with ID '%s' was not found.", perm)),
+				fault.Public(fmt.Sprintf("Permission with ID %q was not found.", perm)),
 			)
 		}
 
@@ -161,8 +181,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 	}
 
-	// 7. Calculate differential update
-	// Create maps for efficient lookup
 	currentPermissionIDs := make(map[string]bool)
 	for _, permission := range currentPermissions {
 		currentPermissionIDs[permission.ID] = true
@@ -170,12 +188,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	requestedPermissionIDs := make(map[string]bool)
 	requestedPermissionMap := make(map[string]db.Permission)
-	for _, permission := range requestedPermissions {
+	for _, permission := range permissionsToSet {
 		requestedPermissionIDs[permission.ID] = true
 		requestedPermissionMap[permission.ID] = permission
 	}
 
-	// Determine permissions to remove and add
 	permissionsToRemove := make([]string, 0)
 	for _, permission := range currentPermissions {
 		if !requestedPermissionIDs[permission.ID] {
@@ -184,13 +201,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	permissionsToAdd := make([]db.Permission, 0)
-	for _, permission := range requestedPermissions {
+	for _, permission := range foundPermissions {
 		if !currentPermissionIDs[permission.ID] {
 			permissionsToAdd = append(permissionsToAdd, permission)
 		}
 	}
 
-	// 8. Apply changes in transaction
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		var auditLogs []auditlog.AuditLog
 
@@ -208,34 +224,36 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				)
 			}
 
-			for _, perm := range permissionsToRemove {
-				// auditLogs = append(auditLogs, auditlog.AuditLog{
-				// 	WorkspaceID: auth.AuthorizedWorkspaceID,
-				// 	Event:       auditlog.AuthDisconnectPermissionKeyEvent,
-				// 	ActorType:   auditlog.RootKeyActor,
-				// 	ActorID:     auth.Key.ID,
-				// 	ActorName:   "root key",
-				// 	ActorMeta:   map[string]any{},
-				// 	Display:     fmt.Sprintf("Removed permission %s from key %s", permissionName, req.KeyId),
-				// 	RemoteIP:    s.Location(),
-				// 	UserAgent:   s.UserAgent(),
-				// 	Resources: []auditlog.AuditLogResource{
-				// 		{
-				// 			Type:        "key",
-				// 			ID:          req.KeyId,
-				// 			Name:        key.Name.String,
-				// 			DisplayName: key.Name.String,
-				// 			Meta:        map[string]any{},
-				// 		},
-				// 		{
-				// 			Type:        "permission",
-				// 			ID:          permissionID,
-				// 			Name:        permissionName,
-				// 			DisplayName: permissionName,
-				// 			Meta:        map[string]any{},
-				// 		},
-				// 	},
-				// })
+			for _, permissionID := range permissionsToRemove {
+				perm := requestedPermissionMap[permissionID]
+
+				auditLogs = append(auditLogs, auditlog.AuditLog{
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					Event:       auditlog.AuthDisconnectPermissionKeyEvent,
+					ActorType:   auditlog.RootKeyActor,
+					ActorID:     auth.Key.ID,
+					ActorName:   "root key",
+					ActorMeta:   map[string]any{},
+					Display:     fmt.Sprintf("Removed permission %s from key %s", perm.Name, req.KeyId),
+					RemoteIP:    s.Location(),
+					UserAgent:   s.UserAgent(),
+					Resources: []auditlog.AuditLogResource{
+						{
+							Type:        "key",
+							ID:          req.KeyId,
+							Name:        key.Name.String,
+							DisplayName: key.Name.String,
+							Meta:        map[string]any{},
+						},
+						{
+							Type:        "permission",
+							ID:          permissionID,
+							Name:        perm.Slug,
+							DisplayName: perm.Name,
+							Meta:        map[string]any{},
+						},
+					},
+				})
 			}
 		}
 
@@ -304,10 +322,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	h.KeyCache.Remove(ctx, key.Hash)
 
-	// Build response data
 	responseData := make(openapi.V2KeysSetPermissionsResponseData, 0)
+	for _, permission := range foundPermissions {
+		perm := openapi.Permission{
+			Description: nil,
+			Id:          permission.ID,
+			Name:        permission.Name,
+			Slug:        permission.Slug,
+		}
 
-	// 11. Return success response
+		if permission.Description.Valid {
+			perm.Description = &permission.Description.String
+		}
+
+		responseData = append(responseData, perm)
+	}
+
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),

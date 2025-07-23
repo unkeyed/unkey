@@ -71,14 +71,8 @@ func TestSuccess(t *testing.T) {
 		require.Empty(t, currentPermissions)
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Id: &permissionID},
-			},
+			KeyId:       keyID,
+			Permissions: []string{permissionID},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -152,14 +146,8 @@ func TestSuccess(t *testing.T) {
 		require.Empty(t, currentPermissions)
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Slug: &permissionSlug},
-			},
+			KeyId:       keyID,
+			Permissions: []string{permissionSlug},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -222,15 +210,8 @@ func TestSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Id: &permission1ID},
-				{Slug: &permission2Slug},
-			},
+			KeyId:       keyID,
+			Permissions: []string{permission1ID, permission2Slug},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -286,14 +267,8 @@ func TestSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Id: &permissionID},
-			},
+			KeyId:       keyID,
+			Permissions: []string{permissionID},
 		}
 
 		// Add permission first time
@@ -366,14 +341,8 @@ func TestSuccess(t *testing.T) {
 		keyID := keyResponse.KeyID
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Id: &newPermissionID},
-			},
+			KeyId:       keyID,
+			Permissions: []string{newPermissionID},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](

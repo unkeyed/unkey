@@ -182,14 +182,8 @@ func TestNotFound(t *testing.T) {
 		require.NoError(t, err)
 
 		req := handler.Request{
-			KeyId: keyID, // Key from different workspace
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Id: &permissionID},
-			},
+			KeyId:       keyID, // Key from different workspace
+			Permissions: []string{permissionID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -238,14 +232,8 @@ func TestNotFound(t *testing.T) {
 		require.NoError(t, err)
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Id: &permissionID}, // Permission from different workspace
-			},
+			KeyId:       keyID,
+			Permissions: []string{permissionID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -294,15 +282,8 @@ func TestNotFound(t *testing.T) {
 		nonExistentPermissionID := uid.New(uid.TestPrefix)
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Id: &nonExistentPermissionID}, // This should fail first
-				{Id: &validPermissionID},       // This should not be processed
-			},
+			KeyId:       keyID,
+			Permissions: []string{nonExistentPermissionID, validPermissionID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](

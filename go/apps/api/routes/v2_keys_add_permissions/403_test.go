@@ -76,14 +76,8 @@ func TestAuthorizationErrors(t *testing.T) {
 	require.NoError(t, err)
 
 	req := handler.Request{
-		KeyId: keyID,
-		Permissions: []struct {
-			Create *bool   `json:"create,omitempty"`
-			Id     *string `json:"id,omitempty"`
-			Slug   *string `json:"slug,omitempty"`
-		}{
-			{Id: &permissionID},
-		},
+		KeyId:       keyID,
+		Permissions: []string{permissionID},
 	}
 
 	t.Run("root key without required permissions", func(t *testing.T) {
@@ -175,14 +169,8 @@ func TestAuthorizationErrors(t *testing.T) {
 		authorizedRootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
 
 		reqWithOtherKey := handler.Request{
-			KeyId: otherKeyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Id: &permissionID},
-			},
+			KeyId:       otherKeyID,
+			Permissions: []string{permissionID},
 		}
 
 		headers := http.Header{
@@ -228,14 +216,8 @@ func TestAuthorizationErrors(t *testing.T) {
 		authorizedRootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
 
 		reqWithOtherPermission := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Id: &otherPermissionID},
-			},
+			KeyId:       keyID,
+			Permissions: []string{otherPermissionID},
 		}
 
 		headers := http.Header{

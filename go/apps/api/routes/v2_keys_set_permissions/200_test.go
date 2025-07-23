@@ -106,15 +106,8 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, permission1ID, currentPermissions[0].ID)
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Id: &permission2ID},
-				{Id: &permission3ID},
-			},
+			KeyId:       keyID,
+			Permissions: []string{permission2ID, permission3ID},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -198,14 +191,8 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Slug: &[]string{"documents.write.byname"}[0]},
-			},
+			KeyId:       keyID,
+			Permissions: []string{"documents.write.byname"},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -290,12 +277,8 @@ func TestSuccess(t *testing.T) {
 		require.Len(t, currentPermissions, 2)
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{},
+			KeyId:       keyID,
+			Permissions: []string{},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -355,14 +338,8 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Id: &permissionID},
-			},
+			KeyId:       keyID,
+			Permissions: []string{permissionID},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -405,20 +382,9 @@ func TestSuccess(t *testing.T) {
 
 		// Use a slug that doesn't exist yet
 		newPermissionSlug := "documents.create.onthefly"
-		createFlag := true
-
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{
-					Slug:   &newPermissionSlug,
-					Create: &createFlag,
-				},
-			},
+			KeyId:       keyID,
+			Permissions: []string{newPermissionSlug},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
