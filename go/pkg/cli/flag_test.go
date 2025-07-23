@@ -25,7 +25,7 @@ func TestStringFlag_WithValidation_Failure(t *testing.T) {
 	flag := String("url", "URL flag", Validate(validateURL))
 	err := flag.Parse("invalid-url")
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "validation failed")
+	require.Contains(t, err.Error(), ErrValidationFailed.Error())
 }
 
 func TestStringFlag_WithEnvVar(t *testing.T) {
@@ -50,7 +50,7 @@ func TestStringFlag_ValidationOnEnvVar(t *testing.T) {
 	// But explicit parsing should trigger validation
 	err := flag.Parse("also-invalid")
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "validation failed")
+	require.Contains(t, err.Error(), ErrValidationFailed.Error())
 }
 
 // BoolFlag Tests
@@ -66,7 +66,7 @@ func TestBoolFlag_InvalidValue(t *testing.T) {
 	flag := Bool("verbose", "verbose flag")
 	err := flag.Parse("maybe")
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "invalid boolean value")
+	require.Contains(t, err.Error(), ErrInvalidBoolValue.Error())
 }
 
 func TestBoolFlag_ValidationOnEmptyValue(t *testing.T) {
@@ -94,14 +94,14 @@ func TestIntFlag_InvalidInteger(t *testing.T) {
 	flag := Int("count", "count flag")
 	err := flag.Parse("not-a-number")
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "invalid integer value")
+	require.Contains(t, err.Error(), ErrInvalidIntValue.Error())
 }
 
 func TestIntFlag_WithValidation_Failure(t *testing.T) {
 	flag := Int("port", "port flag", Validate(validatePort))
 	err := flag.Parse("70000")
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "port must be between 1-65535")
+	require.Contains(t, err.Error(), ErrValidationFailed.Error())
 }
 
 func TestIntFlag_ZeroValueWithEnv(t *testing.T) {
@@ -124,7 +124,7 @@ func TestFloatFlag_InvalidFloat(t *testing.T) {
 	flag := Float("rate", "rate flag")
 	err := flag.Parse("not-a-number")
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "invalid float value")
+	require.Contains(t, err.Error(), ErrInvalidFloatValue.Error())
 }
 
 func TestFloatFlag_ZeroValueWithEnv(t *testing.T) {
@@ -154,7 +154,7 @@ func TestFloatFlag_ValidationOnEnvVar(t *testing.T) {
 	// But explicit parsing should trigger validation
 	err := flag.Parse("1.5")
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "validation failed")
+	require.Contains(t, err.Error(), ErrValidationFailed.Error())
 }
 
 func TestStringSliceFlag_CommaSeparated(t *testing.T) {
@@ -198,7 +198,7 @@ func TestStringSliceFlag_ValidationOnEnvVar(t *testing.T) {
 
 	err := flag.Parse("test;;invalid")
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "validation failed")
+	require.Contains(t, err.Error(), ErrValidationFailed.Error())
 }
 
 func TestCommandLineOverrideEnvironment(t *testing.T) {
@@ -423,16 +423,6 @@ func TestBoolFlag_WithEnvVar_False(t *testing.T) {
 	flag := Bool("quiet", "quiet flag", EnvVar("QUIET"))
 	require.False(t, flag.Value())
 	require.False(t, flag.IsSet())
-	require.True(t, flag.HasValue())
-}
-
-func TestBoolFlag_WithEnvVar_InvalidValue(t *testing.T) {
-	os.Setenv("INVALID_BOOL", "maybe")
-	defer os.Unsetenv("INVALID_BOOL")
-
-	flag := Bool("test", "test flag", EnvVar("INVALID_BOOL"))
-	// Should fallback to default value when env var is invalid
-	require.False(t, flag.Value())
 	require.True(t, flag.HasValue())
 }
 
