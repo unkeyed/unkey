@@ -1,7 +1,7 @@
 import { ClickHouse } from "@unkey/clickhouse";
+import { FetchError, wrap } from "@unkey/error";
 import { z } from "zod";
 import { ClickHouseProxyClient } from "./clickhouse-proxy";
-import { FetchError, wrap } from "@unkey/error";
 
 export class Analytics {
   private readonly clickhouse: ClickHouse;
@@ -9,15 +9,13 @@ export class Analytics {
 
   constructor(opts: {
     clickhouseUrl: string;
-    clickhouseInsertUrl?: string;
-    clickhouseProxyUrl?: string
+    clickhouseProxyUrl?: string;
     clickhouseProxyToken?: string;
   }) {
     // Keep ClickHouse client for queries/reads
     this.clickhouse = new ClickHouse({ url: opts.clickhouseUrl });
     // Use proxy client for inserts/writes if configured
     if (opts.clickhouseProxyUrl && opts.clickhouseProxyToken) {
-
       this.proxyClient = new ClickHouseProxyClient(
         opts.clickhouseProxyUrl,
         opts.clickhouseProxyToken,
@@ -49,12 +47,14 @@ export class Analytics {
         passed: boolean;
       }) => {
         // biome-ignore lint/style/noNonNullAssertion: <explanation>
-        return await wrap(this.proxyClient!.insertRatelimits([event]), err => new FetchError(
-          {
-            message: err.message,
-            retry: true,
-          }
-        ))
+        return await wrap(
+          this.proxyClient!.insertRatelimits([event]),
+          (err) =>
+            new FetchError({
+              message: err.message,
+              retry: true,
+            }),
+        );
       };
     }
     return this.clickhouse.ratelimits.insert;
@@ -74,12 +74,14 @@ export class Analytics {
         tags?: string[];
       }) => {
         // biome-ignore lint/style/noNonNullAssertion: <explanation>
-        return await wrap(this.proxyClient!.insertVerifications([event]), err => new FetchError(
-          {
-            message: err.message,
-            retry: true,
-          }
-        ))
+        return await wrap(
+          this.proxyClient!.insertVerifications([event]),
+          (err) =>
+            new FetchError({
+              message: err.message,
+              retry: true,
+            }),
+        );
       };
     }
     return this.clickhouse.verifications.insert;
@@ -109,12 +111,14 @@ export class Analytics {
         continent: string;
       }) => {
         // biome-ignore lint/style/noNonNullAssertion: <explanation>
-        return await wrap(this.proxyClient!.insertApiRequests([event]), err => new FetchError(
-          {
-            message: err.message,
-            retry: true,
-          }
-        ))
+        return await wrap(
+          this.proxyClient!.insertApiRequests([event]),
+          (err) =>
+            new FetchError({
+              message: err.message,
+              retry: true,
+            }),
+        );
       };
     }
     return this.clickhouse.api.insert;
