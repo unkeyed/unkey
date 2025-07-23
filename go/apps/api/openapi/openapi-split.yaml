@@ -181,6 +181,14 @@ paths:
   /v2/permissions.deletePermission:
     $ref: "./spec/paths/v2/permissions/deletePermission/index.yaml"
 
+  # ClickHouse Proxy Endpoints (Internal)
+  /_internal/chproxy/verifications:
+    $ref: "./spec/paths/chproxy/verifications/index.yaml"
+  /_internal/chproxy/metrics:
+    $ref: "./spec/paths/chproxy/metrics/index.yaml"
+  /_internal/chproxy/ratelimits:
+    $ref: "./spec/paths/chproxy/ratelimits/index.yaml"
+
 components:
   securitySchemes:
     rootKey:

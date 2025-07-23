@@ -82,6 +82,33 @@ type BaseError struct {
 	Type string `json:"type"`
 }
 
+// ChproxyMetricsRequestBody Array of API request metric events to be processed
+type ChproxyMetricsRequestBody = []map[string]interface{}
+
+// ChproxyMetricsResponseBody defines model for ChproxyMetricsResponseBody.
+type ChproxyMetricsResponseBody struct {
+	// Status Processing status
+	Status string `json:"status"`
+}
+
+// ChproxyRatelimitsRequestBody Array of ratelimit events to be processed
+type ChproxyRatelimitsRequestBody = []map[string]interface{}
+
+// ChproxyRatelimitsResponseBody defines model for ChproxyRatelimitsResponseBody.
+type ChproxyRatelimitsResponseBody struct {
+	// Status Processing status
+	Status string `json:"status"`
+}
+
+// ChproxyVerificationsRequestBody Array of key verification events to be processed
+type ChproxyVerificationsRequestBody = []map[string]interface{}
+
+// ChproxyVerificationsResponseBody defines model for ChproxyVerificationsResponseBody.
+type ChproxyVerificationsResponseBody struct {
+	// Status Processing status
+	Status string `json:"status"`
+}
+
 // ConflictErrorResponse Error response when the request conflicts with the current state of the resource. This occurs when:
 // - Attempting to create a resource that already exists
 // - Modifying a resource that has been changed by another operation
@@ -2129,6 +2156,15 @@ type VerifyKeyRatelimitData struct {
 	// Reset Rate limit reset duration in milliseconds.
 	Reset int64 `json:"reset"`
 }
+
+// ChproxyMetricsJSONRequestBody defines body for ChproxyMetrics for application/json ContentType.
+type ChproxyMetricsJSONRequestBody = ChproxyMetricsRequestBody
+
+// ChproxyRatelimitsJSONRequestBody defines body for ChproxyRatelimits for application/json ContentType.
+type ChproxyRatelimitsJSONRequestBody = ChproxyRatelimitsRequestBody
+
+// ChproxyVerificationsJSONRequestBody defines body for ChproxyVerifications for application/json ContentType.
+type ChproxyVerificationsJSONRequestBody = ChproxyVerificationsRequestBody
 
 // CreateApiJSONRequestBody defines body for CreateApi for application/json ContentType.
 type CreateApiJSONRequestBody = V2ApisCreateApiRequestBody

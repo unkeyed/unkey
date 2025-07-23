@@ -5,6 +5,10 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/routes/reference"
 	v2Liveness "github.com/unkeyed/unkey/go/apps/api/routes/v2_liveness"
 
+	chproxyMetrics "github.com/unkeyed/unkey/go/apps/api/routes/chproxy_metrics"
+	chproxyRatelimits "github.com/unkeyed/unkey/go/apps/api/routes/chproxy_ratelimits"
+	chproxyVerifications "github.com/unkeyed/unkey/go/apps/api/routes/chproxy_verifications"
+
 	v2RatelimitDeleteOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_delete_override"
 	v2RatelimitGetOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_get_override"
 	v2RatelimitLimit "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_limit"
@@ -65,6 +69,47 @@ func Register(srv *zen.Server, svc *Services) {
 	}
 
 	srv.RegisterRoute(defaultMiddlewares, &v2Liveness.Handler{})
+
+	// ---------------------------------------------------------------------------
+	// chproxy (internal endpoints)
+
+	if svc.ChproxyEnabled {
+		// chproxy/verifications - internal endpoint for key verification events
+		srv.RegisterRoute([]zen.Middleware{
+			withTracing,
+			withMetrics,
+			withLogging,
+			withErrorHandling,
+		}, &chproxyVerifications.Handler{
+			ClickHouse: svc.ClickHouse,
+			Logger:     svc.Logger,
+			Token:      svc.ChproxyToken,
+		})
+
+		// chproxy/metrics - internal endpoint for API request metrics
+		srv.RegisterRoute([]zen.Middleware{
+			withTracing,
+			withMetrics,
+			withLogging,
+			withErrorHandling,
+		}, &chproxyMetrics.Handler{
+			ClickHouse: svc.ClickHouse,
+			Logger:     svc.Logger,
+			Token:      svc.ChproxyToken,
+		})
+
+		// chproxy/ratelimits - internal endpoint for ratelimit events
+		srv.RegisterRoute([]zen.Middleware{
+			withTracing,
+			withMetrics,
+			withLogging,
+			withErrorHandling,
+		}, &chproxyRatelimits.Handler{
+			ClickHouse: svc.ClickHouse,
+			Logger:     svc.Logger,
+			Token:      svc.ChproxyToken,
+		})
+	}
 
 	// ---------------------------------------------------------------------------
 	// v2/ratelimit
