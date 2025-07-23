@@ -112,9 +112,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	auditLogs := []auditlog.AuditLog{}
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		// Prepare update parameters with three-state handling
+		auditLogs := []auditlog.AuditLog{}
+
 		update := db.UpdateKeyParams{
 			ID:                         key.ID,
 			Now:                        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -419,6 +419,32 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if len(permissionsToCreate) > 0 {
+				for _, toCreate := range permissionsToCreate {
+					auditLogs = append(auditLogs, auditlog.AuditLog{
+						WorkspaceID: auth.AuthorizedWorkspaceID,
+						Event:       auditlog.PermissionCreateEvent,
+						ActorType:   auditlog.RootKeyActor,
+						ActorID:     auth.Key.ID,
+						ActorName:   "root key",
+						ActorMeta:   map[string]any{},
+						Display:     fmt.Sprintf("Created %s (%s)", toCreate.Slug, toCreate.PermissionID),
+						RemoteIP:    s.Location(),
+						UserAgent:   s.UserAgent(),
+						Resources: []auditlog.AuditLogResource{
+							{
+								Type:        auditlog.PermissionResourceType,
+								ID:          toCreate.PermissionID,
+								Name:        toCreate.Slug,
+								DisplayName: toCreate.Name,
+								Meta: map[string]interface{}{
+									"name": toCreate.Name,
+									"slug": toCreate.Slug,
+								},
+							},
+						},
+					})
+				}
+
 				err = db.BulkQuery.InsertPermissions(ctx, tx, permissionsToCreate)
 				if err != nil {
 					return fault.Wrap(err,
@@ -429,7 +455,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 			}
 
-			// Clear all existing permissions for this key
 			err = db.Query.DeleteAllKeyPermissionsByKeyID(ctx, tx, key.ID)
 			if err != nil {
 				return fault.Wrap(err,
@@ -439,12 +464,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			permissionsToInsert := []db.InsertKeyPermissionParams{}
+			now := time.Now().UnixMilli()
 			for _, reqPerm := range requestedPermissions {
 				permissionsToInsert = append(permissionsToInsert, db.InsertKeyPermissionParams{
 					KeyID:        key.ID,
 					PermissionID: reqPerm.ID,
 					WorkspaceID:  auth.AuthorizedWorkspaceID,
-					CreatedAt:    time.Now().UnixMilli(),
+					CreatedAt:    now,
+					UpdatedAt:    sql.NullInt64{Int64: now, Valid: true},
 				})
 			}
 

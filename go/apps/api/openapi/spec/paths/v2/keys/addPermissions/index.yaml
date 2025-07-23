@@ -226,15 +226,3 @@ post:
                     Please try again later.
                   status: 500
                   type: internal_server_error
-            cachingError:
-              summary: Cache invalidation error
-              value:
-                meta:
-                  requestId: req_5zAbCdEfGhIjKlMnOpQrSt
-                error:
-                  title: Internal Server Error
-                  detail: The permissions were successfully added but there was
-                    an error invalidating cached keys. Some systems may temporarily
-                    see stale data.
-                  status: 500
-                  type: internal_server_error

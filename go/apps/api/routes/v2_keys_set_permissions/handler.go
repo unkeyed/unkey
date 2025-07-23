@@ -134,6 +134,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		WorkspaceID: auth.AuthorizedWorkspaceID,
 		Ids:         req.Permissions,
 	})
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"), fault.Public("Failed to lookup permissions to set."),
+		)
+	}
 
 	missingPermissions := make(map[string]struct{})
 	for _, permission := range req.Permissions {
@@ -226,7 +232,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			for _, permissionID := range permissionsToRemove {
 				perm := requestedPermissionMap[permissionID]
-
 				auditLogs = append(auditLogs, auditlog.AuditLog{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					Event:       auditlog.AuthDisconnectPermissionKeyEvent,
@@ -257,14 +262,54 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
+		if len(permissionsToInsert) > 0 {
+			for _, toCreate := range permissionsToInsert {
+				auditLogs = append(auditLogs, auditlog.AuditLog{
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					Event:       auditlog.PermissionCreateEvent,
+					ActorType:   auditlog.RootKeyActor,
+					ActorID:     auth.Key.ID,
+					ActorName:   "root key",
+					ActorMeta:   map[string]any{},
+					Display:     fmt.Sprintf("Created %s (%s)", toCreate.Slug, toCreate.PermissionID),
+					RemoteIP:    s.Location(),
+					UserAgent:   s.UserAgent(),
+					Resources: []auditlog.AuditLogResource{
+						{
+							Type:        auditlog.PermissionResourceType,
+							ID:          toCreate.PermissionID,
+							Name:        toCreate.Slug,
+							DisplayName: toCreate.Name,
+							Meta: map[string]interface{}{
+								"name": toCreate.Name,
+								"slug": toCreate.Slug,
+							},
+						},
+					},
+				})
+			}
+
+			err = db.BulkQuery.InsertPermissions(ctx, tx, permissionsToInsert)
+			if err != nil {
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"),
+					fault.Public("Failed to insert permissions."),
+				)
+			}
+		}
+
 		if len(permissionsToAdd) > 0 {
 			toAdd := make([]db.InsertKeyPermissionParams, len(permissionsToAdd))
+			now := time.Now().UnixMilli()
+
 			for idx, permission := range permissionsToAdd {
 				toAdd[idx] = db.InsertKeyPermissionParams{
 					KeyID:        req.KeyId,
 					PermissionID: permission.ID,
 					WorkspaceID:  auth.AuthorizedWorkspaceID,
-					CreatedAt:    time.Now().UnixMilli(),
+					CreatedAt:    now,
+					UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
 				}
 
 				auditLogs = append(auditLogs, auditlog.AuditLog{
@@ -296,7 +341,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				})
 			}
 
-			err = db.BulkQuery.InsertKeyPermissions(ctx, h.DB.RW(), toAdd)
+			err = db.BulkQuery.InsertKeyPermissions(ctx, tx, toAdd)
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -306,12 +351,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
-		// Insert audit logs
-		if len(auditLogs) > 0 {
-			err = h.Auditlogs.Insert(ctx, tx, auditLogs)
-			if err != nil {
-				return err
-			}
+		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
+		if err != nil {
+			return err
 		}
 
 		return nil
@@ -324,6 +366,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	responseData := make(openapi.V2KeysSetPermissionsResponseData, 0)
 	for _, permission := range foundPermissions {
+		perm := openapi.Permission{
+			Description: nil,
+			Id:          permission.ID,
+			Name:        permission.Name,
+			Slug:        permission.Slug,
+		}
+
+		if permission.Description.Valid {
+			perm.Description = &permission.Description.String
+		}
+
+		responseData = append(responseData, perm)
+	}
+
+	for _, permission := range permissionsToAdd {
 		perm := openapi.Permission{
 			Description: nil,
 			Id:          permission.ID,

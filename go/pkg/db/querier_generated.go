@@ -743,7 +743,7 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?
-	//  )
+	//  ) ON DUPLICATE KEY UPDATE updated_at_m = ?
 	InsertKeyPermission(ctx context.Context, db DBTX, arg InsertKeyPermissionParams) error
 	//InsertKeyRatelimit
 	//

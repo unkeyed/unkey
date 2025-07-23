@@ -157,32 +157,9 @@ func TestValidationErrors(t *testing.T) {
 	})
 
 	t.Run("permission not found by id", func(t *testing.T) {
-		nonExistentPermissionID := uid.New(uid.TestPrefix)
-
 		req := handler.Request{
 			KeyId:       validKeyID,
-			Permissions: []string{nonExistentPermissionID},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 404, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "was not found")
-	})
-
-	t.Run("permission not found by name", func(t *testing.T) {
-		nonExistentPermissionName := "nonexistent.permission.remove"
-
-		req := handler.Request{
-			KeyId:       validKeyID,
-			Permissions: []string{nonExistentPermissionName},
+			Permissions: []string{uid.New(uid.TestPrefix)},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](

@@ -56,7 +56,7 @@ func TestPermissionErrors(t *testing.T) {
 		}
 
 		req := handler.Request{
-			PermissionId: permissionID,
+			Permission: permissionID,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
@@ -83,7 +83,7 @@ func TestPermissionErrors(t *testing.T) {
 		}
 
 		req := handler.Request{
-			PermissionId: permissionID,
+			Permission: permissionID,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](

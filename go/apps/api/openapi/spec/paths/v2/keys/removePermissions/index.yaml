@@ -11,6 +11,7 @@ post:
     - Selective removal - revoke specific permissions while leaving others intact
     - Direct permissions only - doesn't affect permissions granted through roles
     - Idempotent operation - removing permissions multiple times has no additional effect
+
     Use this endpoint when downgrading user access privileges, removing temporary elevated permissions, implementing granular permission adjustments, or revoking access to specific resources.
   operationId: removePermissions
   x-speakeasy-name-override: removePermissions
@@ -23,19 +24,9 @@ post:
         schema:
           "$ref": "./V2KeysRemovePermissionsRequestBody.yaml"
         examples:
-          removeAll:
-            summary: Remove all permissions from key
-            description: Setting an empty permissions array removes all direct
-              permissions from the key. This doesn't remove permissions granted
-              through roles. The key remains valid but will have no direct permissions.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              permissions: []
           basic:
-            summary: Remove permissions using IDs
-            description: Using permission IDs is the most precise way to remove
-              permissions, guaranteeing you're removing exactly what you intend
-              regardless of name changes.
+            summary: Remove permissions using ID or slug
+            description: You can use either the unkey permission ID or your choosen slug to remove permissions.
             value:
               keyId: key_2cGKbMxRyIzhCxo1Idjz8q
               permissions:
@@ -81,16 +72,6 @@ post:
                 error:
                   title: Bad Request
                   detail: At least one permission must be specified
-                  status: 400
-                  type: bad_request
-            missingIdentifier:
-              summary: Permission missing both id and name
-              value:
-                meta:
-                  requestId: req_7bCdEfGhIjKlMnOpQrStUv
-                error:
-                  title: Bad Request
-                  detail: Each permission must include either id or name
                   status: 400
                   type: bad_request
     "401":
@@ -161,17 +142,5 @@ post:
                   detail:
                     An unexpected error occurred while processing your request.
                     Please try again later.
-                  status: 500
-                  type: internal_server_error
-            cachingError:
-              summary: Cache invalidation error
-              value:
-                meta:
-                  requestId: req_5zAbCdEfGhIjKlMnOpQrSt
-                error:
-                  title: Internal Server Error
-                  detail: The permissions were successfully removed but there
-                    was an error invalidating cached keys. Some systems may temporarily
-                    see stale data.
                   status: 500
                   type: internal_server_error
