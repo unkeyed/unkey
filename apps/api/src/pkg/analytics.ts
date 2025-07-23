@@ -46,8 +46,8 @@ export class Analytics {
         identifier: string;
         passed: boolean;
       }) => {
-        // biome-ignore lint/style/noNonNullAssertion: <explanation>
         return await wrap(
+          // biome-ignore lint/style/noNonNullAssertion: proxyClient existence verified above
           this.proxyClient!.insertRatelimits([event]),
           (err) =>
             new FetchError({
@@ -73,8 +73,8 @@ export class Analytics {
         identity_id?: string;
         tags?: string[];
       }) => {
-        // biome-ignore lint/style/noNonNullAssertion: <explanation>
         return await wrap(
+          // biome-ignore lint/style/noNonNullAssertion: proxyClient existence verified above
           this.proxyClient!.insertVerifications([event]),
           (err) =>
             new FetchError({
@@ -110,8 +110,8 @@ export class Analytics {
         colo: string;
         continent: string;
       }) => {
-        // biome-ignore lint/style/noNonNullAssertion: <explanation>
         return await wrap(
+          // biome-ignore lint/style/noNonNullAssertion: proxyClient existence verified above
           this.proxyClient!.insertApiRequests([event]),
           (err) =>
             new FetchError({
