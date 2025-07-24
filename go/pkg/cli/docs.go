@@ -175,8 +175,8 @@ func (c *Command) extractAllExamples() []MDXExample {
 	var examples []MDXExample
 
 	// Parse example lines
-	lines := strings.Split(matches[1], "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(matches[1], "\n")
+	for line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
@@ -245,7 +245,11 @@ func (c *Command) getTypeString(flag Flag) string {
 	}
 }
 
-// determineCommandType categorizes the command
+// determineCommandType categorizes the command for template selection
+// Examples:
+//   - "parent": `unkey deploy` (has subcommands like `unkey deploy init`)
+//   - "leaf": `unkey version` (executes an action, no subcommands)
+//   - "service": configuration-only commands with no action or subcommands
 func (c *Command) determineCommandType() string {
 	if len(c.Commands) > 0 {
 		return "parent"
@@ -256,7 +260,13 @@ func (c *Command) determineCommandType() string {
 	return "service"
 }
 
-// Helper methods
+// cleanCommandLine formats command examples for documentation display
+// Removes inline comments and formats line continuations with proper indentation
+// Example input:  "unkey deploy \     --workspace-id=ws_123 \     --verbose  # deploy with options"
+//
+//	Example output: "unkey deploy \
+//	                   --workspace-id=ws_123 \
+//	                   --verbose"
 func (c *Command) cleanCommandLine(line string) string {
 	if line == "" {
 		return ""
@@ -270,6 +280,9 @@ func (c *Command) cleanCommandLine(line string) string {
 	return line
 }
 
+// extractCommentFromLine pulls out inline comments from command examples
+// Used to extract explanatory text that appears after # in example commands
+// Example: "unkey deploy --verbose  # This enables detailed logging" → "This enables detailed logging"
 func (c *Command) extractCommentFromLine(line string) string {
 	if line == "" {
 		return ""
@@ -283,43 +296,93 @@ func (c *Command) extractCommentFromLine(line string) string {
 	return strings.TrimSpace(line[idx+1:])
 }
 
+// extractExampleTitlesFromDescription parses example titles from various markdown patterns
+// Looks for titles that precede code blocks in the command description to create a mapping
+// of commands to their explicit titles, avoiding generic fallback titles when possible
+// Example patterns it matches:
+//   - "#### Initialize new project\n```bash\nunkey deploy --init\n```"
+//   - "**Deploy with options:**\n```bash\nunkey deploy --verbose\n```"
+//   - "Standard deployment:\n```bash\nunkey deploy\n```"
+func (c *Command) extractExampleTitlesFromDescription() map[string]string {
+	if c.Description == "" {
+		return nil
+	}
+
+	titleMap := make(map[string]string)
+
+	// Try multiple patterns to find title-command pairs
+	backtick := "`"
+	patterns := []string{
+		// #### Title followed by ```bash
+		`(?s)#{3,4}\s*([^\n]+)\n\s*` + backtick + `{3}bash\s*\n([^` + backtick + `]+)` + backtick + `{3}`,
+		// **Title:** followed by ```bash
+		`(?s)\*\*([^*]+):\*\*\s*\n\s*` + backtick + `{3}bash\s*\n([^` + backtick + `]+)` + backtick + `{3}`,
+		// Title: followed by ```bash
+		`(?s)([^:\n]+):\s*\n\s*` + backtick + `{3}bash\s*\n([^` + backtick + `]+)` + backtick + `{3}`,
+		// Any heading (# ## ### ####) followed by bash block
+		`(?s)#{1,4}\s*([^\n]+)\n[^` + backtick + `]*` + backtick + `{3}bash\s*\n([^` + backtick + `]+)` + backtick + `{3}`,
+	}
+
+	for _, pattern := range patterns {
+		regex := regexp.MustCompile(pattern)
+		matches := regex.FindAllStringSubmatch(c.Description, -1)
+
+		for _, match := range matches {
+			if len(match) >= 3 {
+				title := strings.TrimSpace(match[1])
+				command := strings.TrimSpace(match[2])
+				cleanCommand := c.cleanCommandLine(command)
+				titleMap[cleanCommand] = title
+			}
+		}
+	}
+
+	return titleMap
+}
+
+// generateExampleTitle generates titles using extracted examples or fallback logic
+// Prioritizes explicit titles from the command description over generic fallbacks
+// This ensures documentation shows meaningful titles like "Initialize new project"
+// instead of generic ones like "With options"
 func (c *Command) generateExampleTitle(command string) string {
 	if command == "" {
 		return "Basic usage"
 	}
 
-	if strings.Contains(command, "--help") {
-		return "Show help"
-	}
-	if strings.Contains(command, "--init") {
-		if strings.Contains(command, "--force") {
-			return "Force initialize"
-		}
-		return "Initialize configuration"
-	}
-	if strings.Contains(command, "--docker-image") {
-		return "Deploy pre-built image"
-	}
-	if strings.Contains(command, "--skip-push") {
-		return "Local testing"
-	}
-	if strings.Contains(command, "--config=") {
-		return "Custom config location"
-	}
-	if strings.Contains(command, "--registry=") {
-		return "Custom registry"
-	}
-	if strings.Contains(command, "--context=") {
-		return "Custom build context"
+	// First try to get title from parsed examples
+	titleMap := c.extractExampleTitlesFromDescription()
+	cleanCommand := c.cleanCommandLine(command)
+
+	if title, exists := titleMap[cleanCommand]; exists {
+		return title
 	}
 
+	// Fallback here only if not found in description
+	return c.generateFallbackTitle(command)
+}
+
+// generateFallbackTitle provides simple fallback logic when no explicit title is found
+// Creates generic but useful titles based on command complexity and structure
+// Examples:
+//   - "unkey deploy --init --force --verbose" → "Advanced configuration" (3+ flags)
+//   - "unkey deploy --verbose" → "With options" (1-2 flags)
+//   - "unkey version check" → "Run check" (has subcommand)
+//   - "unkey deploy" → "Basic usage" (no flags)
+func (c *Command) generateFallbackTitle(command string) string {
+	if command == "" {
+		return "Basic usage"
+	}
+
+	// Simple fallback based on complexity
 	flagCount := strings.Count(command, "--")
 	if flagCount > 3 {
 		return "Advanced configuration"
-	} else if flagCount > 1 {
+	}
+	if flagCount > 1 {
 		return "With options"
 	}
 
+	// Try to extract subcommand name
 	parts := strings.Fields(command)
 	if len(parts) > 2 {
 		return fmt.Sprintf("Run %s", parts[2])
@@ -365,101 +428,3 @@ func (c *Command) hasItems(items any) bool {
 		return false
 	}
 }
-
-// Template for parent commands (commands with subcommands)
-const parentCommandTemplate = `---
-{{- if .FrontMatter }}
-title: "{{ .FrontMatter.Title }}"
-description: "{{ .FrontMatter.Description }}"
-{{- else }}
-title: "{{ .Name | title }} Command"
-description: "{{ .Usage }}"
-{{- end }}
----
-{{- if .Description }}
-{{ .Description }}
-{{- else }}
-{{ .Usage }}
-{{- end }}
-
-## Quick Reference
-
-{{- range .Subcommands }}
-- ` + "`{{ $.Name }} {{ .Name }}`" + ` - {{ .Usage }}
-{{- end }}
-
-{{- if hasItems .Flags }}
-
-## Global Flags
-
-These flags apply to all subcommands:
-
-| Flag | Description | Type | Default | Environment |
-| --- | --- | --- | --- | --- |
-{{- range .Flags }}
-| ` + "`--{{ .Name }}`" + `{{- if .Required }} **(required)**{{ end }} | {{ .Description }} | {{ .Type }} | {{- if .Default }}` + "`{{ .Default }}`" + `{{- else }}-{{- end }} | {{- if .EnvVar }}` + "`{{ .EnvVar }}`" + `{{- else }}-{{- end }} |
-{{- end }}
-
-{{- end }}`
-
-// Template for leaf commands (commands without subcommands)
-const leafCommandTemplate = `---
-{{- if .FrontMatter }}
-title: "{{ .FrontMatter.Title }}"
-description: "{{ .FrontMatter.Description }}"
-{{- else }}
-title: "{{ .Name | title }} Command"
-description: "{{ .Usage }}"
-{{- end }}
----
-
-{{- if .Description }}
-{{ .Description }}
-{{- else }}
-{{ .Usage }}
-{{- end }}
-
-## Command Syntax
-
-` + "```bash" + `
-{{ .Name }} [flags]
-` + "```" + `
-
-{{- if hasItems .Examples }}
-
-## Examples
-
-{{- range .Examples }}
-
-### {{ .Title }}
-
-` + "```bash" + `
-{{ .Command }}
-` + "```" + `
-{{- end }}
-
-{{- end }}
-
-{{- if hasItems .Flags }}
-
-## Flags
-
-| Flag | Description | Type | Default | Environment |
-| --- | --- | --- | --- | --- |
-{{- range .Flags }}
-| ` + "`--{{ .Name }}`" + `{{- if .Required }} **(required)**{{ end }} | {{ .Description }} | {{ .Type }} | {{- if .Default }}` + "`{{ .Default }}`" + `{{- else }}-{{- end }} | {{- if .EnvVar }}` + "`{{ .EnvVar }}`" + `{{- else }}-{{- end }} |
-{{- end }}
-
-{{- end }}
-
-{{- if hasItems .EnvVars }}
-
-## Environment Variables
-
-| Variable | Description | Type |
-| --- | --- | --- |
-{{- range .EnvVars }}
-| ` + "`{{ .Name }}`" + ` | {{ .Description }} | {{ .Type }} |
-{{- end }}
-
-{{- end }}`
