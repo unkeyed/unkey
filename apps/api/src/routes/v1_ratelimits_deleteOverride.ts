@@ -9,6 +9,7 @@ import { buildUnkeyQuery } from "@unkey/rbac";
 const route = createRoute({
   tags: ["ratelimits"],
   operationId: "deleteOverride",
+  summary: "Delete rate limit override",
   method: "post",
   path: "/v1/ratelimits.deleteOverride",
   security: [{ bearerAuth: [] }],

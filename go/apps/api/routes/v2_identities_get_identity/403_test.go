@@ -76,7 +76,7 @@ func TestForbidden(t *testing.T) {
 		}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Regexp(t, regexp.MustCompile(`^Missing one of these permissions: \[.*\], have: \[.*\]$`), res.Body.Error.Detail)
 	})
 
@@ -94,7 +94,7 @@ func TestForbidden(t *testing.T) {
 		}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, specificHeaders, req)
 		require.Equal(t, http.StatusForbidden, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Regexp(t, regexp.MustCompile(`^Missing one of these permissions: \[.*\], have: \[.*\]$`), res.Body.Error.Detail)
 	})
 }

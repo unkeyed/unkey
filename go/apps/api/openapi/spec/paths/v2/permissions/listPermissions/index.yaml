@@ -1,16 +1,14 @@
 post:
   tags:
     - permissions
-  summary: List all permissions in a workspace
-  description: |-
-    Retrieves a paginated list of all permissions defined in the workspace. This endpoint is essential for permission management and RBAC administration.
-    Permissions are the fundamental building blocks of access control in Unkey, representing specific actions or capabilities that can be granted to API keys either directly or through roles.
-    This endpoint allows you to:
-    - View all available permissions for assignment
-    - Build permission management interfaces
-    - Audit your RBAC configuration
-    - Identify existing permissions before creating new ones
-    Results are paginated and typically sorted alphabetically by permission name.
+  summary: List permissions
+  description: |
+    Retrieve all permissions in your workspace. Results are paginated and sorted alphabetically by permission name.
+
+    **Required Permissions**
+    
+    Your root key must have the following permission:
+    - `rbac.*.read_permission`
   operationId: listPermissions
   x-speakeasy-name-override: ListPermissions
   security:
@@ -27,7 +25,7 @@ post:
         application/json:
           schema:
             "$ref": "./V2PermissionsListPermissionsResponseBody.yaml"
-      description: Successfully listed permissions
+      description: Permissions retrieved successfully
     "400":
       description: Bad Request
       content:

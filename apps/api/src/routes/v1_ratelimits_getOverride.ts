@@ -8,6 +8,7 @@ import { buildUnkeyQuery } from "@unkey/rbac";
 const route = createRoute({
   tags: ["ratelimit"],
   operationId: "getOverride",
+  summary: "Get rate limit override",
   method: "get",
   path: "/v1/ratelimits.getOverride",
   security: [{ bearerAuth: [] }],

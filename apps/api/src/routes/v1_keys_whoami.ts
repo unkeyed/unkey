@@ -9,6 +9,7 @@ import { buildUnkeyQuery } from "@unkey/rbac";
 const route = createRoute({
   tags: ["keys"],
   operationId: "whoami",
+  summary: "Get key information",
   method: "post",
   path: "/v1/keys.whoami",
   security: [{ bearerAuth: [] }],

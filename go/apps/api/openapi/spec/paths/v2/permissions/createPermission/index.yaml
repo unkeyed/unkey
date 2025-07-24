@@ -1,18 +1,18 @@
 post:
   tags:
     - permissions
-  summary: Create a new permission
-  description: |-
-    Creates a new permission in the workspace. Permissions are the fundamental building blocks of access control in Unkey's RBAC system, representing specific actions or capabilities that can be granted to API keys either directly or through roles.
-    This endpoint allows you to:
-    - Define new permissions with descriptive names and URL-safe slugs
-    - Set up granular access control for your API keys
-    - Build the foundation for role-based access control
-    - Organize permissions with consistent naming patterns
-    Best practices:
-    - Use hierarchical naming (e.g., 'resource.action' or 'resource.subresource.action')
-    - Choose descriptive but concise permission names
-    - Use URL-safe slugs for easy reference in APIs
+  summary: Create permission
+  description: |
+    Create a new permission to define specific actions or capabilities in your RBAC system. Permissions can be assigned directly to API keys or included in roles.
+
+    Use hierarchical naming patterns like `documents.read`, `admin.users.delete`, or `billing.invoices.create` for clear organization.
+
+    **Important:** Permission names must be unique within the workspace. Once created, permissions are immediately available for assignment.
+
+    **Required Permissions**
+    
+    Your root key must have the following permission:
+    - `rbac.*.create_permission`
   operationId: createPermission
   x-speakeasy-name-override: CreatePermission
   security:
@@ -22,30 +22,10 @@ post:
       application/json:
         schema:
           "$ref": "./V2PermissionsCreatePermissionRequestBody.yaml"
-        examples:
-          basic:
-            summary: Basic permission creation
-            value:
-              name: documents.read
-              slug: documents-read
-              description: Allows reading document resources
-          withoutDescription:
-            summary: Permission without description
-            value:
-              name: files.upload
-              slug: files-upload
-          complexPermission:
-            summary: Complex permission with detailed info
-            value:
-              name: admin.users.delete
-              slug: admin-users-delete
-              description:
-                Grants full administrative access to delete user accounts.
-                This is a high-privilege permission that should be used carefully.
     required: true
   responses:
     "200":
-      description: Successfully created permission
+      description: Permission created successfully
       content:
         application/json:
           schema:

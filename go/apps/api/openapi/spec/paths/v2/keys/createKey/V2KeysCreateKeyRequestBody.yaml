@@ -5,13 +5,12 @@ properties:
   apiId:
     type: string
     minLength: 3
-    maxLength: 255 # Reasonable upper bound for database identifiers
+    maxLength: 255
     pattern: "^[a-zA-Z0-9_]+$"
     description: |
-      Specifies which API this key belongs to, providing complete isolation between environments.
-      Keys from one API cannot be used to access another API, preventing cross-environment access.
-      Create separate APIs for different environments (development, staging, production) and services.
-    example: api_2cGKbMxRjIzhCxo1IdjH3a
+      The API namespace this key belongs to.
+      Keys from different APIs cannot access each other.
+    example: api_1234abcd
   prefix:
     type: string
     minLength: 1
@@ -38,7 +37,7 @@ properties:
     default: 16
     description: |
       Controls the cryptographic strength of the generated key in bytes.
-      Higher values increase security but result in longer keys that may be harder to handle.
+      Higher values increase security but result in longer keys that may be more annoying to handle.
       The default 16 bytes provides 2^128 possible combinations, sufficient for most applications.
       Consider 32 bytes for highly sensitive APIs, but avoid values above 64 bytes unless specifically required.
     example: 24
@@ -53,7 +52,7 @@ properties:
       Essential for user-specific analytics, billing, and multi-tenant key management.
       Use your primary user ID, organization ID, or tenant ID for best results.
       Accepts letters, numbers, underscores, dots, and hyphens for flexible identifier formats.
-    example: user_912a841d
+    example: user_1234abcd
   meta:
     type: object
     additionalProperties: true
@@ -163,3 +162,30 @@ properties:
       Only enable for development keys or when key recovery is absolutely necessary.
     example: false
 additionalProperties: false
+examples:
+  basic:
+    summary: Basic key creation
+    description: Create a simple key for user authentication
+    value:
+      apiId: api_1234abcd
+      name: "User API key"
+      externalId: "user_123"
+  withPermissions:
+    summary: Key with permissions and limits
+    description: Create a key with specific permissions, rate limits, and credits
+    value:
+      apiId: api_1234abcd
+      name: "Service API key"
+      externalId: "service_456"
+      permissions:
+        - "documents.read"
+        - "documents.write"
+      credits:
+        remaining: 1000
+      ratelimits:
+        - name: "api_requests"
+          limit: 100
+          duration: 60000
+      meta:
+        service: "document_processor"
+        version: "1.0"
