@@ -99,7 +99,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					Action:       rbac.UpdateKey,
 				}),
 			),
-			// TODO: Only check this if we are actually setting permissions
 			rbac.And(
 				rbac.T(rbac.Tuple{
 					ResourceType: rbac.Rbac,
@@ -114,6 +113,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			),
 		),
 	))
+	if err != nil {
+		return err
+	}
 
 	currentPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
@@ -135,6 +137,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	missingPermissions := make(map[string]struct{})
+	permissionsToSet := make([]db.Permission, 0)
+	permissionsToInsert := make([]db.InsertPermissionParams, 0)
+
 	for _, permission := range req.Permissions {
 		missingPermissions[permission] = struct{}{}
 	}
@@ -143,9 +148,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		delete(missingPermissions, permission.ID)
 		delete(missingPermissions, permission.Slug)
 	}
-
-	permissionsToSet := make([]db.Permission, 0)
-	permissionsToInsert := make([]db.InsertPermissionParams, 0)
 
 	for _, permission := range foundPermissions {
 		permissionsToSet = append(permissionsToSet, permission)
@@ -180,9 +182,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 	}
 
-	currentPermissionIDs := make(map[string]bool)
+	currentPermissionMap := make(map[string]db.Permission)
 	for _, permission := range currentPermissions {
-		currentPermissionIDs[permission.ID] = true
+		currentPermissionMap[permission.ID] = permission
 	}
 
 	requestedPermissionIDs := make(map[string]bool)
@@ -200,8 +202,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	permissionsToAdd := make([]db.Permission, 0)
-	for _, permission := range foundPermissions {
-		if !currentPermissionIDs[permission.ID] {
+	for _, permission := range permissionsToSet {
+		_, ok := currentPermissionMap[permission.ID]
+		if !ok {
 			permissionsToAdd = append(permissionsToAdd, permission)
 		}
 	}
@@ -224,7 +227,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			for _, permissionID := range permissionsToRemove {
-				perm := requestedPermissionMap[permissionID]
+				perm := currentPermissionMap[permissionID]
 				auditLogs = append(auditLogs, auditlog.AuditLog{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					Event:       auditlog.AuthDisconnectPermissionKeyEvent,
@@ -358,22 +361,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.KeyCache.Remove(ctx, key.Hash)
 
 	responseData := make(openapi.V2KeysSetPermissionsResponseData, 0)
-	for _, permission := range foundPermissions {
-		perm := openapi.Permission{
-			Description: nil,
-			Id:          permission.ID,
-			Name:        permission.Name,
-			Slug:        permission.Slug,
-		}
-
-		if permission.Description.Valid {
-			perm.Description = &permission.Description.String
-		}
-
-		responseData = append(responseData, perm)
-	}
-
-	for _, permission := range permissionsToAdd {
+	for _, permission := range permissionsToSet {
 		perm := openapi.Permission{
 			Description: nil,
 			Id:          permission.ID,

@@ -162,43 +162,6 @@ func TestBadRequest(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "validate schema")
 	})
 
-	t.Run("permission not found - invalid format", func(t *testing.T) {
-		// Create test data using testutil helpers
-		defaultPrefix := "test"
-		defaultBytes := int32(16)
-		api := h.CreateApi(seed.CreateApiRequest{
-			WorkspaceID:   workspace.ID,
-			DefaultPrefix: &defaultPrefix,
-			DefaultBytes:  &defaultBytes,
-		})
-
-		keyName := "Test Key"
-		keyResponse := h.CreateKey(seed.CreateKeyRequest{
-			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
-			Name:        &keyName,
-		})
-		keyID := keyResponse.KeyID
-
-		invalidID := "invalid_permission_id"
-		req := handler.Request{
-			KeyId:       keyID,
-			Permissions: []string{invalidID},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 404, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "Permission with ID 'invalid_permission_id' was not found")
-	})
-
 	t.Run("malformed JSON", func(t *testing.T) {
 		// Test invalid JSON structure - using incomplete object
 		req := map[string]interface{}{

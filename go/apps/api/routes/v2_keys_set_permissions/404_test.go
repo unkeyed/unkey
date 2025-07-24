@@ -92,7 +92,7 @@ func TestNotFound(t *testing.T) {
 		keyID := keyResponse.KeyID
 
 		// Use non-existent permission ID
-		nonExistentPermissionID := uid.New(uid.TestPrefix)
+		nonExistentPermissionID := uid.New(uid.PermissionPrefix)
 
 		req := handler.Request{
 			KeyId:       keyID,
@@ -109,7 +109,7 @@ func TestNotFound(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Permission with ID '%s' was not found", nonExistentPermissionID))
+		require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Permission with ID %q was not found", nonExistentPermissionID))
 	})
 
 	t.Run("key from different workspace (isolation)", func(t *testing.T) {
@@ -192,7 +192,7 @@ func TestNotFound(t *testing.T) {
 		require.NoError(t, err)
 
 		// Use non-existent permission ID as first item
-		nonExistentPermissionID := uid.New(uid.TestPrefix)
+		nonExistentPermissionID := uid.New(uid.PermissionPrefix)
 
 		req := handler.Request{
 			KeyId:       keyID,
@@ -209,6 +209,6 @@ func TestNotFound(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Permission with ID '%s' was not found", nonExistentPermissionID))
+		require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Permission with ID %q was not found", nonExistentPermissionID))
 	})
 }

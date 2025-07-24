@@ -122,11 +122,18 @@ func TestSuccess(t *testing.T) {
 		require.NotNil(t, res.Body.Data)
 		require.Len(t, res.Body.Data, 2)
 
-		// Verify response contains new permissions (should be sorted alphabetically by name)
-		require.Equal(t, permission3ID, res.Body.Data[0].Id) // documents.delete.new
-		require.Equal(t, "documents.delete.new", res.Body.Data[0].Name)
-		require.Equal(t, permission2ID, res.Body.Data[1].Id) // documents.write.new
-		require.Equal(t, "documents.write.new", res.Body.Data[1].Name)
+		contains := func(id string) bool {
+			for _, p := range res.Body.Data {
+				if p.Id == id {
+					return true
+				}
+			}
+			return false
+		}
+
+		// Verify response contains new permissions
+		require.True(t, contains(permission3ID))
+		require.True(t, contains(permission2ID))
 
 		// Verify permissions in database
 		finalPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), keyID)
