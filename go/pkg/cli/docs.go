@@ -136,12 +136,17 @@ func (c *Command) extractSubcommands() []MDXSubcommand {
 	return subcmds
 }
 
-// extractFirstSentence gets the first sentence of a description
+// extractFirstSentence gets the first sentence of a description for use in summary contexts
+// Used to create concise descriptions for subcommands in parent command documentation
+// Examples:
+//   - "Deploy a new version. This handles the complete lifecycle." → "Deploy a new version."
+//   - "Check system health\nPerforms various checks" → "Check system health"
+//   - "Initialize configuration!" → "Initialize configuration!"
 func (c *Command) extractFirstSentence(desc string) string {
 	if desc == "" {
 		return ""
 	}
-
+	// Split on sentence-ending punctuation followed by whitespace
 	sentences := regexp.MustCompile(`[.!?]\s+`).Split(desc, 2)
 	if len(sentences) > 0 {
 		first := strings.TrimSpace(sentences[0])
@@ -150,7 +155,7 @@ func (c *Command) extractFirstSentence(desc string) string {
 		}
 		return first
 	}
-
+	// Fallback: use first line if no sentence punctuation found
 	lines := strings.Split(desc, "\n")
 	if len(lines) > 0 {
 		return strings.TrimSpace(lines[0])
@@ -159,13 +164,22 @@ func (c *Command) extractFirstSentence(desc string) string {
 	return desc
 }
 
-// extractAllExamples parses examples from description
+// extractAllExamples parses examples from a dedicated EXAMPLES section in the command description
+// Looks for a section starting with "EXAMPLES:" and extracts command lines that contain the command name
+// This allows embedding rich examples directly in the CLI source code that get formatted for documentation
+// Example description format:
+//
+//	"Deploy applications to Unkey infrastructure.
+//
+//	 EXAMPLES:
+//	 unkey deploy --init          # Initialize configuration
+//	 unkey deploy --verbose       # Deploy with detailed output
+//	 unkey deploy --skip-push     # Local testing only"
 func (c *Command) extractAllExamples() []MDXExample {
 	if c.Description == "" {
 		return nil
 	}
-
-	// Find EXAMPLES section
+	// Find EXAMPLES section - matches from "EXAMPLES:" until double newline or end of string
 	exampleRegex := regexp.MustCompile(`(?s)EXAMPLES:\s*(.*?)(?:\n\n|\z)`)
 	matches := exampleRegex.FindStringSubmatch(c.Description)
 	if len(matches) < 2 {
@@ -173,21 +187,20 @@ func (c *Command) extractAllExamples() []MDXExample {
 	}
 
 	var examples []MDXExample
-
-	// Parse example lines
+	// Parse example lines from the EXAMPLES section
 	lines := strings.SplitSeq(matches[1], "\n")
 	for line := range lines {
 		line = strings.TrimSpace(line)
+		// Skip empty lines and comment-only lines
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-
-		// Look for command lines containing the command name
+		// Only process lines that contain actual command usage
 		if strings.Contains(line, c.Name) {
 			example := MDXExample{
-				Command: c.cleanCommandLine(line),
-				Comment: c.extractCommentFromLine(line),
-				Title:   c.generateExampleTitle(line),
+				Command: c.cleanCommandLine(line),       // Remove comments and format continuations
+				Comment: c.extractCommentFromLine(line), // Extract inline comment for context
+				Title:   c.generateExampleTitle(line),   // Generate or extract meaningful title
 			}
 			examples = append(examples, example)
 		}
