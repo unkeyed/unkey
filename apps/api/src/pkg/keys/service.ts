@@ -398,6 +398,7 @@ export class KeyService {
     if (!data.workspace) {
       this.logger.warn("workspace not found, trying again", {
         workspace: data.key.workspaceId,
+        data: JSON.stringify(data),
       });
       await this.cache.keyByHash.remove(keyHash);
       const ws = await this.db.primary.query.workspaces.findFirst({
