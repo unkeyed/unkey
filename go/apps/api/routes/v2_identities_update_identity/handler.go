@@ -394,10 +394,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.IdentitiesUpdateIdentityResponseData{
+		Data: openapi.Identity{
 			ExternalId: req.ExternalId,
 			Meta:       req.Meta,
-			Ratelimits: &responseRatelimits,
+			Ratelimits: responseRatelimits,
 		},
 	}
 

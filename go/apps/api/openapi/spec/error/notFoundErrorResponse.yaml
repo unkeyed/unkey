@@ -1,0 +1,16 @@
+type: object
+required:
+  - meta
+  - error
+properties:
+  meta:
+    $ref: "../common/Meta.yaml"
+  error:
+    $ref: "./BaseError.yaml"
+description: |-
+  Error response when the requested resource cannot be found. This occurs when:
+  - The specified resource ID doesn't exist in your workspace
+  - The resource has been deleted or moved
+  - The resource exists but is not accessible with current permissions
+
+  To resolve this error, verify the resource ID is correct and that you have access to it.

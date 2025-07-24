@@ -15,6 +15,7 @@ import { type RBAC, buildUnkeyQuery } from "@unkey/rbac";
 const route = createRoute({
   tags: ["keys"],
   operationId: "createKey",
+  summary: "Create API key",
   method: "post" as const,
   path: "/v1/keys.createKey",
   security: [{ bearerAuth: [] }],

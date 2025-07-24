@@ -1,0 +1,26 @@
+type: object
+required:
+  - name
+properties:
+  name:
+    type: string
+    minLength: 3
+    maxLength: 255 # Reasonable upper bound for database identifiers
+    description: References an existing ratelimit by its name. Key Ratelimits will take precedence over identifier-based limits.
+    example: tokens
+  cost:
+    type: integer
+    minimum: 0
+    default: 1
+    description: Optionally override how expensive this operation is and how many tokens are deducted from the current limit.
+    example: 2
+  limit:
+    type: integer
+    minimum: 0
+    description: Optionally override the maximum number of requests allowed within the specified interval.
+    example: 50
+  duration:
+    type: integer
+    minimum: 0
+    description: Optionally override the duration of the rate limit window duration.
+    example: 600000

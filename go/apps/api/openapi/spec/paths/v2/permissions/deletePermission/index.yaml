@@ -1,0 +1,65 @@
+post:
+  tags:
+    - permissions
+  summary: Delete permission
+  description: |
+    Remove a permission from your workspace. This also removes the permission from all API keys and roles.
+
+    **Important:** This operation cannot be undone and immediately affects all API keys and roles that had this permission assigned.
+
+    **Required Permissions**
+    
+    Your root key must have the following permission:
+    - `rbac.*.delete_permission`
+  operationId: deletePermission
+  x-speakeasy-name-override: DeletePermission
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PermissionsDeletePermissionRequestBody.yaml"
+        examples:
+          basic:
+            summary: Delete a permission
+            value:
+              permissionId: perm_1234567890abcdef
+    required: true
+  responses:
+    "200":
+      description: Permission deleted successfully
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PermissionsDeletePermissionResponseBody.yaml"
+    "400":
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found - The specified permission does not exist
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

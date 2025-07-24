@@ -62,11 +62,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("namespace not found",
+			return fault.Wrap(err,
 				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-				fault.Internal("namespace not found"), fault.Public("This namespace does not exist."),
+				fault.Internal("namespace not found"),
+				fault.Public("This namespace does not exist."),
 			)
 		}
+
 		return err
 	}
 
@@ -82,7 +84,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if namespace.WorkspaceID != auth.AuthorizedWorkspaceID {
 		return fault.New("namespace not found",
 			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-			fault.Internal("wrong workspace, masking as 404"), fault.Public("This namespace does not exist."),
+			fault.Internal("wrong workspace, masking as 404"),
+			fault.Public("This namespace does not exist."),
 		)
 	}
 
@@ -100,12 +103,33 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	)))
 	if err != nil {
 		return fault.Wrap(err,
-			fault.Internal("unable to check permissions"), fault.Public("We're unable to check the permissions of your key."),
+			fault.Internal("unable to check permissions"),
+			fault.Public("We're unable to check the permissions of your key."),
 		)
 	}
 
 	overrideID, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
+		override, err := db.Query.FindRatelimitOverrideByIdentifier(ctx, tx, db.FindRatelimitOverrideByIdentifierParams{
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+			NamespaceID: namespace.ID,
+			Identifier:  req.Identifier,
+		})
+
+		if err != nil && !db.IsNotFound(err) {
+			return "", fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed"),
+				fault.Public("The database is unavailable."),
+			)
+		}
+
 		overrideID := uid.New(uid.RatelimitOverridePrefix)
+		if !db.IsNotFound(err) {
+			overrideID = override.ID
+		}
+
+		now := time.Now().UnixMilli()
+
 		err = db.Query.InsertRatelimitOverride(ctx, tx, db.InsertRatelimitOverrideParams{
 			ID:          overrideID,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
@@ -113,12 +137,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Identifier:  req.Identifier,
 			Limit:       int32(req.Limit),    // nolint:gosec
 			Duration:    int32(req.Duration), //nolint:gosec
-			CreatedAt:   time.Now().UnixMilli(),
+			CreatedAt:   now,
+			UpdatedAt:   sql.NullInt64{Int64: now, Valid: true},
 		})
 		if err != nil {
 			return "", fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database failed"), fault.Public("The database is unavailable."),
+				fault.Internal("database failed"),
+				fault.Public("The database is unavailable."),
 			)
 		}
 
@@ -169,7 +195,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.RatelimitSetOverrideResponseData{
+		Data: openapi.V2RatelimitSetOverrideResponseData{
 			OverrideId: overrideID,
 		},
 	})

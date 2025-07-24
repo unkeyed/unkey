@@ -1,0 +1,70 @@
+post:
+  tags:
+    - permissions
+  summary: Create role
+  description: |
+    Create a new role to group related permissions for easier management. Roles enable consistent permission assignment across multiple API keys.
+
+    **Important:** Role names must be unique within the workspace. Once created, roles are immediately available for assignment.
+
+    **Required Permissions**
+    
+    Your root key must have the following permission:
+    - `rbac.*.create_role`
+  operationId: createRole
+  x-speakeasy-name-override: CreateRole
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PermissionsCreateRoleRequestBody.yaml"
+        examples:
+          basic:
+            summary: Basic role creation
+            value:
+              name: content.editor
+              description: Can read and write content
+          withoutDescription:
+            summary: Role without description
+            value:
+              name: api.reader
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PermissionsCreateRoleResponseBody.yaml"
+      description: Role created successfully
+    "400":
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "409":
+      description: Conflict - A role with this name already exists
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ConflictErrorResponse.yaml"
+    "500":
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

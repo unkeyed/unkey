@@ -1,0 +1,13 @@
+additionalProperties: false
+type: object
+properties:
+  externalId:
+    type: string
+    minLength: 3
+    description: |
+      The id of this identity in your system.
+      This should match the externalId value you used when creating the identity.
+      This identifier typically comes from your authentication system and could be a userId, organizationId, or any other stable unique identifier in your application.
+    example: user_123
+required:
+  - externalId

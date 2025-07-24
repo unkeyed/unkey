@@ -123,6 +123,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	if hit == cache.Null {
+		return fault.New("namespace cache null",
+			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+			fault.Public("This namespace does not exist."),
+		)
+	}
+
 	if namespace.DeletedAtM.Valid {
 		return fault.New("namespace was deleted",
 			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
@@ -210,7 +217,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.RatelimitLimitResponseData{
+		Data: openapi.V2RatelimitLimitResponseData{
 			Success:    result.Success,
 			Limit:      limit,
 			Remaining:  result.Remaining,

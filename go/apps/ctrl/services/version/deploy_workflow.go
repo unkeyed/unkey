@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
 	"time"
 
@@ -521,6 +523,152 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 	})
 	if err != nil {
 		w.logger.Error("deployment failed", "error", err, "version_id", req.VersionID)
+		return err
+	}
+
+	// Step 19.1: Health check container (using host port mapping)
+	err = hydra.StepVoid(ctx, "health-check-container", func(stepCtx context.Context) error {
+		if vmInfo.NetworkInfo == nil || len(vmInfo.NetworkInfo.PortMappings) == 0 {
+			return fmt.Errorf("no port mappings available for container health check")
+		}
+
+		// Find the port mapping for container port 8080
+		var hostPort int32
+		for _, portMapping := range vmInfo.NetworkInfo.PortMappings {
+			if portMapping.ContainerPort == 8080 {
+				hostPort = portMapping.HostPort
+				break
+			}
+		}
+
+		if hostPort == 0 {
+			return fmt.Errorf("no host port mapping found for container port 8080")
+		}
+
+		// Try multiple host addresses to reach the Docker host
+		// Prioritize Docker's magic domain names
+		hostAddresses := []string{
+			"host.docker.internal",    // Docker Desktop (Windows/Mac) and some Linux setups
+			"gateway.docker.internal", // Docker gateway
+			"172.17.0.1",              // Default Docker bridge gateway
+			"172.18.0.1",              // Alternative Docker bridge
+		}
+
+		client := &http.Client{Timeout: 10 * time.Second}
+
+		for _, hostAddr := range hostAddresses {
+			healthURL := fmt.Sprintf("http://%s:%d/v1/liveness", hostAddr, hostPort)
+			w.logger.Info("trying container health check", "url", healthURL, "host_port", hostPort, "version_id", req.VersionID)
+
+			resp, err := client.Get(healthURL)
+			if err != nil {
+				w.logger.Warn("health check failed for host address", "error", err, "host_addr", hostAddr, "version_id", req.VersionID)
+				continue
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode == http.StatusOK {
+				w.logger.Info("container is healthy", "host_addr", hostAddr, "version_id", req.VersionID)
+				return nil
+			}
+
+			w.logger.Warn("health check returned non-200 status", "status", resp.StatusCode, "host_addr", hostAddr, "version_id", req.VersionID)
+		}
+
+		return fmt.Errorf("health check failed on all host addresses: %v", hostAddresses)
+	})
+	if err != nil {
+		w.logger.Error("container health check failed", "error", err, "version_id", req.VersionID)
+		// Don't fail the deployment, just skip OpenAPI scraping
+	}
+
+	// Step 19.2: Scrape OpenAPI spec from container (using host port mapping)
+	openapiSpec, err := hydra.Step(ctx, "scrape-openapi-spec", func(stepCtx context.Context) (string, error) {
+		if vmInfo.NetworkInfo == nil || len(vmInfo.NetworkInfo.PortMappings) == 0 {
+			w.logger.Warn("no port mappings available for OpenAPI scraping", "version_id", req.VersionID)
+			return "", nil
+		}
+
+		// Find the port mapping for container port 8080
+		var hostPort int32
+		for _, portMapping := range vmInfo.NetworkInfo.PortMappings {
+			if portMapping.ContainerPort == 8080 {
+				hostPort = portMapping.HostPort
+				break
+			}
+		}
+
+		if hostPort == 0 {
+			w.logger.Warn("no host port mapping found for container port 8080", "version_id", req.VersionID)
+			return "", nil
+		}
+
+		// Try multiple host addresses to reach the Docker host
+		hostAddresses := []string{
+			"host.docker.internal",    // Docker Desktop (Windows/Mac) and some Linux setups
+			"gateway.docker.internal", // Docker gateway
+			"172.17.0.1",              // Default Docker bridge gateway
+			"172.18.0.1",              // Alternative Docker bridge
+		}
+
+		client := &http.Client{Timeout: 10 * time.Second}
+
+		for _, hostAddr := range hostAddresses {
+			openapiURL := fmt.Sprintf("http://%s:%d/openapi.yaml", hostAddr, hostPort)
+			w.logger.Info("trying to scrape OpenAPI spec", "url", openapiURL, "host_port", hostPort, "version_id", req.VersionID)
+
+			resp, err := client.Get(openapiURL)
+			if err != nil {
+				w.logger.Warn("OpenAPI scraping failed for host address", "error", err, "host_addr", hostAddr, "version_id", req.VersionID)
+				continue
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode != http.StatusOK {
+				w.logger.Warn("OpenAPI endpoint returned non-200 status", "status", resp.StatusCode, "host_addr", hostAddr, "version_id", req.VersionID)
+				continue
+			}
+
+			// Read the OpenAPI spec
+			specBytes, err := io.ReadAll(resp.Body)
+			if err != nil {
+				w.logger.Warn("failed to read OpenAPI spec response", "error", err, "host_addr", hostAddr, "version_id", req.VersionID)
+				continue
+			}
+
+			w.logger.Info("OpenAPI spec scraped successfully", "host_addr", hostAddr, "version_id", req.VersionID, "spec_size", len(specBytes))
+			return string(specBytes), nil
+		}
+
+		return "", fmt.Errorf("failed to scrape OpenAPI spec from all host addresses: %v", hostAddresses)
+	})
+	if err != nil {
+		w.logger.Error("failed to scrape OpenAPI spec", "error", err, "version_id", req.VersionID)
+		return err
+	}
+
+	// Step 19.3: Store OpenAPI spec in database
+	err = hydra.StepVoid(ctx, "store-openapi-spec", func(stepCtx context.Context) error {
+		if openapiSpec == "" {
+			w.logger.Info("no OpenAPI spec to store", "version_id", req.VersionID)
+			return nil
+		}
+
+		// Store in database
+		err := db.Query.UpdateVersionOpenApiSpec(stepCtx, w.db.RW(), db.UpdateVersionOpenApiSpecParams{
+			ID:          req.VersionID,
+			OpenapiSpec: sql.NullString{String: openapiSpec, Valid: true},
+		})
+		if err != nil {
+			w.logger.Warn("failed to store OpenAPI spec in database", "error", err, "version_id", req.VersionID)
+			return nil // Don't fail the deployment
+		}
+
+		w.logger.Info("OpenAPI spec stored in database successfully", "version_id", req.VersionID, "spec_size", len(openapiSpec))
+		return nil
+	})
+	if err != nil {
+		w.logger.Error("failed to store OpenAPI spec", "error", err, "version_id", req.VersionID)
 		return err
 	}
 

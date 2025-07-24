@@ -24,8 +24,8 @@ var (
 	BufferState = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace:   "unkey",
-			Subsystem:   "api",
-			Name:        "buffer_state_total",
+			Subsystem:   "buffer",
+			Name:        "state_total",
 			Help:        "Number of buffer inserts by name and state",
 			ConstLabels: constLabels,
 		},
@@ -40,8 +40,8 @@ var (
 	BufferSize = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace:   "unkey",
-			Subsystem:   "api",
-			Name:        "buffer_size_percentage",
+			Subsystem:   "buffer",
+			Name:        "size_percentage",
 			Help:        "Percentage of buffered fill capacity between 0.0 and 1.0",
 			ConstLabels: constLabels,
 		},

@@ -1,0 +1,106 @@
+post:
+  tags:
+    - ratelimit
+  summary: Get ratelimit override
+  description: |
+    Retrieve the configuration of a specific rate limit override by its identifier.
+
+    Use this to inspect override configurations, audit rate limiting policies, or debug rate limiting behavior.
+
+    **Important:** The identifier must match exactly as specified when creating the override, including wildcard patterns.
+
+    **Permissions:** Requires `ratelimit.*.read_override` or `ratelimit.<namespace_id>.read_override`
+  operationId: ratelimit.getOverride
+  x-speakeasy-name-override: getOverride
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2RatelimitGetOverrideRequestBody.yaml"
+        examples:
+          specific:
+            summary: Get specific override
+            value:
+              namespaceName: api.requests
+              identifier: premium_user_123
+          wildcard:
+            summary: Get wildcard pattern override
+            value:
+              namespaceName: api.requests
+              identifier: premium_*
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2RatelimitGetOverrideResponseBody.yaml"
+      description: Override found and returned successfully.
+      examples:
+        standard:
+          summary: Override details retrieved
+          value:
+            meta:
+              requestId: req_2cGKbMxRyIzhCxo1Idjz8q
+            data:
+              overrideId: ovr_1234567890abcdef
+              namespaceId: ns_1234567890abcdef
+              identifier: premium_user_123
+              limit: 1000
+              duration: 60000
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions (requires `ratelimit.*.read_override`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            missingPermission:
+              summary: Missing required permission
+              value:
+                meta:
+                  requestId: req_0uVwX4yZaAbCdEfGhIjKl
+                error:
+                  title: Forbidden
+                  detail:
+                    Your root key requires the 'ratelimit.*.read_override'
+                    permission to perform this operation
+                  status: 403
+                  type: forbidden
+    "404":
+      description: Not Found - Override or namespace not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            overrideNotFound:
+              summary: Override not found
+              value:
+                meta:
+                  requestId: req_2wXyZaAbCdEfGhIjKlMnOp
+                error:
+                  title: Not Found
+                  detail: No override found for the specified identifier in this namespace.
+                  status: 404
+                  type: not_found
+    "500":
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

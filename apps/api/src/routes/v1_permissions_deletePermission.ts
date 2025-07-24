@@ -10,6 +10,7 @@ import { buildUnkeyQuery } from "@unkey/rbac";
 const route = createRoute({
   tags: ["permissions"],
   operationId: "deletePermission",
+  summary: "Delete permission",
   method: "post",
   path: "/v1/permissions.deletePermission",
   security: [{ bearerAuth: [] }],

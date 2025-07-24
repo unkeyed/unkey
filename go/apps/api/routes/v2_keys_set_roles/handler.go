@@ -21,7 +21,7 @@ import (
 )
 
 type Request = openapi.V2KeysSetRolesRequestBody
-type Response = openapi.V2KeysSetRolesResponse
+type Response = openapi.V2KeysSetRolesResponseBody
 
 // Handler implements zen.Route interface for the v2 keys set roles endpoint
 type Handler struct {
