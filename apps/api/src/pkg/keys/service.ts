@@ -416,7 +416,7 @@ export class KeyService {
         return Err(new DisabledWorkspaceError(data.key.workspaceId));
       }
       data.workspace = ws;
-      this.cache.keyByHash.set(keyHash, data);
+      await this.cache.keyByHash.set(keyHash, data);
     }
 
     if ((data.forWorkspace && !data.forWorkspace.enabled) || !data.workspace?.enabled) {
