@@ -44,7 +44,7 @@ func TestNotFoundErrors(t *testing.T) {
 	// Test case for non-existent permission ID
 	t.Run("non-existent permission ID", func(t *testing.T) {
 		req := handler.Request{
-			PermissionId: "perm_does_not_exist",
+			Permission: "perm_does_not_exist",
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -65,7 +65,7 @@ func TestNotFoundErrors(t *testing.T) {
 		nonExistentID := uid.New(uid.PermissionPrefix) // Generate a valid ID format that doesn't exist
 
 		req := handler.Request{
-			PermissionId: nonExistentID,
+			Permission: nonExistentID,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -101,7 +101,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 		// Try to delete it again
 		req := handler.Request{
-			PermissionId: permissionID,
+			Permission: permissionID,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](

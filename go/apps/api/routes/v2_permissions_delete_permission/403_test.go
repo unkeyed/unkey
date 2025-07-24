@@ -57,7 +57,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		}
 
 		req := handler.Request{
-			PermissionId: permissionID,
+			Permission: permissionID,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
@@ -92,7 +92,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		}
 
 		req := handler.Request{
-			PermissionId: permissionID, // Permission is in the original workspace
+			Permission: permissionID, // Permission is in the original workspace
 		}
 
 		// When accessing from wrong workspace, the behavior should be a 404 Not Found

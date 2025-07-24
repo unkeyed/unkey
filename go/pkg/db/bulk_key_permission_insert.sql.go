@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertKeyPermission is the base query for bulk insert
-const bulkInsertKeyPermission = `INSERT INTO ` + "`" + `keys_permissions` + "`" + ` ( key_id, permission_id, workspace_id, created_at_m ) VALUES %s`
+const bulkInsertKeyPermission = `INSERT INTO ` + "`" + `keys_permissions` + "`" + ` ( key_id, permission_id, workspace_id, created_at_m ) VALUES %s ON DUPLICATE KEY UPDATE updated_at_m = ?`
 
 // InsertKeyPermissions performs bulk insert in a single query
 func (q *BulkQueries) InsertKeyPermissions(ctx context.Context, db DBTX, args []InsertKeyPermissionParams) error {
@@ -33,6 +33,11 @@ func (q *BulkQueries) InsertKeyPermissions(ctx context.Context, db DBTX, args []
 		allArgs = append(allArgs, arg.PermissionID)
 		allArgs = append(allArgs, arg.WorkspaceID)
 		allArgs = append(allArgs, arg.CreatedAt)
+	}
+
+	// Add ON DUPLICATE KEY UPDATE parameters (only once, not per row)
+	if len(args) > 0 {
+		allArgs = append(allArgs, args[0].UpdatedAt)
 	}
 
 	// Execute the bulk insert

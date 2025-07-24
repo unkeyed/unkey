@@ -60,7 +60,7 @@ properties:
     type: array
     items:
       type: string
-      description: List of permissions granted to this key.
+      description: List of permission slugs granted to this key.
     example:
       - documents.read
       - documents.write

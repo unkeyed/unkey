@@ -29,7 +29,7 @@ func TestSuccess(t *testing.T) {
 
 	// Create a workspace and root key
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.add_permission_to_key")
 
 	// Set up request headers
 	headers := http.Header{
@@ -71,14 +71,8 @@ func TestSuccess(t *testing.T) {
 		require.Empty(t, currentPermissions)
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Id: &permissionID},
-			},
+			KeyId:       keyID,
+			Permissions: []string{permissionID},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -152,14 +146,8 @@ func TestSuccess(t *testing.T) {
 		require.Empty(t, currentPermissions)
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Slug: &permissionSlug},
-			},
+			KeyId:       keyID,
+			Permissions: []string{permissionSlug},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -222,15 +210,8 @@ func TestSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Id: &permission1ID},
-				{Slug: &permission2Slug},
-			},
+			KeyId:       keyID,
+			Permissions: []string{permission1ID, permission2Slug},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -245,11 +226,18 @@ func TestSuccess(t *testing.T) {
 		require.NotNil(t, res.Body.Data)
 		require.Len(t, res.Body.Data, 2)
 
-		// Verify both permissions are in response (sorted alphabetically)
-		require.Equal(t, permission1ID, res.Body.Data[0].Id)
-		require.Equal(t, "documents.read.multiple", res.Body.Data[0].Name)
-		require.Equal(t, permission2ID, res.Body.Data[1].Id)
-		require.Equal(t, "documents.write.multiple", res.Body.Data[1].Name)
+		contains := func(id string) bool {
+			for _, p := range res.Body.Data {
+				if p.Id == id {
+					return true
+				}
+			}
+			return false
+		}
+
+		// Verify both permissions are in response
+		require.True(t, contains(permission1ID))
+		require.True(t, contains(permission2ID))
 
 		// Verify permissions were added to key
 		finalPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), keyID)
@@ -286,14 +274,8 @@ func TestSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Id: &permissionID},
-			},
+			KeyId:       keyID,
+			Permissions: []string{permissionID},
 		}
 
 		// Add permission first time
@@ -366,14 +348,8 @@ func TestSuccess(t *testing.T) {
 		keyID := keyResponse.KeyID
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Id: &newPermissionID},
-			},
+			KeyId:       keyID,
+			Permissions: []string{newPermissionID},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](

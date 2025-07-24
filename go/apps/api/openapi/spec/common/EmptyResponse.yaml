@@ -1,0 +1,4 @@
+type: object
+properties: {}
+additionalProperties: false
+description: Empty response object by design. A successful response indicates this operation was successfully executed.

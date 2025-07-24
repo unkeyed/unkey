@@ -20,7 +20,6 @@ type Response = openapi.V2PermissionsListPermissionsResponseBody
 
 // Handler implements zen.Route interface for the v2 permissions list permissions endpoint
 type Handler struct {
-	// Services as public fields
 	Logger logging.Logger
 	DB     db.Database
 	Keys   keys.KeyService
@@ -40,7 +39,6 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/permissions.listPermissions")
 
-	// 1. Authentication
 	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
@@ -52,10 +50,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Handle null cursor - use empty string to start from beginning
 	cursor := ptr.SafeDeref(req.Cursor, "")
 
-	// 3. Permission check
 	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Rbac,
@@ -67,7 +63,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// 4. Query permissions with pagination
 	permissions, err := db.Query.ListPermissions(
 		ctx,
 		h.DB.RO(),
@@ -101,7 +96,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Name:        perm.Name,
 			Slug:        perm.Slug,
 			Description: nil,
-			CreatedAt:   perm.CreatedAtM,
 		}
 
 		// Add description only if it's valid

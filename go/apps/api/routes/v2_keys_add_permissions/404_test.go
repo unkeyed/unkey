@@ -33,7 +33,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 	// Create a workspace and root key
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.add_permission_to_key")
 
 	// Set up request headers
 	headers := http.Header{
@@ -57,14 +57,8 @@ func TestNotFoundErrors(t *testing.T) {
 		nonExistentKeyID := uid.New(uid.KeyPrefix)
 
 		req := handler.Request{
-			KeyId: nonExistentKeyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Id: &permissionID},
-			},
+			KeyId:       nonExistentKeyID,
+			Permissions: []string{permissionID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -98,122 +92,11 @@ func TestNotFoundErrors(t *testing.T) {
 		keyID := keyResponse.KeyID
 
 		// Use a non-existent permission ID
-		nonExistentPermissionID := uid.New(uid.TestPrefix)
+		nonExistentPermissionID := uid.New(uid.PermissionPrefix)
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Id: &nonExistentPermissionID},
-			},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 404, res.Status)
-		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "was not found")
-	})
-
-	t.Run("permission not found by name", func(t *testing.T) {
-		// Create API and key using testutil helpers
-		defaultPrefix := "test"
-		defaultBytes := int32(16)
-		api := h.CreateApi(seed.CreateApiRequest{
-			WorkspaceID:   workspace.ID,
-			DefaultPrefix: &defaultPrefix,
-			DefaultBytes:  &defaultBytes,
-		})
-
-		keyName := "Test Key"
-		keyResponse := h.CreateKey(seed.CreateKeyRequest{
-			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
-			Name:        &keyName,
-		})
-		keyID := keyResponse.KeyID
-
-		nonExistentPermissionSlug := "nonexistent.permission.name"
-
-		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Slug: &nonExistentPermissionSlug},
-			},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 404, res.Status, "Wanted status code 404, received: %s", res.RawBody)
-		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "was not found")
-	})
-
-	t.Run("permission from different workspace by ID", func(t *testing.T) {
-		// Create another workspace
-		otherWorkspaceID := uid.New(uid.WorkspacePrefix)
-		err := db.Query.InsertWorkspace(ctx, h.DB.RW(), db.InsertWorkspaceParams{
-			ID:        otherWorkspaceID,
-			OrgID:     uid.New("test_org"),
-			Name:      "Other Workspace",
-			CreatedAt: time.Now().UnixMilli(),
-		})
-		require.NoError(t, err)
-
-		// Create a permission in the other workspace
-		otherPermissionID := uid.New(uid.TestPrefix)
-		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			PermissionID: otherPermissionID,
-			WorkspaceID:  otherWorkspaceID,
-			Name:         "other.workspace.permission.404",
-			Slug:         "other.workspace.permission.404",
-			Description:  sql.NullString{Valid: true, String: "Permission in other workspace"},
-		})
-		require.NoError(t, err)
-
-		// Create API and key in our workspace using testutil helpers
-		defaultPrefix := "test"
-		defaultBytes := int32(16)
-		api := h.CreateApi(seed.CreateApiRequest{
-			WorkspaceID:   workspace.ID,
-			DefaultPrefix: &defaultPrefix,
-			DefaultBytes:  &defaultBytes,
-		})
-
-		keyName := "Test Key"
-		keyResponse := h.CreateKey(seed.CreateKeyRequest{
-			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
-			Name:        &keyName,
-		})
-		keyID := keyResponse.KeyID
-
-		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Id: &otherPermissionID},
-			},
+			KeyId:       keyID,
+			Permissions: []string{nonExistentPermissionID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -268,14 +151,8 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NoError(t, err)
 
 		req := handler.Request{
-			KeyId: otherKeyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Id: &permissionID},
-			},
+			KeyId:       otherKeyID,
+			Permissions: []string{permissionID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](

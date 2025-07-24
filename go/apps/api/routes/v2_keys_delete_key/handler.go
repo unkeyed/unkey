@@ -163,6 +163,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: &openapi.KeysDeleteKeyResponseData{},
+		Data: openapi.EmptyResponse{},
 	})
 }
