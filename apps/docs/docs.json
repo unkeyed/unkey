@@ -488,8 +488,8 @@
       "destination": "/quickstart/onboarding/onboarding-ratelimiting"
     },
     {
-      "source": "/api-reference/:slug*",
-      "destination": "api-reference/v1/:slug*"
+      "source": "/api-reference",
+      "destination": "api-reference/v1"
     }
   ]
 }
