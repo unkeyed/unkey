@@ -1,36 +1,33 @@
 "use client";
 
-import { useState } from "react";
-import { useParams } from "next/navigation";
-import { 
-  GitBranch,
+import { Button } from "@unkey/ui";
+import {
+  Activity,
+  AlertCircle,
   ArrowLeft,
-  Settings,
+  CheckCircle,
+  Clock,
+  Code,
+  ExternalLink,
+  Eye,
+  GitBranch,
+  GitCommit,
+  Globe,
+  Loader,
+  MoreVertical,
   Play,
   RotateCcw,
-  GitCommit,
-  Clock,
-  Globe,
-  Eye,
-  MoreVertical,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Loader,
-  ExternalLink,
-  Github,
-  Tag,
-  Activity,
-  Code,
-  Terminal,
-  Zap,
+  Settings,
   Shield,
-  Users
+  Tag,
+  Terminal,
+  XCircle,
+  Zap,
 } from "lucide-react";
-import { Button } from "@unkey/ui";
+import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
 
-// Import tRPC client
-// import { trpc } from "@/lib/trpc/client";
+import { trpc } from "@/lib/trpc/client";
 
 // Type definitions
 interface Project {
@@ -65,7 +62,7 @@ interface Version {
   gitCommitSha: string | null;
   gitBranch: string | null;
   gitCommitMessage?: string;
-  status: 'pending' | 'building' | 'deploying' | 'active' | 'failed' | 'archived';
+  status: "pending" | "building" | "deploying" | "active" | "failed" | "archived";
   createdAt: number;
   updatedAt: number | null;
   buildDuration?: number;
@@ -76,20 +73,15 @@ interface EnvironmentVariable {
   key: string;
   value: string;
   isSecret: boolean;
-  source: 'project' | 'environment' | 'branch';
+  source: "project" | "environment" | "branch";
 }
 
-interface BranchLinkingRule {
-  type: 'default' | 'regex' | 'manual';
-  pattern?: string;
-  environmentId: string;
-}
 
 // Mock data with static timestamps to avoid hydration issues
 const mockProject: Project = {
   id: "proj_123",
   name: "Meg's Demo",
-  slug: "megs-demo"
+  slug: "megs-demo",
 };
 
 const mockBranch: Branch = {
@@ -103,12 +95,12 @@ const mockBranch: Branch = {
   environment: {
     id: "env_preview",
     name: "preview",
-    description: "Preview environment for feature testing"
+    description: "Preview environment for feature testing",
   },
   lastCommitSha: "a1b2c3d",
   lastCommitMessage: "Add OAuth2 integration with refresh token support",
   lastCommitAuthor: "john.doe",
-  lastCommitDate: 1721048400000 // Static timestamp
+  lastCommitDate: 1721048400000, // Static timestamp
 };
 
 const mockVersions: Version[] = [
@@ -121,7 +113,7 @@ const mockVersions: Version[] = [
     createdAt: 1721048400000, // Static timestamp
     updatedAt: 1721048400000, // Static timestamp
     buildDuration: 180,
-    deploymentUrl: "https://a1b2c3d-megs-demo.unkey.app"
+    deploymentUrl: "https://a1b2c3d-megs-demo.unkey.app",
   },
   {
     id: "ver_2",
@@ -131,7 +123,7 @@ const mockVersions: Version[] = [
     status: "archived",
     createdAt: 1720962000000, // Static timestamp
     updatedAt: 1720962000000, // Static timestamp
-    buildDuration: 165
+    buildDuration: 165,
   },
   {
     id: "ver_3",
@@ -141,60 +133,106 @@ const mockVersions: Version[] = [
     status: "failed",
     createdAt: 1720875600000, // Static timestamp
     updatedAt: 1720875600000, // Static timestamp
-    buildDuration: 45
-  }
+    buildDuration: 45,
+  },
 ];
 
 const mockEnvVars: EnvironmentVariable[] = [
-  { key: "API_URL", value: "https://api.preview.unkey.app", isSecret: false, source: "environment" },
+  {
+    key: "API_URL",
+    value: "https://api.preview.unkey.app",
+    isSecret: false,
+    source: "environment",
+  },
   { key: "DATABASE_URL", value: "***", isSecret: true, source: "environment" },
   { key: "FEATURE_FLAG_AUTH", value: "true", isSecret: false, source: "branch" },
-  { key: "DEBUG_MODE", value: "true", isSecret: false, source: "branch" }
+  { key: "DEBUG_MODE", value: "true", isSecret: false, source: "branch" },
 ];
 
 export default function BranchDetailPage(): JSX.Element {
   const params = useParams();
+  const router = useRouter();
   const projectId = params?.projectId as string;
   const branchName = params?.branchName as string;
-  
-  const [activeTab, setActiveTab] = useState<'overview' | 'versions' | 'config' | 'settings'>('overview');
+
+  const [activeTab, setActiveTab] = useState<"overview" | "versions" | "config" | "settings">(
+    "overview",
+  );
   const [showEnvVars, setShowEnvVars] = useState(false);
 
-  // Mock tRPC calls - replace with actual calls
-  // const { data: branchData, isLoading } = trpc.branch.byName.useQuery({ projectId, branchName });
+  // tRPC calls
+  const { data: branchData, isLoading } = trpc.branch.getByName.useQuery({ projectId, branchName });
   // const { data: versionsData } = trpc.version.listByBranch.useQuery({ projectId, branchName });
-  
-  const project = mockProject;
-  const branch = mockBranch;
-  const versions = mockVersions;
-  const envVars = mockEnvVars;
-  const isLoading = false;
+
+  // Use real data or fallback to mock data while loading
+  const project = branchData?.project || mockProject;
+  const branch = branchData || mockBranch;
+  const versions = branchData?.versions || mockVersions;
+  const envVars = mockEnvVars; // Still using mock data for env vars as it's not in the query
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'active': return <CheckCircle className="w-4 h-4 text-success" />;
-      case 'failed': return <XCircle className="w-4 h-4 text-alert" />;
-      case 'building': 
-      case 'deploying': 
-      case 'pending': return <Loader className="w-4 h-4 text-warn animate-spin" />;
-      case 'archived': return <Clock className="w-4 h-4 text-content-subtle" />;
-      default: return <AlertCircle className="w-4 h-4 text-content-subtle" />;
+      case "active":
+        return <CheckCircle className="w-4 h-4 text-success" />;
+      case "failed":
+        return <XCircle className="w-4 h-4 text-alert" />;
+      case "building":
+      case "deploying":
+      case "pending":
+        return <Loader className="w-4 h-4 text-warn animate-spin" />;
+      case "archived":
+        return <Clock className="w-4 h-4 text-content-subtle" />;
+      default:
+        return <AlertCircle className="w-4 h-4 text-content-subtle" />;
     }
   };
 
   const getStatusColor = (status: string): string => {
     switch (status) {
-      case 'active': return 'text-success bg-success/10 border-success/20';
-      case 'building':
-      case 'deploying': 
-      case 'pending': return 'text-warn bg-warn/10 border-warn/20';
-      case 'failed': return 'text-alert bg-alert/10 border-alert/20';
-      case 'archived': return 'text-content-subtle bg-background-subtle border-border';
-      default: return 'text-content-subtle bg-background-subtle border-border';
+      case "active":
+        return "text-success bg-success/10 border-success/20";
+      case "building":
+      case "deploying":
+      case "pending":
+        return "text-warn bg-warn/10 border-warn/20";
+      case "failed":
+        return "text-alert bg-alert/10 border-alert/20";
+      case "archived":
+        return "text-content-subtle bg-background-subtle border-border";
+      default:
+        return "text-content-subtle bg-background-subtle border-border";
     }
   };
 
-  const activeVersion = versions.find(v => v.status === 'active');
+  const activeVersion = versions.find((v) => v.status === "active");
+
+  // Navigation handlers for compare functionality
+  const handleCompareBranchVersions = () => {
+    // Get the two most recent versions if available
+    if (versions.length >= 2) {
+      const [latest, previous] = versions;
+      router.push(`/projects/${projectId}/diff/${previous.id}/${latest.id}`);
+    } else {
+      alert("At least two versions are needed to compare. Please create more versions first.");
+    }
+  };
+
+  const handleCompareWithOtherBranches = () => {
+    // Navigate back to project page to select branches for comparison
+    router.push(`/projects/${projectId}/diff`);
+  };
+
+  const handleCompareFromVersion = (versionId: string) => {
+    // Compare with the previous version if available
+    const currentIndex = versions.findIndex(v => v.id === versionId);
+    const previousVersion = versions[currentIndex + 1];
+    
+    if (previousVersion) {
+      router.push(`/projects/${projectId}/diff/${previousVersion.id}/${versionId}`);
+    } else {
+      alert("No previous version found to compare with.");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -213,7 +251,7 @@ export default function BranchDetailPage(): JSX.Element {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
-            <a 
+            <a
               href={`/projects/${projectId}`}
               className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-content-subtle hover:text-content transition-colors rounded-md hover:bg-background-subtle"
             >
@@ -221,7 +259,7 @@ export default function BranchDetailPage(): JSX.Element {
               Back to {project.name}
             </a>
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-brand/10 rounded-lg">
@@ -261,7 +299,7 @@ export default function BranchDetailPage(): JSX.Element {
                 </div>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3">
               <Button variant="outline" size="md">
                 <Settings className="w-4 h-4 mr-2" />
@@ -284,14 +322,18 @@ export default function BranchDetailPage(): JSX.Element {
                 <p className="text-content font-medium mb-1">{branch.lastCommitMessage}</p>
                 <div className="flex items-center gap-4 text-sm text-content-subtle">
                   <span>{branch.lastCommitAuthor}</span>
-                  <span>{branch.lastCommitDate && new Date(branch.lastCommitDate).toLocaleString()}</span>
+                  <span>
+                    {branch.lastCommitDate && new Date(branch.lastCommitDate).toLocaleString()}
+                  </span>
                   <span className="font-mono">{branch.lastCommitSha}</span>
                 </div>
               </div>
               {activeVersion && (
                 <div className="flex items-center gap-2">
                   {getStatusIcon(activeVersion.status)}
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(activeVersion.status)}`}>
+                  <span
+                    className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(activeVersion.status)}`}
+                  >
                     {activeVersion.status}
                   </span>
                 </div>
@@ -304,18 +346,18 @@ export default function BranchDetailPage(): JSX.Element {
         <div className="border-b border-border mb-6">
           <nav className="flex space-x-8">
             {[
-              { key: 'overview', label: 'Overview', icon: Activity },
-              { key: 'versions', label: 'Versions', icon: Tag },
-              { key: 'config', label: 'Configuration', icon: Settings },
-              { key: 'settings', label: 'Branch Settings', icon: Shield }
+              { key: "overview", label: "Overview", icon: Activity },
+              { key: "versions", label: "Versions", icon: Tag },
+              { key: "config", label: "Configuration", icon: Settings },
+              { key: "settings", label: "Branch Settings", icon: Shield },
             ].map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
                 onClick={() => setActiveTab(key as typeof activeTab)}
                 className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === key
-                    ? 'border-brand text-brand'
-                    : 'border-transparent text-content-subtle hover:text-content hover:border-border'
+                    ? "border-brand text-brand"
+                    : "border-transparent text-content-subtle hover:text-content hover:border-border"
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -326,7 +368,7 @@ export default function BranchDetailPage(): JSX.Element {
         </div>
 
         {/* Tab Content */}
-        {activeTab === 'overview' && (
+        {activeTab === "overview" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Deployment Status */}
             <div className="lg:col-span-2 space-y-6">
@@ -365,7 +407,10 @@ export default function BranchDetailPage(): JSX.Element {
                 <h3 className="text-lg font-semibold text-content mb-4">Recent Activity</h3>
                 <div className="space-y-3">
                   {versions.slice(0, 3).map((version) => (
-                    <div key={version.id} className="flex items-center justify-between p-3 bg-background-subtle rounded-lg">
+                    <div
+                      key={version.id}
+                      className="flex items-center justify-between p-3 bg-background-subtle rounded-lg"
+                    >
                       <div className="flex items-center gap-3">
                         {getStatusIcon(version.status)}
                         <div>
@@ -378,7 +423,9 @@ export default function BranchDetailPage(): JSX.Element {
                           </p>
                         </div>
                       </div>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(version.status)}`}>
+                      <span
+                        className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(version.status)}`}
+                      >
                         {version.status}
                       </span>
                     </div>
@@ -400,13 +447,25 @@ export default function BranchDetailPage(): JSX.Element {
                   <div className="flex items-center justify-between">
                     <span className="text-content-subtle">Success Rate</span>
                     <span className="font-semibold text-success">
-                      {Math.round((versions.filter(v => v.status === 'active' || v.status === 'archived').length / versions.length) * 100)}%
+                      {Math.round(
+                        (versions.filter((v) => v.status === "active" || v.status === "archived")
+                          .length /
+                          versions.length) *
+                          100,
+                      )}
+                      %
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-content-subtle">Avg Build Time</span>
                     <span className="font-semibold text-content">
-                      {Math.round(versions.filter(v => v.buildDuration).reduce((acc, v) => acc + (v.buildDuration || 0), 0) / versions.filter(v => v.buildDuration).length)}s
+                      {Math.round(
+                        versions
+                          .filter((v) => v.buildDuration)
+                          .reduce((acc, v) => acc + (v.buildDuration || 0), 0) /
+                          versions.filter((v) => v.buildDuration).length,
+                      )}
+                      s
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
@@ -420,6 +479,15 @@ export default function BranchDetailPage(): JSX.Element {
               <div className="bg-white rounded-lg border border-border p-6">
                 <h3 className="text-lg font-semibold text-content mb-4">Quick Actions</h3>
                 <div className="space-y-3">
+                  <Button
+                    variant="outline"
+                    size="md"
+                    className="w-full justify-start"
+                    onClick={handleCompareWithOtherBranches}
+                  >
+                    <GitBranch className="w-4 h-4 mr-2" />
+                    Compare API Versions
+                  </Button>
                   <Button variant="outline" size="md" className="w-full justify-start">
                     <Terminal className="w-4 h-4 mr-2" />
                     View Logs
@@ -429,7 +497,7 @@ export default function BranchDetailPage(): JSX.Element {
                     Open in IDE
                   </Button>
                   <Button variant="outline" size="md" className="w-full justify-start">
-                    <Github className="w-4 h-4 mr-2" />
+                    <GitBranch className="w-4 h-4 mr-2" />
                     View on GitHub
                   </Button>
                   <Button variant="outline" size="md" className="w-full justify-start">
@@ -442,11 +510,26 @@ export default function BranchDetailPage(): JSX.Element {
           </div>
         )}
 
-        {activeTab === 'versions' && (
+        {activeTab === "versions" && (
           <div className="bg-white rounded-lg border border-border overflow-hidden">
+            {/* OPTION 1: Enhanced header with compare buttons */}
             <div className="p-6 border-b border-border">
-              <h3 className="text-lg font-semibold text-content">Version History</h3>
-              <p className="text-content-subtle mt-1">All deployments for this branch</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-content">Version History</h3>
+                  <p className="text-content-subtle mt-1">All deployments for this branch</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="md" onClick={handleCompareBranchVersions}>
+                    <GitBranch className="w-4 h-4 mr-2" />
+                    Compare Versions
+                  </Button>
+                  <Button variant="outline" size="md" onClick={handleCompareWithOtherBranches}>
+                    <GitBranch className="w-4 h-4 mr-2" />
+                    Compare with Other Branches
+                  </Button>
+                </div>
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-border">
@@ -482,7 +565,9 @@ export default function BranchDetailPage(): JSX.Element {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className="text-sm font-mono text-content">{version.gitCommitSha}</div>
+                          <div className="text-sm font-mono text-content">
+                            {version.gitCommitSha}
+                          </div>
                           {version.gitCommitMessage && (
                             <div className="text-sm text-content-subtle truncate max-w-xs">
                               {version.gitCommitMessage}
@@ -493,27 +578,37 @@ export default function BranchDetailPage(): JSX.Element {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           {getStatusIcon(version.status)}
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(version.status)}`}>
+                          <span
+                            className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(version.status)}`}
+                          >
                             {version.status}
                           </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-content">
-                        {version.buildDuration ? `${version.buildDuration}s` : '-'}
+                        {version.buildDuration ? `${version.buildDuration}s` : "-"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-content-subtle">
                         {new Date(version.createdAt).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" title="View Details">
                             <Eye className="w-3 h-3" />
                           </Button>
-                          {version.status !== 'active' && (
-                            <Button variant="ghost" size="sm">
+                          {version.status !== "active" && (
+                            <Button variant="ghost" size="sm" title="Deploy">
                               <Play className="w-3 h-3" />
                             </Button>
                           )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="Compare this version"
+                            onClick={() => handleCompareFromVersion(version.id)}
+                          >
+                            <GitBranch className="w-3 h-3" />
+                          </Button>
                           <Button variant="ghost" size="sm">
                             <MoreVertical className="w-3 h-3" />
                           </Button>
@@ -527,36 +622,39 @@ export default function BranchDetailPage(): JSX.Element {
           </div>
         )}
 
-        {activeTab === 'config' && (
+        {activeTab === "config" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Environment Variables */}
             <div className="bg-white rounded-lg border border-border p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-content">Environment Variables</h3>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowEnvVars(!showEnvVars)}
-                >
-                  {showEnvVars ? 'Hide Values' : 'Show Values'}
+                <Button variant="outline" size="sm" onClick={() => setShowEnvVars(!showEnvVars)}>
+                  {showEnvVars ? "Hide Values" : "Show Values"}
                 </Button>
               </div>
               <div className="space-y-3">
                 {envVars.map((envVar) => (
-                  <div key={envVar.key} className="flex items-center justify-between p-3 bg-background-subtle rounded-lg">
+                  <div
+                    key={envVar.key}
+                    className="flex items-center justify-between p-3 bg-background-subtle rounded-lg"
+                  >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-sm text-content">{envVar.key}</span>
-                        <span className={`px-1.5 py-0.5 text-xs rounded ${
-                          envVar.source === 'branch' ? 'bg-brand/10 text-brand' :
-                          envVar.source === 'environment' ? 'bg-warn/10 text-warn' :
-                          'bg-content-subtle/10 text-content-subtle'
-                        }`}>
+                        <span
+                          className={`px-1.5 py-0.5 text-xs rounded ${
+                            envVar.source === "branch"
+                              ? "bg-brand/10 text-brand"
+                              : envVar.source === "environment"
+                                ? "bg-warn/10 text-warn"
+                                : "bg-content-subtle/10 text-content-subtle"
+                          }`}
+                        >
                           {envVar.source}
                         </span>
                       </div>
                       <div className="text-sm text-content-subtle font-mono mt-1">
-                        {envVar.isSecret && !showEnvVars ? '***' : envVar.value}
+                        {envVar.isSecret && !showEnvVars ? "***" : envVar.value}
                       </div>
                     </div>
                   </div>
@@ -574,10 +672,14 @@ export default function BranchDetailPage(): JSX.Element {
                 </div>
                 <div className="flex items-center justify-between p-3 bg-background-subtle rounded-lg">
                   <span className="text-content-subtle">Production Branch</span>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    branch.isProduction ? 'bg-success/10 text-success' : 'bg-content-subtle/10 text-content-subtle'
-                  }`}>
-                    {branch.isProduction ? 'Yes' : 'No'}
+                  <span
+                    className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      branch.isProduction
+                        ? "bg-success/10 text-success"
+                        : "bg-content-subtle/10 text-content-subtle"
+                    }`}
+                  >
+                    {branch.isProduction ? "Yes" : "No"}
                   </span>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-background-subtle rounded-lg">
@@ -597,7 +699,7 @@ export default function BranchDetailPage(): JSX.Element {
           </div>
         )}
 
-        {activeTab === 'settings' && (
+        {activeTab === "settings" && (
           <div className="max-w-2xl">
             <div className="bg-white rounded-lg border border-border p-6">
               <h3 className="text-lg font-semibold text-content mb-4">Branch Settings</h3>
@@ -612,11 +714,11 @@ export default function BranchDetailPage(): JSX.Element {
                     <option value="production">Production</option>
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="flex items-center gap-2">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={branch.isProduction}
                       className="rounded border-border text-brand focus:ring-brand"
                     />
@@ -629,8 +731,8 @@ export default function BranchDetailPage(): JSX.Element {
 
                 <div>
                   <label className="flex items-center gap-2">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       defaultChecked
                       className="rounded border-border text-brand focus:ring-brand"
                     />

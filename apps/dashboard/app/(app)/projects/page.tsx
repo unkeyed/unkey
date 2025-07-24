@@ -1,22 +1,21 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { useState } from "react";
-import { 
-  FolderPlus, 
-  GitBranch, 
-  Calendar, 
-  ExternalLink, 
-  Github,
-  Search,
-  Filter,
-  Plus,
-  FolderOpen,
-  Activity,
-  Tag,
-  Eye
-} from "lucide-react";
 import { Button } from "@unkey/ui";
+import {
+  Activity,
+  ExternalLink,
+  Eye,
+  Filter,
+  FolderOpen,
+  FolderPlus,
+  GitBranch,
+  Github,
+  Plus,
+  Search,
+  Tag,
+} from "lucide-react";
+import { useState } from "react";
 
 // Type definitions
 interface Project {
@@ -25,7 +24,7 @@ interface Project {
   slug: string;
   gitRepositoryUrl: string | null;
   createdAt: number;
-  updatedAt: number | null; 
+  updatedAt: number | null;
 }
 
 export default function ProjectsPage(): JSX.Element {
@@ -47,7 +46,9 @@ export default function ProjectsPage(): JSX.Element {
     },
   });
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>): Promise<void> => {
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>,
+  ): Promise<void> => {
     e.preventDefault();
     if (!name || !slug) return;
 
@@ -62,9 +63,10 @@ export default function ProjectsPage(): JSX.Element {
   const projects: Project[] = data?.projects || [];
   const isCreating: boolean = createProject.isLoading;
 
-  const filteredProjects: Project[] = projects.filter((project: Project) =>
-    project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    project.slug.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredProjects: Project[] = projects.filter(
+    (project: Project) =>
+      project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      project.slug.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const generateSlug = (name: string): string => {
@@ -84,13 +86,11 @@ export default function ProjectsPage(): JSX.Element {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-content">Projects</h1>
-              <p className="text-content-subtle mt-1">Manage your deployment projects and configurations</p>
+              <p className="text-content-subtle mt-1">
+                Manage your deployment projects and configurations
+              </p>
             </div>
-            <Button
-              onClick={() => setShowCreateForm(true)}
-              variant="primary"
-              size="md"
-            >
+            <Button onClick={() => setShowCreateForm(true)} variant="primary" size="md">
               <Plus className="w-4 h-4 mr-2" />
               New Project
             </Button>
@@ -121,16 +121,16 @@ export default function ProjectsPage(): JSX.Element {
             <div className="flex">
               <div className="flex-shrink-0">
                 <svg className="h-5 w-5 text-alert" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </div>
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-alert">
-                  Error creating project
-                </h3>
-                <div className="mt-2 text-sm text-alert">
-                  {createProject.error.message}
-                </div>
+                <h3 className="text-sm font-medium text-alert">Error creating project</h3>
+                <div className="mt-2 text-sm text-alert">{createProject.error.message}</div>
               </div>
             </div>
           </div>
@@ -141,15 +141,11 @@ export default function ProjectsPage(): JSX.Element {
           <div className="mb-8 bg-white rounded-xl shadow-sm border border-border p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-content">Create New Project</h2>
-              <Button
-                onClick={() => setShowCreateForm(false)}
-                variant="ghost"
-                size="sm"
-              >
+              <Button onClick={() => setShowCreateForm(false)} variant="ghost" size="sm">
                 ✕
               </Button>
             </div>
-            
+
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -168,7 +164,7 @@ export default function ProjectsPage(): JSX.Element {
                     required
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-content-subtle mb-1">
                     Project Slug *
@@ -183,7 +179,7 @@ export default function ProjectsPage(): JSX.Element {
                   />
                 </div>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-content-subtle mb-1">
                   Git Repository URL (optional)
@@ -199,7 +195,7 @@ export default function ProjectsPage(): JSX.Element {
                   />
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-3 pt-2">
                 <Button
                   onClick={handleSubmit}
@@ -211,11 +207,7 @@ export default function ProjectsPage(): JSX.Element {
                   <FolderPlus className="w-4 h-4 mr-2" />
                   Create Project
                 </Button>
-                <Button
-                  onClick={() => setShowCreateForm(false)}
-                  variant="ghost"
-                  size="md"
-                >
+                <Button onClick={() => setShowCreateForm(false)} variant="ghost" size="md">
                   Cancel
                 </Button>
               </div>
@@ -227,7 +219,10 @@ export default function ProjectsPage(): JSX.Element {
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-5 w-full p-5">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-xl shadow-sm border border-border p-6 animate-pulse">
+              <div
+                key={i}
+                className="bg-white rounded-xl shadow-sm border border-border p-6 animate-pulse"
+              >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="h-5 bg-background-subtle rounded mb-2 w-3/4"></div>
@@ -308,12 +303,14 @@ export default function ProjectsPage(): JSX.Element {
                     {project.gitRepositoryUrl && (
                       <div className="flex items-center text-xs text-content-subtle mb-4 truncate">
                         <Github className="w-3 h-3 mr-1 flex-shrink-0" />
-                        <span className="truncate">{project.gitRepositoryUrl.replace('https://github.com/', '')}</span>
+                        <span className="truncate">
+                          {project.gitRepositoryUrl.replace("https://github.com/", "")}
+                        </span>
                       </div>
                     )}
                   </div>
                 </a>
-                
+
                 {/* Footer Actions */}
                 <div className="px-6 pb-6">
                   <div className="flex items-center justify-between pt-4 border-t border-border">
@@ -344,18 +341,13 @@ export default function ProjectsPage(): JSX.Element {
                 {searchTerm ? "No projects found" : "No projects yet"}
               </h3>
               <p className="text-content-subtle mb-8 leading-relaxed">
-                {searchTerm 
+                {searchTerm
                   ? `No projects match "${searchTerm}". Try adjusting your search criteria.`
-                  : "Create your first project to start deploying APIs globally with predictable performance."
-                }
+                  : "Create your first project to start deploying APIs globally with predictable performance."}
               </p>
               {!searchTerm && (
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Button
-                    onClick={() => setShowCreateForm(true)}
-                    variant="primary"
-                    size="md"
-                  >
+                  <Button onClick={() => setShowCreateForm(true)} variant="primary" size="md">
                     <Plus className="w-4 h-4 mr-2" />
                     Create Your First Project
                   </Button>
