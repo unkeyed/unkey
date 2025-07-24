@@ -1,13 +1,13 @@
 post:
   tags:
     - keys
-  summary: Retrieve key details for dashboard interfaces
+  summary: Get API key
   description: |
     Retrieve detailed key information for dashboard interfaces and administrative purposes.
 
     Use this to build key management dashboards showing users their key details, status, permissions, and usage data. You can identify keys by `keyId` or the actual key string.
 
-    > **Important**: Set `decrypt: true` only in secure contexts to retrieve plaintext key values from recoverable keys.
+    **Important**: Set `decrypt: true` only in secure contexts to retrieve plaintext key values from recoverable keys.
 
     **Required Permissions**
 

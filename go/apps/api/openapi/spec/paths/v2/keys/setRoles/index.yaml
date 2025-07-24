@@ -1,13 +1,13 @@
 post:
   tags:
     - keys
-  summary: Set (replace) all roles on an API key
+  summary: Set key roles
   description: |
     Replace all roles on a key with the specified set in a single atomic operation.
 
     Use this to synchronize with external systems, reset roles to a known state, or apply standardized role templates. Direct permissions are never affected.
 
-    > **Important**: Changes take effect immediately with up to 30-second edge propagation.
+    **Important**: Changes take effect immediately with up to 30-second edge propagation.
 
     **Required Permissions**
 

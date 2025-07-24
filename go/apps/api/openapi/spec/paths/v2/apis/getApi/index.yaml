@@ -1,7 +1,7 @@
 post:
   tags:
     - apis
-  summary: Retrieve API namespace information
+  summary: Get API namespace
   description: |
     Retrieve basic information about an API namespace including its ID and name.
 

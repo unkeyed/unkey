@@ -1,13 +1,13 @@
 post:
   tags:
     - keys
-  summary: Create API keys for user authentication and authorization
+  summary: Create API key
   description: |
     Create a new API key for user authentication and authorization.
 
     Use this endpoint when users sign up, upgrade subscription tiers, or need additional keys. Keys are cryptographically secure and unique to the specified API namespace.
 
-    > **Important**: The key is returned only once. Store it immediately and provide it to your user, as it cannot be retrieved later.
+    **Important**: The key is returned only once. Store it immediately and provide it to your user, as it cannot be retrieved later.
 
     **Common use cases:**
     - Generate keys for new user registrations

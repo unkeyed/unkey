@@ -7,7 +7,7 @@ post:
 
     Use this for user-requested key deletion, account deletion workflows, or cleaning up unused keys. Keys are immediately invalidated. Two modes: soft delete (default, preserves audit records) and permanent delete.
 
-    > **Important**: For temporary access control, use `updateKey` with `enabled: false` instead of deletion.
+    **Important**: For temporary access control, use `updateKey` with `enabled: false` instead of deletion.
 
     **Required Permissions**
 

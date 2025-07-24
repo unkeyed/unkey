@@ -1,7 +1,7 @@
 post:
   tags:
     - ratelimit
-  summary: Set custom rate limit override
+  summary: Set ratelimit override
   description: |
     Create or update a custom rate limit for specific identifiers, bypassing the namespace default.
 

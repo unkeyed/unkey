@@ -1,13 +1,13 @@
 post:
   tags:
     - keys
-  summary: Add roles to an API key
+  summary: Add key roles
   description: |
     Add roles to a key without affecting existing roles or permissions.
 
     Use this for privilege upgrades, enabling new feature sets, or subscription changes that grant additional role-based capabilities. Direct permissions remain unchanged.
 
-    > **Important**: Changes take effect immediately with up to 30-second edge propagation.
+    **Important**: Changes take effect immediately with up to 30-second edge propagation.
 
     **Required Permissions**
 

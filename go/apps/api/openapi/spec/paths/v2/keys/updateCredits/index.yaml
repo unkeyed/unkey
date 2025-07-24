@@ -7,7 +7,7 @@ post:
 
     Use this for user upgrades/downgrades, monthly quota resets, credit purchases, or promotional bonuses. Supports three operations: set, increment, or decrement credits. Set to null for unlimited usage.
 
-    > **Important**: Setting unlimited credits automatically clears existing refill configurations.
+    **Important**: Setting unlimited credits automatically clears existing refill configurations.
 
     **Required Permissions**
 

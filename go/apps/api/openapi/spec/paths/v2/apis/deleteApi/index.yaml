@@ -1,16 +1,16 @@
 post:
   tags:
     - apis
-  summary: Delete API namespace and invalidate all associated keys
+  summary: Delete API namespace
   description: |
     Permanently delete an API namespace and immediately invalidate all associated keys.
 
     Use this for cleaning up development environments, retiring deprecated services, or removing unused resources. All keys in the namespace are immediately marked as deleted and will fail verification with `code=NOT_FOUND`.
 
-    > **Important**: This operation is immediate and permanent. Verify you have the correct API ID before deletion. If delete protection is enabled, disable it first through the dashboard or API configuration.
+    **Important**: This operation is immediate and permanent. Verify you have the correct API ID before deletion. If delete protection is enabled, disable it first through the dashboard or API configuration.
 
     **Required Permissions**
-    
+
     Your root key must have one of the following permissions:
     - `api.*.delete_api` (to delete any API)
     - `api.<api_id>.delete_api` (to delete a specific API)

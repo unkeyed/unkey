@@ -1,7 +1,7 @@
 post:
   tags:
     - ratelimit
-  summary: Get rate limit override details
+  summary: Get ratelimit override
   description: |
     Retrieve the configuration of a specific rate limit override by its identifier.
 

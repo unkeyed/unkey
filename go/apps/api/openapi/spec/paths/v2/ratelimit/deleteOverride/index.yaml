@@ -1,7 +1,7 @@
 post:
   tags:
     - ratelimit
-  summary: Delete rate limit override
+  summary: Delete ratelimit override
   description: |
     Permanently remove a rate limit override. Affected identifiers immediately revert to the namespace default.
 

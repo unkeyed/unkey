@@ -1,13 +1,13 @@
 post:
   tags:
     - keys
-  summary: Set (replace) all permissions on an API key
+  summary: Set key permissions
   description: |
     Replace all permissions on a key with the specified set in a single atomic operation.
 
     Use this to synchronize with external systems, reset permissions to a known state, or apply standardized permission templates. Permissions granted through roles remain unchanged.
 
-    > **Important**: Changes take effect immediately with up to 30-second edge propagation.
+    **Important**: Changes take effect immediately with up to 30-second edge propagation.
 
     **Required Permissions**
 

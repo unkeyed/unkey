@@ -1,13 +1,13 @@
 post:
   tags:
     - ratelimit
-  summary: Apply rate limiting to any identifier
+  summary: Apply rate limiting
   description: |
     Check and enforce rate limits for any identifier (user ID, IP address, API client, etc.).
 
     Use this for rate limiting beyond API keys - limit users by ID, IPs by address, or any custom identifier. Supports namespace organization, variable costs, and custom overrides.
 
-    > **Important**: Always returns HTTP 200. Check the `success` field to determine if the request should proceed.
+    **Important**: Always returns HTTP 200. Check the `success` field to determine if the request should proceed.
 
     **Required Permissions**
 

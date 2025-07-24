@@ -5,13 +5,11 @@ get:
     - liveness
   security: []
   operationId: liveness
-  summary: Check service health and availability
+  summary: Health check
   description: |
     Check if the Unkey API service is healthy and ready to handle requests.
 
     Use this for load balancer health checks, monitoring systems, and orchestration platforms. No authentication required with minimal processing overhead.
-
-    > **Important**: Monitor this endpoint for service degradation detection and automated failover implementation.
 
     **Required Permissions**
 

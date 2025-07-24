@@ -1,7 +1,7 @@
 post:
   tags:
     - ratelimit
-  summary: List rate limit overrides
+  summary: List ratelimit overrides
   description: |
     Retrieve a paginated list of all rate limit overrides in a namespace.
 

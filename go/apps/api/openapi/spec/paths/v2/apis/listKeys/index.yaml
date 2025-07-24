@@ -1,23 +1,23 @@
 post:
   tags:
     - apis
-  summary: List all keys associated with an API namespace  
+  summary: List API keys
   description: |
     Retrieve a paginated list of API keys for dashboard and administrative interfaces.
 
     Use this to build key management dashboards, filter keys by user with `externalId`, or retrieve key details for administrative purposes. Each key includes status, metadata, permissions, and usage limits.
 
-    > **Important**: Set `decrypt: true` only in secure contexts to retrieve plaintext key values from recoverable keys.
+    **Important**: Set `decrypt: true` only in secure contexts to retrieve plaintext key values from recoverable keys.
 
     **Required Permissions**
-    
+
     Your root key must have one of the following permissions for basic key listing:
     - `api.*.read_key` (to read keys from any API)
     - `api.<api_id>.read_key` (to read keys from a specific API)
-    
+
     Additionally, you need read access to the API itself:
     - `api.*.read_api` or `api.<api_id>.read_api`
-    
+
     Additional permission required for decrypt functionality:
     - `api.*.decrypt_key` or `api.<api_id>.decrypt_key`
   operationId: listKeys

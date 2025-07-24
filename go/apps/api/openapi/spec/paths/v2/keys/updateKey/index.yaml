@@ -7,7 +7,7 @@ post:
 
     Use this for user upgrades/downgrades, role modifications, or administrative changes. Supports partial updates - only specify fields you want to change. Set fields to null to clear them.
 
-    > **Important**: Permissions and roles are replaced entirely. Use dedicated add/remove endpoints for incremental changes.
+    **Important**: Permissions and roles are replaced entirely. Use dedicated add/remove endpoints for incremental changes.
 
     **Required Permissions**
 

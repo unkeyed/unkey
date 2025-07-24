@@ -23,13 +23,15 @@ const (
 
 // Defines values for KeysVerifyKeyResponseDataCode.
 const (
-	DISABLED            KeysVerifyKeyResponseDataCode = "DISABLED"
-	EXPIRED             KeysVerifyKeyResponseDataCode = "EXPIRED"
-	FORBIDDEN           KeysVerifyKeyResponseDataCode = "FORBIDDEN"
-	INSUFFICIENTCREDITS KeysVerifyKeyResponseDataCode = "INSUFFICIENT_CREDITS"
-	NOTFOUND            KeysVerifyKeyResponseDataCode = "NOT_FOUND"
-	RATELIMITED         KeysVerifyKeyResponseDataCode = "RATE_LIMITED"
-	VALID               KeysVerifyKeyResponseDataCode = "VALID"
+	DISABLED                KeysVerifyKeyResponseDataCode = "DISABLED"
+	EXPIRED                 KeysVerifyKeyResponseDataCode = "EXPIRED"
+	FORBIDDEN               KeysVerifyKeyResponseDataCode = "FORBIDDEN"
+	INSUFFICIENTCREDITS     KeysVerifyKeyResponseDataCode = "INSUFFICIENT_CREDITS"
+	INSUFFICIENTPERMISSIONS KeysVerifyKeyResponseDataCode = "INSUFFICIENT_PERMISSIONS"
+	NOTFOUND                KeysVerifyKeyResponseDataCode = "NOT_FOUND"
+	RATELIMITED             KeysVerifyKeyResponseDataCode = "RATE_LIMITED"
+	USAGEEXCEEDED           KeysVerifyKeyResponseDataCode = "USAGE_EXCEEDED"
+	VALID                   KeysVerifyKeyResponseDataCode = "VALID"
 )
 
 // Defines values for V2KeysUpdateCreditsRequestBodyOperation.
@@ -261,8 +263,9 @@ type KeysVerifyKeyRatelimit struct {
 type KeysVerifyKeyResponseData struct {
 	// Code A machine-readable code indicating the verification status
 	// or failure reason. Values: `VALID` (key is valid and passed all checks), `NOT_FOUND` (key doesn't
-	// exist or belongs to wrong API), `FORBIDDEN` (key lacks required permissions), `INSUFFICIENT_CREDITS`
-	// (key has no remaining credits), `RATE_LIMITED` (key exceeded rate limits), `DISABLED` (key was explicitly disabled),
+	// exist or belongs to wrong API), `FORBIDDEN` (key lacks required permissions), `INSUFFICIENT_PERMISSIONS`
+	// (key lacks specific required permissions for this request), `INSUFFICIENT_CREDITS`
+	// (key has no remaining credits), `USAGE_EXCEEDED` (key exceeded usage limits), `RATE_LIMITED` (key exceeded rate limits), `DISABLED` (key was explicitly disabled),
 	// `EXPIRED` (key has passed its expiration date).
 	Code KeysVerifyKeyResponseDataCode `json:"code"`
 
@@ -320,8 +323,9 @@ type KeysVerifyKeyResponseData struct {
 
 // KeysVerifyKeyResponseDataCode A machine-readable code indicating the verification status
 // or failure reason. Values: `VALID` (key is valid and passed all checks), `NOT_FOUND` (key doesn't
-// exist or belongs to wrong API), `FORBIDDEN` (key lacks required permissions), `INSUFFICIENT_CREDITS`
-// (key has no remaining credits), `RATE_LIMITED` (key exceeded rate limits), `DISABLED` (key was explicitly disabled),
+// exist or belongs to wrong API), `FORBIDDEN` (key lacks required permissions), `INSUFFICIENT_PERMISSIONS`
+// (key lacks specific required permissions for this request), `INSUFFICIENT_CREDITS`
+// (key has no remaining credits), `USAGE_EXCEEDED` (key exceeded usage limits), `RATE_LIMITED` (key exceeded rate limits), `DISABLED` (key was explicitly disabled),
 // `EXPIRED` (key has passed its expiration date).
 type KeysVerifyKeyResponseDataCode string
 

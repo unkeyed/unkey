@@ -1,13 +1,13 @@
 post:
   tags:
     - keys
-  summary: Remove roles from an API key
+  summary: Remove key roles
   description: |
     Remove roles from a key without affecting direct permissions or other roles.
 
     Use this for privilege downgrades, removing temporary access, or subscription changes that revoke specific role-based capabilities. Direct permissions remain unchanged.
 
-    > **Important**: Changes take effect immediately with up to 30-second edge propagation.
+    **Important**: Changes take effect immediately with up to 30-second edge propagation.
 
     **Required Permissions**
 

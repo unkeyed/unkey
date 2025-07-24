@@ -1,13 +1,13 @@
 post:
   tags:
     - keys
-  summary: Remove permissions from an API key
+  summary: Remove key permissions
   description: |
     Remove permissions from a key without affecting existing roles or other permissions.
 
     Use this for privilege downgrades, removing temporary access, or plan changes that revoke specific capabilities. Permissions granted through roles remain unchanged.
 
-    > **Important**: Changes take effect immediately with up to 30-second edge propagation.
+    **Important**: Changes take effect immediately with up to 30-second edge propagation.
 
     **Required Permissions**
 
