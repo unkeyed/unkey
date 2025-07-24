@@ -34,3 +34,9 @@ items:
         access level (`admin`, `editor`, `viewer`), by department (`billing_manager`,
         `support_agent`), or by feature area (`analytics_user`, `dashboard_admin`).
       example: admin
+    description:
+      type: string
+      description:
+        A brief description of the role's purpose and responsibilities.
+        This helps users understand the role's scope and expected behavior.
+      example: Full access to all resources and features
