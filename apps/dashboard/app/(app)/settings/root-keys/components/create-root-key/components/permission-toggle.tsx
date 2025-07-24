@@ -1,7 +1,7 @@
 "use client";
 import type { CheckedState } from "@radix-ui/react-checkbox";
+import { ChevronRight } from "@unkey/icons";
 import { Checkbox, InfoTooltip } from "@unkey/ui";
-import { ChevronRight } from "@unkey/icons"
 
 type PermissionToggleProps = {
   category: string;
@@ -39,7 +39,9 @@ export const PermissionToggle: React.FC<PermissionToggleProps> = ({
           <span className="text-sm w-full">{label}</span>
         </div>
         <InfoTooltip content={description} className="w-full text-left">
-          <p className="text-xs text-gray-10 text-left max-w-[235px] truncate mt-1">{description}</p >
+          <p className="text-xs text-gray-10 text-left max-w-[235px] truncate mt-1">
+            {description}
+          </p>
         </InfoTooltip>
       </div>
     </div>

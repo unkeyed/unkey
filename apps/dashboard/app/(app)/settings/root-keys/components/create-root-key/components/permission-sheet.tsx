@@ -8,36 +8,45 @@ import {
 } from "@/components/ui/sheet";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PermissionContentList } from "./permission-list";
 import { SearchPermissions } from "./search-permissions";
 
 type PermissionSheetProps = {
   children: React.ReactNode;
-  apis:
-    | {
-        id: string;
-        name: string;
-      }[]
-    | [];
+  apis: {
+    id: string;
+    name: string;
+  }[];
+  onChange?: (permissions: string[]) => void;
 };
-export const PermissionSheet = ({ children, apis }: PermissionSheetProps) => {
+export const PermissionSheet = ({ children, apis, onChange }: PermissionSheetProps) => {
   const [open, setOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [search, setSearch] = useState<string | undefined>(undefined);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [workspacePermissions, setWorkspacePermissions] = useState<string[]>([]);
+  const [apiPermissions, setApiPermissions] = useState<Record<string, string[]>>({});
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setIsProcessing(true);
     setSearch(e.target.value);
-    setTimeout(() => {
-      setIsProcessing(false);
-    }, 1000);
+    // TODO: Implement actual search logic
+    setIsProcessing(false);
   };
 
   const handleOpenChange = (open: boolean) => {
-    setOpen((prev) => !prev);
+    setOpen(open);
   };
+
+  // Aggregate all permissions and call onChange
+  useEffect(() => {
+    if (onChange) {
+      const allApiPermissions = Object.values(apiPermissions).flat();
+      onChange([...workspacePermissions, ...allApiPermissions]);
+    }
+  }, [workspacePermissions, apiPermissions, onChange]);
+
   return (
     <Sheet open={open} onOpenChange={handleOpenChange} modal={true}>
       <SheetTrigger asChild>{children}</SheetTrigger>
@@ -59,13 +68,24 @@ export const PermissionSheet = ({ children, apis }: PermissionSheetProps) => {
             <div className="flex flex-col h-full pt-0 mt-0 gap-1">
               {/* Workspace Permissions */}
               {/* TODO: Tie In Search */}
-              {/* TODO: Return permissions to the form */}
-              <PermissionContentList type="workspace" />
+              <PermissionContentList
+                key="workspace"
+                type="workspace"
+                onPermissionChange={(permissions) =>
+                  setWorkspacePermissions(permissions.map(String))
+                }
+              />
               {/* From APIs */}
-              {/* TODO: add real API list */}
               <p className="text-sm text-gray-10 ml-6 py-auto mt-1.5">From APIs</p>
-              {fakeApis.map((api) => (
-                <PermissionContentList type="api" api={api} />
+              {apis.map((api) => (
+                <PermissionContentList
+                  key={api.id}
+                  type="api"
+                  api={api}
+                  onPermissionChange={(permissions) =>
+                    setApiPermissions((prev) => ({ ...prev, [api.id]: permissions.map(String) }))
+                  }
+                />
               ))}
             </div>
           </ScrollArea>
@@ -74,19 +94,3 @@ export const PermissionSheet = ({ children, apis }: PermissionSheetProps) => {
     </Sheet>
   );
 };
-
-// TODO: Remove this when we have a real API list
-const fakeApis = [
-  {
-    id: "api_12345",
-    name: "API 12345",
-  },
-  {
-    id: "api_12346",
-    name: "API 12346",
-  },
-  {
-    id: "api_12347",
-    name: "API 12347",
-  },
-];

@@ -1,7 +1,10 @@
 "use client";
 import { Input } from "@unkey/ui";
+import { cn } from "lib/utils";
 
 type SearchInputProps = {
+  maxLength?: number;
+  className?: string;
   value: string;
   placeholder: string;
   isProcessing: boolean;
@@ -14,9 +17,9 @@ type SearchInputProps = {
   inputRef: React.RefObject<HTMLInputElement>;
 };
 
-const LIMITS_MAX_QUERY_LENGTH = 50;
-
 export const SearchInput = ({
+  maxLength,
+  className,
   value,
   placeholder,
   isProcessing,
@@ -44,9 +47,12 @@ export const SearchInput = ({
       value={value}
       onKeyDown={onKeyDown}
       onChange={onChange}
-      maxLength={LIMITS_MAX_QUERY_LENGTH}
+      maxLength={maxLength}
       placeholder={placeholder}
-      className="truncate text-accent-12 font-medium text-[13px] bg-transparent border-none outline-none focus:ring-0 focus:outline-none placeholder:text-accent-8 selection:bg-gray-6 w-full"
+      className={cn(
+        "truncate text-accent-12 font-medium text-[13px] bg-transparent border-none outline-none focus:ring-0 focus:outline-none placeholder:text-accent-8 selection:bg-gray-6 w-full",
+        className,
+      )}
       disabled={isProcessing && searchMode !== "allowTypeDuringSearch"}
       data-testid="search-input"
     />

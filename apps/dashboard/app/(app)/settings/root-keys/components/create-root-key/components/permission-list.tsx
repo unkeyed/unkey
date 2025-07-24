@@ -2,7 +2,7 @@
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import type { CheckedState } from "@radix-ui/react-checkbox";
 import type { UnkeyPermission } from "@unkey/rbac";
-import { useEffect, useState } from "react";
+import { useEffect, useReducer } from "react";
 import { apiPermissions, workspacePermissions } from "../../../[keyId]/permissions/permissions";
 import { ExpandableCategory } from "./expandable-category";
 import { PermissionToggle } from "./permission-toggle";
@@ -15,132 +15,166 @@ type Props = {
         name: string;
       }
     | undefined;
+  onPermissionChange: (permissions: UnkeyPermission[]) => void;
 };
 
-export const PermissionContentList = ({ type, api }: Props) => {
-  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
-  const permissionList =
-    type === "workspace" ? workspacePermissions : api ? apiPermissions(api.id) : {};
-  const [rootChecked, setRootChecked] = useState<CheckedState>(false);
-  const [categoryChecked, setCategoryChecked] = useState<Record<string, CheckedState>>({});
+// Helper type for permission list structure
+type PermissionCategory = Record<string, { description: string; permission: UnkeyPermission }>;
+type PermissionList = Record<string, PermissionCategory>;
 
-  useEffect(() => {
-    if (selectedPermissions.length === 0) {
-      setRootChecked(false);
-    } else if (
-      selectedPermissions.length ===
-      Object.values(permissionList).flatMap((category) =>
-        Object.values(category).map(({ permission }) => permission),
-      ).length
-    ) {
-      setRootChecked(true);
+// State and actions for reducer
+interface PermissionState {
+  selectedPermissions: UnkeyPermission[];
+  categoryChecked: Record<string, CheckedState>;
+  rootChecked: CheckedState;
+}
+
+type PermissionAction =
+  | { type: "TOGGLE_PERMISSION"; permission: UnkeyPermission; permissionList: PermissionList }
+  | { type: "TOGGLE_CATEGORY"; category: string; permissionList: PermissionList }
+  | { type: "TOGGLE_ROOT"; permissionList: PermissionList };
+
+function getAllPermissionNames(permissionList: PermissionList) {
+  return Object.values(permissionList).flatMap((category) =>
+    Object.values(category).map(({ permission }) => permission),
+  );
+}
+
+function getCategoryPermissionNames(permissionList: PermissionList, category: string) {
+  return Object.values(permissionList[category] || {}).map(({ permission }) => permission);
+}
+
+function computeCheckedStates(
+  selectedPermissions: UnkeyPermission[],
+  permissionList: PermissionList,
+) {
+  // Compute rootChecked
+  const allPermissionNames = getAllPermissionNames(permissionList);
+  let rootChecked: CheckedState = false;
+  if (selectedPermissions.length === 0) {
+    rootChecked = false;
+  } else if (selectedPermissions.length === allPermissionNames.length) {
+    rootChecked = true;
+  } else {
+    rootChecked = "indeterminate";
+  }
+  // Compute categoryChecked
+  const categoryChecked: Record<string, CheckedState> = {};
+  Object.entries(permissionList).forEach(([category, allPermissions]) => {
+    const allPermissionNames = Object.values(allPermissions).map(({ permission }) => permission);
+    if (allPermissionNames.every((p) => selectedPermissions.includes(p))) {
+      categoryChecked[category] = true;
+    } else if (allPermissionNames.some((p) => selectedPermissions.includes(p))) {
+      categoryChecked[category] = "indeterminate";
     } else {
-      setRootChecked("indeterminate");
+      categoryChecked[category] = false;
     }
-    Object.entries(permissionList).forEach(([category, allPermissions]) => {
-      const allPermissionNames = Object.values(allPermissions).map(({ permission }) => permission);
-      if (allPermissionNames.every((p) => selectedPermissions.includes(p))) {
-        setCategoryChecked((prev) => ({ ...prev, [category]: true }));
-      } else if (allPermissionNames.some((p) => selectedPermissions.includes(p))) {
-        setCategoryChecked((prev) => ({ ...prev, [category]: "indeterminate" }));
+  });
+  return { rootChecked, categoryChecked };
+}
+
+function permissionReducer(state: PermissionState, action: PermissionAction): PermissionState {
+  switch (action.type) {
+    case "TOGGLE_PERMISSION": {
+      const { permission, permissionList } = action;
+      let selectedPermissions: UnkeyPermission[];
+      if (state.selectedPermissions.includes(permission)) {
+        selectedPermissions = state.selectedPermissions.filter((p) => p !== permission);
       } else {
-        setCategoryChecked((prev) => ({ ...prev, [category]: false }));
+        selectedPermissions = [...state.selectedPermissions, permission];
       }
-    });
-  }, [selectedPermissions, rootChecked]);
+      const { rootChecked, categoryChecked } = computeCheckedStates(
+        selectedPermissions,
+        permissionList,
+      );
+      return { selectedPermissions, rootChecked, categoryChecked };
+    }
+    case "TOGGLE_CATEGORY": {
+      const { category, permissionList } = action;
+      const categoryPermissions = getCategoryPermissionNames(permissionList, category);
+      const allSelected = categoryPermissions.every((p) => state.selectedPermissions.includes(p));
+      let selectedPermissions: UnkeyPermission[];
+      if (allSelected) {
+        // Remove all permissions in this category
+        selectedPermissions = state.selectedPermissions.filter(
+          (p) => !categoryPermissions.includes(p),
+        );
+      } else {
+        // Add all permissions in this category
+        selectedPermissions = Array.from(
+          new Set([...state.selectedPermissions, ...categoryPermissions]),
+        );
+      }
+      const { rootChecked, categoryChecked } = computeCheckedStates(
+        selectedPermissions,
+        permissionList,
+      );
+      return { selectedPermissions, rootChecked, categoryChecked };
+    }
+    case "TOGGLE_ROOT": {
+      const { permissionList } = action;
+      const allPermissionNames = getAllPermissionNames(permissionList);
+      let selectedPermissions: UnkeyPermission[];
+      if (state.selectedPermissions.length === allPermissionNames.length) {
+        selectedPermissions = [];
+      } else {
+        selectedPermissions = allPermissionNames;
+      }
+      const { rootChecked, categoryChecked } = computeCheckedStates(
+        selectedPermissions,
+        permissionList,
+      );
+      return { selectedPermissions, rootChecked, categoryChecked };
+    }
+    default:
+      return state;
+  }
+}
+
+export const PermissionContentList = ({ type, api, onPermissionChange }: Props) => {
+  const permissionList: PermissionList =
+    type === "workspace" ? workspacePermissions : api ? apiPermissions(api.id) : {};
+
+  const [state, dispatch] = useReducer(permissionReducer, {
+    selectedPermissions: [],
+    categoryChecked: {},
+    rootChecked: false,
+  });
+
+  // Keep checked states in sync with permissionList changes (e.g. api switch)
+  useEffect(() => {
+    const { rootChecked, categoryChecked } = computeCheckedStates(
+      state.selectedPermissions,
+      permissionList,
+    );
+    if (
+      rootChecked !== state.rootChecked ||
+      JSON.stringify(categoryChecked) !== JSON.stringify(state.categoryChecked)
+    ) {
+      // Only update if out of sync
+      dispatch({ type: "TOGGLE_ROOT", permissionList });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permissionList]);
+
+  // Notify parent when selectedPermissions changes
+  useEffect(() => {
+    onPermissionChange(state.selectedPermissions);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.selectedPermissions]);
 
   const handleRootChecked = () => {
-    if (rootChecked === "indeterminate") {
-      setRootChecked(false);
-      setSelectedPermissions([]);
-      return;
-    }
-    if (rootChecked === true) {
-      setRootChecked(false);
-      setSelectedPermissions([]);
-      return;
-    }
-    if (rootChecked === false) {
-      setRootChecked(true);
-      setSelectedPermissions(
-        Object.values(permissionList).flatMap((category) =>
-          Object.values(category).map(({ permission }) => permission),
-        ),
-      );
-      return;
-    }
-    const allPermissionNames = Object.values(permissionList).flatMap((category) =>
-      Object.values(category).map(({ permission }) => permission),
-    );
-    if (allPermissionNames.every((permission) => selectedPermissions.includes(permission))) {
-      setRootChecked(true);
-    } else if (allPermissionNames.some((permission) => selectedPermissions.includes(permission))) {
-      setRootChecked("indeterminate");
-    } else {
-      setRootChecked(false);
-    }
+    dispatch({ type: "TOGGLE_ROOT", permissionList });
   };
 
   const handleCategoryChecked = (category: string) => {
-    if (categoryChecked[category] === "indeterminate") {
-      setSelectedPermissions((prev) =>
-        prev.filter(
-          (p) =>
-            !Object.values(permissionList[category as keyof typeof permissionList])
-              .map(({ permission }) => permission)
-              .includes(p as UnkeyPermission),
-        ),
-      );
-    } else if (categoryChecked[category] === true) {
-      // Remove all permissions in this category
-      setSelectedPermissions((prev) =>
-        prev.filter(
-          (p) =>
-            !Object.values(permissionList[category as keyof typeof permissionList])
-              .map(({ permission }) => permission)
-              .includes(p as UnkeyPermission),
-        ),
-      );
-    } else {
-      setSelectedPermissions((prev) => [
-        ...prev,
-        ...Object.values(permissionList[category as keyof typeof permissionList]).map(
-          ({ permission }) => permission,
-        ),
-      ]);
-    }
+    dispatch({ type: "TOGGLE_CATEGORY", category, permissionList });
   };
 
-  const handlePermissionChecked = (permission: string) => {
-    if (selectedPermissions.includes(permission)) {
-      setSelectedPermissions((prev) => prev.filter((p) => p !== permission));
-    } else {
-      setSelectedPermissions((prev) => [...prev, permission]);
-    }
-    // Update the category checked state
-    // Find which category this permission belongs to
-    Object.entries(permissionList).forEach(([category, allPermissions]) => {
-      const isInCategory = Object.values(allPermissions)
-        .map(({ permission }) => permission)
-        .includes(permission as UnkeyPermission);
-      if (!isInCategory) {
-        return;
-      }
-      const allPermissionNames = Object.values(allPermissions).map(({ permission }) => permission);
-      // If all permissions in the category are selected, set the category to true
-      if (allPermissionNames.every((p) => selectedPermissions.includes(p))) {
-        setCategoryChecked((prev) => ({ ...prev, [category]: true }));
-      }
-      // If some permissions in the category are selected, set the category to indeterminate
-      else if (allPermissionNames.some((p) => selectedPermissions.includes(p))) {
-        setCategoryChecked((prev) => ({ ...prev, [category]: "indeterminate" }));
-      }
-      // If no permissions in the category are selected, set the category to false
-      else {
-        setCategoryChecked((prev) => ({ ...prev, [category]: false }));
-      }
-    });
+  const handlePermissionChecked = (permission: UnkeyPermission) => {
+    dispatch({ type: "TOGGLE_PERMISSION", permission, permissionList });
   };
+
   return (
     <div className="flex flex-col gap-2">
       <Collapsible>
@@ -151,15 +185,12 @@ export const PermissionContentList = ({ type, api }: Props) => {
               ? "All workspace permissions"
               : `All permissions for ${api?.name ?? "API"}`
           }
-          checked={rootChecked}
-          setChecked={() => handleRootChecked()}
+          checked={state.rootChecked}
+          setChecked={handleRootChecked}
         />
         <CollapsibleContent>
           <div className="flex flex-col">
             {Object.entries(permissionList).map(([category, allPermissions]) => {
-              const allPermissionNames = Object.values(allPermissions).map(
-                ({ permission }) => permission,
-              );
               return (
                 <>
                   <div
@@ -170,23 +201,21 @@ export const PermissionContentList = ({ type, api }: Props) => {
                       <Collapsible>
                         <ExpandableCategory
                           category={category}
-                          checked={categoryChecked[category]}
+                          checked={state.categoryChecked[category]}
                           description={""}
                           setChecked={() => handleCategoryChecked(category)}
                         />
                         <CollapsibleContent>
                           <div className="flex flex-col gap-2 my-0 py-0 border-l ml-[31px]">
-                            {Object.entries(allPermissions).map(
+                            {Object.entries(allPermissions as PermissionCategory).map(
                               ([action, { description, permission }]) => (
                                 <PermissionToggle
                                   key={action}
                                   category={category}
                                   label={action}
                                   description={description}
-                                  checked={selectedPermissions.includes(permission)}
-                                  setChecked={(checked: boolean) =>
-                                    handlePermissionChecked(permission)
-                                  }
+                                  checked={state.selectedPermissions.includes(permission)}
+                                  setChecked={() => handlePermissionChecked(permission)}
                                 />
                               ),
                             )}

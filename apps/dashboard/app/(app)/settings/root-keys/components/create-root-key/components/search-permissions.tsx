@@ -1,5 +1,5 @@
 "use client";
-import { SearchIcon } from "./search-icon";
+import { SearchIcon } from "@unkey/ui";
 import { SearchInput } from "./search-input";
 
 type Props = {
@@ -9,9 +9,6 @@ type Props = {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 };
 export const SearchPermissions = ({ isProcessing, search, inputRef, onChange }: Props) => {
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange(e);
-  };
   return (
     <div className="flex items-center gap-2 w-full flex-1 md:w-80 pl-4 py-1">
       <div className="flex-shrink-0">
@@ -26,7 +23,7 @@ export const SearchPermissions = ({ isProcessing, search, inputRef, onChange }: 
           loadingText="Searching..."
           clearingText="Clearing..."
           searchMode="manual"
-          onChange={handleSearchChange}
+          onChange={onChange}
           onKeyDown={() => {}}
           inputRef={inputRef}
         />

@@ -4,10 +4,11 @@ import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "@unkey/icons";
+import { unkeyPermissionValidation } from "@unkey/rbac";
 import { Button, FormInput, toast } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import type React from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { PermissionSheet } from "./components/permission-sheet";
@@ -20,9 +21,11 @@ const DynamicDialogContainer = dynamic(
   { ssr: false },
 );
 
+const DEFAULT_LIMIT = 10;
+
 const formSchema = z.object({
   name: z.string().trim().min(3, "Name must be at least 3 characters long").max(50),
-  permissions: z.array(z.string()),
+  permissions: z.array(unkeyPermissionValidation).min(1, "At least one permission is required"),
 });
 
 type Props = {
@@ -35,16 +38,32 @@ export const CreateRootKeyButton = ({
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & Props) => {
   const trpcUtils = trpc.useUtils();
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
-  // const { orgId } = await getAuth();
 
-  // const workspace = await db.query.workspaces.findFirst({
-  //     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
-  //     with: {
-  //         apis: {
-  //             where: (table, { isNull }) => isNull(table.deletedAtM),
-  //         },
-  //     },
-  // });
+  const {
+    data: apisData,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = trpc.api.overview.query.useInfiniteQuery(
+    { limit: DEFAULT_LIMIT },
+    {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+    },
+  );
+
+  const allApis = useMemo(() => {
+    if (!apisData?.pages) {
+      return [];
+    }
+    return apisData.pages.flatMap((page) => {
+      return page.apiList.map((api) => ({
+        id: api.id,
+        name: api.name,
+      }));
+    });
+  }, [apisData]);
 
   const {
     register,
@@ -70,11 +89,19 @@ export const CreateRootKeyButton = ({
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    // create.mutate({
-    //     name: values.name,
-    //     permissions: [],
-    // });
+    await key.mutateAsync({
+      name: values.name,
+      permissions: values.permissions,
+    });
+    setIsOpen(false);
   }
+
+  const handlePermissionChange = (permissions: string[]) => {
+    const parsedPermissions = permissions.map((permission) =>
+      unkeyPermissionValidation.parse(permission),
+    );
+    setValue("permissions", parsedPermissions);
+  };
 
   return (
     <>
@@ -124,7 +151,7 @@ export const CreateRootKeyButton = ({
             </div>
             <div className="flex flex-col gap-2">
               <Label className="text-[13px] font-regular text-gray-10">Permissions</Label>
-              <PermissionSheet apis={[]}>
+              <PermissionSheet apis={allApis} onChange={handlePermissionChange}>
                 <Button type="button" variant="outline" size="md" className="w-fit rounded-lg pl-3">
                   Select Permissions...
                 </Button>
