@@ -6,6 +6,7 @@ description: |-
   - This list does NOT include permissions granted through roles
   - For a complete permission picture, use `/v2/keys.getKey` instead
   - An empty array indicates the key has no direct permissions assigned
-  - All permission removals are logged to the audit log for security tracking
+  - Any cached versions of the key are immediately invalidated to ensure consistency
+  - Changes to permissions take effect within seconds for new verifications
 items:
   "$ref": "../../../../common/Permission.yaml"

@@ -16,20 +16,13 @@ properties:
     format: int64
     nullable: true
     minimum: 0
-    maximum: 9223372036854775807 # Max int64 value for future-proofing
+    maximum: 9223372036854775807
     description: |
-      The new value for the remaining credits. This is an absolute value replacement, not an increment or decrement operation.
+      The credit value to use with the specified operation. The meaning depends on the operation: for 'set', this becomes the new remaining credits value; for 'increment', this amount is added to current credits; for 'decrement', this amount is subtracted from current credits.
 
-      Key behaviors:
-      - This completely replaces the current remaining credits value when operation is set to 'set'
-      - To add credits, either replace the current value with the new value or increment the current value by a new value
-      - To make a key unlimited, set value = null
-      - To make a key with unlimited usage have a specific limit, set remaining to a positive number
-      - If a decrement would result in a negative value, the remaining credits are set to zero
-      - Credits are decremented each time the key is successfully verified (by the cost value, default 1)
-      - When credits reach zero, verification fails with code=USAGE_EXCEEDED
+      Set to null when using 'set' operation to make the key unlimited (removes usage restrictions entirely). When decrementing, if the result would be negative, remaining credits are automatically set to zero. Credits are consumed during successful key verification, and when credits reach zero, verification fails with `code=INSUFFICIENT_CREDITS`.
 
-      This field is useful for implementing usage-based pricing, subscription tiers, trial periods, or consumption quotas.
+      Required when using 'increment' or 'decrement' operations. Optional for 'set' operation (null creates unlimited usage).
     example: 1000
   operation:
     type: string
@@ -38,8 +31,49 @@ properties:
       - increment
       - decrement
     description: |
-      The operation to perform on the remaining credits. This can be one of:
-      - set: Replace the current remaining credits value with the specified value.
-      - increment: Add the specified value to the current remaining credits value.
-      - decrement: Subtract the specified value from the current remaining credits value.
+      Defines how to modify the key's remaining credits. Use 'set' to replace current credits with a specific value or unlimited usage, 'increment' to add credits for plan upgrades or credit purchases, and 'decrement' to reduce credits for refunds or policy violations.
+    example: set
 additionalProperties: false
+examples:
+  planUpgrade:
+    summary: Upgrade user to higher credit tier
+    description: Increase credits when user upgrades to a higher-tier plan
+    value:
+      keyId: key_1234abcd
+      operation: set
+      value: 10000
+  creditPurchase:
+    summary: Add purchased credits to existing balance
+    description: User bought additional credits to add to their current quota
+    value:
+      keyId: key_5678efgh
+      operation: increment
+      value: 5000
+  unlimitedUpgrade:
+    summary: Upgrade to unlimited usage plan
+    description: Remove credit restrictions for enterprise tier users
+    value:
+      keyId: key_9876wxyz
+      operation: set
+      value: null
+  billingCycleReset:
+    summary: Reset monthly quota at billing cycle
+    description: Refresh user's monthly credit allocation
+    value:
+      keyId: key_cycle_abcd
+      operation: set
+      value: 25000
+  policyViolation:
+    summary: Reduce credits for policy violation
+    description: Subtract credits as penalty for terms of service violation
+    value:
+      keyId: key_violation_123
+      operation: decrement
+      value: 1000
+  refundCredits:
+    summary: Refund unused credits
+    description: Remove credits when processing a partial refund
+    value:
+      keyId: key_refund_789
+      operation: decrement
+      value: 3000

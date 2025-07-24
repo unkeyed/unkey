@@ -66,7 +66,7 @@ info:
         "detail": "The resource you are attempting to modify is protected and cannot be changed",
         "status": 403,
         "title": "Forbidden",
-        "type": "https://unkey.com/docs/api-reference/errors-v2/unkey/application/protected_resource"
+        "type": "https://unkey.com/docs/errors/unkey/application/protected_resource"
       }
     }
     ```
@@ -180,6 +180,14 @@ paths:
     $ref: "./spec/paths/v2/permissions/listPermissions/index.yaml"
   /v2/permissions.deletePermission:
     $ref: "./spec/paths/v2/permissions/deletePermission/index.yaml"
+
+  # ClickHouse Proxy Endpoints (Internal)
+  /_internal/chproxy/verifications:
+    $ref: "./spec/paths/chproxy/verifications/index.yaml"
+  /_internal/chproxy/metrics:
+    $ref: "./spec/paths/chproxy/metrics/index.yaml"
+  /_internal/chproxy/ratelimits:
+    $ref: "./spec/paths/chproxy/ratelimits/index.yaml"
 
 components:
   securitySchemes:

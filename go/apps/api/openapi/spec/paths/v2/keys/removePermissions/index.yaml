@@ -1,18 +1,23 @@
 post:
   tags:
     - keys
-  summary: Remove permissions from an API key
-  description: |-
-    Removes one or more permissions from an existing API key.
+  summary: Remove key permissions
+  description: |
+    Remove permissions from a key without affecting existing roles or other permissions.
 
-    This endpoint is used to selectively revoke access rights from a key without deleting it or affecting other permissions.
+    Use this for privilege downgrades, removing temporary access, or plan changes that revoke specific capabilities. Permissions granted through roles remain unchanged.
 
-    Key features:
-    - Selective removal - revoke specific permissions while leaving others intact
-    - Direct permissions only - doesn't affect permissions granted through roles
-    - Idempotent operation - removing permissions multiple times has no additional effect
+    **Important**: Changes take effect immediately with up to 30-second edge propagation.
 
-    Use this endpoint when downgrading user access privileges, removing temporary elevated permissions, implementing granular permission adjustments, or revoking access to specific resources.
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `api.*.update_key` (to update keys in any API)
+    - `api.<api_id>.update_key` (to update keys in a specific API)
+
+    **Side Effects**
+
+    Invalidates the key cache for immediate effect, and makes permission changes available for verification within 30 seconds across all regions.
   operationId: removePermissions
   x-speakeasy-name-override: removePermissions
   security:
@@ -23,124 +28,40 @@ post:
       application/json:
         schema:
           "$ref": "./V2KeysRemovePermissionsRequestBody.yaml"
-        examples:
-          basic:
-            summary: Remove permissions using ID or slug
-            description: You can use either the unkey permission ID or your choosen slug to remove permissions.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              permissions:
-                - perm_2zF4mNyP9BsRj2aQwDxVkT
-                - documents.delete
   responses:
     "200":
-      description: Successfully removed all specified permissions from the key.
+      description: Permissions removed successfully. Returns all permissions currently assigned to the key.
       content:
         application/json:
           schema:
             "$ref": "./V2KeysRemovePermissionsResponseBody.yaml"
-          examples:
-            standard:
-              summary: Successful removal
-              description: Successfully removed all specified permissions from the key.
-              value:
-                meta:
-                  requestId: req_2cGKbMxRyIzhCxo1Idjz8q
-                data: {}
     "400":
-      description: Bad Request - Invalid keyId format, missing required fields, or malformed permission entries
+      description: Bad request
       content:
         application/json:
           schema:
             "$ref": "../../../../error/BadRequestErrorResponse.yaml"
-          examples:
-            invalidKeyId:
-              summary: Invalid keyId format
-              value:
-                meta:
-                  requestId: req_5zAbCdEfGhIjKlMnOpQrSt
-                error:
-                  title: Bad Request
-                  detail: keyId must start with 'key_'
-                  status: 400
-                  type: bad_request
-            emptyPermissions:
-              summary: Empty permissions array
-              value:
-                meta:
-                  requestId: req_6aBcDeFgHiJkLmNoPqRsT
-                error:
-                  title: Bad Request
-                  detail: At least one permission must be specified
-                  status: 400
-                  type: bad_request
     "401":
-      description: Unauthorized - Missing or invalid authentication credentials
+      description: Unauthorized
       content:
         application/json:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
-          examples:
-            invalidRootKey:
-              summary: Invalid root key provided
-              value:
-                meta:
-                  requestId: req_9tUv3wXyZaAbCdEfGhIjKl
-                error:
-                  title: Unauthorized
-                  detail: The root key provided is invalid or has been revoked.
-                  status: 401
-                  type: unauthorized
     "403":
-      description: Forbidden - Insufficient permissions (requires `rbac.*.remove_permission_from_key`)
+      description: Forbidden
       content:
         application/json:
           schema:
             "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
-          examples:
-            missingPermission:
-              summary: Missing required permission
-              value:
-                meta:
-                  requestId: req_0uVwX4yZaAbCdEfGhIjKl
-                error:
-                  title: Forbidden
-                  detail: Your root key requires the 'rbac.*.remove_permission_from_key' permission to perform this operation
-                  status: 403
-                  type: forbidden
     "404":
-      description: Not Found - Key not found
+      description: Not found
       content:
         application/json:
           schema:
             "$ref": "../../../../error/NotFoundErrorResponse.yaml"
-          examples:
-            keyNotFound:
-              summary: Key not found
-              value:
-                meta:
-                  requestId: req_2wXyZaAbCdEfGhIjKlMnOp
-                error:
-                  title: Not Found
-                  detail: Key key_2cGKbMxRyIzhCxo1Idjz8q not found
-                  status: 404
-                  type: not_found
     "500":
-      description: Internal Server Error
+      description: Internal server error
       content:
         application/json:
           schema:
             "$ref": "../../../../error/InternalServerErrorResponse.yaml"
-          examples:
-            databaseError:
-              summary: Database error
-              value:
-                meta:
-                  requestId: req_4yZaAbCdEfGhIjKlMnOpQrS
-                error:
-                  title: Internal Server Error
-                  detail:
-                    An unexpected error occurred while processing your request.
-                    Please try again later.
-                  status: 500
-                  type: internal_server_error

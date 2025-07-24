@@ -11,6 +11,5 @@ description: |-
   - This only shows direct permissions, not those granted through roles
   - An empty array means the key has no direct permissions assigned
   - For a complete permission picture including roles, use keys.getKey instead
-  - All permission changes are logged in the audit log for security tracking
 items:
   "$ref": "../../../../common/Permission.yaml"

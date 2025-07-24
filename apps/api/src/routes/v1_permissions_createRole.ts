@@ -13,6 +13,7 @@ import { validation } from "@unkey/validation";
 const route = createRoute({
   tags: ["permissions"],
   operationId: "createRole",
+  summary: "Create role",
   method: "post",
   path: "/v1/permissions.createRole",
   security: [{ bearerAuth: [] }],

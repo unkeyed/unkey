@@ -36,7 +36,7 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "permission")
 		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
 		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
@@ -55,7 +55,7 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "permission")
 		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
 		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
@@ -74,7 +74,7 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "permission")
 		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
 		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
@@ -93,7 +93,7 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "permission")
 		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
 		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
@@ -112,7 +112,7 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "permission")
 		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
 		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
@@ -134,7 +134,7 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "permission")
 		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
 		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
@@ -153,7 +153,7 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "permission")
 		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
 		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)

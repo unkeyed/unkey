@@ -1,17 +1,15 @@
 post:
   tags:
     - ratelimit
-  summary: Create or update a custom rate limit for specific identifiers
-  description: |-
-    Creates a new or updates an existing rate limit override for specific identifiers within a namespace.
-    Overrides allow you to implement special rate limiting rules that differ from the default limits. This is essential for:
-    - Creating tiered rate limits for different customer segments
-    - Implementing premium tiers with higher limits
-    - Applying stricter limits to suspicious or abusive users
-    - Setting emergency limits during system stress
-    - Creating customized rate limiting policies
-    When an override exists, it completely replaces the default rate limit for matching identifiers. The override takes effect immediately and will be applied to the very next rate limit check that matches the identifier pattern.
-    Wildcard patterns can be used to create powerful matching rules that apply to groups of identifiers without having to create individual overrides for each one.
+  summary: Set ratelimit override
+  description: |
+    Create or update a custom rate limit for specific identifiers, bypassing the namespace default.
+
+    Use this to create premium tiers with higher limits, apply stricter limits to specific users, or implement emergency throttling.
+
+    **Important:** Overrides take effect immediately and completely replace the default limit for matching identifiers. Use wildcard patterns (e.g., `premium_*`) to match multiple identifiers.
+
+    **Permissions:** Requires `ratelimit.*.set_override` or `ratelimit.<namespace_id>.set_override`
   operationId: ratelimit.setOverride
   x-speakeasy-name-override: setOverride
   security:
@@ -29,20 +27,13 @@ post:
               identifier: premium_user_123
               limit: 1000
               duration: 60000
-          wildcardPattern:
-            summary: Pattern matching with wildcard
+          wildcard:
+            summary: Pattern for multiple identifiers
             value:
-              namespaceId: ns_1234567890abcdef
+              namespaceName: api.requests
               identifier: premium_*
               limit: 500
               duration: 60000
-          blockAbusive:
-            summary: Block abusive user
-            value:
-              namespaceName: api.requests
-              identifier: abusive_user_456
-              limit: 0
-              duration: 3600000
     required: true
   responses:
     "200":
@@ -50,11 +41,15 @@ post:
         application/json:
           schema:
             "$ref": "./V2RatelimitSetOverrideResponseBody.yaml"
-      description: Identity successfully deleted. The operation has permanently
-        removed the identity from your workspace. Any API keys previously associated
-        with this identity remain functional but no longer share resources through
-        this identity. The externalId can now be reused for a new identity if
-        needed.
+      description: Override successfully created or updated and is now active.
+      examples:
+        standard:
+          summary: Override created successfully
+          value:
+            meta:
+              requestId: req_2cGKbMxRyIzhCxo1Idjz8q
+            data:
+              overrideId: ovr_1234567890abcdef
     "400":
       description: Bad request
       content:
@@ -68,17 +63,41 @@ post:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      description: Forbidden
+      description: Forbidden - Insufficient permissions (requires `ratelimit.*.set_override`)
       content:
         application/json:
           schema:
             "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            missingPermission:
+              summary: Missing required permission
+              value:
+                meta:
+                  requestId: req_0uVwX4yZaAbCdEfGhIjKl
+                error:
+                  title: Forbidden
+                  detail:
+                    Your root key requires the 'ratelimit.*.set_override'
+                    permission to perform this operation
+                  status: 403
+                  type: forbidden
     "404":
-      description: Not Found
+      description: Not Found - Namespace not found
       content:
         application/json:
           schema:
             "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            namespaceNotFound:
+              summary: Namespace not found
+              value:
+                meta:
+                  requestId: req_2wXyZaAbCdEfGhIjKlMnOp
+                error:
+                  title: Not Found
+                  detail: This namespace does not exist.
+                  status: 404
+                  type: not_found
     "500":
       description: Internal Server Error
       content:

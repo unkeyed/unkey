@@ -1,14 +1,16 @@
 post:
   tags:
     - permissions
-  summary: Delete a permission
-  description: |-
-    Permanently removes a permission from the workspace. This endpoint is used when a permission is no longer needed or when cleaning up unused permissions.
-    When a permission is deleted:
-    - All direct assignments to API keys are removed
-    - The permission is removed from any roles it was assigned to
-    - The permission's name becomes available for reuse
-    Important: This operation cannot be undone, and it immediately affects all API keys and roles that had this permission assigned. Consider carefully before deleting permissions that are actively in use.
+  summary: Delete permission
+  description: |
+    Remove a permission from your workspace. This also removes the permission from all API keys and roles.
+
+    **Important:** This operation cannot be undone and immediately affects all API keys and roles that had this permission assigned.
+
+    **Required Permissions**
+    
+    Your root key must have the following permission:
+    - `rbac.*.delete_permission`
   operationId: deletePermission
   x-speakeasy-name-override: DeletePermission
   security:
@@ -26,7 +28,7 @@ post:
     required: true
   responses:
     "200":
-      description: Successfully deleted permission
+      description: Permission deleted successfully
       content:
         application/json:
           schema:
