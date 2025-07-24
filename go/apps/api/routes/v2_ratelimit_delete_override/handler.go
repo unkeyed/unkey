@@ -54,58 +54,44 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Use the namespace field directly - it can be either name or ID
-	namespaceKey := req.Namespace
+	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		namespace, err := db.Query.FindRatelimitNamespace(ctx, tx, db.FindRatelimitNamespaceParams{
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+			Namespace:   req.Namespace,
+		})
+		if err != nil {
+			if db.IsNotFound(err) {
+				return fault.New("namespace not found",
+					fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+					fault.Internal("namespace not found"),
+					fault.Public("This namespace does not exist."),
+				)
+			}
+			return err
+		}
 
-	response, err := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
-		Namespace:   namespaceKey,
-	})
-	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.New("namespace not found",
+		if namespace.DeletedAtM.Valid {
+			return fault.New("namespace was deleted",
 				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-				fault.Internal("namespace not found"),
 				fault.Public("This namespace does not exist."),
 			)
 		}
-		return err
-	}
 
-	namespace := db.RatelimitNamespace{
-		ID:          response.ID,
-		WorkspaceID: response.WorkspaceID,
-		Name:        response.Name,
-		CreatedAtM:  response.CreatedAtM,
-		UpdatedAtM:  response.UpdatedAtM,
-		DeletedAtM:  response.DeletedAtM,
-	}
-
-	if namespace.WorkspaceID != auth.AuthorizedWorkspaceID {
-		return fault.New("namespace not found",
-			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-			fault.Internal("wrong workspace, masking as 404"),
-			fault.Public("This namespace does not exist."),
-		)
-	}
-
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Ratelimit,
-			ResourceID:   namespace.ID,
-			Action:       rbac.DeleteOverride,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Ratelimit,
-			ResourceID:   "*",
-			Action:       rbac.DeleteOverride,
-		}),
-	)))
-	if err != nil {
-		return err
-	}
-
-	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Ratelimit,
+				ResourceID:   namespace.ID,
+				Action:       rbac.DeleteOverride,
+			}),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Ratelimit,
+				ResourceID:   "*",
+				Action:       rbac.DeleteOverride,
+			}),
+		)))
+		if err != nil {
+			return err
+		}
 		// Check if the override exists before deleting
 		override, overrideErr := db.Query.FindRatelimitOverrideByIdentifier(ctx, tx, db.FindRatelimitOverrideByIdentifierParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,

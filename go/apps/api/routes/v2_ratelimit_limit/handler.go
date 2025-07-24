@@ -72,7 +72,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	namespaceKey := req.Namespace
 
 	ctx, span := tracing.Start(ctx, "FindRatelimitNamespace")
-	namespace, err := h.RatelimitNamespaceCache.SWR(ctx,
+	namespace, hit, err := h.RatelimitNamespaceCache.SWR(ctx,
 		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: namespaceKey},
 		func(ctx context.Context) (db.FindRatelimitNamespace, error) {
 			response, err := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{

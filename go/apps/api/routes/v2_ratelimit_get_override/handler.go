@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
+	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/codes"
@@ -52,52 +53,67 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Use the namespace field directly - it can be either name or ID
-	namespaceKey := req.Namespace
+	namespace, hit, err := h.RatelimitNamespaceCache.SWR(ctx,
+		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: req.Namespace},
+		func(ctx context.Context) (db.FindRatelimitNamespace, error) {
+			response, err := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Namespace:   req.Namespace,
+			})
+			if err != nil {
+				return db.FindRatelimitNamespace{}, err
+			}
 
-	response, err := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
-		Namespace:   namespaceKey,
-	})
+			result := db.FindRatelimitNamespace{
+				ID:                response.ID,
+				WorkspaceID:       response.WorkspaceID,
+				Name:              response.Name,
+				CreatedAtM:        response.CreatedAtM,
+				UpdatedAtM:        response.UpdatedAtM,
+				DeletedAtM:        response.DeletedAtM,
+				DirectOverrides:   make(map[string]db.FindRatelimitNamespaceLimitOverride),
+				WildcardOverrides: make([]db.FindRatelimitNamespaceLimitOverride, 0),
+			}
+
+			overrides := make([]db.FindRatelimitNamespaceLimitOverride, 0)
+			err = json.Unmarshal(response.Overrides.([]byte), &overrides)
+			if err != nil {
+				return result, err
+			}
+
+			for _, override := range overrides {
+				result.DirectOverrides[override.Identifier] = override
+				if strings.Contains(override.Identifier, "*") {
+					result.WildcardOverrides = append(result.WildcardOverrides, override)
+				}
+			}
+
+			return result, nil
+		}, caches.DefaultFindFirstOp)
+
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("namespace not found",
+			return fault.New("namespace was deleted",
 				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-				fault.Internal("namespace not found"), fault.Public("The namespace was not found."),
+				fault.Public("This namespace does not exist."),
 			)
 		}
 
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to find the namespace"), fault.Public("Error finding the ratelimit namespace."),
+		return err
+	}
+
+	if hit == cache.Null {
+		return fault.New("namespace cache null",
+			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+			fault.Public("This namespace does not exist."),
 		)
 	}
 
-	namespace := db.FindRatelimitNamespace{
-		ID:                response.ID,
-		WorkspaceID:       response.WorkspaceID,
-		Name:              response.Name,
-		CreatedAtM:        response.CreatedAtM,
-		UpdatedAtM:        response.UpdatedAtM,
-		DeletedAtM:        response.DeletedAtM,
-		DirectOverrides:   make(map[string]db.FindRatelimitNamespaceLimitOverride),
-		WildcardOverrides: make([]db.FindRatelimitNamespaceLimitOverride, 0),
-	}
-
-	overrides := make([]db.FindRatelimitNamespaceLimitOverride, 0)
-	err = json.Unmarshal(response.Overrides.([]byte), &overrides)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Internal("unable to unmarshal ratelimit overrides"),
-			fault.Public("We're unable to parse the ratelimits overrides."),
+	if namespace.DeletedAtM.Valid {
+		return fault.New("namespace was deleted",
+			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+			fault.Public("This namespace does not exist."),
 		)
-	}
-
-	for _, override := range overrides {
-		namespace.DirectOverrides[override.Identifier] = override
-		if strings.Contains(override.Identifier, "*") {
-			namespace.WildcardOverrides = append(namespace.WildcardOverrides, override)
-		}
 	}
 
 	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(

@@ -127,10 +127,10 @@ func TestSetOverrideSuccessfully(t *testing.T) {
 
 	t.Run("create same override twice should update existing record", func(t *testing.T) {
 		req := handler.Request{
-			NamespaceId: &namespaceID,
-			Identifier:  "*", // Wildcard
-			Limit:       5,
-			Duration:    2000,
+			Namespace:  namespaceID,
+			Identifier: "*", // Wildcard
+			Limit:      5,
+			Duration:   2000,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -139,10 +139,10 @@ func TestSetOverrideSuccessfully(t *testing.T) {
 		require.NotEmpty(t, res.Body.Data.OverrideId, "Override ID should not be empty")
 
 		req2 := handler.Request{
-			NamespaceId: &namespaceID,
-			Identifier:  "*", // Wildcard
-			Limit:       100,
-			Duration:    60000,
+			Namespace:  namespaceID,
+			Identifier: "*", // Wildcard
+			Limit:      100,
+			Duration:   60000,
 		}
 
 		res2 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req2)

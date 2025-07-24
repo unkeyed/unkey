@@ -70,7 +70,7 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status, "expected 200, received: %v", res.Body)
+		require.Equal(t, 200, res.Status, "expected 200, received: %v", *res.Body)
 		require.NotNil(t, res.Body)
 		require.Equal(t, overrideID, res.Body.Data.OverrideId)
 		require.Equal(t, namespaceID, res.Body.Data.NamespaceId)

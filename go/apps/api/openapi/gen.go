@@ -1823,13 +1823,7 @@ type V2RatelimitDeleteOverrideRequestBody struct {
 	// After deletion, any identifiers previously affected by this override will immediately revert to using the default rate limit for the namespace.
 	Identifier string `json:"identifier"`
 
-	// Namespace The rate limit namespace identifier. This can be either:
-	// - A namespace name (e.g., "api.requests", "auth.login") - human-readable names that are unique within your workspace
-	// - A namespace ID (e.g., "ns_1234567890abcdef") - system-generated unique identifiers
-	//
-	// The system will automatically detect whether you've provided a name or ID and perform the appropriate lookup.
-	// Names must start with a letter and can contain letters, numbers, underscores, dots, slashes, or hyphens.
-	// IDs follow the format "ns_" followed by an alphanumeric string.
+	// Namespace The id or name of the namespace containing the override.
 	Namespace string `json:"namespace"`
 }
 
@@ -1864,13 +1858,7 @@ type V2RatelimitGetOverrideRequestBody struct {
 	// This field is used to look up the specific override configuration for this pattern.
 	Identifier string `json:"identifier"`
 
-	// Namespace The rate limit namespace identifier. This can be either:
-	// - A namespace name (e.g., "api.requests", "auth.login") - human-readable names that are unique within your workspace
-	// - A namespace ID (e.g., "ns_1234567890abcdef") - system-generated unique identifiers
-	//
-	// The system will automatically detect whether you've provided a name or ID and perform the appropriate lookup.
-	// Names must start with a letter and can contain letters, numbers, underscores, dots, slashes, or hyphens.
-	// IDs follow the format "ns_" followed by an alphanumeric string.
+	// Namespace The id or name of the namespace containing the override.
 	Namespace string `json:"namespace"`
 }
 
@@ -1909,13 +1897,7 @@ type V2RatelimitLimitRequestBody struct {
 	// Consider system capacity, business requirements, and fair usage policies in limit determination.
 	Limit int64 `json:"limit"`
 
-	// Namespace The rate limit namespace identifier. This can be either:
-	// - A namespace name (e.g., "api.requests", "auth.login") - human-readable names that are unique within your workspace
-	// - A namespace ID (e.g., "ns_1234567890abcdef") - system-generated unique identifiers
-	//
-	// The system will automatically detect whether you've provided a name or ID and perform the appropriate lookup.
-	// Names must start with a letter and can contain letters, numbers, underscores, dots, slashes, or hyphens.
-	// IDs follow the format "ns_" followed by an alphanumeric string.
+	// Namespace The id or name of the namespace.
 	Namespace string `json:"namespace"`
 }
 
@@ -1983,13 +1965,7 @@ type V2RatelimitListOverridesRequestBody struct {
 	// Results exceeding this limit will be paginated, with a cursor provided for fetching subsequent pages.
 	Limit *int `json:"limit,omitempty"`
 
-	// Namespace The rate limit namespace identifier. This can be either:
-	// - A namespace name (e.g., "api.requests", "auth.login") - human-readable names that are unique within your workspace
-	// - A namespace ID (e.g., "ns_1234567890abcdef") - system-generated unique identifiers
-	//
-	// The system will automatically detect whether you've provided a name or ID and perform the appropriate lookup.
-	// Names must start with a letter and can contain letters, numbers, underscores, dots, slashes, or hyphens.
-	// IDs follow the format "ns_" followed by an alphanumeric string.
+	// Namespace The id or name of the rate limit namespace to list overrides for.
 	Namespace string `json:"namespace"`
 }
 
@@ -2050,13 +2026,7 @@ type V2RatelimitSetOverrideRequestBody struct {
 	// This limit entirely replaces the default limit for matching identifiers.
 	Limit int64 `json:"limit"`
 
-	// Namespace The rate limit namespace identifier. This can be either:
-	// - A namespace name (e.g., "api.requests", "auth.login") - human-readable names that are unique within your workspace
-	// - A namespace ID (e.g., "ns_1234567890abcdef") - system-generated unique identifiers
-	//
-	// The system will automatically detect whether you've provided a name or ID and perform the appropriate lookup.
-	// Names must start with a letter and can contain letters, numbers, underscores, dots, slashes, or hyphens.
-	// IDs follow the format "ns_" followed by an alphanumeric string.
+	// Namespace The ID or name of the rate limit namespace.
 	Namespace string `json:"namespace"`
 }
 
