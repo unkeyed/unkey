@@ -141,22 +141,6 @@ export const PermissionContentList = ({ type, api, onPermissionChange }: Props) 
     rootChecked: false,
   });
 
-  // Keep checked states in sync with permissionList changes (e.g. api switch)
-  useEffect(() => {
-    const { rootChecked, categoryChecked } = computeCheckedStates(
-      state.selectedPermissions,
-      permissionList,
-    );
-    if (
-      rootChecked !== state.rootChecked ||
-      JSON.stringify(categoryChecked) !== JSON.stringify(state.categoryChecked)
-    ) {
-      // Only update if out of sync
-      dispatch({ type: "TOGGLE_ROOT", permissionList });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [permissionList]);
-
   // Notify parent when selectedPermissions changes
   useEffect(() => {
     onPermissionChange(state.selectedPermissions);
@@ -195,7 +179,7 @@ export const PermissionContentList = ({ type, api, onPermissionChange }: Props) 
                 <>
                   <div
                     key={`${type === "workspace" ? "workspace" : api?.id}-${category}`}
-                    className="flex flex-col gap-2 my-0 py-0 border-l ml-[31px]"
+                    className="flex flex-col gap-2 my-0 py-0 border-l border-grayA-5 ml-[31px]"
                   >
                     <div className="flex flex-col my-0 py-0">
                       <Collapsible>
@@ -206,7 +190,7 @@ export const PermissionContentList = ({ type, api, onPermissionChange }: Props) 
                           setChecked={() => handleCategoryChecked(category)}
                         />
                         <CollapsibleContent>
-                          <div className="flex flex-col gap-2 my-0 py-0 border-l ml-[31px]">
+                          <div className="flex flex-col gap-2 my-0 py-0 border-l border-grayA-5 ml-[31px]">
                             {Object.entries(allPermissions as PermissionCategory).map(
                               ([action, { description, permission }]) => (
                                 <PermissionToggle
