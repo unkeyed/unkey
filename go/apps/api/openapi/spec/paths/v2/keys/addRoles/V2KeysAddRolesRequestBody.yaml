@@ -27,30 +27,9 @@ properties:
       Invalid roles cause the entire operation to fail atomically, ensuring consistent state.
       Role assignments take effect immediately but cache propagation across regions may take up to 30 seconds.
     items:
-      type: object
-      properties:
-        id:
-          type: string
-          minLength: 3
-          maxLength: 255 # Reasonable upper bound for database identifiers
-          pattern: "^[a-zA-Z0-9_]+$"
-          description: |
-            References an existing role by its database identifier.
-            Use when you know the exact role ID and want to ensure you're referencing a specific role.
-            Takes precedence over name when both are provided in the same object.
-            Essential for automation scripts where role names might change but IDs remain stable.
-          example: role_1n9McEIBSqy44Qy7hzWyM5
-        name:
-          type: string
-          minLength: 1
-          maxLength: 100 # Keep role names concise and readable
-          pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
-          description: |
-            Identifies the role by its human-readable name within the workspace.
-            Role names must start with a letter and contain only letters, numbers, underscores, or hyphens.
-            Names must be unique within the workspace and are case-sensitive.
-            More readable than IDs but vulnerable to integration breaks if roles are renamed.
-            Use IDs for automation and names for human-configured integrations.
-          example: admin
-      additionalProperties: false
+      type: string
+      minLength: 3
+      maxLength: 255 # Reasonable upper bound for database identifiers
+      pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+      description: References an existing role by its name or id identifier.
 additionalProperties: false

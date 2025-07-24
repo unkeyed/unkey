@@ -35,3 +35,9 @@ items:
         by department ('billing_team', 'support_staff'), or by feature area
         ('reporting_user', 'settings_manager').
       example: admin
+    description:
+      type: string
+      description:
+        A brief description of the role's purpose and responsibilities.
+        This helps users understand the role's scope and expected behavior.
+      example: Full access to all resources and features

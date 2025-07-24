@@ -865,20 +865,7 @@ type V2KeysAddRolesRequestBody struct {
 	// All roles must already exist in the workspace - roles cannot be created automatically.
 	// Invalid roles cause the entire operation to fail atomically, ensuring consistent state.
 	// Role assignments take effect immediately but cache propagation across regions may take up to 30 seconds.
-	Roles []struct {
-		// Id References an existing role by its database identifier.
-		// Use when you know the exact role ID and want to ensure you're referencing a specific role.
-		// Takes precedence over name when both are provided in the same object.
-		// Essential for automation scripts where role names might change but IDs remain stable.
-		Id *string `json:"id,omitempty"`
-
-		// Name Identifies the role by its human-readable name within the workspace.
-		// Role names must start with a letter and contain only letters, numbers, underscores, or hyphens.
-		// Names must be unique within the workspace and are case-sensitive.
-		// More readable than IDs but vulnerable to integration breaks if roles are renamed.
-		// Use IDs for automation and names for human-configured integrations.
-		Name *string `json:"name,omitempty"`
-	} `json:"roles"`
+	Roles []string `json:"roles"`
 }
 
 // V2KeysAddRolesResponseBody defines model for V2KeysAddRolesResponseBody.
@@ -914,6 +901,9 @@ type V2KeysAddRolesResponseBody struct {
 // - This only shows direct role assignments, not inherited or nested roles
 // - Role permissions are not expanded in this response - use keys.getKey for full details
 type V2KeysAddRolesResponseData = []struct {
+	// Description A brief description of the role's purpose and responsibilities. This helps users understand the role's scope and expected behavior.
+	Description *string `json:"description,omitempty"`
+
 	// Id The unique identifier of the role (begins with `role_`). This ID can be used in other API calls to reference this specific role. Role IDs are immutable and guaranteed to be unique within your Unkey workspace, making them reliable reference points for integration and automation systems.
 	Id string `json:"id"`
 
@@ -1136,19 +1126,7 @@ type V2KeysRemoveRolesRequestBody struct {
 	// After removal, the key loses access to permissions that were only granted through these roles.
 	// Role changes take effect immediately but cache propagation across regions may take up to 30 seconds.
 	// Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
-	Roles []struct {
-		// Id References the role to remove by its database identifier.
-		// Use when you know the exact role ID and want to ensure you're removing a specific role.
-		// Takes precedence over name when both are provided in the same object.
-		// Essential for automation scripts where role names might change but IDs remain stable.
-		Id *string `json:"id,omitempty"`
-
-		// Name Identifies the role to remove by its exact name with case-sensitive matching.
-		// Must match the complete role name as currently defined in the workspace, starting with a letter and using only letters, numbers, underscores, or hyphens.
-		// More readable than IDs but vulnerable to integration breaks if roles are renamed.
-		// Use IDs for automation and names for human-configured integrations.
-		Name *string `json:"name,omitempty"`
-	} `json:"roles"`
+	Roles []string `json:"roles"`
 }
 
 // V2KeysRemoveRolesResponseBody defines model for V2KeysRemoveRolesResponseBody.
@@ -1260,20 +1238,7 @@ type V2KeysSetRolesRequestBody struct {
 	// All roles must already exist in the workspace - roles cannot be created automatically.
 	// Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
 	// Role changes take effect immediately but cache propagation across regions may take up to 30 seconds.
-	Roles []struct {
-		// Id References an existing role by its database identifier.
-		// Use when you know the exact role ID and want to ensure you're referencing a specific role.
-		// Takes precedence over name when both are provided in the same object.
-		// Essential for automation scripts where role names might change but IDs remain stable.
-		Id *string `json:"id,omitempty"`
-
-		// Name Identifies the role by its human-readable name within the workspace.
-		// Role names must start with a letter and contain only letters, numbers, underscores, or hyphens.
-		// Names must be unique within the workspace and are case-sensitive.
-		// More readable than IDs but vulnerable to integration breaks if roles are renamed.
-		// Use IDs for automation and names for human-configured integrations.
-		Name *string `json:"name,omitempty"`
-	} `json:"roles"`
+	Roles []string `json:"roles"`
 }
 
 // V2KeysSetRolesResponseBody defines model for V2KeysSetRolesResponseBody.
@@ -1311,6 +1276,9 @@ type V2KeysSetRolesResponseBody struct {
 // - Role permissions are not expanded in this response - use keys.getKey for complete details
 // - An empty array indicates the key now has no roles assigned at all
 type V2KeysSetRolesResponseData = []struct {
+	// Description A brief description of the role's purpose and responsibilities. This helps users understand the role's scope and expected behavior.
+	Description *string `json:"description,omitempty"`
+
 	// Id The unique identifier of the role (begins with `role_`). This ID can be used in other API calls to reference this specific role. Role IDs are immutable and guaranteed to be unique, making them reliable reference points for integration and automation systems.
 	Id string `json:"id"`
 
@@ -1582,8 +1550,8 @@ type V2PermissionsDeletePermissionResponseBody struct {
 
 // V2PermissionsDeleteRoleRequestBody defines model for V2PermissionsDeleteRoleRequestBody.
 type V2PermissionsDeleteRoleRequestBody struct {
-	// RoleId Unique identifier of the role to permanently delete from your workspace.
-	// Must be a valid role ID that begins with 'role_' and exists within your workspace.
+	// Role Unique identifier of the role to permanently delete from your workspace.
+	// Must either be a valid role ID that begins with 'role_' or the given role name and exists within your workspace.
 	//
 	// WARNING: Deletion is immediate and irreversible with significant consequences:
 	// - All API keys assigned this role will lose the associated permissions
@@ -1592,11 +1560,10 @@ type V2PermissionsDeleteRoleRequestBody struct {
 	// - Historical analytics referencing this role remain intact
 	//
 	// Before deletion, ensure:
-	// - You have the correct role ID (verify the role name and permissions)
 	// - You've updated any dependent authorization logic or code
 	// - You've migrated any keys to use alternative roles or direct permissions
 	// - You've notified relevant team members of the access changes
-	RoleId string `json:"roleId"`
+	Role *string `json:"role,omitempty"`
 }
 
 // V2PermissionsDeleteRoleResponseBody defines model for V2PermissionsDeleteRoleResponseBody.
@@ -1630,11 +1597,12 @@ type V2PermissionsGetPermissionResponseData struct {
 
 // V2PermissionsGetRoleRequestBody defines model for V2PermissionsGetRoleRequestBody.
 type V2PermissionsGetRoleRequestBody struct {
-	// RoleId Specifies which role to retrieve by its unique identifier.
-	// Must be a valid role ID that begins with 'role_' and exists within your workspace.
+	// Role Unique identifier of the role to permanently delete from your workspace.
+	// Must either be a valid role ID that begins with 'role_' or the given role name and exists within your workspace.
+	//
 	// Use this endpoint to verify role details, check its current permissions, or retrieve metadata.
 	// Returns complete role information including all assigned permissions for comprehensive access review.
-	RoleId string `json:"roleId"`
+	Role string `json:"role"`
 }
 
 // V2PermissionsGetRoleResponseBody defines model for V2PermissionsGetRoleResponseBody.

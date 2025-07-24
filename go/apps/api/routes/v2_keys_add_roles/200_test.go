@@ -64,12 +64,7 @@ func TestSuccess(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: key.KeyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &roleId},
-			},
+			Roles: []string{roleId},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -129,12 +124,7 @@ func TestSuccess(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: key.KeyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Name: &roleName},
-			},
+			Roles: []string{roleName},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -187,14 +177,7 @@ func TestSuccess(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: key.KeyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &adminRole},        // By ID
-				{Name: &editorRoleName}, // By name
-				{Id: &viewerMultiRole},  // By ID
-			},
+			Roles: []string{adminRole, editorRoleName, viewerMultiRole},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -267,13 +250,7 @@ func TestSuccess(t *testing.T) {
 		// Now try to add both admin (existing) and editor (new) roles
 		req := handler.Request{
 			KeyId: key.KeyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &adminId},  // Already exists
-				{Id: &editorId}, // New role
-			},
+			Roles: []string{adminId, editorId},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -332,15 +309,7 @@ func TestSuccess(t *testing.T) {
 		// ID should take precedence
 		req := handler.Request{
 			KeyId: key.KeyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{
-					Id:   &adminID,
-					Name: &editorRoleName, // This should be ignored, ID takes precedence
-				},
-			},
+			Roles: []string{adminID, editorRoleName},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
