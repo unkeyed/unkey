@@ -229,7 +229,7 @@
           {
             "group": "Endpoints",
             "openapi": {
-              "source": "https://api.unkey.dev/openapi.json",
+              "source": "https://canary.unkey.dev/openapi.json",
               "directory": "api-reference/v1"
             }
           }
@@ -486,6 +486,10 @@
     {
       "source": "/onboarding/onboarding-ratelimiting",
       "destination": "/quickstart/onboarding/onboarding-ratelimiting"
+    },
+    {
+      "source": "/api-reference/:slug*",
+      "destination": "api-reference/v1/:slug*"
     }
   ]
 }

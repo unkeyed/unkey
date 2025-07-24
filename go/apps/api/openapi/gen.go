@@ -300,7 +300,7 @@ type KeysVerifyKeyResponseData struct {
 
 	// Name The human-readable name assigned to this key during creation.
 	// This is useful for displaying in logs or admin interfaces to identify
-	// the key's purpose or owner.
+	// the key's purpose.
 	Name *string `json:"name,omitempty"`
 
 	// Permissions A list of all permission names assigned to this key, either

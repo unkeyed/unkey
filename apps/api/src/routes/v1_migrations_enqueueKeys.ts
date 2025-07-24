@@ -11,6 +11,7 @@ import { buildUnkeyQuery } from "@unkey/rbac";
 const route = createRoute({
   tags: ["migrations"],
   operationId: "v1.migrations.enqueueKeys",
+  summary: "Enqueue key migration",
   method: "post" as const,
   path: "/v1/migrations.enqueueKeys",
   security: [{ bearerAuth: [] }],
