@@ -1,5 +1,6 @@
 get:
   x-speakeasy-ignore: "true"
+  x-excluded: true
   tags:
     - liveness
   security: []

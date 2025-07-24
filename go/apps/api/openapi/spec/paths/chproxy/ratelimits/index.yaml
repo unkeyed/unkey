@@ -1,5 +1,6 @@
 post:
   x-speakeasy-ignore: "true"
+  x-excluded: true
   tags:
     - chproxy
   security: []

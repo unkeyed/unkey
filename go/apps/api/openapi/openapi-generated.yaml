@@ -2115,7 +2115,7 @@ components:
                     type: string
                 type:
                     description: A URI reference that identifies the problem type. This provides a stable identifier for the error that can be used for documentation lookups and programmatic error handling. When followed, this URI should provide human-readable documentation for the problem type.
-                    example: https://unkey.com/docs/api-reference/errors-v2/unkey/resource/not_found
+                    example: https://unkey.com/docs/errors/unkey/resource/not_found
                     type: string
             required:
                 - title
@@ -3329,7 +3329,7 @@ info:
             "detail": "The resource you are attempting to modify is protected and cannot be changed",
             "status": 403,
             "title": "Forbidden",
-            "type": "https://unkey.com/docs/api-reference/errors-v2/unkey/application/protected_resource"
+            "type": "https://unkey.com/docs/errors/unkey/application/protected_resource"
           }
         }
         ```
@@ -5003,7 +5003,7 @@ paths:
                                                   message: unexpected token 'AND' at position 15
                                             status: 400
                                             title: Bad Request
-                                            type: https://unkey.com/docs/api-reference/errors-v2/user/bad_request/permissions_query_syntax_error
+                                            type: https://unkey.com/docs/errors/user/bad_request/permissions_query_syntax_error
                                         meta:
                                             requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
                             schema:
