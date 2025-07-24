@@ -4,11 +4,10 @@
   "private": true,
   "scripts": {
     "generate-docs": "./scripts/generate-cli-docs.sh",
-    "prebuild": "npm run generate-docs",
     "build": "next build",
     "dev": "next dev",
     "start": "next start",
-    "postinstall": "fumadocs-mdx"
+    "postinstall": "fumadocs-mdx && npm run generate-docs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.1.0",
