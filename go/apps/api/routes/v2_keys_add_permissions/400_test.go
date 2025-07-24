@@ -33,7 +33,7 @@ func TestValidationErrors(t *testing.T) {
 
 	// Create a workspace and root key
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.add_permission_to_key")
 
 	// Set up request headers
 	headers := http.Header{
@@ -198,7 +198,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "must specify either 'id' or 'slug'")
+		require.Contains(t, res.Body.Error.Detail, "failed to validate schema")
 	})
 
 	t.Run("permission not found by id", func(t *testing.T) {

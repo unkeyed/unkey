@@ -46,13 +46,11 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.removePermissions")
 
-	// 1. Authentication
 	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
 	}
 
-	// 2. Request validation
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
@@ -118,11 +116,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve current permissions."),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve current permissions."),
 		)
 	}
 
-	// Convert current permissions to a map for efficient lookup
 	currentPermissionIDs := make(map[string]db.Permission)
 	for _, permission := range currentPermissions {
 		currentPermissionIDs[permission.ID] = permission
@@ -139,6 +137,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	existingPermissions := make(map[string]db.Permission)
+	for _, permission := range foundPermissions {
+		existingPermissions[permission.ID] = permission
+		existingPermissions[permission.Slug] = permission
+	}
+
+	for _, toRemove := range req.Permissions {
+		_, exists := existingPermissions[toRemove]
+
+		if !exists {
+			return fault.New("permission not found",
+				fault.Code(codes.Data.Permission.NotFound.URN()),
+				fault.Public(fmt.Sprintf("Permission %q was not found.", toRemove)),
+			)
+		}
+	}
+
 	permissionsToRemove := make([]db.Permission, 0)
 	for _, permission := range foundPermissions {
 		_, exists := currentPermissionIDs[permission.ID]
@@ -153,10 +168,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if len(permissionsToRemove) > 0 {
 		err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 			var auditLogs []auditlog.AuditLog
+			var idsToRemove []string
 
-			idsToRemove := make([]string, 0)
-
-			// Remove permissions
 			for _, permission := range permissionsToRemove {
 				idsToRemove = append(idsToRemove, permission.ID)
 				auditLogs = append(auditLogs, auditlog.AuditLog{

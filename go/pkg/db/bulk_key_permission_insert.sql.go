@@ -33,7 +33,11 @@ func (q *BulkQueries) InsertKeyPermissions(ctx context.Context, db DBTX, args []
 		allArgs = append(allArgs, arg.PermissionID)
 		allArgs = append(allArgs, arg.WorkspaceID)
 		allArgs = append(allArgs, arg.CreatedAt)
-		allArgs = append(allArgs, arg.UpdatedAt)
+	}
+
+	// Add ON DUPLICATE KEY UPDATE parameters (only once, not per row)
+	if len(args) > 0 {
+		allArgs = append(allArgs, args[0].UpdatedAt)
 	}
 
 	// Execute the bulk insert

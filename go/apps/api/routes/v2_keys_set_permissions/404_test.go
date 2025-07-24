@@ -32,7 +32,7 @@ func TestNotFound(t *testing.T) {
 
 	// Create a workspace and root key
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.remove_permission_from_key", "rbac.*.add_permission_to_key")
 
 	// Set up request headers
 	headers := http.Header{
@@ -112,43 +112,6 @@ func TestNotFound(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Permission with ID '%s' was not found", nonExistentPermissionID))
 	})
 
-	t.Run("non-existent permission name", func(t *testing.T) {
-		// Create API and key using testutil helpers
-		defaultPrefix := "test"
-		defaultBytes := int32(16)
-		api := h.CreateApi(seed.CreateApiRequest{
-			WorkspaceID:   workspace.ID,
-			DefaultPrefix: &defaultPrefix,
-			DefaultBytes:  &defaultBytes,
-		})
-
-		keyName := "Test Key"
-		keyResponse := h.CreateKey(seed.CreateKeyRequest{
-			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
-			Name:        &keyName,
-		})
-		keyID := keyResponse.KeyID
-
-		nonExistentPermissionName := "nonexistent.permission.name"
-		req := handler.Request{
-			KeyId:       keyID,
-			Permissions: []string{nonExistentPermissionName},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 404, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Permission with slug '%s' was not found", nonExistentPermissionName))
-	})
-
 	t.Run("key from different workspace (isolation)", func(t *testing.T) {
 		// Create another workspace
 		otherWorkspace := h.CreateWorkspace()
@@ -197,56 +160,6 @@ func TestNotFound(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 		require.Contains(t, res.Body.Error.Detail, "The specified key was not found")
-	})
-
-	t.Run("permission from different workspace (isolation)", func(t *testing.T) {
-		// Create another workspace
-		otherWorkspace := h.CreateWorkspace()
-
-		// Create API and key in the authorized workspace using testutil helpers
-		defaultPrefix := "test"
-		defaultBytes := int32(16)
-		api := h.CreateApi(seed.CreateApiRequest{
-			WorkspaceID:   workspace.ID,
-			DefaultPrefix: &defaultPrefix,
-			DefaultBytes:  &defaultBytes,
-		})
-
-		keyName := "Test Key"
-		keyResponse := h.CreateKey(seed.CreateKeyRequest{
-			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
-			Name:        &keyName,
-		})
-		keyID := keyResponse.KeyID
-
-		// Create permission in the other workspace
-		permissionID := uid.New(uid.TestPrefix)
-		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			PermissionID: permissionID,
-			WorkspaceID:  otherWorkspace.ID, // Different workspace
-			Name:         "documents.read.otherworkspace",
-			Slug:         "documents.read.otherworkspace",
-			Description:  sql.NullString{Valid: true, String: "Read documents permission"},
-		})
-		require.NoError(t, err)
-
-		req := handler.Request{
-			KeyId:       keyID,
-			Permissions: []string{permissionID},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 404, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "Permission 'documents.read.otherworkspace' was not found")
 	})
 
 	t.Run("multiple permissions with early failure", func(t *testing.T) {

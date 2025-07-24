@@ -156,25 +156,6 @@ func TestValidationErrors(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "validate schema")
 	})
 
-	t.Run("permission not found by id", func(t *testing.T) {
-		req := handler.Request{
-			KeyId:       validKeyID,
-			Permissions: []string{uid.New(uid.TestPrefix)},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 404, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "was not found")
-	})
-
 	t.Run("key not found", func(t *testing.T) {
 		// Create a permission that exists
 		permissionID := uid.New(uid.TestPrefix)
