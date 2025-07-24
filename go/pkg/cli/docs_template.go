@@ -85,15 +85,4 @@ description: "{{ .Usage }}"
 {{- end }}
 
 {{- end }}
-
-{{- if hasItems .EnvVars }}
-
-## Environment Variables
-
-| Variable | Description | Type |
-| --- | --- | --- |
-{{- range .EnvVars }}
-| ` + "`{{ .Name }}`" + ` | {{ .Description }} | {{ .Type }} |
-{{- end }}
-
-{{- end }}`
+`

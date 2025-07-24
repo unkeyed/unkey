@@ -19,7 +19,7 @@ ctrl [flags]
 | `--platform` | Cloud platform identifier for this node. Used for logging and metrics. | string |- |`UNKEY_PLATFORM` |
 | `--image` | Container image identifier. Used for logging and metrics. | string |- |`UNKEY_IMAGE` |
 | `--region` | Geographic region identifier. Used for logging and routing. Default: unknown | string |`"unknown"` |`AWS_REGION` |
-| `--instance-id` | Unique identifier for this instance. Auto-generated if not provided. | string |`"ins_744iKq"` |`UNKEY_INSTANCE_ID` |
+| `--instance-id` | Unique identifier for this instance. Auto-generated if not provided. | string |`"ins_5S39di"` |`UNKEY_INSTANCE_ID` |
 | `--database-primary` **(required)** | MySQL connection string for primary database. Required for all deployments. Example: user:pass@host:3306/unkey?parseTime=true | string |- |`UNKEY_DATABASE_PRIMARY` |
 | `--database-hydra` **(required)** | MySQL connection string for hydra database. Required for all deployments. Example: user:pass@host:3306/hydra?parseTime=true | string |- |`UNKEY_DATABASE_HYDRA` |
 | `--otel` | Enable OpenTelemetry tracing and metrics | boolean |`false` |`UNKEY_OTEL` |
@@ -29,23 +29,3 @@ ctrl [flags]
 | `--auth-token` | Authentication token for control plane API access. Required for secure deployments. | string |- |`UNKEY_AUTH_TOKEN` |
 | `--metald-address` **(required)** | Full URL of the metald service for VM operations. Required for deployments. Example: https://metald.example.com:8080 | string |- |`UNKEY_METALD_ADDRESS` |
 | `--spiffe-socket-path` | Path to SPIFFE agent socket for mTLS authentication. Default: /var/lib/spire/agent/agent.sock | string |`"/var/lib/spire/agent/agent.sock"` |`UNKEY_SPIFFE_SOCKET_PATH` |
-
-## Environment Variables
-
-| Variable | Description | Type |
-| --- | --- | --- |
-| `UNKEY_HTTP_PORT` | Default value for --http-port flag | integer |
-| `UNKEY_LOGS_COLOR` | Default value for --color flag | boolean |
-| `UNKEY_PLATFORM` | Default value for --platform flag | string |
-| `UNKEY_IMAGE` | Default value for --image flag | string |
-| `AWS_REGION` | Default value for --region flag | string |
-| `UNKEY_INSTANCE_ID` | Default value for --instance-id flag | string |
-| `UNKEY_DATABASE_PRIMARY` | Default value for --database-primary flag | string |
-| `UNKEY_DATABASE_HYDRA` | Default value for --database-hydra flag | string |
-| `UNKEY_OTEL` | Default value for --otel flag | boolean |
-| `UNKEY_OTEL_TRACE_SAMPLING_RATE` | Default value for --otel-trace-sampling-rate flag | float |
-| `UNKEY_TLS_CERT_FILE` | Default value for --tls-cert-file flag | string |
-| `UNKEY_TLS_KEY_FILE` | Default value for --tls-key-file flag | string |
-| `UNKEY_AUTH_TOKEN` | Default value for --auth-token flag | string |
-| `UNKEY_METALD_ADDRESS` | Default value for --metald-address flag | string |
-| `UNKEY_SPIFFE_SOCKET_PATH` | Default value for --spiffe-socket-path flag | string |

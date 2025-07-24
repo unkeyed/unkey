@@ -96,7 +96,6 @@ type MDXData struct {
 	Subcommands []MDXSubcommand
 	Examples    []MDXExample
 	Flags       []MDXFlag
-	EnvVars     []MDXEnvVar
 	CommandType string
 	FrontMatter *FrontMatter
 }
@@ -123,12 +122,6 @@ type MDXFlag struct {
 	Required    bool
 }
 
-type MDXEnvVar struct {
-	Name        string
-	Description string
-	Type        string
-}
-
 // extractMDXData parses command metadata into structured data
 func (c *Command) extractMDXData(frontMatter *FrontMatter) MDXData {
 	return MDXData{
@@ -139,7 +132,6 @@ func (c *Command) extractMDXData(frontMatter *FrontMatter) MDXData {
 		Subcommands: c.extractSubcommands(),
 		Examples:    c.extractAllExamples(),
 		Flags:       c.extractAllFlags(),
-		EnvVars:     c.extractEnvVariables(),
 		CommandType: c.determineCommandType(),
 		FrontMatter: frontMatter,
 	}
@@ -414,29 +406,6 @@ func (c *Command) generateFallbackTitle(command string) string {
 	return "Basic usage"
 }
 
-func (c *Command) extractEnvVariables() []MDXEnvVar {
-	if len(c.Flags) == 0 {
-		return nil
-	}
-
-	var envVars []MDXEnvVar
-	seen := make(map[string]bool)
-
-	for _, flag := range c.Flags {
-		envVar := c.getEnvVar(flag)
-		if envVar != "" && !seen[envVar] {
-			envVars = append(envVars, MDXEnvVar{
-				Name:        envVar,
-				Description: fmt.Sprintf("Default value for --%s flag", flag.Name()),
-				Type:        c.getTypeString(flag),
-			})
-			seen[envVar] = true
-		}
-	}
-
-	return envVars
-}
-
 func (c *Command) hasItems(items any) bool {
 	switch v := items.(type) {
 	case []MDXFlag:
@@ -444,8 +413,6 @@ func (c *Command) hasItems(items any) bool {
 	case []MDXExample:
 		return len(v) > 0
 	case []MDXSubcommand:
-		return len(v) > 0
-	case []MDXEnvVar:
 		return len(v) > 0
 	default:
 		return false
