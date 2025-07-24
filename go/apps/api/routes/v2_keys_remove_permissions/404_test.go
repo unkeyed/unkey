@@ -110,6 +110,77 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "was not found")
 	})
 
+	t.Run("permission from different workspace by ID", func(t *testing.T) {
+		// Create another workspace
+		otherWorkspaceID := uid.New(uid.WorkspacePrefix)
+		err := db.Query.InsertWorkspace(ctx, h.DB.RW(), db.InsertWorkspaceParams{
+			ID:        otherWorkspaceID,
+			OrgID:     uid.New("test_org"),
+			Name:      "Other Workspace",
+			CreatedAt: time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		// Create a permission in the other workspace
+		otherPermissionID := uid.New(uid.TestPrefix)
+		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+			PermissionID: otherPermissionID,
+			WorkspaceID:  otherWorkspaceID,
+			Name:         "other.workspace.permission.remove.404",
+			Slug:         "other.workspace.permission.remove.404",
+			Description:  sql.NullString{Valid: true, String: "Permission in other workspace"},
+		})
+		require.NoError(t, err)
+
+		// Create a test keyring in our workspace
+		keyAuthID := uid.New(uid.KeyAuthPrefix)
+		err = db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
+			ID:                 keyAuthID,
+			WorkspaceID:        workspace.ID,
+			StoreEncryptedKeys: false,
+			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
+			DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
+			CreatedAtM:         time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		// Create a test key in our workspace
+		keyID := uid.New(uid.KeyPrefix)
+		keyString := "test_" + uid.New("")
+		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
+			ID:                keyID,
+			KeyringID:         keyAuthID,
+			Hash:              hash.Sha256(keyString),
+			Start:             keyString[:4],
+			WorkspaceID:       workspace.ID,
+			ForWorkspaceID:    sql.NullString{Valid: false},
+			Name:              sql.NullString{Valid: true, String: "Test Key"},
+			CreatedAtM:        time.Now().UnixMilli(),
+			Enabled:           true,
+			IdentityID:        sql.NullString{Valid: false},
+			Meta:              sql.NullString{Valid: false},
+			Expires:           sql.NullTime{Valid: false},
+			RemainingRequests: sql.NullInt32{Valid: false},
+		})
+		require.NoError(t, err)
+
+		req := handler.Request{
+			KeyId:       keyID,
+			Permissions: []string{otherPermissionID},
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 404, res.Status)
+		require.NotNil(t, res.Body)
+		require.Contains(t, res.Body.Error.Detail, "was not found")
+	})
+
 	t.Run("key from different workspace", func(t *testing.T) {
 		// Create another workspace
 		otherWorkspaceID := uid.New(uid.WorkspacePrefix)

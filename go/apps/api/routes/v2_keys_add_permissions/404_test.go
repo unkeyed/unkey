@@ -92,7 +92,7 @@ func TestNotFoundErrors(t *testing.T) {
 		keyID := keyResponse.KeyID
 
 		// Use a non-existent permission ID
-		nonExistentPermissionID := uid.New(uid.TestPrefix)
+		nonExistentPermissionID := uid.New(uid.PermissionPrefix)
 
 		req := handler.Request{
 			KeyId:       keyID,

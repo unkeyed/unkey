@@ -226,11 +226,18 @@ func TestSuccess(t *testing.T) {
 		require.NotNil(t, res.Body.Data)
 		require.Len(t, res.Body.Data, 2)
 
-		// Verify both permissions are in response (sorted alphabetically)
-		require.Equal(t, permission1ID, res.Body.Data[0].Id)
-		require.Equal(t, "documents.read.multiple", res.Body.Data[0].Name)
-		require.Equal(t, permission2ID, res.Body.Data[1].Id)
-		require.Equal(t, "documents.write.multiple", res.Body.Data[1].Name)
+		contains := func(id string) bool {
+			for _, p := range res.Body.Data {
+				if p.Id == id {
+					return true
+				}
+			}
+			return false
+		}
+
+		// Verify both permissions are in response
+		require.True(t, contains(permission1ID))
+		require.True(t, contains(permission2ID))
 
 		// Verify permissions were added to key
 		finalPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), keyID)

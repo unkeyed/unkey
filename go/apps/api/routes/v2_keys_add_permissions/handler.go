@@ -117,11 +117,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	currentPermissionIDs := make(map[string]db.Permission)
-	for _, permission := range currentPermissions {
-		currentPermissionIDs[permission.ID] = permission
-	}
-
 	foundPermissions, err := db.Query.FindManyPermissionsByIdOrSlug(ctx, h.DB.RO(), db.FindManyPermissionsByIdOrSlugParams{
 		WorkspaceID: auth.AuthorizedWorkspaceID,
 		Ids:         req.Permissions,
@@ -134,6 +129,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	missingPermissions := make(map[string]struct{})
+	permissionsToSet := make([]db.Permission, 0)
+	permissionsToInsert := make([]db.InsertPermissionParams, 0)
+	currentPermissionIDs := make(map[string]db.Permission)
+
+	for _, permission := range currentPermissions {
+		currentPermissionIDs[permission.ID] = permission
+	}
+
 	for _, permission := range req.Permissions {
 		missingPermissions[permission] = struct{}{}
 	}
@@ -142,9 +145,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		delete(missingPermissions, permission.ID)
 		delete(missingPermissions, permission.Slug)
 	}
-
-	permissionsToSet := make([]db.Permission, 0)
-	permissionsToInsert := make([]db.InsertPermissionParams, 0)
 
 	for _, permission := range foundPermissions {
 		_, ok := currentPermissionIDs[permission.ID]
