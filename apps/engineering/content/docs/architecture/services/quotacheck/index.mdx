@@ -1,0 +1,42 @@
+---
+title: "Quotacheck Command"
+description: "Check for exceeded quotas"
+---
+Check for exceeded quotas and optionally send Slack notifications.
+
+## Usage
+
+`unkey quotacheck --clickhouse-url <url> --database-dsn <dsn> [--slack-webhook-url <webhook>]`
+
+## Examples
+
+Check quotas without notifications:
+`unkey quotacheck --clickhouse-url clickhouse://localhost:9000 --database-dsn postgres://user:pass@localhost/db`
+
+Check quotas with Slack notifications:
+`unkey quotacheck --clickhouse-url clickhouse://localhost:9000 --database-dsn postgres://user:pass@localhost/db --slack-webhook-url https://hooks.slack.com/services/...`
+
+Using environment variables:
+`CLICKHOUSE_URL=... DATABASE_DSN=... SLACK_WEBHOOK_URL=... unkey quotacheck`
+
+## Command Syntax
+
+```bash
+quotacheck [flags]
+```
+
+## Flags
+
+| Flag | Description | Type | Default | Environment |
+| --- | --- | --- | --- | --- |
+| `--clickhouse-url` **(required)** | URL for the ClickHouse database | string |- |`CLICKHOUSE_URL` |
+| `--database-dsn` **(required)** | DSN for the primary database | string |- |`DATABASE_DSN` |
+| `--slack-webhook-url` | Slack webhook URL to send notifications | string |- |`SLACK_WEBHOOK_URL` |
+
+## Environment Variables
+
+| Variable | Description | Type |
+| --- | --- | --- |
+| `CLICKHOUSE_URL` | Default value for --clickhouse-url flag | string |
+| `DATABASE_DSN` | Default value for --database-dsn flag | string |
+| `SLACK_WEBHOOK_URL` | Default value for --slack-webhook-url flag | string |

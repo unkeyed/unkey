@@ -1,0 +1,40 @@
+---
+title: "Version List Command"
+description: "List versions with optional filtering"
+---
+List all versions for the current project with support for filtering by branch, status, and limiting results.
+
+## Usage
+
+`unkey version list [flags]`
+
+## Examples
+
+List all versions:
+`unkey version list`
+
+List versions from main branch:
+`unkey version list --branch main`
+
+List only active versions:
+`unkey version list --status active`
+
+List last 5 versions:
+`unkey version list --limit 5`
+
+Combine filters:
+`unkey version list --branch main --status active --limit 3`
+
+## Command Syntax
+
+```bash
+list [flags]
+```
+
+## Flags
+
+| Flag | Description | Type | Default | Environment |
+| --- | --- | --- | --- | --- |
+| `--branch` | Filter by branch name | string |- |- |
+| `--status` | Filter by status (pending, building, active, failed) | string |- |- |
+| `--limit` | Number of versions to show | integer |`10` |- |

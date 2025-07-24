@@ -1,0 +1,32 @@
+---
+title: "Run Command"
+description: "Run Unkey services"
+---
+Run various Unkey services in development or production environments.
+
+## Available Services
+
+- `api` - The main API server for validating and managing API keys
+- `ctrl` - The control plane service for managing infrastructure and deployments
+
+## Usage
+
+`unkey run <service> [flags]`
+
+## Examples
+
+Run the API server:
+`unkey run api`
+
+Run the control plane:
+`unkey run ctrl`
+
+Show available services and their options:
+`unkey run --help`
+
+Run API server with custom configuration:
+`unkey run api --port 8080 --env production`
+
+## Quick Reference
+- `run api` - Run the Unkey API server for validating and managing API keys
+- `run ctrl` - Run the Unkey control plane service for managing infrastructure and services

@@ -1,0 +1,67 @@
+---
+title: "Run Api Command"
+description: "Run the Unkey API server for validating and managing API keys"
+---
+Run the Unkey API server for validating and managing API keys
+
+## Command Syntax
+
+```bash
+api [flags]
+```
+
+## Flags
+
+| Flag | Description | Type | Default | Environment |
+| --- | --- | --- | --- | --- |
+| `--http-port` | HTTP port for the API server to listen on. Default: 7070 | integer |`7070` |`UNKEY_HTTP_PORT` |
+| `--color` | Enable colored log output. Default: true | boolean |`true` |`UNKEY_LOGS_COLOR` |
+| `--test-mode` | Enable test mode. WARNING: Potentially unsafe, may trust client inputs blindly. Default: false | boolean |`false` |`UNKEY_TEST_MODE` |
+| `--platform` | Cloud platform identifier for this node. Used for logging and metrics. | string |- |`UNKEY_PLATFORM` |
+| `--image` | Container image identifier. Used for logging and metrics. | string |- |`UNKEY_IMAGE` |
+| `--region` | Geographic region identifier. Used for logging and routing. Default: unknown | string |`"unknown"` |`AWS_REGION` |
+| `--instance-id` | Unique identifier for this instance. Auto-generated if not provided. | string |`"ins_5pgHiC"` |`UNKEY_INSTANCE_ID` |
+| `--database-primary` **(required)** | MySQL connection string for primary database. Required for all deployments. Example: user:pass@host:3306/unkey?parseTime=true | string |- |`UNKEY_DATABASE_PRIMARY` |
+| `--database-replica` | MySQL connection string for read-replica. Reduces load on primary database. Format same as database-primary. | string |- |`UNKEY_DATABASE_REPLICA` |
+| `--redis-url` | Redis connection string for rate-limiting and distributed counters. Example: redis://localhost:6379 | string |- |`UNKEY_REDIS_URL` |
+| `--clickhouse-url` | ClickHouse connection string for analytics. Recommended for production. Example: clickhouse://user:pass@host:9000/unkey | string |- |`UNKEY_CLICKHOUSE_URL` |
+| `--otel` | Enable OpenTelemetry tracing and metrics | boolean |`false` |`UNKEY_OTEL` |
+| `--otel-trace-sampling-rate` | Sampling rate for OpenTelemetry traces (0.0-1.0). Only used when --otel is provided. Default: 0.25 | float |`0.25` |`UNKEY_OTEL_TRACE_SAMPLING_RATE` |
+| `--prometheus-port` | Enable Prometheus /metrics endpoint on specified port. Set to 0 to disable. | integer |- |`UNKEY_PROMETHEUS_PORT` |
+| `--tls-cert-file` | Path to TLS certificate file for HTTPS. Both cert and key must be provided to enable HTTPS. | string |- |`UNKEY_TLS_CERT_FILE` |
+| `--tls-key-file` | Path to TLS key file for HTTPS. Both cert and key must be provided to enable HTTPS. | string |- |`UNKEY_TLS_KEY_FILE` |
+| `--vault-master-keys` | Vault master keys for encryption | string[] |- |`UNKEY_VAULT_MASTER_KEYS` |
+| `--vault-s3-url` | S3 Compatible Endpoint URL | string |- |`UNKEY_VAULT_S3_URL` |
+| `--vault-s3-bucket` | S3 bucket name | string |- |`UNKEY_VAULT_S3_BUCKET` |
+| `--vault-s3-access-key-id` | S3 access key ID | string |- |`UNKEY_VAULT_S3_ACCESS_KEY_ID` |
+| `--vault-s3-secret-access-key` | S3 secret access key | string |- |`UNKEY_VAULT_S3_SECRET_ACCESS_KEY` |
+| `--chproxy-enabled` | Enable ClickHouse proxy endpoints for high-throughput event collection | boolean |`false` |`UNKEY_CHPROXY_ENABLED` |
+| `--chproxy-auth-token` | Authentication token for ClickHouse proxy endpoints. Required when proxy is enabled. | string |- |`UNKEY_CHPROXY_AUTH_TOKEN` |
+
+## Environment Variables
+
+| Variable | Description | Type |
+| --- | --- | --- |
+| `UNKEY_HTTP_PORT` | Default value for --http-port flag | integer |
+| `UNKEY_LOGS_COLOR` | Default value for --color flag | boolean |
+| `UNKEY_TEST_MODE` | Default value for --test-mode flag | boolean |
+| `UNKEY_PLATFORM` | Default value for --platform flag | string |
+| `UNKEY_IMAGE` | Default value for --image flag | string |
+| `AWS_REGION` | Default value for --region flag | string |
+| `UNKEY_INSTANCE_ID` | Default value for --instance-id flag | string |
+| `UNKEY_DATABASE_PRIMARY` | Default value for --database-primary flag | string |
+| `UNKEY_DATABASE_REPLICA` | Default value for --database-replica flag | string |
+| `UNKEY_REDIS_URL` | Default value for --redis-url flag | string |
+| `UNKEY_CLICKHOUSE_URL` | Default value for --clickhouse-url flag | string |
+| `UNKEY_OTEL` | Default value for --otel flag | boolean |
+| `UNKEY_OTEL_TRACE_SAMPLING_RATE` | Default value for --otel-trace-sampling-rate flag | float |
+| `UNKEY_PROMETHEUS_PORT` | Default value for --prometheus-port flag | integer |
+| `UNKEY_TLS_CERT_FILE` | Default value for --tls-cert-file flag | string |
+| `UNKEY_TLS_KEY_FILE` | Default value for --tls-key-file flag | string |
+| `UNKEY_VAULT_MASTER_KEYS` | Default value for --vault-master-keys flag | string[] |
+| `UNKEY_VAULT_S3_URL` | Default value for --vault-s3-url flag | string |
+| `UNKEY_VAULT_S3_BUCKET` | Default value for --vault-s3-bucket flag | string |
+| `UNKEY_VAULT_S3_ACCESS_KEY_ID` | Default value for --vault-s3-access-key-id flag | string |
+| `UNKEY_VAULT_S3_SECRET_ACCESS_KEY` | Default value for --vault-s3-secret-access-key flag | string |
+| `UNKEY_CHPROXY_ENABLED` | Default value for --chproxy-enabled flag | boolean |
+| `UNKEY_CHPROXY_AUTH_TOKEN` | Default value for --chproxy-auth-token flag | string |

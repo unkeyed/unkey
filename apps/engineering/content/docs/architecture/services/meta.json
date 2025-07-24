@@ -3,14 +3,14 @@
   "icon": "Pencil",
   "root": false,
   "pages": [
-    "vault",
+    "api",
     "clickhouse",
     "clickhouse-proxy",
-    "api",
     "deploy",
     "healthcheck",
     "quotacheck",
     "run",
+    "vault",
     "version"
   ]
 }
