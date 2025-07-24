@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -8,11 +9,18 @@ import (
 	"golang.org/x/text/language"
 )
 
+var (
+	ErrCommandNotFound = errors.New("command not found")
+	ErrMDXGeneration   = errors.New("failed to generate MDX")
+)
+
 // handleMDXGeneration checks if this is an MDX generation request and handles it
 func (c *Command) handleMDXGeneration(args []string) (bool, error) {
-	// Check if the last argument is "mdx"
 	if len(args) == 0 {
 		return false, nil
+	}
+	if c == nil {
+		return false, ErrCommandNil
 	}
 
 	lastArg := args[len(args)-1]
@@ -26,7 +34,7 @@ func (c *Command) handleMDXGeneration(args []string) (bool, error) {
 	// Find the target command by traversing the command tree
 	targetCmd := c.findCommandByPath(commandPath)
 	if targetCmd == nil {
-		return true, fmt.Errorf("command '%s' not found", strings.Join(commandPath, " "))
+		return true, fmt.Errorf("%w: '%s'", ErrCommandNotFound, strings.Join(commandPath, " "))
 	}
 
 	// Generate appropriate frontmatter based on command path
@@ -35,7 +43,7 @@ func (c *Command) handleMDXGeneration(args []string) (bool, error) {
 	// Generate and output MDX
 	mdxContent, err := targetCmd.GenerateMDX(frontMatter)
 	if err != nil {
-		return true, fmt.Errorf("failed to generate MDX: %w", err)
+		return true, fmt.Errorf("%w: %v", ErrMDXGeneration, err)
 	}
 
 	fmt.Print(mdxContent)
@@ -44,6 +52,9 @@ func (c *Command) handleMDXGeneration(args []string) (bool, error) {
 
 // findCommandByPath traverses the command tree to find the target command
 func (c *Command) findCommandByPath(path []string) *Command {
+	if c == nil {
+		return nil
+	}
 	if len(path) == 0 {
 		return c
 	}
@@ -60,6 +71,9 @@ func (c *Command) findCommandByPath(path []string) *Command {
 
 	// Find the next command in the path
 	for _, cmd := range c.Commands {
+		if cmd == nil {
+			continue
+		}
 		if cmd.Name == searchPath[0] {
 			return cmd.findCommandByPath(searchPath[1:])
 		}
@@ -70,9 +84,18 @@ func (c *Command) findCommandByPath(path []string) *Command {
 
 // generateFrontMatterFromPath creates appropriate frontmatter based on command path
 func (c *Command) generateFrontMatterFromPath(path []string, targetCmd *Command) *FrontMatter {
+	if c == nil || targetCmd == nil {
+		return &FrontMatter{
+			Title:       "Unknown Command",
+			Description: "No description available",
+		}
+	}
+
+	caser := cases.Title(language.English)
+
 	if len(path) == 0 {
 		return &FrontMatter{
-			Title:       cases.Title(language.English).String(c.Name) + " Command",
+			Title:       caser.String(c.Name) + " Command",
 			Description: c.Usage,
 		}
 	}
@@ -80,11 +103,16 @@ func (c *Command) generateFrontMatterFromPath(path []string, targetCmd *Command)
 	// Build title from command path
 	var titleParts []string
 	for _, part := range path {
-		titleParts = append(titleParts, cases.Title(language.English).String(part))
+		if part != "" {
+			titleParts = append(titleParts, caser.String(part))
+		}
 	}
 
 	title := strings.Join(titleParts, " ") + " Command"
 	description := targetCmd.Usage
+	if description == "" {
+		description = "No description available"
+	}
 
 	return &FrontMatter{
 		Title:       title,

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -8,6 +9,12 @@ import (
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+)
+
+var (
+	ErrCommandNil           = errors.New("command cannot be nil")
+	ErrTemplateParseFailure = errors.New("failed to parse MDX template")
+	ErrTemplateExecFailure  = errors.New("failed to execute MDX template")
 )
 
 // FrontMatter holds metadata for the MDX file
@@ -18,6 +25,10 @@ type FrontMatter struct {
 
 // GenerateMDX creates Fuma docs MDX from any command metadata with frontmatter
 func (c *Command) GenerateMDX(frontMatter *FrontMatter) (string, error) {
+	if c == nil {
+		return "", ErrCommandNil
+	}
+
 	data := c.extractMDXData(frontMatter)
 
 	// Choose template based on whether this is a parent command or leaf command
@@ -39,12 +50,13 @@ func (c *Command) GenerateMDX(frontMatter *FrontMatter) (string, error) {
 		"eq":        func(a, b string) bool { return a == b },
 	}).Parse(templateStr)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse MDX template: %w", err)
+		return "", fmt.Errorf("%w: %v", ErrTemplateParseFailure, err)
 	}
 
 	var result strings.Builder
-	if err := tmpl.Execute(&result, data); err != nil {
-		return "", fmt.Errorf("failed to execute MDX template: %w", err)
+	err = tmpl.Execute(&result, data)
+	if err != nil {
+		return "", fmt.Errorf("%w: %v", ErrTemplateExecFailure, err)
 	}
 
 	return result.String(), nil
@@ -126,6 +138,10 @@ func (c *Command) extractSubcommands() []MDXSubcommand {
 
 // extractFirstSentence gets the first sentence of a description
 func (c *Command) extractFirstSentence(desc string) string {
+	if desc == "" {
+		return ""
+	}
+
 	sentences := regexp.MustCompile(`[.!?]\s+`).Split(desc, 2)
 	if len(sentences) > 0 {
 		first := strings.TrimSpace(sentences[0])
@@ -145,19 +161,22 @@ func (c *Command) extractFirstSentence(desc string) string {
 
 // extractAllExamples parses examples from description
 func (c *Command) extractAllExamples() []MDXExample {
-	desc := c.Description
-	var examples []MDXExample
+	if c.Description == "" {
+		return nil
+	}
 
 	// Find EXAMPLES section
 	exampleRegex := regexp.MustCompile(`(?s)EXAMPLES:\s*(.*?)(?:\n\n|\z)`)
-	matches := exampleRegex.FindStringSubmatch(desc)
+	matches := exampleRegex.FindStringSubmatch(c.Description)
 	if len(matches) < 2 {
-		return examples
+		return nil
 	}
 
+	var examples []MDXExample
+
 	// Parse example lines
-	lines := strings.SplitSeq(matches[1], "\n")
-	for line := range lines {
+	lines := strings.Split(matches[1], "\n")
+	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
@@ -179,9 +198,17 @@ func (c *Command) extractAllExamples() []MDXExample {
 
 // extractAllFlags processes all flags into MDX format
 func (c *Command) extractAllFlags() []MDXFlag {
+	if len(c.Flags) == 0 {
+		return nil
+	}
+
 	var flags []MDXFlag
 
 	for _, flag := range c.Flags {
+		if flag == nil {
+			continue
+		}
+
 		mdxFlag := MDXFlag{
 			Name:        flag.Name(),
 			Description: flag.Usage(),
@@ -198,6 +225,10 @@ func (c *Command) extractAllFlags() []MDXFlag {
 
 // getTypeString returns the type name for a flag
 func (c *Command) getTypeString(flag Flag) string {
+	if flag == nil {
+		return "unknown"
+	}
+
 	switch flag.(type) {
 	case *StringFlag:
 		return "string"
@@ -227,6 +258,10 @@ func (c *Command) determineCommandType() string {
 
 // Helper methods
 func (c *Command) cleanCommandLine(line string) string {
+	if line == "" {
+		return ""
+	}
+
 	if idx := strings.Index(line, "#"); idx != -1 {
 		line = line[:idx]
 	}
@@ -236,13 +271,23 @@ func (c *Command) cleanCommandLine(line string) string {
 }
 
 func (c *Command) extractCommentFromLine(line string) string {
-	if idx := strings.Index(line, "#"); idx != -1 {
-		return strings.TrimSpace(line[idx+1:])
+	if line == "" {
+		return ""
 	}
-	return ""
+
+	idx := strings.Index(line, "#")
+	if idx == -1 {
+		return ""
+	}
+
+	return strings.TrimSpace(line[idx+1:])
 }
 
 func (c *Command) generateExampleTitle(command string) string {
+	if command == "" {
+		return "Basic usage"
+	}
+
 	if strings.Contains(command, "--help") {
 		return "Show help"
 	}
@@ -284,6 +329,10 @@ func (c *Command) generateExampleTitle(command string) string {
 }
 
 func (c *Command) extractEnvVariables() []MDXEnvVar {
+	if len(c.Flags) == 0 {
+		return nil
+	}
+
 	var envVars []MDXEnvVar
 	seen := make(map[string]bool)
 
