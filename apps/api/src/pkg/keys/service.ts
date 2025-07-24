@@ -262,6 +262,11 @@ export class KeyService {
       latency: performance.now() - dbStart,
     });
 
+    this.logger.info("raw db response", {
+      hash: hash,
+      dbRes: JSON.stringify(dbRes),
+    });
+
     if (!dbRes?.keyAuth?.api) {
       return null;
     }
@@ -398,6 +403,7 @@ export class KeyService {
     if (!data.workspace) {
       this.logger.warn("workspace not found, trying again", {
         workspace: data.key.workspaceId,
+        data: JSON.stringify(data),
       });
       await this.cache.keyByHash.remove(keyHash);
       const ws = await this.db.primary.query.workspaces.findFirst({
@@ -410,6 +416,7 @@ export class KeyService {
         return Err(new DisabledWorkspaceError(data.key.workspaceId));
       }
       data.workspace = ws;
+      await this.cache.keyByHash.set(keyHash, data);
     }
 
     if ((data.forWorkspace && !data.forWorkspace.enabled) || !data.workspace?.enabled) {
