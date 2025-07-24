@@ -17,6 +17,31 @@ var (
 	ErrTemplateExecFailure  = errors.New("failed to execute MDX template")
 )
 
+type patternMatcher struct {
+	name    string
+	pattern *regexp.Regexp
+}
+
+// Pre-compiled regex patterns for matching title-command pairs
+var titlePatterns = []patternMatcher{
+	{
+		name:    "heading_with_bash_block",
+		pattern: regexp.MustCompile(`(?s)#{3,4}\s*([^\n]+)\n\s*` + "`{3}bash\\s*\\n([^`]+)`{3}"),
+	},
+	{
+		name:    "bold_title_with_bash_block",
+		pattern: regexp.MustCompile(`(?s)\*\*([^*]+):\*\*\s*\n\s*` + "`{3}bash\\s*\\n([^`]+)`{3}"),
+	},
+	{
+		name:    "colon_title_with_bash_block",
+		pattern: regexp.MustCompile(`(?s)([^:\n]+):\s*\n\s*` + "`{3}bash\\s*\\n([^`]+)`{3}"),
+	},
+	{
+		name:    "any_heading_with_bash_block",
+		pattern: regexp.MustCompile(`(?s)#{1,4}\s*([^\n]+)\n[^` + "`]*`{3}bash\\s*\\n([^`]+)`{3}"),
+	},
+}
+
 // FrontMatter holds metadata for the MDX file
 type FrontMatter struct {
 	Title       string
@@ -323,23 +348,8 @@ func (c *Command) extractExampleTitlesFromDescription() map[string]string {
 
 	titleMap := make(map[string]string)
 
-	// Try multiple patterns to find title-command pairs
-	backtick := "`"
-	patterns := []string{
-		// #### Title followed by ```bash
-		`(?s)#{3,4}\s*([^\n]+)\n\s*` + backtick + `{3}bash\s*\n([^` + backtick + `]+)` + backtick + `{3}`,
-		// **Title:** followed by ```bash
-		`(?s)\*\*([^*]+):\*\*\s*\n\s*` + backtick + `{3}bash\s*\n([^` + backtick + `]+)` + backtick + `{3}`,
-		// Title: followed by ```bash
-		`(?s)([^:\n]+):\s*\n\s*` + backtick + `{3}bash\s*\n([^` + backtick + `]+)` + backtick + `{3}`,
-		// Any heading (# ## ### ####) followed by bash block
-		`(?s)#{1,4}\s*([^\n]+)\n[^` + backtick + `]*` + backtick + `{3}bash\s*\n([^` + backtick + `]+)` + backtick + `{3}`,
-	}
-
-	for _, pattern := range patterns {
-		regex := regexp.MustCompile(pattern)
-		matches := regex.FindAllStringSubmatch(c.Description, -1)
-
+	for _, matcher := range titlePatterns {
+		matches := matcher.pattern.FindAllStringSubmatch(c.Description, -1)
 		for _, match := range matches {
 			if len(match) >= 3 {
 				title := strings.TrimSpace(match[1])
