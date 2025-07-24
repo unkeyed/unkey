@@ -1,9 +1,7 @@
 package cli
 
 import (
-	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"golang.org/x/text/cases"
@@ -11,7 +9,7 @@ import (
 )
 
 // handleMDXGeneration checks if this is an MDX generation request and handles it
-func (c *Command) handleMDXGeneration(ctx context.Context, args []string) (bool, error) {
+func (c *Command) handleMDXGeneration(args []string) (bool, error) {
 	// Check if the last argument is "mdx"
 	if len(args) == 0 {
 		return false, nil
@@ -92,46 +90,4 @@ func (c *Command) generateFrontMatterFromPath(path []string, targetCmd *Command)
 		Title:       title,
 		Description: description,
 	}
-}
-
-// findCommand recursively finds a command by name (kept for backward compatibility)
-func (c *Command) findCommand(name string) *Command {
-	if c.Name == name {
-		return c
-	}
-
-	for _, cmd := range c.Commands {
-		if found := cmd.findCommand(name); found != nil {
-			return found
-		}
-	}
-
-	return nil
-}
-
-// generateMDXForCommand generates MDX documentation for the specified command (kept for backward compatibility)
-func generateMDXForCommand(cmd *Command, outputFile string) error {
-	// Use command's Name and Usage as default frontmatter
-	frontMatter := &FrontMatter{
-		Title:       cases.Title(language.English).String(cmd.Name) + " Command",
-		Description: cmd.Usage,
-	}
-
-	mdxContent, err := cmd.GenerateMDX(frontMatter)
-	if err != nil {
-		return fmt.Errorf("failed to generate MDX: %w", err)
-	}
-
-	if outputFile != "" {
-		// Write to file
-		if err := os.WriteFile(outputFile, []byte(mdxContent), 0644); err != nil {
-			return fmt.Errorf("failed to write to file %s: %w", outputFile, err)
-		}
-		fmt.Printf("MDX documentation written to: %s\n", outputFile)
-	} else {
-		// Print to stdout
-		fmt.Print(mdxContent)
-	}
-
-	return nil
 }

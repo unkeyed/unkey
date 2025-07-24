@@ -183,7 +183,7 @@ func (c *Command) Run(ctx context.Context, args []string) error {
 		return ErrNoArguments
 	}
 	// Handle MDX generation first
-	if handled, err := c.handleMDXGeneration(ctx, args); handled {
+	if handled, err := c.handleMDXGeneration(args); handled {
 		return err
 	}
 	// Parse arguments starting from index 1 (skip program name)
