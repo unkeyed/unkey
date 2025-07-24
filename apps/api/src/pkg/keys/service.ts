@@ -262,6 +262,11 @@ export class KeyService {
       latency: performance.now() - dbStart,
     });
 
+    this.logger.info("raw db response", {
+      hash: hash,
+      dbRes: JSON.stringify(dbRes),
+    });
+
     if (!dbRes?.keyAuth?.api) {
       return null;
     }
@@ -411,6 +416,7 @@ export class KeyService {
         return Err(new DisabledWorkspaceError(data.key.workspaceId));
       }
       data.workspace = ws;
+      this.cache.keyByHash.set(keyHash, data);
     }
 
     if ((data.forWorkspace && !data.forWorkspace.enabled) || !data.workspace?.enabled) {
