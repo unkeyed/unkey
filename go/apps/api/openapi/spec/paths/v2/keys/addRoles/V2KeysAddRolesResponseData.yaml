@@ -12,7 +12,6 @@ description: |-
   - An empty array means the key has no roles assigned (unlikely after an add operation)
   - This only shows direct role assignments, not inherited or nested roles
   - Role permissions are not expanded in this response - use keys.getKey for full details
-  - All role changes are logged in the audit log for security tracking
 items:
   type: object
   required:

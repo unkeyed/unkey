@@ -154,7 +154,7 @@ func TestBadRequest(t *testing.T) {
 				require.NotNil(t, res.Body)
 				require.NotNil(t, res.Body.Error)
 				require.Contains(t, res.Body.Error.Detail, tc.expectError)
-				require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/user/bad_request/permissions_query_syntax_error", res.Body.Error.Type)
+				require.Equal(t, "https://unkey.com/docs/errors/user/bad_request/permissions_query_syntax_error", res.Body.Error.Type)
 			})
 		}
 	})

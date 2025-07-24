@@ -1,11 +1,23 @@
 post:
   tags:
     - keys
-  summary: Add roles to an API key
-  description: |-
-    Adds one or more roles to an existing API key without affecting existing roles or permissions. This is an additive operation that supplements the key's current role assignments.
-    Use this endpoint when you need to grant additional role-based access to a key, such as promoting user privileges or enabling new feature sets through role inheritance.
-    Role assignments take effect immediately for new verifications, though existing authorized sessions may continue until their cache expires.
+  summary: Add key roles
+  description: |
+    Add roles to a key without affecting existing roles or permissions.
+
+    Use this for privilege upgrades, enabling new feature sets, or subscription changes that grant additional role-based capabilities. Direct permissions remain unchanged.
+
+    **Important**: Changes take effect immediately with up to 30-second edge propagation.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `api.*.update_key` (to update keys in any API)
+    - `api.<api_id>.update_key` (to update keys in a specific API)
+
+    **Side Effects**
+
+    Invalidates the key cache for immediate effect, and makes role assignments available for verification within 30 seconds across all regions.
   operationId: addRoles
   x-speakeasy-name-override: addRoles
   security:
@@ -16,87 +28,19 @@ post:
       application/json:
         schema:
           "$ref": "./V2KeysAddRolesRequestBody.yaml"
-        examples:
-          basic:
-            summary: Adding roles by ID
-            description:
-              Adding roles using their IDs is the most precise method,
-              ensuring you're adding exactly the intended roles regardless of
-              name changes.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              roles:
-                - id: role_1n9McEIBSqy44Qy7hzWyM5
-                - id: role_2a8NdFJCTrz55Ry8Jdkz9r
-          withNames:
-            summary: Adding roles by name
-            description:
-              Adding roles by name is more human-readable and convenient
-              when working with well-known role names in your system.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              roles:
-                - name: admin
-                - name: billing_manager
-          mixed:
-            summary: Adding roles by mixed identifiers
-            description:
-              You can mix both ID and name references in a single request,
-              using whichever is more convenient for each role.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              roles:
-                - id: role_1n9McEIBSqy44Qy7hzWyM5
-                - name: billing_manager
   responses:
     "200":
-      description: Roles successfully added to the key
+      description: Roles added successfully. Returns all roles currently assigned to the key.
       content:
         application/json:
           schema:
             "$ref": "./V2KeysAddRolesResponseBody.yaml"
-          examples:
-            standard:
-              summary: Complete list of roles
-              value:
-                meta:
-                  requestId: req_1234567890abcdef
-                data:
-                  - id: role_1n9McEIBSqy44Qy7hzWyM5
-                    name: admin
-                  - id: role_2a8NdFJCTrz55Ry8Jdkz9r
-                    name: billing_manager
-                  - id: role_3b9OeGKDUsy66Sz9Kelz0s
-                    name: developer
-            empty:
-              summary: No roles assigned
-              value:
-                meta:
-                  requestId: req_1234567890abcdef
-                data: []
     "400":
-      description: Bad request - Invalid parameters or configuration
+      description: Bad request
       content:
         application/json:
           schema:
             "$ref": "../../../../error/BadRequestErrorResponse.yaml"
-          examples:
-            invalidPrefix:
-              summary: Invalid prefix format
-              value:
-                meta:
-                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
-                error:
-                  title: Bad Request
-                  detail:
-                    Prefix must contain only alphanumeric characters, underscores,
-                    and hyphens
-                  status: 400
-                  type: https://unkey.dev/errors/bad-request
-                  errors:
-                    - message: Prefix must contain only alphanumeric characters,
-                        underscores, and hyphens
-                      location: body.prefix
     "401":
       description: Unauthorized
       content:
@@ -110,7 +54,7 @@ post:
           schema:
             "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
-      description: Not found - Key doesn't exist or was deleted
+      description: Not found
       content:
         application/json:
           schema:

@@ -26,6 +26,7 @@ const (
 	DISABLED                KeysVerifyKeyResponseDataCode = "DISABLED"
 	EXPIRED                 KeysVerifyKeyResponseDataCode = "EXPIRED"
 	FORBIDDEN               KeysVerifyKeyResponseDataCode = "FORBIDDEN"
+	INSUFFICIENTCREDITS     KeysVerifyKeyResponseDataCode = "INSUFFICIENT_CREDITS"
 	INSUFFICIENTPERMISSIONS KeysVerifyKeyResponseDataCode = "INSUFFICIENT_PERMISSIONS"
 	NOTFOUND                KeysVerifyKeyResponseDataCode = "NOT_FOUND"
 	RATELIMITED             KeysVerifyKeyResponseDataCode = "RATE_LIMITED"
@@ -235,11 +236,10 @@ type KeysDeleteKeyResponseData = map[string]interface{}
 // KeysVerifyKeyCredits Controls credit consumption for usage-based billing and quota enforcement.
 // Omitting this field uses the default cost of 1 credit per verification.
 // Credits provide globally consistent usage tracking, essential for paid APIs with strict quotas.
-// Verification can succeed while credit deduction fails if the key has insufficient credits.
 type KeysVerifyKeyCredits struct {
 	// Cost Sets how many credits to deduct for this verification request.
 	// Use 0 for read-only operations or free tier access, higher values for premium features.
-	// Credits are deducted immediately upon verification, even if the key lacks required permissions.
+	// Credits are deducted after all security checks pass.
 	// Essential for implementing usage-based pricing with different operation costs.
 	Cost int32 `json:"cost"`
 }
@@ -261,40 +261,72 @@ type KeysVerifyKeyRatelimit struct {
 
 // KeysVerifyKeyResponseData defines model for KeysVerifyKeyResponseData.
 type KeysVerifyKeyResponseData struct {
-	// Code A machine-readable code indicating the verification status or failure reason. Values: `VALID` (key is valid), `NOT_FOUND` (key doesn't exist), `FORBIDDEN` (key exists but belongs to a different API), `USAGE_EXCEEDED` (key has no more credits), `RATE_LIMITED` (key exceeded rate limits), `UNAUTHORIZED` (key can't be used for this action), `DISABLED` (key was explicitly disabled), `INSUFFICIENT_PERMISSIONS` (key lacks required permissions), `EXPIRED` (key has passed its expiration date).
+	// Code A machine-readable code indicating the verification status
+	// or failure reason. Values: `VALID` (key is valid and passed all checks), `NOT_FOUND` (key doesn't
+	// exist or belongs to wrong API), `FORBIDDEN` (key lacks required permissions), `INSUFFICIENT_PERMISSIONS`
+	// (key lacks specific required permissions for this request), `INSUFFICIENT_CREDITS`
+	// (key has no remaining credits), `USAGE_EXCEEDED` (key exceeded usage limits), `RATE_LIMITED` (key exceeded rate limits), `DISABLED` (key was explicitly disabled),
+	// `EXPIRED` (key has passed its expiration date).
 	Code KeysVerifyKeyResponseDataCode `json:"code"`
 
-	// Credits The number of requests/credits remaining for this key. If null or not present, the key has unlimited usage. This value decreases with each verification (based on the 'cost' parameter) unless explicit credit refills are configured.
+	// Credits The number of requests/credits remaining for this key. If null
+	// or not present, the key has unlimited usage. This value decreases with
+	// each verification (based on the 'cost' parameter) unless explicit credit
+	// refills are configured.
 	Credits *int32 `json:"credits,omitempty"`
 
-	// Enabled Indicates if the key is currently enabled. Disabled keys will always fail verification with `code=DISABLED`. This is useful for implementing temporary suspensions without deleting the key.
+	// Enabled Indicates if the key is currently enabled. Disabled keys will
+	// always fail verification with `code=DISABLED`. This is useful for implementing
+	// temporary suspensions without deleting the key.
 	Enabled *bool `json:"enabled,omitempty"`
 
-	// Expires Unix timestamp (in milliseconds) when the key will expire. If null or not present, the key has no expiration. You can use this to warn users about upcoming expirations or to understand the validity period.
+	// Expires Unix timestamp (in milliseconds) when the key will expire.
+	// If null or not present, the key has no expiration. You can use this to
+	// warn users about upcoming expirations or to understand the validity period.
 	Expires  *int64    `json:"expires,omitempty"`
 	Identity *Identity `json:"identity,omitempty"`
 
-	// KeyId The unique identifier of the verified key in Unkey's system. Use this ID for operations like updating or revoking the key. This field is returned for both valid and invalid keys (except when `code=NOT_FOUND`).
+	// KeyId The unique identifier of the verified key in Unkey's system.
+	// Use this ID for operations like updating or revoking the key. This field
+	// is returned for both valid and invalid keys (except when `code=NOT_FOUND`).
 	KeyId *string `json:"keyId,omitempty"`
 
-	// Meta Custom metadata associated with the key. This can include any JSON-serializable data you stored with the key during creation or updates, such as plan information, feature flags, or user details. Use this to avoid additional database lookups for contextual information needed during API calls.
+	// Meta Custom metadata associated with the key. This can include any
+	// JSON-serializable data you stored with the key during creation or updates,
+	// such as plan information, feature flags, or user details. Use this to
+	// avoid additional database lookups for contextual information needed during
+	// API calls.
 	Meta *map[string]interface{} `json:"meta,omitempty"`
 
-	// Name The human-readable name assigned to this key during creation. This is useful for displaying in logs or admin interfaces to identify the key's purpose or owner.
+	// Name The human-readable name assigned to this key during creation.
+	// This is useful for displaying in logs or admin interfaces to identify
+	// the key's purpose.
 	Name *string `json:"name,omitempty"`
 
-	// Permissions A list of all permission names assigned to this key, either directly or through roles. These permissions determine what actions the key can perform. Only returned when permissions were checked during verification or when the key fails with `code=INSUFFICIENT_PERMISSIONS`.
+	// Permissions A list of all permission names assigned to this key, either
+	// directly or through roles. These permissions determine what actions the
+	// key can perform. Only returned when permissions were checked during verification
+	// or when the key fails with `code=FORBIDDEN`.
 	Permissions *[]string                 `json:"permissions,omitempty"`
 	Ratelimits  *[]VerifyKeyRatelimitData `json:"ratelimits,omitempty"`
 
-	// Roles A list of all role names assigned to this key. Roles are collections of permissions that grant access to specific functionality. Only returned when permissions were checked during verification.
+	// Roles A list of all role names assigned to this key. Roles are collections
+	// of permissions that grant access to specific functionality. Only returned
+	// when permissions were checked during verification.
 	Roles *[]string `json:"roles,omitempty"`
 
-	// Valid The primary verification result. If true, the key is valid and can be used. If false, check the 'code' field to understand why verification failed. Your application should always check this field first before proceeding.
+	// Valid The primary verification result. If true, the key is valid
+	// and can be used. If false, check the 'code' field to understand why verification
+	// failed. Your application should always check this field first before proceeding.
 	Valid bool `json:"valid"`
 }
 
-// KeysVerifyKeyResponseDataCode A machine-readable code indicating the verification status or failure reason. Values: `VALID` (key is valid), `NOT_FOUND` (key doesn't exist), `FORBIDDEN` (key exists but belongs to a different API), `USAGE_EXCEEDED` (key has no more credits), `RATE_LIMITED` (key exceeded rate limits), `UNAUTHORIZED` (key can't be used for this action), `DISABLED` (key was explicitly disabled), `INSUFFICIENT_PERMISSIONS` (key lacks required permissions), `EXPIRED` (key has passed its expiration date).
+// KeysVerifyKeyResponseDataCode A machine-readable code indicating the verification status
+// or failure reason. Values: `VALID` (key is valid and passed all checks), `NOT_FOUND` (key doesn't
+// exist or belongs to wrong API), `FORBIDDEN` (key lacks required permissions), `INSUFFICIENT_PERMISSIONS`
+// (key lacks specific required permissions for this request), `INSUFFICIENT_CREDITS`
+// (key has no remaining credits), `USAGE_EXCEEDED` (key exceeded usage limits), `RATE_LIMITED` (key exceeded rate limits), `DISABLED` (key was explicitly disabled),
+// `EXPIRED` (key has passed its expiration date).
 type KeysVerifyKeyResponseDataCode string
 
 // Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
@@ -512,18 +544,8 @@ type UnauthorizedErrorResponse struct {
 
 // V2ApisCreateApiRequestBody defines model for V2ApisCreateApiRequestBody.
 type V2ApisCreateApiRequestBody struct {
-	// Name Creates an API with this name as an internal identifier for organization and isolation.
-	// APIs serve as containers for groups of keys and provide namespace separation between environments or services.
-	// Names must be unique within your workspace and are not shown to end users.
-	//
-	// Use descriptive names that clearly identify the API's purpose and environment:
-	// - Include environment indicators like 'production', 'staging', 'development'
-	// - Use service-based naming like 'payment-service', 'user-management', 'analytics'
-	// - Follow consistent naming conventions across your organization
-	// - Keep names concise but informative for easy identification
-	//
-	// Must start with a letter and contain only letters, numbers, underscores, dots, and hyphens.
-	// Avoid generic names like 'api' or 'main' that don't provide meaningful context.
+	// Name Unique identifier for this API namespace within your workspace.
+	// Use descriptive names like 'payment-service-prod' or 'user-api-dev' to clearly identify purpose and environment.
 	Name string `json:"name"`
 }
 
@@ -553,25 +575,10 @@ type V2ApisCreateApiResponseData struct {
 
 // V2ApisDeleteApiRequestBody defines model for V2ApisDeleteApiRequestBody.
 type V2ApisDeleteApiRequestBody struct {
-	// ApiId Specifies which API to permanently delete from your workspace.
+	// ApiId Specifies which API namespace to permanently delete from your workspace.
 	// Must be a valid API ID that begins with 'api_' and exists within your workspace.
 	//
-	// CRITICAL WARNING: Deletion is immediate and irreversible with severe consequences:
-	// - ALL keys associated with this API become invalid instantly
-	// - Verification requests for these keys will fail with `code=NOT_FOUND`
-	// - Client applications using these keys will lose access immediately
-	// - Analytics data and key metadata are permanently removed
-	// - This operation cannot be undone under any circumstances
-	//
-	// Before proceeding, ensure you have:
-	// - Verified the correct API ID (double-check environment and service)
-	// - Migrated all active keys to alternative APIs
-	// - Updated all client applications to use replacement keys
-	// - Backed up critical analytics data and key configurations
-	// - Notified all stakeholders of the service interruption
-	// - Tested replacement systems in non-production environments
-	//
-	// Consider disabling keys first to test impact before permanent deletion.
+	// Before proceeding, ensure you have the correct API ID and understand that this action cannot be undone. If you need to migrate functionality, create replacement keys in a new API namespace and update client applications before deletion.
 	ApiId string `json:"apiId"`
 }
 
@@ -585,14 +592,6 @@ type V2ApisDeleteApiResponseBody struct {
 type V2ApisGetApiRequestBody struct {
 	// ApiId Specifies which API to retrieve by its unique identifier.
 	// Must be a valid API ID that begins with 'api_' and exists within your workspace.
-	//
-	// Use this endpoint to:
-	// - Verify an API exists and is accessible
-	// - Retrieve the API's current name and configuration
-	// - Validate API IDs before performing key operations
-	// - Check API status during debugging or troubleshooting
-	//
-	// Returns complete API information including name, ID, and metadata.
 	ApiId string `json:"apiId"`
 }
 
@@ -621,10 +620,12 @@ type V2ApisGetApiResponseData struct {
 
 // V2ApisListKeysRequestBody defines model for V2ApisListKeysRequestBody.
 type V2ApisListKeysRequestBody struct {
-	// ApiId The ID of the API whose keys you want to list (begins with 'api_'). This endpoint returns all keys associated with this specific API, subject to pagination and any additional filters provided.
+	// ApiId The API namespace whose keys you want to list.
+	// Returns all keys in this API, subject to pagination and filters.
 	ApiId string `json:"apiId"`
 
-	// Cursor Pagination cursor from a previous response. Use this to fetch subsequent pages of results when the response contains hasMore=true. Each response containing additional results will include a new cursor value in the pagination object.
+	// Cursor Pagination cursor from previous response to fetch next page.
+	// Use when `hasMore: true` in previous response.
 	Cursor *string `json:"cursor,omitempty"`
 
 	// Decrypt When true, attempts to include the plaintext key value in the response. SECURITY WARNING:
@@ -635,10 +636,12 @@ type V2ApisListKeysRequestBody struct {
 	// - Never enable this in user-facing applications
 	Decrypt *bool `json:"decrypt,omitempty"`
 
-	// ExternalId Optional filter to return only keys associated with a specific external ID. This is useful when you need to find all keys belonging to a particular user, organization, or entity in your system. The value must exactly match the externalId set during key creation.
+	// ExternalId Filter keys by external ID to find keys for a specific user or entity.
+	// Must exactly match the externalId set during key creation.
 	ExternalId *string `json:"externalId,omitempty"`
 
-	// Limit The maximum number of keys to return in a single request. Use this to control response size and loading performance. Higher values return more keys but may increase response time. Lower values may require more pagination requests but provide faster initial loading.
+	// Limit Maximum number of keys to return per request.
+	// Balance between response size and number of pagination calls needed.
 	Limit *int `json:"limit,omitempty"`
 
 	// RevalidateKeysCache EXPERIMENTAL: Skip the cache and fetch the keys directly from the database. This ensures you see the most recent state, including keys created moments ago. Use this when:
@@ -927,7 +930,6 @@ type V2KeysAddRolesResponseBody struct {
 	// - An empty array means the key has no roles assigned (unlikely after an add operation)
 	// - This only shows direct role assignments, not inherited or nested roles
 	// - Role permissions are not expanded in this response - use keys.getKey for full details
-	// - All role changes are logged in the audit log for security tracking
 	Data V2KeysAddRolesResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
@@ -946,7 +948,6 @@ type V2KeysAddRolesResponseBody struct {
 // - An empty array means the key has no roles assigned (unlikely after an add operation)
 // - This only shows direct role assignments, not inherited or nested roles
 // - Role permissions are not expanded in this response - use keys.getKey for full details
-// - All role changes are logged in the audit log for security tracking
 type V2KeysAddRolesResponseData = []struct {
 	// Id The unique identifier of the role (begins with `role_`). This ID can be used in other API calls to reference this specific role. Role IDs are immutable and guaranteed to be unique within your Unkey workspace, making them reliable reference points for integration and automation systems.
 	Id string `json:"id"`
@@ -957,13 +958,12 @@ type V2KeysAddRolesResponseData = []struct {
 
 // V2KeysCreateKeyRequestBody defines model for V2KeysCreateKeyRequestBody.
 type V2KeysCreateKeyRequestBody struct {
-	// ApiId Specifies which API this key belongs to, providing complete isolation between environments.
-	// Keys from one API cannot be used to access another API, preventing cross-environment access.
-	// Create separate APIs for different environments (development, staging, production) and services.
+	// ApiId The API namespace this key belongs to.
+	// Keys from different APIs cannot access each other.
 	ApiId string `json:"apiId"`
 
 	// ByteLength Controls the cryptographic strength of the generated key in bytes.
-	// Higher values increase security but result in longer keys that may be harder to handle.
+	// Higher values increase security but result in longer keys that may be more annoying to handle.
 	// The default 16 bytes provides 2^128 possible combinations, sufficient for most applications.
 	// Consider 32 bytes for highly sensitive APIs, but avoid values above 64 bytes unless specifically required.
 	ByteLength *int `json:"byteLength,omitempty"`
@@ -1043,7 +1043,8 @@ type V2KeysCreateKeyResponseBody struct {
 
 // V2KeysCreateKeyResponseData defines model for V2KeysCreateKeyResponseData.
 type V2KeysCreateKeyResponseData struct {
-	// Key The full generated API key that should be securely provided to your user. SECURITY WARNING: This is the only time you'll receive the complete key - Unkey only stores a securely hashed version. Never log or store this value in your own systems; provide it directly to your end user via secure channels. After this API call completes, this value cannot be retrieved again (unless created with `recoverable=true`).
+	// Key The full generated API key that should be securely provided to your user.
+	// SECURITY WARNING: This is the only time you'll receive the complete key - Unkey only stores a securely hashed version. Never log or store this value in your own systems; provide it directly to your end user via secure channels. After this API call completes, this value cannot be retrieved again (unless created with `recoverable=true`).
 	Key string `json:"key"`
 
 	// KeyId The unique identifier for this key in Unkey's system. This is NOT the actual API key, but a reference ID used for management operations like updating or deleting the key. Store this ID in your database to reference the key later. This ID is not sensitive and can be logged or displayed in dashboards.
@@ -1157,7 +1158,6 @@ type V2KeysRemovePermissionsResponseBody struct {
 	// - An empty array indicates the key has no direct permissions assigned
 	// - Any cached versions of the key are immediately invalidated to ensure consistency
 	// - Changes to permissions take effect within seconds for new verifications
-	// - All permission removals are logged to the audit log for security tracking
 	Data V2KeysRemovePermissionsResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
@@ -1177,7 +1177,6 @@ type V2KeysRemovePermissionsResponseBody struct {
 // - An empty array indicates the key has no direct permissions assigned
 // - Any cached versions of the key are immediately invalidated to ensure consistency
 // - Changes to permissions take effect within seconds for new verifications
-// - All permission removals are logged to the audit log for security tracking
 type V2KeysRemovePermissionsResponseData = []struct {
 	// Id The unique identifier of the permission (begins with `perm_`). This ID can be used in other API calls to reference this specific permission. IDs are guaranteed unique and won't change, making them ideal for scripting and automation. You can store these IDs in your system for consistent reference.
 	Id string `json:"id"`
@@ -1241,7 +1240,6 @@ type V2KeysRemoveRolesResponseBody struct {
 	// - An empty array indicates the key now has no roles assigned
 	// - This only shows direct role assignments
 	// - Role permissions are not expanded in this response - use keys.getKey for full details
-	// - All role changes are logged in the audit log for security tracking
 	// - Changes take effect immediately for new verifications but cached sessions may retain old permissions briefly
 	Data V2KeysRemoveRolesResponseData `json:"data"`
 
@@ -1261,7 +1259,6 @@ type V2KeysRemoveRolesResponseBody struct {
 // - An empty array indicates the key now has no roles assigned
 // - This only shows direct role assignments
 // - Role permissions are not expanded in this response - use keys.getKey for full details
-// - All role changes are logged in the audit log for security tracking
 // - Changes take effect immediately for new verifications but cached sessions may retain old permissions briefly
 type V2KeysRemoveRolesResponseData = []struct {
 	// Id The unique identifier of the role (begins with `role_`). This ID can be used in other API calls to reference this specific role.
@@ -1318,7 +1315,6 @@ type V2KeysSetPermissionsResponseBody struct {
 	// - This only shows direct permissions, not those granted through roles
 	// - An empty array means the key has no direct permissions assigned
 	// - For a complete permission picture including roles, use keys.getKey instead
-	// - All permission changes are logged in the audit log for security tracking
 	Data V2KeysSetPermissionsResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
@@ -1336,7 +1332,6 @@ type V2KeysSetPermissionsResponseBody struct {
 // - This only shows direct permissions, not those granted through roles
 // - An empty array means the key has no direct permissions assigned
 // - For a complete permission picture including roles, use keys.getKey instead
-// - All permission changes are logged in the audit log for security tracking
 type V2KeysSetPermissionsResponseData = []struct {
 	// Id The unique identifier of the permission
 	Id string `json:"id"`
@@ -1391,7 +1386,6 @@ type V2KeysSetRolesResponseBody struct {
 	// - If you provided an empty array in the request, this will also be empty
 	// - This only shows direct role assignments on the key
 	// - Role permissions are not expanded in this response - use keys.getKey for complete details
-	// - All role changes are logged in the audit log for security tracking
 	// - An empty array indicates the key now has no roles assigned at all
 	Data V2KeysSetRolesResponseData `json:"data"`
 
@@ -1411,7 +1405,6 @@ type V2KeysSetRolesResponseBody struct {
 // - If you provided an empty array in the request, this will also be empty
 // - This only shows direct role assignments on the key
 // - Role permissions are not expanded in this response - use keys.getKey for complete details
-// - All role changes are logged in the audit log for security tracking
 // - An empty array indicates the key now has no roles assigned at all
 type V2KeysSetRolesResponseData = []struct {
 	// Id The unique identifier of the role (begins with `role_`). This ID can be used in other API calls to reference this specific role. Role IDs are immutable and guaranteed to be unique, making them reliable reference points for integration and automation systems.
@@ -1426,31 +1419,18 @@ type V2KeysUpdateCreditsRequestBody struct {
 	// KeyId The ID of the key to update (begins with `key_`). This is the database reference ID for the key, not the actual API key string that users authenticate with. This ID uniquely identifies which key's credits will be updated.
 	KeyId string `json:"keyId"`
 
-	// Operation The operation to perform on the remaining credits. This can be one of:
-	// - set: Replace the current remaining credits value with the specified value.
-	// - increment: Add the specified value to the current remaining credits value.
-	// - decrement: Subtract the specified value from the current remaining credits value.
+	// Operation Defines how to modify the key's remaining credits. Use 'set' to replace current credits with a specific value or unlimited usage, 'increment' to add credits for plan upgrades or credit purchases, and 'decrement' to reduce credits for refunds or policy violations.
 	Operation V2KeysUpdateCreditsRequestBodyOperation `json:"operation"`
 
-	// Value The new value for the remaining credits. This is an absolute value replacement, not an increment or decrement operation.
+	// Value The credit value to use with the specified operation. The meaning depends on the operation: for 'set', this becomes the new remaining credits value; for 'increment', this amount is added to current credits; for 'decrement', this amount is subtracted from current credits.
 	//
-	// Key behaviors:
-	// - This completely replaces the current remaining credits value when operation is set to 'set'
-	// - To add credits, either replace the current value with the new value or increment the current value by a new value
-	// - To make a key unlimited, set value = null
-	// - To make a key with unlimited usage have a specific limit, set remaining to a positive number
-	// - If a decrement would result in a negative value, the remaining credits are set to zero
-	// - Credits are decremented each time the key is successfully verified (by the cost value, default 1)
-	// - When credits reach zero, verification fails with code=USAGE_EXCEEDED
+	// Set to null when using 'set' operation to make the key unlimited (removes usage restrictions entirely). When decrementing, if the result would be negative, remaining credits are automatically set to zero. Credits are consumed during successful key verification, and when credits reach zero, verification fails with `code=INSUFFICIENT_CREDITS`.
 	//
-	// This field is useful for implementing usage-based pricing, subscription tiers, trial periods, or consumption quotas.
+	// Required when using 'increment' or 'decrement' operations. Optional for 'set' operation (null creates unlimited usage).
 	Value nullable.Nullable[int64] `json:"value,omitempty"`
 }
 
-// V2KeysUpdateCreditsRequestBodyOperation The operation to perform on the remaining credits. This can be one of:
-// - set: Replace the current remaining credits value with the specified value.
-// - increment: Add the specified value to the current remaining credits value.
-// - decrement: Subtract the specified value from the current remaining credits value.
+// V2KeysUpdateCreditsRequestBodyOperation Defines how to modify the key's remaining credits. Use 'set' to replace current credits with a specific value or unlimited usage, 'increment' to add credits for plan upgrades or credit purchases, and 'decrement' to reduce credits for refunds or policy violations.
 type V2KeysUpdateCreditsRequestBodyOperation string
 
 // V2KeysUpdateCreditsResponseBody defines model for V2KeysUpdateCreditsResponseBody.
@@ -1526,22 +1506,17 @@ type V2KeysUpdateKeyResponseData = map[string]interface{}
 
 // V2KeysVerifyKeyRequestBody defines model for V2KeysVerifyKeyRequestBody.
 type V2KeysVerifyKeyRequestBody struct {
-	// ApiId Specifies which API the key belongs to for complete environment isolation.
-	// Keys from different APIs cannot access each other, preventing cross-environment leaks.
-	// Essential for ensuring development keys cannot access production data and vice versa.
-	// Store this API ID in your service configuration rather than hardcoding it.
+	// ApiId The API namespace this key belongs to.
+	// Ensures environment isolation (dev keys can't access prod data).
 	ApiId string `json:"apiId"`
 
 	// Credits Controls credit consumption for usage-based billing and quota enforcement.
 	// Omitting this field uses the default cost of 1 credit per verification.
 	// Credits provide globally consistent usage tracking, essential for paid APIs with strict quotas.
-	// Verification can succeed while credit deduction fails if the key has insufficient credits.
 	Credits *KeysVerifyKeyCredits `json:"credits,omitempty"`
 
-	// Key The complete API key string provided by your user, including any prefix.
-	// Verification uses secure hashing algorithms without storing plaintext values.
-	// Never log, cache, or store API keys in your system as they provide full access to user resources.
-	// Include the full key exactly as provided - even minor modifications will cause verification failure.
+	// Key The API key to verify, exactly as provided by your user.
+	// Include any prefix - even small changes will cause verification to fail.
 	Key string `json:"key"`
 
 	// Permissions Checks if the key has the specified permission(s) using a query syntax.
@@ -1653,16 +1628,7 @@ type V2PermissionsCreateRoleRequestBody struct {
 	// - Related roles that might be used together
 	Description *string `json:"description,omitempty"`
 
-	// Name Creates a role with this unique name that groups related permissions together.
-	// Names must be unique within your workspace to prevent conflicts during assignment.
-	// Use descriptive names that clearly indicate the role's purpose and scope of access.
-	// Consider hierarchical naming conventions like 'department.function' for better organization.
-	//
-	// Role names should be:
-	// - Descriptive enough to understand their purpose
-	// - Consistent with your organization's naming conventions
-	// - Unique to avoid confusion during role assignment
-	// - Focused on a specific function or responsibility
+	// Name The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'billing_manager'.
 	//
 	// Examples: 'admin.billing', 'support.readonly', 'developer.api', 'manager.analytics'
 	Name string `json:"name"`
@@ -1718,7 +1684,7 @@ type V2PermissionsDeleteRoleRequestBody struct {
 	// - All API keys assigned this role will lose the associated permissions
 	// - Access to resources protected by this role's permissions will be denied
 	// - Any authorization logic depending on this role will start failing
-	// - Historical analytics and audit logs referencing this role remain intact
+	// - Historical analytics referencing this role remain intact
 	//
 	// Before deletion, ensure:
 	// - You have the correct role ID (verify the role name and permissions)
@@ -1736,10 +1702,7 @@ type V2PermissionsDeleteRoleResponseBody struct {
 
 // V2PermissionsGetPermissionRequestBody defines model for V2PermissionsGetPermissionRequestBody.
 type V2PermissionsGetPermissionRequestBody struct {
-	// PermissionId Specifies which permission to retrieve by its unique identifier.
-	// Must be a valid permission ID that begins with 'perm_' and exists within your workspace.
-	// Use this endpoint to verify permission details, check its current configuration, or retrieve metadata.
-	// Returns detailed information including name, description, and workspace association.
+	// PermissionId The unique identifier of the permission to retrieve. Must be a valid permission ID that begins with 'perm_' and exists within your workspace.
 	PermissionId string `json:"permissionId"`
 }
 
@@ -1976,7 +1939,6 @@ type V2RatelimitLimitResponseData struct {
 	// - Debugging which override rule was matched
 	// - Tracking the effects of specific overrides
 	// - Understanding why limits differ from default values
-	// - Audit logging of special rate limit rules
 	OverrideId *string `json:"overrideId,omitempty"`
 
 	// Remaining The number of operations remaining in the current window before the rate limit is exceeded. Applications should use this value to:

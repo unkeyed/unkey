@@ -1,11 +1,22 @@
 post:
   tags:
     - keys
-  summary: Retrieve detailed information about a specific API key
-  description: |-
-    Retrieves comprehensive information about an API key including its configuration, permissions, roles, metadata, and usage limits. This endpoint is essential for key management, debugging, and building administrative interfaces.
-    The response includes all key properties such as expiration dates, credit balances, rate limits, assigned permissions and roles, and any metadata stored with the key. This information helps administrators understand a key's current state and troubleshoot access issues.
-    Note: The actual key value is never returned for security reasons, only the key's metadata and configuration.
+  summary: Get API key
+  description: |
+    Retrieve detailed key information for dashboard interfaces and administrative purposes.
+
+    Use this to build key management dashboards showing users their key details, status, permissions, and usage data. You can identify keys by `keyId` or the actual key string.
+
+    **Important**: Set `decrypt: true` only in secure contexts to retrieve plaintext key values from recoverable keys.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions for basic key information:
+    - `api.*.read_key` (to read keys from any API)
+    - `api.<api_id>.read_key` (to read keys from a specific API)
+
+    Additional permission required for decrypt functionality:
+    - `api.*.decrypt_key` or `api.<api_id>.decrypt_key`
   operationId: getKey
   x-speakeasy-name-override: getKey
   security:
@@ -22,7 +33,8 @@ post:
         application/json:
           schema:
             "$ref": "./V2KeysGetKeyResponseBody.yaml"
-      description: Successfully retrieved key
+      description: |
+        Successfully retrieved key information. When `decrypt: true`, includes plaintext key value for recoverable keys.
     "400":
       description: Bad request
       content:

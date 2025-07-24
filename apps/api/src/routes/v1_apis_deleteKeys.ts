@@ -10,6 +10,7 @@ import { buildUnkeyQuery } from "@unkey/rbac";
 const route = createRoute({
   tags: ["apis"],
   operationId: "deleteKeys",
+  summary: "Delete API keys",
   method: "post",
   path: "/v1/apis.deleteKeys",
   security: [{ bearerAuth: [] }],

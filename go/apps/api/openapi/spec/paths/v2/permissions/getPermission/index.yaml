@@ -1,15 +1,14 @@
 post:
   tags:
     - permissions
-  summary: Retrieve details about a specific permission
-  description: |-
-    Retrieves detailed information about a specific permission by its ID. This endpoint allows you to inspect a permission's properties, including its name, description, and workspace association.
-    This is useful for:
-    - Verifying a permission exists before assigning it
-    - Retrieving permission details for display in administrative interfaces
-    - Checking permission configuration before making updates
-    - Building permission management tools
-    Permissions are the fundamental building blocks of access control in Unkey's RBAC system, representing specific capabilities that can be granted to API keys either directly or through roles.
+  summary: Get permission
+  description: |
+    Retrieve details about a specific permission including its name, description, and metadata.
+
+    **Required Permissions**
+    
+    Your root key must have the following permission:
+    - `rbac.*.read_permission`
   operationId: getPermission
   x-speakeasy-name-override: GetPermission
   security:
@@ -22,7 +21,7 @@ post:
     required: true
   responses:
     "200":
-      description: Successfully retrieved permission
+      description: Permission retrieved successfully
       content:
         application/json:
           schema:

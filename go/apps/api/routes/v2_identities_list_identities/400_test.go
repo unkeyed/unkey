@@ -73,7 +73,7 @@ func TestBadRequests(t *testing.T) {
 		// If it returns 400, validate the error response
 		if res.Status == 400 {
 			require.Equal(t, 400, res.Status)
-			require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+			require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 			require.NotEmpty(t, res.Body.Meta.RequestId)
 		}
 	})

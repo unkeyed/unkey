@@ -1,16 +1,17 @@
 post:
   tags:
     - apis
-  summary: Retrieve information about an API namespace
-  description: |-
-    Retrieves detailed information about a specific API namespace.
-    This endpoint is useful for:
-    - Verifying an API exists before attempting to use it
-    - Retrieving the name of an API when you only have its ID
-    - Checking if you have access to a particular API
-    - Confirming API details before performing operations on it
+  summary: Get API namespace
+  description: |
+    Retrieve basic information about an API namespace including its ID and name.
 
-    The information returned is minimal by design, as APIs are primarily organizational containers. Most of the valuable data lies in the keys associated with an API, which can be retrieved using the apis.listKeys endpoint.
+    Use this to verify an API exists before performing operations, get the human-readable name when you only have the API ID, or confirm access to a specific namespace. For detailed key information, use the `listKeys` endpoint instead.
+
+    **Required Permissions**
+    
+    Your root key must have one of the following permissions:
+    - `api.*.read_api` (to read any API)
+    - `api.<api_id>.read_api` (to read a specific API)
   operationId: getApi
   x-speakeasy-name-override: getApi
   security:
@@ -20,11 +21,6 @@ post:
       application/json:
         schema:
           "$ref": "./V2ApisGetApiRequestBody.yaml"
-        examples:
-          basic:
-            summary: Retrieve API by ID
-            value:
-              apiId: api_1234
     required: true
   responses:
     "200":
@@ -32,15 +28,8 @@ post:
         application/json:
           schema:
             "$ref": "./V2ApisGetApiResponseBody.yaml"
-          examples:
-            standard:
-              summary: API details response
-              value:
-                meta:
-                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
-                data:
-                  id: api_1234567890abcdef
-                  name: payment-service-production
+      description: |
+        API information retrieved successfully. Contains the unique API ID and human-readable name.
     "400":
       description: Bad request
       content:

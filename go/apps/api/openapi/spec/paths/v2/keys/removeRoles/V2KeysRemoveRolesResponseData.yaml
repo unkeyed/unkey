@@ -12,7 +12,6 @@ description: |-
   - An empty array indicates the key now has no roles assigned
   - This only shows direct role assignments
   - Role permissions are not expanded in this response - use keys.getKey for full details
-  - All role changes are logged in the audit log for security tracking
   - Changes take effect immediately for new verifications but cached sessions may retain old permissions briefly
 items:
   type: object

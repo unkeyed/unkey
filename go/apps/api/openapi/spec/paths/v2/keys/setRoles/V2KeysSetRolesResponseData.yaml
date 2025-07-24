@@ -12,7 +12,6 @@ description: |-
   - If you provided an empty array in the request, this will also be empty
   - This only shows direct role assignments on the key
   - Role permissions are not expanded in this response - use keys.getKey for complete details
-  - All role changes are logged in the audit log for security tracking
   - An empty array indicates the key now has no roles assigned at all
 items:
   type: object

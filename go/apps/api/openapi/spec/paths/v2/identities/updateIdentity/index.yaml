@@ -1,12 +1,15 @@
 post:
   tags:
     - identities
-  summary: Update an existing identity
-  description: |-
-    Updates an existing identity's metadata and rate limits with support for partial updates. You can modify the metadata to reflect changes in user status, subscription plans, or other entity properties, and adjust rate limits to match new usage tiers or requirements.
-    This endpoint supports flexible identification using either the Unkey identity ID or your external ID, making it easy to integrate with existing user management systems. Fields not included in the request remain unchanged, allowing for targeted updates without affecting other identity properties.
-    Changes to rate limits take effect immediately for new API key verifications, though existing sessions may retain old limits briefly due to caching. When updating metadata, consider that this information is returned during key verification, so avoid storing sensitive data that shouldn't be exposed to client applications.
-    Common use cases include updating user plan information after subscription changes, adjusting rate limits for different service tiers, and maintaining current contact or organizational information associated with the identity.
+  summary: Update Identity
+  description: |
+    Update an identity's metadata and rate limits. Only specified fields are modified - others remain unchanged.
+
+    Perfect for subscription changes, plan upgrades, or updating user information. Changes take effect immediately.
+
+    > **Important**  
+    > Requires `identity.*.update_identity` permission  
+    > Rate limit changes propagate within 30 seconds
   operationId: v2.identities.updateIdentity
   x-speakeasy-name-override: updateIdentity
   security:
@@ -18,13 +21,13 @@ post:
           "$ref": "./V2IdentitiesUpdateIdentityRequestBody.yaml"
         examples:
           updateMetadata:
-            summary: Update identity metadata only
+            summary: Update metadata
             value:
               externalId: user_123
               meta:
                 name: Alice Smith
-                email: alice.updated@example.com
-                plan: enterprise
+                email: alice@example.com
+                plan: premium
     required: true
   responses:
     "200":
@@ -32,7 +35,13 @@ post:
         application/json:
           schema:
             "$ref": "./V2IdentitiesUpdateIdentityResponseBody.yaml"
-      description: OK
+      description: Identity successfully updated
+      examples:
+        success:
+          summary: Update successful
+          value:
+            meta:
+              requestId: req_2cGKbMxRyIzhCxo1Idjz8q
     "400":
       description: Bad request
       content:
@@ -46,17 +55,39 @@ post:
           schema:
             $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      description: Forbidden
+      description: Forbidden - Insufficient permissions (requires `identity.*.update_identity`)
       content:
         application/json:
           schema:
             $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            missingPermission:
+              summary: Missing required permission
+              value:
+                meta:
+                  requestId: req_0uVwX4yZaAbCdEfGhIjKl
+                error:
+                  title: Forbidden
+                  detail: Your root key requires the 'identity.*.update_identity' permission to perform this operation
+                  status: 403
+                  type: forbidden
     "404":
-      description: Not Found
+      description: Not Found - Identity with the specified ID or externalId doesn't exist
       content:
         application/json:
           schema:
             $ref: "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            identityNotFound:
+              summary: Identity not found
+              value:
+                meta:
+                  requestId: req_2wXyZaAbCdEfGhIjKlMnOp
+                error:
+                  title: Not Found
+                  detail: Identity with externalId "user_123" not found.
+                  status: 404
+                  type: not_found
     "500":
       description: Internal server error
       content:
