@@ -1,34 +1,28 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { useParams } from "next/navigation";
-import { useState } from "react";
-import { 
-  FolderOpen,
-  GitBranch, 
-  Calendar, 
-  ExternalLink, 
-  Github,
-  Search,
-  Filter,
-  Plus,
-  ArrowLeft,
-  Settings,
-  Globe,
-  Code,
-  Clock,
-  Users,
+import { Button } from "@unkey/ui";
+import {
   Activity,
-  ChevronRight,
-  GitCommit,
-  Tag,
+  ArrowLeft,
+  Clock,
+  ExternalLink,
   Eye,
+  FolderOpen,
+  GitBranch,
+  GitCommit,
+  Github,
+  Globe,
   MoreVertical,
   Play,
-  Pause,
-  RotateCcw
+  Plus,
+  RotateCcw,
+  Search,
+  Settings,
+  Tag,
 } from "lucide-react";
-import { Button } from "@unkey/ui";
+import { useParams } from "next/navigation";
+import { useState } from "react";
 
 interface Project {
   id: string;
@@ -50,7 +44,7 @@ interface Version {
   id: string;
   gitCommitSha: string | null;
   gitBranch: string | null;
-  status: 'pending' | 'deploying' | 'active' | 'failed' | 'archived';
+  status: "pending" | "deploying" | "active" | "failed" | "archived";
   createdAt: number;
   updatedAt: number | null;
   environment: {
@@ -62,14 +56,16 @@ interface Version {
 export default function BranchDetailPage(): JSX.Element {
   const params = useParams();
   const projectId = params?.projectId as string;
-  const [activeTab, setActiveTab] = useState<'overview' | 'branches' | 'versions' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<"overview" | "branches" | "versions" | "settings">(
+    "overview",
+  );
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedEnvironment, setSelectedEnvironment] = useState<string>("all");
 
   // Use your existing tRPC query structure
   const { data, isLoading, error } = trpc.project.branches.useQuery(
     { projectId },
-    { enabled: !!projectId }
+    { enabled: !!projectId },
   );
 
   // You'll need additional queries for versions if you want the versions tab
@@ -145,28 +141,35 @@ export default function BranchDetailPage(): JSX.Element {
 
   const project = data.project;
   const branches = data.branches || [];
-  
+
   // Mock versions data - replace with actual tRPC call
   const versions: Version[] = [];
 
   const filteredBranches = branches.filter((branch: Branch) =>
-    branch.name.toLowerCase().includes(searchTerm.toLowerCase())
+    branch.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const filteredVersions = versions.filter((version: Version) =>
-    (version.gitBranch?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-     version.gitCommitSha?.toLowerCase().includes(searchTerm.toLowerCase())) &&
-    (selectedEnvironment === "all" || version.environment.name === selectedEnvironment)
+  const filteredVersions = versions.filter(
+    (version: Version) =>
+      (version.gitBranch?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        version.gitCommitSha?.toLowerCase().includes(searchTerm.toLowerCase())) &&
+      (selectedEnvironment === "all" || version.environment.name === selectedEnvironment),
   );
 
   const getStatusColor = (status: string): string => {
     switch (status) {
-      case 'active': return 'text-green-600 bg-green-50 border-green-200';
-      case 'deploying': return 'text-blue-600 bg-blue-50 border-blue-200';
-      case 'failed': return 'text-red-600 bg-red-50 border-red-200';
-      case 'pending': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      case 'archived': return 'text-gray-600 bg-gray-50 border-gray-200';
-      default: return 'text-gray-600 bg-gray-50 border-gray-200';
+      case "active":
+        return "text-green-600 bg-green-50 border-green-200";
+      case "deploying":
+        return "text-blue-600 bg-blue-50 border-blue-200";
+      case "failed":
+        return "text-red-600 bg-red-50 border-red-200";
+      case "pending":
+        return "text-yellow-600 bg-yellow-50 border-yellow-200";
+      case "archived":
+        return "text-gray-600 bg-gray-50 border-gray-200";
+      default:
+        return "text-gray-600 bg-gray-50 border-gray-200";
     }
   };
 
@@ -181,7 +184,7 @@ export default function BranchDetailPage(): JSX.Element {
               Back to Projects
             </Button>
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-brand/10 rounded-lg">
@@ -208,7 +211,7 @@ export default function BranchDetailPage(): JSX.Element {
                 </div>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3">
               <Button variant="outline" size="md">
                 <Settings className="w-4 h-4 mr-2" />
@@ -226,18 +229,18 @@ export default function BranchDetailPage(): JSX.Element {
         <div className="border-b border-border mb-6">
           <nav className="flex space-x-8">
             {[
-              { key: 'overview', label: 'Overview', icon: Activity },
-              { key: 'branches', label: 'Branches', icon: GitBranch },
-              { key: 'versions', label: 'Versions', icon: Tag },
-              { key: 'settings', label: 'Settings', icon: Settings }
+              { key: "overview", label: "Overview", icon: Activity },
+              { key: "branches", label: "Branches", icon: GitBranch },
+              { key: "versions", label: "Versions", icon: Tag },
+              { key: "settings", label: "Settings", icon: Settings },
             ].map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
                 onClick={() => setActiveTab(key as typeof activeTab)}
                 className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === key
-                    ? 'border-brand text-brand'
-                    : 'border-transparent text-content-subtle hover:text-content hover:border-border'
+                    ? "border-brand text-brand"
+                    : "border-transparent text-content-subtle hover:text-content hover:border-border"
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -248,7 +251,7 @@ export default function BranchDetailPage(): JSX.Element {
         </div>
 
         {/* Tab Content */}
-        {activeTab === 'overview' && (
+        {activeTab === "overview" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Stats Cards */}
             <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -261,7 +264,7 @@ export default function BranchDetailPage(): JSX.Element {
                   <GitBranch className="w-8 h-8 text-blue-600" />
                 </div>
               </div>
-              
+
               <div className="bg-white p-6 rounded-lg border border-gray-200">
                 <div className="flex items-center justify-between">
                   <div>
@@ -271,19 +274,19 @@ export default function BranchDetailPage(): JSX.Element {
                   <Tag className="w-8 h-8 text-green-600" />
                 </div>
               </div>
-              
+
               <div className="bg-white p-6 rounded-lg border border-gray-200">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Active Deployments</p>
                     <p className="text-2xl font-bold text-gray-900">
-                      {versions.filter(v => v.status === 'active').length}
+                      {versions.filter((v) => v.status === "active").length}
                     </p>
                   </div>
                   <Globe className="w-8 h-8 text-purple-600" />
                 </div>
               </div>
-              
+
               <div className="bg-white p-6 rounded-lg border border-gray-200">
                 <div className="flex items-center justify-between">
                   <div>
@@ -303,7 +306,10 @@ export default function BranchDetailPage(): JSX.Element {
               {branches.length > 0 ? (
                 <div className="space-y-4">
                   {branches.slice(0, 5).map((branch: Branch) => (
-                    <div key={branch.id} className="flex items-center justify-between p-3 bg-background-subtle rounded-lg">
+                    <div
+                      key={branch.id}
+                      className="flex items-center justify-between p-3 bg-background-subtle rounded-lg"
+                    >
                       <div className="flex items-center gap-3">
                         <GitBranch className="w-4 h-4 text-content-subtle" />
                         <div>
@@ -351,7 +357,7 @@ export default function BranchDetailPage(): JSX.Element {
           </div>
         )}
 
-        {(activeTab === 'branches' || activeTab === 'versions') && (
+        {(activeTab === "branches" || activeTab === "versions") && (
           <div>
             {/* Search */}
             <div className="mb-6 flex flex-col sm:flex-row gap-4">
@@ -361,17 +367,22 @@ export default function BranchDetailPage(): JSX.Element {
                   type="text"
                   placeholder={`Search ${activeTab}...`}
                   value={searchTerm}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setSearchTerm(e.target.value)
+                  }
                   className="w-full pl-10 pr-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent bg-white text-content"
                 />
               </div>
             </div>
 
             {/* Content */}
-            {activeTab === 'branches' && (
+            {activeTab === "branches" && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredBranches.map((branch: Branch) => (
-                  <div key={branch.id} className="bg-white rounded-lg border border-border p-6 hover:shadow-md transition-shadow">
+                  <div
+                    key={branch.id}
+                    className="bg-white rounded-lg border border-border p-6 hover:shadow-md transition-shadow"
+                  >
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
                         <GitBranch className="w-4 h-4 text-content-subtle" />
@@ -381,7 +392,7 @@ export default function BranchDetailPage(): JSX.Element {
                         <MoreVertical className="w-4 h-4" />
                       </Button>
                     </div>
-                    
+
                     <div className="space-y-2 mb-4">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-content-subtle">Created</span>
@@ -396,7 +407,7 @@ export default function BranchDetailPage(): JSX.Element {
                         </span>
                       </div>
                     </div>
-                    
+
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" className="flex-1">
                         <Eye className="w-3 h-3 mr-1" />
@@ -412,7 +423,7 @@ export default function BranchDetailPage(): JSX.Element {
               </div>
             )}
 
-            {activeTab === 'versions' && (
+            {activeTab === "versions" && (
               <div className="bg-white rounded-lg border border-border overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-border">
@@ -444,7 +455,9 @@ export default function BranchDetailPage(): JSX.Element {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <GitCommit className="w-4 h-4 text-content-subtle mr-2" />
-                              <span className="text-sm font-mono text-content">{version.gitCommitSha}</span>
+                              <span className="text-sm font-mono text-content">
+                                {version.gitCommitSha}
+                              </span>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -454,7 +467,9 @@ export default function BranchDetailPage(): JSX.Element {
                             <span className="text-sm text-content">{version.environment.name}</span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(version.status)}`}>
+                            <span
+                              className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(version.status)}`}
+                            >
                               {version.status}
                             </span>
                           </td>
@@ -484,7 +499,7 @@ export default function BranchDetailPage(): JSX.Element {
           </div>
         )}
 
-        {activeTab === 'settings' && (
+        {activeTab === "settings" && (
           <div className="bg-white rounded-lg border border-border p-6">
             <h3 className="text-lg font-semibold text-content mb-4">Project Settings</h3>
             <p className="text-content-subtle">Settings configuration coming soon...</p>

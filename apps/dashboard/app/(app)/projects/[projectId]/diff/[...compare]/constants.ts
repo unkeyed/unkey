@@ -1,4 +1,4 @@
-import { DiffData } from "./types";
+import type { DiffData } from "./types";
 
 export const sampleDiffData: DiffData = {
   changes: [
@@ -9,7 +9,7 @@ export const sampleDiffData: DiffData = {
       operation: "GET",
       path: "/users",
       source: "/tmp/tmp2461057470/revision",
-      section: "paths"
+      section: "paths",
     },
     {
       id: "new-required-request-property",
@@ -18,7 +18,7 @@ export const sampleDiffData: DiffData = {
       operation: "POST",
       path: "/users",
       source: "/tmp/tmp2461057470/revision",
-      section: "paths"
+      section: "paths",
     },
     {
       id: "new-required-request-property",
@@ -27,7 +27,7 @@ export const sampleDiffData: DiffData = {
       operation: "POST",
       path: "/users",
       source: "/tmp/tmp2461057470/revision",
-      section: "paths"
+      section: "paths",
     },
     {
       id: "request-property-max-length-decreased",
@@ -36,7 +36,7 @@ export const sampleDiffData: DiffData = {
       operation: "POST",
       path: "/users",
       source: "/tmp/tmp2461057470/revision",
-      section: "paths"
+      section: "paths",
     },
     {
       id: "request-property-min-length-increased",
@@ -45,7 +45,7 @@ export const sampleDiffData: DiffData = {
       operation: "POST",
       path: "/users",
       source: "/tmp/tmp2461057470/revision",
-      section: "paths"
+      section: "paths",
     },
     {
       id: "request-property-min-length-increased",
@@ -54,7 +54,7 @@ export const sampleDiffData: DiffData = {
       operation: "POST",
       path: "/users",
       source: "/tmp/tmp2461057470/revision",
-      section: "paths"
+      section: "paths",
     },
     {
       id: "response-property-type-changed",
@@ -63,7 +63,7 @@ export const sampleDiffData: DiffData = {
       operation: "POST",
       path: "/users",
       source: "/tmp/tmp2461057470/revision",
-      section: "paths"
+      section: "paths",
     },
     {
       id: "request-parameter-type-changed",
@@ -72,7 +72,7 @@ export const sampleDiffData: DiffData = {
       operation: "DELETE",
       path: "/users/{userId}",
       source: "/tmp/tmp2461057470/revision",
-      section: "paths"
+      section: "paths",
     },
     {
       id: "request-parameter-type-changed",
@@ -81,7 +81,7 @@ export const sampleDiffData: DiffData = {
       operation: "GET",
       path: "/users/{userId}",
       source: "/tmp/tmp2461057470/revision",
-      section: "paths"
+      section: "paths",
     },
     {
       id: "response-property-type-changed",
@@ -90,7 +90,7 @@ export const sampleDiffData: DiffData = {
       operation: "GET",
       path: "/users/{userId}",
       source: "/tmp/tmp2461057470/revision",
-      section: "paths"
+      section: "paths",
     },
     {
       id: "api-removed-without-deprecation",
@@ -99,7 +99,7 @@ export const sampleDiffData: DiffData = {
       operation: "PUT",
       path: "/users/{userId}",
       source: "/tmp/tmp2461057470/base",
-      section: "paths"
+      section: "paths",
     },
     {
       id: "request-parameter-type-changed",
@@ -108,7 +108,7 @@ export const sampleDiffData: DiffData = {
       operation: "GET",
       path: "/users/{userId}/profile",
       source: "/tmp/tmp2461057470/revision",
-      section: "paths"
+      section: "paths",
     },
     {
       id: "response-property-type-changed",
@@ -117,7 +117,7 @@ export const sampleDiffData: DiffData = {
       operation: "GET",
       path: "/users/{userId}/profile",
       source: "/tmp/tmp2461057470/revision",
-      section: "paths"
+      section: "paths",
     },
     {
       id: "response-required-property-removed",
@@ -126,27 +126,29 @@ export const sampleDiffData: DiffData = {
       operation: "GET",
       path: "/users/{userId}/profile",
       source: "/tmp/tmp2461057470/revision",
-      section: "paths"
+      section: "paths",
     },
     {
       id: "request-parameter-removed",
       text: "deleted the 'query' request parameter 'limit'",
-      comment: "This is a warning because some apps may return an error when receiving a parameter that they do not expect. It is recommended to deprecate the parameter first.",
+      comment:
+        "This is a warning because some apps may return an error when receiving a parameter that they do not expect. It is recommended to deprecate the parameter first.",
       level: 2,
       operation: "GET",
       path: "/users",
       source: "/tmp/tmp2461057470/revision",
-      section: "paths"
+      section: "paths",
     },
     {
       id: "request-parameter-removed",
       text: "deleted the 'query' request parameter 'offset'",
-      comment: "This is a warning because some apps may return an error when receiving a parameter that they do not expect. It is recommended to deprecate the parameter first.",
+      comment:
+        "This is a warning because some apps may return an error when receiving a parameter that they do not expect. It is recommended to deprecate the parameter first.",
       level: 2,
       operation: "GET",
       path: "/users",
       source: "/tmp/tmp2461057470/revision",
-      section: "paths"
+      section: "paths",
     },
     {
       id: "response-optional-property-removed",
@@ -155,7 +157,7 @@ export const sampleDiffData: DiffData = {
       operation: "GET",
       path: "/users",
       source: "/tmp/tmp2461057470/revision",
-      section: "paths"
+      section: "paths",
     },
     {
       id: "response-optional-property-removed",
@@ -164,7 +166,7 @@ export const sampleDiffData: DiffData = {
       operation: "GET",
       path: "/users",
       source: "/tmp/tmp2461057470/revision",
-      section: "paths"
+      section: "paths",
     },
     {
       id: "response-optional-property-removed",
@@ -173,7 +175,7 @@ export const sampleDiffData: DiffData = {
       operation: "GET",
       path: "/users",
       source: "/tmp/tmp2461057470/revision",
-      section: "paths"
+      section: "paths",
     },
     {
       id: "response-optional-property-removed",
@@ -182,17 +184,18 @@ export const sampleDiffData: DiffData = {
       operation: "GET",
       path: "/users",
       source: "/tmp/tmp2461057470/revision",
-      section: "paths"
+      section: "paths",
     },
     {
       id: "request-property-pattern-added",
       text: "added the pattern '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]' to the request property 'password'",
-      comment: "This is a warning because it is difficult to automatically analyze if the new pattern is a superset of the previous pattern (e.g. changed from '[0-9]+' to '[0-9]*')",
+      comment:
+        "This is a warning because it is difficult to automatically analyze if the new pattern is a superset of the previous pattern (e.g. changed from '[0-9]+' to '[0-9]*')",
       level: 2,
       operation: "POST",
       path: "/users",
       source: "/tmp/tmp2461057470/revision",
-      section: "paths"
-    }
-  ]
+      section: "paths",
+    },
+  ],
 };
