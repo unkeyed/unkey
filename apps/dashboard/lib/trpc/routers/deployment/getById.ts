@@ -27,11 +27,13 @@ export const getById = t.procedure
       }
 
       // Get the branch for this deployment
-      const branch = deployment.branchId
-        ? await db.query.branches.findFirst({
-            where: (table, { eq }) => eq(table.id, deployment.branchId!), // eslint-disable-line @typescript-eslint/no-non-null-assertion
-          })
-        : null;
+      let branch = null;
+      const branchId = deployment.branchId;
+      if (branchId) {
+        branch = await db.query.branches.findFirst({
+          where: (table, { eq }) => eq(table.id, branchId),
+        });
+      }
 
       return {
         id: deployment.id,

@@ -80,7 +80,7 @@ export default function DiffLandingPage({ params }: Props) {
                 </div>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium text-content mb-2">Branch</label>
+                    <span className="block text-sm font-medium text-content mb-2">Branch</span>
                     <Select value={selectedFromBranch} onValueChange={setSelectedFromBranch}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select branch" />
@@ -112,9 +112,7 @@ export default function DiffLandingPage({ params }: Props) {
                     </Select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-content mb-2">
-                      Deployment
-                    </label>
+                    <span className="block text-sm font-medium text-content mb-2">Deployment</span>
                     <Select
                       value={selectedFromDeployment}
                       onValueChange={setSelectedFromDeployment}
@@ -174,7 +172,7 @@ export default function DiffLandingPage({ params }: Props) {
                 </div>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium text-content mb-2">Branch</label>
+                    <span className="block text-sm font-medium text-content mb-2">Branch</span>
                     <Select value={selectedToBranch} onValueChange={setSelectedToBranch}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select branch" />
@@ -206,9 +204,7 @@ export default function DiffLandingPage({ params }: Props) {
                     </Select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-content mb-2">
-                      Deployment
-                    </label>
+                    <span className="block text-sm font-medium text-content mb-2">Deployment</span>
                     <Select
                       value={selectedToDeployment}
                       onValueChange={setSelectedToDeployment}
