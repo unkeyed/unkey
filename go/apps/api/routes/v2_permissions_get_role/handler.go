@@ -72,6 +72,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Internal("role not found"), fault.Public("The requested role does not exist."),
 			)
 		}
+
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"), fault.Public("Failed to retrieve role information."),

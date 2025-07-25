@@ -32,7 +32,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 	// Create workspace and root key
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.remove_role_from_key")
 
 	// Set up request headers
 	headers := http.Header{
