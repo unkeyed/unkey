@@ -106,7 +106,7 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 		KeyId:      keyResponse.KeyID,
 		Name:       nullable.NewNullableWithValue("newName"),
 		ExternalId: nullable.NewNullableWithValue("newExternalId"),
-		Meta:       nullable.NewNullableWithValue(map[string]interface{}{"new": "meta"}),
+		Meta:       nullable.NewNullableWithValue(map[string]any{"new": "meta"}),
 		Expires:    nullable.NewNullNullable[int64](),
 		Enabled:    ptr.P(true),
 		Credits: &openapi.KeyCreditsData{
@@ -135,7 +135,8 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 
 	// Verify identity was created with correct external ID
 	identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
-		ID: key.IdentityID.String,
+		Identity:    key.IdentityID.String,
+		WorkspaceID: h.Resources().UserWorkspace.ID,
 	})
 	require.NoError(t, err)
 	require.Equal(t, "newExternalId", identity.ExternalID)

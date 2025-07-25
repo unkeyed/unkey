@@ -18,8 +18,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2IdentitiesDeleteIdentityRequestBody
-type Response = openapi.V2IdentitiesDeleteIdentityResponseBody
+type (
+	Request  = openapi.V2IdentitiesDeleteIdentityRequestBody
+	Response = openapi.V2IdentitiesDeleteIdentityResponseBody
+)
 
 // Handler implements zen.Route interface for the v2 identities delete identity endpoint
 type Handler struct {
@@ -68,9 +70,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
+	identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
 		WorkspaceID: auth.AuthorizedWorkspaceID,
-		ExternalID:  req.ExternalId,
+		Identity:    req.ExternalId,
 		Deleted:     false,
 	})
 	if err != nil {
@@ -110,7 +112,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		}
 		if err != nil {
-
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database failed to soft delete identity"), fault.Public("Failed to delete Identity."),
@@ -197,9 +198,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 }
 
 func deleteOldIdentity(ctx context.Context, tx db.DBTX, workspaceID, externalID string) error {
-	oldIdentity, err := db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
+	oldIdentity, err := db.Query.FindIdentityByID(ctx, tx, db.FindIdentityByIDParams{
 		WorkspaceID: workspaceID,
-		ExternalID:  externalID,
+		Identity:    externalID,
 		Deleted:     true,
 	})
 	if err != nil {

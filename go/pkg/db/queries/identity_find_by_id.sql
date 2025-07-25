@@ -1,2 +1,6 @@
 -- name: FindIdentityByID :one
-SELECT * FROM identities WHERE id = sqlc.arg(id) AND deleted = sqlc.arg(deleted);
+SELECT * 
+FROM identities 
+WHERE workspace_id = sqlc.arg(workspace_id) 
+ AND (external_id = sqlc.arg(identity) OR id = sqlc.arg(identity)) 
+ AND deleted = sqlc.arg(deleted);

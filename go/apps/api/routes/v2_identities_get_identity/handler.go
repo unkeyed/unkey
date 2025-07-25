@@ -60,12 +60,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	result, err := db.TxWithResult(ctx, h.DB.RO(), func(ctx context.Context, tx db.DBTX) (IdentityResult, error) {
 		var identity db.Identity
 
-		identity, err = db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
-			ExternalID:  req.ExternalId,
+		identity, err = db.Query.FindIdentityByID(ctx, tx, db.FindIdentityByIDParams{
+			Identity:    req.Identity,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			Deleted:     false,
 		})
-
 		if err != nil {
 			if db.IsNotFound(err) {
 				return IdentityResult{}, fault.New("identity not found",
@@ -117,7 +116,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Parse metadata
-	var metaMap map[string]interface{}
+	var metaMap map[string]any
 	if len(identity.Meta) > 0 {
 		err = json.Unmarshal(identity.Meta, &metaMap)
 		if err != nil {
@@ -126,7 +125,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 	} else {
-		metaMap = make(map[string]interface{})
+		metaMap = make(map[string]any)
 	}
 
 	// Format ratelimits for the response

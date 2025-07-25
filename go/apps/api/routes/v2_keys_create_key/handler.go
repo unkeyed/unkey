@@ -26,8 +26,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2KeysCreateKeyRequestBody
-type Response = openapi.V2KeysCreateKeyResponseBody
+type (
+	Request  = openapi.V2KeysCreateKeyRequestBody
+	Response = openapi.V2KeysCreateKeyResponseBody
+)
 
 type Handler struct {
 	Logger    logging.Logger
@@ -164,7 +166,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Keyring: s.AuthorizedWorkspaceID(),
 			Data:    keyResult.Key,
 		})
-
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -204,9 +205,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			externalID := *req.ExternalId
 
 			// Try to find existing identity
-			identity, err := db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
+			identity, err := db.Query.FindIdentityByID(ctx, tx, db.FindIdentityByIDParams{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
-				ExternalID:  externalID,
+				Identity:    externalID,
 				Deleted:     false,
 			})
 
@@ -229,7 +230,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					CreatedAt:   now,
 					Meta:        []byte("{}"),
 				})
-
 				if err != nil {
 					return fault.Wrap(err,
 						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -313,7 +313,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Encrypted:       encryption.GetEncrypted(),
 				EncryptionKeyID: encryption.GetKeyId(),
 			})
-
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -354,7 +353,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Slugs:       *req.Permissions,
 			})
-
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

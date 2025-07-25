@@ -22,8 +22,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2KeysGetKeyRequestBody
-type Response = openapi.V2KeysGetKeyResponseBody
+type (
+	Request  = openapi.V2KeysGetKeyRequestBody
+	Response = openapi.V2KeysGetKeyResponseBody
+)
 
 // Handler implements zen.Route interface for the v2 keys.getKey endpoint
 type Handler struct {
@@ -251,7 +253,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if key.IdentityID.Valid {
-		identity, idErr := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{ID: key.IdentityID.String, Deleted: false})
+		identity, idErr := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+			Identity:    key.IdentityID.String,
+			Deleted:     false,
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+		})
 		if idErr != nil {
 			if db.IsNotFound(idErr) {
 				return fault.New("identity not found for key",
