@@ -42,4 +42,3 @@ build:
 generate:
 	buf generate
 	go generate ./...
-

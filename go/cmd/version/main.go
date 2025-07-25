@@ -12,8 +12,13 @@ var Cmd = &cli.Command{
 	Name:  "version",
 	Usage: "Manage API versions",
 	Description: `Create, list, and manage versions of your API.
-	
-Versions are immutable snapshots of your code, configuration, and infrastructure settings.`,
+
+Versions are immutable snapshots of your code, configuration, and infrastructure settings. Each version represents a specific deployment state that can be rolled back to at any time.
+
+AVAILABLE COMMANDS:
+- get: Get details about a specific version
+- list: List all versions with optional filtering
+- rollback: Rollback to a previous version`,
 	Commands: []*cli.Command{
 		getCmd,
 		listCmd,
@@ -24,13 +29,11 @@ Versions are immutable snapshots of your code, configuration, and infrastructure
 var getCmd = &cli.Command{
 	Name:  "get",
 	Usage: "Get details about a version",
-	Description: `Get details about a specific version.
-
-USAGE:
-    unkey version get <version-id>
+	Description: `Get comprehensive details about a specific version including status, branch, creation time, and associated hostnames.
 
 EXAMPLES:
-    unkey version get v_abc123def456`,
+unkey version get v_abc123def456                 # Get details for a specific version
+unkey version get v_def456ghi789                 # Get details for another version`,
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		logger := slog.Default()
 
@@ -56,9 +59,20 @@ EXAMPLES:
 
 var listCmd = &cli.Command{
 	Name:  "list",
-	Usage: "List versions",
+	Usage: "List versions with optional filtering",
+	Description: `List all versions for the current project with support for filtering by branch, status, and limiting results.
+
+FILTERING OPTIONS:
+Use flags to filter results by branch name, status, or limit the number of results returned. Filters can be combined for more specific queries.
+
+EXAMPLES:
+unkey version list                               # List all versions
+unkey version list --branch main                # List versions from main branch
+unkey version list --status active              # List only active versions
+unkey version list --limit 5                    # List last 5 versions
+unkey version list --branch main --status active --limit 3  # Combine filters`,
 	Flags: []cli.Flag{
-		cli.String("branch", "Filter by branch"),
+		cli.String("branch", "Filter by branch name"),
 		cli.String("status", "Filter by status (pending, building, active, failed)"),
 		cli.Int("limit", "Number of versions to show", cli.Default(10)),
 	},
@@ -81,16 +95,17 @@ var listCmd = &cli.Command{
 var rollbackCmd = &cli.Command{
 	Name:  "rollback",
 	Usage: "Rollback to a previous version",
-	Description: `Rollback to a previous version.
+	Description: `Rollback a hostname to a previous version. This operation will switch traffic from the current version to the specified target version.
 
-USAGE:
-    unkey version rollback <hostname> <version-id>
+WARNING:
+This operation affects live traffic. Use the --force flag to skip the confirmation prompt in automated environments.
 
 EXAMPLES:
-    unkey version rollback my-api.unkey.app v_abc123def456
-    unkey version rollback my-api.unkey.app v_abc123def456 --force`,
+unkey version rollback my-api.unkey.app v_abc123def456                    # Rollback with confirmation prompt
+unkey version rollback my-api.unkey.app v_abc123def456 --force            # Rollback without confirmation for automation
+unkey version rollback staging-api.unkey.app v_def456ghi789               # Rollback staging environment`,
 	Flags: []cli.Flag{
-		cli.Bool("force", "Skip confirmation prompt"),
+		cli.Bool("force", "Skip confirmation prompt for automated deployments"),
 	},
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		logger := slog.Default()
