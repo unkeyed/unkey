@@ -56,12 +56,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: nonExistentKeyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &roleID},
-			},
+			Roles: []string{roleID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -100,12 +95,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &nonExistentRoleID},
-			},
+			Roles: []string{nonExistentRoleID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -145,12 +135,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Name: &nonExistentRoleName},
-			},
+			Roles: []string{nonExistentRoleName},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -200,12 +185,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &roleID},
-			},
+			Roles: []string{roleID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -255,12 +235,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &roleInDifferentWorkspace},
-			},
+			Roles: []string{roleInDifferentWorkspace},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -310,12 +285,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Name: &roleName},
-			},
+			Roles: []string{roleName},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -364,13 +334,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &validRoleID},       // This one exists
-				{Id: &nonExistentRoleID}, // This one doesn't exist
-			},
+			Roles: []string{validRoleID, nonExistentRoleID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -386,62 +350,5 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "Role")
 		require.Contains(t, res.Body.Error.Detail, "not found")
 		require.Contains(t, res.Body.Error.Detail, nonExistentRoleID)
-	})
-
-	t.Run("mixed valid and invalid role references", func(t *testing.T) {
-		// Create API and key using testutil helpers
-		defaultPrefix := "test"
-		defaultBytes := int32(16)
-		api := h.CreateApi(seed.CreateApiRequest{
-			WorkspaceID:   workspace.ID,
-			DefaultPrefix: &defaultPrefix,
-			DefaultBytes:  &defaultBytes,
-		})
-
-		keyName := "Test Key"
-		keyResponse := h.CreateKey(seed.CreateKeyRequest{
-			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
-			Name:        &keyName,
-		})
-		keyID := keyResponse.KeyID
-
-		// Create one valid role
-		validRoleID := uid.New(uid.TestPrefix)
-		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-			RoleID:      validRoleID,
-			WorkspaceID: workspace.ID,
-			Name:        "valid_role_mixed_" + uid.New(""),
-			Description: sql.NullString{Valid: true, String: "Valid role"},
-		})
-		require.NoError(t, err)
-
-		// Use a non-existent role name
-		nonExistentRoleName := "non_existent_role"
-
-		req := handler.Request{
-			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &validRoleID},           // This one exists
-				{Name: &nonExistentRoleName}, // This one doesn't exist
-			},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		// Should fail when ANY role is not found
-		require.Equal(t, 404, res.Status)
-		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "Role")
-		require.Contains(t, res.Body.Error.Detail, "not found")
-		require.Contains(t, res.Body.Error.Detail, nonExistentRoleName)
 	})
 }

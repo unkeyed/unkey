@@ -108,7 +108,7 @@ func TestSuccess(t *testing.T) {
 
 		// Delete the role
 		req := handler.Request{
-			RoleId: roleID,
+			Role: roleID,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -167,7 +167,7 @@ func TestSuccess(t *testing.T) {
 
 		// Delete the role
 		req := handler.Request{
-			RoleId: roleID,
+			Role: roleID,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](

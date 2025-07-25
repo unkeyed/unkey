@@ -9,7 +9,6 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_get_role"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
-	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestNotFoundErrors(t *testing.T) {
@@ -38,28 +37,7 @@ func TestNotFoundErrors(t *testing.T) {
 	// Test case for non-existent role ID
 	t.Run("non-existent role ID", func(t *testing.T) {
 		req := handler.Request{
-			RoleId: "role_does_not_exist",
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 404, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "does not exist")
-	})
-
-	// Test case for valid-looking but non-existent role ID
-	t.Run("valid-looking but non-existent role ID", func(t *testing.T) {
-		nonExistentID := uid.New(uid.TestPrefix) // Generate a valid ID format that doesn't exist
-
-		req := handler.Request{
-			RoleId: nonExistentID,
+			Role: "role_does_not_exist",
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](

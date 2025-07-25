@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -40,22 +41,18 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/permissions.listRoles")
 
-	// 1. Authentication
 	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
 	}
 
-	// 2. Request validation
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
 	}
 
-	// Handle null cursor - use empty string to start from beginning
 	cursor := ptr.SafeDeref(req.Cursor, "")
 
-	// 3. Permission check
 	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Rbac,
@@ -67,7 +64,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// 4. Query roles with pagination
 	roles, err := db.Query.ListRoles(
 		ctx,
 		h.DB.RO(),
@@ -83,27 +79,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Check if we have more results by seeing if we got 101 roles
-	hasMore := len(roles) > 100
 	var nextCursor *string
-
-	// If we have more than 100, truncate to 100
+	hasMore := len(roles) > 100
 	if hasMore {
 		nextCursor = ptr.P(roles[100].ID)
 		roles = roles[:100]
 	}
 
-	// 5. Get permissions for each role
 	roleResponses := make([]openapi.Role, 0, len(roles))
 	for _, role := range roles {
-		// Get permissions for this role
-		rolePermissions, err := db.Query.ListPermissionsByRoleID(ctx, h.DB.RO(), role.ID)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"), fault.Public("Failed to retrieve role permissions."),
-			)
-		}
+		rolePermissions := make([]db.Permission, 0)
+		json.Unmarshal(role.Permissions.([]byte), &rolePermissions)
 
 		// Transform permissions
 		permissions := make([]openapi.Permission, 0, len(rolePermissions))
@@ -115,7 +101,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Description: nil,
 			}
 
-			// Add description only if it's valid
 			if perm.Description.Valid {
 				permission.Description = &perm.Description.String
 			}
@@ -123,16 +108,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			permissions = append(permissions, permission)
 		}
 
-		// Transform role
 		roleResponse := openapi.Role{
 			Id:          role.ID,
 			Name:        role.Name,
 			Description: nil,
-			CreatedAt:   role.CreatedAtM,
 			Permissions: permissions,
 		}
 
-		// Add description only if it's valid
 		if role.Description.Valid {
 			roleResponse.Description = &role.Description.String
 		}
@@ -140,7 +122,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		roleResponses = append(roleResponses, roleResponse)
 	}
 
-	// 6. Return success response
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),

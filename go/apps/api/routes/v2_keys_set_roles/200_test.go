@@ -69,12 +69,7 @@ func TestSuccess(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &roleID},
-			},
+			Roles: []string{roleID},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -144,12 +139,7 @@ func TestSuccess(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Name: &roleName},
-			},
+			Roles: []string{roleName},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -222,14 +212,7 @@ func TestSuccess(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &adminRoleID},      // By ID
-				{Name: &editorRoleName}, // By name
-				{Id: &viewerRoleID},     // By ID
-			},
+			Roles: []string{adminRoleID, editorRoleName, viewerRoleID},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -323,12 +306,7 @@ func TestSuccess(t *testing.T) {
 		// Now set the key to have only the new role (should remove old, add new)
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &newRoleID}, // Replace old with new
-			},
+			Roles: []string{newRoleID},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -416,10 +394,7 @@ func TestSuccess(t *testing.T) {
 		// Set roles to empty array
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{}, // Empty roles array - remove all
+			Roles: []string{}, // Empty roles array - remove all
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -499,12 +474,7 @@ func TestSuccess(t *testing.T) {
 		// Set roles to the same role (no change)
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &roleID}, // Same role as already assigned
-			},
+			Roles: []string{roleID},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -576,15 +546,7 @@ func TestSuccess(t *testing.T) {
 		// ID should take precedence
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{
-					Id:   &role1ID,
-					Name: &role2Name, // This should be ignored, ID takes precedence
-				},
-			},
+			Roles: []string{role1ID, role2Name},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](

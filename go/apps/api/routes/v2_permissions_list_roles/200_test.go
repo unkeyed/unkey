@@ -129,7 +129,6 @@ func TestSuccess(t *testing.T) {
 		for _, role := range res.Body.Data {
 			roleMap[role.Id] = true
 			require.NotNil(t, role.Description)
-			require.NotNil(t, role.CreatedAt)
 
 			// Verify permissions are attached
 			require.NotNil(t, role.Permissions)
