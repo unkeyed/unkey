@@ -93,7 +93,7 @@ export default function ProjectDetailPage(): JSX.Element {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex items-center gap-3">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand" />
           <span className="text-content-subtle">Loading project...</span>
         </div>
       </div>
@@ -485,7 +485,9 @@ export default function ProjectDetailPage(): JSX.Element {
                             <span className="text-sm text-content">{deployment.gitBranch}</span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm text-content">{deployment.environment.name}</span>
+                            <span className="text-sm text-content">
+                              {deployment.environment.name}
+                            </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span

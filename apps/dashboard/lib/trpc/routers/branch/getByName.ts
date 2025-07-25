@@ -64,7 +64,7 @@ export const getByName = t.procedure
 
       // Find the latest deployment to get commit info
       const latestDeployment = branch.versions[0];
-      
+
       // Create enhanced branch object with UI-expected fields
       const enhancedBranch = {
         id: branch.id,
@@ -74,7 +74,7 @@ export const getByName = t.procedure
         createdAt: branch.createdAt,
         updatedAt: branch.updatedAt,
         project: branch.project,
-        deployments: branch.versions.map(version => ({
+        deployments: branch.versions.map((version) => ({
           id: version.id,
           gitCommitSha: version.gitCommitSha,
           gitBranch: version.gitBranch,
@@ -83,18 +83,21 @@ export const getByName = t.procedure
           createdAt: version.createdAt,
           updatedAt: version.updatedAt,
           buildDuration: Math.floor(Math.random() * 300) + 60, // Mock build duration
-          deploymentUrl: version.status === 'active' ? `https://${version.gitCommitSha?.slice(0, 7)}-${branch.project?.slug}.unkey.app` : undefined,
+          deploymentUrl:
+            version.status === "active"
+              ? `https://${version.gitCommitSha?.slice(0, 7)}-${branch.project?.slug}.unkey.app`
+              : undefined,
         })),
         // Fields expected by UI but not in database schema
-        isProduction: branch.name === 'main' || branch.name === 'production', // Simple heuristic
+        isProduction: branch.name === "main" || branch.name === "production", // Simple heuristic
         environment: {
-          id: `env_${branch.name.replace(/[^a-zA-Z0-9]/g, '_')}`,
-          name: branch.name === 'main' ? 'production' : 'preview',
-          description: `Environment for ${branch.name} branch`
+          id: `env_${branch.name.replace(/[^a-zA-Z0-9]/g, "_")}`,
+          name: branch.name === "main" ? "production" : "preview",
+          description: `Environment for ${branch.name} branch`,
         },
         lastCommitSha: latestDeployment?.gitCommitSha || null,
         lastCommitMessage: latestDeployment ? `Latest commit for ${branch.name}` : null,
-        lastCommitAuthor: 'developer', // Mock author
+        lastCommitAuthor: "developer", // Mock author
         lastCommitDate: latestDeployment?.createdAt || null,
       };
 

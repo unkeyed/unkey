@@ -60,7 +60,7 @@ export default function BranchDetailPage(): JSX.Element {
     "overview",
   );
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [selectedEnvironment, setSelectedEnvironment] = useState<string>("all");
+  const [selectedEnvironment, _setSelectedEnvironment] = useState<string>("all");
 
   // Use your existing tRPC query structure
   const { data, isLoading, error } = trpc.project.branches.useQuery(
@@ -95,7 +95,7 @@ export default function BranchDetailPage(): JSX.Element {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex items-center gap-3">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand" />
           <span className="text-content-subtle">Loading project...</span>
         </div>
       </div>

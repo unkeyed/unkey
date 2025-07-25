@@ -1,14 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import {
-  Button,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@unkey/ui";
+import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import { AlertCircle, ArrowLeft, GitBranch, GitCompare, Loader } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
@@ -29,7 +22,9 @@ export default function DiffPage({ params, searchParams }: Props) {
   const router = useRouter();
   const [fromDeploymentId, toDeploymentId] = params.compare;
   const [selectedFromBranch, setSelectedFromBranch] = useState<string>("");
-  const [selectedFromDeployment, setSelectedFromDeployment] = useState<string>(fromDeploymentId || "");
+  const [selectedFromDeployment, setSelectedFromDeployment] = useState<string>(
+    fromDeploymentId || "",
+  );
   const [selectedToBranch, setSelectedToBranch] = useState<string>("");
   const [selectedToDeployment, setSelectedToDeployment] = useState<string>(toDeploymentId || "");
 
@@ -41,11 +36,11 @@ export default function DiffPage({ params, searchParams }: Props) {
   // Fetch deployment details to get their branch IDs
   const { data: fromDeploymentDetails } = trpc.deployment.getById.useQuery(
     { deploymentId: fromDeploymentId },
-    { enabled: !!fromDeploymentId }
+    { enabled: !!fromDeploymentId },
   );
   const { data: toDeploymentDetails } = trpc.deployment.getById.useQuery(
     { deploymentId: toDeploymentId },
-    { enabled: !!toDeploymentId }
+    { enabled: !!toDeploymentId },
   );
 
   // Fetch deployments for the selected "from" branch
@@ -56,10 +51,11 @@ export default function DiffPage({ params, searchParams }: Props) {
     );
 
   // Fetch deployments for the selected "to" branch
-  const { data: toDeploymentsData, isLoading: toDeploymentsLoading } = trpc.deployment.listByBranch.useQuery(
-    { branchId: selectedToBranch },
-    { enabled: !!selectedToBranch },
-  );
+  const { data: toDeploymentsData, isLoading: toDeploymentsLoading } =
+    trpc.deployment.listByBranch.useQuery(
+      { branchId: selectedToBranch },
+      { enabled: !!selectedToBranch },
+    );
 
   // Set the branch IDs based on the deployment details from URL
   React.useEffect(() => {
@@ -76,7 +72,9 @@ export default function DiffPage({ params, searchParams }: Props) {
 
   const handleCompare = () => {
     if (selectedFromDeployment && selectedToDeployment) {
-      router.push(`/projects/${params.projectId}/diff/${selectedFromDeployment}/${selectedToDeployment}`);
+      router.push(
+        `/projects/${params.projectId}/diff/${selectedFromDeployment}/${selectedToDeployment}`,
+      );
     }
   };
 
@@ -100,7 +98,9 @@ export default function DiffPage({ params, searchParams }: Props) {
 
             <div className="mb-6">
               <h1 className="text-3xl font-bold text-content mb-4">Compare API Deployments</h1>
-              <p className="text-content-subtle">Select branches and deployments to compare their OpenAPI specifications</p>
+              <p className="text-content-subtle">
+                Select branches and deployments to compare their OpenAPI specifications
+              </p>
             </div>
 
             {/* Comparison Selector */}
@@ -109,7 +109,7 @@ export default function DiffPage({ params, searchParams }: Props) {
                 {/* From Section */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <div className="w-3 h-3 bg-red-500 rounded-full" />
                     <h3 className="text-sm font-medium text-content-subtle">FROM</h3>
                   </div>
                   <div className="space-y-3">
@@ -146,7 +146,9 @@ export default function DiffPage({ params, searchParams }: Props) {
                       </Select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-content mb-2">Deployment</label>
+                      <label className="block text-sm font-medium text-content mb-2">
+                        Deployment
+                      </label>
                       <Select
                         value={selectedFromDeployment}
                         onValueChange={setSelectedFromDeployment}
@@ -170,7 +172,8 @@ export default function DiffPage({ params, searchParams }: Props) {
                                 <div className="space-y-1">
                                   <div className="flex items-center gap-2">
                                     <span className="font-mono text-xs">
-                                      {deployment.gitCommitSha?.slice(0, 7) || deployment.id.slice(0, 8)}
+                                      {deployment.gitCommitSha?.slice(0, 7) ||
+                                        deployment.id.slice(0, 8)}
                                     </span>
                                     <span
                                       className={`px-1.5 py-0.5 text-xs rounded ${
@@ -200,7 +203,7 @@ export default function DiffPage({ params, searchParams }: Props) {
                 {/* To Section */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <div className="w-3 h-3 bg-green-500 rounded-full" />
                     <h3 className="text-sm font-medium text-content-subtle">TO</h3>
                   </div>
                   <div className="space-y-3">
@@ -237,7 +240,9 @@ export default function DiffPage({ params, searchParams }: Props) {
                       </Select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-content mb-2">Deployment</label>
+                      <label className="block text-sm font-medium text-content mb-2">
+                        Deployment
+                      </label>
                       <Select
                         value={selectedToDeployment}
                         onValueChange={setSelectedToDeployment}
@@ -261,7 +266,8 @@ export default function DiffPage({ params, searchParams }: Props) {
                                 <div className="space-y-1">
                                   <div className="flex items-center gap-2">
                                     <span className="font-mono text-xs">
-                                      {deployment.gitCommitSha?.slice(0, 7) || deployment.id.slice(0, 8)}
+                                      {deployment.gitCommitSha?.slice(0, 7) ||
+                                        deployment.id.slice(0, 8)}
                                     </span>
                                     <span
                                       className={`px-1.5 py-0.5 text-xs rounded ${
@@ -331,8 +337,8 @@ export default function DiffPage({ params, searchParams }: Props) {
                 Back
               </Button>
             </div>
-            <div className="h-8 bg-background-subtle rounded w-96 mb-4 animate-pulse"></div>
-            <div className="h-4 bg-background-subtle rounded w-64 animate-pulse"></div>
+            <div className="h-8 bg-background-subtle rounded w-96 mb-4 animate-pulse" />
+            <div className="h-4 bg-background-subtle rounded w-64 animate-pulse" />
           </div>
 
           {/* Loading content */}
@@ -407,7 +413,13 @@ export default function DiffPage({ params, searchParams }: Props) {
 
             <div className="flex items-center space-x-4">
               <div className="text-sm text-content-subtle bg-background-subtle px-3 py-2 rounded-md border border-border">
-                {fromDeploymentDetails?.gitCommitSha?.slice(0, 7) || fromDeploymentId?.slice(0, 8) || "v1"} → {toDeploymentDetails?.gitCommitSha?.slice(0, 7) || toDeploymentId?.slice(0, 8) || "v2"}
+                {fromDeploymentDetails?.gitCommitSha?.slice(0, 7) ||
+                  fromDeploymentId?.slice(0, 8) ||
+                  "v1"}{" "}
+                →{" "}
+                {toDeploymentDetails?.gitCommitSha?.slice(0, 7) ||
+                  toDeploymentId?.slice(0, 8) ||
+                  "v2"}
               </div>
             </div>
           </div>
@@ -419,7 +431,7 @@ export default function DiffPage({ params, searchParams }: Props) {
               {/* From Section */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <div className="w-3 h-3 bg-red-500 rounded-full" />
                   <h3 className="text-sm font-medium text-content-subtle">FROM</h3>
                 </div>
                 <div className="space-y-3">
@@ -456,7 +468,9 @@ export default function DiffPage({ params, searchParams }: Props) {
                     </Select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-content mb-2">Deployment</label>
+                    <label className="block text-sm font-medium text-content mb-2">
+                      Deployment
+                    </label>
                     <Select
                       value={selectedFromDeployment}
                       onValueChange={setSelectedFromDeployment}
@@ -480,7 +494,8 @@ export default function DiffPage({ params, searchParams }: Props) {
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2">
                                   <span className="font-mono text-xs">
-                                    {deployment.gitCommitSha?.slice(0, 7) || deployment.id.slice(0, 8)}
+                                    {deployment.gitCommitSha?.slice(0, 7) ||
+                                      deployment.id.slice(0, 8)}
                                   </span>
                                   <span
                                     className={`px-1.5 py-0.5 text-xs rounded ${
@@ -510,7 +525,7 @@ export default function DiffPage({ params, searchParams }: Props) {
               {/* To Section */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <div className="w-3 h-3 bg-green-500 rounded-full" />
                   <h3 className="text-sm font-medium text-content-subtle">TO</h3>
                 </div>
                 <div className="space-y-3">
@@ -547,7 +562,9 @@ export default function DiffPage({ params, searchParams }: Props) {
                     </Select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-content mb-2">Deployment</label>
+                    <label className="block text-sm font-medium text-content mb-2">
+                      Deployment
+                    </label>
                     <Select
                       value={selectedToDeployment}
                       onValueChange={setSelectedToDeployment}
@@ -571,7 +588,8 @@ export default function DiffPage({ params, searchParams }: Props) {
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2">
                                   <span className="font-mono text-xs">
-                                    {deployment.gitCommitSha?.slice(0, 7) || deployment.id.slice(0, 8)}
+                                    {deployment.gitCommitSha?.slice(0, 7) ||
+                                      deployment.id.slice(0, 8)}
                                   </span>
                                   <span
                                     className={`px-1.5 py-0.5 text-xs rounded ${
@@ -615,10 +633,16 @@ export default function DiffPage({ params, searchParams }: Props) {
 
         {/* Diff Viewer */}
         <div className="overflow-hidden">
-          <DiffViewer 
-            diffData={diffResult.diff} 
-            fromDeployment={fromDeploymentDetails?.gitCommitSha?.slice(0, 7) || fromDeploymentId?.slice(0, 8) || "v1"}
-            toDeployment={toDeploymentDetails?.gitCommitSha?.slice(0, 7) || toDeploymentId?.slice(0, 8) || "v2"}
+          <DiffViewer
+            diffData={diffResult.diff}
+            fromDeployment={
+              fromDeploymentDetails?.gitCommitSha?.slice(0, 7) ||
+              fromDeploymentId?.slice(0, 8) ||
+              "v1"
+            }
+            toDeployment={
+              toDeploymentDetails?.gitCommitSha?.slice(0, 7) || toDeploymentId?.slice(0, 8) || "v2"
+            }
           />
         </div>
       </div>

@@ -76,7 +76,6 @@ interface EnvironmentVariable {
   source: "project" | "environment" | "branch";
 }
 
-
 // Mock data with static timestamps to avoid hydration issues
 const mockProject: Project = {
   id: "proj_123",
@@ -213,7 +212,9 @@ export default function BranchDetailPage(): JSX.Element {
       const [latest, previous] = deployments;
       router.push(`/projects/${projectId}/diff/${previous.id}/${latest.id}`);
     } else {
-      alert("At least two deployments are needed to compare. Please create more deployments first.");
+      alert(
+        "At least two deployments are needed to compare. Please create more deployments first.",
+      );
     }
   };
 
@@ -224,9 +225,9 @@ export default function BranchDetailPage(): JSX.Element {
 
   const handleCompareFromDeployment = (deploymentId: string) => {
     // Compare with the previous deployment if available
-    const currentIndex = deployments.findIndex(d => d.id === deploymentId);
+    const currentIndex = deployments.findIndex((d) => d.id === deploymentId);
     const previousDeployment = deployments[currentIndex + 1];
-    
+
     if (previousDeployment) {
       router.push(`/projects/${projectId}/diff/${previousDeployment.id}/${deploymentId}`);
     } else {
@@ -238,7 +239,7 @@ export default function BranchDetailPage(): JSX.Element {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex items-center gap-3">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand" />
           <span className="text-content-subtle">Loading branch...</span>
         </div>
       </div>

@@ -37,7 +37,7 @@ export const listByProject = t.procedure
           id: branch.id,
           name: branch.name,
           projectId: branch.projectId,
-          isProduction: branch.name === 'main' || branch.name === 'production', // Simple heuristic
+          isProduction: branch.name === "main" || branch.name === "production", // Simple heuristic
           createdAt: branch.createdAt,
           updatedAt: branch.updatedAt,
         })),

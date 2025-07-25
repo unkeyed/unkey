@@ -30,7 +30,11 @@ interface DiffViewerProps {
 
 type ViewMode = "changes" | "side-by-side" | "timeline";
 
-export const DiffViewer: React.FC<DiffViewerProps> = ({ diffData, fromDeployment = "v1", toDeployment = "v2" }) => {
+export const DiffViewer: React.FC<DiffViewerProps> = ({
+  diffData,
+  fromDeployment = "v1",
+  toDeployment = "v2",
+}) => {
   // Early return if no diffData
   if (!diffData) {
     return (
@@ -74,8 +78,12 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diffData, fromDeployment
   const filteredChanges = useMemo(() => {
     const changes = diffData?.changes || [];
     return changes.filter((change) => {
-      if (filters.level !== null && change.level !== filters.level) return false;
-      if (filters.operation !== "all" && change.operation !== filters.operation) return false;
+      if (filters.level !== null && change.level !== filters.level) {
+        return false;
+      }
+      if (filters.operation !== "all" && change.operation !== filters.operation) {
+        return false;
+      }
       if (filters.searchQuery) {
         const query = filters.searchQuery.toLowerCase();
         return (
@@ -314,12 +322,19 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diffData, fromDeployment
     const getDiffType = (_lineIndex: number, side: "before" | "after", line: string) => {
       if (path === "/users" && operation === "GET") {
         if (side === "before") {
-          if (line.includes('"limit"') || line.includes('"offset"')) return "removed";
-          if (line.includes('"users"') || line.includes('"total"')) return "removed";
+          if (line.includes('"limit"') || line.includes('"offset"')) {
+            return "removed";
+          }
+          if (line.includes('"users"') || line.includes('"total"')) {
+            return "removed";
+          }
         } else {
-          if (line.includes('"pageSize"') || line.includes('"page"') || line.includes('"status"'))
+          if (line.includes('"pageSize"') || line.includes('"page"') || line.includes('"status"')) {
             return "added";
-          if (line.includes('"data"') || line.includes('"pagination"')) return "added";
+          }
+          if (line.includes('"data"') || line.includes('"pagination"')) {
+            return "added";
+          }
         }
       }
       return "none";
@@ -488,7 +503,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diffData, fromDeployment
           {filteredChanges.map((change, index) => (
             <div key={`${change.id}-${index}`} className="relative">
               {index < filteredChanges.length - 1 && (
-                <div className="absolute left-4 top-8 w-0.5 h-16 bg-border"></div>
+                <div className="absolute left-4 top-8 w-0.5 h-16 bg-border" />
               )}
               <div className="flex items-start space-x-4">
                 <div
@@ -551,7 +566,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diffData, fromDeployment
               </div>
             </div>
           ))}
-          
+
           {filteredChanges.length === 0 && (
             <div className="text-center py-12">
               <Clock className="w-12 h-12 text-content-subtle mx-auto mb-4" />
@@ -570,52 +585,52 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diffData, fromDeployment
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="py-3">
             <nav className="flex space-x-6">
-                <button
-                  onClick={() => setViewMode("changes")}
-                  className={`py-3 px-4 font-medium text-sm transition-colors border-b-2 ${
-                    viewMode === "changes"
-                      ? "border-brand text-brand"
-                      : "border-transparent text-content-subtle hover:text-content hover:border-gray-200"
-                  }`}
-                >
-                  <div className="flex items-center space-x-2">
-                    <FileText className="w-4 h-4" />
-                    <span>Changes ({stats.total})</span>
-                  </div>
-                </button>
-                <button
-                  onClick={() => setViewMode("side-by-side")}
-                  className={`py-3 px-4 font-medium text-sm transition-colors border-b-2 ${
-                    viewMode === "side-by-side"
-                      ? "border-brand text-brand"
-                      : "border-transparent text-content-subtle hover:text-content hover:border-gray-200"
-                  }`}
-                >
-                  <div className="flex items-center space-x-2">
-                    <Layers className="w-4 h-4" />
-                    <span>Side-by-Side</span>
-                  </div>
-                </button>
-                <button
-                  onClick={() => setViewMode("timeline")}
-                  className={`py-3 px-4 font-medium text-sm transition-colors border-b-2 ${
-                    viewMode === "timeline"
-                      ? "border-brand text-brand"
-                      : "border-transparent text-content-subtle hover:text-content hover:border-gray-200"
-                  }`}
-                >
-                  <div className="flex items-center space-x-2">
-                    <Clock className="w-4 h-4" />
-                    <span>Timeline</span>
-                  </div>
-                </button>
-              </nav>
-            </div>
+              <button
+                onClick={() => setViewMode("changes")}
+                className={`py-3 px-4 font-medium text-sm transition-colors border-b-2 ${
+                  viewMode === "changes"
+                    ? "border-brand text-brand"
+                    : "border-transparent text-content-subtle hover:text-content hover:border-gray-200"
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <FileText className="w-4 h-4" />
+                  <span>Changes ({stats.total})</span>
+                </div>
+              </button>
+              <button
+                onClick={() => setViewMode("side-by-side")}
+                className={`py-3 px-4 font-medium text-sm transition-colors border-b-2 ${
+                  viewMode === "side-by-side"
+                    ? "border-brand text-brand"
+                    : "border-transparent text-content-subtle hover:text-content hover:border-gray-200"
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <Layers className="w-4 h-4" />
+                  <span>Side-by-Side</span>
+                </div>
+              </button>
+              <button
+                onClick={() => setViewMode("timeline")}
+                className={`py-3 px-4 font-medium text-sm transition-colors border-b-2 ${
+                  viewMode === "timeline"
+                    ? "border-brand text-brand"
+                    : "border-transparent text-content-subtle hover:text-content hover:border-gray-200"
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <Clock className="w-4 h-4" />
+                  <span>Timeline</span>
+                </div>
+              </button>
+            </nav>
           </div>
         </div>
+      </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {viewMode === "changes" && (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {viewMode === "changes" && (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Summary Panel */}
             <div className="lg:col-span-1">
@@ -773,7 +788,10 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diffData, fromDeployment
                   ) : (
                     <div className="space-y-4">
                       {Object.entries(groupedChanges).map(([path, operations]) => (
-                        <div key={path} className="border border-gray-200 rounded-lg overflow-hidden">
+                        <div
+                          key={path}
+                          className="border border-gray-200 rounded-lg overflow-hidden"
+                        >
                           <button
                             onClick={() => togglePathExpansion(path)}
                             className="w-full flex items-center justify-between p-4 text-left hover:bg-background-subtle transition-colors"
@@ -901,9 +919,9 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diffData, fromDeployment
           </div>
         )}
 
-          {viewMode === "side-by-side" && renderSideBySideView()}
-          {viewMode === "timeline" && renderTimelineView()}
-        </div>
+        {viewMode === "side-by-side" && renderSideBySideView()}
+        {viewMode === "timeline" && renderTimelineView()}
       </div>
+    </div>
   );
 };
