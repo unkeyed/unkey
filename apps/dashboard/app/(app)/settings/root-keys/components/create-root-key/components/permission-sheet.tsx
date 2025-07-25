@@ -8,9 +8,10 @@ import {
 } from "@/components/ui/sheet";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { PermissionContentList } from "./permission-list";
 import { SearchPermissions } from "./search-permissions";
+import { UnkeyPermission } from "@unkey/rbac";
 
 type PermissionSheetProps = {
   children: React.ReactNode;
@@ -18,15 +19,16 @@ type PermissionSheetProps = {
     id: string;
     name: string;
   }[];
-  onChange?: (permissions: string[]) => void;
+  selectedPermissions: UnkeyPermission[];
+  onChange?: (permissions: UnkeyPermission[]) => void;
 };
-export const PermissionSheet = ({ children, apis, onChange }: PermissionSheetProps) => {
+export const PermissionSheet = ({ children, apis, selectedPermissions, onChange }: PermissionSheetProps) => {
   const [open, setOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [search, setSearch] = useState<string | undefined>(undefined);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [workspacePermissions, setWorkspacePermissions] = useState<string[]>([]);
-  const [apiPermissions, setApiPermissions] = useState<Record<string, string[]>>({});
+  const [workspacePermissions, setWorkspacePermissions] = useState<UnkeyPermission[]>([]);
+  const [apiPermissions, setApiPermissions] = useState<Record<string, UnkeyPermission[]>>({});
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setIsProcessing(true);
@@ -38,6 +40,14 @@ export const PermissionSheet = ({ children, apis, onChange }: PermissionSheetPro
   const handleOpenChange = (open: boolean) => {
     setOpen(open);
   };
+
+  const handleApiPermissionChange = (apiId: string, permissions: UnkeyPermission[]) => {
+    setApiPermissions((prev) => ({ ...prev, [apiId]: permissions }));
+  }
+
+  const handleWorkspacePermissionChange = (permissions: UnkeyPermission[]) => {
+    setWorkspacePermissions(permissions);
+  }
 
   // Aggregate all permissions and call onChange
   useEffect(() => {
@@ -69,22 +79,20 @@ export const PermissionSheet = ({ children, apis, onChange }: PermissionSheetPro
               {/* Workspace Permissions */}
               {/* TODO: Tie In Search */}
               <PermissionContentList
+                selected={selectedPermissions}
                 key="workspace"
                 type="workspace"
-                onPermissionChange={(permissions) =>
-                  setWorkspacePermissions(permissions.map(String))
-                }
+                onPermissionChange={(permissions) => handleWorkspacePermissionChange(permissions)}
               />
               {/* From APIs */}
               <p className="text-sm text-gray-10 ml-6 py-auto mt-1.5">From APIs</p>
               {apis.map((api) => (
                 <PermissionContentList
+                  selected={selectedPermissions}
                   key={api.id}
                   type="api"
                   api={api}
-                  onPermissionChange={(permissions) =>
-                    setApiPermissions((prev) => ({ ...prev, [api.id]: permissions.map(String) }))
-                  }
+                  onPermissionChange={(permissions) => handleApiPermissionChange(api.id, permissions)}
                 />
               ))}
             </div>
