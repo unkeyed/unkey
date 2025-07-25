@@ -162,7 +162,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if len(rolesToAdd) > 0 {
 		err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 			var auditLogs []auditlog.AuditLog
-
 			rolesToInsert := make([]db.InsertKeyRoleParams, 0)
 
 			for _, role := range rolesToAdd {
@@ -254,7 +253,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		rolePermissions := make([]db.Permission, 0)
 		json.Unmarshal(role.Permissions.([]byte), &rolePermissions)
-
 		for _, permission := range rolePermissions {
 			perm := openapi.Permission{
 				Id:          permission.ID,

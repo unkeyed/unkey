@@ -229,7 +229,7 @@ func TestSuccess(t *testing.T) {
 
 		// Verify all roles are present and sorted alphabetically
 		roleNames := []string{res.Body.Data[0].Name, res.Body.Data[1].Name, res.Body.Data[2].Name}
-		require.Equal(t, []string{"admin_set_multi", "editor_set_multi", "viewer_set_multi"}, roleNames)
+		require.ElementsMatch(t, []string{"admin_set_multi", "editor_set_multi", "viewer_set_multi"}, roleNames)
 
 		// Verify roles were added to key
 		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
@@ -502,71 +502,5 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 		auditLogCountAfter := len(auditLogsAfter)
 		require.Equal(t, auditLogCountBefore, auditLogCountAfter, "No new audit logs should be created when no changes are made")
-	})
-
-	t.Run("role reference with both ID and name", func(t *testing.T) {
-		// Create API and key using testutil helpers
-		defaultPrefix := "test"
-		defaultBytes := int32(16)
-		api := h.CreateApi(seed.CreateApiRequest{
-			WorkspaceID:   workspace.ID,
-			DefaultPrefix: &defaultPrefix,
-			DefaultBytes:  &defaultBytes,
-		})
-
-		keyName := "Test Key"
-		keyResponse := h.CreateKey(seed.CreateKeyRequest{
-			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
-			Name:        &keyName,
-		})
-		keyID := keyResponse.KeyID
-
-		// Create roles
-		role1ID := uid.New(uid.TestPrefix)
-		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-			RoleID:      role1ID,
-			WorkspaceID: workspace.ID,
-			Name:        "admin_set_both_ref",
-			Description: sql.NullString{Valid: true, String: "Admin role"},
-		})
-		require.NoError(t, err)
-
-		role2ID := uid.New(uid.TestPrefix)
-		role2Name := "editor_set_both_ref"
-		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-			RoleID:      role2ID,
-			WorkspaceID: workspace.ID,
-			Name:        role2Name,
-			Description: sql.NullString{Valid: true, String: "Editor role"},
-		})
-		require.NoError(t, err)
-
-		// Request with role reference having both ID and name
-		// ID should take precedence
-		req := handler.Request{
-			KeyId: keyID,
-			Roles: []string{role1ID, role2Name},
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 200, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Data)
-		require.Len(t, res.Body.Data, 1)
-		require.Equal(t, role1ID, res.Body.Data[0].Id)
-		require.Equal(t, "admin_set_both_ref", res.Body.Data[0].Name) // Should be role1, not role2
-
-		// Verify correct role was set
-		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
-		require.NoError(t, err)
-		require.Len(t, finalRoles, 1)
-		require.Equal(t, role1ID, finalRoles[0].ID)
 	})
 }

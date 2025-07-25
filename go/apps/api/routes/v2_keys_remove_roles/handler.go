@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -126,8 +127,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	for _, role := range foundRoles {
 		foundMap[role.ID] = struct{}{}
 		foundMap[role.Name] = struct{}{}
-
-		delete(currentRoleIDs, role.ID)
 	}
 
 	for _, role := range req.Roles {
@@ -142,9 +141,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	rolesToRemove := make([]db.FindManyRolesByIdOrNameWithPermsRow, 0)
 	for _, role := range foundRoles {
-		if _, exists := currentRoleIDs[role.ID]; exists {
-			rolesToRemove = append(rolesToRemove, role)
+		_, exists := currentRoleIDs[role.ID]
+		if !exists {
+			continue
 		}
+
+		rolesToRemove = append(rolesToRemove, role)
+		delete(currentRoleIDs, role.ID)
 	}
 
 	if len(rolesToRemove) > 0 {
@@ -210,8 +213,35 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	responseData := make(openapi.V2KeysRemoveRolesResponseData, 0)
+	for _, role := range currentRoleIDs {
+		r := openapi.Role{
+			Id:          role.ID,
+			Name:        role.Name,
+			Description: nil,
+			Permissions: nil,
+		}
 
-	// 10. Return success response
+		rolePermissions := make([]db.Permission, 0)
+		json.Unmarshal(role.Permissions.([]byte), &rolePermissions)
+
+		for _, permission := range rolePermissions {
+			perm := openapi.Permission{
+				Id:          permission.ID,
+				Name:        permission.Name,
+				Slug:        permission.Slug,
+				Description: nil,
+			}
+
+			if permission.Description.Valid {
+				perm.Description = &permission.Description.String
+			}
+
+			r.Permissions = append(r.Permissions, perm)
+		}
+
+		responseData = append(responseData, r)
+	}
+
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
