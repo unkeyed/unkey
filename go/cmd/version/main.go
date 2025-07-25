@@ -13,14 +13,12 @@ var Cmd = &cli.Command{
 	Usage: "Manage API versions",
 	Description: `Create, list, and manage versions of your API.
 
-Versions are immutable snapshots of your code, configuration, and infrastructure settings. 
-Each version represents a specific deployment state that can be rolled back to at any time.
+Versions are immutable snapshots of your code, configuration, and infrastructure settings. Each version represents a specific deployment state that can be rolled back to at any time.
 
-## Available Commands
-
-- ` + "`get`" + ` - Get details about a specific version
-- ` + "`list`" + ` - List all versions with optional filtering
-- ` + "`rollback`" + ` - Rollback to a previous version`,
+AVAILABLE COMMANDS:
+- get: Get details about a specific version
+- list: List all versions with optional filtering
+- rollback: Rollback to a previous version`,
 	Commands: []*cli.Command{
 		getCmd,
 		listCmd,
@@ -33,17 +31,9 @@ var getCmd = &cli.Command{
 	Usage: "Get details about a version",
 	Description: `Get comprehensive details about a specific version including status, branch, creation time, and associated hostnames.
 
-## Usage
-
-` + "`unkey version get <version-id>`" + `
-
-## Examples
-
-Get details for a specific version:
-` + "`unkey version get v_abc123def456`" + `
-
-Get details for the latest version:
-` + "`unkey version get v_def456ghi789`",
+EXAMPLES:
+unkey version get v_abc123def456                 # Get details for a specific version
+unkey version get v_def456ghi789                 # Get details for another version`,
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		logger := slog.Default()
 
@@ -72,26 +62,15 @@ var listCmd = &cli.Command{
 	Usage: "List versions with optional filtering",
 	Description: `List all versions for the current project with support for filtering by branch, status, and limiting results.
 
-## Usage
+FILTERING OPTIONS:
+Use flags to filter results by branch name, status, or limit the number of results returned. Filters can be combined for more specific queries.
 
-` + "`unkey version list [flags]`" + `
-
-## Examples
-
-List all versions:
-` + "`unkey version list`" + `
-
-List versions from main branch:
-` + "`unkey version list --branch main`" + `
-
-List only active versions:
-` + "`unkey version list --status active`" + `
-
-List last 5 versions:
-` + "`unkey version list --limit 5`" + `
-
-Combine filters:
-` + "`unkey version list --branch main --status active --limit 3`",
+EXAMPLES:
+unkey version list                               # List all versions
+unkey version list --branch main                # List versions from main branch
+unkey version list --status active              # List only active versions
+unkey version list --limit 5                    # List last 5 versions
+unkey version list --branch main --status active --limit 3  # Combine filters`,
 	Flags: []cli.Flag{
 		cli.String("branch", "Filter by branch name"),
 		cli.String("status", "Filter by status (pending, building, active, failed)"),
@@ -116,26 +95,15 @@ Combine filters:
 var rollbackCmd = &cli.Command{
 	Name:  "rollback",
 	Usage: "Rollback to a previous version",
-	Description: `Rollback a hostname to a previous version. This operation will switch traffic from the current 
-version to the specified target version.
+	Description: `Rollback a hostname to a previous version. This operation will switch traffic from the current version to the specified target version.
 
-**Warning:** This operation affects live traffic. Use the ` + "`--force`" + ` flag to skip the confirmation prompt 
-in automated environments.
+WARNING:
+This operation affects live traffic. Use the --force flag to skip the confirmation prompt in automated environments.
 
-## Usage
-
-` + "`unkey version rollback <hostname> <version-id> [flags]`" + `
-
-## Examples
-
-Rollback with confirmation prompt:
-` + "`unkey version rollback my-api.unkey.app v_abc123def456`" + `
-
-Rollback without confirmation (automation):
-` + "`unkey version rollback my-api.unkey.app v_abc123def456 --force`" + `
-
-Rollback staging environment:
-` + "`unkey version rollback staging-api.unkey.app v_def456ghi789`",
+EXAMPLES:
+unkey version rollback my-api.unkey.app v_abc123def456                    # Rollback with confirmation prompt
+unkey version rollback my-api.unkey.app v_abc123def456 --force            # Rollback without confirmation for automation
+unkey version rollback staging-api.unkey.app v_def456ghi789               # Rollback staging environment`,
 	Flags: []cli.Flag{
 		cli.Bool("force", "Skip confirmation prompt for automated deployments"),
 	},

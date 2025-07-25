@@ -14,28 +14,17 @@ var Cmd = &cli.Command{
 	Usage: "Run Unkey services",
 	Description: `Run various Unkey services in development or production environments.
 
-## Available Services
+This command starts different Unkey microservices. Each service can be configured independently and runs as a standalone process.
 
-- ` + "`api`" + ` - The main API server for validating and managing API keys
-- ` + "`ctrl`" + ` - The control plane service for managing infrastructure and deployments
+AVAILABLE SERVICES:
+- api: The main API server for validating and managing API keys
+- ctrl: The control plane service for managing infrastructure and deployments
 
-## Usage
-
-` + "`unkey run <service> [flags]`" + `
-
-## Examples
-
-Run the API server:
-` + "`unkey run api`" + `
-
-Run the control plane:
-` + "`unkey run ctrl`" + `
-
-Show available services and their options:
-` + "`unkey run --help`" + `
-
-Run API server with custom configuration:
-` + "`unkey run api --port 8080 --env production`",
+EXAMPLES:
+unkey run api                                    # Run the API server
+unkey run ctrl                                   # Run the control plane
+unkey run --help                                 # Show available services and their options
+unkey run api --port 8080 --env production      # Run API server with custom configuration`,
 	Commands: []*cli.Command{
 		api.Cmd,
 		ctrl.Cmd,
