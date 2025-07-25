@@ -101,12 +101,7 @@ func TestSuccess(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &role1ID},
-			},
+			Roles: []string{role1ID},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -190,12 +185,7 @@ func TestSuccess(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Name: &roleName},
-			},
+			Roles: []string{roleName},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -251,12 +241,7 @@ func TestSuccess(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &roleID},
-			},
+			Roles: []string{roleID},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](

@@ -1,6 +1,6 @@
 type: object
 required:
-  - roleId
+  - role
 properties:
   role:
     type: string

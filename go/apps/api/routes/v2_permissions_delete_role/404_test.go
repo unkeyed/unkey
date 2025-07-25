@@ -45,7 +45,7 @@ func TestNotFound(t *testing.T) {
 		nonexistentRoleID := uid.New(uid.TestPrefix)
 
 		req := handler.Request{
-			RoleId: nonexistentRoleID,
+			Role: nonexistentRoleID,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -80,7 +80,7 @@ func TestNotFound(t *testing.T) {
 
 		// Try to delete the role from the first workspace
 		req := handler.Request{
-			RoleId: roleID,
+			Role: roleID,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](

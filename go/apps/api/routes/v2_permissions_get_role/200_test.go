@@ -80,7 +80,7 @@ func TestSuccess(t *testing.T) {
 
 		// Now retrieve the role
 		req := handler.Request{
-			RoleId: roleID,
+			Role: roleID,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -102,7 +102,6 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, roleName, role.Name)
 		require.NotNil(t, role.Description)
 		require.Equal(t, roleDesc, *role.Description)
-		require.NotEmpty(t, role.CreatedAt)
 
 		// Verify permissions
 		require.NotNil(t, role.Permissions)
@@ -137,7 +136,7 @@ func TestSuccess(t *testing.T) {
 
 		// Now retrieve the role
 		req := handler.Request{
-			RoleId: roleID,
+			Role: roleName,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](

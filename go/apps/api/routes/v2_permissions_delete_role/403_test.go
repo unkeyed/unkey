@@ -59,7 +59,7 @@ func TestPermissionErrors(t *testing.T) {
 			route,
 			headers,
 			handler.Request{
-				RoleId: roleID,
+				Role: roleID,
 			},
 		)
 
@@ -83,7 +83,7 @@ func TestPermissionErrors(t *testing.T) {
 			route,
 			headers,
 			handler.Request{
-				RoleId: roleID,
+				Role: roleID,
 			},
 		)
 

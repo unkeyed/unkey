@@ -493,11 +493,6 @@ type RatelimitResponse struct {
 
 // Role defines model for Role.
 type Role struct {
-	// CreatedAt Unix timestamp in milliseconds indicating when this role was first created.
-	// Useful for auditing and understanding the evolution of your access control structure.
-	// Automatically set by the system and cannot be modified.
-	CreatedAt int64 `json:"createdAt"`
-
 	// Description Optional detailed explanation of what this role encompasses and what access it provides.
 	// Helps team members understand the role's scope, intended use cases, and security implications.
 	// Include information about what types of users should receive this role and what they can accomplish.
@@ -900,16 +895,7 @@ type V2KeysAddRolesResponseBody struct {
 // - An empty array means the key has no roles assigned (unlikely after an add operation)
 // - This only shows direct role assignments, not inherited or nested roles
 // - Role permissions are not expanded in this response - use keys.getKey for full details
-type V2KeysAddRolesResponseData = []struct {
-	// Description A brief description of the role's purpose and responsibilities. This helps users understand the role's scope and expected behavior.
-	Description *string `json:"description,omitempty"`
-
-	// Id The unique identifier of the role (begins with `role_`). This ID can be used in other API calls to reference this specific role. Role IDs are immutable and guaranteed to be unique within your Unkey workspace, making them reliable reference points for integration and automation systems.
-	Id string `json:"id"`
-
-	// Name The name of the role. This is a human-readable identifier that's unique within your workspace. Role names help identify what access level or function a role provides. Common patterns include naming by access level (`admin`, `editor`, `viewer`), by department (`billing_manager`, `support_agent`), or by feature area (`analytics_user`, `dashboard_admin`).
-	Name string `json:"name"`
-}
+type V2KeysAddRolesResponseData = []Role
 
 // V2KeysCreateKeyRequestBody defines model for V2KeysCreateKeyRequestBody.
 type V2KeysCreateKeyRequestBody struct {
@@ -1163,13 +1149,7 @@ type V2KeysRemoveRolesResponseBody struct {
 // - This only shows direct role assignments
 // - Role permissions are not expanded in this response - use keys.getKey for full details
 // - Changes take effect immediately for new verifications but cached sessions may retain old permissions briefly
-type V2KeysRemoveRolesResponseData = []struct {
-	// Id The unique identifier of the role (begins with `role_`). This ID can be used in other API calls to reference this specific role.
-	Id string `json:"id"`
-
-	// Name The name of the role. This is a human-readable identifier that's unique within your workspace.
-	Name string `json:"name"`
-}
+type V2KeysRemoveRolesResponseData = []Role
 
 // V2KeysSetPermissionsRequestBody defines model for V2KeysSetPermissionsRequestBody.
 type V2KeysSetPermissionsRequestBody struct {
@@ -1275,16 +1255,7 @@ type V2KeysSetRolesResponseBody struct {
 // - This only shows direct role assignments on the key
 // - Role permissions are not expanded in this response - use keys.getKey for complete details
 // - An empty array indicates the key now has no roles assigned at all
-type V2KeysSetRolesResponseData = []struct {
-	// Description A brief description of the role's purpose and responsibilities. This helps users understand the role's scope and expected behavior.
-	Description *string `json:"description,omitempty"`
-
-	// Id The unique identifier of the role (begins with `role_`). This ID can be used in other API calls to reference this specific role. Role IDs are immutable and guaranteed to be unique, making them reliable reference points for integration and automation systems.
-	Id string `json:"id"`
-
-	// Name The name of the role. This is a human-readable identifier that's unique within your workspace. Role names are descriptive labels that help identify what access level or function a role provides. Good naming practices include naming by access level ('admin', 'editor'), by department ('billing_team', 'support_staff'), or by feature area ('reporting_user', 'settings_manager').
-	Name string `json:"name"`
-}
+type V2KeysSetRolesResponseData = []Role
 
 // V2KeysUpdateCreditsRequestBody defines model for V2KeysUpdateCreditsRequestBody.
 type V2KeysUpdateCreditsRequestBody struct {
@@ -1563,7 +1534,7 @@ type V2PermissionsDeleteRoleRequestBody struct {
 	// - You've updated any dependent authorization logic or code
 	// - You've migrated any keys to use alternative roles or direct permissions
 	// - You've notified relevant team members of the access changes
-	Role *string `json:"role,omitempty"`
+	Role string `json:"role"`
 }
 
 // V2PermissionsDeleteRoleResponseBody defines model for V2PermissionsDeleteRoleResponseBody.
