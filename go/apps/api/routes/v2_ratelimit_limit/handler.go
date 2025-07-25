@@ -20,7 +20,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/match"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -71,7 +70,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Use the namespace field directly - it can be either name or ID
 	namespaceKey := req.Namespace
 
-	ctx, span := tracing.Start(ctx, "FindRatelimitNamespace")
 	namespace, hit, err := h.RatelimitNamespaceCache.SWR(ctx,
 		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: namespaceKey},
 		func(ctx context.Context) (db.FindRatelimitNamespace, error) {
@@ -110,7 +108,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			return result, nil
 		}, caches.DefaultFindFirstOp)
-	span.End()
 
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -120,7 +117,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		return err
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Public("An unexpected error occurred while fetching the namespace."),
+		)
 	}
 
 	if hit == cache.Null {

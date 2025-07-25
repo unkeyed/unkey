@@ -59,7 +59,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Internal("namespace not found"), fault.Public("This namespace does not exist."),
 			)
 		}
-		return err
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Public("An unexpected error occurred while loading your namespace."),
+		)
 	}
 
 	namespace := db.RatelimitNamespace{
