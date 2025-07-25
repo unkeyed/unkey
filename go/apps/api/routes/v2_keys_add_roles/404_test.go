@@ -295,19 +295,20 @@ func TestNotFoundErrors(t *testing.T) {
 
 		// Create one valid role
 		validRoleID := uid.New(uid.TestPrefix)
+		validName := "admin_multiple_roles"
 		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      validRoleID,
 			WorkspaceID: workspace.ID,
-			Name:        "admin_multiple_roles",
+			Name:        validName,
 			Description: sql.NullString{Valid: true, String: "Admin role"},
 		})
 		require.NoError(t, err)
 
-		invalidRoleId := "role_nonexistent123456789"
+		invalidName := "role_nonexistent123456789"
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []string{validRoleID, invalidRoleId},
+			Roles: []string{validName, invalidName},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -320,7 +321,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, invalidRoleId)
+		require.Contains(t, res.Body.Error.Detail, invalidName)
 		require.Contains(t, res.Body.Error.Detail, "was not found")
 	})
 
