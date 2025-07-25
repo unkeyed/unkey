@@ -855,11 +855,9 @@ type V2KeysAddRolesRequestBody struct {
 
 	// Roles Assigns additional roles to the key through direct assignment to existing workspace roles.
 	// Operations are idempotent - adding existing roles has no effect and causes no errors.
-	// Use either ID for existing roles or name for human-readable references.
 	//
 	// All roles must already exist in the workspace - roles cannot be created automatically.
 	// Invalid roles cause the entire operation to fail atomically, ensuring consistent state.
-	// Role assignments take effect immediately but cache propagation across regions may take up to 30 seconds.
 	Roles []string `json:"roles"`
 }
 
@@ -1107,10 +1105,8 @@ type V2KeysRemoveRolesRequestBody struct {
 
 	// Roles Removes direct role assignments from the key without affecting other role sources or permissions.
 	// Operations are idempotent - removing non-assigned roles has no effect and causes no errors.
-	// Use either ID for existing roles or name for exact string matching.
 	//
 	// After removal, the key loses access to permissions that were only granted through these roles.
-	// Role changes take effect immediately but cache propagation across regions may take up to 30 seconds.
 	// Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
 	Roles []string `json:"roles"`
 }
@@ -1212,12 +1208,10 @@ type V2KeysSetRolesRequestBody struct {
 
 	// Roles Replaces all existing role assignments with this complete list of roles.
 	// This is a wholesale replacement operation, not an incremental update like add/remove operations.
-	// Use either ID for existing roles or name for human-readable references.
 	//
 	// Providing an empty array removes all direct role assignments from the key.
 	// All roles must already exist in the workspace - roles cannot be created automatically.
 	// Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
-	// Role changes take effect immediately but cache propagation across regions may take up to 30 seconds.
 	Roles []string `json:"roles"`
 }
 

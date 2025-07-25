@@ -337,6 +337,26 @@ type Querier interface {
 	//      OR r.name IN (/*SLICE:search*/?)
 	//  )
 	FindManyRolesByIdOrNameWithPerms(ctx context.Context, db DBTX, arg FindManyRolesByIdOrNameWithPermsParams) ([]FindManyRolesByIdOrNameWithPermsRow, error)
+	//FindManyRolesByNamesWithPerms
+	//
+	//  SELECT id, workspace_id, name, description, created_at_m, updated_at_m, COALESCE(
+	//          (SELECT JSON_ARRAYAGG(
+	//              json_object(
+	//                  'id', permission.id,
+	//                  'name', permission.name,
+	//                  'slug', permission.slug,
+	//                  'description', permission.description
+	//             )
+	//          )
+	//           FROM (SELECT name, id, slug, description
+	//                 FROM roles_permissions rp
+	//                          JOIN permissions p ON p.id = rp.permission_id
+	//                 WHERE rp.role_id = r.id) as permission),
+	//          JSON_ARRAY()
+	//  ) as permissions
+	//  FROM roles r
+	//  WHERE r.workspace_id = ? AND r.name IN (/*SLICE:names*/?)
+	FindManyRolesByNamesWithPerms(ctx context.Context, db DBTX, arg FindManyRolesByNamesWithPermsParams) ([]FindManyRolesByNamesWithPermsRow, error)
 	// Finds a permission record by its ID
 	// Returns: The permission record if found
 	//
