@@ -111,7 +111,7 @@ import { uncancelSubscription } from "./stripe/uncancelSubscription";
 import { updateSubscription } from "./stripe/updateSubscription";
 import { getCurrentUser, listMemberships, switchOrg } from "./user";
 import { vercelRouter } from "./vercel";
-import { versionRouter } from "./version";
+import { deploymentRouter } from "./deployment";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
 import { onboardingKeyCreation } from "./workspace/onboarding";
@@ -308,7 +308,7 @@ export const router = t.router({
     search: searchIdentities,
   }),
   project: projectRouter,
-  version: versionRouter,
+  deployment: deploymentRouter,
   branch: branchRouter,
 });
 

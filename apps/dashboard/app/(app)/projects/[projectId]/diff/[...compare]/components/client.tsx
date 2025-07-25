@@ -24,13 +24,13 @@ import type { DiffChange, DiffData } from "../types";
 
 interface DiffViewerProps {
   diffData: DiffData;
-  fromVersion?: string;
-  toVersion?: string;
+  fromDeployment?: string;
+  toDeployment?: string;
 }
 
 type ViewMode = "changes" | "side-by-side" | "timeline";
 
-export const DiffViewer: React.FC<DiffViewerProps> = ({ diffData, fromVersion = "v1", toVersion = "v2" }) => {
+export const DiffViewer: React.FC<DiffViewerProps> = ({ diffData, fromDeployment = "v1", toDeployment = "v2" }) => {
   // Early return if no diffData
   if (!diffData) {
     return (
@@ -329,7 +329,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diffData, fromVersion = 
       <div className="grid grid-cols-2 gap-0 border border-gray-200 rounded-lg overflow-hidden">
         <div className="border-r border-gray-200">
           <div className="bg-gray-50 px-4 py-3 text-sm font-medium text-content border-b border-gray-200">
-            Before ({fromVersion})
+            Before ({fromDeployment})
           </div>
           <div className="bg-background max-h-96 overflow-y-auto">
             {beforeLines.map((line, index) =>
@@ -339,7 +339,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diffData, fromVersion = 
         </div>
         <div>
           <div className="bg-gray-50 px-4 py-3 text-sm font-medium text-content border-b border-gray-200">
-            After ({toVersion})
+            After ({toDeployment})
           </div>
           <div className="bg-background max-h-96 overflow-y-auto">
             {afterLines.map((line, index) =>
