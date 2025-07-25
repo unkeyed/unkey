@@ -27,9 +27,9 @@ export const getById = t.procedure
       }
 
       // Get the branch for this deployment
-      const branch = await db.query.branches.findFirst({
+      const branch = deployment.branchId ? await db.query.branches.findFirst({
         where: (table, { eq }) => eq(table.id, deployment.branchId),
-      });
+      }) : null;
 
       return {
         id: deployment.id,
