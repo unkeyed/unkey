@@ -72,7 +72,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 		WorkspaceID: auth.AuthorizedWorkspaceID,
-		Identity:    req.ExternalId,
+		Identity:    req.Identity,
 		Deleted:     false,
 	})
 	if err != nil {
@@ -102,7 +102,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// If we hit a duplicate key error, we know that we have an identity that was already soft deleted
 		// so we can hard delete the "old" deleted version
 		if db.IsDuplicateKeyError(err) {
-			err = deleteOldIdentity(ctx, tx, auth.AuthorizedWorkspaceID, identity.ExternalID)
+			err = deleteOldIdentity(ctx, tx, auth.AuthorizedWorkspaceID, identity.ID)
 			if err != nil {
 				return err
 			}
@@ -197,10 +197,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 }
 
-func deleteOldIdentity(ctx context.Context, tx db.DBTX, workspaceID, externalID string) error {
+func deleteOldIdentity(ctx context.Context, tx db.DBTX, workspaceID, identity string) error {
 	oldIdentity, err := db.Query.FindIdentity(ctx, tx, db.FindIdentityParams{
 		WorkspaceID: workspaceID,
-		Identity:    externalID,
+		Identity:    identity,
 		Deleted:     true,
 	})
 	if err != nil {

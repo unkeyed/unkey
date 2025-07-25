@@ -91,7 +91,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		require.Equal(t, testIdentity.ExternalID, identity.ExternalID)
 
 		// Delete the identity via API
-		req := handler.Request{ExternalId: testIdentity.ExternalID}
+		req := handler.Request{Identity: testIdentity.ExternalID}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -126,7 +126,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		require.Len(t, rateLimits, numberOfRatelimits)
 
 		// Delete the identity via API
-		req := handler.Request{ExternalId: testIdentity.ExternalID}
+		req := handler.Request{Identity: testIdentity.ExternalID}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -155,7 +155,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", wildcardKey)},
 		}
 
-		req := handler.Request{ExternalId: testIdentity.ExternalID}
+		req := handler.Request{Identity: testIdentity.ExternalID}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, wildcardHeaders, req)
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -173,7 +173,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		testIdentity := createTestIdentity(t, h, 2)
 
 		// Delete the identity
-		req := handler.Request{ExternalId: testIdentity.ExternalID}
+		req := handler.Request{Identity: testIdentity.ExternalID}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -199,7 +199,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		testIdentity := createTestIdentity(t, h, 0)
 
 		// Delete the identity once
-		req := handler.Request{ExternalId: testIdentity.ExternalID}
+		req := handler.Request{Identity: testIdentity.ExternalID}
 		res1 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res1.Status, "first deletion should succeed")
 
@@ -216,7 +216,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		// Delete the new identity (this should trigger duplicate key error handling)
-		req2 := handler.Request{ExternalId: testIdentity.ExternalID}
+		req2 := handler.Request{Identity: testIdentity.ExternalID}
 		res2 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req2)
 		require.Equal(t, 200, res2.Status, "second deletion should succeed despite duplicate key scenario")
 
