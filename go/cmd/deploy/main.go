@@ -128,75 +128,27 @@ var Cmd = &cli.Command{
 
 The deploy command handles the complete deployment lifecycle: from building Docker images to deploying them on Unkey's infrastructure. It automatically detects your Git context, builds containers, and manages the deployment process with real-time status updates.
 
-**Initialization Mode:**
+INITIALIZATION MODE:
 Use --init to create a configuration template file. This generates an unkey.json file with your project settings, making future deployments simpler and more consistent across environments.
 
-**Deployment Process:**
+DEPLOYMENT PROCESS:
 1. Load configuration from unkey.json or flags
-2. Build Docker image from your application
+2. Build Docker image from your application  
 3. Push image to container registry
 4. Create deployment version on Unkey platform
 5. Monitor deployment status until active
 
-## Examples
-
-#### Initialize new project configuration
-` + "```bash" + `
-unkey deploy --init
-` + "```" + `
-
-#### Initialize with custom location
-` + "```bash" + `
-unkey deploy --init --config=./my-project
-` + "```" + `
-
-#### Force overwrite existing configuration
-` + "```bash" + `
-unkey deploy --init --force
-` + "```" + `
-
-#### Standard deployment (uses ./unkey.json)
-` + "```bash" + `
-unkey deploy
-` + "```" + `
-
-#### Deploy from specific config directory
-` + "```bash" + `
-unkey deploy --config=./production
-` + "```" + `
-
-#### Override workspace from config file
-` + "```bash" + `
-unkey deploy --workspace-id=ws_production_123
-` + "```" + `
-
-#### Deploy with custom build context
-` + "```bash" + `
-unkey deploy --context=./api
-` + "```" + `
-
-#### Deploy to custom registry
-` + "```bash" + `
-unkey deploy \
-  --workspace-id=ws_4QgQsKsKfdm3nGeC \
-  --project-id=proj_9aiaks2dzl6mcywnxjf \
-  --registry=docker.io/mycompany/myapp
-` + "```" + `
-
-#### Local development (build only, no push)
-` + "```bash" + `
-unkey deploy --skip-push
-` + "```" + `
-
-#### Deploy pre-built image
-` + "```bash" + `
-unkey deploy --docker-image=ghcr.io/user/app:v1.0.0
-` + "```" + `
-
-#### Verbose output for debugging
-` + "```bash" + `
-unkey deploy --verbose
-` + "```" + ``,
+EXAMPLES:
+unkey deploy --init                           # Initialize new project configuration
+unkey deploy --init --config=./my-project    # Initialize with custom location
+unkey deploy --init --force                  # Force overwrite existing configuration
+unkey deploy                                 # Standard deployment (uses ./unkey.json)
+unkey deploy --config=./production           # Deploy from specific config directory
+unkey deploy --workspace-id=ws_production_123 # Override workspace from config file
+unkey deploy --context=./api                 # Deploy with custom build context
+unkey deploy --skip-push                     # Local development (build only, no push)
+unkey deploy --docker-image=ghcr.io/user/app:v1.0.0 # Deploy pre-built image
+unkey deploy --verbose                       # Verbose output for debugging`,
 	Flags:  DeployFlags,
 	Action: DeployAction,
 }

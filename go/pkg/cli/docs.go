@@ -17,31 +17,6 @@ var (
 	ErrTemplateExecFailure  = errors.New("failed to execute MDX template")
 )
 
-type patternMatcher struct {
-	name    string
-	pattern *regexp.Regexp
-}
-
-// Pre-compiled regex patterns for matching title-command pairs
-var titlePatterns = []patternMatcher{
-	{
-		name:    "heading_with_bash_block",
-		pattern: regexp.MustCompile(`(?s)#{3,4}\s*([^\n]+)\n\s*` + "`{3}bash\\s*\\n([^`]+)`{3}"),
-	},
-	{
-		name:    "bold_title_with_bash_block",
-		pattern: regexp.MustCompile(`(?s)\*\*([^*]+):\*\*\s*\n\s*` + "`{3}bash\\s*\\n([^`]+)`{3}"),
-	},
-	{
-		name:    "colon_title_with_bash_block",
-		pattern: regexp.MustCompile(`(?s)([^:\n]+):\s*\n\s*` + "`{3}bash\\s*\\n([^`]+)`{3}"),
-	},
-	{
-		name:    "any_heading_with_bash_block",
-		pattern: regexp.MustCompile(`(?s)#{1,4}\s*([^\n]+)\n[^` + "`]*`{3}bash\\s*\\n([^`]+)`{3}"),
-	},
-}
-
 // FrontMatter holds metadata for the MDX file
 type FrontMatter struct {
 	Title       string
@@ -127,14 +102,43 @@ func (c *Command) extractMDXData(frontMatter *FrontMatter) MDXData {
 	return MDXData{
 		Name:        c.Name,
 		Usage:       c.Usage,
-		Description: c.Description,
+		Description: c.getCleanDescription(),
 		HasSubcmds:  len(c.Commands) > 0,
 		Subcommands: c.extractSubcommands(),
-		Examples:    c.extractAllExamples(),
-		Flags:       c.extractAllFlags(),
+		Examples:    c.extractExamples(),
+		Flags:       c.extractFlags(),
 		CommandType: c.determineCommandType(),
 		FrontMatter: frontMatter,
 	}
+}
+
+// getCleanDescription returns description without EXAMPLES section for MDX
+// and converts UPPERCASE sections to proper markdown headings
+func (c *Command) getCleanDescription() string {
+	if c.Description == "" {
+		return c.Usage
+	}
+
+	// Remove EXAMPLES section for cleaner MDX description
+	exampleRegex := regexp.MustCompile(`(?s)\nEXAMPLES:.*`)
+	cleaned := exampleRegex.ReplaceAllString(c.Description, "")
+
+	// Convert UPPERCASE SECTIONS: to ## headings
+	headingRegex := regexp.MustCompile(`\n([A-Z][A-Z\s]+):\s*\n`)
+	cleaned = headingRegex.ReplaceAllStringFunc(cleaned, func(match string) string {
+		// Extract the heading text
+		parts := headingRegex.FindStringSubmatch(match)
+		if len(parts) > 1 {
+			heading := strings.TrimSpace(parts[1])
+			// Convert to title case for better readability
+			caser := cases.Title(language.English)
+			heading = caser.String(strings.ToLower(heading))
+			return fmt.Sprintf("\n## %s\n\n", heading)
+		}
+		return match
+	})
+
+	return strings.TrimSpace(cleaned)
 }
 
 // extractSubcommands gets subcommand information
@@ -154,15 +158,11 @@ func (c *Command) extractSubcommands() []MDXSubcommand {
 }
 
 // extractFirstSentence gets the first sentence of a description for use in summary contexts
-// Used to create concise descriptions for subcommands in parent command documentation
-// Examples:
-//   - "Deploy a new version. This handles the complete lifecycle." → "Deploy a new version."
-//   - "Check system health\nPerforms various checks" → "Check system health"
-//   - "Initialize configuration!" → "Initialize configuration!"
 func (c *Command) extractFirstSentence(desc string) string {
 	if desc == "" {
 		return ""
 	}
+
 	// Split on sentence-ending punctuation followed by whitespace
 	sentences := regexp.MustCompile(`[.!?]\s+`).Split(desc, 2)
 	if len(sentences) > 0 {
@@ -172,6 +172,7 @@ func (c *Command) extractFirstSentence(desc string) string {
 		}
 		return first
 	}
+
 	// Fallback: use first line if no sentence punctuation found
 	lines := strings.Split(desc, "\n")
 	if len(lines) > 0 {
@@ -192,12 +193,13 @@ func (c *Command) extractFirstSentence(desc string) string {
 //	 unkey deploy --init          # Initialize configuration
 //	 unkey deploy --verbose       # Deploy with detailed output
 //	 unkey deploy --skip-push     # Local testing only"
-func (c *Command) extractAllExamples() []MDXExample {
+func (c *Command) extractExamples() []MDXExample {
 	if c.Description == "" {
 		return nil
 	}
-	// Find EXAMPLES section - matches from "EXAMPLES:" until double newline or end of string
-	exampleRegex := regexp.MustCompile(`(?s)EXAMPLES:\s*(.*?)(?:\n\n|\z)`)
+
+	// Find EXAMPLES section
+	exampleRegex := regexp.MustCompile(`(?s)EXAMPLES:\s*(.*?)(?:\n[A-Z][A-Z\s]*:|\z)`)
 	matches := exampleRegex.FindStringSubmatch(c.Description)
 	if len(matches) < 2 {
 		return nil
@@ -206,18 +208,21 @@ func (c *Command) extractAllExamples() []MDXExample {
 	var examples []MDXExample
 	// Parse example lines from the EXAMPLES section
 	lines := strings.SplitSeq(matches[1], "\n")
+
 	for line := range lines {
 		line = strings.TrimSpace(line)
+
 		// Skip empty lines and comment-only lines
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		// Only process lines that contain actual command usage
+
+		// Only process lines that contain the command name
 		if strings.Contains(line, c.Name) {
 			example := MDXExample{
-				Command: c.cleanCommandLine(line),       // Remove comments and format continuations
-				Comment: c.extractCommentFromLine(line), // Extract inline comment for context
-				Title:   c.generateExampleTitle(line),   // Generate or extract meaningful title
+				Command: c.cleanCommand(line),
+				Comment: c.extractComment(line),
+				Title:   c.generateTitle(line),
 			}
 			examples = append(examples, example)
 		}
@@ -226,8 +231,67 @@ func (c *Command) extractAllExamples() []MDXExample {
 	return examples
 }
 
-// extractAllFlags processes all flags into MDX format
-func (c *Command) extractAllFlags() []MDXFlag {
+// cleanCommand removes comments and cleans up command line
+func (c *Command) cleanCommand(line string) string {
+	if line == "" {
+		return ""
+	}
+
+	// Remove inline comments
+	if idx := strings.Index(line, "#"); idx != -1 {
+		line = line[:idx]
+	}
+
+	return strings.TrimSpace(line)
+}
+
+// extractComment pulls out inline comments from command examples
+func (c *Command) extractComment(line string) string {
+	if line == "" {
+		return ""
+	}
+
+	idx := strings.Index(line, "#")
+	if idx == -1 {
+		return ""
+	}
+
+	return strings.TrimSpace(line[idx+1:])
+}
+
+// generateTitle creates meaningful titles for examples
+func (c *Command) generateTitle(command string) string {
+	if command == "" {
+		return "Basic usage"
+	}
+
+	// Always prioritize comment as title if present
+	if comment := c.extractComment(command); comment != "" {
+		// Capitalize first letter
+		if len(comment) > 0 {
+			return strings.ToUpper(comment[:1]) + comment[1:]
+		}
+	}
+
+	// Simple fallback based on complexity
+	cleanCmd := c.cleanCommand(command)
+	flagCount := strings.Count(cleanCmd, "--")
+
+	if flagCount == 0 {
+		return "Basic usage"
+	}
+	if flagCount == 1 {
+		return "Basic configuration"
+	}
+	if flagCount <= 3 {
+		return "With options"
+	}
+
+	return "Advanced configuration"
+}
+
+// extractFlags processes all flags into MDX format
+func (c *Command) extractFlags() []MDXFlag {
 	if len(c.Flags) == 0 {
 		return nil
 	}
@@ -276,10 +340,6 @@ func (c *Command) getTypeString(flag Flag) string {
 }
 
 // determineCommandType categorizes the command for template selection
-// Examples:
-//   - "parent": `unkey deploy` (has subcommands like `unkey deploy init`)
-//   - "leaf": `unkey version` (executes an action, no subcommands)
-//   - "service": configuration-only commands with no action or subcommands
 func (c *Command) determineCommandType() string {
 	if len(c.Commands) > 0 {
 		return "parent"
@@ -290,122 +350,7 @@ func (c *Command) determineCommandType() string {
 	return "service"
 }
 
-// cleanCommandLine formats command examples for documentation display
-// Removes inline comments and formats line continuations with proper indentation
-// Example input:  "unkey deploy \     --workspace-id=ws_123 \     --verbose  # deploy with options"
-//
-//	Example output: "unkey deploy \
-//	                   --workspace-id=ws_123 \
-//	                   --verbose"
-func (c *Command) cleanCommandLine(line string) string {
-	if line == "" {
-		return ""
-	}
-
-	if idx := strings.Index(line, "#"); idx != -1 {
-		line = line[:idx]
-	}
-	line = strings.TrimSpace(line)
-	line = regexp.MustCompile(`\s*\\\s*`).ReplaceAllString(line, " \\\n                   ")
-	return line
-}
-
-// extractCommentFromLine pulls out inline comments from command examples
-// Used to extract explanatory text that appears after # in example commands
-// Example: "unkey deploy --verbose  # This enables detailed logging" → "This enables detailed logging"
-func (c *Command) extractCommentFromLine(line string) string {
-	if line == "" {
-		return ""
-	}
-
-	idx := strings.Index(line, "#")
-	if idx == -1 {
-		return ""
-	}
-
-	return strings.TrimSpace(line[idx+1:])
-}
-
-// extractExampleTitlesFromDescription parses example titles from various markdown patterns
-// Looks for titles that precede code blocks in the command description to create a mapping
-// of commands to their explicit titles, avoiding generic fallback titles when possible
-// Example patterns it matches:
-//   - "#### Initialize new project\n```bash\nunkey deploy --init\n```"
-//   - "**Deploy with options:**\n```bash\nunkey deploy --verbose\n```"
-//   - "Standard deployment:\n```bash\nunkey deploy\n```"
-func (c *Command) extractExampleTitlesFromDescription() map[string]string {
-	if c.Description == "" {
-		return nil
-	}
-
-	titleMap := make(map[string]string)
-
-	for _, matcher := range titlePatterns {
-		matches := matcher.pattern.FindAllStringSubmatch(c.Description, -1)
-		for _, match := range matches {
-			if len(match) >= 3 {
-				title := strings.TrimSpace(match[1])
-				command := strings.TrimSpace(match[2])
-				cleanCommand := c.cleanCommandLine(command)
-				titleMap[cleanCommand] = title
-			}
-		}
-	}
-
-	return titleMap
-}
-
-// generateExampleTitle generates titles using extracted examples or fallback logic
-// Prioritizes explicit titles from the command description over generic fallbacks
-// This ensures documentation shows meaningful titles like "Initialize new project"
-// instead of generic ones like "With options"
-func (c *Command) generateExampleTitle(command string) string {
-	if command == "" {
-		return "Basic usage"
-	}
-
-	// First try to get title from parsed examples
-	titleMap := c.extractExampleTitlesFromDescription()
-	cleanCommand := c.cleanCommandLine(command)
-
-	if title, exists := titleMap[cleanCommand]; exists {
-		return title
-	}
-
-	// Fallback here only if not found in description
-	return c.generateFallbackTitle(command)
-}
-
-// generateFallbackTitle provides simple fallback logic when no explicit title is found
-// Creates generic but useful titles based on command complexity and structure
-// Examples:
-//   - "unkey deploy --init --force --verbose" → "Advanced configuration" (3+ flags)
-//   - "unkey deploy --verbose" → "With options" (1-2 flags)
-//   - "unkey version check" → "Run check" (has subcommand)
-//   - "unkey deploy" → "Basic usage" (no flags)
-func (c *Command) generateFallbackTitle(command string) string {
-	if command == "" {
-		return "Basic usage"
-	}
-
-	// Simple fallback based on complexity
-	flagCount := strings.Count(command, "--")
-	if flagCount > 3 {
-		return "Advanced configuration"
-	}
-	if flagCount > 1 {
-		return "With options"
-	}
-
-	// Try to extract subcommand name
-	parts := strings.Fields(command)
-	if len(parts) > 2 {
-		return fmt.Sprintf("Run %s", parts[2])
-	}
-
-	return "Basic usage"
-}
-
+// hasItems checks if any slice has items for template conditionals
 func (c *Command) hasItems(items any) bool {
 	switch v := items.(type) {
 	case []MDXFlag:
