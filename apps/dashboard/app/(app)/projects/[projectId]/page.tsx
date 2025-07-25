@@ -42,7 +42,7 @@ interface Branch {
   updatedAt: number | null;
 }
 
-interface Version {
+interface Deployment {
   id: string;
   gitCommitSha: string | null;
   gitBranch: string | null;
@@ -58,7 +58,7 @@ interface Version {
 export default function ProjectDetailPage(): JSX.Element {
   const params = useParams();
   const projectId = params?.projectId as string;
-  const [activeTab, setActiveTab] = useState<"overview" | "branches" | "versions" | "settings">(
+  const [activeTab, setActiveTab] = useState<"overview" | "branches" | "deployments" | "settings">(
     "overview",
   );
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -146,17 +146,17 @@ export default function ProjectDetailPage(): JSX.Element {
   const project = data.project;
   const branches = data.branches || [];
 
-  // Mock versions data - replace with actual tRPC call when available
-  const versions: Version[] = [];
+  // Mock deployments data - replace with actual tRPC call when available
+  const deployments: Deployment[] = [];
 
   const filteredBranches = branches.filter((branch: Branch) =>
     branch.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const filteredVersions = versions.filter(
-    (version: Version) =>
-      version.gitBranch?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      version.gitCommitSha?.toLowerCase().includes(searchTerm.toLowerCase()),
+  const filteredDeployments = deployments.filter(
+    (deployment: Deployment) =>
+      deployment.gitBranch?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      deployment.gitCommitSha?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const getStatusColor = (status: string): string => {
@@ -237,7 +237,7 @@ export default function ProjectDetailPage(): JSX.Element {
             {[
               { key: "overview", label: "Overview", icon: Activity },
               { key: "branches", label: "Branches", icon: GitBranch },
-              { key: "versions", label: "Versions", icon: Tag },
+              { key: "deployments", label: "Deployments", icon: Tag },
               { key: "settings", label: "Settings", icon: Settings },
             ].map(({ key, label, icon: Icon }) => (
               <button
@@ -274,8 +274,8 @@ export default function ProjectDetailPage(): JSX.Element {
               <div className="bg-white p-6 rounded-lg border border-border">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-content-subtle">Total Versions</p>
-                    <p className="text-2xl font-bold text-content">{versions.length}</p>
+                    <p className="text-sm font-medium text-content-subtle">Total Deployments</p>
+                    <p className="text-2xl font-bold text-content">{deployments.length}</p>
                   </div>
                   <Tag className="w-8 h-8 text-success" />
                 </div>
@@ -286,7 +286,7 @@ export default function ProjectDetailPage(): JSX.Element {
                   <div>
                     <p className="text-sm font-medium text-content-subtle">Active Deployments</p>
                     <p className="text-2xl font-bold text-content">
-                      {versions.filter((v) => v.status === "active").length}
+                      {deployments.filter((d) => d.status === "active").length}
                     </p>
                   </div>
                   <Globe className="w-8 h-8 text-brand" />
@@ -373,7 +373,7 @@ export default function ProjectDetailPage(): JSX.Element {
           </div>
         )}
 
-        {(activeTab === "branches" || activeTab === "versions") && (
+        {(activeTab === "branches" || activeTab === "deployments") && (
           <div>
             {/* Search */}
             <div className="mb-6 flex flex-col sm:flex-row gap-4">
@@ -444,14 +444,14 @@ export default function ProjectDetailPage(): JSX.Element {
               </div>
             )}
 
-            {activeTab === "versions" && (
+            {activeTab === "deployments" && (
               <div className="bg-white rounded-lg border border-border overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-border">
                     <thead className="bg-background-subtle">
                       <tr>
                         <th className="px-6 py-3 text-left text-xs font-medium text-content-subtle uppercase tracking-wider">
-                          Version
+                          Deployment
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-content-subtle uppercase tracking-wider">
                           Branch
@@ -471,35 +471,35 @@ export default function ProjectDetailPage(): JSX.Element {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-border">
-                      {filteredVersions.map((version) => (
-                        <tr key={version.id} className="hover:bg-background-subtle">
+                      {filteredDeployments.map((deployment) => (
+                        <tr key={deployment.id} className="hover:bg-background-subtle">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <GitCommit className="w-4 h-4 text-content-subtle mr-2" />
                               <span className="text-sm font-mono text-content">
-                                {version.gitCommitSha}
+                                {deployment.gitCommitSha}
                               </span>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm text-content">{version.gitBranch}</span>
+                            <span className="text-sm text-content">{deployment.gitBranch}</span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm text-content">{version.environment.name}</span>
+                            <span className="text-sm text-content">{deployment.environment.name}</span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span
-                              className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(version.status)}`}
+                              className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(deployment.status)}`}
                             >
-                              {version.status}
+                              {deployment.status}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-content-subtle">
-                            {new Date(version.createdAt).toLocaleDateString()}
+                            {new Date(deployment.createdAt).toLocaleDateString()}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex items-center gap-2">
-                              <a href={`/projects/${projectId}/versions/${version.id}`}>
+                              <a href={`/projects/${projectId}/deployments/${deployment.id}`}>
                                 <Button variant="ghost" size="sm">
                                   <Eye className="w-3 h-3" />
                                 </Button>

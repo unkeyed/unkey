@@ -22,37 +22,37 @@ interface Props {
 export default function DiffLandingPage({ params }: Props) {
   const router = useRouter();
   const [selectedFromBranch, setSelectedFromBranch] = useState<string>("");
-  const [selectedFromVersion, setSelectedFromVersion] = useState<string>("");
+  const [selectedFromDeployment, setSelectedFromDeployment] = useState<string>("");
   const [selectedToBranch, setSelectedToBranch] = useState<string>("");
-  const [selectedToVersion, setSelectedToVersion] = useState<string>("");
+  const [selectedToDeployment, setSelectedToDeployment] = useState<string>("");
 
   // Fetch all branches for this project
   const { data: branchesData, isLoading: branchesLoading } = trpc.branch.listByProject.useQuery({
     projectId: params.projectId,
   });
 
-  // Fetch versions for the selected "from" branch
-  const { data: fromVersionsData, isLoading: fromVersionsLoading } =
-    trpc.version.listByBranch.useQuery(
+  // Fetch deployments for the selected "from" branch
+  const { data: fromDeploymentsData, isLoading: fromDeploymentsLoading } =
+    trpc.deployment.listByBranch.useQuery(
       { branchId: selectedFromBranch },
       { enabled: !!selectedFromBranch },
     );
 
-  // Fetch versions for the selected "to" branch
-  const { data: toVersionsData, isLoading: toVersionsLoading } = trpc.version.listByBranch.useQuery(
+  // Fetch deployments for the selected "to" branch
+  const { data: toDeploymentsData, isLoading: toDeploymentsLoading } = trpc.deployment.listByBranch.useQuery(
     { branchId: selectedToBranch },
     { enabled: !!selectedToBranch },
   );
 
   const handleCompare = () => {
-    if (selectedFromVersion && selectedToVersion) {
-      router.push(`/projects/${params.projectId}/diff/${selectedFromVersion}/${selectedToVersion}`);
+    if (selectedFromDeployment && selectedToDeployment) {
+      router.push(`/projects/${params.projectId}/diff/${selectedFromDeployment}/${selectedToDeployment}`);
     }
   };
 
   const branches = branchesData?.branches || [];
-  const fromVersions = fromVersionsData?.versions || [];
-  const toVersions = toVersionsData?.versions || [];
+  const fromDeployments = fromDeploymentsData?.deployments || [];
+  const toDeployments = toDeploymentsData?.deployments || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -67,9 +67,9 @@ export default function DiffLandingPage({ params }: Props) {
           </div>
 
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-content mb-4">Compare API Versions</h1>
+            <h1 className="text-3xl font-bold text-content mb-4">Compare API Deployments</h1>
             <p className="text-content-subtle">
-              Select branches and versions to compare their OpenAPI specifications
+              Select branches and deployments to compare their OpenAPI specifications
             </p>
           </div>
 
@@ -116,46 +116,46 @@ export default function DiffLandingPage({ params }: Props) {
                     </Select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-content mb-2">Version</label>
+                    <label className="block text-sm font-medium text-content mb-2">Deployment</label>
                     <Select
-                      value={selectedFromVersion}
-                      onValueChange={setSelectedFromVersion}
-                      disabled={!selectedFromBranch || fromVersionsLoading}
+                      value={selectedFromDeployment}
+                      onValueChange={setSelectedFromDeployment}
+                      disabled={!selectedFromBranch || fromDeploymentsLoading}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select version" />
+                        <SelectValue placeholder="Select deployment" />
                       </SelectTrigger>
                       <SelectContent>
-                        {fromVersionsLoading ? (
+                        {fromDeploymentsLoading ? (
                           <SelectItem value="loading" disabled>
-                            Loading versions...
+                            Loading deployments...
                           </SelectItem>
-                        ) : fromVersions.length === 0 ? (
-                          <SelectItem value="no-versions" disabled>
-                            No versions found
+                        ) : fromDeployments.length === 0 ? (
+                          <SelectItem value="no-deployments" disabled>
+                            No deployments found
                           </SelectItem>
                         ) : (
-                          fromVersions.map((version) => (
-                            <SelectItem key={version.id} value={version.id}>
+                          fromDeployments.map((deployment) => (
+                            <SelectItem key={deployment.id} value={deployment.id}>
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2">
                                   <span className="font-mono text-xs">
-                                    {version.gitCommitSha?.slice(0, 7) || version.id.slice(0, 8)}
+                                    {deployment.gitCommitSha?.slice(0, 7) || deployment.id.slice(0, 8)}
                                   </span>
                                   <span
                                     className={`px-1.5 py-0.5 text-xs rounded ${
-                                      version.status === "active"
+                                      deployment.status === "active"
                                         ? "bg-success/10 text-success"
-                                        : version.status === "failed"
+                                        : deployment.status === "failed"
                                           ? "bg-alert/10 text-alert"
                                           : "bg-content-subtle/10 text-content-subtle"
                                     }`}
                                   >
-                                    {version.status}
+                                    {deployment.status}
                                   </span>
                                 </div>
                                 <div className="text-xs text-content-subtle">
-                                  {new Date(version.createdAt).toLocaleDateString()}
+                                  {new Date(deployment.createdAt).toLocaleDateString()}
                                 </div>
                               </div>
                             </SelectItem>
@@ -207,46 +207,46 @@ export default function DiffLandingPage({ params }: Props) {
                     </Select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-content mb-2">Version</label>
+                    <label className="block text-sm font-medium text-content mb-2">Deployment</label>
                     <Select
-                      value={selectedToVersion}
-                      onValueChange={setSelectedToVersion}
-                      disabled={!selectedToBranch || toVersionsLoading}
+                      value={selectedToDeployment}
+                      onValueChange={setSelectedToDeployment}
+                      disabled={!selectedToBranch || toDeploymentsLoading}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select version" />
+                        <SelectValue placeholder="Select deployment" />
                       </SelectTrigger>
                       <SelectContent>
-                        {toVersionsLoading ? (
+                        {toDeploymentsLoading ? (
                           <SelectItem value="loading" disabled>
-                            Loading versions...
+                            Loading deployments...
                           </SelectItem>
-                        ) : toVersions.length === 0 ? (
-                          <SelectItem value="no-versions" disabled>
-                            No versions found
+                        ) : toDeployments.length === 0 ? (
+                          <SelectItem value="no-deployments" disabled>
+                            No deployments found
                           </SelectItem>
                         ) : (
-                          toVersions.map((version) => (
-                            <SelectItem key={version.id} value={version.id}>
+                          toDeployments.map((deployment) => (
+                            <SelectItem key={deployment.id} value={deployment.id}>
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2">
                                   <span className="font-mono text-xs">
-                                    {version.gitCommitSha?.slice(0, 7) || version.id.slice(0, 8)}
+                                    {deployment.gitCommitSha?.slice(0, 7) || deployment.id.slice(0, 8)}
                                   </span>
                                   <span
                                     className={`px-1.5 py-0.5 text-xs rounded ${
-                                      version.status === "active"
+                                      deployment.status === "active"
                                         ? "bg-success/10 text-success"
-                                        : version.status === "failed"
+                                        : deployment.status === "failed"
                                           ? "bg-alert/10 text-alert"
                                           : "bg-content-subtle/10 text-content-subtle"
                                     }`}
                                   >
-                                    {version.status}
+                                    {deployment.status}
                                   </span>
                                 </div>
                                 <div className="text-xs text-content-subtle">
-                                  {new Date(version.createdAt).toLocaleDateString()}
+                                  {new Date(deployment.createdAt).toLocaleDateString()}
                                 </div>
                               </div>
                             </SelectItem>
@@ -264,10 +264,10 @@ export default function DiffLandingPage({ params }: Props) {
               <Button
                 variant="primary"
                 onClick={handleCompare}
-                disabled={!selectedFromVersion || !selectedToVersion}
+                disabled={!selectedFromDeployment || !selectedToDeployment}
               >
                 <GitBranch className="w-4 h-4 mr-2" />
-                Compare Versions
+                Compare Deployments
               </Button>
             </div>
           </div>

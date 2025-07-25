@@ -52,6 +52,12 @@ export const workspaces = mysqlTable("workspaces", {
        * Can access /logs
        */
       logsPage?: boolean;
+
+      /**
+       * Can access /projects
+       */
+
+      deployments?: boolean;
     }>()
     .notNull(),
   features: json("features")

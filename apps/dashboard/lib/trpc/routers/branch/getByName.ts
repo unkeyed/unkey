@@ -62,8 +62,8 @@ export const getByName = t.procedure
         });
       }
 
-      // Find the latest version to get commit info
-      const latestVersion = branch.versions[0];
+      // Find the latest deployment to get commit info
+      const latestDeployment = branch.versions[0];
       
       // Create enhanced branch object with UI-expected fields
       const enhancedBranch = {
@@ -74,11 +74,11 @@ export const getByName = t.procedure
         createdAt: branch.createdAt,
         updatedAt: branch.updatedAt,
         project: branch.project,
-        versions: branch.versions.map(version => ({
+        deployments: branch.versions.map(version => ({
           id: version.id,
           gitCommitSha: version.gitCommitSha,
           gitBranch: version.gitBranch,
-          gitCommitMessage: `Version ${version.id}`, // Mock since not in schema
+          gitCommitMessage: `Deployment ${version.id}`, // Mock since not in schema
           status: version.status,
           createdAt: version.createdAt,
           updatedAt: version.updatedAt,
@@ -92,10 +92,10 @@ export const getByName = t.procedure
           name: branch.name === 'main' ? 'production' : 'preview',
           description: `Environment for ${branch.name} branch`
         },
-        lastCommitSha: latestVersion?.gitCommitSha || null,
-        lastCommitMessage: latestVersion ? `Latest commit for ${branch.name}` : null,
+        lastCommitSha: latestDeployment?.gitCommitSha || null,
+        lastCommitMessage: latestDeployment ? `Latest commit for ${branch.name}` : null,
         lastCommitAuthor: 'developer', // Mock author
-        lastCommitDate: latestVersion?.createdAt || null,
+        lastCommitDate: latestDeployment?.createdAt || null,
       };
 
       return enhancedBranch;

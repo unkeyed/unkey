@@ -57,7 +57,7 @@ interface Branch {
   lastCommitDate?: number;
 }
 
-interface Version {
+interface Deployment {
   id: string;
   gitCommitSha: string | null;
   gitBranch: string | null;
@@ -103,7 +103,7 @@ const mockBranch: Branch = {
   lastCommitDate: 1721048400000, // Static timestamp
 };
 
-const mockVersions: Version[] = [
+const mockDeployments: Deployment[] = [
   {
     id: "ver_1",
     gitCommitSha: "a1b2c3d",
@@ -155,7 +155,7 @@ export default function BranchDetailPage(): JSX.Element {
   const projectId = params?.projectId as string;
   const branchName = params?.branchName as string;
 
-  const [activeTab, setActiveTab] = useState<"overview" | "versions" | "config" | "settings">(
+  const [activeTab, setActiveTab] = useState<"overview" | "deployments" | "config" | "settings">(
     "overview",
   );
   const [showEnvVars, setShowEnvVars] = useState(false);
@@ -167,7 +167,7 @@ export default function BranchDetailPage(): JSX.Element {
   // Use real data or fallback to mock data while loading
   const project = branchData?.project || mockProject;
   const branch = branchData || mockBranch;
-  const versions = branchData?.versions || mockVersions;
+  const deployments = branchData?.deployments || mockDeployments;
   const envVars = mockEnvVars; // Still using mock data for env vars as it's not in the query
 
   const getStatusIcon = (status: string) => {
@@ -204,16 +204,16 @@ export default function BranchDetailPage(): JSX.Element {
     }
   };
 
-  const activeVersion = versions.find((v) => v.status === "active");
+  const activeDeployment = deployments.find((d) => d.status === "active");
 
   // Navigation handlers for compare functionality
-  const handleCompareBranchVersions = () => {
-    // Get the two most recent versions if available
-    if (versions.length >= 2) {
-      const [latest, previous] = versions;
+  const handleCompareBranchDeployments = () => {
+    // Get the two most recent deployments if available
+    if (deployments.length >= 2) {
+      const [latest, previous] = deployments;
       router.push(`/projects/${projectId}/diff/${previous.id}/${latest.id}`);
     } else {
-      alert("At least two versions are needed to compare. Please create more versions first.");
+      alert("At least two deployments are needed to compare. Please create more deployments first.");
     }
   };
 
@@ -222,15 +222,15 @@ export default function BranchDetailPage(): JSX.Element {
     router.push(`/projects/${projectId}/diff`);
   };
 
-  const handleCompareFromVersion = (versionId: string) => {
-    // Compare with the previous version if available
-    const currentIndex = versions.findIndex(v => v.id === versionId);
-    const previousVersion = versions[currentIndex + 1];
+  const handleCompareFromDeployment = (deploymentId: string) => {
+    // Compare with the previous deployment if available
+    const currentIndex = deployments.findIndex(d => d.id === deploymentId);
+    const previousDeployment = deployments[currentIndex + 1];
     
-    if (previousVersion) {
-      router.push(`/projects/${projectId}/diff/${previousVersion.id}/${versionId}`);
+    if (previousDeployment) {
+      router.push(`/projects/${projectId}/diff/${previousDeployment.id}/${deploymentId}`);
     } else {
-      alert("No previous version found to compare with.");
+      alert("No previous deployment found to compare with.");
     }
   };
 
@@ -284,9 +284,9 @@ export default function BranchDetailPage(): JSX.Element {
                       <span className="font-mono">{branch.lastCommitSha}</span>
                     </div>
                   )}
-                  {activeVersion?.deploymentUrl && (
+                  {activeDeployment?.deploymentUrl && (
                     <a
-                      href={activeVersion.deploymentUrl}
+                      href={activeDeployment.deploymentUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1 hover:text-content transition-colors"
@@ -328,13 +328,13 @@ export default function BranchDetailPage(): JSX.Element {
                   <span className="font-mono">{branch.lastCommitSha}</span>
                 </div>
               </div>
-              {activeVersion && (
+              {activeDeployment && (
                 <div className="flex items-center gap-2">
-                  {getStatusIcon(activeVersion.status)}
+                  {getStatusIcon(activeDeployment.status)}
                   <span
-                    className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(activeVersion.status)}`}
+                    className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(activeDeployment.status)}`}
                   >
-                    {activeVersion.status}
+                    {activeDeployment.status}
                   </span>
                 </div>
               )}
@@ -347,7 +347,7 @@ export default function BranchDetailPage(): JSX.Element {
           <nav className="flex space-x-8">
             {[
               { key: "overview", label: "Overview", icon: Activity },
-              { key: "versions", label: "Versions", icon: Tag },
+              { key: "deployments", label: "Deployments", icon: Tag },
               { key: "config", label: "Configuration", icon: Settings },
               { key: "settings", label: "Branch Settings", icon: Shield },
             ].map(({ key, label, icon: Icon }) => (
@@ -373,7 +373,7 @@ export default function BranchDetailPage(): JSX.Element {
             {/* Deployment Status */}
             <div className="lg:col-span-2 space-y-6">
               {/* Active Deployment */}
-              {activeVersion && (
+              {activeDeployment && (
                 <div className="bg-white rounded-lg border border-border p-6">
                   <h3 className="text-lg font-semibold text-content mb-4">Active Deployment</h3>
                   <div className="flex items-center justify-between p-4 bg-success/5 border border-success/20 rounded-lg">
@@ -381,10 +381,10 @@ export default function BranchDetailPage(): JSX.Element {
                       <CheckCircle className="w-5 h-5 text-success" />
                       <div>
                         <p className="font-medium text-content">
-                          Version {activeVersion.gitCommitSha}
+                          Deployment {activeDeployment.gitCommitSha}
                         </p>
                         <p className="text-sm text-content-subtle">
-                          Deployed {new Date(activeVersion.createdAt).toLocaleString()}
+                          Deployed {new Date(activeDeployment.createdAt).toLocaleString()}
                         </p>
                       </div>
                     </div>
@@ -406,27 +406,27 @@ export default function BranchDetailPage(): JSX.Element {
               <div className="bg-white rounded-lg border border-border p-6">
                 <h3 className="text-lg font-semibold text-content mb-4">Recent Activity</h3>
                 <div className="space-y-3">
-                  {versions.slice(0, 3).map((version) => (
+                  {deployments.slice(0, 3).map((deployment) => (
                     <div
-                      key={version.id}
+                      key={deployment.id}
                       className="flex items-center justify-between p-3 bg-background-subtle rounded-lg"
                     >
                       <div className="flex items-center gap-3">
-                        {getStatusIcon(version.status)}
+                        {getStatusIcon(deployment.status)}
                         <div>
                           <p className="font-medium text-content">
-                            {version.gitCommitMessage || `Version ${version.gitCommitSha}`}
+                            {deployment.gitCommitMessage || `Deployment ${deployment.gitCommitSha}`}
                           </p>
                           <p className="text-sm text-content-subtle">
-                            {new Date(version.createdAt).toLocaleString()}
-                            {version.buildDuration && ` • Build: ${version.buildDuration}s`}
+                            {new Date(deployment.createdAt).toLocaleString()}
+                            {deployment.buildDuration && ` • Build: ${deployment.buildDuration}s`}
                           </p>
                         </div>
                       </div>
                       <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(version.status)}`}
+                        className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(deployment.status)}`}
                       >
-                        {version.status}
+                        {deployment.status}
                       </span>
                     </div>
                   ))}
@@ -441,16 +441,16 @@ export default function BranchDetailPage(): JSX.Element {
                 <h3 className="text-lg font-semibold text-content mb-4">Quick Stats</h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-content-subtle">Total Versions</span>
-                    <span className="font-semibold text-content">{versions.length}</span>
+                    <span className="text-content-subtle">Total Deployments</span>
+                    <span className="font-semibold text-content">{deployments.length}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-content-subtle">Success Rate</span>
                     <span className="font-semibold text-success">
                       {Math.round(
-                        (versions.filter((v) => v.status === "active" || v.status === "archived")
+                        (deployments.filter((d) => d.status === "active" || d.status === "archived")
                           .length /
-                          versions.length) *
+                          deployments.length) *
                           100,
                       )}
                       %
@@ -460,10 +460,10 @@ export default function BranchDetailPage(): JSX.Element {
                     <span className="text-content-subtle">Avg Build Time</span>
                     <span className="font-semibold text-content">
                       {Math.round(
-                        versions
-                          .filter((v) => v.buildDuration)
-                          .reduce((acc, v) => acc + (v.buildDuration || 0), 0) /
-                          versions.filter((v) => v.buildDuration).length,
+                        deployments
+                          .filter((d) => d.buildDuration)
+                          .reduce((acc, d) => acc + (d.buildDuration || 0), 0) /
+                          deployments.filter((d) => d.buildDuration).length,
                       )}
                       s
                     </span>
@@ -486,7 +486,7 @@ export default function BranchDetailPage(): JSX.Element {
                     onClick={handleCompareWithOtherBranches}
                   >
                     <GitBranch className="w-4 h-4 mr-2" />
-                    Compare API Versions
+                    Compare API Deployments
                   </Button>
                   <Button variant="outline" size="md" className="w-full justify-start">
                     <Terminal className="w-4 h-4 mr-2" />
@@ -510,19 +510,19 @@ export default function BranchDetailPage(): JSX.Element {
           </div>
         )}
 
-        {activeTab === "versions" && (
+        {activeTab === "deployments" && (
           <div className="bg-white rounded-lg border border-border overflow-hidden">
-            {/* OPTION 1: Enhanced header with compare buttons */}
+            {/* Enhanced header with compare buttons */}
             <div className="p-6 border-b border-border">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-content">Version History</h3>
+                  <h3 className="text-lg font-semibold text-content">Deployment History</h3>
                   <p className="text-content-subtle mt-1">All deployments for this branch</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="md" onClick={handleCompareBranchVersions}>
+                  <Button variant="outline" size="md" onClick={handleCompareBranchDeployments}>
                     <GitBranch className="w-4 h-4 mr-2" />
-                    Compare Versions
+                    Compare Deployments
                   </Button>
                   <Button variant="outline" size="md" onClick={handleCompareWithOtherBranches}>
                     <GitBranch className="w-4 h-4 mr-2" />
@@ -536,7 +536,7 @@ export default function BranchDetailPage(): JSX.Element {
                 <thead className="bg-background-subtle">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-content-subtle uppercase tracking-wider">
-                      Version
+                      Deployment
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-content-subtle uppercase tracking-wider">
                       Commit
@@ -556,47 +556,47 @@ export default function BranchDetailPage(): JSX.Element {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-border">
-                  {versions.map((version) => (
-                    <tr key={version.id} className="hover:bg-background-subtle">
+                  {deployments.map((deployment) => (
+                    <tr key={deployment.id} className="hover:bg-background-subtle">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <span className="text-sm font-mono text-content">{version.id}</span>
+                          <span className="text-sm font-mono text-content">{deployment.id}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
                           <div className="text-sm font-mono text-content">
-                            {version.gitCommitSha}
+                            {deployment.gitCommitSha}
                           </div>
-                          {version.gitCommitMessage && (
+                          {deployment.gitCommitMessage && (
                             <div className="text-sm text-content-subtle truncate max-w-xs">
-                              {version.gitCommitMessage}
+                              {deployment.gitCommitMessage}
                             </div>
                           )}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
-                          {getStatusIcon(version.status)}
+                          {getStatusIcon(deployment.status)}
                           <span
-                            className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(version.status)}`}
+                            className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(deployment.status)}`}
                           >
-                            {version.status}
+                            {deployment.status}
                           </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-content">
-                        {version.buildDuration ? `${version.buildDuration}s` : "-"}
+                        {deployment.buildDuration ? `${deployment.buildDuration}s` : "-"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-content-subtle">
-                        {new Date(version.createdAt).toLocaleString()}
+                        {new Date(deployment.createdAt).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center gap-2">
                           <Button variant="ghost" size="sm" title="View Details">
                             <Eye className="w-3 h-3" />
                           </Button>
-                          {version.status !== "active" && (
+                          {deployment.status !== "active" && (
                             <Button variant="ghost" size="sm" title="Deploy">
                               <Play className="w-3 h-3" />
                             </Button>
@@ -604,8 +604,8 @@ export default function BranchDetailPage(): JSX.Element {
                           <Button
                             variant="ghost"
                             size="sm"
-                            title="Compare this version"
-                            onClick={() => handleCompareFromVersion(version.id)}
+                            title="Compare this deployment"
+                            onClick={() => handleCompareFromDeployment(deployment.id)}
                           >
                             <GitBranch className="w-3 h-3" />
                           </Button>

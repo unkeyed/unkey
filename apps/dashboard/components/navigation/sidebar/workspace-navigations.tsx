@@ -9,6 +9,7 @@ import {
   Nodes,
   ShieldKey,
   Sparkle3,
+  FolderCloud,
 } from "@unkey/icons";
 import { cn } from "../../../lib/utils";
 
@@ -49,6 +50,14 @@ export const createWorkspaceNavigation = (
       label: "APIs",
       active: segments.at(0) === "apis",
       showSubItems: false,
+    },
+    {
+      icon: FolderCloud,
+      href: "/projects",
+      label: "Projects",
+      active: segments.at(0) === "projects",
+      hidden: !workspace.betaFeatures.deployments,
+      tag: <Tag label="Beta" />,
     },
     {
       icon: Gauge,
