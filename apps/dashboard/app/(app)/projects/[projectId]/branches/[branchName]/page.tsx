@@ -354,6 +354,7 @@ export default function BranchDetailPage(): JSX.Element {
             ].map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
+                type="button"
                 onClick={() => setActiveTab(key as typeof activeTab)}
                 className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === key
@@ -706,10 +707,16 @@ export default function BranchDetailPage(): JSX.Element {
               <h3 className="text-lg font-semibold text-content mb-4">Branch Settings</h3>
               <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-content-subtle mb-2">
+                  <label
+                    htmlFor="environment-select"
+                    className="block text-sm font-medium text-content-subtle mb-2"
+                  >
                     Environment Assignment
                   </label>
-                  <select className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent bg-white text-content">
+                  <select
+                    id="environment-select"
+                    className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent bg-white text-content"
+                  >
                     <option value="preview">Preview</option>
                     <option value="staging">Staging</option>
                     <option value="production">Production</option>

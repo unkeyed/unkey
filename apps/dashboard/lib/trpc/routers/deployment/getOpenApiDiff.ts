@@ -88,7 +88,20 @@ export const getOpenApiDiff = t.procedure
 
       // Call control plane API
       // TODO: put this in env var
-      let diffData;
+      let diffData:
+        | {
+            changes?: Array<{
+              id: string;
+              text: string;
+              level: number;
+              operation: string;
+              path: string;
+              source: string;
+              section: string;
+              comment: string;
+            }>;
+          }
+        | undefined;
 
       try {
         const response = await fetch(

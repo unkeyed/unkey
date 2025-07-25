@@ -387,6 +387,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
         </div>
         <div className="flex items-center space-x-2">
           <button
+            type="button"
             className="p-2 text-content-subtle hover:text-content transition-colors"
             title="Copy diff to clipboard"
             onClick={() => {
@@ -455,8 +456,11 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
               <div className="space-y-1 text-sm">
                 {(diffData?.changes || [])
                   .filter((c) => c.path === selectedPath && c.operation === selectedOperation)
-                  .map((change, index) => (
-                    <div key={index} className="flex items-start space-x-2">
+                  .map((change, _index) => (
+                    <div
+                      key={`${change.id}-${change.path}-${change.operation}`}
+                      className="flex items-start space-x-2"
+                    >
                       {getSeverityIcon(change.level)}
                       <span className="text-content">{change.text}</span>
                     </div>
@@ -473,6 +477,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
             </p>
             <div className="flex flex-col sm:flex-row gap-2 justify-center">
               <button
+                type="button"
                 onClick={() => {
                   setSelectedPath("/users");
                   setSelectedOperation("GET");
@@ -550,17 +555,18 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                     <div className="text-xs text-content-subtle">
                       ID: {change.id} • Section: {change.section}
                     </div>
-                    <div
+                    <button
+                      type="button"
                       onClick={() => {
                         setSelectedPath(change.path);
                         setSelectedOperation(change.operation);
                         setViewMode("side-by-side");
                       }}
-                      className="text-xs text-brand hover:text-brand/80 flex items-center space-x-1 cursor-pointer"
+                      className="text-xs text-brand hover:text-brand/80 flex items-center space-x-1 cursor-pointer bg-transparent border-none p-0"
                     >
                       <ExternalLink className="w-3 h-3" />
                       <span>View Details</span>
-                    </div>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -586,6 +592,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
           <div className="py-3">
             <nav className="flex space-x-6">
               <button
+                type="button"
                 onClick={() => setViewMode("changes")}
                 className={`py-3 px-4 font-medium text-sm transition-colors border-b-2 ${
                   viewMode === "changes"
@@ -599,6 +606,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                 </div>
               </button>
               <button
+                type="button"
                 onClick={() => setViewMode("side-by-side")}
                 className={`py-3 px-4 font-medium text-sm transition-colors border-b-2 ${
                   viewMode === "side-by-side"
@@ -612,6 +620,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                 </div>
               </button>
               <button
+                type="button"
                 onClick={() => setViewMode("timeline")}
                 className={`py-3 px-4 font-medium text-sm transition-colors border-b-2 ${
                   viewMode === "timeline"
@@ -666,6 +675,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                 </div>
 
                 <button
+                  type="button"
                   onClick={() => setShowFilters(!showFilters)}
                   className="w-full flex items-center justify-between p-3 text-sm font-medium text-content bg-background-subtle rounded-lg hover:bg-gray-100 mb-4 transition-colors"
                 >
@@ -683,12 +693,16 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                 {showFilters && (
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-content mb-2">
+                      <label
+                        htmlFor="search-changes"
+                        className="block text-sm font-medium text-content mb-2"
+                      >
                         Search Changes
                       </label>
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-content-subtle" />
                         <input
+                          id="search-changes"
                           type="text"
                           value={filters.searchQuery}
                           onChange={(e) =>
@@ -699,6 +713,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                         />
                         {filters.searchQuery && (
                           <button
+                            type="button"
                             onClick={() => setFilters((prev) => ({ ...prev, searchQuery: "" }))}
                             className="absolute right-3 top-1/2 transform -translate-y-1/2 hover:bg-background-subtle rounded p-1"
                           >
@@ -709,10 +724,14 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-content mb-2">
+                      <label
+                        htmlFor="severity-level"
+                        className="block text-sm font-medium text-content mb-2"
+                      >
                         Severity Level
                       </label>
                       <select
+                        id="severity-level"
                         value={filters.level || ""}
                         onChange={(e) =>
                           setFilters((prev) => ({
@@ -730,10 +749,14 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-content mb-2">
+                      <label
+                        htmlFor="http-method"
+                        className="block text-sm font-medium text-content mb-2"
+                      >
                         HTTP Method
                       </label>
                       <select
+                        id="http-method"
                         value={filters.operation}
                         onChange={(e) =>
                           setFilters((prev) => ({ ...prev, operation: e.target.value }))
@@ -753,6 +776,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                       filters.operation !== "all" ||
                       filters.searchQuery) && (
                       <button
+                        type="button"
                         onClick={() =>
                           setFilters({ level: null, operation: "all", searchQuery: "" })
                         }
@@ -777,6 +801,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                         No changes match the current filters
                       </p>
                       <button
+                        type="button"
                         onClick={() =>
                           setFilters({ level: null, operation: "all", searchQuery: "" })
                         }
@@ -793,6 +818,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                           className="border border-gray-200 rounded-lg overflow-hidden"
                         >
                           <button
+                            type="button"
                             onClick={() => togglePathExpansion(path)}
                             className="w-full flex items-center justify-between p-4 text-left hover:bg-background-subtle transition-colors"
                           >
@@ -818,7 +844,8 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                                   {op}
                                 </span>
                               ))}
-                              <div
+                              <button
+                                type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setSelectedPath(path);
@@ -829,7 +856,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                                 title="View side-by-side comparison"
                               >
                                 <Layers className="w-4 h-4" />
-                              </div>
+                              </button>
                             </div>
                           </button>
 
@@ -853,9 +880,10 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 
                                   <div className="space-y-3">
                                     {changes.map((change, index) => (
-                                      <div
+                                      <button
+                                        type="button"
                                         key={`${change.path}-${change.operation}-${change.id}-${index}`}
-                                        className={`p-3 rounded-r-lg cursor-pointer transition-all duration-200 ${getSeverityColor(
+                                        className={`p-3 rounded-r-lg cursor-pointer transition-all duration-200 text-left w-full ${getSeverityColor(
                                           change.level,
                                         )} ${selectedChange === `${change.id}-${index}` ? "ring-2 ring-brand shadow-md" : ""}`}
                                         onClick={() =>
@@ -887,7 +915,8 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                                                 </span>
                                                 <span>Section: {change.section}</span>
                                               </div>
-                                              <div
+                                              <button
+                                                type="button"
                                                 onClick={(e) => {
                                                   e.stopPropagation();
                                                   setSelectedPath(change.path);
@@ -898,11 +927,11 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                                               >
                                                 <ExternalLink className="w-3 h-3" />
                                                 <span>Compare</span>
-                                              </div>
+                                              </button>
                                             </div>
                                           </div>
                                         </div>
-                                      </div>
+                                      </button>
                                     ))}
                                   </div>
                                 </div>

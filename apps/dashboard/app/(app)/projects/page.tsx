@@ -151,10 +151,14 @@ export default function ProjectsPage(): JSX.Element {
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-content-subtle mb-1">
+                  <label
+                    htmlFor="project-name"
+                    className="block text-sm font-medium text-content-subtle mb-1"
+                  >
                     Project Name *
                   </label>
                   <input
+                    id="project-name"
                     type="text"
                     value={name}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -168,10 +172,14 @@ export default function ProjectsPage(): JSX.Element {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-content-subtle mb-1">
+                  <label
+                    htmlFor="project-slug"
+                    className="block text-sm font-medium text-content-subtle mb-1"
+                  >
                     Project Slug *
                   </label>
                   <input
+                    id="project-slug"
                     type="text"
                     value={slug}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSlug(e.target.value)}
@@ -183,12 +191,16 @@ export default function ProjectsPage(): JSX.Element {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-content-subtle mb-1">
+                <label
+                  htmlFor="git-repo-url"
+                  className="block text-sm font-medium text-content-subtle mb-1"
+                >
                   Git Repository URL (optional)
                 </label>
                 <div className="relative">
                   <Github className="absolute left-3 top-1/2 transform -translate-y-1/2 text-content-subtle w-4 h-4" />
                   <input
+                    id="git-repo-url"
                     type="url"
                     value={gitUrl}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGitUrl(e.target.value)}
@@ -220,9 +232,9 @@ export default function ProjectsPage(): JSX.Element {
         {/* Projects Grid */}
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-5 w-full p-5">
-            {Array.from({ length: 8 }).map((_, i) => (
+            {Array.from({ length: 8 }, (_, i) => ({ id: `skeleton-${i}` })).map((item) => (
               <div
-                key={`skeleton-${i}`}
+                key={item.id}
                 className="bg-white rounded-xl shadow-sm border border-border p-6 animate-pulse"
               >
                 <div className="flex items-start justify-between mb-4">
