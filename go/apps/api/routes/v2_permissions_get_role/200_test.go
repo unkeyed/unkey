@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_get_role"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -63,7 +64,7 @@ func TestSuccess(t *testing.T) {
 				WorkspaceID:  workspace.ID,
 				Name:         fmt.Sprintf("test.perm.%d", i),
 				Slug:         fmt.Sprintf("test-perm-%d", i),
-				Description:  sql.NullString{Valid: true, String: fmt.Sprintf("Test permission %d", i)},
+				Description:  dbtype.NullString{Valid: true, String: fmt.Sprintf("Test permission %d", i)},
 				CreatedAtM:   time.Now().UnixMilli(),
 			})
 			require.NoError(t, err)

@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -11,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_list_permissions"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -60,7 +60,7 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         perm.Name,
 			Slug:         fmt.Sprintf("test-permission-%d", i+1),
-			Description:  sql.NullString{Valid: true, String: perm.Description},
+			Description:  dbtype.NullString{Valid: true, String: perm.Description},
 			CreatedAtM:   time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
@@ -73,7 +73,7 @@ func TestSuccess(t *testing.T) {
 		WorkspaceID:  otherWorkspace.ID,
 		Name:         "other.workspace.permission",
 		Slug:         "other-workspace-permission",
-		Description:  sql.NullString{Valid: true, String: "This permission is in a different workspace"},
+		Description:  dbtype.NullString{Valid: true, String: "This permission is in a different workspace"},
 		CreatedAtM:   time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
@@ -147,7 +147,7 @@ func TestSuccess(t *testing.T) {
 				WorkspaceID:  workspace.ID,
 				Name:         fmt.Sprintf("bulk.permission.%d", i),
 				Slug:         fmt.Sprintf("bulk-permission-%d", i),
-				Description:  sql.NullString{Valid: true, String: fmt.Sprintf("Bulk permission %d", i)},
+				Description:  dbtype.NullString{Valid: true, String: fmt.Sprintf("Bulk permission %d", i)},
 				CreatedAtM:   time.Now().UnixMilli(),
 			})
 			require.NoError(t, err)

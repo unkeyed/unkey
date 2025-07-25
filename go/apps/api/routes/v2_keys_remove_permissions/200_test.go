@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -11,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_remove_permissions"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -256,7 +256,7 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         "documents.read.remove.partial.keep",
 			Slug:         "documents.read.remove.partial.keep",
-			Description:  sql.NullString{Valid: true, String: "Read documents permission"},
+			Description:  dbtype.NullString{Valid: true, String: "Read documents permission"},
 		})
 		require.NoError(t, err)
 
@@ -267,7 +267,7 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         removePermissionName,
 			Slug:         removePermissionName,
-			Description:  sql.NullString{Valid: true, String: "Write documents permission"},
+			Description:  dbtype.NullString{Valid: true, String: "Write documents permission"},
 		})
 		require.NoError(t, err)
 

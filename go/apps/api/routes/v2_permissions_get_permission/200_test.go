@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -11,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_get_permission"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -50,7 +50,7 @@ func TestSuccess(t *testing.T) {
 		WorkspaceID:  workspace.ID,
 		Name:         permissionName,
 		Slug:         permissionSlug,
-		Description:  sql.NullString{Valid: true, String: permissionDesc},
+		Description:  dbtype.NullString{Valid: true, String: permissionDesc},
 		CreatedAtM:   time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
@@ -116,7 +116,7 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         permissionName,
 			Slug:         "test-get-permission-no-desc",
-			Description:  sql.NullString{}, // Empty description
+			Description:  dbtype.NullString{}, // Empty description
 			CreatedAtM:   time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)

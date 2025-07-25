@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_remove_permissions"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
@@ -128,7 +129,7 @@ func TestNotFoundErrors(t *testing.T) {
 			WorkspaceID:  otherWorkspaceID,
 			Name:         "other.workspace.permission.remove.404",
 			Slug:         "other.workspace.permission.remove.404",
-			Description:  sql.NullString{Valid: true, String: "Permission in other workspace"},
+			Description:  dbtype.NullString{Valid: true, String: "Permission in other workspace"},
 		})
 		require.NoError(t, err)
 
@@ -231,7 +232,7 @@ func TestNotFoundErrors(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         "documents.read.remove.404keydifferentws",
 			Slug:         "documents.read.remove.404keydifferentws",
-			Description:  sql.NullString{Valid: true, String: "Read documents permission"},
+			Description:  dbtype.NullString{Valid: true, String: "Read documents permission"},
 		})
 		require.NoError(t, err)
 
