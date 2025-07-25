@@ -222,7 +222,7 @@ export default function ProjectsPage(): JSX.Element {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-5 w-full p-5">
             {Array.from({ length: 8 }).map((_, i) => (
               <div
-                key={i}
+                key={`skeleton-${i}`}
                 className="bg-white rounded-xl shadow-sm border border-border p-6 animate-pulse"
               >
                 <div className="flex items-start justify-between mb-4">
