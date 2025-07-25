@@ -18,7 +18,7 @@ interface Props {
   };
 }
 
-export default function DiffPage({ params, searchParams }: Props) {
+export default function DiffPage({ params }: Props) {
   const router = useRouter();
   const [fromDeploymentId, toDeploymentId] = params.compare;
   const [selectedFromBranch, setSelectedFromBranch] = useState<string>("");

@@ -25,15 +25,7 @@ import {
 import { useParams } from "next/navigation";
 import { useState } from "react";
 
-// Type definitions
-interface Project {
-  id: string;
-  name: string;
-  slug: string;
-  gitRepositoryUrl: string | null;
-  createdAt: number;
-  updatedAt: number | null;
-}
+// Type definitions - removed unused Project interface
 
 interface Branch {
   id: string;
@@ -242,6 +234,7 @@ export default function ProjectDetailPage(): JSX.Element {
             ].map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
+                type="button"
                 onClick={() => setActiveTab(key as typeof activeTab)}
                 className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === key
