@@ -159,7 +159,7 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, roleDesc, *role.Description)
 
 		// Verify permissions array is empty
-		require.NotNil(t, role.Permissions)
+		require.Empty(t, role.Permissions)
 		require.Len(t, role.Permissions, 0)
 	})
 }
