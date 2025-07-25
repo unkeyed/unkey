@@ -2,8 +2,8 @@
 
 import { trpc } from "@/lib/trpc/client";
 
-export default function VersionsPage() {
-  const { data, isLoading, error } = trpc.version.list.useQuery();
+export default function DeploymentsPage() {
+  const { data, isLoading, error } = trpc.deployment.list.useQuery();
 
   if (isLoading) {
     return (
@@ -17,20 +17,20 @@ export default function VersionsPage() {
     return (
       <div style={{ padding: "20px" }}>
         <h1>Error</h1>
-        <p style={{ color: "red" }}>Failed to load versions: {error.message}</p>
+        <p style={{ color: "red" }}>Failed to load deployments: {error.message}</p>
       </div>
     );
   }
 
   return (
     <div style={{ padding: "20px" }}>
-      <h1>All Versions</h1>
+      <h1>All Deployments</h1>
 
-      {data?.versions && data.versions.length > 0 ? (
+      {data?.deployments && data.deployments.length > 0 ? (
         <div>
-          {data.versions.map((version) => (
+          {data.deployments.map((deployment) => (
             <div
-              key={version.id}
+              key={deployment.id}
               style={{
                 marginBottom: "20px",
                 padding: "15px",
@@ -38,46 +38,46 @@ export default function VersionsPage() {
                 borderRadius: "4px",
               }}
             >
-              <h3>Version {version.id}</h3>
+              <h3>Deployment {deployment.id}</h3>
               <p>
-                <strong>Status:</strong> {version.status}
+                <strong>Status:</strong> {deployment.status}
               </p>
-              {version.gitCommitSha && (
+              {deployment.gitCommitSha && (
                 <p>
-                  <strong>Git Commit:</strong> {version.gitCommitSha}
+                  <strong>Git Commit:</strong> {deployment.gitCommitSha}
                 </p>
               )}
-              {version.gitBranch && (
+              {deployment.gitBranch && (
                 <p>
-                  <strong>Git Branch:</strong> {version.gitBranch}
+                  <strong>Git Branch:</strong> {deployment.gitBranch}
                 </p>
               )}
-              {version.rootfsImageId && (
+              {deployment.rootfsImageId && (
                 <p>
-                  <strong>Rootfs Image:</strong> {version.rootfsImageId}
+                  <strong>Rootfs Image:</strong> {deployment.rootfsImageId}
                 </p>
               )}
-              {version.buildId && (
+              {deployment.buildId && (
                 <p>
-                  <strong>Build ID:</strong> {version.buildId}
+                  <strong>Build ID:</strong> {deployment.buildId}
                 </p>
               )}
-              {version.project && (
+              {deployment.project && (
                 <p>
-                  <strong>Project:</strong> {version.project.name} ({version.project.slug})
+                  <strong>Project:</strong> {deployment.project.name} ({deployment.project.slug})
                 </p>
               )}
-              {version.branch && (
+              {deployment.branch && (
                 <p>
-                  <strong>Branch:</strong> {version.branch.name}
+                  <strong>Branch:</strong> {deployment.branch.name}
                 </p>
               )}
               <p>
-                <strong>Created:</strong> {new Date(version.createdAt).toLocaleString()}
+                <strong>Created:</strong> {new Date(deployment.createdAt).toLocaleString()}
               </p>
-              {version.updatedAt && (
+              {deployment.updatedAt && (
                 <p>
-                  <strong>Updated:</strong> {new Date(version.updatedAt).toLocaleString()}
+                  <strong>Updated:</strong> {new Date(deployment.updatedAt).toLocaleString()}
                 </p>
               )}
             </div>
@@ -85,8 +85,8 @@ export default function VersionsPage() {
         </div>
       ) : (
         <div>
-          <p>No versions found.</p>
-          <p>Create a version using the CLI:</p>
+          <p>No deployments found.</p>
+          <p>Create a deployment using the CLI:</p>
           <code
             style={{ background: "#f0f0f0", padding: "10px", display: "block", marginTop: "10px" }}
           >
