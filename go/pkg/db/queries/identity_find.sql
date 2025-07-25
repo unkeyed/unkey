@@ -1,4 +1,4 @@
--- name: FindIdentityByID :one
+-- name: FindIdentity :one
 SELECT * 
 FROM identities 
 WHERE workspace_id = sqlc.arg(workspace_id) 

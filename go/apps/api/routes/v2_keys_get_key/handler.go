@@ -253,7 +253,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if key.IdentityID.Valid {
-		identity, idErr := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+		identity, idErr := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 			Identity:    key.IdentityID.String,
 			Deleted:     false,
 			WorkspaceID: auth.AuthorizedWorkspaceID,

@@ -150,14 +150,14 @@ type Querier interface {
 	//  WHERE version_id = ? AND is_enabled = true
 	//  ORDER BY created_at ASC
 	FindHostnameRoutesByVersionId(ctx context.Context, db DBTX, versionID string) ([]HostnameRoute, error)
-	//FindIdentityByID
+	//FindIdentity
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
 	//  FROM identities
 	//  WHERE workspace_id = ?
 	//   AND (external_id = ? OR id = ?)
 	//   AND deleted = ?
-	FindIdentityByID(ctx context.Context, db DBTX, arg FindIdentityByIDParams) (Identity, error)
+	FindIdentity(ctx context.Context, db DBTX, arg FindIdentityParams) (Identity, error)
 	//FindKeyByHash
 	//
 	//  SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM `keys` WHERE hash = ?

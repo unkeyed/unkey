@@ -176,7 +176,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// 5. Query the keys
 	var identityId string
 	if req.ExternalId != nil && *req.ExternalId != "" {
-		identity, findErr := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+		identity, findErr := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			Identity:    *req.ExternalId,
 			Deleted:     false,

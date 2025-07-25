@@ -49,7 +49,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 			Identity:    identityID,
 			Deleted:     false,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
@@ -72,7 +72,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 			Identity:    identityID,
 			Deleted:     false,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
@@ -108,7 +108,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Identity:    externalTestID,
 			Deleted:     false,
@@ -130,7 +130,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Identity:    externalTestID,
 			Deleted:     false,
@@ -171,7 +171,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Identity:    externalTestID,
 			Deleted:     false,
@@ -230,7 +230,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Identity:    externalTestID,
 			Deleted:     false,
@@ -306,7 +306,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Identity:    externalTestID,
 			Deleted:     false,
@@ -347,7 +347,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 		// Verify each identity was created with the correct externalId
 		for i, externalID := range externalIDs {
-			identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+			identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 				WorkspaceID: h.Resources().UserWorkspace.ID,
 				Identity:    externalID,
 				Deleted:     false,
@@ -377,7 +377,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		// Verify in database
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Identity:    externalTestID,
 			Deleted:     false,
@@ -417,7 +417,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		// Verify in database
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Identity:    externalTestID,
 			Deleted:     false,

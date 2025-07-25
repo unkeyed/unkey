@@ -82,7 +82,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		testIdentity := createTestIdentity(t, h, 0)
 
 		// Verify identity exists before deletion
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Identity:    testIdentity.ExternalID,
 			Deleted:     false,
@@ -98,7 +98,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		// Verify identity is soft deleted
-		_, err = db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+		_, err = db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Identity:    testIdentity.ExternalID,
 			Deleted:     false,
@@ -106,7 +106,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		require.Equal(t, sql.ErrNoRows, err, "identity should not be found with deleted=false")
 
 		// Verify identity still exists but marked as deleted
-		deletedIdentity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+		deletedIdentity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Identity:    testIdentity.ExternalID,
 			Deleted:     true,
@@ -133,7 +133,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		// Verify identity is soft deleted
-		_, err = db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+		_, err = db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 			Identity: testIdentity.ID,
 			Deleted:  false,
 		})
@@ -162,7 +162,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		// Verify identity is soft deleted
-		_, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+		_, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 			Identity: testIdentity.ID,
 			Deleted:  false,
 		})
@@ -221,14 +221,14 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		require.Equal(t, 200, res2.Status, "second deletion should succeed despite duplicate key scenario")
 
 		// Verify the new identity is soft deleted
-		_, err = db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+		_, err = db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 			Identity: newIdentityID,
 			Deleted:  false,
 		})
 		require.Equal(t, sql.ErrNoRows, err)
 
 		// Verify the old identity was hard deleted (should not be found even with deleted=true)
-		_, err = db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+		_, err = db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 			Identity: testIdentity.ID,
 			Deleted:  true,
 		})

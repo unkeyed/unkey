@@ -70,7 +70,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+	identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 		WorkspaceID: auth.AuthorizedWorkspaceID,
 		Identity:    req.ExternalId,
 		Deleted:     false,
@@ -198,7 +198,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 }
 
 func deleteOldIdentity(ctx context.Context, tx db.DBTX, workspaceID, externalID string) error {
-	oldIdentity, err := db.Query.FindIdentityByID(ctx, tx, db.FindIdentityByIDParams{
+	oldIdentity, err := db.Query.FindIdentity(ctx, tx, db.FindIdentityParams{
 		WorkspaceID: workspaceID,
 		Identity:    externalID,
 		Deleted:     true,

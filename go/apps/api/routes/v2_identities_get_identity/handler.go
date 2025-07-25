@@ -60,7 +60,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	result, err := db.TxWithResult(ctx, h.DB.RO(), func(ctx context.Context, tx db.DBTX) (IdentityResult, error) {
 		var identity db.Identity
 
-		identity, err = db.Query.FindIdentityByID(ctx, tx, db.FindIdentityByIDParams{
+		identity, err = db.Query.FindIdentity(ctx, tx, db.FindIdentityParams{
 			Identity:    req.Identity,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			Deleted:     false,

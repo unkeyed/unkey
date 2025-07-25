@@ -155,7 +155,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				externalID := req.ExternalId.MustGet()
 
 				// Try to find existing identity
-				identity, err := db.Query.FindIdentityByID(ctx, tx, db.FindIdentityByIDParams{
+				identity, err := db.Query.FindIdentity(ctx, tx, db.FindIdentityParams{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					Identity:    externalID,
 					Deleted:     false,
@@ -190,7 +190,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 							)
 						}
 
-						identity, err = db.Query.FindIdentityByID(ctx, tx, db.FindIdentityByIDParams{
+						identity, err = db.Query.FindIdentity(ctx, tx, db.FindIdentityParams{
 							WorkspaceID: auth.AuthorizedWorkspaceID,
 							Identity:    externalID,
 							Deleted:     false,
