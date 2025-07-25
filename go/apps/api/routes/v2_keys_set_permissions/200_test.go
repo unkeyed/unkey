@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -11,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_set_permissions"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -66,7 +66,7 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         "documents.read.initial",
 			Slug:         "documents.read.initial",
-			Description:  sql.NullString{Valid: true, String: "Initial permission"},
+			Description:  dbtype.NullString{Valid: true, String: "Initial permission"},
 		})
 		require.NoError(t, err)
 
@@ -76,7 +76,7 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         "documents.write.new",
 			Slug:         "documents.write.new",
-			Description:  sql.NullString{Valid: true, String: "Write permission"},
+			Description:  dbtype.NullString{Valid: true, String: "Write permission"},
 		})
 		require.NoError(t, err)
 
@@ -86,7 +86,7 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         "documents.delete.new",
 			Slug:         "documents.delete.new",
-			Description:  sql.NullString{Valid: true, String: "Delete permission"},
+			Description:  dbtype.NullString{Valid: true, String: "Delete permission"},
 		})
 		require.NoError(t, err)
 
@@ -174,7 +174,7 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         "documents.read.byname",
 			Slug:         "documents.read.byname",
-			Description:  sql.NullString{Valid: true, String: "Read permission"},
+			Description:  dbtype.NullString{Valid: true, String: "Read permission"},
 		})
 		require.NoError(t, err)
 
@@ -184,7 +184,7 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         "documents.write.byname",
 			Slug:         "documents.write.byname",
-			Description:  sql.NullString{Valid: true, String: "Write permission"},
+			Description:  dbtype.NullString{Valid: true, String: "Write permission"},
 		})
 		require.NoError(t, err)
 
@@ -248,7 +248,7 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         "documents.read.empty",
 			Slug:         "documents.read.empty",
-			Description:  sql.NullString{Valid: true, String: "Read permission"},
+			Description:  dbtype.NullString{Valid: true, String: "Read permission"},
 		})
 		require.NoError(t, err)
 
@@ -258,7 +258,7 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         "documents.write.empty",
 			Slug:         "documents.write.empty",
-			Description:  sql.NullString{Valid: true, String: "Write permission"},
+			Description:  dbtype.NullString{Valid: true, String: "Write permission"},
 		})
 		require.NoError(t, err)
 
@@ -331,7 +331,7 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         "documents.read.idempotent",
 			Slug:         "documents.read.idempotent",
-			Description:  sql.NullString{Valid: true, String: "Read permission"},
+			Description:  dbtype.NullString{Valid: true, String: "Read permission"},
 		})
 		require.NoError(t, err)
 

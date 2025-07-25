@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -12,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_list_permissions"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -37,7 +37,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		WorkspaceID:  workspace.ID,
 		Name:         "test.permission.auth",
 		Slug:         "test-permission-auth",
-		Description:  sql.NullString{Valid: true, String: "Test permission for authorization tests"},
+		Description:  dbtype.NullString{Valid: true, String: "Test permission for authorization tests"},
 		CreatedAtM:   time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
@@ -78,7 +78,7 @@ func TestAuthorizationErrors(t *testing.T) {
 			WorkspaceID:  otherWorkspace.ID,
 			Name:         "other.workspace.permission",
 			Slug:         "other-workspace-permission",
-			Description:  sql.NullString{Valid: true, String: "This permission is in a different workspace"},
+			Description:  dbtype.NullString{Valid: true, String: "This permission is in a different workspace"},
 			CreatedAtM:   time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)

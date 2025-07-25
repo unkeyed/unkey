@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
@@ -168,7 +169,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Name:         perm,
 			WorkspaceID:  auth.AuthorizedWorkspaceID,
 			Slug:         perm,
-			Description:  sql.NullString{String: "", Valid: false},
+			Description:  dbtype.NullString{String: "", Valid: false},
 			CreatedAtM:   now,
 		})
 
@@ -177,7 +178,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Name:        perm,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			Slug:        perm,
-			Description: sql.NullString{String: "", Valid: false},
+			Description: dbtype.NullString{String: "", Valid: false},
 			CreatedAtM:  now,
 		})
 	}
