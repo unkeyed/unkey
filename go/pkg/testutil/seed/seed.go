@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -148,7 +149,7 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 				WorkspaceID:  s.Resources.RootWorkspace.ID,
 				Name:         permission,
 				Slug:         permission,
-				Description:  sql.NullString{String: "", Valid: false},
+				Description:  dbtype.NullString{String: "", Valid: false},
 				CreatedAtM:   time.Now().UnixMilli(),
 			})
 
@@ -411,7 +412,7 @@ func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionReque
 		WorkspaceID:  req.WorkspaceID,
 		Name:         req.Name,
 		Slug:         req.Slug,
-		Description:  sql.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},
+		Description:  dbtype.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},
 		CreatedAtM:   time.Now().UnixMilli(),
 	})
 	require.NoError(s.t, err)

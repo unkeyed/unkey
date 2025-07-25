@@ -2,9 +2,6 @@ type: object
 properties:
   id:
     type: string
-    minLength: 3
-    maxLength: 255
-    pattern: "^[a-zA-Z0-9_]+$"
     description: |
       The unique identifier for this role within Unkey's system.
       Generated automatically when the role is created and used to reference this role in API operations.
@@ -12,8 +9,6 @@ properties:
     example: role_1234567890abcdef
   name:
     type: string
-    minLength: 1
-    maxLength: 512
     description: |
       The human-readable name for this role that describes its function.
       Should be descriptive enough for administrators to understand what access this role provides.
@@ -22,23 +17,12 @@ properties:
     example: "support.readonly"
   description:
     type: string
-    maxLength: 2048
     description: |
       Optional detailed explanation of what this role encompasses and what access it provides.
       Helps team members understand the role's scope, intended use cases, and security implications.
       Include information about what types of users should receive this role and what they can accomplish.
       Not visible to end users - this is for internal documentation and access control audits.
     example: "Provides read-only access for customer support representatives to view user accounts and support tickets"
-  createdAt:
-    type: integer
-    format: int64
-    minimum: 0
-    maximum: 9223372036854775807 # Max int64 value for future-proofing
-    description: |
-      Unix timestamp in milliseconds indicating when this role was first created.
-      Useful for auditing and understanding the evolution of your access control structure.
-      Automatically set by the system and cannot be modified.
-    example: 1701425400000
   permissions:
     type: array
     items:
@@ -54,5 +38,4 @@ required:
   - id
   - name
   - permissions
-  - createdAt
 additionalProperties: false

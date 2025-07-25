@@ -1,5 +1,5 @@
--- name: ListRoles :many
-SELECT r.*, COALESCE(
+-- name: FindRoleByIdOrNameWithPerms :one
+SELECT *, COALESCE(
         (SELECT JSON_ARRAYAGG(
             json_object(
                 'id', permission.id,
@@ -15,7 +15,7 @@ SELECT r.*, COALESCE(
         JSON_ARRAY()
 ) as permissions
 FROM roles r
-WHERE r.workspace_id = sqlc.arg(workspace_id)
-AND r.id > sqlc.arg(id_cursor)
-ORDER BY r.id
-LIMIT 101;
+WHERE r.workspace_id = ? AND (
+    r.id = sqlc.arg('search')
+    OR r.name = sqlc.arg('search')
+);

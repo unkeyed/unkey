@@ -186,6 +186,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					fault.Internal("database error"), fault.Public("Failed to retrieve identity information."),
 				)
 			}
+
 			// If identity not found, return empty result
 			return s.JSON(http.StatusOK, Response{
 				Meta: openapi.Meta{

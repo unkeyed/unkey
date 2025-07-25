@@ -48,12 +48,7 @@ func TestAuthenticationErrors(t *testing.T) {
 	// Create a valid request
 	req := handler.Request{
 		KeyId: keyID,
-		Roles: []struct {
-			Id   *string `json:"id,omitempty"`
-			Name *string `json:"name,omitempty"`
-		}{
-			{Id: func() *string { s := "role_123"; return &s }()},
-		},
+		Roles: []string{"role_123"},
 	}
 
 	// Test case for missing authorization header

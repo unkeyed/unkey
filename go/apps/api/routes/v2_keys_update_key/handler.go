@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
@@ -401,7 +402,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					WorkspaceID:  auth.AuthorizedWorkspaceID,
 					Name:         requestedSlug,
 					Slug:         requestedSlug,
-					Description:  sql.NullString{String: fmt.Sprintf("Auto-created permission: %s", requestedSlug), Valid: true},
+					Description:  dbtype.NullString{String: fmt.Sprintf("Auto-created permission: %s", requestedSlug), Valid: true},
 					CreatedAtM:   time.Now().UnixMilli(),
 				})
 

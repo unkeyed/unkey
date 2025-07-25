@@ -24,7 +24,7 @@ func TestAuthenticationErrors(t *testing.T) {
 
 	// Create a valid request
 	req := handler.Request{
-		RoleId: "role_test123",
+		Role: "role_test123",
 	}
 
 	// Test case for missing authorization header

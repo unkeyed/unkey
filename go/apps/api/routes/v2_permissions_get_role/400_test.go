@@ -56,7 +56,7 @@ func TestValidationErrors(t *testing.T) {
 	// Test case for empty roleId
 	t.Run("empty roleId", func(t *testing.T) {
 		req := handler.Request{
-			RoleId: "", // Empty string is invalid
+			Role: "", // Empty string is invalid
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
@@ -89,25 +89,5 @@ func TestValidationErrors(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 		require.Contains(t, res.Body.Error.Detail, "validate schema")
-	})
-
-	// Test case for invalid roleId format
-	t.Run("invalid roleId format", func(t *testing.T) {
-		req := handler.Request{
-			RoleId: "not_a_valid_role_id_format",
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 404, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "does not exist")
-		// Note: The handler does database lookup first, so invalid formats return 404, not 400
 	})
 }

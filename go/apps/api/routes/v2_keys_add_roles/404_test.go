@@ -33,7 +33,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 	// Create a workspace and root key
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.add_role_to_key")
 
 	// Set up request headers
 	headers := http.Header{
@@ -45,12 +45,7 @@ func TestNotFoundErrors(t *testing.T) {
 	t.Run("key not found", func(t *testing.T) {
 		req := handler.Request{
 			KeyId: "key_nonexistent123456789", // Non-existent key ID
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: func() *string { s := "role_123"; return &s }()},
-			},
+			Roles: []string{"role_123"},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -90,12 +85,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID, // Key from workspace2, but accessed with workspace1 root key
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: func() *string { s := "role_123"; return &s }()},
-			},
+			Roles: []string{"role_123"},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -133,12 +123,7 @@ func TestNotFoundErrors(t *testing.T) {
 		nonExistentRoleId := "role_nonexistent123456789"
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &nonExistentRoleId}, // Non-existent role ID
-			},
+			Roles: []string{nonExistentRoleId},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -151,7 +136,6 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "Role with ID")
 		require.Contains(t, res.Body.Error.Detail, "was not found")
 	})
 
@@ -177,12 +161,7 @@ func TestNotFoundErrors(t *testing.T) {
 		nonExistentRoleName := "nonexistent_role"
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Name: &nonExistentRoleName}, // Non-existent role name
-			},
+			Roles: []string{nonExistentRoleName},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -195,7 +174,6 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "Role with name")
 		require.Contains(t, res.Body.Error.Detail, "was not found")
 	})
 
@@ -231,12 +209,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &roleID}, // Role from different workspace
-			},
+			Roles: []string{roleID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -285,12 +258,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Name: &roleName}, // Role by name from different workspace
-			},
+			Roles: []string{roleName},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -327,25 +295,20 @@ func TestNotFoundErrors(t *testing.T) {
 
 		// Create one valid role
 		validRoleID := uid.New(uid.TestPrefix)
+		validName := "admin_multiple_roles"
 		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      validRoleID,
 			WorkspaceID: workspace.ID,
-			Name:        "admin_multiple_roles",
+			Name:        validName,
 			Description: sql.NullString{Valid: true, String: "Admin role"},
 		})
 		require.NoError(t, err)
 
-		invalidRoleId := "role_nonexistent123456789"
+		invalidName := "role_nonexistent123456789"
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &validRoleID},   // Valid role
-				{Id: &invalidRoleId}, // Invalid role - should cause 404
-			},
+			Roles: []string{validName, invalidName},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -358,8 +321,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "Role with ID")
-		require.Contains(t, res.Body.Error.Detail, invalidRoleId)
+		require.Contains(t, res.Body.Error.Detail, invalidName)
 		require.Contains(t, res.Body.Error.Detail, "was not found")
 	})
 
@@ -400,12 +362,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyResponse.KeyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &roleID},
-			},
+			Roles: []string{roleID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -455,12 +412,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &deletedRoleID},
-			},
+			Roles: []string{deletedRoleID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -473,7 +425,6 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "Role with ID")
 		require.Contains(t, res.Body.Error.Detail, "was not found")
 	})
 }

@@ -7,13 +7,28 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const listRoles = `-- name: ListRoles :many
-SELECT r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m
+SELECT r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
+        (SELECT JSON_ARRAYAGG(
+            json_object(
+                'id', permission.id,
+                'name', permission.name,
+                'slug', permission.slug,
+                'description', permission.description
+           )
+        )
+         FROM (SELECT name, id, slug, description
+               FROM roles_permissions rp
+                        JOIN permissions p ON p.id = rp.permission_id
+               WHERE rp.role_id = r.id) as permission),
+        JSON_ARRAY()
+) as permissions
 FROM roles r
 WHERE r.workspace_id = ?
-  AND r.id > ?
+AND r.id > ?
 ORDER BY r.id
 LIMIT 101
 `
@@ -23,23 +38,47 @@ type ListRolesParams struct {
 	IDCursor    string `db:"id_cursor"`
 }
 
+type ListRolesRow struct {
+	ID          string         `db:"id"`
+	WorkspaceID string         `db:"workspace_id"`
+	Name        string         `db:"name"`
+	Description sql.NullString `db:"description"`
+	CreatedAtM  int64          `db:"created_at_m"`
+	UpdatedAtM  sql.NullInt64  `db:"updated_at_m"`
+	Permissions interface{}    `db:"permissions"`
+}
+
 // ListRoles
 //
-//	SELECT r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m
+//	SELECT r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
+//	        (SELECT JSON_ARRAYAGG(
+//	            json_object(
+//	                'id', permission.id,
+//	                'name', permission.name,
+//	                'slug', permission.slug,
+//	                'description', permission.description
+//	           )
+//	        )
+//	         FROM (SELECT name, id, slug, description
+//	               FROM roles_permissions rp
+//	                        JOIN permissions p ON p.id = rp.permission_id
+//	               WHERE rp.role_id = r.id) as permission),
+//	        JSON_ARRAY()
+//	) as permissions
 //	FROM roles r
 //	WHERE r.workspace_id = ?
-//	  AND r.id > ?
+//	AND r.id > ?
 //	ORDER BY r.id
 //	LIMIT 101
-func (q *Queries) ListRoles(ctx context.Context, db DBTX, arg ListRolesParams) ([]Role, error) {
+func (q *Queries) ListRoles(ctx context.Context, db DBTX, arg ListRolesParams) ([]ListRolesRow, error) {
 	rows, err := db.QueryContext(ctx, listRoles, arg.WorkspaceID, arg.IDCursor)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Role
+	var items []ListRolesRow
 	for rows.Next() {
-		var i Role
+		var i ListRolesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.WorkspaceID,
@@ -47,6 +86,7 @@ func (q *Queries) ListRoles(ctx context.Context, db DBTX, arg ListRolesParams) (
 			&i.Description,
 			&i.CreatedAtM,
 			&i.UpdatedAtM,
+			&i.Permissions,
 		); err != nil {
 			return nil, err
 		}
