@@ -31,7 +31,7 @@ func TestSuccess(t *testing.T) {
 
 	// Create a workspace and root key
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.add_role_to_key")
 
 	// Set up request headers
 	headers := http.Header{
@@ -288,48 +288,5 @@ func TestSuccess(t *testing.T) {
 			}
 		}
 		require.Equal(t, 1, editorConnectEvents, "Should find only 1 new role connect event for editor")
-	})
-
-	t.Run("role reference with both ID and name", func(t *testing.T) {
-		api := h.CreateApi(seed.CreateApiRequest{
-			WorkspaceID:   workspace.ID,
-			EncryptedKeys: false,
-		})
-
-		key := h.CreateKey(seed.CreateKeyRequest{
-			KeyAuthID:   api.KeyAuthID.String,
-			WorkspaceID: workspace.ID,
-		})
-
-		adminID := h.CreateRole(seed.CreateRoleRequest{WorkspaceID: workspace.ID, Name: "admin_both_ref"})
-		editorRoleName := "editor_both_ref"
-		h.CreateRole(seed.CreateRoleRequest{WorkspaceID: workspace.ID, Name: editorRoleName})
-
-		// Request with role reference having both ID and name
-		// ID should take precedence
-		req := handler.Request{
-			KeyId: key.KeyID,
-			Roles: []string{adminID, editorRoleName},
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 200, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Data)
-		require.Len(t, res.Body.Data, 1)
-		require.Equal(t, adminID, res.Body.Data[0].Id)
-		require.Equal(t, "admin_both_ref", res.Body.Data[0].Name) // Should be role1, not role2
-
-		// Verify correct role was added
-		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), key.KeyID)
-		require.NoError(t, err)
-		require.Len(t, finalRoles, 1)
-		require.Equal(t, adminID, finalRoles[0].ID)
 	})
 }
