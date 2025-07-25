@@ -18,8 +18,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2IdentitiesDeleteIdentityRequestBody
-type Response = openapi.V2IdentitiesDeleteIdentityResponseBody
+type (
+	Request  = openapi.V2IdentitiesDeleteIdentityRequestBody
+	Response = openapi.V2IdentitiesDeleteIdentityResponseBody
+)
 
 // Handler implements zen.Route interface for the v2 identities delete identity endpoint
 type Handler struct {
@@ -68,9 +70,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
+	identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 		WorkspaceID: auth.AuthorizedWorkspaceID,
-		ExternalID:  req.ExternalId,
+		Identity:    req.Identity,
 		Deleted:     false,
 	})
 	if err != nil {
@@ -95,22 +97,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		err = db.Query.SoftDeleteIdentity(ctx, tx, identity.ID)
+		err = db.Query.SoftDeleteIdentity(ctx, tx, db.SoftDeleteIdentityParams{
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+			Identity:    req.Identity,
+		})
 
 		// If we hit a duplicate key error, we know that we have an identity that was already soft deleted
 		// so we can hard delete the "old" deleted version
 		if db.IsDuplicateKeyError(err) {
-			err = deleteOldIdentity(ctx, tx, auth.AuthorizedWorkspaceID, identity.ExternalID)
+			err = deleteOldIdentity(ctx, tx, auth.AuthorizedWorkspaceID, identity.ID)
 			if err != nil {
 				return err
 			}
 
 			// Re-apply the soft delete operation
-			err = db.Query.SoftDeleteIdentity(ctx, tx, identity.ID)
+			err = db.Query.SoftDeleteIdentity(ctx, tx, db.SoftDeleteIdentityParams{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Identity:    req.Identity,
+			})
 
 		}
 		if err != nil {
-
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database failed to soft delete identity"), fault.Public("Failed to delete Identity."),
@@ -196,32 +203,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 }
 
-func deleteOldIdentity(ctx context.Context, tx db.DBTX, workspaceID, externalID string) error {
-	oldIdentity, err := db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
+func deleteOldIdentity(ctx context.Context, tx db.DBTX, workspaceID, identityID string) error {
+	err := db.Query.DeleteManyRatelimitsByIdentityID(ctx, tx, sql.NullString{String: identityID, Valid: true})
+	if err != nil && !db.IsNotFound(err) {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database failed to delete identity ratelimits"),
+			fault.Public("Failed to delete Identity ratelimits."),
+		)
+	}
+
+	err = db.Query.DeleteIdentity(ctx, tx, db.DeleteIdentityParams{
 		WorkspaceID: workspaceID,
-		ExternalID:  externalID,
-		Deleted:     true,
+		Identity:    identityID,
 	})
-	if err != nil {
+	if err != nil && !db.IsNotFound(err) {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to load old identity"), fault.Public("Failed to load Identity."),
-		)
-	}
-
-	err = db.Query.DeleteManyRatelimitsByIdentityID(ctx, tx, sql.NullString{String: oldIdentity.ID, Valid: true})
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to delete identity ratelimits"), fault.Public("Failed to delete Identity ratelimits."),
-		)
-	}
-
-	err = db.Query.DeleteIdentity(ctx, tx, oldIdentity.ID)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to delete identity"), fault.Public("Failed to delete Identity."),
+			fault.Internal("database failed to delete identity"),
+			fault.Public("Failed to delete Identity."),
 		)
 	}
 
