@@ -89,7 +89,7 @@ func (c Code) URN() URN {
 // developers with a direct link to detailed information about the error, including
 // possible causes and remediation steps.
 func (c Code) DocsURL() string {
-	return fmt.Sprintf("https://unkey.com/docs/api-reference/errors-v2/%s/%s/%s",
+	return fmt.Sprintf("https://unkey.com/docs/errors/%s/%s/%s",
 		c.System, c.Category, c.Specific)
 }
 

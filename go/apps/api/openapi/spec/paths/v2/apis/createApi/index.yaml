@@ -1,24 +1,18 @@
 post:
   tags:
     - apis
-  summary: Create a new API namespace for organizing keys
-  description: |-
-    Creates a new API namespace that serves as a container for related API keys.
+  summary: Create API namespace
+  description: |
+    Create an API namespace for organizing keys by environment, service, or product.
 
-    APIs in Unkey provide important functionality:
-    - They organize keys into logical groups for easier management
-    - They isolate keys between different environments (dev/staging/production)
-    - They enforce security boundaries between services or products
-    - They provide a foundation for permission scoping and access control
+    Use this to separate production from development keys, isolate different services, or manage multiple products. Each API gets a unique identifier and dedicated infrastructure for secure key operations.
 
-    Common use cases for creating separate APIs include:
-    - Separating development, staging, and production environments
-    - Isolating different services or microservices from each other
-    - Creating boundaries between different products or teams
-    - Implementing multi-tenant isolation for SaaS applications
+    **Important**: API names must be unique within your workspace and cannot be changed after creation.
 
-    You'll use the resulting API ID when creating keys to associate them with this API namespace.
-    During key verification, you must provide the same API ID to ensure keys can't be used across different environments or services.
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `api.*.create_api` (to create APIs in any workspace)
   operationId: createApi
   x-speakeasy-name-override: createApi
   security:
@@ -28,19 +22,6 @@ post:
       application/json:
         schema:
           "$ref": "./V2ApisCreateApiRequestBody.yaml"
-        examples:
-          production:
-            summary: Production API
-            value:
-              name: payment-service-production
-          staging:
-            summary: Staging environment
-            value:
-              name: payment-service-staging
-          serviceSpecific:
-            summary: Service-specific API
-            value:
-              name: analytics-service
     required: true
   responses:
     "200":
@@ -48,19 +29,9 @@ post:
         application/json:
           schema:
             "$ref": "./V2ApisCreateApiResponseBody.yaml"
-          examples:
-            success:
-              summary: Successfully created API
-              value:
-                meta:
-                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
-                data:
-                  apiId: api_2cGKbMxRjIzhCxo1IdjH3a
-      description:
-        Successfully created a new API namespace. The response includes
-        the unique API ID that you'll need for creating keys within this namespace.
-        This ID should be stored securely as it's required for all operations
-        related to this API.
+      description: |
+        API namespace created successfully. The response contains the unique API ID for referencing this namespace in key operations.
+
     "400":
       description: Bad request
       content:

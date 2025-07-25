@@ -26,7 +26,7 @@ properties:
       a stable identifier for the error that can be used for documentation lookups
       and programmatic error handling. When followed, this URI should provide human-readable
       documentation for the problem type.
-    example: https://unkey.com/docs/api-reference/errors-v2/unkey/resource/not_found
+    example: https://unkey.com/docs/errors/unkey/resource/not_found
     type: string
 required:
   - title

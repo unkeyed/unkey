@@ -1,14 +1,16 @@
 post:
   tags:
     - permissions
-  summary: Delete a role
-  description: |-
-    Permanently removes a role from the workspace. This endpoint is used when a role is no longer needed or needs to be replaced with a different role structure.
-    When a role is deleted:
-    - All keys that had this role assigned will lose the permissions granted by this role
-    - The role will no longer appear in role listings
-    - The role's name becomes available for reuse
-    Important: This operation cannot be undone, and it immediately affects all API keys that had this role assigned. Consider carefully before deleting roles that are actively in use by many keys.
+  summary: Delete role
+  description: |
+    Remove a role from your workspace. This also removes the role from all assigned API keys.
+
+    **Important:** This operation cannot be undone and immediately affects all API keys that had this role assigned.
+
+    **Required Permissions**
+    
+    Your root key must have the following permission:
+    - `rbac.*.delete_role`
   operationId: deleteRole
   x-speakeasy-name-override: DeleteRole
   security:
@@ -25,7 +27,7 @@ post:
         application/json:
           schema:
             "$ref": "./V2PermissionsDeleteRoleResponseBody.yaml"
-      description: Successfully deleted role
+      description: Role deleted successfully
     "400":
       description: Bad Request
       content:

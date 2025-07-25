@@ -1,0 +1,67 @@
+---
+title: RPC-Style API
+description: 'Understanding our action-oriented API design'
+---
+
+We use an RPC (Remote Procedure Call) style API that focuses on *actions* rather than resources. This means endpoints represent specific operations:
+
+```
+https://api.unkey.com/v2/{service}.{procedure}
+```
+
+For example:
+- `POST /v2/keys.createKey` - Create a new API key
+- `POST /v2/ratelimit.limit` - Check or enforce a rate limit
+
+We chose this approach because it maps directly to the operations developers want to perform, making the API intuitive to use.
+
+## HTTP Methods
+
+We exclusively use POST for all operations. While this deviates from REST conventions, it provides several advantages:
+
+1. **Consistent Request Pattern**: All requests follow the same pattern regardless of operation
+2. **Rich Query Parameters**: Complex filtering and querying without URL length limitations
+3. **Security and Compatibility**: Avoids issues with proxies or firewalls logging potentially sensitive parameters in the url
+
+
+## Request Format
+
+All requests should:
+- Use the POST HTTP method
+- Include a Content-Type header set to application/json
+- Include an Authorization header (see Authentication documentation)
+- Send parameters as a JSON object in the request body
+
+Example:
+
+```bash
+curl -X POST "https://api.unkey.com/v2/keys.createKey" \
+  -H "Authorization: Bearer root_1234567890" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_1234",
+    "name": "Production API Key"
+  }'
+```
+
+## Service Namespaces
+
+Our API is organized into logical service namespaces that group related procedures:
+
+- **keys** - API key management (create, verify, revoke)
+- **apis** - API configuration and settings
+- **ratelimit** - Rate limiting services
+- **analytics** - Usage and performance data
+- **identities** - Identity management
+- **permissions** - Permission management
+
+Each namespace contains multiple procedures that perform specific actions within that domain.
+
+## Benefits of RPC Design
+
+We believe our RPC-style approach offers significant benefits:
+
+1. **Clarity of Intent**: Endpoint names clearly communicate the action being performed
+2. **Natural Code Mapping**: Endpoints naturally map to code and user intent (`keys.createKey()` instead of `POST /keys`)
+3. **Complex Operations**: Supports complex operations that don't map well to REST's resource model
+4. **Flexibility**: Allows for more flexible request structures without being constrained by URL parameters

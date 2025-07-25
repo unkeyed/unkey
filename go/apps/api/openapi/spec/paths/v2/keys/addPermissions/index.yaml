@@ -1,11 +1,23 @@
 post:
   tags:
     - keys
-  summary: Add permissions to an API key
-  description: |-
-    Adds one or more permissions to an existing API key without affecting existing permissions or roles. This is an additive operation that supplements the key's current permission set.
-    Use this endpoint when you need to grant additional access rights to a key, such as upgrading user privileges, enabling new features, or implementing progressive permission models.
-    Only direct permissions are affected - permissions granted through roles remain unchanged. Changes take effect immediately for new verifications, though existing authorized sessions may continue until their cache expires.
+  summary: Add key permissions
+  description: |
+    Add permissions to a key without affecting existing permissions.
+
+    Use this for privilege upgrades, enabling new features, or plan changes that grant additional capabilities. Permissions granted through roles remain unchanged.
+
+    **Important**: Changes take effect immediately with up to 30-second edge propagation.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `api.*.update_key` (to update keys in any API)
+    - `api.<api_id>.update_key` (to update keys in a specific API)
+
+    **Side Effects**
+
+    Invalidates the key cache for immediate effect, and makes permissions available for verification within 30 seconds across all regions.
   operationId: addPermissions
   x-speakeasy-name-override: addPermissions
   security:
@@ -16,266 +28,40 @@ post:
       application/json:
         schema:
           "$ref": "./V2KeysAddPermissionsRequestBody.yaml"
-        examples:
-          basic:
-            summary: Add permissions using IDs
-            description:
-              When you know the exact permission IDs, referencing them
-              directly is the most precise approach. Permission IDs are guaranteed
-              to be unique.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              permissions:
-                - id: perm_1n9McEIBSqy44Qy7hzWyM5
-                - id: perm_2zF4mNyP9BsRj2aQwDxVkT
-          withNames:
-            summary: Add permissions using names
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              permissions:
-                - name: documents.write
-                - name: documents.delete
-          withCreation:
-            summary: Add and create new permissions
-            description: Setting create=true dynamically creates permissions if
-              they don't exist yet. This requires the `rbac.*.create_permission`
-              permission on your root key.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              permissions:
-                - name: reports.export
-                  create: true
-                - name: reports.schedule
-                  create: true
-          mixed:
-            summary: Mix ID and name references
-            description:
-              You can combine ID references, name references, and creation
-              in a single request. If both id and name are provided for any permission,
-              the id takes precedence.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              permissions:
-                - id: perm_1n9McEIBSqy44Qy7hzWyM5
-                - name: documents.publish
-                - name: analytics.view
-                  create: true
-          hierarchical:
-            summary: Using hierarchical permission naming
-            description: Permissions can use hierarchical naming with dots as
-              separators. During verification, a request for 'billing.invoices.*'
-              will match both 'billing.invoices.create' and 'billing.invoices.view'.
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              permissions:
-                - name: billing.invoices.create
-                  create: true
-                - name: billing.invoices.view
-                  create: true
-                - name: billing.payments.process
-                  create: true
-          completeBilling:
-            summary: Complete billing system permissions
-            description: Creating a structured set of permissions for a complete
-              subsystem like billing
-            value:
-              keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-              permissions:
-                - name: billing.invoices.create
-                  create: true
-                - name: billing.invoices.view
-                  create: true
-                - name: billing.invoices.update
-                  create: true
-                - name: billing.payments.process
-                  create: true
-                - name: billing.payments.refund
-                  create: true
-                - name: billing.settings.view
-                  create: true
   responses:
     "200":
-      description: Permissions successfully added to the key
+      description: Permissions added successfully. Returns all permissions currently assigned to the key.
       content:
         application/json:
           schema:
             "$ref": "./V2KeysAddPermissionsResponseBody.yaml"
-          examples:
-            standard:
-              summary: Complete list of permissions
-              description: After adding new permissions, the response includes
-                the full list of all permissions now assigned to the key, sorted
-                alphabetically by name.
-              value:
-                meta:
-                  requestId: req_2cGKbMxRyIzhCxo1Idjz8q
-                data:
-                  - id: perm_1n9McEIBSqy44Qy7hzWyM5
-                    name: documents.write
-                  - id: perm_2zF4mNyP9BsRj2aQwDxVkT
-                    name: documents.delete
-                  - id: perm_3qRsTu2vWxYzAbCdEfGhIj
-                    name: documents.read
-                  - id: perm_4bVcWdXeYfZgHiJkLmNoPq
-                    name: reports.export
-                  - id: perm_5sTu2vWxYzAbCdEfGhIjKl
-                    name: reports.schedule
-            hierarchical:
-              summary: Key with hierarchical permissions
-              value:
-                meta:
-                  requestId: req_7zF4mNyP9BsRj2aQwDxVkT
-                data:
-                  - id: perm_1n9McEIBSqy44Qy7hzWyM5
-                    name: billing.invoices.create
-                  - id: perm_2zF4mNyP9BsRj2aQwDxVkT
-                    name: billing.invoices.view
-                  - id: perm_3qRsTu2vWxYzAbCdEfGhIj
-                    name: billing.payments.process
-                  - id: perm_4bVcWdXeYfZgHiJkLmNoPq
-                    name: billing.settings.read
-                  - id: perm_5sTu2vWxYzAbCdEfGhIjKl
-                    name: billing.settings.write
-            empty:
-              summary: Key with no permissions
-              value:
-                meta:
-                  requestId: req_8sTu2vWxYzAbCdEfGhIjKl
-                data: []
     "400":
-      description: Bad Request - Invalid keyId format, missing required fields,
-        or malformed permission entries
+      description: Bad request
       content:
         application/json:
           schema:
             "$ref": "../../../../error/BadRequestErrorResponse.yaml"
-          examples:
-            invalidKeyId:
-              summary: Invalid keyId format
-              value:
-                meta:
-                  requestId: req_5zAbCdEfGhIjKlMnOpQrSt
-                error:
-                  title: Bad Request
-                  detail: keyId must start with 'key_'
-                  status: 400
-                  type: bad_request
-            emptyPermissions:
-              summary: Empty permissions array
-              value:
-                meta:
-                  requestId: req_6aBcDeFgHiJkLmNoPqRsT
-                error:
-                  title: Bad Request
-                  detail: At least one permission must be specified
-                  status: 400
-                  type: bad_request
     "401":
-      description: Unauthorized - Missing or invalid authentication credentials
+      description: Unauthorized
       content:
         application/json:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
-          examples:
-            invalidRootKey:
-              summary: Invalid root key provided
-              value:
-                meta:
-                  requestId: req_9tUv3wXyZaAbCdEfGhIjKl
-                error:
-                  title: Unauthorized
-                  detail: The root key provided is invalid or has been revoked.
-                  status: 401
-                  type: unauthorized
     "403":
-      description:
-        Forbidden - Insufficient permissions (requires `rbac.*.add_permission_to_key`
-        and potentially `rbac.*.create_permission`)
+      description: Forbidden
       content:
         application/json:
           schema:
             "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
-          examples:
-            missingPermission:
-              summary: Missing required permission
-              value:
-                meta:
-                  requestId: req_0uVwX4yZaAbCdEfGhIjKl
-                error:
-                  title: Forbidden
-                  detail:
-                    Your root key requires the 'rbac.*.add_permission_to_key'
-                    permission to perform this operation
-                  status: 403
-                  type: forbidden
-            missingCreatePermission:
-              summary: Cannot create new permissions
-              value:
-                meta:
-                  requestId: req_1vWxYzAbCdEfGhIjKlMnOp
-                error:
-                  title: Forbidden
-                  detail: Your root key requires the 'rbac.*.create_permission'
-                    permission to create new permissions
-                  status: 403
-                  type: forbidden
     "404":
-      description: Not Found - Key not found or specified permission IDs don't
-        exist
+      description: Not found
       content:
         application/json:
           schema:
             "$ref": "../../../../error/NotFoundErrorResponse.yaml"
-          examples:
-            keyNotFound:
-              summary: Key not found
-              value:
-                meta:
-                  requestId: req_2wXyZaAbCdEfGhIjKlMnOp
-                error:
-                  title: Not Found
-                  detail: Key key_2cGKbMxRyIzhCxo1Idjz8q not found
-                  status: 404
-                  type: not_found
-            permissionNotFound:
-              summary: Permission not found
-              value:
-                meta:
-                  requestId: req_3xYzAbCdEfGhIjKlMnOpQr
-                error:
-                  title: Not Found
-                  detail: Permission perm_1n9McEIBSqy44Qy7hzWyM5 not found
-                  status: 404
-                  type: not_found
     "500":
-      description: Internal Server Error - An unexpected error occurred while
-        processing the request
+      description: Internal server error
       content:
         application/json:
           schema:
             "$ref": "../../../../error/InternalServerErrorResponse.yaml"
-          examples:
-            databaseError:
-              summary: Database error
-              value:
-                meta:
-                  requestId: req_4yZaAbCdEfGhIjKlMnOpQrS
-                error:
-                  title: Internal Server Error
-                  detail:
-                    An unexpected error occurred while processing your request.
-                    Please try again later.
-                  status: 500
-                  type: internal_server_error
-            cachingError:
-              summary: Cache invalidation error
-              value:
-                meta:
-                  requestId: req_5zAbCdEfGhIjKlMnOpQrSt
-                error:
-                  title: Internal Server Error
-                  detail: The permissions were successfully added but there was
-                    an error invalidating cached keys. Some systems may temporarily
-                    see stale data.
-                  status: 500
-                  type: internal_server_error

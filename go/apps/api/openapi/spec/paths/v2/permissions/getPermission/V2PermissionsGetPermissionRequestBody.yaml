@@ -8,9 +8,12 @@ properties:
     maxLength: 255
     pattern: "^[a-zA-Z0-9_]+$"
     description: |
-      Specifies which permission to retrieve by its unique identifier.
-      Must be a valid permission ID that begins with 'perm_' and exists within your workspace.
-      Use this endpoint to verify permission details, check its current configuration, or retrieve metadata.
-      Returns detailed information including name, description, and workspace association.
+      The unique identifier of the permission to retrieve. Must be a valid permission ID that begins with 'perm_' and exists within your workspace.
     example: perm_1234567890abcdef
 additionalProperties: false
+examples:
+  basic:
+    summary: Retrieve permission details
+    description: Get information about a specific permission
+    value:
+      permissionId: perm_1234567890abcdef

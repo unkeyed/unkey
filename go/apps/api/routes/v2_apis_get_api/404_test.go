@@ -49,7 +49,7 @@ func TestGetApiNotFound(t *testing.T) {
 		)
 
 		require.Equal(t, 404, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/api_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/api_not_found", res.Body.Error.Type)
 		require.Equal(t, "The requested API does not exist or has been deleted.", res.Body.Error.Detail)
 	})
 
@@ -70,7 +70,7 @@ func TestGetApiNotFound(t *testing.T) {
 		)
 
 		require.Equal(t, 404, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/api_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/api_not_found", res.Body.Error.Type)
 		require.Equal(t, "The requested API does not exist or has been deleted.", res.Body.Error.Detail)
 	})
 
@@ -107,7 +107,7 @@ func TestGetApiNotFound(t *testing.T) {
 		)
 
 		require.Equal(t, 404, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/api_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/api_not_found", res.Body.Error.Type)
 		require.Equal(t, "The requested API does not exist or has been deleted.", res.Body.Error.Detail)
 	})
 
@@ -123,7 +123,7 @@ func TestGetApiNotFound(t *testing.T) {
 		)
 
 		require.Equal(t, 400, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Equal(t, res.Body.Error.Detail, "POST request body for '/v2/apis.getApi' failed to validate schema")
 	})
 }

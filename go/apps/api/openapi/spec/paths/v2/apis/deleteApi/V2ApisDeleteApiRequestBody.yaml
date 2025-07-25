@@ -8,24 +8,15 @@ properties:
     maxLength: 255
     pattern: "^[a-zA-Z0-9_]+$"
     description: |
-      Specifies which API to permanently delete from your workspace.
+      Specifies which API namespace to permanently delete from your workspace.
       Must be a valid API ID that begins with 'api_' and exists within your workspace.
 
-      CRITICAL WARNING: Deletion is immediate and irreversible with severe consequences:
-      - ALL keys associated with this API become invalid instantly
-      - Verification requests for these keys will fail with `code=NOT_FOUND`
-      - Client applications using these keys will lose access immediately
-      - Analytics data and key metadata are permanently removed
-      - This operation cannot be undone under any circumstances
-
-      Before proceeding, ensure you have:
-      - Verified the correct API ID (double-check environment and service)
-      - Migrated all active keys to alternative APIs
-      - Updated all client applications to use replacement keys
-      - Backed up critical analytics data and key configurations
-      - Notified all stakeholders of the service interruption
-      - Tested replacement systems in non-production environments
-
-      Consider disabling keys first to test impact before permanent deletion.
-    example: api_VNcuGfVjUkrVcWJmda0A
+      Before proceeding, ensure you have the correct API ID and understand that this action cannot be undone. If you need to migrate functionality, create replacement keys in a new API namespace and update client applications before deletion.
+    example: api_1234abcd
 additionalProperties: false
+examples:
+  delete:
+    summary: Delete an API
+    description: Remove API an API by providing its id
+    value:
+      apiId: api_abcd1234
