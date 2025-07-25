@@ -79,10 +79,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	roleResponse := openapi.Role{
+		Id:          role.ID,
+		Name:        role.Name,
+		Permissions: nil,
+		Description: nil,
+	}
+
+	if role.Description.Valid {
+		roleResponse.Description = &role.Description.String
+	}
+
 	rolePermissions := make([]db.Permission, 0)
 	json.Unmarshal(role.Permissions.([]byte), &rolePermissions)
-
-	permissions := make([]openapi.Permission, 0, len(rolePermissions))
 	for _, perm := range rolePermissions {
 		permission := openapi.Permission{
 			Id:          perm.ID,
@@ -96,18 +105,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			permission.Description = &perm.Description.String
 		}
 
-		permissions = append(permissions, permission)
-	}
-
-	roleResponse := openapi.Role{
-		Id:          role.ID,
-		Name:        role.Name,
-		Permissions: permissions,
-		Description: nil,
-	}
-
-	if role.Description.Valid {
-		roleResponse.Description = &role.Description.String
+		roleResponse.Permissions = append(roleResponse.Permissions, permission)
 	}
 
 	return s.JSON(http.StatusOK, Response{

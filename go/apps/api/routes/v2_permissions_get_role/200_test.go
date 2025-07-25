@@ -123,7 +123,7 @@ func TestSuccess(t *testing.T) {
 	t.Run("get role without permissions", func(t *testing.T) {
 		// Create a role with no permissions
 		roleID := uid.New(uid.TestPrefix)
-		roleName := "test.get.role.no.perms"
+		roleName := "rolewithoutpermissions"
 		roleDesc := "Test role with no permissions"
 
 		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
