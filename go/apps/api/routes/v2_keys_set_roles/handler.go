@@ -114,9 +114,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		currentRoleIDs[role.ID] = true
 	}
 
-	foundRoles, err := db.Query.FindManyRolesByIdOrNameWithPerms(ctx, h.DB.RO(), db.FindManyRolesByIdOrNameWithPermsParams{
+	foundRoles, err := db.Query.FindManyRolesByNamesWithPerms(ctx, h.DB.RO(), db.FindManyRolesByNamesWithPermsParams{
 		WorkspaceID: auth.AuthorizedWorkspaceID,
-		Search:      req.Roles,
+		Names:       req.Roles,
 	})
 
 	foundMap := make(map[string]struct{})
@@ -136,7 +136,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	requestedRoleIDs := make(map[string]bool)
-	requestedRoleMap := make(map[string]db.FindManyRolesByIdOrNameWithPermsRow)
+	requestedRoleMap := make(map[string]db.FindManyRolesByNamesWithPermsRow)
 	for _, role := range foundRoles {
 		requestedRoleIDs[role.ID] = true
 		requestedRoleMap[role.ID] = role
@@ -150,7 +150,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	rolesToAdd := make([]db.FindManyRolesByIdOrNameWithPermsRow, 0)
+	rolesToAdd := make([]db.FindManyRolesByNamesWithPermsRow, 0)
 	for _, role := range foundRoles {
 		if !currentRoleIDs[role.ID] {
 			rolesToAdd = append(rolesToAdd, role)

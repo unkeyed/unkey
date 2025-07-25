@@ -112,9 +112,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		currentRoleIDs[role.ID] = role
 	}
 
-	foundRoles, err := db.Query.FindManyRolesByIdOrNameWithPerms(ctx, h.DB.RO(), db.FindManyRolesByIdOrNameWithPermsParams{
+	foundRoles, err := db.Query.FindManyRolesByNamesWithPerms(ctx, h.DB.RO(), db.FindManyRolesByNamesWithPermsParams{
 		WorkspaceID: auth.AuthorizedWorkspaceID,
-		Search:      req.Roles,
+		Names:       req.Roles,
 	})
 	if err != nil {
 		return fault.Wrap(err,
@@ -139,7 +139,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	rolesToRemove := make([]db.FindManyRolesByIdOrNameWithPermsRow, 0)
+	rolesToRemove := make([]db.FindManyRolesByNamesWithPermsRow, 0)
 	for _, role := range foundRoles {
 		_, exists := currentRoleIDs[role.ID]
 		if !exists {

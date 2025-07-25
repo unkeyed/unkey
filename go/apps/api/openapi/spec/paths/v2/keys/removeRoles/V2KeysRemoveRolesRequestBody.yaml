@@ -21,15 +21,13 @@ properties:
     description: |
       Removes direct role assignments from the key without affecting other role sources or permissions.
       Operations are idempotent - removing non-assigned roles has no effect and causes no errors.
-      Use either ID for existing roles or name for exact string matching.
 
       After removal, the key loses access to permissions that were only granted through these roles.
-      Role changes take effect immediately but cache propagation across regions may take up to 30 seconds.
       Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
     items:
       type: string
       pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
       minLength: 3
       maxLength: 255
-      description: Use either ID for existing roles or name for exact string matching.
+      description: Specify the role by name.
 additionalProperties: false
