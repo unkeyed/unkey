@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { requireUser, requireWorkspace, t } from "../../trpc";
 
-export const listProjectBranches = t.procedure
+export const listByProject = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
   .input(
@@ -11,7 +11,7 @@ export const listProjectBranches = t.procedure
       projectId: z.string(),
     }),
   )
-  .query(async ({ ctx, input }) => {
+  .query(async ({ input, ctx }) => {
     try {
       // First verify the project exists and belongs to this workspace
       const project = await db.query.projects.findFirst({
@@ -33,26 +33,16 @@ export const listProjectBranches = t.procedure
       });
 
       return {
-        project: {
-          id: project.id,
-          name: project.name,
-          slug: project.slug,
-          gitRepositoryUrl: project.gitRepositoryUrl,
-          createdAt: project.createdAt,
-          updatedAt: project.updatedAt,
-        },
         branches: branches.map((branch) => ({
           id: branch.id,
           name: branch.name,
+          projectId: branch.projectId,
+          isProduction: branch.name === "main" || branch.name === "production", // Simple heuristic
           createdAt: branch.createdAt,
           updatedAt: branch.updatedAt,
         })),
       };
-    } catch (error) {
-      if (error instanceof TRPCError) {
-        throw error;
-      }
-
+    } catch (_error) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to fetch branches",

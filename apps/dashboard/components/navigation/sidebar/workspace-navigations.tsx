@@ -1,6 +1,7 @@
 import type { Workspace } from "@/lib/db";
 import {
   Fingerprint,
+  FolderCloud,
   Gauge,
   Gear,
   Grid,
@@ -49,6 +50,14 @@ export const createWorkspaceNavigation = (
       label: "APIs",
       active: segments.at(0) === "apis",
       showSubItems: false,
+    },
+    {
+      icon: FolderCloud,
+      href: "/projects",
+      label: "Projects",
+      active: segments.at(0) === "projects",
+      hidden: !workspace.betaFeatures.deployments,
+      tag: <Tag label="Beta" />,
     },
     {
       icon: Gauge,
