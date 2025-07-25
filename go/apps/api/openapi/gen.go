@@ -777,15 +777,10 @@ type V2IdentitiesListIdentitiesResponseData = []Identity
 
 // V2IdentitiesUpdateIdentityRequestBody defines model for V2IdentitiesUpdateIdentityRequestBody.
 type V2IdentitiesUpdateIdentityRequestBody struct {
-	// ExternalId Updates the external identifier for this identity. Must be unique across your workspace.
-	// Use this when users change usernames, organizations restructure, or you need to migrate identifier schemes.
-	// Omitting this field preserves the existing external ID.
+	// ExternalId Specifies which identity to update using your system's identifier from identity creation.
+	// Use this when you track identities by your own user IDs, organization IDs, or tenant identifiers.
 	// Accepts letters, numbers, underscores, dots, and hyphens for flexible identifier formats.
-	ExternalId *string `json:"externalId,omitempty"`
-
-	// Identity The ID of the identity to update. This can be either the externalId (from your own system
-	// that was used during identity creation) or the identityId (the internal ID returned by the identity service).
-	Identity string `json:"identity"`
+	ExternalId string `json:"externalId"`
 
 	// Meta Replaces all existing metadata with this new metadata object.
 	// Omitting this field preserves existing metadata, while providing an empty object clears all metadata.

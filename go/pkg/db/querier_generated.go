@@ -22,8 +22,10 @@ type Querier interface {
 	DeleteAllKeyRolesByKeyID(ctx context.Context, db DBTX, keyID string) error
 	//DeleteIdentity
 	//
-	//  DELETE FROM identities WHERE id = ?
-	DeleteIdentity(ctx context.Context, db DBTX, id string) error
+	//  DELETE FROM identities
+	//  WHERE workspace_id = ?
+	//    AND (id = ? OR external_id = ?)
+	DeleteIdentity(ctx context.Context, db DBTX, arg DeleteIdentityParams) error
 	//DeleteKeyByID
 	//
 	//  DELETE k, kp, kr, rl, ek
@@ -1137,8 +1139,11 @@ type Querier interface {
 	SoftDeleteApi(ctx context.Context, db DBTX, arg SoftDeleteApiParams) error
 	//SoftDeleteIdentity
 	//
-	//  UPDATE identities set deleted = 1 WHERE id = ?
-	SoftDeleteIdentity(ctx context.Context, db DBTX, id string) error
+	//  UPDATE identities
+	//  SET deleted = 1
+	//  WHERE workspace_id = ?
+	//   AND (id = ? OR external_id = ?)
+	SoftDeleteIdentity(ctx context.Context, db DBTX, arg SoftDeleteIdentityParams) error
 	//SoftDeleteKeyByID
 	//
 	//  UPDATE `keys` SET deleted_at_m = ? WHERE id = ?

@@ -1,25 +1,15 @@
 type: object
 properties:
-  identity:
-    type: string
-    minLength: 3
-    maxLength: 255
-    pattern: "^[a-zA-Z0-9_.-]+$"
-    description: |
-      The ID of the identity to update. This can be either the externalId (from your own system 
-      that was used during identity creation) or the identityId (the internal ID returned by the identity service).
-    example: user_abc123
   externalId:
     type: string
     minLength: 3
-    maxLength: 255
+    maxLength: 255 # Match database varchar limits for external identifiers
     pattern: "^[a-zA-Z0-9_.-]+$"
     description: |
-      Updates the external identifier for this identity. Must be unique across your workspace.
-      Use this when users change usernames, organizations restructure, or you need to migrate identifier schemes.
-      Omitting this field preserves the existing external ID.
+      Specifies which identity to update using your system's identifier from identity creation.
+      Use this when you track identities by your own user IDs, organization IDs, or tenant identifiers.
       Accepts letters, numbers, underscores, dots, and hyphens for flexible identifier formats.
-    example: user_456_new
+    example: user_abc123
   meta:
     type: object
     additionalProperties: true
@@ -50,4 +40,4 @@ properties:
         autoApply: true
 additionalProperties: false
 required:
-  - identity
+  - externalId

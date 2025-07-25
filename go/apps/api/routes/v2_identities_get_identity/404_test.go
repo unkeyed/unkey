@@ -67,7 +67,10 @@ func TestNotFound(t *testing.T) {
 		require.NoError(t, err)
 
 		// Mark it as deleted
-		err = db.Query.SoftDeleteIdentity(ctx, tx, deletedIdentityID)
+		err = db.Query.SoftDeleteIdentity(ctx, tx, db.SoftDeleteIdentityParams{
+			Identity:    deletedIdentityID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+		})
 		require.NoError(t, err)
 
 		err = tx.Commit()

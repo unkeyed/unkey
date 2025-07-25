@@ -40,7 +40,7 @@ func TestSuccess(t *testing.T) {
 
 	externalID := "test_user_123"
 	// Create metadata
-	metaMap := map[string]interface{}{
+	metaMap := map[string]any{
 		"name":    "Test User",
 		"email":   "test@example.com",
 		"plan":    "pro",
