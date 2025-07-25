@@ -1,6 +1,7 @@
 import type { Workspace } from "@/lib/db";
 import {
   Fingerprint,
+  FolderCloud,
   Gauge,
   Gear,
   Grid,
@@ -9,7 +10,6 @@ import {
   Nodes,
   ShieldKey,
   Sparkle3,
-  FolderCloud,
 } from "@unkey/icons";
 import { cn } from "../../../lib/utils";
 

@@ -89,18 +89,21 @@ export const getOpenApiDiff = t.procedure
       // Call control plane API
       // TODO: put this in env var
       let diffData;
-      
+
       try {
-        const response = await fetch("http://localhost:7091/ctrl.v1.OpenApiService/GetOpenApiDiff", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
+        const response = await fetch(
+          "http://localhost:7091/ctrl.v1.OpenApiService/GetOpenApiDiff",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              old_version_id: input.oldDeploymentId,
+              new_version_id: input.newDeploymentId,
+            }),
           },
-          body: JSON.stringify({
-            old_version_id: input.oldDeploymentId,
-            new_version_id: input.newDeploymentId,
-          }),
-        });
+        );
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -120,17 +123,17 @@ export const getOpenApiDiff = t.procedure
               path: "/api/v1/users",
               source: "paths",
               section: "paths",
-              comment: "New user creation endpoint"
+              comment: "New user creation endpoint",
             },
             {
-              id: "change_2", 
+              id: "change_2",
               text: "Modified response schema for /api/v1/users/{id}",
               level: 2,
               operation: "GET",
               path: "/api/v1/users/{id}",
               source: "responses",
               section: "responses",
-              comment: "Added new fields to user response"
+              comment: "Added new fields to user response",
             },
             {
               id: "change_3",
@@ -140,16 +143,16 @@ export const getOpenApiDiff = t.procedure
               path: "/api/v1/legacy",
               source: "paths",
               section: "paths",
-              comment: "Breaking change: endpoint removed"
-            }
-          ]
+              comment: "Breaking change: endpoint removed",
+            },
+          ],
         };
       }
 
       // Ensure the diff data has the expected structure
       const normalizedDiff = {
         changes: Array.isArray(diffData?.changes) ? diffData.changes : [],
-        ...diffData
+        ...diffData,
       };
 
       // Return the diff along with deployment context for the UI

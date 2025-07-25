@@ -50,7 +50,9 @@ export default function ProjectsPage(): JSX.Element {
     e: React.FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>,
   ): Promise<void> => {
     e.preventDefault();
-    if (!name || !slug) return;
+    if (!name || !slug) {
+      return;
+    }
 
     createProject.mutate({
       name,
@@ -225,17 +227,17 @@ export default function ProjectsPage(): JSX.Element {
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
-                    <div className="h-5 bg-background-subtle rounded mb-2 w-3/4"></div>
-                    <div className="h-4 bg-background-subtle rounded w-1/2"></div>
+                    <div className="h-5 bg-background-subtle rounded mb-2 w-3/4" />
+                    <div className="h-4 bg-background-subtle rounded w-1/2" />
                   </div>
-                  <div className="w-5 h-5 bg-background-subtle rounded"></div>
+                  <div className="w-5 h-5 bg-background-subtle rounded" />
                 </div>
-                <div className="h-16 bg-background-subtle rounded mb-4"></div>
+                <div className="h-16 bg-background-subtle rounded mb-4" />
                 <div className="space-y-2 mb-4">
-                  <div className="h-3 bg-background-subtle rounded w-full"></div>
-                  <div className="h-3 bg-background-subtle rounded w-2/3"></div>
+                  <div className="h-3 bg-background-subtle rounded w-full" />
+                  <div className="h-3 bg-background-subtle rounded w-2/3" />
                 </div>
-                <div className="h-8 bg-background-subtle rounded"></div>
+                <div className="h-8 bg-background-subtle rounded" />
               </div>
             ))}
           </div>
@@ -323,7 +325,7 @@ export default function ProjectsPage(): JSX.Element {
                       <ExternalLink className="w-3 h-3 ml-1" />
                     </a>
                     <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-success rounded-full"></div>
+                      <div className="w-2 h-2 bg-success rounded-full" />
                       <span className="text-xs text-content-subtle">Active</span>
                     </div>
                   </div>

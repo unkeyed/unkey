@@ -27,9 +27,11 @@ export const getById = t.procedure
       }
 
       // Get the branch for this deployment
-      const branch = deployment.branchId ? await db.query.branches.findFirst({
-        where: (table, { eq }) => eq(table.id, deployment.branchId!), // eslint-disable-line @typescript-eslint/no-non-null-assertion
-      }) : null;
+      const branch = deployment.branchId
+        ? await db.query.branches.findFirst({
+            where: (table, { eq }) => eq(table.id, deployment.branchId!), // eslint-disable-line @typescript-eslint/no-non-null-assertion
+          })
+        : null;
 
       return {
         id: deployment.id,
@@ -39,10 +41,12 @@ export const getById = t.procedure
         branchId: deployment.branchId,
         createdAt: deployment.createdAt,
         updatedAt: deployment.updatedAt,
-        branch: branch ? {
-          id: branch.id,
-          name: branch.name,
-        } : null,
+        branch: branch
+          ? {
+              id: branch.id,
+              name: branch.name,
+            }
+          : null,
       };
     } catch (error) {
       if (error instanceof TRPCError) {

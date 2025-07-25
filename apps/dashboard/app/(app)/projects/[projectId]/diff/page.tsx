@@ -1,14 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import {
-  Button,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@unkey/ui";
+import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import { ArrowLeft, GitBranch } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -39,14 +32,17 @@ export default function DiffLandingPage({ params }: Props) {
     );
 
   // Fetch deployments for the selected "to" branch
-  const { data: toDeploymentsData, isLoading: toDeploymentsLoading } = trpc.deployment.listByBranch.useQuery(
-    { branchId: selectedToBranch },
-    { enabled: !!selectedToBranch },
-  );
+  const { data: toDeploymentsData, isLoading: toDeploymentsLoading } =
+    trpc.deployment.listByBranch.useQuery(
+      { branchId: selectedToBranch },
+      { enabled: !!selectedToBranch },
+    );
 
   const handleCompare = () => {
     if (selectedFromDeployment && selectedToDeployment) {
-      router.push(`/projects/${params.projectId}/diff/${selectedFromDeployment}/${selectedToDeployment}`);
+      router.push(
+        `/projects/${params.projectId}/diff/${selectedFromDeployment}/${selectedToDeployment}`,
+      );
     }
   };
 
@@ -79,7 +75,7 @@ export default function DiffLandingPage({ params }: Props) {
               {/* From Section */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <div className="w-3 h-3 bg-red-500 rounded-full" />
                   <h3 className="text-sm font-medium text-content-subtle">FROM</h3>
                 </div>
                 <div className="space-y-3">
@@ -116,7 +112,9 @@ export default function DiffLandingPage({ params }: Props) {
                     </Select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-content mb-2">Deployment</label>
+                    <label className="block text-sm font-medium text-content mb-2">
+                      Deployment
+                    </label>
                     <Select
                       value={selectedFromDeployment}
                       onValueChange={setSelectedFromDeployment}
@@ -140,7 +138,8 @@ export default function DiffLandingPage({ params }: Props) {
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2">
                                   <span className="font-mono text-xs">
-                                    {deployment.gitCommitSha?.slice(0, 7) || deployment.id.slice(0, 8)}
+                                    {deployment.gitCommitSha?.slice(0, 7) ||
+                                      deployment.id.slice(0, 8)}
                                   </span>
                                   <span
                                     className={`px-1.5 py-0.5 text-xs rounded ${
@@ -170,7 +169,7 @@ export default function DiffLandingPage({ params }: Props) {
               {/* To Section */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <div className="w-3 h-3 bg-green-500 rounded-full" />
                   <h3 className="text-sm font-medium text-content-subtle">TO</h3>
                 </div>
                 <div className="space-y-3">
@@ -207,7 +206,9 @@ export default function DiffLandingPage({ params }: Props) {
                     </Select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-content mb-2">Deployment</label>
+                    <label className="block text-sm font-medium text-content mb-2">
+                      Deployment
+                    </label>
                     <Select
                       value={selectedToDeployment}
                       onValueChange={setSelectedToDeployment}
@@ -231,7 +232,8 @@ export default function DiffLandingPage({ params }: Props) {
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2">
                                   <span className="font-mono text-xs">
-                                    {deployment.gitCommitSha?.slice(0, 7) || deployment.id.slice(0, 8)}
+                                    {deployment.gitCommitSha?.slice(0, 7) ||
+                                      deployment.id.slice(0, 8)}
                                   </span>
                                   <span
                                     className={`px-1.5 py-0.5 text-xs rounded ${
