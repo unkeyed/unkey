@@ -204,7 +204,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 }
 
 func deleteOldIdentity(ctx context.Context, tx db.DBTX, workspaceID, identityID string) error {
-	// Skip the lookup - we already know the ID, just delete directly
 	err := db.Query.DeleteManyRatelimitsByIdentityID(ctx, tx, sql.NullString{String: identityID, Valid: true})
 	if err != nil && !db.IsNotFound(err) {
 		return fault.Wrap(err,
@@ -214,10 +213,9 @@ func deleteOldIdentity(ctx context.Context, tx db.DBTX, workspaceID, identityID 
 		)
 	}
 
-	// Hard delete by ID directly
 	err = db.Query.DeleteIdentity(ctx, tx, db.DeleteIdentityParams{
 		WorkspaceID: workspaceID,
-		Identity:    identityID, // Use the ID directly
+		Identity:    identityID,
 	})
 	if err != nil && !db.IsNotFound(err) {
 		return fault.Wrap(err,
