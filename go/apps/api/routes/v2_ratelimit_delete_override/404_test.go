@@ -21,11 +21,10 @@ func TestNotFound(t *testing.T) {
 
 	// Create a namespace but no override
 	namespaceID := uid.New("test_ns")
-	namespaceName := uid.New("test")
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
 		WorkspaceID: h.Resources().UserWorkspace.ID,
-		Name:        namespaceName,
+		Name:        uid.New("test"),
 		CreatedAt:   time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
@@ -51,8 +50,8 @@ func TestNotFound(t *testing.T) {
 	t.Run("override not found", func(t *testing.T) {
 
 		req := handler.Request{
-			NamespaceId: &namespaceID,
-			Identifier:  "non_existent_identifier",
+			Namespace:  namespaceID,
+			Identifier: "non_existent_identifier",
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
@@ -64,10 +63,9 @@ func TestNotFound(t *testing.T) {
 
 	// Test with non-existent namespace
 	t.Run("namespace not found", func(t *testing.T) {
-		nonExistentNamespaceId := "ns_nonexistent"
 		req := handler.Request{
-			NamespaceId: &nonExistentNamespaceId,
-			Identifier:  "some_identifier",
+			Namespace:  "ns_nonexistent",
+			Identifier: "some_identifier",
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
@@ -79,10 +77,9 @@ func TestNotFound(t *testing.T) {
 	// Test with non-existent namespace name
 	t.Run("namespace name not found", func(t *testing.T) {
 
-		nonExistentNamespaceName := "nonexistent_namespace"
 		req := handler.Request{
-			NamespaceName: &nonExistentNamespaceName,
-			Identifier:    "some_identifier",
+			Namespace:  "nonexistent_namespace",
+			Identifier: "some_identifier",
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)

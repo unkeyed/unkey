@@ -25,16 +25,13 @@ SELECT id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,
                json_array()
        ) as overrides
 FROM ` + "`" + `ratelimit_namespaces` + "`" + ` ns
-WHERE ns.workspace_id = ?
-AND CASE WHEN ? IS NOT NULL THEN ns.name = ?
-WHEN ? IS NOT NULL THEN ns.id = ?
-ELSE false END
+WHERE ns.workspace_id = ? 
+AND (ns.id = ? OR ns.name = ?)
 `
 
 type FindRatelimitNamespaceParams struct {
-	WorkspaceID string         `db:"workspace_id"`
-	Name        sql.NullString `db:"name"`
-	ID          sql.NullString `db:"id"`
+	WorkspaceID string `db:"workspace_id"`
+	Namespace   string `db:"namespace"`
 }
 
 type FindRatelimitNamespaceRow struct {
@@ -64,17 +61,9 @@ type FindRatelimitNamespaceRow struct {
 //	       ) as overrides
 //	FROM `ratelimit_namespaces` ns
 //	WHERE ns.workspace_id = ?
-//	AND CASE WHEN ? IS NOT NULL THEN ns.name = ?
-//	WHEN ? IS NOT NULL THEN ns.id = ?
-//	ELSE false END
+//	AND (ns.id = ? OR ns.name = ?)
 func (q *Queries) FindRatelimitNamespace(ctx context.Context, db DBTX, arg FindRatelimitNamespaceParams) (FindRatelimitNamespaceRow, error) {
-	row := db.QueryRowContext(ctx, findRatelimitNamespace,
-		arg.WorkspaceID,
-		arg.Name,
-		arg.Name,
-		arg.ID,
-		arg.ID,
-	)
+	row := db.QueryRowContext(ctx, findRatelimitNamespace, arg.WorkspaceID, arg.Namespace, arg.Namespace)
 	var i FindRatelimitNamespaceRow
 	err := row.Scan(
 		&i.ID,

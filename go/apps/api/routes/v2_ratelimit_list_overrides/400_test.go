@@ -38,7 +38,7 @@ func TestBadRequests(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "You must provide either a namespace ID or name.", res.Body.Error.Detail)
+		require.Equal(t, "POST request body for '/v2/ratelimit.listOverrides' failed to validate schema", res.Body.Error.Detail)
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
@@ -46,8 +46,7 @@ func TestBadRequests(t *testing.T) {
 
 	t.Run("neither namespace ID nor name provided", func(t *testing.T) {
 		req := openapi.V2RatelimitListOverridesRequestBody{
-			NamespaceId:   nil,
-			NamespaceName: nil,
+			Namespace: "",
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -56,11 +55,11 @@ func TestBadRequests(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "You must provide either a namespace ID or name.", res.Body.Error.Detail)
+		require.Equal(t, "POST request body for '/v2/ratelimit.listOverrides' failed to validate schema", res.Body.Error.Detail)
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Equal(t, len(res.Body.Error.Errors), 0)
+		require.Greater(t, len(res.Body.Error.Errors), 0)
 	})
 
 	t.Run("malformed authorization header", func(t *testing.T) {
@@ -69,9 +68,8 @@ func TestBadRequests(t *testing.T) {
 			"Authorization": {"malformed_header"},
 		}
 
-		namespaceName := "test_namespace"
 		req := handler.Request{
-			NamespaceName: &namespaceName,
+			Namespace: "test_namespace",
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -85,9 +83,8 @@ func TestBadRequests(t *testing.T) {
 			// No Authorization header
 		}
 
-		namespaceName := "test_namespace"
 		req := handler.Request{
-			NamespaceName: &namespaceName,
+			Namespace: "test_namespace",
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)

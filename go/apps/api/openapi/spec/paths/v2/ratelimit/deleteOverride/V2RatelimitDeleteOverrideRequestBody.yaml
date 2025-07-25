@@ -11,20 +11,8 @@ description: |-
   Once deleted, the override cannot be recovered, and the operation takes effect immediately.
 additionalProperties: false
 properties:
-  namespaceId:
-    description:
-      The unique ID of the rate limit namespace containing the override.
-      Either `namespaceId` or `namespaceName` must be provided, but not both. Using
-      `namespaceId` is more precise and less prone to naming conflicts, making
-      it ideal for automation and scripts.
-    type: string
-    minLength: 1
-    maxLength: 255
-  namespaceName:
-    description: The name of the rate limit namespace containing the override.
-      Either `namespaceId` or `namespaceName` must be provided, but not both. Using
-      `namespaceName` is more human-readable and convenient for manual operations
-      and configurations.
+  namespace:
+    description: The id or name of the namespace containing the override.
     type: string
     minLength: 1
     maxLength: 255
@@ -42,5 +30,6 @@ properties:
     minLength: 1
     maxLength: 255
 required:
+  - namespace
   - identifier
 type: object

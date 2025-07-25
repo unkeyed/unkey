@@ -21,11 +21,10 @@ func TestWorkspacePermissions(t *testing.T) {
 
 	// Create a namespace in the default workspace
 	namespaceID := uid.New(uid.RatelimitNamespacePrefix)
-	namespaceName := uid.New("test")
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
 		WorkspaceID: h.Resources().UserWorkspace.ID, // Use the default workspace
-		Name:        namespaceName,
+		Name:        uid.New("test"),
 		CreatedAt:   time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
@@ -66,8 +65,8 @@ func TestWorkspacePermissions(t *testing.T) {
 	// Try to delete an override using a namespace from the default workspace
 	// but with a key from a different workspace
 	req := handler.Request{
-		NamespaceId: &namespaceID,
-		Identifier:  identifier,
+		Namespace:  namespaceID,
+		Identifier: identifier,
 	}
 
 	res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)

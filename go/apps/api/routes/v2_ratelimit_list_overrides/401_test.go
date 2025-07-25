@@ -26,9 +26,8 @@ func TestUnauthorizedAccess(t *testing.T) {
 			"Authorization": {"Bearer invalid_token"},
 		}
 
-		namespaceName := "test_namespace"
 		req := handler.Request{
-			NamespaceName: &namespaceName,
+			Namespace: "test_namespace",
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)

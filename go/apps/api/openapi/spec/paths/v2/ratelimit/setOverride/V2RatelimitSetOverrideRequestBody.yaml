@@ -9,19 +9,11 @@ description: |-
   - Prioritizing important clients with higher limits
 additionalProperties: false
 properties:
-  namespaceId:
-    description: The unique ID of the rate limit namespace. Either `namespaceId`
-      or `namespaceName` must be provided, but not both. Using `namespaceId` guarantees
-      you're targeting the exact namespace intended, even if names change, making
-      it ideal for automation and scripts.
+  namespace:
+    description: The ID or name of the rate limit namespace.
     type: string
     minLength: 1
     maxLength: 255
-  namespaceName:
-    description: The name of the rate limit namespace. Either `namespaceId` or
-      `namespaceName` must be provided, but not both. Using `namespaceName` is more
-      human-readable and convenient for manual operations and configurations.
-    type: string
   duration:
     description: |-
       The duration in milliseconds for the rate limit window. This defines how long the rate limit counter accumulates before resetting to zero.
@@ -66,6 +58,7 @@ properties:
     type: integer
     minimum: 0
 required:
+  - namespace
   - identifier
   - limit
   - duration
