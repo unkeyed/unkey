@@ -40,75 +40,7 @@ func TestSuccess(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	t.Run("set single role by ID", func(t *testing.T) {
-		// Create API with keyring using testutil helper
-		defaultPrefix := "test"
-		defaultBytes := int32(16)
-		api := h.CreateApi(seed.CreateApiRequest{
-			WorkspaceID:   workspace.ID,
-			DefaultPrefix: &defaultPrefix,
-			DefaultBytes:  &defaultBytes,
-		})
-
-		// Create a test key with role using testutil helper
-		roleID := h.CreateRole(seed.CreateRoleRequest{
-			Name:        "admin_set_single_id",
-			WorkspaceID: workspace.ID,
-		})
-
-		keyResponse := h.CreateKey(seed.CreateKeyRequest{
-			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
-		})
-		keyID := keyResponse.KeyID
-
-		// Verify key has no roles initially
-		currentRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
-		require.NoError(t, err)
-		require.Empty(t, currentRoles)
-
-		req := handler.Request{
-			KeyId: keyID,
-			Roles: []string{roleID},
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 200, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Data)
-		require.Len(t, res.Body.Data, 1)
-		require.Equal(t, roleID, res.Body.Data[0].Id)
-		require.Equal(t, "admin_set_single_id", res.Body.Data[0].Name)
-
-		// Verify role was added to key
-		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
-		require.NoError(t, err)
-		require.Len(t, finalRoles, 1)
-		require.Equal(t, roleID, finalRoles[0].ID)
-
-		// Verify audit log was created
-		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), keyID)
-		require.NoError(t, err)
-		require.NotEmpty(t, auditLogs)
-
-		foundConnectEvent := false
-		for _, log := range auditLogs {
-			if log.AuditLog.Event == "authorization.connect_role_and_key" {
-				foundConnectEvent = true
-				require.Contains(t, log.AuditLog.Display, "Added role admin_set_single_id to key")
-				break
-			}
-		}
-		require.True(t, foundConnectEvent, "Should find a role connect audit log event")
-	})
-
-	t.Run("set single role by name", func(t *testing.T) {
+	t.Run("set single role", func(t *testing.T) {
 		// Create API and key using testutil helpers
 		defaultPrefix := "test"
 		defaultBytes := int32(16)
@@ -163,94 +95,6 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, roleID, finalRoles[0].ID)
 	})
 
-	t.Run("set multiple roles mixed references", func(t *testing.T) {
-		// Create API and key using testutil helpers
-		defaultPrefix := "test"
-		defaultBytes := int32(16)
-		api := h.CreateApi(seed.CreateApiRequest{
-			WorkspaceID:   workspace.ID,
-			DefaultPrefix: &defaultPrefix,
-			DefaultBytes:  &defaultBytes,
-		})
-
-		keyName := "Test Key"
-		keyResponse := h.CreateKey(seed.CreateKeyRequest{
-			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
-			Name:        &keyName,
-		})
-		keyID := keyResponse.KeyID
-
-		// Create multiple roles
-		adminRoleID := uid.New(uid.TestPrefix)
-		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-			RoleID:      adminRoleID,
-			WorkspaceID: workspace.ID,
-			Name:        "admin_set_multi",
-			Description: sql.NullString{Valid: true, String: "Admin role"},
-		})
-		require.NoError(t, err)
-
-		editorRoleID := uid.New(uid.TestPrefix)
-		editorRoleName := "editor_set_multi"
-		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-			RoleID:      editorRoleID,
-			WorkspaceID: workspace.ID,
-			Name:        editorRoleName,
-			Description: sql.NullString{Valid: true, String: "Editor role"},
-		})
-		require.NoError(t, err)
-
-		viewerRoleID := uid.New(uid.TestPrefix)
-		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-			RoleID:      viewerRoleID,
-			WorkspaceID: workspace.ID,
-			Name:        "viewer_set_multi",
-			Description: sql.NullString{Valid: true, String: "Viewer role"},
-		})
-		require.NoError(t, err)
-
-		req := handler.Request{
-			KeyId: keyID,
-			Roles: []string{adminRoleID, editorRoleName, viewerRoleID},
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 200, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Data)
-		require.Len(t, res.Body.Data, 3)
-
-		// Verify all roles are present and sorted alphabetically
-		roleNames := []string{res.Body.Data[0].Name, res.Body.Data[1].Name, res.Body.Data[2].Name}
-		require.ElementsMatch(t, []string{"admin_set_multi", "editor_set_multi", "viewer_set_multi"}, roleNames)
-
-		// Verify roles were added to key
-		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
-		require.NoError(t, err)
-		require.Len(t, finalRoles, 3)
-
-		// Verify audit logs were created (one for each role)
-		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), keyID)
-		require.NoError(t, err)
-		require.NotEmpty(t, auditLogs)
-
-		connectEvents := 0
-		for _, log := range auditLogs {
-			if log.AuditLog.Event == "authorization.connect_role_and_key" {
-				connectEvents++
-				require.Contains(t, log.AuditLog.Display, "Added role")
-			}
-		}
-		require.Equal(t, 3, connectEvents, "Should find 3 role connect audit log events")
-	})
-
 	t.Run("replace existing roles", func(t *testing.T) {
 		// Create API and key using testutil helpers
 		defaultPrefix := "test"
@@ -280,10 +124,11 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		newRoleID := uid.New(uid.TestPrefix)
+		roleName := "editor_replace_new"
 		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      newRoleID,
 			WorkspaceID: workspace.ID,
-			Name:        "editor_replace_new",
+			Name:        roleName,
 			Description: sql.NullString{Valid: true, String: "New editor role"},
 		})
 		require.NoError(t, err)
@@ -306,7 +151,7 @@ func TestSuccess(t *testing.T) {
 		// Now set the key to have only the new role (should remove old, add new)
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []string{newRoleID},
+			Roles: []string{roleName},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -450,10 +295,11 @@ func TestSuccess(t *testing.T) {
 
 		// Create a role and assign it to the key
 		roleID := uid.New(uid.TestPrefix)
+		roleName := "admin_no_change"
 		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      roleID,
 			WorkspaceID: workspace.ID,
-			Name:        "admin_no_change",
+			Name:        roleName,
 			Description: sql.NullString{Valid: true, String: "Admin role - no change"},
 		})
 		require.NoError(t, err)
@@ -474,7 +320,7 @@ func TestSuccess(t *testing.T) {
 		// Set roles to the same role (no change)
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []string{roleID},
+			Roles: []string{roleName},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
