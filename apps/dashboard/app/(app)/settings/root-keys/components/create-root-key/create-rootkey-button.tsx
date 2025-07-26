@@ -1,4 +1,5 @@
 "use client";
+import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,11 +16,11 @@ import { PermissionBadgeList } from "./components/permission-badge-list";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const DynamicDialogContainer = dynamic(
-    () =>
-        import("@unkey/ui").then((mod) => ({
-            default: mod.DialogContainer,
-        })),
-    { ssr: false },
+  () =>
+    import("@unkey/ui").then((mod) => ({
+      default: mod.DialogContainer,
+    })),
+  { ssr: false },
 );
 
 const DEFAULT_LIMIT = 10;
@@ -30,7 +31,7 @@ const formSchema = z.object({
 });
 
 type Props = {
-    defaultOpen?: boolean;
+  defaultOpen?: boolean;
 };
 
 export const CreateRootKeyButton = ({
@@ -67,18 +68,28 @@ export const CreateRootKeyButton = ({
     }, [apisData]);
 
 
-    const {
-        register,
-        handleSubmit,
-        setValue,
-        watch,
-        formState: { errors, isValid, isSubmitting },
-    } = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema),
-        mode: "onChange",
+  const allApis = useMemo(() => {
+    if (!apisData?.pages) {
+      return [];
+    }
+    return apisData.pages.flatMap((page) => {
+      return page.apiList.map((api) => ({
+        id: api.id,
+        name: api.name,
+      }));
     });
+  }, [apisData]);
 
-    // const selectedPermissions = watch("permissions");
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors, isValid, isSubmitting },
+  } = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    mode: "onChange",
+  });
 
     const key = trpc.rootKey.create.useMutation({
         onSuccess() {
@@ -105,8 +116,25 @@ export const CreateRootKeyButton = ({
         setSelectedPermissions(parsedPermissions);
     }, []);
 
-    return (
-        <>
+  return (
+    <>
+      <NavbarActionButton
+        title="New root key"
+        {...rest}
+        color="default"
+        onClick={() => setIsOpen(true)}
+      >
+        <Plus />
+        New root key
+      </NavbarActionButton>
+      <DynamicDialogContainer
+        isOpen={isOpen}
+        onOpenChange={setIsOpen}
+        title="Create new root key"
+        className="max-w-[460px]"
+        subTitle="Define a new root key and assign permissions"
+        footer={
+          <div className="w-full flex flex-col gap-2 items-center justify-center">
             <Button
                 title="New root key"
                 color="default"

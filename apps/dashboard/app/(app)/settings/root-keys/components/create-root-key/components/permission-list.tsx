@@ -8,7 +8,6 @@ import { ExpandableCategory } from "./expandable-category";
 import { PermissionToggle } from "./permission-toggle";
 
 
-
 // Helper type for permission list structure
 type PermissionCategory = Record<string, { description: string; permission: UnkeyPermission }>;
 type PermissionList = Record<string, PermissionCategory>;
@@ -181,6 +180,34 @@ export const PermissionContentList = ({ type, api, onPermissionChange, selected 
   const handlePermissionChecked = useCallback((permission: UnkeyPermission) => {
     dispatch({ type: "TOGGLE_PERMISSION", permission, permissionList });
   }, [permissionList]);
+=======
+export const PermissionContentList = ({ type, api, onPermissionChange }: Props) => {
+  const permissionList: PermissionList =
+    type === "workspace" ? workspacePermissions : api ? apiPermissions(api.id) : {};
+
+  const [state, dispatch] = useReducer(permissionReducer, {
+    selectedPermissions: [],
+    categoryChecked: {},
+    rootChecked: false,
+  });
+
+  // Notify parent when selectedPermissions changes
+  useEffect(() => {
+    onPermissionChange(state.selectedPermissions);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.selectedPermissions]);
+
+  const handleRootChecked = () => {
+    dispatch({ type: "TOGGLE_ROOT", permissionList });
+  };
+
+  const handleCategoryChecked = (category: string) => {
+    dispatch({ type: "TOGGLE_CATEGORY", category, permissionList });
+  };
+
+  const handlePermissionChecked = (permission: UnkeyPermission) => {
+    dispatch({ type: "TOGGLE_PERMISSION", permission, permissionList });
+  };
 
   return (
     <div className="flex flex-col gap-2">

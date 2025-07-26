@@ -30,6 +30,7 @@ export const PermissionSheet = ({ children, apis, selectedPermissions, onChange 
   const [workspacePermissions, setWorkspacePermissions] = useState<UnkeyPermission[]>([]);
   const [apiPermissions, setApiPermissions] = useState<Record<string, UnkeyPermission[]>>({});
 
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setIsProcessing(true);
     setSearch(e.target.value);
