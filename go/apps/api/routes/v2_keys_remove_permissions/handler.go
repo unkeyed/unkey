@@ -126,9 +126,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		currentPermissionIDs[permission.ID] = permission
 	}
 
-	foundPermissions, err := db.Query.FindManyPermissionsByIdOrSlug(ctx, h.DB.RO(), db.FindManyPermissionsByIdOrSlugParams{
+	foundPermissions, err := db.Query.FindPermissionsBySlugs(ctx, h.DB.RO(), db.FindPermissionsBySlugsParams{
 		WorkspaceID: auth.AuthorizedWorkspaceID,
-		Ids:         req.Permissions,
+		Slugs:       req.Permissions,
 	})
 	if err != nil {
 		return fault.Wrap(err,

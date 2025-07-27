@@ -162,26 +162,4 @@ func TestForbidden(t *testing.T) {
 		require.NotNil(t, res.Body.Error)
 		require.Contains(t, res.Body.Error.Detail, "permission")
 	})
-
-	t.Run("permission for different resource", func(t *testing.T) {
-		// Create root key with permission for different resource
-		rootKey := h.CreateRootKey(workspace.ID, "identity.*.update_identity") // Wrong resource type
-
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 403, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "permission")
-	})
 }

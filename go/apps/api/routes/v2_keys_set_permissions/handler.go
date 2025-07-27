@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -125,9 +124,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	foundPermissions, err := db.Query.FindManyPermissionsByIdOrSlug(ctx, h.DB.RO(), db.FindManyPermissionsByIdOrSlugParams{
+	foundPermissions, err := db.Query.FindPermissionsBySlugs(ctx, h.DB.RO(), db.FindPermissionsBySlugsParams{
 		WorkspaceID: auth.AuthorizedWorkspaceID,
-		Ids:         req.Permissions,
+		Slugs:       req.Permissions,
 	})
 	if err != nil {
 		return fault.Wrap(err,
@@ -154,11 +153,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	for perm := range missingPermissions {
-		if strings.HasPrefix(perm, "perm_") {
-			return fault.New("permission not found",
-				fault.Code(codes.Data.Permission.NotFound.URN()),
-				fault.Public(fmt.Sprintf("Permission with ID %q was not found.", perm)),
-			)
+		err = auth.Verify(ctx, keys.WithPermissions(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Rbac,
+				ResourceID:   "*",
+				Action:       rbac.CreatePermission,
+			}),
+		))
+		if err != nil {
+			return err
 		}
 
 		permissionID := uid.New(uid.PermissionPrefix)

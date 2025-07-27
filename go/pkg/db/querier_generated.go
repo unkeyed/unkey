@@ -309,12 +309,6 @@ type Querier interface {
 	//  ORDER BY created_at DESC
 	//  LIMIT 1
 	FindLatestBuildByVersionId(ctx context.Context, db DBTX, versionID string) (Build, error)
-	//FindManyPermissionsByIdOrSlug
-	//
-	//  SELECT id, workspace_id, name, slug, description, created_at_m, updated_at_m
-	//  FROM permissions
-	//  WHERE workspace_id = ? AND (id IN (/*SLICE:ids*/?) OR slug IN (/*SLICE:ids*/?))
-	FindManyPermissionsByIdOrSlug(ctx context.Context, db DBTX, arg FindManyPermissionsByIdOrSlugParams) ([]Permission, error)
 	// Finds a permission record by its ID
 	// Returns: The permission record if found
 	//
@@ -347,8 +341,8 @@ type Querier interface {
 	FindPermissionBySlugAndWorkspaceID(ctx context.Context, db DBTX, arg FindPermissionBySlugAndWorkspaceIDParams) (Permission, error)
 	//FindPermissionsBySlugs
 	//
-	//  SELECT id, slug FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
-	FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindPermissionsBySlugsParams) ([]FindPermissionsBySlugsRow, error)
+	//  SELECT id, workspace_id, name, slug, description, created_at_m, updated_at_m FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
+	FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindPermissionsBySlugsParams) ([]Permission, error)
 	//FindProjectById
 	//
 	//  SELECT

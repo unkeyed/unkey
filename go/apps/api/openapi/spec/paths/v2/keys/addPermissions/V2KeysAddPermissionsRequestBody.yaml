@@ -20,13 +20,13 @@ properties:
       Grants additional permissions to the key through direct assignment or automatic creation.
       Duplicate permissions are ignored automatically, making this operation idempotent.
 
-      You can either use a permission slug, or the permission ID.
-
-      If slugs are used, the permission will be auto created IF the root key has the given permissions, otherwise this operation will fail with a 404 error.
       Adding permissions never removes existing permissions or role-based permissions.
+
+      Any permissions that do not exist will be auto created if the root key has permissions, otherwise this operation will fail with a 403 error.
     items:
       type: string
       minLength: 1
       maxLength: 100
       pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+      description: Specify the permission by its slug.
 additionalProperties: false

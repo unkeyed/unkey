@@ -23,9 +23,12 @@ properties:
       - Providing an empty array removes all direct permissions from the key
       - This only affects direct permissions - permissions granted through roles are not affected
       - All existing direct permissions not included in this list will be removed
+
+      Any permissions that do not exist will be auto created if the root key has permissions, otherwise this operation will fail with a 403 error.
     items:
       type: string
       minLength: 1
       maxLength: 100
       pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+      description: Specify the permission by its slug.
 additionalProperties: false

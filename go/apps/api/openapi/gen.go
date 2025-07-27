@@ -812,10 +812,9 @@ type V2KeysAddPermissionsRequestBody struct {
 	// Permissions Grants additional permissions to the key through direct assignment or automatic creation.
 	// Duplicate permissions are ignored automatically, making this operation idempotent.
 	//
-	// You can either use a permission slug, or the permission ID.
-	//
-	// If slugs are used, the permission will be auto created IF the root key has the given permissions, otherwise this operation will fail with a 404 error.
 	// Adding permissions never removes existing permissions or role-based permissions.
+	//
+	// Any permissions that do not exist will be auto created if the root key has permissions, otherwise this operation will fail with a 403 error.
 	Permissions []string `json:"permissions"`
 }
 
@@ -1208,6 +1207,8 @@ type V2KeysSetPermissionsRequestBody struct {
 	// - Providing an empty array removes all direct permissions from the key
 	// - This only affects direct permissions - permissions granted through roles are not affected
 	// - All existing direct permissions not included in this list will be removed
+	//
+	// Any permissions that do not exist will be auto created if the root key has permissions, otherwise this operation will fail with a 403 error.
 	Permissions []string `json:"permissions"`
 }
 

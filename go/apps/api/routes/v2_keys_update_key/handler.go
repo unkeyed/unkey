@@ -380,13 +380,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				)
 			}
 
-			existingPermMap := make(map[string]db.FindPermissionsBySlugsRow)
+			existingPermMap := make(map[string]db.Permission)
 			for _, p := range existingPermissions {
 				existingPermMap[p.Slug] = p
 			}
 
 			permissionsToCreate := []db.InsertPermissionParams{}
-			requestedPermissions := []db.FindPermissionsBySlugsRow{}
+			requestedPermissions := []db.Permission{}
 
 			for _, requestedSlug := range *req.Permissions {
 				existingPerm, exists := existingPermMap[requestedSlug]
@@ -405,7 +405,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					CreatedAtM:   time.Now().UnixMilli(),
 				})
 
-				requestedPermissions = append(requestedPermissions, db.FindPermissionsBySlugsRow{
+				requestedPermissions = append(requestedPermissions, db.Permission{
 					ID:   newPermID,
 					Slug: requestedSlug,
 				})
