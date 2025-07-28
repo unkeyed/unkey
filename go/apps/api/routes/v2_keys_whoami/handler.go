@@ -105,7 +105,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.Data.Key.NotFound.URN()),
-			fault.Internal("user doesn't have permissions and we don't want to leak the existance of the key"),
+			fault.Internal("user doesn't have permissions and we don't want to leak the existence of the key"),
 			fault.Public("The specified key was not found."),
 		)
 	}
