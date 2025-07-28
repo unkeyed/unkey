@@ -2,7 +2,7 @@
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import type { CheckedState } from "@radix-ui/react-checkbox";
 import type { UnkeyPermission } from "@unkey/rbac";
-import { useCallback, useEffect, useMemo, useReducer } from "react";
+import { useEffect, useReducer, useMemo, useCallback, useState } from "react";
 import { apiPermissions, workspacePermissions } from "../../../[keyId]/permissions/permissions";
 import { ExpandableCategory } from "./expandable-category";
 import { PermissionToggle } from "./permission-toggle";
@@ -141,7 +141,7 @@ type Props = {
 export const PermissionContentList = ({ type, api, onPermissionChange, selected }: Props) => {
   const permissionList: PermissionList = useMemo(
     () => (type === "workspace" ? workspacePermissions : api ? apiPermissions(api.id) : {}),
-    [type, api],
+    [type, api?.id],
   );
 
   const initialState = useMemo(() => {
@@ -182,7 +182,9 @@ export const PermissionContentList = ({ type, api, onPermissionChange, selected 
   // Notify parent when selectedPermissions changes
   useEffect(() => {
     onPermissionChange(state.selectedPermissions);
-  }, [state.selectedPermissions, onPermissionChange]);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.selectedPermissions]);
 
   const handleRootChecked = useCallback(() => {
     dispatch({ type: "TOGGLE_ROOT", permissionList });
