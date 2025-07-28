@@ -46,6 +46,7 @@ import (
 	v2KeysUpdateCredits "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_update_credits"
 	v2KeysUpdateKey "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_update_key"
 	v2KeysVerifyKey "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_verify_key"
+	v2KeysWhoami "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_whoami"
 
 	zen "github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -404,6 +405,18 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysGetKey.Handler{
+			Logger:    svc.Logger,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
+			Vault:     svc.Vault,
+		},
+	)
+
+	// v2/keys.whoami
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v2KeysWhoami.Handler{
 			Logger:    svc.Logger,
 			DB:        svc.Database,
 			Keys:      svc.Keys,
