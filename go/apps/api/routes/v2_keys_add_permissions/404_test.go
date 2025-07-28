@@ -43,12 +43,13 @@ func TestNotFoundErrors(t *testing.T) {
 
 	t.Run("key not found", func(t *testing.T) {
 		// Create a permission that exists
-		permissionID := uid.New(uid.TestPrefix)
+		permissionID := uid.New(uid.PermissionPrefix)
+		permissionSlug := "documents.read.404keynotfound"
 		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permissionID,
 			WorkspaceID:  workspace.ID,
-			Name:         "documents.read.404keynotfound",
-			Slug:         "documents.read.404keynotfound",
+			Name:         permissionSlug,
+			Slug:         permissionSlug,
 			Description:  sql.NullString{Valid: true, String: "Read documents permission"},
 		})
 		require.NoError(t, err)
@@ -58,7 +59,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId:       nonExistentKeyID,
-			Permissions: []string{permissionID},
+			Permissions: []string{permissionSlug},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -71,44 +72,6 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.Contains(t, res.Body.Error.Detail, "key was not found")
-	})
-
-	t.Run("permission not found by ID", func(t *testing.T) {
-		// Create API and key using testutil helpers
-		defaultPrefix := "test"
-		defaultBytes := int32(16)
-		api := h.CreateApi(seed.CreateApiRequest{
-			WorkspaceID:   workspace.ID,
-			DefaultPrefix: &defaultPrefix,
-			DefaultBytes:  &defaultBytes,
-		})
-
-		keyName := "Test Key"
-		keyResponse := h.CreateKey(seed.CreateKeyRequest{
-			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
-			Name:        &keyName,
-		})
-		keyID := keyResponse.KeyID
-
-		// Use a non-existent permission ID
-		nonExistentPermissionID := uid.New(uid.PermissionPrefix)
-
-		req := handler.Request{
-			KeyId:       keyID,
-			Permissions: []string{nonExistentPermissionID},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 404, res.Status)
-		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "was not found")
 	})
 
 	t.Run("key from different workspace", func(t *testing.T) {

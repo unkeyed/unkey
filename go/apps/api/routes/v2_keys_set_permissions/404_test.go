@@ -73,45 +73,6 @@ func TestNotFound(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "The specified key was not found")
 	})
 
-	t.Run("non-existent permission ID", func(t *testing.T) {
-		// Create API and key using testutil helpers
-		defaultPrefix := "test"
-		defaultBytes := int32(16)
-		api := h.CreateApi(seed.CreateApiRequest{
-			WorkspaceID:   workspace.ID,
-			DefaultPrefix: &defaultPrefix,
-			DefaultBytes:  &defaultBytes,
-		})
-
-		keyName := "Test Key"
-		keyResponse := h.CreateKey(seed.CreateKeyRequest{
-			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
-			Name:        &keyName,
-		})
-		keyID := keyResponse.KeyID
-
-		// Use non-existent permission ID
-		nonExistentPermissionID := uid.New(uid.PermissionPrefix)
-
-		req := handler.Request{
-			KeyId:       keyID,
-			Permissions: []string{nonExistentPermissionID},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 404, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Permission with ID %q was not found", nonExistentPermissionID))
-	})
-
 	t.Run("key from different workspace (isolation)", func(t *testing.T) {
 		// Create another workspace
 		otherWorkspace := h.CreateWorkspace()
@@ -160,55 +121,5 @@ func TestNotFound(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 		require.Contains(t, res.Body.Error.Detail, "The specified key was not found")
-	})
-
-	t.Run("multiple permissions with early failure", func(t *testing.T) {
-		// Create API and key using testutil helpers
-		defaultPrefix := "test"
-		defaultBytes := int32(16)
-		api := h.CreateApi(seed.CreateApiRequest{
-			WorkspaceID:   workspace.ID,
-			DefaultPrefix: &defaultPrefix,
-			DefaultBytes:  &defaultBytes,
-		})
-
-		keyName := "Test Key"
-		keyResponse := h.CreateKey(seed.CreateKeyRequest{
-			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
-			Name:        &keyName,
-		})
-		keyID := keyResponse.KeyID
-
-		// Create a valid permission for the second item
-		validPermissionID := uid.New(uid.TestPrefix)
-		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			PermissionID: validPermissionID,
-			WorkspaceID:  workspace.ID,
-			Name:         "documents.read.valid",
-			Slug:         "documents.read.valid",
-			Description:  sql.NullString{Valid: true, String: "Valid permission"},
-		})
-		require.NoError(t, err)
-
-		// Use non-existent permission ID as first item
-		nonExistentPermissionID := uid.New(uid.PermissionPrefix)
-
-		req := handler.Request{
-			KeyId:       keyID,
-			Permissions: []string{nonExistentPermissionID, validPermissionID},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 404, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Permission with ID %q was not found", nonExistentPermissionID))
 	})
 }

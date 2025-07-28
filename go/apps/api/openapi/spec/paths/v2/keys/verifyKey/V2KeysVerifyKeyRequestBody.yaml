@@ -8,7 +8,7 @@ examples:
       apiId: api_1234abcd
       key: sk_1234abcdef
   withPermissions:
-    summary: Check permissions  
+    summary: Check permissions
     description: Verify key has required permissions
     value:
       apiId: api_1234abcd

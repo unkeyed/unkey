@@ -21,6 +21,7 @@ properties:
       Names must be unique within your workspace to avoid confusion and conflicts.
     example: "users.read"
   slug:
+    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
     type: string
     minLength: 1
     maxLength: 512

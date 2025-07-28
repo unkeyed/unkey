@@ -61,31 +61,34 @@ func TestSuccess(t *testing.T) {
 
 		// Create permissions
 		permission1ID := uid.New(uid.TestPrefix)
+		permission1Slug := "documents.read.initial"
 		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permission1ID,
 			WorkspaceID:  workspace.ID,
-			Name:         "documents.read.initial",
-			Slug:         "documents.read.initial",
+			Name:         permission1Slug,
+			Slug:         permission1Slug,
 			Description:  sql.NullString{Valid: true, String: "Initial permission"},
 		})
 		require.NoError(t, err)
 
 		permission2ID := uid.New(uid.TestPrefix)
+		permission2Slug := "documents.write.new"
 		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permission2ID,
 			WorkspaceID:  workspace.ID,
-			Name:         "documents.write.new",
-			Slug:         "documents.write.new",
+			Name:         permission2Slug,
+			Slug:         permission2Slug,
 			Description:  sql.NullString{Valid: true, String: "Write permission"},
 		})
 		require.NoError(t, err)
 
 		permission3ID := uid.New(uid.TestPrefix)
+		permission3Slug := "documents.delete.new"
 		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permission3ID,
 			WorkspaceID:  workspace.ID,
-			Name:         "documents.delete.new",
-			Slug:         "documents.delete.new",
+			Name:         permission3Slug,
+			Slug:         permission3Slug,
 			Description:  sql.NullString{Valid: true, String: "Delete permission"},
 		})
 		require.NoError(t, err)
@@ -107,7 +110,7 @@ func TestSuccess(t *testing.T) {
 
 		req := handler.Request{
 			KeyId:       keyID,
-			Permissions: []string{permission2ID, permission3ID},
+			Permissions: []string{permission2Slug, permission3Slug},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -325,12 +328,13 @@ func TestSuccess(t *testing.T) {
 		keyID := keyResponse.KeyID
 
 		// Create permission
-		permissionID := uid.New(uid.TestPrefix)
+		permissionID := uid.New(uid.PermissionPrefix)
+		permissionSlugAndName := "documents.read.idempotent"
 		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permissionID,
 			WorkspaceID:  workspace.ID,
-			Name:         "documents.read.idempotent",
-			Slug:         "documents.read.idempotent",
+			Name:         permissionSlugAndName,
+			Slug:         permissionSlugAndName,
 			Description:  sql.NullString{Valid: true, String: "Read permission"},
 		})
 		require.NoError(t, err)
@@ -346,7 +350,7 @@ func TestSuccess(t *testing.T) {
 
 		req := handler.Request{
 			KeyId:       keyID,
-			Permissions: []string{permissionID},
+			Permissions: []string{permissionSlugAndName},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
