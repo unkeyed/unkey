@@ -8,7 +8,7 @@ make build
 cd ../apps/engineering/
 
 # Set docs directory relative to engineering/
-DOCS_DIR="./content/docs/architecture/services"
+DOCS_DIR="./content/docs/cli"
 
 echo "Starting automated documentation generation..."
 echo "DOCS_DIR: $DOCS_DIR"
