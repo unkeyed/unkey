@@ -33,12 +33,11 @@ func TestNamespaceNotFound(t *testing.T) {
 
 	// Test with non-existent namespace ID
 	t.Run("namespace id not found", func(t *testing.T) {
-		nonExistentNamespaceId := "ns_nonexistent"
 		req := handler.Request{
-			NamespaceId: &nonExistentNamespaceId,
-			Identifier:  "some_identifier",
-			Limit:       10,
-			Duration:    1000,
+			Namespace:  "ns_nonexistent",
+			Identifier: "some_identifier",
+			Limit:      10,
+			Duration:   1000,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
@@ -49,12 +48,11 @@ func TestNamespaceNotFound(t *testing.T) {
 
 	// Test with non-existent namespace name
 	t.Run("namespace name not found", func(t *testing.T) {
-		nonExistentNamespaceName := "nonexistent_namespace"
 		req := handler.Request{
-			NamespaceName: &nonExistentNamespaceName,
-			Identifier:    "some_identifier",
-			Limit:         10,
-			Duration:      1000,
+			Namespace:  "nonexistent_namespace",
+			Identifier: "some_identifier",
+			Limit:      10,
+			Duration:   1000,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
