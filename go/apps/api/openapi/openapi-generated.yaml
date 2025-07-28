@@ -176,9 +176,12 @@ components:
             type: object
             required:
                 - meta
+                - data
             properties:
                 meta:
                     $ref: "#/components/schemas/Meta"
+                data:
+                    $ref: "#/components/schemas/EmptyResponse"
             additionalProperties: false
         NotFoundErrorResponse:
             type: object
@@ -522,8 +525,6 @@ components:
                     description: |
                         Specifies which key receives the additional permissions using the database identifier returned from `keys.createKey`.
                         Do not confuse this with the actual API key string that users include in requests.
-                        Added permissions supplement existing permissions and roles without replacing them.
-                        Permission changes take effect immediately but may take up to 30 seconds to propagate across all regions.
                     example: key_2cGKbMxRyIzhCxo1Idjz8q
                 permissions:
                     type: array
@@ -532,48 +533,15 @@ components:
                     description: |
                         Grants additional permissions to the key through direct assignment or automatic creation.
                         Duplicate permissions are ignored automatically, making this operation idempotent.
-                        Use either ID for existing permissions or slug for new permissions with optional auto-creation.
 
-                        Permission changes take effect immediately but cache propagation across regions may take up to 30 seconds.
                         Adding permissions never removes existing permissions or role-based permissions.
-                    items:
-                        type: object
-                        properties:
-                            id:
-                                type: string
-                                minLength: 3
-                                maxLength: 255
-                                pattern: "^[a-zA-Z0-9_]+$"
-                                description: |
-                                    References an existing permission by its database identifier.
-                                    Use when you know the exact permission ID and want to ensure you're referencing a specific permission.
-                                    Takes precedence over slug when both are provided in the same object.
-                                    The referenced permission must already exist in your workspace.
-                                example: perm_1n9McEIBSqy44Qy7hzWyM5
-                            slug:
-                                type: string
-                                minLength: 1
-                                maxLength: 100
-                                pattern: "^[a-zA-Z0-9_.]+$"
-                                description: |
-                                    Identifies the permission by its human-readable name using hierarchical naming patterns.
-                                    Use `resource.action` format for logical organization and verification flexibility.
-                                    Slugs must be unique within your `workspace` and support wildcard matching during verification.
-                                    Combined with `create=true`, allows automatic permission creation for streamlined workflows.
-                                example: documents.write
-                            create:
-                                type: boolean
-                                default: false
-                                description: |
-                                    Enables automatic permission creation when the specified slug does not exist.
-                                    Only works with slug-based references, not ID-based references.
-                                    Requires the `rbac.*.create_permission` permission on your root key.
 
-                                    Created permissions are permanent and visible workspace-wide to all API keys.
-                                    Use carefully to avoid permission proliferation from typos or uncontrolled creation.
-                                    Consider centralizing permission creation in controlled processes for better governance.
-                                    Auto-created permissions use the slug as both the name and identifier.
-                        additionalProperties: false
+                        Any permissions that do not exist will be auto created if the root key has permissions, otherwise this operation will fail with a 403 error.
+                    items:
+                        type: string
+                        minLength: 3
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                        description: Specify the permission by its slug.
             additionalProperties: false
         V2KeysAddPermissionsResponseBody:
             type: object
@@ -609,38 +577,15 @@ components:
                     description: |
                         Assigns additional roles to the key through direct assignment to existing workspace roles.
                         Operations are idempotent - adding existing roles has no effect and causes no errors.
-                        Use either ID for existing roles or name for human-readable references.
 
                         All roles must already exist in the workspace - roles cannot be created automatically.
                         Invalid roles cause the entire operation to fail atomically, ensuring consistent state.
-                        Role assignments take effect immediately but cache propagation across regions may take up to 30 seconds.
                     items:
-                        type: object
-                        properties:
-                            id:
-                                type: string
-                                minLength: 3
-                                maxLength: 255
-                                pattern: "^[a-zA-Z0-9_]+$"
-                                description: |
-                                    References an existing role by its database identifier.
-                                    Use when you know the exact role ID and want to ensure you're referencing a specific role.
-                                    Takes precedence over name when both are provided in the same object.
-                                    Essential for automation scripts where role names might change but IDs remain stable.
-                                example: role_1n9McEIBSqy44Qy7hzWyM5
-                            name:
-                                type: string
-                                minLength: 1
-                                maxLength: 100
-                                pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
-                                description: |
-                                    Identifies the role by its human-readable name within the workspace.
-                                    Role names must start with a letter and contain only letters, numbers, underscores, or hyphens.
-                                    Names must be unique within the workspace and are case-sensitive.
-                                    More readable than IDs but vulnerable to integration breaks if roles are renamed.
-                                    Use IDs for automation and names for human-configured integrations.
-                                example: admin
-                        additionalProperties: false
+                        type: string
+                        minLength: 3
+                        maxLength: 255
+                        pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                        description: Specify the role by name.
             additionalProperties: false
         V2KeysAddRolesResponseBody:
             type: object
@@ -860,11 +805,12 @@ components:
             type: object
             required:
                 - meta
+                - data
             properties:
                 meta:
                     "$ref": "#/components/schemas/Meta"
                 data:
-                    "$ref": "#/components/schemas/KeysDeleteKeyResponseData"
+                    "$ref": "#/components/schemas/EmptyResponse"
             additionalProperties: false
         V2KeysGetKeyRequestBody:
             type: object
@@ -918,8 +864,6 @@ components:
                     description: |
                         Specifies which key to remove permissions from using the database identifier returned from `keys.createKey`.
                         Do not confuse this with the actual API key string that users include in requests.
-                        Removing permissions only affects direct assignments, not permissions inherited from roles.
-                        Permission changes take effect immediately but may take up to 30 seconds to propagate across all regions.
                     example: key_2cGKbMxRyIzhCxo1Idjz8q
                 permissions:
                     type: array
@@ -927,35 +871,15 @@ components:
                     maxItems: 1000
                     description: |
                         Removes direct permissions from the key without affecting role-based permissions.
-                        Operations are idempotent - removing non-existent permissions has no effect and causes no errors.
-                        Use either ID for existing permissions or name for exact string matching.
+
+                        You can either use a permission slug, or the permission ID.
 
                         After removal, verification checks for these permissions will fail unless granted through roles.
-                        Permission changes take effect immediately but cache propagation across regions may take up to 30 seconds.
-                        Removing all direct permissions does not disable the key, only removes its direct permission grants.
                     items:
-                        type: object
-                        properties:
-                            id:
-                                type: string
-                                minLength: 3
-                                maxLength: 255
-                                pattern: "^[a-zA-Z0-9_]+$"
-                                description: |
-                                    References the permission to remove by its database identifier.
-                                    Use when you know the exact permission ID and want to ensure you're removing a specific permission.
-                                    Takes precedence over name when both are provided in the same object.
-                                    Essential for automation scripts where precision prevents accidental permission removal.
-                                example: perm_1n9McEIBSqy44Qy7hzWyM5
-                            slug:
-                                type: string
-                                minLength: 1
-                                maxLength: 100
-                                pattern: "^[a-zA-Z0-9_.]+$"
-                                description: |
-                                    Identifies the permission by slug for removal from the key's direct assignment list.
-                                example: documents.write
-                        additionalProperties: false
+                        type: string
+                        minLength: 3
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                        description: Specify the permission by its slug.
             additionalProperties: false
         V2KeysRemovePermissionsResponseBody:
             type: object
@@ -991,37 +915,15 @@ components:
                     description: |
                         Removes direct role assignments from the key without affecting other role sources or permissions.
                         Operations are idempotent - removing non-assigned roles has no effect and causes no errors.
-                        Use either ID for existing roles or name for exact string matching.
 
                         After removal, the key loses access to permissions that were only granted through these roles.
-                        Role changes take effect immediately but cache propagation across regions may take up to 30 seconds.
                         Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
                     items:
-                        type: object
-                        properties:
-                            id:
-                                type: string
-                                minLength: 3
-                                maxLength: 255
-                                pattern: "^[a-zA-Z0-9_]+$"
-                                description: |
-                                    References the role to remove by its database identifier.
-                                    Use when you know the exact role ID and want to ensure you're removing a specific role.
-                                    Takes precedence over name when both are provided in the same object.
-                                    Essential for automation scripts where role names might change but IDs remain stable.
-                                example: role_1n9McEIBSqy44Qy7hzWyM5
-                            name:
-                                type: string
-                                minLength: 1
-                                maxLength: 100
-                                pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
-                                description: |
-                                    Identifies the role to remove by its exact name with case-sensitive matching.
-                                    Must match the complete role name as currently defined in the workspace, starting with a letter and using only letters, numbers, underscores, or hyphens.
-                                    More readable than IDs but vulnerable to integration breaks if roles are renamed.
-                                    Use IDs for automation and names for human-configured integrations.
-                                example: admin
-                        additionalProperties: false
+                        type: string
+                        pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+                        minLength: 3
+                        maxLength: 255
+                        description: Specify the role by name.
             additionalProperties: false
         V2KeysRemoveRolesResponseBody:
             type: object
@@ -1041,48 +943,31 @@ components:
             properties:
                 keyId:
                     type: string
-                    description: The unique identifier of the key to set permissions on (begins with 'key_'). This ID comes from the createKey response and identifies which key will have its permissions replaced. This is the database ID, not the actual API key string that users authenticate with.
-                    example: key_2cGKbMxRyIzhCxo1Idjz8q
                     minLength: 3
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_]+$"
+                    description: |
+                        Specifies which key receives the additional permissions using the database identifier returned from `keys.createKey`.
+                        Do not confuse this with the actual API key string that users include in requests.
+                    example: key_2cGKbMxRyIzhCxo1Idjz8q
                 permissions:
                     type: array
                     description: |-
-                        The permissions to set for this key. This is a complete replacement operation - it overwrites all existing direct permissions with this new set.
+                        The permissions to set for this key.
+
+                        This is a complete replacement operation - it overwrites all existing direct permissions with this new set.
 
                         Key behaviors:
                         - Providing an empty array removes all direct permissions from the key
                         - This only affects direct permissions - permissions granted through roles are not affected
                         - All existing direct permissions not included in this list will be removed
-                        - The complete list approach allows synchronizing permissions with external systems
-                        - Permission changes take effect immediately for new verifications
 
-                        Unlike addPermissions (which only adds) or removePermissions (which only removes), this endpoint performs a wholesale replacement of the permission set.
+                        Any permissions that do not exist will be auto created if the root key has permissions, otherwise this operation will fail with a 403 error.
                     items:
-                        type: object
-                        properties:
-                            id:
-                                type: string
-                                description: The ID of an existing permission (begins with `perm_`). Provide either ID or slug for each permission, not both. Using ID is more precise and guarantees you're referencing the exact permission intended, regardless of slug changes or duplicates. IDs are particularly useful in automation scripts and when migrating permissions between environments.
-                                example: perm_1n9McEIBSqy44Qy7hzWyM5
-                                minLength: 3
-                            slug:
-                                type: string
-                                description: The slug of the permission. Provide either ID or slug for each permission, not both. Slugs must match exactly as defined in your permission system - including case sensitivity and the complete hierarchical path. Slugs are generally more human-readable but can be ambiguous if not carefully managed across your workspace.
-                                example: documents.write
-                                minLength: 1
-                            create:
-                                type: boolean
-                                description: |-
-                                    When true, if a permission with this slug doesn't exist, it will be automatically created on-the-fly. Only works when specifying slug, not ID.
-
-                                    SECURITY CONSIDERATIONS:
-                                    - Requires the `rbac.*.create_permission` permission on your root key
-                                    - Created permissions are permanent and visible throughout your workspace
-                                    - Use carefully to avoid permission proliferation and inconsistency
-                                    - Consider using a controlled process for permission creation instead
-                                    - Typos with `create=true` will create unintended permissions that persist in your system
-                                default: false
-                        additionalProperties: false
+                        type: string
+                        minLength: 3
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                        description: Specify the permission by its slug.
             additionalProperties: false
         V2KeysSetPermissionsResponseBody:
             type: object
@@ -1117,39 +1002,16 @@ components:
                     description: |
                         Replaces all existing role assignments with this complete list of roles.
                         This is a wholesale replacement operation, not an incremental update like add/remove operations.
-                        Use either ID for existing roles or name for human-readable references.
 
                         Providing an empty array removes all direct role assignments from the key.
                         All roles must already exist in the workspace - roles cannot be created automatically.
                         Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
-                        Role changes take effect immediately but cache propagation across regions may take up to 30 seconds.
                     items:
-                        type: object
-                        properties:
-                            id:
-                                type: string
-                                minLength: 3
-                                maxLength: 255
-                                pattern: "^[a-zA-Z0-9_]+$"
-                                description: |
-                                    References an existing role by its database identifier.
-                                    Use when you know the exact role ID and want to ensure you're referencing a specific role.
-                                    Takes precedence over name when both are provided in the same object.
-                                    Essential for automation scripts where role names might change but IDs remain stable.
-                                example: role_1n9McEIBSqy44Qy7hzWyM5
-                            name:
-                                type: string
-                                minLength: 1
-                                maxLength: 100
-                                pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
-                                description: |
-                                    Identifies the role by its human-readable name within the workspace.
-                                    Role names must start with a letter and contain only letters, numbers, underscores, or hyphens.
-                                    Names must be unique within the workspace and are case-sensitive.
-                                    More readable than IDs but vulnerable to integration breaks if roles are renamed.
-                                    Use IDs for automation and names for human-configured integrations.
-                                example: admin
-                        additionalProperties: false
+                        type: string
+                        pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+                        minLength: 3
+                        maxLength: 255
+                        description: Specify the role by name.
             additionalProperties: false
         V2KeysSetRolesResponseBody:
             type: object
@@ -1327,9 +1189,9 @@ components:
                     maxItems: 1000
                     items:
                         type: string
-                        minLength: 1
+                        minLength: 3
                         maxLength: 100
-                        pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                         description: |
                             Grants specific permissions directly to this key without requiring role membership.
                             Wildcard permissions like `documents.*` grant access to all sub-permissions including `documents.read` and `documents.write`.
@@ -1343,11 +1205,12 @@ components:
             type: object
             required:
                 - meta
+                - data
             properties:
                 meta:
                     "$ref": "#/components/schemas/Meta"
                 data:
-                    "$ref": "#/components/schemas/V2KeysUpdateKeyResponseData"
+                    "$ref": "#/components/schemas/EmptyResponse"
             additionalProperties: false
         V2KeysVerifyKeyRequestBody:
             type: object
@@ -1558,15 +1421,17 @@ components:
         V2PermissionsDeletePermissionRequestBody:
             type: object
             required:
-                - permissionId
+                - permission
             properties:
-                permissionId:
+                permission:
                     type: string
                     minLength: 3
                     maxLength: 255
-                    pattern: "^[a-zA-Z0-9_]+$"
+                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
                     description: |
                         Specifies which permission to permanently delete from your workspace.
+
+                        This can be a permission ID or a permission slug.
 
                         WARNING: Deleting a permission has immediate and irreversible consequences:
                         - All API keys with this permission will lose that access immediately
@@ -1578,30 +1443,32 @@ components:
                         - Have updated any keys or roles that depend on this permission
                         - Have migrated to alternative permissions if needed
                         - Have notified affected users about the access changes
-                        - Have the correct permission ID (double-check against your permission list)
                     example: perm_1234567890abcdef
             additionalProperties: false
         V2PermissionsDeletePermissionResponseBody:
             type: object
             required:
                 - meta
+                - data
             properties:
                 meta:
                     "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/EmptyResponse"
             additionalProperties: false
         V2PermissionsDeleteRoleRequestBody:
             type: object
             required:
-                - roleId
+                - role
             properties:
-                roleId:
+                role:
                     type: string
-                    minLength: 8
+                    pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+                    minLength: 3
                     maxLength: 255
-                    pattern: "^[a-zA-Z0-9_]+$"
                     description: |
                         Unique identifier of the role to permanently delete from your workspace.
-                        Must be a valid role ID that begins with 'role_' and exists within your workspace.
+                        Must either be a valid role ID that begins with 'role_' or the given role name and exists within your workspace.
 
                         WARNING: Deletion is immediate and irreversible with significant consequences:
                         - All API keys assigned this role will lose the associated permissions
@@ -1610,7 +1477,6 @@ components:
                         - Historical analytics referencing this role remain intact
 
                         Before deletion, ensure:
-                        - You have the correct role ID (verify the role name and permissions)
                         - You've updated any dependent authorization logic or code
                         - You've migrated any keys to use alternative roles or direct permissions
                         - You've notified relevant team members of the access changes
@@ -1620,20 +1486,23 @@ components:
             type: object
             required:
                 - meta
+                - data
             properties:
                 meta:
                     "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/EmptyResponse"
             additionalProperties: false
         V2PermissionsGetPermissionRequestBody:
             type: object
             required:
-                - permissionId
+                - permission
             properties:
-                permissionId:
+                permission:
                     type: string
                     minLength: 3
                     maxLength: 255
-                    pattern: "^[a-zA-Z0-9_]+$"
+                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
                     description: |
                         The unique identifier of the permission to retrieve. Must be a valid permission ID that begins with 'perm_' and exists within your workspace.
                     example: perm_1234567890abcdef
@@ -1652,16 +1521,17 @@ components:
         V2PermissionsGetRoleRequestBody:
             type: object
             required:
-                - roleId
+                - role
             properties:
-                roleId:
+                role:
                     type: string
                     minLength: 3
                     maxLength: 255
-                    pattern: "^[a-zA-Z0-9_]+$"
+                    pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
                     description: |
-                        Specifies which role to retrieve by its unique identifier.
-                        Must be a valid role ID that begins with 'role_' and exists within your workspace.
+                        Unique identifier of the role to permanently delete from your workspace.
+                        Must either be a valid role ID that begins with 'role_' or the given role name and exists within your workspace.
+
                         Use this endpoint to verify role details, check its current permissions, or retrieve metadata.
                         Returns complete role information including all assigned permissions for comprehensive access review.
                     example: role_1234567890abcdef
@@ -2127,6 +1997,10 @@ components:
             required:
                 - apiId
             additionalProperties: false
+        EmptyResponse:
+            type: object
+            additionalProperties: false
+            description: Empty response object by design. A successful response indicates this operation was successfully executed.
         V2ApisGetApiResponseData:
             type: object
             properties:
@@ -2245,7 +2119,7 @@ components:
                     type: array
                     items:
                         type: string
-                        description: List of permissions granted to this key.
+                        description: List of permission slugs granted to this key.
                     example:
                         - documents.read
                         - documents.write
@@ -2484,25 +2358,50 @@ components:
                 - For a complete permission picture, use `/v2/keys.getKey` instead
                 - An empty array indicates the key has no direct permissions assigned
             items:
-                type: object
-                required:
-                    - id
-                    - name
-                    - slug
-                properties:
-                    id:
-                        type: string
-                        description: The unique identifier of the permission (begins with `perm_`). This ID can be used in other API calls to reference this specific permission. IDs are guaranteed unique and won't change, making them ideal for scripting and automation. You can store these IDs in your system for consistent reference.
-                        example: perm_1n9McEIBSqy44Qy7hzWyM5
-                    name:
-                        type: string
-                        description: "The human-readable name of the permission. "
-                        example: Can write documents
-                    slug:
-                        type: string
-                        description: |-
-                            The slug of the permission, typically following a `resource.action` pattern like `documents.read`.
-                        example: documents.write
+                "$ref": "#/components/schemas/Permission"
+        Permission:
+            type: object
+            properties:
+                id:
+                    type: string
+                    minLength: 3
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_]+$"
+                    description: |
+                        The unique identifier for this permission within Unkey's system.
+                        Generated automatically when the permission is created and used to reference this permission in API operations.
+                        Always begins with 'perm_' followed by alphanumeric characters and underscores.
+                    example: perm_1234567890abcdef
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 512
+                    description: |
+                        The human-readable name for this permission that describes its purpose.
+                        Should be descriptive enough for developers to understand what access it grants.
+                        Use clear, semantic names that reflect the resources or actions being permitted.
+                        Names must be unique within your workspace to avoid confusion and conflicts.
+                    example: "users.read"
+                slug:
+                    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                    type: string
+                    minLength: 1
+                    maxLength: 512
+                    description: The URL-safe identifier when this permission was created.
+                    example: users-read
+                description:
+                    type: string
+                    maxLength: 2048
+                    description: |
+                        Optional detailed explanation of what this permission grants access to.
+                        Helps team members understand the scope and implications of granting this permission.
+                        Include information about what resources can be accessed and what actions can be performed.
+                        Not visible to end users - this is for internal documentation and team clarity.
+                    example: "Allows reading user profile information and account details"
+            required:
+                - id
+                - name
+                - slug
         V2KeysAddRolesResponseData:
             type: array
             description: |-
@@ -2519,19 +2418,49 @@ components:
                 - This only shows direct role assignments, not inherited or nested roles
                 - Role permissions are not expanded in this response - use keys.getKey for full details
             items:
-                type: object
-                required:
-                    - id
-                    - name
-                properties:
-                    id:
-                        type: string
-                        description: The unique identifier of the role (begins with `role_`). This ID can be used in other API calls to reference this specific role. Role IDs are immutable and guaranteed to be unique within your Unkey workspace, making them reliable reference points for integration and automation systems.
-                        example: role_1n9McEIBSqy44Qy7hzWyM5
-                    name:
-                        type: string
-                        description: The name of the role. This is a human-readable identifier that's unique within your workspace. Role names help identify what access level or function a role provides. Common patterns include naming by access level (`admin`, `editor`, `viewer`), by department (`billing_manager`, `support_agent`), or by feature area (`analytics_user`, `dashboard_admin`).
-                        example: admin
+                "$ref": "#/components/schemas/role"
+        role:
+            type: object
+            properties:
+                id:
+                    type: string
+                    description: |
+                        The unique identifier for this role within Unkey's system.
+                        Generated automatically when the role is created and used to reference this role in API operations.
+                        Always begins with 'role_' followed by alphanumeric characters and underscores.
+                    example: role_1234567890abcdef
+                name:
+                    type: string
+                    description: |
+                        The human-readable name for this role that describes its function.
+                        Should be descriptive enough for administrators to understand what access this role provides.
+                        Use clear, semantic names that reflect the job function or responsibility level.
+                        Names must be unique within your workspace to avoid confusion during role assignment.
+                    example: "support.readonly"
+                description:
+                    type: string
+                    description: |
+                        Optional detailed explanation of what this role encompasses and what access it provides.
+                        Helps team members understand the role's scope, intended use cases, and security implications.
+                        Include information about what types of users should receive this role and what they can accomplish.
+                        Not visible to end users - this is for internal documentation and access control audits.
+                    example: "Provides read-only access for customer support representatives to view user accounts and support tickets"
+                permissions:
+                    type: array
+                    items:
+                        "$ref": "#/components/schemas/Permission"
+                    maxItems: 100
+                    description: |
+                        Complete list of permissions currently assigned to this role.
+                        Each permission grants specific access rights that will be inherited by any keys or users assigned this role.
+                        Use this list to understand the full scope of access provided by this role.
+                        Permissions can be added or removed from roles without affecting the role's identity or other properties.
+                        Empty array indicates a role with no permissions currently assigned.
+            required:
+                - id
+                - name
+                - permissions
+            additionalProperties: false
         V2KeysCreateKeyResponseData:
             type: object
             properties:
@@ -2546,54 +2475,19 @@ components:
             required:
                 - keyId
                 - key
-        KeysDeleteKeyResponseData:
-            type: object
-            additionalProperties: false
-            description: Empty response object by design. A successful response indicates the key was deleted successfully.
         V2KeysRemovePermissionsResponseData:
             type: array
             description: |-
                 Complete list of all permissions directly assigned to the key after the removal operation (remaining permissions only).
 
-                This response includes:
-                - All direct permissions still assigned to the key after removal
-                - Permissions sorted alphabetically by name for consistent response format
-                - Both the permission ID and name for each remaining permission
-
-                Important notes:
+                Notes:
                 - This list does NOT include permissions granted through roles
                 - For a complete permission picture, use `/v2/keys.getKey` instead
                 - An empty array indicates the key has no direct permissions assigned
                 - Any cached versions of the key are immediately invalidated to ensure consistency
                 - Changes to permissions take effect within seconds for new verifications
             items:
-                type: object
-                required:
-                    - id
-                    - name
-                    - slug
-                properties:
-                    id:
-                        type: string
-                        description: The unique identifier of the permission (begins with `perm_`). This ID can be used in other API calls to reference this specific permission. IDs are guaranteed unique and won't change, making them ideal for scripting and automation. You can store these IDs in your system for consistent reference.
-                        example: perm_1n9McEIBSqy44Qy7hzWyM5
-                    name:
-                        type: string
-                        description: The name of the permission
-                        example: documents.write
-                    slug:
-                        type: string
-                        description: |-
-                            The slug of the permission, typically following a `resource.action` pattern like `documents.read`. Names are human-readable identifiers used both for assignment and verification.
-
-                            During verification:
-                            - The exact name is matched (e.g., `documents.read`)
-                            - Hierarchical wildcards are supported in verification requests
-                            - A key with permission `documents.*` grants access to `documents.read`, `documents.write`, etc.
-                            - Wildcards can appear at any level: `billing.*.view` matches `billing.invoices.view` and `billing.payments.view`
-
-                            However, when adding permissions, you must specify each exact permission - wildcards are not valid for assignment.
-                        example: documents.write
+                "$ref": "#/components/schemas/Permission"
         V2KeysRemoveRolesResponseData:
             type: array
             description: |-
@@ -2611,19 +2505,7 @@ components:
                 - Role permissions are not expanded in this response - use keys.getKey for full details
                 - Changes take effect immediately for new verifications but cached sessions may retain old permissions briefly
             items:
-                type: object
-                required:
-                    - id
-                    - name
-                properties:
-                    id:
-                        type: string
-                        description: The unique identifier of the role (begins with `role_`). This ID can be used in other API calls to reference this specific role.
-                        example: role_1n9McEIBSqy44Qy7hzWyM5
-                    name:
-                        type: string
-                        description: The name of the role. This is a human-readable identifier that's unique within your workspace.
-                        example: admin
+                "$ref": "#/components/schemas/role"
         V2KeysSetPermissionsResponseData:
             type: array
             description: |-
@@ -2639,19 +2521,7 @@ components:
                 - An empty array means the key has no direct permissions assigned
                 - For a complete permission picture including roles, use keys.getKey instead
             items:
-                type: object
-                required:
-                    - id
-                    - name
-                properties:
-                    id:
-                        type: string
-                        description: The unique identifier of the permission
-                        example: perm_1n9McEIBSqy44Qy7hzWyM5
-                    name:
-                        type: string
-                        description: The name of the permission
-                        example: documents.write
+                "$ref": "#/components/schemas/Permission"
         V2KeysSetRolesResponseData:
             type: array
             description: |-
@@ -2669,23 +2539,7 @@ components:
                 - Role permissions are not expanded in this response - use keys.getKey for complete details
                 - An empty array indicates the key now has no roles assigned at all
             items:
-                type: object
-                required:
-                    - id
-                    - name
-                properties:
-                    id:
-                        type: string
-                        description: The unique identifier of the role (begins with `role_`). This ID can be used in other API calls to reference this specific role. Role IDs are immutable and guaranteed to be unique, making them reliable reference points for integration and automation systems.
-                        example: role_1n9McEIBSqy44Qy7hzWyM5
-                    name:
-                        type: string
-                        description: The name of the role. This is a human-readable identifier that's unique within your workspace. Role names are descriptive labels that help identify what access level or function a role provides. Good naming practices include naming by access level ('admin', 'editor'), by department ('billing_team', 'support_staff'), or by feature area ('reporting_user', 'settings_manager').
-                        example: admin
-        V2KeysUpdateKeyResponseData:
-            type: object
-            additionalProperties: false
-            description: Empty response object by design. A successful response indicates the key was updated successfully.
+                "$ref": "#/components/schemas/role"
         KeysVerifyKeyCredits:
             type: object
             required:
@@ -2953,60 +2807,6 @@ components:
                 - permission
             additionalProperties: false
             description: Complete permission details including ID, name, and metadata.
-        Permission:
-            type: object
-            properties:
-                id:
-                    type: string
-                    minLength: 3
-                    maxLength: 255
-                    pattern: "^[a-zA-Z0-9_]+$"
-                    description: |
-                        The unique identifier for this permission within Unkey's system.
-                        Generated automatically when the permission is created and used to reference this permission in API operations.
-                        Always begins with 'perm_' followed by alphanumeric characters and underscores.
-                    example: perm_1234567890abcdef
-                name:
-                    type: string
-                    minLength: 1
-                    maxLength: 512
-                    description: |
-                        The human-readable name for this permission that describes its purpose.
-                        Should be descriptive enough for developers to understand what access it grants.
-                        Use clear, semantic names that reflect the resources or actions being permitted.
-                        Names must be unique within your workspace to avoid confusion and conflicts.
-                    example: "users.read"
-                slug:
-                    type: string
-                    minLength: 1
-                    maxLength: 512
-                    description: |
-                        The URL-safe identifier when this permission was created.
-                    example: users-read
-                description:
-                    type: string
-                    maxLength: 2048
-                    description: |
-                        Optional detailed explanation of what this permission grants access to.
-                        Helps team members understand the scope and implications of granting this permission.
-                        Include information about what resources can be accessed and what actions can be performed.
-                        Not visible to end users - this is for internal documentation and team clarity.
-                    example: "Allows reading user profile information and account details"
-                createdAt:
-                    type: integer
-                    format: int64
-                    minimum: 0
-                    maximum: 9223372036854776000
-                    description: |
-                        Unix timestamp in milliseconds indicating when this permission was first created.
-                        Useful for auditing and understanding the evolution of your permission structure.
-                        Automatically set by the system and cannot be modified.
-                    example: 1701425400000
-            required:
-                - id
-                - name
-                - slug
-                - createdAt
         V2PermissionsGetRoleResponseData:
             type: object
             properties:
@@ -3021,9 +2821,6 @@ components:
             properties:
                 id:
                     type: string
-                    minLength: 3
-                    maxLength: 255
-                    pattern: "^[a-zA-Z0-9_]+$"
                     description: |
                         The unique identifier for this role within Unkey's system.
                         Generated automatically when the role is created and used to reference this role in API operations.
@@ -3031,8 +2828,6 @@ components:
                     example: role_1234567890abcdef
                 name:
                     type: string
-                    minLength: 1
-                    maxLength: 512
                     description: |
                         The human-readable name for this role that describes its function.
                         Should be descriptive enough for administrators to understand what access this role provides.
@@ -3041,23 +2836,12 @@ components:
                     example: "support.readonly"
                 description:
                     type: string
-                    maxLength: 2048
                     description: |
                         Optional detailed explanation of what this role encompasses and what access it provides.
                         Helps team members understand the role's scope, intended use cases, and security implications.
                         Include information about what types of users should receive this role and what they can accomplish.
                         Not visible to end users - this is for internal documentation and access control audits.
                     example: "Provides read-only access for customer support representatives to view user accounts and support tickets"
-                createdAt:
-                    type: integer
-                    format: int64
-                    minimum: 0
-                    maximum: 9223372036854776000
-                    description: |
-                        Unix timestamp in milliseconds indicating when this role was first created.
-                        Useful for auditing and understanding the evolution of your access control structure.
-                        Automatically set by the system and cannot be modified.
-                    example: 1701425400000
                 permissions:
                     type: array
                     items:
@@ -3073,7 +2857,6 @@ components:
                 - id
                 - name
                 - permissions
-                - createdAt
             additionalProperties: false
         V2PermissionsListPermissionsResponseData:
             type: array

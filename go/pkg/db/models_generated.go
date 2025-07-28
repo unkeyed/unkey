@@ -9,6 +9,8 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 )
 
 type ApisAuthType string
@@ -742,13 +744,13 @@ type Partition struct {
 }
 
 type Permission struct {
-	ID          string         `db:"id"`
-	WorkspaceID string         `db:"workspace_id"`
-	Name        string         `db:"name"`
-	Slug        string         `db:"slug"`
-	Description sql.NullString `db:"description"`
-	CreatedAtM  int64          `db:"created_at_m"`
-	UpdatedAtM  sql.NullInt64  `db:"updated_at_m"`
+	ID          string            `db:"id"`
+	WorkspaceID string            `db:"workspace_id"`
+	Name        string            `db:"name"`
+	Slug        string            `db:"slug"`
+	Description dbtype.NullString `db:"description"`
+	CreatedAtM  int64             `db:"created_at_m"`
+	UpdatedAtM  sql.NullInt64     `db:"updated_at_m"`
 }
 
 type Project struct {

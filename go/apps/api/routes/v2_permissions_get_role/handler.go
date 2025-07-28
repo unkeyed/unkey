@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -39,19 +40,16 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/permissions.getRole")
 
-	// 1. Authentication
 	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
 	}
 
-	// 2. Request validation
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
 	}
 
-	// 3. Permission check
 	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Rbac,
@@ -63,8 +61,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// 4. Get role by ID
-	role, err := db.Query.FindRoleByID(ctx, h.DB.RO(), req.RoleId)
+	role, err := db.Query.FindRoleByIdOrNameWithPerms(ctx, h.DB.RO(), db.FindRoleByIdOrNameWithPermsParams{
+		WorkspaceID: auth.AuthorizedWorkspaceID,
+		Search:      req.Role,
+	})
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("role not found",
@@ -72,37 +72,31 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Internal("role not found"), fault.Public("The requested role does not exist."),
 			)
 		}
+
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"), fault.Public("Failed to retrieve role information."),
 		)
 	}
 
-	// 5. Check if role belongs to authorized workspace
-	if role.WorkspaceID != auth.AuthorizedWorkspaceID {
-		return fault.New("role does not belong to authorized workspace",
-			fault.Code(codes.Data.Role.NotFound.URN()),
-			fault.Public("The requested role does not exist."),
-		)
+	roleResponse := openapi.Role{
+		Id:          role.ID,
+		Name:        role.Name,
+		Permissions: nil,
+		Description: nil,
 	}
 
-	// 6. Fetch permissions associated with the role
-	rolePermissions, err := db.Query.ListPermissionsByRoleID(ctx, h.DB.RO(), req.RoleId)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve role permissions."),
-		)
+	if role.Description.Valid {
+		roleResponse.Description = &role.Description.String
 	}
 
-	// 7. Transform permissions to the response format
-	permissions := make([]openapi.Permission, 0, len(rolePermissions))
+	rolePermissions := make([]db.Permission, 0)
+	json.Unmarshal(role.Permissions.([]byte), &rolePermissions)
 	for _, perm := range rolePermissions {
 		permission := openapi.Permission{
 			Id:          perm.ID,
 			Name:        perm.Name,
 			Slug:        perm.Slug,
-			CreatedAt:   perm.CreatedAtM,
 			Description: nil,
 		}
 
@@ -111,21 +105,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			permission.Description = &perm.Description.String
 		}
 
-		permissions = append(permissions, permission)
-	}
-
-	// 8. Return the role with its permissions
-	roleResponse := openapi.Role{
-		Id:          role.ID,
-		Name:        role.Name,
-		CreatedAt:   role.CreatedAtM,
-		Permissions: permissions,
-		Description: nil,
-	}
-
-	// Add description only if it's valid
-	if role.Description.Valid {
-		roleResponse.Description = &role.Description.String
+		roleResponse.Permissions = append(roleResponse.Permissions, permission)
 	}
 
 	return s.JSON(http.StatusOK, Response{
