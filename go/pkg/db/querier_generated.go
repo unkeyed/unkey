@@ -52,7 +52,7 @@ type Querier interface {
 	//DeleteManyKeyRolesByKeyAndRoleIDs
 	//
 	//  DELETE FROM keys_roles
-	//  WHERE key_id = ? AND role_id IN(/*SLICE:ids*/?)
+	//  WHERE key_id = ? AND role_id IN(/*SLICE:role_ids*/?)
 	DeleteManyKeyRolesByKeyAndRoleIDs(ctx context.Context, db DBTX, arg DeleteManyKeyRolesByKeyAndRoleIDsParams) error
 	//DeleteManyKeyRolesByKeyID
 	//

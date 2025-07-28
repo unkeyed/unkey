@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -80,8 +79,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	log.Printf("roles: %#v", roles)
-
 	var nextCursor *string
 	hasMore := len(roles) > 100
 	if hasMore {
@@ -104,7 +101,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		rolePermissions := make([]db.Permission, 0)
 		json.Unmarshal(role.Permissions.([]byte), &rolePermissions)
-		log.Printf("rolePermissions: %#v raw: %s", rolePermissions, string(role.Permissions.([]byte)))
 		for _, perm := range rolePermissions {
 			permission := openapi.Permission{
 				Id:          perm.ID,

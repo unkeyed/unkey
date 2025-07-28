@@ -12,29 +12,29 @@ import (
 
 const deleteManyKeyRolesByKeyAndRoleIDs = `-- name: DeleteManyKeyRolesByKeyAndRoleIDs :exec
 DELETE FROM keys_roles
-WHERE key_id = ? AND role_id IN(/*SLICE:ids*/?)
+WHERE key_id = ? AND role_id IN(/*SLICE:role_ids*/?)
 `
 
 type DeleteManyKeyRolesByKeyAndRoleIDsParams struct {
-	KeyID string   `db:"key_id"`
-	Ids   []string `db:"ids"`
+	KeyID   string   `db:"key_id"`
+	RoleIds []string `db:"role_ids"`
 }
 
 // DeleteManyKeyRolesByKeyAndRoleIDs
 //
 //	DELETE FROM keys_roles
-//	WHERE key_id = ? AND role_id IN(/*SLICE:ids*/?)
+//	WHERE key_id = ? AND role_id IN(/*SLICE:role_ids*/?)
 func (q *Queries) DeleteManyKeyRolesByKeyAndRoleIDs(ctx context.Context, db DBTX, arg DeleteManyKeyRolesByKeyAndRoleIDsParams) error {
 	query := deleteManyKeyRolesByKeyAndRoleIDs
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.KeyID)
-	if len(arg.Ids) > 0 {
-		for _, v := range arg.Ids {
+	if len(arg.RoleIds) > 0 {
+		for _, v := range arg.RoleIds {
 			queryParams = append(queryParams, v)
 		}
-		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(arg.Ids))[1:], 1)
+		query = strings.Replace(query, "/*SLICE:role_ids*/?", strings.Repeat(",?", len(arg.RoleIds))[1:], 1)
 	} else {
-		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
+		query = strings.Replace(query, "/*SLICE:role_ids*/?", "NULL", 1)
 	}
 	_, err := db.ExecContext(ctx, query, queryParams...)
 	return err

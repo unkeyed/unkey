@@ -196,8 +196,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			err = db.Query.DeleteManyKeyRolesByKeyAndRoleIDs(ctx, tx, db.DeleteManyKeyRolesByKeyAndRoleIDsParams{
-				KeyID: req.KeyId,
-				Ids:   roleIds,
+				KeyID:   req.KeyId,
+				RoleIds: roleIds,
 			})
 			if err != nil {
 				return fault.Wrap(err,
