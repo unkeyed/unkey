@@ -22,12 +22,18 @@ type dataApi struct {
 
 // dataPermission defines errors related to permission operations.
 type dataPermission struct {
+	// Duplicate indicates the requested identity already exists.
+	Duplicate Code
+
 	// NotFound indicates the requested permission was not found.
 	NotFound Code
 }
 
 // dataRole defines errors related to role operations.
 type dataRole struct {
+	// Duplicate indicates the requested identity already exists.
+	Duplicate Code
+
 	// NotFound indicates the requested role was not found.
 	NotFound Code
 }
