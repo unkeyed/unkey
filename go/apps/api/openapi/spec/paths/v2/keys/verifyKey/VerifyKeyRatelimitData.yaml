@@ -61,3 +61,12 @@ required:
   - remaining
   - autoApply
 additionalProperties: false
+example:
+  id: rl_1234567890abcdef
+  exceeded: false
+  name: api_requests
+  limit: 1000
+  duration: 3600000
+  reset: 3600000
+  remaining: 850
+  autoApply: true

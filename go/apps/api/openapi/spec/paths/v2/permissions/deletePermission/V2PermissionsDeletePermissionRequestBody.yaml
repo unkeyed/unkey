@@ -23,3 +23,5 @@ properties:
       - Have the correct permission ID (double-check against your permission list)
     example: perm_1234567890abcdef
 additionalProperties: false
+example:
+  permissionId: perm_1234567890abcdef

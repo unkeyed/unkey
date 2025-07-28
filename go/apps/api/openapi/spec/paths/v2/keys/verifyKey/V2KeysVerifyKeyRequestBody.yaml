@@ -79,3 +79,10 @@ properties:
       Omitting this field skips rate limit checks entirely, relying only on configured key rate limits.
       Multiple rate limits can be checked simultaneously, each with different costs and temporary overrides.
       Rate limit checks are optimized for performance but may allow brief bursts during high concurrency.
+example:
+  apiId: api_1234567890abcdef
+  key: sk_1234567890abcdef
+  permissions: documents.read
+  tags:
+    - endpoint=/users/profile
+    - method=GET

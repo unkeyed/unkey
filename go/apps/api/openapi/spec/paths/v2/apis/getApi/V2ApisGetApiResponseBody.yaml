@@ -8,6 +8,12 @@ properties:
   data:
     "$ref": "./V2ApisGetApiResponseData.yaml"
 additionalProperties: false
+example:
+  meta:
+    requestId: req_1234567890abcdef
+  data:
+    id: api_1234567890abcdef
+    name: Production API Key
 examples:
   basicApiInfo:
     summary: Basic API information

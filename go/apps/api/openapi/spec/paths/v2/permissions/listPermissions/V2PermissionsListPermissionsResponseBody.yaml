@@ -10,3 +10,20 @@ properties:
   pagination:
     "$ref": "../../../../common/Pagination.yaml"
 additionalProperties: false
+example:
+  meta:
+    requestId: req_1234567890abcdef
+  data:
+    - id: perm_1234567890abcdef
+      name: Read user information
+      slug: user.read
+      description: Allows reading user profile information and account details
+      createdAt: 1701425400000
+    - id: perm_2345678901bcdefg
+      name: Create or update documents
+      slug: documents.write
+      description: Allows creating and editing documents
+      createdAt: 1701425400000
+  pagination:
+    cursor: perm_2345678901bcdefg
+    hasMore: false

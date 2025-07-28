@@ -14,3 +14,11 @@ description: |-
   - Access to the requested resource is restricted based on workspace settings
 
   To resolve this error, ensure your root key has the necessary permissions or contact your workspace administrator.
+example:
+  meta:
+    requestId: req_1234567890abcdef
+  error:
+    title: Forbidden
+    detail: Insufficient permissions to access this resource
+    status: 403
+    type: https://unkey.com/docs/errors/unkey/auth/forbidden

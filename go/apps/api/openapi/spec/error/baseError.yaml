@@ -38,3 +38,8 @@ additionalProperties: false
 description: Base error structure following Problem Details for HTTP APIs (RFC
   7807). This provides a standardized way to carry machine-readable details of
   errors in HTTP response content.
+example:
+  title: Not Found
+  detail: Property foo is required but is missing.
+  status: 404
+  type: https://unkey.com/docs/errors/unkey/resource/not_found

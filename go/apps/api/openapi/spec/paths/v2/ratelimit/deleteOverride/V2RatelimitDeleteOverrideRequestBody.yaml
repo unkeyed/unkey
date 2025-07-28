@@ -44,3 +44,6 @@ properties:
 required:
   - identifier
 type: object
+example:
+  namespaceId: namespace_1234567890abcdef
+  identifier: premium_user_*

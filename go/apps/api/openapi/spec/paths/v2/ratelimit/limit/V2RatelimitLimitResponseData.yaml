@@ -7,6 +7,7 @@ properties:
       This value helps clients understand their total quota for the current window.
     format: int64
     type: integer
+    example: 1000
   remaining:
     description: |-
       The number of operations remaining in the current window before the rate limit is exceeded. Applications should use this value to:
@@ -19,6 +20,7 @@ properties:
       When this reaches zero, requests will be rejected until the window resets.
     format: int64
     type: integer
+    example: 850
   reset:
     description: |-
       The Unix timestamp in milliseconds when the rate limit window will reset and 'remaining' will return to 'limit'.
@@ -32,12 +34,14 @@ properties:
       The reset time is based on a sliding window from the first request in the current window.
     format: int64
     type: integer
+    example: 1701425400000
   success:
     description: |-
       Whether the request passed the rate limit check. If true, the request is allowed to proceed. If false, the request has exceeded the rate limit and should be blocked or rejected.
 
       You MUST check this field to determine if the request should proceed, as the endpoint always returns `HTTP 200` even when rate limited.
     type: boolean
+    example: true
   overrideId:
     description: |-
       If a rate limit override was applied for this identifier, this field contains the ID of the override that was used. Empty when no override is in effect.
@@ -47,8 +51,15 @@ properties:
       - Tracking the effects of specific overrides
       - Understanding why limits differ from default values
     type: string
+    example: override_1234567890abcdef
 required:
   - limit
   - remaining
   - reset
   - success
+example:
+  limit: 1000
+  remaining: 850
+  reset: 1701425400000
+  success: true
+  overrideId: override_1234567890abcdef

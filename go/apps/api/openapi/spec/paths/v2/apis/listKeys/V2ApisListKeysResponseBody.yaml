@@ -10,6 +10,18 @@ properties:
   pagination:
     "$ref": "../../../../common/Pagination.yaml"
 additionalProperties: false
+example:
+  meta:
+    requestId: req_1234567890abcdef
+  data:
+    - keyId: key_1234567890abcdef
+      start: sk_test_abc123
+      enabled: true
+      name: Production API Key
+      createdAt: 1701425400000
+  pagination:
+    cursor: key_5678efgh9012ijkl
+    hasMore: false
 examples:
   dashboardKeyList:
     summary: Dashboard key management display

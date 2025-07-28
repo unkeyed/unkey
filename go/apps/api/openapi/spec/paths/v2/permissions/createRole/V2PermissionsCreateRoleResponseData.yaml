@@ -14,3 +14,5 @@ properties:
 required:
   - roleId
 additionalProperties: false
+example:
+  roleId: role_1234567890abcdef

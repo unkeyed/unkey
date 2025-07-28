@@ -34,3 +34,10 @@ items:
         access level (`admin`, `editor`, `viewer`), by department (`billing_manager`,
         `support_agent`), or by feature area (`analytics_user`, `dashboard_admin`).
       example: admin
+example:
+  - id: role_1234567890abcdef
+    name: admin
+  - id: role_2345678901bcdefg
+    name: editor
+  - id: role_3456789012cdefgh
+    name: viewer

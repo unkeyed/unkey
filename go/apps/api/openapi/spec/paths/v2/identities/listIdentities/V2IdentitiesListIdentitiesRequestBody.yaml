@@ -14,3 +14,6 @@ properties:
       subsequent pages of results when the response contains a cursor value.
     example: cursor_eyJrZXkiOiJrZXlfMTIzNCJ9
 additionalProperties: false
+example:
+  limit: 50
+  cursor: cursor_eyJrZXkiOiJrZXlfMTIzNCJ9

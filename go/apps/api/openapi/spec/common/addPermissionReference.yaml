@@ -1,0 +1,40 @@
+type: object
+properties:
+  id:
+    type: string
+    minLength: 3
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: |
+      References an existing permission by its database identifier.
+      Use when you know the exact permission ID and want to ensure you're referencing a specific permission.
+      Takes precedence over slug when both are provided in the same object.
+      The referenced permission must already exist in your workspace.
+    example: perm_1234567890abcdef
+  slug:
+    type: string
+    minLength: 1
+    maxLength: 100
+    pattern: "^[a-zA-Z0-9_.]+$"
+    description: |
+      Identifies the permission by its human-readable name using hierarchical naming patterns.
+      Use `resource.action` format for logical organization and verification flexibility.
+      Slugs must be unique within your workspace and support wildcard matching during verification.
+      Combined with `create=true`, allows automatic permission creation for streamlined workflows.
+    example: documents.write
+  create:
+    type: boolean
+    default: false
+    description: |
+      Enables automatic permission creation when the specified slug does not exist.
+      Only works with slug-based references, not ID-based references.
+      Requires the `rbac.*.create_permission` permission on your root key.
+
+      Created permissions are permanent and visible workspace-wide to all API keys.
+      Use carefully to avoid permission proliferation from typos or uncontrolled creation.
+      Consider centralizing permission creation in controlled processes for better governance.
+      Auto-created permissions use the slug as both the name and identifier.
+additionalProperties: false
+example:
+  slug: documents.write
+  create: true

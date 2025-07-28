@@ -11,6 +11,8 @@ properties:
       The unique identifier of the permission to retrieve. Must be a valid permission ID that begins with 'perm_' and exists within your workspace.
     example: perm_1234567890abcdef
 additionalProperties: false
+example:
+  permissionId: perm_1234567890abcdef
 examples:
   basic:
     summary: Retrieve permission details

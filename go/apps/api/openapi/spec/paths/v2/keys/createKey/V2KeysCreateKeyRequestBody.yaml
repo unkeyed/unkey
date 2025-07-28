@@ -162,6 +162,14 @@ properties:
       Only enable for development keys or when key recovery is absolutely necessary.
     example: false
 additionalProperties: false
+example:
+  apiId: api_1234567890abcdef
+  name: Production API Key
+  externalId: user_1234567890abcdef
+  enabled: true
+  permissions:
+    - documents.read
+    - documents.write
 examples:
   basic:
     summary: Basic key creation

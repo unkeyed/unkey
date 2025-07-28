@@ -34,3 +34,6 @@ properties:
     minimum: 1
     maximum: 100
 type: object
+example:
+  namespaceId: namespace_1234567890abcdef
+  limit: 10

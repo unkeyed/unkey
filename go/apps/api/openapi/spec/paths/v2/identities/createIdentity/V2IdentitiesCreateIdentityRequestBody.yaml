@@ -45,3 +45,39 @@ properties:
       - Each named limit can have different thresholds and windows
 
       When verifying keys, you can specify which limits you want to use and all keys attached to this identity will share the limits, regardless of which specific key is used.
+additionalProperties: false
+example:
+  externalId: user_1234567890abcdef
+  meta:
+    plan: premium
+    tier: enterprise
+  ratelimits:
+    - name: api_requests
+      limit: 10000
+      duration: 3600000
+      autoApply: true
+examples:
+  basic:
+    summary: Basic identity creation
+    description: Create a simple identity for a user
+    value:
+      externalId: user_1234567890abcdef
+  withMetadata:
+    summary: Identity with metadata
+    description: Create an identity with rich metadata and rate limits
+    value:
+      externalId: user_1234567890abcdef
+      meta:
+        plan: premium
+        tier: enterprise
+        userId: "12345"
+        email: "user@example.com"
+      ratelimits:
+        - name: api_requests
+          limit: 10000
+          duration: 3600000
+          autoApply: true
+        - name: heavy_operations
+          limit: 100
+          duration: 86400000
+          autoApply: false

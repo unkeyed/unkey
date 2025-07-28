@@ -12,6 +12,8 @@ properties:
       Must be a valid API ID that begins with 'api_' and exists within your workspace.
     example: api_1234abcd
 additionalProperties: false
+example:
+  apiId: api_1234567890abcdef
 examples:
   basicLookup:
     summary: Basic API information retrieval

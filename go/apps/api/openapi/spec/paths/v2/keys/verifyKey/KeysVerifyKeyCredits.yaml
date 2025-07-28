@@ -18,3 +18,5 @@ description: |
   Controls credit consumption for usage-based billing and quota enforcement.
   Omitting this field uses the default cost of 1 credit per verification.
   Credits provide globally consistent usage tracking, essential for paid APIs with strict quotas.
+example:
+  cost: 5

@@ -37,6 +37,9 @@ oneOf:
       - keyId
   - required:
       - key
+example:
+  keyId: key_1234567890abcdef
+  decrypt: false
 examples:
   dashboardKeyDetails:
     summary: Dashboard key information display

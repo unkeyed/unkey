@@ -3,3 +3,14 @@ description: Array of key verification events to be processed
 items:
   type: object
   additionalProperties: true
+example:
+  - key: sk_test_1234567890abcdef
+    apiId: api_1234567890abcdef
+    timestamp: 1701425400000
+    requestId: req_1234567890abcdef
+    cost: 1
+  - key: sk_test_2345678901bcdefg
+    apiId: api_1234567890abcdef
+    timestamp: 1701425401000
+    requestId: req_2345678901bcdefg
+    cost: 2

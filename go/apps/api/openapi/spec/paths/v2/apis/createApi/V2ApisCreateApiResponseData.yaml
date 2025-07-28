@@ -21,3 +21,5 @@ properties:
 required:
   - apiId
 additionalProperties: false
+example:
+  apiId: api_1234567890abcdef

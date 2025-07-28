@@ -22,3 +22,6 @@ properties:
 required:
   - keyId
   - key
+example:
+  keyId: key_1234567890abcdef
+  key: sk_test_1234567890abcdef

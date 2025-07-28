@@ -13,6 +13,11 @@ description: |-
   - This only shows direct role assignments on the key
   - Role permissions are not expanded in this response - use keys.getKey for complete details
   - An empty array indicates the key now has no roles assigned at all
+example:
+  - id: role_1234567890abcdef
+    name: admin
+  - id: role_2345678901bcdefg
+    name: editor
 items:
   type: object
   required:

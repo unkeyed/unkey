@@ -1,1 +1,17 @@
 type: object
+properties:
+  identityId:
+    type: string
+    minLength: 8
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: |
+      The unique identifier assigned to the newly created identity.
+      Use this ID for managing the identity in future operations.
+      Always begins with 'identity_' followed by a unique alphanumeric sequence.
+    example: identity_1234567890abcdef
+required:
+  - identityId
+additionalProperties: false
+example:
+  identityId: identity_1234567890abcdef

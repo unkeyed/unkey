@@ -3,3 +3,29 @@ maxItems: 1000
 description: Array of roles with their assigned permissions.
 items:
   "$ref": "../../../../common/Role.yaml"
+example:
+  - id: role_1234567890abcdef
+    name: support.readonly
+    description: Provides read-only access for customer support representatives to view user accounts and support tickets
+    createdAt: 1701425400000
+    permissions:
+      - id: perm_1234567890abcdef
+        name: users.read
+        slug: users-read
+        description: Allows reading user profile information and account details
+        createdAt: 1701425400000
+      - id: perm_2345678901bcdefg
+        name: tickets.read
+        slug: tickets-read
+        description: Allows reading support tickets and their details
+        createdAt: 1701425400000
+  - id: role_2345678901bcdefg
+    name: admin.full
+    description: Full administrative access with all permissions
+    createdAt: 1701425400000
+    permissions:
+      - id: perm_3456789012cdefgh
+        name: admin.all
+        slug: admin-all
+        description: Complete administrative access to all resources
+        createdAt: 1701425400000

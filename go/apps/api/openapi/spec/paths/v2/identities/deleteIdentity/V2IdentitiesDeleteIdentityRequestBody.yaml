@@ -11,3 +11,5 @@ properties:
     example: user_123
 required:
   - externalId
+example:
+  externalId: user_1234567890abcdef

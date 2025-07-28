@@ -7,3 +7,12 @@ properties:
     "$ref": "../../../../common/Meta.yaml"
   data:
     "$ref": "../../../../common/RatelimitOverride.yaml"
+example:
+  meta:
+    requestId: req_1234567890abcdef
+  data:
+    namespaceId: namespace_1234567890abcdef
+    overrideId: override_1234567890abcdef
+    duration: 60000
+    identifier: premium_*
+    limit: 10000

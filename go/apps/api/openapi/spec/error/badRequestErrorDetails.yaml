@@ -17,3 +17,15 @@ allOf:
 description: Extended error details specifically for bad request (400) errors.
   This builds on the BaseError structure by adding an array of individual validation
   errors, making it easy to identify and fix multiple issues at once.
+example:
+  title: Bad Request
+  detail: The request contains validation errors that must be fixed
+  status: 400
+  type: https://unkey.com/docs/errors/unkey/application/validation_error
+  errors:
+    - location: body.keyId
+      message: Key ID is required and cannot be empty
+      fix: Provide a valid key ID in the format key_xxxxxxxxx
+    - location: body.expiry
+      message: Expiry must be a positive integer representing milliseconds
+      fix: Use a Unix timestamp in milliseconds, e.g., 1701425400000

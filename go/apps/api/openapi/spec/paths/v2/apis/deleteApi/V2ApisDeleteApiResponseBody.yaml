@@ -5,6 +5,9 @@ properties:
   meta:
     $ref: "../../../../common/Meta.yaml"
 additionalProperties: false
+example:
+  meta:
+    requestId: req_1234567890abcdef
 examples:
   successfulDeletion:
     summary: Successful API deletion

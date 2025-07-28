@@ -28,3 +28,7 @@ required:
   - interval
   - amount
 additionalProperties: false
+example:
+  interval: monthly
+  amount: 1000
+  refillDay: 1

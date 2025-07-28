@@ -70,3 +70,8 @@ required:
   - limit
   - duration
 type: object
+example:
+  namespaceId: ns_1234567890abcdef
+  identifier: premium_*
+  limit: 10000
+  duration: 3600000

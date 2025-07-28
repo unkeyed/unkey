@@ -11,5 +11,9 @@ properties:
 
       Store this ID if you need to manage the override in the future.
     type: string
+    example: override_1234567890abcdef
 required:
   - overrideId
+additionalProperties: false
+example:
+  overrideId: override_1234567890abcdef

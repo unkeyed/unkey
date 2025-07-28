@@ -11,6 +11,13 @@ description: |-
   Error response when the requested resource cannot be found. This occurs when:
   - The specified resource ID doesn't exist in your workspace
   - The resource has been deleted or moved
-  - The resource exists but is not accessible with current permissions
 
   To resolve this error, verify the resource ID is correct and that you have access to it.
+example:
+  meta:
+    requestId: req_1234567890abcdef
+  error:
+    title: Not Found
+    detail: The requested key could not be found in your workspace
+    status: 404
+    type: https://unkey.com/docs/errors/unkey/resource/not_found

@@ -12,6 +12,8 @@ properties:
       Use descriptive names like 'payment-service-prod' or 'user-api-dev' to clearly identify purpose and environment.
     example: payment-service-production
 additionalProperties: false
+example:
+  name: payment-service-production
 examples:
   basic:
     summary: Basic API creation

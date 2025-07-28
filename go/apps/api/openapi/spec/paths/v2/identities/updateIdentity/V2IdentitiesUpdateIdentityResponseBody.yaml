@@ -7,3 +7,17 @@ properties:
     "$ref": "../../../../common/Identity.yaml"
   meta:
     "$ref": "../../../../common/Meta.yaml"
+example:
+  meta:
+    requestId: req_1234567890abcdef
+  data:
+    externalId: user_1234567890abcdef
+    meta:
+      plan: premium
+      region: us-east-1
+      userId: "12345"
+    ratelimits:
+      - name: requests
+        limit: 100
+        remaining: 95
+        reset: 1701425400000

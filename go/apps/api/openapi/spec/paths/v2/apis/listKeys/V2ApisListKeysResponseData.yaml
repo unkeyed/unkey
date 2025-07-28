@@ -3,3 +3,46 @@ maxItems: 100
 items:
   "$ref": "../../../../common/KeyResponseData.yaml"
 description: Array of API keys with complete configuration and metadata.
+example:
+  - keyId: key_1234567890abcdef
+    start: sk_test_abc123
+    enabled: true
+    name: Production API Key
+    createdAt: 1701425400000
+    updatedAt: 1701425400000
+    expires: 1735689600000
+    externalId: user_12345
+    meta:
+      plan: premium
+      region: us-east-1
+    permissions:
+      - documents.read
+      - documents.write
+    roles:
+      - editor
+    credits:
+      remaining: 1000
+      refill:
+        interval: daily
+        amount: 1000
+    identity:
+      externalId: user_1234567890abcdef
+      meta:
+        plan: premium
+        region: us-east-1
+        userId: "12345"
+      ratelimits:
+        - name: requests
+          limit: 100
+          remaining: 95
+          reset: 1701425400000
+  - keyId: key_2345678901bcdefg
+    start: sk_test_def456
+    enabled: false
+    name: Development Key
+    createdAt: 1701425400000
+    updatedAt: 1701425400000
+    meta:
+      environment: development
+    permissions:
+      - documents.read

@@ -5,3 +5,4 @@ description: Empty response object. A successful response indicates the override
   is received, the override no longer exists and affected identifiers have reverted
   to using the default rate limit for the namespace. No other data is returned
   as part of the deletion operation.
+example: {}

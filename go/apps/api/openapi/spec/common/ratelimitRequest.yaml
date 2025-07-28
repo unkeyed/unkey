@@ -53,3 +53,8 @@ properties:
       Whether this ratelimit should be automatically applied when verifying a key.
     type: boolean
     default: false
+example:
+  name: api_requests
+  limit: 1000
+  duration: 3600000
+  autoApply: true

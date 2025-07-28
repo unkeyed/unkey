@@ -13,6 +13,11 @@ description: |-
   - This only shows direct role assignments
   - Role permissions are not expanded in this response - use keys.getKey for full details
   - Changes take effect immediately for new verifications but cached sessions may retain old permissions briefly
+example:
+  - id: role_1234567890abcdef
+    name: admin
+  - id: role_2345678901bcdefg
+    name: editor
 items:
   type: object
   required:

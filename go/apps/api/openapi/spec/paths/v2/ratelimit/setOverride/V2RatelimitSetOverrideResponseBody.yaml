@@ -7,3 +7,8 @@ properties:
     "$ref": "../../../../common/Meta.yaml"
   data:
     "$ref": "./V2RatelimitSetOverrideResponseData.yaml"
+example:
+  meta:
+    requestId: req_1234567890abcdef
+  data:
+    overrideId: override_1234567890abcdef

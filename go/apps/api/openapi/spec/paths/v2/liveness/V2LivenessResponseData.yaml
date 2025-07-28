@@ -9,7 +9,10 @@ properties:
     type: string
 required:
   - message
+additionalProperties: false
 description: Response data for the liveness check endpoint. This provides a
   simple indication of whether the Unkey API service is running and able to
   process requests. Monitoring systems can use this endpoint to track service
   availability and trigger alerts if the service becomes unhealthy.
+example:
+  message: OK

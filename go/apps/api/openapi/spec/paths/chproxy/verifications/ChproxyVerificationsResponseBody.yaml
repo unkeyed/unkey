@@ -6,3 +6,5 @@ properties:
     type: string
     description: Processing status
     example: "OK"
+example:
+  status: "OK"

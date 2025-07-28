@@ -3,3 +3,22 @@ description: Array of API request metric events to be processed
 items:
   type: object
   additionalProperties: true
+example:
+  - workspaceId: ws_1234567890abcdef
+    apiId: api_1234567890abcdef
+    keyId: key_1234567890abcdef
+    deniedReason: null
+    requestedResource: "/api/users"
+    edgeRegion: "us-east-1"
+    userAgent: "MyApp/1.0"
+    ipAddress: "192.168.1.1"
+    time: 1701425400000
+  - workspaceId: ws_1234567890abcdef
+    apiId: api_1234567890abcdef
+    keyId: key_1234567890abcdef
+    deniedReason: "RATE_LIMITED"
+    requestedResource: "/api/upload"
+    edgeRegion: "us-west-2"
+    userAgent: "Browser/5.0"
+    ipAddress: "10.0.0.1"
+    time: 1701425460000

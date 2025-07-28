@@ -8,6 +8,16 @@ properties:
   data:
     "$ref": "./V2PermissionsGetPermissionResponseData.yaml"
 additionalProperties: false
+example:
+  meta:
+    requestId: req_1234567890abcdef
+  data:
+    permission:
+      id: perm_1234567890abcdef
+      name: documents.read
+      slug: documents-read
+      description: Allows reading document resources
+      createdAt: 1701425400000
 examples:
   success:
     summary: Permission retrieved successfully

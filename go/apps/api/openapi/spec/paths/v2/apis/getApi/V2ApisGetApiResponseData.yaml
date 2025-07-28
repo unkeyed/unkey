@@ -25,3 +25,6 @@ required:
   - id
   - name
 additionalProperties: false
+example:
+  id: api_1234567890abcdef
+  name: payment-service-production

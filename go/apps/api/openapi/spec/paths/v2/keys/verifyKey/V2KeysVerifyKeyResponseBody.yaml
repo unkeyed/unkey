@@ -8,6 +8,23 @@ properties:
   data:
     "$ref": "./KeysVerifyKeyResponseData.yaml"
 additionalProperties: false
+example:
+  meta:
+    requestId: req_1234567890abcdef
+  data:
+    code: VALID
+    valid: true
+    enabled: true
+    keyId: key_1234567890abcdef
+    name: Production API Key
+    permissions:
+      - documents.read
+      - documents.write
+    credits: 950
+    expires: 1735689600000
+    meta:
+      userId: user_12345
+      plan: premium
 examples:
   validKey:
     summary: Valid key with full details

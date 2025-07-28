@@ -7,6 +7,10 @@ properties:
   data:
     "$ref": "./V2KeysUpdateKeyResponseData.yaml"
 additionalProperties: false
+example:
+  meta:
+    requestId: req_1234567890abcdef
+  data: {}
 examples:
   basicUpdateSuccess:
     summary: Successful basic update

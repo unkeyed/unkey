@@ -3,3 +3,14 @@ description: Array of ratelimit events to be processed
 items:
   type: object
   additionalProperties: true
+example:
+  - identifier: user_1234567890abcdef
+    namespace: api_requests
+    timestamp: 1701425400000
+    requestId: req_1234567890abcdef
+    cost: 1
+  - identifier: user_2345678901bcdefg
+    namespace: api_requests
+    timestamp: 1701425401000
+    requestId: req_2345678901bcdefg
+    cost: 1

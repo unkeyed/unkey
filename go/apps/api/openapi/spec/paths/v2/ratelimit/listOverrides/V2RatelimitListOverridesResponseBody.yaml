@@ -9,3 +9,20 @@ properties:
     "$ref": "./V2RatelimitListOverridesResponseData.yaml"
   pagination:
     "$ref": "../../../../common/Pagination.yaml"
+example:
+  meta:
+    requestId: req_1234567890abcdef
+  data:
+    - namespaceId: namespace_1234567890abcdef
+      overrideId: override_1234567890abcdef
+      duration: 60000
+      identifier: premium_*
+      limit: 10000
+    - namespaceId: namespace_1234567890abcdef
+      overrideId: override_2345678901bcdefg
+      duration: 3600000
+      identifier: admin_*
+      limit: 100000
+  pagination:
+    cursor: override_2345678901bcdefg
+    hasMore: false

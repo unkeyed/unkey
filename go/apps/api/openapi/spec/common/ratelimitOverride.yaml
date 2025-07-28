@@ -58,3 +58,9 @@ required:
   - duration
   - identifier
   - limit
+example:
+  namespaceId: ns_1234567890abcdef
+  overrideId: ovr_1234567890abcdef
+  duration: 60000
+  identifier: premium_*
+  limit: 10000

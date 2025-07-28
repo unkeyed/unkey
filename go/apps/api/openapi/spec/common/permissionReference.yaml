@@ -1,0 +1,29 @@
+type: object
+properties:
+  id:
+    type: string
+    minLength: 3
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: |
+      References an existing permission by its database identifier.
+      Use when you know the exact permission ID and want to ensure you're referencing a specific permission.
+      Takes precedence over name when both are provided in the same object.
+      Essential for automation scripts where permission names might change but IDs remain stable.
+    example: perm_1234567890abcdef
+  slug:
+    type: string
+    minLength: 1
+    maxLength: 100
+    pattern: "^[a-zA-Z0-9_.]+$"
+    description: |
+      Identifies the permission by slug for operations on the permission.
+      Permission slugs use dot notation for hierarchical organization.
+      Slugs must be unique within the workspace and are case-sensitive.
+      More readable than IDs but vulnerable to integration breaks if permissions are renamed.
+      Use IDs for automation and slugs for human-configured integrations.
+    example: documents.write
+additionalProperties: false
+example:
+  id: perm_1234567890abcdef
+  slug: documents.write

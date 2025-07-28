@@ -7,3 +7,9 @@ properties:
     "$ref": "../../../common/Meta.yaml"
   data:
     "$ref": "./V2LivenessResponseData.yaml"
+example:
+  meta:
+    requestId: req_1234567890abcdef
+  data:
+    status: ok
+    message: Service is healthy

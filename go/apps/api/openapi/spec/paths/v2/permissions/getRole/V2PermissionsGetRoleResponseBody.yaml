@@ -8,3 +8,18 @@ properties:
   data:
     "$ref": "./V2PermissionsGetRoleResponseData.yaml"
 additionalProperties: false
+example:
+  meta:
+    requestId: req_1234567890abcdef
+  data:
+    role:
+      id: role_1234567890abcdef
+      name: support.readonly
+      description: Provides read-only access for customer support representatives
+      createdAt: 1701425400000
+      permissions:
+        - id: perm_1234567890abcdef
+          name: users.read
+          slug: users-read
+          description: Allows reading user profile information and account details
+          createdAt: 1701425400000

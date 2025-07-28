@@ -32,3 +32,7 @@ description:
   Individual validation error details. Each validation error provides
   precise information about what failed, where it failed, and how to fix it,
   enabling efficient error resolution.
+example:
+  location: body.permissions[0].name
+  message: Must be at least 3 characters long
+  fix: Ensure the name uses only alphanumeric characters, underscores, and hyphens

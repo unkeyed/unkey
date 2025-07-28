@@ -2,3 +2,24 @@ type: array
 items:
   "$ref": "../../../../common/Identity.yaml"
 description: List of identities matching the specified criteria.
+example:
+  - externalId: user_1234567890abcdef
+    meta:
+      plan: premium
+      region: us-east-1
+      userId: "12345"
+    ratelimits:
+      - name: requests
+        limit: 100
+        remaining: 95
+        reset: 1701425400000
+  - externalId: user_2345678901bcdefg
+    meta:
+      plan: basic
+      region: us-west-2
+      userId: "67890"
+    ratelimits:
+      - name: requests
+        limit: 50
+        remaining: 48
+        reset: 1701425400000

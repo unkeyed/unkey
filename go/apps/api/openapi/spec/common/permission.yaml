@@ -51,3 +51,10 @@ required:
   - name
   - slug
   - createdAt
+additionalProperties: false
+example:
+  id: perm_1234567890abcdef
+  name: users.read
+  slug: users-read
+  description: Allows reading user profile information and account details
+  createdAt: 1701425400000

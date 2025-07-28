@@ -92,3 +92,33 @@ required:
   - createdAt
   - enabled
 additionalProperties: false
+example:
+  keyId: key_1234567890abcdef
+  start: sk_test_abc123
+  enabled: true
+  name: Production API Key
+  meta:
+    plan: premium
+    region: us-east-1
+  createdAt: 1701425400000
+  updatedAt: 1701425400000
+  expires: 1735689600000
+  externalId: user_12345
+  permissions:
+    - documents.read
+    - documents.write
+  roles:
+    - editor
+    - viewer
+  credits:
+    remaining: 1000
+    refill:
+      interval: monthly
+      amount: 1000
+      refillDay: 1
+  ratelimits:
+    - id: rl_1234567890abcdef
+      name: api_requests
+      limit: 1000
+      duration: 3600000
+      autoApply: true

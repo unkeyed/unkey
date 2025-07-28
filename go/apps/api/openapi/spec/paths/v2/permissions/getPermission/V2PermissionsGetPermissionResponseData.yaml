@@ -6,3 +6,10 @@ required:
   - permission
 additionalProperties: false
 description: Complete permission details including ID, name, and metadata.
+example:
+  permission:
+    id: perm_1234567890abcdef
+    name: users.read
+    slug: users-read
+    description: Allows reading user profile information and account details
+    createdAt: 1701425400000

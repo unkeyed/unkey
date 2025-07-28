@@ -64,3 +64,27 @@ required:
   - limit
   - duration
 type: object
+example:
+  namespace: api.requests
+  identifier: user_1234567890abcdef
+  limit: 1000
+  duration: 3600000
+  cost: 1
+examples:
+  basic:
+    summary: Basic rate limit request
+    description: Simple rate limiting for user API requests
+    value:
+      namespace: api.requests
+      identifier: user_1234567890abcdef
+      limit: 1000
+      duration: 3600000
+  withCost:
+    summary: Weighted rate limit request
+    description: Rate limiting with custom cost for expensive operations
+    value:
+      namespace: sms.verification
+      identifier: user_1234567890abcdef
+      limit: 10
+      duration: 60000
+      cost: 5

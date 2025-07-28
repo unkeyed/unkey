@@ -24,3 +24,8 @@ properties:
     minimum: 0
     description: Optionally override the duration of the rate limit window duration.
     example: 600000
+example:
+  name: api_requests
+  cost: 2
+  limit: 50
+  duration: 600000

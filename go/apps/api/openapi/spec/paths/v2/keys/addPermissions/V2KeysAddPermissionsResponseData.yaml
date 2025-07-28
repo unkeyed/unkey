@@ -36,3 +36,13 @@ items:
       description: |-
         The slug of the permission, typically following a `resource.action` pattern like `documents.read`.
       example: documents.write
+example:
+  - id: perm_1234567890abcdef
+    name: documents.read
+    slug: documents.read
+  - id: perm_2345678901bcdefg
+    name: documents.write
+    slug: documents.write
+  - id: perm_3456789012cdefgh
+    name: users.read
+    slug: users.read

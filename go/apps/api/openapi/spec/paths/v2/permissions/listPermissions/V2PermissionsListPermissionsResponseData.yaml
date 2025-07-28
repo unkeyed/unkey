@@ -3,3 +3,19 @@ maxItems: 1000
 description: Array of permission objects with complete configuration details.
 items:
   "$ref": "../../../../common/Permission.yaml"
+example:
+  - id: perm_1234567890abcdef
+    name: users.read
+    slug: users-read
+    description: Allows reading user profile information and account details
+    createdAt: 1701425400000
+  - id: perm_2345678901bcdefg
+    name: users.write
+    slug: users-write
+    description: Allows creating and updating user profiles
+    createdAt: 1701425400000
+  - id: perm_3456789012cdefgh
+    name: documents.read
+    slug: documents-read
+    description: Allows reading document content and metadata
+    createdAt: 1701425400000

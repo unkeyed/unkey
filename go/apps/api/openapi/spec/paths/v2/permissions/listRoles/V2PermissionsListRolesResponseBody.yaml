@@ -10,3 +10,30 @@ properties:
   pagination:
     "$ref": "../../../../common/Pagination.yaml"
 additionalProperties: false
+example:
+  meta:
+    requestId: req_1234567890abcdef
+  data:
+    - id: role_1234567890abcdef
+      name: support.readonly
+      description: Provides read-only access for customer support representatives
+      createdAt: 1701425400000
+      permissions:
+        - id: perm_1234567890abcdef
+          name: users.read
+          slug: users-read
+          description: Allows reading user profile information and account details
+          createdAt: 1701425400000
+    - id: role_2345678901bcdefg
+      name: editor.content
+      description: Allows editing and publishing content
+      createdAt: 1701425400000
+      permissions:
+        - id: perm_2345678901bcdefg
+          name: content.write
+          slug: content-write
+          description: Allows creating and editing content
+          createdAt: 1701425400000
+  pagination:
+    cursor: role_2345678901bcdefg
+    hasMore: false

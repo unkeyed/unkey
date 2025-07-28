@@ -14,6 +14,8 @@ properties:
       Before proceeding, ensure you have the correct API ID and understand that this action cannot be undone. If you need to migrate functionality, create replacement keys in a new API namespace and update client applications before deletion.
     example: api_1234abcd
 additionalProperties: false
+example:
+  apiId: api_1234567890abcdef
 examples:
   delete:
     summary: Delete an API

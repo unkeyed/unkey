@@ -14,3 +14,11 @@ description: |-
   - The token format doesn't match expected patterns
 
   To resolve this error, ensure you're including a valid root key in the Authorization header.
+example:
+  meta:
+    requestId: req_1234567890abcdef
+  error:
+    title: Unauthorized
+    detail: Authentication credentials are missing or invalid
+    status: 401
+    type: https://unkey.com/docs/errors/unkey/auth/unauthorized

@@ -7,6 +7,10 @@ properties:
   data:
     "$ref": "./KeysDeleteKeyResponseData.yaml"
 additionalProperties: false
+example:
+  meta:
+    requestId: req_1234567890abcdef
+  data: {}
 examples:
   userDeletionSuccess:
     summary: User-requested deletion completed

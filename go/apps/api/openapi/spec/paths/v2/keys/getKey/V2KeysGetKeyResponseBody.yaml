@@ -7,6 +7,28 @@ properties:
     "$ref": "../../../../common/Meta.yaml"
   data:
     "$ref": "../../../../common/KeyResponseData.yaml"
+example:
+  meta:
+    requestId: req_1234567890abcdef
+  data:
+    keyId: key_1234567890abcdef
+    start: sk_test_abc123
+    enabled: true
+    name: Production API Key
+    createdAt: 1701425400000
+    expires: 1735689600000
+    meta:
+      plan: premium
+      userId: user_12345
+    permissions:
+      - documents.read
+      - documents.write
+    credits:
+      remaining: 8500
+      refill:
+        amount: 10000
+        interval: monthly
+        refillDay: 1
 examples:
   dashboardKeyDetails:
     summary: Dashboard key information for display

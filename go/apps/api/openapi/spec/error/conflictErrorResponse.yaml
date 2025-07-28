@@ -14,3 +14,11 @@ description: |-
   - Violating unique constraints or business rules
 
   To resolve this error, check the current state of the resource and adjust your request accordingly.
+example:
+  meta:
+    requestId: req_1234567890abcdef
+  error:
+    title: Conflict
+    detail: A resource with this identifier already exists
+    status: 409
+    type: https://unkey.com/docs/errors/unkey/resource/conflict

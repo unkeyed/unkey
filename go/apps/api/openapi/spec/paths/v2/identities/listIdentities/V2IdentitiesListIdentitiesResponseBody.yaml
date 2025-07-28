@@ -11,3 +11,30 @@ properties:
   pagination:
     "$ref": "../../../../common/Pagination.yaml"
 additionalProperties: false
+example:
+  meta:
+    requestId: req_1234567890abcdef
+  data:
+    - externalId: user_1234567890abcdef
+      meta:
+        plan: premium
+        region: us-east-1
+        userId: "12345"
+      ratelimits:
+        - name: requests
+          limit: 100
+          remaining: 95
+          reset: 1701425400000
+    - externalId: user_2345678901bcdefg
+      meta:
+        plan: basic
+        region: us-west-2
+        userId: "67890"
+      ratelimits:
+        - name: requests
+          limit: 50
+          remaining: 48
+          reset: 1701425400000
+  pagination:
+    cursor: user_2345678901bcdefg
+    hasMore: false

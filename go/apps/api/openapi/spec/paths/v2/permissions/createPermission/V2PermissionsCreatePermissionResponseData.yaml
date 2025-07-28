@@ -14,3 +14,5 @@ properties:
 required:
   - permissionId
 additionalProperties: false
+example:
+  permissionId: perm_1234567890abcdef

@@ -14,3 +14,11 @@ description: |-
   - The request ID in the response can help Unkey support investigate the issue
   - The error is likely temporary and retrying may succeed
   - If the error persists, contact Unkey support with the request ID
+example:
+  meta:
+    requestId: req_8x5n2p9q1m4a7k3b
+  error:
+    title: Service Unavailable
+    detail: The service is temporarily unavailable. Please try again later.
+    status: 500
+    type: https://unkey.com/docs/errors/unkey/application/service_unavailable

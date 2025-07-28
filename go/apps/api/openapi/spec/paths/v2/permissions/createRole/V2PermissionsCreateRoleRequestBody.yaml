@@ -29,6 +29,9 @@ properties:
       - Related roles that might be used together
     example: "Provides read-only access for customer support representatives. Includes permissions to view user accounts, support tickets, and basic analytics. Does not include access to billing, admin functions, or data modification capabilities."
 additionalProperties: false
+example:
+  name: support.readonly
+  description: Provides read-only access for customer support representatives
 examples:
   adminRole:
     summary: Create admin role

@@ -130,6 +130,13 @@ properties:
       - documents.write
       - settings.view
 additionalProperties: false
+example:
+  keyId: key_1234567890abcdef
+  name: Production API Key
+  enabled: true
+  meta:
+    plan: premium
+    region: us-east-1
 examples:
   planUpgrade:
     summary: Upgrade user from free to paid plan

@@ -22,3 +22,6 @@ additionalProperties: false
 description:
   Pagination metadata for list endpoints. Provides information necessary
   to traverse through large result sets efficiently using cursor-based pagination.
+example:
+  cursor: eyJrZXkiOiJrZXlfMTIzNCIsInRzIjoxNjk5Mzc4ODAwfQ==
+  hasMore: true

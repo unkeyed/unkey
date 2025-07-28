@@ -13,6 +13,13 @@ description: |-
   - An empty array indicates the key has no direct permissions assigned
   - Any cached versions of the key are immediately invalidated to ensure consistency
   - Changes to permissions take effect within seconds for new verifications
+example:
+  - id: perm_1234567890abcdef
+    name: documents.read
+    slug: documents-read
+  - id: perm_2345678901bcdefg
+    name: documents.write
+    slug: documents-write
 items:
   type: object
   required:

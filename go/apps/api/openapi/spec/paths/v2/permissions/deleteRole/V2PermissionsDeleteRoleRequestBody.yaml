@@ -24,3 +24,5 @@ properties:
       - You've notified relevant team members of the access changes
     example: role_dns_manager
 additionalProperties: false
+example:
+  roleId: role_1234567890abcdef

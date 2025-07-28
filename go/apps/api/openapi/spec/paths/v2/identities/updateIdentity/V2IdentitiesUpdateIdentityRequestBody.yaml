@@ -41,3 +41,14 @@ properties:
 additionalProperties: false
 required:
   - externalId
+example:
+  externalId: user_1234567890abcdef
+  meta:
+    plan: premium
+    tier: enterprise
+    userId: "12345"
+  ratelimits:
+    - name: api_requests
+      limit: 1000
+      duration: 3600000
+      autoApply: true

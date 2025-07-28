@@ -9,3 +9,5 @@ properties:
 additionalProperties: false
 required:
   - externalId
+example:
+  externalId: user_1234567890abcdef

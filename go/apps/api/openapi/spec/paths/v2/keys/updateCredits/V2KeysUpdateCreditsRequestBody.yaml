@@ -34,6 +34,10 @@ properties:
       Defines how to modify the key's remaining credits. Use 'set' to replace current credits with a specific value or unlimited usage, 'increment' to add credits for plan upgrades or credit purchases, and 'decrement' to reduce credits for refunds or policy violations.
     example: set
 additionalProperties: false
+example:
+  keyId: key_1234567890abcdef
+  operation: set
+  value: 1000
 examples:
   planUpgrade:
     summary: Upgrade user to higher credit tier

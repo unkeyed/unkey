@@ -60,3 +60,10 @@ properties:
           default: false
       additionalProperties: false
 additionalProperties: false
+example:
+  keyId: key_1234567890abcdef
+  permissions:
+    - id: perm_1234567890abcdef
+    - slug: documents.read
+    - slug: documents.write
+      create: true

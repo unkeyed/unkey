@@ -14,3 +14,9 @@ properties:
 required:
   - remaining
 additionalProperties: false
+example:
+  remaining: 1000
+  refill:
+    interval: monthly
+    amount: 1000
+    refillDay: 1

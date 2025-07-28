@@ -21,3 +21,6 @@ properties:
       Leave empty or omit this field to start from the beginning of the role list.
     example: "eyJrZXkiOiJyb2xlXzEyMzQifQ=="
 additionalProperties: false
+example:
+  limit: 50
+  cursor: eyJrZXkiOiJyb2xlXzEyMzQifQ==

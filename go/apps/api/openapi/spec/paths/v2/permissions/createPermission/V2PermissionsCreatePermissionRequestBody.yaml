@@ -45,6 +45,10 @@ properties:
       - Related permissions that might be needed
     example: "Grants read-only access to user profile information, account settings, and subscription status."
 additionalProperties: false
+example:
+  name: documents.read
+  slug: documents-read
+  description: Allows reading document resources
 examples:
   withDescription:
     summary: Create permission with description

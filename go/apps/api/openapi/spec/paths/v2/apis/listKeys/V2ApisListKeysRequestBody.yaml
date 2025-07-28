@@ -51,6 +51,10 @@ properties:
 
       This parameter comes with a performance cost and should be used sparingly.
 additionalProperties: false
+example:
+  apiId: api_1234567890abcdef
+  limit: 50
+  externalId: user_1234567890abcdef
 examples:
   basic:
     summary: List all keys

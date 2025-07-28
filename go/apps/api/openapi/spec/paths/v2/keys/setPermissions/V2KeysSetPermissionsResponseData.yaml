@@ -25,3 +25,10 @@ items:
       type: string
       description: The name of the permission
       example: documents.write
+example:
+  - id: perm_1234567890abcdef
+    name: documents.read
+  - id: perm_2345678901bcdefg
+    name: documents.write
+  - id: perm_3456789012cdefgh
+    name: users.read

@@ -8,6 +8,11 @@ properties:
   data:
     $ref: "./V2ApisCreateApiResponseData.yaml"
 additionalProperties: false
+example:
+  meta:
+    requestId: req_1234567890abcdef
+  data:
+    apiId: api_1234567890abcdef
 examples:
   productionApi:
     summary: Production API namespace created

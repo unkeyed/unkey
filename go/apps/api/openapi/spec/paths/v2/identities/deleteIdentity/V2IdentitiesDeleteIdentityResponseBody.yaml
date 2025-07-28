@@ -5,3 +5,6 @@ properties:
     "$ref": "../../../../common/Meta.yaml"
 required:
   - meta
+example:
+  meta:
+    requestId: req_1234567890abcdef

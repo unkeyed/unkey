@@ -8,6 +8,15 @@ properties:
   data:
     "$ref": "../../../../common/KeyCreditsData.yaml"
 additionalProperties: false
+example:
+  meta:
+    requestId: req_1234567890abcdef
+  data:
+    remaining: 1000
+    refill:
+      interval: monthly
+      amount: 1000
+      refillDay: 1
 examples:
   planUpgradeSuccess:
     summary: Plan upgrade completed

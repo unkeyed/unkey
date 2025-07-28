@@ -47,3 +47,6 @@ oneOf:
   - required:
       - namespaceId
       - identifier
+example:
+  namespaceId: namespace_1234567890abcdef
+  identifier: premium_*

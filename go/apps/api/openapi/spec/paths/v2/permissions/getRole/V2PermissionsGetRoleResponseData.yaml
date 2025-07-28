@@ -6,3 +6,20 @@ required:
   - role
 additionalProperties: false
 description: Complete role details including assigned permissions.
+example:
+  role:
+    id: role_1234567890abcdef
+    name: support.readonly
+    description: Provides read-only access for customer support representatives to view user accounts and support tickets
+    createdAt: 1701425400000
+    permissions:
+      - id: perm_1234567890abcdef
+        name: users.read
+        slug: users-read
+        description: Allows reading user profile information and account details
+        createdAt: 1701425400000
+      - id: perm_2345678901bcdefg
+        name: tickets.read
+        slug: tickets-read
+        description: Allows reading support tickets and their details
+        createdAt: 1701425400000

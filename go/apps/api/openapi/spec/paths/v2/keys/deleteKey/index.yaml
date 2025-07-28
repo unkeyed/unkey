@@ -23,6 +23,9 @@ post:
       application/json:
         schema:
           "$ref": "./V2KeysDeleteKeyRequestBody.yaml"
+        example:
+          keyId: key_1234567890abcdef
+          permanent: false
     required: true
   responses:
     "200":

@@ -24,3 +24,15 @@ properties:
     description: Rate limits associated with this identity. These limits are
       shared across all API keys linked to this identity, providing consistent
       rate limiting regardless of which key is used.
+additionalProperties: false
+example:
+  externalId: user_1234567890abcdef
+  meta:
+    plan: premium
+    region: us-east-1
+    userId: "12345"
+  ratelimits:
+    - name: requests
+      limit: 100
+      remaining: 95
+      reset: 1701425400000

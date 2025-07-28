@@ -14,3 +14,11 @@ description: |-
   - Optimistic concurrency control detects a conflict
 
   To resolve this error, fetch the latest version of the resource and retry with updated conditions.
+example:
+  meta:
+    requestId: req_1234567890abcdef
+  error:
+    title: Precondition Failed
+    detail: The resource version does not match the expected value
+    status: 412
+    type: https://unkey.com/docs/errors/unkey/resource/precondition_failed

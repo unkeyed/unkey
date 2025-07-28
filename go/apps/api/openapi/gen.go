@@ -140,14 +140,14 @@ type ForbiddenErrorResponse struct {
 
 // Identity defines model for Identity.
 type Identity struct {
-	Description *interface{} `json:"description,omitempty"`
-
 	// ExternalId External identity ID
 	ExternalId string `json:"externalId"`
 
 	// Meta Identity metadata
-	Meta       *map[string]interface{} `json:"meta,omitempty"`
-	Ratelimits []RatelimitResponse     `json:"ratelimits"`
+	Meta *map[string]interface{} `json:"meta,omitempty"`
+
+	// Ratelimits Identity ratelimits
+	Ratelimits []RatelimitResponse `json:"ratelimits"`
 }
 
 // InternalServerErrorResponse Error response when an unexpected error occurs on the server. This indicates a problem with Unkey's systems rather than your request.
@@ -338,7 +338,6 @@ type Meta struct {
 // NotFoundErrorResponse Error response when the requested resource cannot be found. This occurs when:
 // - The specified resource ID doesn't exist in your workspace
 // - The resource has been deleted or moved
-// - The resource exists but is not accessible with current permissions
 //
 // To resolve this error, verify the resource ID is correct and that you have access to it.
 type NotFoundErrorResponse struct {
@@ -711,7 +710,12 @@ type V2IdentitiesCreateIdentityResponseBody struct {
 }
 
 // V2IdentitiesCreateIdentityResponseData defines model for V2IdentitiesCreateIdentityResponseData.
-type V2IdentitiesCreateIdentityResponseData = map[string]interface{}
+type V2IdentitiesCreateIdentityResponseData struct {
+	// IdentityId The unique identifier assigned to the newly created identity.
+	// Use this ID for managing the identity in future operations.
+	// Always begins with 'identity_' followed by a unique alphanumeric sequence.
+	IdentityId string `json:"identityId"`
+}
 
 // V2IdentitiesDeleteIdentityRequestBody defines model for V2IdentitiesDeleteIdentityRequestBody.
 type V2IdentitiesDeleteIdentityRequestBody struct {
@@ -819,29 +823,7 @@ type V2KeysAddPermissionsRequestBody struct {
 	//
 	// Permission changes take effect immediately but cache propagation across regions may take up to 30 seconds.
 	// Adding permissions never removes existing permissions or role-based permissions.
-	Permissions []struct {
-		// Create Enables automatic permission creation when the specified slug does not exist.
-		// Only works with slug-based references, not ID-based references.
-		// Requires the `rbac.*.create_permission` permission on your root key.
-		//
-		// Created permissions are permanent and visible workspace-wide to all API keys.
-		// Use carefully to avoid permission proliferation from typos or uncontrolled creation.
-		// Consider centralizing permission creation in controlled processes for better governance.
-		// Auto-created permissions use the slug as both the name and identifier.
-		Create *bool `json:"create,omitempty"`
-
-		// Id References an existing permission by its database identifier.
-		// Use when you know the exact permission ID and want to ensure you're referencing a specific permission.
-		// Takes precedence over slug when both are provided in the same object.
-		// The referenced permission must already exist in your workspace.
-		Id *string `json:"id,omitempty"`
-
-		// Slug Identifies the permission by its human-readable name using hierarchical naming patterns.
-		// Use `resource.action` format for logical organization and verification flexibility.
-		// Slugs must be unique within your `workspace` and support wildcard matching during verification.
-		// Combined with `create=true`, allows automatic permission creation for streamlined workflows.
-		Slug *string `json:"slug,omitempty"`
-	} `json:"permissions"`
+	Permissions []AddPermissionReference `json:"permissions"`
 }
 
 // V2KeysAddPermissionsResponseBody defines model for V2KeysAddPermissionsResponseBody.
@@ -900,20 +882,7 @@ type V2KeysAddRolesRequestBody struct {
 	// All roles must already exist in the workspace - roles cannot be created automatically.
 	// Invalid roles cause the entire operation to fail atomically, ensuring consistent state.
 	// Role assignments take effect immediately but cache propagation across regions may take up to 30 seconds.
-	Roles []struct {
-		// Id References an existing role by its database identifier.
-		// Use when you know the exact role ID and want to ensure you're referencing a specific role.
-		// Takes precedence over name when both are provided in the same object.
-		// Essential for automation scripts where role names might change but IDs remain stable.
-		Id *string `json:"id,omitempty"`
-
-		// Name Identifies the role by its human-readable name within the workspace.
-		// Role names must start with a letter and contain only letters, numbers, underscores, or hyphens.
-		// Names must be unique within the workspace and are case-sensitive.
-		// More readable than IDs but vulnerable to integration breaks if roles are renamed.
-		// Use IDs for automation and names for human-configured integrations.
-		Name *string `json:"name,omitempty"`
-	} `json:"roles"`
+	Roles []RoleReference `json:"roles"`
 }
 
 // V2KeysAddRolesResponseBody defines model for V2KeysAddRolesResponseBody.
@@ -1131,16 +1100,7 @@ type V2KeysRemovePermissionsRequestBody struct {
 	// After removal, verification checks for these permissions will fail unless granted through roles.
 	// Permission changes take effect immediately but cache propagation across regions may take up to 30 seconds.
 	// Removing all direct permissions does not disable the key, only removes its direct permission grants.
-	Permissions []struct {
-		// Id References the permission to remove by its database identifier.
-		// Use when you know the exact permission ID and want to ensure you're removing a specific permission.
-		// Takes precedence over name when both are provided in the same object.
-		// Essential for automation scripts where precision prevents accidental permission removal.
-		Id *string `json:"id,omitempty"`
-
-		// Slug Identifies the permission by slug for removal from the key's direct assignment list.
-		Slug *string `json:"slug,omitempty"`
-	} `json:"permissions"`
+	Permissions []PermissionReference `json:"permissions"`
 }
 
 // V2KeysRemovePermissionsResponseBody defines model for V2KeysRemovePermissionsResponseBody.
@@ -1211,19 +1171,7 @@ type V2KeysRemoveRolesRequestBody struct {
 	// After removal, the key loses access to permissions that were only granted through these roles.
 	// Role changes take effect immediately but cache propagation across regions may take up to 30 seconds.
 	// Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
-	Roles []struct {
-		// Id References the role to remove by its database identifier.
-		// Use when you know the exact role ID and want to ensure you're removing a specific role.
-		// Takes precedence over name when both are provided in the same object.
-		// Essential for automation scripts where role names might change but IDs remain stable.
-		Id *string `json:"id,omitempty"`
-
-		// Name Identifies the role to remove by its exact name with case-sensitive matching.
-		// Must match the complete role name as currently defined in the workspace, starting with a letter and using only letters, numbers, underscores, or hyphens.
-		// More readable than IDs but vulnerable to integration breaks if roles are renamed.
-		// Use IDs for automation and names for human-configured integrations.
-		Name *string `json:"name,omitempty"`
-	} `json:"roles"`
+	Roles []RoleReference `json:"roles"`
 }
 
 // V2KeysRemoveRolesResponseBody defines model for V2KeysRemoveRolesResponseBody.
@@ -1356,20 +1304,7 @@ type V2KeysSetRolesRequestBody struct {
 	// All roles must already exist in the workspace - roles cannot be created automatically.
 	// Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
 	// Role changes take effect immediately but cache propagation across regions may take up to 30 seconds.
-	Roles []struct {
-		// Id References an existing role by its database identifier.
-		// Use when you know the exact role ID and want to ensure you're referencing a specific role.
-		// Takes precedence over name when both are provided in the same object.
-		// Essential for automation scripts where role names might change but IDs remain stable.
-		Id *string `json:"id,omitempty"`
-
-		// Name Identifies the role by its human-readable name within the workspace.
-		// Role names must start with a letter and contain only letters, numbers, underscores, or hyphens.
-		// Names must be unique within the workspace and are case-sensitive.
-		// More readable than IDs but vulnerable to integration breaks if roles are renamed.
-		// Use IDs for automation and names for human-configured integrations.
-		Name *string `json:"name,omitempty"`
-	} `json:"roles"`
+	Roles []RoleReference `json:"roles"`
 }
 
 // V2KeysSetRolesResponseBody defines model for V2KeysSetRolesResponseBody.
@@ -2117,6 +2052,63 @@ type VerifyKeyRatelimitData struct {
 
 	// Reset Rate limit reset duration in milliseconds.
 	Reset int64 `json:"reset"`
+}
+
+// AddPermissionReference defines model for addPermissionReference.
+type AddPermissionReference struct {
+	// Create Enables automatic permission creation when the specified slug does not exist.
+	// Only works with slug-based references, not ID-based references.
+	// Requires the `rbac.*.create_permission` permission on your root key.
+	//
+	// Created permissions are permanent and visible workspace-wide to all API keys.
+	// Use carefully to avoid permission proliferation from typos or uncontrolled creation.
+	// Consider centralizing permission creation in controlled processes for better governance.
+	// Auto-created permissions use the slug as both the name and identifier.
+	Create *bool `json:"create,omitempty"`
+
+	// Id References an existing permission by its database identifier.
+	// Use when you know the exact permission ID and want to ensure you're referencing a specific permission.
+	// Takes precedence over slug when both are provided in the same object.
+	// The referenced permission must already exist in your workspace.
+	Id *string `json:"id,omitempty"`
+
+	// Slug Identifies the permission by its human-readable name using hierarchical naming patterns.
+	// Use `resource.action` format for logical organization and verification flexibility.
+	// Slugs must be unique within your workspace and support wildcard matching during verification.
+	// Combined with `create=true`, allows automatic permission creation for streamlined workflows.
+	Slug *string `json:"slug,omitempty"`
+}
+
+// PermissionReference defines model for permissionReference.
+type PermissionReference struct {
+	// Id References an existing permission by its database identifier.
+	// Use when you know the exact permission ID and want to ensure you're referencing a specific permission.
+	// Takes precedence over name when both are provided in the same object.
+	// Essential for automation scripts where permission names might change but IDs remain stable.
+	Id *string `json:"id,omitempty"`
+
+	// Slug Identifies the permission by slug for operations on the permission.
+	// Permission slugs use dot notation for hierarchical organization.
+	// Slugs must be unique within the workspace and are case-sensitive.
+	// More readable than IDs but vulnerable to integration breaks if permissions are renamed.
+	// Use IDs for automation and slugs for human-configured integrations.
+	Slug *string `json:"slug,omitempty"`
+}
+
+// RoleReference defines model for roleReference.
+type RoleReference struct {
+	// Id References an existing role by its database identifier.
+	// Use when you know the exact role ID and want to ensure you're referencing a specific role.
+	// Takes precedence over name when both are provided in the same object.
+	// Essential for automation scripts where role names might change but IDs remain stable.
+	Id *string `json:"id,omitempty"`
+
+	// Name Identifies the role by its human-readable name within the workspace.
+	// Role names must start with a letter and contain only letters, numbers, underscores, or hyphens.
+	// Names must be unique within the workspace and are case-sensitive.
+	// More readable than IDs but vulnerable to integration breaks if roles are renamed.
+	// Use IDs for automation and names for human-configured integrations.
+	Name *string `json:"name,omitempty"`
 }
 
 // ChproxyMetricsJSONRequestBody defines body for ChproxyMetrics for application/json ContentType.

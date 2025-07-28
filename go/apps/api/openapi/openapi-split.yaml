@@ -97,6 +97,22 @@ x-speakeasy-retries:
 security:
   - rootKey: []
 
+tags:
+  - name: apis
+    description: Operations for managing API configurations
+  - name: identities
+    description: Operations for managing identities and identity-based access
+  - name: keys
+    description: Operations for managing API keys
+  - name: liveness
+    description: Health check and service status endpoints
+  - name: permissions
+    description: Operations for managing permissions and roles
+  - name: ratelimit
+    description: Operations for managing rate limiting and overrides
+  - name: chproxy
+    description: Internal ClickHouse proxy endpoints
+
 paths:
   # Health Endpoints
   /v2/liveness:

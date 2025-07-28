@@ -19,3 +19,6 @@ properties:
     description: Maximum number of permissions to return in a single response.
     example: 50
 additionalProperties: false
+example:
+  cursor: eyJrZXkiOiJwZXJtXzEyMzQifQ==
+  limit: 50

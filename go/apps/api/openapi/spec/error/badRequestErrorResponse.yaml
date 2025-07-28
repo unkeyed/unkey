@@ -14,3 +14,18 @@ description: Error response for invalid requests that cannot be processed due
   and suggestions for fixing it. When receiving this error, check the 'errors'
   array in the response for specific validation issues that need to be addressed
   before retrying.
+example:
+  meta:
+    requestId: req_2c9a0jf23l4k567
+  error:
+    title: Bad Request
+    detail: The request contains validation errors that must be fixed
+    status: 400
+    type: https://unkey.com/docs/errors/unkey/application/validation_error
+    errors:
+      - path: ["keyId"]
+        message: Key ID is required and cannot be empty
+        code: REQUIRED
+      - path: ["expiry"]
+        message: Expiry must be a positive integer representing milliseconds
+        code: INVALID_TYPE

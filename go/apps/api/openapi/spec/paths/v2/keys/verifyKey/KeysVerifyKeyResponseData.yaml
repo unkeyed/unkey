@@ -98,3 +98,35 @@ properties:
 required:
   - valid
   - code
+example:
+  valid: true
+  code: VALID
+  keyId: key_1234567890abcdef
+  name: Production API Key
+  meta:
+    plan: premium
+    region: us-east-1
+  expires: 1735689600000
+  credits: 1000
+  enabled: true
+  permissions:
+    - documents.read
+    - documents.write
+  roles:
+    - editor
+  identity:
+    externalId: user_1234567890abcdef
+    meta:
+      plan: premium
+      region: us-east-1
+      userId: "12345"
+    ratelimits:
+      - name: requests
+        limit: 100
+        remaining: 95
+        reset: 1701425400000
+  ratelimits:
+    - name: api_requests
+      limit: 1000
+      remaining: 850
+      reset: 1701425400000
