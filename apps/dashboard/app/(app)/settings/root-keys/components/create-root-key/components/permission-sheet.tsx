@@ -86,42 +86,54 @@ export const PermissionSheet = ({
           />
         </SheetHeader>
         <SheetDescription className="w-full h-full pt-2">
-          <ScrollArea className="flex flex-col h-full">
-            <div className="flex flex-col h-full pt-0 mt-0 gap-1">
-              {/* Workspace Permissions */}
-              {/* TODO: Tie In Search */}
-              <PermissionContentList
-                selected={selectedPermissions}
-                key="workspace"
-                type="workspace"
-                onPermissionChange={(permissions) => handleWorkspacePermissionChange(permissions)}
-              />
-              {/* From APIs */}
-              <p className="text-sm text-gray-10 ml-6 py-auto mt-1.5">From APIs</p>
-              {apis.map((api) => (
-                <PermissionContentList
-                  selected={selectedPermissions}
-                  key={api.id}
-                  type="api"
-                  api={api}
-                  onPermissionChange={(permissions) =>
-                    handleApiPermissionChange(api.id, permissions)
-                  }
-                />
-              ))}
-
+          <div className="flex flex-col h-full">
+            <div
+              className={`flex flex-col overflow-y-hidden ${hasNextPage ? "max-h-[calc(100%-80px)]" : "h-[calc(100%-40px)]"}`}
+            >
+              <ScrollArea className="flex flex-col h-full">
+                <div className="flex flex-col pt-0 mt-0 gap-1 pb-4">
+                  {/* Workspace Permissions */}
+                  {/* TODO: Tie In Search */}
+                  <PermissionContentList
+                    selected={selectedPermissions}
+                    key="workspace"
+                    type="workspace"
+                    onPermissionChange={(permissions) =>
+                      handleWorkspacePermissionChange(permissions)
+                    }
+                  />
+                  {/* From APIs */}
+                  <p className="text-sm text-gray-10 ml-6 py-auto mt-1.5">From APIs</p>
+                  {apis.map((api) => (
+                    <PermissionContentList
+                      selected={selectedPermissions}
+                      key={api.id}
+                      type="api"
+                      api={api}
+                      onPermissionChange={(permissions) =>
+                        handleApiPermissionChange(api.id, permissions)
+                      }
+                    />
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+            <div className="absolute bottom-2 right-0 max-h-10 w-full">
               {hasNextPage && (
-                <Button
-                  className="mt-4 w-1/2 mx-auto"
-                  onClick={loadMore}
-                  disabled={!hasNextPage}
-                  loading={isFetchingNextPage}
-                >
-                  Load More
-                </Button>
+                <div className="flex flex-row justify-end items-center px-4">
+                  <Button
+                    className="mx-auto w-full rounded-lg"
+                    size="lg"
+                    onClick={loadMore}
+                    disabled={!hasNextPage}
+                    loading={isFetchingNextPage}
+                  >
+                    Load More
+                  </Button>
+                </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
         </SheetDescription>
       </SheetContent>
     </Sheet>
