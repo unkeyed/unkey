@@ -27,11 +27,11 @@ post:
       content:
         application/json:
           schema:
-            $ref: "../../../error/badRequestErrorResponse.yaml"
+            $ref: "../../../error/BadRequestErrorResponse.yaml"
       description: Invalid request body or malformed events
     "529":
       content:
         application/json:
           schema:
-            $ref: "../../../error/internalServerErrorResponse.yaml"
+            $ref: "../../../error/InternalServerErrorResponse.yaml"
       description: Service overloaded, unable to process events

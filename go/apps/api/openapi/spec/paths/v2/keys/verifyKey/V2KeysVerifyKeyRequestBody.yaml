@@ -15,18 +15,8 @@ examples:
       key: sk_1234abcdef
       permissions: "documents.read"
 required:
-  - apiId
   - key
 properties:
-  apiId:
-    type: string
-    minLength: 3
-    maxLength: 255
-    pattern: "^[a-zA-Z0-9_]+$"
-    description: |
-      The API namespace this key belongs to.
-      Ensures environment isolation (dev keys can't access prod data).
-    example: api_1234
   key:
     type: string
     minLength: 1

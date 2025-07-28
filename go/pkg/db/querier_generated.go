@@ -440,9 +440,7 @@ type Querier interface {
 	//         ) as overrides
 	//  FROM `ratelimit_namespaces` ns
 	//  WHERE ns.workspace_id = ?
-	//  AND CASE WHEN ? IS NOT NULL THEN ns.name = ?
-	//  WHEN ? IS NOT NULL THEN ns.id = ?
-	//  ELSE false END
+	//  AND (ns.id = ? OR ns.name = ?)
 	FindRatelimitNamespace(ctx context.Context, db DBTX, arg FindRatelimitNamespaceParams) (FindRatelimitNamespaceRow, error)
 	//FindRatelimitNamespaceByID
 	//
