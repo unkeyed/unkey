@@ -15,7 +15,6 @@ type VerifyOption func(*verifyConfig) error
 type verifyConfig struct {
 	ipWhitelist bool
 	credits     *int32
-	apiID       *string
 	tags        []string
 	permissions *rbac.PermissionQuery
 	ratelimits  []openapi.KeysVerifyKeyRatelimit
@@ -64,13 +63,6 @@ func WithRateLimits(limits []openapi.KeysVerifyKeyRatelimit) VerifyOption {
 func WithTags(tags []string) VerifyOption {
 	return func(config *verifyConfig) error {
 		config.tags = tags
-		return nil
-	}
-}
-
-func WithApiID(apiID string) VerifyOption {
-	return func(config *verifyConfig) error {
-		config.apiID = &apiID
 		return nil
 	}
 }
