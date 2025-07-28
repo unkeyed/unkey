@@ -1,14 +1,16 @@
 type: object
 required:
-  - permissionId
+  - permission
 properties:
-  permissionId:
+  permission:
     type: string
     minLength: 3
     maxLength: 255
-    pattern: "^[a-zA-Z0-9_]+$"
+    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
     description: |
       Specifies which permission to permanently delete from your workspace.
+
+      This can be a permission ID or a permission slug.
 
       WARNING: Deleting a permission has immediate and irreversible consequences:
       - All API keys with this permission will lose that access immediately
@@ -20,6 +22,5 @@ properties:
       - Have updated any keys or roles that depend on this permission
       - Have migrated to alternative permissions if needed
       - Have notified affected users about the access changes
-      - Have the correct permission ID (double-check against your permission list)
     example: perm_1234567890abcdef
 additionalProperties: false

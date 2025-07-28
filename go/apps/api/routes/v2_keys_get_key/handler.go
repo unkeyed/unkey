@@ -14,7 +14,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
-	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
@@ -61,18 +60,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// nolint:exhaustruct
-	args := db.FindKeyByIdOrHashParams{}
-	if req.KeyId != nil {
-		args.ID = sql.NullString{String: *req.KeyId, Valid: true}
-	} else if req.Key != nil {
-		args.Hash = sql.NullString{String: hash.Sha256(*req.Key), Valid: true}
-	} else {
-		return fault.New("invalid request",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal("missing keyId or key identifier"),
-			fault.Public("Either keyId or key must be provided."),
-		)
+	args := db.FindKeyByIdOrHashParams{
+		ID:   sql.NullString{String: req.KeyId, Valid: true},
+		Hash: sql.NullString{String: "", Valid: false},
 	}
 
 	key, err := db.Query.FindKeyByIdOrHash(ctx, h.DB.RO(), args)
@@ -98,15 +88,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
-			fault.Public("The specified key was not found."),
-		)
-	}
-
-	// Check if API is deleted
-	if key.Api.DeletedAtM.Valid {
-		return fault.New("key not found",
-			fault.Code(codes.Data.Key.NotFound.URN()),
-			fault.Internal("key belongs to deleted api"),
 			fault.Public("The specified key was not found."),
 		)
 	}
@@ -178,7 +159,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		// If the key is encrypted and the encryption key ID is valid, decrypt the key.
 		// Otherwise the key was never encrypted to begin with.
-		if key.EncryptedKey.Valid && key.EncryptionKeyID.Valid && req.Key == nil {
+		if key.EncryptedKey.Valid && key.EncryptionKeyID.Valid {
 			decrypted, decryptErr := h.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
 				Keyring:   key.WorkspaceID,
 				Encrypted: key.EncryptedKey.String,
@@ -194,10 +175,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
-		if req.Key != nil {
-			// Only respond with the plaintext key if EXPLICITLY requested.
-			plaintext = req.Key
-		}
 	}
 
 	k := openapi.KeyResponseData{

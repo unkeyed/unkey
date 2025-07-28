@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -12,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_delete_permission"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -44,7 +44,7 @@ func TestNotFoundErrors(t *testing.T) {
 	// Test case for non-existent permission ID
 	t.Run("non-existent permission ID", func(t *testing.T) {
 		req := handler.Request{
-			PermissionId: "perm_does_not_exist",
+			Permission: "perm_does_not_exist",
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -65,7 +65,7 @@ func TestNotFoundErrors(t *testing.T) {
 		nonExistentID := uid.New(uid.PermissionPrefix) // Generate a valid ID format that doesn't exist
 
 		req := handler.Request{
-			PermissionId: nonExistentID,
+			Permission: nonExistentID,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -90,7 +90,7 @@ func TestNotFoundErrors(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         "test.permission.to.delete",
 			Slug:         "test-permission-to-delete",
-			Description:  sql.NullString{Valid: false},
+			Description:  dbtype.NullString{Valid: false},
 			CreatedAtM:   time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
@@ -101,7 +101,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 		// Try to delete it again
 		req := handler.Request{
-			PermissionId: permissionID,
+			Permission: permissionID,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](

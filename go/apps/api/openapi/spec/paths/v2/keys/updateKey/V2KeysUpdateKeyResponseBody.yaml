@@ -1,11 +1,12 @@
 type: object
 required:
   - meta
+  - data
 properties:
   meta:
     "$ref": "../../../../common/Meta.yaml"
   data:
-    "$ref": "./V2KeysUpdateKeyResponseData.yaml"
+    "$ref": "../../../../common/EmptyResponse.yaml"
 additionalProperties: false
 examples:
   basicUpdateSuccess:

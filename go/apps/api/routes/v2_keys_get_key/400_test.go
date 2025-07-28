@@ -33,37 +33,9 @@ func TestGetKeyBadRequest(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	t.Run("missing both keyId and key", func(t *testing.T) {
-		req := handler.Request{
-			KeyId:   nil,
-			Key:     nil,
-			Decrypt: ptr.P(false),
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "POST request body for '/v2/keys.getKey' failed to validate schema")
-	})
-
-	t.Run("both keyId and key provided", func(t *testing.T) {
-		req := handler.Request{
-			KeyId:   ptr.P("key_123"),
-			Key:     ptr.P("test_key"),
-			Decrypt: ptr.P(false),
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "POST request body for '/v2/keys.getKey' failed to validate schema")
-	})
-
 	t.Run("empty keyId string", func(t *testing.T) {
 		req := handler.Request{
-			KeyId:   ptr.P(""),
+			KeyId:   "",
 			Decrypt: ptr.P(false),
 		}
 
@@ -73,14 +45,4 @@ func TestGetKeyBadRequest(t *testing.T) {
 		require.NotNil(t, res.Body.Error)
 	})
 
-	t.Run("empty key string", func(t *testing.T) {
-		req := handler.Request{
-			Key: ptr.P(""),
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-	})
 }

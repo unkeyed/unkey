@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -89,7 +90,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if db.IsDuplicateKeyError(err) {
 				return fault.New("role already exists",
 					fault.Code(codes.UnkeyDataErrorsIdentityDuplicate),
-					fault.Internal("role already exists"), fault.Public("A role with name \""+req.Name+"\" already exists in this workspace"),
+					fault.Internal("role already exists"), fault.Public(fmt.Sprintf("A role with name %q already exists in this workspace", req.Name)),
 				)
 			}
 			return fault.Wrap(err,
@@ -107,7 +108,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       "role.create",
+				Event:       auditlog.RoleCreateEvent,
 				ActorType:   auditlog.RootKeyActor,
 				ActorID:     auth.Key.ID,
 				ActorName:   "root key",
@@ -117,7 +118,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
 					{
-						Type:        "role",
+						Type:        auditlog.RoleResourceType,
 						ID:          roleID,
 						Name:        req.Name,
 						DisplayName: req.Name,

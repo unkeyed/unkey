@@ -22,21 +22,9 @@ properties:
       Use only for legitimate recovery scenarios like user password resets or emergency access.
       Most applications should keep this false to maintain security best practices and avoid accidental key exposure.
       Decryption requests are audited and may trigger security alerts in enterprise environments.
-  key:
-    type: string
-    minLength: 1
-    maxLength: 512 # Reasonable upper bound for API key strings
-    description: |
-      The complete API key string provided by you, including any prefix.
-      Never log, cache, or store API keys in your system as they provide full access to user resources.
-      Include the full key exactly as provided - even minor modifications will cause a not found error.
-    example: sk_1234abcdef5678
 additionalProperties: false
-oneOf:
-  - required:
-      - keyId
-  - required:
-      - key
+required:
+  - keyId
 examples:
   dashboardKeyDetails:
     summary: Dashboard key information display

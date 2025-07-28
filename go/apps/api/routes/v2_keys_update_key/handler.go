@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
@@ -89,14 +90,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if key.Api.DeletedAtM.Valid {
-		return fault.New("key not found",
-			fault.Code(codes.Data.Key.NotFound.URN()),
-			fault.Internal("key belongs to deleted api"),
-			fault.Public("The specified key was not found."),
-		)
-	}
-
+	// TODO: We should actually check if the user has permission to set/remove roles.
 	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
@@ -113,9 +107,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	auditLogs := []auditlog.AuditLog{}
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		// Prepare update parameters with three-state handling
+		auditLogs := []auditlog.AuditLog{}
+
 		update := db.UpdateKeyParams{
 			ID:                         key.ID,
 			Now:                        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -388,13 +382,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				)
 			}
 
-			existingPermMap := make(map[string]db.FindPermissionsBySlugsRow)
+			existingPermMap := make(map[string]db.Permission)
 			for _, p := range existingPermissions {
 				existingPermMap[p.Slug] = p
 			}
 
 			permissionsToCreate := []db.InsertPermissionParams{}
-			requestedPermissions := []db.FindPermissionsBySlugsRow{}
+			requestedPermissions := []db.Permission{}
 
 			for _, requestedSlug := range *req.Permissions {
 				existingPerm, exists := existingPermMap[requestedSlug]
@@ -409,17 +403,43 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					WorkspaceID:  auth.AuthorizedWorkspaceID,
 					Name:         requestedSlug,
 					Slug:         requestedSlug,
-					Description:  sql.NullString{String: fmt.Sprintf("Auto-created permission: %s", requestedSlug), Valid: true},
+					Description:  dbtype.NullString{String: fmt.Sprintf("Auto-created permission: %s", requestedSlug), Valid: true},
 					CreatedAtM:   time.Now().UnixMilli(),
 				})
 
-				requestedPermissions = append(requestedPermissions, db.FindPermissionsBySlugsRow{
+				requestedPermissions = append(requestedPermissions, db.Permission{
 					ID:   newPermID,
 					Slug: requestedSlug,
 				})
 			}
 
 			if len(permissionsToCreate) > 0 {
+				for _, toCreate := range permissionsToCreate {
+					auditLogs = append(auditLogs, auditlog.AuditLog{
+						WorkspaceID: auth.AuthorizedWorkspaceID,
+						Event:       auditlog.PermissionCreateEvent,
+						ActorType:   auditlog.RootKeyActor,
+						ActorID:     auth.Key.ID,
+						ActorName:   "root key",
+						ActorMeta:   map[string]any{},
+						Display:     fmt.Sprintf("Created %s (%s)", toCreate.Slug, toCreate.PermissionID),
+						RemoteIP:    s.Location(),
+						UserAgent:   s.UserAgent(),
+						Resources: []auditlog.AuditLogResource{
+							{
+								Type:        auditlog.PermissionResourceType,
+								ID:          toCreate.PermissionID,
+								Name:        toCreate.Slug,
+								DisplayName: toCreate.Name,
+								Meta: map[string]interface{}{
+									"name": toCreate.Name,
+									"slug": toCreate.Slug,
+								},
+							},
+						},
+					})
+				}
+
 				err = db.BulkQuery.InsertPermissions(ctx, tx, permissionsToCreate)
 				if err != nil {
 					return fault.Wrap(err,
@@ -430,7 +450,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 			}
 
-			// Clear all existing permissions for this key
 			err = db.Query.DeleteAllKeyPermissionsByKeyID(ctx, tx, key.ID)
 			if err != nil {
 				return fault.Wrap(err,
@@ -440,12 +459,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			permissionsToInsert := []db.InsertKeyPermissionParams{}
+			now := time.Now().UnixMilli()
 			for _, reqPerm := range requestedPermissions {
 				permissionsToInsert = append(permissionsToInsert, db.InsertKeyPermissionParams{
 					KeyID:        key.ID,
 					PermissionID: reqPerm.ID,
 					WorkspaceID:  auth.AuthorizedWorkspaceID,
-					CreatedAt:    time.Now().UnixMilli(),
+					CreatedAt:    now,
+					UpdatedAt:    sql.NullInt64{Int64: now, Valid: true},
 				})
 			}
 
@@ -538,14 +559,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			UserAgent:   s.UserAgent(),
 			Resources: []auditlog.AuditLogResource{
 				{
-					Type:        "key",
+					Type:        auditlog.KeyResourceType,
 					ID:          key.ID,
 					DisplayName: key.Name.String,
 					Name:        key.Name.String,
 					Meta:        map[string]any{},
 				},
 				{
-					Type:        "api",
+					Type:        auditlog.APIResourceType,
 					ID:          key.Api.ID,
 					DisplayName: key.Api.Name,
 					Name:        key.Api.Name,
@@ -570,6 +591,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: &openapi.V2KeysUpdateKeyResponseData{},
+		Data: openapi.EmptyResponse{},
 	})
 }
