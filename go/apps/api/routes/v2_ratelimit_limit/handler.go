@@ -2,7 +2,6 @@ package v2RatelimitLimit
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -21,7 +20,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/match"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -69,15 +67,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		cost = *req.Cost
 	}
 
-	ctx, span := tracing.Start(ctx, "FindRatelimitNamespace")
-	namespace, hit, err := h.RatelimitNamespaceCache.SWR(
-		ctx,
-		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: req.Namespace},
+	// Use the namespace field directly - it can be either name or ID
+	namespaceKey := req.Namespace
+
+	namespace, hit, err := h.RatelimitNamespaceCache.SWR(ctx,
+		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: namespaceKey},
 		func(ctx context.Context) (db.FindRatelimitNamespace, error) {
 			response, err := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Name:        sql.NullString{String: req.Namespace, Valid: true},
-				ID:          sql.NullString{String: "", Valid: false},
+				Namespace:   namespaceKey,
 			})
 			result := db.FindRatelimitNamespace{} // nolint:exhaustruct
 			if err != nil {
@@ -109,10 +107,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			return result, nil
-		},
-		caches.DefaultFindFirstOp,
-	)
-	span.End()
+		}, caches.DefaultFindFirstOp)
 
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -122,7 +117,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		return err
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Public("An unexpected error occurred while fetching the namespace."),
+		)
 	}
 
 	if hit == cache.Null {
