@@ -15,7 +15,6 @@ type VerifyOption func(*verifyConfig) error
 type verifyConfig struct {
 	ipWhitelist bool
 	credits     *int32
-	apiID       *string
 	tags        []string
 	permissions *rbac.PermissionQuery
 	ratelimits  []openapi.KeysVerifyKeyRatelimit
@@ -28,6 +27,7 @@ func WithCredits(cost int32) VerifyOption {
 		if cost < 0 {
 			return errors.New("cost cannot be negative")
 		}
+
 		config.credits = &cost
 		return nil
 	}
@@ -64,13 +64,6 @@ func WithRateLimits(limits []openapi.KeysVerifyKeyRatelimit) VerifyOption {
 func WithTags(tags []string) VerifyOption {
 	return func(config *verifyConfig) error {
 		config.tags = tags
-		return nil
-	}
-}
-
-func WithApiID(apiID string) VerifyOption {
-	return func(config *verifyConfig) error {
-		config.apiID = &apiID
 		return nil
 	}
 }

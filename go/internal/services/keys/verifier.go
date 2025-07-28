@@ -44,11 +44,21 @@ type KeyVerifier struct {
 	clickhouse            clickhouse.ClickHouse                         // Clickhouse for telemetry
 	logger                logging.Logger                                // Logger for verification operations
 	message               string                                        // Internal message for validation failures
+	tags                  []string                                      // Tags associated with the key
 }
 
 // GetRatelimitConfigs returns the rate limit configurations
 func (k *KeyVerifier) GetRatelimitConfigs() map[string]db.KeyFindForVerificationRatelimit {
 	return k.ratelimitConfigs
+}
+
+func (k *KeyVerifier) VerifyRootKey(ctx context.Context, opts ...VerifyOption) error {
+	err := k.Verify(ctx, opts...)
+	if err != nil {
+		return err
+	}
+
+	return k.ToFault()
 }
 
 // Verify performs key verification with the given options.
@@ -57,10 +67,6 @@ func (k *KeyVerifier) GetRatelimitConfigs() map[string]db.KeyFindForVerification
 func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 	// Skip verification if key is already invalid
 	if k.Status != StatusValid {
-		// For root keys, auto-return validation failures as fault errors
-		if k.isRootKey {
-			return k.ToFault()
-		}
 		return nil
 	}
 
@@ -72,7 +78,15 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 		}
 	}
 
+	if config.tags != nil {
+		k.tags = config.tags
+	}
+
 	var err error
+	if config.tags != nil {
+		k.tags = config.tags
+	}
+
 	if config.credits != nil {
 		err = k.withCredits(ctx, *config.credits)
 		if err != nil {
@@ -94,15 +108,15 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 		}
 	}
 
-	if config.apiID != nil {
-		k.WithApiID(*config.apiID)
-	}
-
 	err = k.withRateLimits(ctx, config.ratelimits)
 	if err != nil {
 		return err
 	}
 
+	return nil
+}
+
+func (k *KeyVerifier) log() {
 	k.clickhouse.BufferKeyVerification(schema.KeyVerificationRequestV1{
 		RequestID:   k.session.RequestID(),
 		WorkspaceID: k.session.AuthorizedWorkspaceID(),
@@ -112,7 +126,7 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 		KeySpaceID:  k.Key.KeyAuthID,
 		KeyID:       k.Key.ID,
 		IdentityID:  k.Key.IdentityID.String,
-		Tags:        config.tags,
+		Tags:        k.tags,
 	})
 
 	keyType := "key"
@@ -124,11 +138,4 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 		keyType,
 		string(k.Status), // code
 	).Inc()
-
-	// For root keys, auto-return validation failures as fault errors
-	if k.isRootKey && k.Status != StatusValid {
-		return k.ToFault()
-	}
-
-	return nil
 }

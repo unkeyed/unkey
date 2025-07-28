@@ -41,7 +41,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/permissions.listPermissions")
 
 	// 1. Authentication
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
@@ -56,7 +57,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	cursor := ptr.SafeDeref(req.Cursor, "")
 
 	// 3. Permission check
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Rbac,
 			ResourceID:   "*",

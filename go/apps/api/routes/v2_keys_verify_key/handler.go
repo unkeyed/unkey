@@ -49,7 +49,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.verifyKey")
 
 	// Authentication
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, rootEmit, err := h.Keys.GetRootKey(ctx, s)
+	defer rootEmit()
 	if err != nil {
 		return err
 	}
@@ -60,7 +61,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	key, err := h.Keys.Get(ctx, s, req.Key)
+	key, emit, err := h.Keys.Get(ctx, s, req.Key)
+	defer emit()
 	if err != nil {
 		return err
 	}
@@ -94,7 +96,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// FIXME: We are leaking a keys existance here... by telling the user that he doesn't have perms
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   "*",
@@ -110,7 +112,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	opts := []keys.VerifyOption{keys.WithIPWhitelist(), keys.WithApiID(req.ApiId), keys.WithTags(ptr.SafeDeref(req.Tags))}
+	opts := []keys.VerifyOption{
+		keys.WithIPWhitelist(),
+		keys.WithTags(ptr.SafeDeref(req.Tags)),
+	}
 
 	// If a custom cost was specified, use it, otherwise use a DefaultCost of 1
 	if req.Credits != nil {
