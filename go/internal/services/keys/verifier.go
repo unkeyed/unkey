@@ -97,16 +97,16 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 		}
 	}
 
+	err = k.withRateLimits(ctx, config.ratelimits)
+	if err != nil {
+		return err
+	}
+
 	if config.credits != nil {
 		err = k.withCredits(ctx, *config.credits)
 		if err != nil {
 			return err
 		}
-	}
-
-	err = k.withRateLimits(ctx, config.ratelimits)
-	if err != nil {
-		return err
 	}
 
 	return nil
