@@ -18,10 +18,9 @@ import (
 func TestForbidden(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
-		Logger:      h.Logger,
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Permissions: h.Permissions,
+		Logger: h.Logger,
+		DB:     h.DB,
+		Keys:   h.Keys,
 	}
 
 	// Create a rootKey without any permissions
@@ -86,7 +85,7 @@ func TestForbidden(t *testing.T) {
 		req := handler.Request{}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions")
 	})
 
@@ -110,7 +109,7 @@ func TestForbidden(t *testing.T) {
 		foundProd := false
 		for _, identity := range res.Body.Data {
 			// Should be able to see production identity
-			if identity.Id == prodIdentityID {
+			if identity.ExternalId == "test_user_prod" {
 				foundProd = true
 			}
 		}
@@ -142,13 +141,13 @@ func TestForbidden(t *testing.T) {
 		foundStaging := false
 
 		for _, identity := range res.Body.Data {
-			if identity.Id == defaultIdentityID {
+			if identity.ExternalId == "test_user_default" {
 				foundDefault = true
 			}
-			if identity.Id == prodIdentityID {
+			if identity.ExternalId == "test_user_prod" {
 				foundProd = true
 			}
-			if identity.Id == stagingIdentityID {
+			if identity.ExternalId == "test_user_staging" {
 				foundStaging = true
 			}
 		}

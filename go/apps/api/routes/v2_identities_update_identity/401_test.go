@@ -15,22 +15,21 @@ import (
 func TestUnauthorized(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
-		Logger:      h.Logger,
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Permissions: h.Permissions,
-		Auditlogs:   h.Auditlogs,
+		Logger:    h.Logger,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
 	}
 
 	h.Register(route)
 
 	t.Run("missing Authorization header", func(t *testing.T) {
-		identityID := uid.New(uid.IdentityPrefix)
+		externalID := uid.New(uid.TestPrefix)
 		meta := map[string]interface{}{
 			"test": "value",
 		}
 		req := handler.Request{
-			IdentityId: &identityID,
+			ExternalId: externalID,
 			Meta:       &meta,
 		}
 
@@ -40,17 +39,17 @@ func TestUnauthorized(t *testing.T) {
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusBadRequest, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "Authorization header")
 	})
 
 	t.Run("malformed Authorization header", func(t *testing.T) {
-		identityID := uid.New(uid.IdentityPrefix)
+		externalID := uid.New(uid.TestPrefix)
 		meta := map[string]interface{}{
 			"test": "value",
 		}
 		req := handler.Request{
-			IdentityId: &identityID,
+			ExternalId: externalID,
 			Meta:       &meta,
 		}
 
@@ -61,16 +60,16 @@ func TestUnauthorized(t *testing.T) {
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusBadRequest, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authentication/malformed", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/malformed", res.Body.Error.Type)
 	})
 
 	t.Run("invalid root key", func(t *testing.T) {
-		identityID := uid.New(uid.IdentityPrefix)
+		externalID := uid.New(uid.TestPrefix)
 		meta := map[string]interface{}{
 			"test": "value",
 		}
 		req := handler.Request{
-			IdentityId: &identityID,
+			ExternalId: externalID,
 			Meta:       &meta,
 		}
 
@@ -81,16 +80,16 @@ func TestUnauthorized(t *testing.T) {
 		}
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authentication/key_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/key_not_found", res.Body.Error.Type)
 	})
 
 	t.Run("empty bearer token", func(t *testing.T) {
-		identityID := uid.New(uid.IdentityPrefix)
+		externalID := uid.New(uid.TestPrefix)
 		meta := map[string]interface{}{
 			"test": "value",
 		}
 		req := handler.Request{
-			IdentityId: &identityID,
+			ExternalId: externalID,
 			Meta:       &meta,
 		}
 
@@ -100,7 +99,7 @@ func TestUnauthorized(t *testing.T) {
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusBadRequest, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authentication/malformed", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/malformed", res.Body.Error.Type)
 	})
 
 	t.Run("key from different workspace", func(t *testing.T) {
@@ -110,12 +109,12 @@ func TestUnauthorized(t *testing.T) {
 		// Create a root key for different workspace
 		differentWorkspaceKey := h.CreateRootKey(differentWorkspace.ID, "identity.*.update_identity")
 
-		identityID := uid.New(uid.IdentityPrefix)
+		externalID := uid.New(uid.TestPrefix)
 		meta := map[string]interface{}{
 			"test": "value",
 		}
 		req := handler.Request{
-			IdentityId: &identityID,
+			ExternalId: externalID,
 			Meta:       &meta,
 		}
 
@@ -125,6 +124,6 @@ func TestUnauthorized(t *testing.T) {
 		}
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/identity_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
 	})
 }

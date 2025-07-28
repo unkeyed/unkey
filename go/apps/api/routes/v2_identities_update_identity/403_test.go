@@ -18,11 +18,10 @@ import (
 func TestForbidden(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
-		Logger:      h.Logger,
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Permissions: h.Permissions,
-		Auditlogs:   h.Auditlogs,
+		Logger:    h.Logger,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
 	}
 
 	h.Register(route)
@@ -35,17 +34,17 @@ func TestForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
 		}
 
-		identityID := uid.New(uid.IdentityPrefix)
+		externalID := uid.New(uid.TestPrefix)
 		meta := map[string]interface{}{
 			"test": "value",
 		}
 		req := handler.Request{
-			IdentityId: &identityID,
+			ExternalId: externalID,
 			Meta:       &meta,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "permission")
 	})
 
@@ -57,17 +56,17 @@ func TestForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
 		}
 
-		identityID := uid.New(uid.IdentityPrefix)
+		externalID := uid.New(uid.TestPrefix)
 		meta := map[string]interface{}{
 			"test": "value",
 		}
 		req := handler.Request{
-			IdentityId: &identityID,
+			ExternalId: externalID,
 			Meta:       &meta,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "permission")
 	})
 
@@ -106,36 +105,11 @@ func TestForbidden(t *testing.T) {
 			"test": "value",
 		}
 		req := handler.Request{
-			IdentityId: &identityID,
+			ExternalId: externalID,
 			Meta:       &meta,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, got: %d, response: %s", res.Status, res.RawBody)
-		require.Equal(t, identityID, res.Body.Data.Id)
-	})
-
-	t.Run("specific identity permission for wrong identity", func(t *testing.T) {
-		// Create a different identity ID
-		differentIdentityId := uid.New(uid.IdentityPrefix)
-
-		// Create root key with permission for the different identity
-		rootKeyID := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("identity.%s.update_identity", differentIdentityId))
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
-		}
-
-		identityID := uid.New(uid.IdentityPrefix)
-		meta := map[string]interface{}{
-			"test": "value",
-		}
-		req := handler.Request{
-			IdentityId: &identityID,
-			Meta:       &meta,
-		}
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusForbidden, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
-		require.Contains(t, res.Body.Error.Detail, "permission")
+		require.Equal(t, externalID, res.Body.Data.ExternalId)
 	})
 }

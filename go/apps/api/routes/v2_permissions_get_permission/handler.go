@@ -6,7 +6,6 @@ import (
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
-	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -21,10 +20,9 @@ type Response = openapi.V2PermissionsGetPermissionResponseBody
 // Handler implements zen.Route interface for the v2 permissions get permission endpoint
 type Handler struct {
 	// Services as public fields
-	Logger      logging.Logger
-	DB          db.Database
-	Keys        keys.KeyService
-	Permissions permissions.PermissionService
+	Logger logging.Logger
+	DB     db.Database
+	Keys   keys.KeyService
 }
 
 // Method returns the HTTP method this route responds to
@@ -42,7 +40,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/permissions.getPermission")
 
 	// 1. Authentication
-	auth, err := h.Keys.VerifyRootKey(ctx, s)
+	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -54,17 +52,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// 3. Permission check
-	err = h.Permissions.Check(
-		ctx,
-		auth.KeyID,
-		rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Rbac,
-				ResourceID:   "*",
-				Action:       rbac.ReadPermission,
-			}),
-		),
-	)
+	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Rbac,
+			ResourceID:   "*",
+			Action:       rbac.ReadPermission,
+		}),
+	)))
 	if err != nil {
 		return err
 	}
@@ -96,6 +90,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	permissionResponse := openapi.Permission{
 		Id:          permission.ID,
 		Name:        permission.Name,
+		Slug:        permission.Slug,
 		Description: nil,
 		CreatedAt:   permission.CreatedAtM,
 	}
@@ -109,7 +104,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.PermissionsGetPermissionResponseData{
+		Data: openapi.V2PermissionsGetPermissionResponseData{
 			Permission: permissionResponse,
 		},
 	})

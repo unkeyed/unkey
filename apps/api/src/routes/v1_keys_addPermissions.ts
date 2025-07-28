@@ -11,6 +11,7 @@ import { buildUnkeyQuery } from "@unkey/rbac";
 const route = createRoute({
   tags: ["keys"],
   operationId: "addPermissions",
+  summary: "Add key permissions",
   method: "post",
   path: "/v1/keys.addPermissions",
   security: [{ bearerAuth: [] }],

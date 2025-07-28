@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	builderv1 "github.com/unkeyed/unkey/go/deploy/builderd/gen/builder/v1"
+	builderv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1"
 )
 
 // StorageIsolator handles storage isolation and encryption for tenants

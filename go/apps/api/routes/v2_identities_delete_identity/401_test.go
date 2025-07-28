@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_delete_identity"
-	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -17,11 +16,10 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		Logger:      h.Logger,
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Permissions: h.Permissions,
-		Auditlogs:   h.Auditlogs,
+		Logger:    h.Logger,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
 	}
 
 	h.Register(route)
@@ -32,12 +30,12 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 			// No Authorization header
 		}
 
-		req := handler.Request{ExternalId: ptr.P(uid.New("test"))}
+		req := handler.Request{ExternalId: uid.New("test")}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "Authorization header")
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
@@ -50,12 +48,12 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 			"Authorization": {"malformed_header"},
 		}
 
-		req := handler.Request{ExternalId: ptr.P(uid.New("test"))}
+		req := handler.Request{ExternalId: uid.New("test")}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authentication/malformed", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/malformed", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "Bearer")
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
@@ -68,12 +66,12 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 			"Authorization": {"Bearer invalid_token"},
 		}
 
-		req := handler.Request{ExternalId: ptr.P(uid.New("test"))}
+		req := handler.Request{ExternalId: uid.New("test")}
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authentication/key_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/key_not_found", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "key")
 		require.Equal(t, http.StatusUnauthorized, res.Body.Error.Status)
 		require.Equal(t, "Unauthorized", res.Body.Error.Title)
@@ -86,12 +84,12 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 			"Authorization": {"Bearer "},
 		}
 
-		req := handler.Request{ExternalId: ptr.P(uid.New("test"))}
+		req := handler.Request{ExternalId: uid.New("test")}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authentication/malformed", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/malformed", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "Bearer")
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
@@ -104,12 +102,12 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 			"Authorization": {"Bearer not-a-valid-key-format"},
 		}
 
-		req := handler.Request{ExternalId: ptr.P(uid.New("test"))}
+		req := handler.Request{ExternalId: uid.New("test")}
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authentication/key_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/key_not_found", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "key")
 		require.Equal(t, http.StatusUnauthorized, res.Body.Error.Status)
 		require.Equal(t, "Unauthorized", res.Body.Error.Title)
@@ -122,12 +120,12 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 			"Authorization": {"Bearer random_string_not_a_key"},
 		}
 
-		req := handler.Request{ExternalId: ptr.P(uid.New("test"))}
+		req := handler.Request{ExternalId: uid.New("test")}
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authentication/key_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/key_not_found", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "key")
 		require.Equal(t, http.StatusUnauthorized, res.Body.Error.Status)
 		require.Equal(t, "Unauthorized", res.Body.Error.Title)
@@ -145,12 +143,12 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", differentWorkspaceKey)},
 		}
 
-		req := handler.Request{ExternalId: ptr.P(uid.New("test"))}
+		req := handler.Request{ExternalId: uid.New("test")}
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/identity_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "identity does not exist")
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
@@ -163,12 +161,12 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 			"Authorization": {"Bearer 123"},
 		}
 
-		req := handler.Request{ExternalId: ptr.P(uid.New("test"))}
+		req := handler.Request{ExternalId: uid.New("test")}
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authentication/key_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/key_not_found", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "key")
 		require.Equal(t, http.StatusUnauthorized, res.Body.Error.Status)
 		require.Equal(t, "Unauthorized", res.Body.Error.Title)

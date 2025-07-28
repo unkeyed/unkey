@@ -64,6 +64,8 @@ services:
       UNKEY_REDIS_URL: "redis://redis:6379"
       UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true"
       UNKEY_CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
+      UNKEY_CHPROXY_ENABLED: "true"
+      UNKEY_CHPROXY_AUTH_TOKEN: "chproxy-test-token-123"
       UNKEY_OTEL: true
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel:4318"
       OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
@@ -88,7 +90,6 @@ services:
       - clickhouse
     environment:
       PORT: 8080
-      SERF_PORT: 9999
       RPC_PORT: 9095
       AUTH_TOKEN: "agent-auth-secret"
       VAULT_S3_URL: "http://s3:3902"
@@ -172,14 +173,15 @@ services:
         "--var=EMIT_METRICS_LOGS:false",
         "--var=SYNC_RATELIMIT_ON_NO_DATA:1.0",
         "--var=CLICKHOUSE_URL:http://default:password@clickhouse:8123",
-        "--var=CLICKHOUSE_INSERT_URL:http://proxy:password@chproxy:7123",
+        "--var=CLICKHOUSE_INSERT_URL:http://apiv2:7070",
+        "--var=CLICKHOUSE_PROXY_TOKEN:chproxy-test-token-123",
       ]
 
     depends_on:
       - planetscale
       - agent
       - clickhouse
-      - chproxy
+      - apiv2
 
   ctrl:
     build:
@@ -193,6 +195,8 @@ services:
       - "7091:7091"
     depends_on:
       - mysql
+      - metald-aio
+      - otel
     environment:
       # Database configuration - use existing mysql service
       UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true"
@@ -200,7 +204,7 @@ services:
 
       # Control plane configuration
       UNKEY_HTTP_PORT: "7091"
-      UNKEY_METALD_ADDRESS: "http://localhost:8080"
+      UNKEY_METALD_ADDRESS: "http://metald-aio:8080"
 
     # Override the entrypoint to run ctrl command
 
@@ -256,8 +260,45 @@ services:
       UNKEY_WORKSPACE_ID: "ws_local_root"
       UNKEY_API_ID: "api_local_root_keys"
 
+  # Unkey Deploy Services - All-in-one development container with all 4 services
+  metald-aio:
+    build:
+      context: ../go
+      dockerfile: deploy/Dockerfile.dev
+    platform: linux/amd64
+    container_name: metald-aio
+    hostname: metald-aio
+    privileged: true # Required for systemd
+    volumes:
+      # Mount Docker socket for metald Docker backend
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Persistent storage for development
+      - metald-aio-data:/opt
+      # Systemd requires these mounts
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    ports:
+      # Only expose metald port (agent already uses 8080)
+      - "8090:8080" # metald
+    depends_on:
+      - otel
+    environment:
+      # Development environment
+      - UNKEY_ENVIRONMENT=development
+      - UNKEY_LOG_LEVEL=debug
+
+      # Docker backend configuration
+      - UNKEY_METALD_BACKEND=docker
+      - UNKEY_METALD_DOCKER_HOST=unix:///var/run/docker.sock
+
+      # Service discovery (internal container ports)
+      - UNKEY_METALD_BILLING_ENDPOINT=http://localhost:8081
+      - UNKEY_METALD_ASSETMANAGER_ENDPOINT=http://localhost:8083
+      - UNKEY_ASSETMANAGERD_BUILDERD_ENDPOINT=http://localhost:8082
+      - UNKEY_BUILDERD_ASSETMANAGER_ENDPOINT=http://localhost:8083
+
 volumes:
   mysql:
   clickhouse:
   clickhouse-keeper:
   s3:
+  metald-aio-data:

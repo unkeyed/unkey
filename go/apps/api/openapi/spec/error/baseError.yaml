@@ -1,0 +1,40 @@
+properties:
+  detail:
+    description: A human-readable explanation specific to this occurrence of
+      the problem. This provides detailed information about what went wrong
+      and potential remediation steps. The message is intended to be helpful
+      for developers troubleshooting the issue.
+    example: Property foo is required but is missing.
+    type: string
+  status:
+    description: HTTP status code that corresponds to this error. This will
+      match the status code in the HTTP response. Common codes include `400` (Bad
+      Request), `401` (Unauthorized), `403` (Forbidden), `404` (Not Found), `409` (Conflict),
+      and `500` (Internal Server Error).
+    example: 404
+    format: int
+    type: integer
+  title:
+    description:
+      A short, human-readable summary of the problem type. This remains
+      constant from occurrence to occurrence of the same problem and should be
+      used for programmatic handling.
+    example: Not Found
+    type: string
+  type:
+    description: A URI reference that identifies the problem type. This provides
+      a stable identifier for the error that can be used for documentation lookups
+      and programmatic error handling. When followed, this URI should provide human-readable
+      documentation for the problem type.
+    example: https://unkey.com/docs/errors/unkey/resource/not_found
+    type: string
+required:
+  - title
+  - detail
+  - status
+  - type
+type: object
+additionalProperties: false
+description: Base error structure following Problem Details for HTTP APIs (RFC
+  7807). This provides a standardized way to carry machine-readable details of
+  errors in HTTP response content.

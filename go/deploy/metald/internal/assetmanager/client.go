@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	assetv1 "github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/asset/v1"
-	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/gen/asset/v1/assetv1connect"
+	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
+	"github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1/assetmanagerdv1connect"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/observability"
 	"github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors"
@@ -37,7 +37,7 @@ type Client interface {
 
 // client implements the Client interface
 type client struct {
-	assetClient assetv1connect.AssetManagerServiceClient
+	assetClient assetmanagerdv1connect.AssetManagerServiceClient
 	logger      *slog.Logger
 }
 
@@ -68,7 +68,7 @@ func NewClient(cfg *config.AssetManagerConfig, logger *slog.Logger) (Client, err
 		interceptorList = append(interceptorList, connect.Interceptor(interceptor))
 	}
 
-	assetClient := assetv1connect.NewAssetManagerServiceClient(
+	assetClient := assetmanagerdv1connect.NewAssetManagerServiceClient(
 		httpClient,
 		cfg.Endpoint,
 		connect.WithInterceptors(interceptorList...),
@@ -101,7 +101,7 @@ func NewClientWithHTTP(cfg *config.AssetManagerConfig, logger *slog.Logger, http
 		interceptorList = append(interceptorList, connect.Interceptor(interceptor))
 	}
 
-	assetClient := assetv1connect.NewAssetManagerServiceClient(
+	assetClient := assetmanagerdv1connect.NewAssetManagerServiceClient(
 		httpClient,
 		cfg.Endpoint,
 		connect.WithInterceptors(interceptorList...),

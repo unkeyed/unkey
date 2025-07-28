@@ -176,7 +176,7 @@ CREATE TABLE `ratelimit_overrides` (
 	`updated_at_m` bigint,
 	`deleted_at_m` bigint,
 	CONSTRAINT `ratelimit_overrides_id` PRIMARY KEY(`id`),
-	CONSTRAINT `unique_identifier_per_namespace_idx` UNIQUE(`identifier`,`namespace_id`)
+	CONSTRAINT `unique_identifier_per_namespace_idx` UNIQUE(`namespace_id`,`identifier`)
 );
 
 CREATE TABLE `workspaces` (
@@ -384,6 +384,7 @@ CREATE TABLE `versions` (
 	`git_commit_sha` varchar(40),
 	`git_branch` varchar(256),
 	`config_snapshot` json NOT NULL,
+	`openapi_spec` text,
 	`status` enum('pending','building','deploying','active','failed','archived') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
@@ -427,6 +428,7 @@ CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m
 CREATE INDEX `idx_keys_on_for_workspace_id` ON `keys` (`for_workspace_id`);
 CREATE INDEX `owner_id_idx` ON `keys` (`owner_id`);
 CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`);
+CREATE INDEX `idx_keys_on_workspace_id` ON `keys` (`workspace_id`);
 CREATE INDEX `deleted_at_idx` ON `keys` (`deleted_at_m`);
 CREATE INDEX `name_idx` ON `ratelimits` (`name`);
 CREATE INDEX `identity_id_idx` ON `ratelimits` (`identity_id`);

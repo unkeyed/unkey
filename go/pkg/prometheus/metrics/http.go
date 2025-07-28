@@ -31,6 +31,20 @@ var latencyBuckets = []float64{
 	10.0,  // 10s
 }
 
+// Standard histogram buckets for request body size metrics in bytes
+var bodySizeBuckets = []float64{
+	100,      // 100 bytes
+	1024,     // 1KB
+	4096,     // 4KB
+	16384,    // 16KB
+	65536,    // 64KB
+	262144,   // 256KB
+	1048576,  // 1MB
+	4194304,  // 4MB
+	16777216, // 16MB
+	67108864, // 64MB
+}
+
 var (
 	// HTTPRequestLatency tracks HTTP request latencies as a histogram, labeled by method, path, and status.
 	// This collector uses predefined buckets optimized for typical web service latencies,
@@ -62,6 +76,23 @@ var (
 			Subsystem:   "http",
 			Name:        "requests_total",
 			Help:        "Total number of HTTP requests processed.",
+			ConstLabels: constLabels,
+		},
+		[]string{"method", "path", "status"},
+	)
+
+	// HTTPRequestBodySize tracks the distribution of HTTP request body sizes as a histogram,
+	// labeled by method, path, and status. This helps monitor payload sizes and identify potentially
+	// problematic large requests.
+	//
+	// Example usage:
+	//   metrics.HTTPRequestBodySize.WithLabelValues("POST", "/api/upload", "200").Observe(float64(bodySize))
+	HTTPRequestBodySize = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Subsystem:   "http",
+			Name:        "request_body_size_bytes",
+			Help:        "Histogram of HTTP request body sizes in bytes.",
+			Buckets:     bodySizeBuckets,
 			ConstLabels: constLabels,
 		},
 		[]string{"method", "path", "status"},

@@ -1,0 +1,75 @@
+post:
+  tags:
+    - keys
+  summary: Update key settings
+  description: |
+    Update key properties in response to plan changes, subscription updates, or account status changes.
+
+    Use this for user upgrades/downgrades, role modifications, or administrative changes. Supports partial updates - only specify fields you want to change. Set fields to null to clear them.
+
+    **Important**: Permissions and roles are replaced entirely. Use dedicated add/remove endpoints for incremental changes.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `api.*.update_key` (to update keys in any API)
+    - `api.<api_id>.update_key` (to update keys in a specific API)
+
+    **Side Effects**
+
+    If you specify an `externalId` that doesn't exist, a new identity will be automatically created and linked to the key. Permission updates will auto-create any permissions that don't exist in your workspace. Changes take effect immediately but may take up to 30 seconds to propagate to all edge regions due to cache invalidation.
+  operationId: updateKey
+  x-speakeasy-name-override: updateKey
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "V2KeysUpdateKeyRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2KeysUpdateKeyResponseBody.yaml"
+          examples:
+            success:
+              summary: Successful update
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQY
+                data: {}
+      description: |
+        Key updated successfully. Changes take effect immediately with up to 30-second edge propagation.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

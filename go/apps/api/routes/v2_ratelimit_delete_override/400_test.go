@@ -18,10 +18,10 @@ func TestBadRequests(t *testing.T) {
 
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID)
 	route := &handler.Handler{
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Logger:      h.Logger,
-		Permissions: h.Permissions,
+		DB:                      h.DB,
+		Keys:                    h.Keys,
+		Logger:                  h.Logger,
+		RatelimitNamespaceCache: h.Caches.RatelimitNamespace,
 	}
 
 	h.Register(route)
@@ -39,7 +39,7 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Equal(t, "POST request body for '/v2/ratelimit.deleteOverride' failed to validate schema", res.Body.Error.Detail)
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
@@ -57,7 +57,7 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Equal(t, "POST request body for '/v2/ratelimit.deleteOverride' failed to validate schema", res.Body.Error.Detail)
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
@@ -76,7 +76,7 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Equal(t, "POST request body for '/v2/ratelimit.deleteOverride' failed to validate schema", res.Body.Error.Detail)
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
@@ -96,7 +96,7 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Equal(t, "You must provide either a namespace ID or name.", res.Body.Error.Detail)
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)

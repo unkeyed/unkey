@@ -8,6 +8,7 @@ import { buildUnkeyQuery } from "@unkey/rbac";
 const route = createRoute({
   tags: ["apis"],
   operationId: "getApi",
+  summary: "Get API namespace",
   method: "get",
   path: "/v1/apis.getApi",
   security: [{ bearerAuth: [] }],

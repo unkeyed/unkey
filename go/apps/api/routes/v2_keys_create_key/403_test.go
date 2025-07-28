@@ -17,17 +17,17 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func Test_CreateKey_Forbidden(t *testing.T) {
+func TestCreateKeyForbidden(t *testing.T) {
 
 	h := testutil.NewHarness(t)
 	ctx := context.Background()
 
 	route := &handler.Handler{
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Logger:      h.Logger,
-		Permissions: h.Permissions,
-		Auditlogs:   h.Auditlogs,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Logger:    h.Logger,
+		Auditlogs: h.Auditlogs,
+		Vault:     h.Vault,
 	}
 
 	h.Register(route)

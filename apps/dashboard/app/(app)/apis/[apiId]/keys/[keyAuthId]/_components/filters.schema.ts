@@ -14,6 +14,7 @@ export type FilterFieldConfigs = {
   keyIds: StringConfig<KeysListFilterOperator>;
   names: StringConfig<KeysListFilterOperator>;
   identities: StringConfig<KeysListFilterOperator>;
+  tags: StringConfig<KeysListFilterOperator>;
 };
 
 export const keysListFilterFieldConfig: FilterFieldConfigs = {
@@ -26,6 +27,10 @@ export const keysListFilterFieldConfig: FilterFieldConfigs = {
     operators: [...commonStringOperators],
   },
   identities: {
+    type: "string",
+    operators: [...commonStringOperators],
+  },
+  tags: {
     type: "string",
     operators: [...commonStringOperators],
   },

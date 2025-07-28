@@ -31,7 +31,6 @@ type S3Config struct {
 }
 
 func NewS3(config S3Config) (Storage, error) {
-
 	logger := config.Logger.With("service", "storage")
 
 	logger.Info("using s3 storage")
@@ -43,7 +42,6 @@ func NewS3(config S3Config) (Storage, error) {
 			URL:               config.S3URL,
 			HostnameImmutable: true,
 		}, nil
-
 	})
 
 	cfg, err := awsConfig.LoadDefaultConfig(context.Background(),

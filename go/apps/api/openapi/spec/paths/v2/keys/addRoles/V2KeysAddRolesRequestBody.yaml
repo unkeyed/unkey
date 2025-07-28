@@ -1,0 +1,56 @@
+type: object
+required:
+  - keyId
+  - roles
+properties:
+  keyId:
+    type: string
+    minLength: 3
+    maxLength: 255 # Reasonable upper bound for database identifiers
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: |
+      Specifies which key receives the additional roles using the database identifier returned from `createKey`.
+      Do not confuse this with the actual API key string that users include in requests.
+      Added roles supplement existing roles and permissions without replacing them.
+      Role assignments take effect immediately but may take up to 30 seconds to propagate across all regions.
+    example: key_2cGKbMxRyIzhCxo1Idjz8q
+  roles:
+    type: array
+    minItems: 1
+    maxItems: 100 # Reasonable limit for role assignments per key
+    description: |
+      Assigns additional roles to the key through direct assignment to existing workspace roles.
+      Operations are idempotent - adding existing roles has no effect and causes no errors.
+      Use either ID for existing roles or name for human-readable references.
+
+      All roles must already exist in the workspace - roles cannot be created automatically.
+      Invalid roles cause the entire operation to fail atomically, ensuring consistent state.
+      Role assignments take effect immediately but cache propagation across regions may take up to 30 seconds.
+    items:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 3
+          maxLength: 255 # Reasonable upper bound for database identifiers
+          pattern: "^[a-zA-Z0-9_]+$"
+          description: |
+            References an existing role by its database identifier.
+            Use when you know the exact role ID and want to ensure you're referencing a specific role.
+            Takes precedence over name when both are provided in the same object.
+            Essential for automation scripts where role names might change but IDs remain stable.
+          example: role_1n9McEIBSqy44Qy7hzWyM5
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100 # Keep role names concise and readable
+          pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+          description: |
+            Identifies the role by its human-readable name within the workspace.
+            Role names must start with a letter and contain only letters, numbers, underscores, or hyphens.
+            Names must be unique within the workspace and are case-sensitive.
+            More readable than IDs but vulnerable to integration breaks if roles are renamed.
+            Use IDs for automation and names for human-configured integrations.
+          example: admin
+      additionalProperties: false
+additionalProperties: false

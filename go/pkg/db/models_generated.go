@@ -871,6 +871,7 @@ type Version struct {
 	GitCommitSha   sql.NullString  `db:"git_commit_sha"`
 	GitBranch      sql.NullString  `db:"git_branch"`
 	ConfigSnapshot json.RawMessage `db:"config_snapshot"`
+	OpenapiSpec    sql.NullString  `db:"openapi_spec"`
 	Status         VersionsStatus  `db:"status"`
 	CreatedAt      int64           `db:"created_at"`
 	UpdatedAt      sql.NullInt64   `db:"updated_at"`

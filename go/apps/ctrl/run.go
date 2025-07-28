@@ -10,6 +10,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
+	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/version"
 	deployTLS "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
@@ -154,19 +155,13 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to register deployment workflow: %w", err)
 	}
 
-	// Create the service implementations
-	ctrlSvc := ctrl.New(cfg.InstanceID, database)
-	versionSvc := version.New(database, hydraEngine, logger)
-
 	// Create the connect handler
 	mux := http.NewServeMux()
 
 	// Create the service handlers with interceptors
-	ctrlPath, ctrlHandler := ctrlv1connect.NewCtrlServiceHandler(ctrlSvc)
-	mux.Handle(ctrlPath, ctrlHandler)
-
-	versionPath, versionHandler := ctrlv1connect.NewVersionServiceHandler(versionSvc)
-	mux.Handle(versionPath, versionHandler)
+	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database)))
+	mux.Handle(ctrlv1connect.NewVersionServiceHandler(version.New(database, hydraEngine, logger)))
+	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger)))
 
 	// Configure server
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)

@@ -1,0 +1,54 @@
+post:
+  tags:
+    - permissions
+  summary: Delete role
+  description: |
+    Remove a role from your workspace. This also removes the role from all assigned API keys.
+
+    **Important:** This operation cannot be undone and immediately affects all API keys that had this role assigned.
+
+    **Required Permissions**
+    
+    Your root key must have the following permission:
+    - `rbac.*.delete_role`
+  operationId: deleteRole
+  x-speakeasy-name-override: DeleteRole
+  security:
+    - rootKey: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PermissionsDeleteRoleRequestBody.yaml"
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PermissionsDeleteRoleResponseBody.yaml"
+      description: Role deleted successfully
+    "400":
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "500":
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+      description: Internal Server Error

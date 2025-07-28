@@ -15,11 +15,11 @@ func TestNamespaceNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Logger:      h.Logger,
-		Permissions: h.Permissions,
-		Auditlogs:   h.Auditlogs,
+		DB:                      h.DB,
+		Keys:                    h.Keys,
+		Logger:                  h.Logger,
+		Auditlogs:               h.Auditlogs,
+		RatelimitNamespaceCache: h.Caches.RatelimitNamespace,
 	}
 
 	h.Register(route)
@@ -44,7 +44,7 @@ func TestNamespaceNotFound(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/ratelimit_namespace_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/ratelimit_namespace_not_found", res.Body.Error.Type)
 	})
 
 	// Test with non-existent namespace name
@@ -60,6 +60,6 @@ func TestNamespaceNotFound(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/ratelimit_namespace_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/ratelimit_namespace_not_found", res.Body.Error.Type)
 	})
 }

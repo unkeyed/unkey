@@ -21,13 +21,21 @@ export const createKey = t.procedure
   .use(requireWorkspace)
   .input(createKeyInputSchema)
   .mutation(async ({ input, ctx }) => {
-    const keyAuth = await db.query.keyAuth.findFirst({
-      where: (table, { and, eq }) =>
-        and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.keyAuthId)),
-      with: {
-        api: true,
-      },
-    });
+    const keyAuth = await db.query.keyAuth
+      .findFirst({
+        where: (table, { and, eq }) =>
+          and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.keyAuthId)),
+        with: {
+          api: true,
+        },
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We were unable to create a key for this API. Please try again or contact support@unkey.dev.",
+        });
+      });
 
     if (!keyAuth) {
       throw new TRPCError({

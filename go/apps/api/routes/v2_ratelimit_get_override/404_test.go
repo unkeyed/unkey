@@ -31,10 +31,10 @@ func TestOverrideNotFound(t *testing.T) {
 	require.NoError(t, err)
 
 	route := &handler.Handler{
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Logger:      h.Logger,
-		Permissions: h.Permissions,
+		DB:                      h.DB,
+		Keys:                    h.Keys,
+		Logger:                  h.Logger,
+		RatelimitNamespaceCache: h.Caches.RatelimitNamespace,
 	}
 
 	h.Register(route)
@@ -55,7 +55,7 @@ func TestOverrideNotFound(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/ratelimit_override_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/ratelimit_override_not_found", res.Body.Error.Type)
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 	})
 
@@ -70,7 +70,7 @@ func TestOverrideNotFound(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/ratelimit_namespace_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/ratelimit_namespace_not_found", res.Body.Error.Type)
 	})
 
 	// Test with non-existent namespace name
@@ -84,7 +84,7 @@ func TestOverrideNotFound(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/ratelimit_namespace_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/ratelimit_namespace_not_found", res.Body.Error.Type)
 	})
 
 	// Test with non-existent identifier
@@ -112,6 +112,6 @@ func TestOverrideNotFound(t *testing.T) {
 		}, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/ratelimit_override_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/ratelimit_override_not_found", res.Body.Error.Type)
 	})
 }

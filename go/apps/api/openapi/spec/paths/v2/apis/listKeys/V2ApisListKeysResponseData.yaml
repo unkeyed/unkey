@@ -1,0 +1,5 @@
+type: array
+maxItems: 100
+items:
+  "$ref": "../../../../common/KeyResponseData.yaml"
+description: Array of API keys with complete configuration and metadata.

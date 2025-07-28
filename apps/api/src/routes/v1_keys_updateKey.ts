@@ -15,6 +15,7 @@ import { setRoles } from "./v1_keys_setRoles";
 const route = createRoute({
   tags: ["keys"],
   operationId: "updateKey",
+  summary: "Update key settings",
   method: "post",
   path: "/v1/keys.updateKey",
   security: [{ bearerAuth: [] }],

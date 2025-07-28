@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/unkeyed/unkey/go/apps/api"
+	"github.com/unkeyed/unkey/go/pkg/cli"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/tls"
 	"github.com/unkeyed/unkey/go/pkg/uid"
-	"github.com/urfave/cli/v3"
 )
 
 var Cmd = &cli.Command{
@@ -16,129 +16,74 @@ var Cmd = &cli.Command{
 
 	Flags: []cli.Flag{
 		// Server Configuration
-		&cli.IntFlag{
-			Name:     "http-port",
-			Usage:    "HTTP port for the API server to listen on. Default: 7070",
-			Sources:  cli.EnvVars("UNKEY_HTTP_PORT"),
-			Value:    7070,
-			Required: false,
-		},
-		&cli.BoolFlag{
-			Name:     "color",
-			Usage:    "Enable colored log output. Default: true",
-			Sources:  cli.EnvVars("UNKEY_LOGS_COLOR"),
-			Value:    true,
-			Required: false,
-		},
-		&cli.BoolFlag{
-			Name:     "test-mode",
-			Usage:    "Enable test mode. WARNING: Potentially unsafe, may trust client inputs blindly. Default: false",
-			Sources:  cli.EnvVars("UNKEY_TEST_MODE"),
-			Value:    false,
-			Required: false,
-		},
+		cli.Int("http-port", "HTTP port for the API server to listen on. Default: 7070",
+			cli.Default(7070), cli.EnvVar("UNKEY_HTTP_PORT")),
+		cli.Bool("color", "Enable colored log output. Default: true",
+			cli.Default(true), cli.EnvVar("UNKEY_LOGS_COLOR")),
+		cli.Bool("test-mode", "Enable test mode. WARNING: Potentially unsafe, may trust client inputs blindly. Default: false",
+			cli.Default(false), cli.EnvVar("UNKEY_TEST_MODE")),
 
 		// Instance Identification
-		&cli.StringFlag{
-			Name:     "platform",
-			Usage:    "Cloud platform identifier for this node. Used for logging and metrics.",
-			Sources:  cli.EnvVars("UNKEY_PLATFORM"),
-			Required: false,
-		},
-		&cli.StringFlag{
-			Name:     "image",
-			Usage:    "Container image identifier. Used for logging and metrics.",
-			Sources:  cli.EnvVars("UNKEY_IMAGE"),
-			Required: false,
-		},
-		&cli.StringFlag{
-			Name:     "region",
-			Usage:    "Geographic region identifier. Used for logging and routing. Default: unknown",
-			Sources:  cli.EnvVars("UNKEY_REGION", "AWS_REGION"),
-			Value:    "unknown",
-			Required: false,
-		},
-		&cli.StringFlag{
-			Name:     "instance-id",
-			Usage:    "Unique identifier for this instance. Auto-generated if not provided.",
-			Sources:  cli.EnvVars("UNKEY_INSTANCE_ID"),
-			Value:    uid.New(uid.InstancePrefix, 4),
-			Required: false,
-		},
+		cli.String("platform", "Cloud platform identifier for this node. Used for logging and metrics.",
+			cli.EnvVar("UNKEY_PLATFORM")),
+		cli.String("image", "Container image identifier. Used for logging and metrics.",
+			cli.EnvVar("UNKEY_IMAGE")),
+		cli.String("region", "Geographic region identifier. Used for logging and routing. Default: unknown",
+			cli.Default("unknown"), cli.EnvVar("UNKEY_REGION"), cli.EnvVar("AWS_REGION")),
+		cli.String("instance-id", "Unique identifier for this instance. Auto-generated if not provided.",
+			cli.Default(uid.New(uid.InstancePrefix, 4)), cli.EnvVar("UNKEY_INSTANCE_ID")),
 
 		// Database Configuration
-		&cli.StringFlag{
-			Name:     "database-primary",
-			Usage:    "MySQL connection string for primary database. Required for all deployments. Example: user:pass@host:3306/unkey?parseTime=true",
-			Sources:  cli.EnvVars("UNKEY_DATABASE_PRIMARY"),
-			Required: true,
-		},
-		&cli.StringFlag{
-			Name:     "database-replica",
-			Usage:    "MySQL connection string for read-replica. Reduces load on primary database. Format same as database-primary.",
-			Sources:  cli.EnvVars("UNKEY_DATABASE_REPLICA"),
-			Required: false,
-		},
+		cli.String("database-primary", "MySQL connection string for primary database. Required for all deployments. Example: user:pass@host:3306/unkey?parseTime=true",
+			cli.Required(), cli.EnvVar("UNKEY_DATABASE_PRIMARY")),
+		cli.String("database-replica", "MySQL connection string for read-replica. Reduces load on primary database. Format same as database-primary.",
+			cli.EnvVar("UNKEY_DATABASE_REPLICA")),
 
 		// Caching and Storage
-		&cli.StringFlag{
-			Name:     "redis-url",
-			Usage:    "Redis connection string for rate-limiting and distributed counters. Example: redis://localhost:6379",
-			Sources:  cli.EnvVars("UNKEY_REDIS_URL"),
-			Required: false,
-		},
-		&cli.StringFlag{
-			Name:     "clickhouse-url",
-			Usage:    "ClickHouse connection string for analytics. Recommended for production. Example: clickhouse://user:pass@host:9000/unkey",
-			Sources:  cli.EnvVars("UNKEY_CLICKHOUSE_URL"),
-			Required: false,
-		},
+		cli.String("redis-url", "Redis connection string for rate-limiting and distributed counters. Example: redis://localhost:6379",
+			cli.EnvVar("UNKEY_REDIS_URL")),
+		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Recommended for production. Example: clickhouse://user:pass@host:9000/unkey",
+			cli.EnvVar("UNKEY_CLICKHOUSE_URL")),
 
 		// Observability
-		&cli.BoolFlag{
-			Name:     "otel",
-			Usage:    "Enable OpenTelemetry tracing and metrics",
-			Sources:  cli.EnvVars("UNKEY_OTEL"),
-			Required: false,
-		},
+		cli.Bool("otel", "Enable OpenTelemetry tracing and metrics",
+			cli.EnvVar("UNKEY_OTEL")),
+		cli.Float("otel-trace-sampling-rate", "Sampling rate for OpenTelemetry traces (0.0-1.0). Only used when --otel is provided. Default: 0.25",
+			cli.Default(0.25), cli.EnvVar("UNKEY_OTEL_TRACE_SAMPLING_RATE")),
+		cli.Int("prometheus-port", "Enable Prometheus /metrics endpoint on specified port. Set to 0 to disable.",
+			cli.Default(0), cli.EnvVar("UNKEY_PROMETHEUS_PORT")),
 
 		// TLS Configuration
-		&cli.StringFlag{
-			Name:      "tls-cert-file",
-			Usage:     "Path to TLS certificate file for HTTPS. Both cert and key must be provided to enable HTTPS.",
-			Sources:   cli.EnvVars("UNKEY_TLS_CERT_FILE"),
-			Required:  false,
-			TakesFile: true,
-		},
-		&cli.StringFlag{
-			Name:      "tls-key-file",
-			Usage:     "Path to TLS key file for HTTPS. Both cert and key must be provided to enable HTTPS.",
-			Sources:   cli.EnvVars("UNKEY_TLS_KEY_FILE"),
-			Required:  false,
-			TakesFile: true,
-		},
+		cli.String("tls-cert-file", "Path to TLS certificate file for HTTPS. Both cert and key must be provided to enable HTTPS.",
+			cli.EnvVar("UNKEY_TLS_CERT_FILE")),
+		cli.String("tls-key-file", "Path to TLS key file for HTTPS. Both cert and key must be provided to enable HTTPS.",
+			cli.EnvVar("UNKEY_TLS_KEY_FILE")),
 
-		&cli.FloatFlag{
-			Name:     "otel-trace-sampling-rate",
-			Usage:    "Sampling rate for OpenTelemetry traces (0.0-1.0). Only used when --otel is provided. Default: 0.25",
-			Sources:  cli.EnvVars("UNKEY_OTEL_TRACE_SAMPLING_RATE"),
-			Value:    0.25,
-			Required: false,
-		},
-		&cli.IntFlag{
-			Name:     "prometheus-port",
-			Usage:    "Enable Prometheus /metrics endpoint on specified port. Set to 0 to disable.",
-			Sources:  cli.EnvVars("UNKEY_PROMETHEUS_PORT"),
-			Value:    0,
-			Required: false,
-		},
-		&cli.StringSliceFlag{
-			Name:     "vault-master-keys",
-			Usage:    "Vault master keys for encryption",
-			Sources:  cli.EnvVars("UNKEY_VAULT_MASTER_KEYS"),
-			Value:    []string{},
-			Required: false,
-		},
+		// Vault Configuration
+		cli.StringSlice("vault-master-keys", "Vault master keys for encryption",
+			cli.EnvVar("UNKEY_VAULT_MASTER_KEYS")),
+
+		// S3 Configuration
+		cli.String("vault-s3-url", "S3 Compatible Endpoint URL",
+			cli.EnvVar("UNKEY_VAULT_S3_URL")),
+		cli.String("vault-s3-bucket", "S3 bucket name",
+			cli.EnvVar("UNKEY_VAULT_S3_BUCKET")),
+		cli.String("vault-s3-access-key-id", "S3 access key ID",
+			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_ID")),
+		cli.String("vault-s3-secret-access-key", "S3 secret access key",
+			cli.EnvVar("UNKEY_VAULT_S3_SECRET_ACCESS_KEY")),
+
+		// ClickHouse Proxy Service Configuration
+		cli.Bool(
+			"chproxy-enabled",
+			"Enable ClickHouse proxy endpoints for high-throughput event collection",
+			cli.EnvVar("UNKEY_CHPROXY_ENABLED"),
+		),
+		cli.String(
+			"chproxy-auth-token",
+			"Authentication token for ClickHouse proxy endpoints. Required when proxy is enabled.",
+			cli.EnvVar("UNKEY_CHPROXY_AUTH_TOKEN"),
+		),
 	},
 
 	Action: action,
@@ -162,16 +107,25 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		}
 	}
 
+	var vaultS3Config *api.S3Config
+	if cmd.String("vault-s3-url") != "" {
+		vaultS3Config = &api.S3Config{
+			URL:             cmd.String("vault-s3-url"),
+			Bucket:          cmd.String("vault-s3-bucket"),
+			AccessKeyID:     cmd.String("vault-s3-access-key-id"),
+			SecretAccessKey: cmd.String("vault-s3-secret-access-key"),
+		}
+	}
+
 	config := api.Config{
 		// Basic configuration
 		Platform: cmd.String("platform"),
 		Image:    cmd.String("image"),
-		HttpPort: cmd.Int("http-port"),
 		Region:   cmd.String("region"),
 
 		// Database configuration
 		DatabasePrimary:         cmd.String("database-primary"),
-		DatabaseReadonlyReplica: cmd.String("database-readonly-replica"),
+		DatabaseReadonlyReplica: cmd.String("database-replica"),
 
 		// ClickHouse
 		ClickhouseURL: cmd.String("clickhouse-url"),
@@ -189,7 +143,17 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		Clock:          clock.New(),
 		TestMode:       cmd.Bool("test-mode"),
 
+		// HTTP configuration
+		HttpPort: cmd.Int("http-port"),
+		Listener: nil, // Production uses HttpPort
+
+		// Vault configuration
 		VaultMasterKeys: cmd.StringSlice("vault-master-keys"),
+		VaultS3:         vaultS3Config,
+
+		// ClickHouse proxy configuration
+		ChproxyEnabled: cmd.Bool("chproxy-enabled"),
+		ChproxyToken:   cmd.String("chproxy-auth-token"),
 	}
 
 	err := config.Validate()

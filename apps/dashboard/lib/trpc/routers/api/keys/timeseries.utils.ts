@@ -45,6 +45,14 @@ export function transformVerificationFilters(params: KeysOverviewQueryTimeseries
           operator: f.operator,
           value: f.value,
         })) || null,
+      tags: params.tags
+        ? [
+            {
+              operator: params.tags.operator,
+              value: params.tags.value,
+            },
+          ]
+        : null,
     },
     granularity: timeConfig.granularity,
   };

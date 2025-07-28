@@ -16,7 +16,6 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
 			err := next(ctx, s)
-
 			if err == nil {
 				return nil
 			}
@@ -60,7 +59,8 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 			// Bad Request errors
 			case codes.UnkeyAppErrorsValidationInvalidInput,
 				codes.UnkeyAuthErrorsAuthenticationMissing,
-				codes.UnkeyAuthErrorsAuthenticationMalformed:
+				codes.UnkeyAuthErrorsAuthenticationMalformed,
+				codes.UserErrorsBadRequestPermissionsQuerySyntaxError:
 				return s.JSON(http.StatusBadRequest, openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),

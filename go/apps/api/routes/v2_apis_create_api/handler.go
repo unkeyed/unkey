@@ -10,7 +10,6 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
-	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
@@ -25,11 +24,10 @@ type Request = openapi.V2ApisCreateApiRequestBody
 type Response = openapi.V2ApisCreateApiResponseBody
 
 type Handler struct {
-	Logger      logging.Logger
-	DB          db.Database
-	Keys        keys.KeyService
-	Permissions permissions.PermissionService
-	Auditlogs   auditlogs.AuditLogService
+	Logger    logging.Logger
+	DB        db.Database
+	Keys      keys.KeyService
+	Auditlogs auditlogs.AuditLogService
 }
 
 func (h *Handler) Method() string {
@@ -41,31 +39,23 @@ func (h *Handler) Path() string {
 }
 
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, err := h.Keys.VerifyRootKey(ctx, s)
+	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
 	}
 
-	var req Request
-	err = s.BindBody(&req)
+	req, err := zen.BindBody[Request](s)
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
-		)
+		return err
 	}
 
-	err = h.Permissions.Check(
-		ctx,
-		auth.KeyID,
-		rbac.Or(
-
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   "*",
-				Action:       rbac.CreateAPI,
-			}),
-		),
-	)
+	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   "*",
+			Action:       rbac.CreateAPI,
+		}),
+	)))
 	if err != nil {
 		return err
 	}
@@ -94,6 +84,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 			KeyAuthID:   sql.NullString{Valid: true, String: keyAuthId},
+			IpWhitelist: sql.NullString{Valid: false, String: ""},
 			CreatedAtM:  time.Now().UnixMilli(),
 		})
 		if err != nil {
@@ -108,7 +99,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.APICreateEvent,
 				Display:     fmt.Sprintf("Created API %s", apiId),
-				ActorID:     auth.KeyID,
+				ActorID:     auth.Key.ID,
 				ActorName:   "root key",
 				ActorMeta:   map[string]any{},
 				ActorType:   auditlog.RootKeyActor,
@@ -139,7 +130,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.ApisCreateApiResponseData{
+		Data: openapi.V2ApisCreateApiResponseData{
 			ApiId: apiId,
 		},
 	})

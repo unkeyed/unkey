@@ -1,14 +1,23 @@
 package api
 
 import (
+	"net"
+
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/tls"
 )
 
-type Config struct {
+type S3Config struct {
+	URL             string
+	Bucket          string
+	AccessKeyID     string
+	SecretAccessKey string
+}
 
+type Config struct {
 	// InstanceID is the unique identifier for this instance of the API server
 	InstanceID string
+
 	// Platform identifies the cloud platform where the node is running (e.g., aws, gcp, hetzner)
 	Platform string
 
@@ -16,7 +25,13 @@ type Config struct {
 	Image string
 
 	// HttpPort defines the HTTP port for the API server to listen on (default: 7070)
+	// Used in production deployments. Ignored if Listener is provided.
 	HttpPort int
+
+	// Listener defines a pre-created network listener for the HTTP server
+	// If provided, the server will use this listener instead of creating one from HttpPort
+	// This is intended for testing scenarios where ephemeral ports are needed to avoid conflicts
+	Listener net.Listener
 
 	// Region identifies the geographic region where this node is deployed
 	Region string
@@ -54,7 +69,17 @@ type Config struct {
 	// TLSConfig provides HTTPS support when set
 	TLSConfig *tls.Config
 
+	// Vault Configuration
 	VaultMasterKeys []string
+	VaultS3         *S3Config
+
+	// --- ClickHouse proxy configuration ---
+
+	// ChproxyEnabled enables the ClickHouse proxy endpoints
+	ChproxyEnabled bool
+
+	// ChproxyToken is the authentication token for ClickHouse proxy endpoints
+	ChproxyToken string
 }
 
 func (c Config) Validate() error {

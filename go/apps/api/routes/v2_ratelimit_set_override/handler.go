@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -11,8 +10,8 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
-	"github.com/unkeyed/unkey/go/internal/services/permissions"
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
+	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -28,11 +27,11 @@ type Response = openapi.V2RatelimitSetOverrideResponseBody
 // Handler implements zen.Route interface for the v2 ratelimit set override endpoint
 type Handler struct {
 	// Services as public fields
-	Logger      logging.Logger
-	DB          db.Database
-	Keys        keys.KeyService
-	Permissions permissions.PermissionService
-	Auditlogs   auditlogs.AuditLogService
+	Logger                  logging.Logger
+	DB                      db.Database
+	Keys                    keys.KeyService
+	Auditlogs               auditlogs.AuditLogService
+	RatelimitNamespaceCache cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 }
 
 // Method returns the HTTP method this route responds to
@@ -47,63 +46,78 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, err := h.Keys.VerifyRootKey(ctx, s)
+	auth, err := h.Keys.GetRootKey(ctx, s)
 	if err != nil {
 		return err
 	}
 
-	// nolint:exhaustruct
-	req := Request{}
-	err = s.BindBody(&req)
+	req, err := zen.BindBody[Request](s)
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.UnexpectedError.URN()),
-			fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
-		)
+		return err
 	}
 
 	namespace, err := getNamespace(ctx, h, auth.AuthorizedWorkspaceID, req)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if db.IsNotFound(err) {
 			return fault.Wrap(err,
 				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-				fault.Internal("namespace not found"), fault.Public("This namespace does not exist."),
+				fault.Internal("namespace not found"),
+				fault.Public("This namespace does not exist."),
 			)
 		}
+
 		return err
 	}
 
 	if namespace.WorkspaceID != auth.AuthorizedWorkspaceID {
 		return fault.New("namespace not found",
 			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-			fault.Internal("wrong workspace, masking as 404"), fault.Public("This namespace does not exist."),
+			fault.Internal("wrong workspace, masking as 404"),
+			fault.Public("This namespace does not exist."),
 		)
 	}
 
-	err = h.Permissions.Check(
-		ctx,
-		auth.KeyID,
-		rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Ratelimit,
-				ResourceID:   namespace.ID,
-				Action:       rbac.SetOverride,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Ratelimit,
-				ResourceID:   "*",
-				Action:       rbac.SetOverride,
-			}),
-		),
-	)
+	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Ratelimit,
+			ResourceID:   namespace.ID,
+			Action:       rbac.SetOverride,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Ratelimit,
+			ResourceID:   "*",
+			Action:       rbac.SetOverride,
+		}),
+	)))
 	if err != nil {
 		return fault.Wrap(err,
-			fault.Internal("unable to check permissions"), fault.Public("We're unable to check the permissions of your key."),
+			fault.Internal("unable to check permissions"),
+			fault.Public("We're unable to check the permissions of your key."),
 		)
 	}
 
 	overrideID, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
+		override, err := db.Query.FindRatelimitOverrideByIdentifier(ctx, tx, db.FindRatelimitOverrideByIdentifierParams{
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+			NamespaceID: namespace.ID,
+			Identifier:  req.Identifier,
+		})
+
+		if err != nil && !db.IsNotFound(err) {
+			return "", fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed"),
+				fault.Public("The database is unavailable."),
+			)
+		}
+
 		overrideID := uid.New(uid.RatelimitOverridePrefix)
+		if !db.IsNotFound(err) {
+			overrideID = override.ID
+		}
+
+		now := time.Now().UnixMilli()
+
 		err = db.Query.InsertRatelimitOverride(ctx, tx, db.InsertRatelimitOverrideParams{
 			ID:          overrideID,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
@@ -111,12 +125,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Identifier:  req.Identifier,
 			Limit:       int32(req.Limit),    // nolint:gosec
 			Duration:    int32(req.Duration), //nolint:gosec
-			CreatedAt:   time.Now().UnixMilli(),
+			CreatedAt:   now,
+			UpdatedAt:   sql.NullInt64{Int64: now, Valid: true},
 		})
 		if err != nil {
 			return "", fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database failed"), fault.Public("The database is unavailable."),
+				fault.Internal("database failed"),
+				fault.Public("The database is unavailable."),
 			)
 		}
 
@@ -124,7 +140,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.RatelimitSetOverrideEvent,
-				ActorID:     auth.KeyID,
+				ActorID:     auth.Key.ID,
 				ActorType:   auditlog.RootKeyActor,
 				ActorName:   "root key",
 				ActorMeta:   map[string]any{},
@@ -146,6 +162,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return "", err
 		}
 
+		h.RatelimitNamespaceCache.Remove(ctx,
+			cache.ScopedKey{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Key:         namespace.ID,
+			},
+			cache.ScopedKey{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Key:         namespace.Name,
+			},
+		)
+
 		return overrideID, nil
 	})
 	if err != nil {
@@ -156,7 +183,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.RatelimitSetOverrideResponseData{
+		Data: openapi.V2RatelimitSetOverrideResponseData{
 			OverrideId: overrideID,
 		},
 	})

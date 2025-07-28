@@ -99,38 +99,27 @@ func New[K comparable, V any](config Config[K, V]) (*cache[K, V], error) {
 }
 
 func (c *cache[K, V]) registerMetrics() {
-
 	repeat.Every(60*time.Second, func() {
-
 		metrics.CacheSize.WithLabelValues(c.resource).Set(float64(c.otter.Size()))
 		metrics.CacheCapacity.WithLabelValues(c.resource).Set(float64(c.otter.Capacity()))
-
 	})
-
 }
 
 func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {
-
 	e, ok := c.get(ctx, key)
 	if !ok {
-		// This hack is necessary because you can not return nil as V
-		var v V
-
-		return v, Miss
+		return value, Miss
 	}
 
 	now := c.clock.Now()
 
 	if now.Before(e.Stale) {
-
 		return e.Value, e.Hit
 	}
 
 	c.otter.Delete(key)
 
-	var v V
-	return v, Miss
-
+	return value, Miss
 }
 
 func (c *cache[K, V]) SetNull(_ context.Context, key K) {
@@ -164,10 +153,10 @@ func (c *cache[K, V]) get(_ context.Context, key K) (swrEntry[V], bool) {
 	return v, ok
 }
 
-func (c *cache[K, V]) Remove(ctx context.Context, key K) {
-
-	c.otter.Delete(key)
-
+func (c *cache[K, V]) Remove(ctx context.Context, keys ...K) {
+	for _, key := range keys {
+		c.otter.Delete(key)
+	}
 }
 
 func (c *cache[K, V]) Dump(ctx context.Context) ([]byte, error) {
@@ -179,21 +168,20 @@ func (c *cache[K, V]) Dump(ctx context.Context) ([]byte, error) {
 	})
 
 	b, err := json.Marshal(data)
-
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to marshal cache data"))
 	}
-	return b, nil
 
+	return b, nil
 }
 
 func (c *cache[K, V]) Restore(ctx context.Context, b []byte) error {
-
 	data := make(map[K]swrEntry[V])
 	err := json.Unmarshal(b, &data)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal cache data: %w", err)
 	}
+
 	now := c.clock.Now()
 	for key, entry := range data {
 		if now.Before(entry.Fresh) || now.Before(entry.Stale) {
@@ -201,6 +189,7 @@ func (c *cache[K, V]) Restore(ctx context.Context, b []byte) error {
 		}
 		// If the entry is older than, we don't restore it
 	}
+
 	return nil
 }
 
@@ -213,13 +202,13 @@ func (c *cache[K, V]) revalidate(
 	key K, refreshFromOrigin func(context.Context) (V, error),
 	op func(error) Op,
 ) {
-
 	c.inflightMu.Lock()
 	_, ok := c.inflightRefreshes[key]
 	if ok {
 		c.inflightMu.Unlock()
 		return
 	}
+
 	c.inflightRefreshes[key] = true
 	c.inflightMu.Unlock()
 
@@ -234,6 +223,7 @@ func (c *cache[K, V]) revalidate(
 	if err != nil && !db.IsNotFound(err) {
 		c.logger.Warn("failed to revalidate", "error", err.Error(), "key", key)
 	}
+
 	switch op(err) {
 	case WriteValue:
 		c.Set(ctx, key, v)
@@ -242,7 +232,6 @@ func (c *cache[K, V]) revalidate(
 	case Noop:
 		break
 	}
-
 }
 
 func (c *cache[K, V]) SWR(
@@ -250,8 +239,7 @@ func (c *cache[K, V]) SWR(
 	key K,
 	refreshFromOrigin func(context.Context) (V, error),
 	op func(error) Op,
-) (V, error) {
-
+) (V, CacheHit, error) {
 	now := c.clock.Now()
 	e, ok := c.get(ctx, key)
 	if ok {
@@ -259,8 +247,7 @@ func (c *cache[K, V]) SWR(
 
 		if now.Before(e.Fresh) {
 			// We have data and it's fresh, so we return it
-
-			return e.Value, nil
+			return e.Value, e.Hit, nil
 		}
 
 		if now.Before(e.Stale) {
@@ -273,17 +260,16 @@ func (c *cache[K, V]) SWR(
 				c.revalidate(context.WithoutCancel(ctx), key, refreshFromOrigin, op)
 
 			}
-			return e.Value, nil
+			return e.Value, e.Hit, nil
 		}
 
 		// We have old data, that we should not serve anymore
 		c.otter.Delete(key)
-
 	}
+
 	// Cache Miss
 
 	// We have no data and need to go to the origin
-
 	v, err := refreshFromOrigin(ctx)
 
 	switch op(err) {
@@ -295,6 +281,21 @@ func (c *cache[K, V]) SWR(
 		break
 	}
 
-	return v, err
+	if err != nil {
+		// Error occurred, return Miss as the cache hit status
+		return v, Miss, err
+	}
 
+	// Determine cache hit status based on the operation
+	var hit CacheHit
+	switch op(err) {
+	case WriteValue:
+		hit = Hit
+	case WriteNull:
+		hit = Null
+	default:
+		hit = Miss
+	}
+
+	return v, hit, err
 }

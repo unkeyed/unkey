@@ -27,11 +27,7 @@ INSERT INTO ` + "`" + `keys` + "`" + ` (
     enabled,
     remaining_requests,
     refill_day,
-    refill_amount,
-    ratelimit_async,
-    ratelimit_limit,
-    ratelimit_duration,
-    environment
+    refill_amount
 ) VALUES (
     ?,
     ?,
@@ -41,10 +37,6 @@ INSERT INTO ` + "`" + `keys` + "`" + ` (
     ?,
     ?,
     null,
-    ?,
-    ?,
-    ?,
-    ?,
     ?,
     ?,
     ?,
@@ -72,10 +64,6 @@ type InsertKeyParams struct {
 	RemainingRequests sql.NullInt32  `db:"remaining_requests"`
 	RefillDay         sql.NullInt16  `db:"refill_day"`
 	RefillAmount      sql.NullInt32  `db:"refill_amount"`
-	RatelimitAsync    sql.NullBool   `db:"ratelimit_async"`
-	RatelimitLimit    sql.NullInt32  `db:"ratelimit_limit"`
-	RatelimitDuration sql.NullInt64  `db:"ratelimit_duration"`
-	Environment       sql.NullString `db:"environment"`
 }
 
 // InsertKey
@@ -96,11 +84,7 @@ type InsertKeyParams struct {
 //	    enabled,
 //	    remaining_requests,
 //	    refill_day,
-//	    refill_amount,
-//	    ratelimit_async,
-//	    ratelimit_limit,
-//	    ratelimit_duration,
-//	    environment
+//	    refill_amount
 //	) VALUES (
 //	    ?,
 //	    ?,
@@ -110,10 +94,6 @@ type InsertKeyParams struct {
 //	    ?,
 //	    ?,
 //	    null,
-//	    ?,
-//	    ?,
-//	    ?,
-//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -140,10 +120,6 @@ func (q *Queries) InsertKey(ctx context.Context, db DBTX, arg InsertKeyParams) e
 		arg.RemainingRequests,
 		arg.RefillDay,
 		arg.RefillAmount,
-		arg.RatelimitAsync,
-		arg.RatelimitLimit,
-		arg.RatelimitDuration,
-		arg.Environment,
 	)
 	return err
 }

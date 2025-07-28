@@ -1,0 +1,48 @@
+type: array
+description: |-
+  Complete list of all permissions directly assigned to the key after the removal operation (remaining permissions only).
+
+  This response includes:
+  - All direct permissions still assigned to the key after removal
+  - Permissions sorted alphabetically by name for consistent response format
+  - Both the permission ID and name for each remaining permission
+
+  Important notes:
+  - This list does NOT include permissions granted through roles
+  - For a complete permission picture, use `/v2/keys.getKey` instead
+  - An empty array indicates the key has no direct permissions assigned
+  - Any cached versions of the key are immediately invalidated to ensure consistency
+  - Changes to permissions take effect within seconds for new verifications
+items:
+  type: object
+  required:
+    - id
+    - name
+    - slug
+  properties:
+    id:
+      type: string
+      description:
+        The unique identifier of the permission (begins with `perm_`).
+        This ID can be used in other API calls to reference this specific permission.
+        IDs are guaranteed unique and won't change, making them ideal for scripting
+        and automation. You can store these IDs in your system for consistent
+        reference.
+      example: perm_1n9McEIBSqy44Qy7hzWyM5
+    name:
+      type: string
+      description: The name of the permission
+      example: documents.write
+    slug:
+      type: string
+      description: |-
+        The slug of the permission, typically following a `resource.action` pattern like `documents.read`. Names are human-readable identifiers used both for assignment and verification.
+
+        During verification:
+        - The exact name is matched (e.g., `documents.read`)
+        - Hierarchical wildcards are supported in verification requests
+        - A key with permission `documents.*` grants access to `documents.read`, `documents.write`, etc.
+        - Wildcards can appear at any level: `billing.*.view` matches `billing.invoices.view` and `billing.payments.view`
+
+        However, when adding permissions, you must specify each exact permission - wildcards are not valid for assignment.
+      example: documents.write

@@ -9,6 +9,7 @@ INSERT INTO `versions` (
     git_commit_sha,
     git_branch,
     config_snapshot,
+    openapi_spec,
     status,
     created_at,
     updated_at
@@ -23,6 +24,7 @@ VALUES (
     sqlc.arg(git_commit_sha),
     sqlc.arg(git_branch),
     sqlc.arg(config_snapshot),
+    sqlc.arg(openapi_spec),
     sqlc.arg(status),
     sqlc.arg(created_at),
     sqlc.arg(updated_at)

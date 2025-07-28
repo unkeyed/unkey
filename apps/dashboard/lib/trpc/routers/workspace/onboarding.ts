@@ -23,31 +23,6 @@ export const onboardingKeyCreation = t.procedure
 
     try {
       return await db.transaction(async (tx) => {
-        // Validate that the workspace exists and user has access to it
-        const workspace = await tx.query.workspaces
-          .findFirst({
-            where: (table, { and, eq, isNull }) =>
-              and(
-                eq(table.id, ctx.workspace.id),
-                eq(table.orgId, ctx.tenant.id),
-                isNull(table.deletedAtM),
-              ),
-          })
-          .catch((_err) => {
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message:
-                "Failed to validate workspace access. If this issue persists, please contact support@unkey.dev",
-            });
-          });
-
-        if (!workspace) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Workspace not found or you don't have access to it",
-          });
-        }
-
         // Create API
         const apiResult = await createApiCore({ name: apiName }, ctx, tx);
 
@@ -75,7 +50,7 @@ export const onboardingKeyCreation = t.procedure
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message:
-          "We are unable to create the workspace, API, and key. Please try again or contact support@unkey.dev",
+          "We are unable to create the API and key. Please try again or contact support@unkey.dev",
       });
     }
   });

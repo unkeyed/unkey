@@ -1,0 +1,56 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    "$ref": "./V2ApisGetApiResponseData.yaml"
+additionalProperties: false
+examples:
+  basicApiInfo:
+    summary: Basic API information
+    description: Standard response showing API ID and name
+    value:
+      meta:
+        requestId: req_1234abcd
+      data:
+        id: api_1234abcd
+        name: Payment Service Production
+  developmentApi:
+    summary: Development API information
+    description: Response for a development environment API
+    value:
+      meta:
+        requestId: req_dev_5678
+      data:
+        id: api_dev_5678
+        name: Payment Service Development
+  stagingApi:
+    summary: Staging API information
+    description: Response for a staging environment API
+    value:
+      meta:
+        requestId: req_staging_9876
+      data:
+        id: api_staging_9876
+        name: Payment Service Staging
+  simpleApi:
+    summary: Simple API name
+    description: Response for an API with a simple name
+    value:
+      meta:
+        requestId: req_simple_abcd
+      data:
+        id: api_simple_abcd
+        name: Analytics API
+  descriptiveApi:
+    summary: Descriptive API name
+    description: Response for an API with a longer descriptive name
+    value:
+      meta:
+        requestId: req_desc_efgh
+      data:
+        id: api_desc_efgh
+        name: User Management Microservice Production

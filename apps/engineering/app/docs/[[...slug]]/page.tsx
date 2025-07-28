@@ -3,7 +3,6 @@ import defaultMdxComponents from "fumadocs-ui/mdx";
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/page";
 import type { Metadata } from "next";
 
-import { getGithubLastEdit } from "fumadocs-core/server";
 import { notFound } from "next/navigation";
 
 export default async function Page(props: {
@@ -27,13 +26,6 @@ export default async function Page(props: {
         style: "clerk",
         single: true,
       }}
-      lastUpdate={
-        (await getGithubLastEdit({
-          owner: "unkeyed",
-          repo: "unkey",
-          path: `apps/engineering/content/company/${page.file.path}`,
-        })) ?? undefined
-      }
     >
       <DocsTitle>{page.data.title}</DocsTitle>
 

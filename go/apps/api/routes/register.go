@@ -5,6 +5,10 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/routes/reference"
 	v2Liveness "github.com/unkeyed/unkey/go/apps/api/routes/v2_liveness"
 
+	chproxyMetrics "github.com/unkeyed/unkey/go/apps/api/routes/chproxy_metrics"
+	chproxyRatelimits "github.com/unkeyed/unkey/go/apps/api/routes/chproxy_ratelimits"
+	chproxyVerifications "github.com/unkeyed/unkey/go/apps/api/routes/chproxy_verifications"
+
 	v2RatelimitDeleteOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_delete_override"
 	v2RatelimitGetOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_get_override"
 	v2RatelimitLimit "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_limit"
@@ -40,6 +44,8 @@ import (
 	v2KeysSetPermissions "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_set_permissions"
 	v2KeysSetRoles "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_set_roles"
 	v2KeysUpdateCredits "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_update_credits"
+	v2KeysUpdateKey "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_update_key"
+	v2KeysVerifyKey "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_verify_key"
 
 	zen "github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -65,21 +71,60 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(defaultMiddlewares, &v2Liveness.Handler{})
 
 	// ---------------------------------------------------------------------------
+	// chproxy (internal endpoints)
+
+	if svc.ChproxyEnabled {
+		// chproxy/verifications - internal endpoint for key verification events
+		srv.RegisterRoute([]zen.Middleware{
+			withTracing,
+			withMetrics,
+			withLogging,
+			withErrorHandling,
+		}, &chproxyVerifications.Handler{
+			ClickHouse: svc.ClickHouse,
+			Logger:     svc.Logger,
+			Token:      svc.ChproxyToken,
+		})
+
+		// chproxy/metrics - internal endpoint for API request metrics
+		srv.RegisterRoute([]zen.Middleware{
+			withTracing,
+			withMetrics,
+			withLogging,
+			withErrorHandling,
+		}, &chproxyMetrics.Handler{
+			ClickHouse: svc.ClickHouse,
+			Logger:     svc.Logger,
+			Token:      svc.ChproxyToken,
+		})
+
+		// chproxy/ratelimits - internal endpoint for ratelimit events
+		srv.RegisterRoute([]zen.Middleware{
+			withTracing,
+			withMetrics,
+			withLogging,
+			withErrorHandling,
+		}, &chproxyRatelimits.Handler{
+			ClickHouse: svc.ClickHouse,
+			Logger:     svc.Logger,
+			Token:      svc.ChproxyToken,
+		})
+	}
+
+	// ---------------------------------------------------------------------------
 	// v2/ratelimit
 
 	// v2/ratelimit.limit
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2RatelimitLimit.Handler{
-			Logger:                        svc.Logger,
-			DB:                            svc.Database,
-			Keys:                          svc.Keys,
-			ClickHouse:                    svc.ClickHouse,
-			Ratelimit:                     svc.Ratelimit,
-			Permissions:                   svc.Permissions,
-			RatelimitNamespaceByNameCache: svc.Caches.RatelimitNamespaceByName,
-			RatelimitOverrideMatchesCache: svc.Caches.RatelimitOverridesMatch,
-			TestMode:                      srv.Flags().TestMode,
+			Logger:                  svc.Logger,
+			DB:                      svc.Database,
+			Keys:                    svc.Keys,
+			ClickHouse:              svc.ClickHouse,
+			Ratelimit:               svc.Ratelimit,
+			RatelimitNamespaceCache: svc.Caches.RatelimitNamespace,
+			TestMode:                srv.Flags().TestMode,
 		},
 	)
 
@@ -87,11 +132,11 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2RatelimitSetOverride.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
-			Auditlogs:   svc.Auditlogs,
+			Logger:                  svc.Logger,
+			DB:                      svc.Database,
+			Keys:                    svc.Keys,
+			Auditlogs:               svc.Auditlogs,
+			RatelimitNamespaceCache: svc.Caches.RatelimitNamespace,
 		},
 	)
 
@@ -99,10 +144,10 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2RatelimitGetOverride.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
+			Logger:                  svc.Logger,
+			DB:                      svc.Database,
+			Keys:                    svc.Keys,
+			RatelimitNamespaceCache: svc.Caches.RatelimitNamespace,
 		},
 	)
 
@@ -110,11 +155,11 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2RatelimitDeleteOverride.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
-			Auditlogs:   svc.Auditlogs,
+			Logger:                  svc.Logger,
+			DB:                      svc.Database,
+			Keys:                    svc.Keys,
+			Auditlogs:               svc.Auditlogs,
+			RatelimitNamespaceCache: svc.Caches.RatelimitNamespace,
 		},
 	)
 
@@ -122,10 +167,9 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2RatelimitListOverrides.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
+			Logger: svc.Logger,
+			DB:     svc.Database,
+			Keys:   svc.Keys,
 		},
 	)
 
@@ -136,11 +180,10 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2IdentitiesCreateIdentity.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
-			Auditlogs:   svc.Auditlogs,
+			Logger:    svc.Logger,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
 		},
 	)
 
@@ -148,11 +191,10 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2IdentitiesDeleteIdentity.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
-			Auditlogs:   svc.Auditlogs,
+			Logger:    svc.Logger,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
 		},
 	)
 
@@ -160,10 +202,9 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2IdentitiesGetIdentity.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
+			Logger: svc.Logger,
+			DB:     svc.Database,
+			Keys:   svc.Keys,
 		},
 	)
 
@@ -171,10 +212,9 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2IdentitiesListIdentities.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
+			Logger: svc.Logger,
+			DB:     svc.Database,
+			Keys:   svc.Keys,
 		},
 	)
 
@@ -182,11 +222,10 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2IdentitiesUpdateIdentity.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
-			Auditlogs:   svc.Auditlogs,
+			Logger:    svc.Logger,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
 		},
 	)
 
@@ -197,21 +236,19 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2ApisCreateApi.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
-			Auditlogs:   svc.Auditlogs,
+			Logger:    svc.Logger,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
 		},
 	)
 	// v2/apis.getApi
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2ApisGetApi.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
+			Logger: svc.Logger,
+			DB:     svc.Database,
+			Keys:   svc.Keys,
 		},
 	)
 
@@ -219,11 +256,10 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2ApisListKeys.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
-			Vault:       svc.Vault,
+			Logger: svc.Logger,
+			DB:     svc.Database,
+			Keys:   svc.Keys,
+			Vault:  svc.Vault,
 		},
 	)
 
@@ -231,12 +267,11 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2ApisDeleteApi.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
-			Auditlogs:   svc.Auditlogs,
-			Caches:      svc.Caches,
+			Logger:    svc.Logger,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
+			Caches:    svc.Caches,
 		},
 	)
 
@@ -247,11 +282,10 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2PermissionsCreatePermission.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
-			Auditlogs:   svc.Auditlogs,
+			Logger:    svc.Logger,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
 		},
 	)
 
@@ -259,10 +293,9 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2PermissionsGetPermission.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
+			Logger: svc.Logger,
+			DB:     svc.Database,
+			Keys:   svc.Keys,
 		},
 	)
 
@@ -270,10 +303,9 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2PermissionsGetRole.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
+			Logger: svc.Logger,
+			DB:     svc.Database,
+			Keys:   svc.Keys,
 		},
 	)
 
@@ -281,10 +313,9 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2PermissionsListPermissions.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
+			Logger: svc.Logger,
+			DB:     svc.Database,
+			Keys:   svc.Keys,
 		},
 	)
 
@@ -292,11 +323,10 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2PermissionsDeletePermission.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
-			Auditlogs:   svc.Auditlogs,
+			Logger:    svc.Logger,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
 		},
 	)
 
@@ -304,11 +334,10 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2PermissionsCreateRole.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
-			Auditlogs:   svc.Auditlogs,
+			Logger:    svc.Logger,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
 		},
 	)
 
@@ -316,10 +345,9 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2PermissionsListRoles.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
+			Logger: svc.Logger,
+			DB:     svc.Database,
+			Keys:   svc.Keys,
 		},
 	)
 
@@ -327,27 +355,48 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2PermissionsDeleteRole.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
-			Auditlogs:   svc.Auditlogs,
+			Logger:    svc.Logger,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
 		},
 	)
 
 	// ---------------------------------------------------------------------------
 	// v2/keys
 
+	// v2/keys.verifyKey
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v2KeysVerifyKey.Handler{
+			Logger:     svc.Logger,
+			ClickHouse: svc.ClickHouse,
+			DB:         svc.Database,
+			Keys:       svc.Keys,
+			Auditlogs:  svc.Auditlogs,
+		},
+	)
+
 	// v2/keys.createKey
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysCreateKey.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
-			Auditlogs:   svc.Auditlogs,
-			Vault:       svc.Vault,
+			Logger:    svc.Logger,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
+			Vault:     svc.Vault,
+		},
+	)
+
+	// v2/keys.updateKey
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v2KeysUpdateKey.Handler{
+			Logger:    svc.Logger,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
 		},
 	)
 
@@ -355,12 +404,11 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysGetKey.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
-			Auditlogs:   svc.Auditlogs,
-			Vault:       svc.Vault,
+			Logger:    svc.Logger,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
+			Vault:     svc.Vault,
 		},
 	)
 
@@ -368,11 +416,11 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysUpdateCredits.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
-			Auditlogs:   svc.Auditlogs,
+			Logger:    svc.Logger,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
+			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
 	)
 
@@ -380,22 +428,23 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysSetRoles.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
-			Auditlogs:   svc.Auditlogs,
+			Logger:    svc.Logger,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
+			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
 	)
 
+	// v2/keys.setPermissions
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysSetPermissions.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
-			Auditlogs:   svc.Auditlogs,
+			Logger:    svc.Logger,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
+			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
 	)
 
@@ -403,11 +452,11 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysAddPermissions.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
-			Auditlogs:   svc.Auditlogs,
+			Logger:    svc.Logger,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
+			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
 	)
 
@@ -415,11 +464,11 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysAddRoles.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
-			Auditlogs:   svc.Auditlogs,
+			Logger:    svc.Logger,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
+			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
 	)
 
@@ -427,11 +476,11 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysRemovePermissions.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
-			Auditlogs:   svc.Auditlogs,
+			Logger:    svc.Logger,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
+			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
 	)
 
@@ -439,11 +488,11 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysRemoveRoles.Handler{
-			Logger:      svc.Logger,
-			DB:          svc.Database,
-			Keys:        svc.Keys,
-			Permissions: svc.Permissions,
-			Auditlogs:   svc.Auditlogs,
+			Logger:    svc.Logger,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
+			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
 	)
 

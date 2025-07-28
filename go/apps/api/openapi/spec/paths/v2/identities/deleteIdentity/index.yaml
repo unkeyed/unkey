@@ -1,0 +1,93 @@
+post:
+  tags:
+    - identities
+  summary: Delete Identity
+  description: |
+    Permanently delete an identity. This operation cannot be undone.
+
+    Use this for data cleanup, compliance requirements, or when removing entities from your system.
+
+    > **Important**  
+    > Requires `identity.*.delete_identity` permission  
+    > Associated API keys remain functional but lose shared resources  
+    > External ID becomes available for reuse immediately
+  operationId: v2.identities.deleteIdentity
+  x-speakeasy-name-override: deleteIdentity
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2IdentitiesDeleteIdentityRequestBody.yaml"
+        examples:
+          basic:
+            summary: Delete identity
+            value:
+              externalId: user_123
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2IdentitiesDeleteIdentityResponseBody.yaml"
+          examples:
+            success:
+              summary: Successful deletion
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+      description: Identity successfully deleted
+    "400":
+      description: Bad request
+      content:
+        application/problem+json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions (requires `identity.*.delete_identity`)
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            missingPermission:
+              summary: Missing required permission
+              value:
+                meta:
+                  requestId: req_0uVwX4yZaAbCdEfGhIjKl
+                error:
+                  title: Forbidden
+                  detail: Your root key requires the 'identity.*.delete_identity' permission to perform this operation
+                  status: 403
+                  type: forbidden
+    "404":
+      description: Not Found - Identity with the specified externalId doesn't exist
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            identityNotFound:
+              summary: Identity not found
+              value:
+                meta:
+                  requestId: req_2wXyZaAbCdEfGhIjKlMnOp
+                error:
+                  title: Not Found
+                  detail: Identity with externalId "user_abc123" not found.
+                  status: 404
+                  type: not_found
+    "500":
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+      description: Error

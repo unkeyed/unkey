@@ -1,4 +1,6 @@
 name: Test API Canary
+permissions:
+  contents: read
 on:
   workflow_call:
     inputs:

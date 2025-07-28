@@ -3,18 +3,17 @@ package integration
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"testing"
 	"time"
 
-	"github.com/ory/dockertest/v3"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/port"
 	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
@@ -28,8 +27,7 @@ type ApiConfig struct {
 
 // ApiCluster represents a cluster of API containers
 type ApiCluster struct {
-	Addrs     []string
-	Resources []*dockertest.Resource
+	Addrs []string
 }
 
 // Harness is a test harness for creating and managing a cluster of API nodes
@@ -38,7 +36,6 @@ type Harness struct {
 	ctx           context.Context
 	cancel        context.CancelFunc
 	instanceAddrs []string
-	ports         *port.FreePort
 	Seed          *seed.Seeder
 	dbDSN         string
 	DB            db.Database
@@ -89,7 +86,6 @@ func New(t *testing.T, config Config) *Harness {
 		t:             t,
 		ctx:           ctx,
 		cancel:        cancel,
-		ports:         port.New(),
 		instanceAddrs: []string{},
 		Seed:          seed.New(t, db),
 		dbDSN:         mysqlHostDSN,
@@ -121,17 +117,16 @@ func (h *Harness) Resources() seed.Resources {
 // RunAPI creates a cluster of API containers for chaos testing
 func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 	cluster := &ApiCluster{
-		Addrs:     make([]string, config.Nodes),
-		Resources: make([]*dockertest.Resource, config.Nodes), // Not used but kept for compatibility
+		Addrs: make([]string, config.Nodes),
 	}
 
 	// Start each API node as a goroutine
 	for i := 0; i < config.Nodes; i++ {
-		// Find an available port
-		portFinder := port.New()
-		nodePort := portFinder.Get()
+		// Create ephemeral listener
+		ln, err := net.Listen("tcp", ":0")
+		require.NoError(h.t, err, "Failed to create ephemeral listener")
 
-		cluster.Addrs[i] = fmt.Sprintf("http://localhost:%d", nodePort)
+		cluster.Addrs[i] = fmt.Sprintf("http://%s", ln.Addr().String())
 
 		// Create API config for this node using host connections
 		mysqlHostCfg := containers.MySQL(h.t)
@@ -142,7 +137,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 		apiConfig := api.Config{
 			Platform:                "test",
 			Image:                   "test",
-			HttpPort:                nodePort,
+			Listener:                ln,
 			DatabasePrimary:         mysqlHostCfg.FormatDSN(),
 			DatabaseReadonlyReplica: "",
 			ClickhouseURL:           clickhouseHostDSN,
@@ -156,6 +151,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			PrometheusPort:          0,
 			TLSConfig:               nil,
 			VaultMasterKeys:         []string{"Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="}, // Test key from docker-compose
+			VaultS3:                 nil,
 		}
 
 		// Start API server in goroutine
@@ -200,12 +196,13 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 
 		// Wait for server to start
 		maxAttempts := 30
+		healthURL := fmt.Sprintf("http://%s/v2/liveness", ln.Addr().String())
 		for attempt := 0; attempt < maxAttempts; attempt++ {
-			resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v2/liveness", nodePort))
+			resp, err := http.Get(healthURL)
 			if err == nil {
 				resp.Body.Close()
 				if resp.StatusCode == http.StatusOK {
-					h.t.Logf("API server %d started on port %d", i, nodePort)
+					h.t.Logf("API server %d started on %s", i, ln.Addr().String())
 					break
 				}
 			}
@@ -218,36 +215,12 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 		// Register cleanup
 		h.t.Cleanup(func() {
 			cancel()
+			// Note: Don't call ln.Close() here as the zen server
+			// will properly close the listener during graceful shutdown
 		})
 	}
 
 	return cluster
-}
-
-// StopContainer stops a specific API container (for chaos testing)
-func (h *Harness) StopContainer(index int) error {
-	if h.apiCluster == nil || index >= len(h.apiCluster.Resources) {
-		return fmt.Errorf("invalid container index: %d", index)
-	}
-
-	pool, err := dockertest.NewPool("")
-	if err != nil {
-		return err
-	}
-	return pool.Client.StopContainer(h.apiCluster.Resources[index].Container.ID, 10)
-}
-
-// StartContainer starts a stopped API container (for chaos testing)
-func (h *Harness) StartContainer(index int) error {
-	if h.apiCluster == nil || index >= len(h.apiCluster.Resources) {
-		return fmt.Errorf("invalid container index: %d", index)
-	}
-
-	pool, err := dockertest.NewPool("")
-	if err != nil {
-		return err
-	}
-	return pool.Client.StartContainer(h.apiCluster.Resources[index].Container.ID, nil)
 }
 
 // GetClusterAddrs returns the addresses of all API containers

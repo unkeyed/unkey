@@ -15,11 +15,10 @@ import (
 func TestBadRequests(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
-		Logger:      h.Logger,
-		DB:          h.DB,
-		Keys:        h.Keys,
-		Permissions: h.Permissions,
-		Auditlogs:   h.Auditlogs,
+		Logger:    h.Logger,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
 	}
 
 	h.Register(route)
@@ -30,7 +29,7 @@ func TestBadRequests(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
 	}
 
-	t.Run("missing both identityId and externalId", func(t *testing.T) {
+	t.Run("missing externalId", func(t *testing.T) {
 		meta := map[string]interface{}{
 			"test": "value",
 		}
@@ -41,27 +40,7 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "POST request body for '/v2/identities.updateIdentity' failed to validate schema", res.Body.Error.Detail)
-		require.Equal(t, 400, res.Body.Error.Status)
-		require.Equal(t, "Bad Request", res.Body.Error.Title)
-		require.NotEmpty(t, res.Body.Meta.RequestId)
-	})
-
-	t.Run("empty identityId", func(t *testing.T) {
-		emptyStr := ""
-		meta := map[string]interface{}{
-			"test": "value",
-		}
-		req := handler.Request{
-			IdentityId: &emptyStr,
-			Meta:       &meta,
-		}
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
-		require.NotNil(t, res.Body)
-
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Equal(t, "POST request body for '/v2/identities.updateIdentity' failed to validate schema", res.Body.Error.Detail)
 		require.Equal(t, 400, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
@@ -69,19 +48,19 @@ func TestBadRequests(t *testing.T) {
 	})
 
 	t.Run("empty externalId", func(t *testing.T) {
-		emptyStr := ""
 		meta := map[string]interface{}{
 			"test": "value",
 		}
+
 		req := handler.Request{
-			ExternalId: &emptyStr,
+			ExternalId: "",
 			Meta:       &meta,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Equal(t, "POST request body for '/v2/identities.updateIdentity' failed to validate schema", res.Body.Error.Detail)
 		require.Equal(t, 400, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
@@ -89,7 +68,7 @@ func TestBadRequests(t *testing.T) {
 	})
 
 	t.Run("duplicate ratelimit names", func(t *testing.T) {
-		identityID := "identity_123"
+		externalID := "identity_123"
 		ratelimits := []openapi.RatelimitRequest{
 			{
 				Name:      "api_calls",
@@ -106,17 +85,17 @@ func TestBadRequests(t *testing.T) {
 		}
 
 		req := handler.Request{
-			IdentityId: &identityID,
+			ExternalId: externalID,
 			Ratelimits: &ratelimits,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "api_calls")
 	})
 
 	t.Run("metadata too large", func(t *testing.T) {
-		identityID := "identity_123"
+		externalID := "identity_123"
 
 		// Create a large metadata object (over 1MB)
 		largeString := strings.Repeat("a", 1024*1024)
@@ -125,12 +104,12 @@ func TestBadRequests(t *testing.T) {
 		}
 
 		req := handler.Request{
-			IdentityId: &identityID,
+			ExternalId: externalID,
 			Meta:       &largeMeta,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "Metadata is too large")
 	})
 }
