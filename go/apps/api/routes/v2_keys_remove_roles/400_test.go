@@ -32,7 +32,7 @@ func TestValidationErrors(t *testing.T) {
 
 	// Create workspace and root key
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.remove_role_from_key")
 
 	// Set up request headers
 	headers := http.Header{
@@ -83,12 +83,7 @@ func TestValidationErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: "", // Empty keyId string
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &roleID},
-			},
+			Roles: []string{roleID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
@@ -116,12 +111,7 @@ func TestValidationErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: "invalid_key_format", // Invalid format (doesn't start with key_)
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &roleID},
-			},
+			Roles: []string{roleID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -192,10 +182,7 @@ func TestValidationErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{}, // Empty roles array
+			Roles: []string{}, // Empty roles array
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
@@ -208,47 +195,6 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.Contains(t, res.Body.Error.Detail, "POST request body for '/v2/keys.removeRoles' failed to validate schema")
-	})
-
-	t.Run("role missing both id and name", func(t *testing.T) {
-		// Create API and key using testutil helpers
-		defaultPrefix := "test"
-		defaultBytes := int32(16)
-		api := h.CreateApi(seed.CreateApiRequest{
-			WorkspaceID:   workspace.ID,
-			DefaultPrefix: &defaultPrefix,
-			DefaultBytes:  &defaultBytes,
-		})
-
-		keyName := "Test Key"
-		keyResponse := h.CreateKey(seed.CreateKeyRequest{
-			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
-			Name:        &keyName,
-		})
-		keyID := keyResponse.KeyID
-
-		req := handler.Request{
-			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{}, // Role with neither id nor name
-			},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "id")
-		require.Contains(t, res.Body.Error.Detail, "name")
 	})
 
 	t.Run("role not found by ID", func(t *testing.T) {
@@ -273,12 +219,7 @@ func TestValidationErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &nonExistentRoleID},
-			},
+			Roles: []string{nonExistentRoleID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -315,12 +256,7 @@ func TestValidationErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Name: &nonExistentRoleName},
-			},
+			Roles: []string{nonExistentRoleName},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -350,12 +286,7 @@ func TestValidationErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: nonExistentKeyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &roleID},
-			},
+			Roles: []string{roleID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -401,12 +332,7 @@ func TestValidationErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &roleID},
-			},
+			Roles: []string{roleID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -454,12 +380,7 @@ func TestValidationErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Name: &roleName},
-			},
+			Roles: []string{roleName},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
