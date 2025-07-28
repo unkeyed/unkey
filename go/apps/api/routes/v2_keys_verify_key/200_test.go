@@ -219,7 +219,7 @@ func TestSuccess(t *testing.T) {
 		ipWhitelistApi := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, IpWhitelist: "127.0.0.1"})
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeyAuthID:   ipWhitelistApi.KeyAuthID.String,
 		})
 
 		req := handler.Request{

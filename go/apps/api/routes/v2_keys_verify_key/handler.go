@@ -113,8 +113,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	opts := []keys.VerifyOption{
-		keys.WithIPWhitelist(),
 		keys.WithTags(ptr.SafeDeref(req.Tags)),
+		keys.WithIPWhitelist(),
 	}
 
 	// If a custom cost was specified, use it, otherwise use a DefaultCost of 1

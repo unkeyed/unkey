@@ -83,17 +83,6 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 	}
 
 	var err error
-	if config.tags != nil {
-		k.tags = config.tags
-	}
-
-	if config.credits != nil {
-		err = k.withCredits(ctx, *config.credits)
-		if err != nil {
-			return err
-		}
-	}
-
 	if config.ipWhitelist {
 		err = k.withIPWhitelist()
 		if err != nil {
@@ -103,6 +92,13 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 
 	if config.permissions != nil {
 		err = k.withPermissions(ctx, *config.permissions)
+		if err != nil {
+			return err
+		}
+	}
+
+	if config.credits != nil {
+		err = k.withCredits(ctx, *config.credits)
 		if err != nil {
 			return err
 		}
@@ -133,6 +129,7 @@ func (k *KeyVerifier) log() {
 	if k.isRootKey {
 		keyType = "root_key"
 	}
+
 	// Emit Prometheus metrics for key verification
 	metrics.KeyVerificationsTotal.WithLabelValues(
 		keyType,

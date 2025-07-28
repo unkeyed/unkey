@@ -25,7 +25,7 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 
 	rootKey, err := zen.Bearer(sess)
 	if err != nil {
-		return nil, nil, fault.Wrap(err,
+		return nil, emptyLog, fault.Wrap(err,
 			fault.Internal("no bearer"),
 			fault.Public("You must provide a valid root key in the Authorization header in the format 'Bearer ROOT_KEY'."),
 		)

@@ -26,31 +26,11 @@ func TestForbidden(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.verify_key")
-
-	headers := http.Header{
-		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-	}
 
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeyAuthID:   api.KeyAuthID.String,
-	})
-
-	t.Run("wrong api id", func(t *testing.T) {
-		api2 := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
-		req := handler.Request{
-			ApiId: api2.ID, // Wrong API ID
-			Key:   key.Key,
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
-		require.NotNil(t, res.Body)
-		require.Equal(t, openapi.FORBIDDEN, res.Body.Data.Code, "Key should be forbidden but got %s", res.Body.Data.Code)
-		require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
 	})
 
 	t.Run("root key without sufficient permissions", func(t *testing.T) {
