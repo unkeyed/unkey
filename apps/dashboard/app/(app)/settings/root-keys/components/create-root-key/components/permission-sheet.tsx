@@ -88,7 +88,7 @@ export const PermissionSheet = ({
         <SheetDescription className="w-full h-full pt-2">
           <div className="flex flex-col h-full">
             <div
-              className={`flex flex-col overflow-y-hidden ${hasNextPage ? "max-h-[calc(100%-80px)]" : "h-[calc(100%-40px)]"}`}
+              className={`flex flex-col overflow-y-hidden ${hasNextPage ? "max-h-[calc(100%-110px)]" : "h-[calc(100%-40px)]"}`}
             >
               <ScrollArea className="flex flex-col h-full">
                 <div className="flex flex-col pt-0 mt-0 gap-1 pb-4">
@@ -118,12 +118,12 @@ export const PermissionSheet = ({
                 </div>
               </ScrollArea>
             </div>
-            <div className="absolute bottom-2 right-0 max-h-10 w-full">
-              {hasNextPage && (
-                <div className="flex flex-row justify-end items-center px-4">
+            {hasNextPage ? (
+              <div className="absolute bottom-0 right-0 w-full h-fit py-4">
+                <div className="flex flex-row justify-end items-center">
                   <Button
-                    className="mx-auto w-full rounded-lg"
-                    size="lg"
+                    className="mx-auto w-18 rounded-lg"
+                    size="sm"
                     onClick={loadMore}
                     disabled={!hasNextPage}
                     loading={isFetchingNextPage}
@@ -131,8 +131,8 @@ export const PermissionSheet = ({
                     Load More
                   </Button>
                 </div>
-              )}
-            </div>
+              </div>
+            ) : undefined}
           </div>
         </SheetDescription>
       </SheetContent>
