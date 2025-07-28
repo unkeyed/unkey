@@ -1089,24 +1089,12 @@ type V2KeysGetKeyRequestBody struct {
 	// Decryption requests are audited and may trigger security alerts in enterprise environments.
 	Decrypt *bool `json:"decrypt,omitempty"`
 
-	// Key The complete API key string provided by you, including any prefix.
-	// Never log, cache, or store API keys in your system as they provide full access to user resources.
-	// Include the full key exactly as provided - even minor modifications will cause a not found error.
-	Key *string `json:"key,omitempty"`
-
 	// KeyId Specifies which key to retrieve using the database identifier returned from `keys.createKey`.
 	// Do not confuse this with the actual API key string that users include in requests.
 	// Key data includes metadata, permissions, usage statistics, and configuration but never the plaintext key value unless `decrypt=true`.
 	// Find this ID in creation responses, key listings, dashboard, or verification responses.
-	KeyId *string `json:"keyId,omitempty"`
-	union json.RawMessage
+	KeyId string `json:"keyId"`
 }
-
-// V2KeysGetKeyRequestBody0 defines model for .
-type V2KeysGetKeyRequestBody0 = interface{}
-
-// V2KeysGetKeyRequestBody1 defines model for .
-type V2KeysGetKeyRequestBody1 = interface{}
 
 // V2KeysGetKeyResponseBody defines model for V2KeysGetKeyResponseBody.
 type V2KeysGetKeyResponseBody struct {
@@ -1544,6 +1532,22 @@ type V2KeysVerifyKeyRequestBody struct {
 // V2KeysVerifyKeyResponseBody defines model for V2KeysVerifyKeyResponseBody.
 type V2KeysVerifyKeyResponseBody struct {
 	Data KeysVerifyKeyResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2KeysWhoamiRequestBody defines model for V2KeysWhoamiRequestBody.
+type V2KeysWhoamiRequestBody struct {
+	// Key The complete API key string provided by you, including any prefix.
+	// Never log, cache, or store API keys in your system as they provide full access to user resources.
+	// Include the full key exactly as provided - even minor modifications will cause a not found error.
+	Key string `json:"key"`
+}
+
+// V2KeysWhoamiResponseBody defines model for V2KeysWhoamiResponseBody.
+type V2KeysWhoamiResponseBody struct {
+	Data KeyResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
@@ -2191,6 +2195,9 @@ type UpdateKeyJSONRequestBody = V2KeysUpdateKeyRequestBody
 // VerifyKeyJSONRequestBody defines body for VerifyKey for application/json ContentType.
 type VerifyKeyJSONRequestBody = V2KeysVerifyKeyRequestBody
 
+// WhoamiJSONRequestBody defines body for Whoami for application/json ContentType.
+type WhoamiJSONRequestBody = V2KeysWhoamiRequestBody
+
 // CreatePermissionJSONRequestBody defines body for CreatePermission for application/json ContentType.
 type CreatePermissionJSONRequestBody = V2PermissionsCreatePermissionRequestBody
 
@@ -2229,130 +2236,6 @@ type RatelimitListOverridesJSONRequestBody = V2RatelimitListOverridesRequestBody
 
 // RatelimitSetOverrideJSONRequestBody defines body for RatelimitSetOverride for application/json ContentType.
 type RatelimitSetOverrideJSONRequestBody = V2RatelimitSetOverrideRequestBody
-
-// AsV2KeysGetKeyRequestBody0 returns the union data inside the V2KeysGetKeyRequestBody as a V2KeysGetKeyRequestBody0
-func (t V2KeysGetKeyRequestBody) AsV2KeysGetKeyRequestBody0() (V2KeysGetKeyRequestBody0, error) {
-	var body V2KeysGetKeyRequestBody0
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromV2KeysGetKeyRequestBody0 overwrites any union data inside the V2KeysGetKeyRequestBody as the provided V2KeysGetKeyRequestBody0
-func (t *V2KeysGetKeyRequestBody) FromV2KeysGetKeyRequestBody0(v V2KeysGetKeyRequestBody0) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeV2KeysGetKeyRequestBody0 performs a merge with any union data inside the V2KeysGetKeyRequestBody, using the provided V2KeysGetKeyRequestBody0
-func (t *V2KeysGetKeyRequestBody) MergeV2KeysGetKeyRequestBody0(v V2KeysGetKeyRequestBody0) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsV2KeysGetKeyRequestBody1 returns the union data inside the V2KeysGetKeyRequestBody as a V2KeysGetKeyRequestBody1
-func (t V2KeysGetKeyRequestBody) AsV2KeysGetKeyRequestBody1() (V2KeysGetKeyRequestBody1, error) {
-	var body V2KeysGetKeyRequestBody1
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromV2KeysGetKeyRequestBody1 overwrites any union data inside the V2KeysGetKeyRequestBody as the provided V2KeysGetKeyRequestBody1
-func (t *V2KeysGetKeyRequestBody) FromV2KeysGetKeyRequestBody1(v V2KeysGetKeyRequestBody1) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeV2KeysGetKeyRequestBody1 performs a merge with any union data inside the V2KeysGetKeyRequestBody, using the provided V2KeysGetKeyRequestBody1
-func (t *V2KeysGetKeyRequestBody) MergeV2KeysGetKeyRequestBody1(v V2KeysGetKeyRequestBody1) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-func (t V2KeysGetKeyRequestBody) MarshalJSON() ([]byte, error) {
-	b, err := t.union.MarshalJSON()
-	if err != nil {
-		return nil, err
-	}
-	object := make(map[string]json.RawMessage)
-	if t.union != nil {
-		err = json.Unmarshal(b, &object)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if t.Decrypt != nil {
-		object["decrypt"], err = json.Marshal(t.Decrypt)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'decrypt': %w", err)
-		}
-	}
-
-	if t.Key != nil {
-		object["key"], err = json.Marshal(t.Key)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'key': %w", err)
-		}
-	}
-
-	if t.KeyId != nil {
-		object["keyId"], err = json.Marshal(t.KeyId)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'keyId': %w", err)
-		}
-	}
-	b, err = json.Marshal(object)
-	return b, err
-}
-
-func (t *V2KeysGetKeyRequestBody) UnmarshalJSON(b []byte) error {
-	err := t.union.UnmarshalJSON(b)
-	if err != nil {
-		return err
-	}
-	object := make(map[string]json.RawMessage)
-	err = json.Unmarshal(b, &object)
-	if err != nil {
-		return err
-	}
-
-	if raw, found := object["decrypt"]; found {
-		err = json.Unmarshal(raw, &t.Decrypt)
-		if err != nil {
-			return fmt.Errorf("error reading 'decrypt': %w", err)
-		}
-	}
-
-	if raw, found := object["key"]; found {
-		err = json.Unmarshal(raw, &t.Key)
-		if err != nil {
-			return fmt.Errorf("error reading 'key': %w", err)
-		}
-	}
-
-	if raw, found := object["keyId"]; found {
-		err = json.Unmarshal(raw, &t.KeyId)
-		if err != nil {
-			return fmt.Errorf("error reading 'keyId': %w", err)
-		}
-	}
-
-	return err
-}
 
 // AsV2RatelimitGetOverrideRequestBody0 returns the union data inside the V2RatelimitGetOverrideRequestBody as a V2RatelimitGetOverrideRequestBody0
 func (t V2RatelimitGetOverrideRequestBody) AsV2RatelimitGetOverrideRequestBody0() (V2RatelimitGetOverrideRequestBody0, error) {

@@ -7,12 +7,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
-	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_get_key"
-	"github.com/unkeyed/unkey/go/pkg/ptr"
+	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_whoami"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestGetKeyBadRequest(t *testing.T) {
+func TestGetKeyNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
@@ -25,7 +25,6 @@ func TestGetKeyBadRequest(t *testing.T) {
 
 	h.Register(route)
 
-	// Create root key with read permissions
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.read_key")
 
 	headers := http.Header{
@@ -33,16 +32,15 @@ func TestGetKeyBadRequest(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	t.Run("empty keyId string", func(t *testing.T) {
+	t.Run("nonexistent raw key", func(t *testing.T) {
+		nonexistentKey := uid.New("api")
 		req := handler.Request{
-			KeyId:   "",
-			Decrypt: ptr.P(false),
+			Key: nonexistentKey,
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
+		require.Contains(t, res.Body.Error.Detail, "We could not find the requested key")
 	})
-
 }

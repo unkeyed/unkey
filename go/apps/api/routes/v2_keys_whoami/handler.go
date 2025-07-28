@@ -8,12 +8,12 @@ import (
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
-	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
@@ -21,8 +21,8 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2KeysGetKeyRequestBody
-type Response = openapi.V2KeysGetKeyResponseBody
+type Request = openapi.V2KeysWhoamiRequestBody
+type Response = openapi.V2KeysWhoamiResponseBody
 
 // Handler implements zen.Route interface for the v2 keys.getKey endpoint
 type Handler struct {
@@ -41,11 +41,10 @@ func (h *Handler) Method() string {
 
 // Path returns the URL path pattern this route matches
 func (h *Handler) Path() string {
-	return "/v2/keys.getKey"
+	return "/v2/keys.whoami"
 }
 
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.getKey")
 
 	// Authentication
 	auth, err := h.Keys.GetRootKey(ctx, s)
@@ -60,8 +59,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	args := db.FindKeyByIdOrHashParams{
-		ID:   sql.NullString{String: req.KeyId, Valid: true},
-		Hash: sql.NullString{String: "", Valid: false},
+		ID:   sql.NullString{String: "", Valid: false},
+		Hash: sql.NullString{String: hash.Sha256(req.Key), Valid: true},
 	}
 
 	key, err := db.Query.FindKeyByIdOrHash(ctx, h.DB.RO(), args)
@@ -117,80 +116,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	keyAuth, err := db.Query.FindKeyringByID(ctx, h.DB.RO(), key.KeyAuthID)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.New("api not set up for keys",
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("api not set up for keys, keyauth not found"), fault.Public("The requested API is not set up to handle keys."),
-			)
-		}
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
-		)
-	}
-
-	decrypt := ptr.SafeDeref(req.Decrypt, false)
-	var plaintext *string
-	if decrypt {
-		if h.Vault == nil {
-			return fault.New("vault missing",
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Public("Vault hasn't been set up."),
-			)
-		}
-
-		// Permission check
-		err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   "*",
-				Action:       rbac.DecryptKey,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   key.Api.ID,
-				Action:       rbac.DecryptKey,
-			}),
-		)))
-		if err != nil {
-			return err
-		}
-
-		if !keyAuth.StoreEncryptedKeys {
-			return fault.New("api not set up for key encryption",
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("api not set up for key encryption"), fault.Public("The API for this key does not support key encryption."),
-			)
-		}
-
-		// If the key is encrypted and the encryption key ID is valid, decrypt the key.
-		// Otherwise the key was never encrypted to begin with.
-		if key.EncryptedKey.Valid && key.EncryptionKeyID.Valid {
-			decrypted, decryptErr := h.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
-				Keyring:   key.WorkspaceID,
-				Encrypted: key.EncryptedKey.String,
-			})
-
-			if decryptErr != nil {
-				h.Logger.Error("failed to decrypt key",
-					"keyId", key.ID,
-					"error", decryptErr,
-				)
-			} else {
-				plaintext = ptr.P(decrypted.GetPlaintext())
-			}
-		}
-
-	}
-
 	k := openapi.KeyResponseData{
 		CreatedAt:   key.CreatedAtM,
 		Enabled:     key.Enabled,
 		KeyId:       key.ID,
 		Start:       key.Start,
-		Plaintext:   plaintext,
+		Plaintext:   nil,
 		Name:        nil,
 		Meta:        nil,
 		Identity:    nil,

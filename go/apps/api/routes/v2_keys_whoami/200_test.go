@@ -13,7 +13,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
-	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_get_key"
+	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_whoami"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
@@ -94,29 +94,15 @@ func TestGetKeyByKeyID(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	// This also tests that we have the correct data for the key.
-	t.Run("get key by keyId without decrypting", func(t *testing.T) {
+	t.Run("get key by plaintext key", func(t *testing.T) {
 		req := handler.Request{
-			KeyId:   keyID,
-			Decrypt: ptr.P(false),
+			Key: key.Key,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status)
+		require.Equal(t, 200, res.Status, "Expected status code 200, got %s", res.RawBody)
 		require.NotNil(t, res.Body)
 		require.Equal(t, res.Body.Data.KeyId, keyID)
-	})
-
-	t.Run("get key by keyId with decrypting", func(t *testing.T) {
-		req := handler.Request{
-			KeyId:   keyID,
-			Decrypt: ptr.P(true),
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status)
-		require.NotNil(t, res.Body)
-		require.Equal(t, ptr.SafeDeref(res.Body.Data.Plaintext), key.Key)
 	})
 
 }
@@ -170,11 +156,9 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 			Name:        &keyName,
 			Meta:        &metaString,
 		})
-		keyID := keyResponse.KeyID
 
 		req := handler.Request{
-			KeyId:   keyID,
-			Decrypt: ptr.P(false),
+			Key: keyResponse.Key,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -197,8 +181,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		})
 
 		req := handler.Request{
-			KeyId:   keyResponse.KeyID,
-			Decrypt: ptr.P(false),
+			Key: keyResponse.Key,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -217,8 +200,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		})
 
 		req := handler.Request{
-			KeyId:   keyResponse.KeyID,
-			Decrypt: ptr.P(false),
+			Key: keyResponse.Key,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -241,8 +223,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		})
 
 		req := handler.Request{
-			KeyId:   keyResponse.KeyID,
-			Decrypt: ptr.P(false),
+			Key: keyResponse.Key,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -277,8 +258,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		})
 
 		req := handler.Request{
-			KeyId:   keyResponse.KeyID,
-			Decrypt: ptr.P(false),
+			Key: keyResponse.Key,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -324,8 +304,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		})
 
 		req := handler.Request{
-			KeyId:   keyResponse.KeyID,
-			Decrypt: ptr.P(false),
+			Key: keyResponse.Key,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -366,8 +345,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		})
 
 		req := handler.Request{
-			KeyId:   keyResponse.KeyID,
-			Decrypt: ptr.P(false),
+			Key: keyResponse.Key,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
