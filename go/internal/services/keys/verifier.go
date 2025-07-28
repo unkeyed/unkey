@@ -94,10 +94,6 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 		}
 	}
 
-	if config.apiID != nil {
-		k.WithApiID(*config.apiID)
-	}
-
 	err = k.withRateLimits(ctx, config.ratelimits)
 	if err != nil {
 		return err
