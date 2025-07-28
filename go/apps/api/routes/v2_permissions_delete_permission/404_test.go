@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -12,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_delete_permission"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -90,7 +90,7 @@ func TestNotFoundErrors(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         "test.permission.to.delete",
 			Slug:         "test-permission-to-delete",
-			Description:  sql.NullString{Valid: false},
+			Description:  dbtype.NullString{Valid: false},
 			CreatedAtM:   time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)

@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"database/sql"
 	"net/http"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
@@ -75,7 +75,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			WorkspaceID:  auth.AuthorizedWorkspaceID,
 			Name:         req.Name,
 			Slug:         req.Slug,
-			Description:  sql.NullString{Valid: description != "", String: description},
+			Description:  dbtype.NullString{Valid: description != "", String: description},
 			CreatedAtM:   time.Now().UnixMilli(),
 		})
 		if err != nil {

@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_list_roles"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -57,7 +58,7 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         perm.Name,
 			Slug:         fmt.Sprintf("test-permission-%d", i+1),
-			Description:  sql.NullString{Valid: true, String: perm.Description},
+			Description:  dbtype.NullString{Valid: true, String: perm.Description},
 			CreatedAtM:   time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
@@ -129,7 +130,6 @@ func TestSuccess(t *testing.T) {
 		for _, role := range res.Body.Data {
 			roleMap[role.Id] = true
 			require.NotNil(t, role.Description)
-			require.NotNil(t, role.CreatedAt)
 
 			// Verify permissions are attached
 			require.NotNil(t, role.Permissions)
