@@ -32,8 +32,6 @@ properties:
       Include the full key exactly as provided - even minor modifications will cause a not found error.
     example: sk_1234abcdef5678
 additionalProperties: false
-oneOf:
-  - required:
       - keyId
   - required:
       - key
