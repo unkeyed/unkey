@@ -45,7 +45,8 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
@@ -55,6 +56,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	// 4. Validate key exists and belongs to workspace
 	key, err := db.Query.FindKeyByIdOrHash(ctx,
 		h.DB.RO(),
 		db.FindKeyByIdOrHashParams{
@@ -66,23 +68,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if db.IsNotFound(err) {
 			return fault.New("key not found",
 				fault.Code(codes.Data.Key.NotFound.URN()),
-				fault.Internal("key not found"), fault.Public("The specified key was not found."),
+				fault.Internal("key not found"),
+				fault.Public("The specified key was not found."),
 			)
 		}
+
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve key."),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve key."),
 		)
 	}
 
 	if key.WorkspaceID != auth.AuthorizedWorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
-			fault.Internal("key belongs to different workspace"), fault.Public("The specified key was not found."),
+			fault.Internal("key belongs to different workspace"),
+			fault.Public("The specified key was not found."),
 		)
 	}
 
-	err = auth.Verify(ctx, keys.WithPermissions(
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(
 		rbac.And(
 			rbac.Or(
 				rbac.T(rbac.Tuple{
@@ -156,7 +162,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	for perm := range missingPermissions {
-		err = auth.Verify(ctx, keys.WithPermissions(
+		err = auth.VerifyRootKey(ctx, keys.WithPermissions(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Rbac,
 				ResourceID:   "*",
