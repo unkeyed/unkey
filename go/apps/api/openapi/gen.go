@@ -21,24 +21,24 @@ const (
 	Monthly KeyCreditsRefillInterval = "monthly"
 )
 
-// Defines values for KeysVerifyKeyResponseDataCode.
-const (
-	DISABLED                KeysVerifyKeyResponseDataCode = "DISABLED"
-	EXPIRED                 KeysVerifyKeyResponseDataCode = "EXPIRED"
-	FORBIDDEN               KeysVerifyKeyResponseDataCode = "FORBIDDEN"
-	INSUFFICIENTCREDITS     KeysVerifyKeyResponseDataCode = "INSUFFICIENT_CREDITS"
-	INSUFFICIENTPERMISSIONS KeysVerifyKeyResponseDataCode = "INSUFFICIENT_PERMISSIONS"
-	NOTFOUND                KeysVerifyKeyResponseDataCode = "NOT_FOUND"
-	RATELIMITED             KeysVerifyKeyResponseDataCode = "RATE_LIMITED"
-	USAGEEXCEEDED           KeysVerifyKeyResponseDataCode = "USAGE_EXCEEDED"
-	VALID                   KeysVerifyKeyResponseDataCode = "VALID"
-)
-
 // Defines values for V2KeysUpdateCreditsRequestBodyOperation.
 const (
 	Decrement V2KeysUpdateCreditsRequestBodyOperation = "decrement"
 	Increment V2KeysUpdateCreditsRequestBodyOperation = "increment"
 	Set       V2KeysUpdateCreditsRequestBodyOperation = "set"
+)
+
+// Defines values for V2KeysVerifyKeyResponseDataCode.
+const (
+	DISABLED                V2KeysVerifyKeyResponseDataCode = "DISABLED"
+	EXPIRED                 V2KeysVerifyKeyResponseDataCode = "EXPIRED"
+	FORBIDDEN               V2KeysVerifyKeyResponseDataCode = "FORBIDDEN"
+	INSUFFICIENTCREDITS     V2KeysVerifyKeyResponseDataCode = "INSUFFICIENT_CREDITS"
+	INSUFFICIENTPERMISSIONS V2KeysVerifyKeyResponseDataCode = "INSUFFICIENT_PERMISSIONS"
+	NOTFOUND                V2KeysVerifyKeyResponseDataCode = "NOT_FOUND"
+	RATELIMITED             V2KeysVerifyKeyResponseDataCode = "RATE_LIMITED"
+	USAGEEXCEEDED           V2KeysVerifyKeyResponseDataCode = "USAGE_EXCEEDED"
+	VALID                   V2KeysVerifyKeyResponseDataCode = "VALID"
 )
 
 // BadRequestErrorDetails defines model for BadRequestErrorDetails.
@@ -258,76 +258,6 @@ type KeysVerifyKeyRatelimit struct {
 	// Name References an existing ratelimit by its name. Key Ratelimits will take precedence over identifier-based limits.
 	Name string `json:"name"`
 }
-
-// KeysVerifyKeyResponseData defines model for KeysVerifyKeyResponseData.
-type KeysVerifyKeyResponseData struct {
-	// Code A machine-readable code indicating the verification status
-	// or failure reason. Values: `VALID` (key is valid and passed all checks), `NOT_FOUND` (key doesn't
-	// exist or belongs to wrong API), `FORBIDDEN` (key lacks required permissions), `INSUFFICIENT_PERMISSIONS`
-	// (key lacks specific required permissions for this request), `INSUFFICIENT_CREDITS`
-	// (key has no remaining credits), `USAGE_EXCEEDED` (key exceeded usage limits), `RATE_LIMITED` (key exceeded rate limits), `DISABLED` (key was explicitly disabled),
-	// `EXPIRED` (key has passed its expiration date).
-	Code KeysVerifyKeyResponseDataCode `json:"code"`
-
-	// Credits The number of requests/credits remaining for this key. If null
-	// or not present, the key has unlimited usage. This value decreases with
-	// each verification (based on the 'cost' parameter) unless explicit credit
-	// refills are configured.
-	Credits *int32 `json:"credits,omitempty"`
-
-	// Enabled Indicates if the key is currently enabled. Disabled keys will
-	// always fail verification with `code=DISABLED`. This is useful for implementing
-	// temporary suspensions without deleting the key.
-	Enabled *bool `json:"enabled,omitempty"`
-
-	// Expires Unix timestamp (in milliseconds) when the key will expire.
-	// If null or not present, the key has no expiration. You can use this to
-	// warn users about upcoming expirations or to understand the validity period.
-	Expires  *int64    `json:"expires,omitempty"`
-	Identity *Identity `json:"identity,omitempty"`
-
-	// KeyId The unique identifier of the verified key in Unkey's system.
-	// Use this ID for operations like updating or revoking the key. This field
-	// is returned for both valid and invalid keys (except when `code=NOT_FOUND`).
-	KeyId *string `json:"keyId,omitempty"`
-
-	// Meta Custom metadata associated with the key. This can include any
-	// JSON-serializable data you stored with the key during creation or updates,
-	// such as plan information, feature flags, or user details. Use this to
-	// avoid additional database lookups for contextual information needed during
-	// API calls.
-	Meta *map[string]interface{} `json:"meta,omitempty"`
-
-	// Name The human-readable name assigned to this key during creation.
-	// This is useful for displaying in logs or admin interfaces to identify
-	// the key's purpose.
-	Name *string `json:"name,omitempty"`
-
-	// Permissions A list of all permission names assigned to this key, either
-	// directly or through roles. These permissions determine what actions the
-	// key can perform. Only returned when permissions were checked during verification
-	// or when the key fails with `code=FORBIDDEN`.
-	Permissions *[]string                 `json:"permissions,omitempty"`
-	Ratelimits  *[]VerifyKeyRatelimitData `json:"ratelimits,omitempty"`
-
-	// Roles A list of all role names assigned to this key. Roles are collections
-	// of permissions that grant access to specific functionality. Only returned
-	// when permissions were checked during verification.
-	Roles *[]string `json:"roles,omitempty"`
-
-	// Valid The primary verification result. If true, the key is valid
-	// and can be used. If false, check the 'code' field to understand why verification
-	// failed. Your application should always check this field first before proceeding.
-	Valid bool `json:"valid"`
-}
-
-// KeysVerifyKeyResponseDataCode A machine-readable code indicating the verification status
-// or failure reason. Values: `VALID` (key is valid and passed all checks), `NOT_FOUND` (key doesn't
-// exist or belongs to wrong API), `FORBIDDEN` (key lacks required permissions), `INSUFFICIENT_PERMISSIONS`
-// (key lacks specific required permissions for this request), `INSUFFICIENT_CREDITS`
-// (key has no remaining credits), `USAGE_EXCEEDED` (key exceeded usage limits), `RATE_LIMITED` (key exceeded rate limits), `DISABLED` (key was explicitly disabled),
-// `EXPIRED` (key has passed its expiration date).
-type KeysVerifyKeyResponseDataCode string
 
 // Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 type Meta struct {
@@ -1506,10 +1436,6 @@ type V2KeysUpdateKeyResponseData = map[string]interface{}
 
 // V2KeysVerifyKeyRequestBody defines model for V2KeysVerifyKeyRequestBody.
 type V2KeysVerifyKeyRequestBody struct {
-	// ApiId The API namespace this key belongs to.
-	// Ensures environment isolation (dev keys can't access prod data).
-	ApiId string `json:"apiId"`
-
 	// Credits Controls credit consumption for usage-based billing and quota enforcement.
 	// Omitting this field uses the default cost of 1 credit per verification.
 	// Credits provide globally consistent usage tracking, essential for paid APIs with strict quotas.
@@ -1543,11 +1469,81 @@ type V2KeysVerifyKeyRequestBody struct {
 
 // V2KeysVerifyKeyResponseBody defines model for V2KeysVerifyKeyResponseBody.
 type V2KeysVerifyKeyResponseBody struct {
-	Data KeysVerifyKeyResponseData `json:"data"`
+	Data V2KeysVerifyKeyResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
+
+// V2KeysVerifyKeyResponseData defines model for V2KeysVerifyKeyResponseData.
+type V2KeysVerifyKeyResponseData struct {
+	// Code A machine-readable code indicating the verification status
+	// or failure reason. Values: `VALID` (key is valid and passed all checks), `NOT_FOUND` (key doesn't
+	// exist or belongs to wrong API), `FORBIDDEN` (key lacks required permissions), `INSUFFICIENT_PERMISSIONS`
+	// (key lacks specific required permissions for this request), `INSUFFICIENT_CREDITS`
+	// (key has no remaining credits), `USAGE_EXCEEDED` (key exceeded usage limits), `RATE_LIMITED` (key exceeded rate limits), `DISABLED` (key was explicitly disabled),
+	// `EXPIRED` (key has passed its expiration date).
+	Code V2KeysVerifyKeyResponseDataCode `json:"code"`
+
+	// Credits The number of requests/credits remaining for this key. If null
+	// or not present, the key has unlimited usage. This value decreases with
+	// each verification (based on the 'cost' parameter) unless explicit credit
+	// refills are configured.
+	Credits *int32 `json:"credits,omitempty"`
+
+	// Enabled Indicates if the key is currently enabled. Disabled keys will
+	// always fail verification with `code=DISABLED`. This is useful for implementing
+	// temporary suspensions without deleting the key.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Expires Unix timestamp (in milliseconds) when the key will expire.
+	// If null or not present, the key has no expiration. You can use this to
+	// warn users about upcoming expirations or to understand the validity period.
+	Expires  *int64    `json:"expires,omitempty"`
+	Identity *Identity `json:"identity,omitempty"`
+
+	// KeyId The unique identifier of the verified key in Unkey's system.
+	// Use this ID for operations like updating or revoking the key. This field
+	// is returned for both valid and invalid keys (except when `code=NOT_FOUND`).
+	KeyId *string `json:"keyId,omitempty"`
+
+	// Meta Custom metadata associated with the key. This can include any
+	// JSON-serializable data you stored with the key during creation or updates,
+	// such as plan information, feature flags, or user details. Use this to
+	// avoid additional database lookups for contextual information needed during
+	// API calls.
+	Meta *map[string]interface{} `json:"meta,omitempty"`
+
+	// Name The human-readable name assigned to this key during creation.
+	// This is useful for displaying in logs or admin interfaces to identify
+	// the key's purpose.
+	Name *string `json:"name,omitempty"`
+
+	// Permissions A list of all permission names assigned to this key, either
+	// directly or through roles. These permissions determine what actions the
+	// key can perform. Only returned when permissions were checked during verification
+	// or when the key fails with `code=FORBIDDEN`.
+	Permissions *[]string                 `json:"permissions,omitempty"`
+	Ratelimits  *[]VerifyKeyRatelimitData `json:"ratelimits,omitempty"`
+
+	// Roles A list of all role names assigned to this key. Roles are collections
+	// of permissions that grant access to specific functionality. Only returned
+	// when permissions were checked during verification.
+	Roles *[]string `json:"roles,omitempty"`
+
+	// Valid The primary verification result. If true, the key is valid
+	// and can be used. If false, check the 'code' field to understand why verification
+	// failed. Your application should always check this field first before proceeding.
+	Valid bool `json:"valid"`
+}
+
+// V2KeysVerifyKeyResponseDataCode A machine-readable code indicating the verification status
+// or failure reason. Values: `VALID` (key is valid and passed all checks), `NOT_FOUND` (key doesn't
+// exist or belongs to wrong API), `FORBIDDEN` (key lacks required permissions), `INSUFFICIENT_PERMISSIONS`
+// (key lacks specific required permissions for this request), `INSUFFICIENT_CREDITS`
+// (key has no remaining credits), `USAGE_EXCEEDED` (key exceeded usage limits), `RATE_LIMITED` (key exceeded rate limits), `DISABLED` (key was explicitly disabled),
+// `EXPIRED` (key has passed its expiration date).
+type V2KeysVerifyKeyResponseDataCode string
 
 // V2LivenessResponseBody defines model for V2LivenessResponseBody.
 type V2LivenessResponseBody struct {
@@ -1823,11 +1819,8 @@ type V2RatelimitDeleteOverrideRequestBody struct {
 	// After deletion, any identifiers previously affected by this override will immediately revert to using the default rate limit for the namespace.
 	Identifier string `json:"identifier"`
 
-	// NamespaceId The unique ID of the rate limit namespace containing the override. Either `namespaceId` or `namespaceName` must be provided, but not both. Using `namespaceId` is more precise and less prone to naming conflicts, making it ideal for automation and scripts.
-	NamespaceId *string `json:"namespaceId,omitempty"`
-
-	// NamespaceName The name of the rate limit namespace containing the override. Either `namespaceId` or `namespaceName` must be provided, but not both. Using `namespaceName` is more human-readable and convenient for manual operations and configurations.
-	NamespaceName *string `json:"namespaceName,omitempty"`
+	// Namespace The id or name of the namespace containing the override.
+	Namespace string `json:"namespace"`
 }
 
 // V2RatelimitDeleteOverrideResponseBody defines model for V2RatelimitDeleteOverrideResponseBody.
@@ -1861,19 +1854,9 @@ type V2RatelimitGetOverrideRequestBody struct {
 	// This field is used to look up the specific override configuration for this pattern.
 	Identifier string `json:"identifier"`
 
-	// NamespaceId The unique ID of the rate limit namespace. Either `namespaceId` or `namespaceName` must be provided, but not both. Using `namespaceId` is more precise and less prone to naming conflicts, making it ideal for scripts and automated operations.
-	NamespaceId *string `json:"namespaceId,omitempty"`
-
-	// NamespaceName The name of the rate limit namespace. Either `namespaceId` or `namespaceName` must be provided, but not both. Using `namespaceName` is more human-readable and easier to work with for manual operations and configurations.
-	NamespaceName *string `json:"namespaceName,omitempty"`
-	union         json.RawMessage
+	// Namespace The id or name of the namespace containing the override.
+	Namespace string `json:"namespace"`
 }
-
-// V2RatelimitGetOverrideRequestBody0 defines model for .
-type V2RatelimitGetOverrideRequestBody0 = interface{}
-
-// V2RatelimitGetOverrideRequestBody1 defines model for .
-type V2RatelimitGetOverrideRequestBody1 = interface{}
 
 // V2RatelimitGetOverrideResponseBody defines model for V2RatelimitGetOverrideResponseBody.
 type V2RatelimitGetOverrideResponseBody struct {
@@ -1910,11 +1893,7 @@ type V2RatelimitLimitRequestBody struct {
 	// Consider system capacity, business requirements, and fair usage policies in limit determination.
 	Limit int64 `json:"limit"`
 
-	// Namespace Identifies the rate limit category using hierarchical naming for organization and monitoring.
-	// Namespaces must start with a letter and can contain letters, numbers, underscores, dots, slashes, or hyphens.
-	// Use descriptive, hierarchical names like 'auth.login', 'api.requests', or 'media.uploads' for clear categorization.
-	// Namespaces must be unique within your workspace and support segmentation of different API operations.
-	// Consistent naming conventions across your application improve monitoring and debugging capabilities.
+	// Namespace The id or name of the namespace.
 	Namespace string `json:"namespace"`
 }
 
@@ -1982,11 +1961,8 @@ type V2RatelimitListOverridesRequestBody struct {
 	// Results exceeding this limit will be paginated, with a cursor provided for fetching subsequent pages.
 	Limit *int `json:"limit,omitempty"`
 
-	// NamespaceId The unique ID of the rate limit namespace to list overrides for. Either `namespaceId` or `namespaceName` must be provided, but not both. Using `namespaceId` guarantees you're targeting the exact namespace intended, even if names change over time.
-	NamespaceId *string `json:"namespaceId,omitempty"`
-
-	// NamespaceName The name of the rate limit namespace to list overrides for. Either `namespaceId` or `namespaceName` must be provided, but not both. Using `namespaceName` is more human-readable and convenient for manual operations and dashboards.
-	NamespaceName *string `json:"namespaceName,omitempty"`
+	// Namespace The id or name of the rate limit namespace to list overrides for.
+	Namespace string `json:"namespace"`
 }
 
 // V2RatelimitListOverridesResponseBody defines model for V2RatelimitListOverridesResponseBody.
@@ -2046,11 +2022,8 @@ type V2RatelimitSetOverrideRequestBody struct {
 	// This limit entirely replaces the default limit for matching identifiers.
 	Limit int64 `json:"limit"`
 
-	// NamespaceId The unique ID of the rate limit namespace. Either `namespaceId` or `namespaceName` must be provided, but not both. Using `namespaceId` guarantees you're targeting the exact namespace intended, even if names change, making it ideal for automation and scripts.
-	NamespaceId *string `json:"namespaceId,omitempty"`
-
-	// NamespaceName The name of the rate limit namespace. Either `namespaceId` or `namespaceName` must be provided, but not both. Using `namespaceName` is more human-readable and convenient for manual operations and configurations.
-	NamespaceName *string `json:"namespaceName,omitempty"`
+	// Namespace The ID or name of the rate limit namespace.
+	Namespace string `json:"namespace"`
 }
 
 // V2RatelimitSetOverrideResponseBody defines model for V2RatelimitSetOverrideResponseBody.
@@ -2348,128 +2321,6 @@ func (t *V2KeysGetKeyRequestBody) UnmarshalJSON(b []byte) error {
 		err = json.Unmarshal(raw, &t.KeyId)
 		if err != nil {
 			return fmt.Errorf("error reading 'keyId': %w", err)
-		}
-	}
-
-	return err
-}
-
-// AsV2RatelimitGetOverrideRequestBody0 returns the union data inside the V2RatelimitGetOverrideRequestBody as a V2RatelimitGetOverrideRequestBody0
-func (t V2RatelimitGetOverrideRequestBody) AsV2RatelimitGetOverrideRequestBody0() (V2RatelimitGetOverrideRequestBody0, error) {
-	var body V2RatelimitGetOverrideRequestBody0
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromV2RatelimitGetOverrideRequestBody0 overwrites any union data inside the V2RatelimitGetOverrideRequestBody as the provided V2RatelimitGetOverrideRequestBody0
-func (t *V2RatelimitGetOverrideRequestBody) FromV2RatelimitGetOverrideRequestBody0(v V2RatelimitGetOverrideRequestBody0) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeV2RatelimitGetOverrideRequestBody0 performs a merge with any union data inside the V2RatelimitGetOverrideRequestBody, using the provided V2RatelimitGetOverrideRequestBody0
-func (t *V2RatelimitGetOverrideRequestBody) MergeV2RatelimitGetOverrideRequestBody0(v V2RatelimitGetOverrideRequestBody0) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsV2RatelimitGetOverrideRequestBody1 returns the union data inside the V2RatelimitGetOverrideRequestBody as a V2RatelimitGetOverrideRequestBody1
-func (t V2RatelimitGetOverrideRequestBody) AsV2RatelimitGetOverrideRequestBody1() (V2RatelimitGetOverrideRequestBody1, error) {
-	var body V2RatelimitGetOverrideRequestBody1
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromV2RatelimitGetOverrideRequestBody1 overwrites any union data inside the V2RatelimitGetOverrideRequestBody as the provided V2RatelimitGetOverrideRequestBody1
-func (t *V2RatelimitGetOverrideRequestBody) FromV2RatelimitGetOverrideRequestBody1(v V2RatelimitGetOverrideRequestBody1) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeV2RatelimitGetOverrideRequestBody1 performs a merge with any union data inside the V2RatelimitGetOverrideRequestBody, using the provided V2RatelimitGetOverrideRequestBody1
-func (t *V2RatelimitGetOverrideRequestBody) MergeV2RatelimitGetOverrideRequestBody1(v V2RatelimitGetOverrideRequestBody1) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-func (t V2RatelimitGetOverrideRequestBody) MarshalJSON() ([]byte, error) {
-	b, err := t.union.MarshalJSON()
-	if err != nil {
-		return nil, err
-	}
-	object := make(map[string]json.RawMessage)
-	if t.union != nil {
-		err = json.Unmarshal(b, &object)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	object["identifier"], err = json.Marshal(t.Identifier)
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling 'identifier': %w", err)
-	}
-
-	if t.NamespaceId != nil {
-		object["namespaceId"], err = json.Marshal(t.NamespaceId)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'namespaceId': %w", err)
-		}
-	}
-
-	if t.NamespaceName != nil {
-		object["namespaceName"], err = json.Marshal(t.NamespaceName)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'namespaceName': %w", err)
-		}
-	}
-	b, err = json.Marshal(object)
-	return b, err
-}
-
-func (t *V2RatelimitGetOverrideRequestBody) UnmarshalJSON(b []byte) error {
-	err := t.union.UnmarshalJSON(b)
-	if err != nil {
-		return err
-	}
-	object := make(map[string]json.RawMessage)
-	err = json.Unmarshal(b, &object)
-	if err != nil {
-		return err
-	}
-
-	if raw, found := object["identifier"]; found {
-		err = json.Unmarshal(raw, &t.Identifier)
-		if err != nil {
-			return fmt.Errorf("error reading 'identifier': %w", err)
-		}
-	}
-
-	if raw, found := object["namespaceId"]; found {
-		err = json.Unmarshal(raw, &t.NamespaceId)
-		if err != nil {
-			return fmt.Errorf("error reading 'namespaceId': %w", err)
-		}
-	}
-
-	if raw, found := object["namespaceName"]; found {
-		err = json.Unmarshal(raw, &t.NamespaceName)
-		if err != nil {
-			return fmt.Errorf("error reading 'namespaceName': %w", err)
 		}
 	}
 
