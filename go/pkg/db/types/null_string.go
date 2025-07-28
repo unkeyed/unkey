@@ -10,25 +10,27 @@ import (
 type NullString sql.NullString
 
 // MarshalJSON implements the json.Marshaler interface.
-func (x *NullString) MarshalJSON() ([]byte, error) {
-	if !x.Valid {
+func (ns *NullString) MarshalJSON() ([]byte, error) {
+	if !ns.Valid {
 		return []byte("null"), nil
 	}
 
-	return json.Marshal(x.String)
+	return json.Marshal(ns.String)
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface.
 func (ns *NullString) UnmarshalJSON(data []byte) error {
-	val := string(data)
-	if val == "null" {
+	if string(data) == "null" {
 		ns.Valid = false
 		return nil
 	}
 
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
 	ns.Valid = true
-	ns.String = val
-
+	ns.String = s
 	return nil
 }
 
