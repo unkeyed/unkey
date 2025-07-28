@@ -73,6 +73,7 @@ type MDXData struct {
 	Flags       []MDXFlag
 	CommandType string
 	FrontMatter *FrontMatter
+	CommandPath string
 }
 
 type MDXSubcommand struct {
@@ -109,6 +110,7 @@ func (c *Command) extractMDXData(frontMatter *FrontMatter) MDXData {
 		Flags:       c.extractFlags(),
 		CommandType: c.determineCommandType(),
 		FrontMatter: frontMatter,
+		CommandPath: c.getCommandPath(),
 	}
 }
 
@@ -290,7 +292,15 @@ func (c *Command) generateTitle(command string) string {
 	return "Advanced configuration"
 }
 
-// extractFlags processes all flags into MDX format
+// Get full command path
+func (c *Command) getCommandPath() string {
+	if c.commandPath != "" {
+		return c.commandPath
+	}
+	return c.Name
+}
+
+// extractFlags to include short names and aliases
 func (c *Command) extractFlags() []MDXFlag {
 	if len(c.Flags) == 0 {
 		return nil

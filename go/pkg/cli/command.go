@@ -1,3 +1,5 @@
+// Package cli provides a command-line interface framework for building CLI applications.
+// It supports nested commands, various flag types, and structured error handling.
 package cli
 
 import (
@@ -28,6 +30,7 @@ type Command struct {
 	Flags       []Flag     // Available flags for this command
 	Action      Action     // Function to execute when command is run
 	Aliases     []string   // Alternative names for this command
+	commandPath string     // Full command path for MDX generation (e.g., "run api")
 
 	// Runtime state (populated during parsing)
 	args    []string        // Non-flag arguments passed to command

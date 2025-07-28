@@ -15,6 +15,7 @@ var (
 )
 
 // handleMDXGeneration checks if this is an MDX generation request and handles it
+// Update handleMDXGeneration to pass command path to GenerateMDX
 func (c *Command) handleMDXGeneration(args []string) (bool, error) {
 	if len(args) == 0 {
 		return false, nil
@@ -39,6 +40,9 @@ func (c *Command) handleMDXGeneration(args []string) (bool, error) {
 
 	// Generate appropriate frontmatter based on command path
 	frontMatter := c.generateFrontMatterFromPath(commandPath, targetCmd)
+
+	// Set the command path on the target command before generating MDX
+	targetCmd.commandPath = strings.Join(commandPath, " ")
 
 	// Generate and output MDX
 	mdxContent, err := targetCmd.GenerateMDX(frontMatter)
@@ -95,20 +99,17 @@ func (c *Command) generateFrontMatterFromPath(path []string, targetCmd *Command)
 
 	if len(path) == 0 {
 		return &FrontMatter{
-			Title:       caser.String(c.Name) + " Command",
+			Title:       caser.String(c.Name),
 			Description: c.Usage,
 		}
 	}
 
 	// Build title from command path
-	var titleParts []string
-	for _, part := range path {
-		if part != "" {
-			titleParts = append(titleParts, caser.String(part))
-		}
+	title := ""
+	if len(path) > 0 && path[len(path)-1] != "" {
+		title = caser.String(path[len(path)-1])
 	}
 
-	title := strings.Join(titleParts, " ") + " Command"
 	description := targetCmd.Usage
 	if description == "" {
 		description = "No description available"
