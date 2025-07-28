@@ -21,24 +21,24 @@ const (
 	Monthly KeyCreditsRefillInterval = "monthly"
 )
 
-// Defines values for KeysVerifyKeyResponseDataCode.
-const (
-	DISABLED                KeysVerifyKeyResponseDataCode = "DISABLED"
-	EXPIRED                 KeysVerifyKeyResponseDataCode = "EXPIRED"
-	FORBIDDEN               KeysVerifyKeyResponseDataCode = "FORBIDDEN"
-	INSUFFICIENTCREDITS     KeysVerifyKeyResponseDataCode = "INSUFFICIENT_CREDITS"
-	INSUFFICIENTPERMISSIONS KeysVerifyKeyResponseDataCode = "INSUFFICIENT_PERMISSIONS"
-	NOTFOUND                KeysVerifyKeyResponseDataCode = "NOT_FOUND"
-	RATELIMITED             KeysVerifyKeyResponseDataCode = "RATE_LIMITED"
-	USAGEEXCEEDED           KeysVerifyKeyResponseDataCode = "USAGE_EXCEEDED"
-	VALID                   KeysVerifyKeyResponseDataCode = "VALID"
-)
-
 // Defines values for V2KeysUpdateCreditsRequestBodyOperation.
 const (
 	Decrement V2KeysUpdateCreditsRequestBodyOperation = "decrement"
 	Increment V2KeysUpdateCreditsRequestBodyOperation = "increment"
 	Set       V2KeysUpdateCreditsRequestBodyOperation = "set"
+)
+
+// Defines values for V2KeysVerifyKeyResponseDataCode.
+const (
+	DISABLED                V2KeysVerifyKeyResponseDataCode = "DISABLED"
+	EXPIRED                 V2KeysVerifyKeyResponseDataCode = "EXPIRED"
+	FORBIDDEN               V2KeysVerifyKeyResponseDataCode = "FORBIDDEN"
+	INSUFFICIENTCREDITS     V2KeysVerifyKeyResponseDataCode = "INSUFFICIENT_CREDITS"
+	INSUFFICIENTPERMISSIONS V2KeysVerifyKeyResponseDataCode = "INSUFFICIENT_PERMISSIONS"
+	NOTFOUND                V2KeysVerifyKeyResponseDataCode = "NOT_FOUND"
+	RATELIMITED             V2KeysVerifyKeyResponseDataCode = "RATE_LIMITED"
+	USAGEEXCEEDED           V2KeysVerifyKeyResponseDataCode = "USAGE_EXCEEDED"
+	VALID                   V2KeysVerifyKeyResponseDataCode = "VALID"
 )
 
 // BadRequestErrorDetails defines model for BadRequestErrorDetails.
@@ -258,76 +258,6 @@ type KeysVerifyKeyRatelimit struct {
 	// Name References an existing ratelimit by its name. Key Ratelimits will take precedence over identifier-based limits.
 	Name string `json:"name"`
 }
-
-// KeysVerifyKeyResponseData defines model for KeysVerifyKeyResponseData.
-type KeysVerifyKeyResponseData struct {
-	// Code A machine-readable code indicating the verification status
-	// or failure reason. Values: `VALID` (key is valid and passed all checks), `NOT_FOUND` (key doesn't
-	// exist or belongs to wrong API), `FORBIDDEN` (key lacks required permissions), `INSUFFICIENT_PERMISSIONS`
-	// (key lacks specific required permissions for this request), `INSUFFICIENT_CREDITS`
-	// (key has no remaining credits), `USAGE_EXCEEDED` (key exceeded usage limits), `RATE_LIMITED` (key exceeded rate limits), `DISABLED` (key was explicitly disabled),
-	// `EXPIRED` (key has passed its expiration date).
-	Code KeysVerifyKeyResponseDataCode `json:"code"`
-
-	// Credits The number of requests/credits remaining for this key. If null
-	// or not present, the key has unlimited usage. This value decreases with
-	// each verification (based on the 'cost' parameter) unless explicit credit
-	// refills are configured.
-	Credits *int32 `json:"credits,omitempty"`
-
-	// Enabled Indicates if the key is currently enabled. Disabled keys will
-	// always fail verification with `code=DISABLED`. This is useful for implementing
-	// temporary suspensions without deleting the key.
-	Enabled *bool `json:"enabled,omitempty"`
-
-	// Expires Unix timestamp (in milliseconds) when the key will expire.
-	// If null or not present, the key has no expiration. You can use this to
-	// warn users about upcoming expirations or to understand the validity period.
-	Expires  *int64    `json:"expires,omitempty"`
-	Identity *Identity `json:"identity,omitempty"`
-
-	// KeyId The unique identifier of the verified key in Unkey's system.
-	// Use this ID for operations like updating or revoking the key. This field
-	// is returned for both valid and invalid keys (except when `code=NOT_FOUND`).
-	KeyId *string `json:"keyId,omitempty"`
-
-	// Meta Custom metadata associated with the key. This can include any
-	// JSON-serializable data you stored with the key during creation or updates,
-	// such as plan information, feature flags, or user details. Use this to
-	// avoid additional database lookups for contextual information needed during
-	// API calls.
-	Meta *map[string]interface{} `json:"meta,omitempty"`
-
-	// Name The human-readable name assigned to this key during creation.
-	// This is useful for displaying in logs or admin interfaces to identify
-	// the key's purpose.
-	Name *string `json:"name,omitempty"`
-
-	// Permissions A list of all permission names assigned to this key, either
-	// directly or through roles. These permissions determine what actions the
-	// key can perform. Only returned when permissions were checked during verification
-	// or when the key fails with `code=FORBIDDEN`.
-	Permissions *[]string                 `json:"permissions,omitempty"`
-	Ratelimits  *[]VerifyKeyRatelimitData `json:"ratelimits,omitempty"`
-
-	// Roles A list of all role names assigned to this key. Roles are collections
-	// of permissions that grant access to specific functionality. Only returned
-	// when permissions were checked during verification.
-	Roles *[]string `json:"roles,omitempty"`
-
-	// Valid The primary verification result. If true, the key is valid
-	// and can be used. If false, check the 'code' field to understand why verification
-	// failed. Your application should always check this field first before proceeding.
-	Valid bool `json:"valid"`
-}
-
-// KeysVerifyKeyResponseDataCode A machine-readable code indicating the verification status
-// or failure reason. Values: `VALID` (key is valid and passed all checks), `NOT_FOUND` (key doesn't
-// exist or belongs to wrong API), `FORBIDDEN` (key lacks required permissions), `INSUFFICIENT_PERMISSIONS`
-// (key lacks specific required permissions for this request), `INSUFFICIENT_CREDITS`
-// (key has no remaining credits), `USAGE_EXCEEDED` (key exceeded usage limits), `RATE_LIMITED` (key exceeded rate limits), `DISABLED` (key was explicitly disabled),
-// `EXPIRED` (key has passed its expiration date).
-type KeysVerifyKeyResponseDataCode string
 
 // Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 type Meta struct {
@@ -1506,10 +1436,6 @@ type V2KeysUpdateKeyResponseData = map[string]interface{}
 
 // V2KeysVerifyKeyRequestBody defines model for V2KeysVerifyKeyRequestBody.
 type V2KeysVerifyKeyRequestBody struct {
-	// ApiId The API namespace this key belongs to.
-	// Ensures environment isolation (dev keys can't access prod data).
-	ApiId string `json:"apiId"`
-
 	// Credits Controls credit consumption for usage-based billing and quota enforcement.
 	// Omitting this field uses the default cost of 1 credit per verification.
 	// Credits provide globally consistent usage tracking, essential for paid APIs with strict quotas.
@@ -1543,11 +1469,81 @@ type V2KeysVerifyKeyRequestBody struct {
 
 // V2KeysVerifyKeyResponseBody defines model for V2KeysVerifyKeyResponseBody.
 type V2KeysVerifyKeyResponseBody struct {
-	Data KeysVerifyKeyResponseData `json:"data"`
+	Data V2KeysVerifyKeyResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
+
+// V2KeysVerifyKeyResponseData defines model for V2KeysVerifyKeyResponseData.
+type V2KeysVerifyKeyResponseData struct {
+	// Code A machine-readable code indicating the verification status
+	// or failure reason. Values: `VALID` (key is valid and passed all checks), `NOT_FOUND` (key doesn't
+	// exist or belongs to wrong API), `FORBIDDEN` (key lacks required permissions), `INSUFFICIENT_PERMISSIONS`
+	// (key lacks specific required permissions for this request), `INSUFFICIENT_CREDITS`
+	// (key has no remaining credits), `USAGE_EXCEEDED` (key exceeded usage limits), `RATE_LIMITED` (key exceeded rate limits), `DISABLED` (key was explicitly disabled),
+	// `EXPIRED` (key has passed its expiration date).
+	Code V2KeysVerifyKeyResponseDataCode `json:"code"`
+
+	// Credits The number of requests/credits remaining for this key. If null
+	// or not present, the key has unlimited usage. This value decreases with
+	// each verification (based on the 'cost' parameter) unless explicit credit
+	// refills are configured.
+	Credits *int32 `json:"credits,omitempty"`
+
+	// Enabled Indicates if the key is currently enabled. Disabled keys will
+	// always fail verification with `code=DISABLED`. This is useful for implementing
+	// temporary suspensions without deleting the key.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Expires Unix timestamp (in milliseconds) when the key will expire.
+	// If null or not present, the key has no expiration. You can use this to
+	// warn users about upcoming expirations or to understand the validity period.
+	Expires  *int64    `json:"expires,omitempty"`
+	Identity *Identity `json:"identity,omitempty"`
+
+	// KeyId The unique identifier of the verified key in Unkey's system.
+	// Use this ID for operations like updating or revoking the key. This field
+	// is returned for both valid and invalid keys (except when `code=NOT_FOUND`).
+	KeyId *string `json:"keyId,omitempty"`
+
+	// Meta Custom metadata associated with the key. This can include any
+	// JSON-serializable data you stored with the key during creation or updates,
+	// such as plan information, feature flags, or user details. Use this to
+	// avoid additional database lookups for contextual information needed during
+	// API calls.
+	Meta *map[string]interface{} `json:"meta,omitempty"`
+
+	// Name The human-readable name assigned to this key during creation.
+	// This is useful for displaying in logs or admin interfaces to identify
+	// the key's purpose.
+	Name *string `json:"name,omitempty"`
+
+	// Permissions A list of all permission names assigned to this key, either
+	// directly or through roles. These permissions determine what actions the
+	// key can perform. Only returned when permissions were checked during verification
+	// or when the key fails with `code=FORBIDDEN`.
+	Permissions *[]string                 `json:"permissions,omitempty"`
+	Ratelimits  *[]VerifyKeyRatelimitData `json:"ratelimits,omitempty"`
+
+	// Roles A list of all role names assigned to this key. Roles are collections
+	// of permissions that grant access to specific functionality. Only returned
+	// when permissions were checked during verification.
+	Roles *[]string `json:"roles,omitempty"`
+
+	// Valid The primary verification result. If true, the key is valid
+	// and can be used. If false, check the 'code' field to understand why verification
+	// failed. Your application should always check this field first before proceeding.
+	Valid bool `json:"valid"`
+}
+
+// V2KeysVerifyKeyResponseDataCode A machine-readable code indicating the verification status
+// or failure reason. Values: `VALID` (key is valid and passed all checks), `NOT_FOUND` (key doesn't
+// exist or belongs to wrong API), `FORBIDDEN` (key lacks required permissions), `INSUFFICIENT_PERMISSIONS`
+// (key lacks specific required permissions for this request), `INSUFFICIENT_CREDITS`
+// (key has no remaining credits), `USAGE_EXCEEDED` (key exceeded usage limits), `RATE_LIMITED` (key exceeded rate limits), `DISABLED` (key was explicitly disabled),
+// `EXPIRED` (key has passed its expiration date).
+type V2KeysVerifyKeyResponseDataCode string
 
 // V2LivenessResponseBody defines model for V2LivenessResponseBody.
 type V2LivenessResponseBody struct {

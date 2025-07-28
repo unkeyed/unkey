@@ -56,8 +56,7 @@ func TestPreconditionFailed(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId: api.ID,
-			Key:   key.Key,
+			Key: key.Key,
 			Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{
 				{Name: "does-not-exist"},
 			},
@@ -90,8 +89,7 @@ func TestPreconditionFailed(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId: api.ID,
-			Key:   key.Key,
+			Key: key.Key,
 			Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{
 				{Name: "does-not-exist"},
 			},
@@ -107,32 +105,6 @@ func TestPreconditionFailed(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, expectedMsg)
 	})
 
-	t.Run("missing required fields", func(t *testing.T) {
-		t.Run("missing apiId", func(t *testing.T) {
-			req := handler.Request{
-				Key: "test_key",
-				// ApiId missing
-			}
-
-			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, validHeaders, req)
-			require.Equal(t, 400, res.Status)
-			require.NotNil(t, res.Body)
-			require.NotNil(t, res.Body.Error)
-		})
-
-		t.Run("missing key", func(t *testing.T) {
-			req := handler.Request{
-				ApiId: api.ID,
-				// Key missing
-			}
-
-			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, validHeaders, req)
-			require.Equal(t, 400, res.Status)
-			require.NotNil(t, res.Body)
-			require.NotNil(t, res.Body.Error)
-		})
-	})
-
 	t.Run("invalid ratelimit configuration", func(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
@@ -140,8 +112,7 @@ func TestPreconditionFailed(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId: api.ID,
-			Key:   key.Key,
+			Key: key.Key,
 			Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{
 				{
 					Name: "missing_config",
