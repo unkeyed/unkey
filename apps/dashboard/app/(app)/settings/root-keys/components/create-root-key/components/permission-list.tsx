@@ -2,7 +2,7 @@
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import type { CheckedState } from "@radix-ui/react-checkbox";
 import type { UnkeyPermission } from "@unkey/rbac";
-import { useEffect, useReducer, useMemo, useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer } from "react";
 import { apiPermissions, workspacePermissions } from "../../../[keyId]/permissions/permissions";
 import { ExpandableCategory } from "./expandable-category";
 import { PermissionToggle } from "./permission-toggle";
