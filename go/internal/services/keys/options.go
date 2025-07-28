@@ -27,6 +27,7 @@ func WithCredits(cost int32) VerifyOption {
 		if cost < 0 {
 			return errors.New("cost cannot be negative")
 		}
+
 		config.credits = &cost
 		return nil
 	}

@@ -45,7 +45,8 @@ func (h *Handler) Path() string {
 // The current implementation queries the database directly without caching, which may impact performance.
 // Consider implementing cache with optional bypass via revalidateKeysCache parameter.
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
@@ -54,7 +55,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.And(
 			rbac.Or(
 				rbac.T(rbac.Tuple{
@@ -147,7 +148,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+		err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Api,
 				ResourceID:   "*",
