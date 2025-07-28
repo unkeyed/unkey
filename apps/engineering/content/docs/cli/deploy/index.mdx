@@ -1,5 +1,5 @@
 ---
-title: "Deploy Command"
+title: "Deploy"
 description: "Deploy a new version or initialize configuration"
 ---
 Build and deploy a new version of your application, or initialize configuration.
@@ -21,7 +21,7 @@ Use --init to create a configuration template file. This generates an unkey.json
 ## Command Syntax
 
 ```bash
-deploy [flags]
+unkey deploy [flags]
 ```
 
 ## Examples
@@ -88,20 +88,104 @@ unkey deploy --verbose
 
 ## Flags
 
-| Flag | Description | Type | Default | Environment |
-| --- | --- | --- | --- | --- |
-| `--config` | Directory containing unkey.json config file | string |- |- |
-| `--init` | Initialize configuration file in the specified directory | boolean |`false` |- |
-| `--force` | Force overwrite existing configuration file when using --init | boolean |`false` |- |
-| `--workspace-id` | Workspace ID | string |- |`UNKEY_WORKSPACE_ID` |
-| `--project-id` | Project ID | string |- |`UNKEY_PROJECT_ID` |
-| `--context` | Build context path | string |- |- |
-| `--branch` | Git branch | string |`"main"` |- |
-| `--docker-image` | Pre-built docker image | string |- |- |
-| `--dockerfile` | Path to Dockerfile | string |`"Dockerfile"` |- |
-| `--commit` | Git commit SHA | string |- |- |
-| `--registry` | Container registry | string |`"ghcr.io/unkeyed/deploy"` |`UNKEY_REGISTRY` |
-| `--skip-push` | Skip pushing to registry (for local testing) | boolean |`false` |- |
-| `--verbose` | Show detailed output for build and deployment operations | boolean |`false` |- |
-| `--control-plane-url` | Control plane URL | string |`"http://localhost:7091"` |- |
-| `--auth-token` | Control plane auth token | string |`"ctrl-secret-token"` |- |
+<Callout type="info" title="--config">
+Directory containing unkey.json config file
+
+- **Type:** string
+</Callout>
+
+<Callout type="info" title="--init">
+Initialize configuration file in the specified directory
+
+- **Type:** boolean
+- **Default:** `false`
+</Callout>
+
+<Callout type="info" title="--force">
+Force overwrite existing configuration file when using --init
+
+- **Type:** boolean
+- **Default:** `false`
+</Callout>
+
+<Callout type="info" title="--workspace-id">
+Workspace ID
+
+- **Type:** string
+- **Environment:** `UNKEY_WORKSPACE_ID`
+</Callout>
+
+<Callout type="info" title="--project-id">
+Project ID
+
+- **Type:** string
+- **Environment:** `UNKEY_PROJECT_ID`
+</Callout>
+
+<Callout type="info" title="--context">
+Build context path
+
+- **Type:** string
+</Callout>
+
+<Callout type="info" title="--branch">
+Git branch
+
+- **Type:** string
+- **Default:** `"main"`
+</Callout>
+
+<Callout type="info" title="--docker-image">
+Pre-built docker image
+
+- **Type:** string
+</Callout>
+
+<Callout type="info" title="--dockerfile">
+Path to Dockerfile
+
+- **Type:** string
+- **Default:** `"Dockerfile"`
+</Callout>
+
+<Callout type="info" title="--commit">
+Git commit SHA
+
+- **Type:** string
+</Callout>
+
+<Callout type="info" title="--registry">
+Container registry
+
+- **Type:** string
+- **Default:** `"ghcr.io/unkeyed/deploy"`
+- **Environment:** `UNKEY_REGISTRY`
+</Callout>
+
+<Callout type="info" title="--skip-push">
+Skip pushing to registry (for local testing)
+
+- **Type:** boolean
+- **Default:** `false`
+</Callout>
+
+<Callout type="info" title="--verbose">
+Show detailed output for build and deployment operations
+
+- **Type:** boolean
+- **Default:** `false`
+</Callout>
+
+<Callout type="info" title="--control-plane-url">
+Control plane URL
+
+- **Type:** string
+- **Default:** `"http://localhost:7091"`
+</Callout>
+
+<Callout type="info" title="--auth-token">
+Control plane auth token
+
+- **Type:** string
+- **Default:** `"ctrl-secret-token"`
+</Callout>

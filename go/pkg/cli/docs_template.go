@@ -24,9 +24,8 @@ unkey {{ .CommandPath }}{{- if hasItems .Flags }} [flags]{{- end }}
 ` + "```" + `
 
 ## Quick Reference
-
 {{- range .Subcommands }}
-- ` + "`unkey {{ .Name }}`" + ` - {{ .Usage }}
+- ` + "`unkey {{ $.CommandPath }} {{ .Name }}`" + ` - {{ .Usage }}
 {{- end }}
 
 {{- if hasItems .Flags }}
