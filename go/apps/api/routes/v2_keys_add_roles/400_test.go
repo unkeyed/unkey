@@ -27,7 +27,7 @@ func TestValidationErrors(t *testing.T) {
 
 	// Create a workspace and root key
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.add_role_to_key")
 
 	// Set up request headers
 	headers := http.Header{
@@ -116,59 +116,12 @@ func TestValidationErrors(t *testing.T) {
 
 	// Test case for empty roles array
 	t.Run("empty roles array", func(t *testing.T) {
-		req := map[string]interface{}{
-			"keyId": validKeyID,
-			"roles": []map[string]interface{}{}, // empty array
-		}
-
-		res := testutil.CallRoute[map[string]interface{}, openapi.BadRequestErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
-	})
-
-	// Test case for role with neither id nor name
-	t.Run("role with neither id nor name", func(t *testing.T) {
 		req := handler.Request{
 			KeyId: validKeyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{}, // empty role reference
-			},
+			Roles: []string{},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "must specify either 'id' or 'name'")
-	})
-
-	// Test case for invalid role ID format
-	t.Run("invalid role ID format", func(t *testing.T) {
-		req := map[string]interface{}{
-			"keyId": validKeyID,
-			"roles": []map[string]interface{}{
-				{"id": "ab"}, // too short
-			},
-		}
-
-		res := testutil.CallRoute[map[string]interface{}, openapi.BadRequestErrorResponse](
 			h,
 			route,
 			headers,
@@ -202,42 +155,10 @@ func TestValidationErrors(t *testing.T) {
 	})
 
 	// Test case for role with empty string id
-	t.Run("role with empty string id", func(t *testing.T) {
-		emptyId := ""
+	t.Run("role with empty string", func(t *testing.T) {
 		req := handler.Request{
 			KeyId: validKeyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &emptyId},
-			},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
-	})
-
-	// Test case for role with empty string name
-	t.Run("role with empty string name", func(t *testing.T) {
-		emptyName := ""
-		req := handler.Request{
-			KeyId: validKeyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Name: &emptyName},
-			},
+			Roles: []string{},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](

@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"database/sql"
 	"net/http"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
@@ -75,7 +75,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			WorkspaceID:  auth.AuthorizedWorkspaceID,
 			Name:         req.Name,
 			Slug:         req.Slug,
-			Description:  sql.NullString{Valid: description != "", String: description},
+			Description:  dbtype.NullString{Valid: description != "", String: description},
 			CreatedAtM:   time.Now().UnixMilli(),
 		})
 		if err != nil {
@@ -95,7 +95,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       "permission.create",
+				Event:       auditlog.PermissionCreateEvent,
 				ActorType:   auditlog.RootKeyActor,
 				ActorID:     auth.Key.ID,
 				ActorName:   "root key",
@@ -105,9 +105,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
 					{
-						Type:        "permission",
+						Type:        auditlog.PermissionResourceType,
 						ID:          permissionID,
-						Name:        req.Name,
+						Name:        req.Slug,
 						DisplayName: req.Name,
 						Meta: map[string]interface{}{
 							"name":        req.Name,

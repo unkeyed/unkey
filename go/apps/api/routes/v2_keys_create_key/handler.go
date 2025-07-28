@@ -17,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
@@ -363,13 +364,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				)
 			}
 
-			existingPermMap := make(map[string]db.FindPermissionsBySlugsRow)
+			existingPermMap := make(map[string]db.Permission)
 			for _, p := range existingPermissions {
 				existingPermMap[p.Slug] = p
 			}
 
 			permissionsToCreate := []db.InsertPermissionParams{}
-			requestedPermissions := []db.FindPermissionsBySlugsRow{}
+			requestedPermissions := []db.Permission{}
 
 			for _, requestedSlug := range *req.Permissions {
 				existingPerm, exists := existingPermMap[requestedSlug]
@@ -384,13 +385,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					WorkspaceID:  auth.AuthorizedWorkspaceID,
 					Name:         requestedSlug,
 					Slug:         requestedSlug,
-					Description:  sql.NullString{String: fmt.Sprintf("Auto-created permission: %s", requestedSlug), Valid: true},
+					Description:  dbtype.NullString{String: "", Valid: false},
 					CreatedAtM:   now,
 				})
 
-				requestedPermissions = append(requestedPermissions, db.FindPermissionsBySlugsRow{
-					ID:   newPermID,
-					Slug: requestedSlug,
+				requestedPermissions = append(requestedPermissions, db.Permission{
+					ID:          newPermID,
+					Name:        requestedSlug,
+					Slug:        requestedSlug,
+					CreatedAtM:  now,
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					Description: dbtype.NullString{String: "", Valid: false},
+					UpdatedAtM:  sql.NullInt64{Int64: 0, Valid: false},
 				})
 			}
 
@@ -426,14 +432,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					UserAgent:   s.UserAgent(),
 					Resources: []auditlog.AuditLogResource{
 						{
-							Type:        "key",
+							Type:        auditlog.KeyResourceType,
 							ID:          keyID,
 							Name:        insertKeyParams.Name.String,
 							DisplayName: insertKeyParams.Name.String,
 							Meta:        map[string]any{},
 						},
 						{
-							Type:        "permission",
+							Type:        auditlog.PermissionResourceType,
 							ID:          reqPerm.ID,
 							Name:        reqPerm.Slug,
 							DisplayName: reqPerm.Slug,
@@ -513,14 +519,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					UserAgent:   s.UserAgent(),
 					Resources: []auditlog.AuditLogResource{
 						{
-							Type:        "key",
+							Type:        auditlog.KeyResourceType,
 							ID:          keyID,
 							DisplayName: insertKeyParams.Name.String,
 							Name:        insertKeyParams.Name.String,
 							Meta:        map[string]any{},
 						},
 						{
-							Type:        "role",
+							Type:        auditlog.RoleResourceType,
 							ID:          reqRole.ID,
 							DisplayName: reqRole.Name,
 							Name:        reqRole.Name,
@@ -555,14 +561,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			UserAgent:   s.UserAgent(),
 			Resources: []auditlog.AuditLogResource{
 				{
-					Type:        "key",
+					Type:        auditlog.KeyResourceType,
 					ID:          keyID,
 					DisplayName: keyID,
 					Name:        keyID,
 					Meta:        map[string]any{},
 				},
 				{
-					Type:        "api",
+					Type:        auditlog.APIResourceType,
 					ID:          req.ApiId,
 					DisplayName: api.Name,
 					Name:        api.Name,
