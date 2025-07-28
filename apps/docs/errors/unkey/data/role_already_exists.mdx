@@ -3,7 +3,6 @@ title: "err:unkey:data:role:duplicate"
 description: "A role with this name already exists"
 ---
 
-
 ```json Example
 {
   "meta": {
@@ -23,6 +22,7 @@ description: "A role with this name already exists"
 This error occurs when you're trying to create a role with a name that already exists in your Unkey workspace. Role names must be unique within a workspace to avoid confusion and maintain proper access control.
 
 Common scenarios that trigger this error:
+
 - Creating a role with a name that's already in use
 - Re-creating a previously deleted role with the same name
 - Migration or import processes that don't check for existing roles
@@ -72,7 +72,7 @@ async function getOrCreateRole(name, description) {
     if (error.status === 409) {
       // Extract the role name from the error message and get it
       const roles = await listRoles();
-      return roles.find(r => r.name === name);
+      return roles.find((r) => r.name.toLowerCase() === name.toLowerCase());
     }
     // Otherwise, rethrow the error
     throw error;
@@ -83,10 +83,11 @@ async function getOrCreateRole(name, description) {
 ## Common Mistakes
 
 - **Not checking for existing roles**: Failing to check if a role already exists before creating it
-- **Case sensitivity**: Role names are case-sensitive - "Admin" and "admin" are different
+- **Case sensitivity**: Role names are case-insensitive - "Admin" and "admin" are the same
 - **Retry loops**: Repeatedly trying to create the same role after a failure
 - **Cross-environment duplication**: Using the same role names across development and production without proper namespacing
 
 ## Related Errors
+
 - [err:unkey:data:role_not_found](./role_not_found) - When the requested role doesn't exist
 - [err:unkey:authorization:insufficient_permissions](../authorization/insufficient_permissions) - When you don't have permission to manage roles

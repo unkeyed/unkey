@@ -3,7 +3,6 @@ title: "err:unkey:data:permission:duplicate"
 description: "A permission with this name already exists"
 ---
 
-
 ```json Example
 {
   "meta": {
@@ -23,6 +22,7 @@ description: "A permission with this name already exists"
 This error occurs when you're trying to create a permission with a name that already exists in your Unkey workspace. Permission names must be unique within a workspace to avoid confusion and maintain proper access control.
 
 Common scenarios that trigger this error:
+
 - Creating a permission with a name that's already in use
 - Re-creating a previously deleted permission with the same name
 - Migration or import processes that don't check for existing permissions
@@ -73,7 +73,9 @@ async function getOrCreatePermission(name, slug, description) {
     if (error.status === 409) {
       // Extract the permission name from the error message and get it
       const permissions = await listPermissions();
-      return permissions.find(p => p.name === name);
+      return permissions.find(
+        (p) => p.name.toLowerCase() === name.toLowerCase()
+      );
     }
     // Otherwise, rethrow the error
     throw error;
@@ -84,10 +86,11 @@ async function getOrCreatePermission(name, slug, description) {
 ## Common Mistakes
 
 - **Not checking for existing permissions**: Failing to check if a permission already exists before creating it
-- **Case sensitivity**: Permission names are case-sensitive - "Admin" and "admin" are different
+- **Case sensitivity**: Permission names are case-insensitive - "Admin" and "admin" are the same
 - **Retry loops**: Repeatedly trying to create the same permission after a failure
 - **Cross-environment duplication**: Using the same permission names across development and production without proper namespacing
 
 ## Related Errors
+
 - [err:unkey:data:permission_not_found](./permission_not_found) - When the requested permission doesn't exist
 - [err:unkey:authorization:insufficient_permissions](../authorization/insufficient_permissions) - When you don't have permission to manage permissions
