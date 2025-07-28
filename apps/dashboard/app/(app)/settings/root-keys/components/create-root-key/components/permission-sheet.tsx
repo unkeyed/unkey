@@ -8,10 +8,11 @@ import {
 } from "@/components/ui/sheet";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useRef, useState, useEffect } from "react";
+import type { UnkeyPermission } from "@unkey/rbac";
+import { Button } from "@unkey/ui";
+import { useEffect, useRef, useState } from "react";
 import { PermissionContentList } from "./permission-list";
 import { SearchPermissions } from "./search-permissions";
-import { UnkeyPermission } from "@unkey/rbac";
 
 type PermissionSheetProps = {
   children: React.ReactNode;
@@ -21,8 +22,19 @@ type PermissionSheetProps = {
   }[];
   selectedPermissions: UnkeyPermission[];
   onChange?: (permissions: UnkeyPermission[]) => void;
+  loadMore?: () => void;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
 };
-export const PermissionSheet = ({ children, apis, selectedPermissions, onChange }: PermissionSheetProps) => {
+export const PermissionSheet = ({
+  children,
+  apis,
+  selectedPermissions,
+  onChange,
+  loadMore,
+  hasNextPage,
+  isFetchingNextPage,
+}: PermissionSheetProps) => {
   const [open, setOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [search, setSearch] = useState<string | undefined>(undefined);
@@ -43,11 +55,11 @@ export const PermissionSheet = ({ children, apis, selectedPermissions, onChange 
 
   const handleApiPermissionChange = (apiId: string, permissions: UnkeyPermission[]) => {
     setApiPermissions((prev) => ({ ...prev, [apiId]: permissions }));
-  }
+  };
 
   const handleWorkspacePermissionChange = (permissions: UnkeyPermission[]) => {
     setWorkspacePermissions(permissions);
-  }
+  };
 
   // Aggregate all permissions and call onChange
   useEffect(() => {
@@ -92,9 +104,22 @@ export const PermissionSheet = ({ children, apis, selectedPermissions, onChange 
                   key={api.id}
                   type="api"
                   api={api}
-                  onPermissionChange={(permissions) => handleApiPermissionChange(api.id, permissions)}
+                  onPermissionChange={(permissions) =>
+                    handleApiPermissionChange(api.id, permissions)
+                  }
                 />
               ))}
+
+              {hasNextPage && (
+                <Button
+                  className="mt-4 w-1/2 mx-auto"
+                  onClick={loadMore}
+                  disabled={!hasNextPage}
+                  loading={isFetchingNextPage}
+                >
+                  Load More
+                </Button>
+              )}
             </div>
           </ScrollArea>
         </SheetDescription>

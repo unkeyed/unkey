@@ -2,12 +2,10 @@
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import type { CheckedState } from "@radix-ui/react-checkbox";
 import type { UnkeyPermission } from "@unkey/rbac";
-import { useEffect, useReducer, useMemo, useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer } from "react";
 import { apiPermissions, workspacePermissions } from "../../../[keyId]/permissions/permissions";
 import { ExpandableCategory } from "./expandable-category";
 import { PermissionToggle } from "./permission-toggle";
-
-
 
 // Helper type for permission list structure
 type PermissionCategory = Record<string, { description: string; permission: UnkeyPermission }>;
@@ -23,7 +21,7 @@ interface PermissionState {
 type PermissionAction =
   | { type: "TOGGLE_PERMISSION"; permission: UnkeyPermission; permissionList: PermissionList }
   | { type: "TOGGLE_CATEGORY"; category: string; permissionList: PermissionList }
-  | { type: "TOGGLE_ROOT"; permissionList: PermissionList }
+  | { type: "TOGGLE_ROOT"; permissionList: PermissionList };
 
 function getAllPermissionNames(permissionList: PermissionList) {
   return Object.values(permissionList).flatMap((category) =>
@@ -42,6 +40,7 @@ function computeCheckedStates(
   // Compute rootChecked
   const allPermissionNames = getAllPermissionNames(permissionList);
   let rootChecked: CheckedState = false;
+
   if (selectedPermissions.length === 0) {
     rootChecked = false;
   } else if (selectedPermissions.length === allPermissionNames.length) {
@@ -51,6 +50,7 @@ function computeCheckedStates(
   }
   // Compute categoryChecked
   const categoryChecked: Record<string, CheckedState> = {};
+
   Object.entries(permissionList).forEach(([category, allPermissions]) => {
     const allPermissionNames = Object.values(allPermissions).map(({ permission }) => permission);
     if (allPermissionNames.every((p) => selectedPermissions.includes(p))) {
@@ -61,6 +61,7 @@ function computeCheckedStates(
       categoryChecked[category] = false;
     }
   });
+
   return { rootChecked, categoryChecked };
 }
 
@@ -80,6 +81,7 @@ function permissionReducer(state: PermissionState, action: PermissionAction): Pe
       );
       return { selectedPermissions, rootChecked, categoryChecked };
     }
+
     case "TOGGLE_CATEGORY": {
       const { category, permissionList } = action;
       const categoryPermissions = getCategoryPermissionNames(permissionList, category);
@@ -102,6 +104,7 @@ function permissionReducer(state: PermissionState, action: PermissionAction): Pe
       );
       return { selectedPermissions, rootChecked, categoryChecked };
     }
+
     case "TOGGLE_ROOT": {
       const { permissionList } = action;
       const allPermissionNames = getAllPermissionNames(permissionList);
@@ -117,6 +120,7 @@ function permissionReducer(state: PermissionState, action: PermissionAction): Pe
       );
       return { selectedPermissions, rootChecked, categoryChecked };
     }
+
     default:
       return state;
   }
@@ -125,34 +129,49 @@ function permissionReducer(state: PermissionState, action: PermissionAction): Pe
 type Props = {
   type: "workspace" | "api";
   api?:
-  | {
-    id: string;
-    name: string;
-  }
-  | undefined;
+    | {
+        id: string;
+        name: string;
+      }
+    | undefined;
   onPermissionChange: (permissions: UnkeyPermission[]) => void;
   selected: UnkeyPermission[];
 };
 
 export const PermissionContentList = ({ type, api, onPermissionChange, selected }: Props) => {
-  const permissionList: PermissionList = useMemo(() =>
-    type === "workspace" ? workspacePermissions : api ? apiPermissions(api.id) : {},
-    [type, api?.id],
+  const permissionList: PermissionList = useMemo(
+    () => (type === "workspace" ? workspacePermissions : api ? apiPermissions(api.id) : {}),
+    [type, api],
   );
 
   const initialState = useMemo(() => {
-    const initState = type === "workspace" ?
-      Object.values(workspacePermissions).flatMap((category) =>
-        Object.values(category).map(({ permission }) =>
-          selected.includes(permission) ? permission : null)).filter((permission) => permission !== null)
-      : api ? Object.values(apiPermissions(api.id)).flatMap((category) =>
-        Object.values(category).map(({ permission }) =>
-          selected.includes(permission) ? permission : null)).filter((permission) =>
-            permission !== null) : [];
+    const initState =
+      type === "workspace"
+        ? Object.values(workspacePermissions)
+            .flatMap((category) =>
+              Object.values(category).map(({ permission }) =>
+                selected.includes(permission) ? permission : null,
+              ),
+            )
+            .filter((permission) => permission !== null)
+        : api
+          ? Object.values(apiPermissions(api.id))
+              .flatMap((category) =>
+                Object.values(category).map(({ permission }) =>
+                  selected.includes(permission) ? permission : null,
+                ),
+              )
+              .filter((permission) => permission !== null)
+          : [];
+
     const { rootChecked, categoryChecked } = computeCheckedStates(initState, permissionList);
-    const selectedPermissions = getAllPermissionNames(permissionList).filter((permission) => initState.includes(permission));
+
+    const selectedPermissions = getAllPermissionNames(permissionList).filter((permission) =>
+      initState.includes(permission),
+    );
+
     return { rootChecked, categoryChecked, selectedPermissions };
-  }, [selected, permissionList]);
+  }, [type, selected, permissionList, api]);
 
   const [state, dispatch] = useReducer(permissionReducer, {
     selectedPermissions: selected.length > 0 ? initialState.selectedPermissions : [],
@@ -160,27 +179,28 @@ export const PermissionContentList = ({ type, api, onPermissionChange, selected 
     rootChecked: selected.length > 0 ? initialState.rootChecked : false,
   });
 
-
-
-
   // Notify parent when selectedPermissions changes
   useEffect(() => {
     onPermissionChange(state.selectedPermissions);
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.selectedPermissions]);
+  }, [state.selectedPermissions, onPermissionChange]);
 
   const handleRootChecked = useCallback(() => {
     dispatch({ type: "TOGGLE_ROOT", permissionList });
   }, [permissionList]);
 
-  const handleCategoryChecked = useCallback((category: string) => {
-    dispatch({ type: "TOGGLE_CATEGORY", category, permissionList });
-  }, [permissionList]);
+  const handleCategoryChecked = useCallback(
+    (category: string) => {
+      dispatch({ type: "TOGGLE_CATEGORY", category, permissionList });
+    },
+    [permissionList],
+  );
 
-  const handlePermissionChecked = useCallback((permission: UnkeyPermission) => {
-    dispatch({ type: "TOGGLE_PERMISSION", permission, permissionList });
-  }, [permissionList]);
+  const handlePermissionChecked = useCallback(
+    (permission: UnkeyPermission) => {
+      dispatch({ type: "TOGGLE_PERMISSION", permission, permissionList });
+    },
+    [permissionList],
+  );
 
   return (
     <div className="flex flex-col gap-2">
