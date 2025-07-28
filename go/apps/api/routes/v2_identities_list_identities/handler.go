@@ -40,7 +40,8 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
@@ -93,7 +94,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}),
 		)
 
-		err = auth.Verify(ctx, keys.WithPermissions(permissionCheck))
+		err = auth.VerifyRootKey(ctx, keys.WithPermissions(permissionCheck))
 		if err != nil {
 			return err
 		}

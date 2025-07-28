@@ -46,7 +46,9 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.removePermissions")
 
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	// 1. Authentication
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
@@ -56,6 +58,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	// 4. Validate key exists and belongs to workspace
 	key, err := db.Query.FindKeyByIdOrHash(ctx,
 		h.DB.RO(),
 		db.FindKeyByIdOrHashParams{
@@ -85,7 +88,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = auth.Verify(ctx, keys.WithPermissions(
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(
 		rbac.And(
 			rbac.Or(
 				rbac.T(rbac.Tuple{
