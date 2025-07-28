@@ -41,11 +41,21 @@ type Querier interface {
 	//  DELETE FROM keys_permissions
 	//  WHERE key_id = ? AND permission_id = ?
 	DeleteKeyPermissionByKeyAndPermissionID(ctx context.Context, db DBTX, arg DeleteKeyPermissionByKeyAndPermissionIDParams) error
+	//DeleteManyKeyPermissionByKeyAndPermissionIDs
+	//
+	//  DELETE FROM keys_permissions
+	//  WHERE key_id = ? AND permission_id IN (/*SLICE:ids*/?)
+	DeleteManyKeyPermissionByKeyAndPermissionIDs(ctx context.Context, db DBTX, arg DeleteManyKeyPermissionByKeyAndPermissionIDsParams) error
 	//DeleteManyKeyPermissionsByPermissionID
 	//
 	//  DELETE FROM keys_permissions
 	//  WHERE permission_id = ?
 	DeleteManyKeyPermissionsByPermissionID(ctx context.Context, db DBTX, permissionID string) error
+	//DeleteManyKeyRolesByKeyAndRoleIDs
+	//
+	//  DELETE FROM keys_roles
+	//  WHERE key_id = ? AND role_id IN(/*SLICE:role_ids*/?)
+	DeleteManyKeyRolesByKeyAndRoleIDs(ctx context.Context, db DBTX, arg DeleteManyKeyRolesByKeyAndRoleIDsParams) error
 	//DeleteManyKeyRolesByKeyID
 	//
 	//  DELETE FROM keys_roles
@@ -306,6 +316,49 @@ type Querier interface {
 	//  ORDER BY created_at DESC
 	//  LIMIT 1
 	FindLatestBuildByVersionId(ctx context.Context, db DBTX, versionID string) (Build, error)
+	//FindManyRolesByIdOrNameWithPerms
+	//
+	//  SELECT id, workspace_id, name, description, created_at_m, updated_at_m, COALESCE(
+	//          (SELECT JSON_ARRAYAGG(
+	//              json_object(
+	//                  'id', permission.id,
+	//                  'name', permission.name,
+	//                  'slug', permission.slug,
+	//                  'description', permission.description
+	//             )
+	//          )
+	//           FROM (SELECT name, id, slug, description
+	//                 FROM roles_permissions rp
+	//                          JOIN permissions p ON p.id = rp.permission_id
+	//                 WHERE rp.role_id = r.id) as permission),
+	//          JSON_ARRAY()
+	//  ) as permissions
+	//  FROM roles r
+	//  WHERE r.workspace_id = ? AND (
+	//      r.id IN (/*SLICE:search*/?)
+	//      OR r.name IN (/*SLICE:search*/?)
+	//  )
+	FindManyRolesByIdOrNameWithPerms(ctx context.Context, db DBTX, arg FindManyRolesByIdOrNameWithPermsParams) ([]FindManyRolesByIdOrNameWithPermsRow, error)
+	//FindManyRolesByNamesWithPerms
+	//
+	//  SELECT id, workspace_id, name, description, created_at_m, updated_at_m, COALESCE(
+	//          (SELECT JSON_ARRAYAGG(
+	//              json_object(
+	//                  'id', permission.id,
+	//                  'name', permission.name,
+	//                  'slug', permission.slug,
+	//                  'description', permission.description
+	//             )
+	//          )
+	//           FROM (SELECT name, id, slug, description
+	//                 FROM roles_permissions rp
+	//                          JOIN permissions p ON p.id = rp.permission_id
+	//                 WHERE rp.role_id = r.id) as permission),
+	//          JSON_ARRAY()
+	//  ) as permissions
+	//  FROM roles r
+	//  WHERE r.workspace_id = ? AND r.name IN (/*SLICE:names*/?)
+	FindManyRolesByNamesWithPerms(ctx context.Context, db DBTX, arg FindManyRolesByNamesWithPermsParams) ([]FindManyRolesByNamesWithPermsRow, error)
 	// Finds a permission record by its ID
 	// Returns: The permission record if found
 	//
@@ -314,6 +367,12 @@ type Querier interface {
 	//  WHERE id = ?
 	//  LIMIT 1
 	FindPermissionByID(ctx context.Context, db DBTX, permissionID string) (Permission, error)
+	//FindPermissionByIdOrSlug
+	//
+	//  SELECT id, workspace_id, name, slug, description, created_at_m, updated_at_m
+	//  FROM permissions
+	//  WHERE workspace_id = ? AND (id = ? OR slug = ?)
+	FindPermissionByIdOrSlug(ctx context.Context, db DBTX, arg FindPermissionByIdOrSlugParams) (Permission, error)
 	//FindPermissionByNameAndWorkspaceID
 	//
 	//  SELECT id, workspace_id, name, slug, description, created_at_m, updated_at_m
@@ -332,8 +391,8 @@ type Querier interface {
 	FindPermissionBySlugAndWorkspaceID(ctx context.Context, db DBTX, arg FindPermissionBySlugAndWorkspaceIDParams) (Permission, error)
 	//FindPermissionsBySlugs
 	//
-	//  SELECT id, slug FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
-	FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindPermissionsBySlugsParams) ([]FindPermissionsBySlugsRow, error)
+	//  SELECT id, workspace_id, name, slug, description, created_at_m, updated_at_m FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
+	FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindPermissionsBySlugsParams) ([]Permission, error)
 	//FindProjectById
 	//
 	//  SELECT
@@ -383,9 +442,7 @@ type Querier interface {
 	//         ) as overrides
 	//  FROM `ratelimit_namespaces` ns
 	//  WHERE ns.workspace_id = ?
-	//  AND CASE WHEN ? IS NOT NULL THEN ns.name = ?
-	//  WHEN ? IS NOT NULL THEN ns.id = ?
-	//  ELSE false END
+	//  AND (ns.id = ? OR ns.name = ?)
 	FindRatelimitNamespace(ctx context.Context, db DBTX, arg FindRatelimitNamespaceParams) (FindRatelimitNamespaceRow, error)
 	//FindRatelimitNamespaceByID
 	//
@@ -421,6 +478,29 @@ type Querier interface {
 	//  WHERE id = ?
 	//  LIMIT 1
 	FindRoleByID(ctx context.Context, db DBTX, roleID string) (Role, error)
+	//FindRoleByIdOrNameWithPerms
+	//
+	//  SELECT id, workspace_id, name, description, created_at_m, updated_at_m, COALESCE(
+	//          (SELECT JSON_ARRAYAGG(
+	//              json_object(
+	//                  'id', permission.id,
+	//                  'name', permission.name,
+	//                  'slug', permission.slug,
+	//                  'description', permission.description
+	//             )
+	//          )
+	//           FROM (SELECT name, id, slug, description
+	//                 FROM roles_permissions rp
+	//                          JOIN permissions p ON p.id = rp.permission_id
+	//                 WHERE rp.role_id = r.id) as permission),
+	//          JSON_ARRAY()
+	//  ) as permissions
+	//  FROM roles r
+	//  WHERE r.workspace_id = ? AND (
+	//      r.id = ?
+	//      OR r.name = ?
+	//  )
+	FindRoleByIdOrNameWithPerms(ctx context.Context, db DBTX, arg FindRoleByIdOrNameWithPermsParams) (FindRoleByIdOrNameWithPermsRow, error)
 	// Finds a role record by its name within a specific workspace
 	// Returns: The role record if found
 	//
@@ -728,7 +808,7 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?
-	//  )
+	//  ) ON DUPLICATE KEY UPDATE updated_at_m = ?
 	InsertKeyPermission(ctx context.Context, db DBTX, arg InsertKeyPermissionParams) error
 	//InsertKeyRatelimit
 	//
@@ -1105,21 +1185,49 @@ type Querier interface {
 	ListRatelimitsByKeyIDs(ctx context.Context, db DBTX, keyIds []sql.NullString) ([]ListRatelimitsByKeyIDsRow, error)
 	//ListRoles
 	//
-	//  SELECT r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m
+	//  SELECT r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
+	//          (SELECT JSON_ARRAYAGG(
+	//              json_object(
+	//                  'id', permission.id,
+	//                  'name', permission.name,
+	//                  'slug', permission.slug,
+	//                  'description', permission.description
+	//             )
+	//          )
+	//           FROM (SELECT name, id, slug, description
+	//                 FROM roles_permissions rp
+	//                          JOIN permissions p ON p.id = rp.permission_id
+	//                 WHERE rp.role_id = r.id) as permission),
+	//          JSON_ARRAY()
+	//  ) as permissions
 	//  FROM roles r
 	//  WHERE r.workspace_id = ?
-	//    AND r.id > ?
+	//  AND r.id > ?
 	//  ORDER BY r.id
 	//  LIMIT 101
-	ListRoles(ctx context.Context, db DBTX, arg ListRolesParams) ([]Role, error)
+	ListRoles(ctx context.Context, db DBTX, arg ListRolesParams) ([]ListRolesRow, error)
 	//ListRolesByKeyID
 	//
-	//  SELECT r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m
-	//  FROM roles r
-	//  JOIN keys_roles kr ON r.id = kr.role_id
+	//  SELECT r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
+	//          (SELECT JSON_ARRAYAGG(
+	//              json_object(
+	//                  'id', permission.id,
+	//                  'name', permission.name,
+	//                  'slug', permission.slug,
+	//                  'description', permission.description
+	//             )
+	//          )
+	//           FROM (SELECT name, id, slug, description
+	//                 FROM roles_permissions rp
+	//                          JOIN permissions p ON p.id = rp.permission_id
+	//                 WHERE rp.role_id = r.id) as permission),
+	//          JSON_ARRAY()
+	//  ) as permissions
+	//  FROM keys_roles kr
+	//  JOIN roles r ON kr.role_id = r.id
 	//  WHERE kr.key_id = ?
 	//  ORDER BY r.name
-	ListRolesByKeyID(ctx context.Context, db DBTX, keyID string) ([]Role, error)
+	ListRolesByKeyID(ctx context.Context, db DBTX, keyID string) ([]ListRolesByKeyIDRow, error)
 	//ListWorkspaces
 	//
 	//  SELECT

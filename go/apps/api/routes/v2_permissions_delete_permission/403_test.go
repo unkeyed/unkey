@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -12,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_delete_permission"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -41,7 +41,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		WorkspaceID:  workspace.ID,
 		Name:         permissionName,
 		Slug:         "test-permission-delete-auth",
-		Description:  sql.NullString{Valid: true, String: "Test permission for authorization tests"},
+		Description:  dbtype.NullString{Valid: true, String: "Test permission for authorization tests"},
 		CreatedAtM:   time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
@@ -57,7 +57,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		}
 
 		req := handler.Request{
-			PermissionId: permissionID,
+			Permission: permissionID,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
@@ -92,7 +92,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		}
 
 		req := handler.Request{
-			PermissionId: permissionID, // Permission is in the original workspace
+			Permission: permissionID, // Permission is in the original workspace
 		}
 
 		// When accessing from wrong workspace, the behavior should be a 404 Not Found

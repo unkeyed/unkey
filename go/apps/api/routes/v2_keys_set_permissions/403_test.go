@@ -2,18 +2,17 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_set_permissions"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/hash"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -34,56 +33,46 @@ func TestForbidden(t *testing.T) {
 	// Create a workspace
 	workspace := h.Resources().UserWorkspace
 
-	// Create test data
-	keyAuthID := uid.New(uid.KeyAuthPrefix)
-	err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-		ID:                 keyAuthID,
-		WorkspaceID:        workspace.ID,
-		StoreEncryptedKeys: false,
-		DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
-		DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
-		CreatedAtM:         time.Now().UnixMilli(),
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID:   workspace.ID,
+		IpWhitelist:   "",
+		EncryptedKeys: false,
+		Name:          nil,
+		CreatedAt:     nil,
+		DefaultPrefix: nil,
+		DefaultBytes:  nil,
 	})
-	require.NoError(t, err)
 
-	keyID := uid.New(uid.KeyPrefix)
-	keyString := "test_" + uid.New("")
-	err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-		ID:                keyID,
-		KeyringID:         keyAuthID,
-		Hash:              hash.Sha256(keyString),
-		Start:             keyString[:4],
-		WorkspaceID:       workspace.ID,
-		ForWorkspaceID:    sql.NullString{Valid: false},
-		Name:              sql.NullString{Valid: true, String: "Test Key"},
-		CreatedAtM:        time.Now().UnixMilli(),
-		Enabled:           true,
-		IdentityID:        sql.NullString{Valid: false},
-		Meta:              sql.NullString{Valid: false},
-		Expires:           sql.NullTime{Valid: false},
-		RemainingRequests: sql.NullInt32{Valid: false},
+	key := h.CreateKey(seed.CreateKeyRequest{
+		Disabled:     false,
+		WorkspaceID:  workspace.ID,
+		KeyAuthID:    api.KeyAuthID.String,
+		Remaining:    nil,
+		IdentityID:   nil,
+		Meta:         nil,
+		Expires:      nil,
+		Name:         nil,
+		Deleted:      false,
+		RefillAmount: nil,
+		RefillDay:    nil,
+		Permissions:  nil,
+		Roles:        nil,
+		Ratelimits:   nil,
 	})
-	require.NoError(t, err)
 
-	permissionID := uid.New(uid.TestPrefix)
-	err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+	permissionID := uid.New(uid.PermissionPrefix)
+	err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 		PermissionID: permissionID,
 		WorkspaceID:  workspace.ID,
 		Name:         "documents.read.forbidden",
 		Slug:         "documents.read.forbidden",
-		Description:  sql.NullString{Valid: true, String: "Read documents permission"},
+		Description:  dbtype.NullString{Valid: true, String: "Read documents permission"},
 	})
 	require.NoError(t, err)
 
 	req := handler.Request{
-		KeyId: keyID,
-		Permissions: []struct {
-			Create *bool   `json:"create,omitempty"`
-			Id     *string `json:"id,omitempty"`
-			Slug   *string `json:"slug,omitempty"`
-		}{
-			{Id: &permissionID},
-		},
+		KeyId:       key.KeyID,
+		Permissions: []string{permissionID},
 	}
 
 	t.Run("missing update_key permission", func(t *testing.T) {

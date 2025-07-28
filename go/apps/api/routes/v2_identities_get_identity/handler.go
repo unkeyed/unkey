@@ -41,7 +41,8 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
@@ -99,7 +100,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	ratelimits := result.Ratelimits
 
 	// Check permissions using either wildcard or the specific identity ID
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Identity,
 			ResourceID:   "*",

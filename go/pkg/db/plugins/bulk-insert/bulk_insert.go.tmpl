@@ -32,10 +32,19 @@ func (q *BulkQueries) {{.BulkFunctionName}}(ctx context.Context, args []{{.Param
 	// Collect all arguments
 	var allArgs []any
 	for _, arg := range args {
-		{{- range .Fields}}
+		{{- range .ValuesFields}}
 		allArgs = append(allArgs, arg.{{.}})
 		{{- end}}
 	}
+	{{- if .UpdateFields}}
+
+	// Add ON DUPLICATE KEY UPDATE parameters (only once, not per row)
+	if len(args) > 0 {
+		{{- range .UpdateFields}}
+		allArgs = append(allArgs, args[0].{{.}})
+		{{- end}}
+	}
+	{{- end}}
 
 	// Execute the bulk insert
     {{if .EmitMethodsWithDBArgument -}}

@@ -122,7 +122,7 @@ func TestGetKeyForbidden(t *testing.T) {
 	require.NoError(t, err)
 
 	req := handler.Request{
-		KeyId:   ptr.P(keyID),
+		KeyId:   keyID,
 		Decrypt: ptr.P(true),
 	}
 
