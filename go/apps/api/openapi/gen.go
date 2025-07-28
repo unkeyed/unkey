@@ -1819,11 +1819,8 @@ type V2RatelimitDeleteOverrideRequestBody struct {
 	// After deletion, any identifiers previously affected by this override will immediately revert to using the default rate limit for the namespace.
 	Identifier string `json:"identifier"`
 
-	// NamespaceId The unique ID of the rate limit namespace containing the override. Either `namespaceId` or `namespaceName` must be provided, but not both. Using `namespaceId` is more precise and less prone to naming conflicts, making it ideal for automation and scripts.
-	NamespaceId *string `json:"namespaceId,omitempty"`
-
-	// NamespaceName The name of the rate limit namespace containing the override. Either `namespaceId` or `namespaceName` must be provided, but not both. Using `namespaceName` is more human-readable and convenient for manual operations and configurations.
-	NamespaceName *string `json:"namespaceName,omitempty"`
+	// Namespace The id or name of the namespace containing the override.
+	Namespace string `json:"namespace"`
 }
 
 // V2RatelimitDeleteOverrideResponseBody defines model for V2RatelimitDeleteOverrideResponseBody.
@@ -1857,19 +1854,9 @@ type V2RatelimitGetOverrideRequestBody struct {
 	// This field is used to look up the specific override configuration for this pattern.
 	Identifier string `json:"identifier"`
 
-	// NamespaceId The unique ID of the rate limit namespace. Either `namespaceId` or `namespaceName` must be provided, but not both. Using `namespaceId` is more precise and less prone to naming conflicts, making it ideal for scripts and automated operations.
-	NamespaceId *string `json:"namespaceId,omitempty"`
-
-	// NamespaceName The name of the rate limit namespace. Either `namespaceId` or `namespaceName` must be provided, but not both. Using `namespaceName` is more human-readable and easier to work with for manual operations and configurations.
-	NamespaceName *string `json:"namespaceName,omitempty"`
-	union         json.RawMessage
+	// Namespace The id or name of the namespace containing the override.
+	Namespace string `json:"namespace"`
 }
-
-// V2RatelimitGetOverrideRequestBody0 defines model for .
-type V2RatelimitGetOverrideRequestBody0 = interface{}
-
-// V2RatelimitGetOverrideRequestBody1 defines model for .
-type V2RatelimitGetOverrideRequestBody1 = interface{}
 
 // V2RatelimitGetOverrideResponseBody defines model for V2RatelimitGetOverrideResponseBody.
 type V2RatelimitGetOverrideResponseBody struct {
@@ -1906,11 +1893,7 @@ type V2RatelimitLimitRequestBody struct {
 	// Consider system capacity, business requirements, and fair usage policies in limit determination.
 	Limit int64 `json:"limit"`
 
-	// Namespace Identifies the rate limit category using hierarchical naming for organization and monitoring.
-	// Namespaces must start with a letter and can contain letters, numbers, underscores, dots, slashes, or hyphens.
-	// Use descriptive, hierarchical names like 'auth.login', 'api.requests', or 'media.uploads' for clear categorization.
-	// Namespaces must be unique within your workspace and support segmentation of different API operations.
-	// Consistent naming conventions across your application improve monitoring and debugging capabilities.
+	// Namespace The id or name of the namespace.
 	Namespace string `json:"namespace"`
 }
 
@@ -1978,11 +1961,8 @@ type V2RatelimitListOverridesRequestBody struct {
 	// Results exceeding this limit will be paginated, with a cursor provided for fetching subsequent pages.
 	Limit *int `json:"limit,omitempty"`
 
-	// NamespaceId The unique ID of the rate limit namespace to list overrides for. Either `namespaceId` or `namespaceName` must be provided, but not both. Using `namespaceId` guarantees you're targeting the exact namespace intended, even if names change over time.
-	NamespaceId *string `json:"namespaceId,omitempty"`
-
-	// NamespaceName The name of the rate limit namespace to list overrides for. Either `namespaceId` or `namespaceName` must be provided, but not both. Using `namespaceName` is more human-readable and convenient for manual operations and dashboards.
-	NamespaceName *string `json:"namespaceName,omitempty"`
+	// Namespace The id or name of the rate limit namespace to list overrides for.
+	Namespace string `json:"namespace"`
 }
 
 // V2RatelimitListOverridesResponseBody defines model for V2RatelimitListOverridesResponseBody.
@@ -2042,11 +2022,8 @@ type V2RatelimitSetOverrideRequestBody struct {
 	// This limit entirely replaces the default limit for matching identifiers.
 	Limit int64 `json:"limit"`
 
-	// NamespaceId The unique ID of the rate limit namespace. Either `namespaceId` or `namespaceName` must be provided, but not both. Using `namespaceId` guarantees you're targeting the exact namespace intended, even if names change, making it ideal for automation and scripts.
-	NamespaceId *string `json:"namespaceId,omitempty"`
-
-	// NamespaceName The name of the rate limit namespace. Either `namespaceId` or `namespaceName` must be provided, but not both. Using `namespaceName` is more human-readable and convenient for manual operations and configurations.
-	NamespaceName *string `json:"namespaceName,omitempty"`
+	// Namespace The ID or name of the rate limit namespace.
+	Namespace string `json:"namespace"`
 }
 
 // V2RatelimitSetOverrideResponseBody defines model for V2RatelimitSetOverrideResponseBody.
@@ -2344,128 +2321,6 @@ func (t *V2KeysGetKeyRequestBody) UnmarshalJSON(b []byte) error {
 		err = json.Unmarshal(raw, &t.KeyId)
 		if err != nil {
 			return fmt.Errorf("error reading 'keyId': %w", err)
-		}
-	}
-
-	return err
-}
-
-// AsV2RatelimitGetOverrideRequestBody0 returns the union data inside the V2RatelimitGetOverrideRequestBody as a V2RatelimitGetOverrideRequestBody0
-func (t V2RatelimitGetOverrideRequestBody) AsV2RatelimitGetOverrideRequestBody0() (V2RatelimitGetOverrideRequestBody0, error) {
-	var body V2RatelimitGetOverrideRequestBody0
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromV2RatelimitGetOverrideRequestBody0 overwrites any union data inside the V2RatelimitGetOverrideRequestBody as the provided V2RatelimitGetOverrideRequestBody0
-func (t *V2RatelimitGetOverrideRequestBody) FromV2RatelimitGetOverrideRequestBody0(v V2RatelimitGetOverrideRequestBody0) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeV2RatelimitGetOverrideRequestBody0 performs a merge with any union data inside the V2RatelimitGetOverrideRequestBody, using the provided V2RatelimitGetOverrideRequestBody0
-func (t *V2RatelimitGetOverrideRequestBody) MergeV2RatelimitGetOverrideRequestBody0(v V2RatelimitGetOverrideRequestBody0) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsV2RatelimitGetOverrideRequestBody1 returns the union data inside the V2RatelimitGetOverrideRequestBody as a V2RatelimitGetOverrideRequestBody1
-func (t V2RatelimitGetOverrideRequestBody) AsV2RatelimitGetOverrideRequestBody1() (V2RatelimitGetOverrideRequestBody1, error) {
-	var body V2RatelimitGetOverrideRequestBody1
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromV2RatelimitGetOverrideRequestBody1 overwrites any union data inside the V2RatelimitGetOverrideRequestBody as the provided V2RatelimitGetOverrideRequestBody1
-func (t *V2RatelimitGetOverrideRequestBody) FromV2RatelimitGetOverrideRequestBody1(v V2RatelimitGetOverrideRequestBody1) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeV2RatelimitGetOverrideRequestBody1 performs a merge with any union data inside the V2RatelimitGetOverrideRequestBody, using the provided V2RatelimitGetOverrideRequestBody1
-func (t *V2RatelimitGetOverrideRequestBody) MergeV2RatelimitGetOverrideRequestBody1(v V2RatelimitGetOverrideRequestBody1) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-func (t V2RatelimitGetOverrideRequestBody) MarshalJSON() ([]byte, error) {
-	b, err := t.union.MarshalJSON()
-	if err != nil {
-		return nil, err
-	}
-	object := make(map[string]json.RawMessage)
-	if t.union != nil {
-		err = json.Unmarshal(b, &object)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	object["identifier"], err = json.Marshal(t.Identifier)
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling 'identifier': %w", err)
-	}
-
-	if t.NamespaceId != nil {
-		object["namespaceId"], err = json.Marshal(t.NamespaceId)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'namespaceId': %w", err)
-		}
-	}
-
-	if t.NamespaceName != nil {
-		object["namespaceName"], err = json.Marshal(t.NamespaceName)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'namespaceName': %w", err)
-		}
-	}
-	b, err = json.Marshal(object)
-	return b, err
-}
-
-func (t *V2RatelimitGetOverrideRequestBody) UnmarshalJSON(b []byte) error {
-	err := t.union.UnmarshalJSON(b)
-	if err != nil {
-		return err
-	}
-	object := make(map[string]json.RawMessage)
-	err = json.Unmarshal(b, &object)
-	if err != nil {
-		return err
-	}
-
-	if raw, found := object["identifier"]; found {
-		err = json.Unmarshal(raw, &t.Identifier)
-		if err != nil {
-			return fmt.Errorf("error reading 'identifier': %w", err)
-		}
-	}
-
-	if raw, found := object["namespaceId"]; found {
-		err = json.Unmarshal(raw, &t.NamespaceId)
-		if err != nil {
-			return fmt.Errorf("error reading 'namespaceId': %w", err)
-		}
-	}
-
-	if raw, found := object["namespaceName"]; found {
-		err = json.Unmarshal(raw, &t.NamespaceName)
-		if err != nil {
-			return fmt.Errorf("error reading 'namespaceName': %w", err)
 		}
 	}
 
