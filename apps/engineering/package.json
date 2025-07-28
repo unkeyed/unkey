@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "generate-docs": "./scripts/generate-cli-docs.sh",
-    "build": "pnpm generate-docs && next build",
+    "build": "next build",
     "dev": "next dev",
     "start": "next start",
     "postinstall": "fumadocs-mdx"
