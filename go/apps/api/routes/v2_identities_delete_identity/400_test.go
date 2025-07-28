@@ -44,7 +44,7 @@ func TestBadRequests(t *testing.T) {
 		require.Greater(t, len(res.Body.Error.Errors), 0)
 	})
 
-	t.Run("empty external ID", func(t *testing.T) {
+	t.Run("empty identity", func(t *testing.T) {
 		req := handler.Request{Identity: ""}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
@@ -72,8 +72,8 @@ func TestBadRequests(t *testing.T) {
 		require.Greater(t, len(res.Body.Error.Errors), 0)
 	})
 
-	t.Run("external ID with special characters", func(t *testing.T) {
-		// Test with external ID containing only special characters (handler treats as not found)
+	t.Run("identity with special characters", func(t *testing.T) {
+		// Test with identity containing only special characters (handler treats as not found)
 		req := handler.Request{Identity: "@#$%"}
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, 404, res.Status, "expected 404, sent: %+v, received: %s", req, res.RawBody)
@@ -86,8 +86,8 @@ func TestBadRequests(t *testing.T) {
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 
-	t.Run("external ID too long", func(t *testing.T) {
-		// Test with extremely long external ID (handler treats as not found)
+	t.Run("identity too long", func(t *testing.T) {
+		// Test with extremely long identity (handler treats as not found)
 		longExternalID := "test_" + string(make([]byte, 1000))
 		req := handler.Request{Identity: longExternalID}
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)

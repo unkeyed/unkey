@@ -715,7 +715,7 @@ type V2IdentitiesCreateIdentityResponseData = map[string]interface{}
 
 // V2IdentitiesDeleteIdentityRequestBody defines model for V2IdentitiesDeleteIdentityRequestBody.
 type V2IdentitiesDeleteIdentityRequestBody struct {
-	// Identity The ID of the identity to retrieve. This can be either the externalId (from your own system that was used during identity creation) or the identityId (the internal ID returned by the identity service).
+	// Identity The ID of the identity to delete. This can be either the externalId (from your own system that was used during identity creation) or the identityId (the internal ID returned by the identity service).
 	Identity string `json:"identity"`
 }
 

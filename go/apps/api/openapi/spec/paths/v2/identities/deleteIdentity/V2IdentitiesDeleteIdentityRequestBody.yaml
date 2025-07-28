@@ -3,7 +3,7 @@ properties:
   identity:
     type: string
     minLength: 3
-    description: The ID of the identity to retrieve. This can be either the externalId (from your own system that was used during identity creation) or the identityId (the internal ID returned by the identity service).
+    description: The ID of the identity to delete. This can be either the externalId (from your own system that was used during identity creation) or the identityId (the internal ID returned by the identity service).
     example: user_123
 additionalProperties: false
 required:

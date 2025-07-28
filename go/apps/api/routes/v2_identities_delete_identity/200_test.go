@@ -37,7 +37,7 @@ func createTestIdentity(t *testing.T, h *testutil.Harness, numberOfRatelimits in
 	require.NoError(t, err)
 
 	ratelimitIds := make([]string, 0, numberOfRatelimits)
-	for i := 0; i < numberOfRatelimits; i++ {
+	for i := range numberOfRatelimits {
 		rateLimitID := uid.New(uid.RatelimitPrefix)
 		err = db.Query.InsertIdentityRatelimit(t.Context(), h.DB.RW(), db.InsertIdentityRatelimitParams{
 			ID:          rateLimitID,
@@ -134,8 +134,9 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 
 		// Verify identity is soft deleted
 		_, err = db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
-			Identity: testIdentity.ID,
-			Deleted:  false,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Identity:    testIdentity.ID,
+			Deleted:     false,
 		})
 		require.Equal(t, sql.ErrNoRows, err)
 
@@ -163,8 +164,9 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 
 		// Verify identity is soft deleted
 		_, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
-			Identity: testIdentity.ID,
-			Deleted:  false,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Identity:    testIdentity.ID,
+			Deleted:     false,
 		})
 		require.Equal(t, sql.ErrNoRows, err)
 	})
@@ -222,15 +224,17 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 
 		// Verify the new identity is soft deleted
 		_, err = db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
-			Identity: newIdentityID,
-			Deleted:  false,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Identity:    newIdentityID,
+			Deleted:     false,
 		})
 		require.Equal(t, sql.ErrNoRows, err)
 
 		// Verify the old identity was hard deleted (should not be found even with deleted=true)
 		_, err = db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
-			Identity: testIdentity.ID,
-			Deleted:  true,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Identity:    testIdentity.ID,
+			Deleted:     true,
 		})
 		require.Equal(t, sql.ErrNoRows, err, "old identity should be hard deleted")
 	})

@@ -88,7 +88,7 @@ func TestForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", specificPermKey)},
 		}
 
-		// Try to use externalId when only having permission for specific identity IDs
+		// Try to use identity when only having permission for specific identity IDs
 		req := handler.Request{
 			Identity: externalID,
 		}

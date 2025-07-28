@@ -42,7 +42,7 @@ func TestBadRequests(t *testing.T) {
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 
-	t.Run("empty externalId", func(t *testing.T) {
+	t.Run("empty identity", func(t *testing.T) {
 		req := handler.Request{
 			Identity: "",
 		}
