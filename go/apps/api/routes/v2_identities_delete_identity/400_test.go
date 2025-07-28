@@ -58,7 +58,7 @@ func TestBadRequests(t *testing.T) {
 		require.Greater(t, len(res.Body.Error.Errors), 0)
 	})
 
-	t.Run("external ID too short", func(t *testing.T) {
+	t.Run("identity too short", func(t *testing.T) {
 		req := handler.Request{Identity: "id"}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
