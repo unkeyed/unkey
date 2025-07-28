@@ -19,6 +19,8 @@ post:
     Your root key needs one of:
     - `api.*.verify_key` (verify keys in any API)
     - `api.<api_id>.verify_key` (verify keys in specific API)
+
+    If you are getting a NOT_FOUND error, ensure your root key has the required verify key permissions.
   operationId: verifyKey
   x-speakeasy-name-override: verifyKey
   security:

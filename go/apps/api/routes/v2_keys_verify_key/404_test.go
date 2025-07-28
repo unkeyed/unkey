@@ -37,8 +37,7 @@ func TestNotFound(t *testing.T) {
 
 	t.Run("key not found", func(t *testing.T) {
 		req := handler.Request{
-			ApiId: api.ID,
-			Key:   uid.New("test"),
+			Key: uid.New("test"),
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -55,8 +54,7 @@ func TestNotFound(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId: api.ID,
-			Key:   key.Key,
+			Key: key.Key,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
