@@ -24,7 +24,6 @@ import (
 type Request = openapi.V2KeysWhoamiRequestBody
 type Response = openapi.V2KeysWhoamiResponseBody
 
-// Handler implements zen.Route interface for the v2 keys.getKey endpoint
 type Handler struct {
 	// Services as public fields
 	Logger    logging.Logger
@@ -90,15 +89,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Check if API is deleted
-	if key.Api.DeletedAtM.Valid {
-		return fault.New("key not found",
-			fault.Code(codes.Data.Key.NotFound.URN()),
-			fault.Internal("key belongs to deleted api"),
-			fault.Public("The specified key was not found."),
-		)
-	}
-
 	// Permission check
 	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
@@ -113,7 +103,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 	)))
 	if err != nil {
-		return err
+		return fault.Wrap(err,
+			fault.Code(codes.Data.Key.NotFound.URN()),
+			fault.Internal("user doesn't have permissions and we don't want to leak the existance of the key"),
+			fault.Public("The specified key was not found."),
+		)
 	}
 
 	k := openapi.KeyResponseData{

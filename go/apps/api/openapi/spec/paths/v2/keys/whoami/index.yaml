@@ -11,6 +11,8 @@ post:
     - `api.*.read_key` (to read keys from any API)
     - `api.<api_id>.read_key` (to read keys from a specific API)
 
+    If your rootkey lacks permissions but the key exists, we may return a 404 status here to prevent leaking the existance of a key to unauthorized clients. If you believe that a key should exist, but receive a 404, please double check your root key has the correct permissions.
+
   operationId: whoami
   x-speakeasy-name-override: whoami
   security:

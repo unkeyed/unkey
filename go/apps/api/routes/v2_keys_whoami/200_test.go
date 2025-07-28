@@ -20,7 +20,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
-func TestGetKeyByKeyID(t *testing.T) {
+func TestGetKeyByKey(t *testing.T) {
 	h := testutil.NewHarness(t)
 	ctx := context.Background()
 
@@ -69,7 +69,6 @@ func TestGetKeyByKeyID(t *testing.T) {
 		IdentityID:  &identityID,
 	})
 	keyID := key.KeyID
-	// key := keyResponse.Key
 
 	// Add encryption for the key since API has encrypted keys enabled
 	encryption, err := h.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
