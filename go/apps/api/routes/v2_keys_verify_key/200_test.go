@@ -50,8 +50,7 @@ func TestSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId: api.ID,
-			Key:   key.Key,
+			Key: key.Key,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -68,8 +67,7 @@ func TestSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId: api.ID,
-			Key:   key.Key,
+			Key: key.Key,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -94,8 +92,7 @@ func TestSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId: api.ID,
-			Key:   key.Key,
+			Key: key.Key,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -113,8 +110,7 @@ func TestSuccess(t *testing.T) {
 			})
 
 			req := handler.Request{
-				ApiId: api.ID,
-				Key:   key.Key,
+				Key: key.Key,
 			}
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -133,8 +129,7 @@ func TestSuccess(t *testing.T) {
 			})
 
 			req := handler.Request{
-				ApiId: api.ID,
-				Key:   key.Key,
+				Key: key.Key,
 			}
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -153,8 +148,7 @@ func TestSuccess(t *testing.T) {
 			})
 
 			req := handler.Request{
-				ApiId: api.ID,
-				Key:   key.Key,
+				Key: key.Key,
 				Credits: &openapi.KeysVerifyKeyCredits{
 					Cost: 5,
 				},
@@ -176,8 +170,7 @@ func TestSuccess(t *testing.T) {
 			})
 
 			req := handler.Request{
-				ApiId: api.ID,
-				Key:   key.Key,
+				Key: key.Key,
 				Credits: &openapi.KeysVerifyKeyCredits{
 					Cost: 15,
 				},
@@ -199,8 +192,7 @@ func TestSuccess(t *testing.T) {
 			})
 
 			req := handler.Request{
-				ApiId: api.ID,
-				Key:   key.Key,
+				Key: key.Key,
 				Credits: &openapi.KeysVerifyKeyCredits{
 					Cost: 0,
 				},
@@ -219,12 +211,11 @@ func TestSuccess(t *testing.T) {
 		ipWhitelistApi := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, IpWhitelist: "127.0.0.1"})
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeyAuthID:   ipWhitelistApi.KeyAuthID.String,
 		})
 
 		req := handler.Request{
-			ApiId: ipWhitelistApi.ID,
-			Key:   key.Key,
+			Key: key.Key,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -252,7 +243,6 @@ func TestSuccess(t *testing.T) {
 			})
 
 			req := handler.Request{
-				ApiId:       api.ID,
 				Key:         key.Key,
 				Permissions: ptr.P("domain.write"),
 			}
@@ -277,7 +267,6 @@ func TestSuccess(t *testing.T) {
 			})
 
 			req := handler.Request{
-				ApiId:       api.ID,
 				Key:         key.Key,
 				Permissions: ptr.P("domain.read"),
 			}
@@ -296,7 +285,6 @@ func TestSuccess(t *testing.T) {
 			})
 
 			req := handler.Request{
-				ApiId:       api.ID,
 				Key:         key.Key,
 				Permissions: ptr.P("domain.write"),
 			}
@@ -328,7 +316,6 @@ func TestSuccess(t *testing.T) {
 			})
 
 			req := handler.Request{
-				ApiId:       api.ID,
 				Key:         key.Key,
 				Permissions: ptr.P("api.read AND api.write"),
 			}
@@ -382,7 +369,6 @@ func TestSuccess(t *testing.T) {
 				"audit.view AND delete.users AND delete.comments AND delete.files"
 
 			req := handler.Request{
-				ApiId:       api.ID,
 				Key:         key.Key,
 				Permissions: ptr.P(largeQuery),
 			}
@@ -410,8 +396,7 @@ func TestSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId: api.ID,
-			Key:   key.Key,
+			Key: key.Key,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -443,7 +428,7 @@ func TestSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId:      api.ID,
+
 			Key:        key.Key,
 			Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{{Name: "requests"}},
 		}
@@ -468,7 +453,7 @@ func TestSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId:      api.ID,
+
 			Key:        key.Key,
 			Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{{Name: "requests", Cost: ptr.P(15), Duration: ptr.P(int(time.Minute.Milliseconds())), Limit: ptr.P(20)}},
 		}
@@ -511,7 +496,7 @@ func TestSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId:      api.ID,
+
 			Key:        key.Key,
 			Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{{Name: "tokens", Cost: ptr.P(4)}},
 		}
@@ -569,8 +554,7 @@ func TestSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId: api.ID,
-			Key:   key.Key,
+			Key: key.Key,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
