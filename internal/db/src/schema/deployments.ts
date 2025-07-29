@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, json, mysqlEnum, mysqlTable, primaryKey, text, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, json, mysqlEnum, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
 import { builds } from "./builds";
 import { projects } from "./projects";
 import { rootfsImages } from "./rootfs_images";
@@ -79,36 +79,4 @@ export const deploymentsRelations = relations(deployments, ({ one }) => ({
   }),
   // routes: many(routes),
   // hostnames: many(hostnames),
-}));
-
-export const deploymentSteps = mysqlTable(
-  "deployment_steps",
-  {
-    deploymentId: varchar("deployment_id", { length: 256 }).notNull(),
-    status: mysqlEnum("status", [
-      "pending",
-      "downloading_docker_image", 
-      "building_rootfs",
-      "uploading_rootfs",
-      "creating_vm",
-      "booting_vm",
-      "assigning_domains",
-      "completed",
-      "failed",
-    ]).notNull(),
-    message: text("message"),
-    errorMessage: text("error_message"),
-    createdAt: bigint("created_at", { mode: "number" }).notNull(),
-  },
-  (table) => ({
-    pk: primaryKey({ columns: [table.deploymentId, table.status], name: "deployment_steps_pk" }),
-    deploymentIdCreatedAtIdx: index("idx_deployment_id_created_at").on(table.deploymentId, table.createdAt),
-  }),
-);
-
-export const deploymentStepsRelations = relations(deploymentSteps, ({ one }) => ({
-  deployment: one(deployments, {
-    fields: [deploymentSteps.deploymentId],
-    references: [deployments.id],
-  }),
 }));

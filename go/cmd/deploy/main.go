@@ -43,10 +43,10 @@ const (
 	MsgImagePushedSuccessfully    = "Image pushed successfully"
 	MsgPushFailedContinuing       = "Push failed but continuing deployment"
 	MsgDockerNotFound             = "Docker not found - please install Docker"
-	MsgFailedToCreateVersion      = "Failed to create version"
+	MsgFailedToCreateDeployment   = "Failed to create deployment"
 	MsgDeploymentFailed           = "Deployment failed"
 	MsgDeploymentCompleted        = "Deployment completed successfully"
-	MsgVersionDeploymentCompleted = "Version deployment completed successfully"
+	MsgDeploymentStepCompleted    = "Deployment step completed successfully"
 
 	// Source info labels
 	LabelBranch  = "Branch"
@@ -56,7 +56,7 @@ const (
 
 	// Completion info labels
 	CompletionTitle       = "Deployment Complete"
-	CompletionVersionID   = "Version ID"
+	CompletionDeploymentID = "Deployment ID"
 	CompletionStatus      = "Status"
 	CompletionEnvironment = "Environment"
 	CompletionDomains     = "Domains"
@@ -73,9 +73,9 @@ var stepSequence = map[string]string{
 	"Downloading Docker image:":          "Building rootfs from Docker image:",
 	"Building rootfs from Docker image:": "Uploading rootfs image to storage",
 	"Uploading rootfs image to storage":  "Creating VM for version:",
-	"Creating VM for version:":           "VM booted successfully:",
+	"Creating VM for deployment:":        "VM booted successfully:",
 	"VM booted successfully:":            "Assigned hostname:",
-	"Assigned hostname:":                 MsgVersionDeploymentCompleted,
+	"Assigned hostname:":                 MsgDeploymentStepCompleted,
 }
 
 // DeployOptions contains all configuration for deployment
@@ -282,22 +282,22 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 		ui.Print(MsgSkippingRegistryPush)
 	}
 
-	// Create deployment version
+	// Create deployment
 	ui.Print(MsgCreatingDeployment)
 	controlPlane := NewControlPlaneClient(opts)
-	versionId, err := controlPlane.CreateVersion(ctx, dockerImage)
+	deploymentId, err := controlPlane.CreateDeployment(ctx, dockerImage)
 	if err != nil {
-		ui.PrintError(MsgFailedToCreateVersion)
+		ui.PrintError(MsgFailedToCreateDeployment)
 		ui.PrintErrorDetails(err.Error())
 		return err
 	}
-	ui.PrintSuccess(fmt.Sprintf("Version created: %s", versionId))
+	ui.PrintSuccess(fmt.Sprintf("Deployment created: %s", deploymentId))
 
 	// Track final version for completion info
 	var finalVersion *ctrlv1.Version
 
-	// Handle version status changes
-	onStatusChange := func(event VersionStatusEvent) error {
+	// Handle deployment status changes
+	onStatusChange := func(event DeploymentStatusEvent) error {
 		switch event.CurrentStatus {
 		case ctrlv1.VersionStatus_VERSION_STATUS_FAILED:
 			return handleVersionFailure(controlPlane, event.Version, ui)
@@ -309,12 +309,12 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	}
 
 	// Handle deployment step updates
-	onStepUpdate := func(event VersionStepEvent) error {
+	onStepUpdate := func(event DeploymentStepEvent) error {
 		return handleStepUpdate(event, ui)
 	}
 
 	// Poll for deployment completion
-	err = controlPlane.PollVersionStatus(ctx, logger, versionId, onStatusChange, onStepUpdate)
+	err = controlPlane.PollDeploymentStatus(ctx, logger, deploymentId, onStatusChange, onStepUpdate)
 	if err != nil {
 		ui.CompleteCurrentStep(MsgDeploymentFailed, false)
 		return err
@@ -322,7 +322,7 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 
 	// Print final success message only after all polling is complete
 	if finalVersion != nil {
-		ui.CompleteCurrentStep(MsgVersionDeploymentCompleted, true)
+		ui.CompleteCurrentStep(MsgDeploymentStepCompleted, true)
 		ui.PrintSuccess(MsgDeploymentCompleted)
 		fmt.Printf("\n")
 		printCompletionInfo(finalVersion)
@@ -342,7 +342,7 @@ func getNextStepMessage(currentMessage string) string {
 	return ""
 }
 
-func handleStepUpdate(event VersionStepEvent, ui *UI) error {
+func handleStepUpdate(event DeploymentStepEvent, ui *UI) error {
 	step := event.Step
 
 	if step.GetErrorMessage() != "" {
@@ -405,7 +405,7 @@ func printCompletionInfo(version *ctrlv1.Version) {
 
 	fmt.Println()
 	fmt.Println(CompletionTitle)
-	fmt.Printf("  %s: %s\n", CompletionVersionID, version.GetId())
+	fmt.Printf("  %s: %s\n", CompletionDeploymentID, version.GetId())
 	fmt.Printf("  %s: %s\n", CompletionStatus, CompletionReady)
 	fmt.Printf("  %s: %s\n", CompletionEnvironment, DefaultEnvironment)
 
