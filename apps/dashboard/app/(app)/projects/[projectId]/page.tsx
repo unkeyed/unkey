@@ -23,7 +23,7 @@ import {
 import { useParams } from "next/navigation";
 import { useState } from "react";
 
-// Type definitions - removed unused Project interface
+// Type definitions
 
 export default function ProjectDetailPage(): JSX.Element {
   const params = useParams();
