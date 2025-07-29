@@ -89,7 +89,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if err != nil {
 			if db.IsDuplicateKeyError(err) {
 				return fault.New("role already exists",
-					fault.Code(codes.UnkeyDataErrorsIdentityDuplicate),
+					fault.Code(codes.Data.Role.Duplicate.URN()),
 					fault.Internal("role already exists"), fault.Public(fmt.Sprintf("A role with name %q already exists in this workspace", req.Name)),
 				)
 			}

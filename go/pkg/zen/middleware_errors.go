@@ -116,7 +116,9 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 						Status: http.StatusForbidden,
 					},
 				})
-			case codes.UnkeyDataErrorsIdentityDuplicate:
+			case codes.UnkeyDataErrorsIdentityDuplicate,
+				codes.UnkeyDataErrorsRoleDuplicate,
+				codes.UnkeyDataErrorsPermissionDuplicate:
 				return s.JSON(http.StatusConflict, openapi.ConflictErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
