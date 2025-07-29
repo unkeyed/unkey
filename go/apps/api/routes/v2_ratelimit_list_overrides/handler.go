@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -98,13 +99,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	limit := ptr.SafeDeref(req.Limit, 50)
+
 	overrides, err := db.Query.ListRatelimitOverridesByNamespaceID(ctx, h.DB.RO(), db.ListRatelimitOverridesByNamespaceIDParams{
 		WorkspaceID: auth.AuthorizedWorkspaceID,
 		NamespaceID: namespace.ID,
+		Limit:       int32(limit) + 1,
+		CursorID:    ptr.SafeDeref(req.Cursor, ""),
 	})
 
 	if err != nil {
 		return err
+	}
+
+	hasMore := len(overrides) > limit
+	var cursor *string
+	if hasMore {
+		cursor = ptr.P(overrides[limit].ID)
+		overrides = overrides[:limit]
 	}
 
 	responseBody := Response{
@@ -113,8 +125,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		},
 		Data: make([]openapi.RatelimitOverride, len(overrides)),
 		Pagination: &openapi.Pagination{
-			Cursor:  nil,
-			HasMore: false,
+			Cursor:  cursor,
+			HasMore: hasMore,
 		},
 	}
 
