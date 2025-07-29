@@ -111,7 +111,6 @@ export function testV2KeyVerify() {
     },
   );
 
-
   check(response, {
     "status is 200": (r) => r.status === 200,
   });
