@@ -224,7 +224,23 @@
         "groups": [
           {
             "group": "Introduction",
-            "pages": ["api-reference/v1/overview", "api-reference/v1/authentication"]
+            "pages": [
+              "api-reference/v1/overview",
+              "api-reference/v1/authentication",
+              {
+                "group": "Migration Guide",
+                "icon": "arrows-rotate",
+                "pages": [
+                  "api-reference/v1/migration/index",
+                  "api-reference/v1/migration/keys",
+                  "api-reference/v1/migration/apis",
+                  "api-reference/v1/migration/identities",
+                  "api-reference/v1/migration/permissions",
+                  "api-reference/v1/migration/ratelimiting",
+                  "api-reference/v1/migration/errors"
+                ]
+              }
+            ]
           },
           {
             "group": "Endpoints",
