@@ -1,13 +1,12 @@
-import http from 'k6/http';
-import { check } from 'k6';
-import { Rate, Trend } from 'k6/metrics';
-
+import { check } from "k6";
+import http from "k6/http";
+import { Trend } from "k6/metrics";
 
 // Custom metrics
-const requestLatencyTrend = new Trend('request_latency', true);
+const requestLatencyTrend = new Trend("request_latency", true);
 
 const loadZones = [
-  'amazon:us:ashburn',     // US East
+  "amazon:us:ashburn", // US East
   // 'amazon:us:portland',    // US West
   // 'amazon:ie:dublin',      // Europe West
   // 'amazon:de:frankfurt',   // Europe Central
@@ -24,70 +23,74 @@ const distribution = {};
 loadZones.forEach((zone, index) => {
   distribution[zone] = {
     loadZone: zone,
-    percent: index === loadZones.length - 1 ? 100 - (equalPercent * (loadZones.length - 1)) : equalPercent
+    percent:
+      index === loadZones.length - 1 ? 100 - equalPercent * (loadZones.length - 1) : equalPercent,
   };
 });
 
 export const options = {
   cloud: {
     project: "3788521",
-    distribution: distribution
+    distribution: distribution,
   },
   stages: [
-    { duration: '10m', target: 10 }, // 10 req/s for 1 minute
+    { duration: "10m", target: 10 }, // 10 req/s for 1 minute
   ],
   thresholds: {
-    http_req_duration: ['p(95)<500'], // 95% of requests must complete below 500ms
-    checks: ['rate>0.99'], // 99% of checks must pass
+    http_req_duration: ["p(95)<500"], // 95% of requests must complete below 500ms
+    checks: ["rate>0.99"], // 99% of checks must pass
   },
 };
 
 const UNKEY_ROOT_KEY = __ENV.UNKEY_ROOT_KEY;
-const REGION = __ENV.REGION || 'local';
+const REGION = __ENV.REGION || "local";
 
 if (!UNKEY_ROOT_KEY) {
-  throw new Error('UNKEY_ROOT_KEY environment variable is required');
+  throw new Error("UNKEY_ROOT_KEY environment variable is required");
 }
 
 const headers = {
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${UNKEY_ROOT_KEY}`,
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${UNKEY_ROOT_KEY}`,
 };
 
-
-
-const identifiers = ['user1', 'user2', 'user3', 'user4', 'user5']
+const identifiers = ["user1", "user2", "user3", "user4", "user5"];
 export default function () {
   // Randomly choose between v1 and v2 (50/50 split)
 
   const identifier = identifiers[Math.floor(Math.random() * identifiers.length)];
 
-
-
-
-
-  const response = Math.random() < 0.5
-    ? http.post('https://api.unkey.dev/v1/ratelimits.limit', JSON.stringify({
-      namespace: 'benchmark',
-      identifier,
-      limit: 100,
-      duration: 60000
-    }), {
-      headers: headers,
-      tags: { version: 'v1', region: REGION },
-    })
-    : http.post('https://api.unkey.com/v2/ratelimit.limit', JSON.stringify({
-      namespace: 'benchmark',
-      identifier,
-      limit: 100,
-      duration: 60000
-    }), {
-      headers: headers,
-      tags: { version: 'v2', region: REGION },
-    });
+  const response =
+    Math.random() < 0.5
+      ? http.post(
+          "https://api.unkey.dev/v1/ratelimits.limit",
+          JSON.stringify({
+            namespace: "benchmark",
+            identifier,
+            limit: 100,
+            duration: 60000,
+          }),
+          {
+            headers: headers,
+            tags: { version: "v1", region: REGION },
+          },
+        )
+      : http.post(
+          "https://api.unkey.com/v2/ratelimit.limit",
+          JSON.stringify({
+            namespace: "benchmark",
+            identifier,
+            limit: 100,
+            duration: 60000,
+          }),
+          {
+            headers: headers,
+            tags: { version: "v2", region: REGION },
+          },
+        );
 
   check(response, {
-    'status is 200': (r) => r.status === 200,
+    "status is 200": (r) => r.status === 200,
   });
 
   requestLatencyTrend.add(response.timings.duration, { url: response.request.url, region: REGION });
