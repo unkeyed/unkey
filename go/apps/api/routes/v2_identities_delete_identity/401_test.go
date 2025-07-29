@@ -30,7 +30,7 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 			// No Authorization header
 		}
 
-		req := handler.Request{ExternalId: uid.New("test")}
+		req := handler.Request{Identity: uid.New("test")}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
@@ -48,7 +48,9 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 			"Authorization": {"malformed_header"},
 		}
 
-		req := handler.Request{ExternalId: uid.New("test")}
+		req := handler.Request{
+			Identity: uid.New("test"),
+		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
@@ -66,7 +68,7 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 			"Authorization": {"Bearer invalid_token"},
 		}
 
-		req := handler.Request{ExternalId: uid.New("test")}
+		req := handler.Request{Identity: uid.New("test")}
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
@@ -84,7 +86,9 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 			"Authorization": {"Bearer "},
 		}
 
-		req := handler.Request{ExternalId: uid.New("test")}
+		req := handler.Request{
+			Identity: uid.New("test"),
+		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
@@ -102,7 +106,7 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 			"Authorization": {"Bearer not-a-valid-key-format"},
 		}
 
-		req := handler.Request{ExternalId: uid.New("test")}
+		req := handler.Request{Identity: uid.New("test")}
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
@@ -120,7 +124,7 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 			"Authorization": {"Bearer random_string_not_a_key"},
 		}
 
-		req := handler.Request{ExternalId: uid.New("test")}
+		req := handler.Request{Identity: uid.New("test")}
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
@@ -143,7 +147,7 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", differentWorkspaceKey)},
 		}
 
-		req := handler.Request{ExternalId: uid.New("test")}
+		req := handler.Request{Identity: uid.New("test")}
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
@@ -161,7 +165,7 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 			"Authorization": {"Bearer 123"},
 		}
 
-		req := handler.Request{ExternalId: uid.New("test")}
+		req := handler.Request{Identity: uid.New("test")}
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)

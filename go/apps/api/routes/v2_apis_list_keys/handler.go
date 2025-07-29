@@ -20,8 +20,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2ApisListKeysRequestBody
-type Response = openapi.V2ApisListKeysResponseBody
+type (
+	Request  = openapi.V2ApisListKeysRequestBody
+	Response = openapi.V2ApisListKeysResponseBody
+)
 
 // Handler implements zen.Route interface for the v2 APIs list keys endpoint
 type Handler struct {
@@ -175,9 +177,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// 5. Query the keys
 	var identityId string
 	if req.ExternalId != nil && *req.ExternalId != "" {
-		identity, findErr := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
+		identity, findErr := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
-			ExternalID:  *req.ExternalId,
+			Identity:    *req.ExternalId,
 			Deleted:     false,
 		})
 		if findErr != nil {

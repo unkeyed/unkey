@@ -607,10 +607,8 @@ type V2IdentitiesCreateIdentityResponseData = map[string]interface{}
 
 // V2IdentitiesDeleteIdentityRequestBody defines model for V2IdentitiesDeleteIdentityRequestBody.
 type V2IdentitiesDeleteIdentityRequestBody struct {
-	// ExternalId The id of this identity in your system.
-	// This should match the externalId value you used when creating the identity.
-	// This identifier typically comes from your authentication system and could be a userId, organizationId, or any other stable unique identifier in your application.
-	ExternalId string `json:"externalId"`
+	// Identity The ID of the identity to delete. This can be either the externalId (from your own system that was used during identity creation) or the identityId (the internal ID returned by the identity service).
+	Identity string `json:"identity"`
 }
 
 // V2IdentitiesDeleteIdentityResponseBody Empty response object. A successful response indicates the identity was deleted successfully.
@@ -621,8 +619,8 @@ type V2IdentitiesDeleteIdentityResponseBody struct {
 
 // V2IdentitiesGetIdentityRequestBody defines model for V2IdentitiesGetIdentityRequestBody.
 type V2IdentitiesGetIdentityRequestBody struct {
-	// ExternalId The external ID of the identity to retrieve. This is the ID from your own system that was used during identity creation.
-	ExternalId string `json:"externalId"`
+	// Identity The ID of the identity to retrieve. This can be either the externalId (from your own system that was used during identity creation) or the identityId (the internal ID returned by the identity service).
+	Identity string `json:"identity"`
 }
 
 // V2IdentitiesGetIdentityResponseBody defines model for V2IdentitiesGetIdentityResponseBody.

@@ -37,7 +37,7 @@ func createTestIdentity(t *testing.T, h *testutil.Harness, numberOfRatelimits in
 	require.NoError(t, err)
 
 	ratelimitIds := make([]string, 0, numberOfRatelimits)
-	for i := 0; i < numberOfRatelimits; i++ {
+	for i := range numberOfRatelimits {
 		rateLimitID := uid.New(uid.RatelimitPrefix)
 		err = db.Query.InsertIdentityRatelimit(t.Context(), h.DB.RW(), db.InsertIdentityRatelimitParams{
 			ID:          rateLimitID,
@@ -82,33 +82,33 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		testIdentity := createTestIdentity(t, h, 0)
 
 		// Verify identity exists before deletion
-		identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
+		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			ExternalID:  testIdentity.ExternalID,
+			Identity:    testIdentity.ExternalID,
 			Deleted:     false,
 		})
 		require.NoError(t, err)
 		require.Equal(t, testIdentity.ExternalID, identity.ExternalID)
 
 		// Delete the identity via API
-		req := handler.Request{ExternalId: testIdentity.ExternalID}
+		req := handler.Request{Identity: testIdentity.ExternalID}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 
 		// Verify identity is soft deleted
-		_, err = db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
+		_, err = db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			ExternalID:  testIdentity.ExternalID,
+			Identity:    testIdentity.ExternalID,
 			Deleted:     false,
 		})
 		require.Equal(t, sql.ErrNoRows, err, "identity should not be found with deleted=false")
 
 		// Verify identity still exists but marked as deleted
-		deletedIdentity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
+		deletedIdentity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			ExternalID:  testIdentity.ExternalID,
+			Identity:    testIdentity.ExternalID,
 			Deleted:     true,
 		})
 		require.NoError(t, err, "identity should still exist with deleted=true")
@@ -126,16 +126,17 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		require.Len(t, rateLimits, numberOfRatelimits)
 
 		// Delete the identity via API
-		req := handler.Request{ExternalId: testIdentity.ExternalID}
+		req := handler.Request{Identity: testIdentity.ExternalID}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 
 		// Verify identity is soft deleted
-		_, err = db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
-			ID:      testIdentity.ID,
-			Deleted: false,
+		_, err = db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Identity:    testIdentity.ID,
+			Deleted:     false,
 		})
 		require.Equal(t, sql.ErrNoRows, err)
 
@@ -155,16 +156,17 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", wildcardKey)},
 		}
 
-		req := handler.Request{ExternalId: testIdentity.ExternalID}
+		req := handler.Request{Identity: testIdentity.ExternalID}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, wildcardHeaders, req)
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 
 		// Verify identity is soft deleted
-		_, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
-			ID:      testIdentity.ID,
-			Deleted: false,
+		_, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Identity:    testIdentity.ID,
+			Deleted:     false,
 		})
 		require.Equal(t, sql.ErrNoRows, err)
 	})
@@ -173,7 +175,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		testIdentity := createTestIdentity(t, h, 2)
 
 		// Delete the identity
-		req := handler.Request{ExternalId: testIdentity.ExternalID}
+		req := handler.Request{Identity: testIdentity.ExternalID}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -199,7 +201,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		testIdentity := createTestIdentity(t, h, 0)
 
 		// Delete the identity once
-		req := handler.Request{ExternalId: testIdentity.ExternalID}
+		req := handler.Request{Identity: testIdentity.ExternalID}
 		res1 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res1.Status, "first deletion should succeed")
 
@@ -216,21 +218,23 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		// Delete the new identity (this should trigger duplicate key error handling)
-		req2 := handler.Request{ExternalId: testIdentity.ExternalID}
+		req2 := handler.Request{Identity: testIdentity.ExternalID}
 		res2 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req2)
 		require.Equal(t, 200, res2.Status, "second deletion should succeed despite duplicate key scenario")
 
 		// Verify the new identity is soft deleted
-		_, err = db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
-			ID:      newIdentityID,
-			Deleted: false,
+		_, err = db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Identity:    newIdentityID,
+			Deleted:     false,
 		})
 		require.Equal(t, sql.ErrNoRows, err)
 
 		// Verify the old identity was hard deleted (should not be found even with deleted=true)
-		_, err = db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
-			ID:      testIdentity.ID,
-			Deleted: true,
+		_, err = db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Identity:    testIdentity.ID,
+			Deleted:     true,
 		})
 		require.Equal(t, sql.ErrNoRows, err, "old identity should be hard deleted")
 	})
