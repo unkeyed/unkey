@@ -61,11 +61,15 @@ const (
 
 // Permission
 
+	// Duplicate indicates the requested permission already exists.
+	UnkeyDataErrorsPermissionDuplicate URN = "err:unkey:data:permission_already_exists"
 	// NotFound indicates the requested permission was not found.
 	UnkeyDataErrorsPermissionNotFound URN = "err:unkey:data:permission_not_found"
 
 // Role
 
+	// Duplicate indicates the requested role already exists.
+	UnkeyDataErrorsRoleDuplicate URN = "err:unkey:data:role_already_exists"
 	// NotFound indicates the requested role was not found.
 	UnkeyDataErrorsRoleNotFound URN = "err:unkey:data:role_not_found"
 
