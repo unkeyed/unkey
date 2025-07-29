@@ -26,7 +26,21 @@ type PermissionSheetProps = {
   loadMore?: () => void;
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
+  selectedPermissions: UnkeyPermission[];
+  onChange?: (permissions: UnkeyPermission[]) => void;
+  loadMore?: () => void;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
 };
+export const PermissionSheet = ({
+  children,
+  apis,
+  selectedPermissions,
+  onChange,
+  loadMore,
+  hasNextPage,
+  isFetchingNextPage,
+}: PermissionSheetProps) => {
 export const PermissionSheet = ({
   children,
   apis,
@@ -54,6 +68,7 @@ export const PermissionSheet = ({
   const handleOpenChange = (open: boolean) => {
     setOpen(open);
   };
+
 
   const handleApiPermissionChange = (apiId: string, permissions: UnkeyPermission[]) => {
     setApiPermissions((prev) => ({ ...prev, [apiId]: permissions }));

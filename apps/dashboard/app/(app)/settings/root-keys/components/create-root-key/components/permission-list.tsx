@@ -103,6 +103,7 @@ export const PermissionContentList = ({
   // Notify parent when selectedPermissions changes
   useEffect(() => {
     onPermissionChange(state.selectedPermissions);
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.selectedPermissions]);
 
@@ -116,6 +117,7 @@ export const PermissionContentList = ({
     },
     [permissionList],
   );
+
 
   const handlePermissionChecked = useCallback(
     (permission: UnkeyPermission) => {

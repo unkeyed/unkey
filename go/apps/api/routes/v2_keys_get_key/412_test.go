@@ -50,7 +50,7 @@ func TestPreconditionError(t *testing.T) {
 	t.Run("Try getting a recoverable key without being opt-in", func(t *testing.T) {
 		req := handler.Request{
 			Decrypt: ptr.P(true),
-			KeyId:   ptr.P(key.KeyID),
+			KeyId:   key.KeyID,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](

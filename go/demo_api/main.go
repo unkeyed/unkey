@@ -41,6 +41,77 @@ func main() {
 		json.NewEncoder(w).Encode(response)
 	})
 
+	// OpenAPI spec endpoint
+	mux.HandleFunc("/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
+		spec := `openapi: 3.0.3
+info:
+  title: Demo API
+  description: A simple demo API for testing deployments
+  version: 1.0.0
+  contact:
+    name: Unkey Support
+    email: support@unkey.com
+servers:
+  - url: /v1
+    description: API v1
+paths:
+  /liveness:
+    get:
+      operationId: getLiveness
+      summary: Health check endpoint
+      description: Returns OK if the service is healthy
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+  /hello:
+    get:
+      operationId: getHello
+      summary: Hello endpoint
+      description: Returns a greeting message with timestamp
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: number
+                    example: Hello from demo API
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: 2023-12-07T10:30:00Z
+                required:
+                  - message
+                  - timestamp
+components:
+  schemas:
+    HelloResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: The greeting message
+        timestamp:
+          type: string
+          format: date-time
+          description: The current timestamp
+      required:
+        - message
+        - timestamp`
+
+		w.Header().Set("Content-Type", "application/yaml")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, spec)
+	})
+
 	log.Printf("Demo API starting on port %s", port)
 
 	server := &http.Server{

@@ -97,16 +97,6 @@ func (k *KeyVerifier) withIPWhitelist() error {
 	return nil
 }
 
-func (k *KeyVerifier) WithApiID(apiID string) {
-	if k.Status != StatusValid {
-		return
-	}
-
-	if k.Key.ApiID != apiID {
-		k.setInvalid(StatusForbidden, fmt.Sprintf("The key does not belong to %s", apiID))
-	}
-}
-
 // withPermissions validates that the key has the required RBAC permissions.
 // It uses the configured RBAC system to evaluate the permission query against the key's permissions.
 func (k *KeyVerifier) withPermissions(ctx context.Context, query rbac.PermissionQuery) error {
@@ -223,7 +213,14 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 			Time:       time.Now(),
 		})
 		if err != nil {
-			return err
+			k.logger.Error("Failed to ratelimit",
+				"key_id", k.Key.ID,
+				"Identifier", config.Identifier,
+				"error", err.Error(),
+			)
+
+			// We will just allow the request to proceed, but log the error
+			return nil
 		}
 
 		config.Response = &response

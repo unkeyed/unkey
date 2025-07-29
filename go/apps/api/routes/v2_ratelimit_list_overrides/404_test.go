@@ -48,25 +48,25 @@ func TestOverrideNotFound(t *testing.T) {
 	t.Run("namespace id not found", func(t *testing.T) {
 		nonExistentNamespaceId := "ns_nonexistent"
 		req := handler.Request{
-			NamespaceId: &nonExistentNamespaceId,
+			Namespace: nonExistentNamespaceId,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/ratelimit_namespace_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/ratelimit_namespace_not_found", res.Body.Error.Type)
 	})
 
 	// Test with non-existent namespace name
 	t.Run("namespace name not found", func(t *testing.T) {
 		nonExistentNamespaceName := "nonexistent_namespace"
 		req := handler.Request{
-			NamespaceName: &nonExistentNamespaceName,
+			Namespace: nonExistentNamespaceName,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/ratelimit_namespace_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/ratelimit_namespace_not_found", res.Body.Error.Type)
 	})
 }

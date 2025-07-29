@@ -22,7 +22,7 @@ import (
 )
 
 type Request = openapi.V2KeysUpdateCreditsRequestBody
-type Response = openapi.V2KeysUpdateCreditsResponse
+type Response = openapi.V2KeysUpdateCreditsResponseBody
 
 // Handler implements zen.Route interface for the v2 keys.updateCredits endpoint
 type Handler struct {
@@ -47,7 +47,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.updateCredits")
 
 	// Authentication
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
@@ -91,17 +92,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Check if API is deleted
-	if key.Api.DeletedAtM.Valid {
-		return fault.New("key not found",
-			fault.Code(codes.Data.Key.NotFound.URN()),
-			fault.Internal("key belongs to deleted api"),
-			fault.Public("The specified key was not found."),
-		)
-	}
-
 	// Permission check
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   "*",

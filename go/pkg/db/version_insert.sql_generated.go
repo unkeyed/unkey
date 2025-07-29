@@ -22,11 +22,13 @@ INSERT INTO ` + "`" + `versions` + "`" + ` (
     git_commit_sha,
     git_branch,
     config_snapshot,
+    openapi_spec,
     status,
     created_at,
     updated_at
 )
 VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -52,6 +54,7 @@ type InsertVersionParams struct {
 	GitCommitSha   sql.NullString  `db:"git_commit_sha"`
 	GitBranch      sql.NullString  `db:"git_branch"`
 	ConfigSnapshot json.RawMessage `db:"config_snapshot"`
+	OpenapiSpec    sql.NullString  `db:"openapi_spec"`
 	Status         VersionsStatus  `db:"status"`
 	CreatedAt      int64           `db:"created_at"`
 	UpdatedAt      sql.NullInt64   `db:"updated_at"`
@@ -69,11 +72,13 @@ type InsertVersionParams struct {
 //	    git_commit_sha,
 //	    git_branch,
 //	    config_snapshot,
+//	    openapi_spec,
 //	    status,
 //	    created_at,
 //	    updated_at
 //	)
 //	VALUES (
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -98,6 +103,7 @@ func (q *Queries) InsertVersion(ctx context.Context, db DBTX, arg InsertVersionP
 		arg.GitCommitSha,
 		arg.GitBranch,
 		arg.ConfigSnapshot,
+		arg.OpenapiSpec,
 		arg.Status,
 		arg.CreatedAt,
 		arg.UpdatedAt,

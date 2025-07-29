@@ -1,0 +1,27 @@
+type: object
+properties:
+  id:
+    type: string
+    minLength: 8
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: |
+      The unique identifier of this API within Unkey's system.
+      Used in all operations related to this API including key creation, verification, and management.
+      Always begins with 'api_' followed by alphanumeric characters and underscores.
+      This identifier is permanent and never changes after API creation.
+    example: api_1234567890abcdef
+  name:
+    type: string
+    minLength: 3
+    maxLength: 255
+    description: |
+      The internal name of this API as specified during creation.
+      Used for organization and identification within your workspace.
+      Helps distinguish between different environments, services, or access tiers.
+      Not visible to end users - this is purely for administrative purposes.
+    example: payment-service-production
+required:
+  - id
+  - name
+additionalProperties: false

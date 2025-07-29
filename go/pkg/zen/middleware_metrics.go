@@ -44,6 +44,7 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
+
 			start := time.Now()
 			nextErr := next(ctx, s)
 			serviceLatency := time.Since(start)
@@ -65,6 +66,7 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 			// "method", "path", "status"
 			labelValues := []string{s.r.Method, s.r.URL.Path, strconv.Itoa(s.responseStatus)}
 
+			metrics.HTTPRequestBodySize.WithLabelValues(labelValues...).Observe(float64(len(s.requestBody)))
 			metrics.HTTPRequestTotal.WithLabelValues(labelValues...).Inc()
 			metrics.HTTPRequestLatency.WithLabelValues(labelValues...).Observe(serviceLatency.Seconds())
 

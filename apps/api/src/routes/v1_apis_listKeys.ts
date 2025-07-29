@@ -12,6 +12,7 @@ import { keySchema } from "./schema";
 const route = createRoute({
   tags: ["apis"],
   operationId: "listKeys",
+  summary: "List API keys",
   method: "get",
   path: "/v1/apis.listKeys",
   security: [{ bearerAuth: [] }],

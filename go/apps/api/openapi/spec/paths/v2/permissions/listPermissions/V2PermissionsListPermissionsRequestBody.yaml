@@ -1,0 +1,21 @@
+type: object
+properties:
+  cursor:
+    type: string
+    maxLength: 1024
+    description: |
+      Pagination cursor from a previous response to fetch the next page of permissions.
+      Include this value when you need to retrieve additional permissions beyond the initial response.
+      Each response containing more results than the requested limit includes a cursor for subsequent pages.
+
+      Leave empty or omit this field to start from the beginning of the permission list.
+      Cursors are temporary and may expire - always handle cases where a cursor becomes invalid.
+    example: "eyJrZXkiOiJwZXJtXzEyMzQifQ=="
+  limit:
+    type: integer
+    minimum: 1
+    maximum: 100
+    default: 100
+    description: Maximum number of permissions to return in a single response.
+    example: 50
+additionalProperties: false

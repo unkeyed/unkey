@@ -21,20 +21,19 @@ func TestOverrideNotFound(t *testing.T) {
 
 	// Create a namespace but no override
 	namespaceID := uid.New("test_ns")
-	namespaceName := uid.New("test")
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
 		WorkspaceID: h.Resources().UserWorkspace.ID,
-		Name:        namespaceName,
+		Name:        uid.New("test"),
 		CreatedAt:   time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
 
 	route := &handler.Handler{
-		DB:                            h.DB,
-		Keys:                          h.Keys,
-		Logger:                        h.Logger,
-		RatelimitNamespaceByNameCache: h.Caches.RatelimitNamespaceByName,
+		DB:                      h.DB,
+		Keys:                    h.Keys,
+		Logger:                  h.Logger,
+		RatelimitNamespaceCache: h.Caches.RatelimitNamespace,
 	}
 
 	h.Register(route)
@@ -48,43 +47,41 @@ func TestOverrideNotFound(t *testing.T) {
 	// Test with non-existent identifier
 	t.Run("override not found", func(t *testing.T) {
 		req := handler.Request{
-			NamespaceId: &namespaceID,
-			Identifier:  "non_existent_identifier",
+			Namespace:  namespaceID,
+			Identifier: "non_existent_identifier",
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/ratelimit_override_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/ratelimit_override_not_found", res.Body.Error.Type)
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 	})
 
 	// Test with non-existent namespace
 	t.Run("namespace not found", func(t *testing.T) {
-		nonExistentNamespaceId := "ns_nonexistent"
 		req := handler.Request{
-			NamespaceId: &nonExistentNamespaceId,
-			Identifier:  "some_identifier",
+			Namespace:  "ns_nonexistent",
+			Identifier: "some_identifier",
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/ratelimit_namespace_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/ratelimit_namespace_not_found", res.Body.Error.Type)
 	})
 
 	// Test with non-existent namespace name
 	t.Run("namespace name not found", func(t *testing.T) {
-		nonExistentNamespaceName := "nonexistent_namespace"
 		req := handler.Request{
-			NamespaceName: &nonExistentNamespaceName,
-			Identifier:    "some_identifier",
+			Namespace:  "nonexistent_namespace",
+			Identifier: "some_identifier",
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/ratelimit_namespace_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/ratelimit_namespace_not_found", res.Body.Error.Type)
 	})
 
 	// Test with non-existent identifier
@@ -102,8 +99,8 @@ func TestOverrideNotFound(t *testing.T) {
 
 		nonExistentIdentifier := "nonexistent_identifier"
 		req := handler.Request{
-			NamespaceId: &namespaceID,
-			Identifier:  nonExistentIdentifier,
+			Namespace:  namespaceID,
+			Identifier: nonExistentIdentifier,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, http.Header{
@@ -112,6 +109,6 @@ func TestOverrideNotFound(t *testing.T) {
 		}, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/ratelimit_override_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/ratelimit_override_not_found", res.Body.Error.Type)
 	})
 }

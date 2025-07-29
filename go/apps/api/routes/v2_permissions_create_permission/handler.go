@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"database/sql"
 	"net/http"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
@@ -44,7 +44,8 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
@@ -54,7 +55,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.T(rbac.Tuple{
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.T(rbac.Tuple{
 		ResourceType: rbac.Rbac,
 		ResourceID:   "*",
 		Action:       rbac.CreatePermission,
@@ -75,14 +76,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			WorkspaceID:  auth.AuthorizedWorkspaceID,
 			Name:         req.Name,
 			Slug:         req.Slug,
-			Description:  sql.NullString{Valid: description != "", String: description},
+			Description:  dbtype.NullString{Valid: description != "", String: description},
 			CreatedAtM:   time.Now().UnixMilli(),
 		})
 		if err != nil {
 			if db.IsDuplicateKeyError(err) {
-
 				return fault.New("permission already exists",
-					fault.Code(codes.UnkeyDataErrorsIdentityDuplicate), // Reuse the identity duplicate code for conflict status
+					fault.Code(codes.Data.Permission.Duplicate.URN()),
 					fault.Internal("already exists"), fault.Public("A permission with name \""+req.Name+"\" already exists in this workspace"),
 				)
 			}
@@ -96,7 +96,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       "permission.create",
+				Event:       auditlog.PermissionCreateEvent,
 				ActorType:   auditlog.RootKeyActor,
 				ActorID:     auth.Key.ID,
 				ActorName:   "root key",
@@ -106,9 +106,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
 					{
-						Type:        "permission",
+						Type:        auditlog.PermissionResourceType,
 						ID:          permissionID,
-						Name:        req.Name,
+						Name:        req.Slug,
 						DisplayName: req.Name,
 						Meta: map[string]interface{}{
 							"name":        req.Name,
@@ -134,7 +134,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.PermissionsCreatePermissionResponseData{
+		Data: openapi.V2PermissionsCreatePermissionResponseData{
 			PermissionId: permissionID,
 		},
 	})

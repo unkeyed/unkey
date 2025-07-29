@@ -36,7 +36,7 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Equal(t, "POST request body for '/v2/identities.deleteIdentity' failed to validate schema", res.Body.Error.Detail)
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
@@ -44,13 +44,13 @@ func TestBadRequests(t *testing.T) {
 		require.Greater(t, len(res.Body.Error.Errors), 0)
 	})
 
-	t.Run("empty external ID", func(t *testing.T) {
-		req := handler.Request{ExternalId: ""}
+	t.Run("empty identity", func(t *testing.T) {
+		req := handler.Request{Identity: ""}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Equal(t, "POST request body for '/v2/identities.deleteIdentity' failed to validate schema", res.Body.Error.Detail)
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
@@ -58,13 +58,13 @@ func TestBadRequests(t *testing.T) {
 		require.Greater(t, len(res.Body.Error.Errors), 0)
 	})
 
-	t.Run("external ID too short", func(t *testing.T) {
-		req := handler.Request{ExternalId: "id"}
+	t.Run("identity too short", func(t *testing.T) {
+		req := handler.Request{Identity: "id"}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Equal(t, "POST request body for '/v2/identities.deleteIdentity' failed to validate schema", res.Body.Error.Detail)
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
@@ -72,29 +72,29 @@ func TestBadRequests(t *testing.T) {
 		require.Greater(t, len(res.Body.Error.Errors), 0)
 	})
 
-	t.Run("external ID with special characters", func(t *testing.T) {
-		// Test with external ID containing only special characters (handler treats as not found)
-		req := handler.Request{ExternalId: "@#$%"}
+	t.Run("identity with special characters", func(t *testing.T) {
+		// Test with identity containing only special characters (handler treats as not found)
+		req := handler.Request{Identity: "@#$%"}
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, 404, res.Status, "expected 404, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/identity_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
 		require.Equal(t, "This identity does not exist.", res.Body.Error.Detail)
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 
-	t.Run("external ID too long", func(t *testing.T) {
-		// Test with extremely long external ID (handler treats as not found)
+	t.Run("identity too long", func(t *testing.T) {
+		// Test with extremely long identity (handler treats as not found)
 		longExternalID := "test_" + string(make([]byte, 1000))
-		req := handler.Request{ExternalId: longExternalID}
+		req := handler.Request{Identity: longExternalID}
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, 404, res.Status, "expected 404, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/identity_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
 		require.Equal(t, "This identity does not exist.", res.Body.Error.Detail)
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
