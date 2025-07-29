@@ -8,6 +8,8 @@ import {
 } from "@/components/ui/sheet";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
+import type { UnkeyPermission } from "@unkey/rbac";
+import { Button } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
 import { PermissionContentList } from "./permission-list";
 import { SearchPermissions } from "./search-permissions";
@@ -18,15 +20,27 @@ type PermissionSheetProps = {
     id: string;
     name: string;
   }[];
-  onChange?: (permissions: string[]) => void;
+  selectedPermissions: UnkeyPermission[];
+  onChange?: (permissions: UnkeyPermission[]) => void;
+  loadMore?: () => void;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
 };
-export const PermissionSheet = ({ children, apis, onChange }: PermissionSheetProps) => {
+export const PermissionSheet = ({
+  children,
+  apis,
+  selectedPermissions,
+  onChange,
+  loadMore,
+  hasNextPage,
+  isFetchingNextPage,
+}: PermissionSheetProps) => {
   const [open, setOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [search, setSearch] = useState<string | undefined>(undefined);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [workspacePermissions, setWorkspacePermissions] = useState<string[]>([]);
-  const [apiPermissions, setApiPermissions] = useState<Record<string, string[]>>({});
+  const [workspacePermissions, setWorkspacePermissions] = useState<UnkeyPermission[]>([]);
+  const [apiPermissions, setApiPermissions] = useState<Record<string, UnkeyPermission[]>>({});
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setIsProcessing(true);
@@ -37,6 +51,14 @@ export const PermissionSheet = ({ children, apis, onChange }: PermissionSheetPro
 
   const handleOpenChange = (open: boolean) => {
     setOpen(open);
+  };
+
+  const handleApiPermissionChange = (apiId: string, permissions: UnkeyPermission[]) => {
+    setApiPermissions((prev) => ({ ...prev, [apiId]: permissions }));
+  };
+
+  const handleWorkspacePermissionChange = (permissions: UnkeyPermission[]) => {
+    setWorkspacePermissions(permissions);
   };
 
   // Aggregate all permissions and call onChange
@@ -64,31 +86,54 @@ export const PermissionSheet = ({ children, apis, onChange }: PermissionSheetPro
           />
         </SheetHeader>
         <SheetDescription className="w-full h-full pt-2">
-          <ScrollArea className="flex flex-col h-full">
-            <div className="flex flex-col h-full pt-0 mt-0 gap-1">
-              {/* Workspace Permissions */}
-              {/* TODO: Tie In Search */}
-              <PermissionContentList
-                key="workspace"
-                type="workspace"
-                onPermissionChange={(permissions) =>
-                  setWorkspacePermissions(permissions.map(String))
-                }
-              />
-              {/* From APIs */}
-              <p className="text-sm text-gray-10 ml-6 py-auto mt-1.5">From APIs</p>
-              {apis.map((api) => (
-                <PermissionContentList
-                  key={api.id}
-                  type="api"
-                  api={api}
-                  onPermissionChange={(permissions) =>
-                    setApiPermissions((prev) => ({ ...prev, [api.id]: permissions.map(String) }))
-                  }
-                />
-              ))}
+          <div className="flex flex-col h-full">
+            <div
+              className={`flex flex-col overflow-y-hidden ${hasNextPage ? "max-h-[calc(100%-110px)]" : "h-[calc(100%-40px)]"}`}
+            >
+              <ScrollArea className="flex flex-col h-full">
+                <div className="flex flex-col pt-0 mt-0 gap-1 pb-4">
+                  {/* Workspace Permissions */}
+                  {/* TODO: Tie In Search */}
+                  <PermissionContentList
+                    selected={selectedPermissions}
+                    key="workspace"
+                    type="workspace"
+                    onPermissionChange={(permissions) =>
+                      handleWorkspacePermissionChange(permissions)
+                    }
+                  />
+                  {/* From APIs */}
+                  <p className="text-sm text-gray-10 ml-6 py-auto mt-1.5">From APIs</p>
+                  {apis.map((api) => (
+                    <PermissionContentList
+                      selected={selectedPermissions}
+                      key={api.id}
+                      type="api"
+                      api={api}
+                      onPermissionChange={(permissions) =>
+                        handleApiPermissionChange(api.id, permissions)
+                      }
+                    />
+                  ))}
+                </div>
+              </ScrollArea>
             </div>
-          </ScrollArea>
+            {hasNextPage ? (
+              <div className="absolute bottom-0 right-0 w-full h-fit py-4">
+                <div className="flex flex-row justify-end items-center">
+                  <Button
+                    className="mx-auto w-18 rounded-lg"
+                    size="sm"
+                    onClick={loadMore}
+                    disabled={!hasNextPage}
+                    loading={isFetchingNextPage}
+                  >
+                    Load More
+                  </Button>
+                </div>
+              </div>
+            ) : undefined}
+          </div>
         </SheetDescription>
       </SheetContent>
     </Sheet>

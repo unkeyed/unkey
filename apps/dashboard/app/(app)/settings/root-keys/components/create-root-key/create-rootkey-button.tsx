@@ -1,16 +1,17 @@
 "use client";
-import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { trpc } from "@/lib/trpc/client";
+import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "@unkey/icons";
-import { unkeyPermissionValidation } from "@unkey/rbac";
+import { type UnkeyPermission, unkeyPermissionValidation } from "@unkey/rbac";
 import { Button, FormInput, toast } from "@unkey/ui";
 import dynamic from "next/dynamic";
-import type React from "react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { PermissionBadgeList } from "./components/permission-badge-list";
 import { PermissionSheet } from "./components/permission-sheet";
 
 const DynamicDialogContainer = dynamic(
@@ -29,20 +30,16 @@ const formSchema = z.object({
 });
 
 type Props = {
-  defaultOpen?: boolean;
-};
+  className?: string;
+} & React.ComponentProps<typeof Button>;
 
-export const CreateRootKeyButton = ({
-  defaultOpen,
-  ...rest
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & Props) => {
+export const CreateRootKeyButton = ({ ...props }: Props) => {
   const trpcUtils = trpc.useUtils();
-  const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
-
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedPermissions, setSelectedPermissions] = useState<UnkeyPermission[]>([]);
   const {
     data: apisData,
     isLoading,
-    error,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -69,14 +66,11 @@ export const CreateRootKeyButton = ({
     register,
     handleSubmit,
     setValue,
-    watch,
     formState: { errors, isValid, isSubmitting },
   } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "onChange",
   });
-
-  // const selectedPermissions = watch("permissions");
 
   const key = trpc.rootKey.create.useMutation({
     onSuccess() {
@@ -87,37 +81,49 @@ export const CreateRootKeyButton = ({
       toast.error(err.message);
     },
   });
+  function fetchMoreApis() {
+    if (hasNextPage) {
+      fetchNextPage();
+    }
+  }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     await key.mutateAsync({
       name: values.name,
       permissions: values.permissions,
     });
+
     setIsOpen(false);
   }
 
-  const handlePermissionChange = (permissions: string[]) => {
-    const parsedPermissions = permissions.map((permission) =>
-      unkeyPermissionValidation.parse(permission),
-    );
-    setValue("permissions", parsedPermissions);
-  };
-
+  const handlePermissionChange = useCallback(
+    (permissions: string[]) => {
+      const parsedPermissions = permissions.map((permission) =>
+        unkeyPermissionValidation.parse(permission),
+      );
+      setSelectedPermissions(parsedPermissions);
+      setValue("permissions", parsedPermissions);
+    },
+    [setValue],
+  );
   return (
     <>
-      <NavbarActionButton
+      <Button
+        {...props}
         title="New root key"
-        {...rest}
-        color="default"
         onClick={() => setIsOpen(true)}
+        variant="primary"
+        size="md"
+        className={cn("rounded-lg", props.className)}
       >
         <Plus />
         New root key
-      </NavbarActionButton>
+      </Button>
       <DynamicDialogContainer
         isOpen={isOpen}
         onOpenChange={setIsOpen}
         title="Create new root key"
+        contentClassName="p-0 mb-0 gap-0"
         className="max-w-[460px]"
         subTitle="Define a new root key and assign permissions"
         footer={
@@ -127,9 +133,8 @@ export const CreateRootKeyButton = ({
               form="create-rootkey-form"
               variant="primary"
               size="xlg"
-              disabled={true}
-              // disabled={create.isLoading || isSubmitting || !isValid}
-              // loading={create.isLoading || isSubmitting}
+              disabled={isLoading || isSubmitting || !isValid}
+              loading={isLoading || isSubmitting}
               className="w-full rounded-lg"
             >
               Create root key
@@ -139,8 +144,8 @@ export const CreateRootKeyButton = ({
         }
       >
         <form id="create-rootkey-form" onSubmit={handleSubmit(onSubmit)}>
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
+          <div className="flex flex-col p-6 gap-4">
+            <div className="flex flex-col">
               <FormInput
                 label="Name"
                 description="Give your key a name, this is not customer facing."
@@ -151,7 +156,14 @@ export const CreateRootKeyButton = ({
             </div>
             <div className="flex flex-col gap-2">
               <Label className="text-[13px] font-regular text-gray-10">Permissions</Label>
-              <PermissionSheet apis={allApis} onChange={handlePermissionChange}>
+              <PermissionSheet
+                selectedPermissions={selectedPermissions}
+                apis={allApis}
+                onChange={handlePermissionChange}
+                loadMore={fetchMoreApis}
+                hasNextPage={hasNextPage}
+                isFetchingNextPage={isFetchingNextPage}
+              >
                 <Button type="button" variant="outline" size="md" className="w-fit rounded-lg pl-3">
                   Select Permissions...
                 </Button>
@@ -159,6 +171,33 @@ export const CreateRootKeyButton = ({
             </div>
           </div>
         </form>
+        <ScrollArea className="w-full overflow-y-auto pt-0 mb-4">
+          <div className="flex flex-col px-6 py-0 gap-3">
+            <PermissionBadgeList
+              selectedPermissions={selectedPermissions}
+              apiId={"workspace"}
+              title="Selected from"
+              name="Workspace"
+              expandCount={3}
+              removePermission={(permission) =>
+                handlePermissionChange(selectedPermissions.filter((p) => p !== permission))
+              }
+            />
+            {allApis.map((api) => (
+              <PermissionBadgeList
+                key={api.id}
+                selectedPermissions={selectedPermissions}
+                apiId={api.id}
+                title="from"
+                name={api.name}
+                expandCount={3}
+                removePermission={(permission) =>
+                  handlePermissionChange(selectedPermissions.filter((p) => p !== permission))
+                }
+              />
+            ))}
+          </div>
+        </ScrollArea>
       </DynamicDialogContainer>
     </>
   );
