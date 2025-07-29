@@ -2874,11 +2874,6 @@ components:
             type: object
             additionalProperties: false
             properties:
-                namespaceId:
-                    description: The unique identifier of the rate limit namespace this override belongs to. This links the override to a specific namespace context, ensuring the override only applies within that namespace.
-                    type: string
-                    minLength: 1
-                    maxLength: 255
                 overrideId:
                     description: The unique identifier of this specific rate limit override. This ID is generated when the override is created and can be used for management operations like updating or deleting the override.
                     type: string
@@ -2919,7 +2914,6 @@ components:
                     type: integer
                     minimum: 0
             required:
-                - namespaceId
                 - overrideId
                 - duration
                 - identifier

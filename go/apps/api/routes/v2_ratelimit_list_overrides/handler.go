@@ -120,11 +120,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	for i, override := range overrides {
 		responseBody.Data[i] = openapi.RatelimitOverride{
-			OverrideId:  override.ID,
-			Duration:    int64(override.Duration),
-			Identifier:  override.Identifier,
-			NamespaceId: override.NamespaceID,
-			Limit:       int64(override.Limit),
+			OverrideId: override.ID,
+			Duration:   int64(override.Duration),
+			Identifier: override.Identifier,
+			Limit:      int64(override.Limit),
 		}
 	}
 
