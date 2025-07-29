@@ -2,11 +2,13 @@ import { t } from "../../trpc";
 import { getById } from "./getById";
 import { getOpenApiDiff } from "./getOpenApiDiff";
 import { listDeployments } from "./list";
-import { listByBranch } from "./listByBranch";
+import { listByEnvironment } from "./listByEnvironment";
+import { listByProject } from "./listByProject";
 
 export const deploymentRouter = t.router({
   list: listDeployments,
-  listByBranch: listByBranch,
+  listByEnvironment: listByEnvironment,
+  listByProject: listByProject,
   getById: getById,
   getOpenApiDiff: getOpenApiDiff,
 });

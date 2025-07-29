@@ -3,7 +3,7 @@ SELECT
     id,
     workspace_id,
     project_id,
-    version_id,
+    deployment_id,
     rootfs_image_id,
     git_commit_sha,
     git_branch,

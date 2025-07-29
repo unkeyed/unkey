@@ -13,8 +13,8 @@ export const getById = t.procedure
   )
   .query(async ({ input, ctx }) => {
     try {
-      // Get deployment with branch information
-      const deployment = await db.query.versions.findFirst({
+      // Get deployment information
+      const deployment = await db.query.deployments.findFirst({
         where: (table, { eq, and }) =>
           and(eq(table.id, input.deploymentId), eq(table.workspaceId, ctx.workspace.id)),
       });
@@ -26,29 +26,14 @@ export const getById = t.procedure
         });
       }
 
-      // Get the branch for this deployment
-      let branch = null;
-      const branchId = deployment.branchId;
-      if (branchId) {
-        branch = await db.query.branches.findFirst({
-          where: (table, { eq }) => eq(table.id, branchId),
-        });
-      }
-
       return {
         id: deployment.id,
         status: deployment.status,
         gitCommitSha: deployment.gitCommitSha,
         gitBranch: deployment.gitBranch,
-        branchId: deployment.branchId,
+        environment: deployment.environment,
         createdAt: deployment.createdAt,
         updatedAt: deployment.updatedAt,
-        branch: branch
-          ? {
-              id: branch.id,
-              name: branch.name,
-            }
-          : null,
       };
     } catch (error) {
       if (error instanceof TRPCError) {

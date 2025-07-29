@@ -17,7 +17,7 @@ export const getOpenApiDiff = t.procedure
     try {
       // verify both deployments exist and belong to this workspace
       const [oldDeployment, newDeployment] = await Promise.all([
-        db.query.versions.findFirst({
+        db.query.deployments.findFirst({
           where: (table, { eq, and }) =>
             and(eq(table.id, input.oldDeploymentId), eq(table.workspaceId, ctx.workspace.id)),
           columns: {
@@ -25,6 +25,7 @@ export const getOpenApiDiff = t.procedure
             openapiSpec: true,
             gitCommitSha: true,
             gitBranch: true,
+            environment: true,
             // TODO: add this column
             //gitCommitMessage: true,
           },
@@ -36,15 +37,9 @@ export const getOpenApiDiff = t.procedure
                 slug: true,
               },
             },
-            branch: {
-              columns: {
-                id: true,
-                name: true,
-              },
-            },
           },
         }),
-        db.query.versions.findFirst({
+        db.query.deployments.findFirst({
           where: (table, { eq, and }) =>
             and(eq(table.id, input.newDeploymentId), eq(table.workspaceId, ctx.workspace.id)),
           columns: {
@@ -52,6 +47,7 @@ export const getOpenApiDiff = t.procedure
             openapiSpec: true,
             gitCommitSha: true,
             gitBranch: true,
+            environment: true,
             //gitCommitMessage: true,
           },
           with: {
@@ -60,12 +56,6 @@ export const getOpenApiDiff = t.procedure
                 id: true,
                 name: true,
                 slug: true,
-              },
-            },
-            branch: {
-              columns: {
-                id: true,
-                name: true,
               },
             },
           },
@@ -177,18 +167,18 @@ export const getOpenApiDiff = t.procedure
             gitCommitSha: oldDeployment.gitCommitSha,
             gitBranch: oldDeployment.gitBranch,
             //gitCommitMessage: oldDeployment.gitCommitMessage,
+            environment: oldDeployment.environment,
             project: oldDeployment.project,
-            branch: oldDeployment.branch,
           },
           newDeployment: {
             id: newDeployment.id,
             gitCommitSha: newDeployment.gitCommitSha,
             gitBranch: newDeployment.gitBranch,
             //gitCommitMessage: newDeployment.gitCommitMessage,
+            environment: newDeployment.environment,
             project: newDeployment.project,
-            branch: newDeployment.branch,
           },
-          isSameBranch: oldDeployment.gitBranch === newDeployment.gitBranch,
+          isSameEnvironment: oldDeployment.environment === newDeployment.environment,
           isSameProject: oldDeployment.project?.id === newDeployment.project?.id,
         },
       };

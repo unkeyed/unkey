@@ -7,13 +7,12 @@ export const listDeployments = t.procedure
   .use(requireWorkspace)
   .query(async ({ ctx }) => {
     try {
-      // Get all deployments for this workspace with project and branch info
-      const deployments = await db.query.versions.findMany({
+      // Get all deployments for this workspace with project info
+      const deployments = await db.query.deployments.findMany({
         where: (table, { eq }) => eq(table.workspaceId, ctx.workspace.id),
         orderBy: (table, { desc }) => [desc(table.createdAt)],
         with: {
           project: true,
-          branch: true,
         },
       });
 
@@ -23,6 +22,7 @@ export const listDeployments = t.procedure
           status: deployment.status,
           gitCommitSha: deployment.gitCommitSha,
           gitBranch: deployment.gitBranch,
+          environment: deployment.environment,
           rootfsImageId: deployment.rootfsImageId,
           buildId: deployment.buildId,
           createdAt: deployment.createdAt,
@@ -32,12 +32,6 @@ export const listDeployments = t.procedure
                 id: deployment.project.id,
                 name: deployment.project.name,
                 slug: deployment.project.slug,
-              }
-            : null,
-          branch: deployment.branch
-            ? {
-                id: deployment.branch.id,
-                name: deployment.branch.name,
               }
             : null,
         })),

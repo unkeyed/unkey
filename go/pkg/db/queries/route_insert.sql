@@ -4,7 +4,7 @@ INSERT INTO hostname_routes (
     workspace_id,
     project_id,
     hostname,
-    version_id,
+    deployment_id,
     is_enabled,
     created_at,
     updated_at

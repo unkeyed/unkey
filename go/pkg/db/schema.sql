@@ -323,16 +323,6 @@ CREATE TABLE `projects` (
 	CONSTRAINT `workspace_slug_idx` UNIQUE(`workspace_id`,`slug`)
 );
 
-CREATE TABLE `branches` (
-	`id` varchar(256) NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
-	`project_id` varchar(256) NOT NULL,
-	`name` varchar(256) NOT NULL,
-	`created_at` bigint NOT NULL,
-	`updated_at` bigint,
-	CONSTRAINT `branches_id` PRIMARY KEY(`id`),
-	CONSTRAINT `project_name_idx` UNIQUE(`project_id`,`name`)
-);
 
 CREATE TABLE `rootfs_images` (
 	`id` varchar(256) NOT NULL,
@@ -350,7 +340,7 @@ CREATE TABLE `builds` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
-	`version_id` varchar(256) NOT NULL,
+	`deployment_id` varchar(256) NOT NULL,
 	`rootfs_image_id` varchar(256),
 	`git_commit_sha` varchar(40),
 	`git_branch` varchar(256),
@@ -364,21 +354,21 @@ CREATE TABLE `builds` (
 	CONSTRAINT `builds_id` PRIMARY KEY(`id`)
 );
 
-CREATE TABLE `version_steps` (
-	`version_id` varchar(256) NOT NULL,
+CREATE TABLE `deployment_steps` (
+	`deployment_id` varchar(256) NOT NULL,
 	`status` enum('pending','downloading_docker_image','building_rootfs','uploading_rootfs','creating_vm','booting_vm','assigning_domains','completed','failed') NOT NULL,
 	`message` text,
 	`error_message` text,
 	`created_at` bigint NOT NULL,
-	CONSTRAINT `version_steps_pk` PRIMARY KEY(`version_id`, `status`),
-	INDEX `idx_version_id_created_at` (`version_id`, `created_at`)
+	CONSTRAINT `deployment_steps_pk` PRIMARY KEY(`deployment_id`, `status`),
+	INDEX `idx_deployment_id_created_at` (`deployment_id`, `created_at`)
 );
 
-CREATE TABLE `versions` (
+CREATE TABLE `deployments` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
-	`branch_id` varchar(256),
+	`environment` enum('production','preview') NOT NULL DEFAULT 'preview',
 	`build_id` varchar(256),
 	`rootfs_image_id` varchar(256) NOT NULL,
 	`git_commit_sha` varchar(40),
@@ -388,7 +378,7 @@ CREATE TABLE `versions` (
 	`status` enum('pending','building','deploying','active','failed','archived') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `versions_id` PRIMARY KEY(`id`)
+	CONSTRAINT `deployments_id` PRIMARY KEY(`id`)
 );
 
 CREATE TABLE `hostname_routes` (
@@ -396,7 +386,7 @@ CREATE TABLE `hostname_routes` (
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
 	`hostname` varchar(256) NOT NULL,
-	`version_id` varchar(256) NOT NULL,
+	`deployment_id` varchar(256) NOT NULL,
 	`is_enabled` boolean NOT NULL DEFAULT true,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
@@ -446,22 +436,19 @@ CREATE INDEX `id_idx` ON `audit_log_target` (`id`);
 CREATE INDEX `status_idx` ON `partitions` (`status`);
 CREATE INDEX `workspace_idx` ON `projects` (`workspace_id`);
 CREATE INDEX `partition_idx` ON `projects` (`partition_id`);
-CREATE INDEX `workspace_idx` ON `branches` (`workspace_id`);
-CREATE INDEX `project_idx` ON `branches` (`project_id`);
 CREATE INDEX `workspace_idx` ON `rootfs_images` (`workspace_id`);
 CREATE INDEX `project_idx` ON `rootfs_images` (`project_id`);
 CREATE INDEX `workspace_idx` ON `builds` (`workspace_id`);
 CREATE INDEX `project_idx` ON `builds` (`project_id`);
 CREATE INDEX `status_idx` ON `builds` (`status`);
 CREATE INDEX `rootfs_image_idx` ON `builds` (`rootfs_image_id`);
-CREATE INDEX `workspace_idx` ON `versions` (`workspace_id`);
-CREATE INDEX `project_idx` ON `versions` (`project_id`);
-CREATE INDEX `branch_idx` ON `versions` (`branch_id`);
-CREATE INDEX `status_idx` ON `versions` (`status`);
-CREATE INDEX `rootfs_image_idx` ON `versions` (`rootfs_image_id`);
+CREATE INDEX `workspace_idx` ON `deployments` (`workspace_id`);
+CREATE INDEX `project_idx` ON `deployments` (`project_id`);
+CREATE INDEX `status_idx` ON `deployments` (`status`);
+CREATE INDEX `rootfs_image_idx` ON `deployments` (`rootfs_image_id`);
 CREATE INDEX `workspace_idx` ON `hostname_routes` (`workspace_id`);
 CREATE INDEX `project_idx` ON `hostname_routes` (`project_id`);
-CREATE INDEX `version_idx` ON `hostname_routes` (`version_id`);
+CREATE INDEX `deployment_idx` ON `hostname_routes` (`deployment_id`);
 CREATE INDEX `workspace_idx` ON `domains` (`workspace_id`);
 CREATE INDEX `project_idx` ON `domains` (`project_id`);
 CREATE INDEX `verification_status_idx` ON `domains` (`verification_status`);

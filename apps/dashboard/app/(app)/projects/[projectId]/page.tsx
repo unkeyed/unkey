@@ -10,9 +10,7 @@ import {
   ExternalLink,
   Eye,
   FolderOpen,
-  GitBranch,
   GitCommit,
-  Github,
   Globe,
   MoreVertical,
   Play,
@@ -27,38 +25,18 @@ import { useState } from "react";
 
 // Type definitions - removed unused Project interface
 
-interface Branch {
-  id: string;
-  name: string;
-  createdAt: number;
-  updatedAt: number | null;
-}
-
-interface Deployment {
-  id: string;
-  gitCommitSha: string | null;
-  gitBranch: string | null;
-  status: "pending" | "deploying" | "active" | "failed" | "archived";
-  createdAt: number;
-  updatedAt: number | null;
-  environment: {
-    id: string;
-    name: string;
-  };
-}
-
 export default function ProjectDetailPage(): JSX.Element {
   const params = useParams();
   const projectId = params?.projectId as string;
-  const [activeTab, setActiveTab] = useState<"overview" | "branches" | "deployments" | "settings">(
-    "overview",
-  );
+  const [activeTab, setActiveTab] = useState<"overview" | "deployments" | "settings">("overview");
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  // Use your existing tRPC query structure
-  const { data, isLoading, error } = trpc.project.branches.useQuery(
+  // Get project deployments
+  const { data, isLoading, error } = trpc.deployment.listByProject.useQuery(
     { projectId },
-    { enabled: !!projectId },
+    {
+      enabled: !!projectId,
+    },
   );
 
   // Handle invalid project ID
@@ -117,7 +95,7 @@ export default function ProjectDetailPage(): JSX.Element {
   }
 
   // Handle no data
-  if (!data?.project) {
+  if (!data) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -135,18 +113,12 @@ export default function ProjectDetailPage(): JSX.Element {
     );
   }
 
-  const project = data.project;
-  const branches = data.branches || [];
-
-  // Mock deployments data - replace with actual tRPC call when available
-  const deployments: Deployment[] = [];
-
-  const filteredBranches = branches.filter((branch: Branch) =>
-    branch.name.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  // Get project and deployments from the query
+  const project = data?.project || null;
+  const deployments = data?.deployments || [];
 
   const filteredDeployments = deployments.filter(
-    (deployment: Deployment) =>
+    (deployment) =>
       deployment.gitBranch?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       deployment.gitCommitSha?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
@@ -189,19 +161,21 @@ export default function ProjectDetailPage(): JSX.Element {
                 <FolderOpen className="w-8 h-8 text-brand" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-content">{project.name}</h1>
+                <h1 className="text-3xl font-bold text-content">
+                  {project?.name || "Unknown Project"}
+                </h1>
                 <div className="flex items-center gap-4 mt-1">
                   <span className="text-sm text-content-subtle font-mono bg-background-subtle px-2 py-1 rounded">
-                    {project.slug}
+                    {project?.slug || "unknown-slug"}
                   </span>
-                  {project.gitRepositoryUrl && (
+                  {project?.gitRepositoryUrl && (
                     <a
                       href={project.gitRepositoryUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1 text-sm text-content-subtle hover:text-content transition-colors"
                     >
-                      <Github className="w-4 h-4" />
+                      <ExternalLink className="w-4 h-4" />
                       Repository
                       <ExternalLink className="w-3 h-3" />
                     </a>
@@ -228,7 +202,6 @@ export default function ProjectDetailPage(): JSX.Element {
           <nav className="flex space-x-8">
             {[
               { key: "overview", label: "Overview", icon: Activity },
-              { key: "branches", label: "Branches", icon: GitBranch },
               { key: "deployments", label: "Deployments", icon: Tag },
               { key: "settings", label: "Settings", icon: Settings },
             ].map(({ key, label, icon: Icon }) => (
@@ -257,10 +230,12 @@ export default function ProjectDetailPage(): JSX.Element {
               <div className="bg-white p-6 rounded-lg border border-border">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-content-subtle">Total Branches</p>
-                    <p className="text-2xl font-bold text-content">{branches.length}</p>
+                    <p className="text-sm font-medium text-content-subtle">Production</p>
+                    <p className="text-2xl font-bold text-content">
+                      {deployments.filter((d) => d.environment === "production").length}
+                    </p>
                   </div>
-                  <GitBranch className="w-8 h-8 text-brand" />
+                  <Globe className="w-8 h-8 text-brand" />
                 </div>
               </div>
 
@@ -291,7 +266,9 @@ export default function ProjectDetailPage(): JSX.Element {
                   <div>
                     <p className="text-sm font-medium text-content-subtle">Last Updated</p>
                     <p className="text-sm font-bold text-content">
-                      {new Date(project.updatedAt || project.createdAt).toLocaleDateString()}
+                      {project?.updatedAt || project?.createdAt
+                        ? new Date(project.updatedAt || project.createdAt).toLocaleDateString()
+                        : "Unknown"}
                     </p>
                   </div>
                   <Clock className="w-8 h-8 text-warn" />
@@ -301,28 +278,31 @@ export default function ProjectDetailPage(): JSX.Element {
 
             {/* Recent Activity */}
             <div className="lg:col-span-2 bg-white rounded-lg border border-border p-6">
-              <h3 className="text-lg font-semibold text-content mb-4">Recent Branches</h3>
-              {branches.length > 0 ? (
+              <h3 className="text-lg font-semibold text-content mb-4">Recent Deployments</h3>
+              {deployments.length > 0 ? (
                 <div className="space-y-4">
-                  {branches.slice(0, 5).map((branch: Branch) => (
+                  {deployments.slice(0, 5).map((deployment) => (
                     <a
-                      key={branch.id}
-                      href={`/projects/${projectId}/branches/${encodeURIComponent(branch.name)}`}
+                      key={deployment.id}
+                      href={`/projects/${projectId}/deployments/${deployment.id}`}
                       className="block"
                     >
                       <div className="flex items-center justify-between p-3 bg-background-subtle rounded-lg hover:bg-border transition-colors">
                         <div className="flex items-center gap-3">
-                          <GitBranch className="w-4 h-4 text-content-subtle" />
+                          <Tag className="w-4 h-4 text-content-subtle" />
                           <div>
-                            <p className="font-medium text-content">{branch.name}</p>
+                            <p className="font-medium text-content">{deployment.environment}</p>
                             <p className="text-sm text-content-subtle">
-                              Created {new Date(branch.createdAt).toLocaleDateString()}
+                              {deployment.gitCommitSha?.substring(0, 8)} •{" "}
+                              {new Date(deployment.createdAt).toLocaleDateString()}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-content-subtle">
-                            {new Date(branch.updatedAt || branch.createdAt).toLocaleDateString()}
+                          <span
+                            className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(deployment.status)}`}
+                          >
+                            {deployment.status}
                           </span>
                           <ChevronRight className="w-4 h-4 text-content-subtle" />
                         </div>
@@ -331,7 +311,7 @@ export default function ProjectDetailPage(): JSX.Element {
                   ))}
                 </div>
               ) : (
-                <p className="text-content-subtle">No branches found.</p>
+                <p className="text-content-subtle">No deployments found.</p>
               )}
             </div>
 
@@ -355,6 +335,12 @@ export default function ProjectDetailPage(): JSX.Element {
                     View Logs
                   </Button>
                 </a>
+                <a href={`/projects/${projectId}/diff`} className="block">
+                  <Button variant="outline" size="md" className="w-full justify-start">
+                    <GitCommit className="w-4 h-4 mr-2" />
+                    Compare Deployments
+                  </Button>
+                </a>
                 <a href={`/projects/${projectId}/settings`} className="block">
                   <Button variant="outline" size="md" className="w-full justify-start">
                     <Settings className="w-4 h-4 mr-2" />
@@ -366,7 +352,7 @@ export default function ProjectDetailPage(): JSX.Element {
           </div>
         )}
 
-        {(activeTab === "branches" || activeTab === "deployments") && (
+        {activeTab === "deployments" && (
           <div>
             {/* Search */}
             <div className="mb-6 flex flex-col sm:flex-row gap-4">
@@ -385,59 +371,7 @@ export default function ProjectDetailPage(): JSX.Element {
             </div>
 
             {/* Content */}
-            {activeTab === "branches" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredBranches.map((branch: Branch) => (
-                  <div
-                    key={branch.id}
-                    className="bg-white rounded-lg border border-border p-6 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <GitBranch className="w-4 h-4 text-content-subtle" />
-                        <h3 className="font-semibold text-content">{branch.name}</h3>
-                      </div>
-                      <Button variant="ghost" size="sm">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                    </div>
-
-                    <div className="space-y-2 mb-4">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-content-subtle">Created</span>
-                        <span className="font-medium text-content">
-                          {new Date(branch.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-content-subtle">Last Updated</span>
-                        <span className="font-medium text-content">
-                          {new Date(branch.updatedAt || branch.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <a
-                        href={`/projects/${projectId}/branches/${encodeURIComponent(branch.name)}`}
-                        className="flex-1"
-                      >
-                        <Button variant="outline" size="sm" className="w-full">
-                          <Eye className="w-3 h-3 mr-1" />
-                          View
-                        </Button>
-                      </a>
-                      <Button variant="primary" size="sm" className="flex-1">
-                        <Play className="w-3 h-3 mr-1" />
-                        Deploy
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {activeTab === "deployments" && (
+            <div>
               <div className="bg-white rounded-lg border border-border overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-border">
@@ -478,8 +412,8 @@ export default function ProjectDetailPage(): JSX.Element {
                             <span className="text-sm text-content">{deployment.gitBranch}</span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm text-content">
-                              {deployment.environment.name}
+                            <span className="text-sm text-content capitalize">
+                              {deployment.environment}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -513,7 +447,7 @@ export default function ProjectDetailPage(): JSX.Element {
                   </table>
                 </div>
               </div>
-            )}
+            </div>
           </div>
         )}
 

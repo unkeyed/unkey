@@ -4,8 +4,8 @@ import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
+import { deployments } from "./deployments";
 import { partitions } from "./partitions";
-import { versions } from "./versions";
 export const projects = mysqlTable(
   "projects",
   {
@@ -39,7 +39,6 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
     fields: [projects.partitionId],
     references: [partitions.id],
   }),
-  // branches: many(branches),
-  versions: many(versions),
+  deployments: many(deployments),
   // environments: many(projectEnvironments),
 }));

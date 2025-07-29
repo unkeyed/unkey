@@ -11,7 +11,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
-	"github.com/unkeyed/unkey/go/apps/ctrl/services/version"
+	"github.com/unkeyed/unkey/go/apps/ctrl/services/deployment"
 	deployTLS "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1/vmprovisionerv1connect"
@@ -149,7 +149,7 @@ func Run(ctx context.Context, cfg Config) error {
 	logger.Info("metald client configured", "address", cfg.MetaldAddress, "auth_mode", authMode)
 
 	// Register deployment workflow with Hydra worker
-	deployWorkflow := version.NewDeployWorkflow(database, logger, metaldClient)
+	deployWorkflow := deployment.NewDeployWorkflow(database, logger, metaldClient)
 	err = hydra.RegisterWorkflow(hydraWorker, deployWorkflow)
 	if err != nil {
 		return fmt.Errorf("unable to register deployment workflow: %w", err)
@@ -160,7 +160,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create the service handlers with interceptors
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database)))
-	mux.Handle(ctrlv1connect.NewVersionServiceHandler(version.New(database, hydraEngine, logger)))
+	mux.Handle(ctrlv1connect.NewVersionServiceHandler(deployment.New(database, hydraEngine, logger)))
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger)))
 
 	// Configure server

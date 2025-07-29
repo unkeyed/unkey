@@ -1,4 +1,4 @@
-// import { OptIn } from "@/components/opt-in";
+import { OptIn } from "@/components/opt-in";
 import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
@@ -19,8 +19,8 @@ export default async function ProjectsPage(): Promise<JSX.Element> {
     // right now, we want to block all external access to deploy
     // to make it easier to opt-in for local development, comment out the redirect
     // and uncomment the <OptIn> component
-    return redirect("/apis");
-    // return <OptIn title="Projects" description="Projects are in beta" feature="deployments" />;
+    //return redirect("/apis");
+    return <OptIn title="Projects" description="Projects are in beta" feature="deployments" />;
   }
 
   return (
