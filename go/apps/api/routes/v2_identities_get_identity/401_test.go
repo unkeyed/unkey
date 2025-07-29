@@ -22,7 +22,7 @@ func TestUnauthorized(t *testing.T) {
 
 	t.Run("invalid root key", func(t *testing.T) {
 		req := handler.Request{
-			ExternalId: "identity_123",
+			Identity: "identity_123",
 		}
 
 		// Non-existent key

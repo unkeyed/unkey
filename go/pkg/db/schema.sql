@@ -430,6 +430,7 @@ CREATE INDEX `owner_id_idx` ON `keys` (`owner_id`);
 CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`);
 CREATE INDEX `idx_keys_on_workspace_id` ON `keys` (`workspace_id`);
 CREATE INDEX `deleted_at_idx` ON `keys` (`deleted_at_m`);
+CREATE INDEX `workspace_id_id_deleted_idx` ON `identities` (`workspace_id`, `id`, `deleted`);
 CREATE INDEX `name_idx` ON `ratelimits` (`name`);
 CREATE INDEX `identity_id_idx` ON `ratelimits` (`identity_id`);
 CREATE INDEX `key_id_idx` ON `ratelimits` (`key_id`);

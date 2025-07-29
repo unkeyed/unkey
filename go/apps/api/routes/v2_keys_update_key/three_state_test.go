@@ -268,8 +268,9 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		require.True(t, key.IdentityID.Valid)
 
 		// Check that the identity exists
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
-			ID: key.IdentityID.String,
+		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+			Identity:    key.IdentityID.String,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
 		})
 		require.NoError(t, err)
 		require.Equal(t, "updated-user", identity.ExternalID)
@@ -314,8 +315,9 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		require.True(t, key.IdentityID.Valid)
 
 		// Check that the identity exists with correct external ID
-		identity, err = db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
-			ID: key.IdentityID.String,
+		identity, err = db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+			Identity:    key.IdentityID.String,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
 		})
 		require.NoError(t, err)
 		require.Equal(t, "preserved-user", identity.ExternalID)
@@ -342,11 +344,11 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		// Update all fields with different three-state behaviors
 		req = handler.Request{
 			KeyId:      keyResponse.KeyID,
-			Name:       nullable.NewNullableWithValue("updated-name"),           // Set to value
-			ExternalId: nullable.NewNullNullable[string](),                      // Set to NULL
-			Meta:       nullable.NewNullableWithValue(map[string]interface{}{}), // Set to empty object
-			Expires:    nullable.NewNullNullable[int64](),                       // Set to NULL
-			Enabled:    ptr.P(false),                                            // Set to specific value
+			Name:       nullable.NewNullableWithValue("updated-name"),   // Set to value
+			ExternalId: nullable.NewNullNullable[string](),              // Set to NULL
+			Meta:       nullable.NewNullableWithValue(map[string]any{}), // Set to empty object
+			Expires:    nullable.NewNullNullable[int64](),               // Set to NULL
+			Enabled:    ptr.P(false),                                    // Set to specific value
 		}
 
 		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
