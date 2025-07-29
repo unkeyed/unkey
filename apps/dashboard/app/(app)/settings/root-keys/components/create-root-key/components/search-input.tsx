@@ -50,7 +50,7 @@ export const SearchInput = ({
       maxLength={maxLength}
       placeholder={placeholder}
       className={cn(
-        "truncate text-accent-12 font-medium text-[13px] bg-transparent border-none outline-none focus:ring-0 focus:outline-none placeholder:text-accent-8 selection:bg-gray-6 w-full",
+        "truncate text-accent-12 font-medium text-[13px] bg-transparent border-none outline-none focus:ring-0 focus:outline-none placeholder:text-accent-8 selection:bg-grayA-6 w-full",
         className,
       )}
       disabled={isProcessing && searchMode !== "allowTypeDuringSearch"}

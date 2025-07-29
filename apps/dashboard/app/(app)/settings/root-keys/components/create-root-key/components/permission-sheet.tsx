@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/sheet";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { XMark } from "@unkey/icons";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { Button } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
@@ -37,15 +38,16 @@ export const PermissionSheet = ({
 }: PermissionSheetProps) => {
   const [open, setOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [search, setSearch] = useState<string | undefined>(undefined);
   const inputRef = useRef<HTMLInputElement>(null);
   const [workspacePermissions, setWorkspacePermissions] = useState<UnkeyPermission[]>([]);
   const [apiPermissions, setApiPermissions] = useState<Record<string, UnkeyPermission[]>>({});
+  const [searchValue, setSearchValue] = useState<string | undefined>(undefined);
+  const [emptyApis, setEmptyApis] = useState(false);
+  const [emptyWorkspace, setEmptyWorkspace] = useState(false);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setIsProcessing(true);
-    setSearch(e.target.value);
-    // TODO: Implement actual search logic
+    setSearchValue(e.target.value);
     setIsProcessing(false);
   };
 
@@ -73,6 +75,7 @@ export const PermissionSheet = ({
     <Sheet open={open} onOpenChange={handleOpenChange} modal={true}>
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent
+        closeIcon={<XMark className="h-4 w-4" />}
         className="flex flex-col p-0 m-0 h-full gap-0 border-l border-l-gray-4 min-w-[420px]"
         side="right"
         overlay="transparent"
@@ -80,7 +83,7 @@ export const PermissionSheet = ({
         <SheetHeader className="flex flex-row w-full border-b border-gray-4 gap-2">
           <SearchPermissions
             isProcessing={isProcessing}
-            search={search}
+            search={searchValue}
             inputRef={inputRef}
             onChange={handleSearchChange}
           />
@@ -88,14 +91,16 @@ export const PermissionSheet = ({
         <SheetDescription className="w-full h-full pt-2">
           <div className="flex flex-col h-full">
             <div
-              className={`flex flex-col overflow-y-hidden ${hasNextPage ? "max-h-[calc(100%-80px)]" : "h-[calc(100%-40px)]"}`}
+              className={`flex flex-col ${hasNextPage ? "max-h-[calc(100%-80px)]" : "max-h-[calc(100%-40px)]"}`}
             >
               <ScrollArea className="flex flex-col h-full">
-                <div className="flex flex-col pt-0 mt-0 gap-1 pb-4">
+                <div className="flex flex-col pt-0 mt-0 gap-1 pb-6">
                   {/* Workspace Permissions */}
                   {/* TODO: Tie In Search */}
                   <PermissionContentList
+                    setEmpty={(val:boolean) => setEmptyWorkspace(val)}
                     selected={selectedPermissions}
+                    searchValue={searchValue}
                     key="workspace"
                     type="workspace"
                     onPermissionChange={(permissions) =>
@@ -103,10 +108,16 @@ export const PermissionSheet = ({
                     }
                   />
                   {/* From APIs */}
-                  <p className="text-sm text-gray-10 ml-6 py-auto mt-1.5">From APIs</p>
+                  {!emptyApis ? (  
+                    <p className="text-sm text-gray-10 ml-6 py-auto mt-1.5">From APIs</p>
+                  ): (
+                    <p className="text-sm text-gray-10 ml-6 py-auto mt-1.5">No results found</p>
+                  )}
                   {apis.map((api) => (
                     <PermissionContentList
+                      setEmpty={(val: boolean) => setEmptyApis(val)}
                       selected={selectedPermissions}
+                      searchValue={searchValue}
                       key={api.id}
                       type="api"
                       api={api}

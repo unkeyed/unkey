@@ -22,7 +22,7 @@ const DynamicDialogContainer = dynamic(
   { ssr: false },
 );
 
-const DEFAULT_LIMIT = 10;
+const DEFAULT_LIMIT = 12;
 
 const formSchema = z.object({
   name: z.string().trim().min(3, "Name must be at least 3 characters long").max(50),
@@ -171,7 +171,7 @@ export const CreateRootKeyButton = ({ ...props }: Props) => {
             </div>
           </div>
         </form>
-        <ScrollArea className="w-full overflow-y-auto pt-0 mb-4">
+        <ScrollArea className="w-full overflow-y-auto pt-0 mb-4 h-24">
           <div className="flex flex-col px-6 py-0 gap-3">
             <PermissionBadgeList
               selectedPermissions={selectedPermissions}
