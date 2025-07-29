@@ -37,7 +37,8 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
@@ -47,16 +48,31 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	namespace, err := getNamespace(ctx, h, auth.AuthorizedWorkspaceID, req)
-
-	if db.IsNotFound(err) {
-		return fault.New("namespace not found",
-			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-			fault.Internal("namespace not found"), fault.Public("This namespace does not exist."),
+	// Use the namespace field directly - it can be either name or ID
+	response, err := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
+		WorkspaceID: auth.AuthorizedWorkspaceID,
+		Namespace:   req.Namespace,
+	})
+	if err != nil {
+		if db.IsNotFound(err) {
+			return fault.New("namespace not found",
+				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+				fault.Internal("namespace not found"), fault.Public("This namespace does not exist."),
+			)
+		}
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Public("An unexpected error occurred while loading your namespace."),
 		)
 	}
-	if err != nil {
-		return err
+
+	namespace := db.RatelimitNamespace{
+		ID:          response.ID,
+		WorkspaceID: response.WorkspaceID,
+		Name:        response.Name,
+		CreatedAtM:  response.CreatedAtM,
+		UpdatedAtM:  response.UpdatedAtM,
+		DeletedAtM:  response.DeletedAtM,
 	}
 
 	if namespace.WorkspaceID != auth.AuthorizedWorkspaceID {
@@ -66,7 +82,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Ratelimit,
 			ResourceID:   namespace.ID,
@@ -90,7 +106,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	response := Response{
+
+	responseBody := Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
@@ -102,7 +119,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	for i, override := range overrides {
-		response.Data[i] = openapi.RatelimitOverride{
+		responseBody.Data[i] = openapi.RatelimitOverride{
 			OverrideId:  override.ID,
 			Duration:    int64(override.Duration),
 			Identifier:  override.Identifier,
@@ -111,29 +128,5 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	return s.JSON(http.StatusOK, response)
-}
-
-func getNamespace(ctx context.Context, h *Handler, workspaceID string, req Request) (db.RatelimitNamespace, error) {
-
-	switch {
-	case req.NamespaceId != nil:
-		{
-			return db.Query.FindRatelimitNamespaceByID(ctx, h.DB.RO(), *req.NamespaceId)
-
-		}
-	case req.NamespaceName != nil:
-		{
-			return db.Query.FindRatelimitNamespaceByName(ctx, h.DB.RO(), db.FindRatelimitNamespaceByNameParams{
-				WorkspaceID: workspaceID,
-				Name:        *req.NamespaceName,
-			})
-		}
-	}
-
-	return db.RatelimitNamespace{}, fault.New("missing namespace id or name",
-		fault.Code(codes.App.Validation.InvalidInput.URN()),
-		fault.Internal("missing namespace id or name"), fault.Public("You must provide either a namespace ID or name."),
-	)
-
+	return s.JSON(http.StatusOK, responseBody)
 }

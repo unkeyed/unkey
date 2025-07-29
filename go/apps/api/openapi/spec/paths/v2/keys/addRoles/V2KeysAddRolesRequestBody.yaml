@@ -21,13 +21,15 @@ properties:
     description: |
       Assigns additional roles to the key through direct assignment to existing workspace roles.
       Operations are idempotent - adding existing roles has no effect and causes no errors.
-      Use either ID for existing roles or name for human-readable references.
 
       All roles must already exist in the workspace - roles cannot be created automatically.
       Invalid roles cause the entire operation to fail atomically, ensuring consistent state.
-      Role assignments take effect immediately but cache propagation across regions may take up to 30 seconds.
     items:
-      $ref: "../../../../common/roleReference.yaml"
+      type: string
+      minLength: 3
+      maxLength: 255 # Reasonable upper bound for database identifiers
+      pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+      description: Specify the role by name.
 additionalProperties: false
 example:
   keyId: key_1234567890abcdef

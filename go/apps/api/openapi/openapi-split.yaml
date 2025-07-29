@@ -164,6 +164,8 @@ paths:
     $ref: "./spec/paths/v2/keys/deleteKey/index.yaml"
   /v2/keys.getKey:
     $ref: "./spec/paths/v2/keys/getKey/index.yaml"
+  /v2/keys.whoami:
+    $ref: "./spec/paths/v2/keys/whoami/index.yaml"
   /v2/keys.verifyKey:
     $ref: "./spec/paths/v2/keys/verifyKey/index.yaml"
 

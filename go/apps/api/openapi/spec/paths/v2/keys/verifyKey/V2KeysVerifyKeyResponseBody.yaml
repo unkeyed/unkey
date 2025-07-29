@@ -6,7 +6,7 @@ properties:
   meta:
     $ref: "../../../../common/Meta.yaml"
   data:
-    "$ref": "./KeysVerifyKeyResponseData.yaml"
+    "$ref": "./V2KeysVerifyKeyResponseData.yaml"
 additionalProperties: false
 example:
   meta:

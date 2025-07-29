@@ -12,23 +12,4 @@ description: |-
   - An empty array means the key has no direct permissions assigned
   - For a complete permission picture including roles, use keys.getKey instead
 items:
-  type: object
-  required:
-    - id
-    - name
-  properties:
-    id:
-      type: string
-      description: The unique identifier of the permission
-      example: perm_1n9McEIBSqy44Qy7hzWyM5
-    name:
-      type: string
-      description: The name of the permission
-      example: documents.write
-example:
-  - id: perm_1234567890abcdef
-    name: documents.read
-  - id: perm_2345678901bcdefg
-    name: documents.write
-  - id: perm_3456789012cdefgh
-    name: users.read
+  "$ref": "../../../../common/Permission.yaml"

@@ -26,7 +26,7 @@ func TestGetKeyUnauthorized(t *testing.T) {
 	h.Register(route)
 
 	req := handler.Request{
-		KeyId:   ptr.P(uid.New(uid.KeyPrefix)),
+		KeyId:   uid.New(uid.KeyPrefix),
 		Decrypt: ptr.P(false),
 	}
 

@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -11,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_delete_permission"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -52,7 +52,7 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         permissionName,
 			Slug:         "test-delete-permission",
-			Description:  sql.NullString{Valid: true, String: permissionDesc},
+			Description:  dbtype.NullString{Valid: true, String: permissionDesc},
 			CreatedAtM:   time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
@@ -64,7 +64,7 @@ func TestSuccess(t *testing.T) {
 
 		// Now delete the permission
 		req := handler.Request{
-			PermissionId: permissionID,
+			Permission: permissionID,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -110,7 +110,7 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         permissionName,
 			Slug:         "test-delete-permission-with-description",
-			Description:  sql.NullString{Valid: true, String: permissionDesc},
+			Description:  dbtype.NullString{Valid: true, String: permissionDesc},
 			CreatedAtM:   time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
@@ -123,7 +123,7 @@ func TestSuccess(t *testing.T) {
 
 		// Delete the permission
 		req := handler.Request{
-			PermissionId: permissionID,
+			Permission: permissionID,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](

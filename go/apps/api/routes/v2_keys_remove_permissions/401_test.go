@@ -56,13 +56,8 @@ func TestAuthenticationErrors(t *testing.T) {
 	permissionID := keyResponse.PermissionIds[0]
 
 	req := handler.Request{
-		KeyId: keyID,
-		Permissions: []struct {
-			Id   *string `json:"id,omitempty"`
-			Slug *string `json:"slug,omitempty"`
-		}{
-			{Id: &permissionID},
-		},
+		KeyId:       keyID,
+		Permissions: []string{permissionID},
 	}
 
 	t.Run("missing authorization header", func(t *testing.T) {

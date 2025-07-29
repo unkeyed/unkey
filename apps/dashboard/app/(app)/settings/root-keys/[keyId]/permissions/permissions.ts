@@ -25,6 +25,10 @@ export const workspacePermissions = {
     },
   },
   Keys: {
+    verify_key: {
+      description: "Verify API keys and enforce rate limits and permissions.",
+      permission: "api.*.verify_key",
+    },
     create_key: {
       description: "Create new keys in this workspace.",
       permission: "api.*.create_key",
@@ -145,7 +149,9 @@ export const workspacePermissions = {
     },
   },
 } satisfies Record<string, UnkeyPermissions>;
-export function apiPermissions(apiId: string): { [category: string]: UnkeyPermissions } {
+export function apiPermissions(apiId: string): {
+  [category: string]: UnkeyPermissions;
+} {
   return {
     API: {
       read_api: {
@@ -163,6 +169,11 @@ export function apiPermissions(apiId: string): { [category: string]: UnkeyPermis
       },
     },
     Keys: {
+      verify_key: {
+        description:
+          "Verify keys belonging to this API and enforce their rate limits and permissions.",
+        permission: `api.${apiId}.verify_key`,
+      },
       create_key: {
         description: "Create a new key for this API.",
         permission: `api.${apiId}.create_key`,

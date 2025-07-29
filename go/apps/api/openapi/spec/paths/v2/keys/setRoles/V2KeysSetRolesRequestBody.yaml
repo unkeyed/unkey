@@ -20,14 +20,16 @@ properties:
     description: |
       Replaces all existing role assignments with this complete list of roles.
       This is a wholesale replacement operation, not an incremental update like add/remove operations.
-      Use either ID for existing roles or name for human-readable references.
 
       Providing an empty array removes all direct role assignments from the key.
       All roles must already exist in the workspace - roles cannot be created automatically.
       Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
-      Role changes take effect immediately but cache propagation across regions may take up to 30 seconds.
     items:
-      $ref: "../../../../common/roleReference.yaml"
+      type: string
+      pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+      minLength: 3
+      maxLength: 255
+      description: Specify the role by name.
 additionalProperties: false
 example:
   keyId: key_1234567890abcdef

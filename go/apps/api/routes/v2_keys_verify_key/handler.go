@@ -49,7 +49,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.verifyKey")
 
 	// Authentication
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, rootEmit, err := h.Keys.GetRootKey(ctx, s)
+	defer rootEmit()
 	if err != nil {
 		return err
 	}
@@ -60,7 +61,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	key, err := h.Keys.Get(ctx, s, req.Key)
+	key, emit, err := h.Keys.Get(ctx, s, req.Key)
+	defer emit()
 	if err != nil {
 		return err
 	}
@@ -72,7 +74,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RequestId: s.RequestID(),
 			},
 			// nolint:exhaustruct
-			Data: openapi.KeysVerifyKeyResponseData{
+			Data: openapi.V2KeysVerifyKeyResponseData{
 				Code:  openapi.NOTFOUND,
 				Valid: false,
 			},
@@ -86,15 +88,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RequestId: s.RequestID(),
 			},
 			// nolint:exhaustruct
-			Data: openapi.KeysVerifyKeyResponseData{
+			Data: openapi.V2KeysVerifyKeyResponseData{
 				Code:  openapi.NOTFOUND,
 				Valid: false,
 			},
 		})
 	}
 
-	// FIXME: We are leaking a keys existance here... by telling the user that he doesn't have perms
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   "*",
@@ -107,10 +108,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 	)))
 	if err != nil {
-		return err
+		// We are just respond with a 200 OK with a not found since the user doesn't have permission to verify the key
+		// this would otherwise leak the keys existence otherwise
+		return s.JSON(http.StatusOK, Response{
+			Meta: openapi.Meta{
+				RequestId: s.RequestID(),
+			},
+			// nolint:exhaustruct
+			Data: openapi.V2KeysVerifyKeyResponseData{
+				Code:  openapi.NOTFOUND,
+				Valid: false,
+			},
+		})
 	}
 
-	opts := []keys.VerifyOption{keys.WithIPWhitelist(), keys.WithApiID(req.ApiId), keys.WithTags(ptr.SafeDeref(req.Tags))}
+	opts := []keys.VerifyOption{
+		keys.WithTags(ptr.SafeDeref(req.Tags)),
+		keys.WithIPWhitelist(),
+	}
 
 	// If a custom cost was specified, use it, otherwise use a DefaultCost of 1
 	if req.Credits != nil {
@@ -149,7 +164,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RequestId: s.RequestID(),
 		},
 		// nolint:exhaustruct
-		Data: openapi.KeysVerifyKeyResponseData{
+		Data: openapi.V2KeysVerifyKeyResponseData{
 			Code:        key.ToOpenAPIStatus(),
 			Valid:       key.Status == keys.StatusValid,
 			Enabled:     ptr.P(key.Key.Enabled),

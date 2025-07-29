@@ -19,18 +19,4 @@ example:
   - id: role_2345678901bcdefg
     name: editor
 items:
-  type: object
-  required:
-    - id
-    - name
-  properties:
-    id:
-      type: string
-      description: The unique identifier of the role (begins with `role_`).
-        This ID can be used in other API calls to reference this specific role.
-      example: role_1n9McEIBSqy44Qy7hzWyM5
-    name:
-      type: string
-      description: The name of the role. This is a human-readable identifier
-        that's unique within your workspace.
-      example: admin
+  "$ref": "../../../../common/role.yaml"

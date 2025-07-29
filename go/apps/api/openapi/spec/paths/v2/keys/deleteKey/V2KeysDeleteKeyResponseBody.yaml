@@ -1,11 +1,12 @@
 type: object
 required:
   - meta
+  - data
 properties:
   meta:
     "$ref": "../../../../common/Meta.yaml"
   data:
-    "$ref": "./KeysDeleteKeyResponseData.yaml"
+    "$ref": "../../../../common/EmptyResponse.yaml"
 additionalProperties: false
 example:
   meta:

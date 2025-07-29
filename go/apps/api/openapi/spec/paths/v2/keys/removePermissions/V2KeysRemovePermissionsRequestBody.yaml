@@ -11,8 +11,6 @@ properties:
     description: |
       Specifies which key to remove permissions from using the database identifier returned from `keys.createKey`.
       Do not confuse this with the actual API key string that users include in requests.
-      Removing permissions only affects direct assignments, not permissions inherited from roles.
-      Permission changes take effect immediately but may take up to 30 seconds to propagate across all regions.
     example: key_2cGKbMxRyIzhCxo1Idjz8q
   permissions:
     type: array
@@ -20,14 +18,15 @@ properties:
     maxItems: 1000 # Allow extensive permission sets for complex applications
     description: |
       Removes direct permissions from the key without affecting role-based permissions.
-      Operations are idempotent - removing non-existent permissions has no effect and causes no errors.
-      Use either ID for existing permissions or name for exact string matching.
+
+      You can either use a permission slug, or the permission ID.
 
       After removal, verification checks for these permissions will fail unless granted through roles.
-      Permission changes take effect immediately but cache propagation across regions may take up to 30 seconds.
-      Removing all direct permissions does not disable the key, only removes its direct permission grants.
     items:
-      $ref: "../../../../common/permissionReference.yaml"
+      type: string
+      minLength: 3
+      pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+      description: Specify the permission by its slug.
 additionalProperties: false
 example:
   keyId: key_1234567890abcdef
