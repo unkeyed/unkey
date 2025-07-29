@@ -97,7 +97,7 @@ func TestGetKeyByKeyID(t *testing.T) {
 	// This also tests that we have the correct data for the key.
 	t.Run("get key by keyId without decrypting", func(t *testing.T) {
 		req := handler.Request{
-			KeyId:   ptr.P(keyID),
+			KeyId:   keyID,
 			Decrypt: ptr.P(false),
 		}
 
@@ -109,7 +109,7 @@ func TestGetKeyByKeyID(t *testing.T) {
 
 	t.Run("get key by keyId with decrypting", func(t *testing.T) {
 		req := handler.Request{
-			KeyId:   ptr.P(keyID),
+			KeyId:   keyID,
 			Decrypt: ptr.P(true),
 		}
 
@@ -119,28 +119,6 @@ func TestGetKeyByKeyID(t *testing.T) {
 		require.Equal(t, ptr.SafeDeref(res.Body.Data.Plaintext), key.Key)
 	})
 
-	t.Run("get key by plaintext key", func(t *testing.T) {
-		req := handler.Request{
-			Key: ptr.P(key.Key),
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status)
-		require.NotNil(t, res.Body)
-		require.Equal(t, res.Body.Data.KeyId, keyID)
-	})
-
-	t.Run("get key by plaintext key with decrypting", func(t *testing.T) {
-		req := handler.Request{
-			Key:     ptr.P(key.Key),
-			Decrypt: ptr.P(true),
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status)
-		require.NotNil(t, res.Body)
-		require.Equal(t, ptr.SafeDeref(res.Body.Data.Plaintext), key.Key)
-	})
 }
 
 func TestGetKey_AdditionalScenarios(t *testing.T) {
@@ -195,7 +173,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		keyID := keyResponse.KeyID
 
 		req := handler.Request{
-			KeyId:   ptr.P(keyID),
+			KeyId:   keyID,
 			Decrypt: ptr.P(false),
 		}
 
@@ -219,7 +197,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		})
 
 		req := handler.Request{
-			KeyId:   ptr.P(keyResponse.KeyID),
+			KeyId:   keyResponse.KeyID,
 			Decrypt: ptr.P(false),
 		}
 
@@ -239,7 +217,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		})
 
 		req := handler.Request{
-			KeyId:   ptr.P(keyResponse.KeyID),
+			KeyId:   keyResponse.KeyID,
 			Decrypt: ptr.P(false),
 		}
 
@@ -263,7 +241,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		})
 
 		req := handler.Request{
-			KeyId:   ptr.P(keyResponse.KeyID),
+			KeyId:   keyResponse.KeyID,
 			Decrypt: ptr.P(false),
 		}
 
@@ -299,7 +277,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		})
 
 		req := handler.Request{
-			KeyId:   ptr.P(keyResponse.KeyID),
+			KeyId:   keyResponse.KeyID,
 			Decrypt: ptr.P(false),
 		}
 
@@ -346,7 +324,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		})
 
 		req := handler.Request{
-			KeyId:   ptr.P(keyResponse.KeyID),
+			KeyId:   keyResponse.KeyID,
 			Decrypt: ptr.P(false),
 		}
 
@@ -388,7 +366,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		})
 
 		req := handler.Request{
-			KeyId:   ptr.P(keyResponse.KeyID),
+			KeyId:   keyResponse.KeyID,
 			Decrypt: ptr.P(false),
 		}
 

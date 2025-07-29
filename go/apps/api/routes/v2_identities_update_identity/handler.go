@@ -21,8 +21,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2IdentitiesUpdateIdentityRequestBody
-type Response = openapi.V2IdentitiesUpdateIdentityResponseBody
+type (
+	Request  = openapi.V2IdentitiesUpdateIdentityRequestBody
+	Response = openapi.V2IdentitiesUpdateIdentityResponseBody
+)
 
 // Handler implements zen.Route interface for the v2 identities update identity endpoint
 type Handler struct {
@@ -50,7 +52,8 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
@@ -61,7 +64,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Identity,
 			ResourceID:   "*",
@@ -110,8 +113,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	identity, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.Identity, error) {
 		// Find by external ID
-		identity, err := db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
-			ExternalID:  req.ExternalId,
+		identity, err := db.Query.FindIdentity(ctx, tx, db.FindIdentityParams{
+			Identity:    req.ExternalId,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			Deleted:     false,
 		})
@@ -176,7 +179,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ID:   identity.ID,
 				Meta: metaBytes,
 			})
-
 			if err != nil {
 				// nolint:exhaustruct
 				return db.Identity{}, fault.Wrap(err,
@@ -347,7 +349,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			if len(rateLimitsToInsert) > 0 {
 				err = db.BulkQuery.InsertIdentityRatelimits(ctx, tx, rateLimitsToInsert)
-
 				if err != nil {
 					// nolint:exhaustruct
 					return db.Identity{}, fault.Wrap(err,
@@ -394,10 +395,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.IdentitiesUpdateIdentityResponseData{
+		Data: openapi.Identity{
 			ExternalId: req.ExternalId,
 			Meta:       req.Meta,
-			Ratelimits: &responseRatelimits,
+			Ratelimits: responseRatelimits,
 		},
 	}
 

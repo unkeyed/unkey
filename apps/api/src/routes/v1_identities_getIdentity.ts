@@ -8,6 +8,7 @@ import { buildUnkeyQuery } from "@unkey/rbac";
 const route = createRoute({
   tags: ["identities"],
   operationId: "getIdentity",
+  summary: "Get identity",
   method: "get",
   path: "/v1/identities.getIdentity",
   security: [{ bearerAuth: [] }],

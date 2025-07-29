@@ -13,6 +13,7 @@ const validation = {
 const route = createRoute({
   tags: ["analytics"],
   operationId: "getVerifications",
+  summary: "Get verification analytics",
   method: "get",
   path: "/v1/analytics.getVerifications",
   security: [{ bearerAuth: [] }],

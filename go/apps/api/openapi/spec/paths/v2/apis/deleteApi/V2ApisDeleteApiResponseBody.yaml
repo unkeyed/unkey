@@ -1,0 +1,41 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    $ref: "../../../../common/Meta.yaml"
+  data:
+    $ref: "../../../../common/EmptyResponse.yaml"
+additionalProperties: false
+examples:
+  successfulDeletion:
+    summary: Successful API deletion
+    description: Standard response after successfully deleting an API namespace
+    value:
+      meta:
+        requestId: req_1234abcd
+  developmentCleanup:
+    summary: Development environment cleanup
+    description: Response after cleaning up a development API
+    value:
+      meta:
+        requestId: req_dev_cleanup
+  stagingRemoval:
+    summary: Staging environment removal
+    description: Response after removing a staging environment API
+    value:
+      meta:
+        requestId: req_staging_remove
+  serviceRetirement:
+    summary: Service retirement
+    description: Response after retiring a deprecated service API
+    value:
+      meta:
+        requestId: req_service_retire
+  emergencyCleanup:
+    summary: Emergency security cleanup
+    description: Response after emergency deletion for security isolation
+    value:
+      meta:
+        requestId: req_emergency_cleanup

@@ -1,0 +1,70 @@
+post:
+  tags:
+    - apis
+  summary: List API keys
+  description: |
+    Retrieve a paginated list of API keys for dashboard and administrative interfaces.
+
+    Use this to build key management dashboards, filter keys by user with `externalId`, or retrieve key details for administrative purposes. Each key includes status, metadata, permissions, and usage limits.
+
+    **Important**: Set `decrypt: true` only in secure contexts to retrieve plaintext key values from recoverable keys.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions for basic key listing:
+    - `api.*.read_key` (to read keys from any API)
+    - `api.<api_id>.read_key` (to read keys from a specific API)
+
+    Additionally, you need read access to the API itself:
+    - `api.*.read_api` or `api.<api_id>.read_api`
+
+    Additional permission required for decrypt functionality:
+    - `api.*.decrypt_key` or `api.<api_id>.decrypt_key`
+  operationId: listKeys
+  x-speakeasy-name-override: listKeys
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2ApisListKeysRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2ApisListKeysResponseBody.yaml"
+      description: |
+        Successfully retrieved paginated keys. Use the pagination cursor for additional results when `hasMore: true`.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"

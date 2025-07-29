@@ -64,7 +64,7 @@ func TestListOverridesSuccessfully(t *testing.T) {
 	// Test getting by namespace name
 	t.Run("get by namespace name", func(t *testing.T) {
 		req := handler.Request{
-			NamespaceName: &namespaceName,
+			Namespace: namespaceName,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -81,7 +81,7 @@ func TestListOverridesSuccessfully(t *testing.T) {
 	// Test getting by namespace ID
 	t.Run("get by namespace ID", func(t *testing.T) {
 		req := handler.Request{
-			NamespaceId: &namespaceID,
+			Namespace: namespaceID,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -109,7 +109,7 @@ func TestListOverridesSuccessfully(t *testing.T) {
 		require.NoError(t, err)
 
 		req := handler.Request{
-			NamespaceId: &emptyNamespaceID,
+			Namespace: emptyNamespaceID,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)

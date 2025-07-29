@@ -1,0 +1,62 @@
+post:
+  tags:
+    - permissions
+  summary: Create permission
+  description: |
+    Create a new permission to define specific actions or capabilities in your RBAC system. Permissions can be assigned directly to API keys or included in roles.
+
+    Use hierarchical naming patterns like `documents.read`, `admin.users.delete`, or `billing.invoices.create` for clear organization.
+
+    **Important:** Permission names must be unique within the workspace. Once created, permissions are immediately available for assignment.
+
+    **Required Permissions**
+    
+    Your root key must have the following permission:
+    - `rbac.*.create_permission`
+  operationId: createPermission
+  x-speakeasy-name-override: CreatePermission
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PermissionsCreatePermissionRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      description: Permission created successfully
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PermissionsCreatePermissionResponseBody.yaml"
+    "400":
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "409":
+      description: Conflict - permission with that name already exists
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ConflictErrorResponse.yaml"
+    "500":
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

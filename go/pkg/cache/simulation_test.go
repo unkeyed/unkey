@@ -106,7 +106,7 @@ func TestSimulation(t *testing.T) {
 					fresh := time.Second + time.Duration(rng.IntN(60*60*1000))*time.Millisecond
 					stale := fresh + time.Duration(rng.IntN(24*60*60*1000))*time.Millisecond
 
-					c, err := cache.New[uint64, uint64](cache.Config[uint64, uint64]{
+					c, err := cache.New(cache.Config[uint64, uint64]{
 						Clock:    clk,
 						Fresh:    fresh,
 						Stale:    stale,

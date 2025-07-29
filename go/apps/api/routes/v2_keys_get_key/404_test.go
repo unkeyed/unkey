@@ -36,7 +36,7 @@ func TestGetKeyNotFound(t *testing.T) {
 	t.Run("nonexistent keyId", func(t *testing.T) {
 		nonexistentKeyID := uid.New(uid.KeyPrefix)
 		req := handler.Request{
-			KeyId:   ptr.P(nonexistentKeyID),
+			KeyId:   nonexistentKeyID,
 			Decrypt: ptr.P(false),
 		}
 
@@ -46,15 +46,4 @@ func TestGetKeyNotFound(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "We could not find the requested key")
 	})
 
-	t.Run("nonexistent raw key", func(t *testing.T) {
-		nonexistentKey := uid.New("api")
-		req := handler.Request{
-			Key: ptr.P(nonexistentKey),
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
-		require.Equal(t, 404, res.Status)
-		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "We could not find the requested key")
-	})
 }

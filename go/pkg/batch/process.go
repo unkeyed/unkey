@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/buffer"
+	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 )
 
 // BatchProcessor provides a more configurable batching implementation compared to
@@ -22,7 +23,7 @@ type BatchProcessor[T any] struct {
 	buffer *buffer.Buffer[T]
 	batch  []T
 	config Config[T]
-	flush  func(ctx context.Context, batch []T)
+	flush  func(ctx context.Context, batch []T, trigger string)
 }
 
 // Config defines the behavior of a BatchProcessor.
@@ -92,8 +93,22 @@ func New[T any](config Config[T]) *BatchProcessor[T] {
 			Capacity: config.BufferSize,
 			Drop:     config.Drop,
 		}),
-		batch:  make([]T, 0, config.BatchSize),
-		flush:  config.Flush,
+		batch: make([]T, 0, config.BatchSize),
+		flush: func(ctx context.Context, batch []T, trigger string) {
+			batchSize := len(batch)
+
+			// Record batch size distribution
+			metrics.BatchSizeDistribution.WithLabelValues(config.Name, trigger).Observe(float64(batchSize))
+
+			// Record batch operation
+			metrics.BatchOperationsTotal.WithLabelValues(config.Name, trigger, "success").Inc()
+
+			// Record total items processed
+			metrics.BatchItemsProcessedTotal.WithLabelValues(config.Name).Add(float64(batchSize))
+
+			// Call the user's flush function
+			config.Flush(ctx, batch)
+		},
 		config: config,
 	}
 
@@ -112,10 +127,9 @@ func (bp *BatchProcessor[T]) process() {
 	batch := make([]T, 0, bp.config.BatchSize)
 
 	t := time.NewTimer(bp.config.FlushInterval)
-	flushAndReset := func() {
+	flushAndReset := func(trigger string) {
 		if len(batch) > 0 {
-
-			bp.flush(context.Background(), batch)
+			bp.flush(context.Background(), batch, trigger)
 			batch = batch[:0]
 		}
 		t.Reset(bp.config.FlushInterval)
@@ -129,18 +143,18 @@ func (bp *BatchProcessor[T]) process() {
 				// channel closed
 				t.Stop()
 				if len(batch) > 0 {
-					bp.flush(context.Background(), batch)
+					bp.flush(context.Background(), batch, "close")
 					batch = batch[:0]
 				}
 				return
 			}
 			batch = append(batch, e)
 			if len(batch) >= bp.config.BatchSize {
-				flushAndReset()
+				flushAndReset("size_limit")
 
 			}
 		case <-t.C:
-			flushAndReset()
+			flushAndReset("time_interval")
 		}
 	}
 }

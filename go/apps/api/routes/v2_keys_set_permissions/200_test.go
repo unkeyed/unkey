@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -11,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_set_permissions"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -32,7 +32,7 @@ func TestSuccess(t *testing.T) {
 
 	// Create a workspace and root key
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.remove_permission_from_key", "rbac.*.add_permission_to_key", "rbac.*.create_permission")
 
 	// Set up request headers
 	headers := http.Header{
@@ -61,32 +61,35 @@ func TestSuccess(t *testing.T) {
 
 		// Create permissions
 		permission1ID := uid.New(uid.TestPrefix)
+		permission1Slug := "documents.read.initial"
 		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permission1ID,
 			WorkspaceID:  workspace.ID,
-			Name:         "documents.read.initial",
-			Slug:         "documents.read.initial",
-			Description:  sql.NullString{Valid: true, String: "Initial permission"},
+			Name:         permission1Slug,
+			Slug:         permission1Slug,
+			Description:  dbtype.NullString{Valid: true, String: "Initial permission"},
 		})
 		require.NoError(t, err)
 
 		permission2ID := uid.New(uid.TestPrefix)
+		permission2Slug := "documents.write.new"
 		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permission2ID,
 			WorkspaceID:  workspace.ID,
-			Name:         "documents.write.new",
-			Slug:         "documents.write.new",
-			Description:  sql.NullString{Valid: true, String: "Write permission"},
+			Name:         permission2Slug,
+			Slug:         permission2Slug,
+			Description:  dbtype.NullString{Valid: true, String: "Write permission"},
 		})
 		require.NoError(t, err)
 
 		permission3ID := uid.New(uid.TestPrefix)
+		permission3Slug := "documents.delete.new"
 		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permission3ID,
 			WorkspaceID:  workspace.ID,
-			Name:         "documents.delete.new",
-			Slug:         "documents.delete.new",
-			Description:  sql.NullString{Valid: true, String: "Delete permission"},
+			Name:         permission3Slug,
+			Slug:         permission3Slug,
+			Description:  dbtype.NullString{Valid: true, String: "Delete permission"},
 		})
 		require.NoError(t, err)
 
@@ -106,15 +109,8 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, permission1ID, currentPermissions[0].ID)
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Id: &permission2ID},
-				{Id: &permission3ID},
-			},
+			KeyId:       keyID,
+			Permissions: []string{permission2Slug, permission3Slug},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -129,11 +125,18 @@ func TestSuccess(t *testing.T) {
 		require.NotNil(t, res.Body.Data)
 		require.Len(t, res.Body.Data, 2)
 
-		// Verify response contains new permissions (should be sorted alphabetically by name)
-		require.Equal(t, permission3ID, res.Body.Data[0].Id) // documents.delete.new
-		require.Equal(t, "documents.delete.new", res.Body.Data[0].Name)
-		require.Equal(t, permission2ID, res.Body.Data[1].Id) // documents.write.new
-		require.Equal(t, "documents.write.new", res.Body.Data[1].Name)
+		contains := func(id string) bool {
+			for _, p := range res.Body.Data {
+				if p.Id == id {
+					return true
+				}
+			}
+			return false
+		}
+
+		// Verify response contains new permissions
+		require.True(t, contains(permission3ID))
+		require.True(t, contains(permission2ID))
 
 		// Verify permissions in database
 		finalPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), keyID)
@@ -174,7 +177,7 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         "documents.read.byname",
 			Slug:         "documents.read.byname",
-			Description:  sql.NullString{Valid: true, String: "Read permission"},
+			Description:  dbtype.NullString{Valid: true, String: "Read permission"},
 		})
 		require.NoError(t, err)
 
@@ -184,7 +187,7 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         "documents.write.byname",
 			Slug:         "documents.write.byname",
-			Description:  sql.NullString{Valid: true, String: "Write permission"},
+			Description:  dbtype.NullString{Valid: true, String: "Write permission"},
 		})
 		require.NoError(t, err)
 
@@ -198,14 +201,8 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Slug: &[]string{"documents.write.byname"}[0]},
-			},
+			KeyId:       keyID,
+			Permissions: []string{"documents.write.byname"},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -254,7 +251,7 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         "documents.read.empty",
 			Slug:         "documents.read.empty",
-			Description:  sql.NullString{Valid: true, String: "Read permission"},
+			Description:  dbtype.NullString{Valid: true, String: "Read permission"},
 		})
 		require.NoError(t, err)
 
@@ -264,7 +261,7 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         "documents.write.empty",
 			Slug:         "documents.write.empty",
-			Description:  sql.NullString{Valid: true, String: "Write permission"},
+			Description:  dbtype.NullString{Valid: true, String: "Write permission"},
 		})
 		require.NoError(t, err)
 
@@ -290,12 +287,8 @@ func TestSuccess(t *testing.T) {
 		require.Len(t, currentPermissions, 2)
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{},
+			KeyId:       keyID,
+			Permissions: []string{},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -335,13 +328,14 @@ func TestSuccess(t *testing.T) {
 		keyID := keyResponse.KeyID
 
 		// Create permission
-		permissionID := uid.New(uid.TestPrefix)
+		permissionID := uid.New(uid.PermissionPrefix)
+		permissionSlugAndName := "documents.read.idempotent"
 		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permissionID,
 			WorkspaceID:  workspace.ID,
-			Name:         "documents.read.idempotent",
-			Slug:         "documents.read.idempotent",
-			Description:  sql.NullString{Valid: true, String: "Read permission"},
+			Name:         permissionSlugAndName,
+			Slug:         permissionSlugAndName,
+			Description:  dbtype.NullString{Valid: true, String: "Read permission"},
 		})
 		require.NoError(t, err)
 
@@ -355,14 +349,8 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{Id: &permissionID},
-			},
+			KeyId:       keyID,
+			Permissions: []string{permissionSlugAndName},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -405,20 +393,9 @@ func TestSuccess(t *testing.T) {
 
 		// Use a slug that doesn't exist yet
 		newPermissionSlug := "documents.create.onthefly"
-		createFlag := true
-
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Create *bool   `json:"create,omitempty"`
-				Id     *string `json:"id,omitempty"`
-				Slug   *string `json:"slug,omitempty"`
-			}{
-				{
-					Slug:   &newPermissionSlug,
-					Create: &createFlag,
-				},
-			},
+			KeyId:       keyID,
+			Permissions: []string{newPermissionSlug},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](

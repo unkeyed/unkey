@@ -1,0 +1,101 @@
+type: object
+additionalProperties: false
+properties:
+  valid:
+    type: boolean
+    description: |
+      The primary verification result. If true, the key is valid
+      and can be used. If false, check the 'code' field to understand why verification
+      failed. Your application should always check this field first before proceeding.
+  code:
+    type: string
+    enum:
+      - VALID
+      - NOT_FOUND
+      - FORBIDDEN
+      - INSUFFICIENT_PERMISSIONS
+      - INSUFFICIENT_CREDITS
+      - USAGE_EXCEEDED
+      - RATE_LIMITED
+      - DISABLED
+      - EXPIRED
+    description: |
+      A machine-readable code indicating the verification status
+      or failure reason. Values: `VALID` (key is valid and passed all checks), `NOT_FOUND` (key doesn't
+      exist or belongs to wrong API), `FORBIDDEN` (key lacks required permissions), `INSUFFICIENT_PERMISSIONS`
+      (key lacks specific required permissions for this request), `INSUFFICIENT_CREDITS`
+      (key has no remaining credits), `USAGE_EXCEEDED` (key exceeded usage limits), `RATE_LIMITED` (key exceeded rate limits), `DISABLED` (key was explicitly disabled),
+      `EXPIRED` (key has passed its expiration date).
+  keyId:
+    type: string
+    description: |
+      The unique identifier of the verified key in Unkey's system.
+      Use this ID for operations like updating or revoking the key. This field
+      is returned for both valid and invalid keys (except when `code=NOT_FOUND`).
+  name:
+    type: string
+    description: |
+      The human-readable name assigned to this key during creation.
+      This is useful for displaying in logs or admin interfaces to identify
+      the key's purpose.
+  meta:
+    type: object
+    additionalProperties: true
+    description: |
+      Custom metadata associated with the key. This can include any
+      JSON-serializable data you stored with the key during creation or updates,
+      such as plan information, feature flags, or user details. Use this to
+      avoid additional database lookups for contextual information needed during
+      API calls.
+  expires:
+    type: integer
+    format: int64
+    description: |
+      Unix timestamp (in milliseconds) when the key will expire.
+      If null or not present, the key has no expiration. You can use this to
+      warn users about upcoming expirations or to understand the validity period.
+  credits:
+    type: integer
+    format: int32
+    description: |
+      The number of requests/credits remaining for this key. If null
+      or not present, the key has unlimited usage. This value decreases with
+      each verification (based on the 'cost' parameter) unless explicit credit
+      refills are configured.
+  enabled:
+    type: boolean
+    description: |
+      Indicates if the key is currently enabled. Disabled keys will
+      always fail verification with `code=DISABLED`. This is useful for implementing
+      temporary suspensions without deleting the key.
+  permissions:
+    type: array
+    items:
+      type: string
+    description: |
+      A list of all permission names assigned to this key, either
+      directly or through roles. These permissions determine what actions the
+      key can perform. Only returned when permissions were checked during verification
+      or when the key fails with `code=FORBIDDEN`.
+  roles:
+    type: array
+    items:
+      type: string
+    description: |
+      A list of all role names assigned to this key. Roles are collections
+      of permissions that grant access to specific functionality. Only returned
+      when permissions were checked during verification.
+  identity:
+    "$ref": "../../../../common/Identity.yaml"
+    description: |
+      Information about the identity associated with this key. Identities
+      allow multiple keys to share resources (like rate limits) and represent
+      the same user or entity across different applications or devices.
+  ratelimits:
+    type: array
+    items:
+      "$ref": "./VerifyKeyRatelimitData.yaml"
+      description: The ratelimits that got checked
+required:
+  - valid
+  - code

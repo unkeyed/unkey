@@ -1,0 +1,67 @@
+post:
+  tags:
+    - keys
+  summary: Add key roles
+  description: |
+    Add roles to a key without affecting existing roles or permissions.
+
+    Use this for privilege upgrades, enabling new feature sets, or subscription changes that grant additional role-based capabilities. Direct permissions remain unchanged.
+
+    **Important**: Changes take effect immediately with up to 30-second edge propagation.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `api.*.update_key` (to update keys in any API)
+    - `api.<api_id>.update_key` (to update keys in a specific API)
+
+    **Side Effects**
+
+    Invalidates the key cache for immediate effect, and makes role assignments available for verification within 30 seconds across all regions.
+  operationId: addRoles
+  x-speakeasy-name-override: addRoles
+  security:
+    - rootKey: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2KeysAddRolesRequestBody.yaml"
+  responses:
+    "200":
+      description: Roles added successfully. Returns all roles currently assigned to the key.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2KeysAddRolesResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

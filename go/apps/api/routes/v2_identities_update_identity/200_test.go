@@ -125,7 +125,7 @@ func TestSuccess(t *testing.T) {
 
 		// Verify no ratelimits
 		require.NotNil(t, res.Body.Data.Ratelimits)
-		assert.Empty(t, *res.Body.Data.Ratelimits)
+		assert.Empty(t, res.Body.Data.Ratelimits)
 	})
 
 	t.Run("update ratelimits - add new, update existing, delete one", func(t *testing.T) {
@@ -161,16 +161,16 @@ func TestSuccess(t *testing.T) {
 
 		// Verify exactly 2 ratelimits (should have removed 'special_feature')
 		require.NotNil(t, res.Body.Data.Ratelimits)
-		require.Len(t, *res.Body.Data.Ratelimits, 2)
+		require.Len(t, res.Body.Data.Ratelimits, 2)
 
 		// Check ratelimit values
 		var apiCallsLimit, newFeatureLimit *openapi.RatelimitResponse
-		for i := range *res.Body.Data.Ratelimits {
-			switch (*res.Body.Data.Ratelimits)[i].Name {
+		for i := range res.Body.Data.Ratelimits {
+			switch (res.Body.Data.Ratelimits)[i].Name {
 			case "api_calls":
-				apiCallsLimit = &(*res.Body.Data.Ratelimits)[i]
+				apiCallsLimit = &(res.Body.Data.Ratelimits)[i]
 			case "new_feature":
-				newFeatureLimit = &(*res.Body.Data.Ratelimits)[i]
+				newFeatureLimit = &(res.Body.Data.Ratelimits)[i]
 			}
 		}
 
@@ -186,7 +186,7 @@ func TestSuccess(t *testing.T) {
 		assert.Equal(t, int64(86400000), newFeatureLimit.Duration)
 
 		// Verify 'special_feature' was removed
-		for _, rl := range *res.Body.Data.Ratelimits {
+		for _, rl := range res.Body.Data.Ratelimits {
 			assert.NotEqual(t, "special_feature", rl.Name, "special_feature should have been removed")
 		}
 	})
@@ -208,7 +208,7 @@ func TestSuccess(t *testing.T) {
 
 		// Verify no ratelimits
 		require.NotNil(t, res.Body.Data.Ratelimits)
-		assert.Empty(t, *res.Body.Data.Ratelimits)
+		assert.Empty(t, res.Body.Data.Ratelimits)
 	})
 
 	t.Run("clear metadata", func(t *testing.T) {
@@ -263,8 +263,8 @@ func TestSuccess(t *testing.T) {
 
 		// Verify ratelimits
 		require.NotNil(t, res.Body.Data.Ratelimits)
-		require.Len(t, *res.Body.Data.Ratelimits, 1)
-		rlimits := *res.Body.Data.Ratelimits
+		require.Len(t, res.Body.Data.Ratelimits, 1)
+		rlimits := res.Body.Data.Ratelimits
 		assert.Equal(t, "enterprise_feature", rlimits[0].Name)
 		assert.Equal(t, int64(50), rlimits[0].Limit)
 		assert.Equal(t, int64(3600000), rlimits[0].Duration)

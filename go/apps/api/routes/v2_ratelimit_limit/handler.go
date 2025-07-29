@@ -2,7 +2,6 @@ package v2RatelimitLimit
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -21,7 +20,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/match"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -32,13 +30,13 @@ type Response = openapi.V2RatelimitLimitResponseBody
 // Handler implements zen.Route interface for the v2 ratelimit limit endpoint
 type Handler struct {
 	// Services as public fields
-	Logger                        logging.Logger
-	Keys                          keys.KeyService
-	DB                            db.Database
-	ClickHouse                    clickhouse.Bufferer
-	Ratelimit                     ratelimit.Service
-	RatelimitNamespaceByNameCache cache.Cache[string, db.FindRatelimitNamespace]
-	TestMode                      bool
+	Logger                  logging.Logger
+	Keys                    keys.KeyService
+	DB                      db.Database
+	ClickHouse              clickhouse.Bufferer
+	Ratelimit               ratelimit.Service
+	RatelimitNamespaceCache cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
+	TestMode                bool
 }
 
 // Method returns the HTTP method this route responds to
@@ -54,7 +52,8 @@ func (h *Handler) Path() string {
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Authenticate the request with a root key
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
@@ -69,45 +68,47 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		cost = *req.Cost
 	}
 
-	ctx, span := tracing.Start(ctx, "FindRatelimitNamespace")
-	namespace, err := h.RatelimitNamespaceByNameCache.SWR(ctx, req.Namespace, func(ctx context.Context) (db.FindRatelimitNamespace, error) {
-		response, err := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Name:        sql.NullString{String: req.Namespace, Valid: true},
-			ID:          sql.NullString{String: "", Valid: false},
-		})
-		result := db.FindRatelimitNamespace{} // nolint:exhaustruct
-		if err != nil {
-			return result, err
-		}
+	// Use the namespace field directly - it can be either name or ID
+	namespaceKey := req.Namespace
 
-		result = db.FindRatelimitNamespace{
-			ID:                response.ID,
-			WorkspaceID:       response.WorkspaceID,
-			Name:              response.Name,
-			CreatedAtM:        response.CreatedAtM,
-			UpdatedAtM:        response.UpdatedAtM,
-			DeletedAtM:        response.DeletedAtM,
-			DirectOverrides:   make(map[string]db.FindRatelimitNamespaceLimitOverride),
-			WildcardOverrides: make([]db.FindRatelimitNamespaceLimitOverride, 0),
-		}
-
-		overrides := make([]db.FindRatelimitNamespaceLimitOverride, 0)
-		err = json.Unmarshal(response.Overrides.([]byte), &overrides)
-		if err != nil {
-			return result, err
-		}
-
-		for _, override := range overrides {
-			result.DirectOverrides[override.Identifier] = override
-			if strings.Contains(override.Identifier, "*") {
-				result.WildcardOverrides = append(result.WildcardOverrides, override)
+	namespace, hit, err := h.RatelimitNamespaceCache.SWR(ctx,
+		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: namespaceKey},
+		func(ctx context.Context) (db.FindRatelimitNamespace, error) {
+			response, err := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Namespace:   namespaceKey,
+			})
+			result := db.FindRatelimitNamespace{} // nolint:exhaustruct
+			if err != nil {
+				return result, err
 			}
-		}
 
-		return result, nil
-	}, caches.DefaultFindFirstOp)
-	span.End()
+			result = db.FindRatelimitNamespace{
+				ID:                response.ID,
+				WorkspaceID:       response.WorkspaceID,
+				Name:              response.Name,
+				CreatedAtM:        response.CreatedAtM,
+				UpdatedAtM:        response.UpdatedAtM,
+				DeletedAtM:        response.DeletedAtM,
+				DirectOverrides:   make(map[string]db.FindRatelimitNamespaceLimitOverride),
+				WildcardOverrides: make([]db.FindRatelimitNamespaceLimitOverride, 0),
+			}
+
+			overrides := make([]db.FindRatelimitNamespaceLimitOverride, 0)
+			err = json.Unmarshal(response.Overrides.([]byte), &overrides)
+			if err != nil {
+				return result, err
+			}
+
+			for _, override := range overrides {
+				result.DirectOverrides[override.Identifier] = override
+				if strings.Contains(override.Identifier, "*") {
+					result.WildcardOverrides = append(result.WildcardOverrides, override)
+				}
+			}
+
+			return result, nil
+		}, caches.DefaultFindFirstOp)
 
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -117,7 +118,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		return err
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Public("An unexpected error occurred while fetching the namespace."),
+		)
+	}
+
+	if hit == cache.Null {
+		return fault.New("namespace cache null",
+			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+			fault.Public("This namespace does not exist."),
+		)
 	}
 
 	if namespace.DeletedAtM.Valid {
@@ -128,7 +139,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Verify permissions for rate limiting
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Ratelimit,
 			ResourceID:   namespace.ID,
@@ -207,7 +218,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.RatelimitLimitResponseData{
+		Data: openapi.V2RatelimitLimitResponseData{
 			Success:    result.Success,
 			Limit:      limit,
 			Remaining:  result.Remaining,

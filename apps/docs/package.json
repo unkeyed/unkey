@@ -8,9 +8,9 @@
   "keywords": [],
   "author": "Andreas Thomas & James Perkins",
   "devDependencies": {
-    "mintlify": "^4.0.482"
+    "mintlify": "^4.2.31"
   },
   "dependencies": {
-    "sharp": "^0.33.4"
+    "sharp": "^0.34.3"
   }
 }

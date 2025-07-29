@@ -1,0 +1,33 @@
+type: object
+required:
+  - keyId
+  - roles
+properties:
+  keyId:
+    type: string
+    minLength: 3
+    maxLength: 255 # Reasonable upper bound for database identifiers
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: |
+      Specifies which key receives the additional roles using the database identifier returned from `createKey`.
+      Do not confuse this with the actual API key string that users include in requests.
+      Added roles supplement existing roles and permissions without replacing them.
+      Role assignments take effect immediately but may take up to 30 seconds to propagate across all regions.
+    example: key_2cGKbMxRyIzhCxo1Idjz8q
+  roles:
+    type: array
+    minItems: 1
+    maxItems: 100 # Reasonable limit for role assignments per key
+    description: |
+      Assigns additional roles to the key through direct assignment to existing workspace roles.
+      Operations are idempotent - adding existing roles has no effect and causes no errors.
+
+      All roles must already exist in the workspace - roles cannot be created automatically.
+      Invalid roles cause the entire operation to fail atomically, ensuring consistent state.
+    items:
+      type: string
+      minLength: 3
+      maxLength: 255 # Reasonable upper bound for database identifiers
+      pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+      description: Specify the role by name.
+additionalProperties: false

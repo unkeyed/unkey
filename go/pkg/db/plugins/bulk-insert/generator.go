@@ -54,8 +54,8 @@ func (g *Generator) Generate(ctx context.Context, req *plugin.GenerateRequest) (
 
 			// Generate pluralized function name for interface
 			bulkFunctionName := query.Name
-			if strings.HasPrefix(query.Name, "Insert") {
-				entityName := strings.TrimPrefix(query.Name, "Insert")
+			entityName, isInsert := strings.CutPrefix(query.Name, "Insert")
+			if isInsert {
 				pluralizedEntity := pluralize(entityName)
 				bulkFunctionName = "Insert" + pluralizedEntity
 			}
@@ -110,6 +110,21 @@ func (g *Generator) generateBulkInsertFunction(query *plugin.Query) *plugin.File
 	// Extract field names from query parameters
 	fields := g.extractFieldNames(query.Params)
 
+	// Determine which fields are used in VALUES clause vs ON DUPLICATE KEY UPDATE
+	// sqlc guarantees that parameters are ordered as they appear in the SQL query.
+	// Since VALUES clause always comes before ON DUPLICATE KEY UPDATE in SQL,
+	// we can safely use the placeholder count from the parsed VALUES clause
+	// to determine which parameters belong to which part.
+	valuesFields := fields
+	var updateFields []string
+
+	if parsedQuery.ValuesPlaceholderCount > 0 && parsedQuery.ValuesPlaceholderCount < len(fields) {
+		// Split fields based on the actual number of placeholders in the VALUES clause
+		valuesFields = fields[:parsedQuery.ValuesPlaceholderCount]
+		// The remaining fields are for ON DUPLICATE KEY UPDATE
+		updateFields = fields[parsedQuery.ValuesPlaceholderCount:]
+	}
+
 	// Generate the bulk insert function content
 	renderer := NewTemplateRenderer()
 	content, err := renderer.Render(TemplateData{
@@ -122,6 +137,8 @@ func (g *Generator) generateBulkInsertFunction(query *plugin.Query) *plugin.File
 		OnDuplicateKeyUpdate:      parsedQuery.OnDuplicateKeyUpdate,
 		EmitMethodsWithDBArgument: g.options.EmitMethodsWithDBArgument,
 		Fields:                    fields,
+		ValuesFields:              valuesFields,
+		UpdateFields:              updateFields,
 	})
 	if err != nil {
 		return nil

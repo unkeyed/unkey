@@ -10,6 +10,7 @@ import { buildUnkeyQuery } from "@unkey/rbac";
 const route = createRoute({
   tags: ["identities"],
   operationId: "listIdentities",
+  summary: "List identities",
   method: "get",
   path: "/v1/identities.listIdentities",
   security: [{ bearerAuth: [] }],
