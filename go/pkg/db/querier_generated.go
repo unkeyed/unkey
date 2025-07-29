@@ -84,6 +84,15 @@ type Querier interface {
 	//  DELETE FROM roles_permissions
 	//  WHERE role_id = ?
 	DeleteManyRolePermissionsByRoleID(ctx context.Context, db DBTX, roleID string) error
+	//DeleteOldIdentityWithRatelimits
+	//
+	//  DELETE i, rl
+	//  FROM identities i
+	//  LEFT JOIN ratelimits rl ON rl.identity_id = i.id
+	//  WHERE i.workspace_id = ?
+	//    AND (i.id = ? OR i.external_id = ?)
+	//    AND i.deleted = true
+	DeleteOldIdentityWithRatelimits(ctx context.Context, db DBTX, arg DeleteOldIdentityWithRatelimitsParams) error
 	//DeletePermission
 	//
 	//  DELETE FROM permissions

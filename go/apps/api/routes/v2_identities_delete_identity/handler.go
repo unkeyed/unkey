@@ -100,38 +100,32 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err = db.Query.SoftDeleteIdentity(ctx, tx, db.SoftDeleteIdentityParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Identity:    req.Identity,
+			Identity:    identity.ID,
 		})
 
 		// If we hit a duplicate key error, we know that we have an identity that was already soft deleted
 		// so we can hard delete the "old" deleted version
 		if db.IsDuplicateKeyError(err) {
-			// Find the old soft-deleted identity with the same external ID
-			oldIdentity, findErr := db.Query.FindIdentity(ctx, tx, db.FindIdentityParams{
+			// Delete the old soft-deleted identity and its ratelimits
+			err = db.Query.DeleteOldIdentityWithRatelimits(ctx, tx, db.DeleteOldIdentityWithRatelimitsParams{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Identity:    req.Identity,
-				Deleted:     true,
 			})
-			if findErr != nil {
-				return fault.Wrap(findErr,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database failed to find old soft-deleted identity"),
-					fault.Public("Failed to find old deleted identity."),
-				)
-			}
-
-			err = deleteOldIdentity(ctx, tx, auth.AuthorizedWorkspaceID, oldIdentity.ID)
 			if err != nil {
-				return err
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database failed to delete old soft-deleted identity"),
+					fault.Public("Failed to delete old deleted identity."),
+				)
 			}
 
 			// Re-apply the soft delete operation
 			err = db.Query.SoftDeleteIdentity(ctx, tx, db.SoftDeleteIdentityParams{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Identity:    req.Identity,
+				Identity:    identity.ID,
 			})
-
 		}
+
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -216,29 +210,4 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RequestId: s.RequestID(),
 		},
 	})
-}
-
-func deleteOldIdentity(ctx context.Context, tx db.DBTX, workspaceID, identity string) error {
-	err := db.Query.DeleteManyRatelimitsByIdentityID(ctx, tx, sql.NullString{String: identity, Valid: true})
-	if err != nil && !db.IsNotFound(err) {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to delete identity ratelimits"),
-			fault.Public("Failed to delete Identity ratelimits."),
-		)
-	}
-
-	err = db.Query.DeleteIdentity(ctx, tx, db.DeleteIdentityParams{
-		WorkspaceID: workspaceID,
-		Identity:    identity,
-	})
-	if err != nil && !db.IsNotFound(err) {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to delete identity"),
-			fault.Public("Failed to delete Identity."),
-		)
-	}
-
-	return nil
 }
