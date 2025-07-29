@@ -14,6 +14,7 @@ SELECT id, workspace_id, namespace_id, identifier, ` + "`" + `limit` + "`" + `, 
 WHERE
 workspace_id = ?
 AND namespace_id = ?
+AND deleted_at_m IS NULL
 AND id >= ?
 ORDER BY id ASC
 LIMIT ?
@@ -32,6 +33,7 @@ type ListRatelimitOverridesByNamespaceIDParams struct {
 //	WHERE
 //	workspace_id = ?
 //	AND namespace_id = ?
+//	AND deleted_at_m IS NULL
 //	AND id >= ?
 //	ORDER BY id ASC
 //	LIMIT ?

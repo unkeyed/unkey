@@ -1167,6 +1167,7 @@ type Querier interface {
 	//  WHERE
 	//  workspace_id = ?
 	//  AND namespace_id = ?
+	//  AND deleted_at_m IS NULL
 	//  AND id >= ?
 	//  ORDER BY id ASC
 	//  LIMIT ?
