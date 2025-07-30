@@ -3,6 +3,7 @@ package api
 import (
 	"net"
 
+	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/tls"
 )
@@ -11,7 +12,7 @@ type S3Config struct {
 	URL             string
 	Bucket          string
 	AccessKeyID     string
-	SecretAccessKey string
+	AccessKeySecret string
 }
 
 type Config struct {
@@ -82,5 +83,18 @@ type Config struct {
 func (c Config) Validate() error {
 	// TLS configuration is validated when it's created from files
 	// Other validations may be added here in the future
+
+	if c.VaultS3 != nil {
+		err := assert.All(
+			assert.NotEmpty(c.VaultS3.URL, "vault s3 url is empty"),
+			assert.NotEmpty(c.VaultS3.Bucket, "vault s3 bucket is empty"),
+			assert.NotEmpty(c.VaultS3.AccessKeyID, "vault s3 access key id is empty"),
+			assert.NotEmpty(c.VaultS3.AccessKeySecret, "vault s3 secret access key is empty"),
+		)
+		if err != nil {
+			return err
+		}
+
+	}
 	return nil
 }
