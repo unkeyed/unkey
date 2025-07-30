@@ -118,37 +118,15 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				})
 
 			// Duplicate errors
-			case codes.UnkeyDataErrorsIdentityDuplicate:
+			case codes.UnkeyDataErrorsIdentityDuplicate,
+				codes.UnkeyDataErrorsRoleDuplicate,
+				codes.UnkeyDataErrorsPermissionDuplicate:
 				return s.JSON(http.StatusConflict, openapi.ConflictErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
 					Error: openapi.BaseError{
-						Title:  "Duplicate Identity",
-						Type:   code.DocsURL(),
-						Detail: fault.UserFacingMessage(err),
-						Status: http.StatusConflict,
-					},
-				})
-			case codes.UnkeyDataErrorsRoleDuplicate:
-				return s.JSON(http.StatusConflict, openapi.ConflictErrorResponse{
-					Meta: openapi.Meta{
-						RequestId: s.RequestID(),
-					},
-					Error: openapi.BaseError{
-						Title:  "Duplicate Role",
-						Type:   code.DocsURL(),
-						Detail: fault.UserFacingMessage(err),
-						Status: http.StatusConflict,
-					},
-				})
-			case codes.UnkeyDataErrorsPermissionDuplicate:
-				return s.JSON(http.StatusConflict, openapi.ConflictErrorResponse{
-					Meta: openapi.Meta{
-						RequestId: s.RequestID(),
-					},
-					Error: openapi.BaseError{
-						Title:  "Duplicate Permission",
+						Title:  "Conflicting Resource",
 						Type:   code.DocsURL(),
 						Detail: fault.UserFacingMessage(err),
 						Status: http.StatusConflict,

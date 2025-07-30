@@ -2312,6 +2312,12 @@ components:
                     default: false
         V2IdentitiesCreateIdentityResponseData:
             type: object
+            properties:
+                identityId:
+                    type: string
+                    description: The unique identifier of the created identity.
+            required:
+                - identityId
         V2IdentitiesGetIdentityResponseData:
             type: object
             required:

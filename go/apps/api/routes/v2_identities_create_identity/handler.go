@@ -94,8 +94,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		meta = rawMeta
 	}
 
+	identityID := uid.New(uid.IdentityPrefix)
+
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		identityID := uid.New(uid.IdentityPrefix)
 		args := db.InsertIdentityParams{
 			ID:          identityID,
 			ExternalID:  req.ExternalId,
@@ -213,6 +214,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.V2IdentitiesCreateIdentityResponseData{},
+		Data: openapi.V2IdentitiesCreateIdentityResponseData{IdentityId: identityID},
 	})
 }

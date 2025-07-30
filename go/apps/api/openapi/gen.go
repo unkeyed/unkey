@@ -627,7 +627,10 @@ type V2IdentitiesCreateIdentityResponseBody struct {
 }
 
 // V2IdentitiesCreateIdentityResponseData defines model for V2IdentitiesCreateIdentityResponseData.
-type V2IdentitiesCreateIdentityResponseData = map[string]interface{}
+type V2IdentitiesCreateIdentityResponseData struct {
+	// IdentityId The unique identifier of the created identity.
+	IdentityId string `json:"identityId"`
+}
 
 // V2IdentitiesDeleteIdentityRequestBody defines model for V2IdentitiesDeleteIdentityRequestBody.
 type V2IdentitiesDeleteIdentityRequestBody struct {
