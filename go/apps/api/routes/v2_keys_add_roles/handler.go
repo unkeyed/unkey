@@ -143,7 +143,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		return fault.New("role not found",
 			fault.Code(codes.Data.Role.NotFound.URN()),
-			fault.Internal("role not found"), fault.Public(fmt.Sprintf("Role %q was not found.", role)),
+			fault.Internal("role not found"), fault.Public(fmt.Sprintf("Role '%s' was not found.", role)),
 		)
 	}
 

@@ -305,30 +305,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	// Filter out the cursor key if cursor was provided (to avoid duplicates)
-	filteredKeys := keys
-	if cursor != "" {
-		var filtered []db.ListKeysByKeyAuthIDRow
-		for _, key := range keys {
-			if key.Key.ID != cursor {
-				filtered = append(filtered, key)
-			}
-		}
-		filteredKeys = filtered
-	}
-
-	// Determine the actual number of keys to return (respect the limit)
-	numKeysToReturn := len(filteredKeys)
-	hasMore := false
-	if len(filteredKeys) > limit {
-		numKeysToReturn = limit
-		hasMore = true
+	// Determine the cursor for the next page
+	hasMore := len(keys) > limit
+	var nextCursor *string
+	if hasMore {
+		nextCursor = ptr.P(keys[len(keys)-1].Key.ID)
+		// Trim the results to the requested limit
+		keys = keys[:limit]
 	}
 
 	// Transform keys into the response format
-	responseData := make([]openapi.KeyResponseData, numKeysToReturn)
-	for i := 0; i < numKeysToReturn; i++ {
-		key := filteredKeys[i]
+	responseData := make([]openapi.KeyResponseData, len(keys))
+	for i, key := range keys {
 		k := openapi.KeyResponseData{
 			KeyId:       key.Key.ID,
 			Start:       key.Key.Start,
@@ -467,13 +455,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		responseData[i] = k
-	}
-
-	// Determine the cursor for the next page
-	var nextCursor *string
-	if hasMore && numKeysToReturn > 0 {
-		cursor := responseData[numKeysToReturn-1].KeyId
-		nextCursor = &cursor
 	}
 
 	return s.JSON(http.StatusOK, Response{
