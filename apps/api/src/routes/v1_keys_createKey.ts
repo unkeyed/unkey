@@ -554,20 +554,20 @@ async function getPermissionIds(
   rbac: RBAC,
   db: Database,
   workspaceId: string,
-  permissionNames: Array<string>,
+  permissionsSlugs: Array<string>,
 ): Promise<Array<string>> {
-  if (permissionNames.length === 0) {
+  if (permissionsSlugs.length === 0) {
     return [];
   }
   const permissions = await db.query.permissions.findMany({
     where: (table, { inArray, and, eq }) =>
-      and(eq(table.workspaceId, workspaceId), inArray(table.name, permissionNames)),
+      and(eq(table.workspaceId, workspaceId), inArray(table.slug, permissionsSlugs)),
     columns: {
       id: true,
-      name: true,
+      slug: true,
     },
   });
-  if (permissions.length === permissionNames.length) {
+  if (permissions.length === permissionsSlugs.length) {
     return permissions.map((r) => r.id);
   }
 
@@ -585,15 +585,15 @@ async function getPermissionIds(
     throw new UnkeyApiError({ code: "INSUFFICIENT_PERMISSIONS", message: val.message });
   }
 
-  const missingPermissions = permissionNames.filter(
-    (name) => !permissions.some((permission) => permission.name === name),
+  const missingPermissionSlugs = permissionsSlugs.filter(
+    (slug) => !permissions.some((permission) => permission.slug === slug),
   );
 
-  const newPermissions = missingPermissions.map((name) => ({
+  const newPermissions = missingPermissionSlugs.map((slug) => ({
     id: newId("permission"),
     workspaceId,
-    name,
-    slug: name,
+    name: slug,
+    slug,
   }));
 
   await db.insert(schema.permissions).values(newPermissions);
