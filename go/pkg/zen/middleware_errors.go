@@ -116,9 +116,9 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 						Status: http.StatusForbidden,
 					},
 				})
-			case codes.UnkeyDataErrorsIdentityDuplicate,
-				codes.UnkeyDataErrorsRoleDuplicate,
-				codes.UnkeyDataErrorsPermissionDuplicate:
+
+			// Duplicate errors
+			case codes.UnkeyDataErrorsIdentityDuplicate:
 				return s.JSON(http.StatusConflict, openapi.ConflictErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -130,6 +130,31 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 						Status: http.StatusConflict,
 					},
 				})
+			case codes.UnkeyDataErrorsRoleDuplicate:
+				return s.JSON(http.StatusConflict, openapi.ConflictErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+						Title:  "Duplicate Role",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusConflict,
+					},
+				})
+			case codes.UnkeyDataErrorsPermissionDuplicate:
+				return s.JSON(http.StatusConflict, openapi.ConflictErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+						Title:  "Duplicate Permission",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusConflict,
+					},
+				})
+
 			// Protected Resource
 			case codes.UnkeyAppErrorsProtectionProtectedResource:
 				return s.JSON(http.StatusPreconditionFailed, openapi.PreconditionFailedErrorResponse{

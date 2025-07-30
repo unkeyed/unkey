@@ -116,7 +116,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
-		require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Role %q was not found", nonExistentRoleID))
+		require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Role '%s' was not found", nonExistentRoleID))
 		require.Equal(t, 404, res.Body.Error.Status)
 	})
 
@@ -140,7 +140,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
-		require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Role %q was not found", nonExistentRoleName))
+		require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Role '%s' was not found", nonExistentRoleName))
 		require.Equal(t, 404, res.Body.Error.Status)
 	})
 
@@ -248,7 +248,7 @@ func TestNotFoundErrors(t *testing.T) {
 			require.NotNil(t, res.Body)
 			require.NotNil(t, res.Body.Error)
 			require.Equal(t, "Not Found", res.Body.Error.Title)
-			require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Role %q was not found", otherRoleID))
+			require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Role '%s' was not found", otherRoleID))
 			require.Equal(t, 404, res.Body.Error.Status)
 		})
 
@@ -270,7 +270,7 @@ func TestNotFoundErrors(t *testing.T) {
 			require.NotNil(t, res.Body)
 			require.NotNil(t, res.Body.Error)
 			require.Equal(t, "Not Found", res.Body.Error.Title)
-			require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Role %q was not found", otherRoleName))
+			require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Role '%s' was not found", otherRoleName))
 			require.Equal(t, 404, res.Body.Error.Status)
 		})
 	})
@@ -295,7 +295,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
-		require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Role %q was not found", nonExistentRoleID))
+		require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Role '%s' was not found", nonExistentRoleID))
 		require.Equal(t, 404, res.Body.Error.Status)
 	})
 
@@ -345,7 +345,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
-		require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Role %q was not found", validFormattedRoleID))
+		require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Role '%s' was not found", validFormattedRoleID))
 		require.Equal(t, 404, res.Body.Error.Status)
 	})
 }

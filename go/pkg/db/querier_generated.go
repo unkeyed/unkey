@@ -1127,9 +1127,9 @@ type Querier interface {
 	//  SELECT p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
 	//  FROM permissions p
 	//  WHERE p.workspace_id = ?
-	//    AND p.id > ?
+	//    AND p.id >= ?
 	//  ORDER BY p.id
-	//  LIMIT 101
+	//  LIMIT ?
 	ListPermissions(ctx context.Context, db DBTX, arg ListPermissionsParams) ([]Permission, error)
 	//ListPermissionsByKeyID
 	//
@@ -1215,9 +1215,9 @@ type Querier interface {
 	//  ) as permissions
 	//  FROM roles r
 	//  WHERE r.workspace_id = ?
-	//  AND r.id > ?
+	//  AND r.id >= ?
 	//  ORDER BY r.id
-	//  LIMIT 101
+	//  LIMIT ?
 	ListRoles(ctx context.Context, db DBTX, arg ListRolesParams) ([]ListRolesRow, error)
 	//ListRolesByKeyID
 	//
