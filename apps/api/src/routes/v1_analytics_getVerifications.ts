@@ -15,7 +15,8 @@ const route = createRoute({
   tags: ["analytics"],
   operationId: "getVerifications",
   summary: "Get verification analytics",
-  description: "**DEPRECATED**: This API version is deprecated. Please migrate to v2. See https://www.unkey.com/docs/api-reference/v1/migration for more information.",
+  description:
+    "**DEPRECATED**: This API version is deprecated. Please migrate to v2. See https://www.unkey.com/docs/api-reference/v1/migration for more information.",
   method: "get",
   path: "/v1/analytics.getVerifications",
   security: [{ bearerAuth: [] }],
@@ -510,9 +511,9 @@ STEP INTERVAL 1 MONTH`,
         tags: row.tags,
         identity: row.identityId
           ? {
-            id: row.identityId,
-            externalId: identitiesById[row.identityId]?.externalId,
-          }
+              id: row.identityId,
+              externalId: identitiesById[row.identityId]?.externalId,
+            }
           : undefined,
       })),
     );
