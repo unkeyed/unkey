@@ -22,8 +22,10 @@ type Querier interface {
 	DeleteAllKeyRolesByKeyID(ctx context.Context, db DBTX, keyID string) error
 	//DeleteIdentity
 	//
-	//  DELETE FROM identities WHERE id = ?
-	DeleteIdentity(ctx context.Context, db DBTX, id string) error
+	//  DELETE FROM identities
+	//  WHERE workspace_id = ?
+	//    AND (id = ? OR external_id = ?)
+	DeleteIdentity(ctx context.Context, db DBTX, arg DeleteIdentityParams) error
 	//DeleteKeyByID
 	//
 	//  DELETE k, kp, kr, rl, ek
@@ -82,6 +84,15 @@ type Querier interface {
 	//  DELETE FROM roles_permissions
 	//  WHERE role_id = ?
 	DeleteManyRolePermissionsByRoleID(ctx context.Context, db DBTX, roleID string) error
+	//DeleteOldIdentityWithRatelimits
+	//
+	//  DELETE i, rl
+	//  FROM identities i
+	//  LEFT JOIN ratelimits rl ON rl.identity_id = i.id
+	//  WHERE i.workspace_id = ?
+	//    AND (i.id = ? OR i.external_id = ?)
+	//    AND i.deleted = true
+	DeleteOldIdentityWithRatelimits(ctx context.Context, db DBTX, arg DeleteOldIdentityWithRatelimitsParams) error
 	//DeletePermission
 	//
 	//  DELETE FROM permissions
@@ -160,14 +171,14 @@ type Querier interface {
 	//  WHERE version_id = ? AND is_enabled = true
 	//  ORDER BY created_at ASC
 	FindHostnameRoutesByVersionId(ctx context.Context, db DBTX, versionID string) ([]HostnameRoute, error)
-	//FindIdentityByExternalID
+	//FindIdentity
 	//
-	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at FROM identities WHERE workspace_id = ? AND external_id = ? AND deleted = ?
-	FindIdentityByExternalID(ctx context.Context, db DBTX, arg FindIdentityByExternalIDParams) (Identity, error)
-	//FindIdentityByID
-	//
-	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at FROM identities WHERE id = ? AND deleted = ?
-	FindIdentityByID(ctx context.Context, db DBTX, arg FindIdentityByIDParams) (Identity, error)
+	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
+	//  FROM identities
+	//  WHERE workspace_id = ?
+	//   AND (external_id = ? OR id = ?)
+	//   AND deleted = ?
+	FindIdentity(ctx context.Context, db DBTX, arg FindIdentityParams) (Identity, error)
 	//FindKeyByHash
 	//
 	//  SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM `keys` WHERE hash = ?
@@ -1245,8 +1256,11 @@ type Querier interface {
 	SoftDeleteApi(ctx context.Context, db DBTX, arg SoftDeleteApiParams) error
 	//SoftDeleteIdentity
 	//
-	//  UPDATE identities set deleted = 1 WHERE id = ?
-	SoftDeleteIdentity(ctx context.Context, db DBTX, id string) error
+	//  UPDATE identities
+	//  SET deleted = 1
+	//  WHERE workspace_id = ?
+	//   AND (id = ? OR external_id = ?)
+	SoftDeleteIdentity(ctx context.Context, db DBTX, arg SoftDeleteIdentityParams) error
 	//SoftDeleteKeyByID
 	//
 	//  UPDATE `keys` SET deleted_at_m = ? WHERE id = ?

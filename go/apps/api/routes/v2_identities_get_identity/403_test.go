@@ -72,7 +72,7 @@ func TestForbidden(t *testing.T) {
 	t.Run("no permission to read any identity", func(t *testing.T) {
 		// The rootKey has no permissions, so it should fail
 		req := handler.Request{
-			ExternalId: externalID,
+			Identity: externalID,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status)
@@ -88,9 +88,9 @@ func TestForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", specificPermKey)},
 		}
 
-		// Try to use externalId when only having permission for specific identity IDs
+		// Try to use identity when only having permission for specific identity IDs
 		req := handler.Request{
-			ExternalId: externalID,
+			Identity: externalID,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, specificHeaders, req)
 		require.Equal(t, http.StatusForbidden, res.Status)

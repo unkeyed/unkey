@@ -21,8 +21,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2KeysWhoamiRequestBody
-type Response = openapi.V2KeysWhoamiResponseBody
+type (
+	Request  = openapi.V2KeysWhoamiRequestBody
+	Response = openapi.V2KeysWhoamiResponseBody
+)
 
 type Handler struct {
 	// Services as public fields
@@ -44,7 +46,6 @@ func (h *Handler) Path() string {
 }
 
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-
 	auth, emit, err := h.Keys.GetRootKey(ctx, s)
 	defer emit()
 	if err != nil {
@@ -162,7 +163,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if key.IdentityID.Valid {
-		identity, idErr := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{ID: key.IdentityID.String, Deleted: false})
+		identity, idErr := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{Identity: key.IdentityID.String, WorkspaceID: auth.AuthorizedWorkspaceID, Deleted: false})
 		if idErr != nil {
 			if db.IsNotFound(idErr) {
 				return fault.New("identity not found for key",

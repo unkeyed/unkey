@@ -385,19 +385,16 @@ components:
 
                 To resolve this error, check the current state of the resource and adjust your request accordingly.
         V2IdentitiesDeleteIdentityRequestBody:
-            additionalProperties: false
             type: object
             properties:
-                externalId:
+                identity:
                     type: string
                     minLength: 3
-                    description: |
-                        The id of this identity in your system.
-                        This should match the externalId value you used when creating the identity.
-                        This identifier typically comes from your authentication system and could be a userId, organizationId, or any other stable unique identifier in your application.
+                    description: The ID of the identity to delete. This can be either the externalId (from your own system that was used during identity creation) or the identityId (the internal ID returned by the identity service).
                     example: user_123
+            additionalProperties: false
             required:
-                - externalId
+                - identity
         V2IdentitiesDeleteIdentityResponseBody:
             type: object
             description: Empty response object. A successful response indicates the identity was deleted successfully.
@@ -409,14 +406,14 @@ components:
         V2IdentitiesGetIdentityRequestBody:
             type: object
             properties:
-                externalId:
+                identity:
                     type: string
-                    minLength: 1
-                    description: The external ID of the identity to retrieve. This is the ID from your own system that was used during identity creation.
+                    minLength: 3
+                    description: The ID of the identity to retrieve. This can be either the externalId (from your own system that was used during identity creation) or the identityId (the internal ID returned by the identity service).
                     example: user_abc123
             additionalProperties: false
             required:
-                - externalId
+                - identity
         V2IdentitiesGetIdentityResponseBody:
             type: object
             required:
