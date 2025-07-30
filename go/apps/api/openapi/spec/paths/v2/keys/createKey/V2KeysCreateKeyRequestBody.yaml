@@ -78,7 +78,7 @@ properties:
       type: string
       minLength: 1
       maxLength: 100 # Keep role names concise and readable
-      pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+      pattern: /^[a-zA-Z0-9_:\-\.\*]+$/
     description: |
       Assigns existing roles to this key for permission management through role-based access control.
       Roles must already exist in your workspace before assignment.
