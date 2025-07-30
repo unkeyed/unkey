@@ -3,7 +3,7 @@ title: "Overview"
 description: "Migrate from Unkey API v1 to v2 for enhanced features and improved infrastructure"
 ---
 
-Unkey v2 represents a major infrastructure upgrade from Cloudflare Workers to AWS servers with enhanced caching and cache invalidation systems. While the core functionality remains the same, there are important changes to request and response structures that require updates to your integration.
+Unkey v2 represents a major infrastructure upgrade with enhanced caching and cache invalidation systems. While the core functionality remains the same, there are important changes to request and response structures that require updates to your integration.
 
 <Note>The v2 API is available at **api.unkey.com** (instead of api.unkey.dev). The v1 API is deprecated and will be shut down at the end of the year 2025.</Note>
 
@@ -30,13 +30,14 @@ go get github.com/unkeyed/unkey-go@v2
 </Tab>
 </Tabs>
 
-The v2 SDK automatically points to the new AWS infrastructure and guides you through all request/response changes via its types.
+The v2 SDK automatically points to the new endpoint and guides you through all request/response changes via its types.
 
 ## Why Migrate to v2?
 
 ### Proven Performance Improvements
 
-Our infrastructure upgrade to AWS servers has delivered measurable latency improvements across all regions:
+Our v2 changes produce measurable latency improvements across all regions:
+
 <Frame caption="Global P95 Latency improvement for key verifications when switching from v1 to v2">
 <img src="/api-reference/v1/migration/latency_drop.png" />
 </Frame>
