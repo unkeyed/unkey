@@ -78,7 +78,7 @@ export const PermissionSheet = ({
     <Sheet open={open} onOpenChange={handleOpenChange} modal={true}>
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent
-        closeIcon={<XMark className="h-4 w-4" />}
+        disableClose={true}
         className="flex flex-col p-0 m-0 h-full gap-0 border-l border-l-gray-4 w-[420px]"
         side="right"
         overlay="transparent"
