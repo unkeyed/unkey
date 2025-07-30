@@ -1,17 +1,10 @@
-import {
-  ratelimit,
-  requireUser,
-  requireWorkspace,
-  t,
-  withRatelimit,
-} from "@/lib/trpc/trpc";
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
 import { db } from "@/lib/db";
-import { eq, lt, like, or, and, desc, schema, count } from "@unkey/db";
+import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { TRPCError } from "@trpc/server";
+import { and, count, desc, eq, like, lt, or, schema } from "@unkey/db";
 import {
+  type ProjectsQueryResponse,
   projectsInputSchema,
-  ProjectsQueryResponse,
   projectsResponseSchema,
 } from "./filters.schema";
 
@@ -94,9 +87,7 @@ export const queryProjects = t.procedure
 
     // Combine all conditions
     const allConditions =
-      filterConditions.length > 0
-        ? [...baseConditions, ...filterConditions]
-        : baseConditions;
+      filterConditions.length > 0 ? [...baseConditions, ...filterConditions] : baseConditions;
 
     try {
       const [totalResult, projectsResult] = await Promise.all([
@@ -129,9 +120,7 @@ export const queryProjects = t.procedure
 
       // Check if we have more results
       const hasMore = projectsResult.length > LIMIT;
-      const projectsWithoutExtra = hasMore
-        ? projectsResult.slice(0, LIMIT)
-        : projectsResult;
+      const projectsWithoutExtra = hasMore ? projectsResult.slice(0, LIMIT) : projectsResult;
 
       const response: ProjectsQueryResponse = {
         projects: projectsWithoutExtra.map((p) => ({
