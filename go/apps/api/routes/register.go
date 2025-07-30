@@ -75,37 +75,28 @@ func Register(srv *zen.Server, svc *Services) {
 	// chproxy (internal endpoints)
 
 	if svc.ChproxyToken != "" {
-		// chproxy/verifications - internal endpoint for key verification events
-		srv.RegisterRoute([]zen.Middleware{
-			withTracing,
+		chproxyMiddlewares := []zen.Middleware{
 			withMetrics,
 			withLogging,
 			withErrorHandling,
-		}, &chproxyVerifications.Handler{
+		}
+
+		// chproxy/verifications - internal endpoint for key verification events
+		srv.RegisterRoute(chproxyMiddlewares, &chproxyVerifications.Handler{
 			ClickHouse: svc.ClickHouse,
 			Logger:     svc.Logger,
 			Token:      svc.ChproxyToken,
 		})
 
 		// chproxy/metrics - internal endpoint for API request metrics
-		srv.RegisterRoute([]zen.Middleware{
-			withTracing,
-			withMetrics,
-			withLogging,
-			withErrorHandling,
-		}, &chproxyMetrics.Handler{
+		srv.RegisterRoute(chproxyMiddlewares, &chproxyMetrics.Handler{
 			ClickHouse: svc.ClickHouse,
 			Logger:     svc.Logger,
 			Token:      svc.ChproxyToken,
 		})
 
 		// chproxy/ratelimits - internal endpoint for ratelimit events
-		srv.RegisterRoute([]zen.Middleware{
-			withTracing,
-			withMetrics,
-			withLogging,
-			withErrorHandling,
-		}, &chproxyRatelimits.Handler{
+		srv.RegisterRoute(chproxyMiddlewares, &chproxyRatelimits.Handler{
 			ClickHouse: svc.ClickHouse,
 			Logger:     svc.Logger,
 			Token:      svc.ChproxyToken,
