@@ -217,17 +217,16 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 
 	routes.Register(srv, &routes.Services{
-		Logger:         logger,
-		Database:       db,
-		ClickHouse:     ch,
-		Keys:           keySvc,
-		Validator:      validator,
-		Ratelimit:      rlSvc,
-		Auditlogs:      auditlogSvc,
-		Caches:         caches,
-		Vault:          vaultSvc,
-		ChproxyEnabled: cfg.ChproxyEnabled,
-		ChproxyToken:   cfg.ChproxyToken,
+		Logger:       logger,
+		Database:     db,
+		ClickHouse:   ch,
+		Keys:         keySvc,
+		Validator:    validator,
+		Ratelimit:    rlSvc,
+		Auditlogs:    auditlogSvc,
+		Caches:       caches,
+		Vault:        vaultSvc,
+		ChproxyToken: cfg.ChproxyToken,
 	})
 	if cfg.Listener == nil {
 		// Create listener from HttpPort (production)

@@ -18,15 +18,14 @@ type EventBuffer interface {
 }
 
 type Services struct {
-	Logger         logging.Logger
-	Database       db.Database
-	Keys           keys.KeyService
-	ClickHouse     clickhouse.ClickHouse
-	Validator      *validation.Validator
-	Ratelimit      ratelimit.Service
-	Auditlogs      auditlogs.AuditLogService
-	Caches         caches.Caches
-	Vault          *vault.Service
-	ChproxyEnabled bool
-	ChproxyToken   string
+	Logger       logging.Logger
+	Database     db.Database
+	Keys         keys.KeyService
+	ClickHouse   clickhouse.ClickHouse
+	Validator    *validation.Validator
+	Ratelimit    ratelimit.Service
+	Auditlogs    auditlogs.AuditLogService
+	Caches       caches.Caches
+	Vault        *vault.Service
+	ChproxyToken string
 }
