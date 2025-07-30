@@ -417,6 +417,33 @@ type RatelimitResponse struct {
 	Name string `json:"name"`
 }
 
+// Role defines model for Role.
+type Role struct {
+	// Description Optional detailed explanation of what this role encompasses and what access it provides.
+	// Helps team members understand the role's scope, intended use cases, and security implications.
+	// Include information about what types of users should receive this role and what they can accomplish.
+	// Not visible to end users - this is for internal documentation and access control audits.
+	Description *string `json:"description,omitempty"`
+
+	// Id The unique identifier for this role within Unkey's system.
+	// Generated automatically when the role is created and used to reference this role in API operations.
+	// Always begins with 'role_' followed by alphanumeric characters and underscores.
+	Id string `json:"id"`
+
+	// Name The human-readable name for this role that describes its function.
+	// Should be descriptive enough for administrators to understand what access this role provides.
+	// Use clear, semantic names that reflect the job function or responsibility level.
+	// Names must be unique within your workspace to avoid confusion during role assignment.
+	Name string `json:"name"`
+
+	// Permissions Complete list of permissions currently assigned to this role.
+	// Each permission grants specific access rights that will be inherited by any keys or users assigned this role.
+	// Use this list to understand the full scope of access provided by this role.
+	// Permissions can be added or removed from roles without affecting the role's identity or other properties.
+	// Empty array indicates a role with no permissions currently assigned.
+	Permissions []Permission `json:"permissions"`
+}
+
 // UnauthorizedErrorResponse Error response when authentication has failed or credentials are missing. This occurs when:
 // - No authentication token is provided in the request
 // - The provided token is invalid, expired, or malformed
@@ -1902,33 +1929,6 @@ type VerifyKeyRatelimitData struct {
 
 	// Reset Rate limit reset duration in milliseconds.
 	Reset int64 `json:"reset"`
-}
-
-// Role defines model for role.
-type Role struct {
-	// Description Optional detailed explanation of what this role encompasses and what access it provides.
-	// Helps team members understand the role's scope, intended use cases, and security implications.
-	// Include information about what types of users should receive this role and what they can accomplish.
-	// Not visible to end users - this is for internal documentation and access control audits.
-	Description *string `json:"description,omitempty"`
-
-	// Id The unique identifier for this role within Unkey's system.
-	// Generated automatically when the role is created and used to reference this role in API operations.
-	// Always begins with 'role_' followed by alphanumeric characters and underscores.
-	Id string `json:"id"`
-
-	// Name The human-readable name for this role that describes its function.
-	// Should be descriptive enough for administrators to understand what access this role provides.
-	// Use clear, semantic names that reflect the job function or responsibility level.
-	// Names must be unique within your workspace to avoid confusion during role assignment.
-	Name string `json:"name"`
-
-	// Permissions Complete list of permissions currently assigned to this role.
-	// Each permission grants specific access rights that will be inherited by any keys or users assigned this role.
-	// Use this list to understand the full scope of access provided by this role.
-	// Permissions can be added or removed from roles without affecting the role's identity or other properties.
-	// Empty array indicates a role with no permissions currently assigned.
-	Permissions []Permission `json:"permissions"`
 }
 
 // ChproxyMetricsJSONRequestBody defines body for ChproxyMetrics for application/json ContentType.
