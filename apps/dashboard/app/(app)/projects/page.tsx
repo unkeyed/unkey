@@ -11,22 +11,16 @@ function useProjectsQuery() {
         name: [{ operator: "contains" as const, value: nameFilter }],
       }),
     }),
-    [nameFilter]
+    [nameFilter],
   );
 
-  const {
-    data,
-    hasNextPage,
-    fetchNextPage,
-    isFetchingNextPage,
-    isLoading,
-    refetch,
-  } = trpc.deploy.project.query.useInfiniteQuery(queryParams, {
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
-    staleTime: 30000, // 30 seconds
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-  });
+  const { data, hasNextPage, fetchNextPage, isFetchingNextPage, isLoading, refetch } =
+    trpc.deploy.project.query.useInfiniteQuery(queryParams, {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      staleTime: 30000, // 30 seconds
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+    });
 
   const projects = useMemo(() => {
     if (!data?.pages) {
@@ -171,13 +165,11 @@ export default function ProjectsPage() {
                 <strong>Branch:</strong> {project.branch || "main"}
               </p>
               <p>
-                <strong>Created:</strong>{" "}
-                {new Date(project.createdAt).toLocaleString()}
+                <strong>Created:</strong> {new Date(project.createdAt).toLocaleString()}
               </p>
               {project.updatedAt && (
                 <p>
-                  <strong>Updated:</strong>{" "}
-                  {new Date(project.updatedAt).toLocaleString()}
+                  <strong>Updated:</strong> {new Date(project.updatedAt).toLocaleString()}
                 </p>
               )}
               <a
@@ -268,10 +260,7 @@ export default function ProjectsPage() {
             color: "white",
             border: "none",
             borderRadius: "4px",
-            cursor:
-              !name || !slug || createProject.isLoading
-                ? "not-allowed"
-                : "pointer",
+            cursor: !name || !slug || createProject.isLoading ? "not-allowed" : "pointer",
           }}
         >
           {createProject.isLoading ? "Creating..." : "Create Project"}
@@ -279,9 +268,7 @@ export default function ProjectsPage() {
       </form>
 
       {createProject.error && (
-        <p style={{ color: "red", marginTop: "10px" }}>
-          Error: {createProject.error.message}
-        </p>
+        <p style={{ color: "red", marginTop: "10px" }}>Error: {createProject.error.message}</p>
       )}
     </div>
   );
