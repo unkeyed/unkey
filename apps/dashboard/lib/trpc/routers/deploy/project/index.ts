@@ -1,16 +1,4 @@
 import {
-  and,
-  count,
-  db,
-  desc,
-  eq,
-  isNull,
-  like,
-  lt,
-  or,
-  schema,
-} from "@/lib/db";
-import {
   ratelimit,
   requireUser,
   requireWorkspace,
@@ -19,30 +7,13 @@ import {
 } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { projectsQueryPayload } from "./filters.schema";
-
-const ProjectResponse = z.object({
-  id: z.string(),
-  workspaceId: z.string(),
-  partitionId: z.string(),
-  name: z.string(),
-  slug: z.string(),
-  gitRepositoryUrl: z.string().nullable(),
-  defaultBranch: z.string().nullable(),
-  deleteProtection: z.boolean().nullable(),
-  createdAt: z.number(),
-  updatedAt: z.number().nullable(),
-});
-
-const ProjectsResponse = z.object({
-  projects: z.array(ProjectResponse),
-  hasMore: z.boolean(),
-  total: z.number(),
-  nextCursor: z.number().int().nullish(),
-});
-
-type ProjectsResponse = z.infer<typeof ProjectsResponse>;
-export type Project = z.infer<typeof ProjectResponse>;
+import { db } from "@/lib/db";
+import { eq, lt, like, or, and, desc, schema, count } from "@unkey/db";
+import {
+  projectsInputSchema,
+  ProjectsQueryResponse,
+  projectsResponseSchema,
+} from "./filters.schema";
 
 export const LIMIT = 20;
 
@@ -50,8 +21,8 @@ export const queryProjects = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
   .use(withRatelimit(ratelimit.read))
-  .input(projectsQueryPayload)
-  .output(ProjectsResponse)
+  .input(projectsInputSchema)
+  .output(projectsResponseSchema)
   .query(async ({ ctx, input }) => {
     // Build base conditions
     const baseConditions = [eq(schema.projects.workspaceId, ctx.workspace.id)];
@@ -80,6 +51,44 @@ export const queryProjects = t.procedure
         filterConditions.push(nameConditions[0]);
       } else {
         filterConditions.push(or(...nameConditions));
+      }
+    }
+
+    // Slug filter
+    if (input.slug && input.slug.length > 0) {
+      const slugConditions = input.slug.map((filter) => {
+        if (filter.operator === "contains") {
+          return like(schema.projects.slug, `%${filter.value}%`);
+        }
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Unsupported slug operator: ${filter.operator}`,
+        });
+      });
+
+      if (slugConditions.length === 1) {
+        filterConditions.push(slugConditions[0]);
+      } else {
+        filterConditions.push(or(...slugConditions));
+      }
+    }
+
+    // Default branch filter
+    if (input.branch && input.branch.length > 0) {
+      const branchConditions = input.branch.map((filter) => {
+        if (filter.operator === "contains") {
+          return like(schema.projects.defaultBranch, `%${filter.value}%`);
+        }
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Unsupported defaultBranch operator: ${filter.operator}`,
+        });
+      });
+
+      if (branchConditions.length === 1) {
+        filterConditions.push(branchConditions[0]);
+      } else {
+        filterConditions.push(or(...branchConditions));
       }
     }
 
@@ -124,8 +133,11 @@ export const queryProjects = t.procedure
         ? projectsResult.slice(0, LIMIT)
         : projectsResult;
 
-      const response: ProjectsResponse = {
-        projects: projectsWithoutExtra,
+      const response: ProjectsQueryResponse = {
+        projects: projectsWithoutExtra.map((p) => ({
+          ...p,
+          branch: p.defaultBranch,
+        })),
         hasMore,
         total: totalResult[0]?.count ?? 0,
         nextCursor:
