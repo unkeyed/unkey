@@ -195,7 +195,7 @@ func Run(ctx context.Context, cfg Config) error {
 			S3URL:             cfg.VaultS3.URL,
 			S3Bucket:          cfg.VaultS3.Bucket,
 			S3AccessKeyID:     cfg.VaultS3.AccessKeyID,
-			S3AccessKeySecret: cfg.VaultS3.SecretAccessKey,
+			S3AccessKeySecret: cfg.VaultS3.AccessKeySecret,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to create vault storage: %w", err)
