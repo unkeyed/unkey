@@ -39,7 +39,7 @@ export const PermissionToggle: React.FC<PermissionToggleProps> = ({
         <div className="inline-flex items-center gap-2 w-full">
           <span className="text-sm w-fit">{category}</span>
           <ChevronRight size="sm-regular" className="text-grayA-8" />
-            {<span className="text-sm w-full">{label}</span>}
+          {<span className="text-sm w-full">{label}</span>}
         </div>
         <InfoTooltip content={description} className="w-full text-left">
           <p className="text-xs text-gray-10 text-left max-w-[245px] w-full truncate mr-2">
