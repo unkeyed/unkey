@@ -1,10 +1,11 @@
 "use client";
+import React from "react";
 import type { CheckedState } from "@radix-ui/react-checkbox";
 import { ChevronRight } from "@unkey/icons";
 import { Checkbox, InfoTooltip } from "@unkey/ui";
 
 type PermissionToggleProps = {
-  category: string;
+  category: string | React.ReactNode;
   checked: CheckedState;
   setChecked: (checked: boolean) => void;
   label: string | React.ReactNode;
@@ -19,8 +20,11 @@ export const PermissionToggle: React.FC<PermissionToggleProps> = ({
   label,
   description,
 }) => {
+  // Convert label to string for tooltip if it's a React node
+  const labelString = typeof label === 'string' ? label : String(label);
+
   return (
-    <div className="flex flex-row items-center justify-evenly gap-4 transition-all pl-6 h-full my-1 w-full">
+    <div className="flex flex-row items-center justify-evenly gap-4 transition-all pl-3 h-full my-1 ml-2 w-full hover:bg-grayA-3 rounded-lg">
       <Checkbox
         size="lg"
         checked={checked}

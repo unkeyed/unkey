@@ -117,9 +117,6 @@ export const CreateRootKeyButton = ({ ...props }: Props) => {
         variant="primary"
         size="md"
         className={cn("rounded-lg", props.className)}
-        variant="primary"
-        size="md"
-        className={cn("rounded-lg", props.className)}
       >
         <Plus />
         New root key
@@ -179,7 +176,7 @@ export const CreateRootKeyButton = ({ ...props }: Props) => {
             </div>
           </div>
         </form>
-        <ScrollArea className="w-full overflow-y-auto pt-0 mb-4 h-24">
+        <ScrollArea className="w-full overflow-y-auto pt-0 mb-4">
           <div className="flex flex-col px-6 py-0 gap-3">
             <PermissionBadgeList
               selectedPermissions={selectedPermissions}

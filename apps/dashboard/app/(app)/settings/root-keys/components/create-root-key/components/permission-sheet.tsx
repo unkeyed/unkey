@@ -26,21 +26,8 @@ type PermissionSheetProps = {
   loadMore?: () => void;
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
-  selectedPermissions: UnkeyPermission[];
-  onChange?: (permissions: UnkeyPermission[]) => void;
-  loadMore?: () => void;
-  hasNextPage?: boolean;
-  isFetchingNextPage?: boolean;
 };
-export const PermissionSheet = ({
-  children,
-  apis,
-  selectedPermissions,
-  onChange,
-  loadMore,
-  hasNextPage,
-  isFetchingNextPage,
-}: PermissionSheetProps) => {
+
 export const PermissionSheet = ({
   children,
   apis,
@@ -57,11 +44,14 @@ export const PermissionSheet = ({
   const [apiPermissions, setApiPermissions] = useState<Record<string, UnkeyPermission[]>>({});
   const [searchValue, setSearchValue] = useState<string | undefined>(undefined);
   const [emptyApis, setEmptyApis] = useState(false);
-  const [emptyWorkspace, setEmptyWorkspace] = useState(false);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setIsProcessing(true);
-    setSearchValue(e.target.value);
+    if (e.target.value === "") {
+      setSearchValue(undefined);
+    } else {
+      setSearchValue(e.target.value);
+    }
     setIsProcessing(false);
   };
 
@@ -91,7 +81,7 @@ export const PermissionSheet = ({
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent
         closeIcon={<XMark className="h-4 w-4" />}
-        className="flex flex-col p-0 m-0 h-full gap-0 border-l border-l-gray-4 min-w-[420px]"
+        className="flex flex-col p-0 m-0 h-full gap-0 border-l border-l-gray-4 w-[420px]"
         side="right"
         overlay="transparent"
       >
@@ -103,17 +93,16 @@ export const PermissionSheet = ({
             onChange={handleSearchChange}
           />
         </SheetHeader>
-        <SheetDescription className="w-full h-full pt-2">
+        <SheetDescription className="w-full h-full">
           <div className="flex flex-col h-full">
             <div
               className={`flex flex-col ${hasNextPage ? "max-h-[calc(100%-80px)]" : "max-h-[calc(100%-40px)]"}`}
             >
-              <ScrollArea className="flex flex-col h-full">
+              <ScrollArea className="flex flex-col h-full pt-2">
                 <div className="flex flex-col pt-0 mt-0 gap-1 pb-6">
                   {/* Workspace Permissions */}
                   {/* TODO: Tie In Search */}
                   <PermissionContentList
-                    setEmpty={(val:boolean) => setEmptyWorkspace(val)}
                     selected={selectedPermissions}
                     searchValue={searchValue}
                     key="workspace"
@@ -130,7 +119,6 @@ export const PermissionSheet = ({
                   )}
                   {apis.map((api) => (
                     <PermissionContentList
-                      setEmpty={(val: boolean) => setEmptyApis(val)}
                       selected={selectedPermissions}
                       searchValue={searchValue}
                       key={api.id}
@@ -145,19 +133,21 @@ export const PermissionSheet = ({
               </ScrollArea>
             </div>
             <div className="absolute bottom-2 right-0 max-h-10 w-full">
-              {hasNextPage && (
-                <div className="flex flex-row justify-end items-center px-4">
-                  <Button
-                    className="mx-auto w-full rounded-lg"
-                    size="lg"
-                    onClick={loadMore}
-                    disabled={!hasNextPage}
-                    loading={isFetchingNextPage}
-                  >
-                    Load More
-                  </Button>
+              {hasNextPage ? (
+                <div className="absolute bottom-0 right-0 w-full h-fit py-4">
+                  <div className="flex flex-row justify-end items-center">
+                    <Button
+                      className="mx-auto w-18 rounded-lg"
+                      size="sm"
+                      onClick={loadMore}
+                      disabled={!hasNextPage}
+                      loading={isFetchingNextPage}
+                    >
+                      Load More
+                    </Button>
+                  </div>
                 </div>
-              )}
+              ) : undefined}
             </div>
           </div>
         </SheetDescription>

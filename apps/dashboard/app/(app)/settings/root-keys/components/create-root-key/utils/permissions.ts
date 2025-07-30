@@ -14,7 +14,8 @@ interface PermissionState {
 type PermissionAction =
     | { type: "TOGGLE_PERMISSION"; permission: UnkeyPermission; permissionList: PermissionList }
     | { type: "TOGGLE_CATEGORY"; category: string; permissionList: PermissionList }
-    | { type: "TOGGLE_ROOT"; permissionList: PermissionList };
+    | { type: "TOGGLE_ROOT"; permissionList: PermissionList }
+    | { type: "UPDATE_CHECKED_STATES"; rootChecked: CheckedState; categoryChecked: Record<string, CheckedState> };
 
 function getAllPermissionNames(permissionList: PermissionList) {
     return Object.values(permissionList).flatMap((category) =>
@@ -26,38 +27,28 @@ function getCategoryPermissionNames(permissionList: PermissionList, category: st
     return Object.values(permissionList[category] || {}).map(({ permission }) => permission);
 }
 
-function filterCategory(permissionList: PermissionList, searchValue: string) {
-    return Object.entries(permissionList).reduce<PermissionList>((acc, [category, permissions]) => {
-        acc[category] = Object.entries(permissions).reduce<
-            Record<string, { description: string; permission: UnkeyPermission }>
-        >(
-            (acc, [permissionName, { description, permission }]) => {
-                if (searchValue && !description.toLowerCase().includes(searchValue.toLowerCase())) {
-                    return acc;
-                }
-                acc[permissionName] = { description, permission };
-                return acc;
-            },
-            {} as Record<string, { description: string; permission: UnkeyPermission }>,
-        );
-        return acc;
-    }, {} as PermissionList);
-}
+
 function filterPermissionList(permissionList: PermissionList, searchValue: string | undefined) {
     return Object.entries(permissionList).reduce<PermissionList>((acc, [category, permissions]) => {
         acc[category] = Object.entries(permissions).reduce<
             Record<string, { description: string; permission: UnkeyPermission }>
         >(
             (acc, [permissionName, { description, permission }]) => {
-                if (searchValue && !description.toLowerCase().includes(searchValue.toLowerCase())) {
-                    return acc;
+                
+                if (searchValue && searchValue.length > 0) {
+                    const permissionNameLower = permissionName.toLowerCase();
+                    // Check if each word in parsedSearchValue is included in the description
+                    const wordMatched = permissionNameLower.includes(searchValue.toLowerCase());
+                    if (!wordMatched) {
+                        return acc;
+                    }
                 }
                 acc[permissionName] = { description, permission };
                 return acc;
             },
             {} as Record<string, { description: string; permission: UnkeyPermission }>,
         );
-        return acc;
+        return acc as PermissionList;
     }, {} as PermissionList);
 }
 
@@ -149,6 +140,11 @@ function permissionReducer(state: PermissionState, action: PermissionAction): Pe
             return { selectedPermissions, rootChecked, categoryChecked };
         }
 
+        case "UPDATE_CHECKED_STATES": {
+            const { rootChecked, categoryChecked } = action;
+            return { ...state, rootChecked, categoryChecked };
+        }
+
         default:
             return state;
     }
@@ -164,5 +160,4 @@ export {
     computeCheckedStates,
     permissionReducer,
     filterPermissionList,
-    filterCategory
 };
