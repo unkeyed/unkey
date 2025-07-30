@@ -674,7 +674,7 @@ components:
                         type: string
                         minLength: 1
                         maxLength: 100
-                        pattern: /^[a-zA-Z0-9_:\-\.\*]+$/
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     description: |
                         Assigns existing roles to this key for permission management through role-based access control.
                         Roles must already exist in your workspace before assignment.
@@ -916,7 +916,7 @@ components:
                         Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
                     items:
                         type: string
-                        pattern: /^[a-zA-Z0-9_:\-\.\*]+$/
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                         minLength: 3
                         maxLength: 255
                         description: Specify the role by name.
@@ -1004,7 +1004,7 @@ components:
                         Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
                     items:
                         type: string
-                        pattern: /^[a-zA-Z0-9_:\-\.\*]+$/
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                         minLength: 3
                         maxLength: 255
                         description: Specify the role by name.
@@ -1171,7 +1171,7 @@ components:
                         type: string
                         minLength: 1
                         maxLength: 100
-                        pattern: /^[a-zA-Z0-9_:\-\.\*]+$/
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                         description: |
                             Assigns existing roles to this key for permission management through role-based access control.
                             Roles must already exist in your workspace before assignment.
@@ -1459,7 +1459,7 @@ components:
             properties:
                 role:
                     type: string
-                    pattern: /^[a-zA-Z0-9_:\-\.\*]+$/
+                    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     minLength: 3
                     maxLength: 255
                     description: |
@@ -1523,7 +1523,7 @@ components:
                     type: string
                     minLength: 3
                     maxLength: 255
-                    pattern: /^[a-zA-Z0-9_:\-\.\*]+$/
+                    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     description: |
                         Unique identifier of the role to permanently delete from your workspace.
                         Must either be a valid role ID that begins with 'role_' or the given role name and exists within your workspace.
