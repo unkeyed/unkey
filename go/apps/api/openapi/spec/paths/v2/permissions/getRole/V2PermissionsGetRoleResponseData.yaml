@@ -1,7 +1,7 @@
 type: object
 properties:
   role:
-    "$ref": "../../../../common/role.yaml"
+    "$ref": "../../../../common/Role.yaml"
 required:
   - role
 additionalProperties: false

@@ -14,4 +14,4 @@ description: |-
   - Role permissions are not expanded in this response - use keys.getKey for complete details
   - An empty array indicates the key now has no roles assigned at all
 items:
-  "$ref": "../../../../common/role.yaml"
+  "$ref": "../../../../common/Role.yaml"

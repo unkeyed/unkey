@@ -14,4 +14,4 @@ description: |-
   - Role permissions are not expanded in this response - use keys.getKey for full details
   - Changes take effect immediately for new verifications but cached sessions may retain old permissions briefly
 items:
-  "$ref": "../../../../common/role.yaml"
+  "$ref": "../../../../common/Role.yaml"

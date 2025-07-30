@@ -1,0 +1,16 @@
+type: object
+required:
+  - meta
+  - error
+properties:
+  meta:
+    $ref: "../common/Meta.yaml"
+  error:
+    $ref: "./BaseError.yaml"
+description: |-
+  Error response when the request conflicts with the current state of the resource. This occurs when:
+  - Attempting to create a resource that already exists
+  - Modifying a resource that has been changed by another operation
+  - Violating unique constraints or business rules
+
+  To resolve this error, check the current state of the resource and adjust your request accordingly.

@@ -12,7 +12,8 @@ const route = createRoute({
   tags: ["apis"],
   operationId: "deleteKeys",
   summary: "Delete API keys",
-  description: "**DEPRECATED**: This API version is deprecated. Please migrate to v2. See https://www.unkey.com/docs/api-reference/v1/migration for more information.",
+  description:
+    "**DEPRECATED**: This API version is deprecated. Please migrate to v2. See https://www.unkey.com/docs/api-reference/v1/migration for more information.",
   method: "post",
   path: "/v1/apis.deleteKeys",
   security: [{ bearerAuth: [] }],
