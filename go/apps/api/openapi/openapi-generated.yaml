@@ -2807,7 +2807,7 @@ components:
             type: object
             properties:
                 role:
-                    "$ref": "#/components/schemas/Role"
+                    "$ref": "#/components/schemas/role"
             required:
                 - role
             additionalProperties: false
@@ -2823,7 +2823,7 @@ components:
             maxItems: 1000
             description: Array of roles with their assigned permissions.
             items:
-                "$ref": "#/components/schemas/Role"
+                "$ref": "#/components/schemas/role"
         V2RatelimitDeleteOverrideResponseData:
             type: object
             additionalProperties: false
@@ -3799,7 +3799,7 @@ paths:
             x-speakeasy-name-override: listIdentities
             x-speakeasy-pagination:
                 inputs:
-                    - in: parameters
+                    - in: requestBody
                       name: cursor
                       type: cursor
                 outputs:
@@ -5850,6 +5850,19 @@ security:
     - rootKey: []
 servers:
     - url: https://api.unkey.com
+tags:
+    - description: API management operations
+      name: apis
+    - description: Identity management operations
+      name: identities
+    - description: API key management operations
+      name: keys
+    - description: Health check operations
+      name: liveness
+    - description: Permission and role management operations
+      name: permissions
+    - description: Rate limiting operations
+      name: ratelimit
 x-speakeasy-retries:
     backoff:
         exponent: 1.5

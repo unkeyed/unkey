@@ -75,9 +75,6 @@ type Config struct {
 
 	// --- ClickHouse proxy configuration ---
 
-	// ChproxyEnabled enables the ClickHouse proxy endpoints
-	ChproxyEnabled bool
-
 	// ChproxyToken is the authentication token for ClickHouse proxy endpoints
 	ChproxyToken string
 }

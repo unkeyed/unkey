@@ -55,6 +55,7 @@ const headers = {
 };
 
 const identifiers = ["user1", "user2", "user3", "user4", "user5"];
+// biome-ignore lint/style/noDefaultExport: k6 needs a default exporet
 export default function () {
   // Randomly choose between v1 and v2 (50/50 split)
 
