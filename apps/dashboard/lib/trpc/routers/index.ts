@@ -37,6 +37,7 @@ import { searchRolesPermissions } from "./authorization/roles/permissions/search
 import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
+import { queryProjects } from "./deploy/projects";
 import { createIdentity } from "./identity/create";
 import { queryIdentities } from "./identity/query";
 import { searchIdentities } from "./identity/search";
@@ -308,6 +309,11 @@ export const router = t.router({
   }),
   project: projectRouter,
   version: versionRouter,
+  deploy: t.router({
+    project: t.router({
+      query: queryProjects,
+    }),
+  }),
 });
 
 // export type definition of API
