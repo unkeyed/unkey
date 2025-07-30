@@ -43,7 +43,6 @@ export const PermissionSheet = ({
   const [workspacePermissions, setWorkspacePermissions] = useState<UnkeyPermission[]>([]);
   const [apiPermissions, setApiPermissions] = useState<Record<string, UnkeyPermission[]>>({});
   const [searchValue, setSearchValue] = useState<string | undefined>(undefined);
-  const [emptyApis, setEmptyApis] = useState(false);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setIsProcessing(true);
@@ -58,7 +57,6 @@ export const PermissionSheet = ({
   const handleOpenChange = (open: boolean) => {
     setOpen(open);
   };
-
 
   const handleApiPermissionChange = (apiId: string, permissions: UnkeyPermission[]) => {
     setApiPermissions((prev) => ({ ...prev, [apiId]: permissions }));
@@ -112,10 +110,10 @@ export const PermissionSheet = ({
                     }
                   />
                   {/* From APIs */}
-                  {!emptyApis ? (  
-                    <p className="text-sm text-gray-10 ml-6 py-auto mt-1.5">From APIs</p>
-                  ): (
+                  {apis.length === 0 ? (
                     <p className="text-sm text-gray-10 ml-6 py-auto mt-1.5">No results found</p>
+                  ) : (
+                    <p className="text-sm text-gray-10 ml-6 py-auto mb-2">From APIs</p>
                   )}
                   {apis.map((api) => (
                     <PermissionContentList

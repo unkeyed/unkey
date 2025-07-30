@@ -33,7 +33,6 @@ type Props = {
   className?: string;
 } & React.ComponentProps<typeof Button>;
 
-
 export const CreateRootKeyButton = ({ ...props }: Props) => {
   const trpcUtils = trpc.useUtils();
   const [isOpen, setIsOpen] = useState(false);
@@ -94,7 +93,6 @@ export const CreateRootKeyButton = ({ ...props }: Props) => {
       permissions: values.permissions,
     });
 
-
     setIsOpen(false);
   }
 
@@ -137,7 +135,6 @@ export const CreateRootKeyButton = ({ ...props }: Props) => {
               size="xlg"
               disabled={isLoading || isSubmitting || !isValid}
               loading={isLoading || isSubmitting}
-
               className="w-full rounded-lg"
             >
               Create root key
@@ -149,7 +146,6 @@ export const CreateRootKeyButton = ({ ...props }: Props) => {
         <form id="create-rootkey-form" onSubmit={handleSubmit(onSubmit)}>
           <div className="flex flex-col p-6 gap-4">
             <div className="flex flex-col">
-
               <FormInput
                 label="Name"
                 description="Give your key a name, this is not customer facing."
@@ -168,7 +164,6 @@ export const CreateRootKeyButton = ({ ...props }: Props) => {
                 hasNextPage={hasNextPage}
                 isFetchingNextPage={isFetchingNextPage}
               >
-
                 <Button type="button" variant="outline" size="md" className="w-fit rounded-lg pl-3">
                   Select Permissions...
                 </Button>
