@@ -10,7 +10,17 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { Button } from "@unkey/ui";
-import { useEffect, useRef, useState } from "react";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { apiPermissions, workspacePermissions } from "../../../[keyId]/permissions/permissions";
+
+// Type definitions for permission structure
+type PermissionItem = {
+  description: string;
+  permission: string; // Using string instead of UnkeyPermission to handle literal types
+};
+type PermissionCategory = Record<string, PermissionItem>;
+type PermissionList = Record<string, PermissionCategory>;
 import { PermissionContentList } from "./permission-list";
 import { SearchPermissions } from "./search-permissions";
 
@@ -26,6 +36,7 @@ type PermissionSheetProps = {
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
 };
+
 export const PermissionSheet = ({
   children,
   apis,
@@ -37,15 +48,18 @@ export const PermissionSheet = ({
 }: PermissionSheetProps) => {
   const [open, setOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [search, setSearch] = useState<string | undefined>(undefined);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [workspacePermissions, setWorkspacePermissions] = useState<UnkeyPermission[]>([]);
-  const [apiPermissions, setApiPermissions] = useState<Record<string, UnkeyPermission[]>>({});
+  const [workspacePermissionsState, setWorkspacePermissions] = useState<UnkeyPermission[]>([]);
+  const [apiPermissionsState, setApiPermissions] = useState<Record<string, UnkeyPermission[]>>({});
+  const [searchValue, setSearchValue] = useState<string | undefined>(undefined);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setIsProcessing(true);
-    setSearch(e.target.value);
-    // TODO: Implement actual search logic
+    if (e.target.value === "") {
+      setSearchValue(undefined);
+    } else {
+      setSearchValue(e.target.value);
+    }
     setIsProcessing(false);
   };
 
@@ -61,78 +75,124 @@ export const PermissionSheet = ({
     setWorkspacePermissions(permissions);
   };
 
+  // Helper function to check if permission list has any matching results
+  const hasPermissionResults = (permissionList: PermissionList, searchValue?: string) => {
+    if (!searchValue || searchValue.trim() === "") {
+      // If no search, check if any categories have permissions
+      return Object.keys(permissionList).some(
+        (category) => Object.keys(permissionList[category]).length > 0,
+      );
+    }
+
+    // If searching, check if any permission names match
+    const searchLower = searchValue.toLowerCase();
+    return Object.values(permissionList).some((category: PermissionCategory) =>
+      Object.keys(category).some((permissionName) =>
+        permissionName.toLowerCase().includes(searchLower),
+      ),
+    );
+  };
+
+  // Check if all permission lists are empty after filtering
+  const hasNoResults = useMemo(() => {
+    // Check workspace permissions
+    const workspaceHasResults = hasPermissionResults(workspacePermissions, searchValue);
+
+    // Check API permissions
+    const anyApiHasResults = apis.some((api) => {
+      const apiPerms = apiPermissions(api.id);
+      return hasPermissionResults(apiPerms, searchValue);
+    });
+
+    return !workspaceHasResults && (apis.length === 0 || !anyApiHasResults);
+  }, [searchValue, apis]);
+
   // Aggregate all permissions and call onChange
   useEffect(() => {
     if (onChange) {
-      const allApiPermissions = Object.values(apiPermissions).flat();
-      onChange([...workspacePermissions, ...allApiPermissions]);
+      const allApiPermissions = Object.values(apiPermissionsState).flat();
+      onChange([...workspacePermissionsState, ...allApiPermissions]);
     }
-  }, [workspacePermissions, apiPermissions, onChange]);
+  }, [workspacePermissionsState, apiPermissionsState, onChange]);
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange} modal={true}>
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent
-        className="flex flex-col p-0 m-0 h-full gap-0 border-l border-l-gray-4 min-w-[420px]"
+        disableClose={true}
+        className="flex flex-col p-0 m-0 h-full gap-0 border-l border-l-gray-4 w-[420px]"
         side="right"
         overlay="transparent"
       >
         <SheetHeader className="flex flex-row w-full border-b border-gray-4 gap-2">
           <SearchPermissions
             isProcessing={isProcessing}
-            search={search}
+            search={searchValue}
             inputRef={inputRef}
             onChange={handleSearchChange}
           />
         </SheetHeader>
-        <SheetDescription className="w-full h-full pt-2">
+        <SheetDescription className="w-full h-full">
           <div className="flex flex-col h-full">
             <div
-              className={`flex flex-col overflow-y-hidden ${hasNextPage ? "max-h-[calc(100%-110px)]" : "h-[calc(100%-40px)]"}`}
+              className={`flex flex-col ${
+                hasNextPage ? "max-h-[calc(100%-80px)]" : "max-h-[calc(100%-40px)]"
+              }`}
             >
-              <ScrollArea className="flex flex-col h-full">
-                <div className="flex flex-col pt-0 mt-0 gap-1 pb-4">
-                  {/* Workspace Permissions */}
-                  {/* TODO: Tie In Search */}
-                  <PermissionContentList
-                    selected={selectedPermissions}
-                    key="workspace"
-                    type="workspace"
-                    onPermissionChange={(permissions) =>
-                      handleWorkspacePermissionChange(permissions)
-                    }
-                  />
-                  {/* From APIs */}
-                  <p className="text-sm text-gray-10 ml-6 py-auto mt-1.5">From APIs</p>
-                  {apis.map((api) => (
-                    <PermissionContentList
-                      selected={selectedPermissions}
-                      key={api.id}
-                      type="api"
-                      api={api}
-                      onPermissionChange={(permissions) =>
-                        handleApiPermissionChange(api.id, permissions)
-                      }
-                    />
-                  ))}
+              <ScrollArea className="flex flex-col h-full pt-2">
+                <div className="flex flex-col pt-0 mt-0 gap-1 pb-6">
+                  {hasNoResults ? (
+                    <p className="text-sm text-gray-10 ml-6 py-auto mt-1.5">No results found</p>
+                  ) : (
+                    <>
+                      {/* Workspace Permissions */}
+                      <PermissionContentList
+                        selected={selectedPermissions}
+                        searchValue={searchValue}
+                        key="workspace"
+                        type="workspace"
+                        onPermissionChange={(permissions) =>
+                          handleWorkspacePermissionChange(permissions)
+                        }
+                      />
+                      {/* From APIs */}
+                      {apis.length > 0 && (
+                        <p className="text-sm text-gray-10 ml-6 py-auto mb-2">From APIs</p>
+                      )}
+                      {apis.map((api) => (
+                        <PermissionContentList
+                          selected={selectedPermissions}
+                          searchValue={searchValue}
+                          key={api.id}
+                          type="api"
+                          api={api}
+                          onPermissionChange={(permissions) =>
+                            handleApiPermissionChange(api.id, permissions)
+                          }
+                        />
+                      ))}
+                    </>
+                  )}
                 </div>
               </ScrollArea>
             </div>
-            {hasNextPage ? (
-              <div className="absolute bottom-0 right-0 w-full h-fit py-4">
-                <div className="flex flex-row justify-end items-center">
-                  <Button
-                    className="mx-auto w-18 rounded-lg"
-                    size="sm"
-                    onClick={loadMore}
-                    disabled={!hasNextPage}
-                    loading={isFetchingNextPage}
-                  >
-                    Load More
-                  </Button>
+            <div className="absolute bottom-2 right-0 max-h-10 w-full">
+              {hasNextPage ? (
+                <div className="absolute bottom-0 right-0 w-full h-fit py-4">
+                  <div className="flex flex-row justify-end items-center">
+                    <Button
+                      className="mx-auto w-18 rounded-lg"
+                      size="sm"
+                      onClick={loadMore}
+                      disabled={!hasNextPage}
+                      loading={isFetchingNextPage}
+                    >
+                      Load More
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ) : undefined}
+              ) : undefined}
+            </div>
           </div>
         </SheetDescription>
       </SheetContent>

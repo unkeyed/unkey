@@ -22,7 +22,7 @@ const DynamicDialogContainer = dynamic(
   { ssr: false },
 );
 
-const DEFAULT_LIMIT = 10;
+const DEFAULT_LIMIT = 12;
 
 const formSchema = z.object({
   name: z.string().trim().min(3, "Name must be at least 3 characters long").max(50),
@@ -97,12 +97,9 @@ export const CreateRootKeyButton = ({ ...props }: Props) => {
   }
 
   const handlePermissionChange = useCallback(
-    (permissions: string[]) => {
-      const parsedPermissions = permissions.map((permission) =>
-        unkeyPermissionValidation.parse(permission),
-      );
-      setSelectedPermissions(parsedPermissions);
-      setValue("permissions", parsedPermissions);
+    (permissions: UnkeyPermission[]) => {
+      setSelectedPermissions(permissions);
+      setValue("permissions", permissions);
     },
     [setValue],
   );

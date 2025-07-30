@@ -11,6 +11,7 @@ type ExpandableCategoryProps = {
   description: string;
   checked: CheckedState | undefined;
   setChecked: () => void;
+  count: number;
 } & React.ComponentProps<typeof CollapsibleTrigger>;
 
 export const ExpandableCategory = ({
@@ -18,10 +19,14 @@ export const ExpandableCategory = ({
   description,
   checked,
   setChecked,
+  count,
   ...props
 }: ExpandableCategoryProps) => {
+  if (count === 0) {
+    return null;
+  }
   return (
-    <div className="flex flex-row items-center justify-evenly gap-3 transition-all pl-6 pr-2 h-full my-2">
+    <div className="flex flex-row items-center justify-evenly gap-3 transition-all pl-3 pr-2 h-full my-2">
       <div className="flex items-center justify-center">
         <Checkbox checked={checked} onCheckedChange={() => setChecked()} size="lg" />
       </div>
