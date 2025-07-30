@@ -58,6 +58,7 @@ const headers = {
   Authorization: `Bearer ${UNKEY_ROOT_KEY}`,
 };
 
+// biome-ignore lint/style/noDefaultExport: k6 needs a default export
 export default function () {
   const response =
     Math.random() < 0.5
