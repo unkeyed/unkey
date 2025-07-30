@@ -110,7 +110,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if db.IsDuplicateKeyError(err) {
 				return fault.Wrap(err,
 					fault.Code(codes.Data.Identity.Duplicate.URN()),
-					fault.Internal("identity already exists"), fault.Public(fmt.Sprintf("Identity with externalId \"%s\" already exists in this workspace.", req.ExternalId)),
+					fault.Internal("identity already exists"), fault.Public(fmt.Sprintf("Identity with externalId '%s' already exists in this workspace.", req.ExternalId)),
 				)
 			}
 
