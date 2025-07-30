@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/sheet";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { XMark } from "@unkey/icons";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { Button } from "@unkey/ui";
 

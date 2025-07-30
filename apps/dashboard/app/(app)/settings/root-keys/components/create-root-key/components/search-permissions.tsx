@@ -1,7 +1,7 @@
 "use client";
+import { XMark } from "@unkey/icons";
 import { Button, InfoTooltip, SearchIcon } from "@unkey/ui";
 import { SearchInput } from "./search-input";
-import { XMark } from "@unkey/icons";
 
 type Props = {
   isProcessing: boolean;
@@ -26,15 +26,20 @@ export const SearchPermissions = ({ isProcessing, search, inputRef, onChange }: 
           clearingText="Clearing..."
           searchMode="manual"
           onChange={onChange}
-          onKeyDown={() => { }}
+          onKeyDown={() => {}}
           inputRef={inputRef}
         />
       </div>
       <div className="absolute right-2">
-        <InfoTooltip
-          content="Clear search"
-        >
-          <Button variant="ghost" size="icon" onClick={() => onChange({ target: { value: "" } } as React.ChangeEvent<HTMLInputElement>)} className="hover:bg-grayA-3 focus:ring-0 rounded-full">
+        <InfoTooltip content="Clear search">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() =>
+              onChange({ target: { value: "" } } as React.ChangeEvent<HTMLInputElement>)
+            }
+            className="hover:bg-grayA-3 focus:ring-0 rounded-full"
+          >
             <XMark className="h-4 w-4" />
           </Button>
         </InfoTooltip>

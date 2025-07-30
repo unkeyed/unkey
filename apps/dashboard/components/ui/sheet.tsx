@@ -56,20 +56,37 @@ interface SheetContentProps
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   SheetContentProps & { disableClose?: boolean }
->(({ closeIcon, side = "right", className, children, overlay = "default", disableClose = false, ...props }, ref) => (
-  <SheetPortal>
-    <SheetOverlay className={cn(sheetVariants({ overlay }))} />
-    <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
-      {children}
-      {!disableClose && (
-        <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
-          {closeIcon ? closeIcon : <XMark className="h-4 w-4 text-grayA-11" />}
-          <span className="sr-only">Close</span>
-        </SheetPrimitive.Close>
-      )}
-    </SheetPrimitive.Content>
-  </SheetPortal>
-));
+>(
+  (
+    {
+      closeIcon,
+      side = "right",
+      className,
+      children,
+      overlay = "default",
+      disableClose = false,
+      ...props
+    },
+    ref,
+  ) => (
+    <SheetPortal>
+      <SheetOverlay className={cn(sheetVariants({ overlay }))} />
+      <SheetPrimitive.Content
+        ref={ref}
+        className={cn(sheetVariants({ side }), className)}
+        {...props}
+      >
+        {children}
+        {!disableClose && (
+          <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
+            {closeIcon ? closeIcon : <XMark className="h-4 w-4 text-grayA-11" />}
+            <span className="sr-only">Close</span>
+          </SheetPrimitive.Close>
+        )}
+      </SheetPrimitive.Content>
+    </SheetPortal>
+  ),
+);
 SheetContent.displayName = SheetPrimitive.Content.displayName;
 
 const SheetHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
