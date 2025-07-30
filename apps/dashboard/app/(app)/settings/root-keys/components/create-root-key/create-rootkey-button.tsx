@@ -97,12 +97,9 @@ export const CreateRootKeyButton = ({ ...props }: Props) => {
   }
 
   const handlePermissionChange = useCallback(
-    (permissions: string[]) => {
-      const parsedPermissions = permissions.map((permission) =>
-        unkeyPermissionValidation.parse(permission),
-      );
-      setSelectedPermissions(parsedPermissions);
-      setValue("permissions", parsedPermissions);
+    (permissions: UnkeyPermission[]) => {
+      setSelectedPermissions(permissions);
+      setValue("permissions", permissions);
     },
     [setValue],
   );

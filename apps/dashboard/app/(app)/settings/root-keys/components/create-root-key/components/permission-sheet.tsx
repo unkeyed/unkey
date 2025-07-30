@@ -11,7 +11,17 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { XMark } from "@unkey/icons";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { Button } from "@unkey/ui";
-import { useEffect, useRef, useState } from "react";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { apiPermissions, workspacePermissions } from "../../../[keyId]/permissions/permissions";
+
+// Type definitions for permission structure
+type PermissionItem = {
+  description: string;
+  permission: string; // Using string instead of UnkeyPermission to handle literal types
+};
+type PermissionCategory = Record<string, PermissionItem>;
+type PermissionList = Record<string, PermissionCategory>;
 import { PermissionContentList } from "./permission-list";
 import { SearchPermissions } from "./search-permissions";
 
@@ -40,8 +50,8 @@ export const PermissionSheet = ({
   const [open, setOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [workspacePermissions, setWorkspacePermissions] = useState<UnkeyPermission[]>([]);
-  const [apiPermissions, setApiPermissions] = useState<Record<string, UnkeyPermission[]>>({});
+  const [workspacePermissionsState, setWorkspacePermissions] = useState<UnkeyPermission[]>([]);
+  const [apiPermissionsState, setApiPermissions] = useState<Record<string, UnkeyPermission[]>>({});
   const [searchValue, setSearchValue] = useState<string | undefined>(undefined);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,13 +76,45 @@ export const PermissionSheet = ({
     setWorkspacePermissions(permissions);
   };
 
+  // Helper function to check if permission list has any matching results
+  const hasPermissionResults = (permissionList: PermissionList, searchValue?: string) => {
+    if (!searchValue || searchValue.trim() === "") {
+      // If no search, check if any categories have permissions
+      return Object.keys(permissionList).some(
+        (category) => Object.keys(permissionList[category]).length > 0,
+      );
+    }
+
+    // If searching, check if any permission names match
+    const searchLower = searchValue.toLowerCase();
+    return Object.values(permissionList).some((category: PermissionCategory) =>
+      Object.keys(category).some((permissionName) =>
+        permissionName.toLowerCase().includes(searchLower),
+      ),
+    );
+  };
+
+  // Check if all permission lists are empty after filtering
+  const hasNoResults = useMemo(() => {
+    // Check workspace permissions
+    const workspaceHasResults = hasPermissionResults(workspacePermissions, searchValue);
+
+    // Check API permissions
+    const anyApiHasResults = apis.some((api) => {
+      const apiPerms = apiPermissions(api.id);
+      return hasPermissionResults(apiPerms, searchValue);
+    });
+
+    return !workspaceHasResults && (apis.length === 0 || !anyApiHasResults);
+  }, [searchValue, apis]);
+
   // Aggregate all permissions and call onChange
   useEffect(() => {
     if (onChange) {
-      const allApiPermissions = Object.values(apiPermissions).flat();
-      onChange([...workspacePermissions, ...allApiPermissions]);
+      const allApiPermissions = Object.values(apiPermissionsState).flat();
+      onChange([...workspacePermissionsState, ...allApiPermissions]);
     }
-  }, [workspacePermissions, apiPermissions, onChange]);
+  }, [workspacePermissionsState, apiPermissionsState, onChange]);
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange} modal={true}>
@@ -94,39 +136,44 @@ export const PermissionSheet = ({
         <SheetDescription className="w-full h-full">
           <div className="flex flex-col h-full">
             <div
-              className={`flex flex-col ${hasNextPage ? "max-h-[calc(100%-80px)]" : "max-h-[calc(100%-40px)]"}`}
+              className={`flex flex-col ${
+                hasNextPage ? "max-h-[calc(100%-80px)]" : "max-h-[calc(100%-40px)]"
+              }`}
             >
               <ScrollArea className="flex flex-col h-full pt-2">
                 <div className="flex flex-col pt-0 mt-0 gap-1 pb-6">
-                  {/* Workspace Permissions */}
-                  {/* TODO: Tie In Search */}
-                  <PermissionContentList
-                    selected={selectedPermissions}
-                    searchValue={searchValue}
-                    key="workspace"
-                    type="workspace"
-                    onPermissionChange={(permissions) =>
-                      handleWorkspacePermissionChange(permissions)
-                    }
-                  />
-                  {/* From APIs */}
-                  {apis.length === 0 ? (
+                  {hasNoResults ? (
                     <p className="text-sm text-gray-10 ml-6 py-auto mt-1.5">No results found</p>
                   ) : (
-                    <p className="text-sm text-gray-10 ml-6 py-auto mb-2">From APIs</p>
+                    <>
+                      {/* Workspace Permissions */}
+                      <PermissionContentList
+                        selected={selectedPermissions}
+                        searchValue={searchValue}
+                        key="workspace"
+                        type="workspace"
+                        onPermissionChange={(permissions) =>
+                          handleWorkspacePermissionChange(permissions)
+                        }
+                      />
+                      {/* From APIs */}
+                      {apis.length > 0 && (
+                        <p className="text-sm text-gray-10 ml-6 py-auto mb-2">From APIs</p>
+                      )}
+                      {apis.map((api) => (
+                        <PermissionContentList
+                          selected={selectedPermissions}
+                          searchValue={searchValue}
+                          key={api.id}
+                          type="api"
+                          api={api}
+                          onPermissionChange={(permissions) =>
+                            handleApiPermissionChange(api.id, permissions)
+                          }
+                        />
+                      ))}
+                    </>
                   )}
-                  {apis.map((api) => (
-                    <PermissionContentList
-                      selected={selectedPermissions}
-                      searchValue={searchValue}
-                      key={api.id}
-                      type="api"
-                      api={api}
-                      onPermissionChange={(permissions) =>
-                        handleApiPermissionChange(api.id, permissions)
-                      }
-                    />
-                  ))}
                 </div>
               </ScrollArea>
             </div>

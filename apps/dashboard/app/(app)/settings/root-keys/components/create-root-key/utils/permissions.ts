@@ -12,8 +12,16 @@ interface PermissionState {
 }
 
 type PermissionAction =
-  | { type: "TOGGLE_PERMISSION"; permission: UnkeyPermission; permissionList: PermissionList }
-  | { type: "TOGGLE_CATEGORY"; category: string; permissionList: PermissionList }
+  | {
+      type: "TOGGLE_PERMISSION";
+      permission: UnkeyPermission;
+      permissionList: PermissionList;
+    }
+  | {
+      type: "TOGGLE_CATEGORY";
+      category: string;
+      permissionList: PermissionList;
+    }
   | { type: "TOGGLE_ROOT"; permissionList: PermissionList }
   | {
       type: "UPDATE_CHECKED_STATES";
