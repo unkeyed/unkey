@@ -54,6 +54,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	cursor := ptr.SafeDeref(req.Cursor, "")
+	limit := ptr.SafeDeref(req.Limit, 100)
 
 	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
@@ -72,6 +73,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		db.ListRolesParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			IDCursor:    cursor,
+			Limit:       int32(limit) + 1,
 		},
 	)
 	if err != nil {
@@ -82,10 +84,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	var nextCursor *string
-	hasMore := len(roles) > 100
+	hasMore := len(roles) > limit
 	if hasMore {
-		nextCursor = ptr.P(roles[100].ID)
-		roles = roles[:100]
+		nextCursor = ptr.P(roles[limit].ID)
+		roles = roles[:limit]
 	}
 
 	roleResponses := make([]openapi.Role, 0, len(roles))

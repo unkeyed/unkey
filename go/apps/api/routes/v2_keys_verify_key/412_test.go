@@ -68,7 +68,7 @@ func TestPreconditionFailed(t *testing.T) {
 		require.NotNil(t, res.Body.Error)
 
 		// Should contain useful error message about missing ratelimit for key and identity
-		expectedMsg := fmt.Sprintf("ratelimit \"does-not-exist\" was requested but does not exist for key \"%s\" nor identity", key.KeyID)
+		expectedMsg := fmt.Sprintf("ratelimit 'does-not-exist' was requested but does not exist for key '%s' nor identity", key.KeyID)
 		require.Contains(t, res.Body.Error.Detail, expectedMsg)
 		require.Contains(t, res.Body.Error.Detail, identity)
 		require.Contains(t, res.Body.Error.Detail, "test-missing-ratelimit")
@@ -101,7 +101,7 @@ func TestPreconditionFailed(t *testing.T) {
 		require.NotNil(t, res.Body.Error)
 
 		// Should contain error message indicating no identity connected
-		expectedMsg := fmt.Sprintf("ratelimit \"does-not-exist\" was requested but does not exist for key \"%s\" and there is no identity connected", key.KeyID)
+		expectedMsg := fmt.Sprintf("ratelimit 'does-not-exist' was requested but does not exist for key '%s' and there is no identity connected", key.KeyID)
 		require.Contains(t, res.Body.Error.Detail, expectedMsg)
 	})
 

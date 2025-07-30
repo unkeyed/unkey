@@ -353,9 +353,6 @@ type RatelimitOverride struct {
 	// - Custom tier-based limits for different customer segments
 	Limit int64 `json:"limit"`
 
-	// NamespaceId The unique identifier of the rate limit namespace this override belongs to. This links the override to a specific namespace context, ensuring the override only applies within that namespace.
-	NamespaceId string `json:"namespaceId"`
-
 	// OverrideId The unique identifier of this specific rate limit override. This ID is generated when the override is created and can be used for management operations like updating or deleting the override.
 	OverrideId string `json:"overrideId"`
 }
@@ -603,7 +600,10 @@ type V2IdentitiesCreateIdentityResponseBody struct {
 }
 
 // V2IdentitiesCreateIdentityResponseData defines model for V2IdentitiesCreateIdentityResponseData.
-type V2IdentitiesCreateIdentityResponseData = map[string]interface{}
+type V2IdentitiesCreateIdentityResponseData struct {
+	// IdentityId The unique identifier of the created identity.
+	IdentityId string `json:"identityId"`
+}
 
 // V2IdentitiesDeleteIdentityRequestBody defines model for V2IdentitiesDeleteIdentityRequestBody.
 type V2IdentitiesDeleteIdentityRequestBody struct {

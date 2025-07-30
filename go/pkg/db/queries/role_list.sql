@@ -16,6 +16,6 @@ SELECT r.*, COALESCE(
 ) as permissions
 FROM roles r
 WHERE r.workspace_id = sqlc.arg(workspace_id)
-AND r.id > sqlc.arg(id_cursor)
+AND r.id >= sqlc.arg(id_cursor)
 ORDER BY r.id
-LIMIT 101;
+LIMIT ?;
