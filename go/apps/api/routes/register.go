@@ -74,7 +74,7 @@ func Register(srv *zen.Server, svc *Services) {
 	// ---------------------------------------------------------------------------
 	// chproxy (internal endpoints)
 
-	if svc.ChproxyEnabled {
+	if svc.ChproxyToken != "" {
 		// chproxy/verifications - internal endpoint for key verification events
 		srv.RegisterRoute([]zen.Middleware{
 			withTracing,
