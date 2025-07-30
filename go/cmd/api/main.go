@@ -106,7 +106,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 			URL:             cmd.String("vault-s3-url"),
 			Bucket:          cmd.String("vault-s3-bucket"),
 			AccessKeyID:     cmd.String("vault-s3-access-key-id"),
-			SecretAccessKey: cmd.String("vault-s3-secret-access-key"),
+			SecretAccessKey: cmd.String("vault-s3-access-key-secret"),
 		}
 	}
 
