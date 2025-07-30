@@ -13,7 +13,8 @@ const route = createRoute({
   tags: ["identities"],
   operationId: "updateIdentity",
   summary: "Update identity",
-  description: "**DEPRECATED**: This API version is deprecated. Please migrate to v2. See https://www.unkey.com/docs/api-reference/v1/migration for more information.",
+  description:
+    "**DEPRECATED**: This API version is deprecated. Please migrate to v2. See https://www.unkey.com/docs/api-reference/v1/migration for more information.",
   method: "post",
   path: "/v1/identities.updateIdentity",
   security: [{ bearerAuth: [] }],

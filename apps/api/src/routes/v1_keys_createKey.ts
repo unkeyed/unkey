@@ -17,7 +17,8 @@ const route = createRoute({
   tags: ["keys"],
   operationId: "createKey",
   summary: "Create API key",
-  description: "**DEPRECATED**: This API version is deprecated. Please migrate to v2. See https://www.unkey.com/docs/api-reference/v1/migration for more information.",
+  description:
+    "**DEPRECATED**: This API version is deprecated. Please migrate to v2. See https://www.unkey.com/docs/api-reference/v1/migration for more information.",
   method: "post" as const,
   path: "/v1/keys.createKey",
   security: [{ bearerAuth: [] }],
