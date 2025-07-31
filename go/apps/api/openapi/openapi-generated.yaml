@@ -3074,7 +3074,7 @@ paths:
             tags:
                 - chproxy
             x-excluded: true
-            x-speakeasy-ignore: "true"
+            x-speakeasy-ignore: true
     /_internal/chproxy/ratelimits:
         post:
             description: |-
@@ -3112,7 +3112,7 @@ paths:
             tags:
                 - chproxy
             x-excluded: true
-            x-speakeasy-ignore: "true"
+            x-speakeasy-ignore: true
     /_internal/chproxy/verifications:
         post:
             description: |-
@@ -3150,7 +3150,7 @@ paths:
             tags:
                 - chproxy
             x-excluded: true
-            x-speakeasy-ignore: "true"
+            x-speakeasy-ignore: true
     /v2/apis.createApi:
         post:
             description: |
@@ -4869,7 +4869,7 @@ paths:
             tags:
                 - liveness
             x-excluded: true
-            x-speakeasy-ignore: "true"
+            x-speakeasy-ignore: true
     /v2/permissions.createPermission:
         post:
             description: |
