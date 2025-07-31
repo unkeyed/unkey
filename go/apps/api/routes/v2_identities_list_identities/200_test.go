@@ -354,12 +354,6 @@ func TestSuccess(t *testing.T) {
 				// ID fields should never be empty
 				require.NotEmpty(t, identity.ExternalId, "External ID should not be empty")
 
-				// Meta might be nil if none set
-				if identity.Meta != nil {
-					// If present, should be a valid map
-					require.NotNil(t, *identity.Meta, "Meta should be a valid map")
-				}
-
 				dbIdentity, err := db.Query.FindIdentity(ctx, h.DB.RW(), db.FindIdentityParams{WorkspaceID: workspaceID, Identity: identity.ExternalId, Deleted: false})
 				require.NoError(t, err)
 				require.NotNil(t, dbIdentity, "Identity should be found in the database")
@@ -372,6 +366,13 @@ func TestSuccess(t *testing.T) {
 				} else {
 					require.NotNil(t, identity.Ratelimits, "Ratelimits should be set")
 					require.Len(t, ptr.SafeDeref(identity.Ratelimits), len(identityRatelimits), "Ratelimits should match the database")
+				}
+
+				if len(dbIdentity.Meta) > 0 {
+					raw, err := json.Marshal(identity.Meta)
+					require.NoError(t, err)
+					require.NotNil(t, identity.Meta, "Meta should be set")
+					require.JSONEq(t, string(raw), string(dbIdentity.Meta), "Meta should match the database")
 				}
 			}
 		}
