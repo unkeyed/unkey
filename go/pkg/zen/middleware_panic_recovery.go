@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 )
 
 // WithPanicRecovery returns middleware that recovers from panics and converts them
@@ -30,6 +31,8 @@ func WithPanicRecovery(logger logging.Logger) Middleware {
 						"path", s.r.URL.Path,
 						"stack", string(stack),
 					)
+
+					metrics.PanicsTotal.WithLabelValues("", s.r.URL.Path).Inc()
 
 					// Convert panic to an error
 					panicErr := fault.New("Internal Server Error",
