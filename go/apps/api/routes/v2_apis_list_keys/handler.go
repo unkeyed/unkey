@@ -329,9 +329,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Name:        nil,
 			Plaintext:   nil,
 			UpdatedAt:   nil,
-			Ratelimits:  ptr.P([]openapi.RatelimitResponse{}),
-			Permissions: ptr.P([]string{}),
-			Roles:       ptr.P([]string{}),
+			Ratelimits:  nil,
+			Permissions: nil,
+			Roles:       nil,
 		}
 
 		if key.Key.Name.Valid {
