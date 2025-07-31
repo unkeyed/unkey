@@ -76,7 +76,6 @@ const headers = {
   Authorization: `Bearer ${UNKEY_ROOT_KEY}`,
 };
 
-
 export function testV1KeyVerify() {
   const key = keys[Math.floor(Math.random() * keys.length)];
 
@@ -111,7 +110,6 @@ export function testV2KeyVerify() {
       tags: { version: "v2" },
     },
   );
-
 
   check(response, {
     "status is 200": (r) => r.status === 200,
