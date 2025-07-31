@@ -311,7 +311,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	k.Ratelimits = ptr.P(ratelimitsResponse)
+	if len(ratelimitsResponse) > 0 {
+		k.Ratelimits = ptr.P(ratelimitsResponse)
+	}
 
 	if key.Meta.Valid {
 		err = json.Unmarshal([]byte(key.Meta.String), &k.Meta)
@@ -330,7 +332,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
 			fault.Internal("unable to find permissions for key"), fault.Public("Could not load permissions for key."))
 	}
-	k.Permissions = ptr.P(permissionSlugs)
+	if len(permissionSlugs) > 0 {
+		k.Permissions = ptr.P(permissionSlugs)
+	}
 
 	// Get roles for the key
 	roles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), k.KeyId)
@@ -339,12 +343,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Internal("unable to find roles for key"), fault.Public("Could not load roles for key."))
 	}
 
-	roleNames := make([]string, len(roles))
-	for i, role := range roles {
-		roleNames[i] = role.Name
-	}
+	if len(roles) > 0 {
+		roleNames := make([]string, len(roles))
+		for i, role := range roles {
+			roleNames[i] = role.Name
+		}
 
-	k.Roles = ptr.P(roleNames)
+		k.Roles = ptr.P(roleNames)
+	}
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
