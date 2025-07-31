@@ -438,7 +438,7 @@ type Role struct {
 	// Use this list to understand the full scope of access provided by this role.
 	// Permissions can be added or removed from roles without affecting the role's identity or other properties.
 	// Empty array indicates a role with no permissions currently assigned.
-	Permissions []Permission `json:"permissions"`
+	Permissions *[]Permission `json:"permissions,omitempty"`
 }
 
 // UnauthorizedErrorResponse Error response when authentication has failed or credentials are missing. This occurs when:

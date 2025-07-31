@@ -360,8 +360,7 @@ func TestSuccess(t *testing.T) {
 				require.NotNil(t, *identity.Meta, "Meta should be a valid map")
 			}
 
-			// Ratelimits should always be present
-			require.NotNil(t, identity.Ratelimits, "Ratelimits should be a valid array")
+			require.NotNil(t, identity.Ratelimits, "Ratelimits should be set")
 		}
 	})
 }

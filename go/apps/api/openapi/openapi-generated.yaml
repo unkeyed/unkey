@@ -2459,7 +2459,6 @@ components:
             required:
                 - id
                 - name
-                - permissions
             additionalProperties: false
         V2KeysCreateKeyResponseData:
             type: object
