@@ -480,10 +480,12 @@ test("an error rolls back and does not create any keys", async (t) => {
   // add a duplicate
   req.push(req[0]);
 
-
-  const res = await h.post<V1MigrationsCreateKeysRequest, {
-    error: { code: string }
-  }>({
+  const res = await h.post<
+    V1MigrationsCreateKeysRequest,
+    {
+      error: { code: string };
+    }
+  >({
     url: "/v1/migrations.createKeys",
     headers: {
       "Content-Type": "application/json",
