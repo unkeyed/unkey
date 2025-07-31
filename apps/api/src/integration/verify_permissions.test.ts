@@ -1,6 +1,5 @@
 import { IntegrationHarness } from "@/pkg/testutil/integration-harness";
 import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
-import type { ErrorResponse } from "@unkey/api/src";
 import { describe, expect, test } from "vitest";
 
 test("without permissions", async (t) => {
@@ -199,7 +198,7 @@ describe(
       const h = await IntegrationHarness.init(t);
       const { key } = await h.createKey();
 
-      const res = await h.post<V1KeysVerifyKeyRequest, ErrorResponse>({
+      const res = await h.post<V1KeysVerifyKeyRequest, { error: { code: string } }>({
         url: `${h.baseUrl}/v1/keys.verifyKey`,
         headers: {
           "Content-Type": "application/json",
