@@ -105,9 +105,9 @@ func TestSuccess(t *testing.T) {
 
 					// Check if this identity should have ratelimits
 					if i%2 == 0 {
-						require.GreaterOrEqual(t, len(identity.Ratelimits), 1, "identity %s should have at least 1 ratelimit", id)
+						require.GreaterOrEqual(t, len(*identity.Ratelimits), 1, "identity %s should have at least 1 ratelimit", id)
 						hasApiCallsLimit := false
-						for _, rl := range identity.Ratelimits {
+						for _, rl := range *identity.Ratelimits {
 							if rl.Name == "api_calls" {
 								hasApiCallsLimit = true
 								assert.Equal(t, int64(100), rl.Limit)
@@ -360,8 +360,7 @@ func TestSuccess(t *testing.T) {
 				require.NotNil(t, *identity.Meta, "Meta should be a valid map")
 			}
 
-			// Ratelimits should always be present
-			require.NotNil(t, identity.Ratelimits, "Ratelimits should be a valid array")
+			require.NotNil(t, identity.Ratelimits, "Ratelimits should be set")
 		}
 	})
 }

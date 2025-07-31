@@ -2180,7 +2180,6 @@ components:
                 description: {}
             required:
                 - externalId
-                - ratelimits
         RatelimitResponse:
             type: object
             properties:
@@ -2460,7 +2459,6 @@ components:
             required:
                 - id
                 - name
-                - permissions
             additionalProperties: false
         V2KeysCreateKeyResponseData:
             type: object
@@ -2811,7 +2809,7 @@ components:
             type: object
             properties:
                 role:
-                    "$ref": "#/components/schemas/role"
+                    "$ref": "#/components/schemas/Role"
             required:
                 - role
             additionalProperties: false
@@ -2827,7 +2825,7 @@ components:
             maxItems: 1000
             description: Array of roles with their assigned permissions.
             items:
-                "$ref": "#/components/schemas/role"
+                "$ref": "#/components/schemas/Role"
         V2RatelimitDeleteOverrideResponseData:
             type: object
             additionalProperties: false
