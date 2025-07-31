@@ -58,6 +58,7 @@ func Register(srv *zen.Server, svc *Services) {
 	withMetrics := zen.WithMetrics(svc.ClickHouse)
 
 	withLogging := zen.WithLogging(svc.Logger)
+	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
 	withErrorHandling := zen.WithErrorHandling(svc.Logger)
 	withValidation := zen.WithValidation(svc.Validator)
 
@@ -65,6 +66,7 @@ func Register(srv *zen.Server, svc *Services) {
 		withTracing,
 		withMetrics,
 		withLogging,
+		withPanicRecovery,
 		withErrorHandling,
 		withValidation,
 	}
@@ -78,6 +80,7 @@ func Register(srv *zen.Server, svc *Services) {
 		chproxyMiddlewares := []zen.Middleware{
 			withMetrics,
 			withLogging,
+			withPanicRecovery,
 			withErrorHandling,
 		}
 
@@ -507,6 +510,7 @@ func Register(srv *zen.Server, svc *Services) {
 		withTracing,
 		withMetrics,
 		withLogging,
+		withPanicRecovery,
 		withErrorHandling,
 	}, &reference.Handler{
 		Logger: svc.Logger,
@@ -515,6 +519,7 @@ func Register(srv *zen.Server, svc *Services) {
 		withTracing,
 		withMetrics,
 		withLogging,
+		withPanicRecovery,
 		withErrorHandling,
 	}, &openapi.Handler{
 		Logger: svc.Logger,
