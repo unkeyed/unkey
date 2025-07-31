@@ -83,7 +83,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				return fault.New("duplicate ratelimit name",
 					fault.Code(codes.App.Validation.InvalidInput.URN()),
 					fault.Internal("duplicate ratelimit name"),
-					fault.Public(fmt.Sprintf("Ratelimit with name %q is already defined in the request", ratelimit.Name)),
+					fault.Public(fmt.Sprintf("Ratelimit with name '%s' is already defined in the request", ratelimit.Name)),
 				)
 			}
 			nameSet[ratelimit.Name] = true

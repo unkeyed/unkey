@@ -674,7 +674,7 @@ components:
                         type: string
                         minLength: 1
                         maxLength: 100
-                        pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     description: |
                         Assigns existing roles to this key for permission management through role-based access control.
                         Roles must already exist in your workspace before assignment.
@@ -916,7 +916,7 @@ components:
                         Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
                     items:
                         type: string
-                        pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                         minLength: 3
                         maxLength: 255
                         description: Specify the role by name.
@@ -1004,7 +1004,7 @@ components:
                         Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
                     items:
                         type: string
-                        pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                         minLength: 3
                         maxLength: 255
                         description: Specify the role by name.
@@ -1171,7 +1171,7 @@ components:
                         type: string
                         minLength: 1
                         maxLength: 100
-                        pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                         description: |
                             Assigns existing roles to this key for permission management through role-based access control.
                             Roles must already exist in your workspace before assignment.
@@ -1459,7 +1459,7 @@ components:
             properties:
                 role:
                     type: string
-                    pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+                    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     minLength: 3
                     maxLength: 255
                     description: |
@@ -1523,7 +1523,7 @@ components:
                     type: string
                     minLength: 3
                     maxLength: 255
-                    pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+                    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     description: |
                         Unique identifier of the role to permanently delete from your workspace.
                         Must either be a valid role ID that begins with 'role_' or the given role name and exists within your workspace.
@@ -2195,7 +2195,6 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 128
-                    pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
                     description: Human-readable name for this rate limit.
                     example: api_requests
                 limit:
@@ -2312,6 +2311,12 @@ components:
                     default: false
         V2IdentitiesCreateIdentityResponseData:
             type: object
+            properties:
+                identityId:
+                    type: string
+                    description: The unique identifier of the created identity.
+            required:
+                - identityId
         V2IdentitiesGetIdentityResponseData:
             type: object
             required:
@@ -2414,8 +2419,8 @@ components:
                 - This only shows direct role assignments, not inherited or nested roles
                 - Role permissions are not expanded in this response - use keys.getKey for full details
             items:
-                "$ref": "#/components/schemas/role"
-        role:
+                "$ref": "#/components/schemas/Role"
+        Role:
             type: object
             properties:
                 id:
@@ -2501,7 +2506,7 @@ components:
                 - Role permissions are not expanded in this response - use keys.getKey for full details
                 - Changes take effect immediately for new verifications but cached sessions may retain old permissions briefly
             items:
-                "$ref": "#/components/schemas/role"
+                "$ref": "#/components/schemas/Role"
         V2KeysSetPermissionsResponseData:
             type: array
             description: |-
@@ -2535,7 +2540,7 @@ components:
                 - Role permissions are not expanded in this response - use keys.getKey for complete details
                 - An empty array indicates the key now has no roles assigned at all
             items:
-                "$ref": "#/components/schemas/role"
+                "$ref": "#/components/schemas/Role"
         KeysVerifyKeyCredits:
             type: object
             required:
@@ -2703,7 +2708,6 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 128
-                    pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
                     description: Human-readable name for this rate limit.
                     example: api_requests
                 limit:
@@ -2832,11 +2836,6 @@ components:
             type: object
             additionalProperties: false
             properties:
-                namespaceId:
-                    description: The unique identifier of the rate limit namespace this override belongs to. This links the override to a specific namespace context, ensuring the override only applies within that namespace.
-                    type: string
-                    minLength: 1
-                    maxLength: 255
                 overrideId:
                     description: The unique identifier of this specific rate limit override. This ID is generated when the override is created and can be used for management operations like updating or deleting the override.
                     type: string
@@ -2877,7 +2876,6 @@ components:
                     type: integer
                     minimum: 0
             required:
-                - namespaceId
                 - overrideId
                 - duration
                 - identifier
@@ -3076,7 +3074,7 @@ paths:
             tags:
                 - chproxy
             x-excluded: true
-            x-speakeasy-ignore: "true"
+            x-speakeasy-ignore: true
     /_internal/chproxy/ratelimits:
         post:
             description: |-
@@ -3114,7 +3112,7 @@ paths:
             tags:
                 - chproxy
             x-excluded: true
-            x-speakeasy-ignore: "true"
+            x-speakeasy-ignore: true
     /_internal/chproxy/verifications:
         post:
             description: |-
@@ -3152,7 +3150,7 @@ paths:
             tags:
                 - chproxy
             x-excluded: true
-            x-speakeasy-ignore: "true"
+            x-speakeasy-ignore: true
     /v2/apis.createApi:
         post:
             description: |
@@ -4871,7 +4869,7 @@ paths:
             tags:
                 - liveness
             x-excluded: true
-            x-speakeasy-ignore: "true"
+            x-speakeasy-ignore: true
     /v2/permissions.createPermission:
         post:
             description: |

@@ -152,7 +152,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if !exists {
 			return fault.New("permission not found",
 				fault.Code(codes.Data.Permission.NotFound.URN()),
-				fault.Public(fmt.Sprintf("Permission %q was not found.", toRemove)),
+				fault.Public(fmt.Sprintf("Permission '%s' was not found.", toRemove)),
 			)
 		}
 	}
