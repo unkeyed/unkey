@@ -2180,7 +2180,6 @@ components:
                 description: {}
             required:
                 - externalId
-                - ratelimits
         RatelimitResponse:
             type: object
             properties:

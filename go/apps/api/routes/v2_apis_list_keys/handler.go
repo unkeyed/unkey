@@ -388,7 +388,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			k.Identity = &openapi.Identity{
 				ExternalId: key.ExternalID.String,
 				Meta:       nil,
-				Ratelimits: []openapi.RatelimitResponse{},
+				Ratelimits: nil,
 			}
 
 			if len(key.IdentityMeta) > 0 {
@@ -411,7 +411,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					}
 				}
 
-				k.Identity.Ratelimits = ratelimitsResponse
+				k.Identity.Ratelimits = ptr.P(ratelimitsResponse)
 			}
 		}
 

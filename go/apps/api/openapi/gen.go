@@ -146,7 +146,7 @@ type Identity struct {
 
 	// Meta Identity metadata
 	Meta       *map[string]interface{} `json:"meta,omitempty"`
-	Ratelimits []RatelimitResponse     `json:"ratelimits"`
+	Ratelimits *[]RatelimitResponse    `json:"ratelimits,omitempty"`
 }
 
 // InternalServerErrorResponse Error response when an unexpected error occurs on the server. This indicates a problem with Unkey's systems rather than your request.

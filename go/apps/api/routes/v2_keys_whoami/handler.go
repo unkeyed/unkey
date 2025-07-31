@@ -204,14 +204,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
+		identityRatelimits := make([]openapi.RatelimitResponse, len(ratelimits))
 		for _, ratelimit := range ratelimits {
-			k.Identity.Ratelimits = append(k.Identity.Ratelimits, openapi.RatelimitResponse{
+			identityRatelimits = append(identityRatelimits, openapi.RatelimitResponse{
 				Id:        ratelimit.ID,
 				Duration:  ratelimit.Duration,
 				Limit:     int64(ratelimit.Limit),
 				Name:      ratelimit.Name,
 				AutoApply: ratelimit.AutoApply,
 			})
+		}
+
+		if len(identityRatelimits) > 0 {
+			k.Identity.Ratelimits = ptr.P(identityRatelimits)
 		}
 	}
 
