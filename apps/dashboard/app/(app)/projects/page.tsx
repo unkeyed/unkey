@@ -172,6 +172,32 @@ export default function ProjectsPage() {
                   <strong>Updated:</strong> {new Date(project.updatedAt).toLocaleString()}
                 </p>
               )}
+
+              {/* Display hostnames */}
+              {project.hostnames && project.hostnames.length > 0 && (
+                <div style={{ marginTop: "10px" }}>
+                  <strong>Hostnames:</strong>
+                  <ul style={{ margin: "5px 0", paddingLeft: "20px" }}>
+                    {project.hostnames.map((hostname) => (
+                      <li key={hostname.id} style={{ marginBottom: "2px" }}>
+                        <a
+                          href={`https://${hostname.hostname}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            color: "#0070f3",
+                            textDecoration: "underline",
+                            fontSize: "14px",
+                          }}
+                        >
+                          {hostname.hostname}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <a
                 href={`/projects/${project.id}/branches`}
                 style={{ color: "#0070f3", textDecoration: "underline" }}

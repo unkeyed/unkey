@@ -19,6 +19,12 @@ export const projectsInputSchema = z.object({
   cursor: z.number().int().optional(),
 });
 
+// Hostname schema
+export const hostnameSchema = z.object({
+  id: z.string(),
+  hostname: z.string(),
+});
+
 // Project response schema
 export const projectSchema = z.object({
   id: z.string(),
@@ -29,6 +35,7 @@ export const projectSchema = z.object({
   deleteProtection: z.boolean().nullable(),
   createdAt: z.number(),
   updatedAt: z.number().nullable(),
+  hostnames: z.array(hostnameSchema),
 });
 
 // Projects list response schema
@@ -42,9 +49,10 @@ export const projectsResponseSchema = z.object({
 // Exported types
 export type ProjectsQueryPayload = z.infer<typeof projectsInputSchema>;
 export type Project = z.infer<typeof projectSchema>;
+export type Hostname = z.infer<typeof hostnameSchema>;
 export type ProjectsQueryResponse = z.infer<typeof projectsResponseSchema>;
 
 // Constants
-export const PROJECTS_LIMIT = 50;
+export const PROJECTS_LIMIT = 10;
 export const FILTERABLE_FIELDS = ["name", "slug", "branch"] as const;
 export type FilterableField = (typeof FILTERABLE_FIELDS)[number];
