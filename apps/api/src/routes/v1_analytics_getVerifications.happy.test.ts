@@ -1104,7 +1104,7 @@ test("grouping by tags", { timeout: 120_000 }, async (t) => {
   });
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
-  console.log(res)
+  console.log(res);
   expect(res.body.length).toBe(tags.length);
 });
 
