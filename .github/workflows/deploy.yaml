@@ -106,22 +106,3 @@ jobs:
 
   changes:
     uses: ./.github/workflows/job_changes.yaml
-
-  clickhouse_migration_preview:
-    if: needs.changes.outputs.clickhouse == 'true'
-    needs:
-      - changes
-      - api_local_test
-    uses: ./.github/workflows/job_clickhouse_migration_preview.yaml
-    secrets:
-      CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
-
-  clickhouse_migration_production:
-    if: needs.changes.outputs.clickhouse == 'true'
-    needs:
-      - changes
-      - api_preview_test
-      - clickhouse_migration_preview
-    uses: ./.github/workflows/job_clickhouse_migration_production.yaml
-    secrets:
-      CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
