@@ -80,7 +80,6 @@ properties:
     maxItems: 50
     items:
       "$ref": "./RatelimitResponse.yaml"
-      description: Rate limit configurations for this key.
 required:
   - keyId
   - start

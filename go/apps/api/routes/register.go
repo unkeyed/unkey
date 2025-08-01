@@ -392,6 +392,7 @@ func Register(srv *zen.Server, svc *Services) {
 			DB:        svc.Database,
 			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
+			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
 	)
 

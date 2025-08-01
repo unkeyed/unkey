@@ -267,7 +267,7 @@ components:
                     description: |
                         Pagination cursor from previous response to fetch next page.
                         Use when `hasMore: true` in previous response.
-                    example: cursor_eyJsYXN0S2V5SWQiOiJrZXlfMjNld3MiLCJsYXN0Q3JlYXRlZEF0IjoxNjcyNTI0MjM0MDAwfQ==
+                    example: key_1234abcd
                 externalId:
                     type: string
                     minLength: 3
@@ -456,16 +456,11 @@ components:
         V2IdentitiesUpdateIdentityRequestBody:
             type: object
             properties:
-                externalId:
+                identity:
                     type: string
                     minLength: 3
-                    maxLength: 255
-                    pattern: "^[a-zA-Z0-9_.-]+$"
-                    description: |
-                        Specifies which identity to update using your system's identifier from identity creation.
-                        Use this when you track identities by your own user IDs, organization IDs, or tenant identifiers.
-                        Accepts letters, numbers, underscores, dots, and hyphens for flexible identifier formats.
-                    example: user_abc123
+                    description: The ID of the identity to delete. This can be either the externalId (from your own system that was used during identity creation) or the identityId (the internal ID returned by the identity service).
+                    example: user_123
                 meta:
                     type: object
                     additionalProperties: true
@@ -496,7 +491,7 @@ components:
                           autoApply: true
             additionalProperties: false
             required:
-                - externalId
+                - identity
         V2IdentitiesUpdateIdentityResponseBody:
             type: object
             required:
@@ -2135,7 +2130,6 @@ components:
                     maxItems: 50
                     items:
                         "$ref": "#/components/schemas/RatelimitResponse"
-                        description: Rate limit configurations for this key.
             required:
                 - keyId
                 - start
@@ -2173,9 +2167,9 @@ components:
                     description: Identity metadata
                 ratelimits:
                     type: array
+                    description: Identity ratelimits
                     items:
                         "$ref": "#/components/schemas/RatelimitResponse"
-            description: Identity ratelimits
             required:
                 - externalId
                 - id
@@ -2303,8 +2297,7 @@ components:
                     format: int64
                     minimum: 1000
                 autoApply:
-                    description: |-
-                        Whether this ratelimit should be automatically applied when verifying a key.
+                    description: Whether this ratelimit should be automatically applied when verifying a key.
                     type: boolean
                     default: false
         V2IdentitiesCreateIdentityResponseData:
@@ -2364,7 +2357,7 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 512
-                    description: The URL-safe identifier when this permission was created.
+                    description: The unique URL-safe identifier when this permission was created.
                     example: users-read
                 description:
                     type: string
@@ -3189,9 +3182,11 @@ paths:
             description: |
                 Permanently delete an API namespace and immediately invalidate all associated keys.
 
-                Use this for cleaning up development environments, retiring deprecated services, or removing unused resources. All keys in the namespace are immediately marked as deleted and will fail verification with `code=NOT_FOUND`.
+                Use this for cleaning up development environments, retiring deprecated services, or removing unused resources.
+                All keys in the namespace are immediately marked as deleted and will fail verification with `code=NOT_FOUND`.
 
-                **Important**: This operation is immediate and permanent. Verify you have the correct API ID before deletion. If delete protection is enabled, disable it first through the dashboard or API configuration.
+                **Important**: This operation is immediate and permanent. Verify you have the correct API ID before deletion.
+                If delete protection is enabled, disable it first through the dashboard or API configuration.
 
                 **Required Permissions**
 
@@ -3211,8 +3206,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/V2ApisDeleteApiResponseBody'
-                    description: |
-                        API namespace deleted successfully. All associated keys are immediately invalidated and will fail verification with `code=NOT_FOUND`.
+                    description: API namespace deleted successfully. All associated keys are immediately invalidated and will fail verification with `code=NOT_FOUND`.
                 "400":
                     content:
                         application/json:
@@ -3280,8 +3274,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/V2ApisGetApiResponseBody'
-                    description: |
-                        API information retrieved successfully. Contains the unique API ID and human-readable name.
+                    description: API information retrieved successfully. Contains the unique API ID and human-readable name.
                 "400":
                     content:
                         application/json:
@@ -3391,7 +3384,13 @@ paths:
             x-speakeasy-name-override: listKeys
     /v2/identities.createIdentity:
         post:
-            description: "Create an identity to group multiple API keys under a single entity. Identities enable shared rate limits and metadata across all associated keys.\n\nPerfect for users with multiple devices, organizations with multiple API keys, or when you need unified rate limiting across different services.\n\n> **Important**  \n> Requires `identity.*.create_identity` permission\n"
+            description: |
+                Create an identity to group multiple API keys under a single entity. Identities enable shared rate limits and metadata across all associated keys.
+
+                Perfect for users with multiple devices, organizations with multiple API keys, or when you need unified rate limiting across different services.
+
+                **Important**
+                Requires `identity.*.create_identity` permission
             operationId: identities.createIdentity
             requestBody:
                 content:
@@ -3780,7 +3779,14 @@ paths:
                 type: cursor
     /v2/identities.updateIdentity:
         post:
-            description: "Update an identity's metadata and rate limits. Only specified fields are modified - others remain unchanged.\n\nPerfect for subscription changes, plan upgrades, or updating user information. Changes take effect immediately.\n\n> **Important**  \n> Requires `identity.*.update_identity` permission  \n> Rate limit changes propagate within 30 seconds\n"
+            description: |
+                Update an identity's metadata and rate limits. Only specified fields are modified - others remain unchanged.
+
+                Perfect for subscription changes, plan upgrades, or updating user information. Changes take effect immediately.
+
+                > **Important**
+                > Requires `identity.*.update_identity` permission
+                > Rate limit changes propagate within 30 seconds
             operationId: v2.identities.updateIdentity
             requestBody:
                 content:
@@ -3789,7 +3795,7 @@ paths:
                             updateMetadata:
                                 summary: Update metadata
                                 value:
-                                    externalId: user_123
+                                    identity: user_123
                                     meta:
                                         email: alice@example.com
                                         name: Alice Smith

@@ -11,9 +11,9 @@ properties:
     description: Identity metadata
   ratelimits:
     type: array
+    description: Identity ratelimits
     items:
       "$ref": "./RatelimitResponse.yaml"
-description: Identity ratelimits
 required:
   - externalId
   - id

@@ -115,7 +115,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	identity, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.Identity, error) {
 		// Find by external ID
 		identity, err := db.Query.FindIdentity(ctx, tx, db.FindIdentityParams{
-			Identity:    req.ExternalId,
+			Identity:    req.Identity,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			Deleted:     false,
 		})
@@ -394,7 +394,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	identityData := openapi.Identity{
 		Id:         identity.ID,
-		ExternalId: req.ExternalId,
+		ExternalId: identity.ExternalID,
 		Meta:       req.Meta,
 		Ratelimits: nil,
 	}

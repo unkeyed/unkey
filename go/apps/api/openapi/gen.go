@@ -137,7 +137,7 @@ type ForbiddenErrorResponse struct {
 	Meta Meta `json:"meta"`
 }
 
-// Identity Identity ratelimits
+// Identity defines model for Identity.
 type Identity struct {
 	// ExternalId External identity ID
 	ExternalId string `json:"externalId"`
@@ -146,8 +146,10 @@ type Identity struct {
 	Id string `json:"id"`
 
 	// Meta Identity metadata
-	Meta       *map[string]interface{} `json:"meta,omitempty"`
-	Ratelimits *[]RatelimitResponse    `json:"ratelimits,omitempty"`
+	Meta *map[string]interface{} `json:"meta,omitempty"`
+
+	// Ratelimits Identity ratelimits
+	Ratelimits *[]RatelimitResponse `json:"ratelimits,omitempty"`
 }
 
 // InternalServerErrorResponse Error response when an unexpected error occurs on the server. This indicates a problem with Unkey's systems rather than your request.
@@ -202,9 +204,7 @@ type KeyResponseData struct {
 	Enabled bool `json:"enabled"`
 
 	// Expires Unix timestamp in milliseconds when key expires (if set).
-	Expires *int64 `json:"expires,omitempty"`
-
-	// Identity Identity ratelimits
+	Expires  *int64    `json:"expires,omitempty"`
 	Identity *Identity `json:"identity,omitempty"`
 
 	// KeyId Unique identifier for this key.
@@ -307,7 +307,7 @@ type Permission struct {
 	// Names must be unique within your workspace to avoid confusion and conflicts.
 	Name string `json:"name"`
 
-	// Slug The URL-safe identifier when this permission was created.
+	// Slug The unique URL-safe identifier when this permission was created.
 	Slug string `json:"slug"`
 }
 
@@ -652,7 +652,6 @@ type V2IdentitiesGetIdentityRequestBody struct {
 
 // V2IdentitiesGetIdentityResponseBody defines model for V2IdentitiesGetIdentityResponseBody.
 type V2IdentitiesGetIdentityResponseBody struct {
-	// Data Identity ratelimits
 	Data Identity `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
@@ -685,10 +684,8 @@ type V2IdentitiesListIdentitiesResponseData = []Identity
 
 // V2IdentitiesUpdateIdentityRequestBody defines model for V2IdentitiesUpdateIdentityRequestBody.
 type V2IdentitiesUpdateIdentityRequestBody struct {
-	// ExternalId Specifies which identity to update using your system's identifier from identity creation.
-	// Use this when you track identities by your own user IDs, organization IDs, or tenant identifiers.
-	// Accepts letters, numbers, underscores, dots, and hyphens for flexible identifier formats.
-	ExternalId string `json:"externalId"`
+	// Identity The ID of the identity to delete. This can be either the externalId (from your own system that was used during identity creation) or the identityId (the internal ID returned by the identity service).
+	Identity string `json:"identity"`
 
 	// Meta Replaces all existing metadata with this new metadata object.
 	// Omitting this field preserves existing metadata, while providing an empty object clears all metadata.
@@ -705,7 +702,6 @@ type V2IdentitiesUpdateIdentityRequestBody struct {
 
 // V2IdentitiesUpdateIdentityResponseBody defines model for V2IdentitiesUpdateIdentityResponseBody.
 type V2IdentitiesUpdateIdentityResponseBody struct {
-	// Data Identity ratelimits
 	Data Identity `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
@@ -1305,9 +1301,7 @@ type V2KeysVerifyKeyResponseData struct {
 	// Expires Unix timestamp (in milliseconds) when the key will expire.
 	// If null or not present, the key has no expiration. You can use this to
 	// warn users about upcoming expirations or to understand the validity period.
-	Expires *int64 `json:"expires,omitempty"`
-
-	// Identity Identity ratelimits
+	Expires  *int64    `json:"expires,omitempty"`
 	Identity *Identity `json:"identity,omitempty"`
 
 	// KeyId The unique identifier of the verified key in Unkey's system.
