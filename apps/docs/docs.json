@@ -49,7 +49,9 @@
                   },
                   {
                     "group": "Identities",
-                    "pages": ["quickstart/identities/shared-ratelimits"]
+                    "pages": [
+                      "quickstart/identities/shared-ratelimits"
+                    ]
                   }
                 ]
               },
@@ -83,7 +85,10 @@
               {
                 "group": "Identities",
                 "icon": "fingerprint",
-                "pages": ["concepts/identities/overview", "concepts/identities/ratelimits"]
+                "pages": [
+                  "concepts/identities/overview",
+                  "concepts/identities/ratelimits"
+                ]
               }
             ]
           },
@@ -138,12 +143,18 @@
               {
                 "group": "Audit logs",
                 "icon": "scroll",
-                "pages": ["audit-log/introduction", "audit-log/types"]
+                "pages": [
+                  "audit-log/introduction",
+                  "audit-log/types"
+                ]
               },
               {
                 "group": "Analytics",
                 "icon": "chart-bar",
-                "pages": ["analytics/overview", "analytics/quickstarts"]
+                "pages": [
+                  "analytics/overview",
+                  "analytics/quickstarts"
+                ]
               }
             ]
           },
@@ -153,7 +164,10 @@
               {
                 "icon": "plane",
                 "group": "Migrating API Keys",
-                "pages": ["migrations/introduction", "migrations/keys"]
+                "pages": [
+                  "migrations/introduction",
+                  "migrations/keys"
+                ]
               }
             ]
           },
@@ -212,7 +226,9 @@
               },
               {
                 "group": "User Errors",
-                "pages": ["errors/user/bad_request/permissions_query_syntax_error"]
+                "pages": [
+                  "errors/user/bad_request/permissions_query_syntax_error"
+                ]
               }
             ]
           }
@@ -282,130 +298,40 @@
             "icon": "code",
             "pages": [
               {
-                "group": "@unkey/api",
+                "group": "Typescript",
                 "pages": [
-                  "libraries/ts/sdk/overview",
+                  "libraries/ts/api",
                   {
-                    "group": "Keys",
+                    "group": "@unkey/ratelimit",
                     "pages": [
-                      "libraries/ts/sdk/keys/create",
-                      "libraries/ts/sdk/keys/verify",
-                      "libraries/ts/sdk/keys/get",
-                      "libraries/ts/sdk/keys/update",
-                      "libraries/ts/sdk/keys/update-remaining",
-                      "libraries/ts/sdk/keys/delete",
-                      "libraries/ts/sdk/keys/add-permission",
-                      "libraries/ts/sdk/keys/remove-permission",
-                      "libraries/ts/sdk/keys/set-permission",
-                      "libraries/ts/sdk/keys/add-roles",
-                      "libraries/ts/sdk/keys/remove-roles",
-                      "libraries/ts/sdk/keys/set-roles"
-                    ]
-                  },
-                  {
-                    "group": "Analytics",
-                    "pages": ["libraries/ts/sdk/analytics/get"]
-                  },
-                  {
-                    "group": "APIs",
-                    "pages": [
-                      "libraries/ts/sdk/apis/create",
-                      "libraries/ts/sdk/apis/get",
-                      "libraries/ts/sdk/apis/list-keys",
-                      "libraries/ts/sdk/apis/delete"
-                    ]
-                  },
-                  {
-                    "group": "Identities",
-                    "pages": [
-                      "libraries/ts/sdk/identities/create-identity",
-                      "libraries/ts/sdk/identities/get-identity",
-                      "libraries/ts/sdk/identities/update-identity",
-                      "libraries/ts/sdk/identities/list-identity",
-                      "libraries/ts/sdk/identities/delete-identity"
-                    ]
-                  },
-                  {
-                    "group": "Ratelimits",
-                    "pages": [
-                      "libraries/ts/sdk/ratelimits/limit",
+                      "libraries/ts/ratelimit/ratelimit",
                       {
                         "group": "Overrides",
                         "pages": [
-                          "libraries/ts/sdk/ratelimits/overrides/set-override",
-                          "libraries/ts/sdk/ratelimits/overrides/get-override",
-                          "libraries/ts/sdk/ratelimits/overrides/list-overrides",
-                          "libraries/ts/sdk/ratelimits/overrides/delete-override"
+                          "libraries/ts/ratelimit/override/overview",
+                          "libraries/ts/ratelimit/override/set-override",
+                          "libraries/ts/ratelimit/override/get-override",
+                          "libraries/ts/ratelimit/override/list-overrides",
+                          "libraries/ts/ratelimit/override/delete-override"
                         ]
                       }
                     ]
                   },
-                  {
-                    "group": "Migrations",
-                    "pages": ["libraries/ts/sdk/migrations/migrate-to-unkey"]
-                  },
-                  {
-                    "group": "Permissions",
-                    "pages": [
-                      {
-                        "group": "Roles",
-                        "pages": [
-                          "libraries/ts/sdk/permissions/create-role",
-                          "libraries/ts/sdk/permissions/get-role",
-                          "libraries/ts/sdk/permissions/delete-role"
-                        ]
-                      },
-                      {
-                        "group": "Permissions",
-                        "pages": [
-                          "libraries/ts/sdk/permissions/create-permission",
-                          "libraries/ts/sdk/permissions/get-permission",
-                          "libraries/ts/sdk/permissions/delete-permission"
-                        ]
-                      }
-                    ]
-                  }
+                  "libraries/ts/nextjs",
+                  "libraries/ts/hono",
+                  "libraries/ts/cache/overview"
                 ]
               },
               {
-                "group": "@unkey/ratelimit",
+                "group": "Go",
                 "pages": [
-                  "libraries/ts/ratelimit/ratelimit",
-                  {
-                    "group": "Overrides",
-                    "pages": [
-                      "libraries/ts/ratelimit/override/overview",
-                      "libraries/ts/ratelimit/override/set-override",
-                      "libraries/ts/ratelimit/override/get-override",
-                      "libraries/ts/ratelimit/override/list-overrides",
-                      "libraries/ts/ratelimit/override/delete-override"
-                    ]
-                  }
+                  "libraries/go/api"
                 ]
               },
-              "libraries/ts/nextjs",
-              "libraries/ts/hono",
-              "libraries/ts/cache/overview",
               {
-                "group": "unkey-go",
-                "pages": ["libraries/go/overview"]
-              },
-              {
-                "group": "unkey.py",
+                "group": "Python",
                 "pages": [
-                  "libraries/py/overview",
-                  "libraries/py/async",
-                  {
-                    "group": "Services",
-                    "pages": [
-                      "libraries/py/services/keys",
-                      "libraries/py/services/apis",
-                      "libraries/py/services/permissions",
-                      "libraries/py/services/migrations",
-                      "libraries/py/services/identities",
-                      "libraries/py/services/ratelimits"
-                    ]
-                  }
+                  "libraries/py/api"
                 ]
               }
             ]
@@ -431,11 +357,15 @@
               },
               {
                 "group": "Nuxt",
-                "pages": ["libraries/nuxt/overview"]
+                "pages": [
+                  "libraries/nuxt/overview"
+                ]
               },
               {
                 "group": "Rust",
-                "pages": ["libraries/rs/overview"]
+                "pages": [
+                  "libraries/rs/overview"
+                ]
               },
               {
                 "group": "Springboot",
