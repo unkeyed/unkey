@@ -39,7 +39,7 @@ Protecting API routes is as simple as wrapping them with the `withUnkey` handler
 import { NextRequestWithUnkeyContext, withUnkey } from "@unkey/nextjs";
 
 export const POST = withUnkey(
-  async (req) => {
+  async (req: NextRequestWithUnkeyContext) => {
     // Process the request here
     // You have access to the verification response using `req.unkey`
     console.log(req.unkey);
@@ -47,6 +47,7 @@ export const POST = withUnkey(
     return new Response("Your API key is valid!");
   },
   { rootKey: process.env.UNKEY_ROOT_KEY! }
+);
 );
 ```
 
