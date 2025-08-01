@@ -1,0 +1,13 @@
+type: object
+required:
+  - keyring
+  - data
+properties:
+  keyring:
+    type: string
+    description: The keyring identifier to use for encryption. This is always the workspace id.
+    example: "ws_123"
+  data:
+    type: string
+    description: The plaintext data to encrypt
+    example: "sensitive information"

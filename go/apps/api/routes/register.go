@@ -5,9 +5,12 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/routes/reference"
 	v2Liveness "github.com/unkeyed/unkey/go/apps/api/routes/v2_liveness"
 
-	chproxyMetrics "github.com/unkeyed/unkey/go/apps/api/routes/chproxy_metrics"
-	chproxyRatelimits "github.com/unkeyed/unkey/go/apps/api/routes/chproxy_ratelimits"
-	chproxyVerifications "github.com/unkeyed/unkey/go/apps/api/routes/chproxy_verifications"
+	internalChproxyMetrics "github.com/unkeyed/unkey/go/apps/api/routes/_internal_chproxy_metrics"
+	internalChproxyRatelimits "github.com/unkeyed/unkey/go/apps/api/routes/_internal_chproxy_ratelimits"
+	internalChproxyVerifications "github.com/unkeyed/unkey/go/apps/api/routes/_internal_chproxy_verifications"
+
+	internalVaultDecrypt "github.com/unkeyed/unkey/go/apps/api/routes/_internal_vault_decrypt"
+	internalVaultEncrypt "github.com/unkeyed/unkey/go/apps/api/routes/_internal_vault_encrypt"
 
 	v2RatelimitDeleteOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_delete_override"
 	v2RatelimitGetOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_get_override"
@@ -85,24 +88,50 @@ func Register(srv *zen.Server, svc *Services) {
 		}
 
 		// chproxy/verifications - internal endpoint for key verification events
-		srv.RegisterRoute(chproxyMiddlewares, &chproxyVerifications.Handler{
+		srv.RegisterRoute(chproxyMiddlewares, &internalChproxyVerifications.Handler{
 			ClickHouse: svc.ClickHouse,
 			Logger:     svc.Logger,
 			Token:      svc.ChproxyToken,
 		})
 
 		// chproxy/metrics - internal endpoint for API request metrics
-		srv.RegisterRoute(chproxyMiddlewares, &chproxyMetrics.Handler{
+		srv.RegisterRoute(chproxyMiddlewares, &internalChproxyMetrics.Handler{
 			ClickHouse: svc.ClickHouse,
 			Logger:     svc.Logger,
 			Token:      svc.ChproxyToken,
 		})
 
 		// chproxy/ratelimits - internal endpoint for ratelimit events
-		srv.RegisterRoute(chproxyMiddlewares, &chproxyRatelimits.Handler{
+		srv.RegisterRoute(chproxyMiddlewares, &internalChproxyRatelimits.Handler{
 			ClickHouse: svc.ClickHouse,
 			Logger:     svc.Logger,
 			Token:      svc.ChproxyToken,
+		})
+	}
+
+	// ---------------------------------------------------------------------------
+	// _internal/vault (internal endpoints)
+
+	if svc.Vault != nil && svc.VaultToken != "" {
+		internalMiddlewares := []zen.Middleware{
+			withMetrics,
+			withLogging,
+			withPanicRecovery,
+			withErrorHandling,
+		}
+
+		// _internal/vault/encrypt - internal endpoint for vault encryption
+		srv.RegisterRoute(internalMiddlewares, &internalVaultEncrypt.Handler{
+			Vault:  svc.Vault,
+			Logger: svc.Logger,
+			Token:  svc.VaultToken,
+		})
+
+		// _internal/vault/decrypt - internal endpoint for vault decryption
+		srv.RegisterRoute(internalMiddlewares, &internalVaultDecrypt.Handler{
+			Vault:  svc.Vault,
+			Logger: svc.Logger,
+			Token:  svc.VaultToken,
 		})
 	}
 

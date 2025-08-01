@@ -163,6 +163,39 @@ type InternalServerErrorResponse struct {
 	Meta Meta `json:"meta"`
 }
 
+// InternalVaultDecryptRequestBody defines model for InternalVaultDecryptRequestBody.
+type InternalVaultDecryptRequestBody struct {
+	// Encrypted Base64 encoded encrypted data to decrypt
+	Encrypted string `json:"encrypted"`
+
+	// Keyring The keyring identifier used for encryption
+	Keyring string `json:"keyring"`
+}
+
+// InternalVaultDecryptResponseBody defines model for InternalVaultDecryptResponseBody.
+type InternalVaultDecryptResponseBody struct {
+	// Plaintext The decrypted plaintext data
+	Plaintext string `json:"plaintext"`
+}
+
+// InternalVaultEncryptRequestBody defines model for InternalVaultEncryptRequestBody.
+type InternalVaultEncryptRequestBody struct {
+	// Data The plaintext data to encrypt
+	Data string `json:"data"`
+
+	// Keyring The keyring identifier to use for encryption
+	Keyring string `json:"keyring"`
+}
+
+// InternalVaultEncryptResponseBody defines model for InternalVaultEncryptResponseBody.
+type InternalVaultEncryptResponseBody struct {
+	// Encrypted Base64 encoded encrypted data
+	Encrypted string `json:"encrypted"`
+
+	// KeyId The ID of the data encryption key used
+	KeyId string `json:"keyId"`
+}
+
 // KeyCreditsData Credit configuration and remaining balance for this key.
 type KeyCreditsData struct {
 	// Refill Configuration for automatic credit refill behavior.
@@ -1939,6 +1972,12 @@ type ChproxyRatelimitsJSONRequestBody = ChproxyRatelimitsRequestBody
 
 // ChproxyVerificationsJSONRequestBody defines body for ChproxyVerifications for application/json ContentType.
 type ChproxyVerificationsJSONRequestBody = ChproxyVerificationsRequestBody
+
+// InternalVaultDecryptJSONRequestBody defines body for InternalVaultDecrypt for application/json ContentType.
+type InternalVaultDecryptJSONRequestBody = InternalVaultDecryptRequestBody
+
+// InternalVaultEncryptJSONRequestBody defines body for InternalVaultEncrypt for application/json ContentType.
+type InternalVaultEncryptJSONRequestBody = InternalVaultEncryptRequestBody
 
 // CreateApiJSONRequestBody defines body for CreateApi for application/json ContentType.
 type CreateApiJSONRequestBody = V2ApisCreateApiRequestBody

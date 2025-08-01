@@ -199,11 +199,17 @@ paths:
 
   # ClickHouse Proxy Endpoints (Internal)
   /_internal/chproxy/verifications:
-    $ref: "./spec/paths/chproxy/verifications/index.yaml"
+    $ref: "./spec/paths/_internal/chproxy/verifications/index.yaml"
   /_internal/chproxy/metrics:
-    $ref: "./spec/paths/chproxy/metrics/index.yaml"
+    $ref: "./spec/paths/_internal/chproxy/metrics/index.yaml"
   /_internal/chproxy/ratelimits:
-    $ref: "./spec/paths/chproxy/ratelimits/index.yaml"
+    $ref: "./spec/paths/_internal/chproxy/ratelimits/index.yaml"
+
+  # Vault Endpoints (Internal)
+  /_internal/vault/encrypt:
+    $ref: "./spec/paths/_internal/vault/encrypt/index.yaml"
+  /_internal/vault/decrypt:
+    $ref: "./spec/paths/_internal/vault/decrypt/index.yaml"
 
 components:
   securitySchemes:

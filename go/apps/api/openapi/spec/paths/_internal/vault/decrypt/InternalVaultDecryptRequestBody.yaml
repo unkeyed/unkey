@@ -1,0 +1,13 @@
+type: object
+required:
+  - keyring
+  - encrypted
+properties:
+  keyring:
+    type: string
+    description: The keyring identifier used for encryption
+    example: "user_data"
+  encrypted:
+    type: string
+    description: Base64 encoded encrypted data to decrypt
+    example: "eyJhbGdvcml0aG0iOiJBRVMtMjU2LUdDTSIsIm5vbmNlIjoi..."

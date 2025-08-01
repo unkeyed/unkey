@@ -1,0 +1,8 @@
+type: object
+required:
+  - plaintext
+properties:
+  plaintext:
+    type: string
+    description: The decrypted plaintext data
+    example: "sensitive information"

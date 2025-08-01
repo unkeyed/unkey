@@ -78,6 +78,11 @@ type Config struct {
 
 	// ChproxyToken is the authentication token for ClickHouse proxy endpoints
 	ChproxyToken string
+
+	// --- Vault configuration ---
+
+	// VaultToken is the authentication token for vault endpoints
+	VaultToken string
 }
 
 func (c Config) Validate() error {
