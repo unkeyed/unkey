@@ -19,10 +19,10 @@ func TestIntegration_RateLimit_Nodes01_Limit0005_Duration000060000_Load10_00_Win
 	run.RunRateLimitTest(
 		t,
 		h,
-		5,            // limit
-		60000,         // duration
-		10,      // window count
-		10,       // load factor
-		1,        // node count
+		5,     // limit
+		60000, // duration
+		10,    // window count
+		10,    // load factor
+		1,     // node count
 	)
 }

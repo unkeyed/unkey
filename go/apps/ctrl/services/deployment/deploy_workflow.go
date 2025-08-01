@@ -138,8 +138,8 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 	_, err = hydra.Step(ctx, "update-version-building", func(stepCtx context.Context) (*struct{}, error) {
 		w.logger.Info("updating deployment status to building", "deployment_id", req.DeploymentID)
 		updateErr := db.Query.UpdateDeploymentStatus(stepCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
-			ID:     req.DeploymentID,
-			Status: db.DeploymentsStatusBuilding,
+			ID:        req.DeploymentID,
+			Status:    db.DeploymentsStatusBuilding,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if updateErr != nil {
@@ -307,8 +307,8 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		w.logger.Info("starting deployment", "deployment_id", req.DeploymentID)
 
 		deployingErr := db.Query.UpdateDeploymentStatus(stepCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
-			ID:     req.DeploymentID,
-			Status: db.DeploymentsStatusDeploying,
+			ID:        req.DeploymentID,
+			Status:    db.DeploymentsStatusDeploying,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if deployingErr != nil {
@@ -401,7 +401,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		// Generate primary hostname for this deployment
 		// Use Git info for hostname generation
 		gitInfo := git.GetInfo()
-		branch := "main"            // Default branch
+		branch := "main"               // Default branch
 		identifier := req.DeploymentID // Use full version ID as identifier
 
 		if gitInfo.IsRepo {
@@ -421,14 +421,14 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		// Create route entry for primary hostname
 		routeID := uid.New("route")
 		insertErr := db.Query.InsertHostnameRoute(stepCtx, w.db.RW(), db.InsertHostnameRouteParams{
-			ID:          routeID,
-			WorkspaceID: req.WorkspaceID,
-			ProjectID:   req.ProjectID,
-			Hostname:    primaryHostname,
-			DeploymentID:   req.DeploymentID,
-			IsEnabled:   true,
-			CreatedAt:   time.Now().UnixMilli(),
-			UpdatedAt:   sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			ID:           routeID,
+			WorkspaceID:  req.WorkspaceID,
+			ProjectID:    req.ProjectID,
+			Hostname:     primaryHostname,
+			DeploymentID: req.DeploymentID,
+			IsEnabled:    true,
+			CreatedAt:    time.Now().UnixMilli(),
+			UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if insertErr != nil {
 			w.logger.Error("failed to create route", "error", insertErr, "hostname", primaryHostname, "deployment_id", req.DeploymentID)
@@ -453,14 +453,14 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 				// Create route entry for localhost:port
 				localhostRouteID := uid.New("route")
 				insertErr := db.Query.InsertHostnameRoute(stepCtx, w.db.RW(), db.InsertHostnameRouteParams{
-					ID:          localhostRouteID,
-					WorkspaceID: req.WorkspaceID,
-					ProjectID:   req.ProjectID,
-					Hostname:    localhostHostname,
-					DeploymentID:   req.DeploymentID,
-					IsEnabled:   true,
-					CreatedAt:   time.Now().UnixMilli(),
-					UpdatedAt:   sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+					ID:           localhostRouteID,
+					WorkspaceID:  req.WorkspaceID,
+					ProjectID:    req.ProjectID,
+					Hostname:     localhostHostname,
+					DeploymentID: req.DeploymentID,
+					IsEnabled:    true,
+					CreatedAt:    time.Now().UnixMilli(),
+					UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 				})
 				if insertErr != nil {
 					w.logger.Error("failed to create localhost route", "error", insertErr, "hostname", localhostHostname, "deployment_id", req.DeploymentID)
@@ -505,9 +505,9 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		completionTime := time.Now().UnixMilli()
 		w.logger.Info("updating deployment status to active", "deployment_id", req.DeploymentID, "completion_time", completionTime)
 		activeErr := db.Query.UpdateDeploymentStatus(stepCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
-			ID:     req.DeploymentID,
-			Status: db.DeploymentsStatusActive,
-			UpdatedAt:    sql.NullInt64{Valid: true, Int64: completionTime},
+			ID:        req.DeploymentID,
+			Status:    db.DeploymentsStatusActive,
+			UpdatedAt: sql.NullInt64{Valid: true, Int64: completionTime},
 		})
 		if activeErr != nil {
 			w.logger.Error("failed to update version status to active", "error", activeErr, "deployment_id", req.DeploymentID)
@@ -518,7 +518,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 		return &DeploymentResult{
 			DeploymentID: req.DeploymentID,
-			Status:    "active",
+			Status:       "active",
 		}, nil
 	})
 	if err != nil {

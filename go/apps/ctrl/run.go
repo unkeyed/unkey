@@ -10,8 +10,8 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
-	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/deployment"
+	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
 	deployTLS "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1/vmprovisionerv1connect"

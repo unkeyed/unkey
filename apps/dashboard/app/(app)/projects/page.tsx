@@ -1,7 +1,6 @@
-import { OptIn } from "@/components/opt-in";
 import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { ProjectsClient } from "./projects-client";
 
@@ -16,11 +15,7 @@ export default async function ProjectsPage(): Promise<JSX.Element> {
   }
 
   if (!workspace.betaFeatures.deployments) {
-    // right now, we want to block all external access to deploy
-    // to make it easier to opt-in for local development, comment out the redirect
-    // and uncomment the <OptIn> component
-    //return redirect("/apis");
-    return <OptIn title="Projects" description="Projects are in beta" feature="deployments" />;
+    return notFound();
   }
 
   return (

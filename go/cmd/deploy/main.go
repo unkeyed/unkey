@@ -34,19 +34,19 @@ const (
 	HeaderSeparator = "──────────────────────────────────────────────────"
 
 	// Step messages
-	MsgPreparingDeployment        = "Preparing deployment"
-	MsgCreatingDeployment         = "Creating deployment"
-	MsgSkippingRegistryPush       = "Skipping registry push"
-	MsgUsingPreBuiltImage         = "Using pre-built Docker image"
-	MsgPushingToRegistry          = "Pushing to registry"
-	MsgImageBuiltSuccessfully     = "Image built successfully"
-	MsgImagePushedSuccessfully    = "Image pushed successfully"
-	MsgPushFailedContinuing       = "Push failed but continuing deployment"
-	MsgDockerNotFound             = "Docker not found - please install Docker"
-	MsgFailedToCreateDeployment   = "Failed to create deployment"
-	MsgDeploymentFailed           = "Deployment failed"
-	MsgDeploymentCompleted        = "Deployment completed successfully"
-	MsgDeploymentStepCompleted    = "Deployment step completed successfully"
+	MsgPreparingDeployment      = "Preparing deployment"
+	MsgCreatingDeployment       = "Creating deployment"
+	MsgSkippingRegistryPush     = "Skipping registry push"
+	MsgUsingPreBuiltImage       = "Using pre-built Docker image"
+	MsgPushingToRegistry        = "Pushing to registry"
+	MsgImageBuiltSuccessfully   = "Image built successfully"
+	MsgImagePushedSuccessfully  = "Image pushed successfully"
+	MsgPushFailedContinuing     = "Push failed but continuing deployment"
+	MsgDockerNotFound           = "Docker not found - please install Docker"
+	MsgFailedToCreateDeployment = "Failed to create deployment"
+	MsgDeploymentFailed         = "Deployment failed"
+	MsgDeploymentCompleted      = "Deployment completed successfully"
+	MsgDeploymentStepCompleted  = "Deployment step completed successfully"
 
 	// Source info labels
 	LabelBranch  = "Branch"
@@ -55,13 +55,13 @@ const (
 	LabelImage   = "Image"
 
 	// Completion info labels
-	CompletionTitle       = "Deployment Complete"
+	CompletionTitle        = "Deployment Complete"
 	CompletionDeploymentID = "Deployment ID"
-	CompletionStatus      = "Status"
-	CompletionEnvironment = "Environment"
-	CompletionDomains     = "Domains"
-	CompletionReady       = "Ready"
-	CompletionNoHostnames = "No hostnames assigned"
+	CompletionStatus       = "Status"
+	CompletionEnvironment  = "Environment"
+	CompletionDomains      = "Domains"
+	CompletionReady        = "Ready"
+	CompletionNoHostnames  = "No hostnames assigned"
 
 	// Git status
 	GitDirtyMarker = " (dirty)"
