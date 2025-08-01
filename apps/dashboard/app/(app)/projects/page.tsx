@@ -1,7 +1,7 @@
 "use server";
-import { OptIn } from "@/components/opt-in";
 import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ProjectsClient } from "./projects-client";
 
@@ -17,14 +17,7 @@ export default async function ProjectsPage() {
     // to make it easier to opt-in for local development, comment out the redirect
     // and uncomment the <OptIn> component
     //return redirect("/apis");
-    return (
-      <OptIn
-        title="Projects"
-        description="Projects are in beta"
-        //@ts-expect-error This will be gone once we add deployments flag
-        feature="deployments"
-      />
-    );
+    return notFound();
   }
   return (
     <Suspense fallback={<div>Loading...</div>}>
