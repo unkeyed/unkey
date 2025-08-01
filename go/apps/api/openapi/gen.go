@@ -307,7 +307,7 @@ type Permission struct {
 	// Names must be unique within your workspace to avoid confusion and conflicts.
 	Name string `json:"name"`
 
-	// Slug The unique URL-safe identifier when this permission was created.
+	// Slug The unique URL-safe identifier for this permission.
 	Slug string `json:"slug"`
 }
 
@@ -684,7 +684,7 @@ type V2IdentitiesListIdentitiesResponseData = []Identity
 
 // V2IdentitiesUpdateIdentityRequestBody defines model for V2IdentitiesUpdateIdentityRequestBody.
 type V2IdentitiesUpdateIdentityRequestBody struct {
-	// Identity The ID of the identity to delete. This can be either the externalId (from your own system that was used during identity creation) or the identityId (the internal ID returned by the identity service).
+	// Identity The ID of the identity to update. Accepts either the externalId (your system-generated identifier) or the identityId (internal identifier returned by the identity service).
 	Identity string `json:"identity"`
 
 	// Meta Replaces all existing metadata with this new metadata object.
