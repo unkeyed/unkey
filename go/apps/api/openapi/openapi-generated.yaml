@@ -1507,7 +1507,7 @@ components:
                 meta:
                     "$ref": "#/components/schemas/Meta"
                 data:
-                    "$ref": "#/components/schemas/V2PermissionsGetPermissionResponseData"
+                    "$ref": "#/components/schemas/Permission"
             additionalProperties: false
         V2PermissionsGetRoleRequestBody:
             type: object
@@ -1536,7 +1536,7 @@ components:
                 meta:
                     "$ref": "#/components/schemas/Meta"
                 data:
-                    "$ref": "#/components/schemas/V2PermissionsGetRoleResponseData"
+                    "$ref": "#/components/schemas/Role"
             additionalProperties: false
         V2PermissionsListPermissionsRequestBody:
             type: object
@@ -2766,24 +2766,6 @@ components:
             required:
                 - roleId
             additionalProperties: false
-        V2PermissionsGetPermissionResponseData:
-            type: object
-            properties:
-                permission:
-                    "$ref": "#/components/schemas/Permission"
-            required:
-                - permission
-            additionalProperties: false
-            description: Complete permission details including ID, name, and metadata.
-        V2PermissionsGetRoleResponseData:
-            type: object
-            properties:
-                role:
-                    "$ref": "#/components/schemas/Role"
-            required:
-                - role
-            additionalProperties: false
-            description: Complete role details including assigned permissions.
         V2PermissionsListPermissionsResponseData:
             type: array
             maxItems: 1000

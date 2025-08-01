@@ -95,10 +95,9 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data)
-		require.NotNil(t, res.Body.Data.Role)
 
 		// Verify role data
-		role := res.Body.Data.Role
+		role := res.Body.Data
 		require.Equal(t, roleID, role.Id)
 		require.Equal(t, roleName, role.Name)
 		require.NotNil(t, role.Description)
@@ -150,10 +149,9 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data)
-		require.NotNil(t, res.Body.Data.Role)
 
 		// Verify role data
-		role := res.Body.Data.Role
+		role := res.Body.Data
 		require.Equal(t, roleID, role.Id)
 		require.Equal(t, roleName, role.Name)
 		require.NotNil(t, role.Description)

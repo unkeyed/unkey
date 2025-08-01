@@ -1528,16 +1528,10 @@ type V2PermissionsGetPermissionRequestBody struct {
 
 // V2PermissionsGetPermissionResponseBody defines model for V2PermissionsGetPermissionResponseBody.
 type V2PermissionsGetPermissionResponseBody struct {
-	// Data Complete permission details including ID, name, and metadata.
-	Data V2PermissionsGetPermissionResponseData `json:"data"`
+	Data Permission `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
-}
-
-// V2PermissionsGetPermissionResponseData Complete permission details including ID, name, and metadata.
-type V2PermissionsGetPermissionResponseData struct {
-	Permission Permission `json:"permission"`
 }
 
 // V2PermissionsGetRoleRequestBody defines model for V2PermissionsGetRoleRequestBody.
@@ -1552,16 +1546,10 @@ type V2PermissionsGetRoleRequestBody struct {
 
 // V2PermissionsGetRoleResponseBody defines model for V2PermissionsGetRoleResponseBody.
 type V2PermissionsGetRoleResponseBody struct {
-	// Data Complete role details including assigned permissions.
-	Data V2PermissionsGetRoleResponseData `json:"data"`
+	Data Role `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
-}
-
-// V2PermissionsGetRoleResponseData Complete role details including assigned permissions.
-type V2PermissionsGetRoleResponseData struct {
-	Role Role `json:"role"`
 }
 
 // V2PermissionsListPermissionsRequestBody defines model for V2PermissionsListPermissionsRequestBody.
