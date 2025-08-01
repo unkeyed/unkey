@@ -35,7 +35,7 @@ description: "Hono.js middleware for authenticating API keys"
 
 </CodeGroup>
 
-Let's dive straight in. The minimal setup looks like this. All you need is your root key with permission to verify keys. Go to [/app/api](https://app.unkey.com/apis), select your API and copy the id.
+Let's dive straight in. The minimal setup looks like this. All you need is your root key with permission to verify keys. Go to [/app/api](https://app.unkey.com/settings/root-keys) and create a key with the `verify_key` permission.
 
 By default it tries to grab the api key from the `Authorization` header and then verifies it with unkey.
 The result of the verification will be written to the context and can be access with `c.get("unkey")`.
