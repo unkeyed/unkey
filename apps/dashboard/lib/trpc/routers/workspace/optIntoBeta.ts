@@ -9,7 +9,7 @@ export const optWorkspaceIntoBeta = t.procedure
   .use(requireWorkspace)
   .input(
     z.object({
-      feature: z.enum(["rbac", "ratelimit", "identities", "logsPage"]),
+      feature: z.enum(["rbac", "ratelimit", "identities", "logsPage", "deployments"]),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -20,6 +20,10 @@ export const optWorkspaceIntoBeta = t.procedure
       }
       case "identities": {
         ctx.workspace.betaFeatures.identities = true;
+        break;
+      }
+      case "deployments": {
+        ctx.workspace.betaFeatures.deployments = true;
         break;
       }
     }
