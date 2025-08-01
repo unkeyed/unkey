@@ -58,6 +58,7 @@ func Register(srv *zen.Server, svc *Services) {
 	withMetrics := zen.WithMetrics(svc.ClickHouse)
 
 	withLogging := zen.WithLogging(svc.Logger)
+	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
 	withErrorHandling := zen.WithErrorHandling(svc.Logger)
 	withValidation := zen.WithValidation(svc.Validator)
 
@@ -65,6 +66,7 @@ func Register(srv *zen.Server, svc *Services) {
 		withTracing,
 		withMetrics,
 		withLogging,
+		withPanicRecovery,
 		withErrorHandling,
 		withValidation,
 	}
@@ -74,38 +76,30 @@ func Register(srv *zen.Server, svc *Services) {
 	// ---------------------------------------------------------------------------
 	// chproxy (internal endpoints)
 
-	if svc.ChproxyEnabled {
-		// chproxy/verifications - internal endpoint for key verification events
-		srv.RegisterRoute([]zen.Middleware{
-			withTracing,
+	if svc.ChproxyToken != "" {
+		chproxyMiddlewares := []zen.Middleware{
 			withMetrics,
 			withLogging,
+			withPanicRecovery,
 			withErrorHandling,
-		}, &chproxyVerifications.Handler{
+		}
+
+		// chproxy/verifications - internal endpoint for key verification events
+		srv.RegisterRoute(chproxyMiddlewares, &chproxyVerifications.Handler{
 			ClickHouse: svc.ClickHouse,
 			Logger:     svc.Logger,
 			Token:      svc.ChproxyToken,
 		})
 
 		// chproxy/metrics - internal endpoint for API request metrics
-		srv.RegisterRoute([]zen.Middleware{
-			withTracing,
-			withMetrics,
-			withLogging,
-			withErrorHandling,
-		}, &chproxyMetrics.Handler{
+		srv.RegisterRoute(chproxyMiddlewares, &chproxyMetrics.Handler{
 			ClickHouse: svc.ClickHouse,
 			Logger:     svc.Logger,
 			Token:      svc.ChproxyToken,
 		})
 
 		// chproxy/ratelimits - internal endpoint for ratelimit events
-		srv.RegisterRoute([]zen.Middleware{
-			withTracing,
-			withMetrics,
-			withLogging,
-			withErrorHandling,
-		}, &chproxyRatelimits.Handler{
+		srv.RegisterRoute(chproxyMiddlewares, &chproxyRatelimits.Handler{
 			ClickHouse: svc.ClickHouse,
 			Logger:     svc.Logger,
 			Token:      svc.ChproxyToken,
@@ -516,6 +510,7 @@ func Register(srv *zen.Server, svc *Services) {
 		withTracing,
 		withMetrics,
 		withLogging,
+		withPanicRecovery,
 		withErrorHandling,
 	}, &reference.Handler{
 		Logger: svc.Logger,
@@ -524,6 +519,7 @@ func Register(srv *zen.Server, svc *Services) {
 		withTracing,
 		withMetrics,
 		withLogging,
+		withPanicRecovery,
 		withErrorHandling,
 	}, &openapi.Handler{
 		Logger: svc.Logger,

@@ -305,30 +305,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	// Filter out the cursor key if cursor was provided (to avoid duplicates)
-	filteredKeys := keys
-	if cursor != "" {
-		var filtered []db.ListKeysByKeyAuthIDRow
-		for _, key := range keys {
-			if key.Key.ID != cursor {
-				filtered = append(filtered, key)
-			}
-		}
-		filteredKeys = filtered
-	}
-
-	// Determine the actual number of keys to return (respect the limit)
-	numKeysToReturn := len(filteredKeys)
-	hasMore := false
-	if len(filteredKeys) > limit {
-		numKeysToReturn = limit
-		hasMore = true
+	// Determine the cursor for the next page
+	hasMore := len(keys) > limit
+	var nextCursor *string
+	if hasMore {
+		nextCursor = ptr.P(keys[len(keys)-1].Key.ID)
+		// Trim the results to the requested limit
+		keys = keys[:limit]
 	}
 
 	// Transform keys into the response format
-	responseData := make([]openapi.KeyResponseData, numKeysToReturn)
-	for i := 0; i < numKeysToReturn; i++ {
-		key := filteredKeys[i]
+	responseData := make([]openapi.KeyResponseData, len(keys))
+	for i, key := range keys {
 		k := openapi.KeyResponseData{
 			KeyId:       key.Key.ID,
 			Start:       key.Key.Start,
@@ -339,11 +327,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Identity:    nil,
 			Meta:        nil,
 			Name:        nil,
-			Permissions: nil,
 			Plaintext:   nil,
-			Ratelimits:  nil,
-			Roles:       nil,
 			UpdatedAt:   nil,
+			Ratelimits:  nil,
+			Permissions: nil,
+			Roles:       nil,
 		}
 
 		if key.Key.Name.Valid {
@@ -423,7 +411,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					}
 				}
 
-				k.Identity.Ratelimits = ratelimitsResponse
+				k.Identity.Ratelimits = ptr.P(ratelimitsResponse)
 			}
 		}
 
@@ -435,7 +423,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
 				fault.Internal("unable to find permissions for key"), fault.Public("Could not load permissions for key."))
 		}
-		k.Permissions = ptr.P(permissionSlugs)
+
+		if len(permissionSlugs) > 0 {
+			k.Permissions = ptr.P(permissionSlugs)
+		}
 
 		// Get roles for the key
 		roles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), k.KeyId)
@@ -444,12 +435,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Internal("unable to find roles for key"), fault.Public("Could not load roles for key."))
 		}
 
-		roleNames := make([]string, len(roles))
-		for i, role := range roles {
-			roleNames[i] = role.Name
-		}
+		if len(roles) > 0 {
+			roleNames := make([]string, len(roles))
+			for i, role := range roles {
+				roleNames[i] = role.Name
+			}
 
-		k.Roles = ptr.P(roleNames)
+			k.Roles = ptr.P(roleNames)
+		}
 
 		// Add ratelimits for the key
 		if keyRatelimits, exists := ratelimitsMap[k.KeyId]; exists {
@@ -467,13 +460,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		responseData[i] = k
-	}
-
-	// Determine the cursor for the next page
-	var nextCursor *string
-	if hasMore && numKeysToReturn > 0 {
-		cursor := responseData[numKeysToReturn-1].KeyId
-		nextCursor = &cursor
 	}
 
 	return s.JSON(http.StatusOK, Response{

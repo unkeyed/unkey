@@ -13,4 +13,4 @@ description: |-
   - This only shows direct role assignments, not inherited or nested roles
   - Role permissions are not expanded in this response - use keys.getKey for full details
 items:
-  "$ref": "../../../../common/role.yaml"
+  "$ref": "../../../../common/Role.yaml"

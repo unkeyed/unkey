@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -49,7 +50,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Use the namespace field directly - it can be either name or ID
-	response, err := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
+	namespace, err := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
 		WorkspaceID: auth.AuthorizedWorkspaceID,
 		Namespace:   req.Namespace,
 	})
@@ -64,15 +65,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
 			fault.Public("An unexpected error occurred while loading your namespace."),
 		)
-	}
-
-	namespace := db.RatelimitNamespace{
-		ID:          response.ID,
-		WorkspaceID: response.WorkspaceID,
-		Name:        response.Name,
-		CreatedAtM:  response.CreatedAtM,
-		UpdatedAtM:  response.UpdatedAtM,
-		DeletedAtM:  response.DeletedAtM,
 	}
 
 	if namespace.WorkspaceID != auth.AuthorizedWorkspaceID {
@@ -98,13 +90,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	limit := ptr.SafeDeref(req.Limit, 50)
+
 	overrides, err := db.Query.ListRatelimitOverridesByNamespaceID(ctx, h.DB.RO(), db.ListRatelimitOverridesByNamespaceIDParams{
 		WorkspaceID: auth.AuthorizedWorkspaceID,
 		NamespaceID: namespace.ID,
+		Limit:       int32(limit) + 1,
+		CursorID:    ptr.SafeDeref(req.Cursor, ""),
 	})
 
 	if err != nil {
 		return err
+	}
+
+	hasMore := len(overrides) > limit
+	var cursor *string
+	if hasMore {
+		cursor = ptr.P(overrides[limit].ID)
+		overrides = overrides[:limit]
 	}
 
 	responseBody := Response{
@@ -113,18 +116,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		},
 		Data: make([]openapi.RatelimitOverride, len(overrides)),
 		Pagination: &openapi.Pagination{
-			Cursor:  nil,
-			HasMore: false,
+			Cursor:  cursor,
+			HasMore: hasMore,
 		},
 	}
 
 	for i, override := range overrides {
 		responseBody.Data[i] = openapi.RatelimitOverride{
-			OverrideId:  override.ID,
-			Duration:    int64(override.Duration),
-			Identifier:  override.Identifier,
-			NamespaceId: override.NamespaceID,
-			Limit:       int64(override.Limit),
+			OverrideId: override.ID,
+			Duration:   int64(override.Duration),
+			Identifier: override.Identifier,
+			Limit:      int64(override.Limit),
 		}
 	}
 

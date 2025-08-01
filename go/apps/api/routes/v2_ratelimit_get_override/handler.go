@@ -153,11 +153,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RequestId: s.RequestID(),
 		},
 		Data: openapi.RatelimitOverride{
-			OverrideId:  override.ID,
-			NamespaceId: namespace.ID,
-			Limit:       override.Limit,
-			Duration:    override.Duration,
-			Identifier:  override.Identifier,
+			OverrideId: override.ID,
+			Limit:      override.Limit,
+			Duration:   override.Duration,
+			Identifier: override.Identifier,
 		},
 	})
 }

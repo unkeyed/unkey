@@ -146,7 +146,7 @@ type Identity struct {
 
 	// Meta Identity metadata
 	Meta       *map[string]interface{} `json:"meta,omitempty"`
-	Ratelimits []RatelimitResponse     `json:"ratelimits"`
+	Ratelimits *[]RatelimitResponse    `json:"ratelimits,omitempty"`
 }
 
 // InternalServerErrorResponse Error response when an unexpected error occurs on the server. This indicates a problem with Unkey's systems rather than your request.
@@ -353,9 +353,6 @@ type RatelimitOverride struct {
 	// - Custom tier-based limits for different customer segments
 	Limit int64 `json:"limit"`
 
-	// NamespaceId The unique identifier of the rate limit namespace this override belongs to. This links the override to a specific namespace context, ensuring the override only applies within that namespace.
-	NamespaceId string `json:"namespaceId"`
-
 	// OverrideId The unique identifier of this specific rate limit override. This ID is generated when the override is created and can be used for management operations like updating or deleting the override.
 	OverrideId string `json:"overrideId"`
 }
@@ -441,7 +438,7 @@ type Role struct {
 	// Use this list to understand the full scope of access provided by this role.
 	// Permissions can be added or removed from roles without affecting the role's identity or other properties.
 	// Empty array indicates a role with no permissions currently assigned.
-	Permissions []Permission `json:"permissions"`
+	Permissions *[]Permission `json:"permissions,omitempty"`
 }
 
 // UnauthorizedErrorResponse Error response when authentication has failed or credentials are missing. This occurs when:
@@ -630,7 +627,10 @@ type V2IdentitiesCreateIdentityResponseBody struct {
 }
 
 // V2IdentitiesCreateIdentityResponseData defines model for V2IdentitiesCreateIdentityResponseData.
-type V2IdentitiesCreateIdentityResponseData = map[string]interface{}
+type V2IdentitiesCreateIdentityResponseData struct {
+	// IdentityId The unique identifier of the created identity.
+	IdentityId string `json:"identityId"`
+}
 
 // V2IdentitiesDeleteIdentityRequestBody defines model for V2IdentitiesDeleteIdentityRequestBody.
 type V2IdentitiesDeleteIdentityRequestBody struct {

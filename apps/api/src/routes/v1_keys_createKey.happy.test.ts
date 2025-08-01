@@ -349,7 +349,37 @@ test("upserts the specified permissions", async (t) => {
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-  const key = await h.db.primary.query.keys.findFirst({
+  let key = await h.db.primary.query.keys.findFirst({
+    where: (table, { eq }) => eq(table.id, res.body.keyId),
+    with: {
+      permissions: {
+        with: {
+          permission: true,
+        },
+      },
+    },
+  });
+  expect(key).toBeDefined();
+  expect(key!.permissions.length).toBe(2);
+  for (const p of key!.permissions!) {
+    expect(permissions).include(p.permission.name);
+  }
+
+  const res2 = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
+    url: "/v1/keys.createKey",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${root.key}`,
+    },
+    body: {
+      apiId: h.resources.userApi.id,
+      permissions,
+    },
+  });
+
+  expect(res2.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+  key = await h.db.primary.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, res.body.keyId),
     with: {
       permissions: {
@@ -365,6 +395,7 @@ test("upserts the specified permissions", async (t) => {
     expect(permissions).include(p.permission.name);
   }
 });
+
 describe("with encryption", () => {
   test("encrypts a key", async (t) => {
     const h = await IntegrationHarness.init(t);

@@ -1102,9 +1102,9 @@ type Querier interface {
 	//  SELECT p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
 	//  FROM permissions p
 	//  WHERE p.workspace_id = ?
-	//    AND p.id > ?
+	//    AND p.id >= ?
 	//  ORDER BY p.id
-	//  LIMIT 101
+	//  LIMIT ?
 	ListPermissions(ctx context.Context, db DBTX, arg ListPermissionsParams) ([]Permission, error)
 	//ListPermissionsByKeyID
 	//
@@ -1140,8 +1140,12 @@ type Querier interface {
 	//
 	//  SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
 	//  WHERE
-	//      workspace_id = ?
-	//      AND namespace_id = ?
+	//  workspace_id = ?
+	//  AND namespace_id = ?
+	//  AND deleted_at_m IS NULL
+	//  AND id >= ?
+	//  ORDER BY id ASC
+	//  LIMIT ?
 	ListRatelimitOverridesByNamespaceID(ctx context.Context, db DBTX, arg ListRatelimitOverridesByNamespaceIDParams) ([]RatelimitOverride, error)
 	//ListRatelimitsByKeyID
 	//
@@ -1186,9 +1190,9 @@ type Querier interface {
 	//  ) as permissions
 	//  FROM roles r
 	//  WHERE r.workspace_id = ?
-	//  AND r.id > ?
+	//  AND r.id >= ?
 	//  ORDER BY r.id
-	//  LIMIT 101
+	//  LIMIT ?
 	ListRoles(ctx context.Context, db DBTX, arg ListRolesParams) ([]ListRolesRow, error)
 	//ListRolesByKeyID
 	//

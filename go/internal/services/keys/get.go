@@ -90,7 +90,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		return &KeyVerifier{
 			Status:  StatusNotFound,
 			message: "key does not exist",
-		}, nil, nil
+		}, emptyLog, nil
 	}
 
 	// ForWorkspace set but that doesn't exist

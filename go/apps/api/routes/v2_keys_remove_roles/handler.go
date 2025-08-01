@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -136,7 +137,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if !exists {
 			return fault.New("role not found",
 				fault.Code(codes.Data.Role.NotFound.URN()),
-				fault.Public(fmt.Sprintf("Role %q was not found.", role)),
+				fault.Public(fmt.Sprintf("Role '%s' was not found.", role)),
 			)
 		}
 	}
@@ -226,6 +227,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		rolePermissions := make([]db.Permission, 0)
 		json.Unmarshal(role.Permissions.([]byte), &rolePermissions)
 
+		perms := make([]openapi.Permission, 0)
 		for _, permission := range rolePermissions {
 			perm := openapi.Permission{
 				Id:          permission.ID,
@@ -238,7 +240,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				perm.Description = &permission.Description.String
 			}
 
-			r.Permissions = append(r.Permissions, perm)
+			perms = append(perms, perm)
+		}
+
+		if len(perms) > 0 {
+			r.Permissions = ptr.P(perms)
 		}
 
 		responseData = append(responseData, r)

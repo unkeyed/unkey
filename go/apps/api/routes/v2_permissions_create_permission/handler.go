@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -83,7 +84,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if db.IsDuplicateKeyError(err) {
 				return fault.New("permission already exists",
 					fault.Code(codes.Data.Permission.Duplicate.URN()),
-					fault.Internal("already exists"), fault.Public("A permission with name \""+req.Name+"\" already exists in this workspace"),
+					fault.Internal("already exists"),
+					fault.Public(fmt.Sprintf("A permission with slug '%s' already exists in this workspace", req.Slug)),
 				)
 			}
 			return fault.Wrap(err,

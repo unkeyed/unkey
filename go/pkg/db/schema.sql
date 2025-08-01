@@ -47,7 +47,6 @@ CREATE TABLE `permissions` (
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
 	CONSTRAINT `permissions_id` PRIMARY KEY(`id`),
-	CONSTRAINT `unique_name_per_workspace_idx` UNIQUE(`name`,`workspace_id`),
 	CONSTRAINT `unique_slug_per_workspace_idx` UNIQUE(`slug`,`workspace_id`)
 );
 

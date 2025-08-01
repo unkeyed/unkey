@@ -28,14 +28,15 @@ SELECT r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at
 ) as permissions
 FROM roles r
 WHERE r.workspace_id = ?
-AND r.id > ?
+AND r.id >= ?
 ORDER BY r.id
-LIMIT 101
+LIMIT ?
 `
 
 type ListRolesParams struct {
 	WorkspaceID string `db:"workspace_id"`
 	IDCursor    string `db:"id_cursor"`
+	Limit       int32  `db:"limit"`
 }
 
 type ListRolesRow struct {
@@ -67,11 +68,11 @@ type ListRolesRow struct {
 //	) as permissions
 //	FROM roles r
 //	WHERE r.workspace_id = ?
-//	AND r.id > ?
+//	AND r.id >= ?
 //	ORDER BY r.id
-//	LIMIT 101
+//	LIMIT ?
 func (q *Queries) ListRoles(ctx context.Context, db DBTX, arg ListRolesParams) ([]ListRolesRow, error) {
-	rows, err := db.QueryContext(ctx, listRoles, arg.WorkspaceID, arg.IDCursor)
+	rows, err := db.QueryContext(ctx, listRoles, arg.WorkspaceID, arg.IDCursor, arg.Limit)
 	if err != nil {
 		return nil, err
 	}

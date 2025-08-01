@@ -53,6 +53,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	cursor := ptr.SafeDeref(req.Cursor, "")
+	limit := ptr.SafeDeref(req.Limit, 100)
 
 	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
@@ -71,6 +72,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		db.ListPermissionsParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			IDCursor:    cursor,
+			Limit:       int32(limit) + 1,
 		},
 	)
 	if err != nil {
@@ -80,17 +82,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Check if we have more results by seeing if we got 101 permissions
-	hasMore := len(permissions) > 100
+	hasMore := len(permissions) > limit
 	var nextCursor *string
 
-	// If we have more than 100, truncate to 100
 	if hasMore {
-		nextCursor = ptr.P(permissions[100].ID)
-		permissions = permissions[:100]
+		nextCursor = ptr.P(permissions[limit].ID)
+		permissions = permissions[:limit]
 	}
 
-	// 5. Transform permissions into response format
 	responsePermissions := make([]openapi.Permission, 0, len(permissions))
 	for _, perm := range permissions {
 		permission := openapi.Permission{
