@@ -15,7 +15,7 @@ function useProjectsQuery() {
   );
 
   const { data, hasNextPage, fetchNextPage, isFetchingNextPage, isLoading, refetch } =
-    trpc.deploy.project.query.useInfiniteQuery(queryParams, {
+    trpc.deploy.project.list.useInfiniteQuery(queryParams, {
       getNextPageParam: (lastPage) => lastPage.nextCursor,
       staleTime: 30000, // 30 seconds
       refetchOnMount: false,

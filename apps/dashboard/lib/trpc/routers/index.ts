@@ -311,7 +311,7 @@ export const router = t.router({
   version: versionRouter,
   deploy: t.router({
     project: t.router({
-      query: queryProjects,
+      list: queryProjects,
     }),
   }),
 });
