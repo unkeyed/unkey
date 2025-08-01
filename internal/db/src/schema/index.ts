@@ -13,10 +13,9 @@ export * from "./audit_logs";
 // Deployment platform tables
 export * from "./partitions";
 export * from "./projects";
-export * from "./branches";
 export * from "./rootfs_images";
 export * from "./builds";
-export * from "./versions";
+export * from "./deployments";
 
 // Routing and traffic management
 export * from "./routes";
