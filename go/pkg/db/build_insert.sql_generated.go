@@ -14,7 +14,7 @@ INSERT INTO builds (
     id,
     workspace_id,
     project_id,
-    version_id,
+    deployment_id,
     rootfs_image_id,
     git_commit_sha,
     git_branch,
@@ -44,11 +44,11 @@ INSERT INTO builds (
 `
 
 type InsertBuildParams struct {
-	ID          string `db:"id"`
-	WorkspaceID string `db:"workspace_id"`
-	ProjectID   string `db:"project_id"`
-	VersionID   string `db:"version_id"`
-	CreatedAt   int64  `db:"created_at"`
+	ID           string `db:"id"`
+	WorkspaceID  string `db:"workspace_id"`
+	ProjectID    string `db:"project_id"`
+	DeploymentID string `db:"deployment_id"`
+	CreatedAt    int64  `db:"created_at"`
 }
 
 // InsertBuild
@@ -57,7 +57,7 @@ type InsertBuildParams struct {
 //	    id,
 //	    workspace_id,
 //	    project_id,
-//	    version_id,
+//	    deployment_id,
 //	    rootfs_image_id,
 //	    git_commit_sha,
 //	    git_branch,
@@ -89,7 +89,7 @@ func (q *Queries) InsertBuild(ctx context.Context, db DBTX, arg InsertBuildParam
 		arg.ID,
 		arg.WorkspaceID,
 		arg.ProjectID,
-		arg.VersionID,
+		arg.DeploymentID,
 		arg.CreatedAt,
 	)
 	return err

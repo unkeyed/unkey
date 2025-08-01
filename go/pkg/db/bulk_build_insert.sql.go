@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertBuild is the base query for bulk insert
-const bulkInsertBuild = `INSERT INTO builds ( id, workspace_id, project_id, version_id, rootfs_image_id, git_commit_sha, git_branch, status, build_tool, error_message, started_at, completed_at, created_at, updated_at ) VALUES %s`
+const bulkInsertBuild = `INSERT INTO builds ( id, workspace_id, project_id, deployment_id, rootfs_image_id, git_commit_sha, git_branch, status, build_tool, error_message, started_at, completed_at, created_at, updated_at ) VALUES %s`
 
 // InsertBuilds performs bulk insert in a single query
 func (q *BulkQueries) InsertBuilds(ctx context.Context, db DBTX, args []InsertBuildParams) error {
@@ -32,7 +32,7 @@ func (q *BulkQueries) InsertBuilds(ctx context.Context, db DBTX, args []InsertBu
 		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.WorkspaceID)
 		allArgs = append(allArgs, arg.ProjectID)
-		allArgs = append(allArgs, arg.VersionID)
+		allArgs = append(allArgs, arg.DeploymentID)
 		allArgs = append(allArgs, arg.CreatedAt)
 	}
 
