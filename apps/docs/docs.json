@@ -49,9 +49,7 @@
                   },
                   {
                     "group": "Identities",
-                    "pages": [
-                      "quickstart/identities/shared-ratelimits"
-                    ]
+                    "pages": ["quickstart/identities/shared-ratelimits"]
                   }
                 ]
               },
@@ -85,10 +83,7 @@
               {
                 "group": "Identities",
                 "icon": "fingerprint",
-                "pages": [
-                  "concepts/identities/overview",
-                  "concepts/identities/ratelimits"
-                ]
+                "pages": ["concepts/identities/overview", "concepts/identities/ratelimits"]
               }
             ]
           },
@@ -143,18 +138,12 @@
               {
                 "group": "Audit logs",
                 "icon": "scroll",
-                "pages": [
-                  "audit-log/introduction",
-                  "audit-log/types"
-                ]
+                "pages": ["audit-log/introduction", "audit-log/types"]
               },
               {
                 "group": "Analytics",
                 "icon": "chart-bar",
-                "pages": [
-                  "analytics/overview",
-                  "analytics/quickstarts"
-                ]
+                "pages": ["analytics/overview", "analytics/quickstarts"]
               }
             ]
           },
@@ -164,10 +153,7 @@
               {
                 "icon": "plane",
                 "group": "Migrating API Keys",
-                "pages": [
-                  "migrations/introduction",
-                  "migrations/keys"
-                ]
+                "pages": ["migrations/introduction", "migrations/keys"]
               }
             ]
           },
@@ -226,9 +212,7 @@
               },
               {
                 "group": "User Errors",
-                "pages": [
-                  "errors/user/bad_request/permissions_query_syntax_error"
-                ]
+                "pages": ["errors/user/bad_request/permissions_query_syntax_error"]
               }
             ]
           }
@@ -324,15 +308,11 @@
               },
               {
                 "group": "Go",
-                "pages": [
-                  "libraries/go/api"
-                ]
+                "pages": ["libraries/go/api"]
               },
               {
                 "group": "Python",
-                "pages": [
-                  "libraries/py/api"
-                ]
+                "pages": ["libraries/py/api"]
               }
             ]
           },
@@ -357,15 +337,11 @@
               },
               {
                 "group": "Nuxt",
-                "pages": [
-                  "libraries/nuxt/overview"
-                ]
+                "pages": ["libraries/nuxt/overview"]
               },
               {
                 "group": "Rust",
-                "pages": [
-                  "libraries/rs/overview"
-                ]
+                "pages": ["libraries/rs/overview"]
               },
               {
                 "group": "Springboot",
