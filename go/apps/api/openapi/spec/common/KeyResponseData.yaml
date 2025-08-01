@@ -51,11 +51,6 @@ properties:
     maximum: 9223372036854775807
     description: Unix timestamp in milliseconds when key expires (if set).
     example: 1735689600000
-  externalId:
-    type: string
-    maxLength: 255
-    description: External identifier linking this key to an entity in your system.
-    example: user_12345
   permissions:
     type: array
     items:

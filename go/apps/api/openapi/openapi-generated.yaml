@@ -423,7 +423,7 @@ components:
                 meta:
                     "$ref": "#/components/schemas/Meta"
                 data:
-                    "$ref": "#/components/schemas/V2IdentitiesGetIdentityResponseData"
+                    "$ref": "#/components/schemas/Identity"
         V2IdentitiesListIdentitiesRequestBody:
             type: object
             properties:
@@ -2106,11 +2106,6 @@ components:
                     maximum: 9223372036854776000
                     description: Unix timestamp in milliseconds when key expires (if set).
                     example: 1735689600000
-                externalId:
-                    type: string
-                    maxLength: 255
-                    description: External identifier linking this key to an entity in your system.
-                    example: user_12345
                 permissions:
                     type: array
                     items:
@@ -2167,6 +2162,9 @@ components:
         Identity:
             type: object
             properties:
+                id:
+                    type: string
+                    description: Identity ID
                 externalId:
                     type: string
                     description: External identity ID
@@ -2177,9 +2175,10 @@ components:
                     type: array
                     items:
                         "$ref": "#/components/schemas/RatelimitResponse"
-                description: {}
+            description: Identity ratelimits
             required:
                 - externalId
+                - id
         RatelimitResponse:
             type: object
             properties:
@@ -2316,28 +2315,6 @@ components:
                     description: The unique identifier of the created identity.
             required:
                 - identityId
-        V2IdentitiesGetIdentityResponseData:
-            type: object
-            required:
-                - externalId
-            properties:
-                externalId:
-                    type: string
-                    description: The external identifier for this identity in your system. This is the ID you provided during identity creation.
-                    example: user_abc123
-                meta:
-                    type: object
-                    additionalProperties: true
-                    description: Custom metadata associated with this identity. This can include any JSON-serializable data you stored with the identity during creation or updates.
-                    example:
-                        name: Alice Smith
-                        email: alice@example.com
-                        plan: premium
-                ratelimits:
-                    type: array
-                    items:
-                        $ref: "#/components/schemas/RatelimitResponse"
-                    description: Rate limits associated with this identity. These limits are shared across all API keys linked to this identity, providing consistent rate limiting regardless of which key is used.
         V2IdentitiesListIdentitiesResponseData:
             type: array
             items:

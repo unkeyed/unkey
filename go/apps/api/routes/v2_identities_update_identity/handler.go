@@ -393,6 +393,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	identityData := openapi.Identity{
+		Id:         identity.ID,
 		ExternalId: req.ExternalId,
 		Meta:       req.Meta,
 		Ratelimits: nil,

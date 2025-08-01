@@ -203,6 +203,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	if key.Key.IdentityID.Valid {
 		keyData.Identity = &openapi.Identity{
+			Id:         key.Key.IdentityID.String,
 			ExternalId: key.Key.ExternalID.String,
 			Ratelimits: nil,
 			Meta:       nil,

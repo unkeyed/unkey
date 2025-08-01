@@ -1,5 +1,8 @@
 type: object
 properties:
+  id:
+    type: string
+    description: Identity ID
   externalId:
     type: string
     description: External identity ID
@@ -10,6 +13,7 @@ properties:
     type: array
     items:
       "$ref": "./RatelimitResponse.yaml"
-  description: Identity ratelimits
+description: Identity ratelimits
 required:
   - externalId
+  - id

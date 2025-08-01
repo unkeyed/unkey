@@ -137,12 +137,13 @@ type ForbiddenErrorResponse struct {
 	Meta Meta `json:"meta"`
 }
 
-// Identity defines model for Identity.
+// Identity Identity ratelimits
 type Identity struct {
-	Description *interface{} `json:"description,omitempty"`
-
 	// ExternalId External identity ID
 	ExternalId string `json:"externalId"`
+
+	// Id Identity ID
+	Id string `json:"id"`
 
 	// Meta Identity metadata
 	Meta       *map[string]interface{} `json:"meta,omitempty"`
@@ -203,9 +204,8 @@ type KeyResponseData struct {
 	// Expires Unix timestamp in milliseconds when key expires (if set).
 	Expires *int64 `json:"expires,omitempty"`
 
-	// ExternalId External identifier linking this key to an entity in your system.
-	ExternalId *string   `json:"externalId,omitempty"`
-	Identity   *Identity `json:"identity,omitempty"`
+	// Identity Identity ratelimits
+	Identity *Identity `json:"identity,omitempty"`
 
 	// KeyId Unique identifier for this key.
 	KeyId string `json:"keyId"`
@@ -652,22 +652,11 @@ type V2IdentitiesGetIdentityRequestBody struct {
 
 // V2IdentitiesGetIdentityResponseBody defines model for V2IdentitiesGetIdentityResponseBody.
 type V2IdentitiesGetIdentityResponseBody struct {
-	Data V2IdentitiesGetIdentityResponseData `json:"data"`
+	// Data Identity ratelimits
+	Data Identity `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
-}
-
-// V2IdentitiesGetIdentityResponseData defines model for V2IdentitiesGetIdentityResponseData.
-type V2IdentitiesGetIdentityResponseData struct {
-	// ExternalId The external identifier for this identity in your system. This is the ID you provided during identity creation.
-	ExternalId string `json:"externalId"`
-
-	// Meta Custom metadata associated with this identity. This can include any JSON-serializable data you stored with the identity during creation or updates.
-	Meta *map[string]interface{} `json:"meta,omitempty"`
-
-	// Ratelimits Rate limits associated with this identity. These limits are shared across all API keys linked to this identity, providing consistent rate limiting regardless of which key is used.
-	Ratelimits *[]RatelimitResponse `json:"ratelimits,omitempty"`
 }
 
 // V2IdentitiesListIdentitiesRequestBody defines model for V2IdentitiesListIdentitiesRequestBody.
@@ -716,6 +705,7 @@ type V2IdentitiesUpdateIdentityRequestBody struct {
 
 // V2IdentitiesUpdateIdentityResponseBody defines model for V2IdentitiesUpdateIdentityResponseBody.
 type V2IdentitiesUpdateIdentityResponseBody struct {
+	// Data Identity ratelimits
 	Data Identity `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
@@ -1315,7 +1305,9 @@ type V2KeysVerifyKeyResponseData struct {
 	// Expires Unix timestamp (in milliseconds) when the key will expire.
 	// If null or not present, the key has no expiration. You can use this to
 	// warn users about upcoming expirations or to understand the validity period.
-	Expires  *int64    `json:"expires,omitempty"`
+	Expires *int64 `json:"expires,omitempty"`
+
+	// Identity Identity ratelimits
 	Identity *Identity `json:"identity,omitempty"`
 
 	// KeyId The unique identifier of the verified key in Unkey's system.
