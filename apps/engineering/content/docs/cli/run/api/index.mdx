@@ -1,0 +1,185 @@
+---
+title: "Api"
+description: "Run the Unkey API server for validating and managing API keys"
+---
+
+## Command Syntax
+
+```bash
+unkey run api [flags]
+```
+
+<Banner type="warn">
+Some flags are required for this command to work properly.
+</Banner>
+
+## Flags
+
+<Callout type="info" title="--http-port">
+HTTP port for the API server to listen on. Default: 7070
+
+- **Type:** integer
+- **Default:** `7070`
+- **Environment:** `UNKEY_HTTP_PORT`
+</Callout>
+
+<Callout type="info" title="--color">
+Enable colored log output. Default: true
+
+- **Type:** boolean
+- **Default:** `true`
+- **Environment:** `UNKEY_LOGS_COLOR`
+</Callout>
+
+<Callout type="info" title="--test-mode">
+Enable test mode. WARNING: Potentially unsafe, may trust client inputs blindly. Default: false
+
+- **Type:** boolean
+- **Default:** `false`
+- **Environment:** `UNKEY_TEST_MODE`
+</Callout>
+
+<Callout type="info" title="--platform">
+Cloud platform identifier for this node. Used for logging and metrics.
+
+- **Type:** string
+- **Environment:** `UNKEY_PLATFORM`
+</Callout>
+
+<Callout type="info" title="--image">
+Container image identifier. Used for logging and metrics.
+
+- **Type:** string
+- **Environment:** `UNKEY_IMAGE`
+</Callout>
+
+<Callout type="info" title="--region">
+Geographic region identifier. Used for logging and routing. Default: unknown
+
+- **Type:** string
+- **Default:** `"unknown"`
+- **Environment:** `AWS_REGION`
+</Callout>
+
+<Callout type="info" title="--instance-id">
+Unique identifier for this instance. Auto-generated if not provided.
+
+- **Type:** string
+- **Default:** `"ins_65sRey"`
+- **Environment:** `UNKEY_INSTANCE_ID`
+</Callout>
+
+<Callout type="info" title="--database-primary (required)">
+MySQL connection string for primary database. Required for all deployments. Example: user:pass@host:3306/unkey?parseTime=true
+
+- **Type:** string
+- **Environment:** `UNKEY_DATABASE_PRIMARY`
+</Callout>
+
+<Callout type="info" title="--database-replica">
+MySQL connection string for read-replica. Reduces load on primary database. Format same as database-primary.
+
+- **Type:** string
+- **Environment:** `UNKEY_DATABASE_REPLICA`
+</Callout>
+
+<Callout type="info" title="--redis-url">
+Redis connection string for rate-limiting and distributed counters. Example: redis://localhost:6379
+
+- **Type:** string
+- **Environment:** `UNKEY_REDIS_URL`
+</Callout>
+
+<Callout type="info" title="--clickhouse-url">
+ClickHouse connection string for analytics. Recommended for production. Example: clickhouse://user:pass@host:9000/unkey
+
+- **Type:** string
+- **Environment:** `UNKEY_CLICKHOUSE_URL`
+</Callout>
+
+<Callout type="info" title="--otel">
+Enable OpenTelemetry tracing and metrics
+
+- **Type:** boolean
+- **Default:** `false`
+- **Environment:** `UNKEY_OTEL`
+</Callout>
+
+<Callout type="info" title="--otel-trace-sampling-rate">
+Sampling rate for OpenTelemetry traces (0.0-1.0). Only used when --otel is provided. Default: 0.25
+
+- **Type:** float
+- **Default:** `0.25`
+- **Environment:** `UNKEY_OTEL_TRACE_SAMPLING_RATE`
+</Callout>
+
+<Callout type="info" title="--prometheus-port">
+Enable Prometheus /metrics endpoint on specified port. Set to 0 to disable.
+
+- **Type:** integer
+- **Environment:** `UNKEY_PROMETHEUS_PORT`
+</Callout>
+
+<Callout type="info" title="--tls-cert-file">
+Path to TLS certificate file for HTTPS. Both cert and key must be provided to enable HTTPS.
+
+- **Type:** string
+- **Environment:** `UNKEY_TLS_CERT_FILE`
+</Callout>
+
+<Callout type="info" title="--tls-key-file">
+Path to TLS key file for HTTPS. Both cert and key must be provided to enable HTTPS.
+
+- **Type:** string
+- **Environment:** `UNKEY_TLS_KEY_FILE`
+</Callout>
+
+<Callout type="info" title="--vault-master-keys">
+Vault master keys for encryption
+
+- **Type:** string[]
+- **Environment:** `UNKEY_VAULT_MASTER_KEYS`
+</Callout>
+
+<Callout type="info" title="--vault-s3-url">
+S3 Compatible Endpoint URL
+
+- **Type:** string
+- **Environment:** `UNKEY_VAULT_S3_URL`
+</Callout>
+
+<Callout type="info" title="--vault-s3-bucket">
+S3 bucket name
+
+- **Type:** string
+- **Environment:** `UNKEY_VAULT_S3_BUCKET`
+</Callout>
+
+<Callout type="info" title="--vault-s3-access-key-id">
+S3 access key ID
+
+- **Type:** string
+- **Environment:** `UNKEY_VAULT_S3_ACCESS_KEY_ID`
+</Callout>
+
+<Callout type="info" title="--vault-s3-secret-access-key">
+S3 secret access key
+
+- **Type:** string
+- **Environment:** `UNKEY_VAULT_S3_SECRET_ACCESS_KEY`
+</Callout>
+
+<Callout type="info" title="--chproxy-enabled">
+Enable ClickHouse proxy endpoints for high-throughput event collection
+
+- **Type:** boolean
+- **Default:** `false`
+- **Environment:** `UNKEY_CHPROXY_ENABLED`
+</Callout>
+
+<Callout type="info" title="--chproxy-auth-token">
+Authentication token for ClickHouse proxy endpoints. Required when proxy is enabled.
+
+- **Type:** string
+- **Environment:** `UNKEY_CHPROXY_AUTH_TOKEN`
+</Callout>

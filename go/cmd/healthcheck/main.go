@@ -11,22 +11,18 @@ import (
 var Cmd = &cli.Command{
 	Name:  "healthcheck",
 	Usage: "Perform an HTTP healthcheck against a given URL",
-	Description: `Perform an HTTP healthcheck against a given URL.
-This command exits with 0 if the status code is 200, otherwise it exits with 1.
+	Description: `This command sends an HTTP GET request to the specified URL and validates the response. It exits with code 0 if the server returns a 200 status code, otherwise exits with code 1.
 
-USAGE:
-    unkey healthcheck <url>
+USE CASES:
+This is useful for health monitoring in CI/CD pipelines, service availability checks, load balancer health probes, and infrastructure monitoring scripts.
 
 EXAMPLES:
-    # Check if a service is healthy
-    unkey healthcheck https://api.unkey.dev/health
-
-    # Check local service
-    unkey healthcheck http://localhost:8080/health`,
+unkey healthcheck https://api.unkey.dev/health    # Check if a service is healthy
+unkey healthcheck http://localhost:8080/health    # Check local service  
+unkey healthcheck https://example.com/api/status || echo 'Service is down!'  # Use in monitoring script`,
 	Action: runAction,
 }
 
-// nolint:gocognit
 func runAction(ctx context.Context, cmd *cli.Command) error {
 	args := cmd.Args()
 	if len(args) == 0 {
@@ -38,7 +34,6 @@ func runAction(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("you must provide a url like so: 'unkey healthcheck <url>'")
 	}
 
-	// nolint:gosec
 	res, err := http.Get(url)
 	if err != nil {
 		return fmt.Errorf("failed to perform healthcheck: %w", err)
