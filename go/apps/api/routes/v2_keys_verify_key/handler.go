@@ -62,7 +62,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	key, emit, err := h.Keys.Get(ctx, s, req.Key)
-	defer emit()
 	if err != nil {
 		return err
 	}
@@ -261,6 +260,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			keyData.Ratelimits = ptr.P(ratelimitResponse)
 		}
 	}
+
+	emit()
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
