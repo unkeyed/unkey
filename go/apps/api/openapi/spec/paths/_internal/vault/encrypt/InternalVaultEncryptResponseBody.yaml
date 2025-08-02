@@ -1,0 +1,13 @@
+type: object
+required:
+  - encrypted
+  - keyId
+properties:
+  encrypted:
+    type: string
+    description: Base64 encoded encrypted data
+    example: "eyJhbGdvcml0aG0iOiJBRVMtMjU2LUdDTSIsIm5vbmNlIjoi..."
+  keyId:
+    type: string
+    description: The ID of the data encryption key used
+    example: "dek_12345"

@@ -110,3 +110,109 @@ func TestBearer_Integration(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "token123", token)
 }
+
+func TestStaticAuth(t *testing.T) {
+	tests := []struct {
+		name          string
+		headerValue   string
+		expectedToken string
+		wantErr       bool
+		code          codes.URN
+	}{
+		{
+			name:          "valid token matches",
+			headerValue:   "Bearer secret123",
+			expectedToken: "secret123",
+			wantErr:       false,
+		},
+		{
+			name:          "token mismatch",
+			headerValue:   "Bearer wrong123",
+			expectedToken: "secret123",
+			wantErr:       true,
+			code:          codes.Auth.Authentication.KeyNotFound.URN(),
+		},
+		{
+			name:          "empty authorization header",
+			headerValue:   "",
+			expectedToken: "secret123",
+			wantErr:       true,
+			code:          codes.Auth.Authentication.Missing.URN(),
+		},
+		{
+			name:          "malformed authorization header",
+			headerValue:   "secret123",
+			expectedToken: "secret123",
+			wantErr:       true,
+			code:          codes.Auth.Authentication.Malformed.URN(),
+		},
+		{
+			name:          "case sensitive token comparison",
+			headerValue:   "Bearer Secret123",
+			expectedToken: "secret123",
+			wantErr:       true,
+			code:          codes.Auth.Authentication.KeyNotFound.URN(),
+		},
+		{
+			name:          "whitespace handling",
+			headerValue:   "  Bearer   secret123  ",
+			expectedToken: "secret123",
+			wantErr:       false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a request with the Authorization header
+			req := httptest.NewRequest(http.MethodPost, "/", nil)
+			if tt.headerValue != "" {
+				req.Header.Set("Authorization", tt.headerValue)
+			}
+
+			// Create a session
+			sess := &Session{
+				r: req,
+			}
+
+			// Call StaticAuth
+			err := StaticAuth(sess, tt.expectedToken)
+
+			// Check error conditions
+			if tt.wantErr {
+				require.Error(t, err)
+
+				code, ok := fault.GetCode(err)
+				if tt.code != "" {
+					require.True(t, ok)
+					require.Equal(t, tt.code, code)
+				}
+				return
+			}
+
+			// Verify no error for positive cases
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestStaticAuth_Integration(t *testing.T) {
+	// Test with a fully initialized session
+	req := httptest.NewRequest(http.MethodPost, "/internal/test", nil)
+	req.Header.Set("Authorization", "Bearer internal-token-123")
+	w := httptest.NewRecorder()
+
+	sess := &Session{}
+	err := sess.init(w, req)
+	require.NoError(t, err)
+
+	// Should succeed with correct token
+	err = StaticAuth(sess, "internal-token-123")
+	require.NoError(t, err)
+
+	// Should fail with wrong token
+	err = StaticAuth(sess, "wrong-token")
+	require.Error(t, err)
+	code, ok := fault.GetCode(err)
+	require.True(t, ok)
+	require.Equal(t, codes.Auth.Authentication.KeyNotFound.URN(), code)
+}

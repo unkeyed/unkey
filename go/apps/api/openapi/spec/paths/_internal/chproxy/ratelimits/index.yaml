@@ -4,10 +4,10 @@ post:
   tags:
     - chproxy
   security: []
-  operationId: chproxyMetrics
-  summary: Internal ClickHouse proxy for API request metrics
+  operationId: chproxyRatelimits
+  summary: Internal ClickHouse proxy for ratelimit events
   description: |-
-    Internal endpoint for batching API request metric events to ClickHouse. This endpoint is used internally by the API to efficiently store request/response data for analytics and should not be used by external clients.
+    Internal endpoint for batching ratelimit events to ClickHouse. This endpoint is used internally by the API to efficiently store ratelimit data and should not be used by external clients.
 
     This endpoint bypasses normal authentication and validation as it's intended for internal use only.
   requestBody:
@@ -15,23 +15,23 @@ post:
     content:
       application/json:
         schema:
-          "$ref": "./ChproxyMetricsRequestBody.yaml"
+          "$ref": "./ChproxyRatelimitsRequestBody.yaml"
   responses:
     "200":
       content:
         application/json:
           schema:
-            "$ref": "./ChproxyMetricsResponseBody.yaml"
+            "$ref": "./ChproxyRatelimitsResponseBody.yaml"
       description: Events successfully queued for processing
     "400":
       content:
         application/json:
           schema:
-            $ref: "../../../error/BadRequestErrorResponse.yaml"
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
       description: Invalid request body or malformed events
     "529":
       content:
         application/json:
           schema:
-            $ref: "../../../error/InternalServerErrorResponse.yaml"
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"
       description: Service overloaded, unable to process events

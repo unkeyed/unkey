@@ -94,6 +94,57 @@ components:
                     type: string
                     description: Processing status
                     example: "OK"
+        InternalVaultDecryptRequestBody:
+            type: object
+            required:
+                - keyring
+                - encrypted
+            properties:
+                keyring:
+                    type: string
+                    description: The keyring identifier used for encryption
+                    example: "user_data"
+                encrypted:
+                    type: string
+                    description: Base64 encoded encrypted data to decrypt
+                    example: "eyJhbGdvcml0aG0iOiJBRVMtMjU2LUdDTSIsIm5vbmNlIjoi..."
+        InternalVaultDecryptResponseBody:
+            type: object
+            required:
+                - plaintext
+            properties:
+                plaintext:
+                    type: string
+                    description: The decrypted plaintext data
+                    example: "sensitive information"
+        InternalVaultEncryptRequestBody:
+            type: object
+            required:
+                - keyring
+                - data
+            properties:
+                keyring:
+                    type: string
+                    description: The keyring identifier to use for encryption
+                    example: "user_data"
+                data:
+                    type: string
+                    description: The plaintext data to encrypt
+                    example: "sensitive information"
+        InternalVaultEncryptResponseBody:
+            type: object
+            required:
+                - encrypted
+                - keyId
+            properties:
+                encrypted:
+                    type: string
+                    description: Base64 encoded encrypted data
+                    example: "eyJhbGdvcml0aG0iOiJBRVMtMjU2LUdDTSIsIm5vbmNlIjoi..."
+                keyId:
+                    type: string
+                    description: The ID of the data encryption key used
+                    example: "dek_12345"
         V2ApisCreateApiRequestBody:
             type: object
             required:
@@ -3147,6 +3198,82 @@ paths:
             summary: Internal ClickHouse proxy for verification events
             tags:
                 - chproxy
+            x-excluded: true
+            x-speakeasy-ignore: true
+    /_internal/vault/decrypt:
+        post:
+            description: |-
+                Internal endpoint for decrypting data using the vault service. This endpoint is used internally by the API and should not be used by external clients.
+
+                This endpoint bypasses normal authentication and validation as it's intended for internal use only.
+            operationId: internalVaultDecrypt
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/InternalVaultDecryptRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalVaultDecryptResponseBody'
+                    description: Data successfully decrypted
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request body
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error during decryption
+            security: []
+            summary: Internal vault decryption endpoint
+            tags:
+                - _internal
+            x-excluded: true
+            x-speakeasy-ignore: true
+    /_internal/vault/encrypt:
+        post:
+            description: |-
+                Internal endpoint for encrypting data using the vault service. This endpoint is used internally by the API and should not be used by external clients.
+
+                This endpoint bypasses normal authentication and validation as it's intended for internal use only.
+            operationId: internalVaultEncrypt
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/InternalVaultEncryptRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalVaultEncryptResponseBody'
+                    description: Data successfully encrypted
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request body
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error during encryption
+            security: []
+            summary: Internal vault encryption endpoint
+            tags:
+                - _internal
             x-excluded: true
             x-speakeasy-ignore: true
     /v2/apis.createApi:
