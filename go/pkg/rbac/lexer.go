@@ -179,14 +179,19 @@ func (l *lexer) readIdentifier() string {
 //   - Dots (.) for hierarchical separation (e.g., "api.key1.read_key")
 //   - Underscores (_) for word separation
 //   - Hyphens (-) for kebab-case identifiers
+//   - Colons (:) for namespace separation (e.g., "system:admin")
+//   - Asterisks (*) for literal permission names (e.g., "api.*")
 //
-// This character set was chosen to support common permission naming conventions
-// while avoiding characters that have special meaning in SQL-like syntax.
+// Note: The asterisk (*) character is treated as a literal character in permission
+// names, NOT as a wildcard pattern. For example, "api.*" matches only the exact
+// permission "api.*", not "api.read" or "api.write".
+//
+// This character set matches the regex: /^[a-zA-Z0-9_:\-\.\*]+$/
 //
 // Characters like spaces, parentheses, and operators are not allowed in
 // permission identifiers and will terminate identifier parsing.
 func isValidPermissionChar(ch byte) bool {
-	return unicode.IsLetter(rune(ch)) || unicode.IsDigit(rune(ch)) || ch == '.' || ch == '_' || ch == '-'
+	return unicode.IsLetter(rune(ch)) || unicode.IsDigit(rune(ch)) || ch == '.' || ch == '_' || ch == '-' || ch == '*' || ch == ':'
 }
 
 // nextToken extracts and returns the next token from the input stream.
