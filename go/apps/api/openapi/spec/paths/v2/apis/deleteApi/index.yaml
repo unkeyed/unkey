@@ -5,9 +5,11 @@ post:
   description: |
     Permanently delete an API namespace and immediately invalidate all associated keys.
 
-    Use this for cleaning up development environments, retiring deprecated services, or removing unused resources. All keys in the namespace are immediately marked as deleted and will fail verification with `code=NOT_FOUND`.
+    Use this for cleaning up development environments, retiring deprecated services, or removing unused resources.
+    All keys in the namespace are immediately marked as deleted and will fail verification with `code=NOT_FOUND`.
 
-    **Important**: This operation is immediate and permanent. Verify you have the correct API ID before deletion. If delete protection is enabled, disable it first through the dashboard or API configuration.
+    **Important**: This operation is immediate and permanent. Verify you have the correct API ID before deletion.
+    If delete protection is enabled, disable it first through the dashboard or API configuration.
 
     **Required Permissions**
 
@@ -26,12 +28,11 @@ post:
     required: true
   responses:
     "200":
+      description: API namespace deleted successfully. All associated keys are immediately invalidated and will fail verification with `code=NOT_FOUND`.
       content:
         application/json:
           schema:
             "$ref": "./V2ApisDeleteApiResponseBody.yaml"
-      description: |
-        API namespace deleted successfully. All associated keys are immediately invalidated and will fail verification with `code=NOT_FOUND`.
     "400":
       description: Bad request
       content:

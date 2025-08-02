@@ -39,6 +39,7 @@ func TestUpdateKeyCorrectPermissions(t *testing.T) {
 				Keys:      h.Keys,
 				Logger:    h.Logger,
 				Auditlogs: h.Auditlogs,
+				KeyCache:  h.Caches.VerificationKeyByHash,
 			}
 
 			h.Register(route)
@@ -90,6 +91,7 @@ func TestUpdateKeyInsufficientPermissions(t *testing.T) {
 		Keys:      h.Keys,
 		Logger:    h.Logger,
 		Auditlogs: h.Auditlogs,
+		KeyCache:  h.Caches.VerificationKeyByHash,
 	}
 
 	h.Register(route)
@@ -134,6 +136,7 @@ func TestUpdateKeyCrossWorkspaceIsolation(t *testing.T) {
 		Keys:      h.Keys,
 		Logger:    h.Logger,
 		Auditlogs: h.Auditlogs,
+		KeyCache:  h.Caches.VerificationKeyByHash,
 	}
 
 	h.Register(route)

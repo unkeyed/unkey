@@ -386,6 +386,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// Add identity information if available
 		if key.IdentityID.Valid {
 			k.Identity = &openapi.Identity{
+				Id:         key.IdentityID.String,
 				ExternalId: key.ExternalID.String,
 				Meta:       nil,
 				Ratelimits: nil,

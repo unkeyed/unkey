@@ -139,14 +139,17 @@ type ForbiddenErrorResponse struct {
 
 // Identity defines model for Identity.
 type Identity struct {
-	Description *interface{} `json:"description,omitempty"`
-
 	// ExternalId External identity ID
 	ExternalId string `json:"externalId"`
 
+	// Id Identity ID
+	Id string `json:"id"`
+
 	// Meta Identity metadata
-	Meta       *map[string]interface{} `json:"meta,omitempty"`
-	Ratelimits *[]RatelimitResponse    `json:"ratelimits,omitempty"`
+	Meta *map[string]interface{} `json:"meta,omitempty"`
+
+	// Ratelimits Identity ratelimits
+	Ratelimits *[]RatelimitResponse `json:"ratelimits,omitempty"`
 }
 
 // InternalServerErrorResponse Error response when an unexpected error occurs on the server. This indicates a problem with Unkey's systems rather than your request.
@@ -201,11 +204,8 @@ type KeyResponseData struct {
 	Enabled bool `json:"enabled"`
 
 	// Expires Unix timestamp in milliseconds when key expires (if set).
-	Expires *int64 `json:"expires,omitempty"`
-
-	// ExternalId External identifier linking this key to an entity in your system.
-	ExternalId *string   `json:"externalId,omitempty"`
-	Identity   *Identity `json:"identity,omitempty"`
+	Expires  *int64    `json:"expires,omitempty"`
+	Identity *Identity `json:"identity,omitempty"`
 
 	// KeyId Unique identifier for this key.
 	KeyId string `json:"keyId"`
@@ -307,7 +307,7 @@ type Permission struct {
 	// Names must be unique within your workspace to avoid confusion and conflicts.
 	Name string `json:"name"`
 
-	// Slug The URL-safe identifier when this permission was created.
+	// Slug The unique URL-safe identifier for this permission.
 	Slug string `json:"slug"`
 }
 
@@ -652,22 +652,10 @@ type V2IdentitiesGetIdentityRequestBody struct {
 
 // V2IdentitiesGetIdentityResponseBody defines model for V2IdentitiesGetIdentityResponseBody.
 type V2IdentitiesGetIdentityResponseBody struct {
-	Data V2IdentitiesGetIdentityResponseData `json:"data"`
+	Data Identity `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
-}
-
-// V2IdentitiesGetIdentityResponseData defines model for V2IdentitiesGetIdentityResponseData.
-type V2IdentitiesGetIdentityResponseData struct {
-	// ExternalId The external identifier for this identity in your system. This is the ID you provided during identity creation.
-	ExternalId string `json:"externalId"`
-
-	// Meta Custom metadata associated with this identity. This can include any JSON-serializable data you stored with the identity during creation or updates.
-	Meta *map[string]interface{} `json:"meta,omitempty"`
-
-	// Ratelimits Rate limits associated with this identity. These limits are shared across all API keys linked to this identity, providing consistent rate limiting regardless of which key is used.
-	Ratelimits *[]RatelimitResponse `json:"ratelimits,omitempty"`
 }
 
 // V2IdentitiesListIdentitiesRequestBody defines model for V2IdentitiesListIdentitiesRequestBody.
@@ -696,10 +684,8 @@ type V2IdentitiesListIdentitiesResponseData = []Identity
 
 // V2IdentitiesUpdateIdentityRequestBody defines model for V2IdentitiesUpdateIdentityRequestBody.
 type V2IdentitiesUpdateIdentityRequestBody struct {
-	// ExternalId Specifies which identity to update using your system's identifier from identity creation.
-	// Use this when you track identities by your own user IDs, organization IDs, or tenant identifiers.
-	// Accepts letters, numbers, underscores, dots, and hyphens for flexible identifier formats.
-	ExternalId string `json:"externalId"`
+	// Identity The ID of the identity to update. Accepts either the externalId (your system-generated identifier) or the identityId (internal identifier returned by the identity service).
+	Identity string `json:"identity"`
 
 	// Meta Replaces all existing metadata with this new metadata object.
 	// Omitting this field preserves existing metadata, while providing an empty object clears all metadata.
@@ -1542,16 +1528,10 @@ type V2PermissionsGetPermissionRequestBody struct {
 
 // V2PermissionsGetPermissionResponseBody defines model for V2PermissionsGetPermissionResponseBody.
 type V2PermissionsGetPermissionResponseBody struct {
-	// Data Complete permission details including ID, name, and metadata.
-	Data V2PermissionsGetPermissionResponseData `json:"data"`
+	Data Permission `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
-}
-
-// V2PermissionsGetPermissionResponseData Complete permission details including ID, name, and metadata.
-type V2PermissionsGetPermissionResponseData struct {
-	Permission Permission `json:"permission"`
 }
 
 // V2PermissionsGetRoleRequestBody defines model for V2PermissionsGetRoleRequestBody.
@@ -1566,16 +1546,10 @@ type V2PermissionsGetRoleRequestBody struct {
 
 // V2PermissionsGetRoleResponseBody defines model for V2PermissionsGetRoleResponseBody.
 type V2PermissionsGetRoleResponseBody struct {
-	// Data Complete role details including assigned permissions.
-	Data V2PermissionsGetRoleResponseData `json:"data"`
+	Data Role `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
-}
-
-// V2PermissionsGetRoleResponseData Complete role details including assigned permissions.
-type V2PermissionsGetRoleResponseData struct {
-	Role Role `json:"role"`
 }
 
 // V2PermissionsListPermissionsRequestBody defines model for V2PermissionsListPermissionsRequestBody.

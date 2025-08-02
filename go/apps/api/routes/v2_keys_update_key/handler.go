@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
+	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
@@ -33,6 +34,7 @@ type Handler struct {
 	DB        db.Database
 	Keys      keys.KeyService
 	Auditlogs auditlogs.AuditLogService
+	KeyCache  cache.Cache[string, db.FindKeyForVerificationRow]
 }
 
 // Method returns the HTTP method this route responds to
@@ -116,21 +118,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ID:                         key.ID,
 			Now:                        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			NameSpecified:              0,
-			Name:                       sql.NullString{Valid: false},
+			Name:                       sql.NullString{Valid: false, String: ""},
 			IdentityIDSpecified:        0,
-			IdentityID:                 sql.NullString{Valid: false},
+			IdentityID:                 sql.NullString{Valid: false, String: ""},
 			EnabledSpecified:           0,
-			Enabled:                    sql.NullBool{Valid: false},
+			Enabled:                    sql.NullBool{Valid: false, Bool: false},
 			MetaSpecified:              0,
-			Meta:                       sql.NullString{Valid: false},
+			Meta:                       sql.NullString{Valid: false, String: ""},
 			ExpiresSpecified:           0,
-			Expires:                    sql.NullTime{Valid: false},
+			Expires:                    sql.NullTime{Valid: false, Time: time.Time{}},
 			RemainingRequestsSpecified: 0,
-			RemainingRequests:          sql.NullInt32{Valid: false},
+			RemainingRequests:          sql.NullInt32{Valid: false, Int32: 0},
 			RefillAmountSpecified:      0,
-			RefillAmount:               sql.NullInt32{Valid: false},
+			RefillAmount:               sql.NullInt32{Valid: false, Int32: 0},
 			RefillDaySpecified:         0,
-			RefillDay:                  sql.NullInt16{Valid: false},
+			RefillDay:                  sql.NullInt16{Valid: false, Int16: 0},
 		}
 
 		if req.Name.IsSpecified() {
@@ -584,6 +586,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
+
+	h.KeyCache.Remove(ctx, key.Hash)
 
 	// Return success response
 	return s.JSON(http.StatusOK, Response{

@@ -49,7 +49,6 @@ properties:
     format: int64
     minimum: 1000
   autoApply:
-    description: |-
-      Whether this ratelimit should be automatically applied when verifying a key.
+    description: Whether this ratelimit should be automatically applied when verifying a key.
     type: boolean
     default: false

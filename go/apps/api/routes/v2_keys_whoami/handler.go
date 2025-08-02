@@ -181,6 +181,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		k.Identity = &openapi.Identity{
+			Id:         identity.ID,
 			ExternalId: identity.ExternalID,
 			Meta:       nil,
 			Ratelimits: nil,

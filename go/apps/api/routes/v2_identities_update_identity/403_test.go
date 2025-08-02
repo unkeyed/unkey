@@ -39,8 +39,8 @@ func TestForbidden(t *testing.T) {
 			"test": "value",
 		}
 		req := handler.Request{
-			ExternalId: externalID,
-			Meta:       &meta,
+			Identity: externalID,
+			Meta:     &meta,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status)
@@ -61,8 +61,8 @@ func TestForbidden(t *testing.T) {
 			"test": "value",
 		}
 		req := handler.Request{
-			ExternalId: externalID,
-			Meta:       &meta,
+			Identity: externalID,
+			Meta:     &meta,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status)
@@ -105,8 +105,8 @@ func TestForbidden(t *testing.T) {
 			"test": "value",
 		}
 		req := handler.Request{
-			ExternalId: externalID,
-			Meta:       &meta,
+			Identity: externalID,
+			Meta:     &meta,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, got: %d, response: %s", res.Status, res.RawBody)
