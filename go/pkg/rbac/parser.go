@@ -25,6 +25,12 @@ import (
 //	primary       → PERMISSION | LPAREN expression RPAREN
 //
 // This grammar ensures AND has higher precedence than OR, matching SQL conventions.
+//
+// Note on asterisk (*) characters:
+// Asterisks are treated as literal characters in permission names, NOT as wildcard
+// patterns. For example, "api.*" will only match a permission literally named "api.*",
+// not permissions like "api.read" or "api.write". This allows for exact permission
+// matching without pattern expansion.
 type parser struct {
 	// lexer provides the token stream for parsing
 	lexer *lexer
